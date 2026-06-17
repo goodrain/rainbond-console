@@ -3,12 +3,14 @@ import copy
 import logging
 import os
 import traceback
+from typing import Any, List, Optional
 
 from addict import Dict
 from console.exception.exceptions import AuthenticationInfoHasExpiredError
 from console.exception.main import (BusinessException, NoPermissionsError, ResourceNotEnoughException, ServiceHandleException,
                                     AbortRequest)
-from console.models.main import (EnterpriseUserPerm, OAuthServices, PermsInfo, RoleInfo, RolePerms, UserOAuthServices, UserRole)
+from console.models.main import (EnterpriseUserPerm, OAuthServices, PermsInfo, RoleInfo, RolePerms, UserOAuthServices, UserRole,
+                                  RegionConfig)
 # repository
 from console.repositories.enterprise_repo import (enterprise_repo, enterprise_user_perm_repo)
 from console.repositories.group import group_repo
@@ -32,10 +34,11 @@ from goodrain_web import errors
 from rest_framework import exceptions, status
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView, set_rollback
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
-from www.models.main import TenantEnterprise, Tenants, TenantServiceInfo, ServiceGroup
+from www.models.main import TenantEnterprise, Tenants, TenantServiceInfo, ServiceGroup, Users
 from console.login.jwt_authentication import (JSONWebTokenAuthentication, JWTAuthenticationSafe)  # noqa: F401
 from console.services.auth.authentication import InternalTokenAuthentication
 
@@ -46,7 +49,7 @@ class BaseApiView(APIView):
     permission_classes = (AllowAny, )
     authentication_classes = (JWTAuthenticationSafe, )
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super(BaseApiView, self).__init__(*args, **kwargs)
         self.report = Dict({"ok": True})
 
@@ -58,12 +61,14 @@ class AlowAnyApiView(APIView):
     permission_classes = (AllowAny, )
     authentication_classes = ()
 
-    def __init__(self, *args, **kwargs):
+    user: Any
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super(AlowAnyApiView, self).__init__(*args, **kwargs)
         self.report = Dict({"ok": True})
         self.user = None
 
-    def initial(self, request, *args, **kwargs):
+    def initial(self, request: Request, *args: Any, **kwargs: Any) -> None:
         self.user = request.user
 
 
@@ -71,15 +76,26 @@ class JWTAuthApiView(APIView):
     permission_classes = (IsAuthenticated, )
     authentication_classes = (InternalTokenAuthentication, JSONWebTokenAuthentication)
 
-    def __init__(self, *args, **kwargs):
+    # Context attributes are populated in initial() before any handler runs; type them
+    # to the runtime contract so subclass views get clean self.<attr> access. The None
+    # defaults in __init__ are a transient pre-initial state (see P5 progress doc).
+    user: Users
+    enterprise: TenantEnterprise
+    user_perms: List[Any]
+    is_enterprise_admin: bool
+    tenant_name: str
+    tenant: Tenants
+    team: Tenants
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super(JWTAuthApiView, self).__init__(*args, **kwargs)
         self.report = Dict({"ok": True})
-        self.user = None
-        self.enterprise = None
+        self.user = None  # type: ignore[assignment]
+        self.enterprise = None  # type: ignore[assignment]
         self.is_enterprise_admin = False
-        self.user_perms = None
+        self.user_perms = None  # type: ignore[assignment]
 
-    def check_perms(self, request, *args, **kwargs):
+    def check_perms(self, request: Request, *args: Any, **kwargs: Any) -> None:
         """
         校验用户是否具有指定的权限。
         Args:
@@ -91,10 +107,10 @@ class JWTAuthApiView(APIView):
         """
         if kwargs.get("__message"):
             # 如果消息中没有当前请求方法对应的权限，则抛出权限错误
-            if kwargs["__message"].get(request.META.get("REQUEST_METHOD").lower()) is None:
+            if kwargs["__message"].get(request.META.get("REQUEST_METHOD").lower()) is None:  # type: ignore[union-attr]
                 raise NoPermissionsError
             # 获取当前请求方法需要的权限
-            request_perms = kwargs["__message"][request.META.get("REQUEST_METHOD").lower()]["perms"]
+            request_perms = kwargs["__message"][request.META.get("REQUEST_METHOD").lower()]["perms"]  # type: ignore[union-attr]
             if kwargs.get("app_id"):
                 pass
             # 检查用户是否具有请求所需的所有权限
@@ -102,24 +118,26 @@ class JWTAuthApiView(APIView):
                 logger.info("no permission. request perms: {}. user perms: {}".format(request_perms, self.user_perms))
                 raise NoPermissionsError
 
-    def has_perms(self, request_perms):
+    def has_perms(self, request_perms: Any) -> None:
         if request_perms and (len(set(request_perms) & set(self.user_perms)) != len(set(request_perms))):
             print("---------------")
             logger.info("no permission. request perms: {}. user perms: {}".format(request_perms, self.user_perms))
             raise NoPermissionsError
 
-    def get_perms(self):
+    def get_perms(self) -> None:
         self.user_perms = []
-        admin_roles = user_services.list_roles(self.user.enterprise_id, self.user.user_id)
+        # NOTE: Users.user_id is an int AutoField and enterprise_id is nullable, but the
+        # service signatures take str — systemic int-as-str / nullable mismatch (backlog).
+        admin_roles = user_services.list_roles(self.user.enterprise_id, self.user.user_id)  # type: ignore[arg-type]
         self.user_perms = list(perms.list_enterprise_perm_codes_by_roles(admin_roles))
 
-    def initial(self, request, *args, **kwargs):
-        self.user = request.user
-        self.enterprise = TenantEnterprise.objects.filter(enterprise_id=self.user.enterprise_id).first()
-        self.is_enterprise_admin = enterprise_user_perm_repo.is_admin(self.user.enterprise_id, self.user.user_id)
+    def initial(self, request: Request, *args: Any, **kwargs: Any) -> None:
+        self.user = request.user  # type: ignore[assignment]
+        self.enterprise = TenantEnterprise.objects.filter(enterprise_id=self.user.enterprise_id).first()  # type: ignore[assignment]
+        self.is_enterprise_admin = enterprise_user_perm_repo.is_admin(self.user.enterprise_id, self.user.user_id)  # type: ignore[arg-type]
         self.get_perms()
         self.check_perms(request, *args, **kwargs)
-        self.tenant_name = kwargs.get("tenantName", None)
+        self.tenant_name = kwargs.get("tenantName", None)  # type: ignore[assignment]
         if self.tenant_name:
             try:
                 self.tenant = Tenants.objects.get(tenant_name=self.tenant_name, enterprise_id=self.user.enterprise_id)
@@ -129,11 +147,13 @@ class JWTAuthApiView(APIView):
 
 
 class EnterpriseAdminView(JWTAuthApiView):
-    def __init__(self, *args, **kwargs):
-        super(EnterpriseAdminView, self).__init__(*args, **kwargs)
-        self.ent_user = None
+    ent_user: Users
 
-    def initial(self, request, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super(EnterpriseAdminView, self).__init__(*args, **kwargs)
+        self.ent_user = None  # type: ignore[assignment]
+
+    def initial(self, request: Request, *args: Any, **kwargs: Any) -> None:
         super(EnterpriseAdminView, self).initial(request, *args, **kwargs)
         user_id = kwargs.get("user_id")
         if user_id:
@@ -144,13 +164,13 @@ class EnterpriseAdminView(JWTAuthApiView):
 
 
 class CloudEnterpriseCenterView(JWTAuthApiView):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super(CloudEnterpriseCenterView, self).__init__(*args, **kwargs)
         self.oauth_instance = None
         self.oauth = None
         self.oauth_user = None
 
-    def initial(self, request, *args, **kwargs):
+    def initial(self, request: Request, *args: Any, **kwargs: Any) -> None:
         super(CloudEnterpriseCenterView, self).initial(request, *args, **kwargs)
         if not os.getenv("IS_PUBLIC", False):
             return
@@ -172,19 +192,23 @@ class CloudEnterpriseCenterView(JWTAuthApiView):
 
 
 class TenantHeaderView(JWTAuthApiView):
-    def __init__(self, *args, **kwargs):
+    team_name: str
+    perm_app_id: Any
+    perm_apps: List[Any]
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super(TenantHeaderView, self).__init__(*args, **kwargs)
-        self.tenant_name = None
-        self.team_name = None
-        self.tenant = None
-        self.team = None
+        self.tenant_name = None  # type: ignore[assignment]
+        self.team_name = None  # type: ignore[assignment]
+        self.tenant = None  # type: ignore[assignment]
+        self.team = None  # type: ignore[assignment]
         self.report = Dict({"ok": True})
-        self.user = None
+        self.user = None  # type: ignore[assignment]
         self.is_team_owner = False
         self.perm_app_id = ""
         self.perm_apps = []
 
-    def get_perms(self):
+    def get_perms(self) -> None:
         """
         获取用户的权限列表。
 
@@ -202,7 +226,8 @@ class TenantHeaderView(JWTAuthApiView):
         self.user_perms = []
 
         # 获取用户拥有的管理员角色
-        admin_roles = user_services.list_roles(self.user.enterprise_id, self.user.user_id)
+        # NOTE: systemic int-as-str / nullable enterprise_id mismatch (backlog).
+        admin_roles = user_services.list_roles(self.user.enterprise_id, self.user.user_id)  # type: ignore[arg-type]
         self.user_perms = list(perms.list_enterprise_perm_codes_by_roles(admin_roles))
 
         # 如果用户是团队所有者，添加团队权限和团队所有者权限
@@ -215,7 +240,7 @@ class TenantHeaderView(JWTAuthApiView):
             # ========== 优化：使用 JOIN 查询替代嵌套子查询 ==========
             # 一次性获取用户在团队中的所有权限（全局 + 应用）
             all_perms = optimized_role_perm_repo.get_user_team_all_perms(
-                user_id=self.user.user_id,
+                user_id=self.user.user_id,  # type: ignore[arg-type]
                 tenant_id=self.tenant.tenant_id
             )
 
@@ -248,13 +273,13 @@ class TenantHeaderView(JWTAuthApiView):
                     if 300002 in perm_codes
                 ]
                 # 添加用户创建的应用
-                app = ServiceGroup.objects.filter(tenant_id=self.tenant.tenant_id,
-                                                  username=self.user.nick_name).values_list("ID", flat=True)
-                self.perm_apps.extend(app)
+                created_app_ids = ServiceGroup.objects.filter(tenant_id=self.tenant.tenant_id,
+                                                              username=self.user.nick_name).values_list("ID", flat=True)
+                self.perm_apps.extend(created_app_ids)
                 self.perm_apps = list(set(self.perm_apps))
         self.user_perms = list(set(self.user_perms))
 
-    def initial(self, request, *args, **kwargs):
+    def initial(self, request: Request, *args: Any, **kwargs: Any) -> None:
         """
         初始化请求相关的实例变量，包括用户信息、企业信息、团队信息和权限信息。
 
@@ -269,10 +294,10 @@ class TenantHeaderView(JWTAuthApiView):
         request_path = getattr(request, 'path', '') or getattr(request, 'path_info', '')
         is_resource_center_log_request = '/resource-center/pods/' in request_path and request_path.endswith('/logs')
         # 设置当前用户
-        self.user = request.user
+        self.user = request.user  # type: ignore[assignment]
 
         # 根据用户的enterprise_id获取企业信息
-        self.enterprise = TenantEnterprise.objects.filter(enterprise_id=self.user.enterprise_id).first()
+        self.enterprise = TenantEnterprise.objects.filter(enterprise_id=self.user.enterprise_id).first()  # type: ignore[assignment]
 
         # 根据企业ID和用户ID获取用户权限信息，设置企业管理员标识
         enterprise_user_perms = EnterpriseUserPerm.objects.filter(
@@ -281,17 +306,17 @@ class TenantHeaderView(JWTAuthApiView):
             self.is_enterprise_admin = True
 
         # 获取租户名称
-        self.tenant_name = kwargs.get("tenantName", None)
+        self.tenant_name = kwargs.get("tenantName", None)  # type: ignore[assignment]
         if not self.tenant_name:
-            self.tenant_name = kwargs.get("team_name", None)
+            self.tenant_name = kwargs.get("team_name", None)  # type: ignore[assignment]
         if not self.tenant_name:
-            self.tenant_name = request.META.get('HTTP_X_TEAM_NAME', None)
+            self.tenant_name = request.META.get('HTTP_X_TEAM_NAME', None)  # type: ignore[assignment]
         if not self.tenant_name:
-            self.tenant_name = self.request.COOKIES.get('team', None)
+            self.tenant_name = self.request.COOKIES.get('team', None)  # type: ignore[assignment]
         if not self.tenant_name:
-            self.tenant_name = self.request.COOKIES.get('team_name', None)
+            self.tenant_name = self.request.COOKIES.get('team_name', None)  # type: ignore[assignment]
         if not self.tenant_name:
-            self.tenant_name = self.request.GET.get('team_name', None)
+            self.tenant_name = self.request.GET.get('team_name', None)  # type: ignore[assignment]
         self.team_name = self.tenant_name
 
         # 如果租户名称不存在，抛出异常
@@ -325,22 +350,22 @@ class TenantHeaderView(JWTAuthApiView):
         # 获取权限应用ID
         if kwargs.get("app_id"):
             try:
-                self.perm_app_id = int(kwargs.get("app_id"))
+                self.perm_app_id = int(kwargs.get("app_id"))  # type: ignore[arg-type]
             except Exception as e:
                 self.perm_app_id = -1
         if request.GET.get("group_id"):
             try:
-                self.perm_app_id = int(request.GET.get("group_id"))
+                self.perm_app_id = int(request.GET.get("group_id"))  # type: ignore[arg-type]
             except Exception as e:
                 self.perm_app_id = -1
         if request.GET.get("app_id"):
             try:
-                self.perm_app_id = int(request.GET.get("app_id"))
+                self.perm_app_id = int(request.GET.get("app_id"))  # type: ignore[arg-type]
             except Exception as e:
                 self.perm_app_id = -1
         if kwargs.get("group_id"):
             try:
-                self.perm_app_id = int(kwargs.get("group_id"))
+                self.perm_app_id = int(kwargs.get("group_id"))  # type: ignore[arg-type]
             except Exception as e:
                 self.perm_app_id = -1
         request_data = None
@@ -353,12 +378,12 @@ class TenantHeaderView(JWTAuthApiView):
                 self.perm_app_id = -1
             else:
                 try:
-                    self.perm_app_id = int(request_data.get("group_id"))
+                    self.perm_app_id = int(request_data.get("group_id"))  # type: ignore[arg-type]
                 except Exception as e:
                     self.perm_app_id = -1
         if isinstance(request_data, dict) and request_data.get("app_id"):
             try:
-                self.perm_app_id = int(request_data.get("app_id"))
+                self.perm_app_id = int(request_data.get("app_id"))  # type: ignore[arg-type]
             except Exception as e:
                 self.perm_app_id = -1
         # 根据服务别名获取服务信息，并设置权限应用ID
@@ -372,7 +397,7 @@ class TenantHeaderView(JWTAuthApiView):
 
         if self.user.user_id == self.tenant.creater:
             self.is_team_owner = True
-        self.enterprise = TenantEnterprise.objects.filter(enterprise_id=self.tenant.enterprise_id).first()
+        self.enterprise = TenantEnterprise.objects.filter(enterprise_id=self.tenant.enterprise_id).first()  # type: ignore[assignment]
         self.is_enterprise_admin = False
         enterprise_user_perms = EnterpriseUserPerm.objects.filter(
             enterprise_id=self.tenant.enterprise_id, user_id=self.user.user_id).first()
@@ -383,23 +408,27 @@ class TenantHeaderView(JWTAuthApiView):
 
 
 class RegionTenantHeaderView(TenantHeaderView):
-    def __init__(self, *args, **kwargs):
-        super(RegionTenantHeaderView, self).__init__(*args, **kwargs)
-        self.response_region = None
-        self.region_name = None
-        self.region = None
+    response_region: str
+    region_name: str
+    region: RegionConfig
 
-    def initial(self, request, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super(RegionTenantHeaderView, self).__init__(*args, **kwargs)
+        self.response_region = None  # type: ignore[assignment]
+        self.region_name = None  # type: ignore[assignment]
+        self.region = None  # type: ignore[assignment]
+
+    def initial(self, request: Request, *args: Any, **kwargs: Any) -> None:
         super(RegionTenantHeaderView, self).initial(request, *args, **kwargs)
-        self.response_region = kwargs.get("region_name", None)
+        self.response_region = kwargs.get("region_name", None)  # type: ignore[assignment]
         if not self.response_region:
-            self.response_region = request.GET.get("region_name", None)
+            self.response_region = request.GET.get("region_name", None)  # type: ignore[assignment]
         if not self.response_region:
-            self.response_region = request.GET.get("region", None)
+            self.response_region = request.GET.get("region", None)  # type: ignore[assignment]
         if not self.response_region:
-            self.response_region = request.META.get('HTTP_X_REGION_NAME', None)
+            self.response_region = request.META.get('HTTP_X_REGION_NAME', None)  # type: ignore[assignment]
         if not self.response_region:
-            self.response_region = self.request.COOKIES.get('region_name', None)
+            self.response_region = self.request.COOKIES.get('region_name', None)  # type: ignore[assignment]
         self.region_name = self.response_region
         if not self.response_region:
             raise ImportError("region_name not found !")
@@ -410,21 +439,24 @@ class RegionTenantHeaderView(TenantHeaderView):
 
 
 class RegionTenantHeaderCloudEnterpriseCenterView(RegionTenantHeaderView, CloudEnterpriseCenterView):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super(RegionTenantHeaderCloudEnterpriseCenterView, self).__init__(*args, **kwargs)
 
-    def initial(self, request, *args, **kwargs):
+    def initial(self, request: Request, *args: Any, **kwargs: Any) -> None:
         RegionTenantHeaderView.initial(self, request, *args, **kwargs)
         CloudEnterpriseCenterView.initial(self, request, *args, **kwargs)
 
 
 class ApplicationView(RegionTenantHeaderView):
-    def __init__(self, *args, **kwargs):
+    app: ServiceGroup
+    app_id: Any
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super(ApplicationView, self).__init__(*args, **kwargs)
-        self.app = None
+        self.app = None  # type: ignore[assignment]
         self.app_id = None
 
-    def initial(self, request, *args, **kwargs):
+    def initial(self, request: Request, *args: Any, **kwargs: Any) -> None:
         super(ApplicationView, self).initial(request, *args, **kwargs)
         app_id = kwargs.get("app_id") if kwargs.get("app_id") else kwargs.get("group_id")
         app_id = app_id if app_id else request.data.get("group_id")
@@ -440,22 +472,24 @@ class ApplicationView(RegionTenantHeaderView):
                     tenant_id=self.tenant.tenant_id, region_name=self.region_name, k8s_app="sourcecode-demo")
                 if k8s_apps:
                     k8s_app_name += make_uuid()[:6]
+                # NOTE: demo path passes None for several create_app str params and a
+                # nullable enterprise_id; legacy caller-side mismatch (behavior preserved).
                 data = group_service.create_app(
                     self.tenant,
                     self.region_name,
                     "源码构建示例",
-                    None,
+                    None,  # type: ignore[arg-type]
                     self.user.get_username(),
-                    None,
-                    None,
-                    None,
-                    None,
-                    self.user.enterprise_id,
-                    None,
+                    None,  # type: ignore[arg-type]
+                    None,  # type: ignore[arg-type]
+                    None,  # type: ignore[arg-type]
+                    None,  # type: ignore[arg-type]
+                    self.user.enterprise_id,  # type: ignore[arg-type]
+                    None,  # type: ignore[arg-type]
                     k8s_app=k8s_app_name)
                 app_id = data["group_id"]
 
-        app = group_repo.get_group_by_pk(self.tenant.tenant_id, self.region_name, app_id)
+        app = group_repo.get_group_by_pk(self.tenant.tenant_id, self.region_name, app_id)  # type: ignore[arg-type]
         if not app:
             raise ServiceHandleException("app not found", "应用不存在", status_code=404)
         self.app = app
@@ -463,58 +497,62 @@ class ApplicationView(RegionTenantHeaderView):
 
         # update update_time if the http method is not a get.
         if request.method != 'GET':
-            group_repo.update_group_time(app_id)
+            group_repo.update_group_time(app_id)  # type: ignore[arg-type]
 
 
 class AppUpgradeRecordView(ApplicationView):
-    def __init__(self, *args, **kwargs):
+    app_upgrade_record: Any
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super(AppUpgradeRecordView, self).__init__(*args, **kwargs)
         self.app_upgrade_record = None
 
-    def initial(self, request, *args, **kwargs):
+    def initial(self, request: Request, *args: Any, **kwargs: Any) -> None:
         super(AppUpgradeRecordView, self).initial(request, *args, **kwargs)
         record_id = kwargs.get("record_id") if kwargs.get("record_id") else kwargs.get("upgrade_record_id")
-        self.app_upgrade_record = upgrade_repo.get_by_record_id(record_id)
+        self.app_upgrade_record = upgrade_repo.get_by_record_id(record_id)  # type: ignore[arg-type]
 
 
 class ApplicationViewCloudEnterpriseCenterView(ApplicationView, CloudEnterpriseCenterView):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super(ApplicationViewCloudEnterpriseCenterView, self).__init__(*args, **kwargs)
 
-    def initial(self, request, *args, **kwargs):
+    def initial(self, request: Request, *args: Any, **kwargs: Any) -> None:
         ApplicationView.initial(self, request, *args, **kwargs)
         CloudEnterpriseCenterView.initial(self, request, *args, **kwargs)
 
 
 class TeamOwnerView(RegionTenantHeaderView):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super(TeamOwnerView, self).__init__(*args, **kwargs)
 
-    def initial(self, request, *args, **kwargs):
+    def initial(self, request: Request, *args: Any, **kwargs: Any) -> None:
         super(TeamOwnerView, self).initial(request, *args, **kwargs)
         if not self.is_team_owner:
             raise NoPermissionsError
 
 
 class EnterpriseHeaderView(JWTAuthApiView):
-    def __init__(self, *args, **kwargs):
-        super(EnterpriseHeaderView, self).__init__(*args, **kwargs)
-        self.enterprise = None
-        self.enterprise_id = None
+    enterprise_id: str
 
-    def initial(self, request, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super(EnterpriseHeaderView, self).__init__(*args, **kwargs)
+        self.enterprise = None  # type: ignore[assignment]
+        self.enterprise_id = None  # type: ignore[assignment]
+
+    def initial(self, request: Request, *args: Any, **kwargs: Any) -> None:
         super(EnterpriseHeaderView, self).initial(request, *args, **kwargs)
         eid = kwargs.get("eid", None)
         enterprise_id = kwargs.get("enterprise_id", eid)
         if not enterprise_id:
             raise ImportError("enterprise_id not found !")
-        self.enterprise = enterprise_repo.get_enterprise_by_enterprise_id(enterprise_id)
+        self.enterprise = enterprise_repo.get_enterprise_by_enterprise_id(enterprise_id)  # type: ignore[assignment]
         if not self.enterprise:
             raise NotFound("enterprise id: {};enterprise not found".format(enterprise_id))
         self.enterprise_id = enterprise_id
 
 
-def custom_exception_handler(exc, context):
+def custom_exception_handler(exc: Exception, context: Any) -> Optional[Response]:
     """
         Returns the response that should be used for any given exception.
 
@@ -530,7 +568,7 @@ def custom_exception_handler(exc, context):
     if isinstance(exc, ServiceHandleException):
         return exc.response
     elif isinstance(exc, ResourceNotEnoughException):
-        data = {"code": 10406, "msg": "resource is not enough", "msg_show": exc.message}
+        data = {"code": 10406, "msg": "resource is not enough", "msg_show": exc.message}  # type: ignore[attr-defined]
         return Response(data, status=412)
     elif isinstance(exc, RegionApiBaseHttpClient.CallApiFrequentError):
         data = {"code": 409, "msg": "wait a moment please", "msg_show": "操作过于频繁，请稍后再试"}
@@ -545,7 +583,7 @@ def custom_exception_handler(exc, context):
             else:
                 core_error = str(exc.message)
             data = {"code": 400, "msg": exc.message, "msg_show": "数据中心操作故障 {}".format(core_error)}
-        return Response(data, status=data["code"])
+        return Response(data, status=data["code"])  # type: ignore[arg-type]
     elif isinstance(exc, ValidationError):
         logger.error(exc)
         return Response({
@@ -558,12 +596,12 @@ def custom_exception_handler(exc, context):
     elif isinstance(exc, exceptions.APIException):
         headers = {}
         if getattr(exc, 'auth_header', None):
-            headers['WWW-Authenticate'] = exc.auth_header
+            headers['WWW-Authenticate'] = exc.auth_header  # type: ignore[attr-defined]
         if getattr(exc, 'wait', None):
-            headers['Retry-After'] = '%d' % exc.wait
+            headers['Retry-After'] = '%d' % exc.wait  # type: ignore[attr-defined]
 
         if isinstance(exc.detail, dict):
-            data = exc.detail
+            data = exc.detail  # type: ignore[assignment]
         else:
             data = {'detail': exc.detail}
 

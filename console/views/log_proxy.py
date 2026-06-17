@@ -2,9 +2,11 @@
 import logging
 import requests
 import os
+from typing import Optional
 from urllib.parse import urljoin, urlparse
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
+from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework import status
 from console.views.base import JWTAuthApiView
@@ -20,7 +22,7 @@ class LogProxyView(JWTAuthApiView):
     前端传递接口地址和请求参数，后端代理请求并返回结果
     """
     
-    def post(self, request):
+    def post(self, request: Request) -> Response:
         try:
             # 获取前端传递的参数
             target_url = request.data.get('url')
@@ -121,7 +123,7 @@ class LogProxyView(JWTAuthApiView):
             result = general_message(500, "System Error", f"Unknown exception: {str(e)}")
             return Response(result, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    def _get_log_plugin_backend(self):
+    def _get_log_plugin_backend(self) -> Optional[str]:
         """
         Get log plugin backend address from plugin configuration
         """
@@ -153,7 +155,8 @@ class LogProxyView(JWTAuthApiView):
             if enterprise_id and region_name:
                 region_api = RegionInvokeApi()
                 _, body = region_api.list_plugins(enterprise_id, region_name, official=True)
-                plugins = body.get("list", [])
+                # NOTE: region_api may return None; union-attr backlog.
+                plugins = body.get("list", [])  # type: ignore[union-attr]
 
                 # Find log plugin
                 for plugin in plugins:

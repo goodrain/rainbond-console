@@ -4,8 +4,10 @@
 """
 import datetime
 import logging
+from typing import Any
 
 from console.utils.cache_decorators import never_cache
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from console.services.operation_log import operation_log_service, Operation
@@ -23,7 +25,7 @@ region_api = RegionInvokeApi()
 
 class PluginBuildView(PluginBaseView):
     @never_cache
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         构建插件
         ---
@@ -76,12 +78,12 @@ class PluginBuildView(PluginBaseView):
                                                                     self.tenant.tenant_name, self.plugin.plugin_id)
             comment = operation_log_service.generate_team_comment(
                 operation=Operation.IN,
-                module_name=self.tenant.tenant_alias,
+                module_name=self.tenant.tenant_alias,  # type: ignore[arg-type]
                 region=self.response_region,
                 team_name=self.tenant.tenant_name,
                 suffix=" 中构建了插件 {}".format(plugin_name))
             operation_log_service.create_team_log(
-                user=self.user, comment=comment, enterprise_id=self.user.enterprise_id,
+                user=self.user, comment=comment, enterprise_id=self.user.enterprise_id,  # type: ignore[arg-type]
                 team_name=self.tenant.tenant_name)
         except Exception as e:
             logger.exception(e)
@@ -91,7 +93,7 @@ class PluginBuildView(PluginBaseView):
 
 class CreatePluginVersionView(PluginBaseView):
     @never_cache
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         创建插件新版本
         ---
@@ -131,7 +133,7 @@ class CreatePluginVersionView(PluginBaseView):
 
 class PluginBuildStatusView(PluginBaseView):
     @never_cache
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         获取插件构建状态
         ---
@@ -154,5 +156,7 @@ class PluginBuildStatusView(PluginBaseView):
         """
         pbv = plugin_version_service.get_plugin_build_status(self.response_region, self.tenant, self.plugin_version.plugin_id,
                                                              self.plugin_version.build_version)
-        result = general_message(200, "success", "查询成功", {"status": pbv.build_status, "event_id": pbv.event_id})
+        # NOTE: get_plugin_build_status may return None; backlog
+        result = general_message(200, "success", "查询成功",
+                                 {"status": pbv.build_status, "event_id": pbv.event_id})  # type: ignore[union-attr]
         return Response(result, status=result["code"])

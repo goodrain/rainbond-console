@@ -4,6 +4,9 @@
 """
 import json
 import logging
+from typing import Any
+
+from rest_framework.request import Request
 
 from console.constants import LogConstants
 from console.services.app_actions import event_service, log_service, ws_service
@@ -20,7 +23,7 @@ logger = logging.getLogger("default")
 
 class AppEventView(AppBaseView):
     @never_cache
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         获取组件的event事件
         ---
@@ -68,7 +71,9 @@ class AppEventView(AppBaseView):
             # 若出现异常，回退到原有逻辑，避免影响原功能
             logger.exception(f"KubeBlocks 合并事件失败: {e}")
 
-        events, has_next = event_service.get_service_event(self.tenant, self.service, int(page), int(page_size), start_time)
+        # NOTE: start_time GET param is Optional; service expects str (legacy mismatch, backlog).
+        events, has_next = event_service.get_service_event(self.tenant, self.service, int(page), int(page_size),
+                                                           start_time)  # type: ignore[arg-type]
 
         result = general_message(200, "success", "查询成功", list=events, has_next=has_next)
         return Response(result, status=result["code"])
@@ -76,7 +81,7 @@ class AppEventView(AppBaseView):
 
 class AppEventLogView(AppBaseView):
     @never_cache
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         获取组件的event的详细日志
         ---
@@ -114,7 +119,7 @@ class AppEventLogView(AppBaseView):
 
 class AppLogView(AppBaseView):
     @never_cache
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         获取组件的日志
         ---
@@ -153,7 +158,7 @@ class AppLogView(AppBaseView):
 
 class AppLogInstanceView(AppBaseView):
     @never_cache
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         获取日志websocket信息
         ---
@@ -171,7 +176,7 @@ class AppLogInstanceView(AppBaseView):
         """
         code, msg, host_id = log_service.get_docker_log_instance(self.tenant, self.service)
         web_socket_url = ws_service.get_log_instance_ws(request, self.service.service_region)
-        bean = {"web_socket_url": web_socket_url}
+        bean: dict = {"web_socket_url": web_socket_url}
         if code == 200:
             web_socket_url += "?host_id={0}".format(host_id)
             bean["host_id"] = host_id
@@ -182,7 +187,7 @@ class AppLogInstanceView(AppBaseView):
 
 class AppHistoryLogView(AppBaseView):
     @never_cache
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         获取组件历史日志
         ---
@@ -212,7 +217,7 @@ class AppHistoryLogView(AppBaseView):
 
 class AppEventsView(RegionTenantHeaderView):
     @never_cache
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         获取作用对象的event事件
         ---
@@ -275,8 +280,9 @@ class AppEventsView(RegionTenantHeaderView):
                                 service = TenantServiceInfo.objects.filter(
                                     service_alias=ali, tenant_id=self.tenant.tenant_id).first()
                                 relys.append({
-                                    "service_cname": service.service_cname,
-                                    "serivce_alias": service.service_alias,
+                                    # NOTE: .first() may return None; legacy code accesses attrs directly (backlog).
+                                    "service_cname": service.service_cname,  # type: ignore[union-attr]
+                                    "serivce_alias": service.service_alias,  # type: ignore[union-attr]
                                 })
                             event["Message"] = "依赖的其他组件暂未运行 {0}".format(json.dumps(relys, ensure_ascii=False))
                     result = general_message(200, "success", "查询成功", list=events, total=total, has_next=has_next)
@@ -293,7 +299,7 @@ class AppEventsView(RegionTenantHeaderView):
 
 class AppEventsLogView(RegionTenantHeaderView):
     @never_cache
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         获取作用对象的event事件
         ---
@@ -318,5 +324,5 @@ class AppEventsLogView(RegionTenantHeaderView):
             result = general_message(200, "success", "查询成功", list=log_content)
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)
+            result = error_message(e.message)  # type: ignore[attr-defined]  # NOTE: py2 Exception.message
         return Response(result, status=result["code"])

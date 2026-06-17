@@ -3,8 +3,10 @@
   Created on 18/1/9.
 """
 import logging
+from typing import Any
 
 from django.shortcuts import redirect
+from rest_framework.request import Request
 from console.utils.cache_decorators import never_cache
 from rest_framework.response import Response
 
@@ -19,7 +21,7 @@ logger = logging.getLogger("default")
 git_service = GitCodeService()
 
 class ServiceCodeBranch(AppBaseView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         获取组件代码仓库分支
         ---
@@ -40,7 +42,7 @@ class ServiceCodeBranch(AppBaseView):
         result = general_message(200, "success", "查询成功", bean=bean, list=branches)
         return Response(result, status=result["code"])
 
-    def put(self, request, *args, **kwargs):
+    def put(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         修改组件代码仓库分支
         ---

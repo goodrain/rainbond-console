@@ -5,8 +5,10 @@
 import json
 import logging
 from datetime import datetime
+from typing import Any
 
 from console.utils.cache_decorators import never_cache
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from console.enum.component_enum import is_state, is_support, ComponentType, is_kubeblocks
@@ -42,7 +44,7 @@ group_service_relation_repo = GroupServiceRelationRepository()
 
 
 class AppsPorConsoletView(RegionTenantHeaderView):
-    def get(self, req, *args, **kwargs):
+    def get(self, req: Request, *args: Any, **kwargs: Any) -> Response:
         app_id = req.GET.get('appID')
         ports = port_repo.get_tenant_services(self.team.tenant_id)
         component_list = service_repo.get_service_by_tenant(self.team.tenant_id)
@@ -53,7 +55,7 @@ class AppsPorConsoletView(RegionTenantHeaderView):
             tenant_groups = group_service_relation_repo.get_relation_by_tenant_id(self.team.tenant_id)
             component_groups_dict = {tg.service_id: tg.group_id for tg in tenant_groups}
             for port in ports:
-                port_dict = dict()
+                port_dict: dict = dict()
                 if not port.is_inner_service:
                     continue
                 port_dict["port"] = port.container_port
@@ -79,7 +81,7 @@ class AppsPorConsoletView(RegionTenantHeaderView):
 
 class StartAppView(AppBaseCloudEnterpriseCenterView):
     @never_cache
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         启动组件
         ---
@@ -100,7 +102,7 @@ class StartAppView(AppBaseCloudEnterpriseCenterView):
             code, msg = app_manage_service.start(self.tenant, self.service, self.user, oauth_instance=self.oauth_instance)
             if is_kubeblocks(self.service.extend_method):
                 code, msg = kubeblocks_service.manage_cluster_status(self.service, self.region_name, oauth_instance=self.oauth_instance, operation="start")
-            bean = {}
+            bean: dict = {}
             if code != 200:
                 return Response(general_message(code, "start app error", msg, bean=bean), status=code)
             result = general_message(code, "success", "操作成功", bean=bean)
@@ -123,13 +125,16 @@ class StartAppView(AppBaseCloudEnterpriseCenterView):
             raise re
         except AccountOverdueException as re:
             logger.exception(re)
-            return Response(general_message(10410, "resource is not enough", re.message), status=412)
+            # NOTE: py2-era Exception.message; absent in py3 (backlog, behavior preserved).
+            return Response(
+                general_message(10410, "resource is not enough", re.message),  # type: ignore[attr-defined]
+                status=412)
         return Response(result, status=result["code"])
 
 
 class StopAppView(AppBaseView):
     @never_cache
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         停止组件
         ---
@@ -171,7 +176,7 @@ class StopAppView(AppBaseView):
 
 class PauseAppView(AppBaseView):
     @never_cache
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         挂起组件
         ---
@@ -200,7 +205,7 @@ class PauseAppView(AppBaseView):
 
 class UNPauseAppView(AppBaseView):
     @never_cache
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         恢复组件
         ---
@@ -229,7 +234,7 @@ class UNPauseAppView(AppBaseView):
 
 class ReStartAppView(AppBaseCloudEnterpriseCenterView):
     @never_cache
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         重启组件
         ---
@@ -249,7 +254,7 @@ class ReStartAppView(AppBaseCloudEnterpriseCenterView):
         code, msg = app_manage_service.restart(self.tenant, self.service, self.user, oauth_instance=self.oauth_instance)
         if is_kubeblocks(self.service.extend_method):
             kubeblocks_service.manage_cluster_status(self.service, self.region_name, oauth_instance=self.oauth_instance, operation="restart")
-        bean = {}
+        bean: dict = {}
         if code != 200:
             return Response(general_message(code, "restart app error", msg, bean=bean), status=code)
         result = general_message(code, "success", "操作成功", bean=bean)
@@ -273,7 +278,7 @@ class ReStartAppView(AppBaseCloudEnterpriseCenterView):
 
 class DeployAppView(AppBaseCloudEnterpriseCenterView):
     @never_cache
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         部署组件
         ---
@@ -294,17 +299,18 @@ class DeployAppView(AppBaseCloudEnterpriseCenterView):
         try:
             group_version = request.data.get("group_version", None)
             tracker = enterprise_first_deploy_service.begin_tracking(
-                enterprise_id=self.tenant.enterprise_id,
+                enterprise_id=self.tenant.enterprise_id,  # type: ignore[arg-type]
                 tenant_name=self.tenant.tenant_name,
                 region_name=self.service.service_region,
-                deploy_type=enterprise_first_deploy_service.get_deploy_type(self.service.service_source),
-                operator=self.user.nick_name,
+                deploy_type=enterprise_first_deploy_service.get_deploy_type(
+                    self.service.service_source),  # type: ignore[arg-type]
+                operator=self.user.nick_name,  # type: ignore[arg-type]
                 source_language=self.service.language or "",
                 service_id=self.service.service_id,
                 service_alias=self.service.service_alias)
             code, msg, event_id = app_deploy_service.deploy(
                 self.tenant, self.service, self.user, version=group_version, oauth_instance=self.oauth_instance)
-            bean = {}
+            bean: dict = {}
             if code != 200:
                 enterprise_first_deploy_service.mark_failure(tracker, reason=msg)
                 return Response(general_message(code, "deploy app error", msg, bean=bean), status=code)
@@ -328,20 +334,24 @@ class DeployAppView(AppBaseCloudEnterpriseCenterView):
         except ErrServiceSourceNotFound as e:
             enterprise_first_deploy_service.mark_failure(tracker, reason=getattr(e, "message", str(e)))
             logger.exception(e)
-            return Response(general_message(412, e.message, "无法找到云市应用的构建源"), status=412)
+            return Response(
+                general_message(412, e.message, "无法找到云市应用的构建源"),  # type: ignore[attr-defined]
+                status=412)
         except ResourceNotEnoughException as re:
             enterprise_first_deploy_service.mark_failure(tracker, reason=getattr(re, "message", str(re)))
             raise re
         except AccountOverdueException as re:
             enterprise_first_deploy_service.mark_failure(tracker, reason=getattr(re, "message", str(re)))
             logger.exception(re)
-            return Response(general_message(10410, "resource is not enough", re.message), status=412)
+            return Response(
+                general_message(10410, "resource is not enough", re.message),  # type: ignore[attr-defined]
+                status=412)
         return Response(result, status=result["code"])
 
 
 class RollBackAppView(AppBaseView):
     @never_cache
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         回滚组件
         ---
@@ -370,7 +380,7 @@ class RollBackAppView(AppBaseView):
                 return Response(general_message(400, "deploy version is not found", "请指明版本及操作类型"), status=400)
 
             code, msg = app_manage_service.roll_back(self.tenant, self.service, self.user, deploy_version, upgrade_or_rollback)
-            bean = {}
+            bean: dict = {}
             if code != 200:
                 return Response(general_message(code, "roll back app error", msg, bean=bean), status=code)
             result = general_message(code, "success", "操作成功", bean=bean)
@@ -393,13 +403,15 @@ class RollBackAppView(AppBaseView):
             raise re
         except AccountOverdueException as re:
             logger.exception(re)
-            return Response(general_message(10410, "resource is not enough", re.message), status=412)
+            return Response(
+                general_message(10410, "resource is not enough", re.message),  # type: ignore[attr-defined]
+                status=412)
         return Response(result, status=result["code"])
 
 
 class VerticalExtendAppView(AppBaseCloudEnterpriseCenterView):
     @never_cache
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         垂直升级组件
         ---
@@ -451,7 +463,7 @@ class VerticalExtendAppView(AppBaseCloudEnterpriseCenterView):
                 oauth_instance=self.oauth_instance,
                 new_gpu=new_gpu,
                 new_cpu=new_cpu)
-            bean = {}
+            bean: dict = {}
             if code != 200:
                 return Response(general_message(code, "vertical upgrade error", msg, bean=bean), status=code)
             result = general_message(code, "success", "操作成功", bean=bean)
@@ -476,13 +488,15 @@ class VerticalExtendAppView(AppBaseCloudEnterpriseCenterView):
             raise re
         except AccountOverdueException as re:
             logger.exception(re)
-            return Response(general_message(10410, "resource is not enough", re.message), status=412)
+            return Response(
+                general_message(10410, "resource is not enough", re.message),  # type: ignore[attr-defined]
+                status=412)
         return Response(result, status=result["code"])
 
 
 class HorizontalExtendAppView(AppBaseView, CloudEnterpriseCenterView):
     @never_cache
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         水平升级组件
         ---
@@ -534,13 +548,15 @@ class HorizontalExtendAppView(AppBaseView, CloudEnterpriseCenterView):
             raise re
         except AccountOverdueException as re:
             logger.exception(re)
-            return Response(general_message(10410, "resource is not enough", re.message), status=412)
+            return Response(
+                general_message(10410, "resource is not enough", re.message),  # type: ignore[attr-defined]
+                status=412)
         return Response(result, status=result["code"])
 
 
 class ScalingAppView(AppBaseCloudEnterpriseCenterView):
     @never_cache
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         组件伸缩（支持水平和垂直伸缩）
         ---
@@ -607,14 +623,17 @@ class ScalingAppView(AppBaseCloudEnterpriseCenterView):
             # 执行水平伸缩
             if has_horizontal_params and new_node != self.service.min_node:
                 app_manage_service.horizontal_upgrade(
-                    self.tenant, self.service, self.user, int(new_node), oauth_instance=self.oauth_instance)
+                    self.tenant, self.service, self.user, int(new_node),  # type: ignore[arg-type]
+                    oauth_instance=self.oauth_instance)
             self.service.update_time = datetime.now()
             self.service.save()
         except ResourceNotEnoughException as re:
             raise re
         except AccountOverdueException as re:
             logger.exception(re)
-            return Response(general_message(10410, "resource is not enough", re.message), status=412)
+            return Response(
+                general_message(10410, "resource is not enough", re.message),  # type: ignore[attr-defined]
+                status=412)
         except ServiceHandleException as e:
             # 节点没有变化的错误码为 10104，不需要抛出异常
             if e.error_code != 10104:
@@ -626,7 +645,7 @@ class ScalingAppView(AppBaseCloudEnterpriseCenterView):
 class BatchActionView(RegionTenantHeaderCloudEnterpriseCenterView):
     @never_cache
     # TODO 修改权限验证
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         批量操作组件
         ---
@@ -668,12 +687,15 @@ class BatchActionView(RegionTenantHeaderCloudEnterpriseCenterView):
         if action == "deploy":
             action_zh = "构建"
         comment = "批量" + action_zh + "了应用{app}下的组件"
-        service_id_list = service_ids.split(",")
+        # NOTE: service_ids comes from request body (Any|None); legacy code assumes str (backlog).
+        service_id_list = service_ids.split(",")  # type: ignore[union-attr]
         app = group_service.get_service_group_info(service_id_list[0])
         code, msg, services = app_manage_service.batch_action(self.region_name, self.tenant, self.user, action, service_id_list,
                                                     move_group_id, self.oauth_instance)
 
-        app_name = operation_log_service.process_app_name(app.app_name, self.region_name, self.team_name, app.app_id)
+        # NOTE: get_service_group_info may return None; legacy code assumes present (backlog).
+        app_name = operation_log_service.process_app_name(
+            app.app_name, self.region_name, self.team_name, app.app_id)  # type: ignore[union-attr]
         comment = comment.format(app=app_name)
         component_names = []
         idx = 0
@@ -703,9 +725,10 @@ class BatchActionView(RegionTenantHeaderCloudEnterpriseCenterView):
             self.user,
             operation_type=OperationType.APPLICATION_MANAGE,
             comment=comment,
-            enterprise_id=self.user.enterprise_id,
+            # NOTE: enterprise_id nullable on model; service expects str (backlog).
+            enterprise_id=self.user.enterprise_id,  # type: ignore[arg-type]
             team_name=self.team_name,
-            app_id=app.app_id,
+            app_id=app.app_id,  # type: ignore[union-attr]
             new_information=new_information,
             information_type=InformationType.INFORMATION_ADDS.value)
 
@@ -714,7 +737,7 @@ class BatchActionView(RegionTenantHeaderCloudEnterpriseCenterView):
 
 class DeleteAppView(AppBaseView):
     @never_cache
-    def delete(self, request, *args, **kwargs):
+    def delete(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         删除组件
         ---
@@ -739,7 +762,7 @@ class DeleteAppView(AppBaseView):
         is_force = request.data.get("is_force", False)
 
         code, msg = app_manage_service.delete(self.user, self.tenant, self.service, is_force)
-        bean = {}
+        bean: dict = {}
         if code != 200:
             return Response(general_message(code, "delete service error", msg, bean=bean), status=code)
 
@@ -763,7 +786,7 @@ class DeleteAppView(AppBaseView):
 
 class BatchDelete(RegionTenantHeaderView):
     @never_cache
-    def delete(self, request, *args, **kwargs):
+    def delete(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         批量删除组件
         ---
@@ -780,7 +803,7 @@ class BatchDelete(RegionTenantHeaderView):
               paramType: form
         """
         service_ids = request.data.get("service_ids", None)
-        service_id_list = service_ids.split(",")
+        service_id_list = service_ids.split(",")  # type: ignore[union-attr]
         services = service_repo.get_services_by_service_ids(service_id_list)
 
         if not services:
@@ -798,14 +821,15 @@ class BatchDelete(RegionTenantHeaderView):
                     component_names.append(svc.service_cname)
                     old_information.append({"组件名": svc.service_cname, "操作": "删除"})
                 if len(component_names) > 2:
-                    component_names = ",".join(component_names[0:2]) + "等"
+                    # NOTE: list var reassigned to joined str; legacy reuse (behavior preserved).
+                    component_names = ",".join(component_names[0:2]) + "等"  # type: ignore[assignment]
                 else:
-                    component_names = ",".join(component_names)
+                    component_names = ",".join(component_names)  # type: ignore[assignment]
                 comment = "批量删除应用 {app} 中的组件 {component_names}".format(app=app_name, component_names=component_names)
         msg_list = []
         for service in services:
             code, msg = app_manage_service.batch_delete(self.user, self.tenant, service, is_force=True)
-            msg_dict = dict()
+            msg_dict: dict = dict()
             msg_dict['status'] = code
             msg_dict['msg'] = msg
             msg_dict['service_id'] = service.service_id
@@ -816,8 +840,11 @@ class BatchDelete(RegionTenantHeaderView):
                 kubeblocks_service.delete_kubeblocks_cluster([service.service_id], service.service_region)
         if app:
             self.app = app
-            old_information = json.dumps(old_information, ensure_ascii=False)
-            operation_log_service.create_app_log(ctx=self, comment=comment, format_app=False, old_information=old_information)
+            # NOTE: list var reassigned to json str; legacy reuse (behavior preserved).
+            old_information = json.dumps(old_information, ensure_ascii=False)  # type: ignore[assignment]
+            operation_log_service.create_app_log(
+                ctx=self, comment=comment, format_app=False,
+                old_information=old_information)  # type: ignore[arg-type]
         code = 200
         result = general_message(code, "success", "操作成功", list=msg_list)
         return Response(result, status=result['code'])
@@ -825,7 +852,7 @@ class BatchDelete(RegionTenantHeaderView):
 
 class AgainDelete(RegionTenantHeaderView):
     @never_cache
-    def delete(self, request, *args, **kwargs):
+    def delete(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         二次确认删除组件
         ---
@@ -842,26 +869,28 @@ class AgainDelete(RegionTenantHeaderView):
               paramType: form
         """
         service_id = request.data.get("service_id", None)
-        service = service_repo.get_service_by_service_id(service_id)
-        app = group_service.get_service_group_info(service_id)
-        app_manage_service.delete_again(self.user, self.tenant, service, is_force=True)
+        # NOTE: service_id from request body (Any|None); repo/service expect str (backlog).
+        service = service_repo.get_service_by_service_id(service_id)  # type: ignore[arg-type]
+        app = group_service.get_service_group_info(service_id)  # type: ignore[arg-type]
+        # NOTE: get_service_by_service_id may return None; legacy code assumes present (backlog).
+        app_manage_service.delete_again(self.user, self.tenant, service, is_force=True)  # type: ignore[arg-type]
         result = general_message(200, "success", "操作成功", bean={})
         comment = operation_log_service.generate_component_comment(
-            operation=Operation.DELETE, module_name=service.service_cname)
+            operation=Operation.DELETE, module_name=service.service_cname)  # type: ignore[union-attr]
         operation_log_service.create_component_log(
             user=self.user,
             comment=comment,
             enterprise_id=self.user.enterprise_id,
             team_name=self.tenant.tenant_name,
             app_id=app.ID if app else 0,
-            service_alias=service.service_alias,
-            service_cname=service.service_cname)
+            service_alias=service.service_alias,  # type: ignore[union-attr]
+            service_cname=service.service_cname)  # type: ignore[union-attr]
         return Response(result, status=result["code"])
 
 
 class ChangeServiceTypeView(AppBaseView):
     @never_cache
-    def put(self, request, *args, **kwargs):
+    def put(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         修改组件的组件类型标签
         :param request:
@@ -881,14 +910,16 @@ class ChangeServiceTypeView(AppBaseView):
                 "组件部署类型": app_manage_service.get_extend_method_name(self.service.extend_method)
             },
                                          ensure_ascii=False)
-            app_manage_service.change_service_type(self.tenant, self.service, extend_method, self.user.nick_name)
+            app_manage_service.change_service_type(
+                self.tenant, self.service, extend_method, self.user.nick_name)  # type: ignore[arg-type]
             old_information = json.dumps({
                 "组件": self.service.service_cname,
                 "组件部署类型": app_manage_service.get_extend_method_name(self.service.extend_method)
             },
                                          ensure_ascii=False)
             logger.debug("tenant: {0}, service:{1}, extend_method:{2}".format(self.tenant, self.service, extend_method))
-            app_manage_service.change_service_type(self.tenant, self.service, extend_method, self.user.nick_name)
+            app_manage_service.change_service_type(
+                self.tenant, self.service, extend_method, self.user.nick_name)  # type: ignore[arg-type]
             result = general_message(200, "success", "操作成功")
             comment = operation_log_service.generate_component_comment(
                 operation=Operation.CHANGE,
@@ -907,20 +938,20 @@ class ChangeServiceTypeView(AppBaseView):
                 old_information=old_information,
                 new_information=new_information)
         except CallRegionAPIException as e:
-            result = general_message(e.code, "failure", e.message)
+            result = general_message(e.code, "failure", e.message)  # type: ignore[attr-defined]
         return Response(result, status=result["code"])
 
 
 # 更新组件组件
 class UpgradeAppView(AppBaseView, CloudEnterpriseCenterView):
     @never_cache
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         更新
         """
         try:
             code, msg, _ = app_manage_service.upgrade(self.tenant, self.service, self.user, oauth_instance=self.oauth_instance)
-            bean = {}
+            bean: dict = {}
             if code != 200:
                 return Response(general_message(code, "upgrade app error", msg, bean=bean), status=code)
             result = general_message(code, "success", "操作成功", bean=bean)
@@ -943,14 +974,16 @@ class UpgradeAppView(AppBaseView, CloudEnterpriseCenterView):
             raise re
         except AccountOverdueException as re:
             logger.exception(re)
-            return Response(general_message(10410, "resource is not enough", re.message), status=412)
+            return Response(
+                general_message(10410, "resource is not enough", re.message),  # type: ignore[attr-defined]
+                status=412)
         return Response(result, status=result["code"])
 
 
 # 修改组件名称
 class ChangeServiceNameView(AppBaseView):
     @never_cache
-    def put(self, request, *args, **kwargs):
+    def put(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         :param request:
         :param args:
@@ -972,7 +1005,7 @@ class ChangeServiceNameView(AppBaseView):
 # 修改组件名称
 class ChangeServiceUpgradeView(AppBaseView):
     @never_cache
-    def put(self, request, *args, **kwargs):
+    def put(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         :param request:
         :param args:
@@ -1004,10 +1037,11 @@ class ChangeServiceUpgradeView(AppBaseView):
 # 判断云市安装的组件是否有（小版本，大版本）更新
 class MarketServiceUpgradeView(AppBaseView):
     @never_cache
-    def get(self, request, *args, **kwargs):
-        versions = []
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
+        versions: list = []
         try:
-            versions = market_app_service.list_upgradeable_versions(self.tenant, self.service)
+            # NOTE: service may return None; legacy code assumes a list (backlog).
+            versions = market_app_service.list_upgradeable_versions(self.tenant, self.service)  # type: ignore[assignment]
         except RbdAppNotFound:
             return Response(status=404, data=general_message(404, "service lost", "未找到该组件"))
         except Exception as e:
@@ -1015,7 +1049,7 @@ class MarketServiceUpgradeView(AppBaseView):
             return Response(status=200, data=general_message(200, "success", "查询成功", list=versions))
         return Response(status=200, data=general_message(200, "success", "查询成功", list=versions))
 
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         version = parse_item(request, "group_version", required=True)
 
         # get app
@@ -1026,23 +1060,23 @@ class MarketServiceUpgradeView(AppBaseView):
 
 
 class TeamAppsCloseView(JWTAuthApiView):
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         region_name = request.data.get("region_name")
         if region_name:
             app_manage_service.close_all_component_in_tenant(self.team, region_name, self.user)
         else:
             app_manage_service.close_all_component_in_team(self.team, self.user)
         comment = operation_log_service.generate_team_comment(
-            operation=Operation.CLOSE, module_name=self.team.tenant_alias, team_name=self.team.tenant_name,
-            suffix=" 下所有组件")
+            operation=Operation.CLOSE, module_name=self.team.tenant_alias,  # type: ignore[arg-type]
+            team_name=self.team.tenant_name, suffix=" 下所有组件")
         operation_log_service.create_enterprise_log(user=self.user, comment=comment,
-                                                    enterprise_id=self.user.enterprise_id)
+                                                    enterprise_id=self.user.enterprise_id)  # type: ignore[arg-type]
         return Response(status=200, data=general_message(200, "success", "操作成功"))
 
 
 class PackageToolView(AppBaseCloudEnterpriseCenterView):
     @never_cache
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         设置语言和依赖包
         ---
@@ -1101,7 +1135,7 @@ class PackageToolView(AppBaseCloudEnterpriseCenterView):
         return Response(status=200, data=general_message(200, "succeed", "操作成功"))
 class TarImageView(AppBaseCloudEnterpriseCenterView):
     @never_cache
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         设置语言和依赖包
         ---

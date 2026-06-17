@@ -4,9 +4,11 @@
 """
 import logging
 import operator
+from typing import Any
 
 from django.core.paginator import Paginator
 from console.utils.cache_decorators import never_cache
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from console.repositories.virtual_machine import vm_repo
@@ -28,7 +30,7 @@ BUILD_KIND_MAP = {
 
 class AppVersionsView(AppBaseView):
     @never_cache
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         获取组件的构建版本
         ---
@@ -47,8 +49,9 @@ class AppVersionsView(AppBaseView):
         page = request.GET.get("page_num", 1)
         page_size = request.GET.get("page_size", 10)
         body = region_api.get_service_build_versions(self.response_region, self.tenant.tenant_name, self.service.service_alias)
-        build_version_sort = body["bean"]["list"]
-        run_version = body["bean"]["deploy_version"]
+        # NOTE: region_api may return None; indexing assumes dict (index backlog).
+        build_version_sort = body["bean"]["list"]  # type: ignore[index]
+        run_version = body["bean"]["deploy_version"]  # type: ignore[index]
         total_num_list = list()
         for build_version_info in build_version_sort:
             if build_version_info["final_status"] in ("success", "failure"):
@@ -75,7 +78,8 @@ class AppVersionsView(AppBaseView):
             if repo_url and repo_url[0] == "/":
                 kind = "本地文件"
             else:
-                kind = BUILD_KIND_MAP.get(info["kind"])
+                # NOTE: BUILD_KIND_MAP.get may return None; kind inferred str (assignment backlog).
+                kind = BUILD_KIND_MAP.get(info["kind"])  # type: ignore[assignment]
             version = {
                 "event_id": info["event_id"],
                 "build_version": info["build_version"],
@@ -138,7 +142,7 @@ class AppVersionsView(AppBaseView):
 
 class AppVersionManageView(AppBaseView):
     @never_cache
-    def delete(self, request, *args, **kwargs):
+    def delete(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         删除组件的某次构建版本
         ---
@@ -171,7 +175,7 @@ class AppVersionManageView(AppBaseView):
         return Response(result, status=result["code"])
 
     @never_cache
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         获取组件的某个具体版本
         ---
@@ -199,7 +203,7 @@ class AppVersionManageView(AppBaseView):
 
         res, body = region_api.get_service_build_version_by_id(self.response_region, self.tenant.tenant_name,
                                                                self.service.service_alias, version_id)
-        data = body['bean']
+        data = body['bean']  # type: ignore[index]
 
         result = general_message(200, "success", "查询成功", bean={"is_exist": data["status"]})
         return Response(result, status=result["code"])

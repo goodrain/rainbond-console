@@ -2,6 +2,9 @@
 """
   Created on 18/3/4.
 """
+from typing import Any
+
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from console.exception.main import BusinessException
@@ -14,12 +17,15 @@ from www.utils.return_message import general_message
 
 
 class PluginBaseView(RegionTenantHeaderView):
-    def __init__(self, *args, **kwargs):
-        super(PluginBaseView, self).__init__(*args, **kwargs)
-        self.plugin = None
-        self.plugin_version = None
+    plugin: TenantPlugin
+    plugin_version: PluginBuildVersion
 
-    def initial(self, request, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super(PluginBaseView, self).__init__(*args, **kwargs)
+        self.plugin = None  # type: ignore[assignment]
+        self.plugin_version = None  # type: ignore[assignment]
+
+    def initial(self, request: Request, *args: Any, **kwargs: Any) -> None:
         super(PluginBaseView, self).initial(request, *args, **kwargs)
         plugin_id = kwargs.get("plugin_id", None)
         if not plugin_id:
@@ -29,7 +35,8 @@ class PluginBaseView(RegionTenantHeaderView):
         except TenantPlugin.DoesNotExist:
             raise BusinessException(Response(general_message(404, "plugin not found", "插件不存在"), status=404))
 
-        self.plugin = tenant_plugin
+        # NOTE: plugin_repo.get_by_plugin_id may return None; backlog
+        self.plugin = tenant_plugin  # type: ignore[assignment]
         if self.plugin.tenant_id != self.tenant.tenant_id:
             team_info = Tenants.objects.filter(tenant_id=self.plugin.tenant_id)
             if team_info:
@@ -47,7 +54,8 @@ class PluginBaseView(RegionTenantHeaderView):
 
         build_version = kwargs.get("build_version", None)
         if build_version:
-            plugin_build_version = PluginBuildVersion.objects.filter(
+            # NOTE: model lacks objects stub
+            plugin_build_version = PluginBuildVersion.objects.filter(  # type: ignore[attr-defined]
                 tenant_id=self.tenant.tenant_id, plugin_id=plugin_id, build_version=build_version)
             if plugin_build_version:
                 self.plugin_version = plugin_build_version[0]
@@ -58,5 +66,5 @@ class PluginBaseView(RegionTenantHeaderView):
                                         "当前版本插件不存在"),
                         status=404))
 
-    def initial_header_info(self, request):
+    def initial_header_info(self, request: Request) -> None:
         pass

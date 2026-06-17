@@ -4,10 +4,12 @@
 """
 import json
 import logging
+from typing import Any, List
 
 from console.services.app_config.plugin_service import app_plugin_service
 from console.services.plugin import plugin_version_service
 from console.views.app_config.base import AppBaseView
+from rest_framework.request import Request
 from rest_framework.response import Response
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.plugin import HasNoDownStreamService
@@ -19,7 +21,7 @@ logger = logging.getLogger("default")
 
 
 class APPPluginsView(AppBaseView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         获取组件可用的插件列表
         ---
@@ -52,12 +54,13 @@ class APPPluginsView(AppBaseView):
             result = general_message(200, "success", "查询成功", bean=bean)
         except Exception as e:
             logger.exception(e)
-            result = general_message(500, e.message, "查询失败")
+            # NOTE: legacy py2-style Exception.message attr access (backlog)
+            result = general_message(500, e.message, "查询失败")  # type: ignore[attr-defined]
         return Response(result, status=result["code"])
 
 
 class APPPluginInstallView(AppBaseView):
-    def useDefaultAttr(self, plugin_id, build_version, tag):
+    def useDefaultAttr(self, plugin_id: str, build_version: str, tag: str) -> List[Any]:
         metaTypeList = plugin_svc.get_service_meta_type(plugin_id, build_version)
         logger.debug("plugin.relation", "metatype List is {}".format(len(metaTypeList)))
         attrsList = []
@@ -84,7 +87,7 @@ class APPPluginInstallView(AppBaseView):
         logger.debug("plugin.relation", "attrsList is {}".format(attrsList))
         return attrsList
 
-    def post(self, request, plugin_id, *args, **kwargs):
+    def post(self, request: Request, plugin_id: str, *args: Any, **kwargs: Any) -> Response:
         """
         组件安装插件
         ---
@@ -118,14 +121,15 @@ class APPPluginInstallView(AppBaseView):
                 return Response(general_message(400, "params error", "参数错误"), status=400)
             if not build_version:
                 plugin_version = plugin_version_service.get_newest_usable_plugin_version(self.tenant.tenant_id, plugin_id)
-                build_version = plugin_version.build_version
+                # NOTE: get_newest_usable_plugin_version may return None (backlog)
+                build_version = plugin_version.build_version  # type: ignore[union-attr]
 
             # 1. 建立关联关系
             # 2. 生成默认的配置发送给前端
             # 3. 生成默认配置存储至console数据库
             # 4. 生成默认配置发送给region
             # >> 进行关联
-            body_relation = {}
+            body_relation: dict = {}
             body_relation["plugin_id"] = plugin_id
             body_relation["switch"] = True
             body_relation["version_id"] = build_version
@@ -150,7 +154,7 @@ class APPPluginInstallView(AppBaseView):
             config_envs = {}
             config_envs["normal_envs"] = normal
             config_envs["complex_envs"] = complex
-            body = {}
+            body: dict = {}
             body["tenant_id"] = self.tenant.tenant_id
             body["service_id"] = self.service.service_id
             body["config_envs"] = config_envs
@@ -170,7 +174,9 @@ class APPPluginInstallView(AppBaseView):
             except Exception as e:
                 logger.exception(e)
             result = general_message(400, "havs no downstream services", '缺少关联组件，不能使用该类型插件')
-            logger.exception(e)
+            # NOTE: latent bug — inner `except ... as e` deletes e, so this references a deleted
+            # variable (NameError at runtime if reached); behavior preserved as-is (backlog)
+            logger.exception(e)  # type: ignore[misc]
             return Response(result, status=400)
         except Exception as e:
             try:
@@ -181,10 +187,10 @@ class APPPluginInstallView(AppBaseView):
                 logger.exception(e)
                 pass
             result = general_message(500, "service relate plugin error", '关联插件失败')
-            logger.exception(e)
+            logger.exception(e)  # type: ignore[misc] # NOTE: deleted-variable latent bug, see above (backlog)
             return Response(result, status=500)
 
-    def delete(self, request, plugin_id, *args, **kwargs):
+    def delete(self, request: Request, plugin_id: str, *args: Any, **kwargs: Any) -> Response:
         """
         组件卸载插件
         ---
@@ -217,12 +223,12 @@ class APPPluginInstallView(AppBaseView):
                 return Response(result, status=200)
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)
+            result = error_message(e.message)  # type: ignore[attr-defined]
             return Response(result, status=200)
 
 
 class APPPluginOpenView(AppBaseView):
-    def put(self, request, plugin_id, *args, **kwargs):
+    def put(self, request: Request, plugin_id: str, *args: Any, **kwargs: Any) -> Response:
         """
         启停用组件插件
         ---
@@ -273,12 +279,12 @@ class APPPluginOpenView(AppBaseView):
                 return Response(result, result["code"])
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)
+            result = error_message(e.message)  # type: ignore[attr-defined]
             return Response(result, status=result["code"])
 
 
 class APPPluginConfigView(AppBaseView):
-    def useDefaultAttr(self, plugin_id, build_version, tag):
+    def useDefaultAttr(self, plugin_id: str, build_version: str, tag: str) -> List[Any]:
         metaTypeList = plugin_svc.get_service_meta_type(plugin_id, build_version)
         logger.debug("plugin.relation", "metatype List is {}".format(len(metaTypeList)))
         attrsList = []
@@ -306,7 +312,7 @@ class APPPluginConfigView(AppBaseView):
         logger.debug("plugin.relation", "attrsList is {}".format(attrsList))
         return attrsList
 
-    def get(self, request, plugin_id, *args, **kwargs):
+    def get(self, request: Request, plugin_id: str, *args: Any, **kwargs: Any) -> Response:
         """
         组件插件查看配置
         ---
@@ -336,7 +342,7 @@ class APPPluginConfigView(AppBaseView):
         if not plugin_id or not build_version:
             logger.error("plugin.relation", '参数错误，plugin_id and version_id')
             return Response(general_message(400, "params error", "参数错误"), status=400)
-        result = {}
+        result: dict = {}
         try:
             result["config_group"] = self.useDefaultAttr(plugin_id, build_version, "get")
             build_relations = plugin_svc.get_tenant_service_plugin_relation_by_plugin(self.service.service_id, plugin_id)
@@ -356,10 +362,10 @@ class APPPluginConfigView(AppBaseView):
             return Response(general_message(409, "service has no dependence", "组件没有依赖其他组件，配置无效"), status=409)
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)
+            result = error_message(e.message)  # type: ignore[attr-defined]
             return Response(result, result["code"])
 
-    def put(self, request, plugin_id, *args, **kwargs):
+    def put(self, request: Request, plugin_id: str, *args: Any, **kwargs: Any) -> Response:
         """
         组件插件更新
         ---
@@ -399,7 +405,7 @@ class APPPluginConfigView(AppBaseView):
             config_envs = {}
             config_envs["normal_envs"] = normal
             config_envs["complex_envs"] = complex
-            body = {}
+            body: dict = {}
             body["tenant_id"] = self.tenant.tenant_id
             body["service_id"] = self.service.service_id
             body["config_envs"] = config_envs
@@ -409,5 +415,5 @@ class APPPluginConfigView(AppBaseView):
             return Response(result, result["code"])
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)
+            result = error_message(e.message)  # type: ignore[attr-defined]
             return Response(result, result["code"])

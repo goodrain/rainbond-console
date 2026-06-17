@@ -409,7 +409,7 @@ class OperationLogService(object):
             ctx.user,
             operation_type=OperationType.COMPONENT_MANAGE,
             comment=comment,
-            enterprise_id=ctx.user.enterprise_id,  # type: ignore[union-attr]  # NOTE: user may be None before auth; runtime guarantees non-None here
+            enterprise_id=ctx.user.enterprise_id,  # type: ignore[arg-type]  # NOTE: Users.enterprise_id nullable but create_log expects str (systemic, backlog)
             team_name=ctx.team_name,  # type: ignore[arg-type]  # NOTE: team_name may be None before initial(); runtime guarantees str here
             app_id=ctx.app.app_id,  # type: ignore[union-attr]  # NOTE: app is None until initial() runs; runtime guarantees non-None here
             service_alias=ctx.component.service_alias,  # type: ignore[union-attr]  # NOTE: same as above for component

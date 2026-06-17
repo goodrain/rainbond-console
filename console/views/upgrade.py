@@ -1,4 +1,5 @@
 import os
+from typing import Any
 
 import requests
 from django.http import JsonResponse
@@ -9,6 +10,7 @@ from console.views.base import JWTAuthApiView
 from www.apiclient.regionapi import RegionInvokeApi
 from console.repositories.region_repo import region_repo
 from www.utils.return_message import general_message
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 region_api = RegionInvokeApi()
@@ -17,21 +19,22 @@ VERSION_INFO_TIMEOUT = 2
 
 class UpgradeView(JWTAuthApiView):
     @never_cache
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         regions = region_repo.get_all_regions()
-        body = {}
+        body: dict = {}
         for region in regions:
             resp = region_api.upgrade_region(region.region_name, request.data)
             body[region.region_name] = resp
         result = general_message(200, "success", "请求成功", bean=body)
         return Response(result, status=200)
 
-    def get(self, request, region_name, *args, **kwargs):
+    def get(self, request: Request, region_name: str, *args: Any, **kwargs: Any) -> Response:
         resp = region_api.list_upgrade_status(region_name)
-        result = general_message(200, "success", "请求成功", list=resp.get("list", []))
+        # NOTE: region API result may be None; .get access is a latent risk (backlog).
+        result = general_message(200, "success", "请求成功", list=resp.get("list", []))  # type: ignore[union-attr]
         return Response(result, status=200)
 
-def fetch_json_data():
+def fetch_json_data() -> Any:
     if is_cloud_market_disabled():
         return None
 
@@ -44,7 +47,7 @@ def fetch_json_data():
         return None
 
 class UpgradeVersionLView(JWTAuthApiView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> JsonResponse:
         data = fetch_json_data()
         if data is None:
             return JsonResponse([], status=200, safe=False)
@@ -53,7 +56,7 @@ class UpgradeVersionLView(JWTAuthApiView):
 
 
 class UpgradeVersionRView(JWTAuthApiView):
-    def get(self, request, version, *args, **kwargs):
+    def get(self, request: Request, version: str, *args: Any, **kwargs: Any) -> JsonResponse:
         data = fetch_json_data()
         if data is None:
             return JsonResponse({}, status=200, safe=False)
@@ -62,7 +65,7 @@ class UpgradeVersionRView(JWTAuthApiView):
 
 
 class UpgradeVersionImagesView(JWTAuthApiView):
-    def get(self, request, version, *args, **kwargs):
+    def get(self, request: Request, version: str, *args: Any, **kwargs: Any) -> JsonResponse:
         data = fetch_json_data()
         if data is None:
             return JsonResponse({}, status=200, safe=False)

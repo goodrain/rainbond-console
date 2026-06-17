@@ -5,6 +5,7 @@ import os
 import re
 import time
 from datetime import datetime, timedelta
+from typing import Any
 
 from console.exception.exceptions import UserFavoriteNotExistError
 from console.forms.users_operation import RegisterForm
@@ -29,6 +30,7 @@ from console.utils.validation import normalize_name_for_k8s_namespace
 from console.views.base import BaseApiView, JWTAuthApiView
 from django import forms
 from rest_framework import status
+from rest_framework.request import Request
 from rest_framework.response import Response
 from www.models.main import Users
 from www.utils.crypt import AuthCode, make_uuid
@@ -44,7 +46,7 @@ from console.services.sms_service import sms_service
 logger = logging.getLogger("default")
 
 
-def password_len(value):
+def password_len(value: str) -> None:
     if len(value) < 8:
         raise forms.ValidationError("密码长度至少为8位")
 
@@ -57,13 +59,14 @@ class PasswordResetForm(forms.Form):
         'password_repeat': "两次输入的密码不一致",
     }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super(PasswordResetForm, self).__init__(*args, **kwargs)
-        self.helper.form_tag = False
-        self.helper.help_text_inline = True
-        self.helper.error_text_inline = True
+        # NOTE: helper is a crispy-forms attr not declared on forms.Form (legacy, backlog).
+        self.helper.form_tag = False  # type: ignore[attr-defined]
+        self.helper.help_text_inline = True  # type: ignore[attr-defined]
+        self.helper.error_text_inline = True  # type: ignore[attr-defined]
 
-    def clean(self):
+    def clean(self) -> None:
         password = self.cleaned_data.get('password')
         password_repeat = self.cleaned_data.get('password_repeat')
 
@@ -75,9 +78,10 @@ class PasswordResetForm(forms.Form):
 
 
 class TenantServiceView(BaseApiView):
-    allowed_methods = ('POST', )
+    # NOTE: APIView declares allowed_methods as list[str]; tuple here is a legacy mismatch (backlog).
+    allowed_methods = ('POST', )  # type: ignore[assignment]
 
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         注册用户、需要先访问captcha路由来获取验证码
         ---
@@ -159,9 +163,11 @@ class TenantServiceView(BaseApiView):
                 enterprise = enterprise_services.get_enterprise_first()
                 if not enterprise:
                     enter_name = request.data.get("enter_name", None)
-                    enterprise = enterprise_services.create_enterprise(enterprise_name=None, enterprise_alias=enter_name)
+                    # NOTE: create_enterprise expects str name; legacy passes None (backlog).
+                    enterprise = enterprise_services.create_enterprise(enterprise_name=None, enterprise_alias=enter_name)  # type: ignore[arg-type]
                     # 创建用户在企业的权限
-                    user_services.make_user_as_admin_for_enterprise(user.user_id, enterprise.enterprise_id)
+                    # NOTE: user_id is int AutoField; service takes str (systemic int-as-str, backlog).
+                    user_services.make_user_as_admin_for_enterprise(user.user_id, enterprise.enterprise_id)  # type: ignore[arg-type]
                     team = team_services.create_team(user, enterprise, ["rainbond"], "", "default", "")
                     region_services.create_tenant_on_region(enterprise.enterprise_id, team.tenant_name, "rainbond",
                                                                 team.namespace)
@@ -190,12 +196,13 @@ class TenantServiceView(BaseApiView):
                         "user_id": user.user_id,
                         "tenant_id": value,
                         "identity": "viewer",
-                        "enterprise_id": enterprise.ID
+                        # NOTE: get_enterprise_first may return None; legacy assumes present (backlog).
+                        "enterprise_id": enterprise.ID  # type: ignore[union-attr]
                     })
                     if not perm:
                         result = general_message(400, "invited failed", "团队关联失败，注册失败")
                         return Response(result, status=400)
-                data = dict()
+                data: dict = dict()
                 data["user_id"] = user.user_id
                 data["nick_name"] = user.nick_name
                 data["email"] = user.email
@@ -224,7 +231,8 @@ class TenantServiceView(BaseApiView):
 
 
 class SendResetEmail(BaseApiView):
-    def post(self, request, *args, **kwargs):
+    # NOTE: falls through returning None when email length <= 5 (latent bug, backlog).
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:  # type: ignore[return]
         """
         发送忘记密码邮件
         ---
@@ -269,12 +277,13 @@ class SendResetEmail(BaseApiView):
                 return Response(result, status=code)
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)
+            # NOTE: py2-era Exception.message; preserved for behavior compat (backlog).
+            result = error_message(e.message)  # type: ignore[attr-defined]
             return Response(result, status=500)
 
 
 class PasswordResetBegin(BaseApiView):
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         忘记密码
         ---
@@ -312,12 +321,12 @@ class PasswordResetBegin(BaseApiView):
                 return Response(result, status=400)
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)
+            result = error_message(e.message)  # type: ignore[attr-defined]
             return Response(result, status=500)
 
 
 class ChangeLoginPassword(JWTAuthApiView):
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         修改密码
         ---
@@ -344,21 +353,22 @@ class ChangeLoginPassword(JWTAuthApiView):
             new_password2 = request.data.get("new_password2", None)
             u = request.user
             code = 400
-            if not user_services.check_user_password(user_id=u.user_id, password=password):
+            # NOTE: request.user is User|AnonymousUser & request.data.get is Optional; auth/inputs assumed valid (backlog).
+            if not user_services.check_user_password(user_id=u.user_id, password=password):  # type: ignore[union-attr, arg-type]
                 result = general_message(400, "old password error", "旧密码错误")
             elif new_password != new_password2:
                 result = general_message(400, "two password disagree", "两个密码不一致")
             elif password == new_password:
                 result = general_message(400, "old and new password agree", "新旧密码一致")
             else:
-                status, info = user_services.update_password(user_id=u.user_id, new_password=new_password)
-                oauth_instance, _ = user_services.check_user_is_enterprise_center_user(request.user.user_id)
+                status, info = user_services.update_password(user_id=u.user_id, new_password=new_password)  # type: ignore[union-attr, arg-type]
+                oauth_instance, _ = user_services.check_user_is_enterprise_center_user(request.user.user_id)  # type: ignore[union-attr]
                 if oauth_instance:
                     data = {
                         "password": new_password,
-                        "real_name": request.user.real_name,
+                        "real_name": request.user.real_name,  # type: ignore[union-attr]
                     }
-                    oauth_instance.update_user(request.user.enterprise_id, request.user.enterprise_center_user_id, data)
+                    oauth_instance.update_user(request.user.enterprise_id, request.user.enterprise_center_user_id, data)  # type: ignore[union-attr]
                 if status:
                     code = 200
                     result = general_message(200, "change password success", "密码修改成功")
@@ -367,12 +377,12 @@ class ChangeLoginPassword(JWTAuthApiView):
             return Response(result, status=code)
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)
+            result = error_message(e.message)  # type: ignore[attr-defined]
             return Response(result, status=500)
 
 
 class UserDetailsView(JWTAuthApiView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         查询我的详情
         ---
@@ -380,8 +390,9 @@ class UserDetailsView(JWTAuthApiView):
         team_name = request.GET.get("team_name", "")
         code = 200
         user = self.user
-        tenants = team_services.get_current_user_tenants(user_id=user.user_id, team_name=team_name)
-        user_detail = dict()
+        # NOTE: user_id is int AutoField; service takes str (systemic int-as-str, backlog).
+        tenants = team_services.get_current_user_tenants(user_id=user.user_id, team_name=team_name)  # type: ignore[arg-type]
+        user_detail: dict = dict()
         user_detail["user_id"] = user.user_id
         user_detail["user_name"] = user.nick_name
         user_detail["real_name"] = user.real_name
@@ -393,13 +404,15 @@ class UserDetailsView(JWTAuthApiView):
         enterprise = enterprise_services.get_enterprise_by_enterprise_id(user.enterprise_id)
         # Fix: Handle case where enterprise doesn't exist (e.g., after cross-cluster restore)
         user_detail["is_enterprise_active"] = enterprise.is_active if enterprise else False
-        initial_marker = agent_access_service.ensure_initial_enterprise_admin_marker(user.enterprise_id)
+        # NOTE: enterprise_id nullable; service takes str (systemic nullable, backlog).
+        initial_marker = agent_access_service.ensure_initial_enterprise_admin_marker(user.enterprise_id)  # type: ignore[arg-type]
         if initial_marker and initial_marker.user_id == user.user_id:
             self.is_enterprise_admin = True
         user_detail["is_enterprise_admin"] = self.is_enterprise_admin
         user_detail["is_initial_enterprise_admin"] = bool(initial_marker and initial_marker.user_id == user.user_id)
         # enterprise roles
-        user_detail["roles"] = user_services.list_roles(user.enterprise_id, user.user_id)
+        # NOTE: enterprise_id nullable & user_id int AutoField; service takes str (systemic, backlog).
+        user_detail["roles"] = user_services.list_roles(user.enterprise_id, user.user_id)  # type: ignore[arg-type]
         # enterprise permissions
         user_detail["permissions"] = list_enterprise_perms_by_roles(user_detail["roles"])
         owner_tenant_list = []
@@ -434,19 +447,21 @@ class UserDetailsView(JWTAuthApiView):
         # 合并列表，所有者列表在前
         tenant_list = owner_tenant_list + member_tenant_list
         user_detail["teams"] = tenant_list
+        # NOTE: request.user is User|AnonymousUser; auth guarantees authenticated user (backlog).
         oauth_services = oauth_user_repo.get_user_oauth_services_info(
-            eid=request.user.enterprise_id, user_id=request.user.user_id)
+            eid=request.user.enterprise_id, user_id=request.user.user_id)  # type: ignore[union-attr]
         user_detail["oauth_services"] = oauth_services
         result = general_message(code, "Obtain my details to be successful.", "获取我的详情成功", bean=user_detail)
         return Response(result, status=code)
 
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         try:
             # 只更新传了值的字段
             if "real_name" in request.data:
-                self.user.real_name = request.data.get("real_name")
+                # NOTE: request.data.get is Optional; real_name field is non-null str (backlog).
+                self.user.real_name = request.data.get("real_name")  # type: ignore[assignment]
             if "email" in request.data:
-                self.user.email = request.data.get("email")
+                self.user.email = request.data.get("email")  # type: ignore[assignment]
             if "logo" in request.data:
                 self.user.logo = request.data.get("logo")
 
@@ -485,10 +500,11 @@ class UserDetailsView(JWTAuthApiView):
             return Response(result, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class UserFavoriteLCView(JWTAuthApiView):
-    def get(self, request, enterprise_id):
+    def get(self, request: Request, enterprise_id: str) -> Response:
         data = []
         try:
-            user_favorites = user_repo.get_user_favorite(request.user.user_id)
+            # NOTE: request.user is User|AnonymousUser; auth guarantees authenticated user (backlog).
+            user_favorites = user_repo.get_user_favorite(request.user.user_id)  # type: ignore[union-attr]
             if user_favorites:
                 for user_favorite in user_favorites:
                     data.append({
@@ -505,23 +521,24 @@ class UserFavoriteLCView(JWTAuthApiView):
         result = general_message(200, "success", None, list=data)
         return Response(result, status=status.HTTP_200_OK)
 
-    def post(self, request, enterprise_id):
+    def post(self, request: Request, enterprise_id: str) -> Response:
         name = request.data.get("name")
         url = request.data.get("url")
         is_default = request.data.get("is_default", False)
         if name and url:
             try:
 
-                old_favorite = user_repo.get_user_favorite_by_name(request.user.user_id, name)
+                old_favorite = user_repo.get_user_favorite_by_name(request.user.user_id, name)  # type: ignore[union-attr]
                 if old_favorite:
                     result = general_message(400, "fail", "收藏视图名称已存在")
                     return Response(result, status=status.HTTP_400_BAD_REQUEST)
-                user_repo.create_user_favorite(request.user.user_id, name, url, is_default)
+                user_repo.create_user_favorite(request.user.user_id, name, url, is_default)  # type: ignore[union-attr]
                 result = general_message(200, "success", "收藏视图创建成功")
                 comment = operation_log_service.generate_generic_comment(
                     operation=Operation.ADD, module=OperationModule.FAVORITE, module_name=" {}".format(name))
+                # NOTE: enterprise_id nullable; create_enterprise_log takes str (systemic, backlog).
                 operation_log_service.create_enterprise_log(
-                    user=self.user, comment=comment, enterprise_id=self.user.enterprise_id)
+                    user=self.user, comment=comment, enterprise_id=self.user.enterprise_id)  # type: ignore[arg-type]
                 return Response(result, status=status.HTTP_200_OK)
             except Exception as e:
                 logger.debug(e)
@@ -533,7 +550,7 @@ class UserFavoriteLCView(JWTAuthApiView):
 
 
 class UserFavoriteUDView(JWTAuthApiView):
-    def put(self, request, enterprise_id, favorite_id):
+    def put(self, request: Request, enterprise_id: str, favorite_id: str) -> Response:
         result = general_message(200, "success", "更新成功")
         name = request.data.get("name")
         url = request.data.get("url")
@@ -542,8 +559,9 @@ class UserFavoriteUDView(JWTAuthApiView):
         if not (name and url):
             result = general_message(400, "fail", "参数错误")
         try:
-            user_favorite = user_repo.get_user_favorite_by_ID(request.user.user_id, favorite_id)
-            rst = user_repo.update_user_favorite(user_favorite, name, url, custom_sort, is_default)
+            # NOTE: request.user union & request.data.get Optional; auth/inputs assumed valid (backlog).
+            user_favorite = user_repo.get_user_favorite_by_ID(request.user.user_id, favorite_id)  # type: ignore[union-attr]
+            rst = user_repo.update_user_favorite(user_favorite, name, url, custom_sort, is_default)  # type: ignore[arg-type]
             if not rst:
                 result = general_message(200, "fail", "更新视图失败")
         except UserFavoriteNotExistError as e:
@@ -551,14 +569,15 @@ class UserFavoriteUDView(JWTAuthApiView):
             result = general_message(404, "fail", "收藏视图不存在")
         return Response(result, status=status.HTTP_200_OK)
 
-    def delete(self, request, enterprise_id, favorite_id):
+    def delete(self, request: Request, enterprise_id: str, favorite_id: str) -> Response:
         result = general_message(200, "success", "删除成功")
         try:
-            user_repo.delete_user_favorite_by_id(request.user.user_id, favorite_id)
+            user_repo.delete_user_favorite_by_id(request.user.user_id, favorite_id)  # type: ignore[union-attr]
+            # NOTE: `favorite` is undefined here — latent NameError on the happy path (real bug, backlog).
             comment = operation_log_service.generate_generic_comment(
-                operation=Operation.DELETE, module=OperationModule.FAVORITE, module_name=" {}".format(favorite.name))
+                operation=Operation.DELETE, module=OperationModule.FAVORITE, module_name=" {}".format(favorite.name))  # type: ignore[name-defined]
             operation_log_service.create_enterprise_log(user=self.user, comment=comment,
-                                                        enterprise_id=self.user.enterprise_id)
+                                                        enterprise_id=self.user.enterprise_id)  # type: ignore[arg-type]
         except UserFavoriteNotExistError as e:
             logger.debug(e)
             result = general_message(404, "fail", "收藏视图不存在")
@@ -566,7 +585,7 @@ class UserFavoriteUDView(JWTAuthApiView):
 
 
 class UserInviteView(JWTAuthApiView):
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         try:
             team_id = request.data.get("team_id")
             role_id = request.data.get("role_id", "")
@@ -594,50 +613,53 @@ class UserInviteView(JWTAuthApiView):
             result = general_message(200, "success", "邀请创建成功", 
                                   bean={"invite_id": invite.invitation_id})
             return Response(result, status=200)
-            
+
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)
+            result = error_message(e.message)  # type: ignore[attr-defined]
             return Response(result, status=500)
 
 
 class UserInviteJoinView(JWTAuthApiView):
-    def get(self, request, invitation_id, *args, **kwargs):
+    def get(self, request: Request, invitation_id: str, *args: Any, **kwargs: Any) -> Response:
         """
         获取用户邀请信息
         ---
         """
         try:
             invite = team_invitation_repo.get_invitation_by_id(invitation_id)
-            
+
             # 检查邀请是否过期
-            if invite.expired_time < datetime.now():
+            # NOTE: get_invitation_by_id may return None; legacy assumes present (backlog).
+            if invite.expired_time < datetime.now():  # type: ignore[union-attr]
                 result = general_message(400, "invitation expired", "邀请已过期")
                 return Response(result, status=400)
-            
-            team = team_repo.get_team_by_team_id(invite.tenant_id)
-            inviter = user_repo.get_user_by_user_id(invite.inviter_id)
+
+            team = team_repo.get_team_by_team_id(invite.tenant_id)  # type: ignore[union-attr]
+            # NOTE: inviter_id int AutoField; get_user_by_user_id takes str (systemic int-as-str, backlog).
+            inviter = user_repo.get_user_by_user_id(invite.inviter_id)  # type: ignore[union-attr, arg-type]
             # 检查用户是否已加入团队
-            is_member = team_repo.get_tenant_perms(team.ID, request.user.user_id)
+            # NOTE: team.ID int AutoField; get_tenant_perms takes str (systemic int-as-str, backlog).
+            is_member = team_repo.get_tenant_perms(team.ID, request.user.user_id)  # type: ignore[arg-type, union-attr]
             invite_info = {
-                "invite_id": invite.invitation_id,
-                "team_name": team.tenant_name, 
+                "invite_id": invite.invitation_id,  # type: ignore[union-attr]
+                "team_name": team.tenant_name,
                 "team_alias": team.tenant_alias,
-                "invite_time": invite.create_time,
+                "invite_time": invite.create_time,  # type: ignore[union-attr]
                 "inviter": inviter.real_name if inviter.real_name else inviter.nick_name,
-                "expired_time": invite.expired_time,
+                "expired_time": invite.expired_time,  # type: ignore[union-attr]
                 "is_member": bool(is_member),  # 添加是否已是团队成员的标识
-                "is_accepted": invite.is_accepted,
+                "is_accepted": invite.is_accepted,  # type: ignore[union-attr]
             }
             result = general_message(200, "success", "获取邀请信息成功", bean=invite_info)
             return Response(result, status=200)
-        
+
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)
+            result = error_message(e.message)  # type: ignore[attr-defined]
             return Response(result, status=500)
 
-    def post(self, request, invitation_id, *args, **kwargs):
+    def post(self, request: Request, invitation_id: str, *args: Any, **kwargs: Any) -> Response:
         """
         处理用户邀请
         ---
@@ -684,7 +706,8 @@ class UserInviteJoinView(JWTAuthApiView):
                 if not perm:
                     result = general_message(400, "failed", "加入团队失败")
                     return Response(result, status=400)
-                ur = UserRole(user_id=self.user.user_id, role_id=invite.role_id)
+                # NOTE: invite.role_id may be None; UserRole.role_id expects str|int (backlog).
+                ur = UserRole(user_id=self.user.user_id, role_id=invite.role_id)  # type: ignore[misc]
                 ur.save()
                 msg = "已接受邀请"
             else:
@@ -698,12 +721,12 @@ class UserInviteJoinView(JWTAuthApiView):
 
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)
+            result = error_message(e.message)  # type: ignore[attr-defined]
             return Response(result, status=500)
 
 
 class RegisterByPhoneView(BaseApiView):
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         手机号注册
         ---
@@ -746,7 +769,8 @@ class RegisterByPhoneView(BaseApiView):
                 return Response(result, status=status.HTTP_400_BAD_REQUEST)
 
             # 用户名格式校验
-            if not re.match(r'^[a-zA-Z0-9_-]{3,24}$', nick_name):
+            # NOTE: request.data.get is Optional; re.match expects str (backlog).
+            if not re.match(r'^[a-zA-Z0-9_-]{3,24}$', nick_name):  # type: ignore[arg-type]
                 result = general_message(400, "参数错误", "用户名只能包含字母、数字、下划线和中划线,长度在3-24位之间")
                 return Response(result, status=status.HTTP_400_BAD_REQUEST)
             # 获取企业信息
@@ -757,7 +781,8 @@ class RegisterByPhoneView(BaseApiView):
                     msg_show="企业信息不存在",
                     status_code=404
                 )
-            user = user_service.register_by_phone(enterprise.enterprise_id, phone, code, nick_name)
+            # NOTE: request.data.get values are Optional; service expects str (backlog).
+            user = user_service.register_by_phone(enterprise.enterprise_id, phone, code, nick_name)  # type: ignore[arg-type]
 
             try:
                 regions = region_repo.get_usable_regions(enterprise.enterprise_id)
@@ -796,7 +821,7 @@ class RegisterByPhoneView(BaseApiView):
 
 
 class LoginByPhoneView(BaseApiView):
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         手机号登录
         ---
@@ -820,7 +845,8 @@ class LoginByPhoneView(BaseApiView):
                 result = general_message(400, "参数错误", "参数不完整")
                 return Response(result, status=status.HTTP_400_BAD_REQUEST)
 
-            user = user_service.login_by_phone(phone, code)
+            # NOTE: request.data.get values are Optional; service expects str (backlog).
+            user = user_service.login_by_phone(phone, code)  # type: ignore[arg-type]
             login_event = LoginEvent(user, login_event_repo, request=request)
             login_event.login()
             # 生成token

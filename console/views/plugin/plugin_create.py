@@ -3,8 +3,10 @@
   Created on 18/3/5.
 """
 import logging
+from typing import Any
 
 from console.utils.cache_decorators import never_cache
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from console.services.operation_log import operation_log_service, Operation
@@ -20,7 +22,7 @@ logger = logging.getLogger("default")
 
 class PluginCreateView(RegionTenantHeaderView):
     @never_cache
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         插件创建
         ---
@@ -138,25 +140,29 @@ class PluginCreateView(RegionTenantHeaderView):
             # 创建插件版本信息
             plugin_build_version = plugin_version_service.create_build_version(
                 self.response_region,
-                tenant_plugin.plugin_id,
+                tenant_plugin.plugin_id,  # type: ignore[union-attr]
                 self.tenant.tenant_id,
-                self.user.user_id,
+                self.user.user_id,  # type: ignore[arg-type] # NOTE: systemic int-as-str user_id
                 "",
                 "unbuild",
                 min_memory,
-                build_cmd,
+                build_cmd,  # type: ignore[arg-type]
                 image_tag,
-                code_version,
+                code_version,  # type: ignore[arg-type]
                 min_cpu=min_cpu)
             # 数据中心创建插件
-            code, msg = plugin_service.create_region_plugin(self.response_region, self.tenant, tenant_plugin, image_tag)
+            # NOTE: create_tenant_plugin may return None tenant_plugin; backlog
+            code, msg = plugin_service.create_region_plugin(
+                self.response_region, self.tenant, tenant_plugin, image_tag)  # type: ignore[arg-type]
             if code != 200:
-                plugin_service.delete_console_tenant_plugin(self.tenant.tenant_id, tenant_plugin.plugin_id)
-                plugin_version_service.delete_build_version_by_id_and_version(self.tenant.tenant_id, tenant_plugin.plugin_id,
-                                                                              plugin_build_version.build_version, True)
+                plugin_service.delete_console_tenant_plugin(
+                    self.tenant.tenant_id, tenant_plugin.plugin_id)  # type: ignore[union-attr]
+                plugin_version_service.delete_build_version_by_id_and_version(
+                    self.tenant.tenant_id, tenant_plugin.plugin_id,  # type: ignore[union-attr]
+                    plugin_build_version.build_version, True)
                 return Response(general_message(code, "create plugin error", msg), status=code)
 
-            bean = tenant_plugin.to_dict()
+            bean = tenant_plugin.to_dict()  # type: ignore[union-attr]
             bean["build_version"] = plugin_build_version.build_version
             bean["code_version"] = plugin_build_version.code_version
             bean["build_status"] = plugin_build_version.build_status
@@ -164,31 +170,34 @@ class PluginCreateView(RegionTenantHeaderView):
             bean["image_tag"] = plugin_build_version.image_tag
 
             result = general_message(200, "success", "创建成功", bean=bean)
-            plugin_name = operation_log_service.process_plugin_name(tenant_plugin.plugin_alias, self.response_region,
-                                                                    self.tenant.tenant_name, tenant_plugin.plugin_id)
+            plugin_name = operation_log_service.process_plugin_name(
+                tenant_plugin.plugin_alias, self.response_region,  # type: ignore[union-attr]
+                self.tenant.tenant_name, tenant_plugin.plugin_id)  # type: ignore[union-attr]
             comment = operation_log_service.generate_team_comment(
                 operation=Operation.IN,
-                module_name=self.tenant.tenant_alias,
+                module_name=self.tenant.tenant_alias,  # type: ignore[arg-type]
                 region=self.response_region,
                 team_name=self.tenant.tenant_name,
                 suffix=" 中创建了插件 {}".format(plugin_name))
             operation_log_service.create_team_log(
-                user=self.user, comment=comment, enterprise_id=self.user.enterprise_id,
+                user=self.user, comment=comment, enterprise_id=self.user.enterprise_id,  # type: ignore[arg-type]
                 team_name=self.tenant.tenant_name)
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)
+            result = error_message(e.message)  # type: ignore[attr-defined]
             if tenant_plugin:
                 plugin_service.delete_console_tenant_plugin(self.tenant.tenant_id, tenant_plugin.plugin_id)
             if plugin_build_version:
-                plugin_version_service.delete_build_version_by_id_and_version(self.tenant.tenant_id, tenant_plugin.plugin_id,
-                                                                              plugin_build_version.build_version, True)
+                # NOTE: tenant_plugin may be None here (not guarded); latent bug
+                plugin_version_service.delete_build_version_by_id_and_version(
+                    self.tenant.tenant_id, tenant_plugin.plugin_id,  # type: ignore[union-attr]
+                    plugin_build_version.build_version, True)
         return Response(result, status=result["code"])
 
 
 class DefaultPluginCreateView(RegionTenantHeaderView):
     @never_cache
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         插件创建
         ---
@@ -211,19 +220,23 @@ class DefaultPluginCreateView(RegionTenantHeaderView):
             return Response(general_message(400, "plugin type not support", "插件类型不支持"), status=400)
         plugin = plugin_service.add_default_plugin(self.user, self.team, self.response_region, plugin_type)
         result = general_message(200, "success", "创建成功")
-        plugin_name = operation_log_service.process_plugin_name(plugin.plugin_alias, self.response_region,
-                                                                self.tenant.tenant_name, plugin.plugin_id)
+        # NOTE: add_default_plugin may return None; backlog
+        plugin_name = operation_log_service.process_plugin_name(
+            plugin.plugin_alias, self.response_region,  # type: ignore[union-attr]
+            self.tenant.tenant_name, plugin.plugin_id)  # type: ignore[union-attr]
         comment = operation_log_service.generate_team_comment(
             operation=Operation.IN,
-            module_name=self.tenant.tenant_alias,
+            module_name=self.tenant.tenant_alias,  # type: ignore[arg-type]
             region=self.response_region,
             team_name=self.tenant.tenant_name,
             suffix=" 中安装了插件 {}".format(plugin_name))
         operation_log_service.create_team_log(
-            user=self.user, comment=comment, enterprise_id=self.user.enterprise_id, team_name=self.tenant.tenant_name)
+            user=self.user, comment=comment,
+            enterprise_id=self.user.enterprise_id,  # type: ignore[arg-type]
+            team_name=self.tenant.tenant_name)
         return Response(result, status=200)
 
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         查询安装的默认插件
         ---

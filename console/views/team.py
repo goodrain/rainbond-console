@@ -3,6 +3,7 @@ import json
 import logging
 import os
 import re
+from typing import Any
 
 from console.exception.bcode import ErrK8sServiceNameExists, ErrQualifiedName, ErrNamespaceExists
 from console.exception.exceptions import (NoEnableRegionError, TenantExistError, UserNotExistError)
@@ -36,6 +37,7 @@ from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
 from django.db import transaction
 from django.db.models import Q
 from goodrain_web.tools import JuncheePaginator
+from rest_framework.request import Request
 from rest_framework.response import Response
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import Tenants
@@ -45,7 +47,7 @@ region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
 
 
-def get_sufix_path(full_url):
+def get_sufix_path(full_url: str) -> str:
     """获取get请求参数路径部分的数据"""
     index = full_url.find("?")
     sufix = ""
@@ -55,7 +57,7 @@ def get_sufix_path(full_url):
 
 
 class UserFuzSerView(JWTAuthApiView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         模糊查询用户
         ---
@@ -83,7 +85,7 @@ class UserFuzSerView(JWTAuthApiView):
 
 
 class TeamUserDetaislView(JWTAuthApiView):
-    def get(self, request, team_name, user_name, *args, **kwargs):
+    def get(self, request: Request, team_name: str, user_name: str, *args: Any, **kwargs: Any) -> Response:
         """
         用户详情
         ---
@@ -102,13 +104,16 @@ class TeamUserDetaislView(JWTAuthApiView):
         is_team_owner = False
         try:
             team = team_services.get_tenant_by_tenant_name(team_name)
-            data = dict()
+            data: dict = dict()
             data["nick_name"] = self.user.nick_name
             data["email"] = self.user.email
-            role_list = user_kind_role_service.get_user_roles(kind="team", kind_id=team.tenant_id, user=self.user)
+            # NOTE: repo/service lookups return Optional but legacy code assumes present;
+            # systemic int-as-str / nullable enterprise_id mismatches also suppressed (backlog).
+            role_list = user_kind_role_service.get_user_roles(
+                kind="team", kind_id=team.tenant_id, user=self.user)  # type: ignore[union-attr]
             data["teams_identity"] = role_list["roles"]
             data["is_enterprise_admin"] = self.is_enterprise_admin
-            if team.creater == self.user.user_id:
+            if team.creater == self.user.user_id:  # type: ignore[union-attr]
                 is_team_owner = True
             data["is_team_owner"] = is_team_owner
             code = 200
@@ -123,7 +128,7 @@ class TeamUserDetaislView(JWTAuthApiView):
 
 class AddTeamView(JWTAuthApiView):
     @transaction.atomic()
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         新建团队
         ---
@@ -149,14 +154,19 @@ class AddTeamView(JWTAuthApiView):
             if bind_existing_namespace and not namespace:
                 return Response(general_message(400, "failed", "namespace 不能为空"), status=400)
             if not is_qualified_name(namespace):
-                raise ErrQualifiedName(msg="invalid namespace name", msg_show="命名空间只能由小写字母、数字或"-"组成，并且必须以字母开始、以数字或字母结尾")
+                # NOTE: latent bug — msg_show string has ASCII quotes around "-" so Python
+                # tokenizes it as "str" - "str" (runtime TypeError if reached); preserved.
+                raise ErrQualifiedName(msg="invalid namespace name", msg_show="命名空间只能由小写字母、数字或"-"组成，并且必须以字母开始、以数字或字母结尾")  # type: ignore[operator]
             regions = []
             if not team_alias:
                 result = general_message(400, "failed", "团队名不能为空")
                 return Response(result, status=400)
             if useable_regions:
                 regions = useable_regions.split(",")
-            if Tenants.objects.filter(tenant_alias=team_alias, enterprise_id=user.enterprise_id).exists():
+            # NOTE: request.user is typed User|AnonymousUser; .enterprise_id/.user_id only on
+            # the authed user — recurring union-attr suppressed (backlog).
+            if Tenants.objects.filter(
+                    tenant_alias=team_alias, enterprise_id=user.enterprise_id).exists():  # type: ignore[union-attr]
                 result = general_message(400, "failed", "该团队名已存在")
                 return Response(result, status=400)
             else:
@@ -179,7 +189,7 @@ class AddTeamView(JWTAuthApiView):
                     exist_namespace_region = ""
                     for region_name in exist_namespace_region_names:
                         region = region_repo.get_region_by_region_name(region_name)
-                        exist_namespace_region += " {}".format(region.region_alias)
+                        exist_namespace_region += " {}".format(region.region_alias)  # type: ignore[union-attr]
                     return Response(
                         general_message(
                             400,
@@ -194,11 +204,12 @@ class AddTeamView(JWTAuthApiView):
                 },
                     ensure_ascii=False)
                 comment = operation_log_service.generate_team_comment(
-                    operation=Operation.CREATE, module_name=team.tenant_alias, team_name=team.tenant_name)
+                    operation=Operation.CREATE, module_name=team.tenant_alias,  # type: ignore[arg-type]
+                    team_name=team.tenant_name)
                 operation_log_service.create_team_log(
                     user=self.user,
                     comment=comment,
-                    enterprise_id=self.user.enterprise_id,
+                    enterprise_id=self.user.enterprise_id,  # type: ignore[arg-type]
                     team_name=team.tenant_name,
                     new_information=new_information)
                 return Response(general_message(200, "success", "团队添加成功", bean=team.to_dict()))
@@ -215,7 +226,7 @@ class AddTeamView(JWTAuthApiView):
 
 
 class TeamUserView(RegionTenantHeaderView):
-    def get(self, request, team_name, *args, **kwargs):
+    def get(self, request: Request, team_name: str, *args: Any, **kwargs: Any) -> Response:
         """
         获取某团队下的所有用户(每页展示八个用户)
         ---
@@ -236,7 +247,7 @@ class TeamUserView(RegionTenantHeaderView):
         name = request.GET.get("query", None)
         user_list = team_services.get_team_users(self.tenant, name)
         if not user_list:
-            users = []
+            users: Any = []
             total = 0
         else:
             users_list = list()
@@ -264,7 +275,7 @@ class TeamUserView(RegionTenantHeaderView):
 
 
 class NotJoinTeamUserView(RegionTenantHeaderView):
-    def get(self, request, team_name, *args, **kwargs):
+    def get(self, request: Request, team_name: str, *args: Any, **kwargs: Any) -> Response:
         page = int(request.GET.get("page", 1))
         page_size = int(request.GET.get("page_size", 10))
         query = request.GET.get("query")
@@ -273,7 +284,7 @@ class NotJoinTeamUserView(RegionTenantHeaderView):
             result = general_message(404, "not found", "团队不存在")
             return Response(data=result, status=404)
         enterprise = enterprise_repo.get_enterprise_by_enterprise_id(tenant.enterprise_id)
-        user_list = team_services.get_not_join_users(enterprise, tenant, query)
+        user_list = team_services.get_not_join_users(enterprise, tenant, query)  # type: ignore[arg-type]
         total = len(user_list)
         data = user_list[(page - 1) * page_size:page * page_size]
         result = general_message(200, None, None, list=data, page=page, page_size=page_size, total=total)
@@ -281,7 +292,7 @@ class NotJoinTeamUserView(RegionTenantHeaderView):
 
 
 class UserDelView(RegionTenantHeaderView):
-    def delete(self, request, team_name, *args, **kwargs):
+    def delete(self, request: Request, team_name: str, *args: Any, **kwargs: Any) -> Response:
         """
         删除租户内的用户
         (可批量可单个)
@@ -304,7 +315,7 @@ class UserDelView(RegionTenantHeaderView):
                 result = general_message(400, "failed", "删除成员不能为空")
                 return Response(result, status=400)
 
-            if request.user.user_id in user_ids:
+            if request.user.user_id in user_ids:  # type: ignore[union-attr]
                 result = general_message(400, "failed", "不能删除自己")
                 return Response(result, status=400)
 
@@ -322,29 +333,30 @@ class UserDelView(RegionTenantHeaderView):
                 result = general_message(200, "delete the success", "删除成功")
                 comment = operation_log_service.generate_team_comment(
                     operation=Operation.IN,
-                    module_name=self.tenant.tenant_alias,
+                    module_name=self.tenant.tenant_alias,  # type: ignore[arg-type]
                     region=self.response_region,
                     team_name=self.tenant.tenant_name,
                     suffix=suffix)
                 operation_log_service.create_team_log(
-                    user=self.user, comment=comment, enterprise_id=self.user.enterprise_id,
+                    user=self.user, comment=comment, enterprise_id=self.user.enterprise_id,  # type: ignore[arg-type]
                     team_name=self.tenant.tenant_name)
             except Tenants.DoesNotExist as e:
                 logger.exception(e)
                 result = general_message(400, "tenant not exist", "{}团队不存在".format(team_name))
             except Exception as e:
                 logger.exception(e)
-                result = error_message(e.message)
+                # NOTE: py2-era Exception.message; absent in py3 (backlog, behavior preserved).
+                result = error_message(e.message)  # type: ignore[attr-defined]
             return Response(result)
         except Exception as e:
             code = 500
             logger.exception(e)
-            result = error_message(e.message)
+            result = error_message(e.message)  # type: ignore[attr-defined]
         return Response(result, status=code)
 
 
 class TeamNameModView(RegionTenantHeaderView):
-    def post(self, request, team_name, *args, **kwargs):
+    def post(self, request: Request, team_name: str, *args: Any, **kwargs: Any) -> Response:
         """
         修改团队名
         ---
@@ -368,18 +380,19 @@ class TeamNameModView(RegionTenantHeaderView):
                 old_information = json.dumps({"团队名称": self.tenant.tenant_alias}, ensure_ascii=False)
                 team = team_services.update_tenant_info(tenant_name=team_name, new_team_alias=new_team_alias, new_logo=new_logo)
                 new_information = json.dumps({"团队名称": new_team_alias}, ensure_ascii=False)
-                result = general_message(code, "update success", "团队信息修改成功", bean=team.to_dict())
+                result = general_message(
+                    code, "update success", "团队信息修改成功", bean=team.to_dict())  # type: ignore[union-attr]
                 comment = operation_log_service.generate_team_comment(
                     operation=Operation.CHANGE,
-                    module_name=team.tenant_alias,
+                    module_name=team.tenant_alias,  # type: ignore[arg-type,union-attr]
                     region=self.region_name,
-                    team_name=team.tenant_name,
+                    team_name=team.tenant_name,  # type: ignore[union-attr]
                     suffix=" 的名称")
                 operation_log_service.create_team_log(
                     user=self.user,
                     comment=comment,
-                    enterprise_id=self.user.enterprise_id,
-                    team_name=team.tenant_name,
+                    enterprise_id=self.user.enterprise_id,  # type: ignore[arg-type]
+                    team_name=team.tenant_name,  # type: ignore[union-attr]
                     new_information=new_information,
                     old_information=old_information)
             except Exception as e:
@@ -393,7 +406,7 @@ class TeamNameModView(RegionTenantHeaderView):
 
 
 class TeamDelView(JWTAuthApiView):
-    def delete(self, request, team_name, *args, **kwargs):
+    def delete(self, request: Request, team_name: str, *args: Any, **kwargs: Any) -> Response:
         """
         删除当前团队
         ---
@@ -409,23 +422,24 @@ class TeamDelView(JWTAuthApiView):
         if tenant is None:
             result = general_message(404, "tenant not exist", "{}团队不存在".format(team_name))
         else:
-            old_region_dict = {"团队名称": tenant.tenant_alias, "团队英文名称": tenant.namespace}
+            old_region_dict: dict = {"团队名称": tenant.tenant_alias, "团队英文名称": tenant.namespace}
             region_list = team_services.delete_by_tenant_id(self.user, tenant)
             old_region_dict["集群"] = region_list
             old_information = json.dumps(old_region_dict, ensure_ascii=False)
             result = general_message(200, "delete a tenant successfully", "删除团队成功")
-            comment = operation_log_service.generate_team_comment(operation=Operation.DELETE, module_name=tenant.tenant_alias)
+            comment = operation_log_service.generate_team_comment(
+                operation=Operation.DELETE, module_name=tenant.tenant_alias)  # type: ignore[arg-type]
             operation_log_service.create_team_log(
                 user=self.user,
                 comment=comment,
-                enterprise_id=self.user.enterprise_id,
+                enterprise_id=self.user.enterprise_id,  # type: ignore[arg-type]
                 team_name=tenant.tenant_name,
                 old_information=old_information)
         return Response(result, status=result["code"])
 
 
 class TeamExitView(RegionTenantHeaderView):
-    def get(self, request, team_name, *args, **kwargs):
+    def get(self, request: Request, team_name: str, *args: Any, **kwargs: Any) -> Response:
         """
         退出当前团队
         ---
@@ -438,21 +452,24 @@ class TeamExitView(RegionTenantHeaderView):
         """
         if self.is_team_owner:
             return Response(general_message(409, "not allow exit.", "您是当前团队创建者，不能退出此团队"), status=409)
-        code, msg_show = team_services.exit_current_team(team_name=team_name, user_id=request.user.user_id)
+        code, msg_show = team_services.exit_current_team(
+            team_name=team_name, user_id=request.user.user_id)  # type: ignore[union-attr]
         if code == 200:
             result = general_message(code=code, msg="success", msg_show=msg_show)
             tenant = team_services.get_tenant_by_tenant_name(team_name)
             comment = operation_log_service.generate_team_comment(
-                operation=Operation.EXIT, module_name=tenant.tenant_alias, team_name=tenant.tenant_name)
+                operation=Operation.EXIT, module_name=tenant.tenant_alias,  # type: ignore[arg-type,union-attr]
+                team_name=tenant.tenant_name)  # type: ignore[union-attr]
             operation_log_service.create_team_log(
-                user=self.user, comment=comment, enterprise_id=self.user.enterprise_id, team_name=tenant.tenant_name)
+                user=self.user, comment=comment, enterprise_id=self.user.enterprise_id,  # type: ignore[arg-type]
+                team_name=tenant.tenant_name)  # type: ignore[union-attr]
         else:
             result = general_message(code=code, msg="failed", msg_show=msg_show)
         return Response(result, status=result.get("code", 200))
 
 
 class TeamRegionInitView(JWTAuthApiView):
-    def post(self, request):
+    def post(self, request: Request) -> Response:
         """
         初始化团队和数据中心信息
         ---
@@ -490,12 +507,15 @@ class TeamRegionInitView(JWTAuthApiView):
 
             team = team_services.create_team(self.user, enterprise, [region_name], team_alias)
             # 为团队开通默认数据中心并在数据中心创建租户
-            tenant_region = region_services.create_tenant_on_region(enterprise.enterprise_id, team.tenant_name, team.region,
-                                                                    team.namespace)
+            # NOTE: latent bug — Tenants has no attribute "region" (AttributeError if reached); preserved.
+            tenant_region = region_services.create_tenant_on_region(
+                enterprise.enterprise_id, team.tenant_name, team.region,  # type: ignore[attr-defined]
+                team.namespace)
             # 公有云，如果没有领过资源包，为开通的数据中心领取免费资源包
             if settings.MODULES.get('SSO_LOGIN'):
-                result = region_services.get_enterprise_free_resource(tenant_region.tenant_id, enterprise.enterprise_id,
-                                                                      tenant_region.region_name, self.user.nick_name)
+                result = region_services.get_enterprise_free_resource(
+                    tenant_region.tenant_id, enterprise.enterprise_id,
+                    tenant_region.region_name, self.user.nick_name)  # type: ignore[arg-type]
                 logger.debug("get free resource on [{}] to team {}: {}".format(tenant_region.region_name, team.tenant_name,
                                                                                result))
             self.user.is_active = True
@@ -505,12 +525,12 @@ class TeamRegionInitView(JWTAuthApiView):
 
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)
+            result = error_message(e.message)  # type: ignore[attr-defined]
         return Response(result, status=result["code"])
 
 
 class ApplicantsView(RegionTenantHeaderView):
-    def get(self, request, team_name, *args, **kwargs):
+    def get(self, request: Request, team_name: str, *args: Any, **kwargs: Any) -> Response:
         """
         初始化团队和数据中心信息
         ---
@@ -547,65 +567,67 @@ class ApplicantsView(RegionTenantHeaderView):
         result = general_message(200, "success", "查询成功", list=rt_list, total=total)
         return Response(result, status=result["code"])
 
-    def put(self, request, team_name, *args, **kwargs):
+    def put(self, request: Request, team_name: str, *args: Any, **kwargs: Any) -> Response:
         """管理员审核用户"""
         user_id = request.data.get("user_id")
         action = request.data.get("action")
         role_ids = request.data.get("role_ids")
-        join = apply_repo.get_applicants_by_id_team_name(user_id=user_id, team_name=team_name)
-        user = user_services.get_user_by_user_id(user_id)
+        join = apply_repo.get_applicants_by_id_team_name(user_id=user_id, team_name=team_name)  # type: ignore[arg-type]
+        user = user_services.get_user_by_user_id(user_id)  # type: ignore[arg-type]
         if action is True:
             join.update(is_pass=1)
             team = team_repo.get_team_by_team_name(team_name=team_name)
-            team_services.add_user_to_team(tenant=team, user_id=user_id, role_ids=role_ids)
+            team_services.add_user_to_team(tenant=team, user_id=user_id, role_ids=role_ids)  # type: ignore[arg-type]
             # 发送通知
             info = "同意"
-            self.send_user_message_for_apply_info(user_id=user_id, team_name=team.tenant_name, info=info)
+            self.send_user_message_for_apply_info(
+                user_id=user_id, team_name=team.tenant_name, info=info)  # type: ignore[arg-type,union-attr]
             comment = operation_log_service.generate_team_comment(
                 operation="{0}用户 {1} 加入".format(Operation.THROUGH.value, user.get_name()),
-                module_name=team.tenant_alias,
-                team_name=team.tenant_name,
+                module_name=team.tenant_alias,  # type: ignore[arg-type,union-attr]
+                team_name=team.tenant_name,  # type: ignore[union-attr]
                 suffix=" 的申请")
             operation_log_service.create_team_log(
-                user=self.user, comment=comment, enterprise_id=self.user.enterprise_id, team_name=team.tenant_name)
+                user=self.user, comment=comment, enterprise_id=self.user.enterprise_id,  # type: ignore[arg-type]
+                team_name=team.tenant_name)  # type: ignore[union-attr]
             return Response(general_message(200, "join success", "加入成功"), status=200)
         else:
             join.update(is_pass=2)
             info = "拒绝"
-            self.send_user_message_for_apply_info(user_id=user_id, team_name=team_name, info=info)
+            self.send_user_message_for_apply_info(user_id=user_id, team_name=team_name, info=info)  # type: ignore[arg-type]
             comment = operation_log_service.generate_team_comment(
                 operation="{0}用户 {1} 加入".format(Operation.REJECT.value, user.get_name()),
-                module_name=self.tenant.tenant_alias,
+                module_name=self.tenant.tenant_alias,  # type: ignore[arg-type]
                 team_name=self.tenant.tenant_name,
                 suffix=" 的申请")
             operation_log_service.create_team_log(
-                user=self.user, comment=comment, enterprise_id=self.user.enterprise_id,
+                user=self.user, comment=comment, enterprise_id=self.user.enterprise_id,  # type: ignore[arg-type]
                 team_name=self.tenant.tenant_name)
             return Response(general_message(200, "join rejected", "拒绝成功"), status=200)
 
     # 用户加入团队，发送站内信给用户
-    def send_user_message_for_apply_info(self, user_id, team_name, info):
+    def send_user_message_for_apply_info(self, user_id: str, team_name: str, info: str) -> None:
         tenant = team_repo.get_tenant_by_tenant_name(tenant_name=team_name)
         message_id = make_uuid()
-        content = '{0}团队{1}您加入该团队'.format(tenant.tenant_alias, info)
+        content = '{0}团队{1}您加入该团队'.format(tenant.tenant_alias, info)  # type: ignore[union-attr]
         UserMessage.objects.create(
             message_id=message_id, receiver_id=user_id, content=content, msg_type="warn", title="用户加入团队信息")
 
 
 class MonitorAlarmStatusView(JWTAuthApiView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         alarm_config = platform_config_service.get_config_by_key("IS_ALARM")
-        if alarm_config.enable is False:
+        if alarm_config.enable is False:  # type: ignore[union-attr]
             return Response(general_message(200, "status is close", "报警关闭状态", bean={"is_alarm": False}), status=200)
         else:
             return Response(general_message(200, "status is open", "报警开启状态", bean={"is_alarm": True}), status=200)
 
-    def put(self, request, *args, **kwargs):
+    def put(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         修改开启、关闭报警状态
         """
-        user_id = request.user.user_id
-        enterprise_id = request.user.enterprise_id
+        user_id = request.user.user_id  # type: ignore[union-attr]
+        enterprise_id = request.user.enterprise_id  # type: ignore[union-attr]
         admin = enterprise_user_perm_repo.is_admin(user_id=user_id, eid=enterprise_id)
         is_alarm = request.data.get("is_alarm")
         if admin:
@@ -622,19 +644,19 @@ class MonitorAlarmStatusView(JWTAuthApiView):
 
 
 class RegisterStatusView(JWTAuthApiView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         register_config = platform_config_service.get_config_by_key("IS_REGIST")
-        if register_config.enable is False:
+        if register_config.enable is False:  # type: ignore[union-attr]
             return Response(general_message(200, "status is close", "注册关闭状态", bean={"is_regist": False}), status=200)
         else:
             return Response(general_message(200, "status is open", "注册开启状态", bean={"is_regist": True}), status=200)
 
-    def put(self, request, *args, **kwargs):
+    def put(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         修改开启、关闭注册状态
         """
-        user_id = request.user.user_id
-        enterprise_id = request.user.enterprise_id
+        user_id = request.user.user_id  # type: ignore[union-attr]
+        enterprise_id = request.user.enterprise_id  # type: ignore[union-attr]
         admin = enterprise_user_perm_repo.is_admin(user_id=user_id, eid=enterprise_id)
         is_regist = request.data.get("is_regist")
         if admin:
@@ -644,48 +666,51 @@ class RegisterStatusView(JWTAuthApiView):
                 comment = operation_log_service.generate_generic_comment(
                     operation=Operation.CLOSE, module=OperationModule.USER, module_name=OperationModule.REGISTER.value)
                 operation_log_service.create_enterprise_log(
-                    user=self.user, comment=comment, enterprise_id=self.user.enterprise_id)
+                    user=self.user, comment=comment, enterprise_id=self.user.enterprise_id)  # type: ignore[arg-type]
                 return Response(general_message(200, "close register", "关闭注册"), status=200)
             else:
                 platform_config_service.update_config("IS_REGIST", {"enable": True, "value": None})
                 comment = operation_log_service.generate_generic_comment(
                     operation=Operation.OPEN, module=OperationModule.USER, module_name=OperationModule.REGISTER.value)
                 operation_log_service.create_enterprise_log(
-                    user=self.user, comment=comment, enterprise_id=self.user.enterprise_id)
+                    user=self.user, comment=comment, enterprise_id=self.user.enterprise_id)  # type: ignore[arg-type]
                 return Response(general_message(200, "open register", "开启注册"), status=200)
         else:
             return Response(general_message(400, "no jurisdiction", "没有权限"), status=400)
 
 
 class EnterpriseInfoView(RegionTenantHeaderView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         查询企业信息
         """
         enter = enterprise_repo.get_enterprise_by_enterprise_id(enterprise_id=self.team.enterprise_id)
-        ent = enter.to_dict()
+        ent = enter.to_dict()  # type: ignore[union-attr]
         is_ent = False
         try:
             res, body = region_api.get_api_version_v2(self.team.tenant_name, self.response_region)
             if res.status == 200 and body is not None and "enterprise" in body["raw"]:
                 is_ent = True
         except region_api.CallApiError as e:
-            logger.warning("数据中心{0}不可达,无法获取相关信息: {1}".format(self.response_region.region_name, e.message))
+            # NOTE: response_region is a str (region name); .region_name is invalid and
+            # Exception.message is py2-only — both would raise if reached (preserved).
+            logger.warning("数据中心{0}不可达,无法获取相关信息: {1}".format(
+                self.response_region.region_name, e.message))  # type: ignore[attr-defined]
         ent["is_enterprise"] = is_ent
         result = general_message(200, "success", "查询成功", bean=ent)
         return Response(result, status=result["code"])
 
 
 class InitDefaultInfoView(JWTAuthApiView):
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         初始化默认信息
         """
         enter = enterprise_repo.get_enterprise_by_enterprise_id(enterprise_id=self.enterprise.enterprise_id)
-        ent = enter.to_dict()
+        ent = enter.to_dict()  # type: ignore[union-attr]
         is_ent = False
         ent["is_enterprise"] = is_ent
-        regions = region_repo.get_regions_by_enterprise_id(self.enterprise.enterprise_id, 1)
+        regions = region_repo.get_regions_by_enterprise_id(self.enterprise.enterprise_id, 1)  # type: ignore[arg-type]
         ent["disable_install_cluster_log"] = False
         ent["default_region"] = regions[0].to_dict()
         result = general_message(200, "success", "查询成功", bean=ent)
@@ -693,7 +718,7 @@ class InitDefaultInfoView(JWTAuthApiView):
 
 
 class UserApplyStatusView(JWTAuthApiView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """查询用户的申请状态"""
         try:
             user_id = request.GET.get("user_id", None)
@@ -703,17 +728,17 @@ class UserApplyStatusView(JWTAuthApiView):
                 result = general_message(200, "success", "查询成功", list=status_list)
                 return Response(result, status=result["code"])
             else:
-                user_list = apply_repo.get_applicants_team(user_id=self.user.user_id)
+                user_list = apply_repo.get_applicants_team(user_id=self.user.user_id)  # type: ignore[arg-type]
                 status_list = [user_status.to_dict() for user_status in user_list]
                 result = general_message(200, "success", "查询成功", list=status_list)
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)
+            result = error_message(e.message)  # type: ignore[attr-defined]
         return Response(result, status=result["code"])
 
 
 class JoinTeamView(JWTAuthApiView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """查看指定用户加入的团队的状态"""
         user_id = request.GET.get("user_id", None)
         users = enterprise_repo.get_enterprise_users(self.enterprise.enterprise_id)
@@ -728,7 +753,7 @@ class JoinTeamView(JWTAuthApiView):
                 team["team_owner"] = team_creater[apply_teams_creater[team["team_id"]]]
             result = general_message(200, "success", "查询成功", list=team_list)
         else:
-            apply_user = apply_repo.get_applicants_team(user_id=self.user.user_id)
+            apply_user = apply_repo.get_applicants_team(user_id=self.user.user_id)  # type: ignore[arg-type]
             apply_team_ids = [apply.team_id for apply in apply_user]
             apply_teams = team_repo.get_team_by_team_ids(apply_team_ids)
             apply_teams_creater = {apply_team.tenant_id: apply_team.creater for apply_team in apply_teams}
@@ -738,53 +763,58 @@ class JoinTeamView(JWTAuthApiView):
             result = general_message(200, "success", "查询成功", list=team_list)
         return Response(result, status=result["code"])
 
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """指定用户加入指定团队"""
         user_id = self.user.user_id
         team_name = request.data.get("team_name")
         tenant = Tenants.objects.filter(tenant_name=team_name).first()
-        info = apply_service.create_applicants(user_id=user_id, team_name=team_name)
+        info = apply_service.create_applicants(user_id=user_id, team_name=team_name)  # type: ignore[arg-type]
         result = general_message(200, "apply success", "申请加入")
         if info:
-            admins = team_repo.get_tenant_admin_by_tenant_id(tenant)
-            self.send_user_message_to_tenantadmin(admins=admins, team_name=team_name, nick_name=self.user.get_name())
+            admins = team_repo.get_tenant_admin_by_tenant_id(tenant)  # type: ignore[arg-type]
+            self.send_user_message_to_tenantadmin(
+                admins=admins, team_name=team_name, nick_name=self.user.get_name())  # type: ignore[arg-type]
         comment = operation_log_service.generate_team_comment(
-            operation=Operation.APPLYJOIN, module_name=tenant.tenant_alias, team_name=tenant.tenant_name)
+            operation=Operation.APPLYJOIN, module_name=tenant.tenant_alias,  # type: ignore[arg-type,union-attr]
+            team_name=tenant.tenant_name)  # type: ignore[union-attr]
         operation_log_service.create_team_log(
-            user=self.user, comment=comment, enterprise_id=self.user.enterprise_id, team_name=tenant.tenant_name)
+            user=self.user, comment=comment, enterprise_id=self.user.enterprise_id,  # type: ignore[arg-type]
+            team_name=tenant.tenant_name)  # type: ignore[union-attr]
         return Response(result, status=result["code"])
 
-    def put(self, request, *args, **kwargs):
+    def put(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         user_id = self.user.user_id
         team_name = request.data.get("team_name")
-        applicant = apply_repo.get_applicants_by_id_team_name(user_id=user_id, team_name=team_name)
+        applicant = apply_repo.get_applicants_by_id_team_name(user_id=user_id, team_name=team_name)  # type: ignore[arg-type]
         if not applicant:
             raise AbortRequest(msg="not found applicant", msg_show="该申请不存在", status_code=404)
         if applicant and applicant[0].is_pass == 1:
             result = general_message(409, "joined the team, applicant cannot be cancelled",
                                      "您已加入该团队，无法撤销申请")
             return Response(result, status=409)
-        apply_service.delete_applicants(user_id=user_id, team_name=team_name)
+        apply_service.delete_applicants(user_id=user_id, team_name=team_name)  # type: ignore[arg-type]
         result = general_message(200, "success", None)
         tenant = Tenants.objects.filter(tenant_name=team_name).first()
         comment = operation_log_service.generate_team_comment(
-            operation=Operation.CANCEL_JOIN, module_name=tenant.tenant_alias, team_name=tenant.tenant_name,
+            operation=Operation.CANCEL_JOIN, module_name=tenant.tenant_alias,  # type: ignore[arg-type,union-attr]
+            team_name=tenant.tenant_name,  # type: ignore[union-attr]
             suffix=" 的申请")
         operation_log_service.create_team_log(
-            user=self.user, comment=comment, enterprise_id=self.user.enterprise_id, team_name=tenant.tenant_name)
+            user=self.user, comment=comment, enterprise_id=self.user.enterprise_id,  # type: ignore[arg-type]
+            team_name=tenant.tenant_name)  # type: ignore[union-attr]
         return Response(result, status=200)
 
     # 用户加入团队，给管理员发送站内信
-    def send_user_message_to_tenantadmin(self, admins, team_name, nick_name):
+    def send_user_message_to_tenantadmin(self, admins: Any, team_name: str, nick_name: str) -> None:
         tenant = team_repo.get_tenant_by_tenant_name(tenant_name=team_name)
         logger.debug('---------admin---------->{0}'.format(admins))
         for admin in admins:
             message_id = make_uuid()
-            content = '{0}用户申请加入{1}团队'.format(nick_name, tenant.tenant_alias)
+            content = '{0}用户申请加入{1}团队'.format(nick_name, tenant.tenant_alias)  # type: ignore[union-attr]
             UserMessage.objects.create(
                 message_id=message_id, receiver_id=admin.user_id, content=content, msg_type="warn", title="团队加入信息")
 
-    def delete(self, request, *args, **kwargs):
+    def delete(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         删除用户加入团队被拒绝记录
         :param request:
@@ -805,20 +835,21 @@ class JoinTeamView(JWTAuthApiView):
                     apply_repo.delete_applicants_record(user_id=user_id, team_name=team_name, is_pass=int(is_pass))
                 else:
                     user_id = self.user.user_id
-                    apply_repo.delete_applicants_record(user_id=user_id, team_name=team_name, is_pass=int(is_pass))
+                    apply_repo.delete_applicants_record(
+                        user_id=user_id, team_name=team_name, is_pass=int(is_pass))  # type: ignore[arg-type]
         result = general_message(200, "success", "删除成功")
         return Response(result, status=result["code"])
 
 
 class TeamUserCanJoin(JWTAuthApiView):
-    def get(self, request, enterprise_id, *args, **kwargs):
+    def get(self, request: Request, enterprise_id: str, *args: Any, **kwargs: Any) -> Response:
         """指定用户可以加入哪些团队"""
-        tenants = team_repo.get_tenants_by_user_id(user_id=self.user.user_id)
+        tenants = team_repo.get_tenants_by_user_id(user_id=self.user.user_id)  # type: ignore[arg-type]
         team_names = tenants.values("tenant_name")
         # 已加入的团队
         team_name_list = [t_name.get("tenant_name") for t_name in team_names]
         team_list = team_repo.get_teams_by_enterprise_id(enterprise_id)
-        apply_team = apply_repo.get_append_applicants_team(user_id=self.user.user_id)
+        apply_team = apply_repo.get_append_applicants_team(user_id=self.user.user_id)  # type: ignore[arg-type]
         # 已申请过的团队
         applied_team = [team_name.team_name for team_name in apply_team]
         can_join_team_list = []
@@ -840,7 +871,7 @@ class TeamUserCanJoin(JWTAuthApiView):
 
 
 class AllUserView(JWTAuthApiView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         获取企业下用户信息列表
         """
@@ -850,28 +881,31 @@ class AllUserView(JWTAuthApiView):
             page_size = int(request.GET.get("page_size", 5))
             user_name = request.GET.get("user_name", None)
             if not enterprise_id:
-                enter = console_enterprise_service.get_enterprise_by_id(enterprise_id=self.user.enterprise_id)
-                enterprise_id = enter.enterprise_id
+                enter = console_enterprise_service.get_enterprise_by_id(
+                    enterprise_id=self.user.enterprise_id)  # type: ignore[arg-type]
+                enterprise_id = enter.enterprise_id  # type: ignore[union-attr]
             enter = console_enterprise_service.get_enterprise_by_id(enterprise_id=enterprise_id)
             if user_name:
                 euser = user_services.get_user_by_user_name(enterprise_id, user_name)
-                list = []
+                list: Any = []
                 if not euser:
                     result = general_message("0000", "success", "查询成功", list=list, total=0)
                     return Response(result)
-                result_map = dict()
+                result_map: dict = dict()
                 result_map["user_id"] = euser.user_id
                 result_map["email"] = euser.email
                 result_map["nick_name"] = euser.nick_name
                 result_map["phone"] = euser.phone if euser.phone else "暂无"
                 result_map["create_time"] = time_to_str(euser.create_time, "%Y-%m-%d %H:%M:%S")
-                tenant_list = user_services.get_user_tenants(euser.user_id)
+                tenant_list = user_services.get_user_tenants(euser.user_id)  # type: ignore[arg-type]
                 result_map["tenants"] = tenant_list
-                result_map["enterprise_alias"] = enter.enterprise_alias
+                result_map["enterprise_alias"] = enter.enterprise_alias  # type: ignore[union-attr]
                 list.append(result_map)
                 result = general_message("0000", "success", "查询成功", list=list, total=1)
                 return Response(result)
-            user_list = user_repo.get_user_by_enterprise_id(enterprise_id=enterprise_id)
+            # NOTE: latent bug — UserRepo has no method get_user_by_enterprise_id
+            # (AttributeError if reached); behavior preserved (backlog).
+            user_list = user_repo.get_user_by_enterprise_id(enterprise_id=enterprise_id)  # type: ignore[attr-defined]
             for user1 in user_list:
                 if user1.nick_name == self.user.nick_name:
                     user_list.delete(user1)
@@ -887,7 +921,7 @@ class AllUserView(JWTAuthApiView):
                 result_map["create_time"] = time_to_str(user.create_time, "%Y-%m-%d %H:%M:%S")
                 tenant_list = user_services.get_user_tenants(user.user_id)
                 result_map["tenants"] = tenant_list
-                result_map["enterprise_alias"] = enter.enterprise_alias
+                result_map["enterprise_alias"] = enter.enterprise_alias  # type: ignore[union-attr]
                 list.append(result_map)
 
             result = general_message("0000", "success", "查询成功", list=list, total=user_paginator.count)
@@ -897,7 +931,7 @@ class AllUserView(JWTAuthApiView):
             result = error_message()
         return Response(result)
 
-    def delete(self, request, tenant_name, user_id, *args, **kwargs):
+    def delete(self, request: Request, tenant_name: str, user_id: str, *args: Any, **kwargs: Any) -> Response:
         """
         删除用户
         ---
@@ -925,7 +959,7 @@ class AllUserView(JWTAuthApiView):
 
 # 企业管理员添加用户
 class AdminAddUserView(JWTAuthApiView):
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         管理员添加成员到团队
         ---
@@ -979,11 +1013,13 @@ class AdminAddUserView(JWTAuthApiView):
                 if not team:
                     raise ServiceHandleException(msg_show="团队不存在", msg="no found team", status_code=404)
                 # 校验用户信息
-                user_services.check_params(user_name, email, password, re_password, self.user.enterprise_id)
+                user_services.check_params(
+                    user_name, email, password, re_password, self.user.enterprise_id)  # type: ignore[arg-type]
                 client_ip = user_services.get_client_ip(request)
                 enterprise = console_enterprise_service.get_enterprise_by_enterprise_id(self.user.enterprise_id)
                 # 创建用户
-                user = user_services.create_user_set_password(user_name, email, password, "admin add", enterprise, client_ip)
+                user = user_services.create_user_set_password(
+                    user_name, email, password, "admin add", enterprise, client_ip)  # type: ignore[arg-type]
                 # 创建用户团队关系表
                 team_services.add_user_role_to_team(tenant=team, user_ids=[user.user_id], role_ids=role_ids)
                 user.is_active = True
@@ -991,27 +1027,28 @@ class AdminAddUserView(JWTAuthApiView):
                 # 转换user_name为符合k8s命名空间规范的名称
                 normalized_namespace = normalize_name_for_k8s_namespace(user_name)
                 team = team_services.create_team(user, enterprise, ["rainbond"], "", normalized_namespace, "")
-                region_services.create_tenant_on_region(enterprise.enterprise_id, team.tenant_name, "rainbond",
-                                                        team.namespace)
+                region_services.create_tenant_on_region(
+                    enterprise.enterprise_id, team.tenant_name, "rainbond",  # type: ignore[union-attr]
+                    team.namespace)
 
                 result = general_message(200, "success", "添加用户成功")
             else:
                 result = general_message(400, "not role", "创建用户时角色不能为空")
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)
+            result = error_message(e.message)  # type: ignore[attr-defined]
         return Response(result)
 
 
 class CertificateView(JWTAuthApiView):
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         bean = {"is_certificate": 1}
         result = general_message(200, "success", "获取成功", bean=bean)
         return Response(result)
 
 
 class TeamSortDomainQueryView(RegionTenantHeaderView):
-    def get(self, request, team_name, region_name, *args, **kwargs):
+    def get(self, request: Request, team_name: str, region_name: str, *args: Any, **kwargs: Any) -> Response:
         """
         获取团队下域名访问量排序
         ---
@@ -1036,19 +1073,20 @@ class TeamSortDomainQueryView(RegionTenantHeaderView):
             end = page * page_size
             try:
                 res, body = region_api.get_query_domain_access(region_name, team_name, sufix)
-                total = len(body["data"]["result"])
-                domains = body["data"]["result"]
+                total = len(body["data"]["result"])  # type: ignore[index]
+                domains = body["data"]["result"]  # type: ignore[index]
                 for domain in domains:
                     total_traffic += int(domain["value"][1])
-                    domain_list = body["data"]["result"][start:end]
+                    domain_list = body["data"]["result"][start:end]  # type: ignore[index]
             except Exception as e:
                 logger.debug(e)
             bean = {"total": total, "total_traffic": total_traffic}
             result = general_message(200, "success", "查询成功", list=domain_list, bean=bean)
             return Response(result, status=200)
         else:
-            start = request.GET.get("start", None)
-            end = request.GET.get("end", None)
+            # NOTE: start/end reused with different types across branches (behavior preserved).
+            start = request.GET.get("start", None)  # type: ignore[assignment]
+            end = request.GET.get("end", None)  # type: ignore[assignment]
             body = {}
             sufix = "?query=ceil(sum(increase(gateway_requests%7B" \
                 + "namespace%3D%22{0}%22%7D%5B1h%5D)))&start={1}&end={2}&step=60".format(self.tenant.tenant_id, start, end)
@@ -1061,7 +1099,7 @@ class TeamSortDomainQueryView(RegionTenantHeaderView):
 
 
 class TeamSortServiceQueryView(RegionTenantHeaderView):
-    def get(self, request, team_name, region_name, *args, **kwargs):
+    def get(self, request: Request, team_name: str, region_name: str, *args: Any, **kwargs: Any) -> Response:
         """
         获取团队下组件访问量排序
         ---
@@ -1080,14 +1118,14 @@ class TeamSortServiceQueryView(RegionTenantHeaderView):
         # 对外组件访问量
         try:
             res, body = region_api.get_query_service_access(region_name, team_name, sufix_outer)
-            outer_service_list = body["data"]["result"][0:10]
+            outer_service_list = body["data"]["result"][0:10]  # type: ignore[index]
         except Exception as e:
             logger.debug(e)
             outer_service_list = []
         # 对外组件访问量
         try:
             res, body = region_api.get_query_service_access(region_name, team_name, sufix_inner)
-            inner_service_list = body["data"]["result"][0:10]
+            inner_service_list = body["data"]["result"][0:10]  # type: ignore[index]
         except Exception as e:
             logger.debug(e)
             inner_service_list = []
@@ -1101,9 +1139,9 @@ class TeamSortServiceQueryView(RegionTenantHeaderView):
                 service_id_list.append(service_oj["metric"]["service"])
         service_traffic_list = []
         for service_id in service_id_list:
-            service_dict = dict()
-            metric = dict()
-            value = []
+            service_dict: dict = dict()
+            metric: dict = dict()
+            value: list = []
             service_dict["metric"] = metric
             service_dict["value"] = value
             traffic_num = 0
@@ -1135,7 +1173,7 @@ class TeamSortServiceQueryView(RegionTenantHeaderView):
 
 
 class TeamCheckKubernetesServiceName(RegionTenantHeaderView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         k8s_service_name = parse_item(request, "k8s_service_name", required=True)
         is_valid = True
         try:
@@ -1154,9 +1192,9 @@ class TeamsPermissionCreateApp(JWTAuthApiView):
     Teams with permission to create apps
     """
 
-    def get(self, request, enterprise_id, *args, **kwargs):
+    def get(self, request: Request, enterprise_id: str, *args: Any, **kwargs: Any) -> Response:
         teams = list()
-        tenants = enterprise_repo.get_enterprise_user_teams(enterprise_id, self.user.user_id)
+        tenants = enterprise_repo.get_enterprise_user_teams(enterprise_id, self.user.user_id)  # type: ignore[arg-type]
         if tenants:
             for tenant in tenants:
                 teams.append(team_services.team_with_region_info(tenant, self.user))
@@ -1165,7 +1203,7 @@ class TeamsPermissionCreateApp(JWTAuthApiView):
 
 
 class TeamCheckResourceName(JWTAuthApiView):
-    def post(self, request, team_name, *args, **kwargs):
+    def post(self, request: Request, team_name: str, *args: Any, **kwargs: Any) -> Response:
         name = parse_item(request, "name", required=True)
         rtype = parse_item(request, "type", required=True)
         region_name = parse_item(request, "region_name", required=True)
@@ -1174,23 +1212,26 @@ class TeamCheckResourceName(JWTAuthApiView):
 
 
 class TeamRegistryAuthLView(RegionTenantHeaderView):
-    def get(self, request, *args, **kwargs):
-        result = team_services.list_registry_auths(self.tenant.tenant_id, self.region_name, self.user.user_id)
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
+        result = team_services.list_registry_auths(
+            self.tenant.tenant_id, self.region_name, self.user.user_id)  # type: ignore[arg-type]
         auths = [auth.to_dict() for auth in result]
         result = general_message(200, "success", "查询成功", list=auths)
         return Response(result, status=result["code"])
 
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         domain = parse_item(request, "domain", required=True)
         username = parse_item(request, "username", required=True)
         password = parse_item(request, "password", required=True)
-        team_services.create_registry_auth(self.tenant, self.region_name, domain, username, password)
+        # NOTE: latent bug — create_registry_auth requires hub_type and user_id which are
+        # not passed (TypeError if reached); behavior preserved (backlog).
+        team_services.create_registry_auth(self.tenant, self.region_name, domain, username, password)  # type: ignore[call-arg]
         result = general_message(200, "success", "创建成功")
         return Response(result, status=result["code"])
 
 
 class TeamRegistryAuthRUDView(RegionTenantHeaderView):
-    def put(self, request, secret_id, *args, **kwargs):
+    def put(self, request: Request, secret_id: str, *args: Any, **kwargs: Any) -> Response:
         data = {
             "username": parse_item(request, "username", required=True),
             "password": parse_item(request, "password", required=True)
@@ -1199,14 +1240,14 @@ class TeamRegistryAuthRUDView(RegionTenantHeaderView):
         result = general_message(200, "success", "更新成功")
         return Response(result, status=result["code"])
 
-    def delete(self, request, secret_id, *args, **kwargs):
-        team_services.delete_registry_auth(self.tenant, self.region_name, secret_id, self.user.user_id)
+    def delete(self, request: Request, secret_id: str, *args: Any, **kwargs: Any) -> Response:
+        team_services.delete_registry_auth(self.tenant, self.region_name, secret_id, self.user.user_id)  # type: ignore[arg-type]
         result = general_message(200, "success", "删除成功")
         return Response(result, status=result["code"])
 
 
 class ClusterNamespacesView(JWTAuthApiView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         获取集群中未被 Rainbond 管理的 namespace 列表（含创建时间）
         ---
@@ -1221,7 +1262,8 @@ class ClusterNamespacesView(JWTAuthApiView):
         if not region:
             return Response(general_message(400, "failed", "region 参数不能为空"), status=400)
         try:
-            _, body = region_api.list_namespaces(self.user.enterprise_id, region, "unmanaged", namespace_format="detail")
+            _, body = region_api.list_namespaces(
+                self.user.enterprise_id, region, "unmanaged", namespace_format="detail")  # type: ignore[arg-type]
             return Response(general_message(200, "success", "success", bean=body))
         except ServiceHandleException as e:
             logger.exception(e)

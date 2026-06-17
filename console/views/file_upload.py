@@ -4,7 +4,9 @@
 """
 import logging
 import os
+from typing import Any
 
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from console.services.git_service import GitCodeService
@@ -17,7 +19,7 @@ git_service = GitCodeService()
 
 
 class ConsoleUploadFileView(JWTAuthApiView):
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         上传文件
         ---

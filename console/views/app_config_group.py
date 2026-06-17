@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+from typing import Any
+
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from console.services.app_config_group import app_config_group_service
@@ -12,7 +15,7 @@ from console.exception.main import AbortRequest
 
 
 class ListAppConfigGroupView(ApplicationView):
-    def post(self, request, team_name, app_id, *args, **kwargs):
+    def post(self, request: Request, team_name: str, app_id: str, *args: Any, **kwargs: Any) -> Response:
         serializer = AppConfigGroupCreateSerilizer(data=request.data)
         serializer.is_valid()
         params = serializer.data
@@ -34,7 +37,7 @@ class ListAppConfigGroupView(ApplicationView):
         operation_log_service.create_app_log(self, comment, format_app=False, new_information=new_information)
         return Response(status=200, data=general_data(bean=acg))
 
-    def get(self, request, app_id, *args, **kwargs):
+    def get(self, request: Request, app_id: str, *args: Any, **kwargs: Any) -> Response:
         try:
             page = int(request.GET.get("page", 1))
         except ValueError:
@@ -49,7 +52,7 @@ class ListAppConfigGroupView(ApplicationView):
 
 
 class AppConfigGroupView(ApplicationView):
-    def put(self, request, team_name, app_id, name, *args, **kwargs):
+    def put(self, request: Request, team_name: str, app_id: str, name: str, *args: Any, **kwargs: Any) -> Response:
         serializer = AppConfigGroupUpdateSerilizer(data=request.data)
         serializer.is_valid()
         params = serializer.data
@@ -80,18 +83,20 @@ class AppConfigGroupView(ApplicationView):
             self, comment, format_app=False, new_information=new_information, old_information=old_information)
         return Response(status=200, data=general_data(bean=acg))
 
-    def get(self, request, app_id, name, *args, **kwargs):
+    def get(self, request: Request, app_id: str, name: str, *args: Any, **kwargs: Any) -> Response:
         acg = app_config_group_service.get_config_group(self.region_name, app_id, name)
         return Response(status=200, data=general_data(bean=acg))
 
-    def delete(self, request, team_name, app_id, name, *args, **kwargs):
+    def delete(self, request: Request, team_name: str, app_id: str, name: str, *args: Any, **kwargs: Any) -> Response:
         acg = app_config_group_service.delete_config_group(self.region_name, team_name, app_id, name)
-        service_names = [service["service_cname"] for service in acg["services"]]
-        config_items = [{"变量名": item["item_key"], "变量值": item["item_value"]} for item in acg["config_items"]]
+        # NOTE: delete_config_group returns None; indexing acg raises TypeError at runtime (real bug, backlog).
+        service_names = [service["service_cname"] for service in acg["services"]]  # type: ignore[index]
+        config_items = [{"变量名": item["item_key"], "变量值": item["item_value"]}
+                        for item in acg["config_items"]]  # type: ignore[index]
         old_information = app_config_group_service.json_config_groups(
-            config_group_name=acg["config_group_name"],
+            config_group_name=acg["config_group_name"],  # type: ignore[index]
             config_items=config_items,
-            enable=acg["enable"],
+            enable=acg["enable"],  # type: ignore[index]
             services_names=service_names)
         app_config_group_service.delete_config_group(self.region_name, team_name, app_id, name)
         app_name = operation_log_service.process_app_name(self.app.app_name, self.region_name, self.tenant_name,
@@ -101,7 +106,7 @@ class AppConfigGroupView(ApplicationView):
         return Response(status=200, data=general_data(bean=acg))
 
 
-def check_services(app_id, req_service_ids):
+def check_services(app_id: str, req_service_ids: Any) -> None:
     services = group_service.get_group_services(app_id)
     service_ids = [service.service_id for service in services]
 

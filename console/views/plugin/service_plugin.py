@@ -4,6 +4,9 @@
 """
 import json
 import logging
+from typing import Any
+
+from rest_framework.request import Request
 
 from console.services.operation_log import operation_log_service, Operation
 from console.services.plugin import app_plugin_service, plugin_version_service, plugin_service
@@ -18,7 +21,7 @@ logger = logging.getLogger("default")
 
 
 class ServicePluginsView(AppBaseView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         获取组件可用的插件列表
         ---
@@ -52,7 +55,7 @@ class ServicePluginsView(AppBaseView):
 
 
 class ServicePluginInstallView(AppBaseView):
-    def post(self, request, plugin_id, *args, **kwargs):
+    def post(self, request: Request, plugin_id: str, *args: Any, **kwargs: Any) -> Response:
         """
         组件安装插件
         ---
@@ -88,8 +91,9 @@ class ServicePluginInstallView(AppBaseView):
 
         result = general_message(200, "success", "安装成功")
         plugin = plugin_service.get_plugin_by_plugin_id(self.tenant, plugin_id)
+        # NOTE: get_plugin_by_plugin_id may return None; backlog
         plugin_name = operation_log_service.process_plugin_name(
-            plugin.plugin_alias,
+            plugin.plugin_alias,  # type: ignore[union-attr]
             region=self.service.service_region,
             team_name=self.tenant.tenant_name,
             plugin_id=plugin_id,
@@ -110,7 +114,7 @@ class ServicePluginInstallView(AppBaseView):
             service_alias=self.service.service_alias)
         return Response(result, status=result["code"])
 
-    def delete(self, request, plugin_id, *args, **kwargs):
+    def delete(self, request: Request, plugin_id: str, *args: Any, **kwargs: Any) -> Response:
         """
         组件卸载插件
         ---
@@ -144,7 +148,7 @@ class ServicePluginInstallView(AppBaseView):
             region=self.service.service_region,
             team_name=self.tenant.tenant_name,
             service_alias=self.service.service_alias,
-            suffix=" 下的插件 {}".format(plugin.plugin_alias))
+            suffix=" 下的插件 {}".format(plugin.plugin_alias))  # type: ignore[union-attr]
         operation_log_service.create_component_log(
             user=self.user,
             comment=comment,
@@ -157,7 +161,7 @@ class ServicePluginInstallView(AppBaseView):
 
 
 class ServicePluginOperationView(AppBaseView):
-    def put(self, request, plugin_id, *args, **kwargs):
+    def put(self, request: Request, plugin_id: str, *args: Any, **kwargs: Any) -> Response:
         """
         启停用组件插件
         ---
@@ -200,7 +204,7 @@ class ServicePluginOperationView(AppBaseView):
         memory = request.data.get("min_memory")
         cpu = request.data.get("min_cpu")
 
-        data = dict()
+        data: dict = dict()
         data["plugin_id"] = plugin_id
         data["switch"] = is_active
         data["version_id"] = build_version
@@ -218,7 +222,7 @@ class ServicePluginOperationView(AppBaseView):
 
 
 class ServicePluginConfigView(AppBaseView):
-    def get(self, request, plugin_id, *args, **kwargs):
+    def get(self, request: Request, plugin_id: str, *args: Any, **kwargs: Any) -> Response:
         """
         组件插件查看配置
         ---
@@ -258,7 +262,7 @@ class ServicePluginConfigView(AppBaseView):
         return Response(result, result["code"])
 
     @transaction.atomic
-    def put(self, request, plugin_id, *args, **kwargs):
+    def put(self, request: Request, plugin_id: str, *args: Any, **kwargs: Any) -> Response:
         """
         组件插件配置更新
         ---

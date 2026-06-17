@@ -1,6 +1,8 @@
 # -*- coding: utf8 -*-
 import logging
+from typing import Any
 
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from www.utils.return_message import general_message
@@ -15,7 +17,7 @@ logger = logging.getLogger("default")
 
 
 class OperationLogView(JWTAuthApiView):
-    def get(self, request, enterprise_id, *args, **kwargs):
+    def get(self, request: Request, enterprise_id: str, *args: Any, **kwargs: Any) -> Response:
         params = get_query_params(request)
         logs, total = operation_log_service.list(enterprise_id, params)
         logs = extend_user_info(enterprise_id, logs)
@@ -24,24 +26,27 @@ class OperationLogView(JWTAuthApiView):
 
 
 class TeamOperationLogView(RegionTenantHeaderView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         params = get_query_params(request)
-        logs, total = operation_log_service.list_team_logs(self.user.enterprise_id, self.tenant, params)
-        logs = extend_user_info(self.user.enterprise_id, logs)
+        # NOTE: enterprise_id is nullable but callees expect str (arg-type backlog).
+        logs, total = operation_log_service.list_team_logs(
+            self.user.enterprise_id, self.tenant, params)  # type: ignore[arg-type]
+        logs = extend_user_info(self.user.enterprise_id, logs)  # type: ignore[arg-type]
         result = general_message(200, "success", "查询成功", list=logs, total=total)
         return Response(result, status=result["code"])
 
 
 class AppOperationLogView(ApplicationView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         params = get_query_params(request)
-        logs, total = operation_log_service.list_app_logs(self.user.enterprise_id, self.tenant, self.app, params)
-        logs = extend_user_info(self.user.enterprise_id, logs)
+        logs, total = operation_log_service.list_app_logs(
+            self.user.enterprise_id, self.tenant, self.app, params)  # type: ignore[arg-type]
+        logs = extend_user_info(self.user.enterprise_id, logs)  # type: ignore[arg-type]
         result = general_message(200, "success", "查询成功", list=logs, total=total)
         return Response(result, status=result["code"])
 
 
-def get_query_params(request):
+def get_query_params(request: Request) -> dict:
     params = {
         "start_time": request.GET.get("start_time", None),
         "end_time": request.GET.get("end_time", None),
@@ -56,7 +61,7 @@ def get_query_params(request):
     return params
 
 
-def extend_user_info(enterprise_id, logs):
+def extend_user_info(enterprise_id: str, logs: Any) -> Any:
     if not logs:
         return
     for log in logs:

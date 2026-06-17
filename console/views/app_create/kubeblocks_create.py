@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import logging
+from typing import Any
 from console.utils.cache_decorators import never_cache
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from console.exception.bcode import ErrK8sComponentNameExists
@@ -15,7 +17,7 @@ logger = logging.getLogger("default")
 
 class KubeBlocksComponentCreateView(RegionTenantHeaderView):
     @never_cache
-    def post(self, request, *args, **kwargs):  # pylint: disable=unused-argument
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:  # pylint: disable=unused-argument
         """
         一次性完成创建 KubeBlocks Component 的创建
         
@@ -81,7 +83,7 @@ class KubeBlocksComponentCreateView(RegionTenantHeaderView):
                 user=self.user,
                 operation_type=OperationType.COMPONENT_MANAGE,
                 comment=f"创建KubeBlocks组件: {service_cname} (类型: {request.data.get('database_type', 'unknown')})",
-                enterprise_id=self.user.enterprise_id,
+                enterprise_id=self.user.enterprise_id,  # type: ignore[arg-type]
                 team_name=self.tenant.tenant_name,
                 service_alias=result_data.get("service_alias", ""),
                 service_cname=service_cname,

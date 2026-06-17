@@ -2,6 +2,9 @@
 import json
 import logging
 import os
+from typing import Any
+
+from rest_framework.request import Request
 
 from console.enum.enterprise_enum import EnterpriseRolesEnum
 from console.exception.bcode import ErrEnterpriseNotFound, ErrUserNotFound
@@ -38,7 +41,7 @@ logger = logging.getLogger("default")
 
 
 class CheckSourceView(AlowAnyApiView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         判断是sso还是私有云
         ---
@@ -48,7 +51,7 @@ class CheckSourceView(AlowAnyApiView):
             # if isinstance(user, AnonymousUser):
             if settings.MODULES.get('SSO_LOGIN'):
                 code = 200
-                data = dict()
+                data: dict = dict()
                 url = "https://sso.goodrain.com/#/login/"
                 data["url"] = url
                 data["is_public"] = True
@@ -66,15 +69,16 @@ class CheckSourceView(AlowAnyApiView):
                 return Response(result, status=code)
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)
+            result = error_message(e.message)  # type: ignore[attr-defined]  # NOTE: py2 Exception.message
             return Response(result, status=500)
 
 
 class UserLoginView(BaseApiView):
-    allowed_methods = ('POST', )
+    # NOTE: APIView.allowed_methods typed list[str]; legacy tuple override (backlog).
+    allowed_methods = ('POST', )  # type: ignore[assignment]
 
     @never_cache
-    def post(self, request):
+    def post(self, request: Request) -> Response:
         """
         用户登录接口
         ---
@@ -126,12 +130,12 @@ class UserLoginView(BaseApiView):
         except Exception as e:
             logger.exception(e)
             code = 500
-            result = error_message(e.message)
+            result = error_message(e.message)  # type: ignore[attr-defined]
         return Response(result, status=code)
 
 
 class UserLogoutView(JWTAuthApiView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         用户登出
         ---
@@ -153,7 +157,7 @@ class UserLogoutView(JWTAuthApiView):
                 comment = operation_log_service.generate_generic_comment(
                     operation=Operation.EXIT, module=OperationModule.LOGIN, module_name="")
                 operation_log_service.create_enterprise_log(user=self.user, comment=comment,
-                                                            enterprise_id=self.user.enterprise_id)
+                                                            enterprise_id=self.user.enterprise_id)  # type: ignore[arg-type]
                 response = Response(result, status=code)
                 response.delete_cookie('tenant_name')
                 response.delete_cookie('uid', domain='.goodrain.com')
@@ -161,12 +165,12 @@ class UserLogoutView(JWTAuthApiView):
                 return response
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)
+            result = error_message(e.message)  # type: ignore[attr-defined]
             return Response(result, status=500)
 
 
 class UserPemTraView(TeamOwnerView):
-    def post(self, request, team_name, *args, **kwargs):
+    def post(self, request: Request, team_name: str, *args: Any, **kwargs: Any) -> Response:
         """
         移交团队管理权
         ---
@@ -183,28 +187,29 @@ class UserPemTraView(TeamOwnerView):
               paramType: body
         """
         user_id = request.data.get("user_id")
-        self.tenant.creater = user_id
+        self.tenant.creater = user_id  # type: ignore[assignment]
         self.tenant.save()
         result = general_message(msg="success", msg_show="移交成功", code=200)
-        user = user_services.get_user_by_user_id(user_id)
+        user = user_services.get_user_by_user_id(user_id)  # type: ignore[arg-type]
         comment = operation_log_service.generate_team_comment(
             operation=Operation.TRUN_OVER,
-            module_name=self.tenant.tenant_alias,
+            module_name=self.tenant.tenant_alias,  # type: ignore[arg-type]
             region=self.response_region,
             team_name=self.tenant.tenant_name,
             suffix=" 给用户 {}".format(user.get_name()))
         operation_log_service.create_team_log(
-            user=self.user, comment=comment, enterprise_id=self.user.enterprise_id, team_name=self.tenant.tenant_name)
+            user=self.user, comment=comment, enterprise_id=self.user.enterprise_id,  # type: ignore[arg-type]
+            team_name=self.tenant.tenant_name)
         return Response(result, status=200)
 
 
 class AdminUserLCView(EnterpriseAdminView):
-    def get(self, request, enterprise_id, *args, **kwargs):
+    def get(self, request: Request, enterprise_id: str, *args: Any, **kwargs: Any) -> Response:
         users = user_services.get_admin_users(enterprise_id)
         result = general_message(200, "success", "获取企业管理员列表成功", list=users)
         return Response(result)
 
-    def post(self, request, enterprise_id, *args, **kwargs):
+    def post(self, request: Request, enterprise_id: str, *args: Any, **kwargs: Any) -> Response:
         roles = parse_item(request, "roles", required=True, error="at least one role needs to be specified")
         if not set(roles).issubset(EnterpriseRolesEnum.names()):
             raise AbortRequest("invalid roles", msg_show="角色不正确")
@@ -213,7 +218,7 @@ class AdminUserLCView(EnterpriseAdminView):
         if user_id == self.user.user_id:
             raise AbortRequest("cannot edit your own role", msg_show="不可操作自己的角色")
         try:
-            user = user_services.get_user_by_user_id(user_id)
+            user = user_services.get_user_by_user_id(user_id)  # type: ignore[arg-type]
         except UserNotExistError:
             raise ErrUserNotFound
 
@@ -226,13 +231,13 @@ class AdminUserLCView(EnterpriseAdminView):
             operation=Operation.CREATE, module=OperationModule.ENTERPRISEADMIN,
             module_name=" {}".format(user.get_name()))
         operation_log_service.create_enterprise_log(user=self.user, comment=comment,
-                                                    enterprise_id=self.user.enterprise_id)
+                                                    enterprise_id=self.user.enterprise_id)  # type: ignore[arg-type]
         return Response(general_message(201, "success", None), status=201)
 
 
 class AdminUserView(EnterpriseAdminView):
-    def delete(self, request, enterprise_id, user_id, *args, **kwargs):
-        if str(request.user.user_id) == user_id:
+    def delete(self, request: Request, enterprise_id: str, user_id: str, *args: Any, **kwargs: Any) -> Response:
+        if str(request.user.user_id) == user_id:  # type: ignore[union-attr]
             result = general_message(400, "fail", "不可删除自己")
             return Response(result, 400)
         try:
@@ -243,7 +248,7 @@ class AdminUserView(EnterpriseAdminView):
                 operation=Operation.DELETE, module=OperationModule.ENTERPRISEADMIN,
                 module_name=" {}".format(user.get_name()))
             operation_log_service.create_enterprise_log(user=self.user, comment=comment,
-                                                        enterprise_id=self.user.enterprise_id)
+                                                        enterprise_id=self.user.enterprise_id)  # type: ignore[arg-type]
             return Response(result, 200)
         except ErrAdminUserDoesNotExist as e:
             logger.debug(e)
@@ -254,11 +259,11 @@ class AdminUserView(EnterpriseAdminView):
             result = general_message(400, "fail", None)
             return Response(result, 400)
 
-    def put(self, request, enterprise_id, user_id, *args, **kwargs):
+    def put(self, request: Request, enterprise_id: str, user_id: str, *args: Any, **kwargs: Any) -> Response:
         roles = parse_item(request, "roles", required=True, error="at least one role needs to be specified")
         if not set(roles).issubset(EnterpriseRolesEnum.names()):
             raise AbortRequest("invalid roles", msg_show="角色不正确")
-        if str(request.user.user_id) == user_id:
+        if str(request.user.user_id) == user_id:  # type: ignore[union-attr]
             raise AbortRequest("changing your role is not allowed", "不可修改自己的角色")
         user_services.update_roles(enterprise_id, user_id, roles)
         result = general_message(200, "success", None)
@@ -266,22 +271,22 @@ class AdminUserView(EnterpriseAdminView):
 
 
 class EnterPriseUsersCLView(JWTAuthApiView):
-    def get(self, request, enterprise_id, *args, **kwargs):
+    def get(self, request: Request, enterprise_id: str, *args: Any, **kwargs: Any) -> Response:
         name = request.GET.get("query")
         page = int(request.GET.get("page", 1))
         page_size = int(request.GET.get("page_size", 10))
         data = []
         try:
-            users, total = user_services.get_user_by_eid(enterprise_id, name, page, page_size)
+            users, total = user_services.get_user_by_eid(enterprise_id, name, page, page_size)  # type: ignore[arg-type]
         except Exception as e:
             logger.debug(e)
-            users = []
+            users = []  # type: ignore[assignment]
             total = 0
         if users:
             for user in users:
                 default_favorite_name = None
                 default_favorite_url = None
-                user_default_favorite = user_repo.get_user_default_favorite(user.user_id)
+                user_default_favorite = user_repo.get_user_default_favorite(user.user_id)  # type: ignore[arg-type]
                 if user_default_favorite:
                     default_favorite_name = user_default_favorite.name
                     default_favorite_url = user_default_favorite.url
@@ -298,7 +303,7 @@ class EnterPriseUsersCLView(JWTAuthApiView):
         result = general_message(200, "success", None, list=data, page_size=page_size, page=page, total=total)
         return Response(result, status=200)
 
-    def post(self, request, enterprise_id, *args, **kwargs):
+    def post(self, request: Request, enterprise_id: str, *args: Any, **kwargs: Any) -> Response:
 
         tenant_name = request.data.get("tenant_name", None)
         user_name = request.data.get("user_name", None)
@@ -308,23 +313,27 @@ class EnterPriseUsersCLView(JWTAuthApiView):
         role_ids = request.data.get("role_ids", None)
         phone = request.data.get("phone", None)
         real_name = request.data.get("real_name", None)
-        tenant = team_services.get_tenant_by_tenant_name(tenant_name)
-        if len(password) < 8:
+        tenant = team_services.get_tenant_by_tenant_name(tenant_name)  # type: ignore[arg-type]
+        if len(password) < 8:  # type: ignore[arg-type]
             result = general_message(400, "len error", "密码长度最少为8位")
             return Response(result)
         # check user info
-        user_services.check_params(user_name, email, password, re_password, request.user.enterprise_id, phone)
+        # NOTE: request.data params Optional and request.user is Union; service expects str (legacy, backlog).
+        user_services.check_params(user_name, email, password, re_password,  # type: ignore[arg-type]
+                                   request.user.enterprise_id, phone)  # type: ignore[union-attr]
         client_ip = user_services.get_client_ip(request)
         enterprise = enterprise_services.get_enterprise_by_enterprise_id(enterprise_id)
         # create user
-        oauth_instance, _ = user_services.check_user_is_enterprise_center_user(request.user.user_id)
+        oauth_instance, _ = user_services.check_user_is_enterprise_center_user(request.user.user_id)  # type: ignore[union-attr]
 
         if oauth_instance:
-            user = user_services.create_enterprise_center_user_set_password(user_name, email, password, "admin add", enterprise,
-                                                                            client_ip, phone, real_name, oauth_instance)
+            user = user_services.create_enterprise_center_user_set_password(
+                user_name, email, password, "admin add", enterprise,  # type: ignore[arg-type]
+                client_ip, phone, real_name, oauth_instance)  # type: ignore[arg-type]
         else:
-            user = user_services.create_user_set_password(user_name, email, password, "admin add", enterprise, client_ip, phone,
-                                                          real_name)
+            user = user_services.create_user_set_password(
+                user_name, email, password, "admin add", enterprise, client_ip, phone,  # type: ignore[arg-type]
+                real_name)
         result = general_message(200, "success", "添加用户成功")
         # USE_SAAS 模式下，自动为新用户创建默认团队（和正常注册流程一致）
         if os.getenv("USE_SAAS") and not tenant:
@@ -348,7 +357,7 @@ class EnterPriseUsersCLView(JWTAuthApiView):
                 "user_id": user.user_id,
                 "tenant_id": tenant.ID,
                 "identity": "",
-                "enterprise_id": enterprise.ID,
+                "enterprise_id": enterprise.ID,  # type: ignore[union-attr]
             }
             team_repo.create_team_perms(**create_perm_param)
             if role_ids:
@@ -358,35 +367,37 @@ class EnterPriseUsersCLView(JWTAuthApiView):
                 result = general_message(200, "success", "添加用户成功")
         comment = operation_log_service.generate_generic_comment(
             operation=Operation.ADD, module=OperationModule.USER, module_name="{}".format(user.get_name()))
-        operation_log_service.create_enterprise_log(user=self.user, comment=comment, enterprise_id=self.user.enterprise_id)
+        operation_log_service.create_enterprise_log(user=self.user, comment=comment,
+                                                    enterprise_id=self.user.enterprise_id)  # type: ignore[arg-type]
         return Response(result)
 
 
 class EnterPriseUsersUDView(JWTAuthApiView):
     @transaction.atomic()
-    def put(self, request, enterprise_id, user_id, *args, **kwargs):
+    def put(self, request: Request, enterprise_id: str, user_id: str, *args: Any, **kwargs: Any) -> Response:
         password = request.data.get("password", None)
         real_name = request.data.get("real_name", None)
         phone = request.data.get("phone", None)
 
-        user = user_services.update_user_set_password(enterprise_id, user_id, password, real_name, phone)
+        user = user_services.update_user_set_password(enterprise_id, user_id, password, real_name,  # type: ignore[arg-type]
+                                                      phone)  # type: ignore[arg-type]
         user.save()
-        oauth_instance, _ = user_services.check_user_is_enterprise_center_user(request.user.user_id)
+        oauth_instance, _ = user_services.check_user_is_enterprise_center_user(request.user.user_id)  # type: ignore[union-attr]
         if oauth_instance:
             data = {
                 "password": password,
                 "real_name": real_name,
                 "phone": phone,
             }
-            oauth_instance.update_user(enterprise_id, user.enterprise_center_user_id, data)
+            oauth_instance.update_user(enterprise_id, user.enterprise_center_user_id, data)  # type: ignore[attr-defined]
         result = general_message(200, "success", "更新用户成功")
         comment = operation_log_service.generate_generic_comment(
             operation=Operation.CHANGE, module=OperationModule.USER, module_name="{} 的信息".format(user.get_name()))
         operation_log_service.create_enterprise_log(user=self.user, comment=comment,
-                                                    enterprise_id=self.user.enterprise_id)
+                                                    enterprise_id=self.user.enterprise_id)  # type: ignore[arg-type]
         return Response(result, status=200)
 
-    def delete(self, request, enterprise_id, user_id, *args, **kwargs):
+    def delete(self, request: Request, enterprise_id: str, user_id: str, *args: Any, **kwargs: Any) -> Response:
         user = user_repo.get_enterprise_user_by_id(enterprise_id, user_id)
         if not user:
             result = general_message(400, "fail", "未找到该用户")
@@ -394,21 +405,22 @@ class EnterPriseUsersUDView(JWTAuthApiView):
         user_services.delete_user(user_id)
         oauth_instance, oauth_user = user_services.check_user_is_enterprise_center_user(user_id)
         if oauth_instance:
-            oauth_instance.delete_user(enterprise_id, user.enterprise_center_user_id)
+            oauth_instance.delete_user(enterprise_id, user.enterprise_center_user_id)  # type: ignore[attr-defined]
         all_oauth_user = oauth_user_repo.get_all_user_oauth(user_id)
         all_oauth_user.delete()
         result = general_message(200, "success", "删除用户成功")
         comment = operation_log_service.generate_generic_comment(
             operation=Operation.DELETE, module=OperationModule.USER, module_name="{}".format(user.get_name()))
-        operation_log_service.create_enterprise_log(user=self.user, comment=comment, enterprise_id=self.user.enterprise_id)
+        operation_log_service.create_enterprise_log(user=self.user, comment=comment,
+                                                    enterprise_id=self.user.enterprise_id)  # type: ignore[arg-type]
         return Response(result, status=200)
 
 
 class AdministratorJoinTeamView(EnterpriseAdminView):
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         nojoin_user_ids = []
         team_name = request.data.get("team_name")
-        team = team_services.get_enterprise_tenant_by_tenant_name(self.user.enterprise_id, team_name)
+        team = team_services.get_enterprise_tenant_by_tenant_name(self.user.enterprise_id, team_name)  # type: ignore[arg-type]
         if not team:
             raise ServiceHandleException(msg="no found team", msg_show="团队不存在", status_code=404)
         users = team_services.get_team_users(team)
@@ -421,7 +433,7 @@ class AdministratorJoinTeamView(EnterpriseAdminView):
 
 
 class AdminRolesView(JWTAuthApiView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         from console.utils.perms import ENTERPRISE
         roles = list()
         for role in ENTERPRISE:

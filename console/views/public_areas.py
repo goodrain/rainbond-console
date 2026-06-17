@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import logging
 from functools import cmp_to_key
+from typing import Any
 
 from console.exception.exceptions import GroupNotExistError
 from console.repositories.app_config import volume_repo
@@ -19,6 +20,7 @@ from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
 from django.db import connection
 from console.utils.cache_decorators import never_cache
 from goodrain_web.tools import JuncheePaginator
+from rest_framework.request import Request
 from rest_framework.response import Response
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import RegionApp
@@ -33,7 +35,7 @@ logger = logging.getLogger('default')
 
 
 class AllServiceInfo(RegionTenantHeaderView):
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         查看总览分页页面应用状态信息(弃)
         ---
@@ -57,20 +59,21 @@ class AllServiceInfo(RegionTenantHeaderView):
                 region=self.response_region,
                 tenant_name=self.team_name,
                 service_ids=service_ids,
-                enterprise_id=self.team.enterprise_id)
+                enterprise_id=self.team.enterprise_id)  # type: ignore[arg-type]  # NOTE: enterprise_id nullable; str expected (backlog).
         result = general_message(code, "success", "批量获取状态成功", list=status_list)
         return Response(result, status=code)
 
 
 class TeamArchView(RegionTenantHeaderView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         res, body = region_api.get_cluster_nodes_arch(self.region_name)
-        result = general_message(200, "success", "架构获取成功", list=list(set(body.get("list"))))
+        # NOTE: region_api may return None body / None list; legacy assumes present (backlog).
+        result = general_message(200, "success", "架构获取成功", list=list(set(body.get("list"))))  # type: ignore[union-attr,arg-type]
         return Response(result, status=200)
 
 
 class TeamOverView(RegionTenantHeaderView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         总览 团队信息
         ---
@@ -81,7 +84,7 @@ class TeamOverView(RegionTenantHeaderView):
               type: string
               paramType: path
         """
-        overview_detail = dict()
+        overview_detail: dict = dict()
         users = team_services.get_team_users(self.team)
         if users:
             user_nums = len(users)
@@ -89,8 +92,9 @@ class TeamOverView(RegionTenantHeaderView):
             team_service_num = service_repo.get_team_service_num_by_team_id(
                 team_id=self.team.tenant_id, region_name=self.response_region)
             source = common_services.get_current_region_used_resource(self.team, self.response_region)
-            team = team_services.get_team_by_team_id_and_eid(self.team.tenant_id, self.team.enterprise_id)
-            overview_detail["logo"] = team.logo
+            team = team_services.get_team_by_team_id_and_eid(self.team.tenant_id, self.team.enterprise_id)  # type: ignore[arg-type]
+            # NOTE: get_team_by_team_id_and_eid may return None; legacy assumes present (backlog).
+            overview_detail["logo"] = team.logo  # type: ignore[union-attr]
             region = region_repo.get_region_by_region_name(self.response_region)
             if not region:
                 overview_detail["region_health"] = False
@@ -108,8 +112,10 @@ class TeamOverView(RegionTenantHeaderView):
                     if app_id_rels.get(group.ID):
                         region_app_ids.append(app_id_rels[group.ID])
                         continue
-                    create_app_body = dict()
-                    group_services = base_service.get_group_services_list(self.team.tenant_id, region.region_name, group.ID)
+                    create_app_body: dict = dict()
+                    # NOTE: group.ID is int AutoField; service signature takes str (systemic int-as-str, backlog).
+                    group_services = base_service.get_group_services_list(self.team.tenant_id, region.region_name,
+                                                                          group.ID)  # type: ignore[arg-type]
                     service_ids = []
                     if group_services:
                         service_ids = [service["service_id"] for service in group_services]
@@ -127,9 +133,9 @@ class TeamOverView(RegionTenantHeaderView):
                     app_list = []
                     if applist:
                         for app in applist:
-                            data = RegionApp(
+                            region_app_obj = RegionApp(
                                 app_id=app["app_id"], region_app_id=app["region_app_id"], region_name=region.region_name)
-                            app_list.append(data)
+                            app_list.append(region_app_obj)
                             region_app_ids.append(app["region_app_id"])
                     RegionApp.objects.bulk_create(app_list)
                 except Exception as e:
@@ -139,7 +145,8 @@ class TeamOverView(RegionTenantHeaderView):
             try:
                 resp = region_api.list_app_statuses_by_app_ids(self.tenant_name, self.response_region,
                                                                {"app_ids": region_app_ids})
-                app_statuses = resp.get("list", [])
+                # NOTE: region_api result may be None; legacy assumes dict (backlog).
+                app_statuses = resp.get("list", [])  # type: ignore[union-attr]
                 if app_statuses is None:
                     app_statuses = []
                 for app_status in app_statuses:
@@ -193,7 +200,7 @@ class TeamOverView(RegionTenantHeaderView):
 
 
 class ServiceGroupView(RegionTenantHeaderView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         应用列表
         ---
@@ -217,7 +224,7 @@ class ServiceGroupView(RegionTenantHeaderView):
 
 
 class GroupOperatorManagedView(RegionTenantHeaderView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         纳管当前应用经用户Operator处理创建的资源
         """
@@ -226,14 +233,15 @@ class GroupOperatorManagedView(RegionTenantHeaderView):
         if group_id == '':
             group_id = None
         code = 200
-        operator_managed = group_service.get_watch_managed_data(self.tenant, self.region_name, group_id)
+        # NOTE: group_id may be None; get_watch_managed_data expects str (backlog).
+        operator_managed = group_service.get_watch_managed_data(self.tenant, self.region_name, group_id)  # type: ignore[arg-type]
         result = general_message(code, "success", "获取成功", list=operator_managed)
         return Response(result, status=code)
 
 
 class GroupServiceView(RegionTenantHeaderView):
     @never_cache
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         应用组件列表、状态展示
         ---
@@ -279,16 +287,17 @@ class GroupServiceView(RegionTenantHeaderView):
                     team_name=self.team_name,
                     team_id=self.team.tenant_id,
                     region_name=self.response_region,
-                    enterprise_id=self.team.enterprise_id)
+                    enterprise_id=self.team.enterprise_id)  # type: ignore[arg-type]
                 if page_size == "-1" or page_size == "" or page_size == "0":
                     page_size = len(no_group_service_list) if len(no_group_service_list) > 0 else 10
                 paginator = Paginator(no_group_service_list, page_size)
                 try:
-                    no_group_service_list = paginator.page(page).object_list
+                    # NOTE: object_list is _SupportsPagination, not list; legacy reuse (backlog).
+                    no_group_service_list = paginator.page(page).object_list  # type: ignore[assignment]
                 except PageNotAnInteger:
-                    no_group_service_list = paginator.page(1).object_list
+                    no_group_service_list = paginator.page(1).object_list  # type: ignore[assignment]
                 except EmptyPage:
-                    no_group_service_list = paginator.page(paginator.num_pages).object_list
+                    no_group_service_list = paginator.page(paginator.num_pages).object_list  # type: ignore[assignment]
                 result = general_message(code, "query success", "应用查询成功", list=no_group_service_list, total=paginator.count)
                 return Response(result, status=code)
 
@@ -303,17 +312,17 @@ class GroupServiceView(RegionTenantHeaderView):
                 region_name=self.response_region,
                 team_id=self.team.tenant_id,
                 team_name=self.team_name,
-                enterprise_id=self.team.enterprise_id,
+                enterprise_id=self.team.enterprise_id,  # type: ignore[arg-type]
                 query=query)
             if page_size == "-1" or page_size == "" or page_size == "0":
                 page_size = len(group_service_list) if len(group_service_list) > 0 else 10
             paginator = Paginator(group_service_list, page_size)
             try:
-                group_service_list = paginator.page(page).object_list
+                group_service_list = paginator.page(page).object_list  # type: ignore[assignment]
             except PageNotAnInteger:
-                group_service_list = paginator.page(1).object_list
+                group_service_list = paginator.page(1).object_list  # type: ignore[assignment]
             except EmptyPage:
-                group_service_list = paginator.page(paginator.num_pages).object_list
+                group_service_list = paginator.page(paginator.num_pages).object_list  # type: ignore[assignment]
             result = general_message(code, "query success", "应用查询成功", list=group_service_list, total=paginator.count)
             if sort == 3:
                 if order == "ascend":
@@ -348,16 +357,17 @@ class GroupServiceView(RegionTenantHeaderView):
 
 
 class ServiceEventsView(RegionTenantHeaderView):
-    def __sort_events(self, event1, event2):
+    def __sort_events(self, event1: Any, event2: Any) -> int:
         event1_start_time = event1.get("start_time") if isinstance(event1, dict) else event1.start_time
         event2_start_time = event2.get("start_time") if isinstance(event2, dict) else event2.start_time
-        if event1_start_time < event2_start_time:
+        # NOTE: start_time may be None; legacy comparison assumes present (backlog).
+        if event1_start_time < event2_start_time:  # type: ignore[operator]
             return 1
-        if event1_start_time > event2_start_time:
+        if event1_start_time > event2_start_time:  # type: ignore[operator]
             return -1
         return 1
 
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         组件事件动态
         ---
@@ -382,7 +392,7 @@ class ServiceEventsView(RegionTenantHeaderView):
         page_size = request.GET.get("page_size", 3)
         total = 0
         region_list = region_repo.get_team_opened_region(self.tenant.tenant_name)
-        event_service_dynamic_list = []
+        event_service_dynamic_list: list = []
         if region_list:
             for region in region_list:
                 try:
@@ -420,7 +430,7 @@ class ServiceEventsView(RegionTenantHeaderView):
 
 
 class TeamServiceOverViewView(RegionTenantHeaderView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         总览 团队应用信息 + 分页 + 排序 + 模糊查询
         ---
@@ -480,7 +490,7 @@ class TeamServiceOverViewView(RegionTenantHeaderView):
                     region=self.response_region,
                     tenant_name=self.team_name,
                     service_ids=service_ids,
-                    enterprise_id=self.team.enterprise_id)
+                    enterprise_id=self.team.enterprise_id)  # type: ignore[arg-type]
                 status_cache = {}
                 statuscn_cache = {}
                 for status in status_list:
@@ -528,7 +538,7 @@ class TeamServiceOverViewView(RegionTenantHeaderView):
 
 
 class TeamAppNamesView(RegionTenantHeaderView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         groups = group_repo.get_tenant_region_groups(self.team.tenant_id, self.response_region, "")
         group_k8s_app_names = [app.k8s_app for app in groups]
         data = {"app_names": group_k8s_app_names}
@@ -536,7 +546,7 @@ class TeamAppNamesView(RegionTenantHeaderView):
 
 
 class TeamAppSortViewView(RegionTenantHeaderView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         总览 团队应用信息
         """
@@ -554,13 +564,14 @@ class TeamAppSortViewView(RegionTenantHeaderView):
             group_ids = [group.ID for group in groups]
             group_ids = group_ids[start:end]
             apps = group_service.get_multi_apps_all_info(sort, groups, group_ids, self.response_region, self.team_name,
-                                                         self.team.enterprise_id, self.team)
+                                                         self.team.enterprise_id, self.team)  # type: ignore[arg-type]
         return Response(general_message(200, "success", "查询成功", list=apps, bean=app_num_dict), status=200)
 
 
 # 团队下应用环境变量模糊查询
 class TenantServiceEnvsView(RegionTenantHeaderView):
-    def get(self, request, *args, **kwargs):
+    # NOTE: falls through returning None when both attr_name and attr_value empty (latent bug, backlog).
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:  # type: ignore[return]
         attr_name = request.GET.get("attr_name", None)
         attr_value = request.GET.get("attr_value", None)
         if not attr_name and not attr_value:
@@ -605,11 +616,13 @@ class TenantServiceEnvsView(RegionTenantHeaderView):
 
 
 class AccessTokenView(JWTAuthApiView):
-    def get(self, request, team_name, token_note, **kwargs):
-        access_key = user_access_services.get_user_access_key_by_note(request.user.user_id, token_note).first()
+    def get(self, request: Request, team_name: str, token_note: str, **kwargs: Any) -> Response:
+        # NOTE: request.user is User|AnonymousUser; auth guarantees authenticated user (backlog).
+        access_key = user_access_services.get_user_access_key_by_note(request.user.user_id, token_note).first()  # type: ignore[union-attr]
         if not access_key:
             try:
-                access_key = user_access_services.create_user_access_key(token_note, request.user.user_id, "")
+                # NOTE: create_user_access_key expects int|None for 3rd arg; legacy passes "" (backlog).
+                access_key = user_access_services.create_user_access_key(token_note, request.user.user_id, "")  # type: ignore[arg-type, union-attr]
             except ValueError as e:
                 logger.exception(e)
                 raise e

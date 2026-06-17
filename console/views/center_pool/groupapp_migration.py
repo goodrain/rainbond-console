@@ -3,6 +3,9 @@
   Created on 18/5/23.
 """
 import logging
+from typing import Any
+
+from rest_framework.request import Request
 
 from console.repositories.group import group_repo
 from console.repositories.migration_repo import migrate_repo
@@ -23,7 +26,7 @@ logger = logging.getLogger('default')
 
 class GroupAppsMigrateView(ApplicationView):
     @never_cache
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         应用迁移
         ---
@@ -71,15 +74,20 @@ class GroupAppsMigrateView(ApplicationView):
         migrate_team = team_services.get_tenant_by_tenant_name(team)
         if not migrate_team:
             return Response(general_message(404, "team is not found", "需要迁移的团队{0}不存在".format(team)), status=404)
-        regions = region_services.get_team_usable_regions(migrate_team.tenant_name, self.tenant.enterprise_id)
+        regions = region_services.get_team_usable_regions(
+            migrate_team.tenant_name, self.tenant.enterprise_id)  # type: ignore[arg-type]
         if not regions:
             return Response(general_message(412, "region is not usable", "团队未开通任何集群"), status=412)
         if migrate_region not in [r.region_name for r in regions]:
             msg_cn = "无法迁移至集群{0},请确保该集群可用且团队{1}已开通该集群权限".format(migrate_region, migrate_team.tenant_name)
             return Response(general_message(412, "region is not usable", msg_cn), status=412)
 
-        migrate_record = migrate_service.start_migrate(self.user, self.tenant, self.region_name, migrate_team, migrate_region,
-                                                       backup_id, migrate_type, event_id, restore_id)
+        migrate_record = migrate_service.start_migrate(
+            self.user, self.tenant, self.region_name, migrate_team, migrate_region,
+            backup_id,  # type: ignore[arg-type]
+            migrate_type,
+            event_id,  # type: ignore[arg-type]
+            restore_id)  # type: ignore[arg-type]
         result = general_message(200, "success", "操作成功，开始迁移应用", bean=migrate_record.to_dict())
         comment = "迁移应用{app}到团队".format(
             app=operation_log_service.process_app_name(self.app.app_name, self.region_name, self.tenant_name,
@@ -90,7 +98,7 @@ class GroupAppsMigrateView(ApplicationView):
         return Response(result, status=result["code"])
 
     @never_cache
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         查询迁移状态
         ---
@@ -126,7 +134,7 @@ class GroupAppsMigrateView(ApplicationView):
 
 class GroupAppsView(RegionTenantHeaderView):
     @never_cache
-    def delete(self, request, *args, **kwargs):
+    def delete(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         应用数据删除
         ---
@@ -149,7 +157,7 @@ class GroupAppsView(RegionTenantHeaderView):
 
         """
         try:
-            group_id = int(kwargs.get("group_id", None))
+            group_id = int(kwargs.get("group_id", None))  # type: ignore[arg-type]
             if not group_id:
                 return Response(general_message(400, "group id is null", "请确认需要删除的组"), status=400)
             new_group_id = request.data.get("new_group_id", None)
@@ -157,14 +165,15 @@ class GroupAppsView(RegionTenantHeaderView):
                 return Response(general_message(400, "new group id is null", "请确认新恢复的组"), status=400)
             if group_id == new_group_id:
                 return Response(general_message(200, "success", "恢复到当前组无需删除"), status=200)
-            group = group_repo.get_group_by_id(group_id)
+            # NOTE: systemic int-as-str group_id arg
+            group = group_repo.get_group_by_id(group_id)  # type: ignore[arg-type]
             if not group:
                 return Response(general_message(400, "group is delete", "该备份组已删除"), status=400)
 
             new_group = group_repo.get_group_by_id(new_group_id)
             if not new_group:
                 return Response(general_message(400, "new group not exist", "组ID {0} 不存在".format(new_group_id)), status=400)
-            services = group_service.get_group_services(group_id)
+            services = group_service.get_group_services(group_id)  # type: ignore[arg-type]
             for service in services:
                 try:
                     app_manage_service.truncate_service(self.tenant, service)
@@ -176,13 +185,13 @@ class GroupAppsView(RegionTenantHeaderView):
             result = general_message(200, "success", "操作成功")
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)
+            result = error_message(e.message)  # type: ignore[attr-defined] # NOTE: py2 Exception.message
         return Response(result, status=result["code"])
 
 
 class MigrateRecordView(RegionTenantHeaderView):
     @never_cache
-    def get(self, request, group_id, *args, **kwargs):
+    def get(self, request: Request, group_id: str, *args: Any, **kwargs: Any) -> Response:
         """
         查询当前用户是否有未完成的恢复和迁移
         ---

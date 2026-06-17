@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 import logging
+from typing import Any
 
 from django.db.models import Q
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from console.models.main import PluginShareRecordEvent
@@ -18,7 +20,7 @@ logger = logging.getLogger('default')
 
 
 class PluginShareRecordView(RegionTenantHeaderView):
-    def get(self, request, team_name, plugin_id, *args, **kwargs):
+    def get(self, request: Request, team_name: str, plugin_id: str, *args: Any, **kwargs: Any) -> Response:
         """
         查询插件分享记录
         :param request:
@@ -37,7 +39,7 @@ class PluginShareRecordView(RegionTenantHeaderView):
         result = general_message(200, "not found uncomplete share record", "无未完成分享流程")
         return Response(data=result, status=200)
 
-    def post(self, request, team_name, plugin_id, *args, **kwargs):
+    def post(self, request: Request, team_name: str, plugin_id: str, *args: Any, **kwargs: Any) -> Response:
         """
         创建分享插件记录
         ---
@@ -87,7 +89,7 @@ class PluginShareRecordView(RegionTenantHeaderView):
 
 
 class PluginShareInfoView(RegionTenantHeaderView):
-    def get(self, request, team_name, share_id, *args, **kwargs):
+    def get(self, request: Request, team_name: str, share_id: str, *args: Any, **kwargs: Any) -> Response:
         """
         查询分享的插件信息
         ---
@@ -164,7 +166,7 @@ class PluginShareInfoView(RegionTenantHeaderView):
 
         return Response(general_message(200, "", "", bean={'share_plugin_info': share_plugin_info}), 200)
 
-    def post(self, request, team_name, share_id, *args, **kwargs):
+    def post(self, request: Request, team_name: str, share_id: str, *args: Any, **kwargs: Any) -> Response:
         """
         创建插件分享
         ---
@@ -201,7 +203,7 @@ class PluginShareInfoView(RegionTenantHeaderView):
         result = general_message(status, "create share info", msg, bean=plugin)
         return Response(result, status=status)
 
-    def delete(self, request, team_name, share_id, *args, **kwargs):
+    def delete(self, request: Request, team_name: str, share_id: str, *args: Any, **kwargs: Any) -> Response:
         """
         放弃插件分享
         ---
@@ -240,7 +242,7 @@ class PluginShareInfoView(RegionTenantHeaderView):
 
 
 class PluginShareEventsView(RegionTenantHeaderView):
-    def get(self, request, team_name, share_id, *args, **kwargs):
+    def get(self, request: Request, team_name: str, share_id: str, *args: Any, **kwargs: Any) -> Response:
         """
         获取插件分享事件
         :param request:
@@ -264,7 +266,7 @@ class PluginShareEventsView(RegionTenantHeaderView):
             result = general_message(404, "not exist", "分享事件不存在")
             return Response(result, status=404)
 
-        data = {"event_list": []}
+        data: dict = {"event_list": []}
 
         for event in events:
             if event.event_status != "success":
@@ -276,7 +278,7 @@ class PluginShareEventsView(RegionTenantHeaderView):
 
 
 class PluginShareEventView(RegionTenantHeaderView):
-    def get(self, request, team_name, share_id, event_id, *args, **kwargs):
+    def get(self, request: Request, team_name: str, share_id: str, event_id: str, *args: Any, **kwargs: Any) -> Response:
         """
         获取插件分享事件列表
         :param request:
@@ -311,7 +313,7 @@ class PluginShareEventView(RegionTenantHeaderView):
             result = general_message(404, "not exist", "分享事件不存在")
             return Response(result, status=404)
 
-    def post(self, request, team_name, share_id, event_id, *args, **kwargs):
+    def post(self, request: Request, team_name: str, share_id: str, event_id: str, *args: Any, **kwargs: Any) -> Response:
         """
         创建分享事件
         :param request:
@@ -334,13 +336,15 @@ class PluginShareEventView(RegionTenantHeaderView):
         try:
             event = PluginShareRecordEvent.objects.get(record_id=share_id, ID=event_id)
 
-            status, msg, data = market_plugin_service.sync_event(self.user.nick_name, self.response_region, team_name, event)
+            status, msg, data = market_plugin_service.sync_event(
+                self.user.nick_name, self.response_region, team_name, event)  # type: ignore[arg-type]
 
             if status != 200:
                 result = general_message(status, "sync share event failed", msg)
                 return Response(result, status=status)
 
-            result = general_message(status, "sync share event", msg, bean=data.to_dict())
+            # NOTE: sync_event may return None data; backlog
+            result = general_message(status, "sync share event", msg, bean=data.to_dict())  # type: ignore[union-attr]
             return Response(result, status=status)
 
         except PluginShareRecordEvent.DoesNotExist:
@@ -349,7 +353,7 @@ class PluginShareEventView(RegionTenantHeaderView):
 
 
 class PluginShareCompletionView(RegionTenantHeaderView):
-    def post(self, request, team_name, share_id, *args, **kwargs):
+    def post(self, request: Request, team_name: str, share_id: str, *args: Any, **kwargs: Any) -> Response:
         """
         创建分享完成接口
         :param request:
@@ -376,6 +380,7 @@ class PluginShareCompletionView(RegionTenantHeaderView):
             result = general_message(415, "share complete can not do", "插件同步未完成")
             return Response(result, status=415)
 
-        app_market_url = market_plugin_service.plugin_share_completion(self.tenant, share_record, self.user.nick_name)
+        app_market_url = market_plugin_service.plugin_share_completion(
+            self.tenant, share_record, self.user.nick_name)  # type: ignore[arg-type]
         result = general_message(200, "share complete", "插件分享完成", bean=share_record.to_dict(), app_market_url=app_market_url)
         return Response(result, status=200)

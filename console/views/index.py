@@ -3,15 +3,16 @@
   Created on 18/2/6.
 """
 import os
+from typing import Any
 
-from django.http import FileResponse, Http404
+from django.http import FileResponse, Http404, HttpRequest
 from django.template.response import TemplateResponse
 from django.views.generic import View
 from goodrain_web.sentry_config import get_frontend_posthog_config_json, get_frontend_sentry_config_json
 
 
 class IndexTemplateView(View):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: HttpRequest, *args: Any, **kwargs: Any) -> TemplateResponse:
         return TemplateResponse(self.request, "index.html", {
             "sentry_config_json": get_frontend_sentry_config_json(),
             "posthog_config_json": get_frontend_posthog_config_json(),
@@ -19,12 +20,12 @@ class IndexTemplateView(View):
 
 
 class GithubCallBackView(View):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: HttpRequest, *args: Any, **kwargs: Any) -> TemplateResponse:
         return TemplateResponse(self.request, "githubcallback.html")
 
 
 class RKE2Install(View):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: HttpRequest, *args: Any, **kwargs: Any) -> FileResponse:
         # 文件的路径（需要根据实际情况进行修改）
         file_path = './script/install-cluster.sh'
         # 检查文件是否存在

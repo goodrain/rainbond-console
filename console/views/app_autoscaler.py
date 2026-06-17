@@ -1,7 +1,9 @@
 # -*- coding: utf8 -*-
 import logging
+from typing import Any, Optional
 
 from console.utils.cache_decorators import never_cache
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from console.exception.main import AbortRequest
@@ -16,7 +18,7 @@ from www.utils.return_message import general_message
 logger = logging.getLogger("default")
 
 
-def validate_parameter(data):
+def validate_parameter(data: Any) -> None:
     xpa_type = parse_item(data, key="xpa_type", required=True)
     if xpa_type not in ["hpa"]:
         raise AbortRequest(msg="unsupported xpa_type: " + xpa_type)
@@ -54,13 +56,13 @@ def validate_parameter(data):
 
 class ListAppAutoscalerView(AppBaseView):
     @never_cache
-    def get(self, req, *args, **kwargs):
+    def get(self, req: Request, *args: Any, **kwargs: Any) -> Response:
         rules = autoscaler_service.list_autoscaler_rules(self.service.service_id)
         result = general_message(200, "success", "查询成功", list=rules)
         return Response(data=result, status=200)
 
     @never_cache
-    def post(self, req, *args, **kwargs):
+    def post(self, req: Request, *args: Any, **kwargs: Any) -> Response:
         validate_parameter(req.data)
 
         data = req.data
@@ -90,23 +92,26 @@ class ListAppAutoscalerView(AppBaseView):
 
 class AppAutoscalerView(AppBaseView):
     @never_cache
-    def get(self, req, rule_id, *args, **kwargs):
+    def get(self, req: Request, rule_id: str, *args: Any, **kwargs: Any) -> Response:
         res = autoscaler_service.get_by_rule_id(rule_id)
 
         result = general_message(200, "success", "创建成功", bean=res)
         return Response(data=result, status=200)
 
     @never_cache
-    def put(self, req, rule_id, *args, **kwargs):
+    def put(self, req: Request, rule_id: str, *args: Any, **kwargs: Any) -> Response:
         validate_parameter(req.data)
         old = AutoscalerRules.objects.get(rule_id=rule_id)
         old_metrics = AutoscalerRuleMetrics.objects.filter(rule_id=rule_id).values()
-        old_information = autoscaler_service.json_autoscaler_rules(
-            max_replicas=old.max_replicas, min_replicas=old.min_replicas, metrics=old_metrics)
-        res = autoscaler_service.update_autoscaler_rule(self.region_name, self.tenant.tenant_name, self.service.service_alias,
-                                                        rule_id, req.data, self.user.nick_name)
+        # NOTE: .values() yields a QuerySet but callee expects list[dict] (arg-type backlog).
+        old_information: Optional[str] = autoscaler_service.json_autoscaler_rules(
+            max_replicas=old.max_replicas, min_replicas=old.min_replicas, metrics=old_metrics)  # type: ignore[arg-type]
+        # NOTE: nick_name is nullable but callee expects str (arg-type backlog).
+        res = autoscaler_service.update_autoscaler_rule(
+            self.region_name, self.tenant.tenant_name, self.service.service_alias,
+            rule_id, req.data, self.user.nick_name)  # type: ignore[arg-type]
 
-        new_information = autoscaler_service.json_autoscaler_rules(
+        new_information: Optional[str] = autoscaler_service.json_autoscaler_rules(
             max_replicas=req.data["max_replicas"], min_replicas=req.data["min_replicas"], metrics=req.data["metrics"])
         if req.data["enable"] and not old.enable:
             old_information = None
@@ -134,11 +139,13 @@ class AppAutoscalerView(AppBaseView):
 
 class AppScalingRecords(AppBaseView):
     @never_cache
-    def get(self, req, *args, **kwargs):
+    def get(self, req: Request, *args: Any, **kwargs: Any) -> Response:
         page = req.GET.get("page", 1)
         page_size = req.GET.get("page_size", 10)
 
-        data = scaling_records_service.list_scaling_records(self.region_name, self.tenant.tenant_name,
-                                                            self.service.service_alias, page, page_size)
+        # NOTE: page/page_size from GET are str but callee expects int (arg-type backlog).
+        data = scaling_records_service.list_scaling_records(
+            self.region_name, self.tenant.tenant_name,
+            self.service.service_alias, page, page_size)  # type: ignore[arg-type]
         result = general_message(200, "success", "查询成功", bean=data)
         return Response(data=result, status=200)

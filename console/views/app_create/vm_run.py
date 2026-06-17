@@ -3,8 +3,10 @@
   Created by leon on 18/1/5.
 """
 import logging
+from typing import Any, List, Optional
 
 from console.utils.cache_decorators import never_cache
+from rest_framework.request import Request
 from rest_framework.response import Response
 from console.exception.bcode import ErrK8sComponentNameExists, ErrVMImageNameExists
 from console.exception.main import ResourceNotEnoughException, ServiceHandleException
@@ -44,7 +46,7 @@ PUBLIC_VM_IMAGE_NAMES = set(PUBLIC_VM_IMAGES.keys())
 
 class VMRunCreateView(RegionTenantHeaderView):
     @never_cache
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         vm image 创建组件
         ---
@@ -204,7 +206,8 @@ class VMRunCreateView(RegionTenantHeaderView):
                 asset.boot_mode = boot_mode
                 asset.save(update_fields=["boot_mode"])
             code, msg_show, new_service = app_service.create_vm_run_app(
-                self.response_region, self.tenant, self.user, service_cname, k8s_component_name, image, arch, event_id, vm_url)
+                self.response_region, self.tenant, self.user, service_cname,  # type: ignore[arg-type]
+                k8s_component_name, image, arch, event_id, vm_url)
             if code != 200:
                 return Response(general_message(code, "service create fail", msg_show), status=code)
             runtime_disk_layout = restore_plan.get("disk_layout") if restore_plan else None
@@ -218,7 +221,7 @@ class VMRunCreateView(RegionTenantHeaderView):
             # Region-side service registration happens later and will sync these attrs.
             vms.save_vm_runtime_config(
                 self.tenant.tenant_id,
-                new_service.service_id,
+                new_service.service_id,  # type: ignore[union-attr] # NOTE: create_vm_run_app may return None
                 {
                     **runtime_config,
                     "asset_id": asset_id,
@@ -249,14 +252,14 @@ class VMRunCreateView(RegionTenantHeaderView):
             if disk_imports:
                 vms.save_vm_disk_imports(
                     self.tenant.tenant_id,
-                    new_service.service_id,
+                    new_service.service_id,  # type: ignore[union-attr]
                     disk_imports
                 )
             code, msg_show = group_service.add_service_to_group(self.tenant, self.response_region, group_id,
-                                                                new_service.service_id)
+                                                                new_service.service_id)  # type: ignore[union-attr]
             if code != 200:
                 logger.debug("service.create", msg_show)
-            result = general_message(200, "success", "创建成功", bean=new_service.to_dict())
+            result = general_message(200, "success", "创建成功", bean=new_service.to_dict())  # type: ignore[union-attr]
         except ResourceNotEnoughException as re:
             raise re
         except ServiceHandleException as err:
@@ -266,14 +269,15 @@ class VMRunCreateView(RegionTenantHeaderView):
         return Response(result, status=result["code"])
 
     @staticmethod
-    def find_root_disk_import(restore_plan):
+    def find_root_disk_import(restore_plan: Optional[dict]) -> Optional[dict]:
         for disk in (restore_plan or {}).get("disk_imports", []) or []:
             if (disk.get("volume_name") or "") == "disk":
                 return disk
         return None
 
     @staticmethod
-    def resolve_disk_imports(asset=None, restore_plan=None, image_name="", image_url="", source_uri=""):
+    def resolve_disk_imports(asset: Any = None, restore_plan: Optional[dict] = None, image_name: str = "",
+                             image_url: str = "", source_uri: str = "") -> List:
         if restore_plan:
             return list(restore_plan.get("disk_imports") or [])
         return vms.build_vm_create_disk_imports(
