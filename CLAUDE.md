@@ -4,9 +4,9 @@
 
 Rainbond Console is the web backend for the Rainbond platform. It serves the React frontend (`rainbond-ui`) and proxies/orchestrates calls to the Go core services (`rainbond`).
 
-- Language: Python 3.6
-- Framework: Django 2.2 + Django REST Framework 3.8
-- Auth: JWT (djangorestframework-jwt)
+- Language: Python 3.11
+- Framework: Django 5.2 (LTS) + Django REST Framework 3.16
+- Auth: JWT (djangorestframework-simplejwt)
 - Database: MySQL (shared with Go services)
 - Code formatter: yapf (config: `style.cfg`)
 - Linter: flake8 (max-line-length 129)
