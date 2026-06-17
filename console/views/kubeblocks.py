@@ -1,7 +1,10 @@
 # -*- coding: utf8 -*-
 import logging
+from typing import Any
+
 from django.db import IntegrityError
 
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from console.exception.bcode import ErrK8sComponentNameExists
@@ -16,7 +19,7 @@ region_api = RegionInvokeApi()
 
 
 class KubeBlocksAddonsView(RegionTenantHeaderView):
-    def get(self, request, team_name, region_name, *args, **kwargs):
+    def get(self, request: Request, team_name: str, region_name: str, *args: Any, **kwargs: Any) -> Response:
         """
         获取指定区域下 KubeBlocks 支持的数据库类型列表
         """
@@ -30,7 +33,7 @@ class KubeBlocksAddonsView(RegionTenantHeaderView):
 
 
 class KubeBlocksStorageClassesView(RegionTenantHeaderView):
-    def get(self, request, team_name, region_name, *args, **kwargs):
+    def get(self, request: Request, team_name: str, region_name: str, *args: Any, **kwargs: Any) -> Response:
         """
         获取指定区域下 KubeBlocks StorageClass 列表
         """
@@ -42,7 +45,7 @@ class KubeBlocksStorageClassesView(RegionTenantHeaderView):
             return Response(general_message(500, "request error", f"请求异常: {str(e)}"), status=500)
 
 class KubeBlocksBackupReposView(RegionTenantHeaderView):
-    def get(self, request, team_name, region_name, *args, **kwargs):
+    def get(self, request: Request, team_name: str, region_name: str, *args: Any, **kwargs: Any) -> Response:
         """
         获取当前团队下 KubeBlocks BackupRepo 列表
         """
@@ -53,7 +56,7 @@ class KubeBlocksBackupReposView(RegionTenantHeaderView):
             logger.exception(e)
             return Response(general_message(500, "request error", f"请求异常: {str(e)}"), status=500)
 
-    def post(self, request, team_name, region_name, *args, **kwargs):
+    def post(self, request: Request, team_name: str, region_name: str, *args: Any, **kwargs: Any) -> Response:
         """
         创建当前团队下 KubeBlocks BackupRepo
         """
@@ -72,7 +75,7 @@ class KubeBlocksBackupReposView(RegionTenantHeaderView):
             logger.exception(e)
             return Response(general_message(500, "request error", f"请求异常: {str(e)}"), status=500)
 
-    def put(self, request, team_name, region_name, repo_name, *args, **kwargs):
+    def put(self, request: Request, team_name: str, region_name: str, repo_name: str, *args: Any, **kwargs: Any) -> Response:
         """
         更新当前团队下 KubeBlocks BackupRepo
         """
@@ -91,7 +94,7 @@ class KubeBlocksBackupReposView(RegionTenantHeaderView):
             logger.exception(e)
             return Response(general_message(500, "request error", f"请求异常: {str(e)}"), status=500)
 
-    def delete(self, request, team_name, region_name, repo_name, *args, **kwargs):
+    def delete(self, request: Request, team_name: str, region_name: str, repo_name: str, *args: Any, **kwargs: Any) -> Response:
         """
         删除当前团队下 KubeBlocks BackupRepo
         """
@@ -108,7 +111,7 @@ class KubeBlocksBackupReposView(RegionTenantHeaderView):
 
 
 class KubeBlocksClusterDetailView(AppBaseView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         获取 Cluster detail
         """
@@ -130,7 +133,7 @@ class KubeBlocksClusterDetailView(AppBaseView):
             logger.exception(f"查询集群详情异常: {str(e)}")
             return Response(general_message(500, "后端服务异常", f"后端服务异常: {str(e)}"))
 
-    def put(self, request, *args, **kwargs):
+    def put(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         伸缩 KubeBlocks 集群
         """
@@ -156,7 +159,7 @@ class KubeBlocksClusterDetailView(AppBaseView):
 
 
 class KubeBlocksClusterBackupView(AppBaseView):
-    def put(self, request, *args, **kwargs):
+    def put(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         更新 KubeBlocks 集群的备份配置
         """
@@ -182,7 +185,7 @@ class KubeBlocksClusterBackupView(AppBaseView):
             return Response(general_message(500, 'request error', f'请求异常: {str(e)}'))
 
 class KubeBlocksClusterBackupListView(AppBaseView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         获取备份列表
         自动获得: self.service, self.app, self.tenant, self.response_region
@@ -215,7 +218,7 @@ class KubeBlocksClusterBackupListView(AppBaseView):
             logger.exception(f"获取KubeBlocks集群备份异常: {str(e)}")
             return Response(general_message(500, "后端服务异常", f"后端服务异常: {str(e)}"))
 
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         创建手动备份
         """
@@ -237,7 +240,7 @@ class KubeBlocksClusterBackupListView(AppBaseView):
             logger.exception(e)
             return Response(general_message(500, 'request error', f'请求异常: {str(e)}'))
 
-    def delete(self, request, *args, **kwargs):
+    def delete(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         删除备份
         """
@@ -264,7 +267,7 @@ class KubeBlocksClusterBackupListView(AppBaseView):
             return Response(general_message(500, 'request error', f'请求异常: {str(e)}'))
 
 class KubeBlocksClusterParametersView(AppBaseView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         获取 KubeBlocks 数据库参数列表（分页/搜索）
         """
@@ -299,7 +302,7 @@ class KubeBlocksClusterParametersView(AppBaseView):
             logger.exception(f"获取KubeBlocks集群参数异常: {str(e)}")
             return Response(general_message(500, "后端服务异常", f"后端服务异常: {str(e)}"))
 
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         批量更新 KubeBlocks 数据库参数
         """
@@ -324,7 +327,7 @@ class KubeBlocksClusterParametersView(AppBaseView):
             return Response(general_message(500, "后端服务异常", f"后端服务异常: {str(e)}"))
 
 class KubeBlocksClusterRestoreView(AppBaseView):
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """从备份恢复 KubeBlocks 集群：新建组件"""
         try:
             body = request.data or {}

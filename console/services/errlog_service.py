@@ -3,7 +3,7 @@ from console.repositories.errlog_repo import errlog_repo
 
 
 class ErrlogService(object):
-    def create(self, msg, username, enterprise_id, address):
+    def create(self, msg: str, username: str, enterprise_id: str, address: str) -> None:
         errlog = {
             "msg": msg,
             "username": username,

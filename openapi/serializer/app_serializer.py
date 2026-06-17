@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # creater by: barnett
 import re
+from typing import Any
 
 from openapi.serializer.utils import DateCharField
 from rest_framework import serializers, validators
@@ -103,7 +104,7 @@ class MarketInstallSerializer(serializers.Serializer):
     region_name = serializers.CharField(max_length=64, help_text="数据中心名")
     service_list = ServiceBaseInfoSerializer(many=True)
 
-    def to_internal_value(self, data):
+    def to_internal_value(self, data: Any) -> Any:
         return data
 
 
@@ -124,7 +125,8 @@ class ListUpgradeSerializer(serializers.Serializer):
     enterprise_id = serializers.CharField(max_length=64, help_text="企业id")
     can_upgrade = serializers.BooleanField(help_text="可升级")
     upgrade_versions = serializers.ListField(help_text="可升级的版本列表")
-    source = serializers.CharField(max_length=32, help_text="应用模型来源")
+    # NOTE: field name shadows Field base attr "source"; legacy field declaration.
+    source = serializers.CharField(max_length=32, help_text="应用模型来源")  # type: ignore[assignment]
 
 
 class UpgradeBaseSerializer(serializers.Serializer):
@@ -167,27 +169,28 @@ class ListServiceEventsResponse(serializers.Serializer):
     events = AppServiceEventsSerializer(many=True)
 
 
-def new_memory_validator(value):
+def new_memory_validator(value: Any) -> None:
     if not isinstance(value, int):
         raise serializers.ValidationError('请输入int类型数据')
     if value % 64 == 1:
         raise serializers.ValidationError('参数不正确，请输入64的倍数')
     if value > 65536 or value < 64:
-        raise serializers.ValidationError('参数超出范围，请选择64~65536之间的整数值', value)
+        # NOTE: ValidationError 2nd positional arg expects str|None; value is int (legacy).
+        raise serializers.ValidationError('参数超出范围，请选择64~65536之间的整数值', value)  # type: ignore[arg-type]
 
 
-def new_cpu_validator(value):
+def new_cpu_validator(value: Any) -> None:
     if not isinstance(value, int):
         raise serializers.ValidationError('请输入int类型数据')
     if value < 0:
         raise serializers.ValidationError('请输入正整数数据')
 
 
-def new_node_validator(value):
+def new_node_validator(value: Any) -> None:
     if not isinstance(value, int):
         raise serializers.ValidationError('请输入int类型数据')
     if value > 100 or value < 1:
-        raise serializers.ValidationError('参数超出范围，请选择1~100之间的整数值', value)
+        raise serializers.ValidationError('参数超出范围，请选择1~100之间的整数值', value)  # type: ignore[arg-type]
 
 
 class AppServiceTelescopicVerticalSerializer(serializers.Serializer):
@@ -215,7 +218,7 @@ class TeamAppsCloseSerializers(serializers.Serializer):
 class MonitorDataSerializers(serializers.Serializer):
     value = serializers.ListField()
 
-    def to_internal_value(self, data):
+    def to_internal_value(self, data: Any) -> Any:
         return data
 
 
@@ -223,12 +226,13 @@ class ComponentMonitorBaseSerializers(serializers.Serializer):
     resultType = serializers.CharField(max_length=64, required=False, help_text="返回类型")
     result = MonitorDataSerializers(many=True)
 
-    def to_internal_value(self, data):
+    def to_internal_value(self, data: Any) -> Any:
         return data
 
 
 class ComponentMonitorItemsSerializers(serializers.Serializer):
-    data = ComponentMonitorBaseSerializers(required=False)
+    # NOTE: field name "data" shadows Serializer.data property; legacy field declaration.
+    data = ComponentMonitorBaseSerializers(required=False)  # type: ignore[assignment]
     monitor_item = serializers.CharField(max_length=32, help_text="监控项")
     status = serializers.CharField(max_length=32, required=False, help_text="监控状态")
 
@@ -240,9 +244,11 @@ class ComponentMonitorSerializers(serializers.Serializer):
     service_alias = serializers.CharField(max_length=64, help_text="组件昵称")
 
 
-def name_validator(value):
+def name_validator(value: Any) -> None:
     if not NAME_LETTER.search(value) or not FIRST_LETTER.search(value):
-        raise validators.ValidationError(code=400, detail="变量名不合法， 请输入以字母开头且为数字、大小写字母、'_'、'-'的组合")
+        # NOTE: validators module has no ValidationError (latent bug; should be serializers.); backlog.
+        raise validators.ValidationError(  # type: ignore[attr-defined]
+            code=400, detail="变量名不合法， 请输入以字母开头且为数字、大小写字母、'_'、'-'的组合")
 
 
 class ComponentEnvsBaseSerializers(serializers.Serializer):
@@ -336,7 +342,7 @@ class HelmChartSerializer(serializers.Serializer):
     overrides = serializers.CharField(max_length=512, required=False, help_text="配置参数")
 
 
-def gray_ratio_validator(value):
+def gray_ratio_validator(value: Any) -> None:
     if not isinstance(value, int):
         raise serializers.ValidationError('灰度比例必须为整数')
     if value < 0 or value > 100:

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import ipaddress
 import logging
+from typing import Any, Optional, Tuple
 
 from rest_framework import authentication
 from rest_framework import exceptions
@@ -17,22 +18,23 @@ _PROXY_HEADERS = (
     'HTTP_FORWARDED',
 )
 
+
 class InternalTokenAuthentication(authentication.BaseAuthentication):
-    def authenticate(self, request):
+    def authenticate(self, request: Any) -> Optional[Tuple[Users, None]]:
         token = request.META.get('HTTP_X_INTERNAL_TOKEN')
-        
+
         if not token:
             return None
-        
+
         internal_token = getattr(settings, 'INTERNAL_API_TOKEN', None)
-        
+
         if not internal_token or token != internal_token:
             return None
 
         # 如果 Token 匹配，返回一个超级管理员用户
         # 尝试获取系统的第一个超级管理员
         user = Users.objects.filter(sys_admin=True).first()
-        
+
         if not user:
             # 如果没有超级管理员，抛出异常，因为我们需要一个用户上下文
             logger.error("InternalAuth: No superuser found!")
@@ -56,7 +58,7 @@ class AgentRuntimeAuthentication(authentication.BaseAuthentication):
     这样开源用户无需在 console / copilot 两端手动配置共享密钥。
     """
 
-    def authenticate(self, request):
+    def authenticate(self, request: Any) -> Optional[Tuple[Users, None]]:
         token = request.META.get('HTTP_X_INTERNAL_TOKEN')
 
         if not token:
@@ -81,8 +83,8 @@ class AgentRuntimeAuthentication(authentication.BaseAuthentication):
         return (user, None)
 
     @staticmethod
-    def _is_cluster_internal(request):
-        # 任一代理头存在 = 经过了网关 = 判定为外部。网关对这些头只追加不删除，
+    def _is_cluster_internal(request: Any) -> bool:
+        # 任一代理头存在 = 经过了网关 = 判定为外部。网关对这些头只追加不能删除，
         # 所以外部调用方无法靠去掉该头来伪装成内部。
         if any(request.META.get(h) for h in _PROXY_HEADERS):
             return False
@@ -95,7 +97,7 @@ class AgentRuntimeAuthentication(authentication.BaseAuthentication):
         return ip.is_private or ip.is_loopback
 
     @staticmethod
-    def _token_allowed(token):
+    def _token_allowed(token: str) -> bool:
         legacy_token = getattr(settings, 'INTERNAL_API_TOKEN', None)
         if legacy_token and token == legacy_token:
             return True

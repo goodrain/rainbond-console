@@ -7,7 +7,7 @@ on:
 jobs:
   unit-test:
     runs-on: ubuntu-latest
-    container: python:3.6-buster
+    container: python:3.11-bookworm
     env:
       PIP_SRC: /tmp/pip-src
     steps:
@@ -16,15 +16,13 @@ jobs:
 
       - name: Install native dependencies
         run: |
-          echo "deb http://archive.debian.org/debian/ buster main" > /etc/apt/sources.list
-          echo "deb http://archive.debian.org/debian-security buster/updates main" >> /etc/apt/sources.list
-          apt-get -o Acquire::Check-Valid-Until=false update
+          apt-get update
           apt-get install -y --no-install-recommends gcc git make default-libmysqlclient-dev sqlite3 curl
 
       - name: Install Python dependencies
         run: |
           mkdir -p "$PIP_SRC"
-          python -m pip install --upgrade 'pip<22'
+          python -m pip install --upgrade pip 'setuptools<70'
           pip install -r requirements.txt
 
       - name: Install openapi-client
@@ -40,6 +38,107 @@ jobs:
 
       - name: Check test manifest
         run: make test-manifest-check
+
+  typecheck:
+    runs-on: ubuntu-latest
+    container: python:3.11-bookworm
+    env:
+      PIP_SRC: /tmp/pip-src
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install native dependencies
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends gcc git make default-libmysqlclient-dev sqlite3 curl
+
+      - name: Install Python dependencies
+        run: |
+          mkdir -p "$PIP_SRC"
+          python -m pip install --upgrade pip 'setuptools<70'
+          pip install -r requirements.txt
+
+      - name: Install openapi-client
+        run: |
+          curl -fsSL https://gitee.com/zhangsetsail/appstore-sdk-python/repository/archive/python3.tar.gz -o /tmp/openapi-client.tar.gz
+          mkdir -p /tmp/openapi-client
+          tar xzf /tmp/openapi-client.tar.gz -C /tmp/openapi-client --strip-components=1
+          pip install /tmp/openapi-client
+          rm -rf /tmp/openapi-client /tmp/openapi-client.tar.gz
+
+      - name: Install typing dependencies
+        run: pip install -r requirements-typing.txt
+
+      - name: Run mypy strict gate (whitelisted modules must stay error-free)
+        run: make typecheck-gate
+
+  coverage-gate:
+    # Advisory for now (continue-on-error): reports diff coverage of new/changed
+    # code against the PR base branch. Flip to blocking by removing
+    # continue-on-error once the team has settled into the 80% standard.
+    runs-on: ubuntu-latest
+    container: python:3.11-bookworm
+    continue-on-error: true
+    env:
+      PIP_SRC: /tmp/pip-src
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Coverage collection runs the whole suite with per-file subprocess
+      # instrumentation, which is intrinsically slow (~10min). Skip the heavy
+      # steps entirely when the PR changes no Python files (docs/CI/yaml-only
+      # PRs), so they don't burn ~10min for nothing.
+      - name: Detect Python changes
+        id: detect
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git fetch --no-tags origin "$GITHUB_BASE_REF"
+          if git diff --name-only "origin/${GITHUB_BASE_REF}...HEAD" | grep -qE '\.py$'; then
+            echo "py_changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "py_changed=false" >> "$GITHUB_OUTPUT"
+            echo "No Python files changed in this PR; skipping coverage gate."
+          fi
+
+      - name: Install native dependencies
+        if: steps.detect.outputs.py_changed == 'true'
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends gcc git make default-libmysqlclient-dev sqlite3 curl
+
+      - name: Install Python dependencies
+        if: steps.detect.outputs.py_changed == 'true'
+        run: |
+          mkdir -p "$PIP_SRC"
+          python -m pip install --upgrade pip 'setuptools<70'
+          pip install -r requirements.txt
+          pip install diff-cover
+
+      - name: Install openapi-client
+        if: steps.detect.outputs.py_changed == 'true'
+        run: |
+          curl -fsSL https://gitee.com/zhangsetsail/appstore-sdk-python/repository/archive/python3.tar.gz -o /tmp/openapi-client.tar.gz
+          mkdir -p /tmp/openapi-client
+          tar xzf /tmp/openapi-client.tar.gz -C /tmp/openapi-client --strip-components=1
+          pip install /tmp/openapi-client
+          rm -rf /tmp/openapi-client /tmp/openapi-client.tar.gz
+
+      - name: Run tests with coverage
+        if: steps.detect.outputs.py_changed == 'true'
+        run: |
+          coverage erase || true
+          python scripts/run_pytest.py . -- -q --cov=console --cov=www --cov=openapi --cov-append --cov-report= \
+            || echo "::warning::some tests failed; diff coverage may be partial"
+          coverage xml -o coverage.xml
+
+      - name: Diff coverage gate (new/changed code >= 80%)
+        if: steps.detect.outputs.py_changed == 'true'
+        run: |
+          diff-cover coverage.xml --compare-branch="origin/${GITHUB_BASE_REF}" --fail-under=80
 
   rainbond-allinone:
     needs: unit-test

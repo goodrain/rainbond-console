@@ -1,6 +1,7 @@
 # -*- coding: utf8 -*-
 import logging
 import time
+from typing import Any, Dict, List, Optional, Tuple
 
 from console.exception.main import ServiceHandleException
 from console.repositories.app import TenantServiceInfoRepository
@@ -20,6 +21,7 @@ from console.services.service_services import base_service
 from console.services.team_services import team_services
 from django.db import transaction
 from www.apiclient.regionapi import RegionInvokeApi
+from www.models.main import ServiceGroup, TenantServiceInfo, Tenants
 from www.utils.crypt import make_uuid
 
 region_api = RegionInvokeApi()
@@ -27,7 +29,8 @@ logger = logging.getLogger("default")
 
 
 class GroupAppCopyService(object):
-    def generate_comment(self, src_app, src_region_name, src_tenant_name, target_app, tar_region_name, tar_team_name, services):
+    def generate_comment(self, src_app: Any, src_region_name: str, src_tenant_name: str, target_app: Any,
+                         tar_region_name: str, tar_team_name: str, services: List[Any]) -> str:
         source_app_name = operation_log_service.process_app_name(src_app.app_name, src_region_name, src_tenant_name,
                                                                  src_app.app_id)
         target_app_name = operation_log_service.process_app_name(target_app.app_name, tar_region_name, tar_team_name,
@@ -48,10 +51,11 @@ class GroupAppCopyService(object):
 
 
     @transaction.atomic()
-    def copy_group_services(self, user, old_team, old_region_name, tar_team, tar_region_name, tar_group, group_id,
-                            choose_services):
-        changes = {}
-        service_ids = []
+    def copy_group_services(self, user: Any, old_team: Tenants, old_region_name: str, tar_team: Tenants,
+                            tar_region_name: str, tar_group: Any, group_id: str,
+                            choose_services: List[Dict[str, Any]]) -> List[TenantServiceInfo]:
+        changes: Dict[str, Any] = {}
+        service_ids: List[str] = []
         if choose_services:
             for choose_service in choose_services:
                 service_ids.append(choose_service["service_id"])
@@ -62,7 +66,7 @@ class GroupAppCopyService(object):
                                                  change_services_map, old_team == tar_team, old_region_name == tar_region_name)
         return groupapp_copy_service.build_services(user, tar_team, tar_region_name, tar_group.ID, change_services_map)
 
-    def get_group_services_with_build_source(self, tenant, region_name, group_id):
+    def get_group_services_with_build_source(self, tenant: Tenants, region_name: str, group_id: str) -> List[Any]:
         group_services = base_service.get_group_services_list(tenant.tenant_id, region_name, group_id)
         if not group_services:
             return []
@@ -81,7 +85,8 @@ class GroupAppCopyService(object):
                 gl_group_services.append(group_service)
         return gl_group_services
 
-    def check_and_get_team_group(self, user, team_name, region_name, group_id):
+    def check_and_get_team_group(self, user: Any, team_name: str, region_name: str,
+                                 group_id: str) -> Tuple[Tenants, ServiceGroup]:
         team = team_services.check_and_get_user_team_by_name_and_region(user.user_id, team_name, region_name)
         if not team:
             raise ServiceHandleException(
@@ -93,7 +98,9 @@ class GroupAppCopyService(object):
             raise ServiceHandleException(msg="group app and team relation no found", msg_show="目标应用不属于目标团队", status_code=400)
         return team, group
 
-    def get_modify_group_metadata(self, old_team, old_region_name, tar_team, tar_region_name, group_id, service_ids, changes):
+    def get_modify_group_metadata(self, old_team: Tenants, old_region_name: str, tar_team: Tenants, tar_region_name: str,
+                                  group_id: str, service_ids: List[str],
+                                  changes: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         total_memory, services_metadata = groupapp_backup_service.get_group_app_metadata(group_id, old_team, old_region_name)
         old_services_map = {
             app["service_base"]["service_id"]: app["service_base"]["k8s_component_name"]
@@ -110,14 +117,14 @@ class GroupAppCopyService(object):
         return services_metadata, change_services_map
 
     def pop_services_metadata(self,
-                              old_team,
-                              old_region_name,
-                              tar_team,
-                              tar_region_name,
-                              metadata,
-                              remove_service_ids,
-                              service_ids,
-                              change_service_map=None):
+                              old_team: Tenants,
+                              old_region_name: str,
+                              tar_team: Tenants,
+                              tar_region_name: str,
+                              metadata: Dict[str, Any],
+                              remove_service_ids: List[str],
+                              service_ids: List[str],
+                              change_service_map: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         same_team_and_region_copy = False
         if old_team.tenant_id == tar_team.tenant_id and old_region_name == tar_region_name:
             same_team_and_region_copy = True
@@ -141,7 +148,7 @@ class GroupAppCopyService(object):
                             plugin["dest_service_id"] = change_service_map.get(plugin["dest_service_id"], {}).get(
                                 "ServiceID", "")
             return metadata
-        new_metadata = {}
+        new_metadata: Dict[str, Any] = {}
         new_metadata["compose_group_info"] = metadata["compose_group_info"]
         new_metadata["group_info"] = metadata["group_info"]
         new_metadata["plugin_info"] = metadata["plugin_info"]
@@ -195,7 +202,7 @@ class GroupAppCopyService(object):
             new_metadata["compose_service_relation"] = None
         return new_metadata
 
-    def change_services_metadata_info(self, metadata, changes):
+    def change_services_metadata_info(self, metadata: Dict[str, Any], changes: Dict[str, Any]) -> Dict[str, Any]:
         if not changes:
             return metadata
         for service in metadata["apps"]:
@@ -218,11 +225,14 @@ class GroupAppCopyService(object):
                     env["attr_name"] = envs[env["attr_name"]]
         return metadata
 
-    def save_new_group_app(self, user, tar_team, region_name, group_id, metadata, changed_service_map, same_team, same_region):
+    def save_new_group_app(self, user: Any, tar_team: Tenants, region_name: str, group_id: int,
+                           metadata: Dict[str, Any], changed_service_map: Dict[str, Any], same_team: bool,
+                           same_region: bool) -> None:
         migrate_service.save_data(tar_team, region_name, user, changed_service_map, metadata, group_id, same_team, same_region)
 
-    def change_services_map(self, service_ids, old_services_map):
-        change_services = {}
+    def change_services_map(self, service_ids: List[str],
+                            old_services_map: Dict[str, str]) -> Dict[str, Dict[str, str]]:
+        change_services: Dict[str, Dict[str, str]] = {}
         for service_id in service_ids:
             new_service_id = make_uuid()
             change_services.update({
@@ -234,16 +244,17 @@ class GroupAppCopyService(object):
             })
         return change_services
 
-    def new_services_and_copy_path(self, tar_team_name, region, change_services):
-        service_copy_path = {}
+    def new_services_and_copy_path(self, tar_team_name: str, region: str,
+                                   change_services: Dict[str, Any]) -> Dict[str, Any]:
+        service_copy_path: Dict[str, Any] = {}
         old_service_ids = [old_service_id for old_service_id in list(change_services.keys())]
         service_repo_info = TenantServiceInfoRepository()
         for old_service_id in old_service_ids:
             service_info = service_repo_info.get_service_by_service_id(old_service_id)
-            old_file_path = service_info.git_url
+            old_file_path = service_info.git_url  # type: ignore[union-attr]  # NOTE: service_info may be None if old_service_id is stale
             new_service_id = change_services[old_service_id]["ServiceID"]
             service_copy_path.update({new_service_id: old_file_path})
-            event_id = old_file_path.split("/")[-1]
+            event_id = old_file_path.split("/")[-1]  # type: ignore[union-attr]  # NOTE: old_file_path inherits Optional type from git_url; None would already have raised on line above
             pkg_copy_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
             # 复制组件信息
             app_service.change_package_upload_info(new_service_id, event_id, pkg_copy_time)
@@ -261,7 +272,7 @@ class GroupAppCopyService(object):
             package_upload_service.create_upload_record(**copy_record_info)
         return service_copy_path
 
-    def is_need_to_add_default_probe(self, service):
+    def is_need_to_add_default_probe(self, service: TenantServiceInfo) -> bool:
         if service.service_source != "source_code":
             return True
         else:
@@ -271,8 +282,9 @@ class GroupAppCopyService(object):
                     return False
             return True
 
-    def build_services(self, user, tenant, region_name, group_id, change_services_map):
-        group_services = base_service.get_group_services_list(tenant.tenant_id, region_name, group_id)
+    def build_services(self, user: Any, tenant: Tenants, region_name: str, group_id: int,
+                       change_services_map: Dict[str, Any]) -> List[TenantServiceInfo]:
+        group_services = base_service.get_group_services_list(tenant.tenant_id, region_name, group_id)  # type: ignore[arg-type]  # NOTE: group_id typed as int here; get_group_services_list expects str
         change_service_ids = [change_service["ServiceID"] for change_service in list(change_services_map.values())]
         if not group_services:
             return []
@@ -307,12 +319,12 @@ class GroupAppCopyService(object):
                     # 在数据中心创建插件
                     try:
                         event_id = make_uuid()
-                        plugin_version.event_id = event_id
-                        image_tag = (plugin_version.image_tag if plugin_version.image_tag else "latest")
-                        plugin_service.create_region_plugin(region_name, tenant, plugin, image_tag=image_tag)
-                        ret = plugin_service.build_plugin(region_name, plugin, plugin_version, user, tenant, event_id)
-                        plugin_version.build_status = ret.get('bean').get('status')
-                        plugin_version.save()
+                        plugin_version.event_id = event_id  # type: ignore[union-attr]  # NOTE: plugin_version may be None if build_version is stale
+                        image_tag = (plugin_version.image_tag if plugin_version.image_tag else "latest")  # type: ignore[union-attr]  # NOTE: same as above
+                        plugin_service.create_region_plugin(region_name, tenant, plugin, image_tag=image_tag)  # type: ignore[arg-type]  # NOTE: plugin may be None if plugin_id is stale; callers rely on exception path to recover
+                        ret = plugin_service.build_plugin(region_name, plugin, plugin_version, user, tenant, event_id)  # type: ignore[arg-type]  # NOTE: plugin may be None; same rationale as create_region_plugin above
+                        plugin_version.build_status = ret.get('bean').get('status')  # type: ignore[union-attr]  # NOTE: same as above; ret.get('bean') may also be None
+                        plugin_version.save()  # type: ignore[union-attr]  # NOTE: same as above
                     except Exception as e:
                         logger.debug(e)
                     # 为组件开通插件

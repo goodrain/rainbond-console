@@ -3,11 +3,14 @@
   Created on 18/1/30.
 """
 
+from typing import List, Tuple
+
 from console.repositories.app_config import extend_repo
+from www.models.main import TenantServiceInfo
 
 
 class AppExtendService(object):
-    def get_app_extend_method(self, service):
+    def get_app_extend_method(self, service: TenantServiceInfo) -> Tuple[List[int], List[str]]:
         sem = extend_repo.get_extend_method_by_service(service)
 
         min_node = sem.min_node if sem else 1

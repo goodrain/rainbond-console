@@ -3,9 +3,11 @@
   Created on 18/3/15.
 """
 import logging
+from typing import Any
 
-from django.views.decorators.cache import never_cache
+from console.utils.cache_decorators import never_cache
 from rest_framework import status
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from console.enum.system_config import ConfigKeyEnum
@@ -23,7 +25,7 @@ logger = logging.getLogger("default")
 
 class EnterpriseConfigView(EnterpriseAdminView):
     @never_cache
-    def put(self, request, enterprise_id, *args, **kwargs):
+    def put(self, request: Request, enterprise_id: str, *args: Any, **kwargs: Any) -> Response:
         title = parse_item(request, "title")
         logo = parse_item(request, "logo")
         favicon = parse_item(request, "favicon")
@@ -44,7 +46,8 @@ class EnterpriseConfigView(EnterpriseAdminView):
         security_restrictions = parse_item(request, "security_restrictions", default=False)
 
         config_service = ConfigService()
-        ent_config_service = EnterpriseConfigService(enterprise_id, self.user.user_id)
+        # NOTE: user_id is an int AutoField but service expects str (systemic int-as-str backlog).
+        ent_config_service = EnterpriseConfigService(enterprise_id, self.user.user_id)  # type: ignore[arg-type]
 
         if title:
             config_service.update_config_value(ConfigKeyEnum.TITLE.name, title)
@@ -188,7 +191,7 @@ class EnterpriseConfigView(EnterpriseAdminView):
 
 class EnterpriseObjectStorageView(EnterpriseAdminView):
     @never_cache
-    def put(self, request, enterprise_id, *args, **kwargs):
+    def put(self, request: Request, enterprise_id: str, *args: Any, **kwargs: Any) -> Response:
         enable = bool_argument(parse_item(request, "enable", required=True))
         provider = parse_item(request, "provider", required=True)
         endpoint = parse_item(request, "endpoint", required=True)
@@ -199,7 +202,7 @@ class EnterpriseObjectStorageView(EnterpriseAdminView):
         if provider not in ("alioss", "s3"):
             raise AbortRequest("provider {} not in (\"alioss\", \"s3\")".format(provider))
 
-        ent_cfg_svc = EnterpriseConfigService(enterprise_id, self.user.user_id)
+        ent_cfg_svc = EnterpriseConfigService(enterprise_id, self.user.user_id)  # type: ignore[arg-type]
         ent_cfg_svc.update_config_enable_status(key="OBJECT_STORAGE", enable=enable)
         ent_cfg_svc.update_config_value(
             key="OBJECT_STORAGE",
@@ -218,14 +221,14 @@ class EnterpriseObjectStorageView(EnterpriseAdminView):
 
 class EnterpriseAppStoreImageHubView(EnterpriseAdminView):
     @never_cache
-    def put(self, request, enterprise_id, *args, **kwargs):
+    def put(self, request: Request, enterprise_id: str, *args: Any, **kwargs: Any) -> Response:
         enable = bool_argument(parse_item(request, "enable", required=True))
         hub_url = parse_item(request, "hub_url", required=True)
         namespace = parse_item(request, "namespace")
         hub_user = parse_item(request, "hub_user")
         hub_password = parse_item(request, "hub_password")
 
-        ent_cfg_svc = EnterpriseConfigService(enterprise_id, self.user.user_id)
+        ent_cfg_svc = EnterpriseConfigService(enterprise_id, self.user.user_id)  # type: ignore[arg-type]
         ent_cfg_svc.update_config_enable_status(key="APPSTORE_IMAGE_HUB", enable=enable)
         ent_cfg_svc.update_config_value(
             key="APPSTORE_IMAGE_HUB",
@@ -243,7 +246,7 @@ class EnterpriseAppStoreImageHubView(EnterpriseAdminView):
 
 class EnterpriseVisualMonitorView(EnterpriseAdminView):
     @never_cache
-    def put(self, request, enterprise_id, *args, **kwargs):
+    def put(self, request: Request, enterprise_id: str, *args: Any, **kwargs: Any) -> Response:
         enable = bool_argument(parse_item(request, "enable", required=True))
         home_url = parse_item(request, "home_url", required=True)
         cluster_monitor_suffix = request.data.get("cluster_monitor_suffix", "/d/cluster/ji-qun-jian-kong-ke-shi-hua")
@@ -251,7 +254,7 @@ class EnterpriseVisualMonitorView(EnterpriseAdminView):
         component_monitor_suffix = request.data.get("component_monitor_suffix", "/d/component/zu-jian-jian-kong-ke-shi-hua")
         slo_monitor_suffix = request.data.get("slo_monitor_suffix", "/d/service/fu-wu-jian-kong-ke-shi-hua")
 
-        ent_cfg_svc = EnterpriseConfigService(enterprise_id, self.user.user_id)
+        ent_cfg_svc = EnterpriseConfigService(enterprise_id, self.user.user_id)  # type: ignore[arg-type]
         ent_cfg_svc.update_config_enable_status(key="VISUAL_MONITOR", enable=enable)
         ent_cfg_svc.update_config_value(
             key="VISUAL_MONITOR",
@@ -267,6 +270,6 @@ class EnterpriseVisualMonitorView(EnterpriseAdminView):
 
 class EnterpriseAlertsView(JWTAuthApiView):
     @never_cache
-    def get(self, request, enterprise_id, *args, **kwargs):
+    def get(self, request: Request, enterprise_id: str, *args: Any, **kwargs: Any) -> Response:
         alerts = enterprise_services.get_enterprise_alerts(enterprise_id)
         return Response(general_message(200, "success", "查询成功", list=alerts), status=status.HTTP_200_OK)

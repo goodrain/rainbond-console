@@ -8,6 +8,7 @@ import json
 import logging
 import os
 import pickle
+from typing import Any
 
 from console.constants import AppConstants, PluginCategoryConstants
 from console.enum.component_enum import is_kubeblocks
@@ -37,7 +38,8 @@ from console.utils.oauth.oauth_types import get_oauth_instance
 from console.views.app_config.base import AppBaseView
 from console.views.base import RegionTenantHeaderView
 from django.db import transaction
-from django.views.decorators.cache import never_cache
+from console.utils.cache_decorators import never_cache
+from rest_framework.request import Request
 from rest_framework.response import Response
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.return_message import error_message, general_message
@@ -46,7 +48,7 @@ logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
 
 
-def build_vm_vnc_url(tenant, service, app_k8s_name, vm_url):
+def build_vm_vnc_url(tenant: Any, service: Any, app_k8s_name: str, vm_url: str) -> str:
     if service.extend_method != "vm" or not vm_url:
         return ""
     namespace = tenant.namespace
@@ -57,7 +59,7 @@ def build_vm_vnc_url(tenant, service, app_k8s_name, vm_url):
     return base_vm_url + path
 
 
-def parse_request_bool(value):
+def parse_request_bool(value: Any) -> bool:
     if isinstance(value, bool):
         return value
     if isinstance(value, str):
@@ -67,7 +69,7 @@ def parse_request_bool(value):
 
 class AppDetailView(AppBaseView):
     @never_cache
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         组件详情信息
         ---
@@ -84,7 +86,7 @@ class AppDetailView(AppBaseView):
               paramType: path
         """
         vm_url = request.GET.get("vm_url", "")
-        bean = dict()
+        bean: dict = dict()
         namespace = self.tenant.namespace
         service_model = self.service.to_dict()
         group_map = group_service.get_services_group_name([self.service.service_id])
@@ -97,8 +99,9 @@ class AppDetailView(AppBaseView):
         volumes = volume_repo.get_service_volumes_with_config_file(self.service.service_id)
         service_model["disk_cap"] = 30 if self.service.extend_method == "vm" else 10
         if self.service.extend_method == "vm":
+            # NOTE: enterprise_id is nullable on the model but the service expects str (backlog).
             vm_url = rbd_plugin_service.get_vm_plugin_url(
-                self.tenant.enterprise_id,
+                self.tenant.enterprise_id,  # type: ignore[arg-type]
                 self.service.service_region,
                 request=request
             ) or vm_url
@@ -126,7 +129,8 @@ class AppDetailView(AppBaseView):
                 result = general_message(200, "success", "查询成功", bean=bean)
                 return Response(result, status=result["code"])
             rainbond_app, rainbond_app_version = rainbond_app_repo.get_rainbond_app_and_version(
-                self.tenant.enterprise_id, service_source.group_key, service_source.version)
+                self.tenant.enterprise_id, service_source.group_key,  # type: ignore[arg-type]
+                service_source.version)  # type: ignore[arg-type]
             if not rainbond_app:
                 result = general_message(200, "success", "当前组件安装源模版已删除", bean=bean)
                 return Response(result, status=result["code"])
@@ -197,12 +201,12 @@ class AppDetailView(AppBaseView):
 
 class AppVMProfileView(AppBaseView):
     @never_cache
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         vm_url = request.GET.get("vm_url", "")
         group_map = group_service.get_services_group_name([self.service.service_id])
         app_k8s_name = group_map.get(self.service.service_id)["k8s_app"]
         vm_url = rbd_plugin_service.get_vm_plugin_url(
-            self.tenant.enterprise_id,
+            self.tenant.enterprise_id,  # type: ignore[arg-type]
             self.service.service_region,
             request=request
         ) or vm_url
@@ -224,7 +228,7 @@ class AppVMProfileView(AppBaseView):
 
 class AppVMFixedIPView(AppBaseView):
     @never_cache
-    def put(self, request, *args, **kwargs):
+    def put(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         enabled = parse_request_bool(request.data.get("enabled", False))
         try:
             bean = vms.set_vm_fixed_pod_ip(self.tenant, self.service, enabled)
@@ -241,7 +245,7 @@ class AppVMFixedIPView(AppBaseView):
 
 class AppVMDiskView(AppBaseView):
     @never_cache
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         volumes = volume_service.get_service_volumes(self.tenant, self.service)
         result = general_message(
             200,
@@ -252,7 +256,7 @@ class AppVMDiskView(AppBaseView):
         return Response(result, status=result["code"])
 
     @never_cache
-    def put(self, request, *args, **kwargs):
+    def put(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         disks = request.data.get("disks", [])
         if not isinstance(disks, list):
             return Response(general_message(400, "param error", "磁盘列表格式错误"), status=400)
@@ -272,7 +276,7 @@ class AppVMDiskView(AppBaseView):
 
 class AppBriefView(AppBaseView):
     @never_cache
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         组件详情信息
         ---
@@ -302,7 +306,7 @@ class AppBriefView(AppBaseView):
         return Response(result, status=result["code"])
 
     @never_cache
-    def put(self, request, *args, **kwargs):
+    def put(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         修改组件名称
         ---
@@ -327,16 +331,20 @@ class AppBriefView(AppBaseView):
         k8s_component_name = request.data.get("k8s_component_name", "")
         app = group_service.get_service_group_info(self.service.service_id)
         if app:
-            if app_service.is_k8s_component_name_duplicate(app.ID, k8s_component_name, self.service.service_id):
+            # NOTE: ServiceGroup.ID is an int AutoField but the service expects str (systemic int-as-str).
+            if app_service.is_k8s_component_name_duplicate(app.ID, k8s_component_name,  # type: ignore[arg-type]
+                                                           self.service.service_id):
                 raise ErrK8sComponentNameExists
         original_component_name = self.service.service_cname
-        is_pass, msg = app_service.check_service_cname(self.tenant, service_cname, self.service.service_region)
+        is_pass, msg = app_service.check_service_cname(
+            self.tenant, service_cname, self.service.service_region)  # type: ignore[arg-type]
         if not is_pass:
             return Response(general_message(400, "param error", msg), status=400)
         self.service.k8s_component_name = k8s_component_name
         old_information = json.dumps({"组件名称": self.service.service_cname}, ensure_ascii=False)
         new_information = json.dumps({"组件名称": service_cname}, ensure_ascii=False)
-        self.service.service_cname = service_cname
+        # NOTE: request body value (Any|None) assigned to a model CharField (backlog).
+        self.service.service_cname = service_cname  # type: ignore[assignment]
         region_api.update_service(self.service.service_region, self.tenant.tenant_name, self.service.service_alias,
                                   {"k8s_component_name": k8s_component_name})
 
@@ -365,7 +373,7 @@ class AppBriefView(AppBaseView):
 
 class AppStatusView(AppBaseView):
     @never_cache
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         获取组件状态
         ---
@@ -397,7 +405,7 @@ class AppStatusView(AppBaseView):
 
 class ListAppPodsView(AppBaseView):
     @never_cache
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         获取组件实例
         ---
@@ -415,11 +423,12 @@ class ListAppPodsView(AppBaseView):
         """
 
         data = region_api.get_service_pods(self.service.service_region, self.tenant.tenant_name, self.service.service_alias,
-                                           self.tenant.enterprise_id)
+                                           self.tenant.enterprise_id)  # type: ignore[arg-type]
         result = {}
-        if data["bean"]:
+        # NOTE: regionapi result is typed dict|None; legacy code assumes dict (backlog).
+        if data["bean"]:  # type: ignore[index]
 
-            def foobar(data):
+            def foobar(data: Any) -> Any:
                 if data is None:
                     return
                 res = []
@@ -439,7 +448,7 @@ class ListAppPodsView(AppBaseView):
                         memory_usage = float(val["memory_usage"]) / 1024 / 1024
                         usage_rate = 0
                         if memory_limit:
-                            usage_rate = memory_usage * 100 / memory_limit
+                            usage_rate = memory_usage * 100 / memory_limit  # type: ignore[assignment]
                         container_dict["memory_limit"] = round(memory_limit, 2)
                         container_dict["memory_usage"] = round(memory_usage, 2)
                         container_dict["usage_rate"] = round(usage_rate, 2)
@@ -453,7 +462,7 @@ class ListAppPodsView(AppBaseView):
                     res.append(bean)
                 return res
 
-            pods = data["bean"]
+            pods = data["bean"]  # type: ignore[index]
             newpods = foobar(pods.get("new_pods", None))
             old_pods = foobar(pods.get("old_pods", None))
             result = {"new_pods": newpods, "old_pods": old_pods}
@@ -461,7 +470,7 @@ class ListAppPodsView(AppBaseView):
         return Response(result, status=result["code"])
 
     @never_cache
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         进入组件实例
         ---
@@ -488,7 +497,7 @@ class ListAppPodsView(AppBaseView):
               paramType: form
 
         """
-        bean = dict()
+        bean: dict = dict()
         c_id = request.data.get("c_id", "")
         h_id = request.data.get("h_id", "")
         logger.info("c_id = {0} h_id = {1}".format(c_id, h_id))
@@ -503,7 +512,7 @@ class ListAppPodsView(AppBaseView):
 
 class AppVisitView(AppBaseView):
     @never_cache
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         获取组件访问信息
         ---
@@ -528,7 +537,7 @@ class AppVisitView(AppBaseView):
 
 
 class AppGroupVisitView(RegionTenantHeaderView):
-    def get(self, request, team_name, *args, **kwargs):
+    def get(self, request: Request, team_name: str, *args: Any, **kwargs: Any) -> Response:
         """
         获取组件访问信息
         ---
@@ -559,20 +568,21 @@ class AppGroupVisitView(RegionTenantHeaderView):
             for service_alias in service_list:
                 bean = dict()
                 service = service_repo.get_service_by_service_alias(service_alias)
-                access_type, data = port_service.get_access_info(team, service)
+                access_type, data = port_service.get_access_info(team, service)  # type: ignore[arg-type]
                 bean["access_type"] = access_type
                 bean["access_info"] = data
                 service_access_list.append(bean)
             result = general_message(200, "success", "操作成功", list=service_access_list)
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)
+            # NOTE: py2-era Exception.message; absent in py3 (backlog, behavior preserved).
+            result = error_message(e.message)  # type: ignore[attr-defined]
         return Response(result, status=result["code"])
 
 
 class AppPluginsBriefView(AppBaseView):
     @never_cache
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         获取组件安装的插件的简要信息
         ---
@@ -588,7 +598,7 @@ class AppPluginsBriefView(AppBaseView):
               type: string
               paramType: path
         """
-        bean = dict()
+        bean: dict = dict()
         service_abled_plugins = app_plugin_service.get_service_abled_plugin(self.service)
         plugin_list = [p.to_dict() for p in service_abled_plugins]
         result = general_message(200, "success", "操作成功", bean=bean, list=plugin_list)
@@ -597,7 +607,7 @@ class AppPluginsBriefView(AppBaseView):
 
 class AppGroupView(AppBaseView):
     @never_cache
-    def put(self, request, *args, **kwargs):
+    def put(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         修改组件所在组
         ---
@@ -628,10 +638,11 @@ class AppGroupView(AppBaseView):
             group_service.delete_service_group_relation_by_service_id(self.service.service_id)
         else:
             # check target app exists or not
-            app = group_service.get_group_by_id(self.tenant, self.service.service_region, group_id)
+            # NOTE: group_id is an int here but the service signature expects str (systemic int-as-str).
+            app = group_service.get_group_by_id(self.tenant, self.service.service_region, group_id)  # type: ignore[arg-type]
             app_old = group_service.get_group_by_id(self.tenant, self.service.service_region, self.app.ID)
             # update service relation
-            group_service.update_or_create_service_group_relation(self.tenant, self.service, group_id)
+            group_service.update_or_create_service_group_relation(self.tenant, self.service, group_id)  # type: ignore[arg-type]
             app_name = operation_log_service.process_app_name(
                 app.get("group_name", ""), self.service.service_region, self.tenant.tenant_name, group_id)
             old_information = json.dumps({"组件所属应用": app_old["group_name"]}, ensure_ascii=False)
@@ -658,7 +669,7 @@ class AppGroupView(AppBaseView):
 
 class AppAnalyzePluginView(AppBaseView):
     @never_cache
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         查询组件的性能分析插件
         ---
@@ -686,7 +697,7 @@ class AppAnalyzePluginView(AppBaseView):
 
 class ImageAppView(AppBaseView):
     @never_cache
-    def put(self, request, *args, **kwargs):
+    def put(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         修改镜像源地址
         ---
@@ -710,13 +721,13 @@ class ImageAppView(AppBaseView):
             result = general_message(200, "success", "修改成功")
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)
+            result = error_message(e.message)  # type: ignore[attr-defined]
         return Response(result, status=result["code"])
 
 
 class BuildSourceinfo(AppBaseView):
     @never_cache
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         查询构建源信息
         ---
@@ -738,13 +749,14 @@ class BuildSourceinfo(AppBaseView):
             if package_names:
                 bean["package_name"] = package_names[0]
         res, body = region_api.get_cluster_nodes_arch(self.region_name)
-        bean["arch"] = list(set(body.get("list")))
+        # NOTE: regionapi body typed Optional; legacy code assumes dict (backlog).
+        bean["arch"] = list(set(body.get("list")))  # type: ignore[union-attr, arg-type]
         result = general_message(200, "success", "查询成功", bean=bean)
         return Response(result, status=result["code"])
 
     @never_cache
     @transaction.atomic
-    def put(self, request, *args, **kwargs):
+    def put(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         修改构建源
         ---
@@ -759,7 +771,8 @@ class BuildSourceinfo(AppBaseView):
             user_name = request.data.get("user_name", None)
             password = request.data.get("password", None)
             is_oauth = request.data.get("is_oauth", False)
-            user_id = request.user.user_id
+            # NOTE: request.user typed User|AnonymousUser; user_id only on authed user (backlog).
+            user_id = request.user.user_id  # type: ignore[union-attr]
             oauth_service_id = request.data.get("service_id")
             git_full_name = request.data.get("full_name")
             server_type = request.data.get("server_type", "")
@@ -769,8 +782,9 @@ class BuildSourceinfo(AppBaseView):
 
             service_source_user = service_source_repo.get_service_source(
                 team_id=self.service.tenant_id, service_id=self.service.service_id)
-            new_information = service_source_repo.json_service_source(image=image, cmd=cmd)
-            old_information = service_source_repo.json_service_source(image=self.service.image, cmd=self.service.cmd)
+            new_information = service_source_repo.json_service_source(image=image, cmd=cmd)  # type: ignore[arg-type]
+            old_information = service_source_repo.json_service_source(
+                image=self.service.image, cmd=self.service.cmd)  # type: ignore[arg-type]
             if not service_source_user:
                 service_source_info = {
                     "service_id": self.service.service_id,
@@ -796,13 +810,17 @@ class BuildSourceinfo(AppBaseView):
                     if is_oauth:
                         try:
                             oauth_service = oauth_repo.get_oauth_services_by_service_id(service_id=oauth_service_id)
-                            oauth_user = oauth_user_repo.get_user_oauth_by_user_id(service_id=oauth_service_id, user_id=user_id)
+                            oauth_user = oauth_user_repo.get_user_oauth_by_user_id(
+                                service_id=oauth_service_id,  # type: ignore[arg-type]
+                                user_id=user_id)
                         except Exception as e:
                             logger.debug(e)
                             rst = {"data": {"bean": None}, "status": 400, "msg_show": "Oauth服务可能已被删除，请重新配置"}
                             return Response(rst, status=200)
                         try:
-                            instance = get_oauth_instance(oauth_service.oauth_type, oauth_service, oauth_user)
+                            # NOTE: get_oauth_services_by_service_id may return None (backlog).
+                            instance = get_oauth_instance(
+                                oauth_service.oauth_type, oauth_service, oauth_user)  # type: ignore[union-attr]
                         except Exception as e:
                             logger.debug(e)
                             rst = {"data": {"bean": None}, "status": 400, "msg_show": "未找到OAuth服务"}
@@ -810,7 +828,7 @@ class BuildSourceinfo(AppBaseView):
                         if not instance.is_git_oauth():
                             rst = {"data": {"bean": None}, "status": 400, "msg_show": "该OAuth服务不是代码仓库类型"}
                             return Response(rst, status=200)
-                        service_code_from = "oauth_" + oauth_service.oauth_type
+                        service_code_from = "oauth_" + oauth_service.oauth_type  # type: ignore[operator, union-attr]
                         self.service.code_from = service_code_from
                         self.service.git_url = git_url
                         self.service.git_full_name = git_full_name
@@ -874,20 +892,22 @@ class BuildSourceinfo(AppBaseView):
             result = general_message(200, "success", "修改成功")
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)
+            result = error_message(e.message)  # type: ignore[attr-defined]
             transaction.savepoint_rollback(s_id)
         return Response(result, status=result["code"])
 
 
 class AppKeywordView(AppBaseView):
     @never_cache
-    def put(self, request, *args, **kwargs):
+    def put(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         修改组件触发自动部署关键字
         """
         keyword = request.data.get("keyword", "")
 
-        is_pass, msg = app_service.check_service_cname(self.tenant, self.service.service_region, None)
+        # NOTE: latent bug — args appear swapped (service_region passed as cname, None as
+        # region) vs check_service_cname(tenant, name, region); behavior preserved (backlog).
+        is_pass, msg = app_service.check_service_cname(self.tenant, self.service.service_region, None)  # type: ignore[arg-type]
         if not is_pass:
             return Response(general_message(400, "param error", msg), status=400)
         service_webhook = service_webhooks_repo.get_service_webhooks_by_service_id_and_type(
@@ -903,17 +923,18 @@ class AppKeywordView(AppBaseView):
 # 修改job、cronjob策略配置
 class JobStrategy(AppBaseView):
     @never_cache
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         res = service_repo.get_service_by_service_id(self.service.service_id)
-        if res.job_strategy:
-            bean = json.loads(res.job_strategy)
+        # NOTE: repo result typed Optional; legacy code assumes non-None (backlog).
+        if res.job_strategy:  # type: ignore[union-attr]
+            bean = json.loads(res.job_strategy)  # type: ignore[union-attr]
             result = general_message(200, "success", "查询成功", bean=bean)
             return Response(result, status=result["code"])
         result = general_message(200, "success", "查询成功", bean={})
         return Response(result, status=result["code"])
 
     @never_cache
-    def put(self, request, *args, **kwargs):
+    def put(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         job_strategy = {
             'schedule': request.data.get("schedule", ""),
             'backoff_limit': request.data.get("backoff_limit", ""),
@@ -930,7 +951,7 @@ class JobStrategy(AppBaseView):
 
 # 存储文件管理
 class ManageFile(AppBaseView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         host_path = request.GET.get("host_path", "")
         pod_name = request.GET.get("pod_name", "")
         container_name = request.GET.get("container_name", "")
@@ -944,7 +965,7 @@ class ManageFile(AppBaseView):
             raise e
         bean = {
             "host_path": host_path,
-            "ws_url": region.wsurl,
+            "ws_url": region.wsurl,  # type: ignore[union-attr]
             "namespace": self.tenant.namespace,
             "container_name": container_name or self.service.k8s_component_name
         }

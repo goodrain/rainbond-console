@@ -4,8 +4,10 @@ import logging
 import os
 import subprocess
 from datetime import datetime
+from typing import Any, Optional
 
 from django.db import transaction
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from console.exception.main import ServiceHandleException
@@ -27,14 +29,15 @@ logger = logging.getLogger("default")
 
 class ConfigOSSView(JWTTokenView):
 
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         oss_config = ConsoleSysConfig.objects.filter(key='OSS_CONFIG').first()
         if oss_config:
-            data = json.loads(oss_config.value)
+            # NOTE: model TextField value typed str|None by stubs (arg-type backlog).
+            data = json.loads(oss_config.value)  # type: ignore[arg-type]
             return Response(data=data, status=200)
         return Response(data={}, status=200)
 
-    def put(self, request, *args, **kwargs):
+    def put(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         oss_config = ConsoleSysConfig.objects.filter(key='OSS_CONFIG').first()
 
         # 如果已存在，则更新；如果不存在，则创建
@@ -43,7 +46,7 @@ class ConfigOSSView(JWTTokenView):
             oss_config.desc = 'OSS 配置'
             oss_config.create_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             oss_config.save()
-            data = {'message': '配置更新成功'}
+            data: dict = {'message': '配置更新成功'}
         else:
             new_config = ConsoleSysConfig.objects.create(
                 key='OSS_CONFIG',
@@ -64,7 +67,7 @@ class ConfigRUDView(AlowAnyApiView):
     ---
     """
 
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         code = 200
         user = request.user
         status = perms_repo.initialize_permission_settings()
@@ -94,7 +97,7 @@ class ConfigRUDView(AlowAnyApiView):
         result = general_message(code, "query success", "Logo获取成功", bean=data, initialize_info=status)
         return Response(result, status=code)
 
-    def put(self, request, *args, **kwargs):
+    def put(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         key = request.GET.get("key")
         if not key:
             result = general_message(404, "no found config key", "更新失败")
@@ -115,7 +118,7 @@ class ConfigRUDView(AlowAnyApiView):
             result = general_message(404, "no found config key", "更新失败")
         return Response(result, status=result.get("code", 200))
 
-    def delete(self, request, *args, **kwargs):
+    def delete(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         key = request.GET.get("key")
         if not key:
             result = general_message(404, "no found config key", "重置失败")
@@ -138,7 +141,7 @@ class ConfigRUDView(AlowAnyApiView):
 
 
 class LogoView(BaseApiView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         获取云帮Logo
         ---
@@ -148,17 +151,19 @@ class LogoView(BaseApiView):
             data = dict()
             logo = platform_config_service.get_config_by_key("LOGO")
             host_name = request.get_host()
-            data["logo"] = str(host_name) + str(logo.value)
+            # NOTE: get_config_by_key may return None (union-attr backlog).
+            data["logo"] = str(host_name) + str(logo.value)  # type: ignore[union-attr]
             result = general_message(code, "query success", "Logo获取成功", bean=data)
             return Response(result, status=code)
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)
+            # NOTE: py2-style Exception.message attribute (attr-defined backlog).
+            result = error_message(e.message)  # type: ignore[attr-defined]
         return Response(result)
 
 
 class PhpConfigView(AlowAnyApiView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """获取php的环境配置"""
 
         versions = ["5.6.11", "5.6.30", "5.6.35", "7.0.16", "7.0.29", "7.1.2", "7.1.16"]
@@ -287,7 +292,7 @@ class PhpConfigView(AlowAnyApiView):
 
 class InitPerms(AlowAnyApiView):
     @transaction.atomic()
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Optional[Response]:
         enterprise_id = request.data.get("enterprise_id")
         tenant_id = request.data.get("tenant_id")
         if tenant_id and enterprise_id:
@@ -300,10 +305,12 @@ class InitPerms(AlowAnyApiView):
             teams = Tenants.objects.all()
         if not teams:
             print("未发现团队, 初始化结束")
-            return
+            # NOTE: @transaction.atomic wrapper masks Optional[Response]; bare return ok.
+            return  # type: ignore[return-value]
         for team in teams:
             role_kind_services.init_default_roles(kind="team", kind_id=team.tenant_id)
-            users = team_repo.get_tenant_users_by_tenant_ID(team.ID)
+            # NOTE: ID is an int AutoField but repo expects str (systemic int-as-str backlog).
+            users = team_repo.get_tenant_users_by_tenant_ID(team.ID)  # type: ignore[arg-type]
             admin = role_kind_services.get_role_by_name(kind="team", kind_id=team.tenant_id, name="管理员")
             developer = role_kind_services.get_role_by_name(kind="team", kind_id=team.tenant_id, name="开发者")
             if not admin or not developer:
@@ -326,7 +333,7 @@ class UserSourceView(AlowAnyApiView):
     ---
     """
 
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         使用curl发送飞书消息
         ---

@@ -5,6 +5,7 @@
 import json
 import logging
 import os
+from typing import Any, Optional
 
 import oss2
 from django.conf import settings
@@ -17,7 +18,7 @@ logger = logging.getLogger("default")
 
 
 class FileUploadService(object):
-    def upload_file(self, upload_file, suffix):
+    def upload_file(self, upload_file: Any, suffix: str) -> Optional[str]:
         is_upload_to_oss = self.is_upload_to_oss()
         if is_upload_to_oss:
             file_url = self.upload_file_to_oss(upload_file, suffix)
@@ -25,7 +26,7 @@ class FileUploadService(object):
             file_url = self.upload_file_to_local(upload_file, suffix)
         return file_url
 
-    def upload_file_to_oss(self, upload_file, suffix):
+    def upload_file_to_oss(self, upload_file: Any, suffix: str) -> Optional[str]:
         filename = 'console/file/{0}.{1}'.format(make_uuid(), suffix)
         ret = None
         bucket = None
@@ -39,30 +40,31 @@ class FileUploadService(object):
             return None
         if bucket:
             return "{0}/{1}".format(bucket.endpoint, filename)
+        return None
 
-    def __get_oss_config(self):
+    def __get_oss_config(self) -> Any:
         configs = custom_settings.configs()
         oss_conf = configs.get("OSS_CONFIG", None)
         if not oss_conf:
-            return settings.OSS_CONFIG
+            return settings.OSS_CONFIG  # type: ignore[misc]  # NOTE: OSS_CONFIG is a project-local settings attr absent from django-stubs
         return oss_conf
 
-    def get_bucket(self):
+    def get_bucket(self) -> Any:
         oss_conf = self.__get_oss_config()
 
         auth = oss2.Auth(oss_conf["OSS_ACCESS_KEY"], oss_conf["OSS_ACCESS_KEY_SECRET"])
         bucket = oss2.Bucket(auth, oss_conf["OSS_ENDPOINT"], oss_conf["OSS_BUCKET"], is_cname=True)
         return bucket
 
-    def is_upload_to_oss(self):
+    def is_upload_to_oss(self) -> bool:
         oss_config = ConsoleSysConfig.objects.filter(key='OSS_CONFIG').first()
         if oss_config:
-            data = json.loads(oss_config.value)
+            data = json.loads(oss_config.value)  # type: ignore[arg-type]  # NOTE: CharField stub types value as str|None but value is always str here
             enable = data.get('enable', False)
             return enable
         return False
 
-    def upload_file_to_local(self, upload_file, suffix):
+    def upload_file_to_local(self, upload_file: Any, suffix: str) -> Optional[str]:
         try:
             prefix_file_path = '{0}/uploads'.format(settings.MEDIA_ROOT)
 

@@ -1,0 +1,5 @@
+django-stubs[compatible-mypy]==5.2.9
+djangorestframework-stubs[compatible-mypy]==3.16.9
+# Pinned for reproducible CI. The [compatible-mypy] extras above allow
+# mypy >=1.13,<1.20 (django-stubs 5.2.9 matrix); pin the exact verified version.
+mypy==1.19.1

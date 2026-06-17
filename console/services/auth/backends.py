@@ -1,10 +1,13 @@
 # -*- coding: utf8 -*-
+from typing import Any, Optional
+
 from www.models.main import Users
 from django.db.models import Q
 
 
 class ModelBackend(object):
-    def authenticate(self, request, username=None, password=None, **kwargs):
+    def authenticate(self, request: Any, username: Optional[str] = None, password: Optional[str] = None,
+                     **kwargs: Any) -> Optional[Users]:
         if username is None or password is None:
             return None
 
@@ -14,8 +17,9 @@ class ModelBackend(object):
                 return user
         except Users.DoesNotExist:
             pass
+        return None
 
-    def get_user(self, user_id):
+    def get_user(self, user_id: int) -> Optional[Users]:
         try:
             return Users.objects.get(pk=user_id)
         except Users.DoesNotExist:
@@ -23,7 +27,8 @@ class ModelBackend(object):
 
 
 class PartnerModelBackend(ModelBackend):
-    def authenticate(self, request, username=None, source=None, **kwargs):
+    def authenticate(self, request: Any, username: Optional[str] = None, source: Optional[str] = None,  # type: ignore[override]  # NOTE: intentionally replaces 'password' with 'source'; both are **kwargs in practice
+                     **kwargs: Any) -> Optional[Users]:
         if username is None or source is None:
             return None
 
@@ -36,3 +41,4 @@ class PartnerModelBackend(ModelBackend):
                 return user
         except Users.DoesNotExist:
             pass
+        return None

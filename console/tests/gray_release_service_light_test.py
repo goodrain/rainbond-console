@@ -40,7 +40,7 @@ def _build_stub_modules():
     console_exception.main = console_exception_main
 
     console_models = _package("console.models")
-    console_models_main = _module("console.models.main", GrayReleaseStatus=object())
+    console_models_main = _module("console.models.main", GrayReleaseStatus=object(), GrayReleaseRecord=object(), RegionConfig=object())
     console_models.main = console_models_main
 
     console_repositories = _package("console.repositories")
@@ -106,6 +106,9 @@ def _build_stub_modules():
     www_models_main = _module(
         "www.models.main",
         ServiceDomain=object(),
+        ServiceGroup=object(),
+        Tenants=object(),
+        Users=object(),
         TenantServiceInfo=object(),
         TenantServicesPort=SimpleNamespace(objects=None),
     )

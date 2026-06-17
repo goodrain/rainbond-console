@@ -7,8 +7,7 @@ from django.http import JsonResponse
 from django.http.response import HttpResponseRedirect
 from django.shortcuts import redirect
 from django.shortcuts import resolve_url
-from django.utils.decorators import available_attrs
-from django.utils.six import Module_six_moves_urllib_parse
+from urllib.parse import urlparse
 
 from goodrain_web.errors import UrlParseError, PermissionDenied
 from www.utils.url import get_redirect_url
@@ -26,15 +25,15 @@ def user_passes_test(test_func, login_url=None, redirect_field_name=REDIRECT_FIE
     def login_redirect(request):
         path = request.build_absolute_uri()
         resolved_login_url = resolve_url(login_url or settings.LOGIN_URL)
-        login_scheme, login_netloc = Module_six_moves_urllib_parse(resolved_login_url)[:2]
-        current_scheme, current_netloc = Module_six_moves_urllib_parse(path)[:2]
+        login_scheme, login_netloc = urlparse(resolved_login_url)[:2]
+        current_scheme, current_netloc = urlparse(path)[:2]
         if ((not login_scheme or login_scheme == current_scheme) and (not login_netloc or login_netloc == current_netloc)):
             path = request.get_full_path()
         from django.contrib.auth.views import redirect_to_login
         return redirect_to_login(get_redirect_url(path, request), resolved_login_url, redirect_field_name)
 
     def decorator(view_func):
-        @wraps(view_func, assigned=available_attrs(view_func))
+        @wraps(view_func)
         def _wrapped_view(view_object, *args, **kwargs):
             try:
                 if test_func(view_object.user, *args, **kwargs):

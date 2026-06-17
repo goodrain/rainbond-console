@@ -2,7 +2,7 @@
 # creater by: barnett
 import os
 
-from django.conf.urls import include, url
+from django.urls import include, re_path
 from drf_yasg import openapi
 from drf_yasg.views import get_schema_view
 
@@ -45,87 +45,87 @@ schema_view = get_schema_view(
 )
 
 urlpatterns = [
-    url(r'^swagger(?P<format>\.json|\.yaml)$', schema_view.without_ui(cache_timeout=0), name='schema-json'),
-    url(r'^swagger/$', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
-    url(r'^redoc/$', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
+    re_path(r'^swagger(?P<format>\.json|\.yaml)$', schema_view.without_ui(cache_timeout=0), name='schema-json'),
+    re_path(r'^swagger/$', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
+    re_path(r'^redoc/$', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
     # get enterprise regions
-    url(r'^v1/overview$', EnterpriseOverview.as_view()),
-    url(r'^v1/regions$', ListRegionInfo.as_view(), name="list_regions"),
-    url(r'^v1/regions/(?P<region_id>[\w\-]+)$', RegionInfo.as_view(), name="region_info"),
-    url(r'^v1/administrators$', ListAdminsView.as_view()),
-    url(r'^v1/administrators/(?P<user_id>[\w\-]+)$', AdminInfoView.as_view()),
-    url(r'^v1/changepwd$', ChangePassword.as_view()),
-    url(r'^v1/users$', ListUsersView.as_view()),
-    url(r'^v1/currentuser$', CurrentUsersView.as_view()),
-    url(r'^v1/users/(?P<user_id>[\w\-]+)$', UserInfoView.as_view()),
-    url(r'^v1/users/(?P<user_id>[\w\-]+)/close$', UserTenantClose.as_view()),
-    url(r'^v1/users/(?P<user_id>[\w\-]+)/delete$', UserTenantDelete.as_view()),
-    url(r'^v1/users/(?P<user_id>[\w\-]+)/changepwd$', ChangeUserPassword.as_view()),
-    url(r'^v1/teams$', ListTeamInfo.as_view()),
-    url(r'^v1/app_model$', EntAppModelView.as_view()),
-    url(r'^v1/ai-engine/(?P<team_name>[\w\-]+)/(?P<proxy_path>.*)$', AIEnginePublicProxyView.as_view()),
-    url(r'^v1/teams/resource$', TeamsResourceView.as_view()),
-    url(r'^v1/teams/(?P<team_id>[\w\-]+)$', TeamInfo.as_view()),
-    url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions$', ListRegionsView.as_view()),
-    url(r'^v1/teams/(?P<team_id>[\w\-]+)/certificates$', TeamCertificatesLCView.as_view()),
-    url(r'^v1/teams/(?P<team_id>[\w\-]+)/certificates/(?P<certificate_id>[\d\-]+)$', TeamCertificatesRUDView.as_view()),
-    url(r'^v1/httpdomains', ListEnterpriseAppGatewayHTTPRuleView.as_view()),
-    url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/resource', TeamAppsResourceView.as_view()),
-    url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/overview', TeamOverviewView.as_view()),
-    url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/events/(?P<event_id>[\w\-]+)/logs',
+    re_path(r'^v1/overview$', EnterpriseOverview.as_view()),
+    re_path(r'^v1/regions$', ListRegionInfo.as_view(), name="list_regions"),
+    re_path(r'^v1/regions/(?P<region_id>[\w\-]+)$', RegionInfo.as_view(), name="region_info"),
+    re_path(r'^v1/administrators$', ListAdminsView.as_view()),
+    re_path(r'^v1/administrators/(?P<user_id>[\w\-]+)$', AdminInfoView.as_view()),
+    re_path(r'^v1/changepwd$', ChangePassword.as_view()),
+    re_path(r'^v1/users$', ListUsersView.as_view()),
+    re_path(r'^v1/currentuser$', CurrentUsersView.as_view()),
+    re_path(r'^v1/users/(?P<user_id>[\w\-]+)$', UserInfoView.as_view()),
+    re_path(r'^v1/users/(?P<user_id>[\w\-]+)/close$', UserTenantClose.as_view()),
+    re_path(r'^v1/users/(?P<user_id>[\w\-]+)/delete$', UserTenantDelete.as_view()),
+    re_path(r'^v1/users/(?P<user_id>[\w\-]+)/changepwd$', ChangeUserPassword.as_view()),
+    re_path(r'^v1/teams$', ListTeamInfo.as_view()),
+    re_path(r'^v1/app_model$', EntAppModelView.as_view()),
+    re_path(r'^v1/ai-engine/(?P<team_name>[\w\-]+)/(?P<proxy_path>.*)$', AIEnginePublicProxyView.as_view()),
+    re_path(r'^v1/teams/resource$', TeamsResourceView.as_view()),
+    re_path(r'^v1/teams/(?P<team_id>[\w\-]+)$', TeamInfo.as_view()),
+    re_path(r'^v1/teams/(?P<team_id>[\w\-]+)/regions$', ListRegionsView.as_view()),
+    re_path(r'^v1/teams/(?P<team_id>[\w\-]+)/certificates$', TeamCertificatesLCView.as_view()),
+    re_path(r'^v1/teams/(?P<team_id>[\w\-]+)/certificates/(?P<certificate_id>[\d\-]+)$', TeamCertificatesRUDView.as_view()),
+    re_path(r'^v1/httpdomains', ListEnterpriseAppGatewayHTTPRuleView.as_view()),
+    re_path(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/resource', TeamAppsResourceView.as_view()),
+    re_path(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/overview', TeamOverviewView.as_view()),
+    re_path(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/events/(?P<event_id>[\w\-]+)/logs',
         TeamEventLogView.as_view()),
     # apps
-    url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/apps$', ListAppsView.as_view()),
-    url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/apps/', include('openapi.sub_urls.app_url')),
+    re_path(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/apps$', ListAppsView.as_view()),
+    re_path(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/apps/', include('openapi.sub_urls.app_url')),
 
     # list port
-    url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/apps_port$', AppsPortView.as_view()),
+    re_path(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/apps_port$', AppsPortView.as_view()),
 
     # grctl
-    url(r'^v1/grctl/ip$', ReplaceRegionIP.as_view()),
+    re_path(r'^v1/grctl/ip$', ReplaceRegionIP.as_view()),
 
     # 应用部署
-    url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/app-model/deploy$', AppDeployView.as_view()),
+    re_path(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/app-model/deploy$', AppDeployView.as_view()),
     # 智能部署模板（自动判断安装或升级）
-    url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/app-model/smart-deploy$', SmartDeployTemplateView.as_view()),
+    re_path(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/app-model/smart-deploy$', SmartDeployTemplateView.as_view()),
     # 应用灰度发布
-    url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/apps/(?P<app_id>[\d\-]+)/gray-release$', GrayReleaseView.as_view()),
+    re_path(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/apps/(?P<app_id>[\d\-]+)/gray-release$', GrayReleaseView.as_view()),
     # 调整灰度比例
-    url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/apps/(?P<app_id>[\d\-]+)/gray-ratio$', UpdateGrayRatioView.as_view()),
+    re_path(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/apps/(?P<app_id>[\d\-]+)/gray-ratio$', UpdateGrayRatioView.as_view()),
     # 灰度回滚
-    url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/apps/(?P<app_id>[\d\-]+)/gray-rollback$', GrayRollbackView.as_view()),
+    re_path(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/apps/(?P<app_id>[\d\-]+)/gray-rollback$', GrayRollbackView.as_view()),
     # 查询平台下的灰度发布列表
-    url(r'^v1/gray-releases$', GrayReleaseListView.as_view()),
+    re_path(r'^v1/gray-releases$', GrayReleaseListView.as_view()),
 
     # 创建应用导入记录
-    url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/app-model/import$', AppModelImportEvent.as_view()),
+    re_path(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/app-model/import$', AppModelImportEvent.as_view()),
     # 应用包目录查询
-    url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/app-model/import/(?P<event_id>[\w\-]+)/dir$',
+    re_path(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/app-model/import/(?P<event_id>[\w\-]+)/dir$',
         AppTarballDirView.as_view()),
     # 应用包生成本地组件库模版
-    url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/app-model/import/(?P<event_id>[\w\-]+)$',
+    re_path(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/app-model/import/(?P<event_id>[\w\-]+)$',
         AppImportView.as_view()),
     # 获取chart包信息
-    url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/app-model/import/(?P<event_id>[\w\-]+)/chart$',
+    re_path(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/app-model/import/(?P<event_id>[\w\-]+)/chart$',
         AppChartInfo.as_view()),
     # 删除应用及所有资源
-    url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/app/(?P<app_id>[\w\-]+)/delete$',
+    re_path(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/app/(?P<app_id>[\w\-]+)/delete$',
         DeleteApp.as_view()),
-    url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/app/(?P<app_id>[\w\-]+)/helm_chart$',
+    re_path(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/app/(?P<app_id>[\w\-]+)/helm_chart$',
         HelmChart.as_view()),
     # 资源监控
-    url(r'^v1/monitor/resource_over_view$', ResourceOverview.as_view()),
-    url(r'^v1/monitor/service_overview$', ServiceOverview.as_view()),
-    url(r'^v1/monitor/component_memory_overview$', ComponentMemoryOverview.as_view()),
-    url(r'^v1/monitor/performance_overview', Performance_overview.as_view()),
-    url(r'^v1/monitor/query$', MonitorQueryOverview.as_view()),
-    url(r'^v1/monitor/query_range$', MonitorQueryRangeOverview.as_view()),
-    url(r'^v1/monitor/series$', MonitorSeriesOverview.as_view()),
-    url(r'^v1/instances/monitor$', InstancesMonitorOverview.as_view()),
+    re_path(r'^v1/monitor/resource_over_view$', ResourceOverview.as_view()),
+    re_path(r'^v1/monitor/service_overview$', ServiceOverview.as_view()),
+    re_path(r'^v1/monitor/component_memory_overview$', ComponentMemoryOverview.as_view()),
+    re_path(r'^v1/monitor/performance_overview', Performance_overview.as_view()),
+    re_path(r'^v1/monitor/query$', MonitorQueryOverview.as_view()),
+    re_path(r'^v1/monitor/query_range$', MonitorQueryRangeOverview.as_view()),
+    re_path(r'^v1/monitor/series$', MonitorSeriesOverview.as_view()),
+    re_path(r'^v1/instances/monitor$', InstancesMonitorOverview.as_view()),
 
     # MCP 相关接口
-    url(r'^v1/mcp/', include('openapi.mcp.urls')),
+    re_path(r'^v1/mcp/', include('openapi.mcp.urls')),
 ]
 
 if os.environ.get("OPENAPI_V2") == "true":
-    urlpatterns += [url(r'^v2', include('openapi.v2.urls'))]
+    urlpatterns += [re_path(r'^v2', include('openapi.v2.urls'))]

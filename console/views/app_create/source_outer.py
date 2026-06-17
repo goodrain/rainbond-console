@@ -7,6 +7,7 @@ import json
 import logging
 import os
 import pickle
+from typing import Any, List, Tuple
 
 from console.exception.bcode import ErrK8sComponentNameExists
 from console.exception.main import ServiceHandleException
@@ -20,7 +21,8 @@ from console.utils.validation import (validate_endpoint_address, validate_endpoi
 from console.views.app_config.base import AppBaseView
 from console.views.base import AlowAnyApiView, RegionTenantHeaderView, ApplicationView
 from django.db.transaction import atomic
-from django.views.decorators.cache import never_cache
+from console.utils.cache_decorators import never_cache
+from rest_framework.request import Request
 from rest_framework.response import Response
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import Tenants, TenantServiceInfo
@@ -32,7 +34,7 @@ region_api = RegionInvokeApi()
 
 class ThirdPartyServiceCreateView(ApplicationView):
     @never_cache
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         创建第三方组件
 
@@ -68,7 +70,7 @@ class ThirdPartyServiceCreateView(ApplicationView):
             self.user,
             service_cname,
             static,
-            endpoints_type,
+            endpoints_type,  # type: ignore[arg-type]
             source_config,
             k8s_component_name=k8s_component_name)
         # 添加组件所在组
@@ -103,7 +105,7 @@ class ThirdPartyServiceCreateView(ApplicationView):
         return Response(result, status=result["code"])
 
 
-def check_endpoints(endpoints):
+def check_endpoints(endpoints: List) -> Tuple[List, bool]:
     if not endpoints:
         return ["parameter error"], False
     total_errs = []
@@ -135,7 +137,7 @@ class ThirdPartyServiceApiView(AlowAnyApiView):
     获取实例endpoint列表
     """
 
-    def get(self, request, service_id, *args, **kwargs):
+    def get(self, request: Request, service_id: str, *args: Any, **kwargs: Any) -> Response:
         secret_key = request.GET.get("secret_key")
         # 加密
         deploy_key = deploy_repo.get_secret_key_by_service_id(service_id=service_id)
@@ -155,7 +157,8 @@ class ThirdPartyServiceApiView(AlowAnyApiView):
             return Response(general_message(412, "region error", "数据中心查询失败"), status=412)
 
         endpoint_list = []
-        for item in body["list"]:
+        # NOTE: regionapi may return None body; backlog
+        for item in body["list"]:  # type: ignore[index]
             endpoint = item
             endpoint["ip"] = item["address"]
             endpoint_list.append(endpoint)
@@ -165,7 +168,8 @@ class ThirdPartyServiceApiView(AlowAnyApiView):
         return Response(result, status=result["code"])
 
     # 修改实例endpoint
-    def put(self, request, service_id, *args, **kwargs):
+    # NOTE: put has code paths that fall through without returning (latent missing-return bug); backlog
+    def put(self, request: Request, service_id: str, *args: Any, **kwargs: Any) -> Response:  # type: ignore[return]
         secret_key = request.data.get("secret_key")
         # 加密
         deploy_key = deploy_repo.get_secret_key_by_service_id(service_id=service_id)
@@ -193,7 +197,7 @@ class ThirdPartyServiceApiView(AlowAnyApiView):
             if res.status != 200:
                 return Response(general_message(412, "region error", "数据中心查询失败"), status=412)
 
-            endpoint_list = body["list"]
+            endpoint_list = body["list"]  # type: ignore[index]
             # 添加
             if not endpoint_list:
                 res, body = region_api.post_third_party_service_endpoints(service_obj.service_region, tenant_obj.tenant_name,
@@ -231,10 +235,11 @@ class ThirdPartyServiceApiView(AlowAnyApiView):
                     return Response(result, status=200)
         except region_api.CallApiFrequentError as e:
             logger.exception(e)
-            return 409, "操作过于频繁，请稍后再试"
+            # NOTE: returns a (int, str) tuple instead of a Response; latent bug; backlog
+            return 409, "操作过于频繁，请稍后再试"  # type: ignore[return-value]
 
     # 删除实例endpoint
-    def delete(self, request, service_id, *args, **kwargs):
+    def delete(self, request: Request, service_id: str, *args: Any, **kwargs: Any) -> Response:
         secret_key = request.data.get("secret_key")
         # 加密
         deploy_key = deploy_repo.get_secret_key_by_service_id(service_id=service_id)
@@ -254,7 +259,7 @@ class ThirdPartyServiceApiView(AlowAnyApiView):
         if res.status != 200:
             return Response(general_message(412, "region error", "数据中心查询失败"), status=412)
 
-        endpoint_list = body["list"]
+        endpoint_list = body["list"]  # type: ignore[index]
         if not endpoint_list:
             return Response(general_message(412, "ip is null", "ip不存在"), status=412)
         addresses = []
@@ -278,7 +283,7 @@ class ThirdPartyServiceApiView(AlowAnyApiView):
 # 第三方组件中api注册方式重置秘钥
 class ThirdPartyUpdateSecretKeyView(AppBaseView):
     @never_cache
-    def put(self, request, *args, **kwargs):
+    def put(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         key_repo = deploy_repo.get_service_key_by_service_id(service_id=self.service.service_id)
         if not key_repo:
             return Response(general_message(412, "service_key is null", "秘钥不存在"), status=412)
@@ -293,7 +298,7 @@ class ThirdPartyUpdateSecretKeyView(AppBaseView):
 # 第三方组件pod信息
 class ThirdPartyAppPodsView(AppBaseView):
     @never_cache
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         获取第三方组件实例信息
         ---
@@ -313,7 +318,7 @@ class ThirdPartyAppPodsView(AppBaseView):
                                                             self.service.service_alias)
         if res.status != 200:
             return Response(general_message(412, "region error", "数据中心查询失败"), status=412)
-        endpoint_list = body["list"]
+        endpoint_list = body["list"]  # type: ignore[index]
         for endpoint in endpoint_list:
             endpoint["ip"] = endpoint["address"]
         bean = {"endpoint_num": len(endpoint_list)}
@@ -322,7 +327,7 @@ class ThirdPartyAppPodsView(AppBaseView):
         return Response(result)
 
     @never_cache
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         添加endpoint实例
         :param request:
@@ -341,7 +346,7 @@ class ThirdPartyAppPodsView(AppBaseView):
 
     @never_cache
     @atomic
-    def delete(self, request, *args, **kwargs):
+    def delete(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         删除endpoint实例
         :param request:
@@ -358,7 +363,7 @@ class ThirdPartyAppPodsView(AppBaseView):
                                                                     self.service.service_alias, endpoint_dict)
         res, new_body = region_api.get_third_party_service_pods(self.service.service_region, self.tenant.tenant_name,
                                                                 self.service.service_alias)
-        new_endpoint_list = new_body.get("list", [])
+        new_endpoint_list = new_body.get("list", [])  # type: ignore[union-attr]
         new_endpoints = [endpoint.address for endpoint in new_endpoint_list]
         service_endpoints_repo.update_or_create_endpoints(self.tenant, self.service, new_endpoints)
         logger.debug('-------res------->{0}'.format(res))
@@ -371,7 +376,7 @@ class ThirdPartyAppPodsView(AppBaseView):
         return Response(result)
 
     @never_cache
-    def put(self, request, *args, **kwargs):
+    def put(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         修改实例上下线
         :param request:
@@ -408,7 +413,7 @@ class ThirdPartyAppPodsView(AppBaseView):
 # 第三方组件健康检测
 class ThirdPartyHealthzView(AppBaseView):
     @never_cache
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         获取第三方组件健康检测结果
         :param request:
@@ -420,14 +425,14 @@ class ThirdPartyHealthzView(AppBaseView):
                                                               self.service.service_alias)
         if res.status != 200:
             return Response(general_message(412, "region error", "数据中心查询失败"), status=412)
-        bean = body["bean"]
+        bean = body["bean"]  # type: ignore[index]
         if not bean:
             return Response(general_message(200, "success", "查询成功"))
         result = general_message(200, "success", "查询成功", bean=bean)
         return Response(result)
 
     @never_cache
-    def put(self, request, *args, **kwargs):
+    def put(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         编辑第三方组件的健康检测
         :param request:

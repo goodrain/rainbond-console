@@ -1,6 +1,8 @@
 # -*- coding: utf8 -*-
 import json
+from typing import Any
 
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from console.services.operation_log import operation_log_service, Operation
@@ -12,12 +14,13 @@ from console.utils.reqparse import parse_item
 
 
 class ComponentGraphListView(AppBaseView):
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         serializer = CreateComponentGraphReq(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.data
-        graph = component_graph_service.create_component_graph(self.service.service_id, data['title'], data['promql'],
-                                                               self.service.arch)
+        graph = component_graph_service.create_component_graph(
+            self.service.service_id, data['title'], data['promql'],
+            self.service.arch)  # type: ignore[arg-type] # NOTE: service.arch is str|None (backlog)
         result = general_message(200, "success", "创建成功", bean=graph)
         new_information = json.dumps({"图表标题": request.data["title"], "查询条件": request.data["promql"]},
                                      ensure_ascii=False)
@@ -39,12 +42,12 @@ class ComponentGraphListView(AppBaseView):
         )
         return Response(result, status=result["code"])
 
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         graphs = component_graph_service.list_component_graphs(self.service.service_id)
         result = general_message(200, "success", "查询成功", list=graphs)
         return Response(result, status=result["code"])
 
-    def delete(self, request, *args, **kwargs):
+    def delete(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         graph_ids = parse_item(request, "graph_ids", required=True)
         graphs = component_graph_service.select_component_graphs(self.service.service_id, graph_ids)
         old_information = component_graph_service.json_component_graphs(graphs)
@@ -69,17 +72,18 @@ class ComponentGraphListView(AppBaseView):
 
 
 class ComponentGraphView(ComponentGraphBaseView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         result = general_message(200, "success", "查询成功", bean=self.graph.to_dict())
         return Response(result, status=result["code"])
 
-    def put(self, request, *args, **kwargs):
+    def put(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         serializer = UpdateComponentGraphReq(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.data
         old_information = json.dumps({"图表标题": self.graph.title, "查询条件": self.graph.promql}, ensure_ascii=False)
-        graphs = component_graph_service.update_component_graph(self.graph, data["title"], data["promql"], data["sequence"],
-                                                                self.service.arch)
+        graphs = component_graph_service.update_component_graph(
+            self.graph, data["title"], data["promql"], data["sequence"],
+            self.service.arch)  # type: ignore[arg-type]
         new_information = json.dumps({"图表标题": self.graph.title, "查询条件": self.graph.promql}, ensure_ascii=False)
         result = general_message(200, "success", "修改成功", list=graphs)
         comment = operation_log_service.generate_component_comment(
@@ -100,7 +104,7 @@ class ComponentGraphView(ComponentGraphBaseView):
             new_information=new_information)
         return Response(result, status=result["code"])
 
-    def delete(self, request, *args, **kwargs):
+    def delete(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         old_information = json.dumps({"图表标题": self.graph.title, "查询条件": self.graph.promql}, ensure_ascii=False)
         graphs = component_graph_service.delete_component_graph(self.graph)
         result = general_message(200, "success", "删除成功", list=graphs)
@@ -123,10 +127,12 @@ class ComponentGraphView(ComponentGraphBaseView):
 
 
 class ComponentInternalGraphsView(AppBaseView):
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         graph_name = parse_item(request, "graph_name", required=True)
-        graphs = component_graph_service.create_internal_graphs(self.service.service_id, graph_name, self.service.arch)
-        new_information = component_graph_service.json_component_graphs(graphs)
+        graphs = component_graph_service.create_internal_graphs(
+            self.service.service_id, graph_name, self.service.arch)  # type: ignore[arg-type]
+        # NOTE: json_component_graphs is typed for QuerySet but receives a list here (backlog)
+        new_information = component_graph_service.json_component_graphs(graphs)  # type: ignore[arg-type]
         result = general_message(200, "success", "导入成功")
         comment = operation_log_service.generate_component_comment(
             operation=Operation.FOR,
@@ -145,14 +151,14 @@ class ComponentInternalGraphsView(AppBaseView):
             new_information=new_information)
         return Response(result, status=result["code"])
 
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         graphs = component_graph_service.list_internal_graphs()
         result = general_message(200, "success", "查询成功", list=graphs)
         return Response(result, status=result["code"])
 
 
 class ComponentExchangeGraphsView(AppBaseView):
-    def put(self, request, *args, **kwargs):
+    def put(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         serializer = ExchangeComponentGraphsReq(data=request.data)
         serializer.is_valid(raise_exception=True)
         graph_ids = serializer.data["graph_ids"]

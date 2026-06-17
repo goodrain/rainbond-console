@@ -4,6 +4,7 @@
 """
 import json
 import logging
+from typing import Any, List, Tuple
 
 from console.exception.main import (InnerPortNotFound, ServiceHandleException, ServiceRelationAlreadyExist)
 from console.repositories.app import service_repo
@@ -13,6 +14,7 @@ from console.services.app_config.port_service import AppPortService
 from console.services.exception import ErrDepServiceNotFound
 from console.services.group_service import group_service
 from www.apiclient.regionapi import RegionInvokeApi
+from www.models.main import TenantServiceInfo, Tenants
 
 region_api = RegionInvokeApi()
 port_service = AppPortService()
@@ -20,15 +22,15 @@ logger = logging.getLogger("default")
 
 
 class AppServiceRelationService(object):
-    def __get_dep_service_ids(self, tenant, service):
+    def __get_dep_service_ids(self, tenant: Tenants, service: TenantServiceInfo) -> Any:
         return dep_relation_repo.get_service_dependencies(tenant.tenant_id, service.service_id).values_list(
             "dep_service_id", flat=True)
 
-    def get_service_dependencies_part(self, dep_ids):
+    def get_service_dependencies_part(self, dep_ids: Any) -> Any:
         services = service_repo.get_services_by_service_ids(dep_ids)
         return services
 
-    def json_service_dependency(self, dependencies, service_ids):
+    def json_service_dependency(self, dependencies: Any, service_ids: Any) -> str:
         service_dependency_list = list()
         service_group_map = group_service.get_services_group_name(service_ids)
         for dependencie in dependencies:
@@ -39,22 +41,22 @@ class AppServiceRelationService(object):
         return json.dumps(service_dependency_list, ensure_ascii=False)
 
 
-    def get_dep_service_ids(self, service):
+    def get_dep_service_ids(self, service: TenantServiceInfo) -> Any:
         return dep_relation_repo.get_service_dependencies(service.tenant_id, service.service_id).values_list(
             "dep_service_id", flat=True)
 
-    def get_service_dependencies(self, tenant, service):
+    def get_service_dependencies(self, tenant: Tenants, service: TenantServiceInfo) -> Any:
         dep_ids = self.__get_dep_service_ids(tenant, service)
         services = service_repo.get_services_by_service_ids(dep_ids)
         return services
 
-    def get_service_dependencies_reverse(self, service):
+    def get_service_dependencies_reverse(self, service: TenantServiceInfo) -> Any:
         dep_ids = dep_relation_repo.get_service_reverse_dependencies(service.tenant_id, service.service_id).values_list(
             "service_id", flat=True)
         services = service_repo.get_services_by_service_ids(dep_ids)
         return services
 
-    def get_undependencies(self, tenant, service):
+    def get_undependencies(self, tenant: Tenants, service: TenantServiceInfo) -> List[Any]:
 
         # 打开对内端口才能被依赖
         services = service_repo.get_tenant_region_services(service.service_region,
@@ -71,7 +73,7 @@ class AppServiceRelationService(object):
         return not_dependencies
 
     # 查找所有的组件，看谁能依赖自己，要排除掉已经依赖自己的组件
-    def get_reverse_undependencies(self, tenant, service):
+    def get_reverse_undependencies(self, tenant: Tenants, service: TenantServiceInfo) -> List[Any]:
         # 查找到所有的组件信息
         services = service_repo.get_tenant_region_services(service.service_region,
                                                            tenant.tenant_id).exclude(service_id=service.service_id)
@@ -83,7 +85,7 @@ class AppServiceRelationService(object):
                 not_dependencies.append(s)
         return not_dependencies
 
-    def __is_env_duplicate(self, tenant, service, dep_service):
+    def __is_env_duplicate(self, tenant: Tenants, service: TenantServiceInfo, dep_service: TenantServiceInfo) -> bool:
         dep_ids = self.__get_dep_service_ids(tenant, service)
         attr_names = env_var_repo.get_service_env(tenant.tenant_id, dep_service.service_id).filter(scope="outer").values_list(
             "attr_name", flat=True)
@@ -92,7 +94,7 @@ class AppServiceRelationService(object):
             return True
         return False
 
-    def check_relation(self, tenant_id, service_id, dep_service_id):
+    def check_relation(self, tenant_id: str, service_id: str, dep_service_id: str) -> None:
         """
         when creating service dependency, the dependent service needs to have an inner port.
         """
@@ -107,7 +109,7 @@ class AppServiceRelationService(object):
         if not open_inner_services:
             raise InnerPortNotFound()
 
-    def create_service_relation(self, tenant, service, dep_service_id):
+    def create_service_relation(self, tenant: Tenants, service: TenantServiceInfo, dep_service_id: str) -> Any:
         """
         raise ErrDepServiceNotFound
         raise ServiceRelationAlreadyExist
@@ -119,12 +121,14 @@ class AppServiceRelationService(object):
             "tenant_id": tenant.tenant_id,
             "service_id": service.service_id,
             "dep_service_id": dep_service_id,
-            "dep_service_type": dep_service.service_type,
+            # NOTE: get_service_by_tenant_and_id may return None; unguarded deref (potential latent None-bug).
+            "dep_service_type": dep_service.service_type,  # type: ignore[union-attr]
             "dep_order": 0,
         }
         return dep_relation_repo.add_service_dependency(**tenant_service_relation)
 
-    def __open_port(self, tenant, dep_service, container_port, user_name=''):
+    def __open_port(self, tenant: Tenants, dep_service: TenantServiceInfo, container_port: Any,
+                    user_name: str = '') -> None:
         open_service_ports = []
         if container_port:
             tenant_service_port = port_service.get_service_port_by_port(dep_service, int(container_port))
@@ -170,8 +174,10 @@ class AppServiceRelationService(object):
                 if e.status_code != 404:
                     raise e
 
-    def patch_add_service_reverse_dependency(self, tenant, service, be_dep_service_ids, user_name=''):
-        task = dict()
+    def patch_add_service_reverse_dependency(self, tenant: Tenants, service: TenantServiceInfo, be_dep_service_ids: str,
+                                             user_name: str = '') -> List[dict]:
+        # NOTE: dict holds Optional[str] model fields (service_type/enterprise_id); untyped values.
+        task: dict = dict()
         task["be_dep_service_ids"] = be_dep_service_ids
         task["tenant_id"] = tenant.tenant_id
         task["dep_service_type"] = service.service_type
@@ -191,7 +197,8 @@ class AppServiceRelationService(object):
         data = dep_relation_repo.bulk_add_service_dependency(res)
         return [item.to_dict() for item in data]
 
-    def add_service_dependency(self, tenant, service, dep_service_id, open_inner=None, container_port=None, user_name=''):
+    def add_service_dependency(self, tenant: Tenants, service: TenantServiceInfo, dep_service_id: str, open_inner: Any = None,
+                               container_port: Any = None, user_name: str = '') -> Tuple[int, str, Any]:
         dep_service_relation = dep_relation_repo.get_depency_by_serivce_id_and_dep_service_id(
             tenant.tenant_id, service.service_id, dep_service_id)
         if dep_service_relation:
@@ -227,7 +234,8 @@ class AppServiceRelationService(object):
             return 412, "要关联的组件的变量与已关联的组件变量重复，请修改后再试", None
         dep_sa_name = k8s_attribute_repo.get_by_component_id_name(service.service_id, "serviceAccountName")
         if service.create_status == "complete":
-            task = dict()
+            # NOTE: dict holds Optional[str] model fields (service_type/enterprise_id); untyped values.
+            task: dict = dict()
             task["dep_service_id"] = dep_service_id
             task["tenant_id"] = tenant.tenant_id
             task["dep_service_type"] = dep_service.service_type
@@ -250,7 +258,8 @@ class AppServiceRelationService(object):
             app_plugin_service.update_config_if_have_export_plugin(tenant, service)
         return 200, "success", dep_relation
 
-    def patch_add_dependency(self, tenant, service, dep_service_ids, user_name=''):
+    def patch_add_dependency(self, tenant: Tenants, service: TenantServiceInfo, dep_service_ids: Any,
+                             user_name: str = '') -> Tuple[int, str]:
         dep_service_relations = dep_relation_repo.get_dependency_by_dep_service_ids(tenant.tenant_id, service.service_id,
                                                                                     dep_service_ids)
         dep_ids = [dep.dep_service_id for dep in dep_service_relations]
@@ -264,14 +273,16 @@ class AppServiceRelationService(object):
                 return code, msg
         return 200, "success"
 
-    def delete_service_dependency(self, tenant, service, dep_service_id, user_name=''):
+    def delete_service_dependency(self, tenant: Tenants, service: TenantServiceInfo, dep_service_id: str,
+                                  user_name: str = '') -> Tuple[int, str, Any]:
         dependency = dep_relation_repo.get_depency_by_serivce_id_and_dep_service_id(tenant.tenant_id, service.service_id,
                                                                                     dep_service_id)
         if not dependency:
             return 404, "需要删除的依赖不存在", None
         dep_sa_name = k8s_attribute_repo.get_by_component_id_name(service.service_id, "serviceAccountName")
         if service.create_status == "complete":
-            task = dict()
+            # NOTE: dict holds Optional[str] model fields (enterprise_id/namespace); untyped values.
+            task: dict = dict()
             task["dep_service_id"] = dep_service_id
             task["tenant_id"] = tenant.tenant_id
             task["dep_service_type"] = "v"
@@ -289,7 +300,7 @@ class AppServiceRelationService(object):
             app_plugin_service.update_config_if_have_export_plugin(tenant, service)
         return 200, "success", dependency
 
-    def delete_region_dependency(self, tenant, service):
+    def delete_region_dependency(self, tenant: Tenants, service: TenantServiceInfo) -> None:
         deps = self.__get_dep_service_ids(tenant, service)
         for dep_id in deps:
             task = {}
@@ -302,7 +313,7 @@ class AppServiceRelationService(object):
             except Exception as e:
                 logger.exception(e)
 
-    def get_services_dependend_on_current_services(self, tenant, service):
+    def get_services_dependend_on_current_services(self, tenant: Tenants, service: TenantServiceInfo) -> Any:
         relations = dep_relation_repo.get_services_dep_current_service(tenant.tenant_id, service.service_id)
         service_ids = [r.service_id for r in relations]
         return service_repo.get_services_by_service_ids(service_ids)

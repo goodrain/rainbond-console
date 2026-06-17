@@ -1,6 +1,8 @@
 # coding:utf-8
 import logging
+from typing import Any
 
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from console.views.base import JWTAuthApiView
@@ -12,7 +14,7 @@ logger = logging.getLogger("default")
 
 
 class LicenseLView(JWTAuthApiView):
-    def get(self, request, enterprise_id, *args, **kwargs):
+    def get(self, request: Request, enterprise_id: str, *args: Any, **kwargs: Any) -> Response:
         authz_code, license = license_service.get_licenses(enterprise_id)
         if not authz_code or not license:
             result = general_message(400, "invalid authz code", "无效授权码", bean={"authz_code": authz_code})
@@ -20,10 +22,11 @@ class LicenseLView(JWTAuthApiView):
         result = general_message(200, "success", "查询成功", bean=license)
         return Response(result, status=result["code"])
 
-    def post(self, request, enterprise_id, *args, **kwargs):
+    def post(self, request: Request, enterprise_id: str, *args: Any, **kwargs: Any) -> Response:
         authz_code = request.data.get("authz_code")
         try:
-            config = license_service.update_license(enterprise_id, authz_code)
+            # NOTE: authz_code is Optional; service expects str (legacy mismatch, backlog).
+            config = license_service.update_license(enterprise_id, authz_code)  # type: ignore[arg-type]
         except ServiceHandleException as e:
             result = general_message(e.status_code, "error", e.msg_show)
             return Response(result, status=e.status_code)
@@ -32,7 +35,7 @@ class LicenseLView(JWTAuthApiView):
 
 
 class LicenseClusterIDView(JWTAuthApiView):
-    def get(self, request, enterprise_id, region_name, *args, **kwargs):
+    def get(self, request: Request, enterprise_id: str, region_name: str, *args: Any, **kwargs: Any) -> Response:
         try:
             body = license_service.get_cluster_id(enterprise_id, region_name)
             bean = body.get("bean", {}) if body else {}
@@ -45,7 +48,7 @@ class LicenseClusterIDView(JWTAuthApiView):
 
 
 class LicenseActivateView(JWTAuthApiView):
-    def post(self, request, enterprise_id, region_name, *args, **kwargs):
+    def post(self, request: Request, enterprise_id: str, region_name: str, *args: Any, **kwargs: Any) -> Response:
         try:
             license_code = request.data.get("license_code")
             if not license_code:
@@ -62,7 +65,7 @@ class LicenseActivateView(JWTAuthApiView):
 
 
 class LicenseStatusView(JWTAuthApiView):
-    def get(self, request, enterprise_id, region_name, *args, **kwargs):
+    def get(self, request: Request, enterprise_id: str, region_name: str, *args: Any, **kwargs: Any) -> Response:
         try:
             body = license_service.get_license_status(enterprise_id, region_name)
             bean = body.get("bean", {}) if body else {}

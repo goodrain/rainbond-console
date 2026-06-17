@@ -4,10 +4,11 @@ import logging
 import os
 import threading
 import time
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 from console.appstore.appstore import app_store
 from console.exception.main import ServiceHandleException
-from console.models.main import AppMarket
+from console.models.main import AppMarket, RegionConfig
 from console.repositories.app import (
     PLATFORM_PLUGIN_DEFAULT_URL,
     PLATFORM_PLUGIN_MARKET_DOMAIN,
@@ -26,7 +27,7 @@ from console.services.region_services import region_services
 from console.services.team_services import team_services
 from console.utils.offline import is_cloud_market_disabled
 from www.apiclient.regionapi import RegionInvokeApi
-from www.models.main import Tenants
+from www.models.main import ServiceGroup, Tenants
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
@@ -48,28 +49,28 @@ DEFAULT_ARCH = "amd64"
 class PlatformPluginService(object):
     ARCH_PLUGIN_SUFFIXES = ("-ARM64", "-AMD64")
 
-    def __init__(self):
-        self._market_plugin_cache = {}
+    def __init__(self) -> None:
+        self._market_plugin_cache: Dict[str, Any] = {}
         self._market_plugin_cache_lock = threading.Lock()
-        self._region_arch_cache = {}
+        self._region_arch_cache: Dict[str, Any] = {}
         self._region_arch_cache_lock = threading.Lock()
 
-    def clear_market_plugin_cache(self):
+    def clear_market_plugin_cache(self) -> None:
         with self._market_plugin_cache_lock:
             self._market_plugin_cache.clear()
 
-    def clear_region_arches_cache(self):
+    def clear_region_arches_cache(self) -> None:
         with self._region_arch_cache_lock:
             self._region_arch_cache.clear()
 
     @staticmethod
-    def _get_region_arch_cache_ttl_seconds():
+    def _get_region_arch_cache_ttl_seconds() -> int:
         try:
             return int(os.environ.get("REGION_ARCH_CACHE_TTL_SECONDS", REGION_ARCH_CACHE_TTL_SECONDS))
         except (TypeError, ValueError):
             return REGION_ARCH_CACHE_TTL_SECONDS
 
-    def _get_plugin_arch(self, plugin_info):
+    def _get_plugin_arch(self, plugin_info: Any) -> str:
         """读取 market plugin 记录的 arch 字段, 兜底为 amd64.
 
         market platform-plugins 接口在返回结构里携带顶层 arch 字段
@@ -83,7 +84,7 @@ class PlatformPluginService(object):
             return arch
         return DEFAULT_ARCH
 
-    def _get_region_arches(self, region_name, now=None):
+    def _get_region_arches(self, region_name: str, now: Optional[float] = None) -> Set[str]:
         """返回集群节点支持的架构集合.
 
         失败 fallback 为全集 {amd64, arm64}, 避免单点接口异常导致 ARM 集群
@@ -117,17 +118,17 @@ class PlatformPluginService(object):
         return arches
 
     @staticmethod
-    def _get_market_plugin_cache_ttl_seconds():
+    def _get_market_plugin_cache_ttl_seconds() -> int:
         try:
             return int(os.environ.get("MARKET_PLUGIN_CACHE_TTL_SECONDS", MARKET_PLUGIN_CACHE_TTL_SECONDS))
         except (TypeError, ValueError):
             return MARKET_PLUGIN_CACHE_TTL_SECONDS
 
     @staticmethod
-    def _copy_market_plugins(plugins):
+    def _copy_market_plugins(plugins: Any) -> List[Any]:
         return [dict(item) if isinstance(item, dict) else item for item in (plugins or [])]
 
-    def _strip_plugin_arch_suffix(self, plugin_id):
+    def _strip_plugin_arch_suffix(self, plugin_id: Any) -> str:
         plugin_id = str(plugin_id or "").strip()
         upper_plugin_id = plugin_id.upper()
         for suffix in self.ARCH_PLUGIN_SUFFIXES:
@@ -135,7 +136,7 @@ class PlatformPluginService(object):
                 return plugin_id[:-len(suffix)]
         return plugin_id
 
-    def _resolve_plugin_mapping_app_key(self, plugin_mapping, plugin_id):
+    def _resolve_plugin_mapping_app_key(self, plugin_mapping: Any, plugin_id: Any) -> Optional[str]:
         plugin_id = str(plugin_id or "").strip()
         if not plugin_id or not plugin_mapping:
             return None
@@ -147,10 +148,10 @@ class PlatformPluginService(object):
                 return app_key
         return None
 
-    def _is_plugin_authorized(self, plugin_mapping, plugin_id):
+    def _is_plugin_authorized(self, plugin_mapping: Any, plugin_id: Any) -> bool:
         return bool(self._resolve_plugin_mapping_app_key(plugin_mapping, plugin_id))
 
-    def _extract_arch_hint(self, plugin_info):
+    def _extract_arch_hint(self, plugin_info: Any) -> Any:
         if not isinstance(plugin_info, dict):
             return ""
         arch_keys = [
@@ -179,7 +180,7 @@ class PlatformPluginService(object):
                 return value
         return ""
 
-    def _plugin_debug_summary(self, plugin_info):
+    def _plugin_debug_summary(self, plugin_info: Any) -> Dict[str, Any]:
         if not plugin_info:
             return {}
         return {
@@ -192,7 +193,7 @@ class PlatformPluginService(object):
             "keys": sorted(plugin_info.keys()),
         }
 
-    def _get_license_bean(self, enterprise_id, region_name):
+    def _get_license_bean(self, enterprise_id: str, region_name: str) -> Dict[str, Any]:
         try:
             body = license_service.get_license_status(enterprise_id, region_name)
             return body.get("bean", {}) if body else {}
@@ -200,7 +201,7 @@ class PlatformPluginService(object):
             logger.warning("Failed to get license status: %s", e)
             return {}
 
-    def _get_default_market(self, enterprise_id):
+    def _get_default_market(self, enterprise_id: str) -> AppMarket:
         markets = app_market_repo.get_app_markets(enterprise_id)
         app_market_repo.create_default_app_market_if_not_exists(markets, enterprise_id, None)
         market = app_market_repo.get_app_markets(enterprise_id).first()
@@ -208,7 +209,7 @@ class PlatformPluginService(object):
             raise ServiceHandleException(msg="no found app market", msg_show="默认应用市场不存在", status_code=404)
         return market
 
-    def _build_platform_market(self, enterprise_id):
+    def _build_platform_market(self, enterprise_id: str) -> AppMarket:
         default_market = self._get_default_market(enterprise_id)
         return AppMarket(
             name=PLATFORM_PLUGIN_MARKET_NAME,
@@ -217,7 +218,7 @@ class PlatformPluginService(object):
             access_key=default_market.access_key,
         )
 
-    def _get_market_platform_plugins(self, enterprise_id):
+    def _get_market_platform_plugins(self, enterprise_id: str) -> Tuple[AppMarket, List[Any]]:
         market = self._build_platform_market(enterprise_id)
         if is_cloud_market_disabled():
             logger.info("platform plugin market fetch skipped because cloud market is disabled enterprise_id=%s", enterprise_id)
@@ -238,7 +239,7 @@ class PlatformPluginService(object):
         )
         return market, plugins
 
-    def _get_market_platform_plugins_cached(self, enterprise_id, now=None):
+    def _get_market_platform_plugins_cached(self, enterprise_id: str, now: Optional[float] = None) -> Tuple[AppMarket, List[Any]]:
         ttl = self._get_market_plugin_cache_ttl_seconds()
         if ttl <= 0:
             return self._get_market_platform_plugins(enterprise_id)
@@ -267,26 +268,26 @@ class PlatformPluginService(object):
             }
         return market, self._copy_market_plugins(cached_plugins)
 
-    def _get_installed_plugins(self, enterprise_id, region_name):
+    def _get_installed_plugins(self, enterprise_id: str, region_name: str) -> Dict[str, Any]:
         installed_plugins = {}
         try:
             _, body = region_api.list_plugins(enterprise_id, region_name, False)
-            plugins = body.get("list") or []
+            plugins = body.get("list") or []  # type: ignore[union-attr]  # NOTE: body is dict|None; callers already wrap in try/except
             for plugin in plugins:
                 installed_plugins[plugin.get("name", "")] = plugin
         except Exception as e:
             logger.warning("Failed to list region plugins: %s", e)
         return installed_plugins
 
-    def get_vm_plugin_status(self, enterprise_id, region_name):
+    def get_vm_plugin_status(self, enterprise_id: str, region_name: str) -> str:
         installed_plugins = self._get_installed_plugins(enterprise_id, region_name)
         vm_plugin = installed_plugins.get(VM_PLATFORM_PLUGIN_ID) or {}
         return str(vm_plugin.get("status", "") or "").upper()
 
-    def is_vm_plugin_running(self, enterprise_id, region_name):
+    def is_vm_plugin_running(self, enterprise_id: str, region_name: str) -> bool:
         return self.get_vm_plugin_status(enterprise_id, region_name) == "RUNNING"
 
-    def ensure_vm_plugin_running(self, enterprise_id, region_name):
+    def ensure_vm_plugin_running(self, enterprise_id: str, region_name: str) -> None:
         if self.is_vm_plugin_running(enterprise_id, region_name):
             return
         raise ServiceHandleException(
@@ -295,9 +296,9 @@ class PlatformPluginService(object):
             status_code=412,
         )
 
-    def _get_region_app_id_map(self, region_name, installed_plugins):
-        region_app_id_map = {}
-        region_app_ids = []
+    def _get_region_app_id_map(self, region_name: str, installed_plugins: Dict[str, Any]) -> Dict[str, Any]:
+        region_app_id_map: Dict[str, Any] = {}
+        region_app_ids: List[Any] = []
         for plugin in installed_plugins.values():
             region_app_id = plugin.get("region_app_id", "")
             if region_app_id:
@@ -312,10 +313,10 @@ class PlatformPluginService(object):
             logger.warning("Failed to map region_app_ids: %s", e)
         return region_app_id_map
 
-    def _normalize_app_level(self, plugin_info):
+    def _normalize_app_level(self, plugin_info: Any) -> str:
         return plugin_info.get("appLevel") or plugin_info.get("app_level") or "enterprise"
 
-    def _select_market_plugin(self, market_plugins, plugin_id, plugin_mapping):
+    def _select_market_plugin(self, market_plugins: List[Any], plugin_id: str, plugin_mapping: Any) -> Optional[Any]:
         candidates = [item for item in market_plugins if item.get("plugin_id") == plugin_id]
         if not candidates:
             logger.info("platform plugin select plugin_id=%s reason=no_candidates", plugin_id)
@@ -355,7 +356,7 @@ class PlatformPluginService(object):
         )
         return selected
 
-    def _resolve_installed_sku(self, installed_plugin, region_app_id_map, candidates):
+    def _resolve_installed_sku(self, installed_plugin: Any, region_app_id_map: Dict[str, Any], candidates: List[Any]) -> Optional[Any]:
         """根据已安装 RBDPlugin 的 region_app_id 反查安装时的 app_key, 从 market 候选里
         找到对应 SKU 记录, 用来锚定 latest_version 与 installed_arch.
         失败/拿不到时返回 None, 由上层退化为按集群 arch 选中的 SKU.
@@ -370,7 +371,7 @@ class PlatformPluginService(object):
             cgroups = tenant_service_group_repo.get_group_by_app_id(console_app_id)
             if not cgroups:
                 return None
-            installed_app_key = cgroups.last().group_key
+            installed_app_key = cgroups.last().group_key  # type: ignore[union-attr]  # NOTE: .last() returns None when QuerySet empty, but guarded by `if not cgroups` above; Django ORM returns None for empty QS.last()
         except Exception as e:
             logger.warning("resolve installed SKU failed app_id=%s: %s", console_app_id, e)
             return None
@@ -382,8 +383,9 @@ class PlatformPluginService(object):
                 return c
         return None
 
-    def _build_plugin_info(self, plugin_id, selected, display_sku, installed_sku,
-                           installed_plugins, region_app_id_map, candidates):
+    def _build_plugin_info(self, plugin_id: str, selected: Any, display_sku: Any, installed_sku: Optional[Any],
+                           installed_plugins: Dict[str, Any], region_app_id_map: Dict[str, Any],
+                           candidates: List[Any]) -> Dict[str, Any]:
         """构造单条 plugin 返回 dict. display_sku 决定 latest_version 等版本类字段,
         selected 决定 app_level/路由/前端组件等运行时字段.
         """
@@ -428,7 +430,7 @@ class PlatformPluginService(object):
             if console_app_id > 0:
                 cgroups = tenant_service_group_repo.get_group_by_app_id(console_app_id)
                 if cgroups:
-                    plugin_info["installed_version"] = cgroups.last().group_version or ""
+                    plugin_info["installed_version"] = cgroups.last().group_version or ""  # type: ignore[union-attr]  # NOTE: .last() may return None when QuerySet is empty, but guarded by `if cgroups` above
             # installed_sku 为 None = 当前安装的 app 跟列表里选中的 market SKU 不是同一份
             # (例如本地 import 的 app model 跟市场上同名 plugin_id 的 SKU), 跨源比对版本会
             # 假阳性报"可升级", 而升级页按 service_source.group_key 拉本地版本会"暂无新版本"
@@ -442,7 +444,7 @@ class PlatformPluginService(object):
                 plugin_info["can_upgrade"] = plugin_info["upgradeable"]
         return plugin_info
 
-    def list_platform_plugins(self, enterprise_id, region_name):
+    def list_platform_plugins(self, enterprise_id: str, region_name: str) -> List[Dict[str, Any]]:
         """
         List platform plugins from app store.
 
@@ -483,7 +485,7 @@ class PlatformPluginService(object):
         )
 
         # 按 plugin_id 分组所有 market SKU
-        grouped = {}
+        grouped: Dict[str, List[Any]] = {}
         for mp in market_plugins:
             pid = mp.get("plugin_id", "")
             if pid:
@@ -553,7 +555,7 @@ class PlatformPluginService(object):
         )
         return result
 
-    def install_platform_plugin(self, enterprise_id, region_name, plugin_id, user):
+    def install_platform_plugin(self, enterprise_id: str, region_name: str, plugin_id: str, user: Any) -> Dict[str, Any]:
         """
         Install a platform plugin: auto-create team/app, fetch from market, install.
 
@@ -672,27 +674,27 @@ class PlatformPluginService(object):
 
         # 7. Create component group and install
         component_group = market_app_service._create_tenant_service_group(
-            region_name, tenant.tenant_id, app.ID, market_app.app_id,
+            region_name, tenant.tenant_id, app.ID, market_app.app_id,  # type: ignore[union-attr, arg-type]  # NOTE: app is Optional[ServiceGroup]; _ensure_plugin_app only returns None when get_group_by_id returns None (pk lookup, should not happen post-create); app.ID is int but _create_tenant_service_group expects str (pre-existing callers pass int)
             latest_version, market_app.app_name)
 
         app_upgrade = AppUpgrade(
-            enterprise_id, tenant, region, user, app,
+            enterprise_id, tenant, region, user, app,  # type: ignore[arg-type]  # NOTE: app is Optional[ServiceGroup]; see above
             latest_version, component_group, app_template,
             True, PLATFORM_PLUGIN_MARKET_NAME, is_deploy=True)
         app_upgrade.install()
 
         # 8. Create RBDPlugin CR if template has platform_plugin info
-        market_app_service._create_rbdplugin_if_needed(tenant, region, app_template, app.ID)
+        market_app_service._create_rbdplugin_if_needed(tenant, region, app_template, app.ID)  # type: ignore[union-attr, arg-type]  # NOTE: app is Optional[ServiceGroup]; _create_rbdplugin_if_needed expects str|None but app.ID is int (pre-existing int/str mismatch at call site)
 
         return {
             "plugin_id": plugin_id,
             "plugin_name": plugin_name,
             "version": latest_version,
             "team_name": tenant.tenant_name,
-            "app_id": app.ID,
+            "app_id": app.ID,  # type: ignore[union-attr]  # NOTE: app is Optional[ServiceGroup]; see above
         }
 
-    def _ensure_plugin_team(self, enterprise_id, region_name, user):
+    def _ensure_plugin_team(self, enterprise_id: str, region_name: str, user: Any) -> Tenants:
         """Find or create the rbd-plugins team and ensure it's initialized on the region."""
         try:
             tenant = Tenants.objects.get(namespace=PLUGIN_TEAM_NAME, enterprise_id=enterprise_id)
@@ -705,7 +707,7 @@ class PlatformPluginService(object):
         region_services.create_tenant_on_region(enterprise_id, tenant.tenant_name, region_name, PLUGIN_TEAM_NAME)
         return tenant
 
-    def _ensure_plugin_app(self, tenant, region_name, plugin_name, eid, plugin_id):
+    def _ensure_plugin_app(self, tenant: Tenants, region_name: str, plugin_name: str, eid: str, plugin_id: str) -> Optional[ServiceGroup]:
         """Find or create an app group for the plugin under the rbd-plugins team."""
         apps = group_repo.get_tenant_region_groups(tenant.tenant_id, region_name)
         for app in apps:
