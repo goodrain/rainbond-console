@@ -46,6 +46,7 @@ django.setup()
 from console.services.app_actions.app_log import AppWebSocketService  # noqa: E402
 from console.services.app_import_and_export_service import import_service  # noqa: E402
 from console.utils.realtime_proxy import (  # noqa: E402
+    _backend_websocket_subprotocols,
     build_console_realtime_proxy_url,
     build_region_realtime_proxy_url,
     proxy_http_request,
@@ -185,3 +186,22 @@ class RealtimeProxyUrlTests(SimpleTestCase):
         self.assertEqual(content_type, "application/gzip")
         self.assertEqual(kwargs["data"], {})
         self.assertEqual(response.status_code, 200)
+
+    # capability_id: console.realtime-proxy.docker-console-subprotocol
+    def test_docker_console_backend_uses_webtty_subprotocol(self):
+        request = self.factory.get("/console/regions/rainbond/websocket/docker_console")
+
+        protocols = _backend_websocket_subprotocols(request, "docker_console")
+
+        self.assertEqual(protocols, ["webtty"])
+
+    # capability_id: console.realtime-proxy.forward-client-subprotocols
+    def test_websocket_proxy_keeps_client_requested_subprotocols(self):
+        request = self.factory.get(
+            "/console/regions/rainbond/websocket/docker_console",
+            HTTP_SEC_WEBSOCKET_PROTOCOL="webtty, other",
+        )
+
+        protocols = _backend_websocket_subprotocols(request, "docker_console")
+
+        self.assertEqual(protocols, ["webtty", "other"])

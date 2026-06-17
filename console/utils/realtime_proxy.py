@@ -208,6 +208,15 @@ def _websocket_subprotocols(request):
     return [item.strip() for item in protocols.split(",") if item.strip()]
 
 
+def _backend_websocket_subprotocols(request, proxy_path):
+    protocols = _websocket_subprotocols(request)
+    if protocols:
+        return protocols
+    if normalize_proxy_path(proxy_path) == "/docker_console":
+        return ["webtty"]
+    return []
+
+
 def _websocket_headers(request):
     headers = []
     for header in ("Origin", "Cookie", "Authorization", "X-Forwarded-For"):
@@ -244,7 +253,7 @@ def proxy_websocket_request(request, region_name, proxy_path):
         target_url,
         timeout=10,
         header=_websocket_headers(request),
-        subprotocols=_websocket_subprotocols(request),
+        subprotocols=_backend_websocket_subprotocols(request, proxy_path),
     )
 
     def client_to_backend():
