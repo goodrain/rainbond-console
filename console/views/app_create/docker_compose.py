@@ -11,6 +11,7 @@ from console.repositories.group import group_repo
 from console.services.app_check_service import app_check_service
 from console.services.compose_service import compose_service
 from console.services.group_service import group_service
+from console.services.team_services import team_services
 from console.views.base import RegionTenantHeaderView
 from django.db import transaction
 from django.views.decorators.cache import never_cache
@@ -106,6 +107,11 @@ class DockerComposeCreateView(RegionTenantHeaderView):
         group_id = request.data.get("group_id", None)
         hub_user = request.data.get("user_name", "")
         hub_pass = request.data.get("password", "")
+        registry_auth_id = request.data.get("registry_auth_id", "")
+        if registry_auth_id:
+            registry_auth = team_services.resolve_registry_auth(self.user, registry_auth_id)
+            hub_user = registry_auth.username
+            hub_pass = registry_auth.password
         event_id = request.data.get("event_id", "")
         compose_file_path = request.data.get("compose_file_path", "docker-compose.yml")
         group_note = request.data.get("group_note", "")

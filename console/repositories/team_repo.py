@@ -352,24 +352,73 @@ class TeamGitlabRepo(object):
 
 
 class TeamRegistryAuthRepo(object):
+    USER_SCOPE = "user"
+    ENTERPRISE_SCOPE = "enterprise"
+
     def list_by_team_id(self, tenant_id, region_name, user_id):
-        return TeamRegistryAuth.objects.filter(tenant_id=tenant_id, region_name=region_name, user_id=user_id)
+        queryset = TeamRegistryAuth.objects.filter(tenant_id=tenant_id, region_name=region_name, user_id=user_id)
+        if tenant_id == '' and region_name == '':
+            queryset = queryset.filter(scope=self.USER_SCOPE)
+        return queryset
+
+    def list_user_registry_auths(self, user_id):
+        return TeamRegistryAuth.objects.filter(
+            tenant_id='', region_name='', user_id=user_id, scope=self.USER_SCOPE)
+
+    def list_enterprise_registry_auths(self, enterprise_id):
+        return TeamRegistryAuth.objects.filter(
+            tenant_id='', region_name='', enterprise_id=enterprise_id, scope=self.ENTERPRISE_SCOPE)
 
     def check_exist_registry_auth(self, secret_id, user_id):
-        return TeamRegistryAuth.objects.filter(secret_id=secret_id, user_id=user_id)
+        return TeamRegistryAuth.objects.filter(
+            secret_id=secret_id, user_id=user_id, tenant_id='', region_name='', scope=self.USER_SCOPE)
+
+    def check_exist_enterprise_registry_auth(self, enterprise_id, secret_id):
+        return TeamRegistryAuth.objects.filter(
+            secret_id=secret_id, enterprise_id=enterprise_id, tenant_id='', region_name='', scope=self.ENTERPRISE_SCOPE)
 
     def create_team_registry_auth(self, **params):
+        params.setdefault("scope", self.USER_SCOPE)
+        params.setdefault("enterprise_id", "")
         return TeamRegistryAuth.objects.create(**params)
 
     def update_team_registry_auth(self, tenant_id, region_name, secret_id, **params):
         return TeamRegistryAuth.objects.filter(
             tenant_id=tenant_id, region_name=region_name, secret_id=secret_id).update(**params)
 
+    def update_user_registry_auth(self, secret_id, user_id, **params):
+        return TeamRegistryAuth.objects.filter(
+            tenant_id='', region_name='', secret_id=secret_id, user_id=user_id, scope=self.USER_SCOPE).update(**params)
+
+    def update_enterprise_registry_auth(self, enterprise_id, secret_id, **params):
+        return TeamRegistryAuth.objects.filter(
+            tenant_id='', region_name='', secret_id=secret_id, enterprise_id=enterprise_id,
+            scope=self.ENTERPRISE_SCOPE).update(**params)
+
     def delete_team_registry_auth(self, tenant_id, region_name, secret_id, user_id):
-        return TeamRegistryAuth.objects.filter(tenant_id=tenant_id, region_name=region_name, secret_id=secret_id, user_id=user_id).delete()
+        return TeamRegistryAuth.objects.filter(
+            tenant_id=tenant_id, region_name=region_name, secret_id=secret_id, user_id=user_id).delete()
+
+    def delete_user_registry_auth(self, secret_id, user_id):
+        return TeamRegistryAuth.objects.filter(
+            tenant_id='', region_name='', secret_id=secret_id, user_id=user_id, scope=self.USER_SCOPE).delete()
+
+    def delete_enterprise_registry_auth(self, enterprise_id, secret_id):
+        return TeamRegistryAuth.objects.filter(
+            tenant_id='', region_name='', secret_id=secret_id, enterprise_id=enterprise_id,
+            scope=self.ENTERPRISE_SCOPE).delete()
 
     def get_by_secret_id(self, secret_id):
         return TeamRegistryAuth.objects.filter(secret_id=secret_id)
+
+    def get_user_registry_auth(self, secret_id, user_id):
+        return TeamRegistryAuth.objects.filter(
+            tenant_id='', region_name='', secret_id=secret_id, user_id=user_id, scope=self.USER_SCOPE).first()
+
+    def get_enterprise_registry_auth(self, secret_id, enterprise_id):
+        return TeamRegistryAuth.objects.filter(
+            tenant_id='', region_name='', secret_id=secret_id, enterprise_id=enterprise_id,
+            scope=self.ENTERPRISE_SCOPE).first()
 
     def get_by_team_id_domain(self, tenant_id, region_name, domain):
         return TeamRegistryAuth.objects.filter(tenant_id=tenant_id, region_name=region_name, domain=domain)

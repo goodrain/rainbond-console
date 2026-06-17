@@ -145,7 +145,7 @@ from console.views.rbd_plugin import RainbondPluginLView, RainbondOfficialPlugin
 from console.views.platform_plugin import PlatformPluginLView, PlatformPluginInstallView
 from console.views.region import (GetRegionFeature, GetRegionPublicKeyView, MavenSettingRUDView, MavenSettingView,
                                   OpenRegionView, QyeryRegionView, RegQuyView, RegUnopenView, RegionMonitor)
-from console.views.registry import HubRegistryView, HubRegistryImageView
+from console.views.registry import HubRegistryView, HubRegistryImageView, EnterpriseHubRegistryView
 from console.views.rke2 import ClusterRKE, ClusterRKENode, ClusterNodeIP, ClusterRKEInstallRB, \
     ClusterRKERBStatus, ClusterRKERBEvent, ClusterRKEUNInstallInstallRB, InstallRKECluster, RKERegionConfig, \
     ClusterRBComponentLogSSE
@@ -284,6 +284,8 @@ urlpatterns = [
     # 镜像仓库配置
     url(r'^hub/registry$', HubRegistryView.as_view()),
     url(r'^hub/registry/image$', HubRegistryImageView.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/hub/registry$', EnterpriseHubRegistryView.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/hub/registry/(?P<secret_id>[\w\-]+)$', EnterpriseHubRegistryView.as_view()),
     # 我的详情
     url(r'^users/details$', UserDetailsView.as_view()),
     # 模糊查询用户
