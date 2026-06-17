@@ -5,24 +5,26 @@ import time
 import uuid
 from queue import Empty, Queue
 from threading import Lock
+from typing import Any, Optional
 
 from django.core import signing
 from django.http import HttpResponse, StreamingHttpResponse
-from django.views.decorators.cache import never_cache
+from console.utils.cache_decorators import never_cache
 
 from console.exception.main import ServiceHandleException
 from console.services.user_services import user_services
 from console.services.mcp_query_service import mcp_query_service
 from console.views.base import JSONWebTokenAuthentication, InternalTokenAuthentication
 from console.exception.exceptions import AuthenticationInfoHasExpiredError
-from django.utils.encoding import smart_text
+from django.utils.encoding import smart_str
 from rest_framework import exceptions
 from rest_framework.authentication import get_authorization_header
 from rest_framework.permissions import AllowAny
 from rest_framework.renderers import BaseRenderer, JSONRenderer
+from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework_jwt.settings import api_settings
+from console.utils import jwt_issuer
 
 logger = logging.getLogger("default")
 
@@ -34,10 +36,10 @@ _MCP_HTTP_SESSION_SALT = "console.mcp.http.session"
 _MCP_HTTP_SESSION_MAX_AGE_SECONDS = 1800
 
 
-def _request_has_mcp_auth_input(request):
+def _request_has_mcp_auth_input(request: Any) -> bool:
     if get_authorization_header(request):
         return True
-    if api_settings.JWT_AUTH_COOKIE and request.COOKIES.get(api_settings.JWT_AUTH_COOKIE):
+    if jwt_issuer.JWT_AUTH_COOKIE and request.COOKIES.get(jwt_issuer.JWT_AUTH_COOKIE):
         return True
     for key in ("token", "access_token", "jwt"):
         if request.GET.get(key):
@@ -47,7 +49,7 @@ def _request_has_mcp_auth_input(request):
     return False
 
 
-def _build_mcp_auth_expired_response():
+def _build_mcp_auth_expired_response() -> Response:
     return Response({
         "code": "AUTH_TOKEN_EXPIRED",
         "status_code": 401,
@@ -63,7 +65,7 @@ class MCPSSEEventStreamRenderer(BaseRenderer):
     charset = "utf-8"
     render_style = "binary"
 
-    def render(self, data, accepted_media_type=None, renderer_context=None):
+    def render(self, data: Any, accepted_media_type: Optional[str] = None, renderer_context: Any = None) -> bytes:
         if data is None:
             return b""
         if isinstance(data, bytes):
@@ -75,38 +77,38 @@ class MCPSSEEventStreamRenderer(BaseRenderer):
 
 class MCPSSESession(object):
 
-    def __init__(self, user, protocol_version="2024-11-05"):
+    def __init__(self, user: Any, protocol_version: str = "2024-11-05") -> None:
         self.session_id = uuid.uuid4().hex
         self.user = user
         self.protocol_version = protocol_version
-        self.queue = Queue()
+        self.queue: Queue = Queue()
 
-    def send(self, message):
+    def send(self, message: Any) -> None:
         self.queue.put(message)
 
 
-def _register_mcp_sse_session(user, protocol_version="2024-11-05"):
+def _register_mcp_sse_session(user: Any, protocol_version: str = "2024-11-05") -> MCPSSESession:
     session = MCPSSESession(user, protocol_version=protocol_version)
     with _MCP_SESSION_LOCK:
         _MCP_SSE_SESSIONS[session.session_id] = session
     return session
 
 
-def _get_mcp_sse_session(session_id):
+def _get_mcp_sse_session(session_id: Optional[str]) -> Optional[MCPSSESession]:
     if not session_id:
         return None
     with _MCP_SESSION_LOCK:
         return _MCP_SSE_SESSIONS.get(session_id)
 
 
-def _remove_mcp_sse_session(session_id):
+def _remove_mcp_sse_session(session_id: Optional[str]) -> None:
     if not session_id:
         return
     with _MCP_SESSION_LOCK:
         _MCP_SSE_SESSIONS.pop(session_id, None)
 
 
-def _build_mcp_http_session_token(user, protocol_version):
+def _build_mcp_http_session_token(user: Any, protocol_version: str) -> str:
     payload = {"protocol_version": protocol_version}
     user_id = getattr(user, "user_id", None)
     if user_id is not None:
@@ -114,7 +116,7 @@ def _build_mcp_http_session_token(user, protocol_version):
     return signing.dumps(payload, salt=_MCP_HTTP_SESSION_SALT, compress=True)
 
 
-def _load_mcp_http_session(session_id):
+def _load_mcp_http_session(session_id: Optional[str]) -> Optional[dict]:
     if not session_id:
         return None
     try:
@@ -139,16 +141,16 @@ class MCPJSONWebTokenAuthentication(JSONWebTokenAuthentication):
     - token in query/body (token/access_token/jwt)
     """
 
-    def get_jwt_value(self, request):
+    def get_jwt_value(self, request: Any) -> Any:
         auth = get_authorization_header(request).split()
-        auth_header_prefix = api_settings.JWT_AUTH_HEADER_PREFIX.lower()
+        auth_header_prefix = jwt_issuer.JWT_AUTH_HEADER_PREFIX.lower()
         valid_prefixes = [auth_header_prefix, "jwt", "bearer"]
 
-        raw_header = smart_text(get_authorization_header(request) or b"").strip()
+        raw_header = smart_str(get_authorization_header(request) or b"").strip()
         raw_lower = raw_header.lower()
 
         if auth:
-            first = smart_text(auth[0].lower())
+            first = smart_str(auth[0].lower())
             if first in valid_prefixes and len(auth) >= 2:
                 return auth[1]
 
@@ -163,8 +165,8 @@ class MCPJSONWebTokenAuthentication(JSONWebTokenAuthentication):
             if raw_header.count(".") == 2:
                 return raw_header
 
-        if api_settings.JWT_AUTH_COOKIE:
-            cookie_token = request.COOKIES.get(api_settings.JWT_AUTH_COOKIE)
+        if jwt_issuer.JWT_AUTH_COOKIE:
+            cookie_token = request.COOKIES.get(jwt_issuer.JWT_AUTH_COOKIE)
             if cookie_token:
                 return cookie_token
 
@@ -183,7 +185,7 @@ class MCPJSONWebTokenAuthenticationSafe(MCPJSONWebTokenAuthentication):
     return None instead of raising auth errors.
     """
 
-    def authenticate(self, request):
+    def authenticate(self, request: Any) -> Any:
         try:
             return super(MCPJSONWebTokenAuthenticationSafe, self).authenticate(request=request)
         except AuthenticationInfoHasExpiredError as exc:
@@ -203,7 +205,7 @@ class MCPQueryRPCMixin(object):
     authentication_classes = (InternalTokenAuthentication, MCPJSONWebTokenAuthenticationSafe)
     renderer_classes = (MCPSSEEventStreamRenderer, JSONRenderer)
 
-    def _parse_request_payload(self, request):
+    def _parse_request_payload(self, request: Any) -> Any:
         if isinstance(request.data, dict):
             return request.data
         if not request.body:
@@ -213,7 +215,7 @@ class MCPQueryRPCMixin(object):
         except Exception:
             return {}
 
-    def _dispatch_rpc(self, payload, user, protocol_version="2024-11-05"):
+    def _dispatch_rpc(self, payload: Any, user: Any, protocol_version: str = "2024-11-05") -> dict:
         if not isinstance(payload, dict):
             return self._jsonrpc_error(None, -32600, "Invalid Request")
 
@@ -310,7 +312,7 @@ class MCPQueryRPCMixin(object):
         return self._jsonrpc_error(request_id, -32601, "Method not found: {}".format(method))
 
     @staticmethod
-    def _jsonrpc_result(request_id, result):
+    def _jsonrpc_result(request_id: Any, result: Any) -> dict:
         return {
             "jsonrpc": "2.0",
             "id": request_id,
@@ -318,7 +320,7 @@ class MCPQueryRPCMixin(object):
         }
 
     @staticmethod
-    def _jsonrpc_error(request_id, code, message):
+    def _jsonrpc_error(request_id: Any, code: int, message: str) -> dict:
         return {
             "jsonrpc": "2.0",
             "id": request_id,
@@ -329,31 +331,32 @@ class MCPQueryRPCMixin(object):
         }
 
     @staticmethod
-    def _format_sse_message(event, data, serialize_json=True):
+    def _format_sse_message(event: str, data: Any, serialize_json: bool = True) -> str:
         if serialize_json:
             payload = json.dumps(data, ensure_ascii=False, default=str)
         else:
-            payload = smart_text(data)
+            payload = smart_str(data)
         return "event: {event}\ndata: {data}\n\n".format(event=event, data=payload)
 
     @staticmethod
-    def _format_sse_data(data, serialize_json=True):
+    def _format_sse_data(data: Any, serialize_json: bool = True) -> str:
         if serialize_json:
             payload = json.dumps(data, ensure_ascii=False, default=str)
         else:
-            payload = smart_text(data)
+            payload = smart_str(data)
         return "data: {data}\n\n".format(data=payload)
 
     @staticmethod
-    def _is_authenticated_user(user):
+    def _is_authenticated_user(user: Any) -> bool:
         return user is not None and hasattr(user, "user_id") and getattr(user, "is_authenticated", True)
 
     @staticmethod
-    def _describe_tool_exception(exc):
+    def _describe_tool_exception(exc: Exception) -> Any:
         """Map an arbitrary tool exception to (http_status, human readable reason)."""
         status_raw = getattr(exc, "status", None)
         try:
-            status_code = int(status_raw)
+            # NOTE: status_raw may be None; TypeError caught below (legacy, backlog).
+            status_code = int(status_raw)  # type: ignore[arg-type]
         except (TypeError, ValueError):
             status_code = 500
         if not (100 <= status_code <= 599):
@@ -361,7 +364,7 @@ class MCPQueryRPCMixin(object):
         return status_code, MCPQueryRPCMixin._extract_tool_error_reason(exc)
 
     @staticmethod
-    def _extract_tool_error_reason(exc):
+    def _extract_tool_error_reason(exc: Exception) -> str:
         """Pull a concise, non-sensitive failure reason out of an exception.
 
         Region CallApiError carries a dict `message` whose `body` usually holds the
@@ -386,37 +389,39 @@ class MCPQueryRPCMixin(object):
         return exc.__class__.__name__
 
 
-class MCPQuerySSEView(MCPQueryRPCMixin, APIView):
+# NOTE: mixin declares permission/renderer/authentication_classes incompatibly with APIView (pre-existing).
+class MCPQuerySSEView(MCPQueryRPCMixin, APIView):  # type: ignore[misc]
     """Legacy MCP HTTP+SSE endpoint for backwards-compatible clients."""
 
     @never_cache
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Any:
         if getattr(request, "_mcp_auth_error", None) is not None:
             return _build_mcp_auth_expired_response()
         session = _register_mcp_sse_session(request.user if self._is_authenticated_user(request.user) else None)
         return self._build_sse_response(request, session)
 
     @never_cache
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         return Response(
             {"detail": "Use the endpoint event URI for POST requests."},
             status=405,
         )
 
     @never_cache
-    def options(self, request, *args, **kwargs):
+    # NOTE: APIView.options returns Response/takes HttpRequest; CORS preflight needs raw HttpResponse (legacy, backlog).
+    def options(self, request: Request, *args: Any, **kwargs: Any) -> HttpResponse:  # type: ignore[override]
         response = HttpResponse(status=204)
         response["Access-Control-Allow-Origin"] = "*"
         response["Access-Control-Allow-Headers"] = "Cache-Control, Content-Type, Authorization"
         response["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
         return response
 
-    def _build_sse_response(self, request, session):
+    def _build_sse_response(self, request: Any, session: MCPSSESession) -> StreamingHttpResponse:
         message_endpoint = request.build_absolute_uri(
             "/console/mcp/query/message?session_id={}".format(session.session_id)
         )
 
-        def event_stream():
+        def event_stream() -> Any:
             yield self._format_sse_message("endpoint", message_endpoint, serialize_json=False)
 
             try:
@@ -441,10 +446,10 @@ class MCPQuerySSEView(MCPQueryRPCMixin, APIView):
         return response
 
 
-class MCPQueryMessageView(MCPQueryRPCMixin, APIView):
+class MCPQueryMessageView(MCPQueryRPCMixin, APIView):  # type: ignore[misc]
 
     @never_cache
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Any:
         if getattr(request, "_mcp_auth_error", None) is not None:
             return _build_mcp_auth_expired_response()
         session_id = request.GET.get("session_id")
@@ -465,7 +470,7 @@ class MCPQueryMessageView(MCPQueryRPCMixin, APIView):
         return HttpResponse(status=202)
 
     @never_cache
-    def options(self, request, *args, **kwargs):
+    def options(self, request: Request, *args: Any, **kwargs: Any) -> HttpResponse:  # type: ignore[override]
         response = HttpResponse(status=204)
         response["Access-Control-Allow-Origin"] = "*"
         response["Access-Control-Allow-Headers"] = "Cache-Control, Content-Type, Authorization"
@@ -473,13 +478,13 @@ class MCPQueryMessageView(MCPQueryRPCMixin, APIView):
         return response
 
 
-class MCPQueryHTTPView(MCPQueryRPCMixin, APIView):
+class MCPQueryHTTPView(MCPQueryRPCMixin, APIView):  # type: ignore[misc]
     """Streamable HTTP MCP endpoint."""
 
     _EXPOSE_HEADERS = "Mcp-Session-Id, MCP-Protocol-Version"
 
     @staticmethod
-    def _get_http_session_user(session_payload):
+    def _get_http_session_user(session_payload: Optional[dict]) -> Any:
         user_id = (session_payload or {}).get("user_id")
         if not user_id:
             return None
@@ -490,7 +495,7 @@ class MCPQueryHTTPView(MCPQueryRPCMixin, APIView):
             return None
 
     @classmethod
-    def _apply_http_headers(cls, response, protocol_version, session_id=None):
+    def _apply_http_headers(cls, response: Any, protocol_version: str, session_id: Optional[str] = None) -> Any:
         if session_id:
             response["Mcp-Session-Id"] = session_id
         response["MCP-Protocol-Version"] = protocol_version
@@ -503,7 +508,7 @@ class MCPQueryHTTPView(MCPQueryRPCMixin, APIView):
         return response
 
     @never_cache
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Any:
         if getattr(request, "_mcp_auth_error", None) is not None:
             return _build_mcp_auth_expired_response()
         payload = self._parse_request_payload(request)
@@ -537,7 +542,8 @@ class MCPQueryHTTPView(MCPQueryRPCMixin, APIView):
             response = HttpResponse(status=202)
         else:
             if self._request_accepts_sse(request):
-                response = StreamingHttpResponse(
+                # NOTE: response var reused across HttpResponse/StreamingHttpResponse/Response (legacy, backlog).
+                response = StreamingHttpResponse(  # type: ignore[assignment]
                     self._single_rpc_sse_stream(rpc_response),
                     content_type="text/event-stream",
                 )
@@ -548,7 +554,7 @@ class MCPQueryHTTPView(MCPQueryRPCMixin, APIView):
         return self._apply_http_headers(response, protocol_version, session_id=session_id)
 
     @never_cache
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Any:
         if getattr(request, "_mcp_auth_error", None) is not None:
             return _build_mcp_auth_expired_response()
         session_id = request.META.get("HTTP_MCP_SESSION_ID", "")
@@ -559,7 +565,7 @@ class MCPQueryHTTPView(MCPQueryRPCMixin, APIView):
             return Response({"detail": "MCP HTTP session not found."}, status=404)
         protocol_version = session_payload.get("protocol_version") or self._resolve_http_protocol_version(request)
 
-        def event_stream():
+        def event_stream() -> Any:
             try:
                 while True:
                     yield ": keepalive {}\n\n".format(int(time.time()))
@@ -573,7 +579,7 @@ class MCPQueryHTTPView(MCPQueryRPCMixin, APIView):
         return self._apply_http_headers(response, protocol_version, session_id=session_id)
 
     @never_cache
-    def delete(self, request, *args, **kwargs):
+    def delete(self, request: Request, *args: Any, **kwargs: Any) -> Any:
         if getattr(request, "_mcp_auth_error", None) is not None:
             return _build_mcp_auth_expired_response()
         session_id = request.META.get("HTTP_MCP_SESSION_ID", "")
@@ -587,7 +593,7 @@ class MCPQueryHTTPView(MCPQueryRPCMixin, APIView):
         return self._apply_http_headers(response, protocol_version, session_id=session_id)
 
     @never_cache
-    def options(self, request, *args, **kwargs):
+    def options(self, request: Request, *args: Any, **kwargs: Any) -> HttpResponse:  # type: ignore[override]
         response = HttpResponse(status=204)
         response["Access-Control-Allow-Origin"] = "*"
         response["Access-Control-Allow-Headers"] = "Cache-Control, Content-Type, Authorization, MCP-Protocol-Version, Mcp-Session-Id"
@@ -596,15 +602,15 @@ class MCPQueryHTTPView(MCPQueryRPCMixin, APIView):
         return response
 
     @staticmethod
-    def _request_accepts_sse(request):
-        accept = smart_text(request.META.get("HTTP_ACCEPT", "")).lower()
+    def _request_accepts_sse(request: Any) -> bool:
+        accept = smart_str(request.META.get("HTTP_ACCEPT", "")).lower()
         return "text/event-stream" in accept
 
     @staticmethod
-    def _single_rpc_sse_stream(rpc_response):
+    def _single_rpc_sse_stream(rpc_response: Any) -> Any:
         yield "event: message\n" + MCPQueryRPCMixin._format_sse_data(rpc_response)
 
-    def _resolve_http_protocol_version(self, request):
+    def _resolve_http_protocol_version(self, request: Any) -> str:
         version = request.META.get("HTTP_MCP_PROTOCOL_VERSION", "") or _MCP_HTTP_DEFAULT_PROTOCOL_VERSION
         if version not in _MCP_HTTP_PROTOCOL_VERSIONS:
             raise exceptions.ParseError("Unsupported MCP-Protocol-Version: {}".format(version))

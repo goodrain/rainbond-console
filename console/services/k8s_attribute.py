@@ -1,17 +1,20 @@
 # -*- coding: utf8 -*-
 import json
+from typing import Any, Dict, List
 
 from django.db import transaction
+from django.db.models import QuerySet
 
 from console.repositories.k8s_attribute import k8s_attribute_repo
 from www.apiclient.regionapi import RegionInvokeApi
+from www.models.main import TenantServiceInfo, Tenants
 
 region_api = RegionInvokeApi()
 
 
 class ComponentK8sAttributeService(object):
     @staticmethod
-    def _serialize_json_attribute_value(attribute_value):
+    def _serialize_json_attribute_value(attribute_value: Any) -> str:
         if isinstance(attribute_value, str):
             try:
                 json.loads(attribute_value)
@@ -26,7 +29,7 @@ class ComponentK8sAttributeService(object):
             return json.dumps(attribute_value)
         return json.dumps(attribute_value)
 
-    def get_by_component_ids_and_name(self, component_id, name):
+    def get_by_component_ids_and_name(self, component_id: str, name: str) -> QuerySet:
         attributes = k8s_attribute_repo.get_by_component_id_name(component_id, name)
         if attributes and attributes[0].save_type == "json" and attributes[0].attribute_value:
             try:
@@ -35,8 +38,8 @@ class ComponentK8sAttributeService(object):
                 pass
         return attributes
 
-    def list_by_component_ids(self, component_ids):
-        result = []
+    def list_by_component_ids(self, component_ids: List[str]) -> List[Dict[str, Any]]:
+        result: List[Dict[str, Any]] = []
         attributes = k8s_attribute_repo.list_by_component_ids(component_ids)
         for attribute in attributes:
             if attribute.save_type == "json" and attribute.attribute_value:
@@ -57,7 +60,8 @@ class ComponentK8sAttributeService(object):
         return result
 
     @transaction.atomic
-    def create_k8s_attribute(self, tenant, component, region_name, attribute, user_name):
+    def create_k8s_attribute(self, tenant: Tenants, component: TenantServiceInfo, region_name: str,
+                             attribute: Dict[str, Any], user_name: str) -> None:
         if attribute["save_type"] == "json":
             attribute["attribute_value"] = self._serialize_json_attribute_value(attribute.get("attribute_value", []))
         k8s_attribute_repo.create(tenant_id=tenant.tenant_id, component_id=component.service_id, **attribute)
@@ -65,8 +69,9 @@ class ComponentK8sAttributeService(object):
         region_api.create_component_k8s_attribute(tenant.tenant_name, region_name, component.service_alias, attribute)
 
     @transaction.atomic
-    def update_k8s_attribute(self, tenant, component, region_name, attribute):
-        data = {"attribute_value": attribute.get("attribute_value", "")}
+    def update_k8s_attribute(self, tenant: Tenants, component: TenantServiceInfo, region_name: str,
+                             attribute: Dict[str, Any]) -> None:
+        data: Dict[str, Any] = {"attribute_value": attribute.get("attribute_value", "")}
         if attribute.get("save_type", "") == "json":
             attribute_value_json = self._serialize_json_attribute_value(attribute.get("attribute_value", []))
             attribute["attribute_value"] = attribute_value_json
@@ -75,7 +80,8 @@ class ComponentK8sAttributeService(object):
         region_api.update_component_k8s_attribute(tenant.tenant_name, region_name, component.service_alias, attribute)
 
     @transaction.atomic
-    def delete_k8s_attribute(self, tenant, component, region_name, name, operator):
+    def delete_k8s_attribute(self, tenant: Tenants, component: TenantServiceInfo, region_name: str, name: str,
+                             operator: str) -> None:
         k8s_attribute_repo.delete(component.service_id, name)
         region_api.delete_component_k8s_attribute(tenant.tenant_name, region_name, component.service_alias, {
             "name": name,

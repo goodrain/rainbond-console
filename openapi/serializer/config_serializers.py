@@ -8,7 +8,8 @@ class ConfigBaseSerializer(serializers.Serializer):
 
 
 class MonitorQueryOverviewSeralizer(serializers.Serializer):
-    data = serializers.DictField(help_text="查询数据")
+    # NOTE: field named "data" shadows Serializer.data property; legacy field.
+    data = serializers.DictField(help_text="查询数据")  # type: ignore[assignment]
     status = serializers.CharField(help_text="查询状态", max_length=64)
 
 class AppRankOverviewSeralizer(serializers.Serializer):

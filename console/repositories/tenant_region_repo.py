@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
+from typing import Any
+
 from www.db.base import BaseConnection
 from www.models.main import TenantRegionInfo
 
 
 class TenantRegionRepo(object):
-    def count_by_tenant_id(self, tenant_id):
+    def count_by_tenant_id(self, tenant_id: str) -> Any:
         sql = """
         SELECT
             count( * ) as total
@@ -18,8 +20,9 @@ class TenantRegionRepo(object):
         result = conn.query(sql)
         return result[0]["total"]
 
-    def get_by_tenant_id_and_region_name(self, tenant_id, region_name):
-        return TenantRegionInfo.objects.get(tenant_id=tenant_id, region_name=region_name, is_active=1, is_init=1)
+    def get_by_tenant_id_and_region_name(self, tenant_id: str, region_name: str) -> TenantRegionInfo:
+        return TenantRegionInfo.objects.get(
+            tenant_id=tenant_id, region_name=region_name, is_active=True, is_init=True)
 
 
 tenant_region_repo = TenantRegionRepo()

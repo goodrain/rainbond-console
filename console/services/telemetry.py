@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import datetime
 import hashlib
 import logging
 import os
@@ -149,9 +150,9 @@ class RainbondTelemetryService(object):
         create_time = record.create_time
         if timezone.is_naive(now) != timezone.is_naive(create_time):
             if timezone.is_naive(now):
-                now = timezone.make_aware(now, timezone.utc)
+                now = timezone.make_aware(now, datetime.timezone.utc)
             if timezone.is_naive(create_time):
-                create_time = timezone.make_aware(create_time, timezone.utc)
+                create_time = timezone.make_aware(create_time, datetime.timezone.utc)
         return max((now - create_time).days, 0)
 
     def get_instance_properties(self):

@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 import logging
+
+from rest_framework.request import Request
 from rest_framework.response import Response
 from console.views.base import AlowAnyApiView
 from www.utils.return_message import general_message
@@ -9,7 +11,7 @@ logger = logging.getLogger("default")
 
 
 class StorageStatistics(AlowAnyApiView):
-    def get(self, request):
+    def get(self, request: Request) -> Response:
         """
         获取存储使用统计
         ---

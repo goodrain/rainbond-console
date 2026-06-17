@@ -4,7 +4,9 @@
 """
 import logging
 import json
+from typing import Any
 
+from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework import status
 
@@ -17,7 +19,7 @@ logger = logging.getLogger("default")
 
 
 class AppLView(RegionTenantHeaderView):
-    def get(self, request, enterprise_id, team_name, *args, **kwargs):
+    def get(self, request: Request, enterprise_id: str, team_name: str, *args: Any, **kwargs: Any) -> Response:
         name = request.GET.get("name", None)
         page = request.GET.get("page", 1)
         page_size = request.GET.get("page_size", 10)
@@ -27,8 +29,8 @@ class AppLView(RegionTenantHeaderView):
             return Response(result, status=status.HTTP_200_OK)
         team_id = team.tenant_id
         data = []
-        app_list = service_repo.get_app_list(team_id, name, page, page_size)
-        app_count = service_repo.get_app_count(team_id, name)
+        app_list = service_repo.get_app_list(team_id, name, page, page_size)  # type: ignore[arg-type]
+        app_count = service_repo.get_app_count(team_id, name)  # type: ignore[arg-type]
         for app in app_list:
             data.append({
                 "ID": app.ID,

@@ -1,5 +1,6 @@
 # -*- coding: utf8 -*-
 from datetime import datetime
+from typing import Any, Dict, List, Tuple
 
 from console.models.main import Announcement
 from console.repositories.announcement_repo import AnnouncementRepository
@@ -7,7 +8,7 @@ from www.utils.crypt import make_uuid
 
 
 class AnnouncementService(object):
-    def list(self, page, size):
+    def list(self, page: int, size: int) -> Tuple[List[Dict[str, Any]], int]:
         from django.core.paginator import Paginator
         aall = Announcement.objects.all().order_by('-create_time')
         paginator = Paginator(aall, size)
@@ -27,13 +28,13 @@ class AnnouncementService(object):
             })
         return ancm, aall.count()
 
-    def create(self, ancm):
+    def create(self, ancm: dict) -> None:
         ancm.update({"announcement_id": make_uuid()})
         ancm.update({"create_time": datetime.now().strftime('%Y-%m-%d %H:%M:%S')})
         repo = AnnouncementRepository()
         repo.create(**ancm)
 
-    def update(self, aid, ancm):
+    def update(self, aid: str, ancm: dict) -> None:
         data = {}
         if ancm.get("content", None) is not None:
             data["content"] = ancm.get("content", "")
@@ -55,7 +56,7 @@ class AnnouncementService(object):
         repo = AnnouncementRepository()
         repo.update(aid, **data)
 
-    def delete(self, aid):
+    def delete(self, aid: str) -> None:
         repo = AnnouncementRepository()
         repo.delete(aid)
 

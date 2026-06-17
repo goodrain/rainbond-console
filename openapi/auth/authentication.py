@@ -3,8 +3,10 @@
 
 import logging
 import os
+from typing import Any
 
 from rest_framework import authentication, exceptions
+from rest_framework.request import Request
 
 from openapi.services.api_user_service import apiUserService
 from www.models.main import Users, TenantEnterprise
@@ -13,7 +15,7 @@ logger = logging.getLogger("default")
 
 
 class OpenAPIAuthentication(authentication.TokenAuthentication):
-    def authenticate(self, request):
+    def authenticate(self, request: Request) -> Any:
         # 优先检查 X-Internal-Token (内部服务调用)
         internal_token = request.META.get('HTTP_X_INTERNAL_TOKEN')
         if internal_token:
@@ -42,7 +44,7 @@ class OpenAPIAuthentication(authentication.TokenAuthentication):
 
 
 class OpenAPIManageAuthentication(authentication.TokenAuthentication):
-    def authenticate(self, request):
+    def authenticate(self, request: Request) -> Any:
         token = request.META.get('HTTP_AUTHORIZATION')
         if not token:
             raise exceptions.AuthenticationFailed('No token')

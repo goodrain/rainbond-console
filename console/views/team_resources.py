@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 import logging
+from typing import Any, Iterator, Optional
 
 import yaml
 from django.http.response import StreamingHttpResponse
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from console.repositories.app import service_repo
@@ -17,7 +19,7 @@ region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
 
 
-def get_team_resource_namespace(view, fallback=None):
+def get_team_resource_namespace(view: Any, fallback: Optional[str] = None) -> Any:
     tenant = getattr(view, "tenant", None)
     if tenant is not None:
         namespace = getattr(tenant, "namespace", None)
@@ -29,7 +31,7 @@ def get_team_resource_namespace(view, fallback=None):
     return fallback
 
 
-def build_helm_install_body(body, namespace=None):
+def build_helm_install_body(body: Optional[dict], namespace: Optional[str] = None) -> dict:
     payload = dict(body or {})
     if namespace and not payload.get("namespace"):
         payload["namespace"] = namespace
@@ -55,14 +57,14 @@ def build_helm_install_body(body, namespace=None):
     return payload
 
 
-def first_non_empty(*values):
+def first_non_empty(*values: Any) -> Any:
     for value in values:
         if value:
             return value
     return ""
 
 
-def get_request_operator(request):
+def get_request_operator(request: Any) -> Any:
     try:
         user = getattr(request, "user", None)
     except Exception:
@@ -74,7 +76,7 @@ def get_request_operator(request):
     )
 
 
-def normalize_helm_values_yaml(*candidates):
+def normalize_helm_values_yaml(*candidates: Any) -> str:
     for value in candidates:
         if value in (None, ""):
             continue
@@ -86,7 +88,7 @@ def normalize_helm_values_yaml(*candidates):
     return ""
 
 
-def build_helm_release_source_info(record=None, release=None):
+def build_helm_release_source_info(record: Optional[dict] = None, release: Optional[dict] = None) -> dict:
     release = release or {}
     record = record or {}
     source_type = record.get("source_type") or "legacy"
@@ -100,7 +102,8 @@ def build_helm_release_source_info(record=None, release=None):
     }
 
 
-def persist_helm_release_source(request, team_name, region_name, namespace, raw_body, install_body, response_body):
+def persist_helm_release_source(request: Any, team_name: str, region_name: str, namespace: Optional[str],
+                                raw_body: dict, install_body: dict, response_body: Optional[dict]) -> None:
     release_name = first_non_empty(
         (response_body or {}).get("release_name"),
         install_body.get("release_name"),
@@ -130,12 +133,13 @@ def persist_helm_release_source(request, team_name, region_name, namespace, raw_
     )
 
 
-def enrich_helm_release_list(bean, region_name, namespace):
+def enrich_helm_release_list(bean: Optional[dict], region_name: str, namespace: Optional[str]) -> Any:
     releases = (bean or {}).get("list") or []
     release_names = [item.get("name") for item in releases if item.get("name")]
     source_map = {}
     try:
-        source_map = helm_release_source_repo.list_by_releases(region_name, namespace, release_names)
+        # NOTE: namespace is Optional[str] but repo expects str (systemic mismatch; backlog).
+        source_map = helm_release_source_repo.list_by_releases(region_name, namespace, release_names)  # type: ignore[arg-type]
     except Exception as e:
         logger.exception("list helm release source failed: %s", e)
     for item in releases:
@@ -145,35 +149,38 @@ def enrich_helm_release_list(bean, region_name, namespace):
     return bean
 
 
-def enrich_helm_release_detail(bean, region_name, namespace, release_name):
+def enrich_helm_release_detail(bean: Optional[dict], region_name: str, namespace: Optional[str],
+                               release_name: str) -> Any:
     summary = ((bean or {}).get("summary")) or {}
     item_namespace = summary.get("namespace") or namespace
     record = None
     try:
-        record = helm_release_source_repo.get_by_release(region_name, item_namespace, release_name)
+        record = helm_release_source_repo.get_by_release(region_name, item_namespace, release_name)  # type: ignore[arg-type]
     except Exception as e:
         logger.exception("get helm release source failed: %s", e)
     values_yaml = normalize_helm_values_yaml((record or {}).get("values_yaml"))
     if values_yaml:
         summary["values"] = values_yaml
     summary["source_info"] = build_helm_release_source_info(record, summary)
-    bean["summary"] = summary
+    # NOTE: bean may be None; indexed assignment is a latent risk (backlog).
+    bean["summary"] = summary  # type: ignore[index]
     return bean
 
 
 class NsResourceTypesView(TenantHeaderView):
-    def get(self, request, team_name, region_name, *args, **kwargs):
+    def get(self, request: Request, team_name: str, region_name: str, *args: Any, **kwargs: Any) -> Response:
         res, data = region_api.get_tenant_ns_resource_types(region_name, team_name)
-        return Response(general_message(200, "success", "OK", bean=data.get("bean")))
+        # NOTE: region API result may be None; .get access is a latent risk (backlog).
+        return Response(general_message(200, "success", "OK", bean=data.get("bean")))  # type: ignore[union-attr]
 
 
 class NsResourcesView(TenantHeaderView):
-    def get(self, request, team_name, region_name, *args, **kwargs):
+    def get(self, request: Request, team_name: str, region_name: str, *args: Any, **kwargs: Any) -> Response:
         params = {k: v for k, v in request.GET.items()}
         res, data = region_api.get_tenant_ns_resources(region_name, team_name, params=params)
-        return Response(general_message(200, "success", "OK", bean=data.get("bean")))
+        return Response(general_message(200, "success", "OK", bean=data.get("bean")))  # type: ignore[union-attr]
 
-    def post(self, request, team_name, region_name, *args, **kwargs):
+    def post(self, request: Request, team_name: str, region_name: str, *args: Any, **kwargs: Any) -> Response:
         params = {k: v for k, v in request.GET.items()}
         content_type = request.META.get("CONTENT_TYPE")
         res, data = region_api.post_tenant_ns_resource(
@@ -183,65 +190,68 @@ class NsResourcesView(TenantHeaderView):
 
 
 class TeamComponentsView(TenantHeaderView):
-    def get(self, request, team_name, region_name, *args, **kwargs):
+    def get(self, request: Request, team_name: str, region_name: str, *args: Any, **kwargs: Any) -> Response:
         components = service_repo.list_basic_infos_by_team_and_region(self.tenant.tenant_id, region_name)
         return Response(general_message(200, "success", "OK", list=components))
 
 
 class NsResourceDetailView(TenantHeaderView):
-    def get(self, request, team_name, region_name, name, *args, **kwargs):
+    def get(self, request: Request, team_name: str, region_name: str, name: str, *args: Any, **kwargs: Any) -> Response:
         params = {k: v for k, v in request.GET.items()}
         res, data = region_api.get_tenant_ns_resource(region_name, team_name, name, params=params)
-        return Response(general_message(200, "success", "OK", bean=data.get("bean")))
+        return Response(general_message(200, "success", "OK", bean=data.get("bean")))  # type: ignore[union-attr]
 
-    def put(self, request, team_name, region_name, name, *args, **kwargs):
+    def put(self, request: Request, team_name: str, region_name: str, name: str, *args: Any, **kwargs: Any) -> Response:
         params = {k: v for k, v in request.GET.items()}
         content_type = request.META.get("CONTENT_TYPE")
         res, data = region_api.put_tenant_ns_resource(
             region_name, team_name, name, request.body, params=params, content_type=content_type)
-        return Response(general_message(200, "success", "更新成功", bean=data.get("bean")))
+        return Response(general_message(200, "success", "更新成功", bean=data.get("bean")))  # type: ignore[union-attr]
 
-    def delete(self, request, team_name, region_name, name, *args, **kwargs):
+    def delete(self, request: Request, team_name: str, region_name: str, name: str, *args: Any, **kwargs: Any) -> Response:
         params = {k: v for k, v in request.GET.items()}
         region_api.delete_tenant_ns_resource(region_name, team_name, name, params=params)
         return Response(general_message(200, "success", "删除成功"))
 
 
 class HelmReleasesView(TenantHeaderView):
-    def get(self, request, team_name, region_name, *args, **kwargs):
+    def get(self, request: Request, team_name: str, region_name: str, *args: Any, **kwargs: Any) -> Response:
         namespace = get_team_resource_namespace(self, team_name)
         res, data = region_api.get_tenant_helm_releases(region_name, team_name, namespace=namespace)
-        bean = enrich_helm_release_list(data.get("bean") or {}, region_name, namespace)
+        bean = enrich_helm_release_list(data.get("bean") or {}, region_name, namespace)  # type: ignore[union-attr]
         return Response(general_message(200, "success", "OK", bean=bean))
 
-    def post(self, request, team_name, region_name, *args, **kwargs):
+    def post(self, request: Request, team_name: str, region_name: str, *args: Any, **kwargs: Any) -> Response:
         namespace = get_team_resource_namespace(self, team_name)
         raw_body = dict(request.data or {})
         body = build_helm_install_body(raw_body, namespace=namespace)
         res, data = region_api.install_tenant_helm_release(region_name, team_name, body)
         try:
-            persist_helm_release_source(request, team_name, region_name, namespace, raw_body, body, data.get("bean") or {})
+            persist_helm_release_source(
+                request, team_name, region_name, namespace,
+                raw_body, body, data.get("bean") or {})  # type: ignore[union-attr]
         except Exception as e:
             logger.exception("persist helm release source failed: %s", e)
-        return Response(general_message(200, "success", "安装成功", bean=data.get("bean")))
+        return Response(general_message(200, "success", "安装成功", bean=data.get("bean")))  # type: ignore[union-attr]
 
 
 class HelmChartPreviewView(TenantHeaderView):
-    def post(self, request, team_name, region_name, *args, **kwargs):
+    def post(self, request: Request, team_name: str, region_name: str, *args: Any, **kwargs: Any) -> Response:
         namespace = get_team_resource_namespace(self, team_name)
         body = build_helm_install_body(request.data or {}, namespace=namespace)
         res, data = region_api.preview_tenant_helm_chart(region_name, team_name, body)
-        return Response(general_message(200, "success", "OK", bean=data.get("bean")))
+        return Response(general_message(200, "success", "OK", bean=data.get("bean")))  # type: ignore[union-attr]
 
 
 class HelmReleaseDetailView(TenantHeaderView):
-    def get(self, request, team_name, region_name, release_name, *args, **kwargs):
+    def get(self, request: Request, team_name: str, region_name: str, release_name: str, *args: Any, **kwargs: Any) -> Response:
         namespace = get_team_resource_namespace(self, team_name)
         res, data = region_api.get_tenant_helm_release_detail(region_name, team_name, release_name, namespace=namespace)
-        bean = enrich_helm_release_detail(data.get("bean") or {}, region_name, namespace, release_name)
+        bean = enrich_helm_release_detail(
+            data.get("bean") or {}, region_name, namespace, release_name)  # type: ignore[union-attr]
         return Response(general_message(200, "success", "OK", bean=bean))
 
-    def put(self, request, team_name, region_name, release_name, *args, **kwargs):
+    def put(self, request: Request, team_name: str, region_name: str, release_name: str, *args: Any, **kwargs: Any) -> Response:
         namespace = get_team_resource_namespace(self, team_name)
         raw_body = dict(request.data or {})
         body = build_helm_install_body(request.data or {}, namespace=namespace)
@@ -258,9 +268,10 @@ class HelmReleaseDetailView(TenantHeaderView):
             )
         except Exception as e:
             logger.exception("persist helm release source failed: %s", e)
-        return Response(general_message(200, "success", "升级成功", bean=data.get("bean")))
+        return Response(general_message(200, "success", "升级成功", bean=data.get("bean")))  # type: ignore[union-attr]
 
-    def delete(self, request, team_name, region_name, release_name, *args, **kwargs):
+    def delete(self, request: Request, team_name: str, region_name: str, release_name: str, *args: Any,
+               **kwargs: Any) -> Response:
         namespace = get_team_resource_namespace(self, team_name)
         region_api.uninstall_tenant_helm_release(region_name, team_name, release_name, namespace=namespace)
         try:
@@ -275,44 +286,47 @@ class HelmReleaseDetailView(TenantHeaderView):
 
 
 class HelmReleaseHistoryView(TenantHeaderView):
-    def get(self, request, team_name, region_name, release_name, *args, **kwargs):
+    def get(self, request: Request, team_name: str, region_name: str, release_name: str, *args: Any, **kwargs: Any) -> Response:
         namespace = get_team_resource_namespace(self, team_name)
         res, data = region_api.get_tenant_helm_release_history(region_name, team_name, release_name, namespace=namespace)
-        return Response(general_message(200, "success", "OK", bean=data.get("bean")))
+        return Response(general_message(200, "success", "OK", bean=data.get("bean")))  # type: ignore[union-attr]
 
 
 class HelmReleaseRollbackView(TenantHeaderView):
-    def post(self, request, team_name, region_name, release_name, *args, **kwargs):
+    def post(self, request: Request, team_name: str, region_name: str, release_name: str, *args: Any, **kwargs: Any) -> Response:
         namespace = get_team_resource_namespace(self, team_name)
         body = dict(request.data or {})
         if namespace and not body.get("namespace"):
             body["namespace"] = namespace
         res, data = region_api.rollback_tenant_helm_release(region_name, team_name, release_name, body)
-        return Response(general_message(200, "success", "回滚成功", bean=data.get("bean")))
+        return Response(general_message(200, "success", "回滚成功", bean=data.get("bean")))  # type: ignore[union-attr]
 
 
 class ResourceCenterWorkloadDetailView(TenantHeaderView):
-    def get(self, request, team_name, region_name, resource, name, *args, **kwargs):
+    def get(self, request: Request, team_name: str, region_name: str, resource: str, name: str, *args: Any,
+            **kwargs: Any) -> Response:
         params = {k: v for k, v in request.GET.items()}
         res, data = region_api.get_resource_center_workload_detail(region_name, team_name, resource, name, params=params)
-        return Response(general_message(200, "success", "OK", bean=data.get("bean")))
+        return Response(general_message(200, "success", "OK", bean=data.get("bean")))  # type: ignore[union-attr]
 
 
 class ResourceCenterPodDetailView(TenantHeaderView):
-    def get(self, request, team_name, region_name, pod_name, *args, **kwargs):
+    def get(self, request: Request, team_name: str, region_name: str, pod_name: str, *args: Any,
+            **kwargs: Any) -> Response:
         res, data = region_api.get_resource_center_pod_detail(region_name, team_name, pod_name)
-        return Response(general_message(200, "success", "OK", bean=data.get("bean")))
+        return Response(general_message(200, "success", "OK", bean=data.get("bean")))  # type: ignore[union-attr]
 
 
 class ResourceCenterEventsView(TenantHeaderView):
-    def get(self, request, team_name, region_name, *args, **kwargs):
+    def get(self, request: Request, team_name: str, region_name: str, *args: Any, **kwargs: Any) -> Response:
         params = {k: v for k, v in request.GET.items()}
         res, data = region_api.get_resource_center_events(region_name, team_name, params=params)
-        return Response(general_message(200, "success", "OK", bean=data.get("bean")))
+        return Response(general_message(200, "success", "OK", bean=data.get("bean")))  # type: ignore[union-attr]
 
 
 class ResourceCenterPodLogsView(TenantHeaderView):
-    def get(self, request, team_name, region_name, pod_name, *args, **kwargs):
+    def get(self, request: Request, team_name: str, region_name: str, pod_name: str, *args: Any,
+            **kwargs: Any) -> StreamingHttpResponse:
         params = {k: v for k, v in request.GET.items()}
         logger.info(
             "resource center pod logs request user_id=%s team=%s region=%s pod=%s params=%s",
@@ -335,7 +349,7 @@ class ResourceCenterPodLogsView(TenantHeaderView):
             getattr(getattr(stream, "headers", None), "get", lambda *x: None)("Transfer-Encoding"),
         )
 
-        def iter_stream():
+        def iter_stream() -> Iterator[Any]:
             chunk_count = 0
             try:
                 # Flush one SSE comment frame immediately so EventSource can
@@ -389,7 +403,7 @@ class ResourceCenterPodLogsView(TenantHeaderView):
 
 
 class ResourceCenterWSInfoView(TenantHeaderView):
-    def get(self, request, team_name, region_name, *args, **kwargs):
+    def get(self, request: Request, team_name: str, region_name: str, *args: Any, **kwargs: Any) -> Response:
         bean = {
             "event_websocket_url": ws_service.get_event_log_ws(request, region_name),
             "namespace": self.tenant.namespace or self.tenant.tenant_name,

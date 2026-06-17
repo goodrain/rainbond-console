@@ -4,13 +4,16 @@
 """
 import logging
 import threading
+from typing import Any
+
+from rest_framework.request import Request
 
 from console.repositories.plugin import (app_plugin_relation_repo, plugin_version_repo)
 from console.services.operation_log import operation_log_service, Operation
 from console.services.plugin import (app_plugin_service, plugin_config_service, plugin_service, plugin_version_service)
 from console.views.base import RegionTenantHeaderView
 from console.views.plugin.base import PluginBaseView
-from django.views.decorators.cache import never_cache
+from console.utils.cache_decorators import never_cache
 from docker_image import reference
 from goodrain_web.tools import JuncheePaginator
 from rest_framework.response import Response
@@ -23,7 +26,7 @@ region_api = RegionInvokeApi()
 
 class PluginBaseInfoView(PluginBaseView):
     @never_cache
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         获取插件基础信息
         ---
@@ -47,7 +50,7 @@ class PluginBaseInfoView(PluginBaseView):
         result = general_message(200, "success", "查询成功", bean=data)
         return Response(result, status=result["code"])
 
-    def delete(self, request, *args, **kwargs):
+    def delete(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         删除插件
         ---
@@ -69,18 +72,20 @@ class PluginBaseInfoView(PluginBaseView):
         result = general_message(200, "success", "删除成功")
         comment = operation_log_service.generate_team_comment(
             operation=Operation.IN,
-            module_name=self.tenant.tenant_alias,
+            module_name=self.tenant.tenant_alias,  # type: ignore[arg-type]
             region=self.response_region,
             team_name=self.tenant.tenant_name,
             suffix=" 中删除了插件 {}".format(self.plugin.plugin_alias))
         operation_log_service.create_team_log(
-            user=self.user, comment=comment, enterprise_id=self.user.enterprise_id, team_name=self.tenant.tenant_name)
+            user=self.user, comment=comment,
+            enterprise_id=self.user.enterprise_id,  # type: ignore[arg-type]
+            team_name=self.tenant.tenant_name)
         return Response(result, status=result["code"])
 
 
 class PluginEventLogView(PluginBaseView):
     @never_cache
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         获取event事件
         ---
@@ -108,14 +113,15 @@ class PluginEventLogView(PluginBaseView):
         """
         level = request.GET.get("level", "info")
         event_id = self.plugin_version.event_id
-        logs = plugin_service.get_plugin_event_log(self.response_region, self.tenant, event_id, level)
+        logs = plugin_service.get_plugin_event_log(
+            self.response_region, self.tenant, event_id, level)  # type: ignore[arg-type]
         result = general_message(200, "success", "查询成功", list=logs)
         return Response(result, status=result["code"])
 
 
 class AllPluginVersionInfoView(PluginBaseView):
     @never_cache
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         插件构建历史信息展示
         ---
@@ -160,7 +166,7 @@ class AllPluginVersionInfoView(PluginBaseView):
 
 class PluginVersionInfoView(PluginBaseView):
     @never_cache
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         获取插件某个版本的信息
         ---
@@ -183,7 +189,8 @@ class PluginVersionInfoView(PluginBaseView):
         """
         base_info = self.plugin
         if base_info.image and base_info.build_source == "image":
-            base_info.image = base_info.image + ":" + self.plugin_version.image_tag
+            # NOTE: plugin_version.image_tag may be None; backlog
+            base_info.image = base_info.image + ":" + self.plugin_version.image_tag  # type: ignore[operator]
         data = base_info.to_dict()
         data.update(self.plugin_version.to_dict())
         update_status_thread = threading.Thread(
@@ -193,7 +200,7 @@ class PluginVersionInfoView(PluginBaseView):
         return Response(result, status=result["code"])
 
     @never_cache
-    def put(self, request, *args, **kwargs):
+    def put(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         更新某个版本插件的信息
         ---
@@ -292,20 +299,21 @@ class PluginVersionInfoView(PluginBaseView):
                                                                     self.tenant.tenant_name, self.plugin.plugin_id)
             comment = operation_log_service.generate_team_comment(
                 operation=Operation.IN,
-                module_name=self.tenant.tenant_alias,
+                module_name=self.tenant.tenant_alias,  # type: ignore[arg-type]
                 region=self.response_region,
                 team_name=self.tenant.tenant_name,
                 suffix=" 中编辑了插件 {} 的基础信息".format(plugin_name))
             operation_log_service.create_team_log(
-                user=self.user, comment=comment, enterprise_id=self.user.enterprise_id,
+                user=self.user, comment=comment,
+                enterprise_id=self.user.enterprise_id,  # type: ignore[arg-type]
                 team_name=self.tenant.tenant_name)
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)
+            result = error_message(e.message)  # type: ignore[attr-defined]
         return Response(result, status=result["code"])
 
     @never_cache
-    def delete(self, request, *args, **kwargs):
+    def delete(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         删除插件某个版本
         ---
@@ -348,13 +356,13 @@ class PluginVersionInfoView(PluginBaseView):
 
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)
+            result = error_message(e.message)  # type: ignore[attr-defined]
         return Response(result, status=result["code"])
 
 
 class AllPluginBaseInfoView(RegionTenantHeaderView):
     @never_cache
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         获取插件基础信息
         ---
@@ -373,7 +381,7 @@ class AllPluginBaseInfoView(RegionTenantHeaderView):
 
 class PluginUsedServiceView(PluginBaseView):
     @never_cache
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         获取插件被哪些当前团队哪些组件使用
         ---
@@ -401,7 +409,8 @@ class PluginUsedServiceView(PluginBaseView):
         """
         page = request.GET.get("page", 1)
         page_size = request.GET.get("page_size", 10)
-        data, total = app_plugin_service.get_plugin_used_services(self.plugin.plugin_id, self.tenant.tenant_id, page, page_size)
+        data, total = app_plugin_service.get_plugin_used_services(
+            self.plugin.plugin_id, self.tenant.tenant_id, page, page_size)  # type: ignore[arg-type]
 
         result = general_message(200, "success", "查询成功", list=data, total=total)
         return Response(result, status=result["code"])

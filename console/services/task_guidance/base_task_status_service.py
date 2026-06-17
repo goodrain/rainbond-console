@@ -1,6 +1,7 @@
 # -*- coding: utf8 -*-
 import abc  # Python's built-in abstract class library
 import logging
+from typing import Any
 
 from console.repositories.app_config import dep_relation_repo
 from console.repositories.app_config import domain_repo as http_rule_repo
@@ -16,7 +17,7 @@ class BaseTaskStatusStrategy(object, metaclass=abc.ABCMeta):
     """Abstract class: confirm the status of the base task"""
 
     @abc.abstractmethod
-    def confirm_status(self, tenants):
+    def confirm_status(self, tenants: Any) -> Any:
         raise NotImplementedError("Doesn't provide a reprØesentation for BaseTaskStatus.")
 
 
@@ -28,71 +29,71 @@ class DefaultStrategy(BaseTaskStatusStrategy):
     the above error will be triggered.
     """
 
-    def confirm_status(self, tenants):
+    def confirm_status(self, tenants: Any) -> bool:
         return False
 
 
 class AppCreationStrategy(BaseTaskStatusStrategy):
     """Task: app creation"""
 
-    def confirm_status(self, eid):
+    def confirm_status(self, eid: str) -> Any:
         return svc_group_repo.check_non_default_group_by_eid(eid)
 
 
 class SourceCodeServiceCreationStrategy(BaseTaskStatusStrategy):
     """Task: create a service based on source code"""
 
-    def confirm_status(self, eid):
+    def confirm_status(self, eid: str) -> Any:
         return service_repo.check_sourcecode_svc_by_eid(eid)
 
 
 class InstallMysqlFromMarketStrategy(BaseTaskStatusStrategy):
     """Task: install the database based on the application market"""
 
-    def confirm_status(self, eid):
+    def confirm_status(self, eid: str) -> Any:
         return service_repo.check_db_from_market_by_eid(eid)
 
 
 class ServiceConnectDBStrategy(BaseTaskStatusStrategy):
     """Task: connect database with service"""
 
-    def confirm_status(self, eid):
+    def confirm_status(self, eid: str) -> Any:
         return dep_relation_repo.check_db_dep_by_eid(eid)
 
 
 class ShareAppStrategy(BaseTaskStatusStrategy):
     """Task: share application to market"""
 
-    def confirm_status(self, eid):
+    def confirm_status(self, eid: str) -> Any:
         return share_repo.check_app_by_eid(eid)
 
 
 class CustomGatewayRuleStrategy(BaseTaskStatusStrategy):
     """Task: customize application access rules"""
 
-    def confirm_status(self, eid):
+    def confirm_status(self, eid: str) -> Any:
         return http_rule_repo.check_custom_rule(eid)
 
 
 class InstallPluginStrategy(BaseTaskStatusStrategy):
     """Task: install the performance analysis plugin"""
 
-    def confirm_status(self, eid):
+    def confirm_status(self, eid: str) -> Any:
         return app_plugin_relation_repo.check_plugins_by_eid(eid)
 
 
 class ImageServiceCreateStrategy(BaseTaskStatusStrategy):
     """Task: install the performance analysis plugin"""
 
-    def confirm_status(self, eid):
+    def confirm_status(self, eid: str) -> Any:
         return service_repo.check_image_svc_by_eid(eid)
 
 
 class BaseTaskStatusContext(object):
-    def __init__(self, eid, task):
+    def __init__(self, eid: str, task: str) -> None:
         self.eid = eid
         if task == 'app_create':
-            self.strategy = AppCreationStrategy()
+            self.strategy: BaseTaskStatusStrategy = AppCreationStrategy()
         elif task == 'source_code_service_create':
             self.strategy = SourceCodeServiceCreationStrategy()
         elif task == 'install_mysql_from_market':
@@ -111,5 +112,5 @@ class BaseTaskStatusContext(object):
             logger.warning("Task: {task}; unsupported task".format(task=task))
             self.strategy = DefaultStrategy()
 
-    def confirm_status(self):
+    def confirm_status(self) -> Any:
         return self.strategy.confirm_status(self.eid)

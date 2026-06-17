@@ -3,7 +3,10 @@
   Created on 18/1/29.
 """
 import logging
+from typing import Any, List, Tuple
 from urllib.parse import urlencode
+
+from rest_framework.request import Request
 
 from console.services.app_config import env_var_service
 from console.services.app_config.promql_service import promql_service
@@ -20,7 +23,7 @@ region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
 
 
-def get_sufix_path(request, query=""):
+def get_sufix_path(request: Any, query: str = "") -> str:
     """获取get请求参数路径部分的数据"""
     full_url = request.get_full_path()
     index = full_url.find("?")
@@ -41,7 +44,7 @@ def get_sufix_path(request, query=""):
 
 
 class AppMonitorQueryView(AppBaseView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         监控信息查询
         ---
@@ -64,7 +67,8 @@ class AppMonitorQueryView(AppBaseView):
                 query = promql_service.add_or_update_label(self.service.service_id, query, self.service.arch)
             sufix = "?" + get_sufix_path(request, query)
             res, body = region_api.get_query_data(self.service.service_region, self.tenant.tenant_name, sufix)
-            result = general_message(200, "success", "查询成功", bean=body["data"])
+            # NOTE: region API result may be None; indexing it is a latent risk (backlog).
+            result = general_message(200, "success", "查询成功", bean=body["data"])  # type: ignore[index]
         except Exception as e:
             logger.debug(e)
             result = general_message(200, "success", "查询成功", bean=[])
@@ -72,7 +76,7 @@ class AppMonitorQueryView(AppBaseView):
 
 
 class AppMonitorQueryRangeView(AppBaseView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         监控信息范围查询
         ---
@@ -96,7 +100,8 @@ class AppMonitorQueryRangeView(AppBaseView):
                 query = promql_service.add_or_update_label(self.service.service_id, query, self.service.arch)
             sufix = "?" + get_sufix_path(request, query)
             res, body = region_api.get_query_range_data(self.service.service_region, self.tenant.tenant_name, sufix)
-            result = general_message(200, "success", "查询成功", bean=body["data"])
+            # NOTE: region API result may be None; indexing it is a latent risk (backlog).
+            result = general_message(200, "success", "查询成功", bean=body["data"])  # type: ignore[index]
         except Exception as e:
             logger.exception(e)
             result = general_message(200, "success", "查询成功", bean=[])
@@ -104,7 +109,7 @@ class AppMonitorQueryRangeView(AppBaseView):
 
 
 class AppResourceQueryView(AppBaseView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         组件资源查询
         ---
@@ -123,18 +128,19 @@ class AppResourceQueryView(AppBaseView):
         """
         data = {"service_ids": [self.service.service_id]}
         body = region_api.get_service_resources(self.tenant.tenant_name, self.service.service_region, data)
-        bean = body["bean"]
-        result = bean.get(self.service.service_id)
+        # NOTE: region API result may be None; indexing it is a latent risk (backlog).
+        bean = body["bean"]  # type: ignore[index]
+        service_resource = bean.get(self.service.service_id)
         resource = dict()
-        resource["memory"] = result.get("memory", 0) if result else 0
-        resource["disk"] = result.get("disk", 0) if result else 0
-        resource["cpu"] = result.get("cpu", 0) if result else 0
+        resource["memory"] = service_resource.get("memory", 0) if service_resource else 0
+        resource["disk"] = service_resource.get("disk", 0) if service_resource else 0
+        resource["cpu"] = service_resource.get("cpu", 0) if service_resource else 0
         result = general_message(200, "success", "查询成功", bean=resource)
         return Response(result, status=result["code"])
 
 
 class BatchAppMonitorQueryView(RegionTenantHeaderView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         监控信息查询
         ---
@@ -176,9 +182,11 @@ class BatchAppMonitorQueryView(RegionTenantHeaderView):
             id_service_map[s.service_id] = s
             id_name_map[s.service_id] = s.service_cname
 
+        # NOTE: enterprise_id is nullable but region API expects str (systemic mismatch; backlog).
         pods_info = region_api.get_services_pods(self.response_region, self.tenant.tenant_name, service_id_list,
-                                                 self.tenant.enterprise_id)
-        pod_info_list = pods_info["list"]
+                                                 self.tenant.enterprise_id)  # type: ignore[arg-type]
+        # NOTE: region API result may be None; indexing it is a latent risk (backlog).
+        pod_info_list = pods_info["list"]  # type: ignore[index]
         ip_service_map = {}
         all_ips = []
         if pod_info_list:
@@ -196,15 +204,16 @@ class BatchAppMonitorQueryView(RegionTenantHeaderView):
 
         res, throughput_body = region_api.get_query_data(self.response_region, self.tenant.tenant_name,
                                                          prefix + throughput_rate)
-        response_data = response_body["data"]["result"]
-        throughput_data = throughput_body["data"]["result"]
+        # NOTE: region API results may be None; indexing them is a latent risk (backlog).
+        response_data = response_body["data"]["result"]  # type: ignore[index]
+        throughput_data = throughput_body["data"]["result"]  # type: ignore[index]
 
         for r in response_data:
             res_union_key = r["metric"]["client"] + "+" + r["metric"]["service_id"]
             for t in throughput_data:
                 thr_union_key = t["metric"]["client"] + "+" + t["metric"]["service_id"]
                 if res_union_key == thr_union_key:
-                    result_bean = {"is_web": False}
+                    result_bean: dict = {"is_web": False}
                     source = res_union_key.split("+")[0]
                     target = res_union_key.split("+")[1]
                     source_service = ip_service_map.get(source, None)
@@ -228,7 +237,7 @@ class BatchAppMonitorQueryView(RegionTenantHeaderView):
 
         return Response(result, status=result["code"])
 
-    def get_query_statements(self, service_id_list, all_pod_ips):
+    def get_query_statements(self, service_id_list: List[Any], all_pod_ips: List[Any]) -> Tuple[str, str]:
         # 响应时间语句： avg(app_client_requesttime{client="17216189100",
         # service_id=~"968f6919a1bb4cc988d48fd4ebf6303f"}) by (service_id,client)
         # 吞吐率 sum(ceil(increase(app_client_request{service_id=~"968f6919a1bb4cc988d48fd4ebf6303f",
@@ -247,7 +256,7 @@ class BatchAppMonitorQueryView(RegionTenantHeaderView):
 
 
 class AppTraceView(AppBaseView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         envs = env_var_service.get_all_envs_incloud_depend_env(self.tenant, self.service)
         trace_status = {"collector_host": "", "collector_port": "", "enable_apm": False}
         for env in envs:
@@ -260,7 +269,7 @@ class AppTraceView(AppBaseView):
         result = general_message(200, "success", "查询成功", bean=trace_status)
         return Response(result, status=result["code"])
 
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         enable_env = env_var_service.get_env_by_attr_name(self.tenant, self.service, "ES_ENABLE_APM")
         if enable_env:
             enable_env.attr_value = "true"
@@ -273,7 +282,7 @@ class AppTraceView(AppBaseView):
         result = general_message(200, "success", "设置成功")
         return Response(result, status=result["code"])
 
-    def delete(self, request, *args, **kwargs):
+    def delete(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         enable_env = env_var_service.get_env_by_attr_name(self.tenant, self.service, "ES_ENABLE_APM")
         if enable_env:
             env_var_service.delete_env_by_attr_name(self.tenant, self.service, "ES_ENABLE_APM")
@@ -285,7 +294,7 @@ class AppTraceView(AppBaseView):
 
 
 class MonitorQueryOverConsoleView(AlowAnyApiView):
-    def get(self, req, *args, **kwargs):
+    def get(self, req: Request, *args: Any, **kwargs: Any) -> Response:
         region_name = req.GET.get("region_name", "")
         query = req.GET.get("query", "")
         start = req.GET.get("start", "")
@@ -299,7 +308,7 @@ class MonitorQueryOverConsoleView(AlowAnyApiView):
 
 
 class MonitorQueryView(AlowAnyApiView):
-    def get(self, req, *args, **kwargs):
+    def get(self, req: Request, *args: Any, **kwargs: Any) -> Response:
         region_name = req.GET.get("region_name", "")
         query = req.GET.get("query", "")
         query = "?"+"query="+query

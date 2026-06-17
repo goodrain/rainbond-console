@@ -5,6 +5,7 @@
 import json
 import logging
 import os
+from typing import Any, List, Optional, Tuple
 
 from console.exception.main import ServiceHandleException
 from console.models.main import (AppMarket, RainbondCenterAppTag, RainbondCenterAppTagsRelation, ServiceRecycleBin,
@@ -12,6 +13,7 @@ from console.models.main import (AppMarket, RainbondCenterAppTag, RainbondCenter
 from console.repositories.base import BaseConnection
 from console.repositories.team_repo import team_repo
 from django.db import transaction
+from django.db.models import QuerySet
 from docker_image import reference
 from www.models.main import (ServiceGroup, ServiceGroupRelation, ServiceWebhooks, TenantServiceInfo, TenantServiceInfoDelete)
 
@@ -28,7 +30,7 @@ PLATFORM_PLUGIN_DEFAULT_URL = "https://hub.grapps.cn"
 
 
 class TenantServiceInfoRepository(object):
-    def list_by_svc_share_uuids(self, group_id, dep_uuids):
+    def list_by_svc_share_uuids(self, group_id: str, dep_uuids: Any) -> Any:
         uuids = "'{}'".format("','".join(str(uuid) for uuid in dep_uuids))
         conn = BaseConnection()
         sql = """
@@ -52,18 +54,18 @@ class TenantServiceInfoRepository(object):
         result = conn.query(sql)
         return result
 
-    def list_by_ids(self, service_ids):
+    def list_by_ids(self, service_ids: Any) -> "QuerySet[TenantServiceInfo]":
         return TenantServiceInfo.objects.filter(service_id__in=service_ids)
 
-    def get_services_by_service_ids(self, service_ids):
+    def get_services_by_service_ids(self, service_ids: Any) -> "QuerySet[TenantServiceInfo]":
         return TenantServiceInfo.objects.filter(service_id__in=service_ids)
 
-    def get_service_map_by_service_ids(self, service_ids):
+    def get_service_map_by_service_ids(self, service_ids: Any) -> dict:
         services = TenantServiceInfo.objects.filter(service_id__in=service_ids)
         service_map = {s.service_id: s.to_dict() for s in services}
         return service_map
 
-    def get_services_in_multi_apps_with_app_info(self, group_ids):
+    def get_services_in_multi_apps_with_app_info(self, group_ids: Any) -> Any:
         ids = "{0}".format(",".join(str(group_id) for group_id in group_ids))
         sql = """
         select svc.*, sg.id as group_id, sg.group_name, sg.region_name, sg.is_default, sg.note
@@ -76,103 +78,106 @@ class TenantServiceInfoRepository(object):
         conn = BaseConnection()
         return conn.query(sql)
 
-    def get_service_by_tenant_and_id(self, tenant_id, service_id):
+    def get_service_by_tenant_and_id(self, tenant_id: str, service_id: str) -> Optional[TenantServiceInfo]:
         services = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_id=service_id)
         if services:
             return services[0]
         return None
 
-    def get_service_by_service_id(self, service_id):
+    def get_service_by_service_id(self, service_id: str) -> Optional[TenantServiceInfo]:
         services = TenantServiceInfo.objects.filter(service_id=service_id)
         if services:
             return services[0]
         return None
 
-    def get_tenant_region_services(self, region, tenant_id):
+    def get_tenant_region_services(self, region: str, tenant_id: str) -> "QuerySet[TenantServiceInfo]":
         return TenantServiceInfo.objects.filter(service_region=region, tenant_id=tenant_id)
 
-    def get_service_by_tenant_and_name(self, tenant_id, service_cname):
+    def get_service_by_tenant_and_name(self, tenant_id: str, service_cname: str) -> Optional[TenantServiceInfo]:
         services = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_cname=service_cname)
         if services:
             return services[0]
         return None
 
-    def get_service_by_tenant(self, tenant_id):
+    def get_service_by_tenant(self, tenant_id: str) -> "QuerySet[TenantServiceInfo]":
         return TenantServiceInfo.objects.filter(tenant_id=tenant_id)
 
-    def get_service_by_region_tenant_and_name(self, tenant_id, service_cname, region):
+    def get_service_by_region_tenant_and_name(self, tenant_id: str, service_cname: str,
+                                              region: str) -> Optional[TenantServiceInfo]:
         services = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_cname=service_cname, service_region=region)
         if services:
             return services[0]
         return None
 
-    def get_services_by_service_group_id(self, service_group_id):
+    def get_services_by_service_group_id(self, service_group_id: str) -> "QuerySet[TenantServiceInfo]":
         return TenantServiceInfo.objects.filter(tenant_service_group_id=service_group_id)
 
-    def get_services_by_service_group_ids(self, component_ids, service_group_ids):
+    def get_services_by_service_group_ids(self, component_ids: Any,
+                                          service_group_ids: Any) -> "QuerySet[TenantServiceInfo]":
         return TenantServiceInfo.objects.filter(service_id__in=component_ids, tenant_service_group_id__in=service_group_ids)
 
-    def get_services_by_raw_sql(self, raw_sql):
+    def get_services_by_raw_sql(self, raw_sql: str) -> Any:
         return TenantServiceInfo.objects.raw(raw_sql)
 
-    def get_service_by_tenant_and_alias(self, tenant_id, service_alias):
+    def get_service_by_tenant_and_alias(self, tenant_id: str, service_alias: str) -> Optional[TenantServiceInfo]:
         services = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_alias=service_alias)
         if services:
             return services[0]
         return None
 
-    def get_service_by_tenant_and_k8s_component_name(self, tenant_id, k8s_component_names):
+    def get_service_by_tenant_and_k8s_component_name(self, tenant_id: str, k8s_component_names: Any) -> Any:
         services = TenantServiceInfo.objects.filter(tenant_id=tenant_id, k8s_component_name__in=k8s_component_names)
         if services:
             return services
         return []
 
-    def get_services_by_tenant_id(self, tenant_id):
+    def get_services_by_tenant_id(self, tenant_id: str) -> int:
         services = TenantServiceInfo.objects.filter(tenant_id=tenant_id).count()
         if services:
             return services
         return 0
 
-    def get_service_by_service_alias(self, service_alias):
+    def get_service_by_service_alias(self, service_alias: str) -> Optional[TenantServiceInfo]:
         services = TenantServiceInfo.objects.filter(service_alias=service_alias)
         if services:
             return services[0]
         return None
 
-    def get_tenant_services(self, tenant_id):
+    def get_tenant_services(self, tenant_id: str) -> "QuerySet[TenantServiceInfo]":
         service_list = TenantServiceInfo.objects.filter(tenant_id=tenant_id).all()
         return service_list
 
-    def get_tenant_services_count(self, tenant_id):
+    def get_tenant_services_count(self, tenant_id: str) -> int:
         service_count = TenantServiceInfo.objects.filter(tenant_id=tenant_id).count()
         return service_count
 
-    def get_service_by_key(self, tenant_id):
+    def get_service_by_key(self, tenant_id: str) -> None:
         ServiceSourceInfo.objects.filter()
 
-    def change_service_image_tag(self, service, tag):
+    def change_service_image_tag(self, service: TenantServiceInfo, tag: str) -> None:
         """改变镜像标签"""
         ref = reference.Reference.parse(service.image)
         service.image = "{}:{}".format(ref['name'], tag)
         service.version = tag
         service.save()
 
-    def update(self, tenant_id, service_id, **params):
+    def update(self, tenant_id: str, service_id: str, **params: Any) -> None:
         TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_id=service_id).update(**params)
 
-    def get_services_by_service_ids_and_group_key(self, group_key, service_ids):
+    def get_services_by_service_ids_and_group_key(self, group_key: str,
+                                                  service_ids: Any) -> "QuerySet[TenantServiceInfo]":
         """使用service_ids 和 group_key 查找一组云市应用下的组件"""
         service_source = ServiceSourceInfo.objects.filter(group_key=group_key, service__in=service_ids)
         service_ids = service_source.values_list("service", flat=True)
         return TenantServiceInfo.objects.filter(service_id__in=service_ids)
 
-    def del_by_sid(self, sid):
+    def del_by_sid(self, sid: str) -> None:
         TenantServiceInfo.objects.filter(service_id=sid).delete()
 
-    def create(self, service_base):
+    def create(self, service_base: dict) -> None:
         TenantServiceInfo(**service_base).save()
 
-    def get_app_list(self, tenant_ids, name, page, page_size):
+    def get_app_list(self, tenant_ids: Any, name: str, page: int, page_size: int) -> Any:
         where = 'WHERE A.tenant_id in ({}) '.format(','.join(['"' + x + '"' for x in tenant_ids]))
         if name:
             where += 'AND (A.group_name LIKE "{}%" OR C.service_cname LIKE "{}%") '.format(name, name)
@@ -201,7 +206,7 @@ class TenantServiceInfoRepository(object):
         result = conn.query(sql)
         return result
 
-    def get_app_count(self, tenant_ids, name):
+    def get_app_count(self, tenant_ids: Any, name: str) -> Any:
         where = 'WHERE A.tenant_id in ({}) '.format(','.join(['"' + x + '"' for x in tenant_ids]))
         if name:
             where += ' AND (A.group_name LIKE "{}%" OR C.service_cname LIKE "{}%")'.format(name, name)
@@ -228,10 +233,10 @@ class TenantServiceInfoRepository(object):
         result = conn.query(sql)
         return result
 
-    def get_services_by_team_and_region(self, team_id, region_name):
+    def get_services_by_team_and_region(self, team_id: str, region_name: str) -> "QuerySet[TenantServiceInfo]":
         return TenantServiceInfo.objects.filter(tenant_id=team_id, service_region=region_name).all()
 
-    def list_basic_infos_by_team_and_region(self, team_id, region_name):
+    def list_basic_infos_by_team_and_region(self, team_id: str, region_name: str) -> List[dict]:
         services = TenantServiceInfo.objects.filter(
             tenant_id=team_id, service_region=region_name).order_by("-update_time")
         service_ids = [service.service_id for service in services]
@@ -265,10 +270,10 @@ class TenantServiceInfoRepository(object):
         return result
 
     @staticmethod
-    def bulk_create(components: [TenantServiceInfo]):
+    def bulk_create(components: List[TenantServiceInfo]) -> None:
         TenantServiceInfo.objects.bulk_create(components)
 
-    def get_service_by_region(self, enterprise_id, region):
+    def get_service_by_region(self, enterprise_id: str, region: str) -> "QuerySet[TenantServiceInfo]":
         teams = team_repo.get_teams_by_enterprise_id(enterprise_id)
         team_ids = []
         if teams:
@@ -276,27 +281,29 @@ class TenantServiceInfoRepository(object):
         return TenantServiceInfo.objects.filter(tenant_id__in=team_ids, service_region=region)
 
     @staticmethod
-    def count_components():
+    def count_components() -> int:
         return TenantServiceInfo.objects.count()
 
 
 class ServiceSourceRepository(object):
-    def get_service_source(self, team_id, service_id):
-        service_sources = ServiceSourceInfo.objects.filter(team_id=team_id, service_id=service_id)
+    def get_service_source(self, team_id: str, service_id: str) -> Optional[ServiceSourceInfo]:
+        # service is a FK with to_field='service_id' (CharField); stubs infer the PK type
+        # for the *_id lookup, so a str arg is a false positive. Behavior is correct.
+        service_sources = ServiceSourceInfo.objects.filter(team_id=team_id, service_id=service_id)  # type: ignore[misc]
         if service_sources:
             return service_sources[0]
         return None
 
-    def json_service_source(self, image, cmd):
+    def json_service_source(self, image: str, cmd: str) -> str:
         return json.dumps({"镜像名称": image, "启动命令": cmd, "用户名": "——", "用户密码": "——"}, ensure_ascii=False)
 
-    def get_service_sources(self, team_id, service_ids):
+    def get_service_sources(self, team_id: str, service_ids: Any) -> "QuerySet[ServiceSourceInfo]":
         return ServiceSourceInfo.objects.filter(team_id=team_id, service_id__in=service_ids)
 
-    def create_service_source(self, **params):
+    def create_service_source(self, **params: Any) -> ServiceSourceInfo:
         return ServiceSourceInfo.objects.create(**params)
 
-    def update_or_create_service_source(self, **params):
+    def update_or_create_service_source(self, **params: Any) -> ServiceSourceInfo:
         """创建或更新服务源信息，避免重复键冲突"""
         team_id = params.get('team_id')
         service_id = params.get('service_id')
@@ -307,32 +314,33 @@ class ServiceSourceRepository(object):
         )
         return obj
 
-    def delete_service_source(self, team_id, service_id):
-        ServiceSourceInfo.objects.filter(team_id=team_id, service_id=service_id).delete()
+    def delete_service_source(self, team_id: str, service_id: str) -> None:
+        # service_id is a FK *_id lookup with CharField to_field; str is a stubs false positive.
+        ServiceSourceInfo.objects.filter(team_id=team_id, service_id=service_id).delete()  # type: ignore[misc]
 
-    def update_service_source(self, team_id, service_id, **data):
-        ServiceSourceInfo.objects.filter(team_id=team_id, service_id=service_id).update(**data)
+    def update_service_source(self, team_id: str, service_id: str, **data: Any) -> None:
+        ServiceSourceInfo.objects.filter(team_id=team_id, service_id=service_id).update(**data)  # type: ignore[misc]
 
-    def get_by_share_key(self, team_id, service_share_uuid):
+    def get_by_share_key(self, team_id: str, service_share_uuid: str) -> Optional[ServiceSourceInfo]:
         service_sources = ServiceSourceInfo.objects.filter(team_id=team_id, service_share_uuid=service_share_uuid)
         if service_sources:
             return service_sources[0]
         return None
 
-    def get_service_sources_by_service_ids(self, service_ids):
+    def get_service_sources_by_service_ids(self, service_ids: Any) -> "QuerySet[ServiceSourceInfo]":
         """使用service_ids获取组件源信息的查询集"""
         return ServiceSourceInfo.objects.filter(service_id__in=service_ids)
 
-    def get_service_sources_by_group_key(self, group_key):
+    def get_service_sources_by_group_key(self, group_key: str) -> "QuerySet[ServiceSourceInfo]":
         """使用group_key获取一组云市应用下的所有组件源信息的查询集"""
         return ServiceSourceInfo.objects.filter(group_key=group_key)
 
-    def upgrade_service_source_share_uuid_to_53(self):
+    def upgrade_service_source_share_uuid_to_53(self) -> None:
         ssi = ServiceSourceInfo.objects.exclude(service_share_uuid=None)
         if not ssi:
             return
         for ss in ssi:
-            sk = ss.service_share_uuid.split("+")
+            sk = ss.service_share_uuid.split("+")  # type: ignore[union-attr]  # excluded None above
             if len(sk) == 2:
                 ss.service_share_uuid = "{0}+{1}".format(sk[1], sk[1])
                 ss.save()
@@ -342,19 +350,19 @@ class ServiceSourceRepository(object):
                     component[0].save()
 
     @staticmethod
-    def list_by_app_id(team_id, app_id):
+    def list_by_app_id(team_id: str, app_id: str) -> "QuerySet[ServiceSourceInfo]":
         # group_key is equivalent to app_id in rainbond_app
         return ServiceSourceInfo.objects.filter(team_id=team_id, group_key=app_id)
 
     @staticmethod
-    def bulk_create(service_sources):
+    def bulk_create(service_sources: List[ServiceSourceInfo]) -> None:
         ServiceSourceInfo.objects.bulk_create(service_sources)
 
-    def bulk_update(self, service_sources):
+    def bulk_update(self, service_sources: List[ServiceSourceInfo]) -> None:
         ServiceSourceInfo.objects.filter(pk__in=[source.ID for source in service_sources]).delete()
         self.bulk_create(service_sources)
 
-    def overwrite_by_component_ids(self, component_ids, service_sources):
+    def overwrite_by_component_ids(self, component_ids: Any, service_sources: List[ServiceSourceInfo]) -> None:
         ServiceSourceInfo.objects.filter(service_id__in=component_ids).delete()
         service_sources = [source for source in service_sources if source]
         if not service_sources:
@@ -363,67 +371,68 @@ class ServiceSourceRepository(object):
 
 
 class ServiceRecycleBinRepository(object):
-    def get_team_trash_services(self, tenant_id):
+    def get_team_trash_services(self, tenant_id: str) -> "QuerySet[ServiceRecycleBin]":
         return ServiceRecycleBin.objects.filter(tenant_id=tenant_id)
 
-    def create_trash_service(self, **params):
+    def create_trash_service(self, **params: Any) -> ServiceRecycleBin:
         return ServiceRecycleBin.objects.create(**params)
 
-    def delete_trash_service_by_service_id(self, service_id):
+    def delete_trash_service_by_service_id(self, service_id: str) -> None:
         ServiceRecycleBin.objects.filter(service_id=service_id).delete()
 
-    def delete_transh_service_by_service_ids(self, service_ids):
+    def delete_transh_service_by_service_ids(self, service_ids: Any) -> None:
         ServiceRecycleBin.objects.filter(service_id__in=service_ids).delete()
 
 
 class ServiceRelationRecycleBinRepository(object):
-    def create_trash_service_relation(self, **params):
+    def create_trash_service_relation(self, **params: Any) -> None:
         ServiceRelationRecycleBin.objects.create(**params)
 
-    def get_by_dep_service_id(self, dep_service_id):
+    def get_by_dep_service_id(self, dep_service_id: str) -> "QuerySet[ServiceRelationRecycleBin]":
         return ServiceRelationRecycleBin.objects.filter(dep_service_id=dep_service_id)
 
-    def get_by_service_id(self, service_id):
+    def get_by_service_id(self, service_id: str) -> "QuerySet[ServiceRelationRecycleBin]":
         return ServiceRelationRecycleBin.objects.filter(service_id=service_id)
 
 
 class TenantServiceDeleteRepository(object):
-    def create_delete_service(self, **params):
+    def create_delete_service(self, **params: Any) -> TenantServiceInfoDelete:
         return TenantServiceInfoDelete.objects.create(**params)
 
-    def get_delete_service_map(self, service_ids):
+    def get_delete_service_map(self, service_ids: Any) -> dict:
         tsds = TenantServiceInfoDelete.objects.filter(service_id__in=service_ids)
         del_service_map = {t.service_id: t.to_dict() for t in tsds}
         return del_service_map
 
 
 class TenantServiceWebhooks(object):
-    def get_service_webhooks_by_service_id_and_type(self, service_id, webhooks_type):
+    def get_service_webhooks_by_service_id_and_type(self, service_id: str,
+                                                    webhooks_type: str) -> Optional[ServiceWebhooks]:
         return ServiceWebhooks.objects.filter(service_id=service_id, webhooks_type=webhooks_type).first()
 
-    def create_service_webhooks(self, service_id, webhooks_type):
+    def create_service_webhooks(self, service_id: str, webhooks_type: str) -> ServiceWebhooks:
         return ServiceWebhooks.objects.create(service_id=service_id, webhooks_type=webhooks_type)
 
-    def get_or_create_service_webhook(self, service_id, deployment_way):
+    def get_or_create_service_webhook(self, service_id: str, deployment_way: str) -> ServiceWebhooks:
         """获取或创建service_webhook"""
         return self.get_service_webhooks_by_service_id_and_type(service_id, deployment_way) or self.create_service_webhooks(
             service_id, deployment_way)
 
 
 class AppTagRepository(object):
-    def get_tags(self, tag_id):
+    def get_tags(self, tag_id: Any) -> "QuerySet[RainbondCenterAppTag]":
         return RainbondCenterAppTag.objects.filter(ID__in=tag_id)
 
-    def get_all_tag_list(self, enterprise_id):
+    def get_all_tag_list(self, enterprise_id: str) -> "QuerySet[RainbondCenterAppTag]":
         return RainbondCenterAppTag.objects.filter(enterprise_id=enterprise_id, is_deleted=False)
 
-    def create_tag(self, enterprise_id, name):
+    def create_tag(self, enterprise_id: str, name: str) -> Any:
         old_tag = RainbondCenterAppTag.objects.filter(enterprise_id=enterprise_id, name=name)
         if old_tag:
             return False
         return RainbondCenterAppTag.objects.create(enterprise_id=enterprise_id, name=name, is_deleted=False)
 
-    def create_tags(self, enterprise_id, names):
+    def create_tags(self, enterprise_id: str, names: Any) -> Any:
         tag_list = []
         old_tag = RainbondCenterAppTag.objects.filter(enterprise_id=enterprise_id, name__in=names)
         if old_tag:
@@ -432,7 +441,7 @@ class AppTagRepository(object):
             tag_list.append(RainbondCenterAppTag.objects.create(enterprise_id=enterprise_id, name=name, is_deleted=False))
         return RainbondCenterAppTag.objects.bulk_create(tag_list)
 
-    def create_app_tag_relation(self, app, tag_id):
+    def create_app_tag_relation(self, app: Any, tag_id: str) -> Any:
         old_relation = RainbondCenterAppTagsRelation.objects.filter(
             enterprise_id=app.enterprise_id, app_id=app.app_id, tag_id=tag_id)
         if old_relation:
@@ -440,7 +449,7 @@ class AppTagRepository(object):
         return RainbondCenterAppTagsRelation.objects.create(enterprise_id=app.enterprise_id, app_id=app.app_id, tag_id=tag_id)
 
     @transaction.atomic
-    def create_app_tags_relation(self, app, tag_ids):
+    def create_app_tags_relation(self, app: Any, tag_ids: Any) -> Any:
         relation_list = []
         RainbondCenterAppTagsRelation.objects.filter(enterprise_id=app.enterprise_id, app_id=app.app_id).delete()
         for tag_id in tag_ids:
@@ -448,11 +457,11 @@ class AppTagRepository(object):
                 RainbondCenterAppTagsRelation(enterprise_id=app.enterprise_id, app_id=app.app_id, tag_id=tag_id))
         return RainbondCenterAppTagsRelation.objects.bulk_create(relation_list)
 
-    def delete_app_tag_relation(self, app, tag_id):
+    def delete_app_tag_relation(self, app: Any, tag_id: str) -> Tuple[int, dict]:
         return RainbondCenterAppTagsRelation.objects.filter(
             enterprise_id=app.enterprise_id, app_id=app.app_id, tag_id=tag_id).delete()
 
-    def delete_tag(self, enterprise_id, tag_id):
+    def delete_tag(self, enterprise_id: str, tag_id: str) -> bool:
         status = True
         try:
             app_tag = RainbondCenterAppTag.objects.get(ID=tag_id, enterprise_id=enterprise_id)
@@ -463,7 +472,7 @@ class AppTagRepository(object):
             status = False
         return status
 
-    def delete_tags(self, tag_ids, enterprise_id):
+    def delete_tags(self, tag_ids: Any, enterprise_id: str) -> bool:
         status = True
         try:
             app_tag = RainbondCenterAppTag.objects.filter(ID__in=tag_ids, enterprise_id=enterprise_id)
@@ -474,7 +483,7 @@ class AppTagRepository(object):
             status = False
         return status
 
-    def update_tag_name(self, enterprise_id, tag_id, name):
+    def update_tag_name(self, enterprise_id: str, tag_id: str, name: str) -> bool:
         status = True
         try:
             app_tag = RainbondCenterAppTag.objects.get(ID=tag_id, enterprise_id=enterprise_id)
@@ -484,10 +493,10 @@ class AppTagRepository(object):
             status = False
         return status
 
-    def get_app_tags(self, enterprise_id, app_id):
+    def get_app_tags(self, enterprise_id: str, app_id: str) -> "QuerySet[RainbondCenterAppTagsRelation]":
         return RainbondCenterAppTagsRelation.objects.filter(enterprise_id=enterprise_id, app_id=app_id)
 
-    def get_multi_apps_tags(self, eid, app_ids):
+    def get_multi_apps_tags(self, eid: str, app_ids: Any) -> Any:
         if not app_ids:
             return None
         app_ids = ",".join("'{0}'".format(app_id) for app_id in app_ids)
@@ -509,7 +518,7 @@ class AppTagRepository(object):
         apps = conn.query(sql)
         return apps
 
-    def get_app_with_tags(self, eid, app_id):
+    def get_app_with_tags(self, eid: str, app_id: str) -> Any:
         sql = """
                 select
                      tag.*
@@ -527,12 +536,13 @@ class AppTagRepository(object):
         apps = conn.query(sql)
         return apps
 
-    def get_tag_name(self, enterprise_id, tag_id):
+    def get_tag_name(self, enterprise_id: str, tag_id: str) -> RainbondCenterAppTag:
         return RainbondCenterAppTag.objects.get(enterprise_id=enterprise_id, ID=tag_id)
 
 
 class AppMarketRepository(object):
-    def create_default_app_market_if_not_exists(self, markets_all, eid, user_id=None):
+    def create_default_app_market_if_not_exists(self, markets_all: Any, eid: str,
+                                                user_id: Optional[str] = None) -> None:
         access_key = os.getenv("DEFAULT_APP_MARKET_ACCESS_KEY", "0a3033dd56a24b42a057bfba327c7e47")
         domain = os.getenv("DEFAULT_APP_MARKET_DOMAIN", "rainbond")
         url = os.getenv("DEFAULT_APP_MARKET_URL", "https://hub.grapps.cn")
@@ -548,7 +558,7 @@ class AppMarketRepository(object):
             return
 
         # 创建默认应用市场时根据USE_SAAS环境变量和user_id决定是否设置用户关系
-        create_data = {
+        create_data: dict = {
             "name": name,
             "url": url,
             "domain": domain,
@@ -565,7 +575,8 @@ class AppMarketRepository(object):
 
         AppMarket.objects.create(**create_data)
 
-    def get_app_markets(self, enterprise_id, user_id=None, for_publish=False):
+    def get_app_markets(self, enterprise_id: str, user_id: Optional[str] = None,
+                        for_publish: bool = False) -> "QuerySet[AppMarket]":
         """获取应用市场列表，支持用户过滤"""
         queryset = AppMarket.objects.filter(enterprise_id=enterprise_id)
 
@@ -580,14 +591,16 @@ class AppMarketRepository(object):
 
         return queryset
 
-    def get_app_market(self, enterprise_id, market_id, raise_exception=False):
+    def get_app_market(self, enterprise_id: str, market_id: str,
+                       raise_exception: bool = False) -> Optional[AppMarket]:
         market = AppMarket.objects.filter(enterprise_id=enterprise_id, ID=market_id).first()
         if raise_exception:
             if not market:
                 raise ServiceHandleException(status_code=404, msg="no found app market", msg_show="应用商店不存在")
         return market
 
-    def get_app_market_by_name(self, enterprise_id, name, user_id=None, raise_exception=False):
+    def get_app_market_by_name(self, enterprise_id: str, name: str, user_id: Optional[str] = None,
+                               raise_exception: bool = False) -> Optional[AppMarket]:
         """根据名称获取应用市场，支持用户过滤"""
         if name == PLATFORM_PLUGIN_MARKET_NAME:
             return self._build_platform_plugin_market(enterprise_id, raise_exception=raise_exception)
@@ -603,7 +616,8 @@ class AppMarketRepository(object):
             raise ServiceHandleException(status_code=404, msg="no found app market", msg_show="应用商店不存在")
         return market
 
-    def _build_platform_plugin_market(self, enterprise_id, raise_exception=False):
+    def _build_platform_plugin_market(self, enterprise_id: str,
+                                      raise_exception: bool = False) -> Optional[AppMarket]:
         """构造平台插件用的合成 AppMarket. 这是个内存中的实例, 不会保存到数据库.
 
         平台插件在 hub.grapps.cn 上挂在 domain=enterprise 命名空间下, 默认市场 (RainbondMarket,
@@ -623,28 +637,29 @@ class AppMarketRepository(object):
             enterprise_id=enterprise_id,
         )
 
-    def get_app_market_by_domain_url(self, enterprise_id, domain, url, raise_exception=False):
+    def get_app_market_by_domain_url(self, enterprise_id: str, domain: str, url: str,
+                                     raise_exception: bool = False) -> Optional[AppMarket]:
         market = AppMarket.objects.filter(enterprise_id=enterprise_id, domain=domain, url=url).first()
         if raise_exception:
             if not market:
                 raise ServiceHandleException(status_code=404, msg="no found app market", msg_show="应用商店不存在")
         return market
 
-    def create_app_market(self, user_id=None, **kwargs):
+    def create_app_market(self, user_id: Optional[str] = None, **kwargs: Any) -> AppMarket:
         """创建应用市场，支持用户绑定"""
         if os.getenv("USE_SAAS") and user_id:
             kwargs['user_id'] = user_id
             kwargs['is_personal'] = True
         return AppMarket.objects.create(**kwargs)
 
-    def get_user_app_markets(self, user_id, enterprise_id=None):
+    def get_user_app_markets(self, user_id: str, enterprise_id: Optional[str] = None) -> "QuerySet[AppMarket]":
         """获取用户的应用市场"""
         queryset = AppMarket.objects.filter(user_id=user_id)
         if enterprise_id:
             queryset = queryset.filter(enterprise_id=enterprise_id)
         return queryset
 
-    def update_access_key(self, enterprise_id, name, access_key, user_id):
+    def update_access_key(self, enterprise_id: str, name: str, access_key: str, user_id: str) -> int:
         app_filter = AppMarket.objects.filter(enterprise_id=enterprise_id, name=name)
         if user_id:
             app_filter = app_filter.filter(user_id=user_id)

@@ -1,3 +1,5 @@
+from typing import Any
+
 import requests
 from django.http import HttpResponse
 from django.views import View
@@ -7,11 +9,11 @@ from django.utils.decorators import method_decorator
 
 @method_decorator(csrf_exempt, name='dispatch')
 class AppServerProxyView(View):
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:
         super(AppServerProxyView, self).__init__(**kwargs)
         self.target_base_url = 'https://hub.grapps.cn'
 
-    def dispatch(self, request, *args, **kwargs):
+    def dispatch(self, request: Any, *args: Any, **kwargs: Any) -> HttpResponse:
         # 获取原始请求路径
         path = request.get_full_path()
         # 构建目标URL

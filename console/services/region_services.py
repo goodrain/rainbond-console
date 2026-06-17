@@ -6,10 +6,12 @@ import os
 import subprocess
 
 import yaml
+from typing import Any, Dict, List, Optional, Tuple
+
 from console.enum.region_enum import RegionStatusEnum
 from console.exception.exceptions import RegionUnreachableError
 from console.exception.main import ServiceHandleException
-from console.models.main import ConsoleSysConfig, RegionConfig
+from console.models.main import RegionConfig
 from console.repositories.app import service_repo
 from console.repositories.group import group_repo
 from console.repositories.init_cluster import rke_cluster
@@ -27,7 +29,10 @@ from django.db import transaction
 from www.apiclient.baseclient import client_auth_service
 from www.apiclient.marketclient import MarketOpenAPI
 from www.apiclient.regionapi import RegionInvokeApi
+from www.models.main import Tenants, TenantEnterprise, TenantRegionInfo, Users
 from www.utils.crypt import make_uuid
+
+from django.db.models import QuerySet
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
@@ -35,36 +40,36 @@ market_api = MarketOpenAPI()
 
 
 class RegionExistException(Exception):
-    def __init__(self, message, *args, **kwargs):
+    def __init__(self, message: str, *args: Any, **kwargs: Any) -> None:
         self.message = message
         self.http_code = 400
         self.service_code = 10400
 
 
 class RegionNotExistException(Exception):
-    def __init__(self, message, *args, **kwargs):
+    def __init__(self, message: str, *args: Any, **kwargs: Any) -> None:
         self.message = message
         self.http_code = 404
         self.service_code = 10404
 
 
 class RegionService(object):
-    def get_region_by_tenant_name(self, tenant_name):
+    def get_region_by_tenant_name(self, tenant_name: str) -> Optional[QuerySet[TenantRegionInfo]]:
         return region_repo.get_region_by_tenant_name(tenant_name=tenant_name)
 
-    def get_region_by_region_id(self, region_id):
+    def get_region_by_region_id(self, region_id: str) -> RegionConfig:
         return region_repo.get_region_by_region_id(region_id=region_id)
 
-    def get_region_by_region_name(self, region_name):
+    def get_region_by_region_name(self, region_name: str) -> Optional[RegionConfig]:
         return region_repo.get_region_by_region_name(region_name=region_name)
 
-    def get_enterprise_region_by_region_name(self, enterprise_id, region_name):
+    def get_enterprise_region_by_region_name(self, enterprise_id: str, region_name: str) -> Optional[RegionConfig]:
         return region_repo.get_enterprise_region_by_region_name(enterprise_id, region_name)
 
-    def get_by_region_name(self, region_name):
+    def get_by_region_name(self, region_name: str) -> RegionConfig:
         return region_repo.get_by_region_name(region_name)
 
-    def get_region_all_list_by_team_name(self, team_name):
+    def get_region_all_list_by_team_name(self, team_name: str) -> list:
         regions = region_repo.get_region_by_tenant_name(tenant_name=team_name)
         region_name_list = list()
         if regions:
@@ -87,7 +92,7 @@ class RegionService(object):
             return []
 
     # get_region_list_by_team_name get region list that status is used
-    def get_region_list_by_team_name(self, team_name):
+    def get_region_list_by_team_name(self, team_name: str) -> list:
         regions = region_repo.get_active_region_by_tenant_name(tenant_name=team_name)
         if regions:
             region_name_list = []
@@ -113,7 +118,7 @@ class RegionService(object):
             return []
 
     # verify_team_region Verify that the team tenant is open
-    def verify_team_region(self, team_name, region_name):
+    def verify_team_region(self, team_name: str, region_name: str) -> bool:
         regions = region_repo.get_active_region_by_tenant_name(tenant_name=team_name)
         if regions:
             for region in regions:
@@ -121,7 +126,7 @@ class RegionService(object):
                     return True
         return False
 
-    def list_by_tenant_ids(self, tenant_ids):
+    def list_by_tenant_ids(self, tenant_ids: List[str]) -> list:
         regions = region_repo.list_active_region_by_tenant_ids(tenant_ids)
         if regions:
             result = []
@@ -145,30 +150,36 @@ class RegionService(object):
         else:
             return []
 
-    def list_by_tenant_id(self, tenant_id, query="", page=None, page_size=None):
+    def list_by_tenant_id(self, tenant_id: str, query: str = "", page: Optional[int] = None,
+                          page_size: Optional[int] = None) -> Tuple[Any, Any]:
         regions = region_repo.list_by_tenant_id(tenant_id, query, page, page_size)
         total = region_repo.count_by_tenant_id(tenant_id, query)
         return regions, total
 
-    def list_services_by_tenant_name(self, region_name, team_id):
+    def list_services_by_tenant_name(self, region_name: str, team_id: str) -> Any:
         return base_service.get_services_list(team_id, region_name)
 
-    def get_team_unopen_region(self, team_name, enterprise_id):
+    def get_team_unopen_region(self, team_name: str, enterprise_id: str) -> list:
         usable_regions = region_repo.get_usable_regions(enterprise_id)
         team_opened_regions = region_repo.get_team_opened_region(team_name)
         if team_opened_regions:
             team_opened_regions = team_opened_regions.filter(is_init=True)
-        opened_regions_name = [team_region.region_name for team_region in team_opened_regions]
+        # NOTE: get_team_opened_region returns Optional[QuerySet]; iterated unguarded
+        # below. Invariant: when None, the comprehension over None would raise -- this
+        # is potential latent None-bug if team has no opened regions.
+        opened_regions_name = [team_region.region_name for team_region in team_opened_regions]  # type: ignore[union-attr]
         unopen_regions = usable_regions.exclude(region_name__in=opened_regions_name)
         return [unopen_region.to_dict() for unopen_region in unopen_regions]
 
-    def get_open_regions(self, enterprise_id):
+    def get_open_regions(self, enterprise_id: str) -> QuerySet[RegionConfig]:
         usable_regions = region_repo.get_usable_regions(enterprise_id)
         return usable_regions
 
-    def get_public_key(self, tenant, region):
+    def get_public_key(self, tenant: Tenants, region: str) -> dict:
         try:
-            res, body = region_api.get_region_publickey(tenant.tenant_name, region, tenant.enterprise_id, tenant.tenant_id)
+            # NOTE: tenant.enterprise_id is Optional[str] on the model; regionapi expects str.
+            res, body = region_api.get_region_publickey(
+                tenant.tenant_name, region, tenant.enterprise_id, tenant.tenant_id)  # type: ignore[arg-type]
             if body and "bean" in body:
                 return body["bean"]
             return {}
@@ -176,7 +187,7 @@ class RegionService(object):
             logger.exception(e)
             return {}
 
-    def get_region_license_features(self, tenant, region_name):
+    def get_region_license_features(self, tenant: Tenants, region_name: str) -> list:
         try:
             body = region_api.get_region_license_feature(tenant, region_name)
             if body and "list" in body:
@@ -186,12 +197,14 @@ class RegionService(object):
             logger.exception(e)
             return []
 
-    def get_all_regions(self, query="", page=None, page_size=None):
+    def get_all_regions(self, query: str = "", page: Optional[int] = None,
+                        page_size: Optional[int] = None) -> Tuple[list, int]:
         # 即将移除，仅用于OpenAPI V1
         regions = region_repo.get_all_regions(query)
         total = regions.count()
-        paginator = Paginator(regions, page_size)
-        rp = paginator.page(page)
+        # NOTE: page/page_size are Optional[int] but callers supply concrete ints here.
+        paginator = Paginator(regions, page_size)  # type: ignore[arg-type]
+        rp = paginator.page(page)  # type: ignore[arg-type]
 
         result = []
         for region in rp:
@@ -213,41 +226,44 @@ class RegionService(object):
             })
         return result, total
 
-    def get_regions_with_resource(self, query="", page=None, page_size=None):
+    def get_regions_with_resource(self, query: str = "", page: Optional[int] = None,
+                                  page_size: Optional[int] = None) -> Tuple[list, int]:
         # get all region list
         regions = region_repo.get_all_regions(query)
         total = regions.count()
         if page and page_size:
             paginator = Paginator(regions, page_size)
-            regions = paginator.page(page)
+            # NOTE: rebinding a QuerySet var to a Paginator Page; both are iterable downstream.
+            regions = paginator.page(page)  # type: ignore[assignment]
         return self.conver_regions_info(regions, "yes"), total
 
-    def get_region_httpdomain(self, region_name):
+    def get_region_httpdomain(self, region_name: str) -> str:
         region = region_repo.get_region_by_region_name(region_name)
         if region:
             return region.httpdomain
         return ""
 
-    def get_region_tcpdomain(self, region_name):
+    def get_region_tcpdomain(self, region_name: str) -> str:
         region = region_repo.get_region_by_region_name(region_name)
         if region:
             return region.tcpdomain
         return ""
 
-    def get_region_wsurl(self, region_name):
+    def get_region_wsurl(self, region_name: str) -> str:
         region = region_repo.get_region_by_region_name(region_name)
         if region:
             return region.wsurl
         return ""
 
-    def get_region_url(self, region_name):
+    def get_region_url(self, region_name: str) -> str:
         region = region_repo.get_region_by_region_name(region_name)
         if region:
             return region.url
         return ""
 
     @transaction.atomic
-    def create_tenant_on_region(self, enterprise_id, team_name, region_name, namespace, bind_existing=False):
+    def create_tenant_on_region(self, enterprise_id: str, team_name: str, region_name: str, namespace: str,
+                                bind_existing: bool = False) -> TenantRegionInfo:
         tenant = team_repo.get_team_by_team_name_and_eid(enterprise_id, team_name)
         region_config = region_repo.get_enterprise_region_by_region_name(enterprise_id, region_name)
         if not region_config:
@@ -257,9 +273,13 @@ class RegionService(object):
             tenant_region_info = {"tenant_id": tenant.tenant_id, "region_name": region_name, "is_active": False}
             tenant_region = region_repo.create_tenant_region(**tenant_region_info)
         if not tenant_region.is_init:
-            res, body = region_api.create_tenant(region_name, tenant.tenant_name, tenant.tenant_id, tenant.enterprise_id,
-                                                 namespace, bind_existing)
-            if res["status"] != 200 and body['msg'] != 'tenant name {} is exist'.format(tenant.tenant_name):
+            # NOTE: tenant.enterprise_id is Optional[str] on the model; regionapi expects str.
+            res, body = region_api.create_tenant(
+                region_name, tenant.tenant_name, tenant.tenant_id, tenant.enterprise_id,  # type: ignore[arg-type]
+                namespace, bind_existing)
+            # NOTE: create_tenant returns Optional dict body; indexed unguarded.
+            # Invariant on success path (res status checked alongside).
+            if res["status"] != 200 and body['msg'] != 'tenant name {} is exist'.format(tenant.tenant_name):  # type: ignore[index]
                 logger.error(res)
                 raise ServiceHandleException(msg="cluster init failure ", msg_show="集群初始化租户失败")
             tenant_region.is_active = True
@@ -281,7 +301,8 @@ class RegionService(object):
         return tenant_region
 
     @transaction.atomic
-    def delete_tenant_on_region(self, enterprise_id, team_name, region_name, user):
+    def delete_tenant_on_region(self, enterprise_id: str, team_name: str, region_name: str,
+                                user: Users) -> Optional[RegionConfig]:
         tenant = team_repo.get_team_by_team_name_and_eid(enterprise_id, team_name)
         tenant_region = region_repo.get_team_region_by_tenant_and_region(tenant.tenant_id, region_name)
         if not tenant_region:
@@ -301,13 +322,18 @@ class RegionService(object):
         if not ignore_cluster_resource and services and len(services) > 0:
             # check component status
             service_ids = [service.service_id for service in services]
+            # NOTE: tenant.enterprise_id is Optional[str] on the model; callee expects str.
             status_list = base_service.status_multi_service(
-                region=region_name, tenant_name=tenant.tenant_name, service_ids=service_ids, enterprise_id=tenant.enterprise_id)
+                region=region_name, tenant_name=tenant.tenant_name, service_ids=service_ids,
+                enterprise_id=tenant.enterprise_id)  # type: ignore[arg-type]
             status_list = [x for x in [x["status"] for x in status_list] if x not in ["closed", "undeploy"]]
             if len(status_list) > 0:
                 raise ServiceHandleException(
                     msg="There are running components under the current application",
-                    msg_show="团队在集群{0}下有运行态的组件,请关闭组件后再卸载当前集群".format(region_config.region_alias))
+                    # NOTE: region_config is None only when ignore_cluster_resource=True, which
+                # excludes this branch; invariant non-None here.
+                msg_show="团队在集群{0}下有运行态的组件,请关闭组件后再卸载当前集群".format(
+                    region_config.region_alias))  # type: ignore[union-attr]
         # Components are the key to resource utilization,
         # and removing the cluster only ensures that the component's resources are freed up.
         from console.services.app_actions import app_manage_service
@@ -336,7 +362,8 @@ class RegionService(object):
         tenant_region.delete()
         return region_config
 
-    def get_enterprise_free_resource(self, tenant_id, enterprise_id, region_name, user_name):
+    def get_enterprise_free_resource(self, tenant_id: str, enterprise_id: str, region_name: str,
+                                     user_name: str) -> bool:
         try:
             res, data = market_api.get_enterprise_free_resource(tenant_id, enterprise_id, region_name, user_name)
             return True
@@ -346,31 +373,35 @@ class RegionService(object):
             logger.exception(e)
             return False
 
-    def get_region_access_info(self, team_name, region_name):
+    def get_region_access_info(self, team_name: str, region_name: str) -> Tuple[str, str]:
         """获取一个团队在指定数据中心的身份认证信息"""
         url, token = client_auth_service.get_region_access_token_by_tenant(team_name, region_name)
         # 如果团队所在企业所属数据中心信息不存在则使用通用的配置(兼容未申请数据中心token的企业)
         region_info = region_repo.get_region_by_region_name(region_name)
-        url = region_info.url
+        # NOTE: get_region_by_region_name returns Optional[RegionConfig]; accessed
+        # unguarded. Potential latent None-bug when region_name does not exist.
+        url = region_info.url  # type: ignore[union-attr]
         if not token:
-            token = region_info.token
+            token = region_info.token  # type: ignore[union-attr]
         else:
             token = "Token {}".format(token)
         return url, token
 
-    def get_region_access_info_by_enterprise_id(self, enterprise_id, region_name):
+    def get_region_access_info_by_enterprise_id(self, enterprise_id: str, region_name: str) -> Tuple[str, str]:
         """获取一个团队在指定数据中心的身份认证信息"""
         url, token = client_auth_service.get_region_access_token_by_enterprise_id(enterprise_id, region_name)
         # 如果团队所在企业所属数据中心信息不存在则使用通用的配置(兼容未申请数据中心token的企业)
         region_info = region_repo.get_region_by_region_name(region_name)
-        url = region_info.url
+        # NOTE: get_region_by_region_name returns Optional[RegionConfig]; accessed
+        # unguarded. Potential latent None-bug when region_name does not exist.
+        url = region_info.url  # type: ignore[union-attr]
         if not token:
-            token = region_info.token
+            token = region_info.token  # type: ignore[union-attr]
         else:
             token = "Token {}".format(token)
         return url, token
 
-    def get_team_usable_regions(self, team_name, enterprise_id):
+    def get_team_usable_regions(self, team_name: str, enterprise_id: str) -> Optional[QuerySet[TenantRegionInfo]]:
         usable_regions = region_repo.get_usable_regions(enterprise_id)
         region_names = [r.region_name for r in usable_regions]
         team_opened_regions = region_repo.get_team_opened_region(team_name)
@@ -378,7 +409,7 @@ class RegionService(object):
             team_opened_regions = team_opened_regions.filter(is_init=True, region_name__in=region_names)
         return team_opened_regions
 
-    def json_region(self, region):
+    def json_region(self, region: dict) -> str:
         json_region_dict = dict()
         json_region_dict["集群ID"] = region["region_name"]
         json_region_dict["集群名称"] = region["region_alias"]
@@ -392,10 +423,10 @@ class RegionService(object):
         json_region_dict["备注"] = region["desc"]
         return json.dumps(json_region_dict, ensure_ascii=False)
 
-    def get_regions_by_enterprise_id(self, enterprise_id):
+    def get_regions_by_enterprise_id(self, enterprise_id: str) -> QuerySet[RegionConfig]:
         return RegionConfig.objects.filter(enterprise_id=enterprise_id)
 
-    def add_region(self, region_data, user):
+    def add_region(self, region_data: dict, user: Users) -> RegionConfig:
         ent = enterprise_services.get_enterprise_by_enterprise_id(region_data.get("enterprise_id"))
         if not ent:
             raise ServiceHandleException(status_code=404, msg="enterprise not found", msg_show="企业不存在")
@@ -417,7 +448,7 @@ class RegionService(object):
             return region
         return self.create_sample_application(ent, region, user)
 
-    def create_sample_application(self, ent, region, user):
+    def create_sample_application(self, ent: TenantEnterprise, region: RegionConfig, user: Users) -> RegionConfig:
         try:
             # create default team
             from console.services.team_services import team_services
@@ -427,7 +458,7 @@ class RegionService(object):
             logger.exception(e)
         return region
 
-    def create_default_region(self, enterprise_id, user):
+    def create_default_region(self, enterprise_id: str, user: Users) -> Optional[RegionConfig]:
         region = None
         try:
             cmd = subprocess.Popen(
@@ -435,7 +466,8 @@ class RegionService(object):
                 shell=True,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT)
-            region_config = json.JSONDecoder().decode(cmd.stdout.read().decode("UTF-8"))
+            # NOTE: cmd.stdout typed Optional[IO]; non-None because stdout=PIPE was passed.
+            region_config = json.JSONDecoder().decode(cmd.stdout.read().decode("UTF-8"))  # type: ignore[union-attr]
             region_info = {
                 "region_alias": "默认集群",
                 "region_name": "dind-region",
@@ -456,9 +488,10 @@ class RegionService(object):
             logger.exception(e)
         return region
 
-    def update_region(self, region_data):
+    def update_region(self, region_data: dict) -> RegionConfig:
         region_id = region_data.get("region_id")
-        region = self.get_region_by_region_id(region_id)
+        # NOTE: dict.get returns Optional; callee expects str (id present in update payload).
+        region = self.get_region_by_region_id(region_id)  # type: ignore[arg-type]
         if not region:
             raise RegionNotExistException("数据中心{0}不存在".format(region_id))
         # Update fields that can be updated
@@ -487,7 +520,7 @@ class RegionService(object):
         return region_repo.update_region(region)
 
     @transaction.atomic
-    def update_region_status(self, region_id, status):
+    def update_region_status(self, region_id: str, status: str) -> RegionConfig:
         region = region_repo.get_region_by_region_id(region_id)
 
         stauts_tbl = RegionStatusEnum.to_dict()
@@ -496,7 +529,8 @@ class RegionService(object):
 
         if status == RegionStatusEnum.ONLINE.name:
             try:
-                region_api.get_api_version(region.url, region.token, region.region_name)
+                # NOTE: region.token is Optional[str] on the model; regionapi expects str.
+                region_api.get_api_version(region.url, region.token, region.region_name)  # type: ignore[arg-type]
             except region_api.CallApiError as e:
                 logger.warning("数据中心{0}不可达,无法上线: {1}".format(region.region_name, e.message))
                 raise RegionUnreachableError("数据中心{0}不可达,无法上线".format(region.region_name))
@@ -505,21 +539,21 @@ class RegionService(object):
         self.update_region_config()
         return region
 
-    def update_region_config(self):
+    def update_region_config(self) -> None:
         region_data = self.generate_region_config()
-        # TODO 修改 REGION_SERVICE_API 配置方式
-        try:
-            platform_config_service.get_config_by_key("REGION_SERVICE_API")
-            platform_config_service.update_config("REGION_SERVICE_API", region_data)
-        except ConsoleSysConfig.DoesNotExist:
-            platform_config_service.add_config("REGION_SERVICE_API", region_data, 'json', "数据中心配置")
+        if platform_config_service.get_config_by_key("REGION_SERVICE_API"):
+            platform_config_service.update_config(
+                "REGION_SERVICE_API", {"enable": True, "value": region_data})
+        else:
+            platform_config_service.add_config(
+                "REGION_SERVICE_API", region_data, 'json', desc="数据中心配置")
 
-    def generate_region_config(self):
+    def generate_region_config(self) -> str:
         # 查询已上线的数据中心配置
         region_config_list = []
         regions = RegionConfig.objects.filter(status='1')
         for region in regions:
-            config_map = dict()
+            config_map: Dict[str, Any] = dict()
             config_map["region_name"] = region.region_name
             config_map["region_alias"] = region.region_alias
             config_map["url"] = region.url
@@ -529,7 +563,7 @@ class RegionService(object):
         data = json.dumps(region_config_list)
         return data
 
-    def parse_token(self, token, region_name, region_alias, region_type):
+    def parse_token(self, token: str, region_name: str, region_alias: str, region_type: str) -> dict:
         try:
             info = yaml.load(token, Loader=yaml.BaseLoader)
         except Exception as e:
@@ -566,8 +600,8 @@ class RegionService(object):
         }
         return region_info
 
-    def __init_region_resource_data(self, region, level="open"):
-        region_resource = {}
+    def __init_region_resource_data(self, region: RegionConfig, level: str = "open") -> dict:
+        region_resource: Dict[str, Any] = {}
         region_resource["region_id"] = region.region_id
         region_resource["region_alias"] = region.region_alias
         region_resource["region_name"] = region.region_name
@@ -601,43 +635,48 @@ class RegionService(object):
             region_resource["enterprise_alias"] = enterprise_info.enterprise_alias
         return region_resource
 
-    def conver_regions_info(self, regions, check_status, level="open"):
+    def conver_regions_info(self, regions: Any, check_status: str, level: str = "open") -> list:
         # 转换集群数据，若需要附加状态则从集群API获取
         region_info_list = []
         for region in regions:
             region_info_list.append(self.conver_region_info(region, check_status, level))
         return region_info_list
 
-    def conver_region_info(self, region, check_status, level="open"):
+    def conver_region_info(self, region: RegionConfig, check_status: Any, level: str = "open") -> dict:
         # 转换集群数据，若需要附加状态则从集群API获取
         region_resource = self.__init_region_resource_data(region, level)
         if check_status == "yes":
             try:
                 region.region_name = str(region.region_name)
+                # NOTE: region.enterprise_id is Optional[str] on the model; regionapi expects str.
                 _, rbd_version = region_api.get_enterprise_api_version_v2(
-                    enterprise_id=region.enterprise_id, region=region.region_name)
-                res, body = region_api.get_region_resources(region.enterprise_id, region=region.region_name)
+                    enterprise_id=region.enterprise_id, region=region.region_name)  # type: ignore[arg-type]
+                res, body = region_api.get_region_resources(
+                    region.enterprise_id, region=region.region_name)  # type: ignore[arg-type]
                 if rbd_version:
                     rbd_version = rbd_version["raw"]
                 else:
-                    rbd_version = ""
+                    # NOTE: rbd_version var declared Optional[Dict]; reassigned to "" here.
+                    rbd_version = ""  # type: ignore[assignment]
+                # NOTE: get_region_resources / get_cluster_nodes return Optional dict bodies;
+                # indexed unguarded below. Invariant on the status==200 success path.
                 if res.get("status") == 200:
-                    region_resource["total_memory"] = body["bean"]["cap_mem"]
-                    region_resource["used_memory"] = body["bean"]["req_mem"]
-                    region_resource["total_cpu"] = body["bean"]["cap_cpu"]
-                    region_resource["used_cpu"] = body["bean"]["req_cpu"]
-                    region_resource["total_disk"] = body["bean"]["cap_disk"] / 1024 / 1024 / 1024
-                    region_resource["used_disk"] = body["bean"]["req_disk"] / 1024 / 1024 / 1024
+                    region_resource["total_memory"] = body["bean"]["cap_mem"]  # type: ignore[index]
+                    region_resource["used_memory"] = body["bean"]["req_mem"]  # type: ignore[index]
+                    region_resource["total_cpu"] = body["bean"]["cap_cpu"]  # type: ignore[index]
+                    region_resource["used_cpu"] = body["bean"]["req_cpu"]  # type: ignore[index]
+                    region_resource["total_disk"] = body["bean"]["cap_disk"] / 1024 / 1024 / 1024  # type: ignore[index]
+                    region_resource["used_disk"] = body["bean"]["req_disk"] / 1024 / 1024 / 1024  # type: ignore[index]
                     region_resource["rbd_version"] = rbd_version
-                    region_resource["resource_proxy_status"] = body["bean"]["resource_proxy_status"]
-                    region_resource["k8s_version"] = body["bean"]["k8s_version"]
-                    region_resource["all_nodes"] = body["bean"]["all_node"]
-                    region_resource["services_status"] = {"running": body["bean"]["run_pod_number"]}
-                    region_resource["pods"] = body["bean"]["pods"]
-                    region_resource["run_pod_number"] = body["bean"]["run_pod_number"]
-                    region_resource["node_ready"] = body["bean"]["node_ready"]
+                    region_resource["resource_proxy_status"] = body["bean"]["resource_proxy_status"]  # type: ignore[index]
+                    region_resource["k8s_version"] = body["bean"]["k8s_version"]  # type: ignore[index]
+                    region_resource["all_nodes"] = body["bean"]["all_node"]  # type: ignore[index]
+                    region_resource["services_status"] = {"running": body["bean"]["run_pod_number"]}  # type: ignore[index]
+                    region_resource["pods"] = body["bean"]["pods"]  # type: ignore[index]
+                    region_resource["run_pod_number"] = body["bean"]["run_pod_number"]  # type: ignore[index]
+                    region_resource["node_ready"] = body["bean"]["node_ready"]  # type: ignore[index]
                     res, body = region_api.get_cluster_nodes(region.region_name)
-                    nodes = body["list"]
+                    nodes = body["list"]  # type: ignore[index]
                     arch_map = dict()
                     if nodes:
                         for node in nodes:
@@ -649,23 +688,24 @@ class RegionService(object):
                 region_resource["health_status"] = "failure"
         return region_resource
 
-    def get_enterprise_regions(self, enterprise_id, level="open", status="", check_status="yes"):
+    def get_enterprise_regions(self, enterprise_id: str, level: str = "open", status: str = "",
+                               check_status: str = "yes") -> list:
         regions = region_repo.get_regions_by_enterprise_id(enterprise_id, status)
         if not regions:
             return []
         return self.conver_regions_info(regions, check_status, level)
 
-    def get_enterprise_region(self, enterprise_id, region_id, check_status=True):
+    def get_enterprise_region(self, enterprise_id: str, region_id: str, check_status: bool = True) -> Optional[dict]:
         region = region_repo.get_region_by_id(enterprise_id, region_id)
         if not region:
             return None
         return self.conver_region_info(region, check_status)
 
-    def update_enterprise_region(self, enterprise_id, region_id, data):
+    def update_enterprise_region(self, enterprise_id: str, region_id: str, data: dict) -> dict:
         return self.__init_region_resource_data(region_repo.update_enterprise_region(enterprise_id, region_id, data))
 
     @transaction.atomic
-    def del_by_region_id(self, region_id):
+    def del_by_region_id(self, region_id: str) -> dict:
         """
         Without deleting tenant_region, the relationship between region and tenant can be restored.
 
@@ -675,7 +715,7 @@ class RegionService(object):
         self.update_region_config()
         return region.to_dict()
 
-    def check_region_in_config(self, region_name):
+    def check_region_in_config(self, region_name: str) -> None:
         return None
 
 

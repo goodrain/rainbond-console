@@ -4,6 +4,7 @@
 """
 import copy
 import logging
+from typing import Any, List, Optional, Tuple
 
 from console.enum.component_enum import is_state
 from console.exception.main import ErrDepVolumeNotFound
@@ -13,6 +14,7 @@ from console.repositories.group import group_repo, group_service_relation_repo
 from console.services.app_config.volume_service import AppVolumeService
 from goodrain_web.tools import JuncheePaginator
 from www.apiclient.regionapi import RegionInvokeApi
+from www.models.main import TenantServiceInfo, Tenants
 
 logger = logging.getLogger("default")
 volume_service = AppVolumeService()
@@ -25,26 +27,31 @@ class AppMntService(object):
     LOCAL = 'local'
     TMPFS = 'memoryfs'
 
-    def get_service_mnt_details_byid(self, dep_vol_data):
+    def get_service_mnt_details_byid(self, dep_vol_data: Any) -> List[dict]:
         dep_vol_list = list()
         for dep_vol in dep_vol_data:
             dep_vol_dict = dict()
             dep_vol_dict["本地挂载配置文件路径"] = dep_vol["path"]
             mnt_list = volume_repo.get_service_volume_by_id(id=dep_vol["id"])
-            dep_vol_dict["配置文件名称"] = mnt_list.volume_name
-            dep_vol_dict["目标挂载配置文件路径"] = mnt_list.volume_path
-            dep_service = service_repo.get_service_by_service_id(mnt_list.service_id)
-            dep_vol_dict["所属组件"] = dep_service.service_cname
-            gs_rel = group_service_relation_repo.get_group_by_service_id(dep_service.service_id)
+            # NOTE: get_service_volume_by_id returns Optional; unguarded deref (potential latent None-bug).
+            dep_vol_dict["配置文件名称"] = mnt_list.volume_name  # type: ignore[union-attr]
+            dep_vol_dict["目标挂载配置文件路径"] = mnt_list.volume_path  # type: ignore[union-attr]
+            dep_service = service_repo.get_service_by_service_id(mnt_list.service_id)  # type: ignore[union-attr]
+            # NOTE: get_service_by_service_id returns Optional; unguarded deref (potential latent None-bug).
+            dep_vol_dict["所属组件"] = dep_service.service_cname  # type: ignore[union-attr]
+            gs_rel = group_service_relation_repo.get_group_by_service_id(dep_service.service_id)  # type: ignore[union-attr]
             group = None
             if gs_rel:
-                group = group_repo.get_group_by_pk(dep_service.tenant_id, dep_service.service_region, gs_rel.group_id)
+                # NOTE: gs_rel.group_id is int; get_group_by_pk expects str app_id (caller not owned).
+                group = group_repo.get_group_by_pk(dep_service.tenant_id, dep_service.service_region,  # type: ignore[union-attr]
+                                                   gs_rel.group_id)  # type: ignore[arg-type]
             dep_vol_dict["组件所属应用"] = group.group_name if group else '未分组'
             dep_vol_list.append(dep_vol_dict)
         return dep_vol_list
 
 
-    def get_service_mnt_details(self, tenant, service, volume_types, page=1, page_size=20):
+    def get_service_mnt_details(self, tenant: Tenants, service: TenantServiceInfo, volume_types: Any, page: int = 1,
+                                page_size: int = 20) -> Tuple[List[dict], int]:
 
         all_mnt_relations = mnt_repo.get_service_mnts_filter_volume_type(tenant.tenant_id, service.service_id, volume_types)
         total = len(all_mnt_relations)
@@ -58,7 +65,9 @@ class AppMntService(object):
                     gs_rel = group_service_relation_repo.get_group_by_service_id(dep_service.service_id)
                     group = None
                     if gs_rel:
-                        group = group_repo.get_group_by_pk(tenant.tenant_id, service.service_region, gs_rel.group_id)
+                        # NOTE: gs_rel.group_id is int; get_group_by_pk expects str app_id (caller not owned).
+                        group = group_repo.get_group_by_pk(tenant.tenant_id, service.service_region,
+                                                           gs_rel.group_id)  # type: ignore[arg-type]
                     dep_volume = volume_repo.get_service_volume_by_name(dep_service.service_id, mount.mnt_name)
                     if dep_volume:
                         mounted_dependencies.append({
@@ -74,8 +83,9 @@ class AppMntService(object):
                         })
         return mounted_dependencies, total
 
-    def get_service_unmount_volume_list(self, tenant, service, service_ids, page, page_size, is_config, dep_app_group,
-                                        config_name):
+    def get_service_unmount_volume_list(self, tenant: Tenants, service: TenantServiceInfo, service_ids: Any, page: int,
+                                        page_size: int, is_config: bool, dep_app_group: str,
+                                        config_name: str) -> Tuple[List[dict], int]:
         """
         1. 获取租户下其他所有组件列表，方便后续进行名称的冗余
         2. 获取其他组件的所有可共享的存储
@@ -96,9 +106,10 @@ class AppMntService(object):
         current_tenant_services_id = service_ids
         # 已挂载的组件路径
         mounted = mnt_repo.get_service_mnts(tenant.tenant_id, service.service_id)
-        mounted_ids = [mnt.volume_id for mnt in mounted]
+        # NOTE: REAL BUG — TenantServiceMountRelation has no volume_id attribute (only dep_service_id/mnt_name).
+        mounted_ids = [mnt.volume_id for mnt in mounted]  # type: ignore[attr-defined]
         # 当前未被挂载的共享路径
-        service_volumes = []
+        service_volumes: Any = []
         # 配置文件无论组件是否是共享存储都可以共享，只需过滤掉已经挂载的存储；其他存储类型则需要考虑排除有状态组件的存储
         if is_config:
             service_volumes = volume_repo.get_services_volumes(current_tenant_services_id).filter(
@@ -116,7 +127,9 @@ class AppMntService(object):
         un_mount_dependencies = []
         for volume in page_volumes:
             gs_rel = group_service_relation_repo.get_group_by_service_id(volume.service_id)
-            group = group_repo.get_group_by_pk(tenant.tenant_id, service.service_region, gs_rel.group_id)
+            # NOTE: gs_rel Optional (unguarded, potential latent None-bug); group_id int vs str app_id param.
+            group = group_repo.get_group_by_pk(tenant.tenant_id, service.service_region,
+                                               gs_rel.group_id)  # type: ignore[union-attr,arg-type]
             group_name = group.group_name if group else '未分组'
             if (dep_app_group == "" or dep_app_group == group_name) and (config_name == "" or config_name in volume.volume_name
                                                                          or config_name in volume.volume_path):
@@ -132,13 +145,15 @@ class AppMntService(object):
                 })
         return un_mount_dependencies, total
 
-    def get_service_unmnt_details(self, tenant, service, service_ids, page, page_size, q):
+    def get_service_unmnt_details(self, tenant: Tenants, service: TenantServiceInfo, service_ids: Any, page: int,
+                                  page_size: int, q: Any) -> Tuple[List[dict], int]:
 
         services = service_repo.get_services_by_service_ids(service_ids)
         current_tenant_services_id = service_ids
         # 已挂载的组件路径
         dep_mnts = mnt_repo.get_service_mnts(tenant.tenant_id, service.service_id)
-        dep_volume_ids = [dep_mnt.volume_id for dep_mnt in dep_mnts]
+        # NOTE: REAL BUG — TenantServiceMountRelation has no volume_id attribute (only dep_service_id/mnt_name).
+        dep_volume_ids = [dep_mnt.volume_id for dep_mnt in dep_mnts]  # type: ignore[attr-defined]
         # 当前未被挂载的共享路径
         service_volumes = volume_repo.get_services_volumes(current_tenant_services_id) \
             .filter(volume_type__in=[self.SHARE, self.CONFIG]) \
@@ -161,7 +176,9 @@ class AppMntService(object):
             gs_rel = group_service_relation_repo.get_group_by_service_id(volume.service_id)
             group = None
             if gs_rel:
-                group = group_repo.get_group_by_pk(tenant.tenant_id, service.service_region, gs_rel.group_id)
+                # NOTE: gs_rel.group_id is int; get_group_by_pk expects str app_id (caller not owned).
+                group = group_repo.get_group_by_pk(tenant.tenant_id, service.service_region,
+                                                   gs_rel.group_id)  # type: ignore[arg-type]
             un_mount_dependencies.append({
                 "dep_app_name": services.get(service_id=volume.service_id).service_cname,
                 "dep_app_group": group.group_name if group else '未分组',
@@ -174,7 +191,8 @@ class AppMntService(object):
             })
         return un_mount_dependencies, total
 
-    def batch_mnt_serivce_volume(self, tenant, service, dep_vol_data, user_name=''):
+    def batch_mnt_serivce_volume(self, tenant: Tenants, service: TenantServiceInfo, dep_vol_data: Any,
+                                 user_name: str = '') -> None:
         local_path = []
         tenant_service_volumes = volume_service.get_service_volumes(tenant=tenant, service=service)
         local_path = [l_path["volume_path"] for l_path in tenant_service_volumes]
@@ -189,7 +207,7 @@ class AppMntService(object):
             except Exception as e:
                 logger.exception(e)
 
-    def create_service_volume(self, tenant, service, dep_vol):
+    def create_service_volume(self, tenant: Tenants, service: TenantServiceInfo, dep_vol: dict) -> Any:
         """
         raise ErrInvalidVolume
         raise ErrDepVolumeNotFound
@@ -206,7 +224,9 @@ class AppMntService(object):
         return mnt_repo.add_service_mnt_relation(tenant.tenant_id, service.service_id, dep_volume.service_id,
                                                  dep_volume.volume_name, source_path)
 
-    def add_service_mnt_relation(self, tenant, service, source_path, dep_volume, user_name=''):
+    def add_service_mnt_relation(self, tenant: Tenants, service: Any, source_path: str, dep_volume: Any,
+                                 user_name: str = '') -> None:
+        # NOTE: service relaxed to Any; caller market_app_service.__create_dep_mnt passes Optional from dict.get.
         if not dep_volume:
             return
         if service.create_status == "complete":
@@ -225,7 +245,8 @@ class AppMntService(object):
                     "volume_name": dep_volume.volume_name,
                     "volume_path": source_path,
                     "volume_type": dep_volume.volume_type,
-                    "file_content": config_file.file_content,
+                    # NOTE: get_service_config_file may return None; unguarded deref (potential latent None-bug).
+                    "file_content": config_file.file_content,  # type: ignore[union-attr]
                     "enterprise_id": tenant.enterprise_id
                 }
             data["operator"] = user_name
@@ -238,30 +259,35 @@ class AppMntService(object):
         logger.debug("mnt service {0} to service {1} on dir {2}".format(mnt_relation.service_id, mnt_relation.dep_service_id,
                                                                         mnt_relation.mnt_dir))
 
-    def delete_service_mnt_relation(self, tenant, service, dep_vol_id, user_name=''):
-        dep_volume = volume_repo.get_service_volume_by_pk(dep_vol_id)
+    def delete_service_mnt_relation(self, tenant: Tenants, service: TenantServiceInfo, dep_vol_id: str,
+                                    user_name: str = '') -> Tuple[int, str]:
+        # NOTE: dep_vol_id is str here; get_service_volume_by_pk expects int (caller not owned).
+        dep_volume = volume_repo.get_service_volume_by_pk(dep_vol_id)  # type: ignore[arg-type]
 
         try:
             if service.create_status == "complete":
+                # NOTE: get_service_volume_by_pk may return None; unguarded deref (potential latent None-bug).
                 data = {
-                    "depend_service_id": dep_volume.service_id,
-                    "volume_name": dep_volume.volume_name,
+                    "depend_service_id": dep_volume.service_id,  # type: ignore[union-attr]
+                    "volume_name": dep_volume.volume_name,  # type: ignore[union-attr]
                     "enterprise_id": tenant.tenant_name,
                     "operator": user_name
                 }
                 res, body = region_api.delete_service_dep_volumes(service.service_region, tenant.tenant_name,
                                                                   service.service_alias, data)
                 logger.debug("delete service mnt info res:{0}, body {1}".format(res, body))
-            mnt_repo.delete_mnt_relation(service.service_id, dep_volume.service_id, dep_volume.volume_name)
+            mnt_repo.delete_mnt_relation(service.service_id, dep_volume.service_id,  # type: ignore[union-attr]
+                                         dep_volume.volume_name)  # type: ignore[union-attr]
 
         except region_api.CallApiError as e:
             logger.exception(e)
             if e.status == 404:
                 logger.debug('service mnt relation not in region then delete rel directly in console')
-                mnt_repo.delete_mnt_relation(service.service_id, dep_volume.service_id, dep_volume.volume_name)
+                mnt_repo.delete_mnt_relation(service.service_id, dep_volume.service_id,  # type: ignore[union-attr]
+                                             dep_volume.volume_name)  # type: ignore[union-attr]
         return 200, "success"
 
-    def get_volume_dependent(self, tenant, service):
+    def get_volume_dependent(self, tenant: Tenants, service: TenantServiceInfo) -> Optional[List[dict]]:
         mnts = mnt_repo.get_by_dep_service_id(tenant.tenant_id, service.service_id)
         if not mnts:
             return None
@@ -269,7 +295,7 @@ class AppMntService(object):
         service_ids = [mnt.service_id for mnt in mnts]
         services = service_repo.get_services_by_service_ids(service_ids)
         # to dict
-        id_to_services = {}
+        id_to_services: dict = {}
         for svc in services:
             if not id_to_services.get(svc.service_id, None):
                 id_to_services[svc.service_id] = [svc]

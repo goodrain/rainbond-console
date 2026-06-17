@@ -1,4 +1,6 @@
 # -*- coding: utf8 -*-
+from typing import Any, Dict, List, Optional
+
 from console.repositories.k8s_resources import k8s_resources_repo
 from console.services.market_app.component import Component
 # service
@@ -29,7 +31,12 @@ from console.models.main import RegionConfig
 
 
 class OriginalApp(object):
-    def __init__(self, tenant, region: RegionConfig, app: ServiceGroup, upgrade_group_id, support_labels=None):
+    def __init__(self,
+                 tenant: Any,
+                 region: RegionConfig,
+                 app: ServiceGroup,
+                 upgrade_group_id: int,
+                 support_labels: Optional[Any] = None) -> None:
         self.tenant = tenant
         self.tenant_id = tenant.tenant_id
         self.region = region
@@ -41,7 +48,7 @@ class OriginalApp(object):
 
         self.support_labels = support_labels
 
-        self._component_ids = self._component_ids()
+        self._component_ids_cache: List[str] = self._component_ids()
         self._components = self._create_components(app.app_id, upgrade_group_id)
 
         # dependency
@@ -64,15 +71,16 @@ class OriginalApp(object):
         # k8s resources
         self.k8s_resources = self._k8s_resources()
 
-    def components(self):
+    def components(self) -> List[Component]:
         return self._components
 
-    def _component_ids(self):
-        components = group_service.list_components_by_upgrade_group_id(self.app_id, self.upgrade_group_id)
+    def _component_ids(self) -> List[str]:
+        components = group_service.list_components_by_upgrade_group_id(self.app_id, self.upgrade_group_id)  # type: ignore[arg-type]
+        # NOTE: list_components_by_upgrade_group_id is annotated str but called with int IDs
         return [cpt.component_id for cpt in components]
 
-    def _create_components(self, app_id, upgrade_group_id):
-        components = group_service.list_components_by_upgrade_group_id(app_id, upgrade_group_id)
+    def _create_components(self, app_id: int, upgrade_group_id: int) -> List[Component]:
+        components = group_service.list_components_by_upgrade_group_id(app_id, upgrade_group_id)  # type: ignore[arg-type]
         component_ids = [cpt.component_id for cpt in components]
 
         http_rules = self._list_http_rules(component_ids)
@@ -111,9 +119,9 @@ class OriginalApp(object):
         return result
 
     @staticmethod
-    def _list_http_rules(component_ids):
+    def _list_http_rules(component_ids: List[str]) -> Dict[str, List[Any]]:
         http_rules = domain_repo.list_by_component_ids(component_ids)
-        result = {}
+        result: Dict[str, List[Any]] = {}
         for rule in http_rules:
             rules = result.get(rule.service_id, [])
             rules.append(rule)
@@ -121,33 +129,33 @@ class OriginalApp(object):
         return result
 
     @staticmethod
-    def _list_tcp_rules(component_ids):
+    def _list_tcp_rules(component_ids: List[str]) -> Dict[str, List[Any]]:
         tcp_rules = tcp_domain.list_by_component_ids(component_ids)
-        result = {}
+        result: Dict[str, List[Any]] = {}
         for rule in tcp_rules:
             rules = result.get(rule.service_id, [])
             rules.append(rule)
             result[rule.service_id] = rules
         return result
 
-    def _volume_deps(self):
+    def _volume_deps(self) -> List[Any]:
         component_ids = [cpt.component.component_id for cpt in self._components]
         return list(volume_dep_repo.list_mnt_relations_by_service_ids(self.tenant_id, component_ids))
 
-    def _config_groups(self):
+    def _config_groups(self) -> List[Any]:
         return list(app_config_group_repo.list(self.region_name, self.app_id))
 
-    def _config_group_items(self):
+    def _config_group_items(self) -> List[Any]:
         return list(app_config_group_item_repo.list_by_app_id(self.app_id))
 
-    def _config_group_components(self):
+    def _config_group_components(self) -> List[Any]:
         return list(app_config_group_service_repo.list_by_app_id(self.app_id))
 
-    def _plugin_deps(self):
-        return app_plugin_relation_repo.list_by_component_ids(self._component_ids)
+    def _plugin_deps(self) -> Any:
+        return app_plugin_relation_repo.list_by_component_ids(self._component_ids_cache)
 
-    def _plugin_configs(self):
-        return service_plugin_config_repo.list_by_component_ids(self._component_ids)
+    def _plugin_configs(self) -> Any:
+        return service_plugin_config_repo.list_by_component_ids(self._component_ids_cache)
 
-    def _k8s_resources(self):
+    def _k8s_resources(self) -> List[Any]:
         return list(k8s_resources_repo.list_by_app_id(self.app_id))

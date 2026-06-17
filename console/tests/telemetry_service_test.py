@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import datetime
 import json
 
 from django.test import TestCase
@@ -64,7 +65,7 @@ class RainbondTelemetryServiceTests(TestCase):
                 "RAINBOND_POSTHOG_API_HOST": "https://posthog.example.com",
             },
             transport=transport,
-            now=lambda: timezone.datetime(2026, 6, 14, 1, 2, 3, tzinfo=timezone.utc),
+            now=lambda: timezone.datetime(2026, 6, 14, 1, 2, 3, tzinfo=datetime.timezone.utc),
         )
 
         sent = service.capture("rainbond_component_created", {
@@ -99,7 +100,7 @@ class RainbondTelemetryServiceTests(TestCase):
         service = RainbondTelemetryService(
             env={"RAINBOND_POSTHOG_ENABLED": "true"},
             transport=transport,
-            now=lambda: timezone.datetime(2026, 6, 14, 1, 2, 3, tzinfo=timezone.utc),
+            now=lambda: timezone.datetime(2026, 6, 14, 1, 2, 3, tzinfo=datetime.timezone.utc),
         )
 
         self.assertTrue(service.track_instance_registered())

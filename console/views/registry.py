@@ -1,9 +1,11 @@
-from django.views.decorators.cache import never_cache
+from console.utils.cache_decorators import never_cache
 from console.services.team_services import team_services
 from www.utils.return_message import general_message
 from rest_framework.response import Response
 from console.repositories.team_repo import team_registry_auth_repo
 from console.utils.reqparse import parse_item
+from typing import Any
+from rest_framework.request import Request
 import logging
 
 logger = logging.getLogger('default')
@@ -13,20 +15,21 @@ from console.views.base import JWTAuthApiView
 
 class HubRegistryView(JWTAuthApiView):
     @never_cache
-    def get(self, request, *args, **kwargs):
-        result = team_services.list_registry_auths('', '', self.user.user_id)
-        auths = [auth.to_dict() for auth in result]
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
+        # NOTE: Users.user_id is an int AutoField but service expects str (systemic int-as-str; backlog).
+        registry_auths = team_services.list_registry_auths('', '', self.user.user_id)  # type: ignore[arg-type]
+        auths = [auth.to_dict() for auth in registry_auths]
         result = general_message(200, "success", "查询成功", list=auths)
         return Response(result, status=result["code"])
 
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         domain = parse_item(request, "domain", required=True)
         username = parse_item(request, "username", required=True)
         password = parse_item(request, "password", required=True)
         hub_type = parse_item(request, "hub_type", required=True)
         secret_id = parse_item(request, "secret_id", required=True)
         # 检查是否已存在
-        ra = team_registry_auth_repo.check_exist_registry_auth(secret_id, self.user.user_id)
+        ra = team_registry_auth_repo.check_exist_registry_auth(secret_id, self.user.user_id)  # type: ignore[arg-type]
         if ra.exists():
             result = general_message(400, "error", "资源已存在")
             return Response(result, status=result["code"])
@@ -66,32 +69,34 @@ class HubRegistryView(JWTAuthApiView):
             result = general_message(500, "creation failed",  "创建失败: {}".format(str(e)))
             return Response(result, status=result["code"])
 
-    def put(self, request, *args, **kwargs):
+    def put(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         secret_id = request.GET.get("secret_id")
         data = {
             "username": parse_item(request, "username", required=True),
             "password": parse_item(request, "password", required=True),
             "hub_type": parse_item(request, "hub_type", required=True),
         }
-        auth = team_registry_auth_repo.get_by_secret_id(secret_id)
+        # NOTE: GET secret_id is Optional[str] but repo expects str (systemic mismatch; backlog).
+        auth = team_registry_auth_repo.get_by_secret_id(secret_id)  # type: ignore[arg-type]
         if not auth:
             result = general_message(400, "bad request", "您要更新的镜像仓库不存在")
             return Response(result, status=result["code"])
-        team_registry_auth_repo.update_team_registry_auth('', '', secret_id, **data)
+        team_registry_auth_repo.update_team_registry_auth('', '', secret_id, **data)  # type: ignore[arg-type]
 
         result = general_message(200, "success", "更新成功")
         return Response(result, status=result["code"])
 
-    def delete(self, request, *args, **kwargs):
+    def delete(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         secret_id = request.GET.get("secret_id")
-        team_registry_auth_repo.delete_team_registry_auth('', '', secret_id, self.user.user_id)
+        team_registry_auth_repo.delete_team_registry_auth(
+            '', '', secret_id, self.user.user_id)  # type: ignore[arg-type]
         result = general_message(200, "success", "删除成功")
         return Response(result, status=result["code"])
 
 
 class HubRegistryImageView(JWTAuthApiView):
     @never_cache
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         获取镜像仓库的命名空间、镜像名称、标签列表或完整镜像地址
         """

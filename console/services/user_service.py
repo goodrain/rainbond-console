@@ -9,7 +9,7 @@ from www.models.main import Users
 logger = logging.getLogger("default")
 
 class UserService(object):
-    def register_by_phone(self,enterprise_id, phone, code, nick_name):
+    def register_by_phone(self, enterprise_id: str, phone: str, code: str, nick_name: str) -> Users:
         """手机号注册"""
         # 校验验证码
         valid_code = sms_repo.get_valid_code(phone, "register")
@@ -59,7 +59,7 @@ class UserService(object):
         valid_code.delete()
         return user
 
-    def login_by_phone(self, phone, code):
+    def login_by_phone(self, phone: str, code: str) -> Users:
         """手机号登录"""
         # 校验验证码
         valid_code = sms_repo.get_valid_code(phone, "login")

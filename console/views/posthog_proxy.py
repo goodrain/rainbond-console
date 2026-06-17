@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 import os
+from typing import Any
 from urllib.parse import urlsplit, urlunsplit
 
-from django.http import HttpResponse
+from django.http import HttpRequest, HttpResponse
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
@@ -38,7 +39,7 @@ class PostHogProxyRequestError(Exception):
     pass
 
 
-def _get_api_proxy_target():
+def _get_api_proxy_target() -> str:
     return (
         os.environ.get("RAINBOND_POSTHOG_PROXY_TARGET")
         or os.environ.get("POSTHOG_PROXY_TARGET")
@@ -46,7 +47,7 @@ def _get_api_proxy_target():
     ).rstrip("/")
 
 
-def _get_asset_proxy_target(api_target):
+def _get_asset_proxy_target(api_target: str) -> str:
     return (
         os.environ.get("RAINBOND_POSTHOG_ASSET_PROXY_TARGET")
         or os.environ.get("POSTHOG_ASSET_PROXY_TARGET")
@@ -55,7 +56,7 @@ def _get_asset_proxy_target(api_target):
     ).rstrip("/")
 
 
-def _get_replay_proxy_target(api_target):
+def _get_replay_proxy_target(api_target: str) -> str:
     return (
         os.environ.get("RAINBOND_POSTHOG_REPLAY_PROXY_TARGET")
         or os.environ.get("POSTHOG_REPLAY_PROXY_TARGET")
@@ -64,17 +65,17 @@ def _get_replay_proxy_target(api_target):
     ).rstrip("/")
 
 
-def _is_asset_path(path):
+def _is_asset_path(path: str) -> bool:
     request_path = (path or "").lstrip("/")
     return request_path.startswith("static/") or request_path.startswith("array/")
 
 
-def _is_replay_path(path):
+def _is_replay_path(path: str) -> bool:
     request_path = (path or "").lstrip("/")
     return request_path == "s" or request_path.startswith("s/")
 
 
-def _get_proxy_target(path):
+def _get_proxy_target(path: str) -> str:
     api_target = _get_api_proxy_target()
     if _is_asset_path(path):
         return _get_asset_proxy_target(api_target)
@@ -83,7 +84,7 @@ def _get_proxy_target(path):
     return api_target
 
 
-def _build_target_url(path, query_string):
+def _build_target_url(path: str, query_string: str) -> str:
     target = urlsplit(_get_proxy_target(path))
     if not target.scheme or not target.netloc:
         raise ValueError("invalid posthog proxy target")
@@ -94,7 +95,7 @@ def _build_target_url(path, query_string):
     return urlunsplit((target.scheme, target.netloc, target_path, query_string, ""))
 
 
-def _build_upstream_headers(request):
+def _build_upstream_headers(request: HttpRequest) -> dict:
     headers = {}
     for meta_key, header_name in REQUEST_HEADER_MAP.items():
         value = request.META.get(meta_key)
@@ -107,7 +108,7 @@ def _build_upstream_headers(request):
     return headers
 
 
-def _send_upstream_request(**kwargs):
+def _send_upstream_request(**kwargs: Any) -> Any:
     import requests
     try:
         return requests.request(**kwargs)
@@ -115,7 +116,7 @@ def _send_upstream_request(**kwargs):
         raise PostHogProxyRequestError(str(exc))
 
 
-def _add_cors_headers(response, request):
+def _add_cors_headers(response: HttpResponse, request: HttpRequest) -> HttpResponse:
     origin = request.META.get("HTTP_ORIGIN")
     response["Access-Control-Allow-Origin"] = origin or "*"
     response["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
@@ -130,16 +131,16 @@ def _add_cors_headers(response, request):
 class PostHogProxyView(View):
     http_method_names = ["get", "post", "options", "head"]
 
-    def options(self, request, path=""):
+    def options(self, request: HttpRequest, path: str = "") -> HttpResponse:
         return _add_cors_headers(HttpResponse(status=204), request)
 
-    def get(self, request, path=""):
+    def get(self, request: HttpRequest, path: str = "") -> HttpResponse:
         return self._proxy(request, path)
 
-    def post(self, request, path=""):
+    def post(self, request: HttpRequest, path: str = "") -> HttpResponse:
         return self._proxy(request, path)
 
-    def _proxy(self, request, path):
+    def _proxy(self, request: HttpRequest, path: str) -> HttpResponse:
         try:
             target_url = _build_target_url(path, request.META.get("QUERY_STRING", ""))
         except ValueError:

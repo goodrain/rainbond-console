@@ -5,9 +5,11 @@ import json
 import time
 
 from django.db import connection
+from typing import Any
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from console.exception.main import ServiceHandleException
@@ -38,7 +40,7 @@ class ListEnterpriseInfoView(ListAPIView):
         responses={status.HTTP_200_OK: ListEntsRespSerializer()},
         tags=['openapi-entreprise'],
     )
-    def get(self, req):
+    def get(self, req: Request) -> Response:
         try:
             page = int(req.GET.get("current", 1))
         except ValueError:
@@ -60,7 +62,7 @@ class EnterpriseInfoView(BaseOpenAPIView):
         responses={},
         tags=['openapi-entreprise'],
     )
-    def put(self, req, eid):
+    def put(self, req: Request, eid: str) -> Response:
         enterprise_services.update(eid, req.data)
         return Response(None, status=status.HTTP_200_OK)
 
@@ -69,7 +71,7 @@ class EnterpriseInfoView(BaseOpenAPIView):
         responses={200: EnterpriseInfoSerializer},
         tags=['openapi-entreprise'],
     )
-    def get(self, req, eid):
+    def get(self, req: Request, eid: str) -> Response:
         ent = enterprise_services.get_enterprise_by_id(eid)
         if ent is None:
             return Response({"msg": "企业不存在"}, status=status.HTTP_404_NOT_FOUND)
@@ -84,9 +86,10 @@ class EnterpriseSourceView(ListAPIView):
         responses={200: EnterpriseSourceSerializer},
         tags=['openapi-entreprise'],
     )
-    def get(self, req, eid):
+    def get(self, req: Request, eid: str) -> Response:
         data = {"enterprise_id": eid, "used_cpu": 0, "used_memory": 0, "used_disk": 0}
-        if not req.user.is_administrator:
+        # NOTE: request.user typed User|AnonymousUser by stubs; runtime is User.
+        if not req.user.is_administrator:  # type: ignore[union-attr]
             raise ServiceHandleException(status_code=401, error_code=401, msg="Permission denied")
         ent = enterprise_services.get_enterprise_by_id(eid)
         if ent is None:
@@ -95,11 +98,13 @@ class EnterpriseSourceView(ListAPIView):
         for region in regions:
             try:
                 # Exclude development clusters
-                if "development" in region.region_type:
+                # NOTE: region_type typed str|None by stubs; runtime always str.
+                if "development" in region.region_type:  # type: ignore[operator]
                     logger.debug("{0} region type is development in enterprise {1}".format(region.region_name, eid))
                     continue
                 res, body = region_api.get_region_resources(eid, region=region.region_name)
-                rst = body.get("bean")
+                # NOTE: regionapi return body typed dict|None by stubs; may be None (backlog).
+                rst = body.get("bean")  # type: ignore[union-attr]
                 if res.get("status") == 200 and rst:
                     data["used_cpu"] += rst.get("req_cpu", 0)
                     data["used_memory"] += rst.get("req_mem", 0)
@@ -113,7 +118,7 @@ class EnterpriseSourceView(ListAPIView):
 
 
 class EntUserInfoView(BaseOpenAPIView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         page = int(request.GET.get("page_num", 1))
         page_size = int(request.GET.get("page_size", 10))
         enterprise_id = request.GET.get("eid", None)
@@ -139,7 +144,8 @@ class EntUserInfoView(BaseOpenAPIView):
                 bean["phone"] = user.phone
                 bean["email"] = user.email
                 bean["create_time"] = time_to_str(user.create_time, "%Y-%m-%d %H:%M:%S")
-                bean["user_id"] = user.user_id
+                # NOTE: bean values inferred str|None; user_id is int (legacy).
+                bean["user_id"] = user.user_id  # type: ignore[assignment]
             admin_list.append(bean)
 
         result = {"list": admin_list, "total": admins_num}
