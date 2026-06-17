@@ -310,6 +310,7 @@
 | console.helm.build | 构建 Helm 应用模板 | active | regression | console.services.mcp_query_service.call_tool[rainbond_build_helm_app] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_build_helm_app_generates_template |
 | console.helm.check | 检查 Helm 应用 | active | regression | console.services.mcp_query_service.call_tool[rainbond_check_helm_app] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_check_helm_app_returns_check_result |
 | console.helm.daemonset-template | Helm DaemonSet 资源映射为组件模板 | active | regression | console.services.helm_app_yaml.HelmAppService.generate_template | console/tests/app_manage_test.py::ComponentDaemonSetSupportTests.test_helm_template_maps_daemonset_resource_type |
+| console.image-webhook.harbor-push-artifact | 解析 Harbor 镜像推送 Webhook | active | regression | console.views.webhook.parse_image_webhook_payload | console/tests/webhook_test.py::ImageWebhookPayloadTestCase |
 | console.image.python36-websocket-client | Console 镜像 Python 3.6 websocket-client 兼容性 | active | regression | requirements.txt | console/tests/dependency_compat_test.py::ConsoleImageDependencyCompatibilityTests |
 | console.image.runner-detect | 根据仓库前缀识别 runner 镜像 | active | regression | console.utils.runner_util.is_runner | console/tests/utils/image_classify_test.py::ImageClassifyTests.test_is_runner |
 | console.image.slug-detect | 为非 docker 类语言识别基于 runner 的 slug 镜像 | active | regression | console.utils.slug_util.is_slug | console/tests/utils/image_classify_test.py::ImageClassifyTests.test_is_slug |
@@ -3561,6 +3562,16 @@
 - 业务入口: `console.services.helm_app_yaml.HelmAppService.generate_template`
 - 代码路径: `console/services/helm_app_yaml.py`
 - 测试路径: `console/tests/app_manage_test.py::ComponentDaemonSetSupportTests.test_helm_template_maps_daemonset_resource_type`
+
+### 解析 Harbor 镜像推送 Webhook
+
+- Capability ID: `console.image-webhook.harbor-push-artifact`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `view_endpoint`
+- 业务入口: `console.views.webhook.parse_image_webhook_payload`
+- 代码路径: `console/views/webhook.py`
+- 测试路径: `console/tests/webhook_test.py::ImageWebhookPayloadTestCase`
 
 ### Console 镜像 Python 3.6 websocket-client 兼容性
 

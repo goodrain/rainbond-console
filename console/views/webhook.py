@@ -24,6 +24,66 @@ from www.utils.return_message import error_message, general_message
 logger = logging.getLogger("default")
 
 
+class UnsupportedImageWebhookEvent(Exception):
+    pass
+
+
+class ImageWebhookPayloadError(Exception):
+    pass
+
+
+class ImageWebhookEvent(object):
+    def __init__(self, repo_name, tag, pusher):
+        self.repo_name = repo_name
+        self.tag = tag
+        self.pusher = pusher
+
+
+def parse_image_webhook_payload(data):
+    if is_harbor_webhook_payload(data):
+        return parse_harbor_image_webhook_payload(data)
+    return parse_registry_image_webhook_payload(data)
+
+
+def is_harbor_webhook_payload(data):
+    return "event_data" in data and "resources" in data.get("event_data", {})
+
+
+def parse_harbor_image_webhook_payload(data):
+    if data.get("type") != "PUSH_ARTIFACT":
+        raise UnsupportedImageWebhookEvent("event type not support")
+
+    event_data = data.get("event_data") or {}
+    resources = event_data.get("resources") or []
+    repository = event_data.get("repository") or {}
+    if not resources:
+        raise ImageWebhookPayloadError("Harbor webhook缺少resources信息")
+
+    tag = resources[0].get("tag")
+    repo_name = repository.get("repo_full_name") or repository.get("name")
+    pusher = data.get("operator") or "harbor"
+    return ImageWebhookEvent(repo_name, tag, pusher)
+
+
+def parse_registry_image_webhook_payload(data):
+    repository = data.get("repository")
+    if not repository:
+        raise ImageWebhookPayloadError("缺少repository信息")
+
+    push_data = data.get("push_data")
+    pusher = push_data.get("pusher") if push_data else None
+    tag = push_data.get("tag") if push_data else None
+    repo_name = repository.get("repo_name")
+    if not repo_name:
+        repository_namespace = repository.get("namespace")
+        repository_name = repository.get("name")
+        if repository_namespace and repository_name:
+            repo_name = "fake.repo.aliyun.com/" + repository_namespace + "/" + repository_name
+        else:
+            repo_name = repository.get("repo_full_name")
+    return ImageWebhookEvent(repo_name, tag, pusher)
+
+
 class WebHooksDeploy(AlowAnyApiView):
     def post(self, request, service_id, *args, **kwargs):
         """
@@ -376,7 +436,7 @@ class GetWebHooksUrl(AppBaseView):
                 try:
                     # 首先尝试直接解码
                     secret_key = pickle.loads(base64.b64decode(deploy)).get("secret_key")
-                except Exception as e:
+                except Exception:
                     try:
                         # 如果失败，尝试用 ast.literal_eval 解析
                         secret_key = pickle.loads(base64.b64decode(ast.literal_eval(deploy))).get("secret_key")
@@ -530,7 +590,6 @@ class WebHooksStatus(AppBaseView):
                 result = general_message(200, "success", "关闭成功")
                 op = Operation.CLOSE
 
-
             comment = operation_log_service.generate_component_comment(
                 operation=op,
                 module_name=self.service.service_cname,
@@ -642,36 +701,19 @@ class ImageWebHooksDeploy(AlowAnyApiView):
                 result = general_message(400, "failed", "组件关闭了自动构建")
                 return Response(result, status=400)
             data = request.data
-            # ----------- Harbor webhook 兼容 -----------
-            if "event_data" in data and "resources" in data["event_data"]:
-                event_data = data["event_data"]
-                resources = event_data.get("resources", [])
-                repository = event_data.get("repository", {})
-                if resources:
-                    tag = resources[0].get("tag")
-                    repo_name = repository.get("repo_full_name") or repository.get("name")
-                    pusher = data.get("operator", "harbor")
-                else:
-                    result = general_message(400, "failed", "Harbor webhook缺少resources信息")
-                    return Response(result, status=400)
-            else:
-                # 兼容原有格式
-                repository = data.get("repository")
-                if not repository:
-                    logger.debug("缺少repository信息")
-                    result = general_message(400, "failed", "缺少repository信息")
-                    return Response(result, status=400)
-                push_data = data.get("push_data")
-                pusher = push_data.get("pusher") if push_data else None
-                tag = push_data.get("tag") if push_data else None
-                repo_name = repository.get("repo_name")
-                if not repo_name:
-                    repository_namespace = repository.get("namespace")
-                    repository_name = repository.get("name")
-                    if repository_namespace and repository_name:
-                        repo_name = "fake.repo.aliyun.com/" + repository_namespace + "/" + repository_name
-                    else:
-                        repo_name = repository.get("repo_full_name")
+            try:
+                image_webhook_event = parse_image_webhook_payload(data)
+            except UnsupportedImageWebhookEvent:
+                result = general_message(200, "event type not support", "不支持此事件类型")
+                return Response(result, status=200)
+            except ImageWebhookPayloadError as e:
+                logger.debug(str(e))
+                result = general_message(400, "failed", str(e))
+                return Response(result, status=400)
+
+            tag = image_webhook_event.tag
+            repo_name = image_webhook_event.repo_name
+            pusher = image_webhook_event.pusher
             if not repo_name:
                 result = general_message(400, "failed", "缺少repository名称信息")
                 return Response(result, status=400)

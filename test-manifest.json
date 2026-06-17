@@ -5768,6 +5768,24 @@
       "status": "active"
     },
     {
+      "id": "console.image-webhook.harbor-push-artifact",
+      "title": "Parse Harbor push artifact image webhooks",
+      "title_zh": "解析 Harbor 镜像推送 Webhook",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.webhook.parse_image_webhook_payload",
+      "code_paths": [
+        "console/views/webhook.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/webhook_test.py",
+          "selector": "ImageWebhookPayloadTestCase"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.image.python36-websocket-client",
       "title": "Console image Python 3.6 websocket-client compatibility",
       "title_zh": "Console 镜像 Python 3.6 websocket-client 兼容性",
