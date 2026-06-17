@@ -9298,6 +9298,26 @@
       ],
       "test_type": "regression",
       "status": "active"
+    },
+    {
+      "id": "console.app-status.region-status-typeddict",
+      "title": "Normalize region app status payload (AppStatus TypedDict adoption)",
+      "title_zh": "归一化集群应用状态返回（AppStatus TypedDict 落地）",
+      "interface_type": "service_method",
+      "interface": "console.services.group_service.GroupService.get_app_status",
+      "code_paths": [
+        "console/services/group_service.py",
+        "www/apiclient/regionapi.py",
+        "www/apiclient/region_types.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/group_app_status_typeddict_test.py",
+          "selector": "GroupAppStatusTypedDictTest"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
     }
   ]
 }

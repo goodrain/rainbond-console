@@ -17,7 +17,7 @@ from console.repositories.app import service_repo
 from console.repositories.app_config import configuration_repo, domain_repo
 from www.apiclient.baseclient import client_auth_service
 from www.apiclient.exception import err_region_not_found
-from www.apiclient.region_types import PodDetail, TenantServices
+from www.apiclient.region_types import AppStatus, PodDetail, TenantServices
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
 from www.models.main import TenantRegionInfo, Tenants, ServiceGroup
 from console.exception.bcode import ErrNamespaceExists
@@ -2368,7 +2368,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._put(url, self.default_headers, body=json.dumps(data), region=region_name)
         return body
 
-    def get_app_status(self, region_name: str, tenant_name: str, region_app_id: str) -> Any:
+    def get_app_status(self, region_name: str, tenant_name: str, region_app_id: str) -> Optional[AppStatus]:
         url, token = self.__get_region_access_info(tenant_name, region_name)
         tenant_region = self.__get_tenant_region_info(tenant_name, region_name)
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/apps/" + region_app_id + "/status"
