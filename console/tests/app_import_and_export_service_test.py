@@ -358,8 +358,10 @@ class CenterAppImportViewWorkflowTestCase(TestCase):
             with self.assertRaises(OperationalError) as ctx:
                 self.view.get.__wrapped__.__wrapped__(self.view, request, "evt-1")
 
+        # The savepoint design attempts a rollback on error; even when that rollback
+        # itself fails (broken transaction) the original database error is preserved.
         self.assertIs(ctx.exception, database_error)
-        rollback_mock.assert_not_called()
+        rollback_mock.assert_called_once_with("sp-1")
 
     # capability_id: console.app-import.abandon
     def test_delete_abandons_import(self):

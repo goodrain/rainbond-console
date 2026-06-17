@@ -3,6 +3,7 @@
 Gray release view for application-level canary deployments
 """
 import logging
+from typing import Any
 
 from console.exception.main import ServiceHandleException
 from console.services.gray_release_service import gray_release_service
@@ -18,6 +19,7 @@ from openapi.serializer.app_serializer import (
 )
 from openapi.views.base import TeamAPIView, TeamAppAPIView
 from rest_framework import status
+from rest_framework.request import Request
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from www.utils.return_message import general_message
@@ -37,7 +39,7 @@ class GrayReleaseView(TeamAppAPIView):
         responses={200: GrayReleaseResponseSerializer()},
         tags=['openapi-apps'],
     )
-    def post(self, request, app_id, *args, **kwargs):
+    def post(self, request: Request, app_id: str, *args: Any, **kwargs: Any) -> Response:
         """
         Create a gray release for an application
 
@@ -71,9 +73,10 @@ class GrayReleaseView(TeamAppAPIView):
                 region_name=self.region_name,
                 user=self.user,
                 app=self.app,
-                template_id=template_id,
-                domain_name=domain_name,
-                gray_ratio=gray_ratio,
+                # NOTE: serializer .get() yields Any|None; service params are non-Optional.
+                template_id=template_id,  # type: ignore[arg-type]
+                domain_name=domain_name,  # type: ignore[arg-type]
+                gray_ratio=gray_ratio,  # type: ignore[arg-type]
                 market_name=market_name,
                 install_from_cloud=install_from_cloud
             )
@@ -127,7 +130,7 @@ class UpdateGrayRatioView(TeamAppAPIView):
         responses={200: UpdateGrayRatioResponseSerializer()},
         tags=['openapi-apps'],
     )
-    def put(self, request, app_id, *args, **kwargs):
+    def put(self, request: Request, app_id: str, *args: Any, **kwargs: Any) -> Response:
         """
         Update gray ratio for an existing gray release
 
@@ -154,7 +157,7 @@ class UpdateGrayRatioView(TeamAppAPIView):
 
             # Find active gray release record by app_id and template_id
             record = gray_release_repo.get_active_record_by_app_and_template(
-                self.team.tenant_id, app_id, template_id
+                self.team.tenant_id, app_id, template_id  # type: ignore[arg-type]
             )
 
             if not record:
@@ -181,7 +184,7 @@ class UpdateGrayRatioView(TeamAppAPIView):
                 user=self.user,
                 app=self.app,
                 record=record,
-                new_gray_ratio=gray_ratio,
+                new_gray_ratio=gray_ratio,  # type: ignore[arg-type]
                 is_full_release=is_full_release
             )
 
@@ -280,7 +283,7 @@ class GrayRollbackView(TeamAppAPIView):
         responses={200: GrayRollbackResponseSerializer()},
         tags=['openapi-apps'],
     )
-    def post(self, request, app_id, *args, **kwargs):
+    def post(self, request: Request, app_id: str, *args: Any, **kwargs: Any) -> Response:
         """
         Rollback gray release: switch all traffic to original services and delete new services
 
@@ -306,7 +309,7 @@ class GrayRollbackView(TeamAppAPIView):
                 region_name=self.region_name,
                 user=self.user,
                 app=self.app,
-                template_id=template_id
+                template_id=template_id  # type: ignore[arg-type]
             )
 
             logger.info("Gray release rollback completed successfully: {0}".format(result))
@@ -352,7 +355,7 @@ class GrayReleaseListView(APIView):
         responses={200: GrayReleaseListItemSerializer(many=True)},
         tags=['openapi-apps'],
     )
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         Get gray release list for the whole platform
 

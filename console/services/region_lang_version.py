@@ -2,6 +2,7 @@
 该文件主要是对管理端构建语言版本的操作，包括创建、更新、删除、展示等操作。
 """
 import re
+from typing import Any, Dict, List, Optional
 
 from console.repositories.app_config import compile_env_repo
 
@@ -10,7 +11,7 @@ from www.apiclient.regionapi import RegionInvokeApi
 region_api = RegionInvokeApi()
 
 
-def _normalize_long_version_record(record):
+def _normalize_long_version_record(record: Any) -> Any:
     if not isinstance(record, dict):
         return record
     normalized = dict(record)
@@ -20,7 +21,7 @@ def _normalize_long_version_record(record):
     return normalized
 
 
-def _normalize_long_version_response(data):
+def _normalize_long_version_response(data: Any) -> Any:
     if not isinstance(data, dict):
         return data
     normalized = dict(data)
@@ -32,11 +33,21 @@ def _normalize_long_version_response(data):
 
 
 class RegionLongVersion(object):
-    def show_long_version(self, eid, region_id, language, build_strategy=""):
+    def show_long_version(self, eid: str, region_id: str, language: str, build_strategy: str = "") -> Any:
         data = region_api.get_lang_version(eid, region_id, language, "", build_strategy)
         return _normalize_long_version_response(data)
 
-    def create_long_version(self, eid, region_id, lang, version, event_id, file_name, build_strategy="slug", is_allowed=True):
+    def create_long_version(
+        self,
+        eid: str,
+        region_id: str,
+        lang: str,
+        version: str,
+        event_id: str,
+        file_name: str,
+        build_strategy: str = "slug",
+        is_allowed: Optional[bool] = True,
+    ) -> Any:
         data = {
             "lang": lang,
             "version": version,
@@ -48,8 +59,18 @@ class RegionLongVersion(object):
         }
         return _normalize_long_version_response(region_api.create_lang_version(eid, region_id, data))
 
-    def update_long_version(self, eid, region_id, lang, version, show, first_choice, build_strategy=None, is_allowed=None):
-        data = {
+    def update_long_version(
+        self,
+        eid: str,
+        region_id: str,
+        lang: str,
+        version: str,
+        show: Any,
+        first_choice: Any,
+        build_strategy: Optional[str] = None,
+        is_allowed: Optional[bool] = None,
+    ) -> Any:
+        data: Dict[str, Any] = {
             "lang": lang,
             "version": version,
             "show": show,
@@ -61,8 +82,15 @@ class RegionLongVersion(object):
             data["is_allowed"] = is_allowed
         return _normalize_long_version_response(region_api.update_lang_version(eid, region_id, data))
 
-    def delete_long_version(self, eid, region_id, lang, version, build_strategy=None):
-        data = {
+    def delete_long_version(
+        self,
+        eid: str,
+        region_id: str,
+        lang: str,
+        version: str,
+        build_strategy: Optional[str] = None,
+    ) -> Any:
+        data: Dict[str, Any] = {
             "lang": lang,
             "version": version,
         }
@@ -74,13 +102,13 @@ class RegionLongVersion(object):
         region_api.delete_lang_version(eid, region_id, data)
         return ""
 
-    def is_valid_version(self, version_str):
+    def is_valid_version(self, version_str: str) -> bool:
         pattern = r'^[a-z0-9]+([-\.][0-9a-zA-Z]+)*$'
         if len(version_str) > 64:
             return False
         return bool(re.match(pattern, version_str))
 
-    def is_valid_image(self, image_name):
+    def is_valid_image(self, image_name: str) -> bool:
         pattern = r'^[a-z0-9]+([._-][a-z0-9]+)*(\/[a-z0-9]+([._-][a-z0-9]+)*)*(\:[a-zA-Z0-9]+([._-][a-zA-Z0-9]+)*)?$'
         return bool(re.match(pattern, image_name))
 
@@ -89,7 +117,7 @@ region_lang_version = RegionLongVersion()
 
 
 class RegionCNBConfig(object):
-    def show_cnb_frameworks(self, eid, region_id, lang="nodejs"):
+    def show_cnb_frameworks(self, eid: str, region_id: str, lang: str = "nodejs") -> Any:
         return region_api.get_cnb_frameworks(eid, region_id, lang)
 
 

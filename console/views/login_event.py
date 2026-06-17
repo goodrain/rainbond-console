@@ -1,13 +1,16 @@
 # coding=utf-8
+from typing import Any
+
 from console.services.login_event import log_event_service
 from console.views.base import EnterpriseHeaderView
 from console.views.operation_log import extend_user_info
+from rest_framework.request import Request
 from rest_framework.response import Response
 from www.utils.return_message import general_message
 
 
 class LoginEventView(EnterpriseHeaderView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         start_time = request.GET.get("start_time", None)
         end_time = request.GET.get("end_time", None)
         username = request.GET.get("username", None)

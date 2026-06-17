@@ -2,6 +2,7 @@
 import logging
 import os
 import time
+from typing import Any, Dict, List, Optional
 
 from console.enum.enterprise_enum import EnterpriseRolesEnum
 from console.exception.main import ServiceHandleException
@@ -29,11 +30,11 @@ PLUGIN_CACHE_TTL = int(os.getenv("AGENT_ACCESS_PLUGIN_CACHE_TTL", "60"))
 
 
 class AgentAccessService(object):
-    def __init__(self):
+    def __init__(self) -> None:
         # enterprise_id -> (expire_ts, has_enterprise_base)
-        self._enterprise_base_cache = {}
+        self._enterprise_base_cache: Dict[str, Any] = {}
 
-    def get_agent_access(self, user):
+    def get_agent_access(self, user: Any) -> Dict[str, Any]:
         if not user:
             return self._build_access(False, EDITION_OPEN_SOURCE, False, False, False, "not_authenticated")
 
@@ -60,7 +61,7 @@ class AgentAccessService(object):
             deny_reason = "open_source_requires_enterprise"
         return self._build_access(False, edition, is_saas, has_enterprise_base, is_initial_admin, deny_reason)
 
-    def get_platform_edition(self, enterprise_id):
+    def get_platform_edition(self, enterprise_id: str) -> str:
         is_saas = bool(os.getenv("USE_SAAS"))
         has_enterprise_base = self.has_enterprise_base_plugin(enterprise_id)
         if is_saas and has_enterprise_base:
@@ -71,7 +72,7 @@ class AgentAccessService(object):
             return EDITION_ENTERPRISE
         return EDITION_OPEN_SOURCE
 
-    def has_enterprise_base_plugin(self, enterprise_id):
+    def has_enterprise_base_plugin(self, enterprise_id: str) -> bool:
         now = time.time()
         cached = self._enterprise_base_cache.get(enterprise_id)
         if cached and cached[0] > now:
@@ -81,7 +82,7 @@ class AgentAccessService(object):
         self._enterprise_base_cache[enterprise_id] = (now + PLUGIN_CACHE_TTL, result)
         return result
 
-    def _compute_has_enterprise_base_plugin(self, enterprise_id):
+    def _compute_has_enterprise_base_plugin(self, enterprise_id: str) -> bool:
         try:
             regions = region_repo.get_usable_regions(enterprise_id)
         except Exception as exc:
@@ -93,7 +94,7 @@ class AgentAccessService(object):
                 return True
         return False
 
-    def _region_has_enterprise_base(self, enterprise_id, region_name):
+    def _region_has_enterprise_base(self, enterprise_id: str, region_name: str) -> bool:
         try:
             return region_api.cluster_plugin_exists(enterprise_id, region_name, ENTERPRISE_BASE_PLUGIN)
         except ServiceHandleException as exc:
@@ -106,7 +107,7 @@ class AgentAccessService(object):
             logger.warning("failed to probe enterprise base plugin: region=%s error=%s", region_name, exc)
             return False
 
-    def _region_has_enterprise_base_fallback(self, enterprise_id, region_name):
+    def _region_has_enterprise_base_fallback(self, enterprise_id: str, region_name: str) -> bool:
         try:
             _, body = region_api.list_plugins(enterprise_id, region_name, True)
         except Exception as exc:
@@ -117,12 +118,12 @@ class AgentAccessService(object):
                 return True
         return False
 
-    def get_initial_enterprise_admin_marker(self, enterprise_id):
+    def get_initial_enterprise_admin_marker(self, enterprise_id: str) -> Optional[EnterpriseUserPerm]:
         return EnterpriseUserPerm.objects.filter(
             enterprise_id=enterprise_id,
             is_initial_enterprise_admin=True).first()
 
-    def ensure_initial_enterprise_admin_marker(self, enterprise_id):
+    def ensure_initial_enterprise_admin_marker(self, enterprise_id: str) -> Optional[EnterpriseUserPerm]:
         if not enterprise_id:
             return None
 
@@ -145,7 +146,8 @@ class AgentAccessService(object):
             self._mark_initial_admin(enterprise_id, target_perm)
             return target_perm
 
-    def _build_access(self, can_open_agent, edition, is_saas, has_enterprise_base, is_initial_admin, deny_reason):
+    def _build_access(self, can_open_agent: bool, edition: str, is_saas: bool, has_enterprise_base: bool,
+                      is_initial_admin: bool, deny_reason: str) -> Dict[str, Any]:
         return {
             "can_open_agent": can_open_agent,
             "edition": edition,
@@ -156,7 +158,7 @@ class AgentAccessService(object):
             "deny_reason": deny_reason,
         }
 
-    def _normalize_markers(self, enterprise_id, markers):
+    def _normalize_markers(self, enterprise_id: str, markers: List[EnterpriseUserPerm]) -> EnterpriseUserPerm:
         user_ids = [marker.user_id for marker in markers]
         user_order = self._get_user_order(enterprise_id, user_ids)
         markers.sort(key=lambda marker: (user_order.get(marker.user_id, 999999999), marker.user_id))
@@ -166,7 +168,7 @@ class AgentAccessService(object):
             EnterpriseUserPerm.objects.filter(ID__in=duplicate_ids).update(is_initial_enterprise_admin=False)
         return marker
 
-    def _select_existing_admin_perm(self, enterprise_id):
+    def _select_existing_admin_perm(self, enterprise_id: str) -> Optional[EnterpriseUserPerm]:
         admin_perms = list(
             EnterpriseUserPerm.objects.select_for_update().filter(
                 enterprise_id=enterprise_id,
@@ -177,7 +179,7 @@ class AgentAccessService(object):
         admin_perms.sort(key=lambda perm: (user_order.get(perm.user_id, 999999999), perm.user_id))
         return admin_perms[0]
 
-    def _ensure_admin_perm(self, user_id, enterprise_id):
+    def _ensure_admin_perm(self, user_id: int, enterprise_id: str) -> EnterpriseUserPerm:
         perm = EnterpriseUserPerm.objects.select_for_update().filter(user_id=user_id, enterprise_id=enterprise_id).first()
         if perm:
             if EnterpriseRolesEnum.admin.name not in perm.identity:
@@ -186,16 +188,16 @@ class AgentAccessService(object):
             return perm
         token = user_services.generate_key()
         return enterprise_user_perm_repo.create_enterprise_user_perm(
-            user_id, enterprise_id, EnterpriseRolesEnum.admin.name, token)
+            user_id, enterprise_id, EnterpriseRolesEnum.admin.name, token)  # type: ignore[arg-type]  # NOTE: repo stub declares user_id as str but callers pass int; mismatch pre-dates this annotation pass
 
-    def _mark_initial_admin(self, enterprise_id, target_perm):
+    def _mark_initial_admin(self, enterprise_id: str, target_perm: EnterpriseUserPerm) -> None:
         EnterpriseUserPerm.objects.filter(enterprise_id=enterprise_id).exclude(ID=target_perm.ID).update(
             is_initial_enterprise_admin=False)
         if not target_perm.is_initial_enterprise_admin:
             target_perm.is_initial_enterprise_admin = True
             target_perm.save(update_fields=["is_initial_enterprise_admin"])
 
-    def _get_user_order(self, enterprise_id, user_ids):
+    def _get_user_order(self, enterprise_id: str, user_ids: List[int]) -> Dict[int, int]:
         if not user_ids:
             return {}
         users = Users.objects.filter(enterprise_id=enterprise_id, user_id__in=user_ids).order_by("create_time", "user_id")

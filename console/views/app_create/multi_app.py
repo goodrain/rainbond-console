@@ -1,10 +1,12 @@
 # -*- coding: utf8 -*-
 import logging
 import os
+from typing import Any, Optional
 
+from rest_framework.request import Request
 from rest_framework.response import Response
 from www.utils.return_message import general_message
-from django.views.decorators.cache import never_cache
+from console.utils.cache_decorators import never_cache
 from console.views.base import RegionTenantHeaderView
 from console.services.multi_app_service import multi_app_service
 
@@ -13,7 +15,7 @@ logger = logging.getLogger("default")
 
 class MultiAppCheckView(RegionTenantHeaderView):
     @never_cache
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         multiple application check
         ---
@@ -35,7 +37,7 @@ class MultiAppCheckView(RegionTenantHeaderView):
 
 class MultiAppCreateView(RegionTenantHeaderView):
     @never_cache
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         multiple-service application creation
         ---
@@ -66,7 +68,7 @@ class MultiAppCreateView(RegionTenantHeaderView):
             region_name=self.response_region,
             tenant=self.tenant,
             user=self.user,
-            service_alias=service_alias,
+            service_alias=service_alias,  # type: ignore[arg-type]
             service_infos=service_infos,
             host=host)
 
@@ -82,7 +84,7 @@ class MultiAppCreateView(RegionTenantHeaderView):
         return Response(result, status=result["code"])
 
 
-def validate_request(item, name):
+def validate_request(item: Any, name: str) -> Optional[Response]:
     if not item:
         return Response(general_message(400, "params error", "the field '" + name + "' is required"), status=400)
     return None

@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 import logging
+from typing import Any, List, Optional
+
+from django.db.models import QuerySet
 
 from console.repositories.app_config import port_repo
 from console.repositories.base import BaseConnection
@@ -13,7 +16,7 @@ logger = logging.getLogger("default")
 
 
 class ServiceRepo(object):
-    def check_sourcecode_svc_by_eid(self, eid):
+    def check_sourcecode_svc_by_eid(self, eid: str) -> bool:
         conn = BaseConnection()
         sql = """
             SELECT
@@ -30,7 +33,7 @@ class ServiceRepo(object):
         result = conn.query(sql)
         return True if len(result) > 0 else False
 
-    def check_image_svc_by_eid(self, eid):
+    def check_image_svc_by_eid(self, eid: str) -> bool:
         conn = BaseConnection()
         sql = """
             SELECT
@@ -47,7 +50,7 @@ class ServiceRepo(object):
         result = conn.query(sql)
         return True if len(result) > 0 else False
 
-    def check_db_from_market_by_eid(self, eid):
+    def check_db_from_market_by_eid(self, eid: str) -> bool:
         conn = BaseConnection()
         sql = """
             SELECT
@@ -64,13 +67,14 @@ class ServiceRepo(object):
         result = conn.query(sql)
         return True if len(result) > 0 else False
 
-    def list_svc_by_tenant(self, tenant):
+    def list_svc_by_tenant(self, tenant: Any) -> QuerySet[TenantServiceInfo]:
         return TenantServiceInfo.objects.filter(tenant_id=tenant.tenant_id)
 
-    def get_team_service_num_by_team_id(self, team_id, region_name):
+    def get_team_service_num_by_team_id(self, team_id: str, region_name: str) -> int:
         return ServiceGroupRelation.objects.filter(tenant_id=team_id, region_name=region_name).count()
 
-    def get_group_service_by_group_id(self, group_id, region_name, team_id, team_name, enterprise_id, query=""):
+    def get_group_service_by_group_id(self, group_id: str, region_name: str, team_id: str, team_name: str,
+                                      enterprise_id: str, query: str = "") -> List[dict]:
         group_services_list = base_service.get_group_services_list(team_id, region_name, group_id, query)
         if not group_services_list:
             return []
@@ -104,7 +108,8 @@ class ServiceRepo(object):
             result.append(service)
         return result
 
-    def get_no_group_service_status_by_group_id(self, team_name, team_id, region_name, enterprise_id):
+    def get_no_group_service_status_by_group_id(self, team_name: str, team_id: str, region_name: str,
+                                                enterprise_id: str) -> List[dict]:
         no_services = base_service.get_no_group_services_list(team_id=team_id, region_name=region_name)
         if no_services:
             service_ids = [service.service_id for service in no_services]
@@ -137,12 +142,13 @@ class ServiceRepo(object):
         else:
             return []
 
-    def create_service_event(self, create_info):
+    def create_service_event(self, create_info: dict) -> ServiceEvent:
         service_event = ServiceEvent.objects.create(**create_info)
         return service_event
 
-    def get_service_by_tenant_and_alias(self, tenant_id, service_alias="", service_id=""):
-        services = []
+    def get_service_by_tenant_and_alias(self, tenant_id: str, service_alias: str = "",
+                                        service_id: str = "") -> Optional[TenantServiceInfo]:
+        services: Any = []
         if service_alias:
             services = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_alias=service_alias)
         if service_id:
@@ -152,15 +158,15 @@ class ServiceRepo(object):
         return None
 
     @staticmethod
-    def list_by_component_ids(service_ids: []):
+    def list_by_component_ids(service_ids: List[str]) -> QuerySet[TenantServiceInfo]:
         return TenantServiceInfo.objects.filter(service_id__in=service_ids)
 
     @staticmethod
-    def bulk_create(components):
+    def bulk_create(components: List[TenantServiceInfo]) -> None:
         TenantServiceInfo.objects.bulk_create(components)
 
     @staticmethod
-    def bulk_update(components):
+    def bulk_update(components: List[TenantServiceInfo]) -> None:
         TenantServiceInfo.objects.filter(pk__in=[cpt.ID for cpt in components]).delete()
         TenantServiceInfo.objects.bulk_create(components)
 

@@ -10,7 +10,7 @@ class BaseModel(models.Model):
 
     ID = models.AutoField(primary_key=True, max_length=10)
 
-    def to_dict(self):
+    def to_dict(self) -> dict:
         opts = self._meta
         data = {}
         for f in opts.concrete_fields:

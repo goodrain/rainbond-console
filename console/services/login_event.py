@@ -1,5 +1,6 @@
 # -*- coding: utf8 -*-
 import logging
+from typing import Any, List, Optional, Tuple
 
 from django.db.models import Q
 from django.core.paginator import Paginator
@@ -11,7 +12,15 @@ logger = logging.getLogger("default")
 
 class LogEventService(object):
     @staticmethod
-    def list_log_events(enterprise_id, username, event_type, start_time, end_time, page=1, page_size=10):
+    def list_log_events(
+        enterprise_id: str,
+        username: Optional[str],
+        event_type: Optional[str],
+        start_time: Any,
+        end_time: Any,
+        page: int = 1,
+        page_size: int = 10,
+    ) -> Tuple[List[Any], int]:
         q = Q(enterprise_id=enterprise_id)
         if username:
             q &= Q(username=username)

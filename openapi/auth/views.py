@@ -3,6 +3,7 @@
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
+from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -32,7 +33,7 @@ class TokenInfoView(APIView):
         ),
         tags=['openapi-auth'],
         operation_description="企业管理员账号密码获取API-Token")
-    def post(self, request):
+    def post(self, request: Request) -> Response:
         username = request.data.get("username", None)
         password = request.data.get("password", None)
         if not username or not password:

@@ -1,33 +1,35 @@
 # -*- coding: utf-8 -*-
 
+from typing import Any, Optional
+
 from console.models.main import AppVersionTemplateRelation
 
 
 class AppVersionTemplateRelationRepo(object):
     @staticmethod
-    def get_by_group_id(group_id):
+    def get_by_group_id(group_id: str) -> Optional[AppVersionTemplateRelation]:
         return AppVersionTemplateRelation.objects.filter(group_id=group_id).first()
 
     @staticmethod
-    def get_by_app_model_id(app_model_id):
+    def get_by_app_model_id(app_model_id: str) -> Optional[AppVersionTemplateRelation]:
         return AppVersionTemplateRelation.objects.filter(app_model_id=app_model_id).first()
 
     @staticmethod
-    def delete_by_group_id(group_id):
+    def delete_by_group_id(group_id: str) -> tuple[int, dict[str, int]]:
         return AppVersionTemplateRelation.objects.filter(group_id=group_id).delete()
 
     @staticmethod
-    def delete_by_app_model_id(app_model_id):
+    def delete_by_app_model_id(app_model_id: str) -> tuple[int, dict[str, int]]:
         return AppVersionTemplateRelation.objects.filter(app_model_id=app_model_id).delete()
 
     @staticmethod
-    def create(**kwargs):
+    def create(**kwargs: Any) -> AppVersionTemplateRelation:
         relation = AppVersionTemplateRelation(**kwargs)
         relation.save()
         return relation
 
     @staticmethod
-    def get_or_create(group_id, defaults=None):
+    def get_or_create(group_id: str, defaults: Optional[dict] = None) -> AppVersionTemplateRelation:
         defaults = defaults or {}
         relation, _ = AppVersionTemplateRelation.objects.get_or_create(group_id=group_id, defaults=defaults)
         return relation

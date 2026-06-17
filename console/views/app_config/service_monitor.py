@@ -1,4 +1,7 @@
 # -*- coding: utf8 -*-
+from typing import Any
+
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from console.services.app_config import component_service_monitor
@@ -9,7 +12,7 @@ from www.utils.return_message import general_data, general_message
 
 
 class ComponentServiceMonitorView(AppBaseView):
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         port = request.data.get("port", None)
         name = request.data.get("name", None)
         service_show_name = request.data.get("service_show_name", None)
@@ -40,13 +43,13 @@ class ComponentServiceMonitorView(AppBaseView):
             new_information=new_information)
         return Response(status=200, data=general_data(bean=sm.to_dict()))
 
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         sms = component_service_monitor.get_component_service_monitors(self.tenant.tenant_id, self.service.service_id)
         return Response(status=200, data=general_data(list=[p.to_dict() for p in sms]))
 
 
 class ComponentServiceMonitorEditView(AppBaseView):
-    def put(self, request, name, *args, **kwargs):
+    def put(self, request: Request, name: str, *args: Any, **kwargs: Any) -> Response:
         port = request.data.get("port", None)
         service_show_name = request.data.get("service_show_name", None)
         path = request.data.get("path", "/metrics")
@@ -61,7 +64,8 @@ class ComponentServiceMonitorEditView(AppBaseView):
         new_information = component_service_monitor.json_component_service_monitor(
             name=name, s_name=service_show_name, interval=interval, path=path, port=port)
         old_information = component_service_monitor.json_component_service_monitor(
-            name=old.name, s_name=old.service_show_name, interval=old.interval, path=old.path, port=old.port)
+            name=old.name, s_name=old.service_show_name, interval=old.interval, path=old.path,  # type: ignore[union-attr]
+            port=old.port)  # type: ignore[union-attr] # NOTE: get_component_service_monitor may return None (backlog)
         comment = operation_log_service.generate_component_comment(
             operation=Operation.UPDATE,
             module_name=self.service.service_cname,
@@ -78,9 +82,9 @@ class ComponentServiceMonitorEditView(AppBaseView):
             service_alias=self.service.service_alias,
             new_information=new_information,
             old_information=old_information)
-        return Response(status=200, data=general_data(bean=sm.to_dict()))
+        return Response(status=200, data=general_data(bean=sm.to_dict()))  # type: ignore[union-attr]
 
-    def delete(self, request, name, *args, **kwargs):
+    def delete(self, request: Request, name: str, *args: Any, **kwargs: Any) -> Response:
         sm = component_service_monitor.delete_component_service_monitor(self.tenant, self.service, self.user, name)
         comment = operation_log_service.generate_component_comment(
             operation=Operation.DELETE,
@@ -101,13 +105,13 @@ class ComponentServiceMonitorEditView(AppBaseView):
             old_information=old_information)
         return Response(status=200, data=general_data(bean=sm.to_dict()))
 
-    def get(self, request, name, *args, **kwargs):
+    def get(self, request: Request, name: str, *args: Any, **kwargs: Any) -> Response:
         sm = component_service_monitor.get_component_service_monitor(self.tenant.tenant_id, self.service.service_id, name)
-        return Response(status=200, data=general_data(bean=sm.to_dict()))
+        return Response(status=200, data=general_data(bean=sm.to_dict()))  # type: ignore[union-attr]
 
 
 class ComponentMetricsView(AppBaseView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         metrics = monitor_service.get_monitor_metrics(
             self.region_name, self.tenant, "component", component_id=self.service.service_id)
         return Response(general_message(200, "OK", "获取成功", list=metrics), status=200)

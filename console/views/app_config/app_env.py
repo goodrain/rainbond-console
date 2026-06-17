@@ -4,6 +4,7 @@
 """
 import json
 import logging
+from typing import Any, Tuple
 
 from console.repositories.app import service_repo
 from console.repositories.app_config import env_var_repo
@@ -28,7 +29,8 @@ from console.utils.response import MessageResponse
 from console.views.app_config.base import AppBaseView
 from django.db import connection
 from django.forms.models import model_to_dict
-from django.views.decorators.cache import never_cache
+from console.utils.cache_decorators import never_cache
+from rest_framework.request import Request
 from rest_framework.response import Response
 from www.utils.return_message import general_message
 from console.exception.main import AbortRequest
@@ -40,14 +42,14 @@ env_var_service = AppEnvVarService()
 
 class AppEnvView(AppBaseView):
     @staticmethod
-    def _get_page_limit(total, page, page_size):
+    def _get_page_limit(total: int, page: int, page_size: int) -> Tuple[int, int]:
         page = max(page, 1)
         page_size = max(page_size, 1)
         start = (page - 1) * page_size
         return start, min(page_size, max(total - start, 0))
 
     @never_cache
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         获取组件的环境变量参数
         ---
@@ -187,7 +189,7 @@ class AppEnvView(AppBaseView):
         return Response(result, status=result["code"])
 
     @never_cache
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         为组件添加环境变量
         ---
@@ -239,12 +241,15 @@ class AppEnvView(AppBaseView):
             return Response(general_message(400, "params error", "参数异常"), status=400)
         if scope not in ("inner", "outer"):
             return Response(general_message(400, "params error", "scope范围只能是inner或outer"), status=400)
-        code, msg, data = env_var_service.add_service_env_var(self.tenant, self.service, 0, name, attr_name, attr_value,
-                                                              is_change, scope, self.user.nick_name)
+        # NOTE: nick_name is str|None (backlog)
+        code, msg, data = env_var_service.add_service_env_var(
+            self.tenant, self.service, 0, name, attr_name, attr_value,
+            is_change, scope, self.user.nick_name)  # type: ignore[arg-type]
         if code != 200:
             result = general_message(code, "add env error", msg)
             return Response(result, status=code)
-        result = general_message(code, msg, "环境变量添加成功", bean=data.to_dict())
+        # NOTE: add_service_env_var may return None data (backlog)
+        result = general_message(code, msg, "环境变量添加成功", bean=data.to_dict())  # type: ignore[union-attr]
         new_information = env_var_service.json_service_env_var(attr_name=attr_name, attr_value=attr_value, name=name)
         comment = operation_log_service.generate_component_comment(
             operation=Operation.ADD,
@@ -266,7 +271,7 @@ class AppEnvView(AppBaseView):
 
 class AppEnvManageView(AppBaseView):
     @never_cache
-    def delete(self, request, *args, **kwargs):
+    def delete(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         删除组件的某个环境变量
         ---
@@ -294,7 +299,8 @@ class AppEnvManageView(AppBaseView):
         env = env_var_repo.get_env_by_ids_and_env_id(self.tenant.tenant_id, self.service.service_id, env_id)
         old_information = env_var_service.json_service_env_var(
             attr_name=env.attr_name, attr_value=env.attr_value, name=env.name)
-        env_var_service.delete_env_by_env_id(self.tenant, self.service, env_id, self.user.nick_name)
+        env_var_service.delete_env_by_env_id(
+            self.tenant, self.service, env_id, self.user.nick_name)  # type: ignore[arg-type]
         result = general_message(200, "success", "删除成功")
         comment = operation_log_service.generate_component_comment(
             operation=Operation.DELETE,
@@ -314,7 +320,7 @@ class AppEnvManageView(AppBaseView):
         return Response(result, status=result["code"])
 
     @never_cache
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         获取组件的某个环境变量详情
         ---
@@ -341,11 +347,12 @@ class AppEnvManageView(AppBaseView):
             return Response(general_message(400, "attr_name not specify", "环境变量名未指定"))
         env = env_var_service.get_env_by_attr_name(self.tenant, self.service, attr_name)
 
-        result = general_message(200, "success", "查询成功", bean=model_to_dict(env))
+        # NOTE: get_env_by_attr_name may return None (backlog)
+        result = general_message(200, "success", "查询成功", bean=model_to_dict(env))  # type: ignore[arg-type]
         return Response(result, status=result["code"])
 
     @never_cache
-    def put(self, request, *args, **kwargs):
+    def put(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         修改组件环境变量
         ---
@@ -389,17 +396,19 @@ class AppEnvManageView(AppBaseView):
         new_information = env_var_service.json_service_env_var(attr_name=attr_name or env.attr_name, attr_value=attr_value,
                                                                name=name)
         code, msg, env = env_var_service.update_env_by_env_id(
-            self.tenant, self.service, env_id, name, attr_value, self.user.nick_name, attr_name=attr_name)
+            self.tenant, self.service, env_id, name, attr_value,
+            self.user.nick_name, attr_name=attr_name)  # type: ignore[arg-type]
         if code != 200:
             raise AbortRequest(msg="update value error", msg_show=msg, status_code=code)
-        result = general_message(200, "success", "更新成功", bean=model_to_dict(env))
+        # NOTE: update_env_by_env_id may return None env (backlog)
+        result = general_message(200, "success", "更新成功", bean=model_to_dict(env))  # type: ignore[arg-type]
         comment = operation_log_service.generate_component_comment(
             operation=Operation.UPDATE,
             module_name=self.service.service_cname,
             region=self.service.service_region,
             team_name=self.tenant.tenant_name,
             service_alias=self.service.service_alias,
-            suffix=" 下的环境变量 {}".format(env.attr_name))
+            suffix=" 下的环境变量 {}".format(env.attr_name))  # type: ignore[union-attr]
         operation_log_service.create_component_log(
             user=self.user,
             comment=comment,
@@ -412,12 +421,15 @@ class AppEnvManageView(AppBaseView):
         return Response(result, status=result["code"])
 
     @never_cache
-    def patch(self, request, env_id, *args, **kwargs):
+    def patch(self, request: Request, env_id: str, *args: Any, **kwargs: Any) -> MessageResponse:
         """变更环境变量范围"""
         scope = parse_item(request, 'scope', required=True, error="scope is is a required parameter")
-        env = env_var_service.patch_env_scope(self.tenant, self.service, env_id, scope, self.user.nick_name)
+        # NOTE: nick_name is str|None (backlog)
+        env = env_var_service.patch_env_scope(
+            self.tenant, self.service, env_id, scope, self.user.nick_name)  # type: ignore[arg-type]
+        # NOTE: env may be None here (deref precedes the `if env:` guard below) (backlog)
         old_information = env_var_service.json_service_env_var(
-            attr_name=env.attr_name, attr_value=env.attr_value, name=env.name)
+            attr_name=env.attr_name, attr_value=env.attr_value, name=env.name)  # type: ignore[union-attr]
         if env:
             comment = operation_log_service.generate_component_comment(
                 operation=Operation.TRANSFER,
@@ -441,7 +453,7 @@ class AppEnvManageView(AppBaseView):
 
 class AppBuildEnvView(AppBaseView):
     @never_cache
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         获取构建组件的环境变量参数
         ---
@@ -465,7 +477,8 @@ class AppBuildEnvView(AppBaseView):
         # 获取组件构建时环境变量
         build_env_dict = dict()
         build_envs = env_var_service.get_service_build_envs(self.service)
-        if build_envs and not supports_cnb_build_strategy(self.service.language):
+        # NOTE: service.language is str|None (backlog)
+        if build_envs and not supports_cnb_build_strategy(self.service.language):  # type: ignore[arg-type]
             for build_env in build_envs:
                 if build_env.attr_name in CNB_BUILD_ENV_NAMES:
                     build_env.delete()
@@ -489,7 +502,7 @@ class AppBuildEnvView(AppBaseView):
         return Response(result, status=result["code"])
 
     # 全量更新，build_env_dict必须为包含环境变量
-    def put(self, request, *args, **kwargs):
+    def put(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         修改构建运行时环境变量
         :param request:
@@ -553,7 +566,7 @@ class AppBuildEnvView(AppBaseView):
         for build_env in new_build_envs:
             new_build_env_dict[build_env.attr_name] = build_env.attr_value
 
-        source_build_state_service.save_user_snapshot(self.service, self.service.language)
+        source_build_state_service.save_user_snapshot(self.service, self.service.language)  # type: ignore[arg-type]
         new_information = json.dumps(new_build_env_dict, ensure_ascii=False)
         result = general_message(200, "success", "环境变量添加成功")
         comment = operation_log_service.generate_component_comment(

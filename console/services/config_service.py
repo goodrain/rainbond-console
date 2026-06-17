@@ -2,6 +2,7 @@
 import logging
 import os
 from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 from django.conf import settings
 from django.db.models import Q
@@ -19,21 +20,21 @@ logger = logging.getLogger("default")
 
 
 class ConfigService(object):
-    def __init__(self):
-        self.base_cfg_keys = []
-        self.cfg_keys = None
-        self.cfg_keys_value = None
-        self.base_cfg_keys_value = None
+    def __init__(self) -> None:
+        self.base_cfg_keys: List[str] = []
+        self.cfg_keys: Any = None
+        self.cfg_keys_value: Any = None
+        self.base_cfg_keys_value: Any = None
         self.enterprise_id = ""
 
-    def init_base_config_value(self):
+    def init_base_config_value(self) -> None:
         # no need
         pass
 
     @property
-    def initialization_or_get_config(self):
+    def initialization_or_get_config(self) -> Dict[str, Any]:
         self.init_base_config_value()
-        rst_datas = {}
+        rst_datas: Dict[str, Any] = {}
         for key in self.base_cfg_keys:
             tar_key = self.get_config_by_key(key)
             if not tar_key:
@@ -75,7 +76,9 @@ class ConfigService(object):
                 rst_datas.update(rst_data)
             else:
                 if tar_key.type == "json":
-                    rst_value = eval(tar_key.value)
+                    # NOTE: potential latent None-bug — ConsoleSysConfig.value is
+                    # nullable; eval(None) would also fail at runtime if value is None.
+                    rst_value = eval(tar_key.value)  # type: ignore[arg-type]
                 else:
                     rst_value = tar_key.value
                 rst_data = {key.lower(): {"enable": tar_key.enable, "value": rst_value}}
@@ -94,13 +97,14 @@ class ConfigService(object):
 
         return rst_datas
 
-    def update_config(self, key, value):
+    def update_config(self, key: str, value: dict) -> Dict[str, Any]:
         return self.update_config_by_key(key, value)
 
-    def delete_config(self, key):
+    def delete_config(self, key: str) -> Dict[str, Any]:
         return self.delete_config_by_key(key)
 
-    def add_config(self, key, default_value, type, enable=True, desc=""):
+    def add_config(self, key: str, default_value: Any, type: str, enable: bool = True,
+                   desc: str = "") -> ConsoleSysConfig:
         if not ConsoleSysConfig.objects.filter(key=key).exists():
             create_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             config = ConsoleSysConfig.objects.create(
@@ -116,13 +120,13 @@ class ConfigService(object):
         else:
             raise ConfigExistError("配置{}已存在".format(key))
 
-    def get_config_by_key(self, key):
+    def get_config_by_key(self, key: str) -> Optional[ConsoleSysConfig]:
         try:
             return ConsoleSysConfig.objects.get(key=key)
         except ConsoleSysConfig.DoesNotExist:
             return None
 
-    def update_config_by_key(self, key, data):
+    def update_config_by_key(self, key: str, data: dict) -> Dict[str, Any]:
         enable = data["enable"]
         value = data["value"]
         if key in self.base_cfg_keys:
@@ -134,15 +138,18 @@ class ConfigService(object):
             config = self.update_config_enable_status(key, enable)
         return config
 
-    def update_config_enable_status(self, key, enable):
+    def update_config_enable_status(self, key: str, enable: bool) -> Dict[str, Any]:
         self.init_base_config_value()
         ConsoleSysConfig.objects.filter(key=key).update(enable=enable)
         config = ConsoleSysConfig.objects.get(key=key)
         if key in self.base_cfg_keys:
             return {key.lower(): {"enable": enable, "value": self.base_cfg_keys_value[key]["value"]}}
-        return {key.lower(): {"enable": enable, "value": (eval(config.value) if config.type == "json" else config.value)}}
+        # NOTE: potential latent None-bug — config.value is nullable; eval(None) would
+        # also fail at runtime if a "json" config has a None value.
+        value = eval(config.value) if config.type == "json" else config.value  # type: ignore[arg-type]
+        return {key.lower(): {"enable": enable, "value": value}}
 
-    def update_config_value(self, key, value):
+    def update_config_value(self, key: str, value: Any) -> Dict[str, Any]:
         config = ConsoleSysConfig.objects.get(key=key)
         config.value = value
         if isinstance(value, (dict, list)):
@@ -153,7 +160,7 @@ class ConfigService(object):
         config.save()
         return {key.lower(): {"enable": True, "value": config.value}}
 
-    def delete_config_by_key(self, key):
+    def delete_config_by_key(self, key: str) -> Dict[str, Any]:
         rst = ConsoleSysConfig.objects.get(key=key)
         rst.enable = self.cfg_keys_value[key]["enable"]
         rst.value = self.cfg_keys_value[key]["value"]
@@ -165,7 +172,7 @@ class ConfigService(object):
         rst.save()
         return {key.lower(): {"enable": rst.enable, "value": rst.value}}
 
-    def save_custom_fields(self, fields_dict):
+    def save_custom_fields(self, fields_dict: dict) -> None:
         """
         保存自定义字段，每个字段单独存储一条记录
         fields_dict: {'field_key': {'value': 'xxx', 'type': 'string'}, ...}
@@ -228,7 +235,7 @@ class ConfigService(object):
                 enterprise_id=self.enterprise_id
             ).delete()
 
-    def get_custom_fields(self):
+    def get_custom_fields(self) -> List[Dict[str, Any]]:
         """
         获取所有自定义字段
         返回: [{'key': 'xxx', 'value': 'xxx', 'type': 'string'}, ...]
@@ -247,10 +254,11 @@ class ConfigService(object):
 
         logger.debug(f"get_custom_fields - enterprise_id: {self.enterprise_id}, configs count: {configs.count()}")
 
-        result = []
+        result: List[Dict[str, Any]] = []
         for config in configs:
             # 从 desc 中提取原始字段名
-            original_key = config.desc.replace('自定义字段: ', '')
+            # NOTE: invariant — configs filtered by desc__startswith, so desc is non-None.
+            original_key = config.desc.replace('自定义字段: ', '')  # type: ignore[union-attr]
 
             result.append({
                 'key': original_key,
@@ -264,7 +272,7 @@ class ConfigService(object):
 
 
 class EnterpriseConfigService(ConfigService):
-    def __init__(self, eid, user_id=None):
+    def __init__(self, eid: str, user_id: Optional[str] = None) -> None:
         super(EnterpriseConfigService, self).__init__()
         self.enterprise_id = eid
         self.user_id = user_id
@@ -413,7 +421,7 @@ class EnterpriseConfigService(ConfigService):
             },
         }
 
-    def init_base_config_value(self):
+    def init_base_config_value(self) -> None:
         self.base_cfg_keys_value = {
             "OAUTH_SERVICES": {
                 "value": self.get_oauth_services(),
@@ -422,23 +430,30 @@ class EnterpriseConfigService(ConfigService):
             },
         }
 
-    def get_oauth_services(self):
-        rst = []
+    def get_oauth_services(self) -> List[Dict[str, Any]]:
+        rst: List[Dict[str, Any]] = []
         enterprise = enterprise_services.get_enterprise_by_enterprise_id(self.enterprise_id)
+        # NOTE: invariant — get_enterprise_by_enterprise_id defaults exception=True,
+        # so it raises rather than returning None.
+        eid = enterprise.enterprise_id  # type: ignore[union-attr]
         # 先查询公共服务
-        oauth_services = OAuthServices.objects.filter(eid=enterprise.enterprise_id, is_deleted=False, enable=True, system=True)
+        oauth_services = OAuthServices.objects.filter(eid=eid, is_deleted=False, enable=True, system=True)
         # 再查询用户私有服务
-        private_services = OAuthServices.objects.filter(eid=enterprise.enterprise_id, is_deleted=False, enable=True, system=False, user_id=self.user_id)
+        # NOTE: self.user_id may be None (Django filters user_id IS NULL); preserved as-is.
+        private_services = OAuthServices.objects.filter(
+            eid=eid, is_deleted=False, enable=True, system=False, user_id=self.user_id)  # type: ignore[misc]
         # 合并查询结果
         oauth_services = oauth_services | private_services
         svc_ids = [svc.ID for svc in oauth_services]
-        user_oauth_list = oauth_user_repo.get_by_oauths_user_id(svc_ids, self.user_id)
+        # NOTE: self.user_id may be None but get_by_oauths_user_id expects str; preserved.
+        user_oauth_list = oauth_user_repo.get_by_oauths_user_id(svc_ids, self.user_id)  # type: ignore[arg-type]
         user_oauth_dict = {uol.service_id: uol for uol in user_oauth_list}
         if oauth_services:
             for oauth_service in oauth_services:
                 try:
                     api = get_oauth_instance(oauth_service.oauth_type, oauth_service, None)
                     authorize_url = api.get_authorize_url()
+                    user_oauth = user_oauth_dict.get(oauth_service.ID)
                     rst.append({
                         "service_id": oauth_service.ID,
                         "enable": oauth_service.enable,
@@ -450,28 +465,30 @@ class EnterpriseConfigService(ConfigService):
                         "is_auto_login": oauth_service.is_auto_login,
                         "is_git": oauth_service.is_git,
                         "authorize_url": authorize_url,
-                        "is_authenticated": user_oauth_dict.get(oauth_service.ID).is_authenticated if user_oauth_dict.get(oauth_service.ID) else False,
-                        "is_expired": user_oauth_dict.get(oauth_service.ID).is_expired if user_oauth_dict.get(oauth_service.ID) else False,
+                        "is_authenticated": user_oauth.is_authenticated if user_oauth else False,
+                        "is_expired": user_oauth.is_expired if user_oauth else False,
                     })
                 except NoSupportOAuthType:
                     continue
         return rst
 
-    def get_cloud_obj_storage_info(self):
+    def get_cloud_obj_storage_info(self) -> Any:
         cloud_obj_storage_info = self.get_config_by_key("OBJECT_STORAGE")
         if not cloud_obj_storage_info or not cloud_obj_storage_info.enable:
             return None
-        return eval(cloud_obj_storage_info.value)
+        # NOTE: potential latent None-bug — value is nullable even when enable is True.
+        return eval(cloud_obj_storage_info.value)  # type: ignore[arg-type]
 
-    def get_auto_ssl_info(self):
+    def get_auto_ssl_info(self) -> Any:
         auto_ssl_config = self.get_config_by_key("AUTO_SSL")
         if not auto_ssl_config or not auto_ssl_config.enable:
             return None
-        return eval(auto_ssl_config.value)
+        # NOTE: potential latent None-bug — value is nullable even when enable is True.
+        return eval(auto_ssl_config.value)  # type: ignore[arg-type]
 
 
 class PlatformConfigService(ConfigService):
-    def __init__(self):
+    def __init__(self) -> None:
         super(PlatformConfigService, self).__init__()
         self.base_cfg_keys = ["IS_PUBLIC", "MARKET_URL", "ENTERPRISE_CENTER_OAUTH", "VERSION", "IS_USER_REGISTER"]
         if not os.getenv('IS_PUBLIC', False):
@@ -586,7 +603,7 @@ class PlatformConfigService(ConfigService):
             },
         }
 
-    def init_base_config_value(self):
+    def init_base_config_value(self) -> None:
         self.base_cfg_keys_value = {
             "IS_PUBLIC": {
                 "value": os.getenv('IS_PUBLIC', False),
@@ -621,7 +638,7 @@ class PlatformConfigService(ConfigService):
                 "enable": True
             }
 
-    def get_enterprise_center_oauth(self):
+    def get_enterprise_center_oauth(self) -> Optional[Dict[str, Any]]:
         try:
             oauth_service = OAuthServices.objects.get(is_deleted=False, enable=True, oauth_type="enterprisecenter", ID=1)
             pre_enterprise_center = os.getenv("PRE_ENTERPRISE_CENTER", None)
@@ -647,12 +664,13 @@ class PlatformConfigService(ConfigService):
         except NoSupportOAuthType:
             return None
 
-    def is_user_register(self):
+    def is_user_register(self) -> bool:
         if user_repo.get_all_users():
             return True
         return False
 
-    def add_config_without_reload(self, key, default_value, type, desc=""):
+    def add_config_without_reload(self, key: str, default_value: Any, type: str,
+                                  desc: str = "") -> ConsoleSysConfig:
         if not ConsoleSysConfig.objects.filter(key=key).exists():
             create_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             config = ConsoleSysConfig.objects.create(
@@ -661,8 +679,8 @@ class PlatformConfigService(ConfigService):
         else:
             raise ConfigExistError("配置{}已存在".format(key))
 
-    def get_all_oauth_service(self):
-        rst = []
+    def get_all_oauth_service(self) -> List[Dict[str, Any]]:
+        rst: List[Dict[str, Any]] = []
         oauth_services = OAuthServices.objects.filter(is_deleted=False, enable=True, system=True)
         if oauth_services:
             for oauth_service in oauth_services:

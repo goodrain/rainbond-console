@@ -1,8 +1,10 @@
 import json
 import random
-from datetime import timedelta
+from datetime import datetime, timedelta
+from typing import Dict, Optional
 from django.utils import timezone
 
+from console.models.main import SMSVerificationCode
 from console.repositories.enterprise_repo import enterprise_repo
 from console.repositories.sms_repo import sms_repo
 from console.exception.main import ServiceHandleException
@@ -10,12 +12,12 @@ from console.services.config_service import EnterpriseConfigService
 
 class SMSProvider(object):
     """短信服务商基类"""
-    def send_sms(self, phone, code, config):
+    def send_sms(self, phone: str, code: str, config: Dict) -> None:
         raise NotImplementedError
 
 class AliyunSMSProvider(SMSProvider):
     """阿里云短信"""
-    def send_sms(self, phone, code, config):
+    def send_sms(self, phone: str, code: str, config: Dict) -> None:
         from alibabacloud_dysmsapi20170525.client import Client
         from alibabacloud_tea_openapi import models as open_api_models
         from alibabacloud_dysmsapi20170525 import models as dysmsapi_models
@@ -41,7 +43,7 @@ class AliyunSMSProvider(SMSProvider):
 
 class VolcanoSMSProvider(SMSProvider):
     """火山云短信"""
-    def send_sms(self, phone, code, config):
+    def send_sms(self, phone: str, code: str, config: Dict) -> None:
         from volcengine.sms.SmsService import SmsService
 
         sms_service = SmsService()
@@ -62,17 +64,17 @@ class VolcanoSMSProvider(SMSProvider):
             raise Exception(f"Code: {error.get('Code')}, Message: {error.get('Message')}")
 
 class SMSService(object):
-    def __init__(self):
-        self.providers = {
+    def __init__(self) -> None:
+        self.providers: Dict[str, SMSProvider] = {
             "aliyun": AliyunSMSProvider(),
             "volcano": VolcanoSMSProvider()
         }
 
-    def generate_code(self):
+    def generate_code(self) -> str:
         """生成6位随机验证码"""
         return ''.join([str(random.randint(0, 9)) for _ in range(6)])
 
-    def send_verification_code(self, phone, purpose):
+    def send_verification_code(self, phone: str, purpose: str) -> str:
         """发送验证码"""
         # 检查发送频率
         recent_code = sms_repo.get_recent_code(phone)
@@ -83,7 +85,7 @@ class SMSService(object):
                 status_code=400
             )
 
-        # 检查当天发送次数  
+        # 检查当天发送次数
         today_count = sms_repo.count_today_codes(phone)
         if today_count >= 5:
             raise ServiceHandleException(
@@ -111,10 +113,10 @@ class SMSService(object):
 
         # 生成验证码
         code = self.generate_code()
-        
+
         # 发送短信
         try:
-            config = eval(sms_config.value)
+            config = eval(sms_config.value)  # type: ignore[arg-type]  # NOTE: sms_config.value is Optional[str]; runtime guarantees non-None here but mypy can't narrow past the Optional
             provider = config.get("provider", "aliyun")  # 默认使用阿里云
             if provider not in self.providers:
                 raise ServiceHandleException(
@@ -122,7 +124,7 @@ class SMSService(object):
                     msg_show="不支持的短信服务商",
                     status_code=400
                 )
-            
+
             self.providers[provider].send_sms(phone, code, config)
         except Exception as e:
             raise ServiceHandleException(
@@ -132,12 +134,12 @@ class SMSService(object):
             )
 
         # 保存验证码
-        expires_at = timezone.now() + timedelta(minutes=5)
+        expires_at: datetime = timezone.now() + timedelta(minutes=5)
         sms_repo.create_verification(phone, code, purpose, expires_at)
 
         return code
 
-    def verify_code(self, phone, code, purpose):
+    def verify_code(self, phone: str, code: str, purpose: str) -> bool:
         """校验验证码"""
         if not phone or not code or not purpose:
             raise ServiceHandleException(
@@ -147,7 +149,7 @@ class SMSService(object):
             )
 
         # 获取有效的验证码
-        verification = sms_repo.get_valid_code(phone, purpose)
+        verification: Optional[SMSVerificationCode] = sms_repo.get_valid_code(phone, purpose)
         if not verification:
             raise ServiceHandleException(
                 msg="verification code not found or expired",

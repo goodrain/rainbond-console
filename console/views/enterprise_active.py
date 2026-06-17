@@ -5,9 +5,11 @@
 import logging
 import os
 import base64
+from typing import Any
 
 from django.conf import settings
-from django.views.decorators.cache import never_cache
+from console.utils.cache_decorators import never_cache
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from console.services.enterprise_services import enterprise_services
@@ -22,7 +24,7 @@ logger = logging.getLogger("default")
 
 class BindMarketEnterpriseAccessTokenView(RegionTenantHeaderView):
     @never_cache
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         云市绑定企业账号
         ---
@@ -78,7 +80,7 @@ class BindMarketEnterpriseAccessTokenView(RegionTenantHeaderView):
 
 class BindMarketEnterpriseOptimizAccessTokenView(JWTAuthApiView):
     @never_cache
-    def post(self, request, enterprise_id, *args, **kwargs):
+    def post(self, request: Request, enterprise_id: str, *args: Any, **kwargs: Any) -> Response:
         """
         优化云市绑定企业账号
         ---
@@ -102,7 +104,7 @@ class BindMarketEnterpriseOptimizAccessTokenView(JWTAuthApiView):
         """
         logger.debug("bind market access token")
         ret = request.data.get('market_info')
-        market_info = eval(base64.decodestring(ret))
+        market_info = eval(base64.b64decode(ret))  # type: ignore[arg-type]
         market_client_id = market_info.get('eid')
         market_client_token = market_info.get('token')
         if not enterprise_id or not market_client_id or not market_client_token:

@@ -5,10 +5,11 @@
 import copy
 import json
 import logging
+from typing import Any, Optional, Tuple
 
 from console.exception.main import ServiceHandleException, AbortRequest
 from console.repositories.probe_repo import probe_repo
-from www.models.main import ServiceProbe
+from www.models.main import ServiceProbe, TenantServiceInfo, Tenants
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.crypt import make_uuid
 
@@ -20,18 +21,18 @@ class ProbeService(object):
     PROBE_MODE = ("readiness", "liveness", "ignore")
 
     def json_service_probe(self,
-                           port,
-                           scheme,
-                           mode,
-                           initial_delay_second,
-                           period_second,
-                           timeout_second,
-                           success_threshold,
-                           is_used=True,
-                           http_header="",
-                           path="",
-                           **kwargs):
-        service_probe_dict = dict()
+                           port: int,
+                           scheme: str,
+                           mode: str,
+                           initial_delay_second: int,
+                           period_second: int,
+                           timeout_second: int,
+                           success_threshold: int,
+                           is_used: bool = True,
+                           http_header: str = "",
+                           path: str = "",
+                           **kwargs: Any) -> str:
+        service_probe_dict: dict = dict()
         service_probe_dict["状态"] = "启用" if is_used else "禁用"
         service_probe_dict["检测端口"] = port
         service_probe_dict["探针协议"] = scheme
@@ -46,7 +47,8 @@ class ProbeService(object):
         service_probe_dict["连续成功次数"] = success_threshold
         return json.dumps(service_probe_dict, ensure_ascii=False)
 
-    def get_service_probe_by_mode(self, service, mode):
+    def get_service_probe_by_mode(self, service: TenantServiceInfo, mode: Optional[str]) -> Tuple[int, str, Any]:
+        # NOTE: mode relaxed to Optional[str]; callers (mcp_query_service) pass None to list all modes.
         if not mode:
             m_list = []
             for m in self.PROBE_MODE:
@@ -64,13 +66,13 @@ class ProbeService(object):
             return 404, "探针不存在，您可能并未设置检测探针", None
         return 200, "success", probe
 
-    def get_service_probe(self, service):
+    def get_service_probe(self, service: TenantServiceInfo) -> Tuple[int, str, Optional[ServiceProbe]]:
         probe = probe_repo.get_probe(service.service_id)
         if not probe:
             return 404, "探针不存在，您可能并未设置检测探针", None
         return 200, "success", probe
 
-    def __check_probe_data(self, data):
+    def __check_probe_data(self, data: dict) -> Tuple[int, str]:
         mode = data.get("mode", None)
         if mode:
             if mode not in self.PROBE_MODE:
@@ -108,7 +110,7 @@ class ProbeService(object):
 
         return 200, "success"
 
-    def create_probe(self, tenant, service, data):
+    def create_probe(self, tenant: Tenants, service: TenantServiceInfo, data: dict) -> ServiceProbe:
         code, msg = self.__check_probe_data(data)
         if code != 200:
             raise AbortRequest("invalid probe", msg_show=msg)
@@ -135,7 +137,7 @@ class ProbeService(object):
         }
         return ServiceProbe(**probe)
 
-    def add_service_probe(self, tenant, service, data):
+    def add_service_probe(self, tenant: Tenants, service: TenantServiceInfo, data: dict) -> Tuple[int, str, Any]:
         probe = self.create_probe(tenant, service, data)
         probe = probe.to_dict()
         # deep copy
@@ -149,7 +151,7 @@ class ProbeService(object):
         new_probe = probe_repo.add_service_probe(**probe)
         return 200, "success", new_probe
 
-    def update_service_probea(self, tenant, service, data, user_name=''):
+    def update_service_probea(self, tenant: Tenants, service: TenantServiceInfo, data: dict, user_name: str = '') -> Any:
         code, msg = self.__check_probe_data(data)
         if code != 200:
             raise ServiceHandleException(status_code=code, msg_show=msg, msg="error")
@@ -206,7 +208,7 @@ class ProbeService(object):
         new_probe = probe_repo.get_probe_by_probe_id(service.service_id, probe.probe_id)
         return new_probe
 
-    def delete_service_probe(self, tenant, service, probe_id):
+    def delete_service_probe(self, tenant: Tenants, service: TenantServiceInfo, probe_id: str) -> Tuple[int, str]:
         probe = probe_repo.get_probe_by_probe_id(service.service_id, probe_id)
         if not probe:
             return 404, "未找到探针"

@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import logging
+from typing import Any
 
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from console.services.region_services import region_services
@@ -16,7 +18,7 @@ market_api = MarketOpenAPI()
 
 
 class EnterpriseAccountInfoView(JWTAuthApiView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         企业账户信息查询接口
         ---
@@ -39,19 +41,22 @@ class EnterpriseAccountInfoView(JWTAuthApiView):
 
             team = team_services.get_tenant_by_tenant_name(tenant_name=team_name, exception=True)
             try:
-                res, data = market_api.get_enterprise_account_info(tenant_id=team.tenant_id, enterprise_id=team.enterprise_id)
+                # NOTE: get_tenant_by_tenant_name typed Optional though exception=True raises (backlog).
+                res, data = market_api.get_enterprise_account_info(
+                    tenant_id=team.tenant_id, enterprise_id=team.enterprise_id)  # type: ignore[union-attr]
                 result = general_message(200, "success", "查询成功", bean=data)
             except Exception as e:
                 logger.exception(e)
                 result = general_message(400, "corporate account information failed", "企业账户信息获取失败")
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)
+            # NOTE: py2 Exception.message (backlog).
+            result = error_message(e.message)  # type: ignore[attr-defined]
         return Response(result, status=result["code"])
 
 
 class EnterpriseTeamFeeView(JWTAuthApiView):
-    def get(self, request, team_name):
+    def get(self, request: Request, team_name: str) -> Response:
         """
         企业下某团队资源费用账单查询接口
         ---
@@ -97,12 +102,12 @@ class EnterpriseTeamFeeView(JWTAuthApiView):
                 result = general_message(400, "enterprise expense account query failed.", "企业资源费用账单查询失败")
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)
+            result = error_message(e.message)  # type: ignore[attr-defined]
         return Response(result, status=result["code"])
 
 
 class EnterpriseRechargeRecordsView(JWTAuthApiView):
-    def get(self, request, team_name):
+    def get(self, request: Request, team_name: str) -> Response:
         """
         查询企业的充值记录
         ---
@@ -138,20 +143,21 @@ class EnterpriseRechargeRecordsView(JWTAuthApiView):
                 return Response(general_message(404, "team not found", "团队{0}不存在".format(team_name)), status=404)
 
             enterprise = enterprise_services.get_enterprise_by_enterprise_id(team.enterprise_id)
-            res, data = market_api.get_enterprise_recharge_records(team.tenant_id, enterprise.enterprise_id, start_time,
-                                                                   end_time, page, page_size)
+            res, data = market_api.get_enterprise_recharge_records(team.tenant_id,
+                                                                   enterprise.enterprise_id,  # type: ignore[union-attr]
+                                                                   start_time, end_time, page, page_size)
 
             result = general_message(
                 200, "get recharge record success", "查询成功", list=data["data"]["list"], total=data["data"]["total"])
 
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)
+            result = error_message(e.message)  # type: ignore[attr-defined]
         return Response(result, status=result["code"])
 
 
 class EnterpriseAllRegionFeeView(JWTAuthApiView):
-    def get(self, request, team_name):
+    def get(self, request: Request, team_name: str) -> Response:
         """
         企业所有信息
         ---
@@ -169,15 +175,15 @@ class EnterpriseAllRegionFeeView(JWTAuthApiView):
             if not team:
                 return Response(general_message(404, "team not exist", "指定的团队不存在"), status=404)
 
-            regions = region_services.get_regions_by_enterprise_id(team.enterprise_id)
-            total_list = []
+            regions = region_services.get_regions_by_enterprise_id(team.enterprise_id)  # type: ignore[arg-type]
+            total_list: list = []
             for region in regions:
                 try:
                     res, dict_body = market_api.get_enterprise_region_fee(
                         region=region.region_name, enterprise_id=team.enterprise_id, team_id=team.tenant_id, date=date)
 
                     rt_list = dict_body["data"]["list"]
-                    enter_total = {}
+                    enter_total: dict = {}
                     for rt in rt_list:
                         bean = enter_total.get(rt['time'])
                         if bean:
@@ -207,12 +213,12 @@ class EnterpriseAllRegionFeeView(JWTAuthApiView):
             result = general_message(200, "success", "查询成功", list=result_list)
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)
+            result = error_message(e.message)  # type: ignore[attr-defined]
         return Response(result, status=result["code"])
 
 
 class EnterprisePurchaseDetails(JWTAuthApiView):
-    def get(self, request, team_name):
+    def get(self, request: Request, team_name: str) -> Response:
         """
         企业购买明细
         ---
@@ -258,5 +264,5 @@ class EnterprisePurchaseDetails(JWTAuthApiView):
             result = general_message(200, "success", "查询成功", list=result_list, total=total)
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)
+            result = error_message(e.message)  # type: ignore[attr-defined]
         return Response(result, status=result["code"])

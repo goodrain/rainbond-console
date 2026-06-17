@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
-from django.db.models import Q
+from typing import Any, List, Optional
+
+from django.db.models import Q, QuerySet
 
 from console.exception.exceptions import UserFavoriteNotExistError, UserNotExistError
 from console.exception.bcode import ErrUserNotFound
@@ -9,77 +11,77 @@ from www.models.main import Users
 
 
 class UserRepo(object):
-    def get_user_by_user_id(self, user_id):
+    def get_user_by_user_id(self, user_id: str) -> Users:
         u = Users.objects.filter(user_id=user_id)
         if not u:
             raise UserNotExistError("用户{}不存在".format(user_id))
         return u[0]
 
-    def get_enterprise_user_by_id(self, enterprise_id, user_id):
+    def get_enterprise_user_by_id(self, enterprise_id: str, user_id: str) -> Optional[Users]:
         return Users.objects.filter(user_id=user_id, enterprise_id=enterprise_id).first()
 
-    def get_enterprise_user_by_username(self, eid, username):
+    def get_enterprise_user_by_username(self, eid: str, username: str) -> Users:
         return Users.objects.get(nick_name=username, enterprise_id=eid)
 
     @staticmethod
-    def get_user_by_username(user_name):
+    def get_user_by_username(user_name: str) -> Users:
         users = Users.objects.filter(nick_name=user_name)
         if not users:
             raise ErrUserNotFound
         return users[0]
 
-    def get_user_by_user_name(self, user_name):
+    def get_user_by_user_name(self, user_name: str) -> Optional[Users]:
         user = Users.objects.filter(nick_name=user_name).first()
         return user
 
-    def get_user_by_filter(self, args=None, kwargs=None):
+    def get_user_by_filter(self, args: Any = None, kwargs: Any = None) -> QuerySet[Users]:
         args = tuple(args) if isinstance(args, (tuple, list, set)) else tuple()
         kwargs = kwargs if isinstance(kwargs, dict) else dict()
         users = Users.objects.filter(*args, **kwargs)
         return users
 
-    def get_by_user_id(self, user_id):
+    def get_by_user_id(self, user_id: str) -> Optional[Users]:
         u = Users.objects.filter(user_id=user_id)
         if u:
             return u[0]
         return None
 
-    def get_by_user_ids(self, user_ids):
+    def get_by_user_ids(self, user_ids: List[str]) -> QuerySet[Users]:
         u = Users.objects.filter(user_id__in=user_ids)
         return u
 
-    def get_enterprise_users(self, enterprise_id):
+    def get_enterprise_users(self, enterprise_id: str) -> QuerySet[Users]:
         return Users.objects.filter(enterprise_id=enterprise_id)
 
-    def get_user_by_email(self, email):
+    def get_user_by_email(self, email: str) -> Optional[Users]:
         u = Users.objects.filter(email=email)
         if u:
             return u[0]
         return None
 
-    def get_user_by_phone(self, phone):
+    def get_user_by_phone(self, phone: str) -> Optional[Users]:
         u = Users.objects.filter(phone=phone)
         if u:
             return u[0]
         return None
 
-    def get_enterprise_user_by_phone(self, phone, eid):
+    def get_enterprise_user_by_phone(self, phone: str, eid: str) -> Optional[Users]:
         u = Users.objects.filter(phone=phone, enterprise_id=eid)
         if u:
             return u[0]
         return None
 
-    def get_all_users(self):
+    def get_all_users(self) -> QuerySet[Users]:
         return Users.objects.all()
 
-    def get_user_nickname_by_id(self, user_id):
+    def get_user_nickname_by_id(self, user_id: str) -> Optional[str]:
         u = Users.objects.filter(user_id=user_id)
         if u:
             return u[0].nick_name
         else:
             return None
 
-    def list_users(self, item=""):
+    def list_users(self, item: str = "") -> QuerySet[Users]:
         """
         Support search by username, email, phone number
         """
@@ -87,7 +89,7 @@ class UserRepo(object):
                                     | Q(email__contains=item)
                                     | Q(phone__contains=item)).all().order_by("-create_time")
 
-    def get_by_tenant_id(self, tenant_id, user_id):
+    def get_by_tenant_id(self, tenant_id: str, user_id: str) -> dict:
         conn = BaseConnection()
 
         sql = """
@@ -113,7 +115,8 @@ class UserRepo(object):
             raise UserNotExistError("用户{0}不存在于团队{1}中".format(user_id, tenant_id))
         return result[0]
 
-    def list_users_by_tenant_id(self, tenant_id, query="", page=None, size=None):
+    def list_users_by_tenant_id(self, tenant_id: str, query: str = "", page: Optional[int] = None,
+                                size: Optional[int] = None) -> Any:
         """
         Support search by username, email, phone number
         """
@@ -150,7 +153,7 @@ class UserRepo(object):
         result = conn.query(sql)
         return result
 
-    def count_users_by_tenant_id(self, tenant_id, query=""):
+    def count_users_by_tenant_id(self, tenant_id: str, query: str = "") -> Any:
         """
         Support search by username, email, phone number
         """
@@ -180,30 +183,33 @@ class UserRepo(object):
         result = conn.query(sql)
         return result[0].get("total")
 
-    def get_user_favorite(self, user_id):
+    def get_user_favorite(self, user_id: Any) -> QuerySet[UserFavorite]:
+        # user_id arrives as str from some callers and as the int model field from others
         return UserFavorite.objects.filter(user_id=user_id).order_by("custom_sort")
 
-    def get_user_favorite_by_name(self, user_id, name):
+    def get_user_favorite_by_name(self, user_id: str, name: str) -> QuerySet[UserFavorite]:
         return UserFavorite.objects.filter(user_id=user_id, name=name)
 
-    def get_user_favorite_by_ID(self, user_id, favorite_id):
+    def get_user_favorite_by_ID(self, user_id: str, favorite_id: str) -> UserFavorite:
         try:
             return UserFavorite.objects.get(user_id=user_id, ID=favorite_id)
         except Exception:
-            raise UserFavoriteNotExistError
+            # pre-existing: exception class declares required args but is raised bare
+            raise UserFavoriteNotExistError  # type: ignore[call-arg]
 
-    def get_user_default_favorite(self, user_id):
+    def get_user_default_favorite(self, user_id: str) -> Optional[UserFavorite]:
         return UserFavorite.objects.filter(user_id=user_id, is_default=True).first()
 
-    def create_user_favorite(self, user_id, name, url, is_default):
+    def create_user_favorite(self, user_id: str, name: str, url: str, is_default: bool) -> None:
         user_favorites = self.get_user_favorite(user_id)
         if user_favorites:
-            custom_sort = user_favorites.last().custom_sort + 1
+            custom_sort = user_favorites.last().custom_sort + 1  # type: ignore[union-attr]
         else:
             custom_sort = 0
         UserFavorite.objects.create(user_id=user_id, name=name, url=url, custom_sort=custom_sort, is_default=is_default)
 
-    def update_user_favorite(self, user_favorite, name, url, custom_sort, is_default):
+    def update_user_favorite(self, user_favorite: UserFavorite, name: str, url: str, custom_sort: int,
+                             is_default: bool) -> bool:
         rst = True
         try:
             user_favorite.name = name
@@ -228,7 +234,7 @@ class UserRepo(object):
             rst = False
         return rst
 
-    def delete_user_favorite_by_id(self, user_id, favorite_id):
+    def delete_user_favorite_by_id(self, user_id: str, favorite_id: str) -> None:
         user_favorites = self.get_user_favorite(user_id)
         tar_user_favorite = self.get_user_favorite_by_ID(user_id, favorite_id)
         operate_user_favorites = user_favorites[tar_user_favorite.custom_sort:]

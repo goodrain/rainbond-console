@@ -1,7 +1,9 @@
 # -*- coding: utf8 -*-
 
 import logging
+from typing import Any
 
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from console.services.app import app_market_service
@@ -13,11 +15,13 @@ logger = logging.getLogger("default")
 
 
 class BindableMarketsView(JWTAuthApiView):
-    def get(self, request, enterprise_id, *args, **kwargs):
+    def get(self, request: Request, enterprise_id: str, *args: Any, **kwargs: Any) -> Response:
         market_name = request.GET.get("market_name", None)
         market_url = request.GET.get("market_url", None)
         access_key = request.GET.get("access_key", None)
         if market_url is None and market_name is None:
             raise AbortRequest("the field 'market_name' or 'market_url' is required")
-        markets = app_market_service.list_bindable_markets(enterprise_id, market_name, market_url, access_key)
+        # NOTE: GET params are Optional[str] but service expects str (systemic mismatch; backlog).
+        markets = app_market_service.list_bindable_markets(
+            enterprise_id, market_name, market_url, access_key)  # type: ignore[arg-type]
         return Response(general_message(200, "success", "获取成功", list=markets))

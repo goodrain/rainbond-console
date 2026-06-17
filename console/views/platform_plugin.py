@@ -1,6 +1,8 @@
 # -*- coding: utf8 -*-
 import logging
+from typing import Any
 
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from console.exception.main import ServiceHandleException
@@ -12,7 +14,7 @@ logger = logging.getLogger("default")
 
 
 class PlatformPluginLView(JWTAuthApiView):
-    def get(self, request, enterprise_id, region_name, *args, **kwargs):
+    def get(self, request: Request, enterprise_id: str, region_name: str, *args: Any, **kwargs: Any) -> Response:
         try:
             plugins = platform_plugin_service.list_platform_plugins(enterprise_id, region_name)
             result = general_message(200, "success", "查询成功", list=plugins)
@@ -24,7 +26,8 @@ class PlatformPluginLView(JWTAuthApiView):
 
 
 class PlatformPluginInstallView(JWTAuthApiView):
-    def post(self, request, enterprise_id, region_name, plugin_id, *args, **kwargs):
+    def post(self, request: Request, enterprise_id: str, region_name: str, plugin_id: str, *args: Any,
+             **kwargs: Any) -> Response:
         try:
             data = platform_plugin_service.install_platform_plugin(
                 enterprise_id, region_name, plugin_id, self.user)

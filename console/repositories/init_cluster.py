@@ -1,19 +1,21 @@
 import datetime
 import uuid
+from typing import Any, Optional, Tuple
 
 from django.db import transaction
+from django.db.models import QuerySet
 
 from console.models.main import RKECluster, RKEClusterNode
 
 
 class Cluster(object):
-    def get_latest_pending_cluster(self):
+    def get_latest_pending_cluster(self) -> Optional[RKECluster]:
         return RKECluster.objects.exclude(create_status="interconnected").order_by("-ID").first()
 
-    def get_recyclable_cluster(self):
+    def get_recyclable_cluster(self) -> Optional[RKECluster]:
         return RKECluster.objects.filter(cluster_id="", cluster_name="").order_by("-ID").first()
 
-    def recycle_cluster(self, cluster):
+    def recycle_cluster(self, cluster: RKECluster) -> RKECluster:
         RKEClusterNode.objects.filter(cluster_id=cluster.cluster_id).delete()
         cluster.event_id = uuid.uuid4().hex
         cluster.create_status = "initializing"
@@ -24,7 +26,7 @@ class Cluster(object):
         cluster.save()
         return cluster
 
-    def get_rke_cluster_exclude_integrated(self):
+    def get_rke_cluster_exclude_integrated(self) -> RKECluster:
         cluster = self.get_latest_pending_cluster()
         if cluster:
             return cluster
@@ -34,7 +36,8 @@ class Cluster(object):
             return self.recycle_cluster(cluster)
         return self.init_cluster()
 
-    def get_rke_cluster(self, event_id="", cluster_id="", cluster_name=""):
+    def get_rke_cluster(self, event_id: str = "", cluster_id: str = "",
+                        cluster_name: str = "") -> Optional[RKECluster]:
         if event_id:
             return RKECluster.objects.filter(event_id=event_id).first()
         if cluster_id:
@@ -43,9 +46,11 @@ class Cluster(object):
             return RKECluster.objects.filter(cluster_name=cluster_name).first()
         return self.get_rke_cluster_exclude_integrated()
 
-    def only_server(self, node_ip, event_id):
+    def only_server(self, node_ip: str, event_id: str) -> Tuple[Optional[RKECluster], bool]:
         with transaction.atomic():
-            cluster = self.get_rke_cluster(event_id=event_id)
+            # get_rke_cluster(event_id=...) always resolves a cluster here; the
+            # Optional return is narrowed to Any to keep attribute access typed.
+            cluster: Any = self.get_rke_cluster(event_id=event_id)
             if not cluster.server_host:
                 cluster.server_host = node_ip
                 cluster.save()
@@ -54,7 +59,7 @@ class Cluster(object):
                 return cluster, True
             return cluster, False
 
-    def init_cluster(self):
+    def init_cluster(self) -> RKECluster:
         # 合并时间戳和随机UUID作为名称
         event_id = uuid.uuid4().hex
         cluster = RKECluster.objects.create(
@@ -64,7 +69,8 @@ class Cluster(object):
         )
         return cluster
 
-    def update_cluster(self, create_status="", cluster_name="", cluster_id=""):
+    def update_cluster(self, create_status: str = "", cluster_name: str = "",
+                       cluster_id: str = "") -> RKECluster:
         cluster = self.get_rke_cluster_exclude_integrated()
         if create_status:
             cluster.create_status = create_status
@@ -77,7 +83,7 @@ class Cluster(object):
         cluster.save()
         return cluster
 
-    def delete_cluster(self, cluster_name="", cluster_id=""):
+    def delete_cluster(self, cluster_name: str = "", cluster_id: str = "") -> None:
         if cluster_name:
             clusters = RKECluster.objects.filter(cluster_name=cluster_name)
             if clusters:
@@ -90,7 +96,8 @@ class Cluster(object):
 
 
 class ClusterNode(object):
-    def create_node(self, cluster_id, node_name, node_role, node_ip, is_server):
+    def create_node(self, cluster_id: str, node_name: str, node_role: str, node_ip: str,
+                    is_server: bool) -> RKEClusterNode:
         node = RKEClusterNode.objects.filter(cluster_id=cluster_id, node_name=node_name)
         if node.exists():
             return node[0]
@@ -103,20 +110,20 @@ class ClusterNode(object):
         )
         return cluster_node
 
-    def get_server_node(self, cluster_id):
+    def get_server_node(self, cluster_id: str) -> Optional[RKEClusterNode]:
         cluster_node = RKEClusterNode.objects.filter(
             cluster_id=cluster_id,
             is_server=True,
         ).first()
         return cluster_node
 
-    def get_cluster_nodes(self, cluster_id):
+    def get_cluster_nodes(self, cluster_id: str) -> QuerySet[RKEClusterNode]:
         cluster_nodes = RKEClusterNode.objects.filter(
             cluster_id=cluster_id,
         )
         return cluster_nodes
 
-    def delete_cluster_nodes(self, cluster_id, node_name):
+    def delete_cluster_nodes(self, cluster_id: str, node_name: str) -> None:
         RKEClusterNode.objects.filter(cluster_id=cluster_id, node_name=node_name).delete()
 
 

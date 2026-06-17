@@ -2,22 +2,21 @@
 import logging
 
 from django.db.models import Q
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from rest_framework import serializers
-from rest_framework_jwt.serializers import JSONWebTokenSerializer
-from rest_framework_jwt.settings import api_settings
 
 from django.contrib.auth import authenticate
+from console.utils.jwt_issuer import issue_jwt
 from www.models.main import Users
-
-jwt_payload_handler = api_settings.JWT_PAYLOAD_HANDLER
-jwt_encode_handler = api_settings.JWT_ENCODE_HANDLER
 
 logger = logging.getLogger("default")
 
 
-class CustomJWTSerializer(JSONWebTokenSerializer):
+class CustomJWTSerializer(serializers.Serializer):
     username_field = 'nick_name'
+
+    nick_name = serializers.CharField(required=False, allow_blank=True)
+    password = serializers.CharField(required=False, allow_blank=True, style={'input_type': 'password'})
 
     def validate(self, attrs):
         password = attrs.get("password")
@@ -34,9 +33,7 @@ class CustomJWTSerializer(JSONWebTokenSerializer):
                         msg = _('用户帐户被禁用.')
                         raise serializers.ValidationError(msg)
 
-                    payload = jwt_payload_handler(user)
-
-                    return {'token': jwt_encode_handler(payload), 'user': user}
+                    return {'token': issue_jwt(user), 'user': user}
                 else:
                     msg = _('无法使用提供的凭证登录.')
                     raise serializers.ValidationError(msg)

@@ -1,6 +1,7 @@
 # -*- coding: utf8 -*-
 import json
 import logging
+from typing import Any
 
 import requests
 
@@ -9,6 +10,7 @@ from console.services.operation_log import operation_log_service, Operation
 from console.services.region_services import region_services
 from console.services.team_services import team_services
 from console.views.base import (JWTAuthApiView, RegionTenantHeaderView, TenantHeaderView, AlowAnyApiView)
+from rest_framework.request import Request
 from rest_framework.response import Response
 from www.apiclient.marketclient import MarketOpenAPI
 from www.apiclient.regionapi import RegionInvokeApi
@@ -21,7 +23,7 @@ market_api = MarketOpenAPI()
 
 
 class RegQuyView(RegionTenantHeaderView):
-    def get(self, request, team_name, *args, **kwargs):
+    def get(self, request: Request, team_name: str, *args: Any, **kwargs: Any) -> Response:
         """
         获取团队数据中心(详细)
         ---
@@ -39,12 +41,13 @@ class RegQuyView(RegionTenantHeaderView):
         except Exception as e:
             code = 500
             logger.exception(e)
-            result = error_message(e.message)
+            # NOTE: py2-style Exception.message; not present on py3 Exception (legacy; backlog).
+            result = error_message(e.message)  # type: ignore[attr-defined]
         return Response(result, status=code)
 
 
 class RegUnopenView(TenantHeaderView):
-    def get(self, request, team_name, *args, **kwargs):
+    def get(self, request: Request, team_name: str, *args: Any, **kwargs: Any) -> Response:
         """
         获取团队未开通的数据中心
         ---
@@ -60,13 +63,14 @@ class RegUnopenView(TenantHeaderView):
         if not team:
             result = general_message(404, "team no found", "团队不存在")
             return Response(result, status=code)
-        unopen_regions = region_services.get_team_unopen_region(team_name, team.enterprise_id)
+        # NOTE: enterprise_id is nullable but service expects str (systemic mismatch; backlog).
+        unopen_regions = region_services.get_team_unopen_region(team_name, team.enterprise_id)  # type: ignore[arg-type]
         result = general_message(code, "query the data center is successful.", "数据中心获取成功", list=unopen_regions)
         return Response(result, status=code)
 
 
 class OpenRegionView(TenantHeaderView):
-    def post(self, request, team_name, *args, **kwargs):
+    def post(self, request: Request, team_name: str, *args: Any, **kwargs: Any) -> Response:
         """
         为团队开通数据中心
         ---
@@ -90,13 +94,16 @@ class OpenRegionView(TenantHeaderView):
             return Response(general_message(404, "team is not found", "团队{0}不存在".format(team_name)), status=403)
         region_services.create_tenant_on_region(self.enterprise.enterprise_id, team_name, region_name, team.namespace)
         result = general_message(200, "success", "数据中心{0}开通成功".format(region_name))
+        # NOTE: tenant_alias/enterprise_id are nullable but log service expects str (systemic; backlog).
         comment = operation_log_service.generate_team_comment(
-            operation=Operation.FOR, module_name=team.tenant_alias, team_name=team.tenant_name, suffix=" 开通了集群")
+            operation=Operation.FOR, module_name=team.tenant_alias,  # type: ignore[arg-type]
+            team_name=team.tenant_name, suffix=" 开通了集群")
         operation_log_service.create_team_log(
-            user=self.user, comment=comment, enterprise_id=self.user.enterprise_id, team_name=team.tenant_name)
+            user=self.user, comment=comment,
+            enterprise_id=self.user.enterprise_id, team_name=team.tenant_name)  # type: ignore[arg-type]
         return Response(result, result["code"])
 
-    def patch(self, request, team_name, *args, **kwargs):
+    def patch(self, request: Request, team_name: str, *args: Any, **kwargs: Any) -> Response:
         """
         为团队批量开通数据中心
         ---
@@ -125,12 +132,14 @@ class OpenRegionView(TenantHeaderView):
             region_services.create_tenant_on_region(self.enterprise.enterprise_id, team_name, region_name, team.namespace)
         result = general_message(200, "success", "批量开通数据中心成功")
         comment = operation_log_service.generate_team_comment(
-            operation=Operation.FOR, module_name=team.tenant_alias, team_name=team.tenant_name, suffix=" 开通了集群")
+            operation=Operation.FOR, module_name=team.tenant_alias,  # type: ignore[arg-type]
+            team_name=team.tenant_name, suffix=" 开通了集群")
         operation_log_service.create_team_log(
-            user=self.user, comment=comment, enterprise_id=self.user.enterprise_id, team_name=team.tenant_name)
+            user=self.user, comment=comment,
+            enterprise_id=self.user.enterprise_id, team_name=team.tenant_name)  # type: ignore[arg-type]
         return Response(result, result["code"])
 
-    def delete(self, request, team_name, *args, **kwargs):
+    def delete(self, request: Request, team_name: str, *args: Any, **kwargs: Any) -> Response:
         """
         为团队关闭数据中心
         ---
@@ -152,16 +161,19 @@ class OpenRegionView(TenantHeaderView):
         tenant = team_services.get_tenant_by_tenant_name(team_name)
         region_services.delete_tenant_on_region(self.enterprise.enterprise_id, team_name, region_name, self.user)
         result = general_message(200, "success", "团队关闭数据中心{0}成功".format(region_name))
+        # NOTE: tenant may be None and tenant_alias/enterprise_id nullable; service expects str (systemic; backlog).
         comment = operation_log_service.generate_team_comment(
-            operation=Operation.UNINSTALL, module_name=tenant.tenant_alias, team_name=tenant.tenant_name,
-            suffix=" 下的集群")
+            operation=Operation.UNINSTALL, module_name=tenant.tenant_alias,  # type: ignore[union-attr,arg-type]
+            team_name=tenant.tenant_name, suffix=" 下的集群")  # type: ignore[union-attr]
         operation_log_service.create_team_log(
-            user=self.user, comment=comment, enterprise_id=self.user.enterprise_id, team_name=tenant.tenant_name)
+            user=self.user, comment=comment,
+            enterprise_id=self.user.enterprise_id,  # type: ignore[arg-type]
+            team_name=tenant.tenant_name)  # type: ignore[union-attr]
         return Response(result, result["code"])
 
 
 class RegionMonitor(AlowAnyApiView):
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         url = request.data.get("url", None)
         data = request.data.get("data", None)
         headers = {
@@ -170,7 +182,7 @@ class RegionMonitor(AlowAnyApiView):
         ret = requests.post(url, headers=headers, data=json.dumps(data).encode("utf-8"))
         ret_data = json.loads(ret.text)
         results = ret_data.get("results", {})
-        body = dict()
+        body: Any = dict()
         for k, result in results.items():
             frames = result.get("frames", [])
             for frame in frames:
@@ -190,7 +202,7 @@ class RegionMonitor(AlowAnyApiView):
 
 
 class QyeryRegionView(JWTAuthApiView):
-    def get(self, request, enterprise_id, *args, **kwargs):
+    def get(self, request: Request, enterprise_id: str, *args: Any, **kwargs: Any) -> Response:
         """
         获取当前可用全部数据中心
         ---
@@ -202,7 +214,7 @@ class QyeryRegionView(JWTAuthApiView):
 
 
 class GetRegionPublicKeyView(RegionTenantHeaderView):
-    def get(self, request, region_name, *args, **kwargs):
+    def get(self, request: Request, region_name: str, *args: Any, **kwargs: Any) -> Response:
         """
         获取指定数据中心的Key
         ---
@@ -214,7 +226,7 @@ class GetRegionPublicKeyView(RegionTenantHeaderView):
 
 
 class GetRegionFeature(RegionTenantHeaderView):
-    def get(self, request, region_name, *args, **kwargs):
+    def get(self, request: Request, region_name: str, *args: Any, **kwargs: Any) -> Response:
         """
         获取指定数据中心的授权功能列表
         ---
@@ -226,7 +238,7 @@ class GetRegionFeature(RegionTenantHeaderView):
 
 
 class PublicRegionListView(JWTAuthApiView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         团队管理员可以获取公有云的数据中心列表
         ---
@@ -246,9 +258,13 @@ class PublicRegionListView(JWTAuthApiView):
             team_name = request.GET.get("team_name", None)
             if not team_name:
                 return Response(general_message(400, "params error", "参数错误"), status=400)
-            perm_list = team_services.get_user_perm_identitys_in_permtenant(user_id=request.user.user_id, tenant_name=team_name)
+            # NOTE: request.user may be AnonymousUser lacking user_id (legacy; backlog).
+            perm_list = team_services.get_user_perm_identitys_in_permtenant(
+                user_id=request.user.user_id, tenant_name=team_name)  # type: ignore[union-attr]
 
-            role_name_list = team_services.get_user_perm_role_in_permtenant(user_id=request.user.user_id, tenant_name=team_name)
+            # NOTE: get_user_perm_role_in_permtenant does not exist on TeamService — latent AttributeError bug (backlog).
+            role_name_list = team_services.get_user_perm_role_in_permtenant(  # type: ignore[attr-defined]
+                user_id=request.user.user_id, tenant_name=team_name)  # type: ignore[union-attr]
             perm = "owner" not in perm_list and "admin" not in perm_list
             if perm and "owner" not in role_name_list and "admin" not in role_name_list:
                 code = 400
@@ -256,7 +272,9 @@ class PublicRegionListView(JWTAuthApiView):
                 return Response(result, status=code)
 
             team = team_services.get_tenant_by_tenant_name(tenant_name=team_name, exception=True)
-            res, data = market_api.get_public_regions_list(tenant_id=team.tenant_id, enterprise_id=team.enterprise_id)
+            # NOTE: get_tenant_by_tenant_name return is Optional; attribute access is a latent risk (backlog).
+            res, data = market_api.get_public_regions_list(
+                tenant_id=team.tenant_id, enterprise_id=team.enterprise_id)  # type: ignore[union-attr]
             if res["status"] == 200:
                 code = 200
                 result = general_message(code, "query the data center is successful.", "公有云数据中心获取成功", list=data)
@@ -266,12 +284,12 @@ class PublicRegionListView(JWTAuthApiView):
         except Exception as e:
             code = 500
             logger.exception(e)
-            result = error_message(e.message)
+            result = error_message(e.message)  # type: ignore[attr-defined]
         return Response(result, status=code)
 
 
 class RegionResourceDetailView(JWTAuthApiView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         公有云数据中心资源详情
         ---
@@ -296,7 +314,8 @@ class RegionResourceDetailView(JWTAuthApiView):
             team_name = request.GET.get("team_name", None)
             region = request.GET.get("region", None)
 
-            team = team_services.get_tenant_by_tenant_name(tenant_name=team_name, exception=True)
+            # NOTE: GET team_name is Optional[str] but service expects str (systemic mismatch; backlog).
+            team = team_services.get_tenant_by_tenant_name(tenant_name=team_name, exception=True)  # type: ignore[arg-type]
             if not team:
                 return Response(general_message(404, "team not found", "指定团队不存在"), status=404)
 
@@ -308,17 +327,18 @@ class RegionResourceDetailView(JWTAuthApiView):
                 result = general_message(200, "success", "查询成功", bean=data)
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)
+            result = error_message(e.message)  # type: ignore[attr-defined]
         return Response(result, status=result["code"])
 
 
 class RegionResPrice(JWTAuthApiView):
-    def post(self, request, region_name):
+    def post(self, request: Request, region_name: str) -> Response:
         """资源费用计算"""
 
         team_name = request.data.get('team_name')
 
-        team = team_services.get_tenant_by_tenant_name(tenant_name=team_name, exception=True)
+        # NOTE: request.data team_name is Any|None but service expects str (systemic mismatch; backlog).
+        team = team_services.get_tenant_by_tenant_name(tenant_name=team_name, exception=True)  # type: ignore[arg-type]
         if not team:
             return Response(general_message(404, "team not found", "指定团队不存在"), status=404)
 
@@ -338,12 +358,13 @@ class RegionResPrice(JWTAuthApiView):
 
 
 class RegionResPurchage(JWTAuthApiView):
-    def post(self, request, region_name):
+    def post(self, request: Request, region_name: str) -> Response:
         """资源购买"""
 
         team_name = request.data.get('team_name')
 
-        team = team_services.get_tenant_by_tenant_name(tenant_name=team_name, exception=True)
+        # NOTE: request.data team_name is Any|None but service expects str (systemic mismatch; backlog).
+        team = team_services.get_tenant_by_tenant_name(tenant_name=team_name, exception=True)  # type: ignore[arg-type]
         if not team:
             return Response(general_message(404, "team not found", "指定团队不存在"), status=404)
 
@@ -364,10 +385,11 @@ class RegionResPurchage(JWTAuthApiView):
 
 
 class MavenSettingView(RegionTenantHeaderView):
-    def get(self, request, enterprise_id, region_name, *args, **kwargs):
+    def get(self, request: Request, enterprise_id: str, region_name: str, *args: Any, **kwargs: Any) -> Response:
         onlyname = request.GET.get("onlyname", True)
         res, body = region_api.list_maven_settings(enterprise_id, region_name)
-        redata = body.get("list")
+        # NOTE: region API result may be None; .get access is a latent risk (backlog).
+        redata = body.get("list")  # type: ignore[union-attr]
         if redata and isinstance(redata, list) and (onlyname is True or onlyname == "true"):
             newdata = []
             for setting in redata:
@@ -376,10 +398,10 @@ class MavenSettingView(RegionTenantHeaderView):
         result = general_message(200, 'query success', '数据中心Maven获取成功', list=redata)
         return Response(status=200, data=result)
 
-    def post(self, request, enterprise_id, region_name, *args, **kwargs):
+    def post(self, request: Request, enterprise_id: str, region_name: str, *args: Any, **kwargs: Any) -> Response:
         try:
             res, body = region_api.add_maven_setting(enterprise_id, region_name, request.data)
-            result = general_message(200, 'query success', '添加成功', bean=body.get("bean"))
+            result = general_message(200, 'query success', '添加成功', bean=body.get("bean"))  # type: ignore[union-attr]
         except RegionApiBaseHttpClient.CallApiError as exc:
             if exc.message.get("httpcode") == 400:
                 result = general_message(400, 'maven setting name is exist', '配置名称已存在')
@@ -396,10 +418,10 @@ class MavenSettingView(RegionTenantHeaderView):
 
 
 class MavenSettingRUDView(RegionTenantHeaderView):
-    def get(self, request, enterprise_id, region_name, name, *args, **kwargs):
+    def get(self, request: Request, enterprise_id: str, region_name: str, name: str, *args: Any, **kwargs: Any) -> Response:
         try:
             res, body = region_api.get_maven_setting(enterprise_id, region_name, name)
-            result = general_message(200, 'query success', '获取成功', bean=body.get("bean"))
+            result = general_message(200, 'query success', '获取成功', bean=body.get("bean"))  # type: ignore[union-attr]
         except RegionApiBaseHttpClient.CallApiError as exc:
             if exc.message.get("httpcode") == 404:
                 result = general_message(404, 'maven setting is not exist', '配置不存在')
@@ -414,10 +436,10 @@ class MavenSettingRUDView(RegionTenantHeaderView):
                 result = general_message(500, 'add maven setting failure', '获取配置失败')
         return Response(status=result["code"], data=result)
 
-    def put(self, request, enterprise_id, region_name, name, *args, **kwargs):
+    def put(self, request: Request, enterprise_id: str, region_name: str, name: str, *args: Any, **kwargs: Any) -> Response:
         try:
             res, body = region_api.update_maven_setting(enterprise_id, region_name, name, request.data)
-            result = general_message(200, 'update success', '修改成功', bean=body.get("bean"))
+            result = general_message(200, 'update success', '修改成功', bean=body.get("bean"))  # type: ignore[union-attr]
         except RegionApiBaseHttpClient.CallApiError as exc:
             if exc.message.get("httpcode") == 404:
                 result = general_message(404, 'maven setting is not exist', '配置不存在')
@@ -432,10 +454,10 @@ class MavenSettingRUDView(RegionTenantHeaderView):
                 result = general_message(500, 'update maven setting failure', '更新配置失败')
         return Response(status=result["code"], data=result)
 
-    def delete(self, request, enterprise_id, region_name, name, *args, **kwargs):
+    def delete(self, request: Request, enterprise_id: str, region_name: str, name: str, *args: Any, **kwargs: Any) -> Response:
         try:
             res, body = region_api.delete_maven_setting(enterprise_id, region_name, name)
-            result = general_message(200, 'delete success', '删除成功', bean=body.get("bean"))
+            result = general_message(200, 'delete success', '删除成功', bean=body.get("bean"))  # type: ignore[union-attr]
         except RegionApiBaseHttpClient.CallApiError as exc:
             if exc.message.get("httpcode") == 404:
                 result = general_message(404, 'maven setting is not exist', '配置不存在')

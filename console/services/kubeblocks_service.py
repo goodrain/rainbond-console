@@ -5,6 +5,7 @@ KubeBlocks 相关服务
 import logging
 import re
 from datetime import datetime
+from typing import Any, Dict, List, Optional, Tuple
 
 from django.db import transaction
 
@@ -19,7 +20,7 @@ from console.services.group_service import GroupService
 from console.repositories.group import group_repo
 from console.repositories.kubeblocks_backup_repo import kubeblocks_backup_repo_repo
 from www.apiclient.regionapi import RegionInvokeApi
-from www.models.main import TenantServiceInfo
+from www.models.main import Tenants, TenantServiceInfo
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
@@ -38,13 +39,15 @@ BACKUP_REPO_CHECKING_PHASES = ("", "PreChecking", "Checking", "Creating")
 
 class KubeBlocksService(object):
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.env_service = AppEnvVarService()
         self.port_service = AppPortService()
         self.group_service = GroupService()
 
     @transaction.atomic
-    def create_complete_kubeblocks_component(self, tenant, user, region_name, creation_params):
+    def create_complete_kubeblocks_component(
+            self, tenant: Tenants, user: Any, region_name: str,
+            creation_params: dict) -> Tuple[bool, Any, Optional[str]]:
         """
         一次性创建 KubeBlocks Component
         """
@@ -116,7 +119,8 @@ class KubeBlocksService(object):
 
             return False, None, str(e)
 
-    def _create_component_metadata(self, tenant, user, region_name, params):
+    def _create_component_metadata(self, tenant: Tenants, user: Any, region_name: str,
+                                   params: dict) -> TenantServiceInfo:
         """
         创建组件元数据
         """
@@ -137,9 +141,12 @@ class KubeBlocksService(object):
         if code != 200:
             raise ServiceHandleException(msg=msg, msg_show=msg)
 
-        return new_service
+        # NOTE: app_service.create_kubeblocks_component returns Optional, but code==200
+        # guarantees new_service is non-None (else raised above) — invariant.
+        return new_service  # type: ignore[return-value]
 
-    def _create_cluster(self, tenant, user, region_name, params, kubeblocks_service):
+    def _create_cluster(self, tenant: Tenants, user: Any, region_name: str, params: dict,
+                        kubeblocks_service: TenantServiceInfo) -> Tuple[bool, Any]:
         """
         创建 KubeBlocks 数据库集群
 
@@ -180,7 +187,7 @@ class KubeBlocksService(object):
             logger.exception(f"创建 KubeBlocks 集群异常: {str(e)}")
             return False, None
 
-    def validate_cluster_params(self, params):
+    def validate_cluster_params(self, params: dict) -> Tuple[bool, str]:
         """
         验证集群创建参数
         """
@@ -193,7 +200,7 @@ class KubeBlocksService(object):
             "storage_size": "存储大小"
         }
 
-        optional_fields = {
+        optional_fields: Dict[str, Dict[str, Any]] = {
             "group_id": {"type": [str, int], "desc": "应用分组 ID", "default": None},
             "app_name": {"type": str, "desc": "应用名称", "default": ""},
             "storage_class": {"type": str, "desc": "存储类名称", "default": ""},
@@ -305,19 +312,19 @@ class KubeBlocksService(object):
 
         return True, ""
 
-    def _is_valid_cpu(self, cpu):
+    def _is_valid_cpu(self, cpu: str) -> bool:
         """验证 CPU 格式"""
         import re
         pattern = r'^\d+(\.\d+)?[m]?$'
         return bool(re.match(pattern, cpu))
 
-    def _is_valid_memory(self, memory):
+    def _is_valid_memory(self, memory: str) -> bool:
         """验证内存格式"""
         import re
         pattern = r'^\d+(\.\d+)?(Mi|Gi|Ti)$'
         return bool(re.match(pattern, memory))
 
-    def _is_positive_quantity(self, value, units):
+    def _is_positive_quantity(self, value: Any, units: Tuple[str, ...]) -> bool:
         """验证资源配置数值部分大于0"""
         normalized = str(value)
         for unit in units:
@@ -329,19 +336,20 @@ class KubeBlocksService(object):
         except (TypeError, ValueError):
             return False
 
-    def is_valid_storage(self, storage):
+    def is_valid_storage(self, storage: str) -> bool:
         """验证存储格式"""
         import re
         pattern = r'^\d+(\.\d+)?(Mi|Gi|Ti)$'
         return bool(re.match(pattern, storage))
 
-    def is_valid_retention_period(self, retention_period):
+    def is_valid_retention_period(self, retention_period: str) -> bool:
         """验证备份保留期格式"""
         import re
         pattern = r'^\d+[dwmy]$'
         return bool(re.match(pattern, retention_period))
 
-    def _build_cluster_request(self, cluster_params, new_service, namespace):
+    def _build_cluster_request(self, cluster_params: dict, new_service: TenantServiceInfo,
+                               namespace: str) -> dict:
         """
         构建创建 Cluster 的请求数据
         """
@@ -380,7 +388,7 @@ class KubeBlocksService(object):
 
         return cluster_data
 
-    def _update_component_name(self, new_service, cluster_result):
+    def _update_component_name(self, new_service: TenantServiceInfo, cluster_result: Any) -> None:
         """
         从集群创建结果中更新组件的 k8s_component_name
 
@@ -418,7 +426,9 @@ class KubeBlocksService(object):
             new_service.k8s_component_name = new_k8s_component_name
             new_service.version = component_specs[0].get('serviceVersion', '').strip()
             new_service.create_status = "complete"
-            new_service.action = True
+            # NOTE: 'action' is not a TenantServiceInfo model field; this assignment sets an
+            # ad-hoc instance attr that is never persisted (latent no-op). Behavior unchanged.
+            new_service.action = True  # type: ignore[attr-defined]
 
             new_service.save()
         except Exception as e:
@@ -427,7 +437,8 @@ class KubeBlocksService(object):
                 msg_show="更新 k8s_component_name 失败"
             )
 
-    def _add_to_application_group(self, tenant, region_name, group_id, service_id):
+    def _add_to_application_group(self, tenant: Tenants, region_name: str, group_id: Any,
+                                  service_id: str) -> None:
         """
         将组件加入应用分组
         """
@@ -444,7 +455,8 @@ class KubeBlocksService(object):
                 msg_show="加入应用分组失败"
             )
 
-    def _create_region_service(self, tenant, new_service, user_name):
+    def _create_region_service(self, tenant: Tenants, new_service: TenantServiceInfo,
+                               user_name: str) -> Any:
         """在Region中创建服务资源"""
         try:
             result_service = app_service.create_region_service(
@@ -460,7 +472,8 @@ class KubeBlocksService(object):
                 msg_show="Region资源创建失败"
             )
 
-    def _fetch_connection_info(self, region_name, service_id, msg_show="获取连接信息失败"):
+    def _fetch_connection_info(self, region_name: str, service_id: str,
+                               msg_show: str = "获取连接信息失败") -> dict:
         """
         获取指定Cluster的连接信息
         """
@@ -484,7 +497,9 @@ class KubeBlocksService(object):
             )
         return bean
 
-    def _add_database_env_vars(self, tenant, user, region_name, service, connect_ctx=None, database_type=''):
+    def _add_database_env_vars(self, tenant: Tenants, user: Any, region_name: str,
+                               service: TenantServiceInfo, connect_ctx: Optional[dict] = None,
+                               database_type: str = '') -> None:
         """
         为数据库组件添加环境变量
         """
@@ -543,7 +558,8 @@ class KubeBlocksService(object):
                     status_code=code
                 )
 
-    def _get_database_connect_info(self, service, region_name, connect_ctx=None):
+    def _get_database_connect_info(self, service: TenantServiceInfo, region_name: str,
+                                   connect_ctx: Optional[dict] = None) -> dict:
         """
         获取数据库连接信息
         """
@@ -580,7 +596,9 @@ class KubeBlocksService(object):
                 msg_show="获取数据库连接信息异常"
             )
 
-    def _configure_service_ports(self, tenant, user, region_name, service, connect_ctx=None, database_type=''):
+    def _configure_service_ports(self, tenant: Tenants, user: Any, region_name: str,
+                                 service: TenantServiceInfo, connect_ctx: Optional[dict] = None,
+                                 database_type: str = '') -> None:
         """配置服务端口"""
         port = self._get_default_port_by_database_type(database_type)
         if port is None and connect_ctx is None:
@@ -639,7 +657,7 @@ class KubeBlocksService(object):
                 user=user
             )
 
-    def _get_port_alias_by_database_type(self, database_type):
+    def _get_port_alias_by_database_type(self, database_type: str) -> str:
         """
         根据数据库类型返回对应的端口别名
 
@@ -662,7 +680,7 @@ class KubeBlocksService(object):
         # 返回对应的别名,如果找不到则返回默认值 DB
         return port_alias_mapping.get(database_type_lower, 'DB')
 
-    def _get_default_port_by_database_type(self, database_type):
+    def _get_default_port_by_database_type(self, database_type: str) -> Optional[int]:
         """根据数据库类型返回 KubeBlocks 默认连接端口"""
         database_type_lower = database_type.lower() if database_type else ''
         port_mapping = {
@@ -673,7 +691,8 @@ class KubeBlocksService(object):
         }
         return port_mapping.get(database_type_lower)
 
-    def _enable_port_outer_service(self, tenant, service, region_name, port, user):
+    def _enable_port_outer_service(self, tenant: Tenants, service: TenantServiceInfo,
+                                   region_name: str, port: Any, user: Any) -> None:
         """
         为指定端口开启对外服务
         """
@@ -727,7 +746,7 @@ class KubeBlocksService(object):
                 msg_show="开启端口对外服务失败"
             )
 
-    def _deploy_component(self, tenant, new_service, user):
+    def _deploy_component(self, tenant: Tenants, new_service: TenantServiceInfo, user: Any) -> Any:
         """构建部署组件"""
         try:
             # 设置架构亲和性（在部署前执行）
@@ -750,7 +769,7 @@ class KubeBlocksService(object):
                 msg_show="组件部署失败"
             )
 
-    def _build_success_response(self, new_service, deploy_result):
+    def _build_success_response(self, new_service: TenantServiceInfo, deploy_result: Any) -> dict:
         """构建成功响应数据（与标准组件部署完成后格式一致）"""
         # 获取最新的服务信息
         updated_service = TenantServiceInfo.objects.get(
@@ -795,7 +814,8 @@ class KubeBlocksService(object):
 
         return result_data
 
-    def _cleanup_on_failure(self, new_service, tenant, region_name):
+    def _cleanup_on_failure(self, new_service: TenantServiceInfo, tenant: Tenants,
+                            region_name: str) -> None:
         """失败时清理资源"""
         try:
             if new_service and new_service.service_id:
@@ -808,7 +828,9 @@ class KubeBlocksService(object):
         except Exception as e:
             logger.exception(f"清理失败资源时出错: {str(e)}")
 
-    def restore_component_from_backup(self, tenant, user, region_name, old_service, backup_name):
+    def restore_component_from_backup(self, tenant: Tenants, user: Any, region_name: str,
+                                      old_service: TenantServiceInfo,
+                                      backup_name: str) -> Tuple[int, dict]:
         """
         基于旧组件创建一个新的 KubeBlocks 组件，并从备份恢复到该新组件。
 
@@ -863,7 +885,9 @@ class KubeBlocksService(object):
             if isinstance(new_k8s_name, str) and new_k8s_name:
                 new_service.k8s_component_name = new_k8s_name
             new_service.create_status = "complete"
-            new_service.action = True
+            # NOTE: 'action' is not a TenantServiceInfo model field; ad-hoc instance attr,
+            # never persisted (latent no-op). Behavior unchanged.
+            new_service.action = True  # type: ignore[attr-defined]
             new_service.save()
 
             # 将新组件加入旧组件所属 group(应用)
@@ -936,7 +960,10 @@ class KubeBlocksService(object):
             bean['service_id'] = new_service.service_id
 
             group_info = self.group_service.get_service_group_info(new_service.service_id)
-            bean['group_id'] = group_info.ID
+            # NOTE: get_service_group_info returns Optional[ServiceGroup]; here it is
+            # unguarded (unlike line ~839). Potential latent None-bug: AttributeError if the
+            # new component has no group relation. Behavior unchanged.
+            bean['group_id'] = group_info.ID  # type: ignore[union-attr]
 
             return 200, region_restore_data
 
@@ -954,7 +981,9 @@ class KubeBlocksService(object):
                 logger.exception("回滚失败")
             return 500, {"msg_show": str(e) or "恢复失败"}
 
-    def restore_cluster_from_backup(self, region_name, old_service, new_service, backup_name):
+    def restore_cluster_from_backup(self, region_name: str, old_service: TenantServiceInfo,
+                                    new_service: TenantServiceInfo,
+                                    backup_name: str) -> Tuple[int, Any]:
         """
         从备份中恢复 KubeBlocks Cluster
         """
@@ -992,7 +1021,8 @@ class KubeBlocksService(object):
                 f"KubeBlocks 集群恢复异常: service_id={old_service.service_id}, backup={backup_name}, 错误={str(e)}")
             return 500, {"msg_show": f"恢复操作异常: {str(e)}"}
 
-    def get_backup_list(self, region_name, service_id, page=None, page_size=None):
+    def get_backup_list(self, region_name: str, service_id: str, page: Any = None,
+                        page_size: Any = None) -> Tuple[int, Any]:
         """
         获取 KubeBlocks Cluster 的备份列表
         """
@@ -1017,7 +1047,7 @@ class KubeBlocksService(object):
                              service_id, region_name, str(e))
             return 500, {"msg_show": f"请求异常: {str(e)}"}
 
-    def create_manual_backup(self, region_name, service_id):
+    def create_manual_backup(self, region_name: str, service_id: str) -> Tuple[int, dict]:
         """
         创建 KubeBlocks Cluster 的手动备份
         """
@@ -1042,7 +1072,8 @@ class KubeBlocksService(object):
                              service_id, region_name, str(e))
             return 500, {"msg_show": f"请求异常: {str(e)}"}
 
-    def delete_backups(self, region_name, service_id, backups):
+    def delete_backups(self, region_name: str, service_id: str,
+                       backups: Any) -> Tuple[int, dict]:
         """
         删除 KubeBlocks Cluster 的备份
         """
@@ -1071,7 +1102,8 @@ class KubeBlocksService(object):
                              service_id, region_name, str(e))
             return 500, {"msg_show": f"请求异常: {str(e)}"}
 
-    def update_backup_config(self, region_name, service_id, backup_config, tenant=None):
+    def update_backup_config(self, region_name: str, service_id: str, backup_config: Any,
+                             tenant: Optional[Tenants] = None) -> Tuple[int, dict]:
         """
         更新 KubeBlocks Cluster 的备份配置
         """
@@ -1109,7 +1141,7 @@ class KubeBlocksService(object):
                              service_id, region_name, str(e))
             return 500, {"msg_show": f"请求异常: {str(e)}"}
 
-    def get_cluster_detail(self, region_name, service_id):
+    def get_cluster_detail(self, region_name: str, service_id: str) -> Tuple[int, dict]:
         """
         获取 KubeBlocks Cluster 详情
         """
@@ -1124,7 +1156,8 @@ class KubeBlocksService(object):
             status_code = res.get("status", 500)
 
             if status_code == 200:
-                bean = body.get("bean", {})
+                # NOTE: region body typed Optional[Dict]; on status 200 it is a dict (invariant).
+                bean = body.get("bean", {})  # type: ignore[union-attr]
                 self._sync_to_rainbond(service_id, bean)
                 return 200, {"msg_show": "查询成功", "bean": bean}
             else:
@@ -1136,7 +1169,7 @@ class KubeBlocksService(object):
             logger.exception(f"查询 KubeBlocks Cluster 详情异常: service_id={service_id}, region={region_name}, 错误={str(e)}")
             return 500, {"msg_show": f"后端服务异常: {str(e)}"}
 
-    def _sync_to_rainbond(self, service_id, cluster_detail_bean):
+    def _sync_to_rainbond(self, service_id: str, cluster_detail_bean: dict) -> None:
         """
         同步 KubeBlocks Cluster 资源信息到 Rainbond 组件,
         仅在资源配置发生变化时更新数据库
@@ -1183,7 +1216,8 @@ class KubeBlocksService(object):
         except Exception as e:
             logger.exception(f"同步 KubeBlocks 资源到 Rainbond 失败: service_id={service_id}, 错误={str(e)}")
 
-    def expand_cluster(self, region_name, service_id, expansion_data):
+    def expand_cluster(self, region_name: str, service_id: str,
+                       expansion_data: Any) -> Tuple[int, dict]:
         """
         KubeBlocks Cluster 伸缩操作
         """
@@ -1215,7 +1249,8 @@ class KubeBlocksService(object):
                              service_id, region_name, str(e))
             return 500, {"msg_show": f"请求异常: {str(e)}"}
 
-    def manage_cluster_status(self, service_or_ids, region_name, oauth_instance, operation):
+    def manage_cluster_status(self, service_or_ids: Any, region_name: str, oauth_instance: Any,
+                              operation: str) -> Tuple[int, str]:
         """
         管理 KubeBlocks 集群状态
 
@@ -1244,7 +1279,7 @@ class KubeBlocksService(object):
             logger.exception(f"解析 KubeBlocks manage_cluster_status 响应异常: {e}")
         return status_code, message
 
-    def delete_kubeblocks_cluster(self, service_ids, region_name):
+    def delete_kubeblocks_cluster(self, service_ids: Any, region_name: str) -> None:
         """
         删除 KubeBlocks 集群
 
@@ -1271,7 +1306,8 @@ class KubeBlocksService(object):
             logger.exception("删除 KubeBlocks 集群发生异常: service_ids=%s, region=%s, 错误=%s",
                              str(service_ids), region_name, str(e))
 
-    def get_kubeblocks_service_status(self, region_name, service_id, cluster_detail=None):
+    def get_kubeblocks_service_status(self, region_name: str, service_id: str,
+                                      cluster_detail: Optional[dict] = None) -> Optional[dict]:
         """
         获取 KubeBlocks 组件状态信息
 
@@ -1332,7 +1368,8 @@ class KubeBlocksService(object):
                 f"获取 KubeBlocks 组件状态异常: service_id={service_id}, region={region_name}, 错误={str(e)}")
             return None
 
-    def get_kubeblocks_resource_info(self, region_name, service_id, cluster_detail=None):
+    def get_kubeblocks_resource_info(self, region_name: str, service_id: str,
+                                     cluster_detail: Optional[dict] = None) -> dict:
         """
         获取 KubeBlocks 组件的资源信息
 
@@ -1380,7 +1417,7 @@ class KubeBlocksService(object):
                 f"获取 KubeBlocks 组件资源信息异常: service_id={service_id}, region={region_name}, 错误={str(e)}")
             return {"used_mem": 0, "used_cpu": 0}
 
-    def get_kubeblocks_components_info(self, region_name, service_ids):
+    def get_kubeblocks_components_info(self, region_name: str, service_ids: Any) -> dict:
         """
         批量获取 KubeBlocks 组件的状态和资源信息
 
@@ -1425,7 +1462,7 @@ class KubeBlocksService(object):
 
         return result
 
-    def _get_kubeblocks_status_map(self, kubeblocks_status):
+    def _get_kubeblocks_status_map(self, kubeblocks_status: str) -> dict:
         """
         KubeBlocks 状态到 Rainbond 状态映射
         """
@@ -1489,7 +1526,9 @@ class KubeBlocksService(object):
             "activeAction": ['stop'],
         })
 
-    def get_cluster_events(self, region_name, service_id, tenant, service, page, page_size):
+    def get_cluster_events(self, region_name: str, service_id: str, tenant: Tenants,
+                           service: TenantServiceInfo, page: int,
+                           page_size: int) -> Tuple[list, int, bool]:
         """
         获取 KubeBlocks 集群事件列表
         """
@@ -1498,8 +1537,9 @@ class KubeBlocksService(object):
             status_code = res.get('status', 500) if isinstance(res, dict) else getattr(res, 'status', 500)
 
             if status_code == 200:
-                events = body.get('list', []) or []
-                total = body.get('number', 0) or 0
+                # NOTE: region body typed Optional[Dict]; on status 200 it is a dict (invariant).
+                events = body.get('list', []) or []  # type: ignore[union-attr]
+                total = body.get('number', 0) or 0  # type: ignore[union-attr]
 
                 normalized_events = self.normalize_kb_events(events, tenant, service)
                 has_next = page * page_size < total
@@ -1512,7 +1552,9 @@ class KubeBlocksService(object):
                              str(e))
             return [], 0, False
 
-    def merge_region_and_kb_events(self, target, target_id, tenant, region_name, service, page, page_size):
+    def merge_region_and_kb_events(self, target: str, target_id: str, tenant: Tenants,
+                                   region_name: str, service: TenantServiceInfo, page: int,
+                                   page_size: int) -> Tuple[list, int, bool]:
         """
         合并 Region event 和 KubeBlocks event
         """
@@ -1574,7 +1616,8 @@ class KubeBlocksService(object):
             logger.exception(f"合并 Region 和 KubeBlocks 事件失败: {e}")
             raise
 
-    def normalize_kb_events(self, events, tenant, service):
+    def normalize_kb_events(self, events: Any, tenant: Tenants,
+                            service: TenantServiceInfo) -> list:
         """
         将 KB 事件补齐为 UI/Console 统一结构（仅补齐必要字段）
 
@@ -1585,11 +1628,11 @@ class KubeBlocksService(object):
           - user_name: 缺省 'system'
           - syn_type: 1 （KB 暂不提供详情日志）
         """
-        normalized = []
+        normalized: List[dict] = []
         if not events:
             return normalized
 
-        def _kb_time_to_local_rfc3339(tstr):
+        def _kb_time_to_local_rfc3339(tstr: Any) -> Any:
             """
             仅转换 KB 的时间到本地时区 RFC3339(+HH:MM) 字符串。
             """
@@ -1650,7 +1693,9 @@ class KubeBlocksService(object):
             normalized.append(item)
         return normalized
 
-    def get_cluster_parameters(self, region_name, service_id, page=1, page_size=20, keyword=None):
+    def get_cluster_parameters(self, region_name: str, service_id: str, page: Any = 1,
+                               page_size: Any = 20,
+                               keyword: Optional[str] = None) -> Tuple[int, Any]:
         """
         分页获取 KubeBlocks 数据库参数列表
         """
@@ -1695,7 +1740,8 @@ class KubeBlocksService(object):
                              service_id, region_name, str(e))
             return 500, {"msg_show": f"请求异常: {str(e)}"}
 
-    def update_cluster_parameters(self, region_name, service_id, body):
+    def update_cluster_parameters(self, region_name: str, service_id: str,
+                                  body: Any) -> Tuple[int, Any]:
         """
         批量更新 KubeBlocks 数据库参数
         """
@@ -1734,7 +1780,7 @@ class KubeBlocksService(object):
                              service_id, region_name, str(e))
             return 500, {"msg_show": f"请求异常: {str(e)}"}
 
-    def get_supported_databases(self, region_name):
+    def get_supported_databases(self, region_name: str) -> Tuple[int, dict]:
         """
         获取指定区域下 KubeBlocks 支持的数据库类型列表
         """
@@ -1742,14 +1788,15 @@ class KubeBlocksService(object):
             res, body = region_api.get_kubeblocks_supported_databases(region_name)
             status_code = res.get("status", 500)
             if status_code == 200:
-                return 200, {"list": body.get("list", [])}
+                # NOTE: region body typed Optional[Dict]; on status 200 it is a dict (invariant).
+                return 200, {"list": body.get("list", [])}  # type: ignore[union-attr]
             else:
                 return status_code, {"list": []}
         except Exception as e:
             logger.exception(f"获取数据库类型列表异常: {str(e)}")
             return 500, {"list": []}
 
-    def get_storage_classes(self, region_name):
+    def get_storage_classes(self, region_name: str) -> Tuple[int, dict]:
         """
         获取指定区域下 KubeBlocks StorageClass 列表
         """
@@ -1757,14 +1804,15 @@ class KubeBlocksService(object):
             res, body = region_api.get_kubeblocks_storage_classes(region_name)
             status_code = res.get("status", 500)
             if status_code == 200:
-                return 200, {"list": body.get("list", [])}
+                # NOTE: region body typed Optional[Dict]; on status 200 it is a dict (invariant).
+                return 200, {"list": body.get("list", [])}  # type: ignore[union-attr]
             else:
                 return status_code, {"list": []}
         except Exception as e:
             logger.exception(f"获取存储类列表异常: {str(e)}")
             return 500, {"list": []}
 
-    def get_backup_repos(self, region_name):
+    def get_backup_repos(self, region_name: str) -> Tuple[int, dict]:
         """
         获取指定区域下 KubeBlocks BackupRepo 列表
         """
@@ -1772,14 +1820,15 @@ class KubeBlocksService(object):
             res, body = region_api.get_kubeblocks_backup_repos(region_name)
             status_code = res.get("status", 500)
             if status_code == 200:
-                return 200, {"list": body.get("list", [])}
+                # NOTE: region body typed Optional[Dict]; on status 200 it is a dict (invariant).
+                return 200, {"list": body.get("list", [])}  # type: ignore[union-attr]
             else:
                 return status_code, {"list": []}
         except Exception as e:
             logger.exception(f"获取备份仓库列表异常: {str(e)}")
             return 500, {"list": []}
 
-    def get_team_backup_repos(self, tenant, region_name):
+    def get_team_backup_repos(self, tenant: Tenants, region_name: str) -> Tuple[int, dict]:
         """
         获取当前团队管理的 KubeBlocks BackupRepo 列表，并合并集群 live 状态。
         """
@@ -1814,7 +1863,8 @@ class KubeBlocksService(object):
             logger.exception(f"获取团队备份仓库列表异常: {str(e)}")
             return 500, {"msg_show": f"获取备份仓库列表异常: {str(e)}", "list": []}
 
-    def create_backup_repo(self, tenant, user, region_name, data):
+    def create_backup_repo(self, tenant: Tenants, user: Any, region_name: str,
+                           data: Any) -> Tuple[int, dict]:
         """
         创建团队级 S3 BackupRepo 元数据，并在 region 侧创建真实 BackupRepo 与 Secret。
         """
@@ -1847,28 +1897,32 @@ class KubeBlocksService(object):
             logger.exception(f"创建备份仓库异常: {str(e)}")
             return 500, {"msg_show": f"创建备份仓库异常: {str(e)}"}
 
-    def update_backup_repo(self, tenant, region_name, repo_name, data):
+    def update_backup_repo(self, tenant: Tenants, region_name: str, repo_name: str,
+                           data: Any) -> Tuple[int, dict]:
         """
         更新团队级 S3 BackupRepo。密钥字段为空时保持现有 Secret 不变。
         """
         try:
+            # NOTE: ensure_backup_repo_belongs_to_team returns Optional (None only when
+            # repo_name is falsy); here repo_name is a non-empty path arg and a missing
+            # record raises, so record is non-None — invariant. type:ignore below.
             record = self.ensure_backup_repo_belongs_to_team(tenant, region_name, repo_name)
-            update_data, secrets = self._build_backup_repo_update(record, data)
+            update_data, secrets = self._build_backup_repo_update(record, data)  # type: ignore[arg-type]
             display_name = update_data.get("display_name")
-            if display_name and display_name != record.display_name:
+            if display_name and display_name != record.display_name:  # type: ignore[union-attr]
                 duplicate = kubeblocks_backup_repo_repo.get_by_display_name(tenant.tenant_id, region_name, display_name)
-                if duplicate and duplicate.ID != record.ID:
+                if duplicate and duplicate.ID != record.ID:  # type: ignore[union-attr]
                     return 409, {"msg_show": "备份仓库显示名已存在"}
 
-            proposed = self._clone_backup_repo_record(record, update_data)
+            proposed = self._clone_backup_repo_record(record, update_data)  # type: ignore[arg-type]
             payload = self._build_backup_repo_region_payload(proposed, secrets)
-            res, body = region_api.update_kubeblocks_backup_repo(region_name, record.repo_name, payload)
+            res, body = region_api.update_kubeblocks_backup_repo(region_name, record.repo_name, payload)  # type: ignore[union-attr]
             status_code = res.get("status", 500)
             if status_code != 200:
                 msg_show = body.get("msg_show", "更新备份仓库失败") if isinstance(body, dict) else "更新备份仓库失败"
                 return status_code, {"msg_show": msg_show}
 
-            updated = kubeblocks_backup_repo_repo.update(record, **update_data)
+            updated = kubeblocks_backup_repo_repo.update(record, **update_data)  # type: ignore[arg-type]
             bean = body.get("bean", {}) if isinstance(body, dict) else {}
             return 200, {"msg_show": "更新备份仓库成功", "bean": self._backup_repo_to_dict(updated, bean)}
         except ServiceHandleException as e:
@@ -1877,20 +1931,22 @@ class KubeBlocksService(object):
             logger.exception(f"更新备份仓库异常: {str(e)}")
             return 500, {"msg_show": f"更新备份仓库异常: {str(e)}"}
 
-    def delete_backup_repo(self, tenant, region_name, repo_name):
+    def delete_backup_repo(self, tenant: Tenants, region_name: str,
+                           repo_name: str) -> Tuple[int, dict]:
         """
         删除团队级 S3 BackupRepo。adapter 会拒绝删除被 Cluster 引用的 repo。
         """
         try:
+            # NOTE: record is non-None invariant (see update_backup_repo note).
             record = self.ensure_backup_repo_belongs_to_team(tenant, region_name, repo_name)
-            res, body = region_api.delete_kubeblocks_backup_repo(region_name, record.repo_name)
+            res, body = region_api.delete_kubeblocks_backup_repo(region_name, record.repo_name)  # type: ignore[union-attr]
             status_code = res.get("status", 500)
             if status_code != 200:
                 msg_show = body.get("msg_show", "删除备份仓库失败") if isinstance(body, dict) else "删除备份仓库失败"
                 msg_show = self._format_backup_repo_delete_error(msg_show)
                 return status_code, {"msg_show": msg_show}
 
-            kubeblocks_backup_repo_repo.delete(record)
+            kubeblocks_backup_repo_repo.delete(record)  # type: ignore[arg-type]
             return 200, {"msg_show": "删除备份仓库成功"}
         except ServiceHandleException as e:
             return e.status_code, {"msg_show": e.msg_show}
@@ -1898,7 +1954,7 @@ class KubeBlocksService(object):
             logger.exception(f"删除备份仓库异常: {str(e)}")
             return 500, {"msg_show": f"删除备份仓库异常: {str(e)}"}
 
-    def _format_backup_repo_delete_error(self, msg_show):
+    def _format_backup_repo_delete_error(self, msg_show: Any) -> str:
         msg_show = msg_show or "删除备份仓库失败"
         cluster_match = re.search(r"is in use by cluster\s+([^\s\"'}]+)", msg_show)
         if cluster_match:
@@ -1908,7 +1964,8 @@ class KubeBlocksService(object):
             return "备份仓库正在被数据库组件使用，不支持删除。请先在相关组件的备份策略中取消使用该仓库后再删除"
         return msg_show
 
-    def ensure_backup_repo_belongs_to_team(self, tenant, region_name, repo_name):
+    def ensure_backup_repo_belongs_to_team(self, tenant: Tenants, region_name: str,
+                                           repo_name: str) -> Optional[KubeBlocksBackupRepo]:
         if not repo_name:
             return None
         record = kubeblocks_backup_repo_repo.get_by_repo_name(tenant.tenant_id, region_name, repo_name)
@@ -1920,7 +1977,8 @@ class KubeBlocksService(object):
             )
         return record
 
-    def ensure_backup_repo_ready_for_use(self, tenant, region_name, repo_name):
+    def ensure_backup_repo_ready_for_use(self, tenant: Tenants, region_name: str,
+                                         repo_name: str) -> Optional[KubeBlocksBackupRepo]:
         record = self.ensure_backup_repo_belongs_to_team(tenant, region_name, repo_name)
         if not record:
             return None
@@ -1935,7 +1993,7 @@ class KubeBlocksService(object):
             )
         return record
 
-    def _get_live_backup_repo(self, region_name, repo_name):
+    def _get_live_backup_repo(self, region_name: str, repo_name: str) -> Tuple[Any, bool]:
         try:
             res, body = region_api.get_kubeblocks_backup_repos(region_name)
             if res.get("status", 500) != 200 or not isinstance(body, dict):
@@ -1949,7 +2007,8 @@ class KubeBlocksService(object):
                            region_name, repo_name, str(e))
         return {}, False
 
-    def _get_backup_repo_phase(self, record, live=None, live_loaded=False):
+    def _get_backup_repo_phase(self, record: KubeBlocksBackupRepo, live: Optional[dict] = None,
+                               live_loaded: bool = False) -> str:
         live = live or {}
         live_phase = live.get("phase") or live.get("status")
         if live_phase:
@@ -1960,7 +2019,7 @@ class KubeBlocksService(object):
             return "Missing"
         return record.status or "Missing"
 
-    def _backup_repo_not_ready_message(self, phase):
+    def _backup_repo_not_ready_message(self, phase: str) -> str:
         if phase in BACKUP_REPO_CHECKING_PHASES:
             return "备份仓库正在检测中，请检测通过后再使用"
         if phase == "Failed":
@@ -1969,7 +2028,9 @@ class KubeBlocksService(object):
             return "备份仓库资源不存在或暂不可用，请刷新后重试"
         return "备份仓库未就绪，请检测通过后再使用"
 
-    def _build_backup_repo_record(self, tenant, user, region_name, data, require_secret=False):
+    def _build_backup_repo_record(
+            self, tenant: Tenants, user: Any, region_name: str, data: Any,
+            require_secret: bool = False) -> Tuple[KubeBlocksBackupRepo, dict]:
         if not isinstance(data, dict):
             raise ServiceHandleException(msg="invalid backup repo payload", msg_show="参数必须为 JSON 对象")
         namespace = getattr(tenant, "namespace", "")
@@ -2024,7 +2085,8 @@ class KubeBlocksService(object):
             secrets = {"accessKeyId": access_key_id, "secretAccessKey": secret_access_key}
         return record, secrets
 
-    def _build_backup_repo_update(self, record, data):
+    def _build_backup_repo_update(self, record: KubeBlocksBackupRepo,
+                                  data: Any) -> Tuple[dict, dict]:
         if not isinstance(data, dict):
             raise ServiceHandleException(msg="invalid backup repo payload", msg_show="参数必须为 JSON 对象")
         update_data = {}
@@ -2057,7 +2119,8 @@ class KubeBlocksService(object):
         self._validate_backup_repo_record(proposed)
         return update_data, secrets
 
-    def _clone_backup_repo_record(self, record, update_data):
+    def _clone_backup_repo_record(self, record: KubeBlocksBackupRepo,
+                                  update_data: dict) -> KubeBlocksBackupRepo:
         clone = KubeBlocksBackupRepo()
         for field in record._meta.concrete_fields:
             setattr(clone, field.attname, getattr(record, field.attname))
@@ -2065,7 +2128,8 @@ class KubeBlocksService(object):
             setattr(clone, key, value)
         return clone
 
-    def _build_backup_repo_region_payload(self, record, secrets=None):
+    def _build_backup_repo_region_payload(self, record: KubeBlocksBackupRepo,
+                                          secrets: Optional[dict] = None) -> dict:
         config = {
             "bucket": record.bucket,
             "endpoint": record.endpoint,
@@ -2092,7 +2156,8 @@ class KubeBlocksService(object):
             payload["secrets"] = secrets
         return payload
 
-    def _backup_repo_to_dict(self, record, live=None, live_loaded=False):
+    def _backup_repo_to_dict(self, record: KubeBlocksBackupRepo, live: Optional[dict] = None,
+                             live_loaded: bool = False) -> dict:
         live = live or {}
         phase = self._get_backup_repo_phase(record, live, live_loaded)
         return {
@@ -2120,7 +2185,7 @@ class KubeBlocksService(object):
             "used": False,
         }
 
-    def _parse_backup_repo_force_path_style(self, data):
+    def _parse_backup_repo_force_path_style(self, data: dict) -> bool:
         value = data.get("force_path_style", data.get("forcePathStyle", True))
         if isinstance(value, bool):
             return value
@@ -2131,7 +2196,7 @@ class KubeBlocksService(object):
             return False
         return True
 
-    def _validate_backup_repo_record(self, record):
+    def _validate_backup_repo_record(self, record: KubeBlocksBackupRepo) -> None:
         if record.storage_provider not in BACKUP_REPO_SUPPORTED_PROVIDERS:
             raise ServiceHandleException(msg="unsupported storage provider", msg_show="当前仅支持 S3 存储")
         if not record.bucket:
@@ -2145,10 +2210,10 @@ class KubeBlocksService(object):
         if record.pv_reclaim_policy not in ("Retain", "Delete"):
             raise ServiceHandleException(msg="invalid reclaim policy", msg_show="PV 回收策略只能是 Retain 或 Delete")
 
-    def _is_valid_backup_repo_short_name(self, name):
+    def _is_valid_backup_repo_short_name(self, name: str) -> bool:
         return bool(name and len(name) <= 63 and BACKUP_REPO_NAME_PATTERN.match(name))
 
-    def _build_backup_repo_name(self, namespace, name):
+    def _build_backup_repo_name(self, namespace: str, name: str) -> str:
         return "{}-{}".format(namespace, name)
 
 

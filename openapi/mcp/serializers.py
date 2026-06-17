@@ -1,3 +1,5 @@
+from typing import Any
+
 from rest_framework import serializers
 
 class RegionSerializer(serializers.Serializer):
@@ -60,7 +62,7 @@ class ComponentLogSerializer(serializers.Serializer):
     class Meta:
         fields = "__all__"
 
-    def to_representation(self, instance):
+    def to_representation(self, instance: Any) -> Any:
         """自定义日志输出格式"""
         if isinstance(instance, str):
             return {"message": instance}

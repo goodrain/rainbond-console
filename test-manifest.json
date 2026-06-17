@@ -605,6 +605,24 @@
       "status": "active"
     },
     {
+      "id": "console.app-backup.delete-in-progress",
+      "title": "Reject deleting a group backup while it is still in progress",
+      "title_zh": "备份进行中时阻止删除该备份记录",
+      "interface_type": "service_method",
+      "interface": "console.services.backup_service.GroupAppBackupService.delete_group_backup_by_backup_id",
+      "code_paths": [
+        "console/services/backup_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/backup_service_test.py",
+          "selector": "GroupAppBackupServiceDeleteInProgressTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.app-backup.state-service-guard",
       "title": "Reject backup while stateful services are still running",
       "title_zh": "有状态组件未关闭时阻止备份",
@@ -635,6 +653,24 @@
         {
           "path": "console/tests/groupapp_backup_migration_test.py",
           "selector": "GroupAppsBackupStatusViewWorkflowTests.test_get_returns_backup_status_list_without_internal_server_info"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.app-backup.version-check",
+      "title": "Reject restoring a backup whose version does not match the platform",
+      "title_zh": "备份版本与平台版本不一致时阻止恢复",
+      "interface_type": "service_method",
+      "interface": "console.services.backup_data_service.PlatformDataBackupServices.version_than",
+      "code_paths": [
+        "console/services/backup_data_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/backup_data_service_version_than_test.py",
+          "selector": "VersionThanTests"
         }
       ],
       "test_type": "regression",
@@ -937,6 +973,24 @@
         {
           "path": "console/tests/app_import_and_export_service_test.py",
           "selector": "CenterAppImportViewWorkflowTestCase.test_post_starts_app_import"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.app-migrate.port-bind-failure-visible",
+      "title": "Report per-port bind failures without skipping remaining ports",
+      "title_zh": "端口绑定失败时记录并返回，且不跳过后续端口",
+      "interface_type": "service_method",
+      "interface": "console.services.groupapp_recovery.groupapps_migrate.GroupappsMigrateService.__save_port",
+      "code_paths": [
+        "console/services/groupapp_recovery/groupapps_migrate.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/groupapps_migrate_save_port_test.py",
+          "selector": "SavePortHttpFailureVisibleTest.test_first_port_failure_does_not_skip_second_and_is_reported"
         }
       ],
       "test_type": "regression",
@@ -2829,6 +2883,28 @@
         {
           "path": "console/tests/mcp_query_service_test.py",
           "selector": "MCPQueryServiceApplicationToolTests.test_upgrade_app_calls_upgrade_service_and_returns_latest_items"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.auth.get-user-no-legacy-middleware",
+      "title": "Resolve session user without legacy MIDDLEWARE_CLASSES access",
+      "title_zh": "解析会话用户时不访问已废弃的 MIDDLEWARE_CLASSES",
+      "interface_type": "service_method",
+      "interface": "console.services.auth.get_user",
+      "code_paths": [
+        "console/services/auth/__init__.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/auth_get_user_test.py",
+          "selector": "GetUserNoLegacyMiddlewareTests.test_returns_user_without_touching_middleware_classes"
+        },
+        {
+          "path": "console/tests/auth_get_user_test.py",
+          "selector": "GetUserNoLegacyMiddlewareTests.test_returns_anonymous_user_when_no_session"
         }
       ],
       "test_type": "regression",
@@ -6772,6 +6848,42 @@
       "status": "active"
     },
     {
+      "id": "console.plugin.delete-by-sid",
+      "title": "Delete all plugin relations for a service by service id",
+      "title_zh": "按组件 ID 删除其全部插件关联",
+      "interface_type": "dao_method",
+      "interface": "console.repositories.plugin.service_plugin_repo.AppPluginRelationRepo.delete_by_sid",
+      "code_paths": [
+        "console/repositories/plugin/service_plugin_repo.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/service_plugin_repo_delete_by_sid_test.py",
+          "selector": "DeleteBySidTest.test_delete_by_sid_deletes_matching_relations"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.plugin.downstream-port-config",
+      "title": "Read downstream port dest service attributes from ORM model not dict",
+      "title_zh": "下游端口配置从 ORM 模型对象读取目标组件属性",
+      "interface_type": "service_method",
+      "interface": "console.services.plugin.app_plugin.AppPluginService.create_plugin_cfg_4marketsvc",
+      "code_paths": [
+        "console/services/plugin/app_plugin.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_plugin_downstream_port_test.py",
+          "selector": "CreatePluginCfg4MarketsvcDownstreamPortTest.test_downstream_port_reads_dest_service_attributes"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.pod.detail",
       "title": "Pod Detail",
       "title_zh": "Pod Detail",
@@ -6846,6 +6958,28 @@
         {
           "path": "console/tests/utils/randomutil_test.py",
           "selector": "RandomUtilTests.test_make_default_version"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.region.update-region-config",
+      "title": "Persist region config via update or add based on existing key",
+      "title_zh": "依据配置项是否存在选择更新或新增数据中心配置",
+      "interface_type": "service_method",
+      "interface": "console.services.region_services.RegionService.update_region_config",
+      "code_paths": [
+        "console/services/region_services.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/region_config_update_test.py",
+          "selector": "UpdateRegionConfigTest.test_update_when_config_exists_passes_dict_value"
+        },
+        {
+          "path": "console/tests/region_config_update_test.py",
+          "selector": "UpdateRegionConfigTest.test_add_when_config_missing_passes_json_string_and_desc"
         }
       ],
       "test_type": "regression",
@@ -8160,6 +8294,25 @@
       "status": "active"
     },
     {
+      "id": "console.user.get-users-by-ids",
+      "title": "Fetch users by a list of user ids via the user repository",
+      "title_zh": "通过用户仓储按用户 ID 列表批量查询用户",
+      "interface_type": "service_method",
+      "interface": "console.services.user_services.UserService.get_users_by_user_ids",
+      "code_paths": [
+        "console/services/user_services.py",
+        "console/repositories/user_repo.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/user_services_get_by_ids_test.py",
+          "selector": "GetUsersByUserIdsTest.test_delegates_to_repo_get_by_user_ids"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.validation.display-name",
       "title": "Validate user-facing display names with Chinese alnum dash and underscore rules",
       "title_zh": "校验用户展示名称的中英文数字与连接符规则",
@@ -9072,6 +9225,190 @@
         {
           "path": "scripts/validate_test_manifest_test.py",
           "selector": "ValidateTestManifestTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.team.create-invalid-namespace",
+      "title": "Reject team creation with an invalid namespace name",
+      "title_zh": "创建团队时拒绝非法命名空间",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.team.AddTeamView.post",
+      "code_paths": [
+        "console/views/team.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/add_team_namespace_validation_test.py",
+          "selector": "AddTeamInvalidNamespaceTest.test_invalid_namespace_raises_qualified_name_error_not_typeerror"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.enterprise.bind-market-token-decode",
+      "title": "Decode the cloud-market bind token payload",
+      "title_zh": "解码云市绑定企业的认证信息",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.enterprise_active.BindMarketEnterpriseOptimizAccessTokenView.post",
+      "code_paths": [
+        "console/views/enterprise_active.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/bind_market_token_decode_test.py",
+          "selector": "BindMarketTokenDecodeTest.test_market_info_is_base64_decoded"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.enterprise.region-dashboard-not-found",
+      "title": "Return 404 when the region dashboard target is missing",
+      "title_zh": "集群仪表盘目标缺失时返回 404",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.enterprise.EnterpriseRegionDashboard.dispatch",
+      "code_paths": [
+        "console/views/enterprise.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/enterprise_region_dashboard_notfound_test.py",
+          "selector": "EnterpriseRegionDashboardNotFoundTest.test_missing_region_returns_clean_404"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.user.access-token-delete-log",
+      "title": "Log the access token note when deleting a token",
+      "title_zh": "删除访问令牌时记录令牌备注",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.user_accesstoken.UserAccessTokenRUDView.delete",
+      "code_paths": [
+        "console/views/user_accesstoken.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/user_accesstoken_delete_log_test.py",
+          "selector": "UserAccessTokenDeleteLogTest.test_delete_logs_token_note_without_nameerror"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.user.favorite-delete-log",
+      "title": "Log the favorite name when deleting a favorite view",
+      "title_zh": "删除收藏视图时记录收藏名称",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.user_operation.UserFavoriteUDView.delete",
+      "code_paths": [
+        "console/views/user_operation.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/user_favorite_delete_log_test.py",
+          "selector": "UserFavoriteDeleteLogTest"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "openapi.app.create-third-component-deploy-key",
+      "title": "Generate API key for a third-party component via OpenAPI",
+      "title_zh": "OpenAPI 创建第三方 api 组件时生成密钥",
+      "interface_type": "view_endpoint",
+      "interface": "openapi.views.apps.apps.CreateThirdComponentView.post",
+      "code_paths": [
+        "openapi/views/apps/apps.py",
+        "console/repositories/deploy_repo.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/openapi_third_component_deploy_repo_test.py",
+          "selector": "ThirdComponentDeployRepoTest.test_deploy_repo_is_the_singleton_not_the_module"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "openapi.app.team-apps-close",
+      "title": "Close all team apps via OpenAPI",
+      "title_zh": "OpenAPI 关闭团队全部应用",
+      "interface_type": "view_endpoint",
+      "interface": "openapi.views.apps.apps.TeamAppsCloseView.post",
+      "code_paths": [
+        "openapi/views/apps/apps.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/openapi_team_apps_close_test.py",
+          "selector": "TeamAppsCloseTest.test_post_unpacks_three_return_values_from_batch_action"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "openapi.enterprise.service-overview",
+      "title": "Enterprise component status overview via OpenAPI",
+      "title_zh": "OpenAPI 企业组件状态总览",
+      "interface_type": "view_endpoint",
+      "interface": "openapi.views.enterprise_view.ServiceOverview.get",
+      "code_paths": [
+        "openapi/views/enterprise_view.py",
+        "console/services/service_overview.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/openapi_service_overview_import_test.py",
+          "selector": "ServiceOverviewImportTest.test_service_overview_singleton_is_resolvable"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "openapi.team.delete-error-propagation",
+      "title": "Surface team-deletion service errors via OpenAPI",
+      "title_zh": "OpenAPI 删除团队时正确透出业务异常",
+      "interface_type": "view_endpoint",
+      "interface": "openapi.views.team_view.TeamInfo.delete",
+      "code_paths": [
+        "openapi/views/team_view.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/openapi_team_delete_except_test.py",
+          "selector": "TeamDeleteExceptTest.test_service_error_propagates_instead_of_typeerror"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.app-status.region-status-typeddict",
+      "title": "Normalize region app status payload (AppStatus TypedDict adoption)",
+      "title_zh": "归一化集群应用状态返回（AppStatus TypedDict 落地）",
+      "interface_type": "service_method",
+      "interface": "console.services.group_service.GroupService.get_app_status",
+      "code_paths": [
+        "console/services/group_service.py",
+        "www/apiclient/regionapi.py",
+        "www/apiclient/region_types.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/group_app_status_typeddict_test.py",
+          "selector": "GroupAppStatusTypedDictTest"
         }
       ],
       "test_type": "regression",

@@ -3,6 +3,7 @@
 import json
 import logging
 import time
+from typing import Any
 
 from console.exception.exceptions import UserNotExistError
 from console.exception.main import ServiceHandleException
@@ -29,8 +30,9 @@ from openapi.serializer.utils import pagination
 from openapi.views.base import (BaseOpenAPIView, TeamAPIView, TeamNoRegionAPIView)
 from openapi.views.exceptions import ErrRegionNotFound, ErrTeamNotFound
 from rest_framework import exceptions, serializers, status
+from rest_framework.request import Request
 from rest_framework.response import Response
-from www.models.main import PermRelTenant, TenantRegionInfo, Tenants
+from www.models.main import TenantRegionInfo, Tenants
 from www.utils.crypt import make_uuid, make_uuid3
 
 logger = logging.getLogger("default")
@@ -42,7 +44,7 @@ class EntAppModelView(BaseOpenAPIView):
         responses={200: None},
         tags=['openapi-entreprise'],
     )
-    def post(self, request):
+    def post(self, request: Request) -> Response:
         try:
             # 获取请求参数
             app_name = request.data.get("app_name")
@@ -97,7 +99,8 @@ class EntAppModelView(BaseOpenAPIView):
                 app_version.app_version_info = app_version_info
                 app_version.app_template = json.dumps(app_template)
                 app_version.arch = arch
-                app_version.upgrade_time = time.time()
+                # NOTE: legacy stores epoch float into a str/int upgrade_time field.
+                app_version.upgrade_time = time.time()  # type: ignore[assignment]
                 app_version.save()
                 msg = "版本已更新"
             except RainbondCenterAppVersion.DoesNotExist:
@@ -118,7 +121,7 @@ class EntAppModelView(BaseOpenAPIView):
                     enterprise_id=enterprise_id,
                     arch=arch,
                     is_complete=True,
-                    upgrade_time=time.time()
+                    upgrade_time=time.time()  # type: ignore[misc]
                 )
                 app_version.save()
                 msg = "版本已创建"
@@ -141,7 +144,7 @@ class ListTeamInfo(BaseOpenAPIView):
         responses={200: ListTeamRespSerializer()},
         tags=['openapi-team'],
     )
-    def get(self, req, *args, **kwargs):
+    def get(self, req: Request, *args: Any, **kwargs: Any) -> Response:
         query = req.GET.get("query", "")
         try:
             page = int(req.GET.get("page", 1))
@@ -151,8 +154,11 @@ class ListTeamInfo(BaseOpenAPIView):
             page_size = int(req.GET.get("page_size", 10))
         except ValueError:
             page_size = 10
+        # NOTE: request.user typed as User|AnonymousUser per stubs.
         tenants, total = team_services.list_teams_by_user_id(
-            eid=self.enterprise.enterprise_id, user_id=req.user.user_id, query=query, page=page, page_size=page_size)
+            eid=self.enterprise.enterprise_id,
+            user_id=req.user.user_id,  # type: ignore[union-attr]
+            query=query, page=page, page_size=page_size)
         result = {"tenants": tenants, "total": total, "page": page, "page_size": page_size}
         serializer = ListTeamRespSerializer(data=result)
         return Response(serializer.initial_data, status.HTTP_200_OK)
@@ -165,7 +171,7 @@ class ListTeamInfo(BaseOpenAPIView):
         },
         tags=['openapi-team'],
     )
-    def post(self, request):
+    def post(self, request: Request) -> Response:
         serializer = CreateTeamReqSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         team_data = serializer.data
@@ -177,13 +183,14 @@ class ListTeamInfo(BaseOpenAPIView):
             raise serializers.ValidationError("指定企业不存在")
         region = None
         if team_data.get("region", None):
-            region = region_services.get_region_by_region_name(team_data.get("region"))
+            # NOTE: serializer .get() yields Any|None; region name param is non-Optional.
+            region = region_services.get_region_by_region_name(team_data.get("region"))  # type: ignore[arg-type]
             if not region:
                 raise ErrRegionNotFound
         try:
             user = user_services.get_user_by_user_id(team_data.get("creater", 0))
         except UserNotExistError:
-            user = request.user
+            user = request.user  # type: ignore[assignment]
         team = team_services.create_team(user, en, team_alias=team_data["tenant_name"])
         if region:
             region_services.create_tenant_on_region(self.enterprise.enterprise_id, team.tenant_name, region.region_name,
@@ -200,7 +207,7 @@ class TeamInfo(TeamNoRegionAPIView):
         },
         tags=['openapi-team'],
     )
-    def get(self, request, team_id, *args, **kwargs):
+    def get(self, request: Request, team_id: str, *args: Any, **kwargs: Any) -> Response:
         try:
             queryset = team_services.get_team_by_team_id(team_id.strip())
             serializer = TeamInfoSerializer(queryset)
@@ -213,15 +220,13 @@ class TeamInfo(TeamNoRegionAPIView):
         responses={},
         tags=['openapi-team'],
     )
-    def delete(self, req, team_id, *args, **kwargs):
+    def delete(self, req: Request, team_id: str, *args: Any, **kwargs: Any) -> Response:
         try:
             team_services.delete_by_tenant_id(self.user, self.team)
             return Response(None, status.HTTP_200_OK)
         except Tenants.DoesNotExist as e:
-            logger.exception("failed to delete tenant: {}".format(e.message))
-            return Response(None, status=status.HTTP_404_NOT_FOUND)
-        except PermRelTenant as e:
-            logger.exception("failed to delete tenant: {}".format(e.message))
+            # NOTE: py2-style Exception.message attribute, absent in py3.
+            logger.exception("failed to delete tenant: {}".format(e.message))  # type: ignore[attr-defined]
             return Response(None, status=status.HTTP_404_NOT_FOUND)
 
     @swagger_auto_schema(
@@ -230,19 +235,23 @@ class TeamInfo(TeamNoRegionAPIView):
         responses={},
         tags=['openapi-team'],
     )
-    def put(self, req, team_id, *args, **kwargs):
+    def put(self, req: Request, team_id: str, *args: Any, **kwargs: Any) -> Response:
         serializer = UpdateTeamInfoReqSerializer(data=req.data)
         serializer.is_valid(raise_exception=True)
 
         if req.data.get("enterprise_id", ""):
             ent = enterprise_services.get_enterprise_by_enterprise_id(req.data["enterprise_id"])
             if not ent:
-                raise serializers.ValidationError("指定企业不存在", status.HTTP_404_NOT_FOUND)
+                # NOTE: legacy bug — ValidationError 2nd arg is `code` (str), not HTTP status.
+                raise serializers.ValidationError(
+                    "指定企业不存在", status.HTTP_404_NOT_FOUND)  # type: ignore[arg-type]
         if req.data.get("creator", 0):
             try:
-                ent = user_services.get_user_by_user_id(req.data.get("creator"))
+                # NOTE: legacy reuses `ent` for both enterprise and user objects; .get() yields Any|None.
+                ent = user_services.get_user_by_user_id(req.data.get("creator"))  # type: ignore[assignment,arg-type]
             except UserNotExistError:
-                raise serializers.ValidationError("指定用户不存在", status.HTTP_404_NOT_FOUND)
+                raise serializers.ValidationError(
+                    "指定用户不存在", status.HTTP_404_NOT_FOUND)  # type: ignore[arg-type]
 
         try:
             team_services.update(team_id, req.data)
@@ -259,16 +268,17 @@ class TeamUserInfoView(TeamAPIView):
         },
         tags=['openapi-team'],
     )
-    def delete(self, req, team_id, user_id):
-        if req.user.user_id == user_id:
-            raise serializers.ValidationError("不能删除自己", status.HTTP_400_BAD_REQUEST)
+    def delete(self, req: Request, team_id: str, user_id: str) -> Response:
+        if req.user.user_id == user_id:  # type: ignore[union-attr]
+            raise serializers.ValidationError(
+                "不能删除自己", status.HTTP_400_BAD_REQUEST)  # type: ignore[arg-type]
 
         try:
             user_services.get_user_by_tenant_id(team_id, user_id)
             user_services.batch_delete_users(team_id, [user_id])
             return Response(None, status.HTTP_200_OK)
         except UserNotExistError as e:
-            return Response({"msg": e.message}, status.HTTP_404_NOT_FOUND)
+            return Response({"msg": e.message}, status.HTTP_404_NOT_FOUND)  # type: ignore[attr-defined]
         except Tenants.DoesNotExist:
             return Response({"msg": "团队不存在"}, status.HTTP_404_NOT_FOUND)
 
@@ -278,7 +288,7 @@ class TeamUserInfoView(TeamAPIView):
         responses={},
         tags=['openapi-team'],
     )
-    def post(self, req, team_id, user_id):
+    def post(self, req: Request, team_id: str, user_id: str) -> Response:
         serializer = CreateTeamUserReqSerializer(data=req.data)
         serializer.is_valid(raise_exception=True)
         role_ids = req.data["role_ids"].replace(" ", "").split(",")
@@ -294,9 +304,10 @@ class TeamUserInfoView(TeamAPIView):
         tags=['openapi-team'],
     )
     # TODO 修改权限控制
-    def put(self, req, team_id, user_id):
-        if req.user.user_id == user_id:
-            raise serializers.ValidationError("您不能修改自己的权限!", status.HTTP_400_BAD_REQUEST)
+    def put(self, req: Request, team_id: str, user_id: str) -> Response:
+        if req.user.user_id == user_id:  # type: ignore[union-attr]
+            raise serializers.ValidationError(
+                "您不能修改自己的权限!", status.HTTP_400_BAD_REQUEST)  # type: ignore[arg-type]
 
         serializer = CreateTeamUserReqSerializer(data=req.data)
         serializer.is_valid(raise_exception=True)
@@ -318,7 +329,7 @@ class ListRegionsView(TeamNoRegionAPIView):
         responses={200: ListTeamRegionsRespSerializer()},
         tags=['openapi-team-region'],
     )
-    def get(self, req, team_id, *args, **kwargs):
+    def get(self, req: Request, team_id: str, *args: Any, **kwargs: Any) -> Response:
         query = req.GET.get("query", "")
         try:
             page = int(req.GET.get("page", 1))
@@ -345,19 +356,22 @@ class ListRegionsView(TeamNoRegionAPIView):
         },
         tags=['openapi-team-region'],
     )
-    def post(self, request, team_id, *args, **kwargs):
+    def post(self, request: Request, team_id: str, *args: Any, **kwargs: Any) -> Response:
         serializer = TeamRegionReqSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         team_data = serializer.data
 
         region = None
         if team_data.get("region", None):
-            region = region_services.get_region_by_region_name(team_data.get("region"))
+            region = region_services.get_region_by_region_name(team_data.get("region"))  # type: ignore[arg-type]
             if not region:
                 raise ErrRegionNotFound
         team = team_services.get_team_by_team_id(team_id)
-        region_services.create_tenant_on_region(self.enterprise.enterprise_id, team.tenant_name, region.region_name,
-                                                team.namespace)
+        # NOTE: legacy — region may be None when payload omits region; backlog null-safety.
+        region_services.create_tenant_on_region(
+            self.enterprise.enterprise_id, team.tenant_name,
+            region.region_name,  # type: ignore[union-attr]
+            team.namespace)
         re = TeamBaseInfoSerializer(team)
         return Response(re.data, status=status.HTTP_201_CREATED)
 
@@ -368,7 +382,7 @@ class TeamRegionView(TeamNoRegionAPIView):
         responses={},
         tags=['openapi-team-region'],
     )
-    def delete(self, request, team_id):
+    def delete(self, request: Request, team_id: str) -> Response:
         serializer = TeamRegionReqSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         team_data = serializer.data
@@ -377,7 +391,10 @@ class TeamRegionView(TeamNoRegionAPIView):
             region = region_services.get_region_by_region_name(region)
             if not region:
                 raise serializers.ValidationError("指定数据中心不存在")
-        code, msg, team = team_services.delete_team_region(self.team.tenant_id, region)
+        # NOTE: latent bug — delete_team_region returns None, so this tuple-unpack
+        # would raise at runtime; arg also typed str. Behavior preserved.
+        code, msg, team = team_services.delete_team_region(  # type: ignore[func-returns-value]
+            self.team.tenant_id, region)  # type: ignore[arg-type]
         if code == 200:
             re = TeamBaseInfoSerializer(team)
             return Response(re.data, status=status.HTTP_200_OK)
@@ -395,7 +412,7 @@ class ListRegionTeamServicesView(BaseOpenAPIView):
         responses={200: ListRegionTeamServicesSerializer()},
         tags=['openapi-team'],
     )
-    def get(self, req, team_id, region_name, *args, **kwargs):
+    def get(self, req: Request, team_id: str, region_name: str, *args: Any, **kwargs: Any) -> Response:
         services = region_services.list_services_by_tenant_name(region_name, team_id)
         total = len(services)
         data = {"services": services, "total": total}
@@ -403,7 +420,7 @@ class ListRegionTeamServicesView(BaseOpenAPIView):
         serializer.is_valid(raise_exception=True)
         return Response(serializer.data, status.HTTP_200_OK)
 
-    def delete(self, request, team_id, region_name):
+    def delete(self, request: Request, team_id: str, region_name: str) -> Response:
         try:
             team_services.delete_team_region(team_id, region_name)
         except (Tenants.DoesNotExist, RegionConfig.DoesNotExist, ErrTenantRegionNotFound):
@@ -422,7 +439,7 @@ class TeamCertificatesLCView(TeamNoRegionAPIView):
         responses={200: TeamCertificatesLSerializer()},
         tags=['openapi-team'],
     )
-    def get(self, request, team_id, *args, **kwargs):
+    def get(self, request: Request, team_id: str, *args: Any, **kwargs: Any) -> Response:
         page = int(request.GET.get("page", 1))
         page_size = int(request.GET.get("page_size", 10))
         certificates, nums = domain_service.get_certificate(self.team, page, page_size)
@@ -439,7 +456,7 @@ class TeamCertificatesLCView(TeamNoRegionAPIView):
         },
         tags=['openapi-team'],
     )
-    def post(self, request, team_id, *args, **kwargs):
+    def post(self, request: Request, team_id: str, *args: Any, **kwargs: Any) -> Response:
         serializer = TeamCertificatesCSerializer(data=request.data)
         serializer.is_valid()
         data = serializer.data
@@ -460,8 +477,9 @@ class TeamCertificatesRUDView(TeamNoRegionAPIView):
         responses={200: TeamCertificatesRSerializer()},
         tags=['openapi-team'],
     )
-    def get(self, request, team_id, certificate_id, *args, **kwargs):
-        code, msg, certificate = domain_service.get_certificate_by_pk(certificate_id)
+    def get(self, request: Request, team_id: str, certificate_id: str, *args: Any, **kwargs: Any) -> Response:
+        # NOTE: certificate_id arrives as str path param; service param typed int.
+        code, msg, certificate = domain_service.get_certificate_by_pk(certificate_id)  # type: ignore[arg-type]
         if code != 200:
             raise ServiceHandleException(msg=None, status_code=code, msg_show=msg)
         serializer = TeamCertificatesRSerializer(data=certificate)
@@ -476,7 +494,7 @@ class TeamCertificatesRUDView(TeamNoRegionAPIView):
         },
         tags=['openapi-team'],
     )
-    def put(self, request, team_id, certificate_id, *args, **kwargs):
+    def put(self, request: Request, team_id: str, certificate_id: str, *args: Any, **kwargs: Any) -> Response:
         serializer = TeamCertificatesCSerializer(data=request.data)
 
         serializer.is_valid()
@@ -496,8 +514,10 @@ class TeamCertificatesRUDView(TeamNoRegionAPIView):
         responses={},
         tags=['openapi-team'],
     )
-    def delete(self, request, team_id, certificate_id, *args, **kwargs):
-        domain_service.delete_certificate_by_pk(None, self.team, certificate_id)
+    def delete(self, request: Request, team_id: str, certificate_id: str, *args: Any, **kwargs: Any) -> Response:
+        # NOTE: legacy passes None for region and str certificate_id; params typed str/int.
+        domain_service.delete_certificate_by_pk(
+            None, self.team, certificate_id)  # type: ignore[arg-type]
         return Response(data=None, status=status.HTTP_200_OK)
 
 
@@ -509,7 +529,7 @@ class TeamAppsResourceView(TeamAPIView):
         },
         tags=['openapi-team'],
     )
-    def get(self, request, team_id, region_name, *args, **kwargs):
+    def get(self, request: Request, team_id: str, region_name: str, *args: Any, **kwargs: Any) -> Response:
         data = team_services.get_tenant_resource(self.team, self.region_name)
         serializer = TeamAppsResourceSerializer(data=data)
         serializer.is_valid(raise_exception=True)
@@ -524,7 +544,7 @@ class TeamOverviewView(TeamAPIView):
         },
         tags=['openapi-team'],
     )
-    def get(self, request, team_id, region_name, *args, **kwargs):
+    def get(self, request: Request, team_id: str, region_name: str, *args: Any, **kwargs: Any) -> Response:
         data = team_services.overview(self.team, self.region_name)
         serializer = TeamOverviewSerializer(data=data)
         serializer.is_valid(raise_exception=True)
@@ -540,8 +560,8 @@ class TeamsResourceView(BaseOpenAPIView):
         },
         tags=['openapi-team'],
     )
-    def post(self, request, *args, **kwargs):
-        resources = []
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
+        resources: list = []
         serializer = TenantRegionListSerializer(data=request.data, many=True)
         serializer.is_valid(raise_exception=True)
         for tenant in serializer.data:
@@ -552,7 +572,8 @@ class TeamsResourceView(BaseOpenAPIView):
                 tenant_id=tenant_id, enterprise_id=self.enterprise.enterprise_id, region_name=region_name).first()
             if team_region:
                 team = team_services.get_team_by_team_id(tenant_id)
-            data = team_services.get_tenant_resource(team, region_name)
+            # NOTE: team may be None when team_region missing; param typed non-Optional.
+            data = team_services.get_tenant_resource(team, region_name)  # type: ignore[arg-type]
             if data:
                 resources.append(data)
         serializer = TeamAppsResourceSerializer(data=resources, many=True)
@@ -573,7 +594,7 @@ class TeamEventLogView(TeamAPIView):
         },
         tags=['openapi-team'],
     )
-    def get(self, request, team_id, region_name, event_id, *args, **kwargs):
+    def get(self, request: Request, team_id: str, region_name: str, event_id: str, *args: Any, **kwargs: Any) -> Response:
         log_content = event_service.get_event_log(self.team, region_name, event_id)
         re = TeamEventLogSerializer(data={"logs": log_content})
         re.is_valid(raise_exception=True)
