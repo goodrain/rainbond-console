@@ -6452,6 +6452,24 @@
       "status": "active"
     },
     {
+      "id": "console.operator-managed.skip-kubeblocks-services",
+      "title": "Skip KubeBlocks services during operator-managed component import",
+      "title_zh": "Skip KubeBlocks services during operator-managed component import",
+      "interface_type": "service_method",
+      "interface": "console.services.group_service.GroupService.get_watch_managed_data",
+      "code_paths": [
+        "console/services/group_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/group_service_test.py",
+          "selector": "GroupServiceOperatorManagedTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.package-component.auto-create-flow",
       "title": "Run full package component auto-create flow",
       "title_zh": "执行制品包组件自动创建全流程",

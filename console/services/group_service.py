@@ -13,6 +13,7 @@ from deprecated import deprecated  # type: ignore[import-untyped]
 from django.db.models import QuerySet
 
 from console.enum.app import GovernanceModeEnum, AppType
+from console.enum.component_enum import is_kubeblocks
 from console.exception.bcode import ErrUserNotFound, ErrApplicationNotFound, ErrK8sAppExists
 from console.models.main import RegionConfig
 from console.exception.main import AbortRequest, ServiceHandleException
@@ -1090,9 +1091,17 @@ class GroupService(object):
             return {"service": [], "config_map": [], "secret": []}
         region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
         watch_managed_data = base_service.get_watch_managed(region_name, tenant.tenant_name, region_app_id)
+        kubeblocks_service_names = {
+            getattr(component, "k8s_component_name", "")
+            for component in self.list_components(app_id)
+            if is_kubeblocks(getattr(component, "extend_method", ""))
+            or getattr(component, "service_source", "") == "kubeblocks"
+        }
         services = list()
         if watch_managed_data:
             for service in watch_managed_data.get("services", []):
+                if service.get("name") in kubeblocks_service_names:
+                    continue
                 if app_service.is_k8s_component_name_duplicate(app_id, service.get("name") + "-svc"):
                     continue
                 if service.get("ip") != "None":
