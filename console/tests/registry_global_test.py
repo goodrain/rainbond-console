@@ -80,11 +80,9 @@ class GlobalRegistryAuthTests(TestCase):
         self.assertEqual(items[0]["scope"], "user")
         self.assertEqual(items[1]["scope"], "enterprise")
         self.assertEqual(items[1]["hub_type"], "AliyunACR")
-        self.assertEqual(items[1]["access_key"], "company-user")
         self.assertNotIn("password", items[1])
-        self.assertNotIn("access_secret", items[1])
 
-    def test_serialize_registry_auth_keeps_legacy_cloud_type_compatible(self):
+    def test_serialize_registry_auth_keeps_legacy_cloud_type_compatible_without_access_key_fields(self):
         auth = RegistryAuth(
             secret_id="company",
             domain="https://registry.cn-hangzhou.aliyuncs.com",
@@ -99,8 +97,8 @@ class GlobalRegistryAuthTests(TestCase):
         data = team_services.serialize_registry_auth(auth, include_password=True)
 
         self.assertEqual(data["hub_type"], "AliyunACR")
-        self.assertEqual(data["access_key"], "company-user")
-        self.assertEqual(data["access_secret"], "enterprise-password")
+        self.assertNotIn("access_key", data)
+        self.assertNotIn("access_secret", data)
 
     def test_enterprise_registry_list_masks_password_for_admins(self):
         enterprise = RegistryAuth(
@@ -126,14 +124,13 @@ class GlobalRegistryAuthTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["data"]["list"][0]["scope"], "enterprise")
         self.assertNotIn("password", response.data["data"]["list"][0])
-        self.assertNotIn("access_secret", response.data["data"]["list"][0])
 
-    def test_enterprise_registry_create_accepts_cloud_access_key_payload(self):
+    def test_enterprise_registry_create_uses_username_password_for_cloud_registry(self):
         request = SimpleNamespace(data={
             "secret_id": "company",
             "domain": "https://registry.cn-hangzhou.aliyuncs.com",
-            "access_key": "ak",
-            "access_secret": "sk",
+            "username": "registry-user",
+            "password": "registry-password",
             "hub_type": "AliyunACR",
         })
         view = registry_views.EnterpriseHubRegistryView()
@@ -148,18 +145,18 @@ class GlobalRegistryAuthTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         check_mock.assert_called_once_with(
-            "https://registry.cn-hangzhou.aliyuncs.com", "ak", "sk", "AliyunACR")
+            "https://registry.cn-hangzhou.aliyuncs.com", "registry-user", "registry-password", "AliyunACR")
         params = create_mock.call_args[1]
-        self.assertEqual(params["username"], "ak")
-        self.assertEqual(params["password"], "sk")
+        self.assertEqual(params["username"], "registry-user")
+        self.assertEqual(params["password"], "registry-password")
         self.assertEqual(params["hub_type"], "AliyunACR")
 
-    def test_user_registry_update_accepts_cloud_access_key_payload(self):
+    def test_user_registry_update_uses_username_password_for_cloud_registry(self):
         request = SimpleNamespace(
             GET={"secret_id": "personal"},
             data={
-                "access_key": "ak",
-                "access_secret": "sk",
+                "username": "registry-user",
+                "password": "registry-password",
                 "hub_type": "TencentTCR",
             },
         )
@@ -173,7 +170,7 @@ class GlobalRegistryAuthTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         update_mock.assert_called_once_with(
-            "personal", self.user.user_id, username="ak", password="sk", hub_type="TencentTCR")
+            "personal", self.user.user_id, username="registry-user", password="registry-password", hub_type="TencentTCR")
 
     def test_resolve_registry_auth_prefers_user_auth_then_enterprise_auth(self):
         personal = RegistryAuth(secret_id="same", username="alice", password="personal-password", scope="user")
@@ -306,7 +303,7 @@ class GlobalRegistryAuthTests(TestCase):
     def test_check_registry_connection_accepts_supported_cloud_registry_types(self):
         response = mock.Mock(status_code=200)
 
-        for hub_type in ["AliyunACR", "TencentTCR", "HuaweiSWR", "VolcanoTOS"]:
+        for hub_type in ["AliyunACR", "TencentTCR", "HuaweiSWR", "VolcanoCR"]:
             with self.subTest(hub_type=hub_type):
                 with mock.patch("console.services.team_services.requests.get", return_value=response) as get_mock:
                     team_services.check_registry_connection(
@@ -332,6 +329,59 @@ class GlobalRegistryAuthTests(TestCase):
                     )
 
                 self.assertEqual(get_mock.call_args[0][0], "https://registry.example.com/v2/")
+
+    def test_check_registry_connection_rejects_volcano_tos_alias(self):
+        with self.assertRaises(ServiceHandleException):
+            team_services.check_registry_connection(
+                domain="https://registry.example.com",
+                username="user",
+                password="password",
+                hub_type="VolcanoTOS",
+            )
+
+    def test_check_registry_connection_handles_registry_v2_bearer_challenge(self):
+        challenge = mock.Mock(
+            status_code=401,
+            headers={
+                "WWW-Authenticate": (
+                    'Bearer realm="https://auth.example.com/token",'
+                    'service="registry.example.com"'
+                )
+            },
+            text="",
+        )
+        token_response = mock.Mock(status_code=200)
+        token_response.json.return_value = {"token": "registry-token"}
+        ok_response = mock.Mock(status_code=200)
+
+        with mock.patch("console.services.team_services.requests.get",
+                        side_effect=[challenge, token_response, ok_response]) as get_mock:
+            team_services.check_registry_connection(
+                domain="https://registry.example.com",
+                username="user",
+                password="password",
+                hub_type="VolcanoCR",
+            )
+
+        self.assertEqual(get_mock.call_args_list[0][0][0], "https://registry.example.com/v2/")
+        self.assertEqual(get_mock.call_args_list[1][0][0], "https://auth.example.com/token")
+        self.assertEqual(get_mock.call_args_list[2][1]["headers"], {"Authorization": "Bearer registry-token"})
+
+    def test_check_registry_connection_error_includes_registry_response_body(self):
+        response = mock.Mock(status_code=403, text='{"errors":[{"message":"denied"}]}')
+
+        with mock.patch("console.services.team_services.requests.get", return_value=response):
+            with self.assertRaises(ServiceHandleException) as ctx:
+                team_services.check_registry_connection(
+                    domain="https://registry.example.com",
+                    username="user",
+                    password="password",
+                    hub_type="VolcanoCR",
+                )
+
+        self.assertIn("status:403", ctx.exception.msg)
+        self.assertIn("denied", ctx.exception.msg)
+        self.assertIn("403", ctx.exception.msg_show)
 
     def test_check_registry_connection_rejects_unsupported_registry_type(self):
         with self.assertRaises(ServiceHandleException):
