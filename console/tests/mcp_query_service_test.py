@@ -6167,4 +6167,45 @@ class MCPQueryServiceSerializeModelItemTests(SimpleTestCase):
         result = mcp_query_service._serialize_model_item(Container())
 
         self.assertEqual(result, {"name": "demo", "payload": {"k": "v"}})
+
+
+class MCPQueryServiceCreateAppFromSnapshotVersionTests(SimpleTestCase):
+
+    @patch("console.services.mcp_query_service.group_service")
+    def test_create_app_from_snapshot_version_raises_on_invalid_app_id(self, mock_group_service):
+        """When created_app returns a non-integer ID, a ServiceHandleException
+        should be raised with '应用ID格式无效' message."""
+        user = Obj(
+            user_id=1,
+            enterprise_id="eid-1",
+            nick_name="testuser",
+            real_name="Test User",
+            email="test@example.com",
+            is_active=True,
+            is_enterprise_admin=True,
+        )
+
+        # Mock _create_app_with_mcp_error_details to return an app with a string ID
+        mock_created_app = Obj(ID="not-a-number", app_id=None, group_id=None)
+        mcp_query_service._create_app_with_mcp_error_details = patch(
+            "console.services.mcp_query_service.mcp_query_service._create_app_with_mcp_error_details"
+        ).start()
+        mcp_query_service._create_app_with_mcp_error_details.return_value = mock_created_app
+
+        try:
+            with self.assertRaises(ServiceHandleException) as ctx:
+                mcp_query_service.create_app_from_snapshot_version(
+                    user=user,
+                    arguments={
+                        "team_name": "team",
+                        "region_name": "region",
+                        "source_app_id": 123,
+                        "version_id": 456,
+                        "target_app_name": "target-app",
+                    },
+                )
+
+            self.assertIn("应用ID格式无效", str(ctx.exception))
+        finally:
+            patch.stopall()
         json.dumps(result)

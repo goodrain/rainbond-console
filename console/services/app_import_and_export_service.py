@@ -53,7 +53,10 @@ class AppExportService(object):
         if data:
             for region in data:
                 if region["rbd_version"] != "":
-                    return region_services.get_region_by_region_id(data[0]["region_id"])
+                    result = region_services.get_region_by_region_id(data[0]["region_id"])
+                    if result is None:
+                        raise RegionNotFound("暂无可用的集群，应用导出功能不可用")
+                    return result
         raise RegionNotFound("暂无可用的集群，应用导出功能不可用")
 
     def export_app(self, eid: str, app_id: str, version: str, export_format: str,
@@ -367,7 +370,10 @@ class AppImportService(object):
         if data:
             for region in data:
                 if region["rbd_version"] != "":
-                    return region_services.get_region_by_region_id(data[0]["region_id"])
+                    result = region_services.get_region_by_region_id(data[0]["region_id"])
+                    if result is None:
+                        raise RegionNotFound("暂无可用的集群、应用导入功能不可用")
+                    return result
         raise RegionNotFound("暂无可用的集群、应用导入功能不可用")
 
     def start_import_apps(self, scope: str, event_id: str, file_names: Any, team_name: Optional[str] = None,

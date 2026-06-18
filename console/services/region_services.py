@@ -520,8 +520,10 @@ class RegionService(object):
         return region_repo.update_region(region)
 
     @transaction.atomic
-    def update_region_status(self, region_id: str, status: str) -> RegionConfig:
+    def update_region_status(self, region_id: str, status: str) -> Optional[RegionConfig]:
         region = region_repo.get_region_by_region_id(region_id)
+        if not region:
+            return None
 
         stauts_tbl = RegionStatusEnum.to_dict()
         status = status.upper()

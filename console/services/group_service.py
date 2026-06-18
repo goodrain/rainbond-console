@@ -862,6 +862,8 @@ class GroupService(object):
             return 0
 
         region = region_repo.get_by_region_name(region_name)
+        if not region:
+            return 0
 
         # count ingress
         return domain_repo.count_by_service_ids(region.region_id, service_ids) + tcp_domain.count_by_service_ids(
