@@ -247,6 +247,7 @@
 | console.component.port-open-outer-only | 仅开放组件公网端口 | active | regression | console.services.mcp_query_service.call_tool[rainbond_manage_component_ports#enable_outer_only] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_manage_component_ports_enable_outer_only_maps_to_only_open_outer |
 | console.component.port-open-public | 打开组件公网端口 | active | regression | console.services.mcp_query_service.call_tool[rainbond_handle_component_ports] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_handle_component_ports_alias_action_maps_to_standard_action |
 | console.component.port-summary | 查看组件端口概览 | active | regression | console.services.mcp_query_service.call_tool[rainbond_manage_component_ports] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_manage_component_ports_summary_delegates_to_port_handler |
+| console.component.port-toggle-events | 记录组件端口开关事件 | active | regression | console.services.app_config.port_service.AppPortService.manage_port | console/tests/port_service_delete_test.py::PortServiceDeleteTests::test_open_outer_port_synchronizes_region_component_event<br>console/tests/port_service_delete_test.py::PortServiceDeleteTests::test_close_outer_port_synchronizes_region_component_event<br>console/tests/port_service_delete_test.py::PortServiceDeleteTests::test_inner_port_toggle_keeps_region_component_event_path |
 | console.component.probe-summary | 查看组件探针概览 | active | regression | console.services.mcp_query_service.call_tool[rainbond_manage_component_probe] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_manage_component_probe_summary_returns_probe_snapshot |
 | console.component.storage-create-mount | 创建组件共享存储挂载 | active | regression | console.services.mcp_query_service.call_tool[rainbond_manage_component_storage#create_mnt] | console/tests/mcp_query_storage_ops_test.py::ManageComponentStorageTests.test_create_mnt_batches_mounts |
 | console.component.storage-create-volume | 创建组件存储卷 | active | regression | console.services.mcp_query_service.call_tool[rainbond_manage_component_storage#create_volume] | console/tests/mcp_query_storage_ops_test.py::ManageComponentStorageTests.test_create_volume_returns_created_and_volume<br>console/tests/mcp_query_storage_ops_test.py::ManageComponentStorageTests.test_create_volume_rejects_collision_with_existing_config_file_path |
@@ -2932,6 +2933,16 @@
 - 业务入口: `console.services.mcp_query_service.call_tool[rainbond_manage_component_ports]`
 - 代码路径: `console/services/mcp_query_service.py`
 - 测试路径: `console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_manage_component_ports_summary_delegates_to_port_handler`
+
+### 记录组件端口开关事件
+
+- Capability ID: `console.component.port-toggle-events`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.app_config.port_service.AppPortService.manage_port`
+- 代码路径: `console/services/app_config/port_service.py`
+- 测试路径: `console/tests/port_service_delete_test.py::PortServiceDeleteTests::test_open_outer_port_synchronizes_region_component_event`, `console/tests/port_service_delete_test.py::PortServiceDeleteTests::test_close_outer_port_synchronizes_region_component_event`, `console/tests/port_service_delete_test.py::PortServiceDeleteTests::test_inner_port_toggle_keeps_region_component_event_path`
 
 ### 查看组件探针概览
 

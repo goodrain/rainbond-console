@@ -2,6 +2,7 @@
 import json
 import logging
 import os
+from urllib.parse import quote
 
 import httplib2
 import urllib3
@@ -1131,10 +1132,10 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._put(url, self.default_headers, json.dumps(body), region=region)
         return body
 
-    def delete_gateway_http_route(self, region, tenant_name, namespace, name, region_app_id):
+    def delete_gateway_http_route(self, region, tenant_name, namespace, name, region_app_id, operator=""):
         url, token = self.__get_region_access_info(tenant_name, region)
-        url = url + "/v2/tenants/" + tenant_name + "/gateway-http-route?namespace={0}&name={1}&app_id={2}".format(
-            namespace, name, region_app_id)
+        url = url + "/v2/tenants/" + tenant_name + "/gateway-http-route?namespace={0}&name={1}&app_id={2}&operator={3}".format(
+            namespace, name, region_app_id, quote(operator or "", safe=""))
         res, body = self._delete(url, self.default_headers, region=region)
         return body
 

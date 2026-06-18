@@ -4572,6 +4572,32 @@
       "status": "active"
     },
     {
+      "id": "console.component.port-toggle-events",
+      "title": "Record component port toggle events",
+      "title_zh": "记录组件端口开关事件",
+      "interface_type": "service_method",
+      "interface": "console.services.app_config.port_service.AppPortService.manage_port",
+      "code_paths": [
+        "console/services/app_config/port_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/port_service_delete_test.py",
+          "selector": "PortServiceDeleteTests::test_open_outer_port_synchronizes_region_component_event"
+        },
+        {
+          "path": "console/tests/port_service_delete_test.py",
+          "selector": "PortServiceDeleteTests::test_close_outer_port_synchronizes_region_component_event"
+        },
+        {
+          "path": "console/tests/port_service_delete_test.py",
+          "selector": "PortServiceDeleteTests::test_inner_port_toggle_keeps_region_component_event_path"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.component.probe-summary",
       "title": "View component probe summary",
       "title_zh": "查看组件探针概览",
