@@ -109,12 +109,33 @@ class GroupAppCopyService(object):
         group_all_service_ids = [service["service_id"] for service in services_metadata["service_group_relation"]]
         if not service_ids:
             service_ids = group_all_service_ids
+        self.validate_services_support_copy(services_metadata, service_ids)
         remove_service_ids = list(set(service_ids) ^ set(group_all_service_ids))
         change_services_map = self.change_services_map(service_ids, old_services_map)
         services_metadata = self.pop_services_metadata(old_team, old_region_name, tar_team, tar_region_name, services_metadata,
                                                        remove_service_ids, service_ids, change_services_map)
         services_metadata = self.change_services_metadata_info(services_metadata, changes)
         return services_metadata, change_services_map
+
+    def validate_services_support_copy(self, services_metadata: Dict[str, Any], service_ids: List[str]) -> None:
+        selected_service_ids = set(service_ids or [])
+        unsupported_services = []
+        for service in services_metadata["apps"]:
+            service_base = service["service_base"]
+            service_id = service_base["service_id"]
+            if selected_service_ids and service_id not in selected_service_ids:
+                continue
+            if service_base.get("service_source") != "package_build":
+                continue
+            service_name = service_base.get("service_cname") or service_base.get(
+                "k8s_component_name") or service_id
+            unsupported_services.append(service_name)
+        if unsupported_services:
+            raise ServiceHandleException(
+                msg="package_build components do not support quick copy",
+                msg_show="上传软件包创建的组件暂不支持快速复制：{}".format(
+                    "、".join(unsupported_services)),
+                status_code=400)
 
     def pop_services_metadata(self,
                               old_team: Tenants,

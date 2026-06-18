@@ -584,7 +584,7 @@ class AppPortService(object):
                 raise ServiceHandleException(msg="inner port is not open", msg_show="对内服务未开启，需先开启对内服务", status_code=404)
             # NOTE: region may be None when region_name is unknown (potential latent
             # None-bug); callees deref region attrs without guarding.
-            code, msg = self.__open_outer(tenant, service, region, deal_port, app)  # type: ignore[arg-type]
+            code, msg = self.__open_outer(tenant, service, region, deal_port, app, user_name)  # type: ignore[arg-type]
         elif action == "only_open_outer":
             code, msg = self.__only_open_outer(tenant, service, region, deal_port, user_name)  # type: ignore[arg-type]
         elif action == "close_outer":
@@ -604,6 +604,17 @@ class AppPortService(object):
         if code != 200:
             return code, msg, None
         return 200, "操作成功", new_port
+
+    def __sync_outer_port_to_region(self, tenant: Tenants, service: TenantServiceInfo,
+                                    deal_port: TenantServicesPort, operation: str, user_name: str = '') -> None:
+        if service.create_status != "complete":
+            return
+        region_api.manage_outer_port(service.service_region, tenant.tenant_name, service.service_alias,
+                                     deal_port.container_port, {
+                                         "operation": operation,
+                                         "enterprise_id": tenant.enterprise_id,
+                                         "operator": user_name
+                                     })
 
     # NOTE: region/deal_port typed Any — callers (other strict modules) pass
     # Optional[RegionConfig]/Optional[TenantServicesPort]; relaxing clears the caller
@@ -710,6 +721,7 @@ class AppPortService(object):
                 tcp_domain.create_service_tcp_domains(service_id, service_name, end_point, create_time, container_port,
                                                       protocol, service_alias, tcp_rule_id, tenant_id, region_id)
 
+        self.__sync_outer_port_to_region(tenant, service, deal_port, "open")
         deal_port.is_outer_service = True
         deal_port.save()
         # component port change, will change entrance network governance plugin configuration
@@ -719,7 +731,8 @@ class AppPortService(object):
         return 200, "success"
 
     def __open_outer(self, tenant: Tenants, service: TenantServiceInfo, region: RegionConfig,
-                     deal_port: TenantServicesPort, app: Optional[ServiceGroup] = None) -> Tuple[int, str]:
+                     deal_port: TenantServicesPort, app: Optional[ServiceGroup] = None,
+                     user_name: str = '') -> Tuple[int, str]:
         if deal_port.protocol == "http":
             service_name = service.service_alias
             container_port = deal_port.container_port
@@ -820,6 +833,7 @@ class AppPortService(object):
                 tcp_domain.create_service_tcp_domains(service_id, service_name, end_point, create_time, container_port,
                                                       protocol, service_alias, tcp_rule_id, tenant_id, region_id)
 
+        self.__sync_outer_port_to_region(tenant, service, deal_port, "open", user_name)
         deal_port.is_outer_service = True
         deal_port.save()
         # component port change, will change entrance network governance plugin configuration
@@ -928,6 +942,7 @@ class AppPortService(object):
                             logger.exception(f"Failed to delete route {delete_path}: {e}")
             except Exception as e:
                 logger.exception(f"Failed to get routes from API Gateway: {e}")
+        self.__sync_outer_port_to_region(tenant, service, deal_port, "close", user_name)
         if service.create_status == "complete":
             from console.services.plugin import app_plugin_service
             app_plugin_service.update_config_if_have_entrance_plugin(tenant, service)

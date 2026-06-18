@@ -83,7 +83,7 @@ fatal() {
 
 # check_required_ports checks if required ports are available
 check_required_ports() {
-    REQUIRED_PORTS="6443 9345 10250 2379 2380 2381 80 443 6060 7070 8443 7080 8889 9180"
+    REQUIRED_PORTS="6443 9345 10250 2379 2380 2381 80 443 7070 8443 7080 8889 9180"
     OCCUPIED_PORTS=""
 
     info "checking required ports availability"
