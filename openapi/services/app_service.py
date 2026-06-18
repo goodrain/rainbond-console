@@ -6,6 +6,7 @@ from typing import Any, Optional
 
 from django.forms.models import model_to_dict
 
+from console.exception.main import ServiceHandleException
 from console.repositories.app import service_repo
 from console.repositories.group import group_repo, group_service_relation_repo
 from console.repositories.team_repo import team_repo
@@ -21,6 +22,13 @@ class AppService(object):
         services = group_service.get_group_services(app.ID)
         service_ids = [service.service_id for service in services]
         team = team_services.get_team_by_team_id(app.tenant_id)
+        if not team:
+            raise ServiceHandleException(
+                msg="the team associated with the app is not found",
+                msg_show="应用关联的团队不存在",
+                status_code=404,
+                error_code=2000,
+            )
         # NOTE: enterprise_id typed str|None by stubs; runtime always str.
         status_list = base_service.status_multi_service(
             region=app.region_name, tenant_name=team.tenant_name, service_ids=service_ids,

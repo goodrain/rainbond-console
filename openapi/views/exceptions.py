@@ -12,3 +12,10 @@ ErrEnterpriseNotFound = ServiceHandleException(
 ErrRegionNotFound = ServiceHandleException(msg="the region is not found", msg_show="集群不存在", status_code=404, error_code=3000)
 
 ErrAppNotFound = ServiceHandleException(msg="the app is not found", msg_show="应用不存在", status_code=404, error_code=4000)
+
+ErrTeamNotInitializedInRegion = ServiceHandleException(
+    msg="the team is not initialized in the region",
+    msg_show="团队未在该集群中初始化",
+    status_code=409,
+    error_code=2001,
+)
