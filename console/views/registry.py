@@ -19,6 +19,15 @@ def _parse_registry_credentials(request):
     )
 
 
+def _parse_cloud_registry_credentials(request, hub_type):
+    if team_services.normalize_registry_hub_type(hub_type) not in team_services.CLOUD_REGISTRY_HUB_TYPES:
+        return {}
+    return {
+        "access_key": parse_item(request, "access_key", required=True),
+        "access_secret": parse_item(request, "access_secret", required=True),
+    }
+
+
 class HubRegistryView(JWTAuthApiView):
     @never_cache
     def get(self, request, *args, **kwargs):
@@ -32,6 +41,7 @@ class HubRegistryView(JWTAuthApiView):
         hub_type = parse_item(request, "hub_type", required=True)
         hub_type = team_services.normalize_registry_hub_type(hub_type)
         username, password = _parse_registry_credentials(request)
+        cloud_credentials = _parse_cloud_registry_credentials(request, hub_type)
         secret_id = parse_item(request, "secret_id", required=True)
         ra = team_registry_auth_repo.check_exist_registry_auth(secret_id, self.user.user_id)
         if ra.exists():
@@ -45,6 +55,7 @@ class HubRegistryView(JWTAuthApiView):
                 "region_name": '',
                 "secret_id": secret_id,
                 "domain": domain,
+                **cloud_credentials,
                 "username": username,
                 "password": password,
                 "hub_type": hub_type,
@@ -73,6 +84,7 @@ class HubRegistryView(JWTAuthApiView):
             "hub_type": parse_item(request, "hub_type", required=True),
         }
         data["hub_type"] = team_services.normalize_registry_hub_type(data["hub_type"])
+        data.update(_parse_cloud_registry_credentials(request, data["hub_type"]))
         data["username"], data["password"] = _parse_registry_credentials(request)
         try:
             team_services.validate_registry_hub_type(data["hub_type"])
@@ -116,6 +128,7 @@ class EnterpriseHubRegistryView(EnterpriseAdminView):
         hub_type = parse_item(request, "hub_type", required=True)
         hub_type = team_services.normalize_registry_hub_type(hub_type)
         username, password = _parse_registry_credentials(request)
+        cloud_credentials = _parse_cloud_registry_credentials(request, hub_type)
         secret_id = parse_item(request, "secret_id", required=True)
         if team_registry_auth_repo.check_exist_enterprise_registry_auth(enterprise_id, secret_id).exists():
             result = general_message(400, "error", "资源已存在")
@@ -127,6 +140,7 @@ class EnterpriseHubRegistryView(EnterpriseAdminView):
                 "region_name": '',
                 "secret_id": secret_id,
                 "domain": domain,
+                **cloud_credentials,
                 "username": username,
                 "password": password,
                 "hub_type": hub_type,
@@ -158,6 +172,7 @@ class EnterpriseHubRegistryView(EnterpriseAdminView):
             "hub_type": parse_item(request, "hub_type", required=True),
         }
         data["hub_type"] = team_services.normalize_registry_hub_type(data["hub_type"])
+        data.update(_parse_cloud_registry_credentials(request, data["hub_type"]))
         data["username"], data["password"] = _parse_registry_credentials(request)
         try:
             team_services.check_registry_connection(data["domain"], data["username"], data["password"], data["hub_type"])

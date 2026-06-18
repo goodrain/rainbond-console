@@ -684,6 +684,7 @@ class TeamService(object):
         scope = data.get("scope") or self.USER_REGISTRY_SCOPE
         data["scope"] = scope
         data["hub_type"] = self.normalize_registry_hub_type(data.get("hub_type", "Docker"))
+        data.pop("access_secret", None)
         if scope == self.ENTERPRISE_REGISTRY_SCOPE and not include_password:
             data.pop("password", None)
         return data

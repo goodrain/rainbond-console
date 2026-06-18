@@ -61,6 +61,8 @@ class GlobalRegistryAuthTests(TestCase):
             domain="https://registry.cn-hangzhou.aliyuncs.com",
             username="company-user",
             password="enterprise-password",
+            access_key="cloud-ak",
+            access_secret="cloud-sk",
             hub_type="Aliyun",
             user_id=0,
             enterprise_id="eid-1",
@@ -80,14 +82,18 @@ class GlobalRegistryAuthTests(TestCase):
         self.assertEqual(items[0]["scope"], "user")
         self.assertEqual(items[1]["scope"], "enterprise")
         self.assertEqual(items[1]["hub_type"], "AliyunACR")
+        self.assertEqual(items[1]["access_key"], "cloud-ak")
+        self.assertNotIn("access_secret", items[1])
         self.assertNotIn("password", items[1])
 
-    def test_serialize_registry_auth_keeps_legacy_cloud_type_compatible_without_access_key_fields(self):
+    def test_serialize_registry_auth_masks_cloud_api_secret(self):
         auth = RegistryAuth(
             secret_id="company",
             domain="https://registry.cn-hangzhou.aliyuncs.com",
             username="company-user",
             password="enterprise-password",
+            access_key="cloud-ak",
+            access_secret="cloud-sk",
             hub_type="Aliyun",
             user_id=0,
             enterprise_id="eid-1",
@@ -97,7 +103,7 @@ class GlobalRegistryAuthTests(TestCase):
         data = team_services.serialize_registry_auth(auth, include_password=True)
 
         self.assertEqual(data["hub_type"], "AliyunACR")
-        self.assertNotIn("access_key", data)
+        self.assertEqual(data["access_key"], "cloud-ak")
         self.assertNotIn("access_secret", data)
 
     def test_enterprise_registry_list_masks_password_for_admins(self):
@@ -129,6 +135,8 @@ class GlobalRegistryAuthTests(TestCase):
         request = SimpleNamespace(data={
             "secret_id": "company",
             "domain": "https://registry.cn-hangzhou.aliyuncs.com",
+            "access_key": "cloud-ak",
+            "access_secret": "cloud-sk",
             "username": "registry-user",
             "password": "registry-password",
             "hub_type": "AliyunACR",
@@ -147,6 +155,8 @@ class GlobalRegistryAuthTests(TestCase):
         check_mock.assert_called_once_with(
             "https://registry.cn-hangzhou.aliyuncs.com", "registry-user", "registry-password", "AliyunACR")
         params = create_mock.call_args[1]
+        self.assertEqual(params["access_key"], "cloud-ak")
+        self.assertEqual(params["access_secret"], "cloud-sk")
         self.assertEqual(params["username"], "registry-user")
         self.assertEqual(params["password"], "registry-password")
         self.assertEqual(params["hub_type"], "AliyunACR")
@@ -155,6 +165,8 @@ class GlobalRegistryAuthTests(TestCase):
         request = SimpleNamespace(
             GET={"secret_id": "personal"},
             data={
+                "access_key": "cloud-ak",
+                "access_secret": "cloud-sk",
                 "username": "registry-user",
                 "password": "registry-password",
                 "hub_type": "TencentTCR",
@@ -170,7 +182,13 @@ class GlobalRegistryAuthTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         update_mock.assert_called_once_with(
-            "personal", self.user.user_id, username="registry-user", password="registry-password", hub_type="TencentTCR")
+            "personal",
+            self.user.user_id,
+            access_key="cloud-ak",
+            access_secret="cloud-sk",
+            username="registry-user",
+            password="registry-password",
+            hub_type="TencentTCR")
 
     def test_resolve_registry_auth_prefers_user_auth_then_enterprise_auth(self):
         personal = RegistryAuth(secret_id="same", username="alice", password="personal-password", scope="user")
@@ -203,7 +221,7 @@ class GlobalRegistryAuthTests(TestCase):
             domain="https://registry.cn-hangzhou.aliyuncs.com",
             username="company-user",
             password="enterprise-password",
-            hub_type="Aliyun",
+            hub_type="Harbor",
             scope="enterprise",
         )
         request = self.factory.get("/console/hub/registry/image?secret_id=company")
@@ -365,6 +383,43 @@ class GlobalRegistryAuthTests(TestCase):
 
         self.assertEqual(get_mock.call_args_list[0][0][0], "https://registry.example.com/v2/")
         self.assertEqual(get_mock.call_args_list[1][0][0], "https://auth.example.com/token")
+        self.assertEqual(get_mock.call_args_list[2][1]["headers"], {"Authorization": "Bearer registry-token"})
+
+    def test_cloud_registry_tags_handle_registry_v2_bearer_challenge(self):
+        challenge = mock.Mock(
+            status_code=401,
+            headers={
+                "WWW-Authenticate": (
+                    'Bearer realm="https://registry.example.com/service/token",'
+                    'service="harbor-registry",'
+                    'scope="repository:rainbond/nginx:pull"'
+                )
+            },
+            text='{"errors":[{"code":"UNAUTHORIZED"}]}',
+        )
+        token_response = mock.Mock(status_code=200)
+        token_response.json.return_value = {"token": "registry-token"}
+        tags_response = mock.Mock(status_code=200)
+        tags_response.json.return_value = {"name": "rainbond/nginx", "tags": ["alpine"]}
+
+        with mock.patch("console.services.team_services.requests.get",
+                        side_effect=[challenge, token_response, tags_response]) as get_mock:
+            data = team_services.get_registry_tags(
+                domain="https://registry.example.com",
+                username="user",
+                password="password",
+                hub_type="VolcanoCR",
+                namespace="rainbond",
+                name="nginx",
+            )
+
+        self.assertEqual(data["tags"][0]["name"], "alpine")
+        self.assertEqual(get_mock.call_args_list[0][0][0], "https://registry.example.com/v2/rainbond/nginx/tags/list")
+        self.assertEqual(get_mock.call_args_list[1][0][0], "https://registry.example.com/service/token")
+        self.assertEqual(get_mock.call_args_list[1][1]["params"], {
+            "service": "harbor-registry",
+            "scope": "repository:rainbond/nginx:pull",
+        })
         self.assertEqual(get_mock.call_args_list[2][1]["headers"], {"Authorization": "Bearer registry-token"})
 
     def test_check_registry_connection_error_includes_registry_response_body(self):

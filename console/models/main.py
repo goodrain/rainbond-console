@@ -1202,6 +1202,8 @@ class TeamRegistryAuth(BaseModel):
     tenant_id = models.CharField(max_length=32, help_text="tenant_id")
     secret_id = models.CharField(max_length=32, help_text="secret_id")
     domain = models.CharField(max_length=255, help_text="domain")
+    access_key = models.CharField(max_length=255, null=True, blank=True, default="", help_text="cloud api access key")
+    access_secret = models.CharField(max_length=255, null=True, blank=True, default="", help_text="cloud api access secret")
     username = models.CharField(max_length=255, help_text="username")
     password = models.CharField(max_length=255, help_text="password")
     region_name = models.CharField(max_length=255, help_text="region_name")
