@@ -8,6 +8,7 @@ from django.forms.models import model_to_dict
 
 from console.repositories.app import service_repo
 from console.repositories.group import group_repo, group_service_relation_repo
+from openapi.views.exceptions import ErrTeamNotFound
 from console.repositories.team_repo import team_repo
 from console.services.group_service import group_service
 from console.services.service_services import base_service
@@ -21,6 +22,8 @@ class AppService(object):
         services = group_service.get_group_services(app.ID)
         service_ids = [service.service_id for service in services]
         team = team_services.get_team_by_team_id(app.tenant_id)
+        if not team:
+            raise ErrTeamNotFound
         # NOTE: enterprise_id typed str|None by stubs; runtime always str.
         status_list = base_service.status_multi_service(
             region=app.region_name, tenant_name=team.tenant_name, service_ids=service_ids,
