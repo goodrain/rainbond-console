@@ -45,6 +45,7 @@ kubernetes==30.1.0
 django-postgrespool2==2.0.5
 ruamel.yaml==0.18.6
 volcengine-python-sdk==1.0.126
+alibabacloud_cr20160607==1.0.1
 alibabacloud_dysmsapi20170525==3.1.2
 alibabacloud-tea-openapi==0.3.12
 alibabacloud-credentials==0.3.6
@@ -55,3 +56,6 @@ alibabacloud-tea==0.3.10
 alibabacloud-tea-util==0.3.13
 alibabacloud-tea-xml==0.0.2
 volcengine
+tencentcloud-sdk-python-tcr==3.1.112
+huaweicloudsdkcore==3.0.70
+huaweicloudsdkswr==3.0.70

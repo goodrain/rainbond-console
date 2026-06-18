@@ -57,7 +57,11 @@ class TeamService(object):
         "Volcano": "VolcanoCR",
     }
     CLOUD_REGISTRY_HUB_TYPES = ("AliyunACR", "TencentTCR", "HuaweiSWR", "VolcanoCR")
+    ALIYUN_ACR_DOMAIN_RE = re.compile(r"^registry\.(?P<region>[^.]+)\.aliyuncs\.com$")
+    TENCENT_TCR_DOMAIN_RE = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9-]*(?:\.[a-zA-Z0-9-]+)*\.tencentcloudcr\.com$")
+    HUAWEI_SWR_DOMAIN_RE = re.compile(r"^swr\.(?P<region>[^.]+)\.myhuaweicloud\.com$")
     VOLCANO_CR_DOMAIN_RE = re.compile(r"^(?P<registry>[a-zA-Z0-9][a-zA-Z0-9-]{1,28}[a-zA-Z0-9])-(?P<region>cn-[^.]+)\.cr\.volces\.com$")
+    TENCENT_TCR_DISCOVERY_REGION = "ap-guangzhou"
 
     def get_tenant_by_tenant_name(self, tenant_name: str, exception: bool = True) -> Optional[Tenants]:
         return team_repo.get_tenant_by_tenant_name(tenant_name=tenant_name, exception=exception)
@@ -865,8 +869,44 @@ class TeamService(object):
             "hub_type": self.normalize_registry_hub_type(data.get("hub_type", "Docker")),
         }
 
-    def _parse_volcano_cr_domain(self, domain: str) -> Tuple[str, str]:
-        host = urlparse(domain).netloc
+    def _registry_domain_host(self, domain):
+        parsed_url = urlparse(domain)
+        host = parsed_url.hostname
+        if not host:
+            raise ServiceHandleException(msg="invalid registry domain", msg_show="镜像仓库地址格式错误", status_code=400)
+        return host.lower()
+
+    def _parse_aliyun_acr_domain(self, domain):
+        host = self._registry_domain_host(domain)
+        match = self.ALIYUN_ACR_DOMAIN_RE.match(host)
+        if not match:
+            raise ServiceHandleException(
+                msg="invalid aliyun acr domain",
+                msg_show="阿里云ACR地址格式错误",
+                status_code=400)
+        return match.group("region")
+
+    def _parse_tencent_tcr_domain(self, domain):
+        host = self._registry_domain_host(domain)
+        if not self.TENCENT_TCR_DOMAIN_RE.match(host):
+            raise ServiceHandleException(
+                msg="invalid tencent tcr domain",
+                msg_show="腾讯云TCR地址格式错误",
+                status_code=400)
+        return host
+
+    def _parse_huawei_swr_domain(self, domain):
+        host = self._registry_domain_host(domain)
+        match = self.HUAWEI_SWR_DOMAIN_RE.match(host)
+        if not match:
+            raise ServiceHandleException(
+                msg="invalid huawei swr domain",
+                msg_show="华为云SWR地址格式错误",
+                status_code=400)
+        return match.group("region")
+
+    def _parse_volcano_cr_domain(self, domain):
+        host = self._registry_domain_host(domain)
         match = self.VOLCANO_CR_DOMAIN_RE.match(host)
         if not match:
             raise ServiceHandleException(
@@ -887,6 +927,38 @@ class TeamService(object):
         configuration.region = region
         return volcenginesdkcr.CRApi(volcenginesdkcore.ApiClient(configuration))
 
+    def _aliyun_acr_client(self, access_key, access_secret, region):
+        from alibabacloud_cr20160607.client import Client as AcrClient
+        from alibabacloud_tea_openapi import models as open_api_models
+
+        config = open_api_models.Config(
+            access_key_id=access_key,
+            access_key_secret=access_secret,
+            endpoint="cr.{}.aliyuncs.com".format(region))
+        return AcrClient(config)
+
+    def _tencent_tcr_client(self, access_key, access_secret, region):
+        from tencentcloud.common import credential
+        from tencentcloud.common.profile.client_profile import ClientProfile
+        from tencentcloud.common.profile.http_profile import HttpProfile
+        from tencentcloud.tcr.v20190924 import tcr_client
+
+        cred = credential.Credential(access_key, access_secret)
+        http_profile = HttpProfile(endpoint="tcr.tencentcloudapi.com")
+        client_profile = ClientProfile(httpProfile=http_profile)
+        return tcr_client.TcrClient(cred, region, client_profile)
+
+    def _huawei_swr_client(self, access_key, access_secret, region):
+        from huaweicloudsdkcore.auth.credentials import BasicCredentials
+        from huaweicloudsdkswr.v2 import SwrClient
+        from huaweicloudsdkswr.v2.region.swr_region import SwrRegion
+
+        credentials = BasicCredentials(access_key, access_secret)
+        return SwrClient.new_builder() \
+            .with_credentials(credentials) \
+            .with_region(SwrRegion.value_of(region)) \
+            .build()
+
     def _handle_cloud_registry_exception(self, action: str, provider: str, e: Exception) -> None:
         logger.warning("failed to %s %s registry: %s", action, provider, e)
         raise ServiceHandleException(
@@ -894,85 +966,392 @@ class TeamService(object):
             msg_show="获取镜像仓库信息失败({})".format(e),
             status_code=500)
 
+    def _cloud_attr(self, value, *names):
+        if value is None:
+            return None
+        if isinstance(value, dict):
+            lower_value = {str(k).lower(): v for k, v in value.items()}
+            for name in names:
+                if name in value:
+                    return value.get(name)
+                lower_name = name.lower()
+                if lower_name in lower_value:
+                    return lower_value.get(lower_name)
+            return None
+        for name in names:
+            if hasattr(value, name):
+                return getattr(value, name)
+            private_name = "_{}".format(name)
+            if hasattr(value, private_name):
+                return getattr(value, private_name)
+        return None
+
+    def _cloud_item_value(self, value, *names):
+        if isinstance(value, str):
+            return value
+        return self._cloud_attr(value, *names)
+
+    def _cloud_response_body(self, response):
+        if isinstance(response, dict):
+            return response.get("body") or response.get("Body") or response
+        return self._cloud_attr(response, "body", "Body") or response
+
+    def _cloud_response_data(self, response):
+        body = self._cloud_response_body(response)
+        return self._cloud_attr(body, "data", "Data") or body
+
+    def _cloud_list(self, data, *keys):
+        if data is None:
+            return []
+        if isinstance(data, (list, tuple)):
+            return list(data)
+        for key in keys:
+            value = self._cloud_attr(data, key)
+            if isinstance(value, (list, tuple)):
+                return list(value)
+        nested = self._cloud_attr(data, "data", "Data", "body", "Body")
+        if nested is not data:
+            return self._cloud_list(nested, *keys)
+        return []
+
+    def _cloud_total(self, data, default=0):
+        for key in ("total", "Total", "totalCount", "TotalCount", "count", "Count"):
+            value = self._cloud_attr(data, key)
+            if value is not None:
+                try:
+                    return int(value)
+                except (TypeError, ValueError):
+                    return default
+        return default
+
+    def _cloud_total_from_content_range(self, content_range, default=0):
+        if not content_range:
+            return default
+        try:
+            return int(str(content_range).rsplit("/", 1)[1])
+        except (IndexError, TypeError, ValueError):
+            return default
+
+    def _cloud_registry_image(self, name, namespace, hub_type, description="", is_public=False, pull_count=0,
+                              created_at="", updated_at="", status="active"):
+        if name and namespace and name.startswith(namespace + "/"):
+            name = name.split("/", 1)[1]
+        if isinstance(status, bool):
+            status = "active" if status else "inactive"
+        elif not status:
+            status = "active"
+        return {
+            "name": name,
+            "namespace": namespace,
+            "description": description or "",
+            "is_public": bool(is_public),
+            "pull_count": pull_count or 0,
+            "star_count": 0,
+            "created_at": created_at or "",
+            "updated_at": updated_at or "",
+            "status": status,
+            "registry_type": hub_type,
+        }
+
+    def _aliyun_acr_call_api(self, client, action, pathname, query=None):
+        from alibabacloud_tea_openapi import models as open_api_models
+        from alibabacloud_openapi_util.client import Client as OpenApiUtilClient
+        from alibabacloud_tea_util import models as util_models
+
+        request = open_api_models.OpenApiRequest(
+            query=OpenApiUtilClient.query(query or {}))
+        params = open_api_models.Params(
+            action=action,
+            version="2016-06-07",
+            protocol="HTTPS",
+            pathname=pathname,
+            method="GET",
+            auth_type="AK",
+            style="ROA",
+            req_body_type="json",
+            body_type="json")
+        return client.call_api(params, request, util_models.RuntimeOptions())
+
+    def _get_aliyun_acr_namespaces(self, domain, access_key, access_secret):
+        region = self._parse_aliyun_acr_domain(domain)
+        client = self._aliyun_acr_client(access_key, access_secret, region)
+        response = self._aliyun_acr_call_api(client, "GetNamespaceList", "/namespace")
+        data = self._cloud_response_data(response)
+        items = self._cloud_list(data, "namespaces", "Namespaces", "namespaceList", "NamespaceList")
+        return [
+            self._cloud_item_value(item, "namespace", "Namespace", "namespaceName", "NamespaceName", "name", "Name")
+            for item in items
+            if self._cloud_item_value(item, "namespace", "Namespace", "namespaceName", "NamespaceName", "name", "Name")
+        ]
+
+    def _get_aliyun_acr_images(self, domain, access_key, access_secret, namespace, page=1, page_size=10, search_key=None):
+        region = self._parse_aliyun_acr_domain(domain)
+        client = self._aliyun_acr_client(access_key, access_secret, region)
+        response = self._aliyun_acr_call_api(
+            client,
+            "GetRepoListByNamespace",
+            "/repos/{}".format(quote(namespace, safe="")),
+            {"Page": page, "PageSize": page_size})
+        data = self._cloud_response_data(response)
+        repositories = self._cloud_list(data, "repos", "Repos", "repositories", "Repositories", "repoList", "RepoList")
+        images = []
+        for repo in repositories:
+            repo_name = self._cloud_item_value(repo, "repoName", "RepoName", "name", "Name")
+            if search_key and search_key.lower() not in repo_name.lower():
+                continue
+            repo_type = self._cloud_attr(repo, "repoType", "RepoType")
+            is_public = self._cloud_attr(repo, "isPublic", "IsPublic")
+            if is_public is None:
+                is_public = str(repo_type).lower() == "public"
+            images.append(self._cloud_registry_image(
+                repo_name,
+                self._cloud_attr(repo, "repoNamespace", "RepoNamespace", "namespace", "Namespace") or namespace,
+                "AliyunACR",
+                description=self._cloud_attr(repo, "summary", "Summary", "description", "Description"),
+                is_public=is_public,
+                created_at=self._cloud_attr(repo, "gmtCreate", "GmtCreate", "creationTime", "CreationTime"),
+                updated_at=self._cloud_attr(repo, "gmtModified", "GmtModified", "updateTime", "UpdateTime")))
+        total = self._cloud_total(data, len(images))
+        if search_key:
+            total = len(images)
+        return {"images": images, "total": total, "page": page, "page_size": page_size}
+
+    def _tencent_domain_host(self, value):
+        parsed = urlparse(value if "://" in value else "//{}".format(value))
+        return (parsed.hostname or value or "").lower()
+
+    def _tencent_registry_matches_domain(self, registry, host):
+        registry_name = self._cloud_attr(registry, "RegistryName")
+        registry_id = self._cloud_attr(registry, "RegistryId")
+        prefix = host.split(".", 1)[0]
+        domains = [
+            self._cloud_attr(registry, "PublicDomain"),
+            self._cloud_attr(registry, "InternalEndpoint"),
+        ]
+        normalized_domains = [self._tencent_domain_host(domain) for domain in domains if domain]
+        return host in normalized_domains or prefix in (registry_name, registry_id)
+
+    def _resolve_tencent_tcr_registry(self, domain, access_key, access_secret):
+        from tencentcloud.tcr.v20190924 import models as tcr_models
+
+        host = self._parse_tencent_tcr_domain(domain)
+        discovery_client = self._tencent_tcr_client(access_key, access_secret, self.TENCENT_TCR_DISCOVERY_REGION)
+        offset = 0
+        limit = 100
+        while True:
+            request = tcr_models.DescribeInstancesRequest()
+            request.AllRegion = True
+            request.Offset = offset
+            request.Limit = limit
+            response = discovery_client.DescribeInstances(request)
+            registries = self._cloud_list(response, "Registries")
+            for registry in registries:
+                if self._tencent_registry_matches_domain(registry, host):
+                    registry_id = self._cloud_attr(registry, "RegistryId")
+                    region = self._cloud_attr(registry, "RegionName") or self.TENCENT_TCR_DISCOVERY_REGION
+                    return registry_id, region
+            total = self._cloud_total(response, len(registries))
+            if not registries or offset + limit >= total:
+                break
+            offset += limit
+        raise ServiceHandleException(
+            msg="tencent tcr registry not found for domain {}".format(host),
+            msg_show="腾讯云TCR实例未找到，请确认仓库地址与Access Key权限",
+            status_code=404)
+
+    def _get_tencent_tcr_namespaces(self, domain, access_key, access_secret):
+        from tencentcloud.tcr.v20190924 import models as tcr_models
+
+        registry_id, region = self._resolve_tencent_tcr_registry(domain, access_key, access_secret)
+        client = self._tencent_tcr_client(access_key, access_secret, region)
+        request = tcr_models.DescribeNamespacesRequest()
+        request.RegistryId = registry_id
+        request.Offset = 0
+        request.Limit = 100
+        request.All = True
+        response = client.DescribeNamespaces(request)
+        items = self._cloud_list(response, "NamespaceList")
+        return [
+            self._cloud_item_value(item, "Name", "Namespace", "name", "namespace")
+            for item in items
+            if self._cloud_item_value(item, "Name", "Namespace", "name", "namespace")
+        ]
+
+    def _get_tencent_tcr_images(self, domain, access_key, access_secret, namespace, page=1, page_size=10, search_key=None):
+        from tencentcloud.tcr.v20190924 import models as tcr_models
+
+        registry_id, region = self._resolve_tencent_tcr_registry(domain, access_key, access_secret)
+        client = self._tencent_tcr_client(access_key, access_secret, region)
+        request = tcr_models.DescribeRepositoriesRequest()
+        request.RegistryId = registry_id
+        request.NamespaceName = namespace
+        request.Offset = page
+        request.Limit = page_size
+        if search_key:
+            request.RepositoryName = search_key
+        response = client.DescribeRepositories(request)
+        repositories = self._cloud_list(response, "RepositoryList")
+        images = []
+        for repo in repositories:
+            repo_name = self._cloud_item_value(repo, "Name", "name")
+            if search_key and search_key.lower() not in repo_name.lower():
+                continue
+            images.append(self._cloud_registry_image(
+                repo_name,
+                self._cloud_attr(repo, "Namespace", "namespace") or namespace,
+                "TencentTCR",
+                description=self._cloud_attr(repo, "Description", "BriefDescription", "description", "briefDescription"),
+                is_public=self._cloud_attr(repo, "Public", "public"),
+                created_at=self._cloud_attr(repo, "CreationTime", "creationTime"),
+                updated_at=self._cloud_attr(repo, "UpdateTime", "updateTime")))
+        total = self._cloud_total(response, len(images))
+        if search_key:
+            total = len(images)
+        return {"images": images, "total": total, "page": page, "page_size": page_size}
+
+    def _get_huawei_swr_namespaces(self, domain, access_key, access_secret):
+        from huaweicloudsdkswr.v2 import model as swr_models
+
+        region = self._parse_huawei_swr_domain(domain)
+        client = self._huawei_swr_client(access_key, access_secret, region)
+        response = client.list_namespaces(swr_models.ListNamespacesRequest())
+        items = self._cloud_list(response, "namespaces", "Namespaces")
+        return [
+            self._cloud_item_value(item, "name", "Name", "namespace", "Namespace")
+            for item in items
+            if self._cloud_item_value(item, "name", "Name", "namespace", "Namespace")
+        ]
+
+    def _get_huawei_swr_images(self, domain, access_key, access_secret, namespace, page=1, page_size=10, search_key=None):
+        from huaweicloudsdkswr.v2 import model as swr_models
+
+        region = self._parse_huawei_swr_domain(domain)
+        client = self._huawei_swr_client(access_key, access_secret, region)
+        request = swr_models.ListReposDetailsRequest(
+            namespace=namespace,
+            name=search_key,
+        )
+        request.limit = page_size
+        request.offset = (page - 1) * page_size
+        response = client.list_repos_details(request)
+        repositories = self._cloud_list(response, "body", "Body")
+        images = []
+        for repo in repositories:
+            repo_name = self._cloud_item_value(repo, "name", "Name")
+            if search_key and search_key.lower() not in repo_name.lower():
+                continue
+            images.append(self._cloud_registry_image(
+                repo_name,
+                self._cloud_attr(repo, "namespace", "Namespace") or namespace,
+                "HuaweiSWR",
+                description=self._cloud_attr(repo, "description", "Description"),
+                is_public=self._cloud_attr(repo, "is_public", "isPublic", "IsPublic"),
+                pull_count=self._cloud_attr(repo, "num_download", "numDownload", "NumDownload"),
+                created_at=self._cloud_attr(repo, "created_at", "createdAt", "CreatedAt"),
+                updated_at=self._cloud_attr(repo, "updated_at", "updatedAt", "UpdatedAt"),
+                status=self._cloud_attr(repo, "status", "Status")))
+        total = self._cloud_total_from_content_range(
+            self._cloud_attr(response, "content_range", "ContentRange"),
+            len(images))
+        if search_key:
+            total = len(images)
+        return {"images": images, "total": total, "page": page, "page_size": page_size}
+
+    def _get_volcano_cr_namespaces(self, domain, access_key, access_secret):
+        import volcenginesdkcr
+
+        registry, region = self._parse_volcano_cr_domain(domain)
+        api = self._volcano_cr_api(access_key, access_secret, region)
+        namespaces = []
+        page = 1
+        page_size = 100
+        while True:
+            request = volcenginesdkcr.ListNamespacesRequest(
+                registry=registry,
+                page_number=page,
+                page_size=page_size)
+            response = api.list_namespaces(request)
+            items = getattr(response, "items", None) or []
+            namespaces.extend([item.name for item in items if getattr(item, "name", None)])
+            total = getattr(response, "total_count", 0) or 0
+            if not items or page * page_size >= total:
+                break
+            page += 1
+        return namespaces
+
+    def _get_volcano_cr_images(self, domain, access_key, access_secret, namespace, page=1, page_size=10, search_key=None):
+        import volcenginesdkcr
+
+        registry, region = self._parse_volcano_cr_domain(domain)
+        api = self._volcano_cr_api(access_key, access_secret, region)
+        request = volcenginesdkcr.ListRepositoriesRequest(
+            filter=volcenginesdkcr.FilterForListRepositoriesInput(namespaces=[namespace]),
+            registry=registry,
+            page_number=page,
+            page_size=page_size)
+        response = api.list_repositories(request)
+        repositories = getattr(response, "items", None) or []
+        images = []
+        for repo in repositories:
+            repo_name = getattr(repo, "name", "")
+            if search_key and search_key.lower() not in repo_name.lower():
+                continue
+            images.append(self._cloud_registry_image(
+                repo_name,
+                getattr(repo, "namespace", namespace),
+                "VolcanoCR",
+                description=getattr(repo, "description", "") or "",
+                is_public=getattr(repo, "access_level", "") == "Public",
+                created_at=getattr(repo, "create_time", "") or "",
+                updated_at=getattr(repo, "update_time", "") or ""))
+        total = getattr(response, "total_count", len(images)) or len(images)
+        if search_key:
+            total = len(images)
+        return {"images": images, "total": total, "page": page, "page_size": page_size}
+
     def get_cloud_registry_namespaces(self, domain: str, access_key: str, access_secret: str, hub_type: str) -> List[str]:
         hub_type = self.normalize_registry_hub_type(hub_type)
-        if hub_type != "VolcanoCR":
+        handlers = {
+            "AliyunACR": self._get_aliyun_acr_namespaces,
+            "TencentTCR": self._get_tencent_tcr_namespaces,
+            "HuaweiSWR": self._get_huawei_swr_namespaces,
+            "VolcanoCR": self._get_volcano_cr_namespaces,
+        }
+        handler = handlers.get(hub_type)
+        if not handler:
             raise ServiceHandleException(
                 msg="cloud registry api not supported for {}".format(hub_type),
                 msg_show="当前云厂商镜像仓库暂未支持自动获取命名空间",
                 status_code=400)
         try:
-            import volcenginesdkcr
-
-            registry, region = self._parse_volcano_cr_domain(domain)
-            api = self._volcano_cr_api(access_key, access_secret, region)
-            namespaces = []
-            page = 1
-            page_size = 100
-            while True:
-                request = volcenginesdkcr.ListNamespacesRequest(
-                    registry=registry,
-                    page_number=page,
-                    page_size=page_size)
-                response = api.list_namespaces(request)
-                items = getattr(response, "items", None) or []
-                namespaces.extend([item.name for item in items if getattr(item, "name", None)])
-                total = getattr(response, "total_count", 0) or 0
-                if not items or page * page_size >= total:
-                    break
-                page += 1
-            return namespaces
+            return handler(domain, access_key, access_secret)
         except ServiceHandleException:
             raise
         except Exception as e:
-            self._handle_cloud_registry_exception("list namespaces from", "VolcanoCR", e)
+            self._handle_cloud_registry_exception("list namespaces from", hub_type, e)
 
     def get_cloud_registry_images(self, domain: str, access_key: str, access_secret: str, hub_type: str,
                                   namespace: str, page: int = 1, page_size: int = 10,
                                   search_key: Optional[str] = None) -> Dict[str, Any]:
         hub_type = self.normalize_registry_hub_type(hub_type)
-        if hub_type != "VolcanoCR":
+        handlers = {
+            "AliyunACR": self._get_aliyun_acr_images,
+            "TencentTCR": self._get_tencent_tcr_images,
+            "HuaweiSWR": self._get_huawei_swr_images,
+            "VolcanoCR": self._get_volcano_cr_images,
+        }
+        handler = handlers.get(hub_type)
+        if not handler:
             raise ServiceHandleException(
                 msg="cloud registry api not supported for {}".format(hub_type),
                 msg_show="当前云厂商镜像仓库暂未支持自动获取镜像列表",
                 status_code=400)
         try:
-            import volcenginesdkcr
-
-            registry, region = self._parse_volcano_cr_domain(domain)
-            api = self._volcano_cr_api(access_key, access_secret, region)
-            request = volcenginesdkcr.ListRepositoriesRequest(
-                filter=volcenginesdkcr.FilterForListRepositoriesInput(namespaces=[namespace]),
-                registry=registry,
-                page_number=page,
-                page_size=page_size)
-            response = api.list_repositories(request)
-            repositories = getattr(response, "items", None) or []
-            images = []
-            for repo in repositories:
-                repo_name = getattr(repo, "name", "")
-                if search_key and search_key.lower() not in repo_name.lower():
-                    continue
-                images.append({
-                    "name": repo_name,
-                    "namespace": getattr(repo, "namespace", namespace),
-                    "description": getattr(repo, "description", "") or "",
-                    "is_public": getattr(repo, "access_level", "") == "Public",
-                    "pull_count": 0,
-                    "star_count": 0,
-                    "created_at": getattr(repo, "create_time", "") or "",
-                    "updated_at": getattr(repo, "update_time", "") or "",
-                    "status": "active",
-                    "registry_type": hub_type,
-                })
-            total = getattr(response, "total_count", len(images)) or len(images)
-            if search_key:
-                total = len(images)
-            return {"images": images, "total": total, "page": page, "page_size": page_size}
+            return handler(domain, access_key, access_secret, namespace, page, page_size, search_key)
         except ServiceHandleException:
             raise
         except Exception as e:
-            self._handle_cloud_registry_exception("list images from", "VolcanoCR", e)
+            self._handle_cloud_registry_exception("list images from", hub_type, e)
 
     def check_registry_connection(self, domain: str, username: str, password: str, hub_type: str) -> bool:
         self.validate_registry_hub_type(hub_type)
