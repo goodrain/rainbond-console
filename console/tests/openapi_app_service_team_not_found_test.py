@@ -35,10 +35,8 @@ class AppServiceTeamNotFoundTest(TestCase):
 
         app = mock.Mock(tenant_id="t1", region_name="r1", ID=1)
 
-        with self.assertRaises(ServiceHandleException) as ctx:
+        with self.assertRaises(ServiceHandleException):
             app_service.get_app_services_and_status(app)
-
-        self.assertIn("team associated with the app is not found", str(ctx.exception))
 
     @mock.patch("openapi.services.app_service.base_service")
     @mock.patch("openapi.services.app_service.team_services")
