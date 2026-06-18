@@ -19,6 +19,7 @@ from console.services.app_config.port_service import AppPortService
 from console.services.group_service import GroupService
 from console.repositories.group import group_repo
 from console.repositories.kubeblocks_backup_repo import kubeblocks_backup_repo_repo
+from console.repositories.region_app import region_app_repo
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import Tenants, TenantServiceInfo
 
@@ -167,6 +168,8 @@ class KubeBlocksService(object):
             if backup_repo and backup_repo.strip():
                 self.ensure_backup_repo_ready_for_use(tenant, region_name, backup_repo)
 
+            self._attach_region_app_id(cluster_params, region_name)
+
             # 构建集群创建请求数据
             cluster_data = self._build_cluster_request(cluster_params, kubeblocks_service, tenant.namespace)
 
@@ -186,6 +189,12 @@ class KubeBlocksService(object):
         except Exception as e:
             logger.exception(f"创建 KubeBlocks 集群异常: {str(e)}")
             return False, None
+
+    def _attach_region_app_id(self, cluster_params: dict, region_name: str) -> None:
+        group_id = cluster_params.get("group_id")
+        if group_id is None:
+            return
+        cluster_params["region_app_id"] = region_app_repo.get_region_app_id(region_name, group_id)
 
     def validate_cluster_params(self, params: dict) -> Tuple[bool, str]:
         """
@@ -357,11 +366,9 @@ class KubeBlocksService(object):
             "service_id": new_service.service_id,
             "service_alias": new_service.service_alias
         }
-        group_id = cluster_params.get("group_id")
-        if group_id is not None:
-            app_id = str(group_id).strip()
-            if app_id and app_id != "-1":
-                rbd_service["app_id"] = app_id
+        app_id = str(cluster_params.get("region_app_id") or "").strip()
+        if app_id:
+            rbd_service["app_id"] = app_id
 
         cluster_data = {
             "name": cluster_params.get("k8s_component_name", "") or cluster_params["cluster_name"],
@@ -1923,7 +1930,8 @@ class KubeBlocksService(object):
 
             proposed = self._clone_backup_repo_record(record, update_data)  # type: ignore[arg-type]
             payload = self._build_backup_repo_region_payload(proposed, secrets)
-            res, body = region_api.update_kubeblocks_backup_repo(region_name, record.repo_name, payload)  # type: ignore[union-attr]
+            res, body = region_api.update_kubeblocks_backup_repo(
+                region_name, record.repo_name, payload)  # type: ignore[union-attr]
             status_code = res.get("status", 500)
             if status_code != 200:
                 msg_show = body.get("msg_show", "更新备份仓库失败") if isinstance(body, dict) else "更新备份仓库失败"
