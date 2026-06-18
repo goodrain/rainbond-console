@@ -218,25 +218,47 @@ class HubRegistryImageView(JWTAuthApiView):
 
         try:
             auth = team_services.resolve_registry_auth(self.user, secret_id)
+            is_cloud_registry = (
+                team_services.normalize_registry_hub_type(auth.hub_type) in team_services.CLOUD_REGISTRY_HUB_TYPES)
             if not namespace:
-                namespaces = team_services.get_registry_namespaces(
-                    domain=auth.domain,
-                    username=auth.username,
-                    password=auth.password,
-                    hub_type=auth.hub_type
-                )
+                if is_cloud_registry:
+                    namespaces = team_services.get_cloud_registry_namespaces(
+                        domain=auth.domain,
+                        access_key=getattr(auth, "access_key", ""),
+                        access_secret=getattr(auth, "access_secret", ""),
+                        hub_type=auth.hub_type
+                    )
+                else:
+                    namespaces = team_services.get_registry_namespaces(
+                        domain=auth.domain,
+                        username=auth.username,
+                        password=auth.password,
+                        hub_type=auth.hub_type
+                    )
                 result = general_message(200, "success", "查询成功", list=namespaces)
             elif not name:
-                data = team_services.get_registry_images(
-                    domain=auth.domain,
-                    username=auth.username,
-                    password=auth.password,
-                    hub_type=auth.hub_type,
-                    namespace=namespace,
-                    page=page,
-                    page_size=page_size,
-                    search_key=search_key
-                )
+                if is_cloud_registry:
+                    data = team_services.get_cloud_registry_images(
+                        domain=auth.domain,
+                        access_key=getattr(auth, "access_key", ""),
+                        access_secret=getattr(auth, "access_secret", ""),
+                        hub_type=auth.hub_type,
+                        namespace=namespace,
+                        page=page,
+                        page_size=page_size,
+                        search_key=search_key
+                    )
+                else:
+                    data = team_services.get_registry_images(
+                        domain=auth.domain,
+                        username=auth.username,
+                        password=auth.password,
+                        hub_type=auth.hub_type,
+                        namespace=namespace,
+                        page=page,
+                        page_size=page_size,
+                        search_key=search_key
+                    )
                 result = general_message(200, "success", "查询成功",
                                          list=data["images"],
                                          total=data["total"],

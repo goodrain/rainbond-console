@@ -57,6 +57,7 @@ class TeamService(object):
         "Volcano": "VolcanoCR",
     }
     CLOUD_REGISTRY_HUB_TYPES = ("AliyunACR", "TencentTCR", "HuaweiSWR", "VolcanoCR")
+    VOLCANO_CR_DOMAIN_RE = re.compile(r"^(?P<registry>[a-zA-Z0-9][a-zA-Z0-9-]{1,28}[a-zA-Z0-9])-(?P<region>cn-[^.]+)\.cr\.volces\.com$")
 
     def get_tenant_by_tenant_name(self, tenant_name: str, exception: bool = True) -> Optional[Tenants]:
         return team_repo.get_tenant_by_tenant_name(tenant_name=tenant_name, exception=exception)
@@ -863,6 +864,115 @@ class TeamService(object):
             "region_name": data.get("region_name", ""),
             "hub_type": self.normalize_registry_hub_type(data.get("hub_type", "Docker")),
         }
+
+    def _parse_volcano_cr_domain(self, domain: str) -> Tuple[str, str]:
+        host = urlparse(domain).netloc
+        match = self.VOLCANO_CR_DOMAIN_RE.match(host)
+        if not match:
+            raise ServiceHandleException(
+                msg="invalid volcano cr domain",
+                msg_show="火山云CR地址格式错误",
+                status_code=400)
+        return match.group("registry"), match.group("region")
+
+    def _volcano_cr_api(self, access_key: str, access_secret: str, region: str) -> Any:
+        import volcenginesdkcore
+        import volcenginesdkcr
+
+        configuration = volcenginesdkcore.Configuration()
+        configuration.schema = "https"
+        configuration.host = "open.volcengineapi.com"
+        configuration.ak = access_key
+        configuration.sk = access_secret
+        configuration.region = region
+        return volcenginesdkcr.CRApi(volcenginesdkcore.ApiClient(configuration))
+
+    def _handle_cloud_registry_exception(self, action: str, provider: str, e: Exception) -> None:
+        logger.warning("failed to %s %s registry: %s", action, provider, e)
+        raise ServiceHandleException(
+            msg="failed to {} {} registry: {}".format(action, provider, e),
+            msg_show="获取镜像仓库信息失败({})".format(e),
+            status_code=500)
+
+    def get_cloud_registry_namespaces(self, domain: str, access_key: str, access_secret: str, hub_type: str) -> List[str]:
+        hub_type = self.normalize_registry_hub_type(hub_type)
+        if hub_type != "VolcanoCR":
+            raise ServiceHandleException(
+                msg="cloud registry api not supported for {}".format(hub_type),
+                msg_show="当前云厂商镜像仓库暂未支持自动获取命名空间",
+                status_code=400)
+        try:
+            import volcenginesdkcr
+
+            registry, region = self._parse_volcano_cr_domain(domain)
+            api = self._volcano_cr_api(access_key, access_secret, region)
+            namespaces = []
+            page = 1
+            page_size = 100
+            while True:
+                request = volcenginesdkcr.ListNamespacesRequest(
+                    registry=registry,
+                    page_number=page,
+                    page_size=page_size)
+                response = api.list_namespaces(request)
+                items = getattr(response, "items", None) or []
+                namespaces.extend([item.name for item in items if getattr(item, "name", None)])
+                total = getattr(response, "total_count", 0) or 0
+                if not items or page * page_size >= total:
+                    break
+                page += 1
+            return namespaces
+        except ServiceHandleException:
+            raise
+        except Exception as e:
+            self._handle_cloud_registry_exception("list namespaces from", "VolcanoCR", e)
+
+    def get_cloud_registry_images(self, domain: str, access_key: str, access_secret: str, hub_type: str,
+                                  namespace: str, page: int = 1, page_size: int = 10,
+                                  search_key: Optional[str] = None) -> Dict[str, Any]:
+        hub_type = self.normalize_registry_hub_type(hub_type)
+        if hub_type != "VolcanoCR":
+            raise ServiceHandleException(
+                msg="cloud registry api not supported for {}".format(hub_type),
+                msg_show="当前云厂商镜像仓库暂未支持自动获取镜像列表",
+                status_code=400)
+        try:
+            import volcenginesdkcr
+
+            registry, region = self._parse_volcano_cr_domain(domain)
+            api = self._volcano_cr_api(access_key, access_secret, region)
+            request = volcenginesdkcr.ListRepositoriesRequest(
+                filter=volcenginesdkcr.FilterForListRepositoriesInput(namespaces=[namespace]),
+                registry=registry,
+                page_number=page,
+                page_size=page_size)
+            response = api.list_repositories(request)
+            repositories = getattr(response, "items", None) or []
+            images = []
+            for repo in repositories:
+                repo_name = getattr(repo, "name", "")
+                if search_key and search_key.lower() not in repo_name.lower():
+                    continue
+                images.append({
+                    "name": repo_name,
+                    "namespace": getattr(repo, "namespace", namespace),
+                    "description": getattr(repo, "description", "") or "",
+                    "is_public": getattr(repo, "access_level", "") == "Public",
+                    "pull_count": 0,
+                    "star_count": 0,
+                    "created_at": getattr(repo, "create_time", "") or "",
+                    "updated_at": getattr(repo, "update_time", "") or "",
+                    "status": "active",
+                    "registry_type": hub_type,
+                })
+            total = getattr(response, "total_count", len(images)) or len(images)
+            if search_key:
+                total = len(images)
+            return {"images": images, "total": total, "page": page, "page_size": page_size}
+        except ServiceHandleException:
+            raise
+        except Exception as e:
+            self._handle_cloud_registry_exception("list images from", "VolcanoCR", e)
 
     def check_registry_connection(self, domain: str, username: str, password: str, hub_type: str) -> bool:
         self.validate_registry_hub_type(hub_type)

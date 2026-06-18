@@ -242,6 +242,77 @@ class GlobalRegistryAuthTests(TestCase):
         )
         self.assertEqual(response.data["data"]["list"], ["prod"])
 
+    def test_hub_registry_image_uses_cloud_api_for_cloud_registry_namespaces(self):
+        auth = RegistryAuth(
+            secret_id="company",
+            domain="https://zqq-cn-shanghai.cr.volces.com",
+            access_key="cloud-ak",
+            access_secret="cloud-sk",
+            username="company-user",
+            password="enterprise-password",
+            hub_type="VolcanoCR",
+            scope="enterprise",
+        )
+        request = self.factory.get("/console/hub/registry/image?secret_id=company")
+        view = HubRegistryImageView()
+        view.user = self.user
+
+        with mock.patch.object(team_services, "resolve_registry_auth", return_value=auth), \
+                mock.patch.object(team_services, "get_cloud_registry_namespaces", return_value=["rainbond"]) as cloud_mock, \
+                mock.patch.object(team_services, "get_registry_namespaces") as registry_mock:
+            response = view.get(request)
+
+        self.assertEqual(response.status_code, 200)
+        cloud_mock.assert_called_once_with(
+            domain=auth.domain,
+            access_key=auth.access_key,
+            access_secret=auth.access_secret,
+            hub_type=auth.hub_type,
+        )
+        registry_mock.assert_not_called()
+        self.assertEqual(response.data["data"]["list"], ["rainbond"])
+
+    def test_hub_registry_image_uses_cloud_api_for_cloud_registry_images(self):
+        auth = RegistryAuth(
+            secret_id="company",
+            domain="https://zqq-cn-shanghai.cr.volces.com",
+            access_key="cloud-ak",
+            access_secret="cloud-sk",
+            username="company-user",
+            password="enterprise-password",
+            hub_type="VolcanoCR",
+            scope="enterprise",
+        )
+        request = self.factory.get(
+            "/console/hub/registry/image?secret_id=company&namespace=rainbond&page=1&page_size=10")
+        view = HubRegistryImageView()
+        view.user = self.user
+
+        cloud_data = {
+            "images": [{"name": "nginx", "namespace": "rainbond"}],
+            "total": 1,
+            "page": 1,
+            "page_size": 10,
+        }
+        with mock.patch.object(team_services, "resolve_registry_auth", return_value=auth), \
+                mock.patch.object(team_services, "get_cloud_registry_images", return_value=cloud_data) as cloud_mock, \
+                mock.patch.object(team_services, "get_registry_images") as registry_mock:
+            response = view.get(request)
+
+        self.assertEqual(response.status_code, 200)
+        cloud_mock.assert_called_once_with(
+            domain=auth.domain,
+            access_key=auth.access_key,
+            access_secret=auth.access_secret,
+            hub_type=auth.hub_type,
+            namespace="rainbond",
+            page=1,
+            page_size=10,
+            search_key=None,
+        )
+        registry_mock.assert_not_called()
+        self.assertEqual(response.data["data"]["list"], cloud_data["images"])
+
     def test_docker_run_resolves_registry_auth_id_credentials_on_server(self):
         registry_auth = RegistryAuth(secret_id="company", username="company-user", password="enterprise-password")
         service = SimpleNamespace(service_id="sid-1", to_dict=lambda: {"service_id": "sid-1"})

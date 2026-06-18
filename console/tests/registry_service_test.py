@@ -2,7 +2,7 @@
 import collections
 import os
 import sys
-from types import ModuleType
+from types import ModuleType, SimpleNamespace
 from unittest import TestCase, mock
 try:
     from urllib.parse import parse_qs, urlparse
@@ -23,9 +23,76 @@ import django  # noqa: E402
 django.setup()
 
 from console.services.team_services import team_services  # noqa: E402
+from console.exception.main import ServiceHandleException  # noqa: E402
 
 
 class RegistryNamespaceServiceTestCase(TestCase):
+    def test_parse_volcano_cr_domain_extracts_registry_and_region(self):
+        registry, region = team_services._parse_volcano_cr_domain("https://zqq-cn-shanghai.cr.volces.com")
+
+        self.assertEqual(registry, "zqq")
+        self.assertEqual(region, "cn-shanghai")
+
+    def test_parse_volcano_cr_domain_rejects_non_volcano_domain(self):
+        with self.assertRaises(ServiceHandleException):
+            team_services._parse_volcano_cr_domain("https://registry.example.com")
+
+    def test_get_volcano_cr_namespaces_uses_cloud_api(self):
+        api = mock.Mock()
+        api.list_namespaces.return_value = SimpleNamespace(
+            items=[SimpleNamespace(name="rainbond"), SimpleNamespace(name="demo")],
+            total_count=2,
+        )
+
+        with mock.patch.object(team_services, "_volcano_cr_api", return_value=api) as api_factory:
+            namespaces = team_services.get_cloud_registry_namespaces(
+                domain="https://zqq-cn-shanghai.cr.volces.com",
+                access_key="cloud-ak",
+                access_secret="cloud-sk",
+                hub_type="VolcanoCR",
+            )
+
+        api_factory.assert_called_once_with("cloud-ak", "cloud-sk", "cn-shanghai")
+        request = api.list_namespaces.call_args[0][0]
+        self.assertEqual(request.registry, "zqq")
+        self.assertEqual(request.page_number, 1)
+        self.assertEqual(request.page_size, 100)
+        self.assertEqual(namespaces, ["rainbond", "demo"])
+
+    def test_get_volcano_cr_images_uses_cloud_api(self):
+        api = mock.Mock()
+        api.list_repositories.return_value = SimpleNamespace(
+            items=[
+                SimpleNamespace(
+                    name="nginx",
+                    namespace="rainbond",
+                    description="",
+                    access_level="Private",
+                    create_time="2026-06-18T00:00:00Z",
+                    update_time="2026-06-18T01:00:00Z"),
+            ],
+            total_count=1,
+        )
+
+        with mock.patch.object(team_services, "_volcano_cr_api", return_value=api) as api_factory:
+            data = team_services.get_cloud_registry_images(
+                domain="https://zqq-cn-shanghai.cr.volces.com",
+                access_key="cloud-ak",
+                access_secret="cloud-sk",
+                hub_type="VolcanoCR",
+                namespace="rainbond",
+                page=1,
+                page_size=10,
+            )
+
+        api_factory.assert_called_once_with("cloud-ak", "cloud-sk", "cn-shanghai")
+        request = api.list_repositories.call_args[0][0]
+        self.assertEqual(request.registry, "zqq")
+        self.assertEqual(request.filter.namespaces, ["rainbond"])
+        self.assertEqual(data["images"][0]["name"], "nginx")
+        self.assertEqual(data["images"][0]["namespace"], "rainbond")
+        self.assertEqual(data["total"], 1)
+
     def test_get_harbor_namespaces_fetches_all_pages(self):
         names = ["project-{}".format(i) for i in range(205)]
 
