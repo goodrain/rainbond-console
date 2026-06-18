@@ -1,20 +1,28 @@
 # -*- coding: utf-8 -*-
 
+import logging
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any, List, Optional
 
+from django.db import OperationalError
 from django.db.models import QuerySet
 
 from console.models import KubeBlocksBackupRepo
 
+logger = logging.getLogger("default")
+
 
 class KubeBlocksBackupRepoRepository(object):
-    def list_by_team(self, tenant_id: str, region_name: str) -> QuerySet[KubeBlocksBackupRepo]:
-        return KubeBlocksBackupRepo.objects.filter(
-            tenant_id=tenant_id,
-            region_name=region_name,
-            is_deleted=False,
-        ).order_by("-update_time", "-ID")
+    def list_by_team(self, tenant_id: str, region_name: str) -> List[KubeBlocksBackupRepo]:
+        try:
+            return list(KubeBlocksBackupRepo.objects.filter(
+                tenant_id=tenant_id,
+                region_name=region_name,
+                is_deleted=False,
+            ).order_by("-update_time", "-ID"))
+        except OperationalError:
+            logger.warning("kubeblocks_backup_repo table not found; returning empty list")
+            return []
 
     def get_by_repo_name(self, tenant_id: str, region_name: str,
                          repo_name: str) -> Optional[KubeBlocksBackupRepo]:

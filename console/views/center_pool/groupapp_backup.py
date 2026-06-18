@@ -130,8 +130,9 @@ class GroupAppsBackupView(RegionTenantHeaderView):
                 self.tenant, self.response_region, backup_id)
             if code != 200:
                 return Response(general_message(code, "get backup status error", msg), status=code)
-            # NOTE: get_groupapp_backup_status_by_backup_id may return None record; backlog
-            bean = backup_record.to_dict()  # type: ignore[union-attr]
+            if backup_record is None:
+                return Response(general_message(404, "backup not found", "备份记录不存在"), status=404)
+            bean = backup_record.to_dict()
             bean.pop("backup_server_info")
 
             result = general_message(200, "success", "查询成功", bean=bean)

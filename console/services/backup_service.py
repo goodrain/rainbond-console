@@ -94,7 +94,9 @@ class GroupAppBackupService(object):
             "service_ids": service_ids,
             "enterprise_id": tenant.enterprise_id
         })
-        status_list = body["list"]  # type: ignore[index]  # NOTE: region_api returns dict|None; None would raise at runtime but original code doesn't guard
+        if not body or "list" not in body:
+            return 200, []
+        status_list = body["list"]
         service_status_map = {status_map["service_id"]: status_map["status"] for status_map in status_list}
         # 处于运行中的有状态
         running_state_services = []
@@ -147,7 +149,9 @@ class GroupAppBackupService(object):
         # 向数据中心发起备份任务
         try:
             body = region_api.backup_group_apps(region_name, tenant.tenant_name, data)
-            bean = body["bean"]  # type: ignore[index]  # NOTE: region_api returns dict|None; None raises at runtime but original code doesn't guard
+            if not body or "bean" not in body:
+                raise ServiceHandleException(msg="backup failed", msg_show="备份失败：区域 API 返回数据异常")
+            bean = body["bean"]
             record_data = {
                 "group_id": group_id,
                 "event_id": event_id,
@@ -189,7 +193,9 @@ class GroupAppBackupService(object):
             return 404, "不存在该备份记录", None
         if backup_record.status == "starting":
             body = region_api.get_backup_status_by_backup_id(region, tenant.tenant_name, backup_id)
-            bean = body["bean"]  # type: ignore[index]  # NOTE: region_api returns dict|None; None raises at runtime but original code doesn't guard
+            if not body or "bean" not in body:
+                return 200, "success", backup_record
+            bean = body["bean"]
             backup_record.status = bean["status"]
             backup_record.source_dir = bean["source_dir"]
             backup_record.source_type = bean["source_type"]
@@ -219,8 +225,11 @@ class GroupAppBackupService(object):
             return 404, "该组没有任何备份记录", None
         group_uuid = backup_records[0].group_uuid
         event_id_record_map = {record.event_id: record for record in backup_records}
-        body = region_api.get_backup_status_by_group_id(region, tenant.tenant_name, group_uuid)  # type: ignore[arg-type]  # NOTE: group_uuid is str|None; None would be a runtime error but original code doesn't guard
-        res_list = body["list"]  # type: ignore[index]  # NOTE: region_api returns dict|None; None raises at runtime but original code doesn't guard
+        body = region_api.get_backup_status_by_group_id(region, tenant.tenant_name, group_uuid)  # type: ignore[arg-type]
+        if not body or "list" not in body:
+            backup_records = backup_record_repo.get_record_by_group_id(group_id)
+            return 200, "success", backup_records
+        res_list = body["list"]
         for data in res_list:
             backup_record = event_id_record_map.get(data["event_id"], None)
             if backup_record and backup_record.status == "starting":
@@ -248,7 +257,7 @@ class GroupAppBackupService(object):
         all_data["compose_group_info"] = compose_group_info.to_dict() if compose_group_info else None
         all_data["compose_service_relation"] = [relation.to_dict()
                                                 for relation in compose_service_relation] if compose_service_relation else None
-        all_data["group_info"] = group_info.to_dict()  # type: ignore[union-attr]  # NOTE: group_info may be None if group_id is invalid; original code does not guard
+        all_data["group_info"] = group_info.to_dict() if group_info else None
         all_data["service_group_relation"] = [sgr.to_dict() for sgr in service_group_relations]
         apps = []
         total_memory = 0
@@ -393,8 +402,10 @@ class GroupAppBackupService(object):
             "backup_size": data["backup_size"]
         }
         body = region_api.copy_backup_data(region, tenant.tenant_name, params)
+        if not body or "bean" not in body:
+            raise ServiceHandleException(msg="import failed", msg_show="导入失败：区域 API 返回数据异常")
 
-        bean = body["bean"]  # type: ignore[index]  # NOTE: region_api returns dict|None; None raises at runtime but original code doesn't guard
+        bean = body["bean"]
         record_data = {
             "group_id": group.ID,
             "event_id": event_id,

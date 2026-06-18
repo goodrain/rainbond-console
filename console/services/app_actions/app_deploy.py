@@ -863,6 +863,7 @@ class MarketService(object):
             body["tenant_id"] = self.tenant.tenant_id
             body["dep_service_type"] = dep_service.service_type  # type: ignore[union-attr]
             body["enterprise_id"] = self.tenant.enterprise_id
+            body["namespace"] = getattr(self.tenant, "namespace", "") or self.tenant.tenant_id
             region_api.add_service_dependency(self.service.service_region, self.tenant.tenant_name, self.service.service_alias,
                                               body)
 
