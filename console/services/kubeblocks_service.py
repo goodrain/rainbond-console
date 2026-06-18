@@ -345,6 +345,16 @@ class KubeBlocksService(object):
         """
         构建创建 Cluster 的请求数据
         """
+        rbd_service = {
+            "service_id": new_service.service_id,
+            "service_alias": new_service.service_alias
+        }
+        group_id = cluster_params.get("group_id")
+        if group_id is not None:
+            app_id = str(group_id).strip()
+            if app_id and app_id != "-1":
+                rbd_service["app_id"] = app_id
+
         cluster_data = {
             "name": cluster_params.get("k8s_component_name", "") or cluster_params["cluster_name"],
             "namespace": namespace,
@@ -357,10 +367,7 @@ class KubeBlocksService(object):
             "storageClass": cluster_params.get("storage_class", ""),
             "backupRepo": cluster_params.get("backup_repo", ""),
             "terminationPolicy": cluster_params.get("termination_policy", "Delete"),
-            "rbdService": {
-                "service_id": new_service.service_id,
-                "service_alias": new_service.service_alias
-            }
+            "rbdService": rbd_service
         }
 
         backup_repo = cluster_params.get("backup_repo", "")
