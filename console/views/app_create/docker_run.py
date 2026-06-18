@@ -17,6 +17,7 @@ from www.utils.crypt import make_uuid
 from www.models.main import ServiceGroup
 from www.utils.return_message import general_message
 from console.services.group_service import group_service
+from console.services.team_services import team_services
 
 logger = logging.getLogger("default")
 
@@ -63,6 +64,11 @@ class DockerRunCreateView(RegionTenantHeaderView):
         # 私有docker仓库地址
         docker_password = request.data.get("password", None)
         docker_user_name = request.data.get("user_name", None)
+        registry_auth_id = request.data.get("registry_auth_id", None)
+        if registry_auth_id:
+            registry_auth = team_services.resolve_registry_auth(self.user, registry_auth_id)
+            docker_user_name = registry_auth.username
+            docker_password = registry_auth.password
         k8s_component_name = request.data.get("k8s_component_name", "")
         arch = request.data.get("arch", "amd64")
         if is_demo:

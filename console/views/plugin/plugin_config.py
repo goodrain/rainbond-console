@@ -11,9 +11,9 @@ from rest_framework.response import Response
 
 from console.services.operation_log import operation_log_service, Operation
 from console.services.plugin import plugin_config_service
+from console.utils.realtime_proxy import build_console_realtime_proxy_url
 from console.views.plugin.base import PluginBaseView
 from www.utils.return_message import general_message
-from console.services.region_services import region_services
 from console.constants import PluginMetaType
 
 logger = logging.getLogger("default")
@@ -45,8 +45,7 @@ class ConfigPluginManageView(PluginBaseView):
         config_groups = plugin_config_service.get_config_details(self.plugin_version.plugin_id,
                                                                  self.plugin_version.build_version)
         data = self.plugin_version.to_dict()
-        main_url = region_services.get_region_wsurl(self.response_region)
-        data["web_socket_url"] = "{0}/event_log".format(main_url)
+        data["web_socket_url"] = build_console_realtime_proxy_url(request, self.response_region, "event_log", scheme_type="ws")
 
         result = general_message(200, "success", "查询成功", bean=data, list=config_groups)
         return Response(result, status=result["code"])

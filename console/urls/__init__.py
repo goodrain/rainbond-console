@@ -134,6 +134,7 @@ from console.views.pod import AppPodsView
 from console.views.protocols import RegionProtocolView
 from console.views.posthog_proxy import PostHogProxyView
 from console.views.proxy import ProxyPassView, ProxySSEView
+from console.views.realtime_proxy import RegionRealtimeProxyView
 from console.views.sentry_proxy import SentryProxyView
 from console.views.mcp_query import MCPQueryHTTPView, MCPQueryMessageView, MCPQuerySSEView
 from console.views.public_areas import (AllServiceInfo, GroupServiceView, ServiceEventsView, ServiceGroupView,
@@ -144,7 +145,7 @@ from console.views.rbd_plugin import RainbondPluginLView, RainbondOfficialPlugin
 from console.views.platform_plugin import PlatformPluginLView, PlatformPluginInstallView
 from console.views.region import (GetRegionFeature, GetRegionPublicKeyView, MavenSettingRUDView, MavenSettingView,
                                   OpenRegionView, QyeryRegionView, RegQuyView, RegUnopenView, RegionMonitor)
-from console.views.registry import HubRegistryView, HubRegistryImageView
+from console.views.registry import HubRegistryView, HubRegistryImageView, EnterpriseHubRegistryView
 from console.views.rke2 import ClusterRKE, ClusterRKENode, ClusterNodeIP, ClusterRKEInstallRB, \
     ClusterRKERBStatus, ClusterRKERBEvent, ClusterRKEUNInstallInstallRB, InstallRKECluster, RKERegionConfig, \
     ClusterRBComponentLogSSE
@@ -198,6 +199,8 @@ urlpatterns = [
     re_path(r'^api-gateway/convert', AppApiGatewayConvertView.as_view()),
     re_path(r'^posthog/(?P<path>.*)$', PostHogProxyView.as_view()),
     re_path(r'^sentry/(?P<path>.*)$', SentryProxyView.as_view()),
+    re_path(r'^regions/(?P<region_name>[\w\-]+)/websocket$', RegionRealtimeProxyView.as_view(), {"proxy_path": ""}),
+    re_path(r'^regions/(?P<region_name>[\w\-]+)/websocket/(?P<proxy_path>.*)$', RegionRealtimeProxyView.as_view()),
     re_path(r'^v2/proxy-pass/(.*?)', ProxyPassView.as_view()),
     re_path(r'^sse/(.*?)', ProxySSEView.as_view()),
     re_path(r'^mcp/query$', MCPQueryHTTPView.as_view()),
@@ -281,6 +284,8 @@ urlpatterns = [
     # 镜像仓库配置
     re_path(r'^hub/registry$', HubRegistryView.as_view()),
     re_path(r'^hub/registry/image$', HubRegistryImageView.as_view()),
+    re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/hub/registry$', EnterpriseHubRegistryView.as_view()),
+    re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/hub/registry/(?P<secret_id>[\w\-]+)$', EnterpriseHubRegistryView.as_view()),
     # 我的详情
     re_path(r'^users/details$', UserDetailsView.as_view()),
     # 模糊查询用户

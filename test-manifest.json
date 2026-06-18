@@ -9415,6 +9415,403 @@
       "status": "active"
     },
     {
+      "id": "console.app-creator.full-permissions",
+      "title": "App creator full permissions",
+      "title_zh": "App creator full permissions",
+      "interface_type": "service_method",
+      "interface": "console.services.perm_services.UserKindPermService.get_user_perms",
+      "code_paths": [
+        "console/services/perm_services.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/perm_services_test.py"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.component-type.daemonset",
+      "title": "DaemonSet component type support",
+      "title_zh": "DaemonSet 组件类型支持",
+      "interface_type": "service_method",
+      "interface": "console.enum.component_enum.ComponentType",
+      "code_paths": [
+        "console/enum/component_enum.py",
+        "console/services/app_actions/app_manage.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_manage_test.py",
+          "selector": "ComponentDaemonSetSupportTests.test_daemonset_component_type_is_supported"
+        },
+        {
+          "path": "console/tests/app_manage_test.py",
+          "selector": "ComponentDaemonSetSupportTests.test_extend_method_name_supports_daemonset"
+        },
+        {
+          "path": "console/tests/app_manage_test.py",
+          "selector": "ComponentDaemonSetSupportTests.test_change_service_type_blocks_daemonset_transition"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.component.port-toggle-events",
+      "title": "Record component port toggle events",
+      "title_zh": "记录组件端口开关事件",
+      "interface_type": "service_method",
+      "interface": "console.services.app_config.port_service.AppPortService.manage_port",
+      "code_paths": [
+        "console/services/app_config/port_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/port_service_delete_test.py",
+          "selector": "PortServiceDeleteTests::test_open_outer_port_synchronizes_region_component_event"
+        },
+        {
+          "path": "console/tests/port_service_delete_test.py",
+          "selector": "PortServiceDeleteTests::test_close_outer_port_synchronizes_region_component_event"
+        },
+        {
+          "path": "console/tests/port_service_delete_test.py",
+          "selector": "PortServiceDeleteTests::test_inner_port_toggle_keeps_region_component_event_path"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.groupcopy.package-build-guard",
+      "title": "Reject quick copy for package upload components",
+      "title_zh": "上传软件包组件禁止快速复制",
+      "interface_type": "service_method",
+      "interface": "console.services.groupcopy_service.GroupAppCopyService.get_modify_group_metadata",
+      "code_paths": [
+        "console/services/groupcopy_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/groupcopy_service_test.py",
+          "selector": "GroupAppCopyServiceTests.test_get_modify_group_metadata_rejects_package_build"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.helm.daemonset-template",
+      "title": "Map Helm DaemonSet resource to component template",
+      "title_zh": "Helm DaemonSet 资源映射为组件模板",
+      "interface_type": "service_method",
+      "interface": "console.services.helm_app_yaml.HelmAppService.generate_template",
+      "code_paths": [
+        "console/services/helm_app_yaml.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_manage_test.py",
+          "selector": "ComponentDaemonSetSupportTests.test_helm_template_maps_daemonset_resource_type"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.image-webhook.harbor-push-artifact",
+      "title": "Parse Harbor push artifact image webhooks",
+      "title_zh": "解析 Harbor 镜像推送 Webhook",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.webhook.parse_image_webhook_payload",
+      "code_paths": [
+        "console/views/webhook.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/webhook_test.py",
+          "selector": "ImageWebhookPayloadTestCase"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.image.python36-websocket-client",
+      "title": "Console image Python 3.6 websocket-client compatibility",
+      "title_zh": "Console 镜像 Python 3.6 websocket-client 兼容性",
+      "interface_type": "other",
+      "interface": "requirements.txt",
+      "code_paths": [
+        "Dockerfile",
+        "requirements.txt"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/dependency_compat_test.py",
+          "selector": "ConsoleImageDependencyCompatibilityTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.realtime-proxy.http-forward",
+      "title": "Realtime proxy HTTP forward",
+      "title_zh": "实时代理 HTTP 转发",
+      "interface_type": "package_function",
+      "interface": "console.utils.realtime_proxy.proxy_http_request",
+      "code_paths": [
+        "console/utils/realtime_proxy.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/realtime_proxy_url_test.py",
+          "selector": "RealtimeProxyUrlTests.test_http_proxy_forwards_upload_request_to_region_websocket_service"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.realtime-proxy.internal-target-override",
+      "title": "Realtime proxy internal target override",
+      "title_zh": "实时代理内部目标覆盖",
+      "interface_type": "package_function",
+      "interface": "console.utils.realtime_proxy.build_region_realtime_proxy_url",
+      "code_paths": [
+        "console/utils/realtime_proxy.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/realtime_proxy_url_test.py",
+          "selector": "RealtimeProxyUrlTests.test_region_proxy_target_prefers_internal_override_for_builtin_region"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.realtime-proxy.region-target-url",
+      "title": "Realtime proxy region target URL",
+      "title_zh": "实时代理 Region 目标 URL",
+      "interface_type": "package_function",
+      "interface": "console.utils.realtime_proxy.build_region_realtime_proxy_url",
+      "code_paths": [
+        "console/utils/realtime_proxy.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/realtime_proxy_url_test.py",
+          "selector": "RealtimeProxyUrlTests.test_region_proxy_target_keeps_region_websocket_host_for_http"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.realtime-proxy.secure-websocket-url",
+      "title": "Realtime proxy secure websocket URL",
+      "title_zh": "实时代理安全 WebSocket URL",
+      "interface_type": "package_function",
+      "interface": "console.utils.realtime_proxy.build_console_realtime_proxy_url",
+      "code_paths": [
+        "console/utils/realtime_proxy.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/realtime_proxy_url_test.py",
+          "selector": "RealtimeProxyUrlTests.test_console_proxy_url_uses_wss_when_request_is_https"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.realtime-proxy.upload-url",
+      "title": "Realtime proxy upload URL",
+      "title_zh": "实时代理上传 URL",
+      "interface_type": "service_method",
+      "interface": "console.services.app_import_and_export_service.get_upload_package_url",
+      "code_paths": [
+        "console/services/app_import_and_export_service.py",
+        "console/utils/realtime_proxy.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/realtime_proxy_url_test.py",
+          "selector": "RealtimeProxyUrlTests.test_upload_package_url_returns_console_proxy_path"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.realtime-proxy.websocket-url",
+      "title": "Realtime proxy websocket URL",
+      "title_zh": "实时代理 WebSocket URL",
+      "interface_type": "service_method",
+      "interface": "console.services.app_actions.app_log.AppWebSocketService.get_event_log_ws",
+      "code_paths": [
+        "console/services/app_actions/app_log.py",
+        "console/utils/realtime_proxy.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/realtime_proxy_url_test.py",
+          "selector": "RealtimeProxyUrlTests.test_websocket_service_returns_console_proxy_url_without_6060"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.realtime-proxy.multipart-upload-forward",
+      "title": "Realtime proxy rebuilds multipart upload",
+      "title_zh": "实时代理重建分片上传请求",
+      "interface_type": "package_function",
+      "interface": "console.utils.realtime_proxy.build_multipart_payload",
+      "code_paths": [
+        "console/utils/realtime_proxy.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/realtime_proxy_url_test.py",
+          "selector": "RealtimeProxyUrlTests.test_http_proxy_rebuilds_multipart_upload_for_app_import"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.realtime-proxy.docker-console-subprotocol",
+      "title": "Docker console backend uses webtty subprotocol",
+      "title_zh": "Docker 控制台后端使用 webtty 子协议",
+      "interface_type": "package_function",
+      "interface": "console.utils.realtime_proxy._backend_websocket_subprotocols",
+      "code_paths": [
+        "console/utils/realtime_proxy.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/realtime_proxy_url_test.py",
+          "selector": "RealtimeProxyUrlTests.test_docker_console_backend_uses_webtty_subprotocol"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.realtime-proxy.forward-client-subprotocols",
+      "title": "Forward client requested websocket subprotocols",
+      "title_zh": "转发客户端请求的 websocket 子协议",
+      "interface_type": "package_function",
+      "interface": "console.utils.realtime_proxy._backend_websocket_subprotocols",
+      "code_paths": [
+        "console/utils/realtime_proxy.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/realtime_proxy_url_test.py",
+          "selector": "RealtimeProxyUrlTests.test_websocket_proxy_keeps_client_requested_subprotocols"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.realtime-proxy.websocket-idle-timeout",
+      "title": "Backend websocket uses short read timeout for idle checks",
+      "title_zh": "后端 websocket 使用短读超时检测空闲",
+      "interface_type": "package_function",
+      "interface": "console.utils.realtime_proxy.open_backend_websocket",
+      "code_paths": [
+        "console/utils/realtime_proxy.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/realtime_proxy_url_test.py",
+          "selector": "RealtimeProxyUrlTests.test_backend_websocket_uses_short_read_timeout_for_idle_checks"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.realtime-proxy.docker-console-user-idle-timeout",
+      "title": "Docker console activity tracker ignores webtty ping",
+      "title_zh": "Docker 控制台活动跟踪忽略 webtty 心跳",
+      "interface_type": "package_function",
+      "interface": "console.utils.realtime_proxy.DockerConsoleActivityTracker",
+      "code_paths": [
+        "console/utils/realtime_proxy.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/realtime_proxy_url_test.py",
+          "selector": "RealtimeProxyUrlTests.test_docker_console_activity_tracker_ignores_webtty_ping"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.realtime-proxy.docker-console-user-activity",
+      "title": "Docker console activity tracker refreshes on user input",
+      "title_zh": "Docker 控制台活动跟踪在用户输入时刷新",
+      "interface_type": "package_function",
+      "interface": "console.utils.realtime_proxy.DockerConsoleActivityTracker",
+      "code_paths": [
+        "console/utils/realtime_proxy.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/realtime_proxy_url_test.py",
+          "selector": "RealtimeProxyUrlTests.test_docker_console_activity_tracker_refreshes_on_user_input"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.realtime-proxy.non-terminal-no-user-idle-timeout",
+      "title": "Non terminal realtime proxy never user-idle expires",
+      "title_zh": "非终端实时代理不触发用户空闲超时",
+      "interface_type": "package_function",
+      "interface": "console.utils.realtime_proxy.DockerConsoleActivityTracker",
+      "code_paths": [
+        "console/utils/realtime_proxy.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/realtime_proxy_url_test.py",
+          "selector": "RealtimeProxyUrlTests.test_non_docker_console_activity_tracker_never_user_idle_expires"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.kubeblocks.app-resource-statistics",
+      "title": "Include app id in KubeBlocks cluster request for resource statistics",
+      "title_zh": "KubeBlocks 集群请求携带 app id 以支持资源统计",
+      "interface_type": "service_method",
+      "interface": "console.services.kubeblocks_service.KubeBlocksService._build_cluster_request",
+      "code_paths": [
+        "console/services/kubeblocks_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/kubeblocks_cluster_validation_test.py",
+          "selector": "KubeBlocksCreateFlowTests.test_build_cluster_request_includes_app_id_for_resource_statistics"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "openapi.app-service.team-not-found",
       "title": "Raise error when team associated with app is not found",
       "title_zh": "应用关联的团队不存在时返回404错误",

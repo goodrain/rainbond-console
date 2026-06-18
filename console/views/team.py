@@ -1223,9 +1223,7 @@ class TeamRegistryAuthLView(RegionTenantHeaderView):
         domain = parse_item(request, "domain", required=True)
         username = parse_item(request, "username", required=True)
         password = parse_item(request, "password", required=True)
-        # NOTE: latent bug — create_registry_auth requires hub_type and user_id which are
-        # not passed (TypeError if reached); behavior preserved (backlog).
-        team_services.create_registry_auth(self.tenant, self.region_name, domain, username, password)  # type: ignore[call-arg]
+        team_services.create_registry_auth(self.tenant, self.region_name, domain, username, password)
         result = general_message(200, "success", "创建成功")
         return Response(result, status=result["code"])
 

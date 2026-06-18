@@ -80,6 +80,8 @@ class HelmAppService(object):
                 app["extend_method"] = "state_multiple"
             if cv["basic_management"]["resource_type"] == "CronJob":
                 app["extend_method"] = "cronjob"
+            if cv["basic_management"]["resource_type"] == "DaemonSet":
+                app["extend_method"] = "daemonset"
             app_image = cv["basic_management"]["image"].split(":")
             app["version"] = app_image[1] if len(app_image) > 2 else "latest"
             memory = cv["basic_management"].get("memory", 0)

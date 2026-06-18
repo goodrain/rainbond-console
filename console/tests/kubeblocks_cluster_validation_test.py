@@ -87,6 +87,32 @@ class KubeBlocksCreateFlowTests(unittest.TestCase):
     def setUp(self):
         self.service = KubeBlocksService()
 
+    # capability_id: console.kubeblocks.app-resource-statistics
+    def test_build_cluster_request_includes_app_id_for_resource_statistics(self):
+        new_service = SimpleNamespace(
+            service_id="service-1",
+            service_alias="gr000001",
+        )
+
+        cluster_request = self.service._build_cluster_request(
+            {
+                "cluster_name": "mysql-demo",
+                "database_type": "mysql",
+                "version": "8.0.30",
+                "cpu": "500m",
+                "memory": "512Mi",
+                "storage_size": "10Gi",
+                "replicas": 1,
+                "storage_class": "standard",
+                "group_id": 2,
+            },
+            new_service,
+            "team-a-ns",
+        )
+
+        self.assertEqual(cluster_request["rbdService"]["service_id"], "service-1")
+        self.assertEqual(cluster_request["rbdService"]["app_id"], "2")
+
     # capability_id: console.kubeblocks.create-credential-sync
     def test_create_complete_syncs_database_credentials(self):
         tenant = SimpleNamespace(tenant_id="tenant-1", namespace="team-a-ns")

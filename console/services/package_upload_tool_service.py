@@ -71,7 +71,7 @@ class PackageUploadToolService(object):
             )
 
         archive_path, should_cleanup = self._prepare_upload_archive(local_path, archive_name)
-        upload_url = import_service.get_upload_package_url(region_name, event_id)
+        upload_url = import_service.get_upload_package_url(region_name, event_id, proxy=False)
 
         try:
             with open(archive_path, "rb") as archive_file:

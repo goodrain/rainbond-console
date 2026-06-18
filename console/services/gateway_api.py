@@ -99,8 +99,9 @@ class GatewayAPI(object):
         body = region_api.update_gateway_http_route(region, tenant_name, body)
         return body["bean"]  # type: ignore[index]  # NOTE: caller guarantees body is not None
 
-    def delete_http_route(self, region: str, tenant_name: str, namespace: str, name: str, region_app_id: str) -> Any:
-        body = region_api.delete_gateway_http_route(region, tenant_name, namespace, name, region_app_id)
+    def delete_http_route(self, region: str, tenant_name: str, namespace: str, name: str, region_app_id: str,
+                          operator: str = "") -> Any:
+        body = region_api.delete_gateway_http_route(region, tenant_name, namespace, name, region_app_id, operator)
         return body["bean"]  # type: ignore[index]  # NOTE: caller guarantees body is not None
 
 

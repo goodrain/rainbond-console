@@ -44,9 +44,77 @@ import django  # noqa: E402
 django.setup()
 
 from django.test import TestCase as DjangoTestCase  # noqa: E402
+from console.enum.component_enum import ComponentType, is_support  # noqa: E402
 from console.services.app_actions import app_manage as app_manage_module  # noqa: E402
+from console.services import helm_app_yaml as helm_app_yaml_module  # noqa: E402
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient  # noqa: E402
 from www.models.main import TenantServiceInfo, VirtualMachineImage  # noqa: E402
+
+
+class ComponentDaemonSetSupportTests(TestCase):
+    # capability_id: console.component-type.daemonset
+    def test_daemonset_component_type_is_supported(self):
+        self.assertEqual("daemonset", ComponentType.daemonset.value)
+        self.assertTrue(is_support("daemonset"))
+        self.assertEqual("守护进程组件", ComponentType.to_zh("daemonset"))
+
+    # capability_id: console.component-type.daemonset
+    def test_extend_method_name_supports_daemonset(self):
+        service_manage = app_manage_module.AppManageService()
+
+        self.assertEqual("守护进程组件", service_manage.get_extend_method_name("daemonset"))
+
+    # capability_id: console.component-type.daemonset
+    def test_change_service_type_blocks_daemonset_transition(self):
+        service = mock.Mock(
+            extend_method="stateless_multiple",
+            create_status="complete",
+            min_node=1,
+        )
+        tenant = mock.Mock()
+
+        with mock.patch.object(app_manage_module.volume_service, "get_service_volumes", return_value=[]), \
+                mock.patch.object(app_manage_module.region_api, "update_service") as update_service:
+            service_manage = app_manage_module.AppManageService()
+            with self.assertRaises(app_manage_module.ServiceHandleException):
+                service_manage.change_service_type(tenant, service, "daemonset", user_name="tester")
+
+        update_service.assert_not_called()
+
+    # capability_id: console.helm.daemonset-template
+    def test_helm_template_maps_daemonset_resource_type(self):
+        cvdata = {
+            "kubernetes_resources": [],
+            "convert_resource": [{
+                "components_name": "node-agent",
+                "basic_management": {
+                    "resource_type": "DaemonSet",
+                    "image": "registry.example.com/tools/agent:1.0.0",
+                    "command": "",
+                    "memory": 128,
+                    "cpu": 100,
+                    "replicas": 1,
+                },
+                "health_check_management": None,
+                "port_management": [],
+                "config_management": [],
+                "env_management": [],
+                "component_k8s_attributes_management": [],
+            }],
+        }
+        app_model = mock.Mock(app_id="app-1", app_name="demo", details="", scope="team")
+        tenant = mock.Mock(tenant_id="tenant-1", tenant_name="demo-team", namespace="demo-ns")
+
+        with mock.patch.object(helm_app_yaml_module.region_api, "get_cluster_nodes_arch", return_value=(200, {"list": ["amd64"]})), \
+                mock.patch.object(helm_app_yaml_module, "AppHelmOverrides") as overrides_cls, \
+                mock.patch.object(helm_app_yaml_module, "RainbondCenterAppVersion") as version_cls:
+            helm_app_yaml_module.helm_app_service.generate_template(
+                cvdata, app_model, "1.0.0", tenant, "demo-chart", "region-a", "eid", 7, {}, "region-app-1")
+
+        overrides_cls.return_value.save.assert_called_once()
+        version_cls.return_value.save.assert_called_once()
+        app_template = json.loads(version_cls.call_args.kwargs["app_template"])
+        self.assertEqual("daemonset", app_template["apps"][0]["extend_method"])
 
 
 class AppManageMarketBuildPreferenceTests(TestCase):

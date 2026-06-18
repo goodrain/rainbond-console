@@ -6,13 +6,11 @@ import datetime
 import logging
 from typing import Any, Dict, Optional, Tuple
 
-from django.conf import settings
-
 from console.constants import LogConstants, ServiceEventConstants
 from console.repositories.event_repo import event_repo
-from console.repositories.region_repo import region_repo
 from console.services.plugin.app_plugin import AppPluginService
 from console.utils.timeutil import str_to_time, time_to_str
+from console.utils.realtime_proxy import build_console_realtime_proxy_url
 from goodrain_web.tools import JuncheePaginator
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import ServiceEvent
@@ -50,46 +48,10 @@ class AppWebSocketService(object):
         return ws_url
 
     def __event_ws(self, request: Any, region: str, sufix_uri: str) -> str:
-        # NOTE: region (str param) is reassigned to Optional[RegionConfig]; in the
-        # not-found branch it is None, so EVENT_WEBSOCKET_URL[None] is a potential
-        # latent None-key lookup (preserving existing behavior).
-        region = region_repo.get_region_by_region_name(region_name=region)  # type: ignore[assignment]
-        if not region:
-            default_uri = settings.EVENT_WEBSOCKET_URL[region]  # type: ignore[misc]
-            if default_uri == "auto":
-                host = request.META.get('HTTP_HOST').split(':')[0]
-                return "ws://{0}:6060/{1}".format(host, sufix_uri)
-            else:
-                return "{0}/{1}".format(default_uri, sufix_uri)
-        else:
-            if region.wsurl == "auto":
-                host = request.META.get('HTTP_HOST').split(':')[0]
-                return "ws://{0}:6060/{1}".format(host, sufix_uri)
-            else:
-                return "{0}/{1}".format(region.wsurl, sufix_uri)
+        return build_console_realtime_proxy_url(request, region, sufix_uri, scheme_type="ws")
 
     def get_log_domain(self, request: Any, region: str) -> str:
-        # NOTE: region (str param) reassigned to Optional[RegionConfig]; not-found
-        # branch indexes LOG_DOMAIN[None] (potential latent None-key lookup).
-        region = region_repo.get_region_by_region_name(region_name=region)  # type: ignore[assignment]
-        if not region:
-            default_uri = settings.LOG_DOMAIN[region]  # type: ignore[misc]
-            if default_uri == "auto":
-                host = request.META.get('HTTP_HOST').split(':')[0]
-                return '{0}:6060'.format(host)
-            return default_uri
-        else:
-            if region.wsurl == "auto":
-                host = request.META.get('HTTP_HOST').split(':')[0]
-                return '{0}:6060'.format(host)
-            else:
-                if "://" in region.wsurl:
-                    ws_info = region.wsurl.split("://", 1)
-                    if ws_info[0] == "wss":
-                        return "https://{0}".format(ws_info[1])
-                    else:
-                        return "http://{0}".format(ws_info[1])
-                return region.wsurl
+        return build_console_realtime_proxy_url(request, region, scheme_type="http")
 
 
 class AppEventService(object):

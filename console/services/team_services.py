@@ -4,6 +4,7 @@ import json
 import logging
 import os
 import random
+import re
 import string
 from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import urlparse, quote
@@ -45,6 +46,18 @@ region_api = RegionInvokeApi()
 
 
 class TeamService(object):
+    USER_REGISTRY_SCOPE = "user"
+    ENTERPRISE_REGISTRY_SCOPE = "enterprise"
+    SUPPORTED_REGISTRY_HUB_TYPES = (
+        "Docker", "Harbor", "AliyunACR", "TencentTCR", "HuaweiSWR", "VolcanoCR")
+    LEGACY_REGISTRY_HUB_TYPE_ALIASES = {
+        "Aliyun": "AliyunACR",
+        "Tencent": "TencentTCR",
+        "Huawei": "HuaweiSWR",
+        "Volcano": "VolcanoCR",
+    }
+    CLOUD_REGISTRY_HUB_TYPES = ("AliyunACR", "TencentTCR", "HuaweiSWR", "VolcanoCR")
+
     def get_tenant_by_tenant_name(self, tenant_name: str, exception: bool = True) -> Optional[Tenants]:
         return team_repo.get_tenant_by_tenant_name(tenant_name=tenant_name, exception=exception)
 
@@ -726,9 +739,238 @@ class TeamService(object):
     def list_registry_auths(self, tenant_id: str, region_name: str, user_id: str) -> Any:
         return team_registry_auth_repo.list_by_team_id(tenant_id, region_name, user_id)
 
+    def serialize_registry_auth(self, auth: Any, include_password: bool = False) -> Dict[str, Any]:
+        data = auth.to_dict() if hasattr(auth, "to_dict") else dict(auth.__dict__)
+        scope = data.get("scope") or self.USER_REGISTRY_SCOPE
+        data["scope"] = scope
+        data["hub_type"] = self.normalize_registry_hub_type(data.get("hub_type", "Docker"))
+        data.pop("access_secret", None)
+        if scope == self.ENTERPRISE_REGISTRY_SCOPE and not include_password:
+            data.pop("password", None)
+        return data
+
+    def list_accessible_registry_auths(self, user: Any) -> List[Any]:
+        auths = list(team_registry_auth_repo.list_user_registry_auths(user.user_id))
+        enterprise_id = getattr(user, "enterprise_id", "")
+        if enterprise_id:
+            auths.extend(list(team_registry_auth_repo.list_enterprise_registry_auths(enterprise_id)))
+        return auths
+
+    def resolve_registry_auth(self, user: Any, secret_id: str) -> Any:
+        if not secret_id:
+            raise ServiceHandleException(msg="registry auth id is required", msg_show="缺少镜像仓库认证ID", status_code=400)
+        auth = team_registry_auth_repo.get_user_registry_auth(secret_id, user.user_id)
+        if auth:
+            return auth
+        enterprise_id = getattr(user, "enterprise_id", "")
+        if enterprise_id:
+            auth = team_registry_auth_repo.get_enterprise_registry_auth(secret_id, enterprise_id)
+            if auth:
+                return auth
+        raise ServiceHandleException(msg="registry auth not found", msg_show="镜像仓库不存在", status_code=404)
+
+    def normalize_registry_hub_type(self, hub_type: str) -> str:
+        return self.LEGACY_REGISTRY_HUB_TYPE_ALIASES.get(hub_type, hub_type)
+
+    def validate_registry_hub_type(self, hub_type: str) -> None:
+        if self.normalize_registry_hub_type(hub_type) not in self.SUPPORTED_REGISTRY_HUB_TYPES:
+            raise ServiceHandleException(msg="unsupported registry hub type", msg_show="不支持的镜像仓库类型", status_code=400)
+
+    def _registry_v2_headers(self, username: str, password: str) -> Dict[str, str]:
+        auth = base64.b64encode("{}:{}".format(username, password).encode()).decode()
+        return {"Authorization": "Basic {}".format(auth)}
+
+    def _registry_error_detail(self, response: Any) -> str:
+        body = getattr(response, "text", "") or ""
+        body = body.replace("\n", " ").replace("\r", " ").strip()
+        if len(body) > 300:
+            body = body[:300] + "..."
+        return "status:{}, body:{}".format(response.status_code, body) if body else "status:{}".format(response.status_code)
+
+    def _parse_registry_bearer_challenge(self, header: Optional[str]) -> Optional[Dict[str, str]]:
+        if not header or not header.startswith("Bearer "):
+            return None
+        challenge = header[len("Bearer "):]
+        return dict((key, value) for key, value in re.findall(r'(\w+)="([^"]*)"', challenge))
+
+    def _get_registry_bearer_token(self, challenge: Dict[str, str], username: str, password: str) -> Optional[str]:
+        realm = challenge.get("realm")
+        if not realm:
+            return None
+        params = {}
+        if challenge.get("service"):
+            params["service"] = challenge["service"]
+        if challenge.get("scope"):
+            params["scope"] = challenge["scope"]
+        response = requests.get(
+            realm,
+            params=params,
+            auth=(username, password),
+            verify=False,
+            timeout=10,
+        )
+        if response.status_code != 200:
+            detail = self._registry_error_detail(response)
+            logger.warning("failed to get registry bearer token: %s", detail)
+            raise ServiceHandleException(
+                msg="failed to get registry bearer token, {}".format(detail),
+                msg_show="镜像仓库认证失败({})".format(detail),
+                status_code=response.status_code)
+        data = response.json()
+        return data.get("token") or data.get("access_token")
+
+    def _registry_v2_get(self, url: str, username: str, password: str, headers: Optional[Dict[str, str]] = None) -> Any:
+        request_headers = self._registry_v2_headers(username, password)
+        if headers:
+            request_headers.update(headers)
+        response = requests.get(
+            url,
+            headers=request_headers,
+            verify=False,
+            timeout=10,
+        )
+        if response.status_code != 401:
+            return response
+        challenge = self._parse_registry_bearer_challenge(response.headers.get("WWW-Authenticate"))
+        if not challenge:
+            return response
+        token = self._get_registry_bearer_token(challenge, username, password)
+        if not token:
+            return response
+        bearer_headers = dict(request_headers)
+        bearer_headers["Authorization"] = "Bearer {}".format(token)
+        return requests.get(
+            url,
+            headers=bearer_headers,
+            verify=False,
+            timeout=10,
+        )
+
+    def _registry_base_url(self, domain: str) -> str:
+        parsed_url = urlparse(domain)
+        if not parsed_url.scheme or not parsed_url.netloc:
+            raise ServiceHandleException(msg="invalid registry domain", msg_show="镜像仓库地址格式错误", status_code=400)
+        return parsed_url.scheme + "://" + parsed_url.netloc
+
+    def _region_registry_auth_payload(self, auth: Any) -> Dict[str, Any]:
+        data = auth.to_dict() if hasattr(auth, "to_dict") else dict(auth)
+        return {
+            "tenant_id": data.get("tenant_id", ""),
+            "secret_id": data.get("secret_id", ""),
+            "domain": data.get("domain", ""),
+            "username": data.get("username", ""),
+            "password": data.get("password", ""),
+            "region_name": data.get("region_name", ""),
+            "hub_type": self.normalize_registry_hub_type(data.get("hub_type", "Docker")),
+        }
+
+    def check_registry_connection(self, domain: str, username: str, password: str, hub_type: str) -> bool:
+        self.validate_registry_hub_type(hub_type)
+        hub_type = self.normalize_registry_hub_type(hub_type)
+        if hub_type in ("Docker", "Harbor"):
+            self.get_registry_namespaces(domain, username, password, hub_type)
+            return True
+        base_url = self._registry_base_url(domain)
+        try:
+            response = self._registry_v2_get("{}/v2/".format(base_url), username, password)
+        except requests.exceptions.RequestException as e:
+            logger.exception(e)
+            raise ServiceHandleException(
+                msg="failed to connect registry: {}".format(e), msg_show="连接镜像仓库失败", status_code=500)
+        if response.status_code != 200:
+            detail = self._registry_error_detail(response)
+            logger.warning("failed to connect registry %s, hub_type=%s, %s", base_url, hub_type, detail)
+            raise ServiceHandleException(
+                msg="failed to connect registry, {}".format(detail),
+                msg_show="镜像仓库连接测试失败({})".format(detail),
+                status_code=response.status_code)
+        return True
+
+    def _get_registry_v2_namespaces(self, base_url: str, username: str, password: str) -> List[str]:
+        response = self._registry_v2_get("{}/v2/_catalog".format(base_url), username, password)
+        if response.status_code != 200:
+            detail = self._registry_error_detail(response)
+            logger.warning("failed to get registry namespaces %s, %s", base_url, detail)
+            raise ServiceHandleException(
+                msg="failed to get registry namespaces, {}".format(detail),
+                msg_show="获取镜像仓库命名空间失败({})".format(detail),
+                status_code=response.status_code)
+        repositories = response.json().get("repositories", [])
+        namespaces = set()
+        for repo in repositories:
+            if "/" in repo:
+                namespaces.add(repo.split("/", 1)[0])
+            else:
+                namespaces.add("library")
+        return list(namespaces) or ["library"]
+
+    def _get_registry_v2_images(self, base_url: str, username: str, password: str, hub_type: str, namespace: str,
+                                page: int = 1, page_size: int = 10, search_key: Optional[str] = None) -> Dict[str, Any]:
+        response = self._registry_v2_get("{}/v2/_catalog".format(base_url), username, password)
+        if response.status_code != 200:
+            detail = self._registry_error_detail(response)
+            logger.warning("failed to get registry images %s, hub_type=%s, %s", base_url, hub_type, detail)
+            raise ServiceHandleException(
+                msg="failed to get registry images, {}".format(detail),
+                msg_show="获取镜像列表失败({})".format(detail),
+                status_code=response.status_code)
+        repositories = response.json().get("repositories", [])
+        if namespace == "library":
+            filtered_repos = [repo for repo in repositories if "/" not in repo]
+        else:
+            filtered_repos = [repo.split("/", 1)[1] for repo in repositories if repo.startswith(namespace + "/")]
+        if search_key:
+            filtered_repos = [repo for repo in filtered_repos if search_key.lower() in repo.lower()]
+        total = len(filtered_repos)
+        start = (page - 1) * page_size
+        end = start + page_size
+        images = [{
+            "name": repo,
+            "namespace": namespace,
+            "description": "",
+            "is_public": True,
+            "pull_count": 0,
+            "star_count": 0,
+            "created_at": "",
+            "updated_at": "",
+            "status": "active",
+            "registry_type": hub_type,
+        } for repo in filtered_repos[start:end]]
+        return {"images": images, "total": total, "page": page, "page_size": page_size}
+
+    def _get_registry_v2_tags(self, base_url: str, username: str, password: str, namespace: str, name: str,
+                              page: int = 1, page_size: int = 10, search_key: Optional[str] = None) -> Dict[str, Any]:
+        repo_name = name if namespace == "library" else "{}/{}".format(namespace, name)
+        response = self._registry_v2_get("{}/v2/{}/tags/list".format(base_url, repo_name), username, password)
+        if response.status_code != 200:
+            detail = self._registry_error_detail(response)
+            logger.warning("failed to get registry tags %s/%s, %s", base_url, repo_name, detail)
+            raise ServiceHandleException(
+                msg="failed to get registry tags, {}".format(detail),
+                msg_show="获取镜像标签失败({})".format(detail),
+                status_code=response.status_code)
+        all_tags = response.json().get("tags", []) or []
+        if search_key:
+            all_tags = [tag for tag in all_tags if search_key.lower() in tag.lower()]
+        total = len(all_tags)
+        start = (page - 1) * page_size
+        end = start + page_size
+        tags = [{
+            "name": tag,
+            "size": 0,
+            "digest": "",
+            "created_at": "",
+            "updated_at": "",
+            "os": "",
+            "architecture": "",
+            "status": "active",
+        } for tag in all_tags[start:end]]
+        return {"tags": tags, "total": total, "page": page, "page_size": page_size}
+
     @transaction.atomic()
     def create_registry_auth(self, tenant: Tenants, region_name: str, domain: str, username: str, password: str,
-                             hub_type: str, user_id: str) -> None:
+                             hub_type: str = "Docker", user_id: int = 0) -> None:
+        hub_type = self.normalize_registry_hub_type(hub_type)
         auth = team_registry_auth_repo.get_by_team_id_domain(tenant.tenant_id, region_name, domain)
         if auth:
             raise ServiceHandleException(
@@ -740,17 +982,23 @@ class TeamService(object):
             "username": username,
             "password": password,
             "region_name": region_name,
+            "hub_type": hub_type,
+            "user_id": user_id,
+            "scope": self.USER_REGISTRY_SCOPE,
+            "enterprise_id": "",
         }
         team_registry_auth_repo.create_team_registry_auth(**params)
-        region_api.create_registry_auth(tenant.tenant_name, region_name, params)
+        region_api.create_registry_auth(tenant.tenant_name, region_name, self._region_registry_auth_payload(params))
 
     @transaction.atomic()
     def update_registry_auth(self, tenant: Tenants, region_name: str, secret_id: str, data: dict) -> None:
         auth = team_registry_auth_repo.get_by_secret_id(secret_id)
         if not auth:
             return
+        if "hub_type" in data:
+            data["hub_type"] = self.normalize_registry_hub_type(data["hub_type"])
         team_registry_auth_repo.update_team_registry_auth(tenant.tenant_id, region_name, secret_id, **data)
-        region_api.update_registry_auth(tenant.tenant_name, region_name, auth[0].to_dict())
+        region_api.update_registry_auth(tenant.tenant_name, region_name, self._region_registry_auth_payload(auth[0]))
 
     @transaction.atomic()
     def delete_registry_auth(self, tenant: Tenants, region_name: str, secret_id: str, user_id: str) -> None:
@@ -761,9 +1009,11 @@ class TeamService(object):
         })
 
     def get_registry_namespaces(self, domain: str, username: str, password: str, hub_type: str) -> Any:
+        self.validate_registry_hub_type(hub_type)
+        hub_type = self.normalize_registry_hub_type(hub_type)
         try:
+            base_url = self._registry_base_url(domain)
             parsed_url = urlparse(domain)
-            base_url = parsed_url.scheme + "://" + parsed_url.netloc
             
             if hub_type == "Harbor":
                 # Harbor API
@@ -811,15 +1061,7 @@ class TeamService(object):
                         return namespaces
                 else:
                     # 自建 Docker Registry API v2
-                    api_url = "{}/v2/_catalog".format(base_url)
-                    auth = base64.b64encode(f"{username}:{password}".encode()).decode()
-                    headers = {"Authorization": f"Basic {auth}"}
-                    response = requests.get(
-                        api_url,
-                        headers=headers,
-                        verify=False,
-                        timeout=10
-                    )
+                    response = self._registry_v2_get("{}/v2/_catalog".format(base_url), username, password)
                     if response.status_code == 200:
                         repositories = response.json().get("repositories", [])
                         # 提取命名空间（取第一个/之前的部分作为命名空间）
@@ -832,32 +1074,8 @@ class TeamService(object):
                                 namespace_set.add("library")
                         return list(namespace_set) or ["library"]
                     
-            elif hub_type == "Volcano":
-                # 火山引擎容器镜像服务 API
-                api_url = "{}/v2/manage/namespaces".format(base_url)
-                response = requests.get(
-                    api_url,
-                    auth=(username, password),
-                    verify=False,
-                    timeout=10
-                )
-                if response.status_code == 200:
-                    namespaces = response.json().get("namespaces", [])
-                    return [ns["name"] for ns in namespaces]
-                    
-            elif hub_type == "Aliyun":
-                # 阿里云容器镜像服务 API
-                api_url = "https://cr.{}.aliyuncs.com/v2/repos/namespaces".format(
-                    parsed_url.netloc.split('.')[1]  # 获取地域信息
-                )
-                response = requests.get(
-                    api_url,
-                    headers={"Authorization": "Basic " + base64.b64encode(f"{username}:{password}".encode()).decode()},
-                    timeout=10
-                )
-                if response.status_code == 200:
-                    namespaces = response.json().get("data", {}).get("namespaces", [])
-                    return [ns["namespace"] for ns in namespaces]
+            elif hub_type in self.CLOUD_REGISTRY_HUB_TYPES:
+                return self._get_registry_v2_namespaces(base_url, username, password)
 
             raise ServiceHandleException(
                 msg="failed to get registry namespaces, status:{}".format(response.status_code),
@@ -905,9 +1123,13 @@ class TeamService(object):
         Returns:
             dict: 包含镜像详细信息的字典
         """
+        self.validate_registry_hub_type(hub_type)
+        hub_type = self.normalize_registry_hub_type(hub_type)
         try:
+            base_url = self._registry_base_url(domain)
+            if hub_type in self.CLOUD_REGISTRY_HUB_TYPES:
+                return self._get_registry_v2_images(base_url, username, password, hub_type, namespace, page, page_size, search_key)
             parsed_url = urlparse(domain)
-            base_url = parsed_url.scheme + "://" + parsed_url.netloc
             
             if hub_type == "Harbor":
                 # Harbor API 支持搜索
@@ -989,15 +1211,7 @@ class TeamService(object):
                         }
                 else:
                     # 自建 Docker Registry API v2
-                    api_url = "{}/v2/_catalog".format(base_url)
-                    auth = base64.b64encode(f"{username}:{password}".encode()).decode()
-                    headers = {"Authorization": f"Basic {auth}"}
-                    response = requests.get(
-                        api_url,
-                        headers=headers,
-                        verify=False,
-                        timeout=10
-                    )
+                    response = self._registry_v2_get("{}/v2/_catalog".format(base_url), username, password)
                     if response.status_code == 200:
                         repositories = response.json().get("repositories", [])
                         # 过滤指定命名空间的镜像
@@ -1019,19 +1233,15 @@ class TeamService(object):
                         for repo in paginated_repos:
                             # 获取仓库的标签列表
                             tags_url = "{}/v2/{}/tags/list".format(base_url, repo if namespace == "library" else f"{namespace}/{repo}")
-                            tags_response = requests.get(
-                                tags_url,
-                                headers=headers,
-                                verify=False,
-                                timeout=10
-                            )
+                            tags_response = self._registry_v2_get(tags_url, username, password)
+                            updated_at = ""
                             
                             if tags_response.status_code == 200:
                                 tags = tags_response.json().get("tags", [])
                                 if tags:
                                     # 获取最新标签的信息
                                     repo_name = repo if namespace == "library" else f"{namespace}/{repo}"
-                                    tag_info = self._get_registry_tag_info(base_url, repo_name, tags[0], f"Basic {auth}")
+                                    tag_info = self._get_registry_tag_info(base_url, repo_name, tags[0], username, password)
                                     updated_at = tag_info["updated_at"]
                             
                             images.append({
@@ -1076,9 +1286,13 @@ class TeamService(object):
         Returns:
             dict: 包含标签详细信息的字典
         """
+        self.validate_registry_hub_type(hub_type)
+        hub_type = self.normalize_registry_hub_type(hub_type)
         try:
+            base_url = self._registry_base_url(domain)
+            if hub_type in self.CLOUD_REGISTRY_HUB_TYPES:
+                return self._get_registry_v2_tags(base_url, username, password, namespace, name, page, page_size, search_key)
             parsed_url = urlparse(domain)
-            base_url = parsed_url.scheme + "://" + parsed_url.netloc
             
             if hub_type == "Docker":
                 if "docker.io" in domain:
@@ -1119,15 +1333,7 @@ class TeamService(object):
                 else:
                     # 自建 Docker Registry API v2
                     repo_name = name if namespace == "library" else f"{namespace}/{name}"
-                    api_url = "{}/v2/{}/tags/list".format(base_url, repo_name)
-                    auth = base64.b64encode(f"{username}:{password}".encode()).decode()
-                    headers = {"Authorization": f"Basic {auth}"}
-                    response = requests.get(
-                        api_url,
-                        headers=headers,
-                        verify=False,
-                        timeout=10
-                    )
+                    response = self._registry_v2_get("{}/v2/{}/tags/list".format(base_url, repo_name), username, password)
                     if response.status_code == 200:
                         all_tags = response.json().get("tags", [])
                         if search_key:
@@ -1141,7 +1347,7 @@ class TeamService(object):
                         tags = []
                         for tag_name in paginated_tags:
                             # 获取标签详细信息
-                            tag_info = self._get_registry_tag_info(base_url, repo_name, tag_name, f"Basic {auth}")
+                            tag_info = self._get_registry_tag_info(base_url, repo_name, tag_name, username, password)
                             
                             tags.append({
                                 "name": tag_name,
@@ -1259,28 +1465,27 @@ class TeamService(object):
                 msg_show="连接镜像仓库失败",
                 status_code=500)
 
-    def _get_registry_tag_info(self, base_url: str, repo_name: str, tag_name: str, auth_header: str) -> dict:
+    def _get_registry_tag_info(self, base_url: str, repo_name: str, tag_name: str,
+                               username: str, password: str) -> dict:
         """获取 Docker Registry 标签的详细信息
         
         Args:
             base_url: 仓库基础URL
             repo_name: 仓库名称
             tag_name: 标签名称
-            auth_header: 认证头信息
+            username: 仓库用户名
+            password: 仓库密码
             
         Returns:
             dict: 包含标签详细信息的字典
         """
         try:
             manifest_url = "{}/v2/{}/manifests/{}".format(base_url, repo_name, tag_name)
-            manifest_response = requests.get(
+            manifest_response = self._registry_v2_get(
                 manifest_url,
-                headers={
-                    "Authorization": auth_header,
-                    "Accept": "application/vnd.docker.distribution.manifest.v2+json"
-                },
-                verify=False,
-                timeout=10
+                username,
+                password,
+                {"Accept": "application/vnd.docker.distribution.manifest.v2+json"}
             )
             
             if manifest_response.status_code == 200:
@@ -1292,14 +1497,7 @@ class TeamService(object):
                 
                 if config_digest:
                     config_url = "{}/v2/{}/blobs/{}".format(base_url, repo_name, config_digest)
-                    config_response = requests.get(
-                        config_url,
-                        headers={
-                            "Authorization": auth_header,
-                        },
-                        verify=False,
-                        timeout=10
-                    )
+                    config_response = self._registry_v2_get(config_url, username, password)
                     if config_response.status_code == 200:
                         config = config_response.json()
                         return {

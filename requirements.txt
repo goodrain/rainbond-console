@@ -25,6 +25,8 @@ oss2==2.4.0
 gevent==22.10.2
 zope.interface==7.2
 zope.event==5.0
+gevent-websocket==0.10.1
+websocket-client==0.59.0
 pyOpenSSL==20.0.1
 docker-image-py==0.1.4
 pytest==6.2.5

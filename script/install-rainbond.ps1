@@ -54,7 +54,7 @@ if ($os_info.Name -match 'Microsoft Windows') {
 
 function check_port_occupied {
   param (
-    [int[]]$Ports = @(7070, 80, 443, 6060)
+    [int[]]$Ports = @(7070, 80, 443)
   )
   
   if ($Language -eq "zh-CN") {
@@ -316,7 +316,7 @@ function start_rainbond {
   }
 
   $RBD_IMAGE = "$IMAGE_MIRROR/rainbond:$($RAINBOND_VERSION)-k3s"
-  $docker_run_cmd = "docker run --privileged -d --name=rainbond --restart=always -p 7070:7070 -p 80:80 -p 443:443 -p 6060:6060 -p 30000-30010:30000-30010 -v rainbond-opt:/opt/rainbond -e EIP=$EIP -e uuid=$UUID $RBD_IMAGE"
+  $docker_run_cmd = "docker run --privileged -d --name=rainbond --restart=always -p 7070:7070 -p 80:80 -p 443:443 -p 30000-30010:30000-30010 -v rainbond-opt:/opt/rainbond -e EIP=$EIP -e REGION_WS_PROXY_TARGET=ws://127.0.0.1:6060 -e uuid=$UUID $RBD_IMAGE"
   Write-ColoredText $docker_run_cmd green
   send_msg $docker_run_cmd
 
