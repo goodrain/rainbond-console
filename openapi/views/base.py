@@ -183,11 +183,7 @@ class TeamAPIView(TeamNoRegionAPIView):
         if not self.region:
             raise ErrRegionNotFound
         # Verify team is initialized in the requested region
-        team_regions = region_services.get_team_usable_regions(
-            self.team.tenant_name, self.enterprise.enterprise_id)
-        if team_regions and not team_regions.filter(region_name=self.region_name).exists():
-            raise ErrTeamNotInitializedInRegion
-        elif team_regions is None:
+        if not self.team_regions or not self.team_regions.filter(region_name=self.region_name).exists():
             raise ErrTeamNotInitializedInRegion
 
 
