@@ -9413,6 +9413,43 @@
       ],
       "test_type": "regression",
       "status": "active"
+    },
+    {
+      "id": "openapi.app-service.team-not-found",
+      "title": "Raise error when team associated with app is not found",
+      "title_zh": "应用关联的团队不存在时返回404错误",
+      "interface_type": "service_method",
+      "interface": "openapi.services.app_service.AppService.get_app_services_and_status",
+      "code_paths": [
+        "openapi/services/app_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/openapi_app_service_team_not_found_test.py",
+          "selector": "AppServiceTeamNotFoundTest"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "openapi.base.team-not-initialized-in-region",
+      "title": "Raise error when team is not initialized in the requested region",
+      "title_zh": "团队未在该集群中初始化时返回409错误",
+      "interface_type": "view_endpoint",
+      "interface": "openapi.views.base.TeamAPIView.initial",
+      "code_paths": [
+        "openapi/views/base.py",
+        "openapi/views/exceptions.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/openapi_base_team_region_init_test.py",
+          "selector": "TeamAPIViewRegionInitTest"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
     }
   ]
 }
