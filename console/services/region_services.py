@@ -57,7 +57,7 @@ class RegionService(object):
     def get_region_by_tenant_name(self, tenant_name: str) -> Optional[QuerySet[TenantRegionInfo]]:
         return region_repo.get_region_by_tenant_name(tenant_name=tenant_name)
 
-    def get_region_by_region_id(self, region_id: str) -> RegionConfig:
+    def get_region_by_region_id(self, region_id: str) -> Optional[RegionConfig]:
         return region_repo.get_region_by_region_id(region_id=region_id)
 
     def get_region_by_region_name(self, region_name: str) -> Optional[RegionConfig]:
@@ -66,7 +66,7 @@ class RegionService(object):
     def get_enterprise_region_by_region_name(self, enterprise_id: str, region_name: str) -> Optional[RegionConfig]:
         return region_repo.get_enterprise_region_by_region_name(enterprise_id, region_name)
 
-    def get_by_region_name(self, region_name: str) -> RegionConfig:
+    def get_by_region_name(self, region_name: str) -> Optional[RegionConfig]:
         return region_repo.get_by_region_name(region_name)
 
     def get_region_all_list_by_team_name(self, team_name: str) -> list:
