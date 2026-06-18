@@ -5,6 +5,7 @@
 import datetime
 import json
 import logging
+import time
 from typing import Any, List, Optional, Tuple
 
 from django.db.models import QuerySet
@@ -54,7 +55,7 @@ from console.utils.oauth.base.exception import NoAccessKeyErr
 from console.utils.oauth.oauth_types import (NoSupportOAuthType, get_oauth_instance)
 from console.enum.component_enum import is_kubeblocks
 from django.conf import settings
-from django.db import transaction
+from django.db import OperationalError, transaction
 from www.apiclient.regionapi import RegionInvokeApi
 from www.apiclient.regionapibaseclient import build_region_error_msg_show
 from www.models.main import ServiceGroup, ServiceGroupRelation, TenantServiceInfo, Tenants
@@ -71,6 +72,26 @@ port_service = AppPortService()
 volume_service = AppVolumeService()
 app_service_relation = AppServiceRelationService()
 mnt_service = AppMntService()
+
+# Maximum retries for transient database lock errors (e.g. SQLite "database is locked")
+_DB_LOCK_MAX_RETRIES = 3
+_DB_LOCK_RETRY_DELAY = 0.1  # seconds
+
+
+def _create_delete_service_with_retry(data: dict) -> None:
+    """Insert into tenant_service_delete, retrying on transient lock errors."""
+    for attempt in range(_DB_LOCK_MAX_RETRIES):
+        try:
+            with transaction.atomic():
+                delete_service_repo.create_delete_service(**data)
+            return
+        except OperationalError as e:
+            if "database is locked" in str(e) and attempt < _DB_LOCK_MAX_RETRIES - 1:
+                logger.warning("database locked on delete-service insert (attempt %d/%d)",
+                               attempt + 1, _DB_LOCK_MAX_RETRIES)
+                time.sleep(_DB_LOCK_RETRY_DELAY * (attempt + 1))
+                continue
+            raise
 
 
 class AppManageBase(object):
@@ -136,8 +157,6 @@ class AppManageBase(object):
         except Exception:
             pass
         return memory
-
-
 
 
 class AppManageService(AppManageBase):
@@ -1063,14 +1082,14 @@ class AppManageService(AppManageBase):
             data.pop("server_type")
             data.pop("git_full_name")
             data.pop("arch")
+            data.pop("build_strategy")
         if app:
             data["app_name"] = app.group_name
             data["app_id"] = app.ID
         if user:
             data["exec_user"] = user.nick_name
         try:
-            with transaction.atomic():
-                delete_service_repo.create_delete_service(**data)
+            _create_delete_service_with_retry(data)
         except Exception as e:
             logger.exception(e)
             pass
@@ -1414,14 +1433,14 @@ class AppManageService(AppManageBase):
             data.pop("server_type")
             data.pop("git_full_name")
             data.pop("arch")
+            data.pop("build_strategy")
         if app:
             data["app_name"] = app.group_name
             data["app_id"] = app.ID
         if user:
             data["exec_user"] = user.nick_name
         try:
-            with transaction.atomic():
-                delete_service_repo.create_delete_service(**data)
+            _create_delete_service_with_retry(data)
         except Exception as e:
             logger.exception(e)
             pass
