@@ -6,7 +6,7 @@ import os
 import random
 import re
 import string
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, NoReturn, Optional, Tuple
 from urllib.parse import urlparse, quote
 
 import requests  # type: ignore[import-untyped]
@@ -906,14 +906,14 @@ class TeamService(object):
             "hub_type": self.normalize_registry_hub_type(data.get("hub_type", "Docker")),
         }
 
-    def _registry_domain_host(self, domain):
+    def _registry_domain_host(self, domain: str) -> str:
         parsed_url = urlparse(domain)
         host = parsed_url.hostname
         if not host:
             raise ServiceHandleException(msg="invalid registry domain", msg_show="镜像仓库地址格式错误", status_code=400)
         return host.lower()
 
-    def _parse_aliyun_acr_domain(self, domain):
+    def _parse_aliyun_acr_domain(self, domain: str) -> str:
         host = self._registry_domain_host(domain)
         match = self.ALIYUN_ACR_DOMAIN_RE.match(host)
         if not match:
@@ -923,7 +923,7 @@ class TeamService(object):
                 status_code=400)
         return match.group("region")
 
-    def _parse_tencent_tcr_domain(self, domain):
+    def _parse_tencent_tcr_domain(self, domain: str) -> str:
         host = self._registry_domain_host(domain)
         if not self.TENCENT_TCR_DOMAIN_RE.match(host) and host not in self.TENCENT_TCR_PERSONAL_REGIONS:
             raise ServiceHandleException(
@@ -932,15 +932,15 @@ class TeamService(object):
                 status_code=400)
         return host
 
-    def _is_tencent_tcr_personal_domain(self, domain):
+    def _is_tencent_tcr_personal_domain(self, domain: str) -> bool:
         host = self._parse_tencent_tcr_domain(domain)
         return host in self.TENCENT_TCR_PERSONAL_REGIONS
 
-    def _tencent_tcr_personal_region(self, domain):
+    def _tencent_tcr_personal_region(self, domain: str) -> str:
         host = self._parse_tencent_tcr_domain(domain)
         return self.TENCENT_TCR_PERSONAL_REGIONS[host]
 
-    def _parse_huawei_swr_domain(self, domain):
+    def _parse_huawei_swr_domain(self, domain: str) -> str:
         host = self._registry_domain_host(domain)
         match = self.HUAWEI_SWR_DOMAIN_RE.match(host)
         if not match:
@@ -950,7 +950,7 @@ class TeamService(object):
                 status_code=400)
         return match.group("region")
 
-    def _parse_volcano_cr_domain(self, domain):
+    def _parse_volcano_cr_domain(self, domain: str) -> Tuple[str, str]:
         host = self._registry_domain_host(domain)
         match = self.VOLCANO_CR_DOMAIN_RE.match(host)
         if not match:
@@ -972,7 +972,7 @@ class TeamService(object):
         configuration.region = region.strip()
         return volcenginesdkcr.CRApi(volcenginesdkcore.ApiClient(configuration))
 
-    def _aliyun_acr_client(self, access_key, access_secret, region):
+    def _aliyun_acr_client(self, access_key: str, access_secret: str, region: str) -> Any:
         from alibabacloud_cr20160607.client import Client as AcrClient
         from alibabacloud_tea_openapi import models as open_api_models
 
@@ -982,7 +982,7 @@ class TeamService(object):
             endpoint="cr.{}.aliyuncs.com".format(region))
         return AcrClient(config)
 
-    def _tencent_tcr_client(self, access_key, access_secret, region):
+    def _tencent_tcr_client(self, access_key: str, access_secret: str, region: str) -> Any:
         from tencentcloud.common import credential
         from tencentcloud.common.profile.client_profile import ClientProfile
         from tencentcloud.common.profile.http_profile import HttpProfile
@@ -993,7 +993,7 @@ class TeamService(object):
         client_profile = ClientProfile(httpProfile=http_profile)
         return tcr_client.TcrClient(cred, region, client_profile)
 
-    def _huawei_swr_client(self, access_key, access_secret, region):
+    def _huawei_swr_client(self, access_key: str, access_secret: str, region: str) -> Any:
         from huaweicloudsdkcore.auth.credentials import BasicCredentials
         from huaweicloudsdkswr.v2 import SwrClient
         from huaweicloudsdkswr.v2.region.swr_region import SwrRegion
@@ -1004,7 +1004,7 @@ class TeamService(object):
             .with_region(SwrRegion.value_of(region)) \
             .build()
 
-    def _handle_cloud_registry_exception(self, action: str, provider: str, e: Exception) -> None:
+    def _handle_cloud_registry_exception(self, action: str, provider: str, e: Exception) -> NoReturn:
         logger.warning("failed to %s %s registry: %s", action, provider, e)
         if self._is_cloud_registry_auth_error(e):
             raise ServiceHandleException(
@@ -1043,7 +1043,7 @@ class TeamService(object):
             return "{}{}".format(status, ": {}".format(reason) if reason else "")
         return str(e)
 
-    def _cloud_attr(self, value, *names):
+    def _cloud_attr(self, value: Any, *names: str) -> Any:
         if value is None:
             return None
         if isinstance(value, dict):
@@ -1063,21 +1063,21 @@ class TeamService(object):
                 return getattr(value, private_name)
         return None
 
-    def _cloud_item_value(self, value, *names):
+    def _cloud_item_value(self, value: Any, *names: str) -> Any:
         if isinstance(value, str):
             return value
         return self._cloud_attr(value, *names)
 
-    def _cloud_response_body(self, response):
+    def _cloud_response_body(self, response: Any) -> Any:
         if isinstance(response, dict):
             return response.get("body") or response.get("Body") or response
         return self._cloud_attr(response, "body", "Body") or response
 
-    def _cloud_response_data(self, response):
+    def _cloud_response_data(self, response: Any) -> Any:
         body = self._cloud_response_body(response)
         return self._cloud_attr(body, "data", "Data") or body
 
-    def _cloud_list(self, data, *keys):
+    def _cloud_list(self, data: Any, *keys: str) -> List[Any]:
         if data is None:
             return []
         if isinstance(data, (list, tuple)):
@@ -1091,7 +1091,7 @@ class TeamService(object):
             return self._cloud_list(nested, *keys)
         return []
 
-    def _cloud_total(self, data, default=0):
+    def _cloud_total(self, data: Any, default: int = 0) -> int:
         for key in ("total", "Total", "totalCount", "TotalCount", "count", "Count"):
             value = self._cloud_attr(data, key)
             if value is not None:
@@ -1101,7 +1101,7 @@ class TeamService(object):
                     return default
         return default
 
-    def _cloud_total_from_content_range(self, content_range, default=0):
+    def _cloud_total_from_content_range(self, content_range: Any, default: int = 0) -> int:
         if not content_range:
             return default
         try:
@@ -1109,8 +1109,9 @@ class TeamService(object):
         except (IndexError, TypeError, ValueError):
             return default
 
-    def _cloud_registry_image(self, name, namespace, hub_type, description="", is_public=False, pull_count=0,
-                              created_at="", updated_at="", status="active"):
+    def _cloud_registry_image(self, name: str, namespace: str, hub_type: str, description: Any = "",
+                              is_public: Any = False, pull_count: Any = 0, created_at: Any = "",
+                              updated_at: Any = "", status: Any = "active") -> Dict[str, Any]:
         if name and namespace and name.startswith(namespace + "/"):
             name = name.split("/", 1)[1]
         if isinstance(status, bool):
@@ -1130,7 +1131,8 @@ class TeamService(object):
             "registry_type": hub_type,
         }
 
-    def _aliyun_acr_call_api(self, client, action, pathname, query=None):
+    def _aliyun_acr_call_api(self, client: Any, action: str, pathname: str,
+                             query: Optional[Dict[str, Any]] = None) -> Any:
         from alibabacloud_tea_openapi import models as open_api_models
         from alibabacloud_openapi_util.client import Client as OpenApiUtilClient
         from alibabacloud_tea_util import models as util_models
@@ -1149,7 +1151,7 @@ class TeamService(object):
             body_type="json")
         return client.call_api(params, request, util_models.RuntimeOptions())
 
-    def _get_aliyun_acr_namespaces(self, domain, access_key, access_secret):
+    def _get_aliyun_acr_namespaces(self, domain: str, access_key: str, access_secret: str) -> List[str]:
         region = self._parse_aliyun_acr_domain(domain)
         client = self._aliyun_acr_client(access_key, access_secret, region)
         response = self._aliyun_acr_call_api(client, "GetNamespaceList", "/namespace")
@@ -1161,11 +1163,13 @@ class TeamService(object):
             if self._cloud_item_value(item, "namespace", "Namespace", "namespaceName", "NamespaceName", "name", "Name")
         ]
 
-    def _get_aliyun_acr_images(self, domain, access_key, access_secret, namespace, page=1, page_size=10, search_key=None):
+    def _get_aliyun_acr_images(self, domain: str, access_key: str, access_secret: str, namespace: str,
+                               page: int = 1, page_size: int = 10,
+                               search_key: Optional[str] = None) -> Dict[str, Any]:
         region = self._parse_aliyun_acr_domain(domain)
         client = self._aliyun_acr_client(access_key, access_secret, region)
 
-        def list_repositories(request_page, request_page_size):
+        def list_repositories(request_page: int, request_page_size: int) -> Tuple[List[Any], int]:
             response = self._aliyun_acr_call_api(
                 client,
                 "GetRepoListByNamespace",
@@ -1213,11 +1217,11 @@ class TeamService(object):
             images = images[start:end]
         return {"images": images, "total": total, "page": page, "page_size": page_size}
 
-    def _tencent_domain_host(self, value):
+    def _tencent_domain_host(self, value: str) -> str:
         parsed = urlparse(value if "://" in value else "//{}".format(value))
         return (parsed.hostname or value or "").lower()
 
-    def _tencent_registry_matches_domain(self, registry, host):
+    def _tencent_registry_matches_domain(self, registry: Any, host: str) -> bool:
         registry_name = self._cloud_attr(registry, "RegistryName")
         registry_id = self._cloud_attr(registry, "RegistryId")
         prefix = host.split(".", 1)[0]
@@ -1228,7 +1232,7 @@ class TeamService(object):
         normalized_domains = [self._tencent_domain_host(domain) for domain in domains if domain]
         return host in normalized_domains or prefix in (registry_name, registry_id)
 
-    def _resolve_tencent_tcr_registry(self, domain, access_key, access_secret):
+    def _resolve_tencent_tcr_registry(self, domain: str, access_key: str, access_secret: str) -> Tuple[str, str]:
         from tencentcloud.tcr.v20190924 import models as tcr_models
 
         host = self._parse_tencent_tcr_domain(domain)
@@ -1256,7 +1260,7 @@ class TeamService(object):
             msg_show="腾讯云TCR实例未找到，请确认仓库地址与Access Key权限",
             status_code=404)
 
-    def _get_tencent_tcr_namespaces(self, domain, access_key, access_secret):
+    def _get_tencent_tcr_namespaces(self, domain: str, access_key: str, access_secret: str) -> List[str]:
         from tencentcloud.tcr.v20190924 import models as tcr_models
 
         if self._is_tencent_tcr_personal_domain(domain):
@@ -1276,7 +1280,7 @@ class TeamService(object):
             if self._cloud_item_value(item, "Name", "Namespace", "name", "namespace")
         ]
 
-    def _get_tencent_tcr_personal_namespaces(self, domain, access_key, access_secret):
+    def _get_tencent_tcr_personal_namespaces(self, domain: str, access_key: str, access_secret: str) -> List[str]:
         from tencentcloud.tcr.v20190924 import models as tcr_models
 
         client = self._tencent_tcr_client(access_key, access_secret, self._tencent_tcr_personal_region(domain))
@@ -1292,7 +1296,9 @@ class TeamService(object):
             if self._cloud_item_value(item, "Namespace", "Name", "namespace", "name")
         ]
 
-    def _get_tencent_tcr_images(self, domain, access_key, access_secret, namespace, page=1, page_size=10, search_key=None):
+    def _get_tencent_tcr_images(self, domain: str, access_key: str, access_secret: str, namespace: str,
+                                page: int = 1, page_size: int = 10,
+                                search_key: Optional[str] = None) -> Dict[str, Any]:
         from tencentcloud.tcr.v20190924 import models as tcr_models
 
         if self._is_tencent_tcr_personal_domain(domain):
@@ -1327,8 +1333,9 @@ class TeamService(object):
             total = len(images)
         return {"images": images, "total": total, "page": page, "page_size": page_size}
 
-    def _get_tencent_tcr_personal_images(self, domain, access_key, access_secret, namespace, page=1, page_size=10,
-                                         search_key=None):
+    def _get_tencent_tcr_personal_images(self, domain: str, access_key: str, access_secret: str, namespace: str,
+                                         page: int = 1, page_size: int = 10,
+                                         search_key: Optional[str] = None) -> Dict[str, Any]:
         from tencentcloud.tcr.v20190924 import models as tcr_models
 
         client = self._tencent_tcr_client(access_key, access_secret, self._tencent_tcr_personal_region(domain))
@@ -1360,7 +1367,7 @@ class TeamService(object):
         total = self._cloud_total(response, len(images))
         return {"images": images, "total": total, "page": page, "page_size": page_size}
 
-    def _get_huawei_swr_namespaces(self, domain, access_key, access_secret):
+    def _get_huawei_swr_namespaces(self, domain: str, access_key: str, access_secret: str) -> List[str]:
         from huaweicloudsdkswr.v2 import model as swr_models
 
         region = self._parse_huawei_swr_domain(domain)
@@ -1373,7 +1380,9 @@ class TeamService(object):
             if self._cloud_item_value(item, "name", "Name", "namespace", "Namespace")
         ]
 
-    def _get_huawei_swr_images(self, domain, access_key, access_secret, namespace, page=1, page_size=10, search_key=None):
+    def _get_huawei_swr_images(self, domain: str, access_key: str, access_secret: str, namespace: str,
+                               page: int = 1, page_size: int = 10,
+                               search_key: Optional[str] = None) -> Dict[str, Any]:
         from huaweicloudsdkswr.v2 import model as swr_models
 
         region = self._parse_huawei_swr_domain(domain)
@@ -1408,7 +1417,7 @@ class TeamService(object):
             total = len(images)
         return {"images": images, "total": total, "page": page, "page_size": page_size}
 
-    def _get_volcano_cr_namespaces(self, domain, access_key, access_secret):
+    def _get_volcano_cr_namespaces(self, domain: str, access_key: str, access_secret: str) -> List[str]:
         import volcenginesdkcr
 
         registry, region = self._parse_volcano_cr_domain(domain)
@@ -1430,7 +1439,9 @@ class TeamService(object):
             page += 1
         return namespaces
 
-    def _get_volcano_cr_images(self, domain, access_key, access_secret, namespace, page=1, page_size=10, search_key=None):
+    def _get_volcano_cr_images(self, domain: str, access_key: str, access_secret: str, namespace: str,
+                               page: int = 1, page_size: int = 10,
+                               search_key: Optional[str] = None) -> Dict[str, Any]:
         import volcenginesdkcr
 
         registry, region = self._parse_volcano_cr_domain(domain)
@@ -1460,21 +1471,22 @@ class TeamService(object):
             total = len(images)
         return {"images": images, "total": total, "page": page, "page_size": page_size}
 
-    def _get_volcano_cr_tags(self, domain, access_key, access_secret, namespace, name,
-                             page=1, page_size=10, search_key=None):
+    def _get_volcano_cr_tags(self, domain: str, access_key: str, access_secret: str, namespace: str, name: str,
+                             page: int = 1, page_size: int = 10,
+                             search_key: Optional[str] = None) -> Dict[str, Any]:
         import volcenginesdkcr
 
         registry, region = self._parse_volcano_cr_domain(domain)
         api = self._volcano_cr_api(access_key, access_secret, region)
 
-        def unique_join(values):
+        def unique_join(values: List[Any]) -> str:
             result = []
             for value in values:
                 if value and value not in result:
                     result.append(value)
             return ",".join(result)
 
-        def list_tags(request_page, request_page_size):
+        def list_tags(request_page: int, request_page_size: int) -> Tuple[List[Dict[str, Any]], int]:
             request = volcenginesdkcr.ListTagsRequest(
                 namespace=namespace,
                 page_number=request_page,

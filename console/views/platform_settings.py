@@ -7,6 +7,7 @@ from console.services.config_service import EnterpriseConfigService
 from console.views.base import EnterpriseAdminView, JWTAuthApiView
 from www.utils.return_message import general_message
 from www.models.main import TenantEnterprise
+from console.models.main import ConsoleSysConfig
 
 GLOBAL_IMAGE_REGISTRY_CONFIG_KEY = "GLOBAL_IMAGE_REGISTRY"
 
@@ -19,7 +20,7 @@ def _parse_bool(value: Any) -> bool:
     return bool(value)
 
 
-def _get_or_create_global_image_registry_config(eid: str):
+def _get_or_create_global_image_registry_config(eid: str) -> tuple[EnterpriseConfigService, ConsoleSysConfig]:
     config_service = EnterpriseConfigService(eid, None)
     config = config_service.get_config_by_key(GLOBAL_IMAGE_REGISTRY_CONFIG_KEY)
     if not config:
