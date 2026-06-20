@@ -5,8 +5,6 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from django.conf import settings
-from django.db.models import Q
-
 from console.exception.exceptions import ConfigExistError
 from console.models.main import ConsoleSysConfig, OAuthServices
 from console.repositories.oauth_repo import oauth_user_repo
@@ -278,9 +276,11 @@ class EnterpriseConfigService(ConfigService):
         self.user_id = user_id
         self.base_cfg_keys = ["OAUTH_SERVICES"]
         self.cfg_keys = [
-            "APPSTORE_IMAGE_HUB", "NEWBIE_GUIDE", "EXPORT_APP", "CLOUD_MARKET", "OBJECT_STORAGE", "AUTO_SSL", "TITLE", "LOGO",
-            "FAVICON", "LOGIN_IMAGE", "DOCUMENT", "OFFICIAL_DEMO", "VISUAL_MONITOR", "CAPTCHA_CODE", "HEADER_COLOR",
-            "HEADER_WRITING_COLOR", "SIDEBAR_COLOR", "SIDEBAR_WRITING_COLOR", "FOOTER", "SHADOW", "SHOW_K8S", "SHOW_LANGUE", ConfigKeyEnum.SECURITY_RESTRICTIONS.name,
+            "APPSTORE_IMAGE_HUB", "GLOBAL_IMAGE_REGISTRY", "NEWBIE_GUIDE", "EXPORT_APP", "CLOUD_MARKET",
+            "OBJECT_STORAGE", "AUTO_SSL", "TITLE", "LOGO", "FAVICON", "LOGIN_IMAGE", "DOCUMENT",
+            "OFFICIAL_DEMO", "VISUAL_MONITOR", "CAPTCHA_CODE", "HEADER_COLOR", "HEADER_WRITING_COLOR",
+            "SIDEBAR_COLOR", "SIDEBAR_WRITING_COLOR", "FOOTER", "SHADOW", "SHOW_K8S", "SHOW_LANGUE",
+            ConfigKeyEnum.SECURITY_RESTRICTIONS.name,
         ]
         self.cfg_keys_value = {
             "APPSTORE_IMAGE_HUB": {
@@ -291,6 +291,11 @@ class EnterpriseConfigService(ConfigService):
                     "hub_password": None
                 },
                 "desc": "AppStore镜像仓库配置",
+                "enable": False
+            },
+            "GLOBAL_IMAGE_REGISTRY": {
+                "value": None,
+                "desc": "全局容器镜像仓库开关",
                 "enable": False
             },
             "NEWBIE_GUIDE": {

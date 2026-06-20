@@ -37,6 +37,14 @@ class RegistryNamespaceServiceTestCase(TestCase):
         with self.assertRaises(ServiceHandleException):
             team_services._parse_volcano_cr_domain("https://registry.example.com")
 
+    def test_volcano_cr_api_uses_regional_service_endpoint(self):
+        api = team_services._volcano_cr_api("cloud-ak", "cloud-sk", "cn-shanghai")
+
+        self.assertEqual(api.api_client.configuration.host, "cr.cn-shanghai.volcengineapi.com")
+        self.assertEqual(api.api_client.configuration.region, "cn-shanghai")
+        self.assertEqual(api.api_client.configuration.ak, "cloud-ak")
+        self.assertEqual(api.api_client.configuration.sk, "cloud-sk")
+
     def test_parse_aliyun_acr_domain_extracts_region(self):
         region = team_services._parse_aliyun_acr_domain("https://registry.cn-hangzhou.aliyuncs.com/")
 
@@ -46,6 +54,16 @@ class RegistryNamespaceServiceTestCase(TestCase):
         host = team_services._parse_tencent_tcr_domain("https://demo-tcr.tencentcloudcr.com")
 
         self.assertEqual(host, "demo-tcr.tencentcloudcr.com")
+
+    def test_parse_tencent_tcr_personal_domain_extracts_registry_host(self):
+        host = team_services._parse_tencent_tcr_domain("https://ccr.ccs.tencentyun.com")
+
+        self.assertEqual(host, "ccr.ccs.tencentyun.com")
+
+    def test_parse_tencent_tcr_hongkong_personal_domain_extracts_registry_host(self):
+        host = team_services._parse_tencent_tcr_domain("https://hkccr.ccs.tencentyun.com")
+
+        self.assertEqual(host, "hkccr.ccs.tencentyun.com")
 
     def test_parse_huawei_swr_domain_extracts_region(self):
         region = team_services._parse_huawei_swr_domain("https://swr.cn-north-4.myhuaweicloud.com")
@@ -120,6 +138,64 @@ class RegistryNamespaceServiceTestCase(TestCase):
         self.assertFalse(data["images"][0]["is_public"])
         self.assertEqual(data["total"], 1)
 
+    def test_get_aliyun_acr_images_searches_across_pages(self):
+        client = mock.Mock()
+        client.call_api.side_effect = [
+            {
+                "body": {
+                    "data": {
+                        "repos": [
+                            {
+                                "repoName": "redis",
+                                "repoNamespace": "goodrain",
+                            },
+                        ],
+                        "total": 2,
+                    },
+                },
+            },
+            {
+                "body": {
+                    "data": {
+                        "repos": [
+                            {
+                                "repoName": "nginx",
+                                "repoNamespace": "goodrain",
+                            },
+                        ],
+                        "total": 2,
+                    },
+                },
+            },
+        ]
+
+        with mock.patch.object(team_services, "_aliyun_acr_client", return_value=client, create=True):
+            data = team_services.get_cloud_registry_images(
+                domain="https://registry.cn-hangzhou.aliyuncs.com",
+                access_key="cloud-ak",
+                access_secret="cloud-sk",
+                hub_type="AliyunACR",
+                namespace="goodrain",
+                page=1,
+                page_size=20,
+                search_key="nginx",
+            )
+
+        queries = [call_args[0][1].query for call_args in client.call_api.call_args_list]
+        self.assertEqual(queries, [
+            {
+                "Page": "1",
+                "PageSize": "100"
+            },
+            {
+                "Page": "2",
+                "PageSize": "100"
+            },
+        ])
+        self.assertEqual(data["images"][0]["name"], "nginx")
+        self.assertEqual(data["images"][0]["namespace"], "goodrain")
+        self.assertEqual(data["total"], 1)
+
     def test_get_tencent_tcr_namespaces_resolves_registry_and_uses_cloud_api(self):
         discovery_client = mock.Mock()
         registry_client = mock.Mock()
@@ -164,6 +240,31 @@ class RegistryNamespaceServiceTestCase(TestCase):
         self.assertEqual(namespace_request.Offset, 0)
         self.assertEqual(namespace_request.Limit, 100)
         self.assertTrue(namespace_request.All)
+        self.assertEqual(namespaces, ["rainbond", "legacy"])
+
+    def test_get_tencent_tcr_personal_namespaces_uses_personal_api(self):
+        client = mock.Mock()
+        client.DescribeNamespacePersonal.return_value = SimpleNamespace(
+            NamespaceInfo=[
+                SimpleNamespace(Namespace="rainbond"),
+                SimpleNamespace(Name="legacy"),
+            ],
+            NamespaceCount=2,
+        )
+
+        with mock.patch.object(team_services, "_tencent_tcr_client", return_value=client, create=True) as client_factory:
+            namespaces = team_services.get_cloud_registry_namespaces(
+                domain="https://ccr.ccs.tencentyun.com",
+                access_key="cloud-ak",
+                access_secret="cloud-sk",
+                hub_type="TencentTCR",
+            )
+
+        client_factory.assert_called_once_with("cloud-ak", "cloud-sk", "ap-guangzhou")
+        request = client.DescribeNamespacePersonal.call_args[0][0]
+        self.assertEqual(request.Namespace, "")
+        self.assertEqual(request.Offset, 0)
+        self.assertEqual(request.Limit, 100)
         self.assertEqual(namespaces, ["rainbond", "legacy"])
 
     def test_get_tencent_tcr_images_uses_cloud_api(self):
@@ -212,7 +313,44 @@ class RegistryNamespaceServiceTestCase(TestCase):
         request = registry_client.DescribeRepositories.call_args[0][0]
         self.assertEqual(request.RegistryId, "tcr-abc")
         self.assertEqual(request.NamespaceName, "rainbond")
-        self.assertEqual(request.Offset, 2)
+        self.assertEqual(request.Offset, 10)
+        self.assertEqual(request.Limit, 10)
+        self.assertEqual(data["images"][0]["name"], "nginx")
+        self.assertEqual(data["images"][0]["namespace"], "rainbond")
+        self.assertFalse(data["images"][0]["is_public"])
+        self.assertEqual(data["total"], 1)
+
+    def test_get_tencent_tcr_personal_images_uses_personal_api(self):
+        client = mock.Mock()
+        client.DescribeRepositoryFilterPersonal.return_value = SimpleNamespace(
+            RepoInfo=[
+                SimpleNamespace(
+                    RepoName="nginx",
+                    Public=0,
+                    Description="demo repo",
+                    CreationTime="2026-06-18 00:00:00 +0000 UTC",
+                    UpdateTime="2026-06-18 01:00:00 +0000 UTC",
+                ),
+            ],
+            TotalCount=1,
+        )
+
+        with mock.patch.object(team_services, "_tencent_tcr_client", return_value=client, create=True):
+            data = team_services.get_cloud_registry_images(
+                domain="https://ccr.ccs.tencentyun.com",
+                access_key="cloud-ak",
+                access_secret="cloud-sk",
+                hub_type="TencentTCR",
+                namespace="rainbond",
+                page=2,
+                page_size=10,
+                search_key="nginx",
+            )
+
+        request = client.DescribeRepositoryFilterPersonal.call_args[0][0]
+        self.assertEqual(request.Namespace, "rainbond")
+        self.assertEqual(request.RepoName, "nginx")
+        self.assertEqual(request.Offset, 10)
         self.assertEqual(request.Limit, 10)
         self.assertEqual(data["images"][0]["name"], "nginx")
         self.assertEqual(data["images"][0]["namespace"], "rainbond")
@@ -336,6 +474,92 @@ class RegistryNamespaceServiceTestCase(TestCase):
         self.assertEqual(data["images"][0]["name"], "nginx")
         self.assertEqual(data["images"][0]["namespace"], "rainbond")
         self.assertEqual(data["total"], 1)
+
+    def test_get_volcano_cr_tags_uses_cloud_api_metadata(self):
+        volcenginesdkcr = ModuleType("volcenginesdkcr")
+
+        class ListTagsRequest(object):
+            def __init__(self, namespace=None, page_number=None, page_size=None, registry=None, repository=None):
+                self.namespace = namespace
+                self.page_number = page_number
+                self.page_size = page_size
+                self.registry = registry
+                self.repository = repository
+
+        volcenginesdkcr.ListTagsRequest = ListTagsRequest
+        api = mock.Mock()
+        api.list_tags.return_value = SimpleNamespace(
+            items=[
+                SimpleNamespace(
+                    name="alpine",
+                    digest="sha256:manifest",
+                    push_time="2026-06-18T03:48:13Z",
+                    size=123,
+                    image_attributes=[
+                        SimpleNamespace(
+                            architecture="amd64",
+                            digest="sha256:image",
+                            os="linux",
+                            size=456,
+                        )
+                    ],
+                )
+            ],
+            total_count=1,
+        )
+
+        with mock.patch.dict(sys.modules, {"volcenginesdkcr": volcenginesdkcr}), \
+                mock.patch.object(team_services, "_volcano_cr_api", return_value=api) as api_factory:
+            data = team_services.get_cloud_registry_tags(
+                domain="https://zqq-cn-shanghai.cr.volces.com",
+                username="user",
+                password="password",
+                access_key="cloud-ak",
+                access_secret="cloud-sk",
+                hub_type="VolcanoCR",
+                namespace="rainbond",
+                name="nginx",
+                page=1,
+                page_size=10,
+            )
+
+        api_factory.assert_called_once_with("cloud-ak", "cloud-sk", "cn-shanghai")
+        request = api.list_tags.call_args[0][0]
+        self.assertEqual(request.registry, "zqq")
+        self.assertEqual(request.namespace, "rainbond")
+        self.assertEqual(request.repository, "nginx")
+        self.assertEqual(data["tags"], [{
+            "name": "alpine",
+            "size": 123,
+            "digest": "sha256:manifest",
+            "created_at": "2026-06-18T03:48:13Z",
+            "updated_at": "2026-06-18T03:48:13Z",
+            "os": "linux",
+            "architecture": "amd64",
+            "status": "active",
+        }])
+        self.assertEqual(data["total"], 1)
+
+    def test_cloud_registry_auth_error_returns_clear_unauthorized_message(self):
+        class CloudApiException(Exception):
+            def __init__(self):
+                self.status = 401
+                self.reason = "Unauthorized"
+                self.body = (
+                    '{"ResponseMetadata":{"Error":{"Code":"SignatureDoesNotMatch",'
+                    '"Message":"signature mismatch"}}}'
+                )
+                super(CloudApiException, self).__init__("raw cloud api auth failure")
+
+        with self.assertRaises(ServiceHandleException) as ctx:
+            team_services._handle_cloud_registry_exception(
+                "list namespaces from",
+                "VolcanoCR",
+                CloudApiException())
+
+        self.assertEqual(ctx.exception.status_code, 401)
+        self.assertEqual(ctx.exception.msg, "cloud registry credential unauthorized")
+        self.assertEqual(ctx.exception.msg_show, "云厂商镜像仓库认证失败，请检查 Access Key、Access Secret 是否正确并确认已授予镜像仓库访问权限")
 
     def test_get_harbor_namespaces_fetches_all_pages(self):
         names = ["project-{}".format(i) for i in range(205)]

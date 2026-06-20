@@ -147,19 +147,78 @@ class GlobalRegistryAuthTests(TestCase):
 
         with mock.patch("console.views.registry.team_registry_auth_repo.check_exist_enterprise_registry_auth",
                         return_value=_ExistsQuery(False)), \
+                mock.patch("console.views.registry.team_registry_auth_repo.check_exist_user_registry_auth",
+                           return_value=_ExistsQuery(False)), \
                 mock.patch.object(team_services, "check_registry_connection") as check_mock, \
                 mock.patch("console.views.registry.team_registry_auth_repo.create_team_registry_auth") as create_mock:
             response = view.post(request, enterprise_id="eid-1")
 
         self.assertEqual(response.status_code, 200)
         check_mock.assert_called_once_with(
-            "https://registry.cn-hangzhou.aliyuncs.com", "registry-user", "registry-password", "AliyunACR")
+            "https://registry.cn-hangzhou.aliyuncs.com",
+            "registry-user",
+            "registry-password",
+            "AliyunACR",
+            access_key="cloud-ak",
+            access_secret="cloud-sk")
         params = create_mock.call_args[1]
         self.assertEqual(params["access_key"], "cloud-ak")
         self.assertEqual(params["access_secret"], "cloud-sk")
         self.assertEqual(params["username"], "registry-user")
         self.assertEqual(params["password"], "registry-password")
         self.assertEqual(params["hub_type"], "AliyunACR")
+
+    def test_user_registry_create_rejects_enterprise_registry_name_conflict(self):
+        request = SimpleNamespace(data={
+            "secret_id": "company",
+            "domain": "https://harbor.example.com",
+            "username": "registry-user",
+            "password": "registry-password",
+            "hub_type": "Harbor",
+        })
+        enterprise_auth = RegistryAuth(secret_id="company", enterprise_id="eid-1", scope="enterprise")
+        view = HubRegistryView()
+        view.user = self.user
+
+        with mock.patch("console.views.registry.team_registry_auth_repo.check_exist_registry_auth",
+                        return_value=_ExistsQuery(False)), \
+                mock.patch("console.views.registry.team_registry_auth_repo.get_enterprise_registry_auth",
+                           return_value=enterprise_auth) as enterprise_auth_mock, \
+                mock.patch.object(team_services, "check_registry_connection") as check_mock, \
+                mock.patch("console.views.registry.team_registry_auth_repo.create_team_registry_auth") as create_mock:
+            response = view.post(request)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data["msg_show"], "镜像仓库已存在")
+        enterprise_auth_mock.assert_called_once_with("company", "eid-1")
+        check_mock.assert_not_called()
+        create_mock.assert_not_called()
+
+    def test_enterprise_registry_create_rejects_user_registry_name_conflict(self):
+        request = SimpleNamespace(data={
+            "secret_id": "personal",
+            "domain": "https://harbor.example.com",
+            "username": "registry-user",
+            "password": "registry-password",
+            "hub_type": "Harbor",
+        })
+        view = registry_views.EnterpriseHubRegistryView()
+        view.user = self.user
+        view.is_enterprise_admin = True
+
+        with mock.patch("console.views.registry.team_registry_auth_repo.check_exist_enterprise_registry_auth",
+                        return_value=_ExistsQuery(False)), \
+                mock.patch("console.views.registry.team_registry_auth_repo.check_exist_user_registry_auth",
+                           return_value=_ExistsQuery(True), create=True) as user_conflict_mock, \
+                mock.patch.object(team_services, "check_registry_connection") as check_mock, \
+                mock.patch("console.views.registry.team_registry_auth_repo.create_team_registry_auth") as create_mock:
+            response = view.post(request, enterprise_id="eid-1")
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data["msg_show"], "镜像仓库已存在")
+        user_conflict_mock.assert_called_once_with("personal", "eid-1")
+        check_mock.assert_not_called()
+        create_mock.assert_not_called()
 
     def test_user_registry_update_uses_username_password_for_cloud_registry(self):
         request = SimpleNamespace(
@@ -190,6 +249,90 @@ class GlobalRegistryAuthTests(TestCase):
             password="registry-password",
             hub_type="TencentTCR")
 
+    def test_user_registry_update_preserves_secret_fields_when_omitted(self):
+        request = SimpleNamespace(
+            GET={"secret_id": "personal"},
+            data={
+                "access_key": "new-cloud-ak",
+                "access_secret": "",
+                "username": "",
+                "password": "",
+                "hub_type": "AliyunACR",
+            },
+        )
+        auth = RegistryAuth(
+            secret_id="personal",
+            access_key="old-cloud-ak",
+            access_secret="old-cloud-sk",
+            username="old-user",
+            password="old-password",
+            hub_type="AliyunACR",
+        )
+        view = HubRegistryView()
+        view.user = self.user
+
+        with mock.patch("console.views.registry.team_registry_auth_repo.get_user_registry_auth", return_value=auth), \
+                mock.patch("console.views.registry.team_registry_auth_repo.update_user_registry_auth") as update_mock:
+            response = view.put(request)
+
+        self.assertEqual(response.status_code, 200)
+        update_mock.assert_called_once_with(
+            "personal",
+            self.user.user_id,
+            access_key="new-cloud-ak",
+            access_secret="old-cloud-sk",
+            username="old-user",
+            password="old-password",
+            hub_type="AliyunACR")
+
+    def test_enterprise_registry_update_preserves_secret_fields_when_omitted(self):
+        request = SimpleNamespace(data={
+            "domain": "",
+            "hub_type": "VolcanoCR",
+            "access_key": "new-cloud-ak",
+            "access_secret": "",
+            "username": "registry-user",
+            "password": "",
+        })
+        auth = RegistryAuth(
+            secret_id="company",
+            domain="https://zqq-cn-shanghai.cr.volces.com",
+            access_key="old-cloud-ak",
+            access_secret="old-cloud-sk",
+            username="old-user",
+            password="old-password",
+            hub_type="VolcanoCR",
+            enterprise_id="eid-1",
+            scope="enterprise",
+        )
+        view = registry_views.EnterpriseHubRegistryView()
+        view.user = self.user
+        view.is_enterprise_admin = True
+
+        with mock.patch("console.views.registry.team_registry_auth_repo.get_enterprise_registry_auth",
+                        return_value=auth), \
+                mock.patch.object(team_services, "check_registry_connection") as check_mock, \
+                mock.patch("console.views.registry.team_registry_auth_repo.update_enterprise_registry_auth") as update_mock:
+            response = view.put(request, enterprise_id="eid-1", secret_id="company")
+
+        self.assertEqual(response.status_code, 200)
+        check_mock.assert_called_once_with(
+            "https://zqq-cn-shanghai.cr.volces.com",
+            "registry-user",
+            "old-password",
+            "VolcanoCR",
+            access_key="new-cloud-ak",
+            access_secret="old-cloud-sk")
+        update_mock.assert_called_once_with(
+            "eid-1",
+            "company",
+            domain="https://zqq-cn-shanghai.cr.volces.com",
+            hub_type="VolcanoCR",
+            access_key="new-cloud-ak",
+            access_secret="old-cloud-sk",
+            username="registry-user",
+            password="old-password")
+
     def test_resolve_registry_auth_prefers_user_auth_then_enterprise_auth(self):
         personal = RegistryAuth(secret_id="same", username="alice", password="personal-password", scope="user")
         enterprise = RegistryAuth(secret_id="same", username="company", password="enterprise-password", scope="enterprise")
@@ -210,10 +353,40 @@ class GlobalRegistryAuthTests(TestCase):
         with mock.patch("console.services.team_services.team_registry_auth_repo.get_user_registry_auth",
                         return_value=None), \
                 mock.patch("console.services.team_services.team_registry_auth_repo.get_enterprise_registry_auth",
-                           return_value=enterprise):
+                           return_value=enterprise), \
+                mock.patch.object(team_services, "is_enterprise_registry_enabled", return_value=True):
             resolved = team_services.resolve_registry_auth(user, "company")
 
         self.assertIs(resolved, enterprise)
+
+    def test_list_accessible_registry_auths_excludes_enterprise_auth_when_global_registry_disabled(self):
+        personal = RegistryAuth(secret_id="personal", scope="user")
+        enterprise = RegistryAuth(secret_id="company", scope="enterprise")
+        user = SimpleNamespace(user_id=7, enterprise_id="eid-1")
+
+        with mock.patch("console.services.team_services.team_registry_auth_repo.list_user_registry_auths",
+                        return_value=[personal]), \
+                mock.patch("console.services.team_services.team_registry_auth_repo.list_enterprise_registry_auths",
+                           return_value=[enterprise]) as list_enterprise_mock, \
+                mock.patch.object(team_services, "is_enterprise_registry_enabled", return_value=False, create=True):
+            auths = team_services.list_accessible_registry_auths(user)
+
+        self.assertEqual(auths, [personal])
+        list_enterprise_mock.assert_not_called()
+
+    def test_resolve_registry_auth_does_not_fallback_to_enterprise_auth_when_global_registry_disabled(self):
+        enterprise = RegistryAuth(secret_id="company", username="company", password="enterprise-password", scope="enterprise")
+        user = SimpleNamespace(user_id=7, enterprise_id="eid-1")
+
+        with mock.patch("console.services.team_services.team_registry_auth_repo.get_user_registry_auth",
+                        return_value=None), \
+                mock.patch("console.services.team_services.team_registry_auth_repo.get_enterprise_registry_auth",
+                           return_value=enterprise) as enterprise_auth_mock, \
+                mock.patch.object(team_services, "is_enterprise_registry_enabled", return_value=False, create=True):
+            with self.assertRaises(ServiceHandleException):
+                team_services.resolve_registry_auth(user, "company")
+
+        enterprise_auth_mock.assert_not_called()
 
     def test_hub_registry_image_uses_accessible_registry_auth(self):
         auth = RegistryAuth(
@@ -313,6 +486,50 @@ class GlobalRegistryAuthTests(TestCase):
         registry_mock.assert_not_called()
         self.assertEqual(response.data["data"]["list"], cloud_data["images"])
 
+    def test_hub_registry_image_uses_cloud_api_for_cloud_registry_tags(self):
+        auth = RegistryAuth(
+            secret_id="company",
+            domain="https://zqq-cn-shanghai.cr.volces.com",
+            access_key="cloud-ak",
+            access_secret="cloud-sk",
+            username="company-user",
+            password="enterprise-password",
+            hub_type="VolcanoCR",
+            scope="enterprise",
+        )
+        request = self.factory.get(
+            "/console/hub/registry/image?secret_id=company&namespace=rainbond&name=nginx&page=1&page_size=10")
+        view = HubRegistryImageView()
+        view.user = self.user
+
+        cloud_data = {
+            "tags": [{"name": "alpine", "architecture": "amd64", "updated_at": "2026-06-18T03:48:13Z"}],
+            "total": 1,
+            "page": 1,
+            "page_size": 10,
+        }
+        with mock.patch.object(team_services, "resolve_registry_auth", return_value=auth), \
+                mock.patch.object(team_services, "get_cloud_registry_tags", return_value=cloud_data) as cloud_mock, \
+                mock.patch.object(team_services, "get_registry_tags") as registry_mock:
+            response = view.get(request)
+
+        self.assertEqual(response.status_code, 200)
+        cloud_mock.assert_called_once_with(
+            domain=auth.domain,
+            username=auth.username,
+            password=auth.password,
+            access_key=auth.access_key,
+            access_secret=auth.access_secret,
+            hub_type=auth.hub_type,
+            namespace="rainbond",
+            name="nginx",
+            page=1,
+            page_size=10,
+            search_key=None,
+        )
+        registry_mock.assert_not_called()
+        self.assertEqual(response.data["data"]["list"], cloud_data["tags"])
+
     def test_docker_run_resolves_registry_auth_id_credentials_on_server(self):
         registry_auth = RegistryAuth(secret_id="company", username="company-user", password="enterprise-password")
         service = SimpleNamespace(service_id="sid-1", to_dict=lambda: {"service_id": "sid-1"})
@@ -342,7 +559,6 @@ class GlobalRegistryAuthTests(TestCase):
         self.assertEqual(response.status_code, 200)
         resolve_mock.assert_called_once_with(view.user, "company")
         source_mock.assert_called_once_with(view.tenant, service, "company-user", "enterprise-password")
-
 
     def test_team_registry_create_region_payload_excludes_console_scope_fields(self):
         tenant = SimpleNamespace(tenant_id="tenant-1", tenant_name="team-a")
@@ -390,34 +606,46 @@ class GlobalRegistryAuthTests(TestCase):
         self.assertNotIn("user_id", payload)
 
     def test_check_registry_connection_accepts_supported_cloud_registry_types(self):
-        response = mock.Mock(status_code=200)
-
         for hub_type in ["AliyunACR", "TencentTCR", "HuaweiSWR", "VolcanoCR"]:
             with self.subTest(hub_type=hub_type):
-                with mock.patch("console.services.team_services.requests.get", return_value=response) as get_mock:
+                with mock.patch.object(team_services, "get_cloud_registry_namespaces",
+                                       return_value=["rainbond"]) as cloud_mock, \
+                        mock.patch("console.services.team_services.requests.get") as get_mock:
                     team_services.check_registry_connection(
                         domain="https://registry.example.com",
                         username="user",
                         password="password",
                         hub_type=hub_type,
+                        access_key="cloud-ak",
+                        access_secret="cloud-sk",
                     )
 
-                self.assertEqual(get_mock.call_args[0][0], "https://registry.example.com/v2/")
+                cloud_mock.assert_called_once_with(
+                    "https://registry.example.com", "cloud-ak", "cloud-sk", hub_type)
+                get_mock.assert_not_called()
 
     def test_check_registry_connection_accepts_legacy_cloud_registry_type_aliases(self):
-        response = mock.Mock(status_code=200)
-
-        for hub_type in ["Aliyun", "Tencent", "Huawei", "Volcano"]:
+        for hub_type, normalized in [
+                ("Aliyun", "AliyunACR"),
+                ("Tencent", "TencentTCR"),
+                ("Huawei", "HuaweiSWR"),
+                ("Volcano", "VolcanoCR")]:
             with self.subTest(hub_type=hub_type):
-                with mock.patch("console.services.team_services.requests.get", return_value=response) as get_mock:
+                with mock.patch.object(team_services, "get_cloud_registry_namespaces",
+                                       return_value=["rainbond"]) as cloud_mock, \
+                        mock.patch("console.services.team_services.requests.get") as get_mock:
                     team_services.check_registry_connection(
                         domain="https://registry.example.com",
                         username="user",
                         password="password",
                         hub_type=hub_type,
+                        access_key="cloud-ak",
+                        access_secret="cloud-sk",
                     )
 
-                self.assertEqual(get_mock.call_args[0][0], "https://registry.example.com/v2/")
+                cloud_mock.assert_called_once_with(
+                    "https://registry.example.com", "cloud-ak", "cloud-sk", normalized)
+                get_mock.assert_not_called()
 
     def test_check_registry_connection_rejects_volcano_tos_alias(self):
         with self.assertRaises(ServiceHandleException):
@@ -449,7 +677,7 @@ class GlobalRegistryAuthTests(TestCase):
                 domain="https://registry.example.com",
                 username="user",
                 password="password",
-                hub_type="VolcanoCR",
+                hub_type="Harbor",
             )
 
         self.assertEqual(get_mock.call_args_list[0][0][0], "https://registry.example.com/v2/")
@@ -472,9 +700,20 @@ class GlobalRegistryAuthTests(TestCase):
         token_response.json.return_value = {"token": "registry-token"}
         tags_response = mock.Mock(status_code=200)
         tags_response.json.return_value = {"name": "rainbond/nginx", "tags": ["alpine"]}
+        manifest_response = mock.Mock(status_code=200, headers={"Docker-Content-Digest": "sha256:manifest"})
+        manifest_response.json.return_value = {
+            "config": {"digest": "sha256:config"},
+            "layers": [{"size": 10}],
+        }
+        config_response = mock.Mock(status_code=200)
+        config_response.json.return_value = {
+            "created": "2026-06-18T03:48:13Z",
+            "os": "linux",
+            "architecture": "amd64",
+        }
 
         with mock.patch("console.services.team_services.requests.get",
-                        side_effect=[challenge, token_response, tags_response]) as get_mock:
+                        side_effect=[challenge, token_response, tags_response, manifest_response, config_response]) as get_mock:
             data = team_services.get_registry_tags(
                 domain="https://registry.example.com",
                 username="user",
@@ -485,6 +724,7 @@ class GlobalRegistryAuthTests(TestCase):
             )
 
         self.assertEqual(data["tags"][0]["name"], "alpine")
+        self.assertEqual(data["tags"][0]["architecture"], "amd64")
         self.assertEqual(get_mock.call_args_list[0][0][0], "https://registry.example.com/v2/rainbond/nginx/tags/list")
         self.assertEqual(get_mock.call_args_list[1][0][0], "https://registry.example.com/service/token")
         self.assertEqual(get_mock.call_args_list[1][1]["params"], {
@@ -492,6 +732,58 @@ class GlobalRegistryAuthTests(TestCase):
             "scope": "repository:rainbond/nginx:pull",
         })
         self.assertEqual(get_mock.call_args_list[2][1]["headers"], {"Authorization": "Bearer registry-token"})
+        self.assertEqual(get_mock.call_args_list[3][0][0], "https://registry.example.com/v2/rainbond/nginx/manifests/alpine")
+
+    def test_cloud_registry_tags_include_manifest_metadata(self):
+        tags_response = mock.Mock(status_code=200)
+        tags_response.json.return_value = {"name": "rainbond/nginx", "tags": ["alpine"]}
+
+        manifest_response = mock.Mock(
+            status_code=200,
+            headers={"Docker-Content-Digest": "sha256:manifest"},
+        )
+        manifest_response.json.return_value = {
+            "schemaVersion": 2,
+            "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+            "config": {"digest": "sha256:config"},
+            "layers": [{"size": 10}, {"size": 5}],
+        }
+
+        config_response = mock.Mock(status_code=200)
+        config_response.json.return_value = {
+            "created": "2026-06-18T03:48:13Z",
+            "os": "linux",
+            "architecture": "amd64",
+        }
+
+        with mock.patch(
+                "console.services.team_services.requests.get",
+                side_effect=[tags_response, manifest_response, config_response]) as get_mock:
+            data = team_services.get_registry_tags(
+                domain="https://registry.example.com",
+                username="user",
+                password="password",
+                hub_type="VolcanoCR",
+                namespace="rainbond",
+                name="nginx",
+            )
+
+        self.assertEqual(data["tags"], [{
+            "name": "alpine",
+            "size": 15,
+            "digest": "sha256:manifest",
+            "created_at": "2026-06-18T03:48:13Z",
+            "updated_at": "2026-06-18T03:48:13Z",
+            "os": "linux",
+            "architecture": "amd64",
+            "status": "active",
+        }])
+        self.assertEqual(
+            get_mock.call_args_list[1][1]["headers"]["Accept"],
+            ", ".join(team_services.REGISTRY_MANIFEST_ACCEPT_TYPES))
+        self.assertEqual(
+            get_mock.call_args_list[2][0][0],
+            "https://registry.example.com/v2/rainbond/nginx/blobs/sha256:config")
 
     def test_check_registry_connection_error_includes_registry_response_body(self):
         response = mock.Mock(status_code=403, text='{"errors":[{"message":"denied"}]}')
@@ -502,7 +794,7 @@ class GlobalRegistryAuthTests(TestCase):
                     domain="https://registry.example.com",
                     username="user",
                     password="password",
-                    hub_type="VolcanoCR",
+                    hub_type="Harbor",
                 )
 
         self.assertIn("status:403", ctx.exception.msg)
