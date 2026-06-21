@@ -378,6 +378,16 @@ class TeamRegistryAuthRepo(object):
         return TeamRegistryAuth.objects.filter(
             secret_id=secret_id, user_id=user_id, tenant_id='', region_name='', scope=self.USER_SCOPE)
 
+    def check_exist_user_registry_auth(self, secret_id: str, enterprise_id: str) -> "QuerySet[TeamRegistryAuth]":
+        enterprise_user_ids = Users.objects.filter(enterprise_id=enterprise_id).values_list("user_id", flat=True)
+        return TeamRegistryAuth.objects.filter(
+            Q(enterprise_id=enterprise_id) | (Q(enterprise_id="") & Q(user_id__in=enterprise_user_ids)),
+            secret_id=secret_id,
+            tenant_id='',
+            region_name='',
+            scope=self.USER_SCOPE,
+        )
+
     def check_exist_enterprise_registry_auth(self, enterprise_id: str, secret_id: str) -> "QuerySet[TeamRegistryAuth]":
         return TeamRegistryAuth.objects.filter(
             secret_id=secret_id, enterprise_id=enterprise_id, tenant_id='', region_name='', scope=self.ENTERPRISE_SCOPE)

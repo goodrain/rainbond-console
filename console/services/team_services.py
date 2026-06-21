@@ -6,7 +6,7 @@ import os
 import random
 import re
 import string
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, NoReturn, Optional, Tuple
 from urllib.parse import urlparse, quote
 
 import requests  # type: ignore[import-untyped]
@@ -57,6 +57,33 @@ class TeamService(object):
         "Volcano": "VolcanoCR",
     }
     CLOUD_REGISTRY_HUB_TYPES = ("AliyunACR", "TencentTCR", "HuaweiSWR", "VolcanoCR")
+    ALIYUN_ACR_DOMAIN_RE = re.compile(r"^registry\.(?P<region>[^.]+)\.aliyuncs\.com$")
+    TENCENT_TCR_DOMAIN_RE = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9-]*(?:\.[a-zA-Z0-9-]+)*\.tencentcloudcr\.com$")
+    TENCENT_TCR_PERSONAL_REGIONS = {
+        "ccr.ccs.tencentyun.com": "ap-guangzhou",
+        "hkccr.ccs.tencentyun.com": "ap-hongkong",
+    }
+    HUAWEI_SWR_DOMAIN_RE = re.compile(r"^swr\.(?P<region>[^.]+)\.myhuaweicloud\.com$")
+    VOLCANO_CR_DOMAIN_RE = re.compile(r"^(?P<registry>[a-zA-Z0-9][a-zA-Z0-9-]{1,28}[a-zA-Z0-9])-(?P<region>cn-[^.]+)\.cr\.volces\.com$")
+    TENCENT_TCR_DISCOVERY_REGION = "ap-guangzhou"
+    REGISTRY_MANIFEST_ACCEPT_TYPES = (
+        "application/vnd.oci.image.index.v1+json",
+        "application/vnd.oci.image.manifest.v1+json",
+        "application/vnd.docker.distribution.manifest.list.v2+json",
+        "application/vnd.docker.distribution.manifest.v2+json",
+    )
+    CLOUD_REGISTRY_AUTH_ERROR_MARKERS = (
+        "signaturedoesnotmatch",
+        "authfailure",
+        "invalidaccesskey",
+        "invalid access key",
+        "secretidnotfound",
+        "unauthorized",
+        "accessdenied",
+        "access denied",
+        "forbidden",
+        "permission",
+    )
 
     def get_tenant_by_tenant_name(self, tenant_name: str, exception: bool = True) -> Optional[Tenants]:
         return team_repo.get_tenant_by_tenant_name(tenant_name=tenant_name, exception=exception)
@@ -752,7 +779,7 @@ class TeamService(object):
     def list_accessible_registry_auths(self, user: Any) -> List[Any]:
         auths = list(team_registry_auth_repo.list_user_registry_auths(user.user_id))
         enterprise_id = getattr(user, "enterprise_id", "")
-        if enterprise_id:
+        if enterprise_id and self.is_enterprise_registry_enabled(enterprise_id):
             auths.extend(list(team_registry_auth_repo.list_enterprise_registry_auths(enterprise_id)))
         return auths
 
@@ -763,11 +790,26 @@ class TeamService(object):
         if auth:
             return auth
         enterprise_id = getattr(user, "enterprise_id", "")
-        if enterprise_id:
+        if enterprise_id and self.is_enterprise_registry_enabled(enterprise_id):
             auth = team_registry_auth_repo.get_enterprise_registry_auth(secret_id, enterprise_id)
             if auth:
                 return auth
         raise ServiceHandleException(msg="registry auth not found", msg_show="镜像仓库不存在", status_code=404)
+
+    def is_enterprise_registry_enabled(self, enterprise_id: str) -> bool:
+        if not enterprise_id:
+            return False
+        from console.services.config_service import EnterpriseConfigService
+        config_service = EnterpriseConfigService(enterprise_id, None)
+        config = config_service.get_config_by_key("GLOBAL_IMAGE_REGISTRY")
+        if not config:
+            config = config_service.add_config(
+                key="GLOBAL_IMAGE_REGISTRY",
+                default_value=None,
+                type="string",
+                enable=False,
+                desc="全局容器镜像仓库开关")
+        return bool(config.enable)
 
     def normalize_registry_hub_type(self, hub_type: str) -> str:
         return self.LEGACY_REGISTRY_HUB_TYPE_ALIASES.get(hub_type, hub_type)
@@ -864,11 +906,704 @@ class TeamService(object):
             "hub_type": self.normalize_registry_hub_type(data.get("hub_type", "Docker")),
         }
 
-    def check_registry_connection(self, domain: str, username: str, password: str, hub_type: str) -> bool:
+    def _registry_domain_host(self, domain: str) -> str:
+        parsed_url = urlparse(domain)
+        host = parsed_url.hostname
+        if not host:
+            raise ServiceHandleException(msg="invalid registry domain", msg_show="镜像仓库地址格式错误", status_code=400)
+        return host.lower()
+
+    def _parse_aliyun_acr_domain(self, domain: str) -> str:
+        host = self._registry_domain_host(domain)
+        match = self.ALIYUN_ACR_DOMAIN_RE.match(host)
+        if not match:
+            raise ServiceHandleException(
+                msg="invalid aliyun acr domain",
+                msg_show="阿里云ACR地址格式错误",
+                status_code=400)
+        return match.group("region")
+
+    def _parse_tencent_tcr_domain(self, domain: str) -> str:
+        host = self._registry_domain_host(domain)
+        if not self.TENCENT_TCR_DOMAIN_RE.match(host) and host not in self.TENCENT_TCR_PERSONAL_REGIONS:
+            raise ServiceHandleException(
+                msg="invalid tencent tcr domain",
+                msg_show="腾讯云TCR地址格式错误",
+                status_code=400)
+        return host
+
+    def _is_tencent_tcr_personal_domain(self, domain: str) -> bool:
+        host = self._parse_tencent_tcr_domain(domain)
+        return host in self.TENCENT_TCR_PERSONAL_REGIONS
+
+    def _tencent_tcr_personal_region(self, domain: str) -> str:
+        host = self._parse_tencent_tcr_domain(domain)
+        return self.TENCENT_TCR_PERSONAL_REGIONS[host]
+
+    def _parse_huawei_swr_domain(self, domain: str) -> str:
+        host = self._registry_domain_host(domain)
+        match = self.HUAWEI_SWR_DOMAIN_RE.match(host)
+        if not match:
+            raise ServiceHandleException(
+                msg="invalid huawei swr domain",
+                msg_show="华为云SWR地址格式错误",
+                status_code=400)
+        return match.group("region")
+
+    def _parse_volcano_cr_domain(self, domain: str) -> Tuple[str, str]:
+        host = self._registry_domain_host(domain)
+        match = self.VOLCANO_CR_DOMAIN_RE.match(host)
+        if not match:
+            raise ServiceHandleException(
+                msg="invalid volcano cr domain",
+                msg_show="火山云CR地址格式错误",
+                status_code=400)
+        return match.group("registry"), match.group("region")
+
+    def _volcano_cr_api(self, access_key: str, access_secret: str, region: str) -> Any:
+        import volcenginesdkcore
+        import volcenginesdkcr
+
+        configuration = volcenginesdkcore.Configuration()
+        configuration.schema = "https"
+        configuration.host = "cr.{}.volcengineapi.com".format(region)
+        configuration.ak = (access_key or "").strip()
+        configuration.sk = (access_secret or "").strip()
+        configuration.region = region.strip()
+        return volcenginesdkcr.CRApi(volcenginesdkcore.ApiClient(configuration))
+
+    def _aliyun_acr_client(self, access_key: str, access_secret: str, region: str) -> Any:
+        from alibabacloud_cr20160607.client import Client as AcrClient
+        from alibabacloud_tea_openapi import models as open_api_models
+
+        config = open_api_models.Config(
+            access_key_id=access_key,
+            access_key_secret=access_secret,
+            endpoint="cr.{}.aliyuncs.com".format(region))
+        return AcrClient(config)
+
+    def _tencent_tcr_client(self, access_key: str, access_secret: str, region: str) -> Any:
+        from tencentcloud.common import credential
+        from tencentcloud.common.profile.client_profile import ClientProfile
+        from tencentcloud.common.profile.http_profile import HttpProfile
+        from tencentcloud.tcr.v20190924 import tcr_client
+
+        cred = credential.Credential(access_key, access_secret)
+        http_profile = HttpProfile(endpoint="tcr.tencentcloudapi.com")
+        client_profile = ClientProfile(httpProfile=http_profile)
+        return tcr_client.TcrClient(cred, region, client_profile)
+
+    def _huawei_swr_client(self, access_key: str, access_secret: str, region: str) -> Any:
+        from huaweicloudsdkcore.auth.credentials import BasicCredentials
+        from huaweicloudsdkswr.v2 import SwrClient
+        from huaweicloudsdkswr.v2.region.swr_region import SwrRegion
+
+        credentials = BasicCredentials(access_key, access_secret)
+        return SwrClient.new_builder() \
+            .with_credentials(credentials) \
+            .with_region(SwrRegion.value_of(region)) \
+            .build()
+
+    def _handle_cloud_registry_exception(self, action: str, provider: str, e: Exception) -> NoReturn:
+        logger.warning("failed to %s %s registry: %s", action, provider, e)
+        if self._is_cloud_registry_auth_error(e):
+            raise ServiceHandleException(
+                msg="cloud registry credential unauthorized",
+                msg_show="云厂商镜像仓库认证失败，请检查 Access Key、Access Secret 是否正确并确认已授予镜像仓库访问权限",
+                status_code=401)
+        detail = self._cloud_registry_exception_detail(e)
+        raise ServiceHandleException(
+            msg="failed to {} {} registry: {}".format(action, provider, detail),
+            msg_show="获取镜像仓库信息失败({})".format(detail),
+            status_code=500)
+
+    def _is_cloud_registry_auth_error(self, e: Exception) -> bool:
+        status = getattr(e, "status", None)
+        if status not in (401, 403):
+            return False
+        content = "{} {} {}".format(
+            status,
+            getattr(e, "reason", "") or "",
+            getattr(e, "body", "") or "",
+        ).lower()
+        return any(marker in content for marker in self.CLOUD_REGISTRY_AUTH_ERROR_MARKERS)
+
+    def _cloud_registry_exception_detail(self, e: Exception) -> str:
+        status = getattr(e, "status", None)
+        reason = getattr(e, "reason", "") or ""
+        body = getattr(e, "body", "") or ""
+        if body:
+            match = re.search(r'"Code"\s*:\s*"([^"]+)"', body)
+            if match:
+                code = match.group(1)
+                message_match = re.search(r'"Message"\s*:\s*"([^"]+)"', body)
+                message = message_match.group(1) if message_match else ""
+                return "{}{}".format(code, ": {}".format(message) if message else "")
+        if status:
+            return "{}{}".format(status, ": {}".format(reason) if reason else "")
+        return str(e)
+
+    def _cloud_attr(self, value: Any, *names: str) -> Any:
+        if value is None:
+            return None
+        if isinstance(value, dict):
+            lower_value = {str(k).lower(): v for k, v in value.items()}
+            for name in names:
+                if name in value:
+                    return value.get(name)
+                lower_name = name.lower()
+                if lower_name in lower_value:
+                    return lower_value.get(lower_name)
+            return None
+        for name in names:
+            if hasattr(value, name):
+                return getattr(value, name)
+            private_name = "_{}".format(name)
+            if hasattr(value, private_name):
+                return getattr(value, private_name)
+        return None
+
+    def _cloud_item_value(self, value: Any, *names: str) -> Any:
+        if isinstance(value, str):
+            return value
+        return self._cloud_attr(value, *names)
+
+    def _cloud_response_body(self, response: Any) -> Any:
+        if isinstance(response, dict):
+            return response.get("body") or response.get("Body") or response
+        return self._cloud_attr(response, "body", "Body") or response
+
+    def _cloud_response_data(self, response: Any) -> Any:
+        body = self._cloud_response_body(response)
+        return self._cloud_attr(body, "data", "Data") or body
+
+    def _cloud_list(self, data: Any, *keys: str) -> List[Any]:
+        if data is None:
+            return []
+        if isinstance(data, (list, tuple)):
+            return list(data)
+        for key in keys:
+            value = self._cloud_attr(data, key)
+            if isinstance(value, (list, tuple)):
+                return list(value)
+        nested = self._cloud_attr(data, "data", "Data", "body", "Body")
+        if nested is not data:
+            return self._cloud_list(nested, *keys)
+        return []
+
+    def _cloud_total(self, data: Any, default: int = 0) -> int:
+        for key in ("total", "Total", "totalCount", "TotalCount", "count", "Count"):
+            value = self._cloud_attr(data, key)
+            if value is not None:
+                try:
+                    return int(value)
+                except (TypeError, ValueError):
+                    return default
+        return default
+
+    def _cloud_total_from_content_range(self, content_range: Any, default: int = 0) -> int:
+        if not content_range:
+            return default
+        try:
+            return int(str(content_range).rsplit("/", 1)[1])
+        except (IndexError, TypeError, ValueError):
+            return default
+
+    def _cloud_registry_image(self, name: str, namespace: str, hub_type: str, description: Any = "",
+                              is_public: Any = False, pull_count: Any = 0, created_at: Any = "",
+                              updated_at: Any = "", status: Any = "active") -> Dict[str, Any]:
+        if name and namespace and name.startswith(namespace + "/"):
+            name = name.split("/", 1)[1]
+        if isinstance(status, bool):
+            status = "active" if status else "inactive"
+        elif not status:
+            status = "active"
+        return {
+            "name": name,
+            "namespace": namespace,
+            "description": description or "",
+            "is_public": bool(is_public),
+            "pull_count": pull_count or 0,
+            "star_count": 0,
+            "created_at": created_at or "",
+            "updated_at": updated_at or "",
+            "status": status,
+            "registry_type": hub_type,
+        }
+
+    def _aliyun_acr_call_api(self, client: Any, action: str, pathname: str,
+                             query: Optional[Dict[str, Any]] = None) -> Any:
+        from alibabacloud_tea_openapi import models as open_api_models
+        from alibabacloud_openapi_util.client import Client as OpenApiUtilClient
+        from alibabacloud_tea_util import models as util_models
+
+        request = open_api_models.OpenApiRequest(
+            query=OpenApiUtilClient.query(query or {}))
+        params = open_api_models.Params(
+            action=action,
+            version="2016-06-07",
+            protocol="HTTPS",
+            pathname=pathname,
+            method="GET",
+            auth_type="AK",
+            style="ROA",
+            req_body_type="json",
+            body_type="json")
+        return client.call_api(params, request, util_models.RuntimeOptions())
+
+    def _get_aliyun_acr_namespaces(self, domain: str, access_key: str, access_secret: str) -> List[str]:
+        region = self._parse_aliyun_acr_domain(domain)
+        client = self._aliyun_acr_client(access_key, access_secret, region)
+        response = self._aliyun_acr_call_api(client, "GetNamespaceList", "/namespace")
+        data = self._cloud_response_data(response)
+        items = self._cloud_list(data, "namespaces", "Namespaces", "namespaceList", "NamespaceList")
+        return [
+            self._cloud_item_value(item, "namespace", "Namespace", "namespaceName", "NamespaceName", "name", "Name")
+            for item in items
+            if self._cloud_item_value(item, "namespace", "Namespace", "namespaceName", "NamespaceName", "name", "Name")
+        ]
+
+    def _get_aliyun_acr_images(self, domain: str, access_key: str, access_secret: str, namespace: str,
+                               page: int = 1, page_size: int = 10,
+                               search_key: Optional[str] = None) -> Dict[str, Any]:
+        region = self._parse_aliyun_acr_domain(domain)
+        client = self._aliyun_acr_client(access_key, access_secret, region)
+
+        def list_repositories(request_page: int, request_page_size: int) -> Tuple[List[Any], int]:
+            response = self._aliyun_acr_call_api(
+                client,
+                "GetRepoListByNamespace",
+                "/repos/{}".format(quote(namespace, safe="")),
+                {"Page": request_page, "PageSize": request_page_size})
+            data = self._cloud_response_data(response)
+            repositories = self._cloud_list(data, "repos", "Repos", "repositories", "Repositories", "repoList", "RepoList")
+            return repositories, self._cloud_total(data, len(repositories))
+
+        if search_key:
+            repositories = []
+            request_page = 1
+            request_page_size = 100
+            while True:
+                page_repositories, total_count = list_repositories(request_page, request_page_size)
+                repositories.extend(page_repositories)
+                if not page_repositories or len(repositories) >= total_count:
+                    break
+                request_page += 1
+        else:
+            repositories, total = list_repositories(page, page_size)
+
+        images = []
+        search_lower = search_key.lower() if search_key else ""
+        for repo in repositories:
+            repo_name = self._cloud_item_value(repo, "repoName", "RepoName", "name", "Name")
+            if search_lower and search_lower not in repo_name.lower():
+                continue
+            repo_type = self._cloud_attr(repo, "repoType", "RepoType")
+            is_public = self._cloud_attr(repo, "isPublic", "IsPublic")
+            if is_public is None:
+                is_public = str(repo_type).lower() == "public"
+            images.append(self._cloud_registry_image(
+                repo_name,
+                self._cloud_attr(repo, "repoNamespace", "RepoNamespace", "namespace", "Namespace") or namespace,
+                "AliyunACR",
+                description=self._cloud_attr(repo, "summary", "Summary", "description", "Description"),
+                is_public=is_public,
+                created_at=self._cloud_attr(repo, "gmtCreate", "GmtCreate", "creationTime", "CreationTime"),
+                updated_at=self._cloud_attr(repo, "gmtModified", "GmtModified", "updateTime", "UpdateTime")))
+        if search_key:
+            total = len(images)
+            start = (page - 1) * page_size
+            end = start + page_size
+            images = images[start:end]
+        return {"images": images, "total": total, "page": page, "page_size": page_size}
+
+    def _tencent_domain_host(self, value: str) -> str:
+        parsed = urlparse(value if "://" in value else "//{}".format(value))
+        return (parsed.hostname or value or "").lower()
+
+    def _tencent_registry_matches_domain(self, registry: Any, host: str) -> bool:
+        registry_name = self._cloud_attr(registry, "RegistryName")
+        registry_id = self._cloud_attr(registry, "RegistryId")
+        prefix = host.split(".", 1)[0]
+        domains = [
+            self._cloud_attr(registry, "PublicDomain"),
+            self._cloud_attr(registry, "InternalEndpoint"),
+        ]
+        normalized_domains = [self._tencent_domain_host(domain) for domain in domains if domain]
+        return host in normalized_domains or prefix in (registry_name, registry_id)
+
+    def _resolve_tencent_tcr_registry(self, domain: str, access_key: str, access_secret: str) -> Tuple[str, str]:
+        from tencentcloud.tcr.v20190924 import models as tcr_models
+
+        host = self._parse_tencent_tcr_domain(domain)
+        discovery_client = self._tencent_tcr_client(access_key, access_secret, self.TENCENT_TCR_DISCOVERY_REGION)
+        offset = 0
+        limit = 100
+        while True:
+            request = tcr_models.DescribeInstancesRequest()
+            request.AllRegion = True
+            request.Offset = offset
+            request.Limit = limit
+            response = discovery_client.DescribeInstances(request)
+            registries = self._cloud_list(response, "Registries")
+            for registry in registries:
+                if self._tencent_registry_matches_domain(registry, host):
+                    registry_id = self._cloud_attr(registry, "RegistryId")
+                    region = self._cloud_attr(registry, "RegionName") or self.TENCENT_TCR_DISCOVERY_REGION
+                    return registry_id, region
+            total = self._cloud_total(response, len(registries))
+            if not registries or offset + limit >= total:
+                break
+            offset += limit
+        raise ServiceHandleException(
+            msg="tencent tcr registry not found for domain {}".format(host),
+            msg_show="腾讯云TCR实例未找到，请确认仓库地址与Access Key权限",
+            status_code=404)
+
+    def _get_tencent_tcr_namespaces(self, domain: str, access_key: str, access_secret: str) -> List[str]:
+        from tencentcloud.tcr.v20190924 import models as tcr_models
+
+        if self._is_tencent_tcr_personal_domain(domain):
+            return self._get_tencent_tcr_personal_namespaces(domain, access_key, access_secret)
+        registry_id, region = self._resolve_tencent_tcr_registry(domain, access_key, access_secret)
+        client = self._tencent_tcr_client(access_key, access_secret, region)
+        request = tcr_models.DescribeNamespacesRequest()
+        request.RegistryId = registry_id
+        request.Offset = 0
+        request.Limit = 100
+        request.All = True
+        response = client.DescribeNamespaces(request)
+        items = self._cloud_list(response, "NamespaceList")
+        return [
+            self._cloud_item_value(item, "Name", "Namespace", "name", "namespace")
+            for item in items
+            if self._cloud_item_value(item, "Name", "Namespace", "name", "namespace")
+        ]
+
+    def _get_tencent_tcr_personal_namespaces(self, domain: str, access_key: str, access_secret: str) -> List[str]:
+        from tencentcloud.tcr.v20190924 import models as tcr_models
+
+        client = self._tencent_tcr_client(access_key, access_secret, self._tencent_tcr_personal_region(domain))
+        request = tcr_models.DescribeNamespacePersonalRequest()
+        request.Namespace = ""
+        request.Offset = 0
+        request.Limit = 100
+        response = client.DescribeNamespacePersonal(request)
+        items = self._cloud_list(response, "NamespaceInfo")
+        return [
+            self._cloud_item_value(item, "Namespace", "Name", "namespace", "name")
+            for item in items
+            if self._cloud_item_value(item, "Namespace", "Name", "namespace", "name")
+        ]
+
+    def _get_tencent_tcr_images(self, domain: str, access_key: str, access_secret: str, namespace: str,
+                                page: int = 1, page_size: int = 10,
+                                search_key: Optional[str] = None) -> Dict[str, Any]:
+        from tencentcloud.tcr.v20190924 import models as tcr_models
+
+        if self._is_tencent_tcr_personal_domain(domain):
+            return self._get_tencent_tcr_personal_images(
+                domain, access_key, access_secret, namespace, page, page_size, search_key)
+        registry_id, region = self._resolve_tencent_tcr_registry(domain, access_key, access_secret)
+        client = self._tencent_tcr_client(access_key, access_secret, region)
+        request = tcr_models.DescribeRepositoriesRequest()
+        request.RegistryId = registry_id
+        request.NamespaceName = namespace
+        request.Offset = (page - 1) * page_size
+        request.Limit = page_size
+        if search_key:
+            request.RepositoryName = search_key
+        response = client.DescribeRepositories(request)
+        repositories = self._cloud_list(response, "RepositoryList")
+        images = []
+        for repo in repositories:
+            repo_name = self._cloud_item_value(repo, "Name", "name")
+            if search_key and search_key.lower() not in repo_name.lower():
+                continue
+            images.append(self._cloud_registry_image(
+                repo_name,
+                self._cloud_attr(repo, "Namespace", "namespace") or namespace,
+                "TencentTCR",
+                description=self._cloud_attr(repo, "Description", "BriefDescription", "description", "briefDescription"),
+                is_public=self._cloud_attr(repo, "Public", "public"),
+                created_at=self._cloud_attr(repo, "CreationTime", "creationTime"),
+                updated_at=self._cloud_attr(repo, "UpdateTime", "updateTime")))
+        total = self._cloud_total(response, len(images))
+        if search_key:
+            total = len(images)
+        return {"images": images, "total": total, "page": page, "page_size": page_size}
+
+    def _get_tencent_tcr_personal_images(self, domain: str, access_key: str, access_secret: str, namespace: str,
+                                         page: int = 1, page_size: int = 10,
+                                         search_key: Optional[str] = None) -> Dict[str, Any]:
+        from tencentcloud.tcr.v20190924 import models as tcr_models
+
+        client = self._tencent_tcr_client(access_key, access_secret, self._tencent_tcr_personal_region(domain))
+        request = tcr_models.DescribeRepositoryFilterPersonalRequest()
+        request.Namespace = namespace
+        request.Offset = (page - 1) * page_size
+        request.Limit = page_size
+        if search_key:
+            request.RepoName = search_key
+        response = client.DescribeRepositoryFilterPersonal(request)
+        repositories = self._cloud_list(response, "RepoInfo")
+        images = []
+        for repo in repositories:
+            repo_name = self._cloud_item_value(repo, "RepoName", "Name", "name")
+            if search_key and search_key.lower() not in repo_name.lower():
+                continue
+            is_public = self._cloud_attr(repo, "Public", "public")
+            if isinstance(is_public, int):
+                is_public = bool(is_public)
+            images.append(self._cloud_registry_image(
+                repo_name,
+                namespace,
+                "TencentTCR",
+                description=self._cloud_attr(repo, "Description", "BriefDescription", "description", "briefDescription"),
+                is_public=is_public,
+                pull_count=self._cloud_attr(repo, "PullCount", "pullCount") or 0,
+                created_at=self._cloud_attr(repo, "CreationTime", "creationTime"),
+                updated_at=self._cloud_attr(repo, "UpdateTime", "updateTime")))
+        total = self._cloud_total(response, len(images))
+        return {"images": images, "total": total, "page": page, "page_size": page_size}
+
+    def _get_huawei_swr_namespaces(self, domain: str, access_key: str, access_secret: str) -> List[str]:
+        from huaweicloudsdkswr.v2 import model as swr_models
+
+        region = self._parse_huawei_swr_domain(domain)
+        client = self._huawei_swr_client(access_key, access_secret, region)
+        response = client.list_namespaces(swr_models.ListNamespacesRequest())
+        items = self._cloud_list(response, "namespaces", "Namespaces")
+        return [
+            self._cloud_item_value(item, "name", "Name", "namespace", "Namespace")
+            for item in items
+            if self._cloud_item_value(item, "name", "Name", "namespace", "Namespace")
+        ]
+
+    def _get_huawei_swr_images(self, domain: str, access_key: str, access_secret: str, namespace: str,
+                               page: int = 1, page_size: int = 10,
+                               search_key: Optional[str] = None) -> Dict[str, Any]:
+        from huaweicloudsdkswr.v2 import model as swr_models
+
+        region = self._parse_huawei_swr_domain(domain)
+        client = self._huawei_swr_client(access_key, access_secret, region)
+        request = swr_models.ListReposDetailsRequest(
+            namespace=namespace,
+            name=search_key,
+        )
+        request.limit = page_size
+        request.offset = (page - 1) * page_size
+        response = client.list_repos_details(request)
+        repositories = self._cloud_list(response, "body", "Body")
+        images = []
+        for repo in repositories:
+            repo_name = self._cloud_item_value(repo, "name", "Name")
+            if search_key and search_key.lower() not in repo_name.lower():
+                continue
+            images.append(self._cloud_registry_image(
+                repo_name,
+                self._cloud_attr(repo, "namespace", "Namespace") or namespace,
+                "HuaweiSWR",
+                description=self._cloud_attr(repo, "description", "Description"),
+                is_public=self._cloud_attr(repo, "is_public", "isPublic", "IsPublic"),
+                pull_count=self._cloud_attr(repo, "num_download", "numDownload", "NumDownload"),
+                created_at=self._cloud_attr(repo, "created_at", "createdAt", "CreatedAt"),
+                updated_at=self._cloud_attr(repo, "updated_at", "updatedAt", "UpdatedAt"),
+                status=self._cloud_attr(repo, "status", "Status")))
+        total = self._cloud_total_from_content_range(
+            self._cloud_attr(response, "content_range", "ContentRange"),
+            len(images))
+        if search_key:
+            total = len(images)
+        return {"images": images, "total": total, "page": page, "page_size": page_size}
+
+    def _get_volcano_cr_namespaces(self, domain: str, access_key: str, access_secret: str) -> List[str]:
+        import volcenginesdkcr
+
+        registry, region = self._parse_volcano_cr_domain(domain)
+        api = self._volcano_cr_api(access_key, access_secret, region)
+        namespaces = []
+        page = 1
+        page_size = 100
+        while True:
+            request = volcenginesdkcr.ListNamespacesRequest(
+                registry=registry,
+                page_number=page,
+                page_size=page_size)
+            response = api.list_namespaces(request)
+            items = getattr(response, "items", None) or []
+            namespaces.extend([item.name for item in items if getattr(item, "name", None)])
+            total = getattr(response, "total_count", 0) or 0
+            if not items or page * page_size >= total:
+                break
+            page += 1
+        return namespaces
+
+    def _get_volcano_cr_images(self, domain: str, access_key: str, access_secret: str, namespace: str,
+                               page: int = 1, page_size: int = 10,
+                               search_key: Optional[str] = None) -> Dict[str, Any]:
+        import volcenginesdkcr
+
+        registry, region = self._parse_volcano_cr_domain(domain)
+        api = self._volcano_cr_api(access_key, access_secret, region)
+        request = volcenginesdkcr.ListRepositoriesRequest(
+            filter=volcenginesdkcr.FilterForListRepositoriesInput(namespaces=[namespace]),
+            registry=registry,
+            page_number=page,
+            page_size=page_size)
+        response = api.list_repositories(request)
+        repositories = getattr(response, "items", None) or []
+        images = []
+        for repo in repositories:
+            repo_name = getattr(repo, "name", "")
+            if search_key and search_key.lower() not in repo_name.lower():
+                continue
+            images.append(self._cloud_registry_image(
+                repo_name,
+                getattr(repo, "namespace", namespace),
+                "VolcanoCR",
+                description=getattr(repo, "description", "") or "",
+                is_public=getattr(repo, "access_level", "") == "Public",
+                created_at=getattr(repo, "create_time", "") or "",
+                updated_at=getattr(repo, "update_time", "") or ""))
+        total = getattr(response, "total_count", len(images)) or len(images)
+        if search_key:
+            total = len(images)
+        return {"images": images, "total": total, "page": page, "page_size": page_size}
+
+    def _get_volcano_cr_tags(self, domain: str, access_key: str, access_secret: str, namespace: str, name: str,
+                             page: int = 1, page_size: int = 10,
+                             search_key: Optional[str] = None) -> Dict[str, Any]:
+        import volcenginesdkcr
+
+        registry, region = self._parse_volcano_cr_domain(domain)
+        api = self._volcano_cr_api(access_key, access_secret, region)
+
+        def unique_join(values: List[Any]) -> str:
+            result = []
+            for value in values:
+                if value and value not in result:
+                    result.append(value)
+            return ",".join(result)
+
+        def list_tags(request_page: int, request_page_size: int) -> Tuple[List[Dict[str, Any]], int]:
+            request = volcenginesdkcr.ListTagsRequest(
+                namespace=namespace,
+                page_number=request_page,
+                page_size=request_page_size,
+                registry=registry,
+                repository=name)
+            response = api.list_tags(request)
+            items = getattr(response, "items", None) or []
+            tags = []
+            for item in items:
+                tag_name = getattr(item, "name", "") or ""
+                image_attributes = getattr(item, "image_attributes", None) or []
+                item_size = getattr(item, "size", 0) or 0
+                item_digest = getattr(item, "digest", "") or ""
+                if image_attributes:
+                    item_size = item_size or sum([getattr(attr, "size", 0) or 0 for attr in image_attributes])
+                    item_digest = item_digest or getattr(image_attributes[0], "digest", "") or ""
+                tags.append({
+                    "name": tag_name,
+                    "size": item_size,
+                    "digest": item_digest,
+                    "created_at": getattr(item, "push_time", "") or "",
+                    "updated_at": getattr(item, "push_time", "") or "",
+                    "os": unique_join([getattr(attr, "os", "") for attr in image_attributes]),
+                    "architecture": unique_join([getattr(attr, "architecture", "") for attr in image_attributes]),
+                    "status": "active",
+                })
+            return tags, getattr(response, "total_count", len(tags)) or len(tags)
+
+        if not search_key:
+            tags, total = list_tags(page, page_size)
+            return {"tags": tags, "total": total, "page": page, "page_size": page_size}
+
+        all_tags = []
+        current_page = 1
+        fetch_page_size = 100
+        while True:
+            tags, total_count = list_tags(current_page, fetch_page_size)
+            all_tags.extend(tags)
+            if not tags or current_page * fetch_page_size >= total_count:
+                break
+            current_page += 1
+        search_lower = search_key.lower()
+        filtered_tags = [tag for tag in all_tags if search_lower in tag["name"].lower()]
+        total = len(filtered_tags)
+        start = (page - 1) * page_size
+        end = start + page_size
+        tags = filtered_tags[start:end]
+        return {"tags": tags, "total": total, "page": page, "page_size": page_size}
+
+    def get_cloud_registry_namespaces(self, domain: str, access_key: str, access_secret: str, hub_type: str) -> List[str]:
+        hub_type = self.normalize_registry_hub_type(hub_type)
+        handlers = {
+            "AliyunACR": self._get_aliyun_acr_namespaces,
+            "TencentTCR": self._get_tencent_tcr_namespaces,
+            "HuaweiSWR": self._get_huawei_swr_namespaces,
+            "VolcanoCR": self._get_volcano_cr_namespaces,
+        }
+        handler = handlers.get(hub_type)
+        if not handler:
+            raise ServiceHandleException(
+                msg="cloud registry api not supported for {}".format(hub_type),
+                msg_show="当前云厂商镜像仓库暂未支持自动获取命名空间",
+                status_code=400)
+        try:
+            return handler(domain, access_key, access_secret)
+        except ServiceHandleException:
+            raise
+        except Exception as e:
+            self._handle_cloud_registry_exception("list namespaces from", hub_type, e)
+
+    def get_cloud_registry_images(self, domain: str, access_key: str, access_secret: str, hub_type: str,
+                                  namespace: str, page: int = 1, page_size: int = 10,
+                                  search_key: Optional[str] = None) -> Dict[str, Any]:
+        hub_type = self.normalize_registry_hub_type(hub_type)
+        handlers = {
+            "AliyunACR": self._get_aliyun_acr_images,
+            "TencentTCR": self._get_tencent_tcr_images,
+            "HuaweiSWR": self._get_huawei_swr_images,
+            "VolcanoCR": self._get_volcano_cr_images,
+        }
+        handler = handlers.get(hub_type)
+        if not handler:
+            raise ServiceHandleException(
+                msg="cloud registry api not supported for {}".format(hub_type),
+                msg_show="当前云厂商镜像仓库暂未支持自动获取镜像列表",
+                status_code=400)
+        try:
+            return handler(domain, access_key, access_secret, namespace, page, page_size, search_key)
+        except ServiceHandleException:
+            raise
+        except Exception as e:
+            self._handle_cloud_registry_exception("list images from", hub_type, e)
+
+    def get_cloud_registry_tags(self, domain: str, username: str, password: str, access_key: str, access_secret: str,
+                                hub_type: str, namespace: str, name: str, page: int = 1, page_size: int = 10,
+                                search_key: Optional[str] = None) -> Dict[str, Any]:
+        hub_type = self.normalize_registry_hub_type(hub_type)
+        handlers = {
+            "VolcanoCR": self._get_volcano_cr_tags,
+        }
+        handler = handlers.get(hub_type)
+        if handler:
+            try:
+                return handler(domain, access_key, access_secret, namespace, name, page, page_size, search_key)
+            except ServiceHandleException:
+                raise
+            except Exception as e:
+                self._handle_cloud_registry_exception("list tags from", hub_type, e)
+        return self.get_registry_tags(domain, username, password, hub_type, namespace, name, page, page_size, search_key)
+
+    def check_registry_connection(self, domain: str, username: str, password: str, hub_type: str,
+                                  access_key: str = "", access_secret: str = "") -> bool:
         self.validate_registry_hub_type(hub_type)
         hub_type = self.normalize_registry_hub_type(hub_type)
-        if hub_type in ("Docker", "Harbor"):
-            self.get_registry_namespaces(domain, username, password, hub_type)
+        if hub_type in self.CLOUD_REGISTRY_HUB_TYPES:
+            self.get_cloud_registry_namespaces(domain, access_key, access_secret, hub_type)
             return True
         base_url = self._registry_base_url(domain)
         try:
@@ -938,6 +1673,20 @@ class TeamService(object):
         } for repo in filtered_repos[start:end]]
         return {"images": images, "total": total, "page": page, "page_size": page_size}
 
+    def _registry_tag_info_to_payload(self, tag: str, tag_info: Dict[str, Any]) -> Dict[str, Any]:
+        created_at = tag_info.get("created_at") or tag_info.get("updated_at") or ""
+        updated_at = tag_info.get("updated_at") or created_at
+        return {
+            "name": tag,
+            "size": tag_info.get("size") or 0,
+            "digest": tag_info.get("digest") or "",
+            "created_at": created_at,
+            "updated_at": updated_at,
+            "os": tag_info.get("os") or "",
+            "architecture": tag_info.get("architecture") or "",
+            "status": tag_info.get("status") or "active",
+        }
+
     def _get_registry_v2_tags(self, base_url: str, username: str, password: str, namespace: str, name: str,
                               page: int = 1, page_size: int = 10, search_key: Optional[str] = None) -> Dict[str, Any]:
         repo_name = name if namespace == "library" else "{}/{}".format(namespace, name)
@@ -955,16 +1704,10 @@ class TeamService(object):
         total = len(all_tags)
         start = (page - 1) * page_size
         end = start + page_size
-        tags = [{
-            "name": tag,
-            "size": 0,
-            "digest": "",
-            "created_at": "",
-            "updated_at": "",
-            "os": "",
-            "architecture": "",
-            "status": "active",
-        } for tag in all_tags[start:end]]
+        tags = []
+        for tag in all_tags[start:end]:
+            tag_info = self._get_registry_tag_info(base_url, repo_name, tag, username, password)
+            tags.append(self._registry_tag_info_to_payload(tag, tag_info))
         return {"tags": tags, "total": total, "page": page, "page_size": page_size}
 
     @transaction.atomic()
@@ -1485,16 +2228,27 @@ class TeamService(object):
                 manifest_url,
                 username,
                 password,
-                {"Accept": "application/vnd.docker.distribution.manifest.v2+json"}
+                {"Accept": ", ".join(self.REGISTRY_MANIFEST_ACCEPT_TYPES)}
             )
             
             if manifest_response.status_code == 200:
                 manifest = manifest_response.json()
+                manifest_digest = manifest_response.headers.get("Docker-Content-Digest", "")
                 config_digest = manifest.get("config", {}).get("digest")
-                
-                # 只计算压缩后的大小
-                compressed_size = sum(layer.get("size", 0) for layer in manifest.get("layers", []))
-                
+                manifests = manifest.get("manifests", []) or []
+                if not config_digest and manifests:
+                    platform = manifests[0].get("platform", {}) or {}
+                    return {
+                        "updated_at": "",
+                        "created_at": "",
+                        "digest": manifest_digest or manifests[0].get("digest", ""),
+                        "os": platform.get("os", ""),
+                        "architecture": platform.get("architecture", ""),
+                        "size": sum(item.get("size", 0) or 0 for item in manifests),
+                    }
+
+                compressed_size = sum(layer.get("size", 0) or 0 for layer in manifest.get("layers", []))
+
                 if config_digest:
                     config_url = "{}/v2/{}/blobs/{}".format(base_url, repo_name, config_digest)
                     config_response = self._registry_v2_get(config_url, username, password)
@@ -1503,7 +2257,7 @@ class TeamService(object):
                         return {
                             "updated_at": config.get("created", ""),
                             "created_at": config.get("created", ""),
-                            "digest": manifest.get("config", {}).get("digest", ""),
+                            "digest": manifest_digest or config_digest,
                             "os": config.get("os", ""),
                             "architecture": config.get("architecture", ""),
                             "size": compressed_size

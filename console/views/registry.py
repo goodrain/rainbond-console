@@ -14,11 +14,21 @@ import logging
 logger = logging.getLogger('default')
 
 
+def _value_or_existing(value: Any, existing: Any) -> Any:
+    return existing if value in (None, "") else value
+
+
 def _parse_registry_credentials(request: Request) -> tuple:
     return (
         parse_item(request, "username", required=True),
         parse_item(request, "password", required=True),
     )
+
+
+def _parse_registry_credentials_for_update(request: Request, auth: Any) -> tuple:
+    username = _value_or_existing(parse_item(request, "username"), getattr(auth, "username", ""))
+    password = _value_or_existing(parse_item(request, "password"), getattr(auth, "password", ""))
+    return username, password
 
 
 def _parse_cloud_registry_credentials(request: Request, hub_type: str) -> dict:
@@ -27,6 +37,15 @@ def _parse_cloud_registry_credentials(request: Request, hub_type: str) -> dict:
     return {
         "access_key": parse_item(request, "access_key", required=True),
         "access_secret": parse_item(request, "access_secret", required=True),
+    }
+
+
+def _parse_cloud_registry_credentials_for_update(request: Request, hub_type: str, auth: Any) -> dict:
+    if team_services.normalize_registry_hub_type(hub_type) not in team_services.CLOUD_REGISTRY_HUB_TYPES:
+        return {}
+    return {
+        "access_key": _value_or_existing(parse_item(request, "access_key"), getattr(auth, "access_key", "")),
+        "access_secret": _value_or_existing(parse_item(request, "access_secret"), getattr(auth, "access_secret", "")),
     }
 
 
@@ -48,11 +67,15 @@ class HubRegistryView(JWTAuthApiView):
         # 检查是否已存在
         ra = team_registry_auth_repo.check_exist_registry_auth(secret_id, self.user.user_id)  # type: ignore[arg-type]
         if ra.exists():
-            result = general_message(400, "error", "资源已存在")
+            result = general_message(400, "error", "镜像仓库已存在")
+            return Response(result, status=result["code"])
+        enterprise_id = getattr(self.user, "enterprise_id", "")
+        if enterprise_id and team_registry_auth_repo.get_enterprise_registry_auth(secret_id, enterprise_id):
+            result = general_message(400, "error", "镜像仓库已存在")
             return Response(result, status=result["code"])
 
         try:
-            team_services.check_registry_connection(domain, username, password, hub_type)
+            team_services.check_registry_connection(domain, username, password, hub_type, **cloud_credentials)
             params = {
                 "tenant_id": '',
                 "region_name": '',
@@ -88,8 +111,8 @@ class HubRegistryView(JWTAuthApiView):
             "hub_type": parse_item(request, "hub_type", required=True),
         }
         data["hub_type"] = team_services.normalize_registry_hub_type(data["hub_type"])
-        data.update(_parse_cloud_registry_credentials(request, data["hub_type"]))
-        data["username"], data["password"] = _parse_registry_credentials(request)
+        data.update(_parse_cloud_registry_credentials_for_update(request, data["hub_type"], auth))
+        data["username"], data["password"] = _parse_registry_credentials_for_update(request, auth)
         try:
             team_services.validate_registry_hub_type(data["hub_type"])
         except ServiceHandleException as e:
@@ -137,10 +160,13 @@ class EnterpriseHubRegistryView(EnterpriseAdminView):
         cloud_credentials = _parse_cloud_registry_credentials(request, hub_type)
         secret_id = parse_item(request, "secret_id", required=True)
         if team_registry_auth_repo.check_exist_enterprise_registry_auth(enterprise_id, secret_id).exists():
-            result = general_message(400, "error", "资源已存在")
+            result = general_message(400, "error", "镜像仓库已存在")
+            return Response(result, status=result["code"])
+        if team_registry_auth_repo.check_exist_user_registry_auth(secret_id, enterprise_id).exists():
+            result = general_message(400, "error", "镜像仓库已存在")
             return Response(result, status=result["code"])
         try:
-            team_services.check_registry_connection(domain, username, password, hub_type)
+            team_services.check_registry_connection(domain, username, password, hub_type, **cloud_credentials)
             params = {
                 "tenant_id": '',
                 "region_name": '',
@@ -178,10 +204,16 @@ class EnterpriseHubRegistryView(EnterpriseAdminView):
             "hub_type": parse_item(request, "hub_type", required=True),
         }
         data["hub_type"] = team_services.normalize_registry_hub_type(data["hub_type"])
-        data.update(_parse_cloud_registry_credentials(request, data["hub_type"]))
-        data["username"], data["password"] = _parse_registry_credentials(request)
+        data.update(_parse_cloud_registry_credentials_for_update(request, data["hub_type"], auth))
+        data["username"], data["password"] = _parse_registry_credentials_for_update(request, auth)
         try:
-            team_services.check_registry_connection(data["domain"], data["username"], data["password"], data["hub_type"])
+            team_services.check_registry_connection(
+                data["domain"],
+                data["username"],
+                data["password"],
+                data["hub_type"],
+                access_key=data.get("access_key", ""),
+                access_secret=data.get("access_secret", ""))
         except ServiceHandleException as e:
             result = general_message(e.status_code, e.msg, e.msg_show)
             return Response(result, status=result["code"])
@@ -218,42 +250,79 @@ class HubRegistryImageView(JWTAuthApiView):
 
         try:
             auth = team_services.resolve_registry_auth(self.user, secret_id)
+            is_cloud_registry = (
+                team_services.normalize_registry_hub_type(auth.hub_type) in team_services.CLOUD_REGISTRY_HUB_TYPES)
             if not namespace:
-                namespaces = team_services.get_registry_namespaces(
-                    domain=auth.domain,
-                    username=auth.username,
-                    password=auth.password,
-                    hub_type=auth.hub_type
-                )
+                if is_cloud_registry:
+                    namespaces = team_services.get_cloud_registry_namespaces(
+                        domain=auth.domain,
+                        access_key=getattr(auth, "access_key", ""),
+                        access_secret=getattr(auth, "access_secret", ""),
+                        hub_type=auth.hub_type
+                    )
+                else:
+                    namespaces = team_services.get_registry_namespaces(
+                        domain=auth.domain,
+                        username=auth.username,
+                        password=auth.password,
+                        hub_type=auth.hub_type
+                    )
                 result = general_message(200, "success", "查询成功", list=namespaces)
             elif not name:
-                data = team_services.get_registry_images(
-                    domain=auth.domain,
-                    username=auth.username,
-                    password=auth.password,
-                    hub_type=auth.hub_type,
-                    namespace=namespace,
-                    page=page,
-                    page_size=page_size,
-                    search_key=search_key
-                )
+                if is_cloud_registry:
+                    data = team_services.get_cloud_registry_images(
+                        domain=auth.domain,
+                        access_key=getattr(auth, "access_key", ""),
+                        access_secret=getattr(auth, "access_secret", ""),
+                        hub_type=auth.hub_type,
+                        namespace=namespace,
+                        page=page,
+                        page_size=page_size,
+                        search_key=search_key
+                    )
+                else:
+                    data = team_services.get_registry_images(
+                        domain=auth.domain,
+                        username=auth.username,
+                        password=auth.password,
+                        hub_type=auth.hub_type,
+                        namespace=namespace,
+                        page=page,
+                        page_size=page_size,
+                        search_key=search_key
+                    )
                 result = general_message(200, "success", "查询成功",
                                          list=data["images"],
                                          total=data["total"],
                                          page=data["page"],
                                          page_size=data["page_size"])
             elif not tag:
-                data = team_services.get_registry_tags(
-                    domain=auth.domain,
-                    username=auth.username,
-                    password=auth.password,
-                    hub_type=auth.hub_type,
-                    namespace=namespace,
-                    name=name,
-                    page=page,
-                    page_size=page_size,
-                    search_key=search_key
-                )
+                if is_cloud_registry:
+                    data = team_services.get_cloud_registry_tags(
+                        domain=auth.domain,
+                        username=auth.username,
+                        password=auth.password,
+                        access_key=getattr(auth, "access_key", ""),
+                        access_secret=getattr(auth, "access_secret", ""),
+                        hub_type=auth.hub_type,
+                        namespace=namespace,
+                        name=name,
+                        page=page,
+                        page_size=page_size,
+                        search_key=search_key
+                    )
+                else:
+                    data = team_services.get_registry_tags(
+                        domain=auth.domain,
+                        username=auth.username,
+                        password=auth.password,
+                        hub_type=auth.hub_type,
+                        namespace=namespace,
+                        name=name,
+                        page=page,
+                        page_size=page_size,
+                        search_key=search_key
+                    )
                 result = general_message(200, "success", "查询成功",
                                          list=data["tags"],
                                          total=data["total"],
