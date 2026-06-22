@@ -1136,19 +1136,23 @@ class MarketAppService(object):
 
         extend_info = app.get("extend_method_map", {})
         tenant_service.min_node = extend_info.get("min_node", 1)
-        if extend_info.get("init_memory") is not None:
-            tenant_service.min_memory = extend_info.get("init_memory")
-        elif app.get("memory") is not None:
-            tenant_service.min_memory = app.get("memory")
-        elif extend_info.get("min_memory") is not None:
-            tenant_service.min_memory = extend_info.get("min_memory")
+        init_memory = extend_info.get("init_memory")
+        app_memory = app.get("memory")
+        min_memory = extend_info.get("min_memory")
+        if init_memory is not None:
+            tenant_service.min_memory = init_memory
+        elif app_memory is not None:
+            tenant_service.min_memory = app_memory
+        elif min_memory is not None:
+            tenant_service.min_memory = min_memory
         else:
             tenant_service.min_memory = 512
         container_cpu = extend_info.get("container_cpu")
+        app_cpu = app.get("cpu")
         if container_cpu is not None:
             tenant_service.min_cpu = container_cpu
-        elif app.get("cpu") is not None:
-            tenant_service.min_cpu = app.get("cpu")
+        elif app_cpu is not None:
+            tenant_service.min_cpu = app_cpu
         else:
             tenant_service.min_cpu = baseService.calculate_service_cpu(region_name, tenant_service.min_memory)
         tenant_service.version = app.get("version")  # type: ignore[assignment]
