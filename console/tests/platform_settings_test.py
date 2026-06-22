@@ -20,6 +20,7 @@ import django  # noqa: E402
 
 django.setup()
 
+from console.exception.exceptions import ConfigExistError  # noqa: E402
 from console.views.platform_settings import PlatformSettingsUpdateView, PlatformSettingsView  # noqa: E402
 
 
@@ -45,6 +46,20 @@ class PlatformSettingsTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["data"]["bean"]["enable_global_image_registry"], True)
         config_service_cls.assert_called_once_with("eid-1", None)
+
+    def test_get_recovers_when_global_image_registry_config_is_created_concurrently(self):
+        request = self.factory.get("/console/enterprise/eid-1/platform-settings")
+        config = SimpleNamespace(enable=False)
+
+        with mock.patch("console.views.platform_settings.TenantEnterprise.objects.get", return_value=self.enterprise), \
+                mock.patch("console.views.platform_settings.EnterpriseConfigService") as config_service_cls:
+            config_service_cls.return_value.get_config_by_key.side_effect = [None, config]
+            config_service_cls.return_value.add_config.side_effect = ConfigExistError("配置GLOBAL_IMAGE_REGISTRY已存在")
+            response = PlatformSettingsView().get(request, eid="eid-1")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["data"]["bean"]["enable_global_image_registry"], False)
+        self.assertEqual(config_service_cls.return_value.get_config_by_key.call_count, 2)
 
     def test_update_global_image_registry_status_without_requiring_team_resource_view(self):
         request = SimpleNamespace(data={"enable_global_image_registry": False})
