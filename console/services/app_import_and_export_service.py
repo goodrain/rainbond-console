@@ -590,7 +590,7 @@ class AppImportService(object):
                 extend_method_map[field] = service_extend_method[field]
         if extend_method_map.get("container_cpu") is None and component.get("cpu") is not None:
             extend_method_map["container_cpu"] = component["cpu"]
-        if not extend_method_map.get("init_memory") and component.get("memory") is not None:
+        if extend_method_map.get("init_memory") is None and component.get("memory") is not None:
             extend_method_map["init_memory"] = component["memory"]
         if extend_method_map.get("init_memory") is None and extend_method_map.get("min_memory") is not None:
             extend_method_map["init_memory"] = extend_method_map["min_memory"]

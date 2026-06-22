@@ -5830,6 +5830,39 @@
       "status": "active"
     },
     {
+      "id": "console.market-app.install-unlimited-resources",
+      "title": "Preserve unlimited resources in market publish and install",
+      "title_zh": "市场发布和安装保留不限制资源",
+      "interface_type": "workflow",
+      "interface": "console.services.share_services.ShareService.query_share_service_info / console.services.market_app.new_components.NewComponents._template_to_component / console.services.market_app_service.MarketAppService.__init_component_from_market_app / console.services.app_import_and_export_service.AppImportService.__normalize_import_component_template",
+      "code_paths": [
+        "console/services/share_services.py",
+        "console/services/market_app/new_components.py",
+        "console/services/market_app_service.py",
+        "console/services/app_import_and_export_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/service_share_test.py",
+          "selector": "ShareServiceQueryResourceLimitTestCase.test_query_share_service_info_preserves_unlimited_resource_limits"
+        },
+        {
+          "path": "console/tests/market_app_update_components_test.py",
+          "selector": "MarketAppNewComponentsResourceLimitTests.test_template_to_component_preserves_explicit_unlimited_cpu_and_memory"
+        },
+        {
+          "path": "console/tests/market_app_service_test.py",
+          "selector": "MarketAppServiceResourceLimitTests.test_init_component_from_market_app_preserves_explicit_unlimited_cpu_and_memory"
+        },
+        {
+          "path": "console/tests/app_import_and_export_service_test.py",
+          "selector": "AppImportServiceMetadataTestCase.test_save_enterprise_import_info_preserves_explicit_unlimited_resources"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.market-app.upgrade-share-image-fallback",
       "title": "Market App Upgrade Share Image Fallback",
       "title_zh": "Market App Upgrade Share Image Fallback",
