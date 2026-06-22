@@ -381,3 +381,36 @@ class AppManageIncompleteVMCleanupTests(DjangoTestCase):
         self.assertTrue(
             VirtualMachineImage.objects.filter(tenant_id="tenant-a", ID=asset.ID).exists()
         )
+
+    def test_truncate_service_strips_build_strategy_for_delete_record(self):
+        """Regression: _truncate_service must not pass build_strategy to TenantServiceInfoDelete."""
+        tenant = mock.Mock(tenant_id="tenant-b")
+        service = TenantServiceInfo.objects.create(
+            service_id="service-bs-1",
+            tenant_id="tenant-b",
+            service_key="service-bs-1",
+            service_alias="service-bs-1",
+            service_cname="service-bs-1",
+            service_region="demo-region",
+            category="application",
+            version="v1",
+            image="nginx:latest",
+            build_strategy="dockerfile",
+            inner_port=0,
+            container_gpu=0,
+            create_status="complete",
+            k8s_component_name="service-bs-1-k8s"
+        )
+
+        service_manage = app_manage_module.AppManageService()
+        captured_data = {}
+
+        def fake_create(**kwargs):
+            captured_data.update(kwargs)
+            return mock.Mock()
+
+        with mock.patch.object(app_manage_module.delete_service_repo, "create_delete_service", side_effect=fake_create):
+            service_manage._truncate_service(tenant, service)
+
+        self.assertNotIn("build_strategy", captured_data)
+        self.assertEqual(captured_data.get("inner_port", 0), 0)
