@@ -129,12 +129,13 @@ class DockerComposeCreateView(RegionTenantHeaderView):
             return Response(general_message(400, "params error", "未指明上传事件ID"), status=400)
         # 创建组
         group = group_repo.get_group_by_pk(self.tenant.tenant_id, self.response_region, group_id)  # type: ignore[arg-type]
-        # NOTE: get_group_by_pk may return None; backlog
-        group_info = group.to_dict()  # type: ignore[union-attr]
-        group_info["group_id"] = group.ID  # type: ignore[union-attr]
-        group_info['app_id'] = group.ID  # type: ignore[union-attr]
-        group_info['app_name'] = group.group_name  # type: ignore[union-attr]
-        group_info['k8s_app'] = group.k8s_app  # type: ignore[union-attr]
+        if not group:
+            return Response(general_message(404, "group not found", "应用组不存在"), status=404)
+        group_info = group.to_dict()
+        group_info["group_id"] = group.ID
+        group_info['app_id'] = group.ID
+        group_info['app_name'] = group.group_name
+        group_info['k8s_app'] = group.k8s_app
         code, msg, group_compose = compose_service.create_group_compose(
             self.tenant, self.response_region, group_info["group_id"], event_id, compose_file_path, hub_user, hub_pass)
         if code != 200:
