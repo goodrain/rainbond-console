@@ -34,8 +34,11 @@ class RegionRepo(object):
             return regions
         return None
 
-    def get_region_by_region_id(self, region_id: str) -> RegionConfig:
-        return RegionConfig.objects.get(region_id=region_id)
+    def get_region_by_region_id(self, region_id: str) -> Optional[RegionConfig]:
+        try:
+            return RegionConfig.objects.get(region_id=region_id)
+        except RegionConfig.DoesNotExist:
+            return None
 
     def get_region_by_enterprise_id(self, enterprise_id: str) -> Optional[RegionConfig]:
         regions = RegionConfig.objects.filter(enterprise_id=enterprise_id)
@@ -78,8 +81,11 @@ class RegionRepo(object):
             return region_configs[0]
         return None
 
-    def get_by_region_name(self, region_name: str) -> RegionConfig:
-        return RegionConfig.objects.get(region_name=region_name)
+    def get_by_region_name(self, region_name: str) -> Optional[RegionConfig]:
+        try:
+            return RegionConfig.objects.get(region_name=region_name)
+        except RegionConfig.DoesNotExist:
+            return None
 
     def get_region_by_region_names(self, region_names: List[str]) -> QuerySet[RegionConfig]:
         return RegionConfig.objects.filter(region_name__in=region_names)

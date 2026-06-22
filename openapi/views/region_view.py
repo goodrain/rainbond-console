@@ -195,6 +195,8 @@ class ReplaceRegionIP(BaseOpenAPIView):
     def post(self, request: Request) -> Response:
         region_name = request.data.get("region_name", "")
         region_info = region_services.get_by_region_name(region_name)
+        if not region_info:
+            return Response(general_message(404, "region not found", "数据中心不存在"), status.HTTP_404_NOT_FOUND)
         region_id = region_info.region_id
         try:
             region_data = {

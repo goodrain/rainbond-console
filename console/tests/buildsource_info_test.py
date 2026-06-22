@@ -23,6 +23,7 @@ class DummyService(object):
         self.oauth_service_id = ""
         self.git_full_name = "demo/demo"
         self.service_region = "region-a"
+        self.dockerfile = ""
 
 
 class DummyJavaService(DummyService):

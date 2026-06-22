@@ -54,7 +54,10 @@ class AppExportService(object):
         if data:
             for region in data:
                 if region["rbd_version"] != "":
-                    return region_services.get_region_by_region_id(data[0]["region_id"])
+                    result = region_services.get_region_by_region_id(data[0]["region_id"])
+                    if result is None:
+                        raise RegionNotFound("暂无可用的集群，应用导出功能不可用")
+                    return result
         raise RegionNotFound("暂无可用的集群，应用导出功能不可用")
 
     def export_app(self, eid: str, app_id: str, version: str, export_format: str,
@@ -361,7 +364,10 @@ class AppImportService(object):
         if data:
             for region in data:
                 if region["rbd_version"] != "":
-                    return region_services.get_region_by_region_id(data[0]["region_id"])
+                    result = region_services.get_region_by_region_id(data[0]["region_id"])
+                    if result is None:
+                        raise RegionNotFound("暂无可用的集群、应用导入功能不可用")
+                    return result
         raise RegionNotFound("暂无可用的集群、应用导入功能不可用")
 
     def start_import_apps(self, scope: str, event_id: str, file_names: Any, team_name: Optional[str] = None,
@@ -584,7 +590,7 @@ class AppImportService(object):
                 extend_method_map[field] = service_extend_method[field]
         if extend_method_map.get("container_cpu") is None and component.get("cpu") is not None:
             extend_method_map["container_cpu"] = component["cpu"]
-        if not extend_method_map.get("init_memory") and component.get("memory") is not None:
+        if extend_method_map.get("init_memory") is None and component.get("memory") is not None:
             extend_method_map["init_memory"] = component["memory"]
         if extend_method_map.get("init_memory") is None and extend_method_map.get("min_memory") is not None:
             extend_method_map["init_memory"] = extend_method_map["min_memory"]

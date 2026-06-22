@@ -6167,4 +6167,49 @@ class MCPQueryServiceSerializeModelItemTests(SimpleTestCase):
         result = mcp_query_service._serialize_model_item(Container())
 
         self.assertEqual(result, {"name": "demo", "payload": {"k": "v"}})
-        json.dumps(result)
+
+
+class MCPQueryServiceCreateAppFromSnapshotVersionTests(SimpleTestCase):
+
+    @patch("console.services.mcp_query_service.group_service")
+    def test_create_app_from_snapshot_version_raises_on_invalid_app_id(self, mock_group_service):
+        """When created_app returns a non-integer ID, a ServiceHandleException
+        should be raised with '应用ID格式无效' message."""
+        user = Obj(
+            user_id=1,
+            enterprise_id="eid-1",
+            nick_name="testuser",
+            real_name="Test User",
+            email="test@example.com",
+            is_active=True,
+            is_enterprise_admin=True,
+        )
+
+        # Resolve the team/app/region context and snapshot lookups in-memory so the
+        # SimpleTestCase never touches the database. The created app carries a
+        # non-integer ID to trigger the validation failure under test.
+        team = Obj(tenant_name="team", tenant_id="tid-1")
+        source_app = Obj(ID=123, group_name="source-app")
+        region = Obj(region_name="region")
+        mock_created_app = Obj(ID="not-a-number", app_id=None, group_id=None)
+
+        with patch.object(mcp_query_service, "_get_team_app_context", return_value=(team, source_app)), \
+                patch.object(mcp_query_service, "_get_region_by_name_context", return_value=region), \
+                patch("console.services.mcp_query_service.app_version_service") as mock_app_version_service, \
+                patch.object(mcp_query_service, "_create_app_with_mcp_error_details", return_value=mock_created_app):
+            mock_app_version_service.get_overview.return_value = {"template_id": "tpl-1"}
+            mock_app_version_service.get_snapshot_detail.return_value = {"version": "v1"}
+
+            with self.assertRaises(ServiceHandleException) as ctx:
+                mcp_query_service.create_app_from_snapshot_version(
+                    user=user,
+                    arguments={
+                        "team_name": "team",
+                        "region_name": "region",
+                        "source_app_id": 123,
+                        "version_id": 456,
+                        "target_app_name": "target-app",
+                    },
+                )
+
+        self.assertIn("应用ID格式无效", str(ctx.exception))

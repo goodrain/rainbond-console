@@ -76,6 +76,9 @@ class UserAccessTokenRUDView(JWTAuthApiView):
     def delete(self, request: Request, id: str, **kwargs: Any) -> Response:
         access_key = user_access_services.get_user_access_key_by_id(
             request.user.user_id, id).first()  # type: ignore[union-attr]
+        if not access_key:
+            result = general_message(404, "no found access key", "未找到该凭证")
+            return Response(result, status=404)
         user_access_services.delete_user_access_key_by_id(request.user.user_id, id)  # type: ignore[union-attr]
         result = general_message(200, "success", None)
         comment = operation_log_service.generate_generic_comment(

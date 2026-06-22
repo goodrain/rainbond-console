@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from datetime import datetime
-from typing import Any
+from typing import Any, Optional
 
 from django.db.models import QuerySet
 
@@ -29,21 +29,21 @@ class ConfigRepository(object):
         return ConsoleSysConfig.objects.filter(key=key).update(value=value)
 
     def update_or_create_by_key(self, key: str, value: Any) -> None:
-        try:
-            obj = ConsoleSysConfig.objects.get(key=key)
-            setattr(obj, "value", value)
-            obj.save()
-        except ConsoleSysConfig.DoesNotExist:
-            ConsoleSysConfig.objects.create(
-                key=key,
-                value=value,
-                type="json",
-                desc="git配置",
-                enable=True,
-                create_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+        ConsoleSysConfig.objects.update_or_create(
+            key=key,
+            defaults={
+                "value": value,
+                "type": "json",
+                "desc": "git配置",
+                "enable": True,
+            },
+        )
 
-    def get_by_key(self, key: str) -> ConsoleSysConfig:
-        return ConsoleSysConfig.objects.get(key=key, enable=True)
+    def get_by_key(self, key: str) -> Optional[ConsoleSysConfig]:
+        try:
+            return ConsoleSysConfig.objects.get(key=key, enable=True)
+        except ConsoleSysConfig.DoesNotExist:
+            return None
 
     def get_by_value_eid(self, value: Any) -> ConsoleSysConfig:
         return ConsoleSysConfig.objects.get(value=value, enable=True)
