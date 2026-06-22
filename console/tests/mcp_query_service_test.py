@@ -6185,14 +6185,21 @@ class MCPQueryServiceCreateAppFromSnapshotVersionTests(SimpleTestCase):
             is_enterprise_admin=True,
         )
 
-        # Mock _create_app_with_mcp_error_details to return an app with a string ID
+        # Resolve the team/app/region context and snapshot lookups in-memory so the
+        # SimpleTestCase never touches the database. The created app carries a
+        # non-integer ID to trigger the validation failure under test.
+        team = Obj(tenant_name="team", tenant_id="tid-1")
+        source_app = Obj(ID=123, group_name="source-app")
+        region = Obj(region_name="region")
         mock_created_app = Obj(ID="not-a-number", app_id=None, group_id=None)
-        mcp_query_service._create_app_with_mcp_error_details = patch(
-            "console.services.mcp_query_service.mcp_query_service._create_app_with_mcp_error_details"
-        ).start()
-        mcp_query_service._create_app_with_mcp_error_details.return_value = mock_created_app
 
-        try:
+        with patch.object(mcp_query_service, "_get_team_app_context", return_value=(team, source_app)), \
+                patch.object(mcp_query_service, "_get_region_by_name_context", return_value=region), \
+                patch("console.services.mcp_query_service.app_version_service") as mock_app_version_service, \
+                patch.object(mcp_query_service, "_create_app_with_mcp_error_details", return_value=mock_created_app):
+            mock_app_version_service.get_overview.return_value = {"template_id": "tpl-1"}
+            mock_app_version_service.get_snapshot_detail.return_value = {"version": "v1"}
+
             with self.assertRaises(ServiceHandleException) as ctx:
                 mcp_query_service.create_app_from_snapshot_version(
                     user=user,
@@ -6205,7 +6212,4 @@ class MCPQueryServiceCreateAppFromSnapshotVersionTests(SimpleTestCase):
                     },
                 )
 
-            self.assertIn("应用ID格式无效", str(ctx.exception))
-        finally:
-            patch.stopall()
-        json.dumps(result)
+        self.assertIn("应用ID格式无效", str(ctx.exception))
