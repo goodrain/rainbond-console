@@ -337,7 +337,7 @@ class ShareService(object):
                 data['probes'] = [probe.to_dict() for probe in probe_map.get(service.service_id, [])]
                 e_m = dict()
                 e_m['step_node'] = 1
-                e_m['min_memory'] = 64
+                e_m['min_memory'] = 0 if service.min_memory == 0 else 64
                 e_m['init_memory'] = service.min_memory
                 e_m['max_memory'] = 65536
                 e_m['step_memory'] = 64

@@ -211,25 +211,25 @@ class NewComponents(object):
             else:
                 component.extend_method = extend_method
 
-        component.min_node = template.get("extend_method_map", {}).get("min_node")
-        min_memory = template.get("extend_method_map", {}).get("init_memory")
+        extend_info = template.get("extend_method_map", {})
+        component.min_node = extend_info.get("min_node")
+        min_memory = extend_info.get("init_memory")
         if min_memory is not None:
             component.min_memory = min_memory
-        elif template.get("extend_method_map", {}).get("min_memory"):
-            component.min_memory = template.get("extend_method_map", {}).get("min_memory")
+        elif template.get("memory") is not None:
+            component.min_memory = template.get("memory")
+        elif extend_info.get("min_memory") is not None:
+            component.min_memory = extend_info.get("min_memory")
         else:
             component.min_memory = 512
-        if component.min_memory == 0:
-            component.min_memory = 512
 
-        container_cpu = template.get("extend_method_map", {}).get("container_cpu")
+        container_cpu = extend_info.get("container_cpu")
         if container_cpu is not None:
-            component.min_cpu = template["extend_method_map"]["container_cpu"]
-        else:
+            component.min_cpu = container_cpu
+        elif template.get("cpu") is not None:
             container_cpu = template.get("cpu")
-            component.min_cpu = container_cpu if container_cpu else 250
-
-        if component.min_cpu == 0:
+            component.min_cpu = container_cpu
+        else:
             component.min_cpu = 250
 
         component.total_memory = component.min_node * component.min_memory
