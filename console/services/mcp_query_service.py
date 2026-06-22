@@ -2465,12 +2465,22 @@ class MCPQueryService(object):
         if not target_app_id:
             raise ServiceHandleException(msg="create target app failed", msg_show="创建目标应用失败", status_code=500)
 
+        # Validate target_app_id can be converted to int
+        try:
+            target_app_id_int = int(target_app_id)
+        except (ValueError, TypeError):
+            raise ServiceHandleException(
+                msg="invalid app id",
+                msg_show="应用ID格式无效",
+                status_code=400,
+            )
+
         install_result = self.install_app_model(
             user,
             {
                 "team_name": team_name,
                 "region_name": region_name,
-                "app_id": int(target_app_id),
+                "app_id": target_app_id_int,
                 "source": "local",
                 "app_model_id": template_id,
                 "app_model_version": snapshot_version,
@@ -2486,7 +2496,7 @@ class MCPQueryService(object):
                 "template_id": template_id,
             },
             "target_app": {
-                "app_id": int(target_app_id),
+                "app_id": target_app_id_int,
                 "app_name": self._value(created_app, "app_name") or target_app_name,
                 "k8s_app": k8s_app or None,
             },
