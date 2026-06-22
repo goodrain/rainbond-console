@@ -325,6 +325,60 @@ class ShareServiceQueryResourceLimitTestCase(TestCase):
         self.assertEqual(0, component["extend_method_map"]["init_memory"])
         self.assertEqual(0, component["extend_method_map"]["container_cpu"])
 
+    def test_query_share_service_info_keeps_daemonset_node_scaling_fields_for_display(self):
+        team = mock.Mock(tenant_id=1)
+        service = mock.Mock(
+            service_id="svc-agent",
+            tenant_id=1,
+            service_cname="agent",
+            service_key="svc-agent",
+            category="app_publish",
+            language="",
+            extend_method="daemonset",
+            version="alpine",
+            min_memory=1024,
+            service_type="application",
+            service_source="docker_image",
+            k8s_component_name="agent",
+            deploy_version="20260622152758",
+            image="registry.example.com/agent:alpine",
+            git_url="",
+            arch="amd64",
+            service_alias="grd0070b",
+            service_name="",
+            service_region="demo-region",
+            creater=7,
+            cmd="",
+            min_node=3,
+            min_cpu=600,
+            component_id="component-agent",
+        )
+
+        with mock.patch.object(share_services_module.share_repo, "get_service_list_by_group_id",
+                               return_value=[service]), \
+                mock.patch.object(share_service_instance, "get_team_service_deploy_version",
+                                  return_value={"svc-agent": "20260622152758"}), \
+                mock.patch.object(share_service_instance, "get_service_ports_by_ids", return_value={}), \
+                mock.patch.object(share_service_instance, "get_service_dependencys_by_ids", return_value={}), \
+                mock.patch.object(share_service_instance, "get_service_env_by_ids", return_value={}), \
+                mock.patch.object(share_service_instance, "get_service_volume_by_ids", return_value={}), \
+                mock.patch.object(share_service_instance, "get_dep_mnts_by_ids", return_value={}), \
+                mock.patch.object(share_service_instance, "get_service_probes", return_value={}), \
+                mock.patch.object(share_service_instance, "list_service_monitors", return_value={}), \
+                mock.patch.object(share_service_instance, "list_component_graphs", return_value={}), \
+                mock.patch.object(share_service_instance, "list_component_k8s_attributes", return_value={}), \
+                mock.patch.object(share_service_instance, "list_component_labels", return_value={}), \
+                mock.patch.object(share_services_module.share_repo, "get_plugins_relation_by_service_ids",
+                                  return_value=[]):
+            components = share_service_instance.query_share_service_info(team, 30)
+
+        extend_method_map = components[0]["extend_method_map"]
+        self.assertEqual(3, extend_method_map["min_node"])
+        self.assertEqual(64, extend_method_map["max_node"])
+        self.assertEqual(1, extend_method_map["step_node"])
+        self.assertEqual(1024, extend_method_map["init_memory"])
+        self.assertEqual(600, extend_method_map["container_cpu"])
+
 
 # capability_id: console.service-share.stopped-component-publish
 # capability_id: console.service-share.vm-shutdown-guard

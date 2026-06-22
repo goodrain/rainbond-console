@@ -6,6 +6,7 @@ import importlib
 import json
 import typing
 from types import ModuleType
+from unittest import TestCase as UnitTestCase
 from unittest import mock
 from unittest.mock import patch
 
@@ -136,7 +137,7 @@ class MarketAppServiceTelemetryTests(SimpleTestCase):
         )
 
 
-class MarketAppServiceResourceLimitTests(SimpleTestCase):
+class MarketAppServiceResourceLimitTests(UnitTestCase):
     # capability_id: console.market-app.install-unlimited-resources
     def test_init_component_from_market_app_preserves_explicit_unlimited_cpu_and_memory(self):
         from console.services.market_app_service import market_app_service
@@ -171,6 +172,39 @@ class MarketAppServiceResourceLimitTests(SimpleTestCase):
         self.assertEqual(0, component.min_memory)
         self.assertEqual(0, component.min_cpu)
         self.assertEqual(0, component.total_memory)
+
+    def test_init_component_from_market_app_defaults_daemonset_node_when_node_scaling_is_absent(self):
+        from console.services.market_app_service import market_app_service
+
+        tenant = Obj(tenant_id="tenant-1")
+        user = Obj(pk=1)
+        app = {
+            "service_cname": "agent",
+            "service_key": "service-1",
+            "image": "registry.example.com/agent:alpine",
+            "share_image": "goodrain.me/agent:20260622152758",
+            "cmd": "",
+            "extend_method": "daemonset",
+            "version": "alpine",
+            "deploy_version": "20260622152758",
+            "service_type": "application",
+            "extend_method_map": {
+                "min_memory": 64,
+                "init_memory": 1024,
+                "max_memory": 65536,
+                "step_memory": 64,
+                "container_cpu": 600,
+            },
+        }
+
+        with mock.patch("console.services.market_app_service.TenantServiceInfo.save"):
+            component = market_app_service._MarketAppService__init_component_from_market_app(
+                tenant, "demo-region", user, app, 7)
+
+        self.assertEqual(1, component.min_node)
+        self.assertEqual(1024, component.min_memory)
+        self.assertEqual(600, component.min_cpu)
+        self.assertEqual(1024, component.total_memory)
 
 
 class MarketAppServiceCreateRainbondAppTests(SimpleTestCase):

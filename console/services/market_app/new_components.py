@@ -212,7 +212,7 @@ class NewComponents(object):
                 component.extend_method = extend_method
 
         extend_info = template.get("extend_method_map", {})
-        component.min_node = extend_info.get("min_node")
+        component.min_node = extend_info.get("min_node", 1)
         min_memory = extend_info.get("init_memory")
         if min_memory is not None:
             component.min_memory = min_memory
