@@ -523,7 +523,7 @@ class AppCheckService(object):
                 volume_name = service.service_alias.upper() + "_" + str(index)
                 if "file_content" in list(volume.keys()):
                     volume_service.add_service_volume(tenant, service, volume["volume_path"], volume["volume_type"],
-                                                      volume_name, volume["file_content"])
+                                                      volume_name, volume["file_content"], mode=volume.get("mode"))
                 else:
                     settings = {}
                     settings["volume_capacity"] = volume["volume_capacity"]
