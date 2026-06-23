@@ -221,9 +221,9 @@ class PlatformPluginService(object):
     def _get_market_platform_plugins(self, enterprise_id: str) -> Tuple[AppMarket, List[Any]]:
         market = self._build_platform_market(enterprise_id)
         if is_cloud_market_disabled():
-            logger.info("platform plugin market fetch skipped because cloud market is disabled enterprise_id=%s", enterprise_id)
+            logger.debug("platform plugin market fetch skipped because cloud market is disabled enterprise_id=%s", enterprise_id)
             return market, []
-        logger.info(
+        logger.debug(
             "platform plugin market fetch enterprise_id=%s market_url=%s market_domain=%s has_access_key=%s",
             enterprise_id,
             market.url,
@@ -232,7 +232,7 @@ class PlatformPluginService(object):
         )
         data = app_store.get_platform_plugins(market, page=1, page_size=-1)
         plugins = data.get("plugins", []) if data else []
-        logger.info(
+        logger.debug(
             "platform plugin market fetch result enterprise_id=%s plugin_count=%s",
             enterprise_id,
             len(plugins),
@@ -249,7 +249,7 @@ class PlatformPluginService(object):
         with self._market_plugin_cache_lock:
             entry = self._market_plugin_cache.get(cache_key)
             if entry and entry["expires_at"] > now:
-                logger.info(
+                logger.debug(
                     "platform plugin market cache hit enterprise_id=%s plugin_count=%s ttl_remaining_ms=%.1f",
                     enterprise_id,
                     len(entry["plugins"]),
@@ -257,7 +257,7 @@ class PlatformPluginService(object):
                 )
                 return entry["market"], self._copy_market_plugins(entry["plugins"])
 
-        logger.info("platform plugin market cache miss enterprise_id=%s", enterprise_id)
+        logger.debug("platform plugin market cache miss enterprise_id=%s", enterprise_id)
         market, plugins = self._get_market_platform_plugins(enterprise_id)
         cached_plugins = self._copy_market_plugins(plugins)
         with self._market_plugin_cache_lock:
@@ -319,14 +319,14 @@ class PlatformPluginService(object):
     def _select_market_plugin(self, market_plugins: List[Any], plugin_id: str, plugin_mapping: Any) -> Optional[Any]:
         candidates = [item for item in market_plugins if item.get("plugin_id") == plugin_id]
         if not candidates:
-            logger.info("platform plugin select plugin_id=%s reason=no_candidates", plugin_id)
+            logger.debug("platform plugin select plugin_id=%s reason=no_candidates", plugin_id)
             return None
 
         candidate_summaries = [self._plugin_debug_summary(item) for item in candidates]
         free_candidates = [item for item in candidates if self._normalize_app_level(item) == "free"]
         if free_candidates:
             selected = free_candidates[0]
-            logger.info(
+            logger.debug(
                 "platform plugin select plugin_id=%s reason=prefer_free candidates=%s selected=%s",
                 plugin_id,
                 json.dumps(candidate_summaries, ensure_ascii=False, sort_keys=True),
@@ -339,7 +339,7 @@ class PlatformPluginService(object):
             for item in candidates:
                 item_app_key = item.get("appKeyID") or item.get("app_key")
                 if item_app_key == app_key:
-                    logger.info(
+                    logger.debug(
                         "platform plugin select plugin_id=%s reason=match_license_app_key candidates=%s selected=%s",
                         plugin_id,
                         json.dumps(candidate_summaries, ensure_ascii=False, sort_keys=True),
@@ -348,7 +348,7 @@ class PlatformPluginService(object):
                     return item
 
         selected = candidates[0]
-        logger.info(
+        logger.debug(
             "platform plugin select plugin_id=%s reason=first_candidate candidates=%s selected=%s",
             plugin_id,
             json.dumps(candidate_summaries, ensure_ascii=False, sort_keys=True),
@@ -455,7 +455,7 @@ class PlatformPluginService(object):
         - 已安装插件的 latest_version 锚定到"安装时的物理 SKU", 避免跨架构误报可升级
         """
         if is_cloud_market_disabled():
-            logger.info(
+            logger.debug(
                 "platform plugin list skipped because cloud market is disabled enterprise_id=%s region_name=%s",
                 enterprise_id,
                 region_name,
@@ -473,7 +473,7 @@ class PlatformPluginService(object):
             logger.warning("Failed to get market platform plugins: %s", e)
             market_plugins = []
 
-        logger.info(
+        logger.debug(
             "platform plugin list source summary enterprise_id=%s region_name=%s "
             "license_valid=%s mapping_keys=%s market_plugin_count=%s region_arches=%s",
             enterprise_id,
@@ -496,7 +496,7 @@ class PlatformPluginService(object):
             # 1. 按集群 arch 过滤候选
             arch_matched = [c for c in candidates if self._get_plugin_arch(c) in region_arches]
             if not arch_matched:
-                logger.info(
+                logger.debug(
                     "platform plugin filtered by arch enterprise_id=%s region_name=%s "
                     "plugin_id=%s region_arches=%s candidate_arches=%s",
                     enterprise_id, region_name, plugin_id,
@@ -520,7 +520,7 @@ class PlatformPluginService(object):
             app_level = self._normalize_app_level(selected)
             if has_valid_license and app_level != "free" and not self._is_plugin_authorized(
                     plugin_mapping, plugin_id):
-                logger.info(
+                logger.debug(
                     "platform plugin filtered by license enterprise_id=%s region_name=%s "
                     "plugin_id=%s app_level=%s mapping_keys=%s",
                     enterprise_id, region_name, plugin_id, app_level,
@@ -546,7 +546,7 @@ class PlatformPluginService(object):
             )
             result.append(plugin_info)
 
-        logger.info(
+        logger.debug(
             "platform plugin list result summary enterprise_id=%s region_name=%s result_count=%s result_plugins=%s",
             enterprise_id,
             region_name,

@@ -336,6 +336,7 @@
 | console.kubeblocks.cluster-resource-validation | 校验 KubeBlocks 集群资源请求 | active | regression | console.services.kubeblocks_service.KubeBlocksService.validate_cluster_params | console/tests/kubeblocks_cluster_validation_test.py::KubeBlocksClusterValidationTests |
 | console.kubeblocks.create-credential-sync | 创建 KubeBlocks 组件时同步连接凭据 | active | regression | console.services.kubeblocks_service.KubeBlocksService.create_complete_kubeblocks_component | console/tests/kubeblocks_cluster_validation_test.py::KubeBlocksCreateFlowTests |
 | console.lang-version.proxy-upload | 代理旧版语言包上传接口 | active | regression | console.views.enterprise.UploadLongVersion.post | console/tests/lang_version_proxy_test.py::UploadLongVersionProxyViewTests |
+| console.logging.default-no-debug-noise | 默认控制台日志过滤调试噪音 | active | regression | goodrain_web.settings.LOGGING | console/tests/logging_config_test.py::LoggingConfigTests.test_default_logger_level_defaults_to_info<br>console/tests/logging_config_test.py::LoggingConfigTests.test_ip_formatter_uses_record_level_name |
 | console.market-app.create-template-scope-name | 按发布范围和团队检查应用市场模板重名 | active | regression | console.services.market_app_service.MarketAppService.create_rainbond_app | console/tests/market_app_service_test.py::MarketAppServiceCreateRainbondAppTests |
 | console.market-app.install-default-storage-class | 应用市场安装使用平台默认存储类 | active | regression | console.services.market_app.new_components.NewComponents._template_to_volumes | console/tests/market_app_storage_test.py::MarketAppDefaultStorageClassTests.test_resolve_market_default_volume_type_prefers_configured_storage_class<br>console/tests/market_app_storage_test.py::MarketAppDefaultStorageClassTests.test_template_to_volumes_uses_configured_default_storage_class |
 | console.market-app.install-unlimited-resources | 市场发布和安装保留不限制资源 | active | regression | console.services.share_services.ShareService.query_share_service_info / console.services.market_app.new_components.NewComponents._template_to_component / console.services.market_app_service.MarketAppService.__init_component_from_market_app / console.services.app_import_and_export_service.AppImportService.__normalize_import_component_template | console/tests/service_share_test.py::ShareServiceQueryResourceLimitTestCase.test_query_share_service_info_preserves_unlimited_resource_limits<br>console/tests/market_app_update_components_test.py::MarketAppNewComponentsResourceLimitTests.test_template_to_component_preserves_explicit_unlimited_cpu_and_memory<br>console/tests/market_app_service_test.py::MarketAppServiceResourceLimitTests.test_init_component_from_market_app_preserves_explicit_unlimited_cpu_and_memory<br>console/tests/app_import_and_export_service_test.py::AppImportServiceMetadataTestCase.test_save_enterprise_import_info_preserves_explicit_unlimited_resources |
@@ -3857,6 +3858,16 @@
 - 业务入口: `console.views.enterprise.UploadLongVersion.post`
 - 代码路径: `console/views/enterprise.py`, `console/urls/__init__.py`
 - 测试路径: `console/tests/lang_version_proxy_test.py::UploadLongVersionProxyViewTests`
+
+### 默认控制台日志过滤调试噪音
+
+- Capability ID: `console.logging.default-no-debug-noise`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `other`
+- 业务入口: `goodrain_web.settings.LOGGING`
+- 代码路径: `goodrain_web/settings.py`, `goodrain_web/log_formatter.py`
+- 测试路径: `console/tests/logging_config_test.py::LoggingConfigTests.test_default_logger_level_defaults_to_info`, `console/tests/logging_config_test.py::LoggingConfigTests.test_ip_formatter_uses_record_level_name`
 
 ### 按发布范围和团队检查应用市场模板重名
 

@@ -157,17 +157,17 @@ class RainbondPluginService(object):
         console_db_elapsed_ms: float = 0
         enrich_elapsed_ms: float = 0
         need_authz = False
-        logger.info("Calling region_api.list_plugins: enterprise_id={}, region_name={}, official={}".format(
+        logger.debug("Calling region_api.list_plugins: enterprise_id={}, region_name={}, official={}".format(
             enterprise_id, region_name, official))
         region_start = time.time()
         _, body = region_api.list_plugins(enterprise_id, region_name, official)
         region_elapsed_ms = (time.time() - region_start) * 1000
         plugins = body["list"] if body.get("list") else []  # type: ignore[union-attr, index]  # NOTE: body Optional from region_api (latent None, backlog)
-        logger.info("region_api.list_plugins returned {} plugins from region".format(len(plugins)))
+        logger.debug("region_api.list_plugins returned {} plugins from region".format(len(plugins)))
 
         # Log raw plugin data from region API
         for idx, plugin in enumerate(plugins):
-            logger.info("Raw plugin {} from region: name={}, category={}, alias={}".format(
+            logger.debug("Raw plugin {} from region: name={}, category={}, alias={}".format(
                 idx + 1,
                 plugin.get("name", "unknown"),
                 plugin.get("category", "unknown"),
@@ -189,7 +189,7 @@ class RainbondPluginService(object):
             finally:
                 market_elapsed_ms = (time.time() - market_start) * 1000
         elif official:
-            logger.info("official plugin market metadata skipped because cloud market is disabled")
+            logger.debug("official plugin market metadata skipped because cloud market is disabled")
 
         for plugin in plugins:
             region_app_ids.append(plugin["region_app_id"])
@@ -265,7 +265,7 @@ class RainbondPluginService(object):
             plugin["urls"] = [self._normalize_access_url(url, request=request) for url in plugin["urls"] if url]
             plugin["urls"] = [self._normalize_access_url(url, request=request) for url in plugin["urls"] if url]
         enrich_elapsed_ms = (time.time() - enrich_start) * 1000
-        logger.info(
+        logger.debug(
             "official plugin list timing enterprise_id=%s region_name=%s official=%s plugin_count=%s "
             "market_plugin_count=%s region_ms=%.1f market_ms=%.1f console_db_ms=%.1f enrich_ms=%.1f total_ms=%.1f",
             enterprise_id,
