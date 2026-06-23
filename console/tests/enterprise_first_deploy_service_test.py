@@ -32,6 +32,7 @@ from console.services.enterprise_first_deploy_service import EnterpriseFirstDepl
 
 
 # capability_id: console.deploy-diagnostics.v3
+# capability_id: console.deploy-diagnostics.source-check
 
 
 class Obj(object):
@@ -417,6 +418,118 @@ class EnterpriseFirstDeployServiceTests(TestCase):
         self.assertEqual(report_payload["failure_events"][0]["failure_category"], "compile_failed")
         self.assertEqual(report_payload["failure_logs"][0]["source"], "diagnostic_summary")
         self.assertIn("event_log_empty_after_retry", report_payload["failure_logs"][0]["lines"][0]["message"])
+
+    def test_collect_failure_logs_accepts_return_success_bean_shape(self):
+        event = {
+            "event_id": "event-build-1",
+            "opt_type": "build-service",
+            "status": "failure",
+            "message": "编译失败，请查看构建日志",
+        }
+        body = {"bean": [{"message": "dotnet restore failed: package NotFound"}]}
+
+        with mock.patch("console.services.enterprise_first_deploy_service.region_api.get_events_log",
+                        return_value=(Obj(status=200), body)):
+            logs, status = self.service._collect_failure_logs_with_status(
+                "demo-team",
+                "demo-region",
+                [event],
+                self.service.FAILURE_STAGE_BUILD,
+                self.service.FAILURE_CATEGORY_COMPILE_FAILED,
+                "编译失败，请查看构建日志")
+
+        self.assertEqual(status, self.service.LOG_COLLECT_STATUS_COLLECTED)
+        self.assertEqual(logs[0]["source"], "event_log")
+        self.assertEqual(logs[0]["lines"][0]["message"], "dotnet restore failed: package NotFound")
+
+    def test_report_source_check_failure_sends_pre_deploy_diagnostic(self):
+        report_response = Obj(status_code=200)
+        with mock.patch("console.services.enterprise_first_deploy_service.TenantEnterprise.objects.filter") as mock_filter, \
+                mock.patch("console.services.enterprise_first_deploy_service.requests.post",
+                           return_value=report_response) as mock_post:
+            mock_filter.return_value.first.return_value = Obj(enterprise_alias="demo-enterprise")
+            self.service.report_source_check_failure(
+                enterprise_id="eid-1",
+                tenant_name="demo-team",
+                region_name="demo-region",
+                reason="获取代码超时 请确认源码仓库能否正常访问",
+                service=Obj(
+                    service_id="svc-1",
+                    service_alias="grsource",
+                    service_cname="源码组件",
+                    service_source="source_code",
+                    language="",
+                    arch="amd64",
+                    min_memory=512,
+                    min_cpu=100,
+                    min_node=1,
+                    total_memory=128,
+                ),
+                app_context={"app_id": 12, "component_count": 1},
+                source_context={
+                    "git_url": "https://git.example.com/demo.git",
+                    "code_version": "master",
+                    "server_type": "git",
+                    "check_uuid": "check-1",
+                })
+
+        report_payload = mock_post.call_args[1]["json"]
+        self.assertFalse(report_payload["is_success"])
+        self.assertEqual(report_payload["deploy_type"], "source_code")
+        self.assertEqual(report_payload["failure_stage"], "source_check")
+        self.assertEqual(report_payload["failure_category"], "source_fetch_timeout")
+        self.assertEqual(report_payload["log_collect_status"], "provided")
+        self.assertEqual(report_payload["failure_events"][0]["opt_type"], "source-check")
+        self.assertEqual(report_payload["deployment_context"]["deploy_attempt_id"], "check-1")
+        self.assertEqual(report_payload["deployment_context"]["trigger"], "source_check")
+        self.assertEqual(report_payload["app_context"]["source_context"]["server_type"], "git")
+        self.assertIn("repo_host=git.example.com", report_payload["failure_logs"][0]["lines"][0]["message"])
+        self.assertIn("component_alias=grsource", report_payload["failure_logs"][0]["lines"][0]["message"])
+
+    def test_report_source_check_failure_can_send_in_background(self):
+        with mock.patch("console.services.enterprise_first_deploy_service.TenantEnterprise.objects.filter") as mock_filter, \
+                mock.patch.object(self.service, "_start_direct_report_thread") as mock_start_report, \
+                mock.patch.object(self.service, "_post_report_payload") as mock_post_report:
+            mock_filter.return_value.first.return_value = Obj(enterprise_alias="demo-enterprise")
+            self.service.report_source_check_failure(
+                enterprise_id="eid-1",
+                tenant_name="demo-team",
+                region_name="demo-region",
+                reason="获取代码超时 请确认源码仓库能否正常访问",
+                service=Obj(service_id="svc-1", service_alias="grsource", service_cname="源码组件", service_source="source_code"),
+                source_context={"git_url": "https://git.example.com/demo.git", "check_uuid": "check-1"},
+                async_report=True)
+
+        mock_start_report.assert_called_once()
+        mock_post_report.assert_not_called()
+        report_payload = mock_start_report.call_args[0][0]
+        self.assertEqual(report_payload["failure_stage"], "source_check")
+        self.assertEqual(report_payload["deployment_context"]["deploy_attempt_id"], "check-1")
+
+    def test_safe_report_source_check_failure_defaults_to_background_report(self):
+        with mock.patch.object(self.service, "report_source_check_failure") as mock_report:
+            self.service.safe_report_source_check_failure(
+                enterprise_id="eid-1",
+                tenant_name="demo-team",
+                region_name="demo-region",
+                reason="获取代码超时")
+
+        self.assertTrue(mock_report.call_args[1]["async_report"])
+
+    def test_source_check_context_redacts_repo_credentials(self):
+        context = self.service._sanitize_source_context(
+            "eid-1",
+            {
+                "git_url": "https://user:secret@git.example.com/org/demo.git",
+                "code_version": "master",
+                "server_type": "git",
+                "check_uuid": "check-1",
+            })
+
+        self.assertEqual(context["repo_host"], "git.example.com")
+        self.assertIn("repo_url_hash", context)
+        self.assertNotIn("secret", str(context))
+        self.assertNotIn("user:secret", str(context))
 
     def test_sync_record_reports_build_image_pull_event_details(self):
         payload = {
@@ -1406,6 +1519,63 @@ class EnterpriseFirstDeployServiceTests(TestCase):
         self.assertEqual(report_payload["failure_events"][0]["opt_type"], "RuntimeVerificationTimeout")
         self.assertEqual(report_payload["failure_logs"][0]["source"], "runtime_snapshot")
         self.assertIn("no pods observed", report_payload["failure_logs"][0]["lines"][0]["message"])
+
+    def test_runtime_timeout_includes_service_failure_events_when_no_pods_observed(self):
+        payload = {
+            "enterprise_id": "eid-1",
+            "enterprise_name": "demo-enterprise",
+            "deploy_type": self.service.DEPLOY_TYPE_APP_MARKET,
+            "source_language": "",
+            "status": self.service.STATUS_PENDING,
+            "build_status": self.service.STATUS_SUCCESS,
+            "runtime_status": self.service.STAGE_STATUS_PENDING,
+            "reported": False,
+            "tenant_name": "demo-team",
+            "region_name": "demo-region",
+            "event_ids": ["event-1"],
+            "service_ids": ["service-1"],
+            "service_alias": "demo-service",
+            "service_aliases": [],
+            "runtime_started_at": "2026-05-07 18:18:10",
+            "runtime_watch_started_at": "2026-05-07 18:18:10",
+        }
+        repo = FirstDeployRepoStub(payload)
+        report_response = Obj(status_code=200)
+        runtime_event = {
+            "event_id": "sched-1",
+            "status": "failure",
+            "target": "pod",
+            "opt_type": "FailedScheduling",
+            "service_id": "service-1",
+            "message": "0/1 nodes are available: 1 Insufficient memory.",
+            "reason": "FailedScheduling",
+            "create_time": "2026-05-07 18:18:30",
+        }
+
+        with mock.patch("console.services.enterprise_first_deploy_service.enterprise_first_deploy_repo", repo), \
+                mock.patch("console.services.enterprise_first_deploy_service.region_api.get_tenant_events",
+                           return_value={"list": [{"event_id": "event-1", "status": "success",
+                                                   "opt_type": "start-service", "service_id": "service-1",
+                                                   "final_status": "complete", "message": "", "reason": "",
+                                                   "start_time": "2026-05-07 18:18:07",
+                                                   "end_time": "2026-05-07 18:18:10"}]}), \
+                mock.patch("console.services.enterprise_first_deploy_service.region_api.get_target_events_list",
+                           return_value=(Obj(status=200), {"list": [runtime_event]})), \
+                mock.patch("console.services.enterprise_first_deploy_service.region_api.get_service_pods",
+                           return_value={"bean": {"new_pods": [], "old_pods": []}}), \
+                mock.patch.object(self.service, "_now", return_value="2026-05-07 18:19:45"), \
+                mock.patch("console.services.enterprise_first_deploy_service.requests.post",
+                           return_value=report_response) as mock_post:
+            status = self.service._sync_record(repo.record, payload, "demo-team", "demo-region")
+
+        self.assertEqual(status, self.service.STATUS_FAILURE)
+        report_payload = mock_post.call_args[1]["json"]
+        self.assertEqual(report_payload["failure_events"][0]["event_id"], "sched-1")
+        self.assertEqual(report_payload["failure_events"][0]["failure_category"], "no_available_nodes")
+        log_messages = "\n".join(line["message"] for log in report_payload["failure_logs"] for line in log["lines"])
+        self.assertIn("no pods observed", log_messages)
+        self.assertIn("FailedScheduling", log_messages)
+        self.assertIn("Insufficient memory", log_messages)
 
     def test_runtime_timeout_reports_partial_no_pods_for_multi_component_app(self):
         payload = {
