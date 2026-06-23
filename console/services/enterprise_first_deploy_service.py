@@ -1136,7 +1136,7 @@ class EnterpriseFirstDeployService(object):
             logger.debug("collect deployment diagnostic environment failed: %s", exc)
 
     def _collect_environment_context(self, enterprise_id: str, region_name: str) -> dict:
-        context = {
+        context: Dict[str, Any] = {
             "collect_status": "success",
             "region_name": region_name,
         }
