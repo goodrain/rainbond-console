@@ -60,7 +60,7 @@ class EnterpriseFirstDeployService(object):
     LOG_COLLECT_STATUS_PROVIDED = "provided"
     MAX_FAILURE_EVENTS = 20
     MAX_FAILURE_LOG_LINES = 50
-    MAX_BUILD_FAILURE_LOG_LINES = 200
+    MAX_BUILD_FAILURE_LOG_LINES = 1000
     MAX_FAILURE_LOG_LINE_LENGTH = 4096
     MAX_FAILURE_REASON_LENGTH = 1024
     RUNTIME_OBSERVE_WINDOW = 60
@@ -139,7 +139,19 @@ class EnterpriseFirstDeployService(object):
                        trigger: str = "",
                        app_context: Optional[dict] = None,
                        workload_context: Optional[dict] = None) -> Optional[dict]:
-        self._resume_legacy_enterprise_record(enterprise_id, tenant_name, region_name)
+        existing_record = enterprise_first_deploy_repo.get_by_enterprise_id(enterprise_id)
+        if existing_record:
+            existing = enterprise_first_deploy_repo.load_payload(existing_record)
+            if self._first_deploy_finished(existing):
+                self._report_if_needed(existing_record, existing, async_report=True)
+                return None
+            if existing.get("status") == self.STATUS_PENDING and not existing.get("event_ids") and self._is_expired(existing):
+                self._set_stage_failure(existing, self.FAILURE_STAGE_BUILD)
+                self._complete_tracking(existing_record, existing, self.STATUS_FAILURE)
+            self._report_if_needed(existing_record, existing, async_report=True)
+            if existing.get("status") == self.STATUS_PENDING and existing.get("event_ids"):
+                transaction.on_commit(lambda: self._start_sync_thread(existing_record.key, tenant_name, region_name))
+            return None
 
         payload = self._build_payload(
             enterprise_id=enterprise_id,
@@ -155,9 +167,12 @@ class EnterpriseFirstDeployService(object):
             app_context=app_context,
             workload_context=workload_context,
         )
-        record, created = enterprise_first_deploy_repo.create_attempt(enterprise_id, payload)
+        record, created = enterprise_first_deploy_repo.create_if_absent(enterprise_id, payload)
         if not created:
             existing = enterprise_first_deploy_repo.load_payload(record)
+            if self._first_deploy_finished(existing):
+                self._report_if_needed(record, existing, async_report=True)
+                return None
             if existing.get("status") == self.STATUS_PENDING and not existing.get("event_ids") and self._is_expired(existing):
                 self._set_stage_failure(existing, self.FAILURE_STAGE_BUILD)
                 self._complete_tracking(record, existing, self.STATUS_FAILURE)
@@ -219,6 +234,15 @@ class EnterpriseFirstDeployService(object):
             app_context: Optional[dict] = None,
             source_context: Optional[dict] = None,
             async_report: bool = False) -> None:
+        existing_record = enterprise_first_deploy_repo.get_by_enterprise_id(enterprise_id)
+        if existing_record:
+            existing = enterprise_first_deploy_repo.load_payload(existing_record)
+            if self._first_deploy_finished(existing):
+                self._report_if_needed(existing_record, existing, async_report=async_report)
+                return
+            record = existing_record
+        else:
+            record = None
         payload = self._build_payload(
             enterprise_id=enterprise_id,
             tenant_name=tenant_name,
@@ -246,11 +270,15 @@ class EnterpriseFirstDeployService(object):
             failure_logs=[self._build_source_check_diagnostic_log(payload, failed_event, reason)])
         payload["status"] = self.STATUS_FAILURE
         payload["finished_at"] = self._now()
-        report_payload = self._build_report_payload(payload)
-        if async_report:
-            self._start_direct_report_thread(report_payload)
-            return
-        self._post_report_payload(report_payload)
+        if record is None:
+            record, created = enterprise_first_deploy_repo.create_if_absent(enterprise_id, payload)
+            if not created:
+                existing = enterprise_first_deploy_repo.load_payload(record)
+                if self._first_deploy_finished(existing):
+                    return
+        else:
+            enterprise_first_deploy_repo.update_payload(record, payload)
+        self._report_if_needed(record, payload, async_report=async_report)
 
     def _resume_legacy_enterprise_record(self, enterprise_id: str, tenant_name: str, region_name: str) -> None:
         record = enterprise_first_deploy_repo.get_by_enterprise_id(enterprise_id)
@@ -263,6 +291,9 @@ class EnterpriseFirstDeployService(object):
         self._report_if_needed(record, payload, async_report=True)
         if payload.get("status") == self.STATUS_PENDING and payload.get("event_ids"):
             transaction.on_commit(lambda: self._start_sync_thread(record.key, tenant_name, region_name))
+
+    def _first_deploy_finished(self, payload: dict) -> bool:
+        return payload.get("status") in self.FINAL_STATUSES
 
     def bind_events(self,
                     tracker: Optional[dict],
@@ -1038,25 +1069,6 @@ class EnterpriseFirstDeployService(object):
                 return
             payload = enterprise_first_deploy_repo.load_payload(record)
             self._report_if_needed(record, payload, async_report=False)
-        finally:
-            with self._lock:
-                self._reporting_keys.discard(key)
-
-    def _start_direct_report_thread(self, report_payload: dict) -> None:
-        attempt_id = (report_payload.get("deployment_context") or {}).get("deploy_attempt_id") or uuid.uuid4().hex
-        key = "direct-report:%s" % attempt_id
-        with self._lock:
-            if key in self._reporting_keys:
-                return
-            self._reporting_keys.add(key)
-
-        worker = threading.Thread(target=self._post_direct_report_payload, args=(key, report_payload))
-        worker.daemon = True
-        worker.start()
-
-    def _post_direct_report_payload(self, key: str, report_payload: dict) -> None:
-        try:
-            self._post_report_payload(report_payload)
         finally:
             with self._lock:
                 self._reporting_keys.discard(key)
