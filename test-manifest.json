@@ -5855,6 +5855,29 @@
       "status": "active"
     },
     {
+      "id": "console.logging.default-no-debug-noise",
+      "title": "Default console logging suppresses debug noise",
+      "title_zh": "默认控制台日志过滤调试噪音",
+      "interface_type": "other",
+      "interface": "goodrain_web.settings.LOGGING",
+      "code_paths": [
+        "goodrain_web/settings.py",
+        "goodrain_web/log_formatter.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/logging_config_test.py",
+          "selector": "LoggingConfigTests.test_default_logger_level_defaults_to_info"
+        },
+        {
+          "path": "console/tests/logging_config_test.py",
+          "selector": "LoggingConfigTests.test_ip_formatter_uses_record_level_name"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.market-app.install-default-storage-class",
       "title": "Use platform default storage class for marketplace installs",
       "title_zh": "应用市场安装使用平台默认存储类",

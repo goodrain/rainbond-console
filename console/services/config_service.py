@@ -250,8 +250,6 @@ class ConfigService(object):
                 desc__startswith='自定义字段:'
             )
 
-        logger.debug(f"get_custom_fields - enterprise_id: {self.enterprise_id}, configs count: {configs.count()}")
-
         result: List[Dict[str, Any]] = []
         for config in configs:
             # 从 desc 中提取原始字段名
@@ -265,7 +263,6 @@ class ConfigService(object):
                 'enable': config.enable
             })
 
-        logger.debug(f"get_custom_fields - result: {result}")
         return result
 
 

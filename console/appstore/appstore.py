@@ -105,7 +105,7 @@ class AppStore(object):
         headers = {}
         if store.access_key:
             headers["Authorization"] = store.access_key
-        logger.info(
+        logger.debug(
             "app store platform plugin request url=%s market_domain=%s query=%s page=%s page_size=%s has_access_key=%s",
             "{0}/app-server/openapi/apps/platform-plugins".format(store.url.rstrip("/")),
             store.domain,
@@ -125,7 +125,7 @@ class AppStore(object):
             },
             timeout=15,
         )
-        logger.info(
+        logger.debug(
             "app store platform plugin response status_code=%s request_url=%s",
             response.status_code,
             response.url,

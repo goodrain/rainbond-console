@@ -43,6 +43,7 @@ MEDIA_URL = '/data/media/'
 MEDIA_ROOT = os.path.join(DATA_DIR, 'media')
 
 DEFAULT_HANDLERS = ['file_handler', 'console']
+DEFAULT_LOG_LEVEL = os.getenv("CONSOLE_LOG_LEVEL", "INFO").upper()
 
 PROJECT_NAME = SETTING_DIR.split('/')[-1]
 
@@ -283,7 +284,7 @@ LOGGING = {
     },
     'handlers': {
         'file_handler': {
-            'level': 'DEBUG',
+            'level': DEFAULT_LOG_LEVEL,
             'class': 'logging.handlers.RotatingFileHandler',
             'filename': LOG_PATH + '/goodrain.log',
             'maxBytes': 1024 * 1024 * 5,
@@ -299,7 +300,7 @@ LOGGING = {
             'formatter': 'standard',
         },
         'console': {
-            'level': 'DEBUG',
+            'level': DEFAULT_LOG_LEVEL,
             'class': 'logging.StreamHandler',
             'stream': sys.stdout,
             'formatter': 'standard'
@@ -308,7 +309,7 @@ LOGGING = {
     'loggers': {
         'default': {
             'handlers': DEFAULT_HANDLERS,
-            'level': 'DEBUG',
+            'level': DEFAULT_LOG_LEVEL,
             'propagate': True,
         },
         'request_api': {
