@@ -214,6 +214,38 @@ class RealtimeProxyUrlTests(SimpleTestCase):
         self.assertIn(b"file-0.txt", body)
         self.assertIn(b"file-4.txt", body)
 
+    # capability_id: console.realtime-proxy.file-operate-raw-multipart-forward
+    def test_file_operate_upload_forwards_raw_multipart_body(self):
+        upload_file = SimpleUploadedFile(
+            "file.txt",
+            b"app package content",
+            content_type="text/plain",
+        )
+        request = self.factory.post(
+            "/console/regions/rainbond/websocket/v2/file-operate/upload",
+            data={"path": "/data", "files": upload_file},
+            HTTP_AUTHORIZATION="JWT token",
+        )
+        backend_response = mock.Mock()
+        backend_response.status_code = 200
+        backend_response.headers = {"Content-Type": "application/json"}
+        backend_response.iter_content.return_value = iter([b'{"ok":true}'])
+
+        with mock.patch(
+            "console.utils.realtime_proxy.region_repo.get_region_by_region_name",
+            return_value=mock.Mock(wsurl="ws://region.example.com:6060"),
+        ), mock.patch("console.utils.realtime_proxy.requests.request", return_value=backend_response) as request_mock:
+            response = proxy_http_request(request, "rainbond", "v2/file-operate/upload")
+
+        _, kwargs = request_mock.call_args
+        self.assertEqual(request_mock.call_args[0][1], "http://region.example.com:6060/v2/file-operate/upload")
+        self.assertEqual(kwargs["headers"]["Authorization"], "JWT token")
+        self.assertIn("multipart/form-data", kwargs["headers"]["Content-Type"])
+        self.assertIn("boundary=", kwargs["headers"]["Content-Type"])
+        self.assertIsNone(kwargs["files"])
+        self.assertIsNotNone(kwargs["data"])
+        self.assertEqual(response.status_code, 200)
+
     # capability_id: console.realtime-proxy.docker-console-subprotocol
     def test_docker_console_backend_uses_webtty_subprotocol(self):
         request = self.factory.get("/console/regions/rainbond/websocket/docker_console")

@@ -129,6 +129,10 @@ def _is_multipart_request(request):
     return request.META.get("CONTENT_TYPE", "").lower().startswith("multipart/form-data")
 
 
+def _should_forward_raw_multipart(proxy_path):
+    return normalize_proxy_path(proxy_path) == "/v2/file-operate/upload"
+
+
 def build_multipart_payload(request):
     data = {}
     file_items = []
@@ -166,9 +170,10 @@ def proxy_http_request(request, region_name, proxy_path):
     data = _request_body_stream(request)
     files = None
     if request.method in ("POST", "PUT", "PATCH") and _is_multipart_request(request):
-        headers.pop("Content-Type", None)
-        headers.pop("Content-Length", None)
-        data, files = build_multipart_payload(request)
+        if not _should_forward_raw_multipart(proxy_path):
+            headers.pop("Content-Type", None)
+            headers.pop("Content-Length", None)
+            data, files = build_multipart_payload(request)
 
     response = requests.request(
         request.method,
