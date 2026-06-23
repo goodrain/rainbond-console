@@ -1382,58 +1382,88 @@ class EnterpriseFirstDeployService(object):
                     failure_stage, failure_category, self.LOG_COLLECT_STATUS_NO_EVENT_ID, failed_events, reason)],
                 self.LOG_COLLECT_STATUS_NO_EVENT_ID,
             )
+        candidate_events = self._failure_log_candidate_events(failed_events, failure_stage, payload)
         attempts = self._failure_log_collect_attempts(failure_stage, failure_category)
         max_lines = self.MAX_BUILD_FAILURE_LOG_LINES if failure_stage == self.FAILURE_STAGE_BUILD else self.MAX_FAILURE_LOG_LINES
         had_api_error = False
         diagnostic_details = []  # type: List[str]
         for attempt in range(attempts):
-            try:
-                res, body = region_api.get_events_log(tenant_name, region_name, event_id)
-            except Exception as e:
-                logger.warning("get %s failure logs failed: %s", failure_stage, e)
-                res, body = None, None
-                had_api_error = True
-                self._append_diagnostic_detail(
-                    diagnostic_details, "event_log_exception={}".format(
-                        self._shrink_text(str(e), self.MAX_FAILURE_REASON_LENGTH)))
-            if self._is_success_response(res):
-                lines, truncated = self._normalize_log_lines(self._extract_event_log_items(body), max_lines=max_lines)
-                if lines:
-                    return [{
-                        "stage": failure_stage,
-                        "event_id": event_id,
-                        "source": "event_log",
-                        "failure_category": failure_category,
-                        "log_collect_status": self.LOG_COLLECT_STATUS_COLLECTED,
-                        "truncated": truncated,
-                        "lines": lines,
-                    }], self.LOG_COLLECT_STATUS_COLLECTED
-                self._append_diagnostic_detail(diagnostic_details, "event_log_empty=true")
-            elif res is not None:
-                had_api_error = True
-                self._append_diagnostic_detail(
-                    diagnostic_details, "event_log_status={}".format(self._response_status(res)))
+            for candidate_event in candidate_events:
+                event_id = candidate_event.get("event_id")
+                try:
+                    res, body = region_api.get_events_log(tenant_name, region_name, event_id)
+                except Exception as e:
+                    logger.warning("get %s failure logs failed: %s", failure_stage, e)
+                    res, body = None, None
+                    had_api_error = True
+                    self._append_diagnostic_detail(
+                        diagnostic_details, "event_log_exception={} event_id={}".format(
+                            self._shrink_text(str(e), self.MAX_FAILURE_REASON_LENGTH), event_id))
+                if self._is_success_response(res):
+                    lines, truncated = self._normalize_log_lines(self._extract_event_log_items(body), max_lines=max_lines)
+                    if lines:
+                        return [{
+                            "stage": failure_stage,
+                            "event_id": event_id,
+                            "source": "event_log",
+                            "failure_category": failure_category,
+                            "log_collect_status": self.LOG_COLLECT_STATUS_COLLECTED,
+                            "truncated": truncated,
+                            "lines": lines,
+                        }], self.LOG_COLLECT_STATUS_COLLECTED
+                    self._append_diagnostic_detail(diagnostic_details, "event_log_empty=true event_id={}".format(event_id))
+                elif res is not None:
+                    had_api_error = True
+                    self._append_diagnostic_detail(
+                        diagnostic_details, "event_log_status={} event_id={}".format(self._response_status(res), event_id))
             if attempt < attempts - 1:
                 time.sleep(self.BUILD_FAILURE_LOG_RETRY_INTERVAL)
-        fallback_logs, fallback_details, fallback_had_api_error = self._collect_service_event_logs(
-            tenant_name,
-            region_name,
-            event_id,
-            failure_stage,
-            failure_category,
-            max_lines,
-            payload)
-        if fallback_logs:
-            return fallback_logs, self.LOG_COLLECT_STATUS_COLLECTED
-        had_api_error = had_api_error or fallback_had_api_error
-        for detail in fallback_details:
-            self._append_diagnostic_detail(diagnostic_details, detail)
+        for candidate_event in candidate_events:
+            fallback_logs, fallback_details, fallback_had_api_error = self._collect_service_event_logs(
+                tenant_name,
+                region_name,
+                candidate_event.get("event_id"),
+                failure_stage,
+                failure_category,
+                max_lines,
+                payload)
+            if fallback_logs:
+                return fallback_logs, self.LOG_COLLECT_STATUS_COLLECTED
+            had_api_error = had_api_error or fallback_had_api_error
+            for detail in fallback_details:
+                self._append_diagnostic_detail(diagnostic_details, detail)
         status = self.LOG_COLLECT_STATUS_API_ERROR if had_api_error else self.LOG_COLLECT_STATUS_EMPTY_AFTER_RETRY
         return (
             [self._build_failure_diagnostic_log(
                 failure_stage, failure_category, status, failed_events, reason, diagnostic_details)],
             status,
         )
+
+    def _failure_log_candidate_events(self, failed_events: Any, failure_stage: str, payload: Optional[dict]) -> list:
+        candidates = []  # type: List[dict]
+        selected = self._select_failure_log_event(failed_events, failure_stage)
+        self._append_failure_log_candidate(candidates, selected)
+        if failure_stage == self.FAILURE_STAGE_BUILD and payload:
+            self._append_failure_log_candidate(
+                candidates,
+                {"event_id": payload.get("build_event_id", ""), "opt_type": "build-service"})
+            for event_id in payload.get("event_ids") or []:
+                self._append_failure_log_candidate(candidates, {"event_id": event_id})
+        for event in failed_events or []:
+            self._append_failure_log_candidate(candidates, event)
+        return candidates
+
+    @staticmethod
+    def _append_failure_log_candidate(candidates: List[dict], event: Optional[dict]) -> None:
+        if not event:
+            return
+        event_id = event.get("event_id")
+        if not event_id:
+            return
+        for candidate in candidates:
+            if candidate.get("event_id") == event_id:
+                return
+        candidates.append(event)
 
     def _collect_service_event_logs(self, tenant_name: str, region_name: str, event_id: str, failure_stage: str,
                                     failure_category: str, max_lines: int,

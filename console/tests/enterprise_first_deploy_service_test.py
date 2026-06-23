@@ -576,6 +576,44 @@ class EnterpriseFirstDeployServiceTests(TestCase):
         self.assertEqual(logs[0]["source"], "event_log")
         self.assertEqual(logs[0]["lines"][0]["message"], "dotnet restore failed: package NotFound")
 
+    def test_collect_failure_logs_tries_bound_build_event_when_failure_event_log_is_empty(self):
+        self.service.COMPILE_FAILURE_LOG_WAIT_WINDOW = 0
+        failed_event = {
+            "event_id": "failure-summary-event",
+            "opt_type": "build-service",
+            "status": "failure",
+            "message": "编译失败，请查看构建日志",
+        }
+        payload = {
+            "build_event_id": "real-build-event",
+            "event_ids": ["real-build-event", "failure-summary-event"],
+        }
+
+        def fake_get_events_log(_tenant_name, _region_name, event_id):
+            if event_id == "real-build-event":
+                return Obj(status=200), {"list": [{
+                    "time": "2026-06-23T23:12:54+08:00",
+                    "message": "main.go:21:12: pattern all:frontend/dist: no matching files found",
+                }]}
+            return Obj(status=200), {"list": []}
+
+        with mock.patch("console.services.enterprise_first_deploy_service.region_api.get_events_log",
+                        side_effect=fake_get_events_log), \
+                mock.patch("console.services.enterprise_first_deploy_service.time.sleep"):
+            logs, status = self.service._collect_failure_logs_with_status(
+                "demo-team",
+                "demo-region",
+                [failed_event],
+                self.service.FAILURE_STAGE_BUILD,
+                self.service.FAILURE_CATEGORY_COMPILE_FAILED,
+                "编译失败，请查看构建日志",
+                payload)
+
+        self.assertEqual(status, self.service.LOG_COLLECT_STATUS_COLLECTED)
+        self.assertEqual(logs[0]["event_id"], "real-build-event")
+        self.assertEqual(logs[0]["source"], "event_log")
+        self.assertIn("all:frontend/dist", logs[0]["lines"][0]["message"])
+
     def test_collect_failure_logs_reports_service_event_log_fallback_failure(self):
         event = {
             "event_id": "event-build-1",
