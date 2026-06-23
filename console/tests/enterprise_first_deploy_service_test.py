@@ -576,6 +576,82 @@ class EnterpriseFirstDeployServiceTests(TestCase):
         self.assertEqual(logs[0]["source"], "event_log")
         self.assertEqual(logs[0]["lines"][0]["message"], "dotnet restore failed: package NotFound")
 
+    def test_collect_failure_logs_reports_service_event_log_fallback_failure(self):
+        event = {
+            "event_id": "event-build-1",
+            "opt_type": "build-service",
+            "status": "failure",
+            "message": "编译失败，请查看构建日志",
+        }
+        payload = {
+            "enterprise_id": "eid-1",
+            "service_alias": "grbuild1",
+            "deployment_context": {
+                "service_alias": "grbuild1",
+            },
+        }
+
+        with mock.patch("console.services.enterprise_first_deploy_service.region_api.get_events_log",
+                        side_effect=RuntimeError("event log api down")), \
+                mock.patch("console.services.enterprise_first_deploy_service.region_api.get_event_log",
+                           return_value=(Obj(status=500), {"msg": "event store unavailable"})), \
+                mock.patch("console.services.enterprise_first_deploy_service.time.sleep"):
+            logs, status = self.service._collect_failure_logs_with_status(
+                "demo-team",
+                "demo-region",
+                [event],
+                self.service.FAILURE_STAGE_BUILD,
+                self.service.FAILURE_CATEGORY_COMPILE_FAILED,
+                "编译失败，请查看构建日志",
+                payload)
+
+        self.assertEqual(status, self.service.LOG_COLLECT_STATUS_API_ERROR)
+        self.assertEqual(logs[0]["source"], "diagnostic_summary")
+        self.assertIn("event_log_api_error", logs[0]["lines"][0]["message"])
+        self.assertIn("service_event_log_status=500", logs[0]["lines"][0]["message"])
+        self.assertIn("service_alias=grbuild1", logs[0]["lines"][0]["message"])
+        self.assertIn("event_id=event-build-1", logs[0]["lines"][0]["message"])
+
+    def test_collect_failure_logs_uses_service_event_log_info_level_fallback(self):
+        event = {
+            "event_id": "event-build-1",
+            "opt_type": "build-service",
+            "status": "failure",
+            "message": "编译失败，请查看构建日志",
+        }
+        payload = {
+            "enterprise_id": "eid-1",
+            "service_alias": "grbuild1",
+            "deployment_context": {
+                "service_alias": "grbuild1",
+            },
+        }
+
+        def fake_get_event_log(_region_name, _tenant_name, _service_alias, body):
+            if body.get("level") == "debug":
+                return Obj(status=200), {"list": []}
+            if body.get("level") == "info":
+                return Obj(status=200), {"list": [{"message": "go: module example.com/missing not found"}]}
+            return Obj(status=200), {"list": []}
+
+        with mock.patch("console.services.enterprise_first_deploy_service.region_api.get_events_log",
+                        return_value=(Obj(status=200), {"list": []})), \
+                mock.patch("console.services.enterprise_first_deploy_service.region_api.get_event_log",
+                           side_effect=fake_get_event_log), \
+                mock.patch("console.services.enterprise_first_deploy_service.time.sleep"):
+            logs, status = self.service._collect_failure_logs_with_status(
+                "demo-team",
+                "demo-region",
+                [event],
+                self.service.FAILURE_STAGE_BUILD,
+                self.service.FAILURE_CATEGORY_COMPILE_FAILED,
+                "编译失败，请查看构建日志",
+                payload)
+
+        self.assertEqual(status, self.service.LOG_COLLECT_STATUS_COLLECTED)
+        self.assertEqual(logs[0]["source"], "service_event_log")
+        self.assertIn("go: module example.com/missing not found", logs[0]["lines"][0]["message"])
+
     def test_source_compile_failure_collects_full_build_log_window(self):
         event = {
             "event_id": "event-build-1",
