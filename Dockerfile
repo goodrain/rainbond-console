@@ -1,6 +1,11 @@
 ARG IMAGE_NAMESPACE=rainbond
 ARG VERSION=v6.0.0-release
 ARG IMAGE_VERSION=v6.0.0-release
+# Python base images, overridable to a mirror (e.g. GHCR) to avoid Docker Hub
+# pull-rate limits in CI. Defaults keep pulling from Docker Hub (release builds
+# unchanged); dev-build overrides these to a mirror via --build-arg.
+ARG PYTHON_BASE=python:3.11-bookworm
+ARG PYTHON_SLIM_BASE=python:3.11-slim-bookworm
 
 # build ui
 FROM ${IMAGE_NAMESPACE}/rainbond-ui:${IMAGE_VERSION} AS ui
@@ -14,7 +19,7 @@ RUN mv /dist/index.html /app/ui/www/templates/index.html && \
     cp -a /dist/* /app/ui/www/static/dists/
 
 # build console
-FROM python:3.11-bookworm AS build-console
+FROM ${PYTHON_BASE} AS build-console
 ARG PYTHONPROXY
 ARG TARGETARCH
 ARG VERSION
@@ -44,7 +49,7 @@ RUN git clone --depth=1 -b main https://github.com/goodrain/rainbond-chart /app/
     chmod +x /tmp/helm
 
 # build console image
-FROM python:3.11-slim-bookworm
+FROM ${PYTHON_SLIM_BASE}
 
 ARG RELEASE_DESC=
 ARG VERSION
