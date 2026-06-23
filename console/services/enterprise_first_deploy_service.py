@@ -2,6 +2,7 @@
 import logging
 import os
 import re
+import uuid
 import threading
 import time
 from datetime import datetime
@@ -21,7 +22,7 @@ region_api = RegionInvokeApi()
 
 class EnterpriseFirstDeployService(object):
     REPORT_URL = os.getenv("FIRST_DEPLOY_REPORT_URL", "https://log.rainbond.com/api/enterprise/first-deploy")
-    PAYLOAD_VERSION = 2
+    PAYLOAD_VERSION = 3
     STATUS_PENDING = "pending"
     STATUS_SUCCESS = "success"
     STATUS_FAILURE = "failure"
@@ -127,17 +128,12 @@ class EnterpriseFirstDeployService(object):
                        operator: str = "",
                        source_language: str = "",
                        service_id: str = "",
-                       service_alias: str = "") -> Optional[dict]:
-        record = enterprise_first_deploy_repo.get_by_enterprise_id(enterprise_id)
-        if record:
-            payload = enterprise_first_deploy_repo.load_payload(record)
-            if payload.get("status") == self.STATUS_PENDING and not payload.get("event_ids") and self._is_expired(payload):
-                self._set_stage_failure(payload, self.FAILURE_STAGE_BUILD)
-                self._complete_tracking(record, payload, self.STATUS_FAILURE)
-            self._report_if_needed(record, payload, async_report=True)
-            if payload.get("status") == self.STATUS_PENDING and payload.get("event_ids"):
-                transaction.on_commit(lambda: self._start_sync_thread(record.key, tenant_name, region_name))
-            return None
+                       service_alias: str = "",
+                       service: Any = None,
+                       trigger: str = "",
+                       app_context: Optional[dict] = None,
+                       workload_context: Optional[dict] = None) -> Optional[dict]:
+        self._resume_legacy_enterprise_record(enterprise_id, tenant_name, region_name)
 
         payload = self._build_payload(
             enterprise_id=enterprise_id,
@@ -148,8 +144,12 @@ class EnterpriseFirstDeployService(object):
             source_language=source_language,
             service_id=service_id,
             service_alias=service_alias,
+            service=service,
+            trigger=trigger,
+            app_context=app_context,
+            workload_context=workload_context,
         )
-        record, created = enterprise_first_deploy_repo.create_if_absent(enterprise_id, payload)
+        record, created = enterprise_first_deploy_repo.create_attempt(enterprise_id, payload)
         if not created:
             existing = enterprise_first_deploy_repo.load_payload(record)
             if existing.get("status") == self.STATUS_PENDING and not existing.get("event_ids") and self._is_expired(existing):
@@ -159,14 +159,53 @@ class EnterpriseFirstDeployService(object):
             if existing.get("status") == self.STATUS_PENDING and existing.get("event_ids"):
                 transaction.on_commit(lambda: self._start_sync_thread(record.key, tenant_name, region_name))
             return None
-        return {
+        tracker = {
             "enterprise_id": enterprise_id,
             "key": record.key,
             "tenant_name": tenant_name,
             "region_name": region_name,
-            "service_id": service_id or "",
-            "service_alias": service_alias or "",
+            "service_id": payload.get("deployment_context", {}).get("service_id") or "",
+            "service_alias": payload.get("deployment_context", {}).get("service_alias") or "",
         }
+        transaction.on_commit(lambda: self._start_environment_collect_thread(record.key, enterprise_id, region_name))
+        return tracker
+
+    def safe_begin_tracking(self, *args: Any, **kwargs: Any) -> Optional[dict]:
+        try:
+            return self.begin_tracking(*args, **kwargs)
+        except Exception as exc:
+            logger.debug("begin deploy diagnostic tracking failed: %s", exc)
+            return None
+
+    def safe_bind_events(self, tracker: Optional[dict], *args: Any, **kwargs: Any) -> None:
+        try:
+            self.bind_events(tracker, *args, **kwargs)
+        except Exception as exc:
+            logger.debug("bind deploy diagnostic events failed: %s", exc)
+
+    def safe_mark_success(self, tracker: Optional[dict]) -> None:
+        try:
+            self.mark_success(tracker)
+        except Exception as exc:
+            logger.debug("mark deploy diagnostic success failed: %s", exc)
+
+    def safe_mark_failure(self, tracker: Optional[dict], reason: str = "", failure_stage: str = "") -> None:
+        try:
+            self.mark_failure(tracker, reason=reason, failure_stage=failure_stage)
+        except Exception as exc:
+            logger.debug("mark deploy diagnostic failure failed: %s", exc)
+
+    def _resume_legacy_enterprise_record(self, enterprise_id: str, tenant_name: str, region_name: str) -> None:
+        record = enterprise_first_deploy_repo.get_by_enterprise_id(enterprise_id)
+        if not record:
+            return
+        payload = enterprise_first_deploy_repo.load_payload(record)
+        if payload.get("status") == self.STATUS_PENDING and not payload.get("event_ids") and self._is_expired(payload):
+            self._set_stage_failure(payload, self.FAILURE_STAGE_BUILD)
+            self._complete_tracking(record, payload, self.STATUS_FAILURE)
+        self._report_if_needed(record, payload, async_report=True)
+        if payload.get("status") == self.STATUS_PENDING and payload.get("event_ids"):
+            transaction.on_commit(lambda: self._start_sync_thread(record.key, tenant_name, region_name))
 
     def bind_events(self,
                     tracker: Optional[dict],
@@ -176,7 +215,8 @@ class EnterpriseFirstDeployService(object):
                     service_aliases: Any = None) -> None:
         if not tracker:
             return
-        record = enterprise_first_deploy_repo.get_by_enterprise_id(tracker["enterprise_id"])
+        record = enterprise_first_deploy_repo.get_by_key(tracker.get("key")) or enterprise_first_deploy_repo.get_by_enterprise_id(
+            tracker["enterprise_id"])
         if not record:
             return
         payload = enterprise_first_deploy_repo.load_payload(record)
@@ -211,7 +251,8 @@ class EnterpriseFirstDeployService(object):
     def mark_success(self, tracker: Optional[dict]) -> None:
         if not tracker:
             return
-        record = enterprise_first_deploy_repo.get_by_enterprise_id(tracker["enterprise_id"])
+        record = enterprise_first_deploy_repo.get_by_key(tracker.get("key")) or enterprise_first_deploy_repo.get_by_enterprise_id(
+            tracker["enterprise_id"])
         if not record:
             return
         payload = enterprise_first_deploy_repo.load_payload(record)
@@ -225,7 +266,8 @@ class EnterpriseFirstDeployService(object):
     def mark_failure(self, tracker: Optional[dict], reason: str = "", failure_stage: str = "") -> None:
         if not tracker:
             return
-        record = enterprise_first_deploy_repo.get_by_enterprise_id(tracker["enterprise_id"])
+        record = enterprise_first_deploy_repo.get_by_key(tracker.get("key")) or enterprise_first_deploy_repo.get_by_enterprise_id(
+            tracker["enterprise_id"])
         if not record:
             return
         payload = enterprise_first_deploy_repo.load_payload(record)
@@ -256,14 +298,37 @@ class EnterpriseFirstDeployService(object):
                        operator: str = "",
                        source_language: str = "",
                        service_id: str = "",
-                       service_alias: str = "") -> dict:
+                       service_alias: str = "",
+                       service: Any = None,
+                       trigger: str = "",
+                       app_context: Optional[dict] = None,
+                       environment_context: Optional[dict] = None,
+                       workload_context: Optional[dict] = None) -> dict:
         enterprise = TenantEnterprise.objects.filter(enterprise_id=enterprise_id).first()
+        service_id = service_id or getattr(service, "service_id", "") or ""
+        service_alias = service_alias or getattr(service, "service_alias", "") or ""
+        service_source = getattr(service, "service_source", "") or self._service_source_from_deploy_type(deploy_type)
+        component_name = getattr(service, "service_cname", "") or ""
+        built_app_context = self._build_app_context(enterprise_id, app_context or {}, component_name)
+        built_workload_context = self._build_workload_context(service, workload_context or {})
         payload = {
             "enterprise_id": enterprise_id,
             "enterprise_name": self._get_enterprise_name(enterprise),
             "deploy_type": deploy_type,
             "source_language": source_language if deploy_type == self.DEPLOY_TYPE_SOURCE_CODE else "",
             "payload_version": self.PAYLOAD_VERSION,
+            "deployment_context": {
+                "deploy_attempt_id": uuid.uuid4().hex,
+                "trigger": trigger or "deploy",
+                "deploy_type": deploy_type,
+                "service_source": service_source,
+                "service_id": service_id,
+                "service_alias": service_alias,
+                "component_name_hash": self._hash_identifier(enterprise_id, component_name) if component_name else "",
+            },
+            "app_context": built_app_context,
+            "environment_context": environment_context or {"collect_status": "pending"},
+            "workload_context": built_workload_context,
             "status": self.STATUS_PENDING,
             "reported": False,
             "reported_at": "",
@@ -857,6 +922,14 @@ class EnterpriseFirstDeployService(object):
             "source_language": payload.get("source_language", ""),
             "is_success": payload.get("status") == self.STATUS_SUCCESS,
         }
+        if payload.get("payload_version", 1) >= 3:
+            report_payload.update({
+                "payload_version": payload.get("payload_version", self.PAYLOAD_VERSION),
+                "deployment_context": payload.get("deployment_context") or {},
+                "app_context": payload.get("app_context") or {},
+                "environment_context": payload.get("environment_context") or {},
+                "workload_context": payload.get("workload_context") or {},
+            })
         if payload.get("status") == self.STATUS_FAILURE:
             report_payload.update({
                 "payload_version": payload.get("payload_version", self.PAYLOAD_VERSION),
@@ -879,6 +952,216 @@ class EnterpriseFirstDeployService(object):
             except Exception as e:
                 logger.warning("report first deploy log failed: %s", e)
             time.sleep(1)
+
+    def _start_environment_collect_thread(self, key: str, enterprise_id: str, region_name: str) -> None:
+        worker = threading.Thread(target=self._collect_environment_by_key, args=(key, enterprise_id, region_name))
+        worker.daemon = True
+        worker.start()
+
+    def _collect_environment_by_key(self, key: str, enterprise_id: str, region_name: str) -> None:
+        try:
+            record = enterprise_first_deploy_repo.get_by_key(key)
+            if not record:
+                return
+            environment_context = self._collect_environment_context(enterprise_id, region_name)
+            record = enterprise_first_deploy_repo.get_by_key(key)
+            if not record:
+                return
+            payload = enterprise_first_deploy_repo.load_payload(record)
+            if payload.get("status") in self.FINAL_STATUSES:
+                return
+            payload["environment_context"] = environment_context
+            enterprise_first_deploy_repo.update_payload(record, payload)
+        except Exception as exc:
+            logger.debug("collect deployment diagnostic environment failed: %s", exc)
+
+    def _collect_environment_context(self, enterprise_id: str, region_name: str) -> dict:
+        context = {
+            "collect_status": "success",
+            "region_name": region_name,
+        }
+        try:
+            _, body = region_api.get_region_resources(enterprise_id, region=region_name)
+            bean = (body or {}).get("bean") or {}
+            context.update({
+                "total_memory": bean.get("cap_mem", 0),
+                "used_memory": bean.get("req_mem", 0),
+                "total_cpu": bean.get("cap_cpu", 0),
+                "used_cpu": bean.get("req_cpu", 0),
+                "total_disk": bean.get("cap_disk", 0),
+                "used_disk": bean.get("req_disk", 0),
+                "rbd_version": bean.get("rbd_version", ""),
+                "k8s_version": bean.get("k8s_version", ""),
+                "node_count": bean.get("all_node", 0),
+                "ready_nodes": bean.get("node_ready", 0),
+                "run_pod_number": bean.get("run_pod_number", 0),
+                "resource_proxy_status": bean.get("resource_proxy_status", False),
+            })
+        except Exception as exc:
+            context["collect_status"] = "failed"
+            context["error"] = self._shrink_text(str(exc), self.MAX_FAILURE_REASON_LENGTH)
+            return context
+        try:
+            _, arch_body = region_api.get_cluster_nodes_arch(region_name)
+            context["arch"] = (arch_body or {}).get("list") or []
+        except Exception as exc:
+            context["arch_collect_status"] = "failed"
+            context["arch_collect_error"] = self._shrink_text(str(exc), self.MAX_FAILURE_REASON_LENGTH)
+        return context
+
+    @staticmethod
+    def _service_source_from_deploy_type(deploy_type: str) -> str:
+        if deploy_type == EnterpriseFirstDeployService.DEPLOY_TYPE_SOURCE_CODE:
+            return "source_code"
+        if deploy_type == EnterpriseFirstDeployService.DEPLOY_TYPE_APP_MARKET:
+            return "market"
+        if deploy_type == EnterpriseFirstDeployService.DEPLOY_TYPE_IMAGE:
+            return "image"
+        return deploy_type or ""
+
+    def _build_app_context(self, enterprise_id: str, app_context: dict, component_name: str = "") -> dict:
+        result = {}
+        for key, value in (app_context or {}).items():
+            if key in ("app_name", "component_name", "service_name"):
+                hash_key = "{}_hash".format(key)
+                result[hash_key] = self._hash_identifier(enterprise_id, value)
+                continue
+            result[key] = value
+        if component_name and "component_name_hash" not in result:
+            result["component_name_hash"] = self._hash_identifier(enterprise_id, component_name)
+        return result
+
+    @staticmethod
+    def _build_workload_context(service: Any = None, workload_context: Optional[dict] = None) -> dict:
+        result = dict(workload_context or {})
+        if service is None:
+            return result
+        field_map = {
+            "service_source": "service_source",
+            "language": "language",
+            "arch": "arch",
+            "build_strategy": "build_strategy",
+            "min_memory": "min_memory",
+            "min_cpu": "min_cpu",
+            "min_node": "min_node",
+            "total_memory": "total_memory",
+            "service_type": "service_type",
+            "category": "category",
+        }
+        for target_key, attr in field_map.items():
+            value = getattr(service, attr, None)
+            if value not in (None, ""):
+                result.setdefault(target_key, value)
+        return result
+
+    def build_service_app_context(self, app: Any = None, component_count: int = 1) -> dict:
+        context = {
+            "component_count": component_count,
+        }
+        if app is None:
+            return context
+        app_id = getattr(app, "ID", None) or getattr(app, "app_id", "")
+        app_name = getattr(app, "group_name", None) or getattr(app, "app_name", "")
+        if app_id:
+            context["app_id"] = app_id
+        if app_name:
+            context["app_name"] = app_name
+        return context
+
+    @staticmethod
+    def build_market_app_context(app: Any,
+                                 market_app: Any,
+                                 app_model_key: str,
+                                 version: str,
+                                 market_name: str,
+                                 install_from_cloud: bool,
+                                 app_template: Optional[dict] = None) -> dict:
+        context = {}
+        app_id = getattr(app, "app_id", None) or getattr(app, "ID", "")
+        app_name = getattr(app, "group_name", None) or getattr(app, "app_name", "")
+        if app_id:
+            context["app_id"] = app_id
+        if app_name:
+            context["app_name"] = app_name
+        market_app_name = getattr(market_app, "app_name", "")
+        if market_app_name:
+            context["market_app_name"] = market_app_name
+        if app_model_key:
+            context["app_model_key"] = app_model_key
+        if version:
+            context["app_model_version"] = version
+        if market_name:
+            context["market_name"] = market_name
+        context["install_from_cloud"] = bool(install_from_cloud)
+        if app_template:
+            apps = app_template.get("apps") or []
+            plugins = app_template.get("plugins") or []
+            context["component_count"] = len(apps)
+            if plugins:
+                context["plugin_count"] = len(plugins)
+            governance_mode = app_template.get("governance_mode") or app_template.get("goavernance_mode")
+            if governance_mode:
+                context["governance_mode"] = governance_mode
+            arch = app_template.get("arch")
+            if arch:
+                context["template_arch"] = arch
+        return context
+
+    @staticmethod
+    def build_market_workload_context(app_template: Optional[dict] = None) -> dict:
+        if not app_template:
+            return {}
+        apps = app_template.get("apps") or []
+        total_memory = 0
+        min_memory = None
+        total_cpu = 0
+        min_cpu = None
+        min_node = 0
+        for app in apps:
+            memory = app.get("memory") or app.get("container_memory") or 0
+            cpu = app.get("container_cpu") or app.get("cpu") or 0
+            replicas = app.get("min_node") or app.get("replicas") or 1
+            try:
+                memory_value = int(memory)
+            except (TypeError, ValueError):
+                memory_value = 0
+            try:
+                cpu_value = int(cpu)
+            except (TypeError, ValueError):
+                cpu_value = 0
+            try:
+                replicas_value = int(replicas)
+            except (TypeError, ValueError):
+                replicas_value = 1
+            total_memory += memory_value * replicas_value
+            total_cpu += cpu_value * replicas_value
+            min_node += replicas_value
+            if memory_value and (min_memory is None or memory_value < min_memory):
+                min_memory = memory_value
+            if cpu_value and (min_cpu is None or cpu_value < min_cpu):
+                min_cpu = cpu_value
+        context = {
+            "component_count": len(apps),
+            "total_memory": total_memory,
+            "total_cpu": total_cpu,
+            "min_node": min_node,
+        }
+        if min_memory is not None:
+            context["min_memory"] = min_memory
+        if min_cpu is not None:
+            context["min_cpu"] = min_cpu
+        template_arch = app_template.get("arch")
+        if template_arch:
+            context["template_arch"] = template_arch
+        return context
+
+    @staticmethod
+    def _hash_identifier(instance_id: str, value: Any) -> str:
+        import hashlib
+        if value in (None, ""):
+            return ""
+        raw = "{}:{}".format(instance_id or "", value)
+        return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
     def _shrink_failure_events(self, failed_events: Any) -> list:
         compact_events = []

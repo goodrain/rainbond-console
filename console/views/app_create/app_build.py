@@ -67,7 +67,7 @@ class AppBuild(AppBaseView, CloudEnterpriseCenterView):
             self.service = new_service
 
             if is_deploy:
-                tracker = enterprise_first_deploy_service.begin_tracking(
+                tracker = enterprise_first_deploy_service.safe_begin_tracking(
                     enterprise_id=self.tenant.enterprise_id,  # type: ignore[arg-type]
                     tenant_name=self.tenant.tenant_name,
                     region_name=self.service.service_region,
@@ -76,25 +76,28 @@ class AppBuild(AppBaseView, CloudEnterpriseCenterView):
                     operator=self.user.nick_name,  # type: ignore[arg-type]
                     source_language=self.service.language or "",
                     service_id=self.service.service_id,
-                    service_alias=self.service.service_alias)
+                    service_alias=self.service.service_alias,
+                    service=self.service,
+                    trigger="create_and_deploy",
+                    app_context=enterprise_first_deploy_service.build_service_app_context(self.app))
                 try:
                     arch_service.update_affinity_by_arch(self.service.arch, self.tenant, self.region.region_name, self.service)
                     code, msg, event_id = app_manage_service.deploy(
                         self.tenant, self.service, self.user, oauth_instance=self.oauth_instance)
                     if code != 200:
-                        enterprise_first_deploy_service.mark_failure(tracker, reason=msg)
+                        enterprise_first_deploy_service.safe_mark_failure(tracker, reason=msg)
                         result = general_message(code, "deploy app error", msg)
                         return Response(result, status=code)
-                    enterprise_first_deploy_service.bind_events(tracker, [event_id])
+                    enterprise_first_deploy_service.safe_bind_events(tracker, [event_id])
                 except ErrInsufficientResource as e:
-                    enterprise_first_deploy_service.mark_failure(tracker, reason=getattr(e, "msg", str(e)))
+                    enterprise_first_deploy_service.safe_mark_failure(tracker, reason=getattr(e, "msg", str(e)))
                     result = general_message(e.error_code, e.msg, e.msg_show)
                     return Response(result, status=e.status_code)
                 except ServiceHandleException as e:
-                    enterprise_first_deploy_service.mark_failure(tracker, reason=getattr(e, "message", str(e)))
+                    enterprise_first_deploy_service.safe_mark_failure(tracker, reason=getattr(e, "message", str(e)))
                     raise e
                 except Exception as e:
-                    enterprise_first_deploy_service.mark_failure(tracker, reason=str(e))
+                    enterprise_first_deploy_service.safe_mark_failure(tracker, reason=str(e))
                     logger.exception(e)
                     err = ErrComponentBuildFailed()
                     result = general_message(err.error_code, e, err.msg_show)

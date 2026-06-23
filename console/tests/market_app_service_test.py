@@ -82,7 +82,7 @@ class MarketAppServiceTelemetryTests(SimpleTestCase):
                       return_value=(None, {"list": ["amd64"]})), \
                 patch.object(market_app_service, "_create_tenant_service_group", return_value=Obj()), \
                 patch("console.services.market_app_service.AppUpgrade", return_value=app_upgrade), \
-                patch("console.services.market_app_service.enterprise_first_deploy_service.bind_events"), \
+                patch("console.services.market_app_service.enterprise_first_deploy_service.safe_bind_events"), \
                 patch.object(market_app_service, "_create_rbdplugin_if_needed"), \
                 patch("console.services.market_app_service.telemetry_service", create=True) as telemetry:
             app_name = market_app_service.install_app(
