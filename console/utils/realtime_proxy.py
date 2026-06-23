@@ -151,11 +151,32 @@ def build_multipart_payload(request):
     return data, files
 
 
+class LimitedRequestBody(object):
+    def __init__(self, body_stream, content_length):
+        self.body_stream = body_stream
+        self.remaining = content_length
+
+    def read(self, size=-1):
+        if self.remaining <= 0:
+            return b""
+        if size is None or size < 0 or size > self.remaining:
+            size = self.remaining
+        chunk = self.body_stream.read(size)
+        if not chunk:
+            return b""
+        self.remaining -= len(chunk)
+        return chunk
+
+
 def _request_body_stream(request):
     content_length = request.META.get("CONTENT_LENGTH")
     if request.method in ("GET", "HEAD", "OPTIONS") or content_length in (None, "", "0"):
         return None
-    return request.META.get("wsgi.input")
+    try:
+        content_length = int(content_length)
+    except (TypeError, ValueError):
+        return None
+    return LimitedRequestBody(request, content_length)
 
 
 def proxy_http_request(request, region_name, proxy_path):
@@ -170,7 +191,9 @@ def proxy_http_request(request, region_name, proxy_path):
     data = _request_body_stream(request)
     files = None
     if request.method in ("POST", "PUT", "PATCH") and _is_multipart_request(request):
-        if not _should_forward_raw_multipart(proxy_path):
+        if _should_forward_raw_multipart(proxy_path):
+            headers["Content-Length"] = request.META.get("CONTENT_LENGTH", "0")
+        else:
             headers.pop("Content-Type", None)
             headers.pop("Content-Length", None)
             data, files = build_multipart_payload(request)
