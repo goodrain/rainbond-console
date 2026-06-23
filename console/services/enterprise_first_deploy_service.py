@@ -1577,16 +1577,26 @@ class EnterpriseFirstDeployService(object):
 
     @staticmethod
     def _response_status(response: Any) -> str:
-        status = getattr(response, "status_code", None)
-        if status is None:
-            status = getattr(response, "status", None)
-        if status is None and isinstance(response, dict):
-            status = response.get("status_code")
-        if status is None and isinstance(response, dict):
-            status = response.get("status")
+        status = EnterpriseFirstDeployService._extract_response_status(response)
         if status is None:
             return "unknown"
         return str(status)
+
+    @staticmethod
+    def _extract_response_status(response: Any) -> Any:
+        if response is None:
+            return None
+        if isinstance(response, dict):
+            status = response.get("status")
+            if status is not None:
+                return status
+            status = response.get("status_code")
+            if status is not None:
+                return status
+        status = getattr(response, "status", None)
+        if status is not None:
+            return status
+        return getattr(response, "status_code", None)
 
     def _detect_failure_category(self, failure_stage: str, failed_events: Any, reason: str) -> str:
         event_text = " ".join([
@@ -1706,13 +1716,7 @@ class EnterpriseFirstDeployService(object):
 
     @staticmethod
     def _is_success_response(response: Any) -> bool:
-        status = getattr(response, "status_code", None)
-        if status is None:
-            status = getattr(response, "status", None)
-        if status is None and isinstance(response, dict):
-            status = response.get("status_code")
-        if status is None and isinstance(response, dict):
-            status = response.get("status")
+        status = EnterpriseFirstDeployService._extract_response_status(response)
         try:
             # NOTE: status may be None; int(None) is caught by the except below (intentional).
             return 200 <= int(status) < 300  # type: ignore[arg-type]

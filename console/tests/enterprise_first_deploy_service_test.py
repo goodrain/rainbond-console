@@ -3,6 +3,7 @@ import collections
 import os
 import sys
 import typing
+from addict import Dict
 from copy import deepcopy
 from types import ModuleType
 from unittest import TestCase, mock
@@ -599,6 +600,30 @@ class EnterpriseFirstDeployServiceTests(TestCase):
         self.assertEqual(status, self.service.LOG_COLLECT_STATUS_COLLECTED)
         self.assertEqual(logs[0]["source"], "event_log")
         self.assertIn("all:frontend/dist", logs[0]["lines"][0]["message"])
+
+    def test_collect_failure_logs_accepts_region_addict_status_response(self):
+        event = {
+            "event_id": "event-build-1",
+            "opt_type": "build-service",
+            "status": "failure",
+            "message": "编译失败，请查看构建日志",
+        }
+
+        with mock.patch("console.services.enterprise_first_deploy_service.region_api.get_events_log",
+                        return_value=(Dict({"status": 200}), {"list": [{
+                            "message": "failed to execute 'go build': exit status 1",
+                        }]})):
+            logs, status = self.service._collect_failure_logs_with_status(
+                "demo-team",
+                "demo-region",
+                [event],
+                self.service.FAILURE_STAGE_BUILD,
+                self.service.FAILURE_CATEGORY_COMPILE_FAILED,
+                "编译失败，请查看构建日志")
+
+        self.assertEqual(status, self.service.LOG_COLLECT_STATUS_COLLECTED)
+        self.assertEqual(logs[0]["source"], "event_log")
+        self.assertIn("go build", logs[0]["lines"][0]["message"])
 
     def test_collect_failure_logs_tries_bound_build_event_when_failure_event_log_is_empty(self):
         self.service.COMPILE_FAILURE_LOG_WAIT_WINDOW = 0
