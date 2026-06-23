@@ -6,6 +6,7 @@ import uuid
 import threading
 import time
 from datetime import datetime
+from urllib.parse import urlparse
 from typing import Any, Dict, List, Optional, Tuple
 
 import requests
@@ -36,9 +37,14 @@ class EnterpriseFirstDeployService(object):
     DEPLOY_TYPE_SOURCE_CODE = "source_code"
     DEPLOY_TYPE_APP_MARKET = "app_market"
     DEPLOY_TYPE_IMAGE = "image"
+    FAILURE_STAGE_SOURCE_CHECK = "source_check"
     FAILURE_STAGE_BUILD = "build"
     FAILURE_STAGE_RUNTIME = "runtime"
     FAILURE_STAGE_UNKNOWN = "unknown"
+    FAILURE_CATEGORY_SOURCE_FETCH_TIMEOUT = "source_fetch_timeout"
+    FAILURE_CATEGORY_SOURCE_AUTH_FAILED = "source_auth_failed"
+    FAILURE_CATEGORY_SOURCE_REPO_UNREACHABLE = "source_repo_unreachable"
+    FAILURE_CATEGORY_SOURCE_BRANCH_MISSING = "source_branch_missing"
     FAILURE_CATEGORY_COMPILE_FAILED = "compile_failed"
     FAILURE_CATEGORY_IMAGE_PULL_FAILED = "image_pull_failed"
     FAILURE_CATEGORY_IMAGE_PUSH_FAILED = "image_push_failed"
@@ -194,6 +200,57 @@ class EnterpriseFirstDeployService(object):
             self.mark_failure(tracker, reason=reason, failure_stage=failure_stage)
         except Exception as exc:
             logger.debug("mark deploy diagnostic failure failed: %s", exc)
+
+    def safe_report_source_check_failure(self, *args: Any, **kwargs: Any) -> None:
+        try:
+            kwargs.setdefault("async_report", True)
+            self.report_source_check_failure(*args, **kwargs)
+        except Exception as exc:
+            logger.debug("report source check diagnostic failed: %s", exc)
+
+    def report_source_check_failure(
+            self,
+            enterprise_id: str,
+            tenant_name: str,
+            region_name: str,
+            reason: str,
+            service: Any = None,
+            operator: str = "",
+            app_context: Optional[dict] = None,
+            source_context: Optional[dict] = None,
+            async_report: bool = False) -> None:
+        payload = self._build_payload(
+            enterprise_id=enterprise_id,
+            tenant_name=tenant_name,
+            region_name=region_name,
+            deploy_type=self.DEPLOY_TYPE_SOURCE_CODE,
+            operator=operator,
+            source_language=getattr(service, "language", "") or "",
+            service_id=getattr(service, "service_id", "") or "",
+            service_alias=getattr(service, "service_alias", "") or "",
+            service=service,
+            trigger=self.FAILURE_STAGE_SOURCE_CHECK,
+            app_context=self._merge_source_context(enterprise_id, app_context or {}, source_context or {}),
+        )
+        source_check_id = (source_context or {}).get("check_uuid")
+        if source_check_id:
+            payload["deployment_context"]["deploy_attempt_id"] = str(source_check_id)
+        failed_event = self._build_source_check_event(payload, reason, source_context or {})
+        payload["event_ids"] = [failed_event["event_id"]] if failed_event.get("event_id") else []
+        payload["service_ids"] = [failed_event["service_id"]] if failed_event.get("service_id") else payload.get("service_ids", [])
+        self._set_stage_failure(
+            payload,
+            self.FAILURE_STAGE_SOURCE_CHECK,
+            failed_events=[failed_event],
+            reason=reason,
+            failure_logs=[self._build_source_check_diagnostic_log(payload, failed_event, reason)])
+        payload["status"] = self.STATUS_FAILURE
+        payload["finished_at"] = self._now()
+        report_payload = self._build_report_payload(payload)
+        if async_report:
+            self._start_direct_report_thread(report_payload)
+            return
+        self._post_report_payload(report_payload)
 
     def _resume_legacy_enterprise_record(self, enterprise_id: str, tenant_name: str, region_name: str) -> None:
         record = enterprise_first_deploy_repo.get_by_enterprise_id(enterprise_id)
@@ -364,6 +421,63 @@ class EnterpriseFirstDeployService(object):
             "failure_logs": [],
         }
         return payload
+
+    def _merge_source_context(self, enterprise_id: str, app_context: dict, source_context: dict) -> dict:
+        if not source_context:
+            return app_context
+        merged = dict(app_context or {})
+        merged["source_context"] = self._sanitize_source_context(enterprise_id, source_context)
+        return merged
+
+    def _sanitize_source_context(self, enterprise_id: str, source_context: dict) -> dict:
+        git_url = source_context.get("git_url") or ""
+        parsed = urlparse(git_url)
+        sanitized = {
+            "server_type": source_context.get("server_type", ""),
+            "code_version": source_context.get("code_version", ""),
+            "check_uuid": source_context.get("check_uuid", ""),
+            "repo_host": parsed.hostname or parsed.netloc or "",
+        }
+        if git_url:
+            sanitized["repo_url_hash"] = self._hash_identifier(enterprise_id, git_url)
+        return sanitized
+
+    def _build_source_check_event(self, payload: dict, reason: str, source_context: dict) -> dict:
+        deployment_context = payload.get("deployment_context") or {}
+        source_context = self._sanitize_source_context(payload.get("enterprise_id") or "", source_context)
+        return {
+            "event_id": source_context.get("check_uuid") or deployment_context.get("deploy_attempt_id", ""),
+            "service_id": deployment_context.get("service_id", ""),
+            "opt_type": "source-check",
+            "status": self.STATUS_FAILURE,
+            "final_status": "complete",
+            "message": self._shrink_text(reason, self.MAX_FAILURE_REASON_LENGTH),
+            "reason": self._shrink_text(reason, self.MAX_FAILURE_REASON_LENGTH),
+            "start_time": payload.get("started_at", ""),
+            "end_time": self._now(),
+            "source_context": source_context,
+        }
+
+    def _build_source_check_diagnostic_log(self, payload: dict, event: dict, reason: str) -> dict:
+        deployment_context = payload.get("deployment_context") or {}
+        source_context = event.get("source_context") or {}
+        parts = [
+            "failure_stage={}".format(self.FAILURE_STAGE_SOURCE_CHECK),
+            "failure_category={}".format(self._detect_source_check_category(reason)),
+            "component_alias={}".format(deployment_context.get("service_alias", "")),
+            "repo_host={}".format(source_context.get("repo_host", "")),
+            "code_version={}".format(source_context.get("code_version", "")),
+            "reason={}".format(self._shrink_text(reason, self.MAX_FAILURE_REASON_LENGTH)),
+        ]
+        return {
+            "stage": self.FAILURE_STAGE_SOURCE_CHECK,
+            "event_id": event.get("event_id", ""),
+            "source": "source_check",
+            "failure_category": self._detect_source_check_category(reason),
+            "log_collect_status": self.LOG_COLLECT_STATUS_PROVIDED,
+            "truncated": False,
+            "lines": [{"time": "", "message": "; ".join(parts)}],
+        }
 
     def _sync_record(self, record: ConsoleSysConfig, payload: dict, tenant_name: str,
                      region_name: str) -> Optional[str]:
@@ -676,6 +790,11 @@ class EnterpriseFirstDeployService(object):
         aliases = self._runtime_service_aliases(payload)
         service_id = self._first_service_id(payload)
         lines = []  # type: List[Dict[str, Any]]
+        runtime_failed_events = self._list_runtime_failure_events(
+            tenant_name,
+            region_name,
+            payload.get("service_ids") or [],
+            runtime_watch_started_at)
         observed_pods = False
         missing_pods = False
         not_running = False
@@ -735,8 +854,9 @@ class EnterpriseFirstDeployService(object):
             reason = "runtime timeout: pod detail unavailable"
         else:
             reason = "runtime timeout: no diagnostic failure observed"
+        self._append_runtime_event_snapshot_lines(lines, runtime_failed_events)
         return (
-            [self._build_runtime_timeout_event(service_id, reason, runtime_watch_started_at)],
+            runtime_failed_events or [self._build_runtime_timeout_event(service_id, reason, runtime_watch_started_at)],
             self._build_runtime_snapshot_logs(lines),
             reason,
         )
@@ -828,6 +948,20 @@ class EnterpriseFirstDeployService(object):
                         ", ".join(details)),
                 })
 
+    def _append_runtime_event_snapshot_lines(self, lines: list, events: Any) -> None:
+        for event in events or []:
+            message = event.get("message") or event.get("reason") or ""
+            if not message:
+                continue
+            lines.append({
+                "time": event.get("create_time") or event.get("start_time") or event.get("end_time") or "",
+                "message": "runtime event {} service_id={} target={}: {}".format(
+                    event.get("opt_type") or "-",
+                    event.get("service_id") or "-",
+                    event.get("target") or "-",
+                    self._redact_log_message(message)),
+            })
+
     def _is_soft_runtime_failure(self, payload: dict) -> bool:
         opt_type = (payload.get("runtime_failure_opt_type") or "").lower()
         if opt_type in self.SOFT_FAILURE_OPT_TYPES:
@@ -908,6 +1042,25 @@ class EnterpriseFirstDeployService(object):
             with self._lock:
                 self._reporting_keys.discard(key)
 
+    def _start_direct_report_thread(self, report_payload: dict) -> None:
+        attempt_id = (report_payload.get("deployment_context") or {}).get("deploy_attempt_id") or uuid.uuid4().hex
+        key = "direct-report:%s" % attempt_id
+        with self._lock:
+            if key in self._reporting_keys:
+                return
+            self._reporting_keys.add(key)
+
+        worker = threading.Thread(target=self._post_direct_report_payload, args=(key, report_payload))
+        worker.daemon = True
+        worker.start()
+
+    def _post_direct_report_payload(self, key: str, report_payload: dict) -> None:
+        try:
+            self._post_report_payload(report_payload)
+        finally:
+            with self._lock:
+                self._reporting_keys.discard(key)
+
     def _report_if_needed(self, record: ConsoleSysConfig, payload: dict, async_report: bool = False) -> None:
         if payload.get("status") not in self.FINAL_STATUSES or payload.get("reported"):
             return
@@ -915,6 +1068,13 @@ class EnterpriseFirstDeployService(object):
             self._start_report_thread(record.key)
             return
 
+        report_payload = self._build_report_payload(payload)
+        if self._post_report_payload(report_payload):
+            payload["reported"] = True
+            payload["reported_at"] = self._now()
+            enterprise_first_deploy_repo.update_payload(record, payload)
+
+    def _build_report_payload(self, payload: dict) -> dict:
         report_payload = {
             "eid": payload.get("enterprise_id"),
             "enterprise_name": payload.get("enterprise_name"),
@@ -940,18 +1100,18 @@ class EnterpriseFirstDeployService(object):
                 "failure_events": payload.get("failure_events") or [],
                 "failure_logs": payload.get("failure_logs") or [],
             })
+        return report_payload
 
+    def _post_report_payload(self, report_payload: dict) -> bool:
         for _ in range(3):
             try:
                 response = requests.post(self.REPORT_URL, json=report_payload, timeout=5)
                 if 200 <= response.status_code < 300:
-                    payload["reported"] = True
-                    payload["reported_at"] = self._now()
-                    enterprise_first_deploy_repo.update_payload(record, payload)
-                    return
+                    return True
             except Exception as e:
                 logger.warning("report first deploy log failed: %s", e)
             time.sleep(1)
+        return False
 
     def _start_environment_collect_thread(self, key: str, enterprise_id: str, region_name: str) -> None:
         worker = threading.Thread(target=self._collect_environment_by_key, args=(key, enterprise_id, region_name))
@@ -1218,7 +1378,7 @@ class EnterpriseFirstDeployService(object):
                 res, body = None, None
                 had_api_error = True
             if self._is_success_response(res):
-                lines, truncated = self._normalize_log_lines((body or {}).get("list") or [], max_lines=max_lines)
+                lines, truncated = self._normalize_log_lines(self._extract_event_log_items(body), max_lines=max_lines)
                 if lines:
                     return [{
                         "stage": failure_stage,
@@ -1238,6 +1398,25 @@ class EnterpriseFirstDeployService(object):
             [self._build_failure_diagnostic_log(failure_stage, failure_category, status, failed_events, reason)],
             status,
         )
+
+    def _extract_event_log_items(self, body: Any) -> list:
+        if not body:
+            return []
+        if isinstance(body, list):
+            return body
+        if not isinstance(body, dict):
+            return [body]
+        for key in ("list", "bean", "data"):
+            value = body.get(key)
+            if isinstance(value, list):
+                return value
+            if isinstance(value, dict):
+                nested = self._extract_event_log_items(value)
+                if nested:
+                    return nested
+            if value:
+                return [value]
+        return []
 
     def _build_failure_diagnostic_log(self, failure_stage: str, failure_category: str, log_collect_status: str,
                                       failed_events: Any, reason: str) -> dict:
@@ -1282,6 +1461,8 @@ class EnterpriseFirstDeployService(object):
         ])
         reason_text = "{} {}".format(reason or self._detect_failure_reason(failed_events) or "", event_text).lower()
         opt_types = " ".join([(event.get("opt_type") or "") for event in failed_events or []]).lower()
+        if failure_stage == self.FAILURE_STAGE_SOURCE_CHECK:
+            return self._detect_source_check_category(reason_text)
         if ("拉取镜像失败" in reason_text or "failed to pull image" in reason_text or
                 "imagepull" in opt_types or "errimagepull" in opt_types or
                 "imagepullbackoff" in reason_text or "errimagepull" in reason_text):
@@ -1294,12 +1475,28 @@ class EnterpriseFirstDeployService(object):
             if "编译失败" in reason_text or "build failed" in reason_text or "构建镜像失败" in reason_text:
                 return self.FAILURE_CATEGORY_COMPILE_FAILED
             return self.FAILURE_CATEGORY_UNKNOWN
-        if "runtimeverificationtimeout" in opt_types or "runtime timeout" in reason_text:
-            return self.FAILURE_CATEGORY_RUNTIME_TIMEOUT
         if "crashloopbackoff" in opt_types or "back-off restarting" in reason_text:
             return self.FAILURE_CATEGORY_POD_CRASH_LOOP
         if "没有可用节点" in reason_text or "nodes are available" in reason_text:
             return self.FAILURE_CATEGORY_NO_AVAILABLE_NODES
+        if "runtimeverificationtimeout" in opt_types or "runtime timeout" in reason_text:
+            return self.FAILURE_CATEGORY_RUNTIME_TIMEOUT
+        return self.FAILURE_CATEGORY_UNKNOWN
+
+    def _detect_source_check_category(self, reason: str) -> str:
+        reason_text = (reason or "").lower()
+        if "超时" in reason_text or "timeout" in reason_text or "timed out" in reason_text:
+            return self.FAILURE_CATEGORY_SOURCE_FETCH_TIMEOUT
+        if ("认证" in reason_text or "鉴权" in reason_text or "权限" in reason_text or
+                "authentication" in reason_text or "unauthorized" in reason_text or "permission denied" in reason_text):
+            return self.FAILURE_CATEGORY_SOURCE_AUTH_FAILED
+        if ("分支" in reason_text or "branch" in reason_text or "revision" in reason_text or
+                "reference not found" in reason_text):
+            return self.FAILURE_CATEGORY_SOURCE_BRANCH_MISSING
+        if ("仓库" in reason_text or "repo" in reason_text or "repository" in reason_text or
+                "could not resolve host" in reason_text or "connection refused" in reason_text or
+                "not found" in reason_text):
+            return self.FAILURE_CATEGORY_SOURCE_REPO_UNREACHABLE
         return self.FAILURE_CATEGORY_UNKNOWN
 
     def _failure_log_collect_attempts(self, failure_stage: str, failure_category: str = "") -> int:

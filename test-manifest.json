@@ -4752,6 +4752,34 @@
       "status": "active"
     },
     {
+      "id": "console.deploy-diagnostics.source-check",
+      "title": "Collect source check failure diagnostics",
+      "title_zh": "源码构建源检测失败诊断埋点",
+      "interface_type": "workflow",
+      "interface": "console.views.app_create.app_check.AppCheck.get",
+      "code_paths": [
+        "console/views/app_create/app_check.py",
+        "console/services/source_component_service.py",
+        "console/services/enterprise_first_deploy_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_check_view_test.py",
+          "selector": "AppCheckSourceDiagnosticTests.test_get_reports_source_check_failure_without_changing_response"
+        },
+        {
+          "path": "console/tests/source_component_service_test.py",
+          "selector": "SourceComponentServiceTests.test_auto_create_component_raises_on_check_failure"
+        },
+        {
+          "path": "console/tests/enterprise_first_deploy_service_test.py",
+          "selector": "EnterpriseFirstDeployServiceTests.test_report_source_check_failure_sends_pre_deploy_diagnostic"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.enterprise.region-component-list",
       "title": "List region control plane components",
       "title_zh": "查看集群控制面组件列表",

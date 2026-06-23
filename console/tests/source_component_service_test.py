@@ -1,11 +1,38 @@
 # -*- coding: utf-8 -*-
+import collections
 import os
 import sys
+import typing
 from types import ModuleType
 from unittest.mock import patch
 
+for attr in ("Mapping", "MutableMapping", "Sequence", "Iterable", "Iterator"):
+    if not hasattr(collections, attr):
+        setattr(collections, attr, getattr(collections.abc, attr))
+if not hasattr(typing, "NotRequired"):
+    typing.NotRequired = typing.Optional
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "src", "openapi-client")))
 sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
+if "openapi_client" not in sys.modules:
+    openapi_client_module = ModuleType("openapi_client")
+    configuration_module = ModuleType("openapi_client.configuration")
+    rest_module = ModuleType("openapi_client.rest")
+
+    class _Configuration(object):
+        def __init__(self):
+            self.host = ""
+            self.api_key = {}
+
+    configuration_module.Configuration = _Configuration
+    rest_module.ApiException = type("ApiException", (Exception,), {})
+    openapi_client_module.ApiClient = object
+    openapi_client_module.MarketOpenapiApi = object
+    openapi_client_module.configuration = configuration_module
+    openapi_client_module.rest = rest_module
+    sys.modules["openapi_client"] = openapi_client_module
+    sys.modules["openapi_client.configuration"] = configuration_module
+    sys.modules["openapi_client.rest"] = rest_module
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
 
@@ -13,6 +40,11 @@ import django
 from django.test import SimpleTestCase
 
 django.setup()
+
+from django.db.models.query import QuerySet
+
+if not hasattr(QuerySet, "__class_getitem__"):
+    QuerySet.__class_getitem__ = classmethod(lambda cls, item: cls)
 
 from console.exception.main import ServiceHandleException
 
@@ -23,6 +55,7 @@ class Obj(object):
 
 
 # capability_id: console.component.create-from-source
+# capability_id: console.deploy-diagnostics.source-check
 class SourceComponentServiceTests(SimpleTestCase):
 
     # capability_id: console.source-component.auto-create-flow
@@ -240,7 +273,8 @@ class SourceComponentServiceTests(SimpleTestCase):
     @patch("console.services.source_component_service.region_api.get_service_check_info")
     # capability_id: console.source-component.check-failure
     def test_auto_create_component_raises_on_check_failure(
-            self, mock_get_check_info, mock_check_service, mock_add_to_group, mock_create_source):
+            self, mock_get_check_info, mock_check_service, mock_add_to_group,
+            mock_create_source):
         from console.services.source_component_service import source_component_service
 
         user = Obj(user_id=1, pk=1, nick_name="admin")
@@ -267,17 +301,24 @@ class SourceComponentServiceTests(SimpleTestCase):
             {"bean": {"check_status": "failure", "error_infos": [{"error_info": "bad repo"}], "service_info": []}},
         )
 
-        with self.assertRaises(ServiceHandleException) as context:
-            source_component_service.auto_create_component(
-                team=team,
-                app=app,
-                user=user,
-                service_cname="component-1",
-                code_from="gitlab_manual",
-                git_url="https://git.example.com/demo.git",
-            )
+        with patch.object(source_component_service, "_report_source_check_failure") as mock_report_check_failure:
+            with self.assertRaises(ServiceHandleException) as context:
+                source_component_service.auto_create_component(
+                    team=team,
+                    app=app,
+                    user=user,
+                    service_cname="component-1",
+                    code_from="gitlab_manual",
+                    git_url="https://git.example.com/demo.git",
+                )
 
         self.assertIn("bad repo", context.exception.msg_show)
+        mock_report_check_failure.assert_called_once()
+        report_args = mock_report_check_failure.call_args[0]
+        self.assertEqual(report_args[0], team)
+        self.assertEqual(report_args[4], "https://git.example.com/demo.git")
+        self.assertEqual(report_args[7], "chk-1")
+        self.assertEqual(report_args[8], "bad repo")
 
     # capability_id: console.source-component.multi-service-guard
     @patch("console.services.source_component_service.console_app_service.create_source_code_app")

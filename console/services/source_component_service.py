@@ -12,6 +12,7 @@ from console.services.app import app_service as console_app_service
 from console.services.app_actions import app_manage_service
 from console.services.app_check_service import app_check_service
 from console.services.app_config.arch_service import arch_service
+from console.services.enterprise_first_deploy_service import enterprise_first_deploy_service
 from console.services.group_service import group_service
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import ServiceGroup, TenantServiceInfo, Tenants, Users
@@ -74,6 +75,33 @@ class SourceComponentService(object):
             "已请求 Dockerfile 构建（prefer_dockerfile_when_detected=true），但代码检测未在构建目录根路径发现 Dockerfile，"
             "已回退为 {} 语言构建。如需 Dockerfile 构建，请通过 subdirectories 指向包含 Dockerfile 的目录，"
             "或改用镜像方式部署。".format(selected_language or "检测到的")
+        )
+
+    def _report_source_check_failure(
+            self,
+            team: Tenants,
+            app: ServiceGroup,
+            user: Users,
+            component: TenantServiceInfo,
+            git_url: str,
+            code_version: str,
+            server_type: str,
+            check_uuid: str,
+            reason: str) -> None:
+        enterprise_first_deploy_service.safe_report_source_check_failure(
+            enterprise_id=team.enterprise_id,
+            tenant_name=team.tenant_name,
+            region_name=app.region_name,
+            reason=reason,
+            service=component,
+            operator=getattr(user, "nick_name", ""),
+            app_context=enterprise_first_deploy_service.build_service_app_context(app),
+            source_context={
+                "git_url": git_url,
+                "code_version": code_version,
+                "server_type": server_type,
+                "check_uuid": check_uuid,
+            },
         )
 
     def auto_create_component(
@@ -160,6 +188,16 @@ class SourceComponentService(object):
                 poll_interval=effective_poll_interval,
             )
         except ServiceHandleException as exc:
+            self._report_source_check_failure(
+                team,
+                app,
+                user,
+                component,  # type: ignore[arg-type]
+                git_url,
+                code_version,
+                server_type,
+                check_uuid,  # type: ignore[arg-type]
+                exc.msg_show)
             if getattr(exc, "msg", "") == "check timeout":
                 build_mode_note = None
                 if prefer_dockerfile_when_detected:

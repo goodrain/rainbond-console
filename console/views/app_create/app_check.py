@@ -12,6 +12,7 @@ from console.services.app_config import env_var_service
 from console.services.app import app_service
 from console.services.app_check_service import (app_check_service, resolve_lang_update_build_strategy,
                                                 supports_cnb_build_strategy)
+from console.services.enterprise_first_deploy_service import enterprise_first_deploy_service
 from console.services.source_build_state_service import source_build_state_service
 from console.utils.oauth.oauth_types import support_oauth_type
 from console.views.app_config.base import AppBaseView
@@ -86,6 +87,8 @@ class AppCheck(AppBaseView):
             return Response(general_message(400, "params error", "参数错误，请求参数应该包含请求的ID"), status=400)
         code, msg, data = app_check_service.get_service_check_info(self.tenant, self.service.service_region, check_uuid)
         logger.debug("check resp! {0}".format(data))
+        if data.get("check_status") == "failure":
+            self._report_source_check_failure(check_uuid, data)
         # 如果已创建完成
         if self.service.create_status == "complete":
             service_info = data.get("service_info")
@@ -111,6 +114,24 @@ class AppCheck(AppBaseView):
                         i["value"] = result_url[0] + '//' + result_url[-2] + result_url[-1]
         result = general_message(200, "success", "请求成功", bean=check_brief_info)
         return Response(result, status=result["code"])
+
+    def _report_source_check_failure(self, check_uuid: str, data: dict) -> None:
+        error_infos = data.get("error_infos") or []
+        first_error = error_infos[0] if error_infos else {}
+        reason = first_error.get("error_info") or first_error.get("solve_advice") or "代码检测失败"
+        enterprise_first_deploy_service.safe_report_source_check_failure(
+            enterprise_id=self.tenant.enterprise_id,
+            tenant_name=self.tenant.tenant_name,
+            region_name=self.service.service_region,
+            reason=reason,
+            service=self.service,
+            app_context=enterprise_first_deploy_service.build_service_app_context(self.app),
+            source_context={
+                "git_url": getattr(self.service, "git_url", ""),
+                "code_version": getattr(self.service, "code_version", ""),
+                "server_type": getattr(self.service, "server_type", ""),
+                "check_uuid": check_uuid,
+            })
 
     @never_cache
     def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
