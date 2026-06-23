@@ -9786,6 +9786,24 @@
       "status": "active"
     },
     {
+      "id": "console.realtime-proxy.multipart-folder-upload-forward",
+      "title": "Forward repeated multipart file fields for folder uploads",
+      "title_zh": "转发文件夹上传中的重复 multipart 文件字段",
+      "interface_type": "package_function",
+      "interface": "console.utils.realtime_proxy.build_multipart_payload",
+      "code_paths": [
+        "console/utils/realtime_proxy.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/realtime_proxy_url_test.py",
+          "selector": "RealtimeProxyUrlTests.test_multipart_folder_upload_encodes_repeated_file_field"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.realtime-proxy.docker-console-subprotocol",
       "title": "Docker console backend uses webtty subprotocol",
       "title_zh": "Docker 控制台后端使用 webtty 子协议",
