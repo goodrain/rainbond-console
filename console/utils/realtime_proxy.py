@@ -131,18 +131,19 @@ def _is_multipart_request(request):
 
 def build_multipart_payload(request):
     data = {}
-    files = {}
+    file_items = []
     for key, values in request.POST.lists():
         data[key] = values if len(values) > 1 else values[0]
     for key, uploaded_files in request.FILES.lists():
-        file_items = []
         for uploaded_file in uploaded_files:
-            file_items.append((
-                uploaded_file.name,
-                uploaded_file,
-                uploaded_file.content_type or "application/octet-stream",
-            ))
-        files[key] = file_items if len(file_items) > 1 else file_items[0]
+            file_items.append(
+                (key, (
+                    uploaded_file.name,
+                    uploaded_file,
+                    uploaded_file.content_type or "application/octet-stream",
+                ))
+            )
+    files = dict(file_items) if len(file_items) == 1 else file_items
     return data, files
 
 

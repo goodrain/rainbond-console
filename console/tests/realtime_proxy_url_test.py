@@ -49,6 +49,7 @@ from console.utils.realtime_proxy import (  # noqa: E402
     DockerConsoleActivityTracker,
     WEBSOCKET_PROXY_READ_TIMEOUT_SECONDS,
     _backend_websocket_subprotocols,
+    build_multipart_payload,
     build_console_realtime_proxy_url,
     build_region_realtime_proxy_url,
     open_backend_websocket,
@@ -189,6 +190,29 @@ class RealtimeProxyUrlTests(SimpleTestCase):
         self.assertEqual(content_type, "application/gzip")
         self.assertEqual(kwargs["data"], {})
         self.assertEqual(response.status_code, 200)
+
+    # capability_id: console.realtime-proxy.multipart-folder-upload-forward
+    def test_multipart_folder_upload_encodes_repeated_file_field(self):
+        upload_files = [
+            SimpleUploadedFile(
+                "file-{0}.txt".format(index),
+                "content-{0}".format(index).encode("utf-8"),
+                content_type="text/plain",
+            )
+            for index in range(5)
+        ]
+        request = self.factory.post(
+            "/console/regions/rainbond/websocket/v2/file-operate/upload",
+            data={"path": "/data", "files": upload_files},
+        )
+
+        data, files = build_multipart_payload(request)
+
+        from requests.models import RequestEncodingMixin  # noqa: WPS433
+        body, content_type = RequestEncodingMixin._encode_files(files, data)
+        self.assertTrue(content_type.startswith("multipart/form-data"))
+        self.assertIn(b"file-0.txt", body)
+        self.assertIn(b"file-4.txt", body)
 
     # capability_id: console.realtime-proxy.docker-console-subprotocol
     def test_docker_console_backend_uses_webtty_subprotocol(self):
