@@ -748,7 +748,8 @@ class EnterpriseFirstDeployService(object):
                 failed_events,
                 stage,
                 failure_category,
-                payload["{}_failure_reason".format(stage)])
+                payload["{}_failure_reason".format(stage)],
+                payload)
             payload["{}_failure_logs".format(stage)] = logs
             payload["{}_log_collect_status".format(stage)] = log_collect_status
         payload["failure_stage"] = stage
@@ -1359,12 +1360,13 @@ class EnterpriseFirstDeployService(object):
             failed_events,
             failure_stage,
             self.FAILURE_CATEGORY_UNKNOWN,
-            self._detect_failure_reason(failed_events))
+            self._detect_failure_reason(failed_events),
+            None)
         return logs
 
     def _collect_failure_logs_with_status(
             self, tenant_name: Optional[str], region_name: Optional[str], failed_events: Any,
-            failure_stage: str, failure_category: str, reason: str) -> Tuple[list, str]:
+            failure_stage: str, failure_category: str, reason: str, payload: Optional[dict] = None) -> Tuple[list, str]:
         failure_event = self._select_failure_log_event(failed_events, failure_stage)
         if not failure_event or not tenant_name or not region_name:
             return (
@@ -1405,11 +1407,53 @@ class EnterpriseFirstDeployService(object):
                 had_api_error = True
             if attempt < attempts - 1:
                 time.sleep(self.BUILD_FAILURE_LOG_RETRY_INTERVAL)
+        fallback_logs = self._collect_service_event_logs(
+            tenant_name,
+            region_name,
+            event_id,
+            failure_stage,
+            failure_category,
+            max_lines,
+            payload)
+        if fallback_logs:
+            return fallback_logs, self.LOG_COLLECT_STATUS_COLLECTED
         status = self.LOG_COLLECT_STATUS_API_ERROR if had_api_error else self.LOG_COLLECT_STATUS_EMPTY_AFTER_RETRY
         return (
             [self._build_failure_diagnostic_log(failure_stage, failure_category, status, failed_events, reason)],
             status,
         )
+
+    def _collect_service_event_logs(self, tenant_name: str, region_name: str, event_id: str, failure_stage: str,
+                                    failure_category: str, max_lines: int, payload: Optional[dict]) -> list:
+        if failure_stage != self.FAILURE_STAGE_BUILD or not payload:
+            return []
+        service_alias = payload.get("service_alias") or (payload.get("deployment_context") or {}).get("service_alias")
+        if not service_alias:
+            return []
+        request_body = {
+            "event_id": event_id,
+            "level": "debug",
+            "enterprise_id": payload.get("enterprise_id", ""),
+        }
+        try:
+            res, body = region_api.get_event_log(region_name, tenant_name, service_alias, request_body)
+        except Exception as e:
+            logger.warning("get %s service event logs failed: %s", failure_stage, e)
+            return []
+        if not self._is_success_response(res):
+            return []
+        lines, truncated = self._normalize_log_lines(self._extract_event_log_items(body), max_lines=max_lines)
+        if not lines:
+            return []
+        return [{
+            "stage": failure_stage,
+            "event_id": event_id,
+            "source": "service_event_log",
+            "failure_category": failure_category,
+            "log_collect_status": self.LOG_COLLECT_STATUS_COLLECTED,
+            "truncated": truncated,
+            "lines": lines,
+        }]
 
     def _extract_event_log_items(self, body: Any) -> list:
         if not body:
