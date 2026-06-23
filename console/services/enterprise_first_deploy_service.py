@@ -1580,6 +1580,10 @@ class EnterpriseFirstDeployService(object):
         status = getattr(response, "status_code", None)
         if status is None:
             status = getattr(response, "status", None)
+        if status is None and isinstance(response, dict):
+            status = response.get("status_code")
+        if status is None and isinstance(response, dict):
+            status = response.get("status")
         if status is None:
             return "unknown"
         return str(status)
@@ -1705,6 +1709,10 @@ class EnterpriseFirstDeployService(object):
         status = getattr(response, "status_code", None)
         if status is None:
             status = getattr(response, "status", None)
+        if status is None and isinstance(response, dict):
+            status = response.get("status_code")
+        if status is None and isinstance(response, dict):
+            status = response.get("status")
         try:
             # NOTE: status may be None; int(None) is caught by the except below (intentional).
             return 200 <= int(status) < 300  # type: ignore[arg-type]
