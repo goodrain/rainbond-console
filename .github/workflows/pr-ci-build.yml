@@ -14,6 +14,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # Cache pip's wheel/download cache so repeat runs (e.g. pushes to the same
+      # PR) skip re-downloading the whole requirements set. Keyed on the
+      # requirements files so it auto-invalidates when deps change.
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: /root/.cache/pip
+          key: pip-${{ runner.os }}-py311-${{ hashFiles('requirements.txt', 'requirements-typing.txt') }}
+          restore-keys: |
+            pip-${{ runner.os }}-py311-
+
       - name: Install native dependencies
         run: |
           apt-get update
@@ -47,6 +58,27 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: /root/.cache/pip
+          key: pip-${{ runner.os }}-py311-${{ hashFiles('requirements.txt', 'requirements-typing.txt') }}
+          restore-keys: |
+            pip-${{ runner.os }}-py311-
+
+      # Persist mypy's incremental cache between runs so it only re-analyzes
+      # changed modules instead of all 677 source files. Keyed by config + mypy
+      # version (requirements-typing.txt) so it invalidates on a mypy/stub bump;
+      # the per-SHA suffix forces a fresh save each run while restore-keys pulls
+      # the most recent prior cache for incremental reuse.
+      - name: Cache mypy
+        uses: actions/cache@v4
+        with:
+          path: .mypy_cache
+          key: mypy-${{ runner.os }}-py311-${{ hashFiles('mypy.ini', 'requirements-typing.txt') }}-${{ github.sha }}
+          restore-keys: |
+            mypy-${{ runner.os }}-py311-${{ hashFiles('mypy.ini', 'requirements-typing.txt') }}-
 
       - name: Install native dependencies
         run: |
@@ -103,6 +135,15 @@ jobs:
             echo "py_changed=false" >> "$GITHUB_OUTPUT"
             echo "No Python files changed in this PR; skipping coverage gate."
           fi
+
+      - name: Cache pip
+        if: steps.detect.outputs.py_changed == 'true'
+        uses: actions/cache@v4
+        with:
+          path: /root/.cache/pip
+          key: pip-${{ runner.os }}-py311-${{ hashFiles('requirements.txt', 'requirements-typing.txt') }}
+          restore-keys: |
+            pip-${{ runner.os }}-py311-
 
       - name: Install native dependencies
         if: steps.detect.outputs.py_changed == 'true'
