@@ -434,13 +434,13 @@ class AppManageService(AppManageBase):
         params = {
             "service_key": service.service_key,
             "app_version": service.version,
-            "min_node": extend_info["min_node"],
-            "max_node": extend_info["max_node"],
-            "step_node": extend_info["step_node"],
-            "min_memory": extend_info["min_memory"],
-            "max_memory": extend_info["max_memory"],
-            "step_memory": extend_info["step_memory"],
-            "is_restart": extend_info["is_restart"]
+            "min_node": extend_info.get("min_node", 1),
+            "max_node": extend_info.get("max_node", 1),
+            "step_node": extend_info.get("step_node", 1),
+            "min_memory": extend_info.get("min_memory", 64),
+            "max_memory": extend_info.get("max_memory", 65536),
+            "step_memory": extend_info.get("step_memory", 64),
+            "is_restart": extend_info.get("is_restart", 0)
         }
         extend_repo.create_extend_method(**params)
         return None

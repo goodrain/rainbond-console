@@ -475,7 +475,7 @@ class RegionService(object):
                 "key_file": base64.b64decode(region_config["binaryData"]["client.key.pem"]).decode("UTF-8"),
                 "cert_file": base64.b64decode(region_config["binaryData"]["client.pem"]).decode("UTF-8"),
                 "url": "https://rbd-api-api:8443",
-                "wsurl": region_config["data"]["websocketAddress"],
+                "wsurl": "ws://rbd-api-websocket:6060",
                 "httpdomain": region_config["data"]["defaultDomainSuffix"],
                 "tcpdomain": region_config["data"]["defaultTCPHost"],
                 "region_id": make_uuid(),

@@ -336,14 +336,14 @@ class ShareService(object):
                 data["cmd"] = service.cmd
                 data['probes'] = [probe.to_dict() for probe in probe_map.get(service.service_id, [])]
                 e_m = dict()
-                e_m['step_node'] = 1
                 e_m['min_memory'] = 0 if service.min_memory == 0 else 64
                 e_m['init_memory'] = service.min_memory
                 e_m['max_memory'] = 65536
                 e_m['step_memory'] = 64
                 e_m['is_restart'] = 0
-                e_m['min_node'] = service.min_node
                 e_m['container_cpu'] = service.min_cpu
+                e_m['step_node'] = 1
+                e_m['min_node'] = service.min_node
                 if is_singleton(service.extend_method):
                     e_m['max_node'] = 1
                 else:

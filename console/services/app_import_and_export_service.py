@@ -43,6 +43,25 @@ EXTEND_METHOD_FIELDS = (
     "container_cpu",
 )
 
+DAEMONSET_EXTEND_METHOD = "daemonset"
+DAEMONSET_NODE_SCALE_FIELDS = ("min_node", "max_node", "step_node")
+
+
+def is_daemonset_template_component(component: Any) -> bool:
+    if not isinstance(component, dict):
+        return False
+    return component.get("extend_method") == DAEMONSET_EXTEND_METHOD or component.get("service_type") == DAEMONSET_EXTEND_METHOD
+
+
+def normalize_daemonset_extend_method_map(component: dict, extend_method_map: dict) -> dict:
+    if not is_daemonset_template_component(component):
+        return extend_method_map
+    return {
+        key: value
+        for key, value in extend_method_map.items()
+        if key not in DAEMONSET_NODE_SCALE_FIELDS
+    }
+
 
 class AppExportService(object):
     def select_handle_region(self, eid: str) -> RegionConfig:
@@ -186,8 +205,11 @@ class AppExportService(object):
             export_item["memory"] = extend_method_map["init_memory"]
         if export_item.get("memory") is not None and extend_method_map.get("init_memory") is None:
             extend_method_map["init_memory"] = export_item["memory"]
+        extend_method_map = normalize_daemonset_extend_method_map(export_item, extend_method_map)
         if extend_method_map:
             export_item["extend_method_map"] = extend_method_map
+        else:
+            export_item.pop("extend_method_map", None)
         return export_item
 
     @classmethod
@@ -594,8 +616,11 @@ class AppImportService(object):
             extend_method_map["init_memory"] = component["memory"]
         if extend_method_map.get("init_memory") is None and extend_method_map.get("min_memory") is not None:
             extend_method_map["init_memory"] = extend_method_map["min_memory"]
+        extend_method_map = normalize_daemonset_extend_method_map(component, extend_method_map)
         if extend_method_map:
             component["extend_method_map"] = extend_method_map
+        else:
+            component.pop("extend_method_map", None)
         return component
 
     def get_import_app_dir(self, event_id: str) -> Any:

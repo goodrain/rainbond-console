@@ -284,6 +284,43 @@ class AppExportServiceMetadataTestCase(TestCase):
         self.assertEqual(exported_component["memory"], 1024)
         self.assertEqual(exported_component["extend_method_map"]["init_memory"], 1024)
 
+    def test_get_app_metadata_removes_daemonset_node_scaling_fields(self):
+        app = mock.Mock(pic=None, describe="demo app")
+        component = {
+            "service_alias": "agent",
+            "image": "registry.example.com/demo/agent:1.0.0",
+            "extend_method": "daemonset",
+            "extend_method_map": {
+                "min_node": 2,
+                "max_node": 7,
+                "step_node": 2,
+                "min_memory": 64,
+                "init_memory": 1024,
+                "max_memory": 4096,
+                "step_memory": 128,
+                "container_cpu": 600,
+            }
+        }
+        app_version = mock.Mock(
+            app_template=json.dumps({
+                "group_key": "demo-app",
+                "group_version": "1.0.0",
+                "apps": [component]
+            }),
+            app_version_info="bugfix",
+            version_alias="stable",
+        )
+
+        metadata = export_service._AppExportService__get_app_metata(app, app_version, {"image_handle": ""})
+        result = json.loads(metadata)
+
+        extend_method_map = result["apps"][0]["extend_method_map"]
+        self.assertNotIn("min_node", extend_method_map)
+        self.assertNotIn("max_node", extend_method_map)
+        self.assertNotIn("step_node", extend_method_map)
+        self.assertEqual(extend_method_map["init_memory"], 1024)
+        self.assertEqual(extend_method_map["container_cpu"], 600)
+
     # capability_id: console.app-export.query-status
     def test_get_export_status_updates_exporting_record_and_wraps_download_url(self):
         app = mock.Mock(app_id="demo-app")
@@ -591,6 +628,60 @@ class AppImportServiceMetadataTestCase(TestCase):
         created_version = bulk_versions.call_args[0][0][0]
         saved_template = json.loads(created_version.app_template)
         extend_method_map = saved_template["apps"][0]["extend_method_map"]
+        self.assertEqual(extend_method_map["container_cpu"], 600)
+        self.assertEqual(extend_method_map["init_memory"], 1024)
+
+    def test_save_enterprise_import_info_removes_daemonset_node_scaling_fields(self):
+        import_record = mock.Mock(
+            enterprise_id="eid-1",
+            team_name="demo-team",
+            scope="enterprise",
+            ID=11,
+            region="demo-region",
+        )
+        metadata = json.dumps([{
+            "template_version": "v2",
+            "group_key": "demo-app",
+            "group_name": "Demo App",
+            "group_version": "1.0.0",
+            "apps": [{
+                "service_cname": "agent",
+                "service_key": "svc-key",
+                "version": "component-version",
+                "extend_method": "daemonset",
+                "cpu": 600,
+                "memory": 1024,
+                "extend_method_map": {
+                    "min_node": 2,
+                    "max_node": 7,
+                    "step_node": 2,
+                    "min_memory": 64,
+                    "max_memory": 4096,
+                    "step_memory": 128,
+                },
+            }],
+            "annotations": {},
+        }])
+
+        with mock.patch(
+            "{}.rainbond_app_repo.get_rainbond_app_by_app_id".format(self.service_module),
+            return_value=None,
+        ), mock.patch(
+            "{}.rainbond_app_repo.bulk_create_rainbond_apps".format(self.service_module),
+        ), mock.patch(
+            "{}.rainbond_app_repo.bulk_create_rainbond_app_versions".format(self.service_module),
+        ) as bulk_versions, mock.patch(
+            "{}.app_store.is_no_multiple_region_hub".format(self.service_module),
+            return_value=False,
+        ):
+            import_service._AppImportService__save_enterprise_import_info(import_record, metadata, "amd64")
+
+        created_version = bulk_versions.call_args[0][0][0]
+        saved_template = json.loads(created_version.app_template)
+        extend_method_map = saved_template["apps"][0]["extend_method_map"]
+        self.assertNotIn("min_node", extend_method_map)
+        self.assertNotIn("max_node", extend_method_map)
+        self.assertNotIn("step_node", extend_method_map)
         self.assertEqual(extend_method_map["container_cpu"], 600)
         self.assertEqual(extend_method_map["init_memory"], 1024)
 
