@@ -9786,6 +9786,24 @@
       "status": "active"
     },
     {
+      "id": "console.realtime-proxy.file-operate-raw-multipart-forward",
+      "title": "Forward file operation multipart upload without reparsing",
+      "title_zh": "文件操作上传原始转发 multipart 请求",
+      "interface_type": "package_function",
+      "interface": "console.utils.realtime_proxy.proxy_http_request",
+      "code_paths": [
+        "console/utils/realtime_proxy.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/realtime_proxy_url_test.py",
+          "selector": "RealtimeProxyUrlTests.test_file_operate_upload_forwards_raw_multipart_body"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.realtime-proxy.multipart-folder-upload-forward",
       "title": "Forward repeated multipart file fields for folder uploads",
       "title_zh": "转发文件夹上传中的重复 multipart 文件字段",

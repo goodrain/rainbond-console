@@ -416,6 +416,7 @@
 | console.realtime-proxy.docker-console-user-activity | Docker 控制台活动跟踪在用户输入时刷新 | active | regression | console.utils.realtime_proxy.DockerConsoleActivityTracker | console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_docker_console_activity_tracker_refreshes_on_user_input |
 | console.realtime-proxy.docker-console-user-idle-timeout | Docker 控制台活动跟踪忽略 webtty 心跳 | active | regression | console.utils.realtime_proxy.DockerConsoleActivityTracker | console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_docker_console_activity_tracker_ignores_webtty_ping |
 | console.realtime-proxy.forward-client-subprotocols | 转发客户端请求的 websocket 子协议 | active | regression | console.utils.realtime_proxy._backend_websocket_subprotocols | console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_websocket_proxy_keeps_client_requested_subprotocols |
+| console.realtime-proxy.file-operate-raw-multipart-forward | 文件操作上传原始转发 multipart 请求 | active | regression | console.utils.realtime_proxy.proxy_http_request | console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_file_operate_upload_forwards_raw_multipart_body |
 | console.realtime-proxy.http-forward | 实时代理 HTTP 转发 | active | regression | console.utils.realtime_proxy.proxy_http_request | console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_http_proxy_forwards_upload_request_to_region_websocket_service |
 | console.realtime-proxy.internal-target-override | 实时代理内部目标覆盖 | active | regression | console.utils.realtime_proxy.build_region_realtime_proxy_url | console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_region_proxy_target_prefers_internal_override_for_builtin_region |
 | console.realtime-proxy.multipart-folder-upload-forward | 转发文件夹上传中的重复 multipart 文件字段 | active | regression | console.utils.realtime_proxy.build_multipart_payload | console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_multipart_folder_upload_encodes_repeated_file_field |
@@ -4676,6 +4677,16 @@
 - 业务入口: `console.utils.realtime_proxy.build_region_realtime_proxy_url`
 - 代码路径: `console/utils/realtime_proxy.py`
 - 测试路径: `console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_region_proxy_target_prefers_internal_override_for_builtin_region`
+
+### 文件操作上传原始转发 multipart 请求
+
+- Capability ID: `console.realtime-proxy.file-operate-raw-multipart-forward`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `package_function`
+- 业务入口: `console.utils.realtime_proxy.proxy_http_request`
+- 代码路径: `console/utils/realtime_proxy.py`
+- 测试路径: `console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_file_operate_upload_forwards_raw_multipart_body`
 
 ### 转发文件夹上传中的重复 multipart 文件字段
 
