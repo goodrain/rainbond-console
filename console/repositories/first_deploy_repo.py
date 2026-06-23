@@ -23,7 +23,9 @@ class EnterpriseFirstDeployRepository(object):
         return ConsoleSysConfig.objects.filter(key=key).first()
 
     @staticmethod
-    def get_by_key(key: str) -> Optional[ConsoleSysConfig]:
+    def get_by_key(key: Optional[str]) -> Optional[ConsoleSysConfig]:
+        if not key:
+            return None
         return ConsoleSysConfig.objects.filter(key=key).first()
 
     def list_tracking_records(self) -> QuerySet[ConsoleSysConfig]:
