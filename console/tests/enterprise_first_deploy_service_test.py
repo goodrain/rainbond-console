@@ -345,6 +345,57 @@ class EnterpriseFirstDeployServiceTests(TestCase):
         self.assertEqual(report_payload["failure_logs"][0]["lines"][0]["message"], "PASSWORD=<redacted>")
         self.assertTrue(repo.payload["reported"])
 
+    def test_sync_record_falls_back_to_service_event_log_for_build_failure(self):
+        payload = {
+            "enterprise_id": "eid-1",
+            "enterprise_name": "demo-enterprise",
+            "deploy_type": self.service.DEPLOY_TYPE_SOURCE_CODE,
+            "source_language": "Go",
+            "status": self.service.STATUS_PENDING,
+            "build_status": self.service.STAGE_STATUS_PENDING,
+            "runtime_status": self.service.STAGE_STATUS_PENDING,
+            "reported": False,
+            "tenant_name": "demo-team",
+            "region_name": "demo-region",
+            "event_ids": ["event-build-1"],
+            "service_ids": ["service-1"],
+            "service_alias": "grbuild1",
+        }
+        repo = FirstDeployRepoStub(payload)
+        report_response = Obj(status_code=200)
+
+        with mock.patch("console.services.enterprise_first_deploy_service.enterprise_first_deploy_repo", repo), \
+                mock.patch("console.services.enterprise_first_deploy_service.region_api.get_tenant_events",
+                           return_value={"list": [{
+                               "event_id": "event-build-1",
+                               "service_id": "",
+                               "opt_type": "build-service",
+                               "status": "failure",
+                               "final_status": "complete",
+                               "message": "编译失败，请查看构建日志",
+                               "reason": "",
+                               "start_time": "2026-05-06 10:00:00",
+                               "end_time": "2026-05-06 10:03:00",
+                           }]}), \
+                mock.patch("console.services.enterprise_first_deploy_service.region_api.get_events_log",
+                           side_effect=RuntimeError("event log api down")), \
+                mock.patch("console.services.enterprise_first_deploy_service.region_api.get_event_log",
+                           return_value=(Obj(status=200), {"list": [
+                               {"time": "2026-05-06 10:02:58", "message": "go: module example.com/missing not found"},
+                               {"time": "2026-05-06 10:02:59", "message": "make: *** [build] Error 1"},
+                           ]})) as mock_service_log, \
+                mock.patch("console.services.enterprise_first_deploy_service.time.sleep"), \
+                mock.patch("console.services.enterprise_first_deploy_service.requests.post",
+                           return_value=report_response) as mock_post:
+            status = self.service._sync_record(repo.record, payload, "demo-team", "demo-region")
+
+        self.assertEqual(status, self.service.STATUS_FAILURE)
+        report_payload = mock_post.call_args[1]["json"]
+        self.assertEqual(report_payload["log_collect_status"], self.service.LOG_COLLECT_STATUS_COLLECTED)
+        self.assertEqual(report_payload["failure_logs"][0]["source"], "service_event_log")
+        self.assertIn("go: module example.com/missing not found", report_payload["failure_logs"][0]["lines"][0]["message"])
+        mock_service_log.assert_called()
+
     def test_report_failure_includes_v3_context_and_ignores_send_errors(self):
         payload = {
             "enterprise_id": "eid-1",
