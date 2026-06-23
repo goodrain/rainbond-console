@@ -21,7 +21,7 @@ class EnterpriseFirstDeployRepository(object):
         return "{}{}".format(cls.KEY_PREFIX, digest)
 
     @classmethod
-    def build_attempt_key(cls, enterprise_id: str, deploy_attempt_id: str) -> str:
+    def build_attempt_key(cls, enterprise_id: str, deploy_attempt_id: Optional[str]) -> str:
         raw = "{}:{}".format(enterprise_id or "", deploy_attempt_id or "")
         digest = hashlib.md5(raw.encode("utf-8")).hexdigest()[:20]
         return "{}{}".format(cls.ATTEMPT_KEY_PREFIX, digest)
@@ -31,7 +31,9 @@ class EnterpriseFirstDeployRepository(object):
         return ConsoleSysConfig.objects.filter(key=key).first()
 
     @staticmethod
-    def get_by_key(key: str) -> Optional[ConsoleSysConfig]:
+    def get_by_key(key: Optional[str]) -> Optional[ConsoleSysConfig]:
+        if not key:
+            return None
         return ConsoleSysConfig.objects.filter(key=key).first()
 
     def list_tracking_records(self) -> "QuerySet[ConsoleSysConfig]":
