@@ -4731,6 +4731,27 @@
       "status": "active"
     },
     {
+      "id": "console.deploy-diagnostics.v3",
+      "title": "Collect v3 deployment diagnostics",
+      "title_zh": "部署失败 v3 诊断埋点",
+      "interface_type": "workflow",
+      "interface": "console.services.enterprise_first_deploy_service.EnterpriseFirstDeployService",
+      "code_paths": [
+        "console/services/enterprise_first_deploy_service.py",
+        "console/repositories/first_deploy_repo.py",
+        "console/views/app_create/app_build.py",
+        "console/views/app_manage.py",
+        "console/services/market_app_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/enterprise_first_deploy_service_test.py"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.enterprise.region-component-list",
       "title": "List region control plane components",
       "title_zh": "查看集群控制面组件列表",

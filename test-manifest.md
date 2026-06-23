@@ -264,6 +264,7 @@
 | console.component.storage-update-volume-capacity | Component Storage Update Volume Capacity | active | regression | console.services.mcp_query_service.call_tool[rainbond_manage_component_storage] | console/tests/mcp_query_storage_ops_test.py::ManageComponentStorageTests.test_update_volume_allows_capacity_change_without_path_change |
 | console.component.summary | 查看组件概览 | active | regression | console.services.mcp_query_service.call_tool[rainbond_get_component_summary] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_get_component_summary_returns_aggregated_info |
 | console.dependency.invalid-container-port | Dependency Invalid Container Port | active | regression | console.services.app_config.app_relation_service.AppServiceRelationService | console/tests/app_relation_service_test.py::AppRelationServiceTests.test_add_service_dependency_rejects_unknown_dep_service_port |
+| console.deploy-diagnostics.v3 | 部署失败 v3 诊断埋点 | active | regression | console.services.enterprise_first_deploy_service.EnterpriseFirstDeployService | console/tests/enterprise_first_deploy_service_test.py |
 | console.endpoint-address.reject-invalid-format | 拒绝既不是 IP 也不是域名的非法端点地址 | active | regression | console.utils.validation.validate_endpoint_address | console/tests/utils/validation_test.py::EndpointValidationTests.test_validate_endpoint_address_rejects_invalid_format |
 | console.endpoint-address.reject-special-ranges | 拒绝 unspecified 和 loopback 的端点地址 | active | regression | console.utils.validation.validate_endpoint_address | console/tests/utils/validation_test.py::EndpointValidationTests.test_validate_endpoint_address_rejects_special_ranges |
 | console.endpoint-list.normalize-scheme-port | 在多端点校验前规范化协议和端口 | active | regression | console.utils.validation.validate_endpoints_info | console/tests/utils/validation_test.py::EndpointValidationTests.test_validate_endpoints_info_normalizes_scheme_and_port |
@@ -3133,6 +3134,16 @@
 - 业务入口: `console.services.app_config.app_relation_service.AppServiceRelationService`
 - 代码路径: `console/services/app_config/app_relation_service.py`
 - 测试路径: `console/tests/app_relation_service_test.py::AppRelationServiceTests.test_add_service_dependency_rejects_unknown_dep_service_port`
+
+### 部署失败 v3 诊断埋点
+
+- Capability ID: `console.deploy-diagnostics.v3`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `workflow`
+- 业务入口: `console.services.enterprise_first_deploy_service.EnterpriseFirstDeployService`
+- 代码路径: `console/services/enterprise_first_deploy_service.py`, `console/repositories/first_deploy_repo.py`, `console/views/app_create/app_build.py`, `console/views/app_manage.py`, `console/services/market_app_service.py`
+- 测试路径: `console/tests/enterprise_first_deploy_service_test.py`
 
 ### 拒绝既不是 IP 也不是域名的非法端点地址
 

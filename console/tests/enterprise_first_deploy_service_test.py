@@ -2,6 +2,7 @@
 import collections
 import os
 import sys
+import typing
 from copy import deepcopy
 from types import ModuleType
 from unittest import TestCase, mock
@@ -9,6 +10,8 @@ from unittest import TestCase, mock
 for attr in ("Mapping", "MutableMapping", "Sequence", "Iterable", "Iterator"):
     if not hasattr(collections, attr):
         setattr(collections, attr, getattr(collections.abc, attr))
+if not hasattr(typing, "NotRequired"):
+    typing.NotRequired = typing.Optional
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "src", "openapi-client")))
 sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
@@ -20,7 +23,15 @@ import django  # noqa: E402
 
 django.setup()
 
+from django.db.models.query import QuerySet  # noqa: E402
+
+if not hasattr(QuerySet, "__class_getitem__"):
+    QuerySet.__class_getitem__ = classmethod(lambda cls, item: cls)
+
 from console.services.enterprise_first_deploy_service import EnterpriseFirstDeployService  # noqa: E402
+
+
+# capability_id: console.deploy-diagnostics.v3
 
 
 class Obj(object):
@@ -31,25 +42,40 @@ class Obj(object):
 class FirstDeployRepoStub(object):
     def __init__(self, payload):
         self.record = Obj(key="record-key")
+        self.attempt_record = Obj(key="attempt-key")
         self.payload = deepcopy(payload)
+        self.attempt_payload = {}
         self.saved_payloads = []
+        self.created_payloads = []
 
     def get_by_enterprise_id(self, _enterprise_id):
         return self.record
 
     def update_payload(self, _record, payload):
-        self.payload = deepcopy(payload)
+        if getattr(_record, "key", "") == self.attempt_record.key:
+            self.attempt_payload = deepcopy(payload)
+        else:
+            self.payload = deepcopy(payload)
         self.saved_payloads.append(deepcopy(payload))
-        return self.record
+        return _record
 
     def get_by_key(self, _key):
+        if _key == self.attempt_record.key:
+            return self.attempt_record
         return self.record
 
     def list_tracking_records(self):
         return [self.record]
 
     def load_payload(self, _record):
+        if getattr(_record, "key", "") == self.attempt_record.key:
+            return deepcopy(self.attempt_payload)
         return deepcopy(self.payload)
+
+    def create_attempt(self, _enterprise_id, payload):
+        self.attempt_payload = deepcopy(payload)
+        self.created_payloads.append(deepcopy(payload))
+        return self.attempt_record, True
 
 
 class EnterpriseFirstDeployServiceTests(TestCase):
@@ -77,6 +103,61 @@ class EnterpriseFirstDeployServiceTests(TestCase):
 
         self.assertEqual(payload["service_ids"], ["service-1"])
 
+    def test_build_payload_includes_v3_diagnostic_context(self):
+        enterprise = Obj(enterprise_alias="demo-enterprise", enterprise_name="demo-enterprise")
+        service = Obj(
+            service_id="service-1",
+            service_alias="grabc123",
+            service_cname="用户订单服务",
+            service_source="source_code",
+            language="Java-maven",
+            arch="amd64",
+            build_strategy="cnb",
+            min_memory=512,
+            min_cpu=100,
+            min_node=2,
+            total_memory=1024,
+        )
+        app_context = {
+            "app_name": "客户生产应用",
+            "market_app_name": "WordPress",
+            "app_model_key": "wordpress",
+            "app_model_version": "1.0.0",
+            "component_count": 2,
+        }
+        environment_context = {
+            "collect_status": "success",
+            "node_count": 3,
+            "ready_nodes": 2,
+            "arch": ["amd64"],
+        }
+
+        with mock.patch("console.services.enterprise_first_deploy_service.TenantEnterprise.objects.filter") as mock_filter:
+            mock_filter.return_value.first.return_value = enterprise
+            payload = self.service._build_payload(
+                enterprise_id="eid-1",
+                tenant_name="demo-team",
+                region_name="demo-region",
+                deploy_type=self.service.DEPLOY_TYPE_SOURCE_CODE,
+                operator="admin",
+                source_language="Java",
+                service_id="service-1",
+                service_alias="grabc123",
+                service=service,
+                trigger="create_and_deploy",
+                app_context=app_context,
+                environment_context=environment_context)
+
+        self.assertEqual(payload["payload_version"], 3)
+        self.assertEqual(payload["deployment_context"]["trigger"], "create_and_deploy")
+        self.assertEqual(payload["deployment_context"]["service_source"], "source_code")
+        self.assertEqual(payload["app_context"]["market_app_name"], "WordPress")
+        self.assertEqual(payload["app_context"]["app_name_hash"], self.service._hash_identifier("eid-1", "客户生产应用"))
+        self.assertNotIn("app_name", payload["app_context"])
+        self.assertEqual(payload["environment_context"]["node_count"], 3)
+        self.assertEqual(payload["workload_context"]["total_memory"], 1024)
+        self.assertEqual(payload["workload_context"]["min_node"], 2)
+
     def test_begin_tracking_does_not_block_on_pending_report(self):
         self.service.report_async = True
         payload = {
@@ -95,7 +176,12 @@ class EnterpriseFirstDeployServiceTests(TestCase):
 
         with mock.patch("console.services.enterprise_first_deploy_service.enterprise_first_deploy_repo", repo), \
                 mock.patch.object(self.service, "_start_report_thread", create=True) as mock_start_report, \
+                mock.patch.object(self.service, "_start_environment_collect_thread", create=True) as mock_start_collect, \
+                mock.patch("console.services.enterprise_first_deploy_service.TenantEnterprise.objects.filter") as mock_filter, \
                 mock.patch("console.services.enterprise_first_deploy_service.requests.post") as mock_post:
+            mock_filter.return_value.first.return_value = Obj(
+                enterprise_alias="demo-enterprise",
+                enterprise_name="demo-enterprise")
             tracker = self.service.begin_tracking(
                 enterprise_id="eid-1",
                 tenant_name="demo-team",
@@ -105,9 +191,25 @@ class EnterpriseFirstDeployServiceTests(TestCase):
                 source_language="Java",
                 service_id="service-1")
 
-        self.assertIsNone(tracker)
+        self.assertEqual(tracker["key"], "attempt-key")
         mock_start_report.assert_called_once_with("record-key")
+        mock_start_collect.assert_called_once_with("attempt-key", "eid-1", "demo-region")
         self.assertFalse(mock_post.called)
+        self.assertEqual(len(repo.created_payloads), 1)
+        self.assertEqual(repo.created_payloads[0]["payload_version"], 3)
+
+    def test_safe_begin_tracking_returns_none_when_collection_setup_fails(self):
+        repo = mock.Mock()
+        repo.get_by_enterprise_id.side_effect = RuntimeError("db unavailable")
+
+        with mock.patch("console.services.enterprise_first_deploy_service.enterprise_first_deploy_repo", repo):
+            tracker = self.service.safe_begin_tracking(
+                enterprise_id="eid-1",
+                tenant_name="demo-team",
+                region_name="demo-region",
+                deploy_type=self.service.DEPLOY_TYPE_SOURCE_CODE)
+
+        self.assertIsNone(tracker)
 
     def test_sync_record_reports_build_failure_with_redacted_logs(self):
         payload = {
@@ -158,6 +260,56 @@ class EnterpriseFirstDeployServiceTests(TestCase):
         self.assertEqual(report_payload["failure_logs"][0]["stage"], self.service.FAILURE_STAGE_BUILD)
         self.assertEqual(report_payload["failure_logs"][0]["lines"][0]["message"], "PASSWORD=<redacted>")
         self.assertTrue(repo.payload["reported"])
+
+    def test_report_failure_includes_v3_context_and_ignores_send_errors(self):
+        payload = {
+            "enterprise_id": "eid-1",
+            "enterprise_name": "demo-enterprise",
+            "deploy_type": self.service.DEPLOY_TYPE_SOURCE_CODE,
+            "source_language": "Java",
+            "payload_version": 3,
+            "status": self.service.STATUS_FAILURE,
+            "reported": False,
+            "tenant_name": "demo-team",
+            "region_name": "demo-region",
+            "event_ids": ["event-build-1"],
+            "service_ids": ["service-1"],
+            "deployment_context": {
+                "deploy_attempt_id": "attempt-1",
+                "trigger": "create_and_deploy",
+                "service_source": "source_code",
+            },
+            "app_context": {
+                "app_name_hash": "hash-app",
+                "component_count": 1,
+            },
+            "environment_context": {
+                "collect_status": "failed",
+                "error": "region unavailable",
+            },
+            "workload_context": {
+                "min_memory": 512,
+            },
+            "failure_stage": self.service.FAILURE_STAGE_BUILD,
+            "failure_reason": "build failed",
+            "failure_category": self.service.FAILURE_CATEGORY_COMPILE_FAILED,
+            "log_collect_status": self.service.LOG_COLLECT_STATUS_NO_EVENT_ID,
+            "failure_events": [],
+            "failure_logs": [],
+        }
+        repo = FirstDeployRepoStub(payload)
+
+        with mock.patch("console.services.enterprise_first_deploy_service.enterprise_first_deploy_repo", repo), \
+                mock.patch("console.services.enterprise_first_deploy_service.requests.post",
+                           side_effect=RuntimeError("network down")) as mock_post:
+            self.service._report_if_needed(repo.record, payload, async_report=False)
+
+        report_payload = mock_post.call_args[1]["json"]
+        self.assertEqual(report_payload["payload_version"], 3)
+        self.assertEqual(report_payload["deployment_context"]["deploy_attempt_id"], "attempt-1")
+        self.assertEqual(report_payload["environment_context"]["collect_status"], "failed")
+        self.assertEqual(report_payload["workload_context"]["min_memory"], 512)
+        self.assertFalse(repo.payload.get("reported"))
 
     def test_sync_record_retries_build_failure_logs_before_reporting(self):
         payload = {

@@ -154,13 +154,17 @@ class MarketAppService(object):
             market_name,
             is_deploy=is_deploy)
         if is_deploy and not dry_run:
-            tracker = enterprise_first_deploy_service.begin_tracking(
+            tracker = enterprise_first_deploy_service.safe_begin_tracking(
                 # NOTE: tenant.enterprise_id / user.nick_name are Optional[str] model fields
                 enterprise_id=tenant.enterprise_id,  # type: ignore[arg-type]
                 tenant_name=tenant.tenant_name,
                 region_name=region.region_name,
                 deploy_type=enterprise_first_deploy_service.DEPLOY_TYPE_APP_MARKET,
-                operator=user.nick_name)  # type: ignore[arg-type]
+                operator=user.nick_name,  # type: ignore[arg-type]
+                trigger="market_install",
+                app_context=enterprise_first_deploy_service.build_market_app_context(
+                    app, market_app, app_model_key, version, market_name, install_from_cloud, app_template),
+                workload_context=enterprise_first_deploy_service.build_market_workload_context(app_template))
         try:
             if dry_run:
                 app_upgrade.preinstall()
@@ -168,7 +172,7 @@ class MarketAppService(object):
             else:
                 events = app_upgrade.install()
         except Exception as e:
-            enterprise_first_deploy_service.mark_failure(tracker, reason=str(e))
+            enterprise_first_deploy_service.safe_mark_failure(tracker, reason=str(e))
             raise
         new_components = app_upgrade.new_app.components() or []
         component_service_ids = [
@@ -185,7 +189,7 @@ class MarketAppService(object):
             component_service_aliases = [
                 a for a in (getattr(cpt.component, "service_alias", "") or "" for cpt in new_components) if a
             ]
-        enterprise_first_deploy_service.bind_events(
+        enterprise_first_deploy_service.safe_bind_events(
             tracker,
             self._extract_event_ids(events),
             service_ids=component_service_ids,
