@@ -47,6 +47,7 @@ import django  # noqa: E402
 django.setup()
 
 from django.db.models.query import QuerySet  # noqa: E402
+from django.test import RequestFactory  # noqa: E402
 
 if not hasattr(QuerySet, "__class_getitem__"):
     QuerySet.__class_getitem__ = classmethod(lambda cls, item: cls)
@@ -62,7 +63,7 @@ class Obj(object):
         self.__dict__.update(kwargs)
 
 
-class AppCheckViewDiagnosticsTests(TestCase):
+class AppCheckSourceDiagnosticTests(TestCase):
     def test_get_reports_source_check_failure_without_changing_response(self):
         view = AppCheck()
         view.tenant = Obj(tenant_name="demo-team", enterprise_id="eid-1")
@@ -79,18 +80,20 @@ class AppCheckViewDiagnosticsTests(TestCase):
             create_status="checking",
         )
         view.app = Obj(ID=12, group_name="demo-app")
-        request = Obj(GET={"check_uuid": "check-1"})
         data = {
             "check_status": "failure",
             "error_infos": [{"error_info": "获取代码超时 请确认源码仓库能否正常访问"}],
             "service_info": [],
         }
 
+        request = RequestFactory().get("/console/check", {"check_uuid": "check-1"})
         with mock.patch("console.views.app_create.app_check.app_check_service.get_service_check_info",
                         return_value=(200, "success", data)), \
                 mock.patch("console.views.app_create.app_check.app_check_service.wrap_service_check_info",
                            return_value={"check_status": "failure", "error_infos": data["error_infos"], "service_info": []}), \
-                mock.patch("console.views.app_create.app_check.enterprise_first_deploy_service.safe_report_source_check_failure") as mock_report:
+                mock.patch(
+                    "console.views.app_create.app_check.enterprise_first_deploy_service.safe_report_source_check_failure"
+                ) as mock_report:
             response = view.get(request)
 
         self.assertEqual(response.status_code, 200)
