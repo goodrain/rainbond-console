@@ -1,24 +1,40 @@
 # -*- coding: utf-8 -*-
 """Cache-related view decorators compatible with class-based DRF views.
 
-Django 4.0 added a strict ``hasattr(request, "META")`` guard to
-``django.views.decorators.cache.never_cache``. Applying the raw decorator
-directly to a class/instance method (``@never_cache`` above ``def get(self, ...)``)
-makes the wrapper receive the bound ``self`` as its first argument instead of the
-request, so it raises::
+Django 4.0+ hardened ``django.views.decorators.cache.never_cache`` with a strict
+``isinstance(request, HttpRequest)`` guard. DRF dispatches view methods with a
+``rest_framework.request.Request`` (which is **not** an ``HttpRequest`` subclass),
+so applying the stock decorator to a view method — even via ``method_decorator`` —
+raises at call time::
 
     TypeError: never_cache didn't receive an HttpRequest. If you are decorating a
     classmethod, be sure to use @method_decorator.
 
-The project applies ``@never_cache`` to view methods in dozens of places. To keep
-those call sites unchanged we expose a ``never_cache`` that is already wrapped with
-``method_decorator``, which is the Django-recommended way to apply a function-view
-decorator to a method.
+The project applies ``@never_cache`` to DRF view methods in dozens of places. To
+keep those call sites unchanged while supporting any request type, this variant
+does not inspect the request at all: it simply invokes the wrapped method and
+stamps the standard never-cache headers onto the returned response (which is
+exactly what Django's decorator does, minus the request-type guard).
 """
 
-from django.utils.decorators import method_decorator
-from django.views.decorators.cache import never_cache as _never_cache
+from functools import wraps
 
-# Method-friendly variant. Use exactly like the original ``never_cache`` but on
-# class/instance methods of DRF views.
-never_cache = method_decorator(_never_cache)
+from django.utils.cache import add_never_cache_headers
+
+
+def never_cache(view_method):
+    """Mark a class-based view method's response as never-cacheable.
+
+    Use exactly like Django's ``never_cache`` but on a bound view method
+    (``def get(self, request, ...)``). The request is passed straight through to
+    the wrapped method, so DRF ``Request`` instances (and plain test doubles) are
+    supported.
+    """
+
+    @wraps(view_method)
+    def _wrapped(self, request, *args, **kwargs):
+        response = view_method(self, request, *args, **kwargs)
+        add_never_cache_headers(response)
+        return response
+
+    return _wrapped
