@@ -216,16 +216,24 @@ class RealtimeProxyUrlTests(SimpleTestCase):
 
     # capability_id: console.realtime-proxy.file-operate-raw-multipart-forward
     def test_file_operate_upload_forwards_raw_multipart_body(self):
-        upload_file = SimpleUploadedFile(
-            "file.txt",
-            b"app package content",
-            content_type="text/plain",
+        boundary = "----RainbondBoundary"
+        body = (
+            b"------RainbondBoundary\r\n"
+            b'Content-Disposition: form-data; name="path"\r\n\r\n'
+            b"/data\r\n"
+            b"------RainbondBoundary\r\n"
+            b'Content-Disposition: form-data; name="files"; filename="demo/file.txt"\r\n'
+            b"Content-Type: text/plain\r\n\r\n"
+            b"folder content\r\n"
+            b"------RainbondBoundary--\r\n"
         )
         request = self.factory.post(
             "/console/regions/rainbond/websocket/v2/file-operate/upload",
-            data={"path": "/data", "files": upload_file},
+            data=body,
+            content_type="multipart/form-data; boundary={0}".format(boundary),
             HTTP_AUTHORIZATION="JWT token",
         )
+        self.assertEqual(request.body, body)
         backend_response = mock.Mock()
         backend_response.status_code = 200
         backend_response.headers = {"Content-Type": "application/json"}
@@ -243,7 +251,13 @@ class RealtimeProxyUrlTests(SimpleTestCase):
         self.assertIn("multipart/form-data", kwargs["headers"]["Content-Type"])
         self.assertIn("boundary=", kwargs["headers"]["Content-Type"])
         self.assertIsNone(kwargs["files"])
-        self.assertIsNotNone(kwargs["data"])
+        forwarded_body = kwargs["data"].read(len(body) + 1)
+        self.assertEqual(forwarded_body, body)
+        self.assertEqual(kwargs["data"].read(1), b"")
+        self.assertEqual(kwargs["headers"]["Content-Length"], str(len(body)))
+        self.assertIn(b'name="path"', forwarded_body)
+        self.assertIn(b"/data", forwarded_body)
+        self.assertIn(b'filename="demo/file.txt"', forwarded_body)
         self.assertEqual(response.status_code, 200)
 
     # capability_id: console.realtime-proxy.docker-console-subprotocol
