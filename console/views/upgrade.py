@@ -1,5 +1,6 @@
 import os
-from typing import Any
+import re
+from typing import Any, Tuple
 
 import requests
 from django.http import JsonResponse
@@ -15,6 +16,11 @@ from rest_framework.response import Response
 
 region_api = RegionInvokeApi()
 VERSION_INFO_TIMEOUT = 2
+VERSION_NUMBER_PATTERN = re.compile(r"\d+")
+
+
+def upgrade_version_sort_key(version: str) -> Tuple[Tuple[int, ...], str]:
+    return tuple(int(part) for part in VERSION_NUMBER_PATTERN.findall(version)), version
 
 
 class UpgradeView(JWTAuthApiView):
@@ -34,6 +40,7 @@ class UpgradeView(JWTAuthApiView):
         result = general_message(200, "success", "请求成功", list=resp.get("list", []))  # type: ignore[union-attr]
         return Response(result, status=200)
 
+
 def fetch_json_data() -> Any:
     if is_cloud_market_disabled():
         return None
@@ -46,12 +53,13 @@ def fetch_json_data() -> Any:
     except Exception:
         return None
 
+
 class UpgradeVersionLView(JWTAuthApiView):
     def get(self, request: Request, *args: Any, **kwargs: Any) -> JsonResponse:
         data = fetch_json_data()
         if data is None:
             return JsonResponse([], status=200, safe=False)
-        versions = sorted([item["version"] for item in data], reverse=True)
+        versions = sorted([item["version"] for item in data], key=upgrade_version_sort_key, reverse=True)
         return JsonResponse(versions, safe=False)
 
 
