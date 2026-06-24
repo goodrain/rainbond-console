@@ -3,6 +3,7 @@
   Created by leon on 18/1/12.
 """
 import logging
+from typing import Any
 
 from console.exception.main import (AccountOverdueException, BusinessException, ResourceNotEnoughException,
                                     ServiceHandleException)
@@ -11,21 +12,27 @@ from console.repositories.group import group_repo
 from console.services.app_check_service import app_check_service
 from console.services.compose_service import compose_service
 from console.services.group_service import group_service
+from console.services.team_services import team_services
 from console.views.base import RegionTenantHeaderView
 from django.db import transaction
-from django.views.decorators.cache import never_cache
+from console.utils.cache_decorators import never_cache
+from rest_framework.request import Request
 from rest_framework.response import Response
+from console.models.main import ComposeGroup
+from www.models.main import ServiceGroup
 from www.utils.return_message import general_message
 
 logger = logging.getLogger("default")
 
 
 class ComposeGroupBaseView(RegionTenantHeaderView):
-    def __init__(self, *args, **kwargs):
-        super(ComposeGroupBaseView, self).__init__(*args, **kwargs)
-        self.group = None
+    group: ServiceGroup
 
-    def initial(self, request, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super(ComposeGroupBaseView, self).__init__(*args, **kwargs)
+        self.group = None  # type: ignore[assignment]
+
+    def initial(self, request: Request, *args: Any, **kwargs: Any) -> None:
         super(ComposeGroupBaseView, self).initial(request, *args, **kwargs)
         group_id = kwargs.get("group_id", None)
         if not group_id:
@@ -37,16 +44,18 @@ class ComposeGroupBaseView(RegionTenantHeaderView):
             raise BusinessException(Response(general_message(404, "group not found", "组ID{0}不存在".format(group_id)), status=404))
         self.initial_header_info(request)
 
-    def initial_header_info(self, request):
+    def initial_header_info(self, request: Request) -> None:
         pass
 
 
 class ComposeBaseView(RegionTenantHeaderView):
-    def __init__(self, *args, **kwargs):
-        super(ComposeBaseView, self).__init__(*args, **kwargs)
-        self.group_compose = None
+    group_compose: ComposeGroup
 
-    def initial(self, request, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super(ComposeBaseView, self).__init__(*args, **kwargs)
+        self.group_compose = None  # type: ignore[assignment]
+
+    def initial(self, request: Request, *args: Any, **kwargs: Any) -> None:
         super(ComposeBaseView, self).initial(request, *args, **kwargs)
         compose_id = kwargs.get("compose_id", None)
         if not compose_id:
@@ -59,13 +68,13 @@ class ComposeBaseView(RegionTenantHeaderView):
                 Response(general_message(404, "compose not found", "compose组{0}不存在".format(compose_id)), status=404))
         self.initial_header_info(request)
 
-    def initial_header_info(self, request):
+    def initial_header_info(self, request: Request) -> None:
         pass
 
 
 class DockerComposeCreateView(RegionTenantHeaderView):
     @never_cache
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         docker-compose创建组件
         ---
@@ -106,6 +115,11 @@ class DockerComposeCreateView(RegionTenantHeaderView):
         group_id = request.data.get("group_id", None)
         hub_user = request.data.get("user_name", "")
         hub_pass = request.data.get("password", "")
+        registry_auth_id = request.data.get("registry_auth_id", "")
+        if registry_auth_id:
+            registry_auth = team_services.resolve_registry_auth(self.user, registry_auth_id)
+            hub_user = registry_auth.username
+            hub_pass = registry_auth.password
         event_id = request.data.get("event_id", "")
         compose_file_path = request.data.get("compose_file_path", "docker-compose.yml")
         group_note = request.data.get("group_note", "")
@@ -114,7 +128,9 @@ class DockerComposeCreateView(RegionTenantHeaderView):
         if not event_id:
             return Response(general_message(400, "params error", "未指明上传事件ID"), status=400)
         # 创建组
-        group = group_repo.get_group_by_pk(self.tenant.tenant_id, self.response_region, group_id)
+        group = group_repo.get_group_by_pk(self.tenant.tenant_id, self.response_region, group_id)  # type: ignore[arg-type]
+        if not group:
+            return Response(general_message(404, "group not found", "应用组不存在"), status=404)
         group_info = group.to_dict()
         group_info["group_id"] = group.ID
         group_info['app_id'] = group.ID
@@ -124,7 +140,7 @@ class DockerComposeCreateView(RegionTenantHeaderView):
             self.tenant, self.response_region, group_info["group_id"], event_id, compose_file_path, hub_user, hub_pass)
         if code != 200:
             return Response(general_message(code, "create group compose error", msg), status=code)
-        bean = dict()
+        bean: dict = dict()
         bean["group_id"] = group_compose.group_id
         bean["compose_id"] = group_compose.compose_id
         bean["app_name"] = group_info["app_name"]
@@ -134,7 +150,7 @@ class DockerComposeCreateView(RegionTenantHeaderView):
 
 class GetComposeCheckUUID(ComposeGroupBaseView):
     @never_cache
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         compose_id = request.GET.get("compose_id", None)
         if not compose_id:
             return Response(general_message(400, "params error", "参数错误，请求参数应该包含compose ID"), status=400)
@@ -148,7 +164,7 @@ class GetComposeCheckUUID(ComposeGroupBaseView):
 
 class ComposeCheckView(ComposeGroupBaseView):
     @never_cache
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         docker-compose组件检测
         ---
@@ -180,7 +196,7 @@ class ComposeCheckView(ComposeGroupBaseView):
         return Response(result, status=result["code"])
 
     @never_cache
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         获取compose文件检测信息
         ---
@@ -217,10 +233,12 @@ class ComposeCheckView(ComposeGroupBaseView):
             if not compose_id:
                 return Response(general_message(400, "params error", "参数错误，请求参数应该包含compose ID"), status=400)
             group_compose = compose_service.get_group_compose_by_compose_id(compose_id)
-            code, msg, data = app_check_service.get_service_check_info(self.tenant, self.response_region, check_uuid)
-            logger.debug("start save compose info ! {0}".format(group_compose.create_status))
-            save_code, save_msg, service_list = compose_service.save_compose_services(self.tenant, self.user,
-                                                                                      self.response_region, group_compose, data, arch)
+            code, msg, data = app_check_service.get_service_check_info(
+                self.tenant, self.response_region, check_uuid)  # type: ignore[arg-type]
+            # NOTE: get_group_compose_by_compose_id may return None; backlog
+            logger.debug("start save compose info ! {0}".format(group_compose.create_status))  # type: ignore[union-attr]
+            save_code, save_msg, service_list = compose_service.save_compose_services(
+                self.tenant, self.user, self.response_region, group_compose, data, arch)  # type: ignore[arg-type]
             if save_code != 200:
                 data["check_status"] = "failure"
                 save_error = {
@@ -233,20 +251,22 @@ class ComposeCheckView(ComposeGroupBaseView):
                 else:
                     data["error_infos"] = [save_error]
             else:
-                transaction.savepoint_commit(sid)
+                # NOTE: sid is always None (savepoint never created); savepoint_commit(None); latent bug, backlog
+                transaction.savepoint_commit(sid)  # type: ignore[arg-type]
             compose_check_brief = compose_service.wrap_compose_check_info(data)
             result = general_message(200, "success", "请求成功", bean=compose_check_brief, list=[s.to_dict() for s in service_list])
         except ResourceNotEnoughException as re:
             raise re
         except AccountOverdueException as re:
             logger.exception(re)
-            return Response(general_message(10410, "resource is not enough", re.message), status=412)
+            # NOTE: py2-style Exception.message
+            return Response(general_message(10410, "resource is not enough", re.message), status=412)  # type: ignore[attr-defined]
         return Response(result, status=result["code"])
 
 
 class ComposeCheckUpdate(ComposeGroupBaseView):
     @never_cache
-    def put(self, request, *args, **kwargs):
+    def put(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         compose文件内容修改
         ---
@@ -279,12 +299,12 @@ class ComposeCheckUpdate(ComposeGroupBaseView):
         if not yaml_content and not group_name:
             return Response(general_message(400, "params error", "请填入需要修改的参数"), status=400)
         if group_name:
-            group_service.update_group(self.tenant, self.response_region, group_id, group_name)
+            group_service.update_group(self.tenant, self.response_region, group_id, group_name)  # type: ignore[arg-type]
         if yaml_content:
             code, msg, json_data = compose_service.yaml_to_json(yaml_content)
             if code != 200:
                 return Response(general_message(code, "parse yaml error", msg), status=code)
-            code, msg, new_compose = compose_service.update_compose(group_id, json_data)
+            code, msg, new_compose = compose_service.update_compose(group_id, json_data)  # type: ignore[arg-type]
             if code != 200:
                 return Response(general_message(code, "save yaml content error", msg), status=code)
         result = general_message(200, "success", "修改成功")
@@ -295,7 +315,7 @@ class ComposeDeleteView(ComposeGroupBaseView):
     """放弃创建compose"""
 
     @never_cache
-    def delete(self, request, *args, **kwargs):
+    def delete(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         放弃创建compose组组件
         ---
@@ -320,7 +340,7 @@ class ComposeDeleteView(ComposeGroupBaseView):
         group_id = kwargs.get("group_id", None)
         app_name = request.data.get("app_name", "")
         try:
-            group_id = int(group_id)
+            group_id = int(group_id)  # type: ignore[arg-type]
         except ValueError:
             raise ServiceHandleException(msg="group id is invalid", msg_show="参数不合法")
         if group_id:
@@ -337,7 +357,7 @@ class ComposeDeleteView(ComposeGroupBaseView):
 
 class ComposeServicesView(ComposeBaseView):
     @never_cache
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         获取compose组下的组件
         ---
@@ -361,7 +381,7 @@ class ComposeServicesView(ComposeBaseView):
 
 class ComposeContentView(ComposeBaseView):
     @never_cache
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         获取compose文件内容
         ---

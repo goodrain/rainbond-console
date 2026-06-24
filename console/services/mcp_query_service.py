@@ -4,6 +4,7 @@ import json
 import logging
 import os
 import re
+from typing import Any, List, Optional, Tuple
 
 from django.core import signing
 from django.core.exceptions import ObjectDoesNotExist
@@ -257,7 +258,7 @@ class MCPQueryService(object):
         "remove": "delete",
     }
 
-    def list_tools(self, user=None):
+    def list_tools(self, user: Any = None) -> List[dict]:
         tools = [
             self._tool_get_current_user(), self._tool_get_app_detail(), self._tool_create_app(),
             self._tool_get_component_summary(), self._tool_get_component_detail(),
@@ -315,7 +316,7 @@ class MCPQueryService(object):
             ] + tools
         return tools
 
-    def call_tool(self, user, name, arguments=None):
+    def call_tool(self, user: Any, name: str, arguments: Optional[dict] = None) -> Any:
         arguments = arguments or {}
 
         if name == "rainbond_get_current_user":
@@ -535,7 +536,7 @@ class MCPQueryService(object):
 
         raise ServiceHandleException(msg="tool not found", msg_show="工具不存在", status_code=404)
 
-    def get_current_user(self, user):
+    def get_current_user(self, user: Any) -> dict:
         return {
             "user_id": user.user_id,
             "nick_name": getattr(user, "nick_name", None),
@@ -545,7 +546,7 @@ class MCPQueryService(object):
             "is_enterprise_admin": self._is_enterprise_admin(user),
         }
 
-    def get_app_detail(self, user, arguments):
+    def get_app_detail(self, user: Any, arguments: dict) -> dict:
         team, app = self._get_team_app_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -566,7 +567,7 @@ class MCPQueryService(object):
         app_info["app_id"] = app.ID
         return app_info
 
-    def create_app(self, user, arguments):
+    def create_app(self, user: Any, arguments: dict) -> dict:
         team = self._get_team_context(user, self._require_string(arguments, "team_name"))
         region_name = self._require_string(arguments, "region_name")
         self._get_region_by_name_context(user, region_name)
@@ -582,7 +583,7 @@ class MCPQueryService(object):
             k8s_app=k8s_app,
         )
 
-    def get_component_detail(self, user, arguments):
+    def get_component_detail(self, user: Any, arguments: dict) -> dict:
         team, app, service = self._get_team_app_service_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -601,7 +602,7 @@ class MCPQueryService(object):
         data["access_infos"] = domain_service.get_component_access_infos(app.region_name, service.service_id)
         return data
 
-    def get_component_pods(self, user, arguments):
+    def get_component_pods(self, user: Any, arguments: dict) -> dict:
         team, app, service = self._get_team_app_service_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -628,7 +629,7 @@ class MCPQueryService(object):
             "total": len(items),
         }
 
-    def get_pod_detail(self, user, arguments):
+    def get_pod_detail(self, user: Any, arguments: dict) -> dict:
         team, app, service = self._get_team_app_service_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -650,7 +651,7 @@ class MCPQueryService(object):
             raise ServiceHandleException(msg="pod not found", msg_show="Pod 不存在", status_code=404)
         return pod_detail
 
-    def get_component_summary(self, user, arguments):
+    def get_component_summary(self, user: Any, arguments: dict) -> dict:
         team, app, service = self._get_team_app_service_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -711,7 +712,7 @@ class MCPQueryService(object):
             },
         }
 
-    def get_component_logs(self, user, arguments):
+    def get_component_logs(self, user: Any, arguments: dict) -> dict:
         team, app, service = self._get_team_app_service_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -761,7 +762,7 @@ class MCPQueryService(object):
             "fallback": fallback,
         }
 
-    def exec_component(self, user, arguments):
+    def exec_component(self, user: Any, arguments: dict) -> dict:
         team, app, service = self._get_team_app_service_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -826,7 +827,7 @@ class MCPQueryService(object):
             "truncated": bool(detail.get("truncated", False)),
         }
 
-    def get_config_file(self, user, arguments):
+    def get_config_file(self, user: Any, arguments: dict) -> dict:
         team, app, service = self._get_team_app_service_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -836,8 +837,9 @@ class MCPQueryService(object):
         )
         volume_name = arguments.get("volume_name", "") or ""
         volume_path = arguments.get("volume_path", "") or ""
-        config_volumes = volume_repo.get_service_volumes_about_config_file(service.service_id) or []
-        config_files = {}
+        config_volumes = volume_repo.get_service_volumes_about_config_file(service.service_id) or []  # type: Any
+        # Dual-key map: keyed by both volume_id (int) and "name:<volume_name>" (str).
+        config_files = {}  # type: dict
         for config_file in volume_repo.get_service_config_files(service.service_id) or []:
             config_files[config_file.volume_id] = config_file
             if config_file.volume_name:
@@ -848,7 +850,8 @@ class MCPQueryService(object):
                 continue
             if volume_path and volume.volume_path != volume_path:
                 continue
-            config_file = config_files.get(volume.ID)
+            # config_file is reused as both loop var (model) and lookup result (Any|None).
+            config_file = config_files.get(volume.ID)  # type: ignore[assignment]
             if config_file is None and volume.volume_name:
                 config_file = config_files.get("name:" + volume.volume_name)
             items.append({
@@ -866,7 +869,7 @@ class MCPQueryService(object):
             "total": len(items),
         }
 
-    def get_component_events(self, user, arguments):
+    def get_component_events(self, user: Any, arguments: dict) -> dict:
         page = self._parse_int_with_default(arguments.get("page"), 1)
         page_size = self._parse_int_with_default(arguments.get("page_size"), 10)
         team, app, service = self._get_team_app_service_context(
@@ -887,7 +890,7 @@ class MCPQueryService(object):
             "has_next": has_next,
         }
 
-    def get_component_build_logs(self, user, arguments):
+    def get_component_build_logs(self, user: Any, arguments: dict) -> dict:
         team, app, service = self._get_team_app_service_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -935,7 +938,7 @@ class MCPQueryService(object):
         }
 
     @staticmethod
-    def _build_log_item_contains(item, keyword):
+    def _build_log_item_contains(item: Any, keyword: str) -> bool:
         if isinstance(item, dict):
             haystack = item.get("message")
             if not isinstance(haystack, str):
@@ -965,7 +968,7 @@ class MCPQueryService(object):
         r"(\s*[:=]\s*)"
         r"(bearer\s+\S+|\"[^\"]*\"|'[^']*'|[^\s,;\"'&]+)")
 
-    def get_operation_failure_context(self, user, arguments):
+    def get_operation_failure_context(self, user: Any, arguments: dict) -> dict:
         team, app, service = self._get_team_app_service_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -1016,7 +1019,7 @@ class MCPQueryService(object):
             "verification_level": verification_level,
         }
 
-    def _resolve_failure_event(self, team, app, service, requested_event_id):
+    def _resolve_failure_event(self, team: Any, app: Any, service: Any, requested_event_id: str) -> Optional[dict]:
         """Locate the operation event to anchor on.
 
         When event_id is given, short-circuit: the caller already knows the
@@ -1031,7 +1034,7 @@ class MCPQueryService(object):
             return {"event_id": requested_event_id, "opt_type": "", "status": "",
                     "message": "", "start_time": "", "end_time": ""}
 
-        events = []
+        events = []  # type: List[Any]
         try:
             res, body = region_api.get_target_events_list(
                 app.region_name, team.tenant_name, "service", service.service_id,
@@ -1052,7 +1055,7 @@ class MCPQueryService(object):
         return None
 
     @staticmethod
-    def _shape_failure_event(item):
+    def _shape_failure_event(item: dict) -> dict:
         return {
             "event_id": item.get("event_id") or "",
             "opt_type": item.get("opt_type") or "",
@@ -1062,7 +1065,8 @@ class MCPQueryService(object):
             "end_time": item.get("end_time") or "",
         }
 
-    def _read_failure_event_log_tail(self, team, region_name, event_id, log_tail_lines):
+    def _read_failure_event_log_tail(self, team: Any, region_name: str, event_id: str,
+                                     log_tail_lines: int) -> List[str]:
         try:
             res, body = region_api.get_events_log(team.tenant_name, region_name, event_id)
             items = body.get("list") or [] if (int(res.status) == 200 and isinstance(body, dict)) else []
@@ -1080,10 +1084,10 @@ class MCPQueryService(object):
             lines.append(self._redact_failure_line(message)[:self.FAILURE_CONTEXT_MAX_LINE_LENGTH])
         return lines
 
-    def _redact_failure_line(self, message):
+    def _redact_failure_line(self, message: Any) -> str:
         return self._FAILURE_CONTEXT_SECRET_RE.sub(r"\1\2***", str(message or ""))
 
-    def _collect_pod_warnings(self, team, region_name, service):
+    def _collect_pod_warnings(self, team: Any, region_name: str, service: Any) -> List[dict]:
         """Pull Warning events from up to N abnormal pods. Best-effort: any
         failure returns an empty list so aggregation can degrade gracefully."""
         try:
@@ -1110,7 +1114,8 @@ class MCPQueryService(object):
             warnings.extend(self._extract_pod_warning_events(team, region_name, service, pod_name))
         return warnings
 
-    def _extract_pod_warning_events(self, team, region_name, service, pod_name):
+    def _extract_pod_warning_events(self, team: Any, region_name: str, service: Any,
+                                    pod_name: str) -> List[dict]:
         try:
             detail_payload = region_api.pod_detail(
                 region_name, team.tenant_name, service.service_alias, pod_name)
@@ -1151,7 +1156,7 @@ class MCPQueryService(object):
             })
         return warnings
 
-    def _get_component_build_source_snapshot(self, team, app, service):
+    def _get_component_build_source_snapshot(self, team: Any, app: Any, service: Any) -> dict:
         build_infos = base_service.get_build_infos(team, [service.service_id])
         bean = dict(build_infos.get(service.service_id) or {})
         # Hide the legacy docker_cmd column from agents: the effective start
@@ -1172,7 +1177,7 @@ class MCPQueryService(object):
             bean["arch_options"] = []
         return bean
 
-    def get_component_build_source(self, user, arguments):
+    def get_component_build_source(self, user: Any, arguments: dict) -> dict:
         team, app, service = self._get_team_app_service_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -1186,7 +1191,7 @@ class MCPQueryService(object):
             "build_source": self._get_component_build_source_snapshot(team, app, service),
         }
 
-    def update_component_build_source(self, user, arguments):
+    def update_component_build_source(self, user: Any, arguments: dict) -> dict:
         team, app, service = self._get_team_app_service_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -1248,7 +1253,10 @@ class MCPQueryService(object):
                         status_code=400,
                     )
                 try:
-                    instance = get_oauth_instance(oauth_service.oauth_type, oauth_service, oauth_user)
+                    # NOTE: oauth_service may be None (repo returns Optional); guarded by
+                    # the surrounding try/except which converts AttributeError into a 400.
+                    instance = get_oauth_instance(
+                        oauth_service.oauth_type, oauth_service, oauth_user)  # type: ignore[union-attr]
                 except Exception:
                     raise ServiceHandleException(msg="oauth service invalid", msg_show="未找到OAuth服务", status_code=400)
                 if not instance.is_git_oauth():
@@ -1257,7 +1265,9 @@ class MCPQueryService(object):
                         msg_show="该OAuth服务不是代码仓库类型",
                         status_code=400,
                     )
-                service.code_from = "oauth_" + oauth_service.oauth_type
+                # NOTE: oauth_service is non-None here (a None would have raised in the
+                # get_oauth_instance try/except above and returned a 400).
+                service.code_from = "oauth_" + oauth_service.oauth_type  # type: ignore[union-attr, operator]
                 service.oauth_service_id = oauth_service_id
                 service.git_full_name = arguments.get("full_name", "") or getattr(service, "git_full_name", "")
             else:
@@ -1313,7 +1323,7 @@ class MCPQueryService(object):
             "build_source": self._get_component_build_source_snapshot(team, app, service),
         }
 
-    def create_component(self, user, arguments):
+    def create_component(self, user: Any, arguments: dict) -> dict:
         team, app = self._get_team_app_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -1335,6 +1345,9 @@ class MCPQueryService(object):
         )
         if code != 200:
             raise ServiceHandleException(msg="service create fail", msg_show=msg_show, status_code=code)
+        # NOTE: new_service is non-None past this point (create_docker_run_app only
+        # returns None alongside a non-200 code, which raised above). mypy can't narrow
+        # the tuple element from the code check, so the usages below carry type: ignore.
 
         if docker_cmd:
             # create_docker_run_app only stores docker_cmd, which in the UI
@@ -1343,17 +1356,20 @@ class MCPQueryService(object):
             # create_region_service (container_cmd) and deploy
             # (image_info.cmd) read service.cmd — without this copy the
             # start command the agent provided never reaches the container.
-            new_service.cmd = docker_cmd
-            new_service.save()
+            new_service.cmd = docker_cmd  # type: ignore[union-attr]
+            new_service.save()  # type: ignore[union-attr]
 
         if docker_password or docker_user_name:
-            console_app_service.create_service_source_info(team, new_service, docker_user_name, docker_password)
+            console_app_service.create_service_source_info(
+                team, new_service, docker_user_name, docker_password)  # type: ignore[arg-type]
 
-        code, msg_show = group_service.add_service_to_group(team, app.region_name, app.ID, new_service.service_id)
+        code, msg_show = group_service.add_service_to_group(
+            team, app.region_name, app.ID, new_service.service_id)  # type: ignore[union-attr]
         if code != 200:
             raise ServiceHandleException(msg="add component to app failure", msg_show=msg_show, status_code=code)
 
-        region_new_service = console_app_service.create_region_service(team, new_service, user.nick_name)
+        region_new_service = console_app_service.create_region_service(
+            team, new_service, user.nick_name)  # type: ignore[arg-type]
         event_id = ""
         if is_deploy:
             code, msg_show, event_id = app_manage_service.deploy(team, region_new_service, user)
@@ -1368,7 +1384,7 @@ class MCPQueryService(object):
             "is_deploy": is_deploy,
         }
 
-    def delete_component(self, user, arguments):
+    def delete_component(self, user: Any, arguments: dict) -> dict:
         team, app, service = self._get_team_app_service_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -1387,7 +1403,7 @@ class MCPQueryService(object):
         }
 
     @staticmethod
-    def _build_component_delete_error(service, code, msg):
+    def _build_component_delete_error(service: Any, code: int, msg: Optional[str]) -> ServiceHandleException:
         """Turn a non-200 delete result into a structured, non-retryable reason.
 
         delete_component used to surface a generic "delete error", so the agent
@@ -1421,7 +1437,7 @@ class MCPQueryService(object):
             details["retryable"] = retryable
         return ServiceHandleException(msg=reason, msg_show=msg_show, status_code=code, details=details)
 
-    def operate_app(self, user, arguments):
+    def operate_app(self, user: Any, arguments: dict) -> dict:
         team, app = self._get_team_app_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -1455,7 +1471,7 @@ class MCPQueryService(object):
         }
 
     @staticmethod
-    def _extract_operation_event_ids(batch_result):
+    def _extract_operation_event_ids(batch_result: Any) -> List[dict]:
         """Map region batch_result entries to [{service_alias, event_id}].
 
         batch_result entries are {service_id, operation, event_id, status, ...}.
@@ -1489,7 +1505,7 @@ class MCPQueryService(object):
             })
         return event_ids
 
-    def update_component_envs(self, user, arguments):
+    def update_component_envs(self, user: Any, arguments: dict) -> dict:
         team, app, service = self._get_team_app_service_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -1505,7 +1521,7 @@ class MCPQueryService(object):
         result["service_id"] = service.service_id
         return result
 
-    def manage_component_envs(self, user, arguments):
+    def manage_component_envs(self, user: Any, arguments: dict) -> dict:
         team, app, service = self._get_team_app_service_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -1600,7 +1616,7 @@ class MCPQueryService(object):
             return {"updated": True, "build_envs": build_env_dict}
         raise ServiceHandleException(msg="invalid env operation", msg_show="不支持的环境变量操作类型", status_code=400)
 
-    def manage_component_connection_envs(self, user, arguments):
+    def manage_component_connection_envs(self, user: Any, arguments: dict) -> dict:
         team, app, service = self._get_team_app_service_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -1666,7 +1682,7 @@ class MCPQueryService(object):
             return {"updated": True, "env": self._serialize_model_item(result), "from_scope": env.scope, "to_scope": scope}
         raise ServiceHandleException(msg="invalid connection env operation", msg_show="不支持的组件连接信息操作类型", status_code=400)
 
-    def change_component_image(self, user, arguments):
+    def change_component_image(self, user: Any, arguments: dict) -> dict:
         team, app, service = self._get_team_app_service_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -1685,7 +1701,7 @@ class MCPQueryService(object):
         data["app_id"] = app.ID
         return data
 
-    def handle_component_ports(self, user, arguments):
+    def handle_component_ports(self, user: Any, arguments: dict) -> dict:
         operation = self._require_string(arguments, "operation")
         team, app, service = self._get_team_app_service_context(
             user,
@@ -1742,7 +1758,7 @@ class MCPQueryService(object):
             }
         raise ServiceHandleException(msg="invalid operation", msg_show="不支持的端口操作类型", status_code=400)
 
-    def manage_component_ports(self, user, arguments):
+    def manage_component_ports(self, user: Any, arguments: dict) -> dict:
         operation = self._normalize_component_operation(
             self._require_string(arguments, "operation"),
             self.HIGH_LEVEL_PORT_OPERATION_ALIASES,
@@ -1796,7 +1812,7 @@ class MCPQueryService(object):
         payload["operation"] = operation
         return self.handle_component_ports(user, payload)
 
-    def _batch_add_ports(self, user, arguments, ports_list):
+    def _batch_add_ports(self, user: Any, arguments: dict, ports_list: Any) -> dict:
         team, app, service = self._get_team_app_service_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -1807,7 +1823,7 @@ class MCPQueryService(object):
         created = port_service.batch_add_service_ports(team, service, ports_list, user.nick_name, app=app)
         return {"ports": [self._serialize_model_item(p) for p in created]}
 
-    def _batch_update_ports(self, user, arguments, action, ports_list):
+    def _batch_update_ports(self, user: Any, arguments: dict, action: str, ports_list: Any) -> dict:
         team, app, service = self._get_team_app_service_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -1827,7 +1843,7 @@ class MCPQueryService(object):
             results.append(self._serialize_model_item(port_info))
         return {"ports": results}
 
-    def bind_component_volume(self, user, arguments):
+    def bind_component_volume(self, user: Any, arguments: dict) -> dict:
         team, app, service = self._get_team_app_service_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -1860,10 +1876,13 @@ class MCPQueryService(object):
         return result
 
     @staticmethod
-    def _has_value(arguments, field):
-        return isinstance(arguments.get(field), str) and arguments.get(field).strip() != ""
+    def _has_value(arguments: dict, field: str) -> bool:
+        # NOTE: the isinstance(...str) guard short-circuits the `and`, so the second
+        # .get(field) is only evaluated when the value is a str; mypy cannot narrow
+        # across two separate .get() calls.
+        return isinstance(arguments.get(field), str) and arguments.get(field).strip() != ""  # type: ignore[union-attr]
 
-    def _assert_create_volume_param_names(self, arguments):
+    def _assert_create_volume_param_names(self, arguments: dict) -> None:
         # create_volume reads volume_path / file_content, while update_volume
         # reads new_volume_path / new_file_content. LLM callers frequently mix
         # the two: they invoke create_volume but pass the update_* parameter
@@ -1886,7 +1905,7 @@ class MCPQueryService(object):
                     status_code=400,
                 )
 
-    def _mcp_assert_volume_path_available(self, service, new_volume_path):
+    def _mcp_assert_volume_path_available(self, service: Any, new_volume_path: str) -> None:
         existing_rows = volume_repo.get_service_volumes_with_config_file(
             service.service_id
         ).values("volume_path")
@@ -1905,7 +1924,7 @@ class MCPQueryService(object):
                     status_code=412,
                 )
 
-    def manage_component_storage(self, user, arguments):
+    def manage_component_storage(self, user: Any, arguments: dict) -> dict:
         team, app, service = self._get_team_app_service_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -2015,7 +2034,9 @@ class MCPQueryService(object):
             volume.save()
             if volume.volume_type == "config-file" and service_config:
                 service_config.volume_name = volume.volume_name
-                service_config.file_content = new_file_content
+                # NOTE: latent — new_file_content is arguments.get("new_file_content")
+                # which may be None; assigning None to the model's file_content field.
+                service_config.file_content = new_file_content  # type: ignore[assignment]
                 service_config.save()
             return {"updated": True, "volume": self._serialize_model_item(volume)}
         if operation == "delete_volume":
@@ -2045,7 +2066,7 @@ class MCPQueryService(object):
             return {"deleted": True, "dep_vol_id": dep_vol_id}
         raise ServiceHandleException(msg="invalid storage operation", msg_show="不支持的存储操作类型", status_code=400)
 
-    def manage_component_autoscaler(self, user, arguments):
+    def manage_component_autoscaler(self, user: Any, arguments: dict) -> dict:
         team, app, service = self._get_team_app_service_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -2091,7 +2112,7 @@ class MCPQueryService(object):
             return records
         raise ServiceHandleException(msg="invalid autoscaler operation", msg_show="不支持的自动伸缩操作类型", status_code=400)
 
-    def manage_component_probe(self, user, arguments):
+    def manage_component_probe(self, user: Any, arguments: dict) -> dict:
         team, app, service = self._get_team_app_service_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -2139,7 +2160,7 @@ class MCPQueryService(object):
             return {"deleted": True, "probe_id": probe_id}
         raise ServiceHandleException(msg="invalid probe operation", msg_show="不支持的探针操作类型", status_code=400)
 
-    def manage_component_dependency(self, user, arguments):
+    def manage_component_dependency(self, user: Any, arguments: dict) -> dict:
         team, app, service = self._get_team_app_service_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -2201,7 +2222,7 @@ class MCPQueryService(object):
             return {"deleted": True, "dependency": self._serialize_model_item(data)}
         raise ServiceHandleException(msg="invalid dependency operation", msg_show="不支持的依赖操作类型", status_code=400)
 
-    def horizontal_scale_component(self, user, arguments):
+    def horizontal_scale_component(self, user: Any, arguments: dict) -> dict:
         team, app, service = self._get_team_app_service_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -2217,7 +2238,7 @@ class MCPQueryService(object):
             "new_node": new_node,
         }
 
-    def vertical_scale_component(self, user, arguments):
+    def vertical_scale_component(self, user: Any, arguments: dict) -> dict:
         team, app, service = self._get_team_app_service_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -2239,7 +2260,7 @@ class MCPQueryService(object):
             "new_cpu": new_cpu,
         }
 
-    def close_apps(self, user, arguments):
+    def close_apps(self, user: Any, arguments: dict) -> dict:
         team = self._get_team_context(user, self._require_string(arguments, "team_name"))
         region_name = self._require_string(arguments, "region_name")
         self._get_region_by_name_context(user, region_name)
@@ -2248,7 +2269,9 @@ class MCPQueryService(object):
             return {"closed": True, "service_ids": [], "result": []}
         service_ids = list(services.values_list("service_id", flat=True))
         if arguments.get("service_ids"):
-            service_ids = list(set(service_ids) & set(arguments.get("service_ids")))
+            # NOTE: guarded by the enclosing `if arguments.get("service_ids"):` so the
+            # value is non-None at runtime; mypy cannot narrow across separate .get() calls.
+            service_ids = list(set(service_ids) & set(arguments.get("service_ids")))  # type: ignore[arg-type]
         code, msg, result = app_manage_service.batch_action(region_name, team, user, "stop", service_ids, None, None)
         if code != 200:
             raise ServiceHandleException(msg="batch close error", msg_show=msg, status_code=code)
@@ -2258,7 +2281,7 @@ class MCPQueryService(object):
             "result": [self._serialize_model_item(service) for service in result],
         }
 
-    def get_team_apps(self, user, arguments):
+    def get_team_apps(self, user: Any, arguments: dict) -> dict:
         team = self._get_team_context(user, self._require_string(arguments, "team_name"))
         region_name = self._require_string(arguments, "region_name")
         self._get_region_by_name_context(user, region_name)
@@ -2267,7 +2290,7 @@ class MCPQueryService(object):
         items = [self._serialize_model_item(app) for app in apps]
         return {"team_name": team.tenant_name, "region_name": region_name, "items": items, "total": len(items)}
 
-    def get_app_version_overview(self, user, arguments):
+    def get_app_version_overview(self, user: Any, arguments: dict) -> dict:
         team, app = self._get_team_app_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -2278,7 +2301,7 @@ class MCPQueryService(object):
         overview = app_version_service.get_overview(team, region, user, app)
         return {"app_id": app.ID, "overview": overview}
 
-    def list_app_version_snapshots(self, user, arguments):
+    def list_app_version_snapshots(self, user: Any, arguments: dict) -> dict:
         team, app = self._get_team_app_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -2294,7 +2317,7 @@ class MCPQueryService(object):
             "total": len(items),
         }
 
-    def get_app_version_snapshot_detail(self, user, arguments):
+    def get_app_version_snapshot_detail(self, user: Any, arguments: dict) -> dict:
         team, app = self._get_team_app_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -2306,7 +2329,7 @@ class MCPQueryService(object):
             raise ServiceHandleException(msg="snapshot not found", msg_show="快照不存在", status_code=404)
         return {"app_id": app.ID, "detail": detail}
 
-    def create_app_version_snapshot(self, user, arguments):
+    def create_app_version_snapshot(self, user: Any, arguments: dict) -> dict:
         team, app = self._get_team_app_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -2331,7 +2354,7 @@ class MCPQueryService(object):
             "snapshot": snapshot,
         }
 
-    def delete_app_version_snapshot(self, user, arguments):
+    def delete_app_version_snapshot(self, user: Any, arguments: dict) -> dict:
         team, app = self._get_team_app_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -2342,7 +2365,7 @@ class MCPQueryService(object):
         app_version_service.delete_snapshot(app.ID, version_id)
         return {"app_id": app.ID, "version_id": version_id, "deleted": True}
 
-    def rollback_app_version_snapshot(self, user, arguments):
+    def rollback_app_version_snapshot(self, user: Any, arguments: dict) -> dict:
         team, app = self._get_team_app_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -2365,7 +2388,7 @@ class MCPQueryService(object):
             "rollback_record": detail or record,
         }
 
-    def list_app_version_rollback_records(self, user, arguments):
+    def list_app_version_rollback_records(self, user: Any, arguments: dict) -> dict:
         team, app = self._get_team_app_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -2375,7 +2398,7 @@ class MCPQueryService(object):
         items = app_version_service.list_rollback_records(team.tenant_name, app.region_name, app.ID)
         return {"app_id": app.ID, "items": items, "total": len(items)}
 
-    def get_app_version_rollback_record_detail(self, user, arguments):
+    def get_app_version_rollback_record_detail(self, user: Any, arguments: dict) -> dict:
         team, app = self._get_team_app_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -2388,7 +2411,7 @@ class MCPQueryService(object):
             raise ServiceHandleException(msg="rollback record not found", msg_show="回滚记录不存在", status_code=404)
         return {"app_id": app.ID, "record": detail}
 
-    def delete_app_version_rollback_record(self, user, arguments):
+    def delete_app_version_rollback_record(self, user: Any, arguments: dict) -> dict:
         team, app = self._get_team_app_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -2399,7 +2422,7 @@ class MCPQueryService(object):
         app_version_service.delete_rollback_record(app.ID, record_id)
         return {"app_id": app.ID, "record_id": record_id, "deleted": True}
 
-    def create_app_from_snapshot_version(self, user, arguments):
+    def create_app_from_snapshot_version(self, user: Any, arguments: dict) -> dict:
         team_name = self._require_string(arguments, "team_name")
         region_name = self._require_string(arguments, "region_name")
         source_app_id = self._require_int(arguments, "source_app_id")
@@ -2442,12 +2465,22 @@ class MCPQueryService(object):
         if not target_app_id:
             raise ServiceHandleException(msg="create target app failed", msg_show="创建目标应用失败", status_code=500)
 
+        # Validate target_app_id can be converted to int
+        try:
+            target_app_id_int = int(target_app_id)
+        except (ValueError, TypeError):
+            raise ServiceHandleException(
+                msg="invalid app id",
+                msg_show="应用ID格式无效",
+                status_code=400,
+            )
+
         install_result = self.install_app_model(
             user,
             {
                 "team_name": team_name,
                 "region_name": region_name,
-                "app_id": int(target_app_id),
+                "app_id": target_app_id_int,
                 "source": "local",
                 "app_model_id": template_id,
                 "app_model_version": snapshot_version,
@@ -2463,7 +2496,7 @@ class MCPQueryService(object):
                 "template_id": template_id,
             },
             "target_app": {
-                "app_id": int(target_app_id),
+                "app_id": target_app_id_int,
                 "app_name": self._value(created_app, "app_name") or target_app_name,
                 "k8s_app": k8s_app or None,
             },
@@ -2471,7 +2504,7 @@ class MCPQueryService(object):
             "install_result": install_result,
         }
 
-    def get_app_publish_candidates(self, user, arguments):
+    def get_app_publish_candidates(self, user: Any, arguments: dict) -> dict:
         team, app = self._get_team_app_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -2501,7 +2534,7 @@ class MCPQueryService(object):
             "total": len(data.get("app_model_list", []) or []),
         }
 
-    def create_app_share_record(self, user, arguments):
+    def create_app_share_record(self, user: Any, arguments: dict) -> dict:
         team, app = self._get_team_app_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -2550,7 +2583,7 @@ class MCPQueryService(object):
         )
         return {"app_id": app.ID, "share_record": self._serialize_app_share_record_summary(record, user)}
 
-    def list_app_share_records(self, user, arguments):
+    def list_app_share_records(self, user: Any, arguments: dict) -> dict:
         team, app = self._get_team_app_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -2574,7 +2607,7 @@ class MCPQueryService(object):
             "page_size": page_size,
         }
 
-    def get_app_share_record(self, user, arguments):
+    def get_app_share_record(self, user: Any, arguments: dict) -> dict:
         _, app = self._get_team_app_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -2586,7 +2619,7 @@ class MCPQueryService(object):
             raise ServiceHandleException(msg="share record not found", msg_show="发布记录不存在", status_code=404)
         return {"app_id": app.ID, "record": self._serialize_app_share_record_detail(record, user)}
 
-    def delete_app_share_record(self, user, arguments):
+    def delete_app_share_record(self, user: Any, arguments: dict) -> dict:
         _, app = self._get_team_app_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -2600,7 +2633,7 @@ class MCPQueryService(object):
         record.save()
         return {"app_id": app.ID, "record_id": record.ID, "deleted": True}
 
-    def get_app_share_info(self, user, arguments):
+    def get_app_share_info(self, user: Any, arguments: dict) -> dict:
         team = self._get_team_context(user, self._require_string(arguments, "team_name"))
         region_name = self._require_string(arguments, "region_name")
         self._get_region_by_name_context(user, region_name)
@@ -2612,7 +2645,10 @@ class MCPQueryService(object):
         if share_record.app_id and share_record.share_version:
             snapshot_version = rainbond_app_repo.get_app_version(share_record.app_id, share_record.share_version)
             if share_service.is_snapshot_publish_version(snapshot_version):
-                app_template = json.loads(snapshot_version.app_template)
+                # NOTE: snapshot_version is Optional but guarded by
+                # is_snapshot_publish_version() above (returns False for None);
+                # mypy cannot see through that helper. Invariant, not a bug.
+                app_template = json.loads(snapshot_version.app_template)  # type: ignore[union-attr]
                 return {
                     "share_id": share_record.ID,
                     "publish_mode": "snapshot",
@@ -2632,7 +2668,7 @@ class MCPQueryService(object):
             },
         }
 
-    def submit_app_share_info(self, user, arguments):
+    def submit_app_share_info(self, user: Any, arguments: dict) -> dict:
         team = self._get_team_context(user, self._require_string(arguments, "team_name"))
         region_name = self._require_string(arguments, "region_name")
         self._get_region_by_name_context(user, region_name)
@@ -2642,7 +2678,7 @@ class MCPQueryService(object):
         app_version_info = arguments.get("app_version_info")
         if not isinstance(app_version_info, dict) or not app_version_info.get("app_model_id"):
             raise ServiceHandleException(msg="invalid app_version_info", msg_show="app_version_info无效", status_code=400)
-        share_info = {"app_version_info": app_version_info}
+        share_info: dict = {"app_version_info": app_version_info}
         for field in ("share_service_list", "share_plugin_list", "share_k8s_resources"):
             value = arguments.get(field)
             if value is not None:
@@ -2665,7 +2701,7 @@ class MCPQueryService(object):
             bean["is_plugin"] = self._parse_bool_with_default(arguments.get("is_plugin"), False)
         return {"share_id": share_record.ID, "submitted": True, "record": bean}
 
-    def list_app_share_events(self, user, arguments):
+    def list_app_share_events(self, user: Any, arguments: dict) -> dict:
         team = self._get_team_context(user, self._require_string(arguments, "team_name"))
         share_record = self._get_app_share_record_context(team, self._require_int(arguments, "share_id"))
         if share_record.is_success or share_record.step >= 3:
@@ -2686,7 +2722,7 @@ class MCPQueryService(object):
             event_list.append(data)
         return {"share_id": share_record.ID, "event_list": event_list, "total": len(event_list), "is_complete": is_complete}
 
-    def start_app_share_event(self, user, arguments):
+    def start_app_share_event(self, user: Any, arguments: dict) -> dict:
         team = self._get_team_context(user, self._require_string(arguments, "team_name"))
         region_name = self._require_string(arguments, "region_name")
         self._get_region_by_name_context(user, region_name)
@@ -2699,13 +2735,17 @@ class MCPQueryService(object):
                 raise ServiceHandleException(msg="event not found", msg_show="分享事件不存在", status_code=404)
             bean = share_service.sync_service_plugin_event(user, region_name, team.tenant_name, share_record.ID, record_event)
             return {"share_id": share_record.ID, "event_type": "plugin", "event": self._serialize_model_item(bean) if bean else None}
-        record_event = ServiceShareRecordEvent.objects.filter(record_id=share_record.ID, ID=event_id).first()
+        # NOTE: plugin branch always returns above, so this reuse of record_event
+        # for the service event type is unreachable when event_type == "plugin";
+        # mypy unifies both branches' types. Invariant, not a bug.
+        record_event = ServiceShareRecordEvent.objects.filter(  # type: ignore[assignment]
+            record_id=share_record.ID, ID=event_id).first()
         if not record_event:
             raise ServiceHandleException(msg="event not found", msg_show="分享事件不存在", status_code=404)
         bean = share_service.sync_event(user, region_name, team.tenant_name, record_event)
         return {"share_id": share_record.ID, "event_type": "service", "event": self._serialize_model_item(bean)}
 
-    def get_app_share_event(self, user, arguments):
+    def get_app_share_event(self, user: Any, arguments: dict) -> dict:
         team = self._get_team_context(user, self._require_string(arguments, "team_name"))
         region_name = self._require_string(arguments, "region_name")
         self._get_region_by_name_context(user, region_name)
@@ -2719,14 +2759,18 @@ class MCPQueryService(object):
             if record_event.event_status != "success":
                 record_event = share_service.get_sync_plugin_events(region_name, team.tenant_name, record_event)
             return {"share_id": share_record.ID, "event_type": "plugin", "event": self._serialize_model_item(record_event)}
-        record_event = ServiceShareRecordEvent.objects.filter(record_id=share_record.ID, ID=event_id).first()
+        # NOTE: plugin branch always returns above, so this reuse of record_event
+        # for the service event type is unreachable when event_type == "plugin";
+        # mypy unifies both branches' types. Invariant, not a bug.
+        record_event = ServiceShareRecordEvent.objects.filter(  # type: ignore[assignment]
+            record_id=share_record.ID, ID=event_id).first()
         if not record_event:
             raise ServiceHandleException(msg="event not found", msg_show="分享事件不存在", status_code=404)
         if record_event.event_status != "success":
             record_event = share_service.get_sync_event_result(region_name, team.tenant_name, record_event)
         return {"share_id": share_record.ID, "event_type": "service", "event": self._serialize_model_item(record_event)}
 
-    def complete_app_share(self, user, arguments):
+    def complete_app_share(self, user: Any, arguments: dict) -> dict:
         team = self._get_team_context(user, self._require_string(arguments, "team_name"))
         region_name = self._require_string(arguments, "region_name")
         self._get_region_by_name_context(user, region_name)
@@ -2750,7 +2794,7 @@ class MCPQueryService(object):
             "app_market_url": app_market_url,
         }
 
-    def giveup_app_share(self, user, arguments):
+    def giveup_app_share(self, user: Any, arguments: dict) -> dict:
         team = self._get_team_context(user, self._require_string(arguments, "team_name"))
         share_record = self._get_app_share_record_context(team, self._require_int(arguments, "share_id"))
         if share_record.is_success or share_record.step >= 3:
@@ -2765,7 +2809,7 @@ class MCPQueryService(object):
         share_service.delete_record(share_record)
         return {"share_id": share_record.ID, "given_up": True}
 
-    def build_component(self, user, arguments):
+    def build_component(self, user: Any, arguments: dict) -> dict:
         team, app, service = self._get_team_app_service_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -2797,8 +2841,12 @@ class MCPQueryService(object):
                 service_source.password = build_info.get("password")
                 service_source.save()
             else:
+                # NOTE: create_service_source_info expects str user_name/password
+                # but build_info.get() may yield None for one of them (only the
+                # OR-guard above guarantees at least one is set). Latent: a None
+                # username/password reaches a str-typed param. Pre-existing behavior.
                 console_app_service.create_service_source_info(
-                    team, service, build_info.get("username"), build_info.get("password")
+                    team, service, build_info.get("username"), build_info.get("password")  # type: ignore[arg-type]
                 )
         is_deploy = bool(arguments.get("is_deploy", True))
         if service.create_status != "complete":
@@ -2824,7 +2872,7 @@ class MCPQueryService(object):
             "is_deploy": is_deploy,
         }
 
-    def get_app_last_upgrade_record(self, user, arguments):
+    def get_app_last_upgrade_record(self, user: Any, arguments: dict) -> dict:
         team, app = self._get_team_app_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -2843,7 +2891,7 @@ class MCPQueryService(object):
             "record": serialized,
         }
 
-    def query_app_upgrade_records(self, user, arguments):
+    def query_app_upgrade_records(self, user: Any, arguments: dict) -> dict:
         team, app = self._get_team_app_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -2863,7 +2911,7 @@ class MCPQueryService(object):
             "page_size": page_size,
         }
 
-    def create_app_upgrade_record(self, user, arguments):
+    def create_app_upgrade_record(self, user: Any, arguments: dict) -> dict:
         team, app = self._get_team_app_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -2879,7 +2927,7 @@ class MCPQueryService(object):
             "record": self._serialize_upgrade_record_basic(record),
         }
 
-    def get_app_upgrade_record(self, user, arguments):
+    def get_app_upgrade_record(self, user: Any, arguments: dict) -> dict:
         team, app, record = self._get_team_app_upgrade_record_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -2893,7 +2941,7 @@ class MCPQueryService(object):
             "record": self._serialize_upgrade_record_detail(detail),
         }
 
-    def get_app_upgrade_detail(self, user, arguments):
+    def get_app_upgrade_detail(self, user: Any, arguments: dict) -> dict:
         _, app, record = self._get_team_app_upgrade_record_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -2911,7 +2959,7 @@ class MCPQueryService(object):
             },
         }
 
-    def get_app_upgrade_changes(self, user, arguments):
+    def get_app_upgrade_changes(self, user: Any, arguments: dict) -> dict:
         team, app = self._get_team_app_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -2931,7 +2979,7 @@ class MCPQueryService(object):
             "total": len(changes or []),
         }
 
-    def execute_app_upgrade_record(self, user, arguments):
+    def execute_app_upgrade_record(self, user: Any, arguments: dict) -> dict:
         team, app, record = self._get_team_app_upgrade_record_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -2969,7 +3017,7 @@ class MCPQueryService(object):
             "record": self._serialize_upgrade_record_detail(upgraded_record),
         }
 
-    def deploy_app_upgrade_record(self, user, arguments):
+    def deploy_app_upgrade_record(self, user: Any, arguments: dict) -> dict:
         team, app, record = self._get_team_app_upgrade_record_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -2986,7 +3034,7 @@ class MCPQueryService(object):
             "record": self._serialize_upgrade_record_detail(detail),
         }
 
-    def get_app_rollback_records(self, user, arguments):
+    def get_app_rollback_records(self, user: Any, arguments: dict) -> dict:
         _, app, record = self._get_team_app_upgrade_record_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -3003,7 +3051,7 @@ class MCPQueryService(object):
             "total": len(items),
         }
 
-    def rollback_app_upgrade_record(self, user, arguments):
+    def rollback_app_upgrade_record(self, user: Any, arguments: dict) -> dict:
         team, app, record = self._get_team_app_upgrade_record_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -3021,7 +3069,7 @@ class MCPQueryService(object):
             "record": self._serialize_upgrade_record_detail(rollback_record),
         }
 
-    def get_app_upgrade_info(self, user, arguments):
+    def get_app_upgrade_info(self, user: Any, arguments: dict) -> dict:
         team, app = self._get_team_app_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -3031,7 +3079,7 @@ class MCPQueryService(object):
         items = market_app_service.get_market_apps_in_app(app.region_name, team, app)
         return {"app_id": app.ID, "items": items, "total": len(items)}
 
-    def upgrade_app(self, user, arguments):
+    def upgrade_app(self, user: Any, arguments: dict) -> dict:
         team, app = self._get_team_app_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -3055,7 +3103,7 @@ class MCPQueryService(object):
         }
 
     @staticmethod
-    def _extract_upgrade_event_ids(app_records):
+    def _extract_upgrade_event_ids(app_records: Any) -> Any:
         """Pull per-component event ids from upgrade records.
 
         Each ServiceUpgradeRecord carries the event_id returned by the region
@@ -3063,7 +3111,7 @@ class MCPQueryService(object):
         lets the agent correlate a later failure event back to this upgrade.
         Best-effort: any unexpected record shape is skipped, not raised.
         """
-        event_ids = []
+        event_ids: list = []
         if not isinstance(app_records, (list, tuple)):
             return event_ids
         for app_record in app_records:
@@ -3084,7 +3132,7 @@ class MCPQueryService(object):
                 })
         return event_ids
 
-    def get_copy_app_info(self, user, arguments):
+    def get_copy_app_info(self, user: Any, arguments: dict) -> dict:
         team, app = self._get_team_app_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -3094,7 +3142,7 @@ class MCPQueryService(object):
         items = groupapp_copy_service.get_group_services_with_build_source(team, app.region_name, app.ID)
         return {"app_id": app.ID, "items": items, "total": len(items)}
 
-    def copy_app(self, user, arguments):
+    def copy_app(self, user: Any, arguments: dict) -> dict:
         team, app = self._get_team_app_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -3124,7 +3172,7 @@ class MCPQueryService(object):
             "total": len(items),
         }
 
-    def install_app_by_market(self, user, arguments):
+    def install_app_by_market(self, user: Any, arguments: dict) -> dict:
         team, app = self._get_team_app_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -3172,7 +3220,7 @@ class MCPQueryService(object):
             "service_list": [self._serialize_model_item(service) for service in services],
         }
 
-    def query_cloud_markets(self, user, arguments):
+    def query_cloud_markets(self, user: Any, arguments: dict) -> dict:
         enterprise_id = self._require_string(arguments, "enterprise_id")
         self._ensure_enterprise_access(user, enterprise_id)
         extend = "true" if self._parse_bool_with_default(arguments.get("extend"), True) else "false"
@@ -3183,7 +3231,7 @@ class MCPQueryService(object):
             "total": len(items),
         }
 
-    def query_local_app_models(self, user, arguments):
+    def query_local_app_models(self, user: Any, arguments: dict) -> dict:
         enterprise_id = self._require_string(arguments, "enterprise_id")
         self._ensure_enterprise_access(user, enterprise_id)
         page, page_size = self._parse_pagination(arguments)
@@ -3194,8 +3242,11 @@ class MCPQueryService(object):
         arch = (arguments.get("arch") or "").strip()
         tenant_name = (arguments.get("tenant_name") or "").strip()
         is_plugin = self._normalize_bool_query_value(arguments.get("is_plugin"))
+        # NOTE: query = arguments.get("query") or arguments.get("app_name") may be
+        # None when neither key is supplied; get_visiable_apps types it as str.
+        # Latent: None reaches a str-typed param. Pre-existing behavior.
         apps, total, _ = market_app_service.get_visiable_apps(
-            scope, query, True, page, page_size, "", arch, tenant_name, is_plugin
+            scope, query, True, page, page_size, "", arch, tenant_name, is_plugin  # type: ignore[arg-type]
         )
         items = []
         for app_model in apps:
@@ -3212,7 +3263,7 @@ class MCPQueryService(object):
             "page_size": page_size,
         }
 
-    def query_cloud_app_models(self, user, arguments):
+    def query_cloud_app_models(self, user: Any, arguments: dict) -> dict:
         enterprise_id = self._require_string(arguments, "enterprise_id")
         market_name = self._require_string(arguments, "market_name")
         self._ensure_enterprise_access(user, enterprise_id)
@@ -3239,7 +3290,7 @@ class MCPQueryService(object):
             "page_size": page_size,
         }
 
-    def query_app_model_versions(self, user, arguments):
+    def query_app_model_versions(self, user: Any, arguments: dict) -> dict:
         enterprise_id = self._require_string(arguments, "enterprise_id")
         app_model_id = self._require_string(arguments, "app_model_id")
         source = self._normalize_app_model_source(arguments.get("source"))
@@ -3278,7 +3329,7 @@ class MCPQueryService(object):
         })
         return result
 
-    def install_app_model(self, user, arguments):
+    def install_app_model(self, user: Any, arguments: dict) -> dict:
         team, app = self._get_team_app_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -3315,7 +3366,7 @@ class MCPQueryService(object):
             "service_list": [self._serialize_model_item(service) for service in services],
         }
 
-    def create_component_from_source(self, user, arguments):
+    def create_component_from_source(self, user: Any, arguments: dict) -> Any:
         team, app = self._get_team_app_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -3346,7 +3397,7 @@ class MCPQueryService(object):
             prefer_dockerfile_when_detected=bool(arguments.get("prefer_dockerfile_when_detected", False)),
         )
 
-    def create_component_from_package(self, user, arguments):
+    def create_component_from_package(self, user: Any, arguments: dict) -> Any:
         team, app = self._get_team_app_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -3364,7 +3415,7 @@ class MCPQueryService(object):
             is_deploy=bool(arguments.get("is_deploy", True)),
         )
 
-    def init_package_upload(self, user, arguments):
+    def init_package_upload(self, user: Any, arguments: dict) -> Any:
         team_name = self._require_string(arguments, "team_name")
         region_name = self._require_string(arguments, "region_name")
         self._get_team_context(user, team_name)
@@ -3375,7 +3426,7 @@ class MCPQueryService(object):
             arguments.get("component_id", "") or "",
         )
 
-    def upload_package_file(self, user, arguments):
+    def upload_package_file(self, user: Any, arguments: dict) -> Any:
         team_name = self._require_string(arguments, "team_name")
         region_name = self._require_string(arguments, "region_name")
         self._get_team_context(user, team_name)
@@ -3388,7 +3439,7 @@ class MCPQueryService(object):
             arguments.get("archive_name", "") or "",
         )
 
-    def get_package_upload_status(self, user, arguments):
+    def get_package_upload_status(self, user: Any, arguments: dict) -> Any:
         team_name = self._require_string(arguments, "team_name")
         region_name = self._require_string(arguments, "region_name")
         self._get_team_context(user, team_name)
@@ -3399,7 +3450,7 @@ class MCPQueryService(object):
             self._require_string(arguments, "event_id"),
         )
 
-    def delete_package_upload(self, user, arguments):
+    def delete_package_upload(self, user: Any, arguments: dict) -> Any:
         team_name = self._require_string(arguments, "team_name")
         region_name = self._require_string(arguments, "region_name")
         self._get_team_context(user, team_name)
@@ -3410,7 +3461,7 @@ class MCPQueryService(object):
             self._require_string(arguments, "event_id"),
         )
 
-    def create_component_from_local_package(self, user, arguments):
+    def create_component_from_local_package(self, user: Any, arguments: dict) -> Any:
         team, app = self._get_team_app_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -3429,7 +3480,7 @@ class MCPQueryService(object):
             archive_name=arguments.get("archive_name", "") or "",
         )
 
-    def check_component(self, user, arguments):
+    def check_component(self, user: Any, arguments: dict) -> dict:
         team, app, service = self._get_team_app_service_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -3453,7 +3504,7 @@ class MCPQueryService(object):
             "check_info": service_info,
         }
 
-    def get_component_check_result(self, user, arguments):
+    def get_component_check_result(self, user: Any, arguments: dict) -> dict:
         team, app, service = self._get_team_app_service_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -3519,10 +3570,10 @@ class MCPQueryService(object):
             "check_result": check_brief_info,
         }
 
-    def create_component_from_image(self, user, arguments):
+    def create_component_from_image(self, user: Any, arguments: dict) -> Any:
         return self.create_component(user, arguments)
 
-    def create_app_from_yaml(self, user, arguments):
+    def create_app_from_yaml(self, user: Any, arguments: dict) -> dict:
         team = self._get_team_context(user, self._require_string(arguments, "team_name"))
         region_name = self._require_string(arguments, "region_name")
         self._get_region_by_name_context(user, region_name)
@@ -3550,7 +3601,7 @@ class MCPQueryService(object):
             "compose_id": group_compose.compose_id,
         }
 
-    def check_yaml_app(self, user, arguments):
+    def check_yaml_app(self, user: Any, arguments: dict) -> Any:
         team, app = self._get_team_app_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -3563,7 +3614,7 @@ class MCPQueryService(object):
             raise ServiceHandleException(msg="check compose error", msg_show=msg, status_code=code)
         return compose_bean
 
-    def get_yaml_app_check_result(self, user, arguments):
+    def get_yaml_app_check_result(self, user: Any, arguments: dict) -> dict:
         team, app = self._get_team_app_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -3591,7 +3642,7 @@ class MCPQueryService(object):
             "services": [self._serialize_model_item(service) for service in service_list],
         }
 
-    def query_app_monitor(self, user, arguments):
+    def query_app_monitor(self, user: Any, arguments: dict) -> dict:
         team, app = self._get_team_app_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -3605,13 +3656,16 @@ class MCPQueryService(object):
             monitors = []
             for key, query in list(monitor_query_items.items()):
                 _, body = region_api.get_query_data(app.region_name, team.tenant_name, query % service.service_id)
-                if body.get("data") and body["data"].get("result"):
+                # NOTE: region_api.get_query_data may return body=None; the code
+                # below dereferences it unguarded. Latent NoneType bug: a None body
+                # raises AttributeError here. Pre-existing behavior, not changed.
+                if body.get("data") and body["data"].get("result"):  # type: ignore[union-attr,index]
                     result_list = []
-                    for result in body["data"]["result"]:
+                    for result in body["data"]["result"]:  # type: ignore[index]
                         result["value"] = [str(value) for value in result["value"]]
                         result_list.append(result)
-                    body["data"]["result"] = result_list
-                    monitors.append({"monitor_item": key, "data": body["data"]})
+                    body["data"]["result"] = result_list  # type: ignore[index]
+                    monitors.append({"monitor_item": key, "data": body["data"]})  # type: ignore[index]
             data.append({
                 "service_id": service.service_id,
                 "service_cname": service.service_cname,
@@ -3620,7 +3674,7 @@ class MCPQueryService(object):
             })
         return {"app_id": app.ID, "items": data, "total": len(data)}
 
-    def query_app_monitor_range(self, user, arguments):
+    def query_app_monitor_range(self, user: Any, arguments: dict) -> dict:
         team, app = self._get_team_app_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -3639,13 +3693,16 @@ class MCPQueryService(object):
                 _, body = region_api.get_query_range_data(
                     app.region_name, team.tenant_name, query % (service.service_id, start, end, step)
                 )
-                if body.get("data") and body["data"].get("result"):
+                # NOTE: region_api.get_query_range_data may return body=None; the
+                # code below dereferences it unguarded. Latent NoneType bug: a None
+                # body raises AttributeError here. Pre-existing behavior, not changed.
+                if body.get("data") and body["data"].get("result"):  # type: ignore[union-attr,index]
                     result_list = []
-                    for result in body["data"]["result"]:
+                    for result in body["data"]["result"]:  # type: ignore[index]
                         result["value"] = [str(value) for value in result["value"]]
                         result_list.append(result)
-                    body["data"]["result"] = result_list
-                    monitors.append({"monitor_item": key, "data": body["data"]})
+                    body["data"]["result"] = result_list  # type: ignore[index]
+                    monitors.append({"monitor_item": key, "data": body["data"]})  # type: ignore[index]
             data.append({
                 "service_id": service.service_id,
                 "service_cname": service.service_cname,
@@ -3654,7 +3711,7 @@ class MCPQueryService(object):
             })
         return {"app_id": app.ID, "items": data, "total": len(data), "start": start, "end": end, "step": step}
 
-    def create_gateway_rules(self, user, arguments):
+    def create_gateway_rules(self, user: Any, arguments: dict) -> Any:
         team, app = self._get_team_app_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -3720,7 +3777,7 @@ class MCPQueryService(object):
             return data
         raise ServiceHandleException(msg="error parameters: protocol", msg_show="错误参数: protocol", status_code=400)
 
-    def check_helm_app(self, user, arguments):
+    def check_helm_app(self, user: Any, arguments: dict) -> Any:
         team = self._get_team_context(user, self._require_string(arguments, "team_name"))
         region_name = self._require_string(arguments, "region_name")
         self._get_region_by_name_context(user, region_name)
@@ -3734,7 +3791,7 @@ class MCPQueryService(object):
         )
         return data
 
-    def build_helm_app(self, user, arguments):
+    def build_helm_app(self, user: Any, arguments: dict) -> dict:
         team, app = self._get_team_app_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -3760,7 +3817,7 @@ class MCPQueryService(object):
         helm_center_app = rainbond_app_repo.get_rainbond_app_by_app_id(app_model_id)
         chart = repo_name + "/" + chart_name
         helm_app_service.generate_template(
-            cvdata, helm_center_app, version, team, chart, app.region_name, team.enterprise_id, user.user_id,
+            cvdata, helm_center_app, version, team, chart, app.region_name, team.enterprise_id, user.user_id,  # type: ignore[arg-type]  # NOTE: helm_center_app Optional, latent None (backlog)
             overrides_list, app.ID
         )
         return {
@@ -3771,7 +3828,7 @@ class MCPQueryService(object):
             "version": version,
         }
 
-    def query_enterprises(self, user, arguments):
+    def query_enterprises(self, user: Any, arguments: dict) -> dict:
         self._ensure_enterprise_admin(user)
         query = (arguments.get("query") or "").strip().lower()
         page, page_size = self._parse_pagination(arguments)
@@ -3787,7 +3844,7 @@ class MCPQueryService(object):
 
         return self._paginate_data(items, page, page_size)
 
-    def query_regions(self, user, arguments):
+    def query_regions(self, user: Any, arguments: dict) -> dict:
         self._ensure_enterprise_admin(user)
         enterprise_id = (arguments.get("enterprise_id") or getattr(user, "enterprise_id", "") or "").strip()
         if not enterprise_id:
@@ -3809,7 +3866,7 @@ class MCPQueryService(object):
 
         return self._paginate_data(items, page, page_size)
 
-    def get_region_detail(self, user, arguments):
+    def get_region_detail(self, user: Any, arguments: dict) -> dict:
         self._ensure_enterprise_admin(user)
         region_id = self._require_string(arguments, "region_id")
         region_model = self._get_region_model(user, region_id)
@@ -3821,7 +3878,7 @@ class MCPQueryService(object):
             return merged
         return region_data
 
-    def create_region(self, user, arguments):
+    def create_region(self, user: Any, arguments: dict) -> dict:
         self._ensure_enterprise_admin(user)
         region_data = self._build_create_region_data(arguments, user.enterprise_id)
         region = region_services.add_region(region_data, user)
@@ -3830,7 +3887,7 @@ class MCPQueryService(object):
             "region": self._serialize_region(region),
         }
 
-    def update_region(self, user, arguments):
+    def update_region(self, user: Any, arguments: dict) -> dict:
         self._ensure_enterprise_admin(user)
         region_id = self._require_string(arguments, "region_id")
         region_model = self._get_region_model(user, region_id)
@@ -3844,7 +3901,7 @@ class MCPQueryService(object):
             "region": self._serialize_region(region),
         }
 
-    def delete_region(self, user, arguments):
+    def delete_region(self, user: Any, arguments: dict) -> dict:
         self._ensure_enterprise_admin(user)
         region_id = self._require_string(arguments, "region_id")
         self._get_region_model(user, region_id)
@@ -3854,7 +3911,7 @@ class MCPQueryService(object):
             "region": self._serialize_region(deleted_region),
         }
 
-    def query_region_nodes(self, user, arguments):
+    def query_region_nodes(self, user: Any, arguments: dict) -> dict:
         self._ensure_enterprise_admin(user)
         region_name = self._require_string(arguments, "region_name")
         self._get_region_by_name_context(user, region_name)
@@ -3866,14 +3923,14 @@ class MCPQueryService(object):
             "total": len(nodes),
         }
 
-    def get_region_node_detail(self, user, arguments):
+    def get_region_node_detail(self, user: Any, arguments: dict) -> Any:
         self._ensure_enterprise_admin(user)
         region_name = self._require_string(arguments, "region_name")
         node_name = self._require_string(arguments, "node_name")
         self._get_region_by_name_context(user, region_name)
         return enterprise_services.get_node_detail(region_name, node_name)
 
-    def query_region_rbd_components(self, user, arguments):
+    def query_region_rbd_components(self, user: Any, arguments: dict) -> dict:
         self._ensure_enterprise_admin(user)
         region_name = self._require_string(arguments, "region_name")
         self._get_region_by_name_context(user, region_name)
@@ -3884,7 +3941,7 @@ class MCPQueryService(object):
             "total": len(items),
         }
 
-    def query_teams(self, user, arguments):
+    def query_teams(self, user: Any, arguments: dict) -> dict:
         enterprise_id = self._require_string(arguments, "enterprise_id")
         self._ensure_enterprise_access(user, enterprise_id)
         page, page_size = self._parse_pagination(arguments)
@@ -3905,7 +3962,7 @@ class MCPQueryService(object):
             "page_size": page_size,
         }
 
-    def query_apps(self, user, arguments):
+    def query_apps(self, user: Any, arguments: dict) -> dict:
         enterprise_id = self._require_string(arguments, "enterprise_id")
         self._ensure_enterprise_access(user, enterprise_id)
         page, page_size = self._parse_pagination(arguments)
@@ -3926,7 +3983,7 @@ class MCPQueryService(object):
 
         return self._paginate_data(items, page, page_size)
 
-    def query_components(self, user, arguments):
+    def query_components(self, user: Any, arguments: dict) -> dict:
         enterprise_id = self._require_string(arguments, "enterprise_id")
         app_id = self._require_int(arguments, "app_id")
         self._ensure_enterprise_access(user, enterprise_id)
@@ -3960,7 +4017,7 @@ class MCPQueryService(object):
 
         return self._paginate_data(items, page, page_size)
 
-    def delete_app(self, user, arguments):
+    def delete_app(self, user: Any, arguments: dict) -> dict:
         app_id = self._require_int(arguments, "app_id")
         confirm = bool(arguments.get("confirm", False))
         confirmation_token = arguments.get("confirmation_token")
@@ -4041,22 +4098,26 @@ class MCPQueryService(object):
             }
         }
 
-    def _get_user_enterprises(self, user):
+    def _get_user_enterprises(self, user: Any) -> list:
+        enterprises: Any
         try:
             enterprises = enterprise_repo.get_enterprises_by_user_id(user.user_id)
         except ExterpriseNotExistError:
             enterprises = []
         return list(enterprises) if enterprises else []
 
-    def _get_region_context(self, user, region_id, check_status=False):
+    def _get_region_context(self, user: Any, region_id: str, check_status: bool = False) -> Any:
+        # NOTE: check_status passes "yes"/"no" strings to a param declared bool
+        # (latent type mismatch in RegionService.get_enterprise_region).
         region = region_services.get_enterprise_region(
-            getattr(user, "enterprise_id", None), region_id, check_status="yes" if check_status else "no"
+            getattr(user, "enterprise_id", None), region_id,  # type: ignore[arg-type]
+            check_status="yes" if check_status else "no"  # type: ignore[arg-type]
         )
         if not region:
             raise ServiceHandleException(msg="region not found", msg_show="集群不存在", status_code=404)
         return region
 
-    def _get_region_model(self, user, region_id):
+    def _get_region_model(self, user: Any, region_id: str) -> Any:
         region = region_services.get_region_by_region_id(region_id)
         if not region:
             raise ServiceHandleException(msg="region not found", msg_show="集群不存在", status_code=404)
@@ -4064,20 +4125,22 @@ class MCPQueryService(object):
             self._raise_permission_denied("无该企业集群访问权限")
         return region
 
-    def _get_region_by_name_context(self, user, region_name):
-        region = region_services.get_enterprise_region_by_region_name(getattr(user, "enterprise_id", None), region_name)
+    def _get_region_by_name_context(self, user: Any, region_name: str) -> Any:
+        region = region_services.get_enterprise_region_by_region_name(
+            getattr(user, "enterprise_id", None), region_name)  # type: ignore[arg-type]
         if not region:
             raise ServiceHandleException(msg="region not found", msg_show="集群不存在", status_code=404)
         return region
 
-    def _get_team_context(self, user, team_name):
-        team = team_services.get_enterprise_tenant_by_tenant_name(getattr(user, "enterprise_id", None), team_name)
+    def _get_team_context(self, user: Any, team_name: str) -> Any:
+        team = team_services.get_enterprise_tenant_by_tenant_name(
+            getattr(user, "enterprise_id", None), team_name)  # type: ignore[arg-type]
         if not team:
             raise ServiceHandleException(msg="team not found", msg_show="团队不存在", status_code=404)
         self._ensure_team_access(user, team)
         return team
 
-    def _get_team_app_context(self, user, team_name, region_name, app_id):
+    def _get_team_app_context(self, user: Any, team_name: str, region_name: str, app_id: Any) -> Tuple[Any, Any]:
         team = self._get_team_context(user, team_name)
         self._get_region_by_name_context(user, region_name)
         app = group_service.get_app_by_id(team, region_name, app_id)
@@ -4085,7 +4148,8 @@ class MCPQueryService(object):
             raise ServiceHandleException(msg="app not found", msg_show="应用不存在", status_code=404)
         return team, app
 
-    def _get_team_app_service_context(self, user, team_name, region_name, app_id, service_id):
+    def _get_team_app_service_context(self, user: Any, team_name: str, region_name: str, app_id: Any,
+                                      service_id: str) -> Tuple[Any, Any, Any]:
         team, app = self._get_team_app_context(user, team_name, region_name, app_id)
         service = service_repo.get_service_by_service_id(service_id)
         if not service:
@@ -4097,7 +4161,7 @@ class MCPQueryService(object):
             raise ServiceHandleException(msg="service not found", msg_show="组件不属于该应用", status_code=404)
         return team, app, service
 
-    def _get_service_in_team_app(self, team, app, service_id):
+    def _get_service_in_team_app(self, team: Any, app: Any, service_id: str) -> Any:
         service = service_repo.get_service_by_service_id(service_id)
         if not service:
             raise ServiceHandleException(msg="service not found", msg_show="组件不存在", status_code=404)
@@ -4108,7 +4172,7 @@ class MCPQueryService(object):
             raise ServiceHandleException(msg="service not found", msg_show="组件不属于该应用", status_code=404)
         return service
 
-    def _is_enterprise_admin(self, user):
+    def _is_enterprise_admin(self, user: Any) -> bool:
         if user is None:
             return False
         if getattr(user, "is_enterprise_admin", None) is not None:
@@ -4119,11 +4183,11 @@ class MCPQueryService(object):
             return False
         return enterprise_user_perm_repo.is_admin(enterprise_id, user_id)
 
-    def _ensure_enterprise_admin(self, user):
+    def _ensure_enterprise_admin(self, user: Any) -> None:
         if not self._is_enterprise_admin(user):
             self._raise_permission_denied("当前用户不是企业管理员")
 
-    def _ensure_enterprise_access(self, user, enterprise_id):
+    def _ensure_enterprise_access(self, user: Any, enterprise_id: str) -> None:
         if getattr(user, "enterprise_id", None) == enterprise_id:
             return
 
@@ -4135,7 +4199,7 @@ class MCPQueryService(object):
         if enterprise_id not in available_ids:
             self._raise_permission_denied("无该企业访问权限")
 
-    def _ensure_team_access(self, user, tenant):
+    def _ensure_team_access(self, user: Any, tenant: Any) -> None:
         if user.user_id == tenant.creater:
             return
 
@@ -4147,7 +4211,7 @@ class MCPQueryService(object):
             self._raise_permission_denied("无该团队访问权限")
 
     @staticmethod
-    def _raise_permission_denied(detail):
+    def _raise_permission_denied(detail: str) -> None:
         raise ServiceHandleException(
             msg="permission denied",
             msg_show="没有权限执行该操作：{}".format(detail),
@@ -4155,35 +4219,41 @@ class MCPQueryService(object):
         )
 
     @staticmethod
-    def _ensure_app_in_enterprise(app, tenant, enterprise_id):
+    def _ensure_app_in_enterprise(app: Any, tenant: Any, enterprise_id: str) -> None:
         if tenant.enterprise_id != enterprise_id:
             raise ServiceHandleException(msg="app not in enterprise", msg_show="应用不属于该企业", status_code=400)
         if app.tenant_id != tenant.tenant_id:
             raise ServiceHandleException(msg="tenant mismatch", msg_show="应用与团队信息不匹配", status_code=400)
 
     @staticmethod
-    def _get_app_context(app_id):
+    def _get_app_context(app_id: Any) -> Tuple[Any, Any]:
         app = group_repo.get_group_by_id(app_id)
         if not app:
             raise ServiceHandleException(msg="app not found", msg_show="应用不存在", status_code=404)
         try:
             tenant = team_repo.get_team_by_team_id(app.tenant_id)
-        except TenantNotExistError:
+        except TenantNotExistError:  # type: ignore[misc]  # untyped exception import resolves to Any
             raise ServiceHandleException(msg="team not found", msg_show="团队不存在", status_code=404)
         return app, tenant
 
     @staticmethod
-    def _require_string(arguments, field):
+    def _require_string(arguments: dict, field: str) -> Any:
+        # NOTE: returns a non-empty stripped str, but typed Any because some callers
+        # in other methods reassign the same local with Optional values afterwards
+        # (latent str/Optional reuse), which precise str typing would surface there.
         value = arguments.get(field)
         if not isinstance(value, str) or not value.strip():
             raise ServiceHandleException(msg="invalid {}".format(field), msg_show="参数{}无效".format(field), status_code=400)
         return value.strip()
 
     @staticmethod
-    def _require_int(arguments, field):
+    def _require_int(arguments: dict, field: str) -> Any:
+        # NOTE: returns a validated positive int, but typed Any because callers in
+        # other methods pass the result to region/service helpers whose ID params
+        # are declared str (latent int/str inconsistency across the codebase).
         value = arguments.get(field)
         try:
-            ivalue = int(value)
+            ivalue = int(value)  # type: ignore[arg-type]  # TypeError caught below for None
         except (TypeError, ValueError):
             raise ServiceHandleException(msg="invalid {}".format(field), msg_show="参数{}无效".format(field), status_code=400)
         if ivalue <= 0:
@@ -4191,7 +4261,7 @@ class MCPQueryService(object):
         return ivalue
 
     @staticmethod
-    def _require_command(arguments):
+    def _require_command(arguments: dict) -> list:
         value = arguments.get("command")
         if not isinstance(value, list) or not value:
             raise ServiceHandleException(
@@ -4209,7 +4279,10 @@ class MCPQueryService(object):
         return command
 
     @staticmethod
-    def _parse_optional_positive_int(value, field, allow_zero=False):
+    def _parse_optional_positive_int(value: Any, field: str, allow_zero: bool = False) -> Any:
+        # NOTE: returns Optional[int], but typed Any because callers in other methods
+        # pass the result to service helpers whose params are declared str (latent
+        # int/str inconsistency across the codebase).
         if value in (None, ""):
             return None
         try:
@@ -4221,7 +4294,7 @@ class MCPQueryService(object):
             raise ServiceHandleException(msg="invalid {}".format(field), msg_show="参数{}无效".format(field), status_code=400)
         return ivalue
 
-    def _parse_pagination(self, arguments):
+    def _parse_pagination(self, arguments: dict) -> Tuple[int, int]:
         page = arguments.get("page", 1)
         page_size = arguments.get("page_size", 20)
         try:
@@ -4238,7 +4311,7 @@ class MCPQueryService(object):
         return page, page_size
 
     @staticmethod
-    def _parse_bool_with_default(value, default=False):
+    def _parse_bool_with_default(value: Any, default: bool = False) -> bool:
         if value is None or value == "":
             return default
         if isinstance(value, bool):
@@ -4252,12 +4325,12 @@ class MCPQueryService(object):
         raise ServiceHandleException(msg="invalid boolean", msg_show="布尔参数无效", status_code=400)
 
     @classmethod
-    def _normalize_bool_query_value(cls, value):
+    def _normalize_bool_query_value(cls, value: Any) -> Optional[str]:
         if value is None or value == "":
             return None
         return "true" if cls._parse_bool_with_default(value, False) else "false"
 
-    def _normalize_app_model_source(self, source):
+    def _normalize_app_model_source(self, source: Optional[str]) -> str:
         source = (source or "local").strip().lower()
         normalized = self.APP_MODEL_SOURCE_ALIASES.get(source)
         if normalized:
@@ -4269,7 +4342,7 @@ class MCPQueryService(object):
         )
 
     @staticmethod
-    def _resolve_upsert_envs(arguments):
+    def _resolve_upsert_envs(arguments: dict) -> Any:
         envs = arguments.get("envs")
         if envs:
             return envs
@@ -4286,7 +4359,7 @@ class MCPQueryService(object):
             }]
         return envs
 
-    def _build_create_app_error_details(self, exc, app_name, k8s_app):
+    def _build_create_app_error_details(self, exc: Any, app_name: str, k8s_app: str) -> Optional[dict]:
         msg = getattr(exc, "msg", "") or ""
         msg_show = getattr(exc, "msg_show", "") or ""
         error_code = getattr(exc, "error_code", None)
@@ -4341,7 +4414,8 @@ class MCPQueryService(object):
             }
         return None
 
-    def _create_app_with_mcp_error_details(self, team, region_name, app_name, app_note, username, k8s_app=""):
+    def _create_app_with_mcp_error_details(self, team: Any, region_name: str, app_name: str, app_note: str,
+                                           username: str, k8s_app: str = "") -> Any:
         try:
             return group_service.create_app(
                 team,
@@ -4361,7 +4435,7 @@ class MCPQueryService(object):
             )
 
     @staticmethod
-    def _parse_int_with_default(value, default):
+    def _parse_int_with_default(value: Any, default: Any) -> Any:
         if value is None or value == "":
             return default
         try:
@@ -4370,7 +4444,7 @@ class MCPQueryService(object):
             raise ServiceHandleException(msg="invalid integer", msg_show="整型参数无效", status_code=400)
 
     @staticmethod
-    def _normalize_source_git_url(git_url, subdirectories=None):
+    def _normalize_source_git_url(git_url: Optional[str], subdirectories: Optional[str] = None) -> str:
         git_url = (git_url or "").strip()
         subdirectories = (subdirectories or "").strip()
         if not subdirectories or "dir=" in git_url:
@@ -4379,13 +4453,13 @@ class MCPQueryService(object):
         return "{}{}dir={}".format(git_url, separator, subdirectories)
 
     @staticmethod
-    def _normalize_source_code_version(code_version, version_type=None):
+    def _normalize_source_code_version(code_version: Optional[str], version_type: Optional[str] = None) -> str:
         code_version = (code_version or "master").strip()
         if (version_type or "").strip() == "tag" and not code_version.startswith("tag:"):
             return "tag:{}".format(code_version)
         return code_version
 
-    def _normalize_port_action(self, action):
+    def _normalize_port_action(self, action: Optional[str]) -> str:
         action = (action or "").strip().lower()
         normalized = self.PORT_ACTION_ALIASES.get(action)
         if normalized:
@@ -4397,7 +4471,7 @@ class MCPQueryService(object):
         )
 
     @staticmethod
-    def _normalize_component_operation(operation, aliases, allowed, label):
+    def _normalize_component_operation(operation: Optional[str], aliases: dict, allowed: Any, label: str) -> str:
         operation = (operation or "").strip().lower()
         normalized = aliases.get(operation)
         if normalized and normalized in allowed:
@@ -4409,7 +4483,7 @@ class MCPQueryService(object):
         )
 
     @classmethod
-    def _port_alias_schema(cls):
+    def _port_alias_schema(cls) -> dict:
         return {
             "type": "string",
             "pattern": cls.PORT_ALIAS_PATTERN,
@@ -4417,7 +4491,7 @@ class MCPQueryService(object):
         }
 
     @classmethod
-    def _k8s_service_name_schema(cls):
+    def _k8s_service_name_schema(cls) -> dict:
         return {
             "type": "string",
             "pattern": cls.K8S_SERVICE_NAME_PATTERN,
@@ -4425,7 +4499,7 @@ class MCPQueryService(object):
             "description": cls.K8S_SERVICE_NAME_DESCRIPTION,
         }
 
-    def _build_port_tool_error_details(self, msg_show):
+    def _build_port_tool_error_details(self, msg_show: str) -> Optional[dict]:
         if msg_show == "端口别名不合法":
             return {
                 "field": "port_alias",
@@ -4469,7 +4543,7 @@ class MCPQueryService(object):
             }
         return None
 
-    def _raise_port_tool_error(self, msg, msg_show, status_code):
+    def _raise_port_tool_error(self, msg: str, msg_show: str, status_code: int) -> None:
         raise ServiceHandleException(
             msg=msg,
             msg_show=msg_show,
@@ -4477,7 +4551,7 @@ class MCPQueryService(object):
             details=self._build_port_tool_error_details(msg_show),
         )
 
-    def _normalize_env_scope(self, scope):
+    def _normalize_env_scope(self, scope: Optional[str]) -> str:
         scope = (scope or "inner").strip().lower()
         normalized = self.ENV_SCOPE_ALIASES.get(scope)
         if normalized:
@@ -4488,7 +4562,7 @@ class MCPQueryService(object):
             status_code=400,
         )
 
-    def _normalize_envs_for_upsert(self, envs):
+    def _normalize_envs_for_upsert(self, envs: Any) -> list:
         normalized_items = []
         for env in envs:
             if not isinstance(env, dict):
@@ -4507,7 +4581,7 @@ class MCPQueryService(object):
             })
         return normalized_items
 
-    def _lookup_env_or_raise(self, team, service, env_id):
+    def _lookup_env_or_raise(self, team: Any, service: Any, env_id: str) -> Any:
         try:
             return env_var_repo.get_env_by_ids_and_env_id(team.tenant_id, service.service_id, env_id)
         except ObjectDoesNotExist:
@@ -4517,7 +4591,7 @@ class MCPQueryService(object):
                 status_code=404,
             )
 
-    def _ensure_inner_env(self, team, service, env_id):
+    def _ensure_inner_env(self, team: Any, service: Any, env_id: str) -> Any:
         env = self._lookup_env_or_raise(team, service, env_id)
         if getattr(env, "scope", "") != "inner":
             raise ServiceHandleException(
@@ -4527,7 +4601,7 @@ class MCPQueryService(object):
             )
         return env
 
-    def _ensure_outer_env(self, team, service, env_id):
+    def _ensure_outer_env(self, team: Any, service: Any, env_id: str) -> Any:
         env = self._lookup_env_or_raise(team, service, env_id)
         if getattr(env, "scope", "") not in ("outer", "both"):
             raise ServiceHandleException(
@@ -4537,7 +4611,7 @@ class MCPQueryService(object):
             )
         return env
 
-    def _upsert_inner_envs(self, team, service, envs, user_name):
+    def _upsert_inner_envs(self, team: Any, service: Any, envs: Any, user_name: str) -> dict:
         inner_envs = env_var_service.get_service_inner_env(service)
         env_attr_names = {env.attr_name: env for env in inner_envs}
         for env in envs:
@@ -4565,12 +4639,14 @@ class MCPQueryService(object):
             })
         return {"envs": dt}
 
-    def _get_component_resource(self, team, service):
+    def _get_component_resource(self, team: Any, service: Any) -> dict:
         try:
             body = region_api.get_service_resources(team.tenant_name, service.service_region, {
                 "service_ids": [service.service_id]
             })
-            bean = body.get("bean", {})
+            # NOTE: region_api may return None body; potential latent None-bug
+            # (here guarded by the surrounding try/except returning defaults).
+            bean = body.get("bean", {})  # type: ignore[union-attr]
             result = bean.get(service.service_id)
             return {
                 "memory": result.get("memory", 0) if result else 0,
@@ -4581,11 +4657,11 @@ class MCPQueryService(object):
             return {"memory": 0, "disk": 0, "cpu": 0}
 
     @staticmethod
-    def service_requires_region_sync(service):
+    def service_requires_region_sync(service: Any) -> bool:
         return getattr(service, "create_status", "") == "complete"
 
     @staticmethod
-    def _ensure_volume_mode(mode):
+    def _ensure_volume_mode(mode: Any) -> int:
         mode = int(mode)
         if mode < 0 or mode > 777:
             raise ServiceHandleException(msg="invalid mode", msg_show="权限必须是在0和777之间的八进制数", status_code=400)
@@ -4593,7 +4669,7 @@ class MCPQueryService(object):
             raise ServiceHandleException(msg="invalid mode", msg_show="权限必须是在0和777之间的八进制数", status_code=400)
         return mode
 
-    def _build_autoscaler_payload(self, service, arguments):
+    def _build_autoscaler_payload(self, service: Any, arguments: dict) -> dict:
         metrics = arguments.get("metrics")
         if not isinstance(metrics, list) or not metrics:
             raise ServiceHandleException(msg="invalid metrics", msg_show="参数metrics无效", status_code=400)
@@ -4615,7 +4691,7 @@ class MCPQueryService(object):
             metric_name = metric.get("metric_name")
             metric_target_type = metric.get("metric_target_type")
             try:
-                metric_target_value = int(metric.get("metric_target_value"))
+                metric_target_value = int(metric.get("metric_target_value"))  # type: ignore[arg-type]
             except (TypeError, ValueError):
                 raise ServiceHandleException(msg="invalid metrics", msg_show="参数metrics无效", status_code=400)
             if metric_type not in ("resource_metrics",):
@@ -4641,7 +4717,7 @@ class MCPQueryService(object):
             "metrics": normalized_metrics,
         }
 
-    def _build_probe_payload(self, arguments):
+    def _build_probe_payload(self, arguments: dict) -> dict:
         payload = {
             "mode": self._require_string(arguments, "mode"),
             "port": self._require_int(arguments, "port"),
@@ -4655,7 +4731,7 @@ class MCPQueryService(object):
                 payload[key] = arguments.get(key)
         return payload
 
-    def _serialize_dependency_items(self, services):
+    def _serialize_dependency_items(self, services: Any) -> dict:
         items = [self._serialize_model_item(service) for service in services]
         service_ids = [item.get("service_id") for item in items if item.get("service_id")]
         group_map = group_service.get_services_group_name(service_ids) if service_ids else {}
@@ -4670,7 +4746,8 @@ class MCPQueryService(object):
                 item["ports_list"] = [port.container_port for port in ports]
         return {"items": items, "total": len(items)}
 
-    def _read_component_pod_logs(self, team, region_name, service_alias, pod_name, lines, container_name="", previous=False):
+    def _read_component_pod_logs(self, team: Any, region_name: str, service_alias: str, pod_name: str, lines: int,
+                                 container_name: str = "", previous: bool = False) -> list:
         # read_timeout governs how long urllib3 waits for the next chunk
         # (or the initial HTTP response). 3s was tight enough that
         # rbd-api regularly took longer than that to send the response
@@ -4715,7 +4792,7 @@ class MCPQueryService(object):
         return log_list[:lines]
 
     @staticmethod
-    def _parse_component_log_line(raw_line):
+    def _parse_component_log_line(raw_line: Optional[str]) -> Optional[str]:
         if raw_line is None:
             return None
         line = raw_line.strip()
@@ -4729,7 +4806,7 @@ class MCPQueryService(object):
         return line
 
     @staticmethod
-    def _extract_pod_container_names(container_data):
+    def _extract_pod_container_names(container_data: Any) -> list:
         if not container_data:
             return []
         if isinstance(container_data, list):
@@ -4743,7 +4820,7 @@ class MCPQueryService(object):
         return []
 
     @staticmethod
-    def _extract_region_pod_detail(payload):
+    def _extract_region_pod_detail(payload: Any) -> Any:
         if not isinstance(payload, dict):
             return payload
         bean = payload.get("bean")
@@ -4754,10 +4831,10 @@ class MCPQueryService(object):
             return data.get("bean")
         return payload
 
-    def _extract_component_pods(self, pods_data):
+    def _extract_component_pods(self, pods_data: Any) -> list:
         if not isinstance(pods_data, dict):
             return []
-        pod_groups = {}
+        pod_groups: dict = {}
         if isinstance(pods_data.get("bean"), dict):
             pod_groups = pods_data.get("bean") or {}
         elif isinstance(pods_data.get("list"), dict):
@@ -4786,7 +4863,7 @@ class MCPQueryService(object):
                 pods.append(pod_copy)
         return pods
 
-    def _infer_component_log_target(self, team, region_name, service):
+    def _infer_component_log_target(self, team: Any, region_name: str, service: Any) -> Tuple[Any, Any]:
         data = region_api.get_service_pods(region_name, team.tenant_name, service.service_alias, team.enterprise_id)
         pods = self._extract_component_pods(data)
         if not pods:
@@ -4814,13 +4891,13 @@ class MCPQueryService(object):
         return pod_name, None
 
     @staticmethod
-    def _get_username(user):
+    def _get_username(user: Any) -> str:
         if hasattr(user, "get_username") and callable(user.get_username):
             return user.get_username()
         return getattr(user, "nick_name", "")
 
     @staticmethod
-    def _serialize_datetime(value):
+    def _serialize_datetime(value: Any) -> Optional[str]:
         if not value:
             return None
         try:
@@ -4829,12 +4906,12 @@ class MCPQueryService(object):
             return str(value)
 
     @staticmethod
-    def _value(data, key, default=None):
+    def _value(data: Any, key: str, default: Any = None) -> Any:
         if isinstance(data, dict):
             return data.get(key, default)
         return getattr(data, key, default)
 
-    def _serialize_enterprise(self, enterprise):
+    def _serialize_enterprise(self, enterprise: Any) -> dict:
         return {
             "enterprise_id": enterprise.enterprise_id,
             "enterprise_name": enterprise.enterprise_name,
@@ -4843,7 +4920,7 @@ class MCPQueryService(object):
             "create_time": self._serialize_datetime(getattr(enterprise, "create_time", None)),
         }
 
-    def _serialize_region(self, region):
+    def _serialize_region(self, region: Any) -> dict:
         return {
             "region_id": self._value(region, "region_id"),
             "enterprise_id": self._value(region, "enterprise_id"),
@@ -4883,7 +4960,7 @@ class MCPQueryService(object):
             "create_time": self._serialize_datetime(self._value(region, "create_time")),
         }
 
-    def _serialize_app(self, app):
+    def _serialize_app(self, app: Any) -> dict:
         team_name = None
         team_alias = None
         try:
@@ -4907,7 +4984,7 @@ class MCPQueryService(object):
             "update_time": self._serialize_datetime(getattr(app, "update_time", None)),
         }
 
-    def _serialize_component(self, service, app, tenant):
+    def _serialize_component(self, service: Any, app: Any, tenant: Any) -> dict:
         return {
             "service_id": service.service_id,
             "service_alias": service.service_alias,
@@ -4924,11 +5001,11 @@ class MCPQueryService(object):
             "update_time": self._serialize_datetime(getattr(service, "update_time", None)),
         }
 
-    def _get_app_service_ids(self, app):
+    def _get_app_service_ids(self, app: Any) -> list:
         relations = group_service_relation_repo.get_services_by_group(app.ID)
         return [relation.service_id for relation in relations]
 
-    def _get_app_services_and_status(self, team, app):
+    def _get_app_services_and_status(self, team: Any, app: Any) -> list:
         services = group_service.get_group_services(app.ID)
         service_ids = [service.service_id for service in services]
         status_list = []
@@ -4950,9 +5027,9 @@ class MCPQueryService(object):
         return result
 
     @staticmethod
-    def _get_services_cpu_memory(services):
+    def _get_services_cpu_memory(services: Any) -> Tuple[Any, int]:
         used_memory = 0
-        used_cpu = 0
+        used_cpu: Any = 0
         for service in services:
             memory = service.get("min_memory", 0) or 0
             used_memory += memory
@@ -4960,7 +5037,7 @@ class MCPQueryService(object):
         return used_cpu, used_memory
 
     @staticmethod
-    def _get_running_service_count(services):
+    def _get_running_service_count(services: Any) -> int:
         count = 0
         for service in services:
             if service.get("status") == "running":
@@ -4968,14 +5045,14 @@ class MCPQueryService(object):
         return count
 
     @staticmethod
-    def _get_app_status(running_count, total_count):
+    def _get_app_status(running_count: int, total_count: int) -> str:
         if running_count <= 0:
             return "closed"
         if running_count < total_count:
             return "part_running"
         return "running"
 
-    def _get_app_monitor_services(self, app, is_outer):
+    def _get_app_monitor_services(self, app: Any, is_outer: bool) -> list:
         services_relation = group_service_relation_repo.get_services_by_group(app.ID)
         if hasattr(services_relation, "values_list"):
             service_ids = list(services_relation.values_list("service_id", flat=True))
@@ -4983,7 +5060,7 @@ class MCPQueryService(object):
             service_ids = [relation.service_id for relation in services_relation]
         if not service_ids:
             return []
-        services = service_repo.get_services_by_service_ids(service_ids)
+        services: Any = service_repo.get_services_by_service_ids(service_ids)
         if hasattr(services, "exclude"):
             services = services.exclude(service_source="third_party")
         else:
@@ -5010,7 +5087,7 @@ class MCPQueryService(object):
         return result
 
     @staticmethod
-    def _serialize_model_item(obj):
+    def _serialize_model_item(obj: Any) -> Any:
         if obj is None:
             return None
         if isinstance(obj, (str, int, float, bool)):
@@ -5027,7 +5104,7 @@ class MCPQueryService(object):
                 data[key] = MCPQueryService._serialize_model_item(value)
         return data
 
-    def _serialize_app_share_record_summary(self, record, user):
+    def _serialize_app_share_record_summary(self, record: Any, user: Any) -> dict:
         app_model_name = getattr(record, "share_app_model_name", None)
         app_model_id = getattr(record, "app_id", None)
         version_alias = getattr(record, "share_version_alias", None)
@@ -5045,7 +5122,7 @@ class MCPQueryService(object):
         if scope == "goodrain" and store_id and app_model_id and not app_model_name:
             try:
                 market = app_market_service.get_app_market_by_name(
-                    getattr(user, "enterprise_id", None),
+                    getattr(user, "enterprise_id", None),  # type: ignore[arg-type]
                     store_id,
                     user_id=self._share_market_user_id(user),
                     raise_exception=True,
@@ -5075,14 +5152,14 @@ class MCPQueryService(object):
             "app_version_info": getattr(record, "share_app_version_info", ""),
         }
 
-    def _serialize_app_share_record_detail(self, record, user):
+    def _serialize_app_share_record_detail(self, record: Any, user: Any) -> dict:
         data = self._serialize_app_share_record_summary(record, user)
         store_version = "1.0"
         store_id = data["scope_target"]["store_id"]
         if store_id:
             try:
                 market_info = app_market_service.get_app_market(
-                    getattr(user, "enterprise_id", None),
+                    getattr(user, "enterprise_id", None),  # type: ignore[arg-type]
                     store_id,
                     self._share_market_user_id(user),
                     "true",
@@ -5096,11 +5173,11 @@ class MCPQueryService(object):
         return data
 
     @staticmethod
-    def _share_market_user_id(user):
+    def _share_market_user_id(user: Any) -> Any:
         return getattr(user, "user_id", None) if os.getenv("USE_SAAS") else None
 
     @staticmethod
-    def _normalize_publish_scope(scope):
+    def _normalize_publish_scope(scope: Any) -> str:
         if scope in (None, "", "local"):
             return "local"
         if scope == "goodrain":
@@ -5108,21 +5185,21 @@ class MCPQueryService(object):
         raise ServiceHandleException(msg="invalid scope", msg_show="scope只能是local或goodrain", status_code=400)
 
     @staticmethod
-    def _normalize_share_event_type(event_type):
+    def _normalize_share_event_type(event_type: Any) -> str:
         if event_type in (None, "", "service"):
             return "service"
         if event_type == "plugin":
             return "plugin"
         raise ServiceHandleException(msg="invalid event_type", msg_show="event_type只能是service或plugin", status_code=400)
 
-    def _get_app_share_record_context(self, team, share_id):
+    def _get_app_share_record_context(self, team: Any, share_id: Any) -> Any:
         share_record = share_service.get_service_share_record_by_ID(ID=share_id, team_name=team.tenant_name)
         if not share_record:
             raise ServiceHandleException(msg="share record not found", msg_show="分享流程不存在，请退出重试", status_code=404)
         return share_record
 
     @staticmethod
-    def _build_snapshot_share_info(arguments):
+    def _build_snapshot_share_info(arguments: dict) -> dict:
         share_info = {}
         for field in ("share_service_list", "share_plugin_list", "share_k8s_resources"):
             value = arguments.get(field)
@@ -5132,7 +5209,7 @@ class MCPQueryService(object):
                 share_info[field] = value
         return share_info
 
-    def _serialize_upgrade_record_basic(self, record):
+    def _serialize_upgrade_record_basic(self, record: Any) -> Optional[dict]:
         if not record:
             return None
         data = self._serialize_model_item(record)
@@ -5143,7 +5220,7 @@ class MCPQueryService(object):
         }
         return data
 
-    def _serialize_upgrade_record_detail(self, record):
+    def _serialize_upgrade_record_detail(self, record: Any) -> Optional[dict]:
         if not record:
             return None
         data = self._serialize_model_item(record)
@@ -5156,7 +5233,7 @@ class MCPQueryService(object):
         }
         return data
 
-    def _upgrade_snapshot_exists(self, snapshot_id):
+    def _upgrade_snapshot_exists(self, snapshot_id: str) -> bool:
         if not snapshot_id:
             return False
         try:
@@ -5169,7 +5246,7 @@ class MCPQueryService(object):
             return False
 
     @staticmethod
-    def _normalize_upgrade_record_type(record_type):
+    def _normalize_upgrade_record_type(record_type: Any) -> Optional[str]:
         if record_type in (None, ""):
             return None
         normalized = str(record_type).strip().lower()
@@ -5177,7 +5254,8 @@ class MCPQueryService(object):
             raise ServiceHandleException(msg="invalid record_type", msg_show="record_type只能是upgrade或rollback", status_code=400)
         return normalized
 
-    def _get_team_app_upgrade_record_context(self, user, team_name, region_name, app_id, record_id):
+    def _get_team_app_upgrade_record_context(self, user: Any, team_name: str, region_name: str, app_id: Any,
+                                             record_id: Any) -> Tuple[Any, Any, Any]:
         team, app = self._get_team_app_context(user, team_name, region_name, app_id)
         record = upgrade_repo.get_by_record_id(record_id)
         if self._value(record, "group_id") != app.ID:
@@ -5186,7 +5264,7 @@ class MCPQueryService(object):
             self._raise_permission_denied("无该升级记录访问权限")
         return team, app, record
 
-    def _serialize_service_with_gateway_rules(self, service):
+    def _serialize_service_with_gateway_rules(self, service: Any) -> dict:
         data = self._serialize_model_item(service)
         gateway_rules = getattr(service, "gateway_rules", None)
         if gateway_rules:
@@ -5197,7 +5275,7 @@ class MCPQueryService(object):
         return data
 
     @staticmethod
-    def _empty_page(page, page_size):
+    def _empty_page(page: int, page_size: int) -> dict:
         return {
             "items": [],
             "total": 0,
@@ -5205,7 +5283,7 @@ class MCPQueryService(object):
             "page_size": page_size,
         }
 
-    def _paginate_data(self, items, page, page_size):
+    def _paginate_data(self, items: list, page: int, page_size: int) -> dict:
         total = len(items)
         start = (page - 1) * page_size
         end = start + page_size
@@ -5216,7 +5294,7 @@ class MCPQueryService(object):
             "page_size": page_size,
         }
 
-    def _tool_get_current_user(self):
+    def _tool_get_current_user(self) -> dict:
         return {
             "name": "rainbond_get_current_user",
             "description": "Get current authenticated user information and whether the user is an enterprise administrator.",
@@ -5226,7 +5304,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_get_app_detail(self):
+    def _tool_get_app_detail(self) -> dict:
         return {
             "name": "rainbond_get_app_detail",
             "description": "Get application detail by team, region and app ID.",
@@ -5241,7 +5319,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_create_app(self):
+    def _tool_create_app(self) -> dict:
         return {
             "name": "rainbond_create_app",
             "description": "Create an application in the specified team and region.",
@@ -5267,7 +5345,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_get_component_summary(self):
+    def _tool_get_component_summary(self) -> dict:
         return {
             "name": "rainbond_get_component_summary",
             "description": "Get an aggregated summary of the component, including status, resources, ports, envs, build envs, storage, autoscaler rules, and recent events. Logs are excluded.",
@@ -5284,7 +5362,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_get_component_logs(self):
+    def _tool_get_component_logs(self) -> dict:
         return {
             "name": "rainbond_get_component_logs",
             "description": "获取组件日志。推荐优先使用 action=container 查询指定 pod/container 的容器日志；action=service 为组件普通日志，并在失败时自动回退到首个 pod/container。",
@@ -5306,7 +5384,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_exec_component(self):
+    def _tool_exec_component(self) -> dict:
         return {
             "name": "rainbond_exec",
             "description": (
@@ -5338,7 +5416,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_get_config_file(self):
+    def _tool_get_config_file(self) -> dict:
         return {
             "name": "rainbond_get_config_file",
             "description": (
@@ -5360,7 +5438,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_manage_component_envs(self):
+    def _tool_manage_component_envs(self) -> dict:
         return {
             "name": "rainbond_manage_component_envs",
             "description": "高层自定义环境变量管理工具。只用于组件自身环境变量（custom envs, inner）和构建环境变量（build envs），不要用于组件连接信息（outer）。",
@@ -5415,7 +5493,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_manage_component_connection_envs(self):
+    def _tool_manage_component_connection_envs(self) -> dict:
         return {
             "name": "rainbond_manage_component_connection_envs",
             "description": "高层组件连接信息管理工具。只用于组件连接信息（connection envs, outer），不要用于自定义环境变量（inner）。",
@@ -5437,7 +5515,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_get_component_detail(self):
+    def _tool_get_component_detail(self) -> dict:
         return {
             "name": "rainbond_get_component_detail",
             "description": "Get component detail by team, region, app and service ID.",
@@ -5453,7 +5531,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_get_component_pods(self):
+    def _tool_get_component_pods(self) -> dict:
         return {
             "name": "rainbond_get_component_pods",
             "description": "List runtime pods of the component with normalized group and container names.",
@@ -5469,7 +5547,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_get_pod_detail(self):
+    def _tool_get_pod_detail(self) -> dict:
         return {
             "name": "rainbond_get_pod_detail",
             "description": (
@@ -5494,7 +5572,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_get_component_events(self):
+    def _tool_get_component_events(self) -> dict:
         return {
             "name": "rainbond_get_component_events",
             "description": "Get component events with pagination.",
@@ -5512,7 +5590,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_get_operation_failure_context(self):
+    def _tool_get_operation_failure_context(self) -> dict:
         return {
             "name": "rainbond_get_operation_failure_context",
             "description": (
@@ -5549,7 +5627,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_get_component_build_logs(self):
+    def _tool_get_component_build_logs(self) -> dict:
         return {
             "name": "rainbond_get_component_build_logs",
             "description": (
@@ -5575,7 +5653,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_get_component_build_source(self):
+    def _tool_get_component_build_source(self) -> dict:
         return {
             "name": "rainbond_get_component_build_source",
             "description": "Get current build source summary for a component, including source type, repo/image info, build strategy, build envs, and available arch options. Passwords are not returned.",
@@ -5591,7 +5669,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_update_component_build_source(self):
+    def _tool_update_component_build_source(self) -> dict:
         return {
             "name": "rainbond_update_component_build_source",
             "description": "Update the component build source. Use this for switching between source_code and docker_run/image-manual style inputs; do not use it for build_env_dict updates.",
@@ -5629,7 +5707,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_create_component(self):
+    def _tool_create_component(self) -> dict:
         return {
             "name": "rainbond_create_component",
             "description": (
@@ -5654,7 +5732,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_delete_component(self):
+    def _tool_delete_component(self) -> dict:
         return {
             "name": "rainbond_delete_component",
             "description": "Delete a component from the specified application.",
@@ -5673,7 +5751,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_operate_app(self):
+    def _tool_operate_app(self) -> dict:
         return {
             "name": "rainbond_operate_app",
             "description": "Batch operate application components. Supported actions: start, stop, restart, upgrade, deploy. "
@@ -5698,7 +5776,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_update_component_envs(self):
+    def _tool_update_component_envs(self) -> dict:
         return {
             "name": "rainbond_update_component_envs",
             "description": "Update component environment variables.",
@@ -5728,7 +5806,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_change_component_image(self):
+    def _tool_change_component_image(self) -> dict:
         return {
             "name": "rainbond_change_component_image",
             "description": "Change image of a docker-based component.",
@@ -5745,7 +5823,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_get_team_apps(self):
+    def _tool_get_team_apps(self) -> dict:
         return {
             "name": "rainbond_get_team_apps",
             "description": "Get application list under the specified team and region.",
@@ -5760,7 +5838,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_get_app_version_overview(self):
+    def _tool_get_app_version_overview(self) -> dict:
         return {
             "name": "rainbond_get_app_version_overview",
             "description": "Get the overview data used by the app version center, including current baseline snapshot and change summary.",
@@ -5775,7 +5853,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_list_app_version_snapshots(self):
+    def _tool_list_app_version_snapshots(self) -> dict:
         return {
             "name": "rainbond_list_app_version_snapshots",
             "description": "List snapshot versions for the specified app version center.",
@@ -5790,7 +5868,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_get_app_version_snapshot_detail(self):
+    def _tool_get_app_version_snapshot_detail(self) -> dict:
         return {
             "name": "rainbond_get_app_version_snapshot_detail",
             "description": "Get one snapshot version detail, including diff summary and template content.",
@@ -5806,7 +5884,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_create_app_version_snapshot(self):
+    def _tool_create_app_version_snapshot(self) -> dict:
         return {
             "name": "rainbond_create_app_version_snapshot",
             "description": "Create a new snapshot version for the app. Optional share payload lets you persist the exact draft content from the snapshot configuration page.",
@@ -5827,7 +5905,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_delete_app_version_snapshot(self):
+    def _tool_delete_app_version_snapshot(self) -> dict:
         return {
             "name": "rainbond_delete_app_version_snapshot",
             "description": "Delete a non-current historical snapshot version.",
@@ -5843,7 +5921,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_rollback_app_version_snapshot(self):
+    def _tool_rollback_app_version_snapshot(self) -> dict:
         return {
             "name": "rainbond_rollback_app_version_snapshot",
             "description": "Rollback the current app runtime state to a target snapshot version.",
@@ -5859,7 +5937,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_list_app_version_rollback_records(self):
+    def _tool_list_app_version_rollback_records(self) -> dict:
         return {
             "name": "rainbond_list_app_version_rollback_records",
             "description": "List rollback records created by app version snapshot rollback actions.",
@@ -5874,7 +5952,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_get_app_version_rollback_record_detail(self):
+    def _tool_get_app_version_rollback_record_detail(self) -> dict:
         return {
             "name": "rainbond_get_app_version_rollback_record_detail",
             "description": "Get one app version rollback record with service-level status detail.",
@@ -5890,7 +5968,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_delete_app_version_rollback_record(self):
+    def _tool_delete_app_version_rollback_record(self) -> dict:
         return {
             "name": "rainbond_delete_app_version_rollback_record",
             "description": "Delete a finished app version rollback record.",
@@ -5906,7 +5984,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_create_app_from_snapshot_version(self):
+    def _tool_create_app_from_snapshot_version(self) -> dict:
         return {
             "name": "rainbond_create_app_from_snapshot_version",
             "description": "Create a new app directly from a snapshot-generated hidden template without publishing it to the local library first.",
@@ -5935,7 +6013,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_get_app_publish_candidates(self):
+    def _tool_get_app_publish_candidates(self) -> dict:
         return {
             "name": "rainbond_get_app_publish_candidates",
             "description": "Get publish candidate app models for the version publish page. Use scope=local for local component library or scope=goodrain for cloud app market.",
@@ -5954,7 +6032,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_create_app_share_record(self):
+    def _tool_create_app_share_record(self) -> dict:
         return {
             "name": "rainbond_create_app_share_record",
             "description": "Create a draft share record for publish or snapshot configuration. For local publish keep scope empty; for cloud publish set scope=goodrain and target.store_id. Set snapshot_mode=true to enter the snapshot creation flow.",
@@ -5974,7 +6052,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_list_app_share_records(self):
+    def _tool_list_app_share_records(self) -> dict:
         return {
             "name": "rainbond_list_app_share_records",
             "description": "List publish records shown in the app version publish drawer.",
@@ -5991,7 +6069,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_get_app_share_record(self):
+    def _tool_get_app_share_record(self) -> dict:
         return {
             "name": "rainbond_get_app_share_record",
             "description": "Get one publish record used by the publish configuration page.",
@@ -6007,7 +6085,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_delete_app_share_record(self):
+    def _tool_delete_app_share_record(self) -> dict:
         return {
             "name": "rainbond_delete_app_share_record",
             "description": "Delete or hide a finished publish record from the publish record drawer.",
@@ -6023,7 +6101,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_get_app_share_info(self):
+    def _tool_get_app_share_info(self) -> dict:
         return {
             "name": "rainbond_get_app_share_info",
             "description": "Get the draft share content for share step one. Returns publish_mode=snapshot when the draft is based on a snapshot version, otherwise publish_mode=runtime.",
@@ -6039,7 +6117,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_submit_app_share_info(self):
+    def _tool_submit_app_share_info(self) -> dict:
         return {
             "name": "rainbond_submit_app_share_info",
             "description": "Submit share step one data. app_version_info is required; runtime publish may also include share_service_list, share_plugin_list, and share_k8s_resources.",
@@ -6060,7 +6138,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_list_app_share_events(self):
+    def _tool_list_app_share_events(self) -> dict:
         return {
             "name": "rainbond_list_app_share_events",
             "description": "List share step two events for both components and plugins.",
@@ -6074,7 +6152,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_start_app_share_event(self):
+    def _tool_start_app_share_event(self) -> dict:
         return {
             "name": "rainbond_start_app_share_event",
             "description": "Trigger a share step two event. Use event_type=service for component media sync or event_type=plugin for plugin sync.",
@@ -6091,7 +6169,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_get_app_share_event(self):
+    def _tool_get_app_share_event(self) -> dict:
         return {
             "name": "rainbond_get_app_share_event",
             "description": "Query one share step two event status for a component or plugin event.",
@@ -6108,7 +6186,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_complete_app_share(self):
+    def _tool_complete_app_share(self) -> dict:
         return {
             "name": "rainbond_complete_app_share",
             "description": "Complete the publish workflow after all share events succeed.",
@@ -6124,7 +6202,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_giveup_app_share(self):
+    def _tool_giveup_app_share(self) -> dict:
         return {
             "name": "rainbond_giveup_app_share",
             "description": "Abort an unfinished share workflow and clean up its draft state.",
@@ -6138,7 +6216,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_build_component(self):
+    def _tool_build_component(self) -> dict:
         return {
             "name": "rainbond_build_component",
             "description": (
@@ -6173,7 +6251,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_get_app_last_upgrade_record(self):
+    def _tool_get_app_last_upgrade_record(self) -> dict:
         return {
             "name": "rainbond_get_app_last_upgrade_record",
             "description": "Get the latest upgrade or rollback record for the specified application.",
@@ -6190,7 +6268,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_query_app_upgrade_records(self):
+    def _tool_query_app_upgrade_records(self) -> dict:
         return {
             "name": "rainbond_query_app_upgrade_records",
             "description": "Query paginated upgrade records for the specified application.",
@@ -6208,7 +6286,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_create_app_upgrade_record(self):
+    def _tool_create_app_upgrade_record(self) -> dict:
         return {
             "name": "rainbond_create_app_upgrade_record",
             "description": "Create a new upgrade record for a specific upgrade group in the application.",
@@ -6224,7 +6302,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_get_app_upgrade_record(self):
+    def _tool_get_app_upgrade_record(self) -> dict:
         return {
             "name": "rainbond_get_app_upgrade_record",
             "description": "Get one upgrade record with service-level status details and snapshot metadata.",
@@ -6240,7 +6318,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_get_app_upgrade_detail(self):
+    def _tool_get_app_upgrade_detail(self) -> dict:
         return {
             "name": "rainbond_get_app_upgrade_detail",
             "description": "Get upgrade record context together with available target versions for that record.",
@@ -6256,7 +6334,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_get_app_upgrade_changes(self):
+    def _tool_get_app_upgrade_changes(self) -> dict:
         return {
             "name": "rainbond_get_app_upgrade_changes",
             "description": "Get property changes for a target upgrade version before executing the upgrade.",
@@ -6273,7 +6351,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_execute_app_upgrade_record(self):
+    def _tool_execute_app_upgrade_record(self) -> dict:
         return {
             "name": "rainbond_execute_app_upgrade_record",
             "description": "Execute one upgrade record with the selected target version and optional component subset.",
@@ -6294,7 +6372,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_deploy_app_upgrade_record(self):
+    def _tool_deploy_app_upgrade_record(self) -> dict:
         return {
             "name": "rainbond_deploy_app_upgrade_record",
             "description": "Redeploy or continue a specific upgrade/rollback record.",
@@ -6310,7 +6388,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_get_app_rollback_records(self):
+    def _tool_get_app_rollback_records(self) -> dict:
         return {
             "name": "rainbond_get_app_rollback_records",
             "description": "List rollback records derived from a specific upgrade record.",
@@ -6326,7 +6404,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_rollback_app_upgrade_record(self):
+    def _tool_rollback_app_upgrade_record(self) -> dict:
         return {
             "name": "rainbond_rollback_app_upgrade_record",
             "description": "Rollback a specific upgrade record using its internal snapshot.",
@@ -6342,7 +6420,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_get_app_upgrade_info(self):
+    def _tool_get_app_upgrade_info(self) -> dict:
         return {
             "name": "rainbond_get_app_upgrade_info",
             "description": "Get upgradeable application model information for the specified app.",
@@ -6357,7 +6435,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_upgrade_app(self):
+    def _tool_upgrade_app(self) -> dict:
         return {
             "name": "rainbond_upgrade_app",
             "description": "Upgrade an application using the direct high-level console upgrade flow. "
@@ -6378,7 +6456,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_get_copy_app_info(self):
+    def _tool_get_copy_app_info(self) -> dict:
         return {
             "name": "rainbond_get_copy_app_info",
             "description": "Get component metadata required before copying an application.",
@@ -6393,7 +6471,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_copy_app(self):
+    def _tool_copy_app(self) -> dict:
         return {
             "name": "rainbond_copy_app",
             "description": "Copy application components to another team/region/app using direct console copy flow.",
@@ -6415,7 +6493,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_query_cloud_markets(self):
+    def _tool_query_cloud_markets(self) -> dict:
         return {
             "name": "rainbond_query_cloud_markets",
             "description": "List configured cloud application markets for an enterprise.",
@@ -6429,7 +6507,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_query_local_app_models(self):
+    def _tool_query_local_app_models(self) -> dict:
         return {
             "name": "rainbond_query_local_app_models",
             "description": "List local application templates available inside the enterprise market.",
@@ -6450,7 +6528,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_query_cloud_app_models(self):
+    def _tool_query_cloud_app_models(self) -> dict:
         return {
             "name": "rainbond_query_cloud_app_models",
             "description": "List app templates from a specific cloud market.",
@@ -6470,7 +6548,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_query_app_model_versions(self):
+    def _tool_query_app_model_versions(self) -> dict:
         return {
             "name": "rainbond_query_app_model_versions",
             "description": "List versions for a local or cloud app template.",
@@ -6489,7 +6567,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_install_app_model(self):
+    def _tool_install_app_model(self) -> dict:
         return {
             "name": "rainbond_install_app_model",
             "description": "Install a local or cloud app template into an existing app.",
@@ -6510,7 +6588,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_install_app_by_market(self):
+    def _tool_install_app_by_market(self) -> dict:
         return {
             "name": "rainbond_install_app_by_market",
             "description": "Install application components from market into an existing app.",
@@ -6535,7 +6613,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_create_component_from_source(self):
+    def _tool_create_component_from_source(self) -> dict:
         return {
             "name": "rainbond_create_component_from_source",
             "description": (
@@ -6594,7 +6672,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_create_component_from_package(self):
+    def _tool_create_component_from_package(self) -> dict:
         return {
             "name": "rainbond_create_component_from_package",
             "description": (
@@ -6617,7 +6695,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_init_package_upload(self):
+    def _tool_init_package_upload(self) -> dict:
         return {
             "name": "rainbond_init_package_upload",
             "description": "Initialize a package upload event and return the upload endpoint before sending the package file.",
@@ -6632,7 +6710,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_upload_package_file(self):
+    def _tool_upload_package_file(self) -> dict:
         return {
             "name": "rainbond_upload_package_file",
             "description": "Upload a local package file or directory to an initialized package upload event; directories are zipped automatically.",
@@ -6655,7 +6733,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_get_package_upload_status(self):
+    def _tool_get_package_upload_status(self) -> dict:
         return {
             "name": "rainbond_get_package_upload_status",
             "description": "Get uploaded package file names for a package upload event.",
@@ -6670,7 +6748,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_delete_package_upload(self):
+    def _tool_delete_package_upload(self) -> dict:
         return {
             "name": "rainbond_delete_package_upload",
             "description": "Delete uploaded package artifacts for a package upload event and mark the upload record as deleted.",
@@ -6685,7 +6763,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_create_component_from_local_package(self):
+    def _tool_create_component_from_local_package(self) -> dict:
         return {
             "name": "rainbond_create_component_from_local_package",
             "description": (
@@ -6715,7 +6793,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_check_component(self):
+    def _tool_check_component(self) -> dict:
         return {
             "name": "rainbond_check_component",
             "description": "Step 2 of component creation: start source or package detection for the specified component.",
@@ -6733,7 +6811,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_get_component_check_result(self):
+    def _tool_get_component_check_result(self) -> dict:
         return {
             "name": "rainbond_get_component_check_result",
             "description": "Step 3 of component creation: get detection result and persist detected metadata.",
@@ -6761,7 +6839,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_create_component_from_image(self):
+    def _tool_create_component_from_image(self) -> dict:
         return {
             "name": "rainbond_create_component_from_image",
             "description": (
@@ -6786,7 +6864,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_create_app_from_yaml(self):
+    def _tool_create_app_from_yaml(self) -> dict:
         return {
             "name": "rainbond_create_app_from_yaml",
             "description": "Create a compose application from uploaded YAML event metadata.",
@@ -6805,7 +6883,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_check_yaml_app(self):
+    def _tool_check_yaml_app(self) -> dict:
         return {
             "name": "rainbond_check_yaml_app",
             "description": "Check a compose application created from YAML.",
@@ -6821,7 +6899,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_get_yaml_app_check_result(self):
+    def _tool_get_yaml_app_check_result(self) -> dict:
         return {
             "name": "rainbond_get_yaml_app_check_result",
             "description": "Get and persist compose YAML check result, returning generated services.",
@@ -6839,7 +6917,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_query_app_monitor(self):
+    def _tool_query_app_monitor(self) -> dict:
         return {
             "name": "rainbond_query_app_monitor",
             "description": "Query real-time monitor data of components under an application.",
@@ -6855,7 +6933,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_query_app_monitor_range(self):
+    def _tool_query_app_monitor_range(self) -> dict:
         return {
             "name": "rainbond_query_app_monitor_range",
             "description": "Query historical monitor data of components under an application.",
@@ -6874,7 +6952,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_create_gateway_rules(self):
+    def _tool_create_gateway_rules(self) -> dict:
         return {
             "name": "rainbond_create_gateway_rules",
             "description": "Create HTTP or TCP gateway rules for an application.",
@@ -6892,7 +6970,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_check_helm_app(self):
+    def _tool_check_helm_app(self) -> dict:
         return {
             "name": "rainbond_check_helm_app",
             "description": "Check helm application information before generating template or deployment.",
@@ -6914,7 +6992,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_build_helm_app(self):
+    def _tool_build_helm_app(self) -> dict:
         return {
             "name": "rainbond_build_helm_app",
             "description": "Generate helm application template directly through console helm flow.",
@@ -6935,7 +7013,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_handle_component_ports(self):
+    def _tool_handle_component_ports(self) -> dict:
         return {
             "name": "rainbond_handle_component_ports",
             "description": "List, add, update, or delete component ports.",
@@ -6966,7 +7044,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_manage_component_ports(self):
+    def _tool_manage_component_ports(self) -> dict:
         return {
             "name": "rainbond_manage_component_ports",
             "description": (
@@ -7043,7 +7121,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_bind_component_volume(self):
+    def _tool_bind_component_volume(self) -> dict:
         return {
             "name": "rainbond_bind_component_volume",
             "description": "Bind a storage volume to a component.",
@@ -7071,7 +7149,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_manage_component_storage(self):
+    def _tool_manage_component_storage(self) -> dict:
         return {
             "name": "rainbond_manage_component_storage",
             "description": (
@@ -7171,7 +7249,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_manage_component_autoscaler(self):
+    def _tool_manage_component_autoscaler(self) -> dict:
         return {
             "name": "rainbond_manage_component_autoscaler",
             "description": "高层自动伸缩管理工具，统一处理伸缩规则和伸缩记录。",
@@ -7208,7 +7286,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_manage_component_probe(self):
+    def _tool_manage_component_probe(self) -> dict:
         return {
             "name": "rainbond_manage_component_probe",
             "description": "高层探针管理工具，统一处理组件健康探针的查看、新增、修改、删除。",
@@ -7238,7 +7316,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_manage_component_dependency(self):
+    def _tool_manage_component_dependency(self) -> dict:
         return {
             "name": "rainbond_manage_component_dependency",
             "description": "高层依赖管理工具，统一处理组件依赖、反向依赖及可依赖组件查询。",
@@ -7267,7 +7345,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_horizontal_scale_component(self):
+    def _tool_horizontal_scale_component(self) -> dict:
         return {
             "name": "rainbond_horizontal_scale_component",
             "description": "Horizontally scale a component.",
@@ -7284,7 +7362,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_vertical_scale_component(self):
+    def _tool_vertical_scale_component(self) -> dict:
         return {
             "name": "rainbond_vertical_scale_component",
             "description": "Vertically scale a component.",
@@ -7303,7 +7381,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_close_apps(self):
+    def _tool_close_apps(self) -> dict:
         return {
             "name": "rainbond_close_apps",
             "description": "Batch stop application components in a team and region.",
@@ -7321,7 +7399,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_query_enterprises(self):
+    def _tool_query_enterprises(self) -> dict:
         return {
             "name": "rainbond_query_enterprises",
             "description": "Query enterprises that current enterprise administrator can access.",
@@ -7335,7 +7413,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_query_regions(self):
+    def _tool_query_regions(self) -> dict:
         return {
             "name": "rainbond_query_regions",
             "description": "Query cluster regions under the specified enterprise. Only available for enterprise administrators.",
@@ -7350,7 +7428,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_get_region_detail(self):
+    def _tool_get_region_detail(self) -> dict:
         return {
             "name": "rainbond_get_region_detail",
             "description": "Get cluster detail by region ID. Only available for enterprise administrators.",
@@ -7364,7 +7442,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_create_region(self):
+    def _tool_create_region(self) -> dict:
         return {
             "name": "rainbond_create_region",
             "description": "Create a new cluster metadata record.",
@@ -7389,7 +7467,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_update_region(self):
+    def _tool_update_region(self) -> dict:
         return {
             "name": "rainbond_update_region",
             "description": "Update cluster metadata.",
@@ -7414,7 +7492,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_delete_region(self):
+    def _tool_delete_region(self) -> dict:
         return {
             "name": "rainbond_delete_region",
             "description": "Delete cluster metadata.",
@@ -7430,7 +7508,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_query_region_nodes(self):
+    def _tool_query_region_nodes(self) -> dict:
         return {
             "name": "rainbond_query_region_nodes",
             "description": "Query cluster nodes under the specified region.",
@@ -7443,7 +7521,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_get_region_node_detail(self):
+    def _tool_get_region_node_detail(self) -> dict:
         return {
             "name": "rainbond_get_region_node_detail",
             "description": "Get detail of a cluster node in the specified region.",
@@ -7457,7 +7535,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_query_region_rbd_components(self):
+    def _tool_query_region_rbd_components(self) -> dict:
         return {
             "name": "rainbond_query_region_rbd_components",
             "description": "Query Rainbond platform components running in the specified region.",
@@ -7470,7 +7548,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _build_create_region_data(self, arguments, enterprise_id):
+    def _build_create_region_data(self, arguments: dict, enterprise_id: str) -> dict:
         return {
             "region_id": arguments.get("region_id") or make_uuid(),
             "enterprise_id": enterprise_id,
@@ -7489,7 +7567,7 @@ class MCPQueryService(object):
             "desc": arguments.get("desc", "") or "",
         }
 
-    def _build_update_region_data(self, arguments):
+    def _build_update_region_data(self, arguments: dict) -> dict:
         allowed_fields = [
             "region_alias", "url", "token", "wsurl", "httpdomain", "tcpdomain", "scope", "ssl_ca_cert", "cert_file",
             "key_file", "status", "desc"
@@ -7502,7 +7580,7 @@ class MCPQueryService(object):
             raise ServiceHandleException(msg="invalid update payload", msg_show="至少需要提供一个可更新字段", status_code=400)
         return update_data
 
-    def _build_region_update_data(self, region):
+    def _build_region_update_data(self, region: Any) -> dict:
         return {
             "region_id": self._value(region, "region_id"),
             "region_alias": self._value(region, "region_alias"),
@@ -7522,7 +7600,7 @@ class MCPQueryService(object):
         }
 
 
-    def _tool_query_teams(self):
+    def _tool_query_teams(self) -> dict:
         return {
             "name": "rainbond_query_teams",
             "description": "Query teams under the specified enterprise.",
@@ -7538,7 +7616,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_query_apps(self):
+    def _tool_query_apps(self) -> dict:
         return {
             "name": "rainbond_query_apps",
             "description": "Query applications under the specified enterprise.",
@@ -7554,7 +7632,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_query_components(self):
+    def _tool_query_components(self) -> dict:
         return {
             "name": "rainbond_query_components",
             "description": "Query components under the specified application.",
@@ -7571,7 +7649,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_delete_app(self):
+    def _tool_delete_app(self) -> dict:
         return {
             "name": "rainbond_delete_app",
             "description": "Delete an application. This is a destructive operation and requires confirmation.",

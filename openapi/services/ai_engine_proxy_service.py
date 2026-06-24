@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import logging
 import time
+from typing import Any, List, Optional
 
 from console.exception.main import ServiceHandleException
 
@@ -15,11 +16,11 @@ class AIEngineProxyService(object):
         ("POST", "v1/embeddings"),
     }
 
-    def __init__(self, cache_ttl_seconds=30):
+    def __init__(self, cache_ttl_seconds: int = 30) -> None:
         self.cache_ttl_seconds = cache_ttl_seconds
-        self._region_cache = {}
+        self._region_cache: dict = {}
 
-    def extract_bearer_token(self, authorization):
+    def extract_bearer_token(self, authorization: Any) -> str:
         authorization = str(authorization or "").strip()
         if not authorization:
             raise ServiceHandleException("missing Authorization header", status_code=401)
@@ -29,7 +30,7 @@ class AIEngineProxyService(object):
             raise ServiceHandleException("invalid Authorization format, expected Bearer <api-key>", status_code=401)
         return parts[1].strip()
 
-    def validate_proxy_target(self, method, proxy_path):
+    def validate_proxy_target(self, method: Any, proxy_path: Any) -> str:
         normalized_path = str(proxy_path or "").strip().strip("/")
         normalized_method = str(method or "").upper()
         if (normalized_method, normalized_path) not in self.ALLOWED_TARGETS:
@@ -38,7 +39,7 @@ class AIEngineProxyService(object):
                 status_code=405)
         return normalized_path
 
-    def resolve_unique_region(self, team_name):
+    def resolve_unique_region(self, team_name: str) -> Any:
         normalized_team = str(team_name or "").strip()
         if not normalized_team:
             raise ServiceHandleException("team not found", status_code=404)
@@ -55,8 +56,8 @@ class AIEngineProxyService(object):
         if not candidate_regions:
             raise ServiceHandleException("team {} has no active regions".format(normalized_team), status_code=404)
 
-        matched_regions = []
-        lookup_failures = []
+        matched_regions: list = []
+        lookup_failures: list = []
         for region_name in candidate_regions:
             try:
                 if self._region_has_ai_engine(team.enterprise_id, region_name):
@@ -86,20 +87,20 @@ class AIEngineProxyService(object):
 
         raise ServiceHandleException("team {} has no available ai-engine cluster".format(normalized_team), status_code=404)
 
-    def build_region_proxy_path(self, proxy_path, query_string=""):
+    def build_region_proxy_path(self, proxy_path: Any, query_string: str = "") -> str:
         normalized_path = str(proxy_path or "").strip().lstrip("/")
         path = "/v2/platform/backend/plugins/rainbond-ai-engine/{}".format(normalized_path)
         if query_string:
             return "{}?{}".format(path, query_string)
         return path
 
-    def proxy_request(self, request, region_name, proxy_path, query_string=""):
+    def proxy_request(self, request: Any, region_name: str, proxy_path: Any, query_string: str = "") -> Any:
         from www.apiclient.regionapi import RegionInvokeApi
 
         region_api = RegionInvokeApi()
         return region_api.proxy(request, self.build_region_proxy_path(proxy_path, query_string), region_name)
 
-    def _get_cached_region(self, team_name):
+    def _get_cached_region(self, team_name: str) -> Optional[str]:
         cache_item = self._region_cache.get(team_name)
         if not cache_item:
             return None
@@ -108,29 +109,32 @@ class AIEngineProxyService(object):
             return None
         return cache_item["region_name"]
 
-    def _cache_region(self, team_name, region_name):
+    def _cache_region(self, team_name: str, region_name: str) -> None:
         self._region_cache[team_name] = {
             "region_name": region_name,
             "expires_at": time.time() + self.cache_ttl_seconds,
         }
 
-    def _get_team(self, team_name):
+    def _get_team(self, team_name: str) -> Any:
         from console.repositories.team_repo import team_repo
 
         return team_repo.get_team_by_team_name(team_name)
 
-    def _get_candidate_regions(self, team):
+    def _get_candidate_regions(self, team: Any) -> List[Any]:
         from www.models.main import TenantRegionInfo
 
-        region_infos = TenantRegionInfo.objects.filter(tenant_id=team.tenant_id, is_active=1, is_init=1)
+        # NOTE: legacy int (1/0) used for BooleanField lookups; stubs expect bool.
+        region_infos = TenantRegionInfo.objects.filter(
+            tenant_id=team.tenant_id, is_active=1, is_init=1)  # type: ignore[misc]
         return [item.region_name for item in region_infos]
 
-    def _region_has_ai_engine(self, enterprise_id, region_name):
+    def _region_has_ai_engine(self, enterprise_id: str, region_name: str) -> bool:
         from www.apiclient.regionapi import RegionInvokeApi
 
         region_api = RegionInvokeApi()
         _, body = region_api.list_plugins(enterprise_id, region_name, False)
-        plugins = body.get("list") or []
+        # NOTE: region api body may be None per stubs; backlog null-safety.
+        plugins = body.get("list") or []  # type: ignore[union-attr]
         for plugin in plugins:
             if isinstance(plugin, dict) and plugin.get("name") == "rainbond-ai-engine":
                 return True

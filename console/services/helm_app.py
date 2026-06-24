@@ -1,5 +1,6 @@
 # -*- coding: utf8 -*-
 import json
+from typing import Any, Dict, List, Tuple
 
 # service
 from console.services.group_service import group_service
@@ -19,7 +20,7 @@ region_api = RegionInvokeApi()
 
 
 class HelmAppService(object):
-    def list_components(self, tenant: Tenants, region_name: str, user, app: ServiceGroup):
+    def list_components(self, tenant: Tenants, region_name: str, user: Any, app: ServiceGroup) -> Tuple[List[Any], Dict[str, Any]]:
         # list kubernetes service
         services = self.list_services(tenant.tenant_name, region_name, app.app_id)
         # list components
@@ -32,7 +33,7 @@ class HelmAppService(object):
         orphan_services = [service for service in services if service["service_name"] not in relations.values()]
         for service in orphan_services:
             service["namespace"] = tenant.namespace
-        error = {}
+        error: Dict[str, Any] = {}
         try:
             app_service.create_third_components(tenant, region_name, user, app, "kubernetes", orphan_services)
         except ErrThirdComponentStartFailed as e:
@@ -46,15 +47,15 @@ class HelmAppService(object):
         return components, error
 
     @staticmethod
-    def list_services(tenant_name, region_name, app_id):
+    def list_services(tenant_name: str, region_name: str, app_id: str) -> List[Any]:
         region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
         services = region_api.list_app_services(region_name, tenant_name, region_app_id)
         return services if services else []
 
     @staticmethod
-    def _list_component_service_relations(component_ids):
+    def _list_component_service_relations(component_ids: List[str]) -> Dict[str, Any]:
         endpoints = service_endpoints_repo.list_by_component_ids(component_ids)
-        relations = {}
+        relations: Dict[str, Any] = {}
         for endpoint in endpoints:
             ep = json.loads(endpoint.endpoints_info)
             service_name = ep.get("serviceName")
@@ -62,7 +63,7 @@ class HelmAppService(object):
         return relations
 
     @staticmethod
-    def _merge_component_service(components, services, relations):
+    def _merge_component_service(components: List[Any], services: List[Any], relations: Dict[str, Any]) -> None:
         services = {service["service_name"]: service for service in services}
         for component in components:
             service_name = relations.get(component["service_id"])

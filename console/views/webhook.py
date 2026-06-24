@@ -6,6 +6,7 @@ import logging
 import os
 import pickle
 import re
+from typing import Any, Optional, Tuple
 
 from console.constants import AppConstants
 from console.models.main import DeployRelation
@@ -17,6 +18,7 @@ from console.services.user_services import user_services
 from console.views.app_config.base import AppBaseView
 from console.views.base import AlowAnyApiView
 from docker_image import reference
+from rest_framework.request import Request
 from rest_framework.response import Response
 from www.models.main import Tenants, TenantServiceInfo
 from www.utils.return_message import error_message, general_message
@@ -24,8 +26,68 @@ from www.utils.return_message import error_message, general_message
 logger = logging.getLogger("default")
 
 
+class UnsupportedImageWebhookEvent(Exception):
+    pass
+
+
+class ImageWebhookPayloadError(Exception):
+    pass
+
+
+class ImageWebhookEvent(object):
+    def __init__(self, repo_name: Optional[str], tag: Optional[str], pusher: Optional[str]) -> None:
+        self.repo_name = repo_name
+        self.tag = tag
+        self.pusher = pusher
+
+
+def parse_image_webhook_payload(data: Any) -> "ImageWebhookEvent":
+    if is_harbor_webhook_payload(data):
+        return parse_harbor_image_webhook_payload(data)
+    return parse_registry_image_webhook_payload(data)
+
+
+def is_harbor_webhook_payload(data: Any) -> bool:
+    return "event_data" in data and "resources" in data.get("event_data", {})
+
+
+def parse_harbor_image_webhook_payload(data: Any) -> "ImageWebhookEvent":
+    if data.get("type") != "PUSH_ARTIFACT":
+        raise UnsupportedImageWebhookEvent("event type not support")
+
+    event_data = data.get("event_data") or {}
+    resources = event_data.get("resources") or []
+    repository = event_data.get("repository") or {}
+    if not resources:
+        raise ImageWebhookPayloadError("Harbor webhook缺少resources信息")
+
+    tag = resources[0].get("tag")
+    repo_name = repository.get("repo_full_name") or repository.get("name")
+    pusher = data.get("operator") or "harbor"
+    return ImageWebhookEvent(repo_name, tag, pusher)
+
+
+def parse_registry_image_webhook_payload(data: Any) -> "ImageWebhookEvent":
+    repository = data.get("repository")
+    if not repository:
+        raise ImageWebhookPayloadError("缺少repository信息")
+
+    push_data = data.get("push_data")
+    pusher = push_data.get("pusher") if push_data else None
+    tag = push_data.get("tag") if push_data else None
+    repo_name = repository.get("repo_name")
+    if not repo_name:
+        repository_namespace = repository.get("namespace")
+        repository_name = repository.get("name")
+        if repository_namespace and repository_name:
+            repo_name = "fake.repo.aliyun.com/" + repository_namespace + "/" + repository_name
+        else:
+            repo_name = repository.get("repo_full_name")
+    return ImageWebhookEvent(repo_name, tag, pusher)
+
+
 class WebHooksDeploy(AlowAnyApiView):
-    def post(self, request, service_id, *args, **kwargs):
+    def post(self, request: Request, service_id: str, *args: Any, **kwargs: Any) -> Response:
         """
         github，gitlab 回调接口 触发自动部署
 
@@ -82,7 +144,8 @@ class WebHooksDeploy(AlowAnyApiView):
                     return Response(result, status=200)
                 clone_url = repository.get("clone_url")
                 ssh_url = repository.get("ssh_url")
-                code, msg, msg_show = self._check_warehouse(service_obj.git_url, clone_url, ssh_url)
+                # NOTE: service_obj.git_url is nullable; _check_warehouse takes str (systemic, backlog).
+                code, msg, msg_show = self._check_warehouse(service_obj.git_url, clone_url, ssh_url)  # type: ignore[arg-type]
                 if code != 200:
                     return Response(general_message(200, msg, msg_show), status=200)
 
@@ -143,7 +206,7 @@ class WebHooksDeploy(AlowAnyApiView):
                 git_http_url = repository.get("git_http_url")
                 gitlab_ssh_url = repository.get("git_ssh_url")
 
-                code, msg, msg_show = self._check_warehouse(service_obj.git_url, git_http_url, gitlab_ssh_url)
+                code, msg, msg_show = self._check_warehouse(service_obj.git_url, git_http_url, gitlab_ssh_url)  # type: ignore[arg-type]
                 if code != 200:
                     return Response(general_message(200, msg, msg_show), status=200)
 
@@ -190,7 +253,7 @@ class WebHooksDeploy(AlowAnyApiView):
                 clone_url = repository.get("clone_url")
                 ssh_url = repository.get("ssh_url")
 
-                code, msg, msg_show = self._check_warehouse(service_obj.git_url, clone_url, ssh_url)
+                code, msg, msg_show = self._check_warehouse(service_obj.git_url, clone_url, ssh_url)  # type: ignore[arg-type]
                 if code != 200:
                     return Response(general_message(200, msg, msg_show), status=200)
 
@@ -237,7 +300,7 @@ class WebHooksDeploy(AlowAnyApiView):
                 clone_url = repository.get("clone_url")
                 ssh_url = repository.get("ssh_url")
 
-                code, msg, msg_show = self._check_warehouse(service_obj.git_url, clone_url, ssh_url)
+                code, msg, msg_show = self._check_warehouse(service_obj.git_url, clone_url, ssh_url)  # type: ignore[arg-type]
                 if code != 200:
                     return Response(general_message(200, msg, msg_show), status=200)
 
@@ -292,7 +355,7 @@ class WebHooksDeploy(AlowAnyApiView):
                     return Response(result, status=200)
                 clone_url = repository.get("clone_url")
                 ssh_url = repository.get("ssh_url")
-                code, msg, msg_show = self._check_warehouse(service_obj.git_url, clone_url, ssh_url)
+                code, msg, msg_show = self._check_warehouse(service_obj.git_url, clone_url, ssh_url)  # type: ignore[arg-type]
                 if code != 200:
                     return Response(general_message(200, msg, msg_show), status=200)
 
@@ -321,7 +384,7 @@ class WebHooksDeploy(AlowAnyApiView):
             logger.exception(e)
             return Response("Internal error occurred", status=500)
 
-    def _check_warehouse(self, service_git_url, clone_url, ssh_url):
+    def _check_warehouse(self, service_git_url: str, clone_url: str, ssh_url: str) -> Tuple[int, str, Optional[str]]:
         # 判断地址是否相同
         # service_url = urlparse(service_git_url)
         # http_url = urlparse(clone_url)
@@ -343,7 +406,7 @@ class WebHooksDeploy(AlowAnyApiView):
 
 
 class GetWebHooksUrl(AppBaseView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         判断该组件是否有webhooks自动部署功能，有则返回URL
         """
@@ -376,7 +439,7 @@ class GetWebHooksUrl(AppBaseView):
                 try:
                     # 首先尝试直接解码
                     secret_key = pickle.loads(base64.b64decode(deploy)).get("secret_key")
-                except Exception as e:
+                except Exception:
                     try:
                         # 如果失败，尝试用 ast.literal_eval 解析
                         secret_key = pickle.loads(base64.b64decode(ast.literal_eval(deploy))).get("secret_key")
@@ -434,7 +497,7 @@ class GetWebHooksUrl(AppBaseView):
 
 
 class ImageWebHooksTrigger(AppBaseView):
-    def put(self, request, *args, **kwargs):
+    def put(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """镜像更新自动部署触发条件"""
         try:
             service_webhook = service_webhooks_repo.get_or_create_service_webhook(self.service.service_id, "image_webhooks")
@@ -449,7 +512,8 @@ class ImageWebHooksTrigger(AppBaseView):
                                          ensure_ascii=False)
         except Exception as e:
             logger.exception(e)
-            return error_message(e.message)
+            # NOTE: py2-era Exception.message; preserved for behavior compat (backlog).
+            return error_message(e.message)  # type: ignore[attr-defined]
         new_information = json.dumps({"组件": self.service.service_cname, "Tag触发": trigger}, ensure_ascii=False)
         comment = operation_log_service.generate_component_comment(
             operation=Operation.CHANGE,
@@ -484,7 +548,7 @@ class ImageWebHooksTrigger(AppBaseView):
 
 
 class WebHooksStatus(AppBaseView):
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         开启或关闭自动部署功能
         ---
@@ -530,7 +594,6 @@ class WebHooksStatus(AppBaseView):
                 result = general_message(200, "success", "关闭成功")
                 op = Operation.CLOSE
 
-
             comment = operation_log_service.generate_component_comment(
                 operation=op,
                 module_name=self.service.service_cname,
@@ -547,13 +610,13 @@ class WebHooksStatus(AppBaseView):
                 service_alias=self.service.service_alias)
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)
+            result = error_message(e.message)  # type: ignore[attr-defined]
             return Response(result, status=500)
         return Response(result, status=200)
 
 
 class CustomWebHooksDeploy(AlowAnyApiView):
-    def post(self, request, service_id, *args, **kwargs):
+    def post(self, request: Request, service_id: str, *args: Any, **kwargs: Any) -> Response:
         """自定义回调接口处发自动部署"""
         logger.debug(request.data)
         import base64
@@ -585,7 +648,7 @@ class UpdateSecretKey(AppBaseView):
     修改部署秘钥
     """
 
-    def put(self, request, *args, **kwargs):
+    def put(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         try:
             secret_key = request.data.get("secret_key", None)
             if not secret_key:
@@ -620,7 +683,7 @@ class UpdateSecretKey(AppBaseView):
                 return Response(result, 404)
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)
+            result = error_message(e.message)  # type: ignore[attr-defined]
         return Response(result, status=500)
 
 
@@ -629,7 +692,7 @@ class ImageWebHooksDeploy(AlowAnyApiView):
     镜像仓库webhooks回调地址
     """
 
-    def post(self, request, service_id, *args, **kwargs):
+    def post(self, request: Request, service_id: str, *args: Any, **kwargs: Any) -> Response:
         try:
             service_obj = TenantServiceInfo.objects.get(service_id=service_id)
             if not service_obj:
@@ -638,40 +701,24 @@ class ImageWebHooksDeploy(AlowAnyApiView):
             tenant_obj = Tenants.objects.get(tenant_id=service_obj.tenant_id)
             service_webhook = service_webhooks_repo.get_service_webhooks_by_service_id_and_type(
                 service_obj.service_id, "image_webhooks")
-            if not service_webhook.state:
+            # NOTE: repo may return None webhook; legacy assumes present (backlog).
+            if not service_webhook.state:  # type: ignore[union-attr]
                 result = general_message(400, "failed", "组件关闭了自动构建")
                 return Response(result, status=400)
             data = request.data
-            # ----------- Harbor webhook 兼容 -----------
-            if "event_data" in data and "resources" in data["event_data"]:
-                event_data = data["event_data"]
-                resources = event_data.get("resources", [])
-                repository = event_data.get("repository", {})
-                if resources:
-                    tag = resources[0].get("tag")
-                    repo_name = repository.get("repo_full_name") or repository.get("name")
-                    pusher = data.get("operator", "harbor")
-                else:
-                    result = general_message(400, "failed", "Harbor webhook缺少resources信息")
-                    return Response(result, status=400)
-            else:
-                # 兼容原有格式
-                repository = data.get("repository")
-                if not repository:
-                    logger.debug("缺少repository信息")
-                    result = general_message(400, "failed", "缺少repository信息")
-                    return Response(result, status=400)
-                push_data = data.get("push_data")
-                pusher = push_data.get("pusher") if push_data else None
-                tag = push_data.get("tag") if push_data else None
-                repo_name = repository.get("repo_name")
-                if not repo_name:
-                    repository_namespace = repository.get("namespace")
-                    repository_name = repository.get("name")
-                    if repository_namespace and repository_name:
-                        repo_name = "fake.repo.aliyun.com/" + repository_namespace + "/" + repository_name
-                    else:
-                        repo_name = repository.get("repo_full_name")
+            try:
+                image_webhook_event = parse_image_webhook_payload(data)
+            except UnsupportedImageWebhookEvent:
+                result = general_message(200, "event type not support", "不支持此事件类型")
+                return Response(result, status=200)
+            except ImageWebhookPayloadError as e:
+                logger.debug(str(e))
+                result = general_message(400, "failed", str(e))
+                return Response(result, status=400)
+
+            tag = image_webhook_event.tag
+            repo_name = image_webhook_event.repo_name
+            pusher = image_webhook_event.pusher
             if not repo_name:
                 result = general_message(400, "failed", "缺少repository名称信息")
                 return Response(result, status=400)
@@ -683,12 +730,12 @@ class ImageWebHooksDeploy(AlowAnyApiView):
                 return Response(result, status=400)
 
             # 标签匹配
-            if service_webhook.trigger:
+            if service_webhook.trigger:  # type: ignore[union-attr]
                 # 如果有正则表达式根据正则触发
-                if not re.match(service_webhook.trigger, tag):
+                if not re.match(service_webhook.trigger, tag):  # type: ignore[union-attr,arg-type]
                     result = general_message(400, "failed", "镜像tag与正则表达式不匹配")
                     return Response(result, status=400)
-                service_repo.change_service_image_tag(service_obj, tag)
+                service_repo.change_service_image_tag(service_obj, tag)  # type: ignore[arg-type]
             else:
                 # 如果没有根据标签触发
                 if tag != ref['tag']:
@@ -708,5 +755,5 @@ class ImageWebHooksDeploy(AlowAnyApiView):
                 return Response(result, status=400)
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)
+            result = error_message(e.message)  # type: ignore[attr-defined]
             return Response(result, status=500)

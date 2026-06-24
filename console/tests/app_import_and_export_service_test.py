@@ -3,15 +3,38 @@ import collections
 import json
 import os
 import sys
+import typing
 from types import ModuleType
 from unittest import TestCase, mock
 
 for attr in ("Mapping", "MutableMapping", "Sequence", "Iterable", "Iterator"):
     if not hasattr(collections, attr):
         setattr(collections, attr, getattr(collections.abc, attr))
+if not hasattr(typing, "NotRequired"):
+    try:
+        from typing_extensions import NotRequired
+        typing.NotRequired = NotRequired
+    except ImportError:
+        typing.NotRequired = lambda item: item
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "src", "openapi-client")))
 sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
+if "rest_framework_simplejwt.tokens" not in sys.modules:
+    simplejwt_module = ModuleType("rest_framework_simplejwt")
+    simplejwt_tokens_module = ModuleType("rest_framework_simplejwt.tokens")
+
+    class _DummyAccessToken(dict):
+        @classmethod
+        def for_user(cls, user):
+            return cls()
+
+        def __str__(self):
+            return ""
+
+    simplejwt_tokens_module.AccessToken = _DummyAccessToken
+    simplejwt_module.tokens = simplejwt_tokens_module
+    sys.modules["rest_framework_simplejwt"] = simplejwt_module
+    sys.modules["rest_framework_simplejwt.tokens"] = simplejwt_tokens_module
 if "openapi_client" not in sys.modules:
     openapi_client_module = ModuleType("openapi_client")
     configuration_module = ModuleType("openapi_client.configuration")
@@ -41,10 +64,14 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
 
 import django  # noqa: E402
 from django.db import OperationalError  # noqa: E402
+from django.db.models.query import QuerySet  # noqa: E402
 from django.db.transaction import TransactionManagementError  # noqa: E402
 from rest_framework.test import APIRequestFactory  # noqa: E402
 
 django.setup()
+
+if not hasattr(QuerySet, "__class_getitem__"):
+    QuerySet.__class_getitem__ = classmethod(lambda cls, item: cls)
 
 from console.services.app_import_and_export_service import export_service, import_service  # noqa: E402
 from console.views.center_pool import app_import as app_import_view_module  # noqa: E402
@@ -257,6 +284,43 @@ class AppExportServiceMetadataTestCase(TestCase):
         self.assertEqual(exported_component["memory"], 1024)
         self.assertEqual(exported_component["extend_method_map"]["init_memory"], 1024)
 
+    def test_get_app_metadata_removes_daemonset_node_scaling_fields(self):
+        app = mock.Mock(pic=None, describe="demo app")
+        component = {
+            "service_alias": "agent",
+            "image": "registry.example.com/demo/agent:1.0.0",
+            "extend_method": "daemonset",
+            "extend_method_map": {
+                "min_node": 2,
+                "max_node": 7,
+                "step_node": 2,
+                "min_memory": 64,
+                "init_memory": 1024,
+                "max_memory": 4096,
+                "step_memory": 128,
+                "container_cpu": 600,
+            }
+        }
+        app_version = mock.Mock(
+            app_template=json.dumps({
+                "group_key": "demo-app",
+                "group_version": "1.0.0",
+                "apps": [component]
+            }),
+            app_version_info="bugfix",
+            version_alias="stable",
+        )
+
+        metadata = export_service._AppExportService__get_app_metata(app, app_version, {"image_handle": ""})
+        result = json.loads(metadata)
+
+        extend_method_map = result["apps"][0]["extend_method_map"]
+        self.assertNotIn("min_node", extend_method_map)
+        self.assertNotIn("max_node", extend_method_map)
+        self.assertNotIn("step_node", extend_method_map)
+        self.assertEqual(extend_method_map["init_memory"], 1024)
+        self.assertEqual(extend_method_map["container_cpu"], 600)
+
     # capability_id: console.app-export.query-status
     def test_get_export_status_updates_exporting_record_and_wraps_download_url(self):
         app = mock.Mock(app_id="demo-app")
@@ -294,7 +358,7 @@ class AppExportServiceMetadataTestCase(TestCase):
 
         self.assertTrue(result["rainbond_app"]["is_export_before"])
         self.assertEqual(result["rainbond_app"]["status"], "success")
-        self.assertEqual(result["rainbond_app"]["file_path"], "http://console.example.com/download/app.tgz")
+        self.assertEqual(result["rainbond_app"]["file_path"], "/console/regions/demo-region/websocket/download/app.tgz")
         self.assertTrue(result["helm_chart"]["is_export_before"] is False)
         self.assertTrue(result["slug"]["is_export_before"] is False)
         export_record.save.assert_called_once_with()
@@ -358,8 +422,10 @@ class CenterAppImportViewWorkflowTestCase(TestCase):
             with self.assertRaises(OperationalError) as ctx:
                 self.view.get.__wrapped__.__wrapped__(self.view, request, "evt-1")
 
+        # The savepoint design attempts a rollback on error; even when that rollback
+        # itself fails (broken transaction) the original database error is preserved.
         self.assertIs(ctx.exception, database_error)
-        rollback_mock.assert_not_called()
+        rollback_mock.assert_called_once_with("sp-1")
 
     # capability_id: console.app-import.abandon
     def test_delete_abandons_import(self):
@@ -539,7 +605,6 @@ class AppImportServiceMetadataTestCase(TestCase):
                     "max_node": 7,
                     "step_node": 2,
                     "min_memory": 64,
-                    "init_memory": 0,
                     "max_memory": 4096,
                     "step_memory": 128,
                 },
@@ -565,6 +630,112 @@ class AppImportServiceMetadataTestCase(TestCase):
         extend_method_map = saved_template["apps"][0]["extend_method_map"]
         self.assertEqual(extend_method_map["container_cpu"], 600)
         self.assertEqual(extend_method_map["init_memory"], 1024)
+
+    def test_save_enterprise_import_info_removes_daemonset_node_scaling_fields(self):
+        import_record = mock.Mock(
+            enterprise_id="eid-1",
+            team_name="demo-team",
+            scope="enterprise",
+            ID=11,
+            region="demo-region",
+        )
+        metadata = json.dumps([{
+            "template_version": "v2",
+            "group_key": "demo-app",
+            "group_name": "Demo App",
+            "group_version": "1.0.0",
+            "apps": [{
+                "service_cname": "agent",
+                "service_key": "svc-key",
+                "version": "component-version",
+                "extend_method": "daemonset",
+                "cpu": 600,
+                "memory": 1024,
+                "extend_method_map": {
+                    "min_node": 2,
+                    "max_node": 7,
+                    "step_node": 2,
+                    "min_memory": 64,
+                    "max_memory": 4096,
+                    "step_memory": 128,
+                },
+            }],
+            "annotations": {},
+        }])
+
+        with mock.patch(
+            "{}.rainbond_app_repo.get_rainbond_app_by_app_id".format(self.service_module),
+            return_value=None,
+        ), mock.patch(
+            "{}.rainbond_app_repo.bulk_create_rainbond_apps".format(self.service_module),
+        ), mock.patch(
+            "{}.rainbond_app_repo.bulk_create_rainbond_app_versions".format(self.service_module),
+        ) as bulk_versions, mock.patch(
+            "{}.app_store.is_no_multiple_region_hub".format(self.service_module),
+            return_value=False,
+        ):
+            import_service._AppImportService__save_enterprise_import_info(import_record, metadata, "amd64")
+
+        created_version = bulk_versions.call_args[0][0][0]
+        saved_template = json.loads(created_version.app_template)
+        extend_method_map = saved_template["apps"][0]["extend_method_map"]
+        self.assertNotIn("min_node", extend_method_map)
+        self.assertNotIn("max_node", extend_method_map)
+        self.assertNotIn("step_node", extend_method_map)
+        self.assertEqual(extend_method_map["container_cpu"], 600)
+        self.assertEqual(extend_method_map["init_memory"], 1024)
+
+    # capability_id: console.market-app.install-unlimited-resources
+    def test_save_enterprise_import_info_preserves_explicit_unlimited_resources(self):
+        import_record = mock.Mock(
+            enterprise_id="eid-1",
+            team_name="demo-team",
+            scope="enterprise",
+            ID=11,
+            region="demo-region",
+        )
+        metadata = json.dumps([{
+            "template_version": "v2",
+            "group_key": "demo-app",
+            "group_name": "Demo App",
+            "group_version": "1.0.0",
+            "apps": [{
+                "service_cname": "web",
+                "service_key": "svc-key",
+                "version": "component-version",
+                "cpu": 0,
+                "memory": 1024,
+                "extend_method_map": {
+                    "min_node": 2,
+                    "max_node": 7,
+                    "step_node": 2,
+                    "min_memory": 64,
+                    "init_memory": 0,
+                    "max_memory": 4096,
+                    "step_memory": 128,
+                },
+            }],
+            "annotations": {},
+        }])
+
+        with mock.patch(
+            "{}.rainbond_app_repo.get_rainbond_app_by_app_id".format(self.service_module),
+            return_value=None,
+        ), mock.patch(
+            "{}.rainbond_app_repo.bulk_create_rainbond_apps".format(self.service_module),
+        ), mock.patch(
+            "{}.rainbond_app_repo.bulk_create_rainbond_app_versions".format(self.service_module),
+        ) as bulk_versions, mock.patch(
+            "{}.app_store.is_no_multiple_region_hub".format(self.service_module),
+            return_value=False,
+        ):
+            import_service._AppImportService__save_enterprise_import_info(import_record, metadata, "amd64")
+
+        created_version = bulk_versions.call_args[0][0][0]
+        saved_template = json.loads(created_version.app_template)
+        extend_method_map = saved_template["apps"][0]["extend_method_map"]
+        self.assertEqual(extend_method_map["container_cpu"], 0)
+        self.assertEqual(extend_method_map["init_memory"], 0)
 
     # capability_id: console.app-import.identity-collision
     def test_save_enterprise_import_info_splits_same_key_when_name_differs(self):

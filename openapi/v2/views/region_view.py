@@ -5,6 +5,7 @@ import logging
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from console.exception.exceptions import RegionUnreachableError
@@ -31,7 +32,7 @@ class ListRegionInfo(ListAPIView):
         responses={200: ListRegionsRespSerializer()},
         tags=['openapi-region'],
         operation_description="获取全部数据中心列表")
-    def get(self, req):
+    def get(self, req: Request) -> Response:
         query = req.GET.get("query", "")
         try:
             page = int(req.GET.get("current", 1))
@@ -74,13 +75,14 @@ class ListRegionInfo(ListAPIView):
         },
         tags=['openapi-region'],
     )
-    def post(self, request):
+    def post(self, request: Request) -> Response:
         try:
             serializer = RegionInfoSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
             region_data = serializer.data
             region_data["region_id"] = make_uuid()
-            region = region_services.add_region(region_data, request.user)
+            # NOTE: request.user typed as User|AnonymousUser per stubs.
+            region = region_services.add_region(region_data, request.user)  # type: ignore[arg-type]
             serializer = RegionInfoSerializer(region)
             if region:
                 return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -100,7 +102,7 @@ class RegionInfo(BaseOpenAPIView):
         },
         tags=['openapi-region'],
     )
-    def get(self, request, region_id):
+    def get(self, request: Request, region_id: str) -> Response:
         try:
             queryset = region_services.get_region_by_region_id(region_id)
             serializer = RegionInfoSerializer(queryset)
@@ -118,7 +120,7 @@ class RegionInfo(BaseOpenAPIView):
         },
         tags=['openapi-region'],
     )
-    def put(self, request, region_id):
+    def put(self, request: Request, region_id: str) -> Response:
         serializer = UpdateRegionReqSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         region_data = serializer.data
@@ -142,7 +144,7 @@ class RegionInfo(BaseOpenAPIView):
         },
         tags=['openapi-region'],
     )
-    def delete(self, request, region_id):
+    def delete(self, request: Request, region_id: str) -> Response:
         try:
             region = region_services.del_by_region_id(region_id)
             serializer = RegionInfoSerializer(data=region)
@@ -164,17 +166,18 @@ class RegionStatusView(BaseOpenAPIView):
         },
         tags=['openapi-region'],
     )
-    def put(self, req, region_id):
+    def put(self, req: Request, region_id: str) -> Response:
         serializer = UpdateRegionStatusReqSerializer(data=req.data)
         serializer.is_valid(raise_exception=True)
 
         try:
             region = region_services.update_region_status(region_id, req.data["status"])
-            serializer = RegionInfoSerializer(region)
-            return Response(serializer.data, status.HTTP_200_OK)
+            resp_serializer = RegionInfoSerializer(region)
+            return Response(resp_serializer.data, status.HTTP_200_OK)
         except RegionConfig.DoesNotExist:
             fs = FailSerializer({"msg": "数据中心不存在"})
             return Response(fs.data, status.HTTP_404_NOT_FOUND)
         except RegionUnreachableError as e:
-            fs = FailSerializer({"msg": e.message})
+            # NOTE: py2-style Exception.message attribute, absent in py3.
+            fs = FailSerializer({"msg": e.message})  # type: ignore[attr-defined]
             return Response(fs.data, status.HTTP_400_BAD_REQUEST)

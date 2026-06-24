@@ -30,7 +30,7 @@ class JSONWebTokenAuthenticationTests(SimpleTestCase):
     def test_authenticate_credentials_prefers_matching_user_id(self):
         user = SimpleNamespace(user_id=33, nick_name="user-83847590", is_active=True)
 
-        with patch("console.views.base.Users.objects.filter", return_value=FakeQuerySet(user)) as filter_users:
+        with patch("console.login.jwt_authentication.Users.objects.filter", return_value=FakeQuerySet(user)) as filter_users:
             auth_user = JSONWebTokenAuthentication().authenticate_credentials({
                 "user_id": 33,
                 "username": "user-83847590",
@@ -42,7 +42,7 @@ class JSONWebTokenAuthenticationTests(SimpleTestCase):
     def test_authenticate_credentials_rejects_user_id_username_mismatch(self):
         user = SimpleNamespace(user_id=33, nick_name="other-user", is_active=True)
 
-        with patch("console.views.base.Users.objects.filter", return_value=FakeQuerySet(user)):
+        with patch("console.login.jwt_authentication.Users.objects.filter", return_value=FakeQuerySet(user)):
             with self.assertRaises(AuthenticationInfoHasExpiredError):
                 JSONWebTokenAuthentication().authenticate_credentials({
                     "user_id": 33,
@@ -52,8 +52,8 @@ class JSONWebTokenAuthenticationTests(SimpleTestCase):
     def test_authenticate_credentials_falls_back_to_username_when_user_id_missing(self):
         user = SimpleNamespace(user_id=33, nick_name="user-83847590", is_active=True)
 
-        with patch("console.views.base.Users.objects.filter", return_value=FakeQuerySet(None)), \
-                patch("console.views.base.Users.objects.get", Mock(return_value=user)) as get_user:
+        with patch("console.login.jwt_authentication.Users.objects.filter", return_value=FakeQuerySet(None)), \
+                patch("console.login.jwt_authentication.Users.objects.get", Mock(return_value=user)) as get_user:
             auth_user = JSONWebTokenAuthentication().authenticate_credentials({
                 "user_id": 33,
                 "username": "user-83847590",

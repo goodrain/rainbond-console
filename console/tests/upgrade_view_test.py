@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import json
 import os
 import sys
 from types import ModuleType
@@ -6,6 +7,31 @@ from unittest import TestCase, mock
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "src", "openapi-client")))
 sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
+
+if "openapi_client" not in sys.modules:
+    openapi_client_module = ModuleType("openapi_client")
+    configuration_module = ModuleType("openapi_client.configuration")
+    rest_module = ModuleType("openapi_client.rest")
+
+    class _OpenAPIConfiguration(object):
+        def __init__(self):
+            self.client_side_validation = False
+            self.host = ""
+            self.api_key = {}
+
+    class _OpenAPIApiException(Exception):
+        status = 500
+        body = ""
+
+    openapi_client_module.ApiClient = object
+    openapi_client_module.MarketOpenapiApi = object
+    openapi_client_module.configuration = configuration_module
+    openapi_client_module.rest = rest_module
+    configuration_module.Configuration = _OpenAPIConfiguration
+    rest_module.ApiException = _OpenAPIApiException
+    sys.modules["openapi_client"] = openapi_client_module
+    sys.modules["openapi_client.configuration"] = configuration_module
+    sys.modules["openapi_client.rest"] = rest_module
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
 
@@ -83,8 +109,13 @@ else:
 from console.views import upgrade as upgrade_view  # noqa: E402
 
 
-class UpgradeVersionViewTests(TestCase):
+def _json_response_data(response):
+    if hasattr(response, "data"):
+        return response.data
+    return json.loads(response.content.decode("utf-8"))
 
+
+class UpgradeVersionViewTests(TestCase):
     def test_fetch_json_data_skips_external_request_when_default_market_disabled(self):
         with mock.patch.dict(os.environ, {
             "DISABLE_DEFAULT_APP_MARKET": "true",
@@ -111,3 +142,33 @@ class UpgradeVersionViewTests(TestCase):
         self.assertEqual([{"version": "v1"}], data)
         response.raise_for_status.assert_called_once_with()
         requests_get.assert_called_once_with("https://example.com/upgrade-versions.json", timeout=2)
+
+    def test_upgrade_versions_are_sorted_by_semantic_version_desc(self):
+        data = [
+            {
+                "version": "v6.9.2-release"
+            },
+            {
+                "version": "v6.9.1-release"
+            },
+            {
+                "version": "v6.2.0-release"
+            },
+            {
+                "version": "v6.10.0-release"
+            },
+            {
+                "version": "v6.1.3-release"
+            },
+        ]
+
+        with mock.patch("console.views.upgrade.fetch_json_data", return_value=data):
+            response = upgrade_view.UpgradeVersionLView().get(mock.Mock())
+
+        self.assertEqual([
+            "v6.10.0-release",
+            "v6.9.2-release",
+            "v6.9.1-release",
+            "v6.2.0-release",
+            "v6.1.3-release",
+        ], _json_response_data(response))

@@ -7,13 +7,13 @@ from console.models.main import AppUpgradeSnapshot
 
 class AppSnapshotRepo(object):
     @staticmethod
-    def get_by_snapshot_id(snapshot_id):
+    def get_by_snapshot_id(snapshot_id: str) -> AppUpgradeSnapshot:
         try:
             return AppUpgradeSnapshot.objects.get(snapshot_id=snapshot_id)
         except AppUpgradeSnapshot.DoesNotExist:
             raise ErrAppSnapshotNotFound
 
-    def create(self, snapshot: AppUpgradeSnapshot):
+    def create(self, snapshot: AppUpgradeSnapshot) -> AppUpgradeSnapshot:
         try:
             self.get_by_snapshot_id(snapshot.snapshot_id)
             raise ErrAppSnapshotExists

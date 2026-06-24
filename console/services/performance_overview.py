@@ -1,3 +1,5 @@
+from typing import Dict, Any
+
 from console.repositories.group import group_service_relation_repo
 from console.repositories.region_repo import region_repo
 from console.services.region_services import region_services
@@ -6,15 +8,21 @@ import logging
 
 logger = logging.getLogger("default")
 
+
 class Performance_overview(object):
-    def get_performance_overview(self, enterprise_id):
+    def get_performance_overview(self, enterprise_id: str) -> Dict[str, Any]:
         regions = region_repo.get_usable_regions(enterprise_id)
 
         performance_dict = {"cpu_use_sum": 0, "memory_use_sum": 0, "disk_use_sum": 0, "node_number": 0,
                             "service_number": 0}
         for region in regions:
             try:
-                data = region_services.get_enterprise_region(enterprise_id, region.region_id, check_status="yes")
+                # NOTE: check_status="yes" is legacy str; callee annotated bool
+                data = region_services.get_enterprise_region(  # type: ignore[arg-type]
+                    enterprise_id,
+                    region.region_id,
+                    check_status="yes",  # type: ignore[arg-type]
+                )
                 # 确保data不为None
                 if not data:
                     continue
@@ -30,17 +38,17 @@ class Performance_overview(object):
                 
                 # 确保所有值都是数字类型
                 if isinstance(cpu_used, (int, float)):
-                    performance_dict["cpu_use_sum"] += cpu_used
+                    performance_dict["cpu_use_sum"] += cpu_used  # type: ignore[assignment]
                 if isinstance(memory_used, (int, float)):
-                    performance_dict["memory_use_sum"] += memory_used
+                    performance_dict["memory_use_sum"] += memory_used  # type: ignore[assignment]
                 if isinstance(disk_used, (int, float)):
-                    performance_dict["disk_use_sum"] += disk_used
+                    performance_dict["disk_use_sum"] += disk_used  # type: ignore[assignment]
                 if isinstance(region_node_number, (int, float)):
-                    performance_dict["node_number"] += region_node_number
-                
+                    performance_dict["node_number"] += region_node_number  # type: ignore[assignment]
+
                 service_count = group_service_relation_repo.get_service_number(region.region_name)
                 if isinstance(service_count, (int, float)):
-                    performance_dict["service_number"] += service_count
+                    performance_dict["service_number"] += service_count  # type: ignore[assignment]
                     
             except Exception as e:
                 # 记录错误但不中断整个流程

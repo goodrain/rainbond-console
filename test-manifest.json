@@ -605,6 +605,24 @@
       "status": "active"
     },
     {
+      "id": "console.app-backup.delete-in-progress",
+      "title": "Reject deleting a group backup while it is still in progress",
+      "title_zh": "备份进行中时阻止删除该备份记录",
+      "interface_type": "service_method",
+      "interface": "console.services.backup_service.GroupAppBackupService.delete_group_backup_by_backup_id",
+      "code_paths": [
+        "console/services/backup_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/backup_service_test.py",
+          "selector": "GroupAppBackupServiceDeleteInProgressTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.app-backup.state-service-guard",
       "title": "Reject backup while stateful services are still running",
       "title_zh": "有状态组件未关闭时阻止备份",
@@ -635,6 +653,24 @@
         {
           "path": "console/tests/groupapp_backup_migration_test.py",
           "selector": "GroupAppsBackupStatusViewWorkflowTests.test_get_returns_backup_status_list_without_internal_server_info"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.app-backup.version-check",
+      "title": "Reject restoring a backup whose version does not match the platform",
+      "title_zh": "备份版本与平台版本不一致时阻止恢复",
+      "interface_type": "service_method",
+      "interface": "console.services.backup_data_service.PlatformDataBackupServices.version_than",
+      "code_paths": [
+        "console/services/backup_data_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/backup_data_service_version_than_test.py",
+          "selector": "VersionThanTests"
         }
       ],
       "test_type": "regression",
@@ -937,6 +973,24 @@
         {
           "path": "console/tests/app_import_and_export_service_test.py",
           "selector": "CenterAppImportViewWorkflowTestCase.test_post_starts_app_import"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.app-migrate.port-bind-failure-visible",
+      "title": "Report per-port bind failures without skipping remaining ports",
+      "title_zh": "端口绑定失败时记录并返回，且不跳过后续端口",
+      "interface_type": "service_method",
+      "interface": "console.services.groupapp_recovery.groupapps_migrate.GroupappsMigrateService.__save_port",
+      "code_paths": [
+        "console/services/groupapp_recovery/groupapps_migrate.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/groupapps_migrate_save_port_test.py",
+          "selector": "SavePortHttpFailureVisibleTest.test_first_port_failure_does_not_skip_second_and_is_reported"
         }
       ],
       "test_type": "regression",
@@ -2835,6 +2889,28 @@
       "status": "active"
     },
     {
+      "id": "console.auth.get-user-no-legacy-middleware",
+      "title": "Resolve session user without legacy MIDDLEWARE_CLASSES access",
+      "title_zh": "解析会话用户时不访问已废弃的 MIDDLEWARE_CLASSES",
+      "interface_type": "service_method",
+      "interface": "console.services.auth.get_user",
+      "code_paths": [
+        "console/services/auth/__init__.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/auth_get_user_test.py",
+          "selector": "GetUserNoLegacyMiddlewareTests.test_returns_user_without_touching_middleware_classes"
+        },
+        {
+          "path": "console/tests/auth_get_user_test.py",
+          "selector": "GetUserNoLegacyMiddlewareTests.test_returns_anonymous_user_when_no_session"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.cache.capacity-guard",
       "title": "Refuse or reuse cache slots when in-memory cache reaches capacity",
       "title_zh": "内存缓存达到容量上限时拒绝或复用缓存槽位",
@@ -4655,6 +4731,55 @@
       "status": "active"
     },
     {
+      "id": "console.deploy-diagnostics.v3",
+      "title": "Collect v3 deployment diagnostics",
+      "title_zh": "部署失败 v3 诊断埋点",
+      "interface_type": "workflow",
+      "interface": "console.services.enterprise_first_deploy_service.EnterpriseFirstDeployService",
+      "code_paths": [
+        "console/services/enterprise_first_deploy_service.py",
+        "console/repositories/first_deploy_repo.py",
+        "console/views/app_create/app_build.py",
+        "console/views/app_manage.py",
+        "console/services/market_app_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/enterprise_first_deploy_service_test.py"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.deploy-diagnostics.source-check",
+      "title": "Collect source check failure diagnostics",
+      "title_zh": "源码构建源检测失败诊断埋点",
+      "interface_type": "workflow",
+      "interface": "console.views.app_create.app_check.AppCheck.get",
+      "code_paths": [
+        "console/views/app_create/app_check.py",
+        "console/services/source_component_service.py",
+        "console/services/enterprise_first_deploy_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_check_view_test.py",
+          "selector": "AppCheckSourceDiagnosticTests.test_get_reports_source_check_failure_without_changing_response"
+        },
+        {
+          "path": "console/tests/source_component_service_test.py",
+          "selector": "SourceComponentServiceTests.test_auto_create_component_raises_on_check_failure"
+        },
+        {
+          "path": "console/tests/enterprise_first_deploy_service_test.py",
+          "selector": "EnterpriseFirstDeployServiceTests.test_report_source_check_failure_sends_pre_deploy_diagnostic"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.enterprise.region-component-list",
       "title": "List region control plane components",
       "title_zh": "查看集群控制面组件列表",
@@ -5730,6 +5855,29 @@
       "status": "active"
     },
     {
+      "id": "console.logging.default-no-debug-noise",
+      "title": "Default console logging suppresses debug noise",
+      "title_zh": "默认控制台日志过滤调试噪音",
+      "interface_type": "other",
+      "interface": "goodrain_web.settings.LOGGING",
+      "code_paths": [
+        "goodrain_web/settings.py",
+        "goodrain_web/log_formatter.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/logging_config_test.py",
+          "selector": "LoggingConfigTests.test_default_logger_level_defaults_to_info"
+        },
+        {
+          "path": "console/tests/logging_config_test.py",
+          "selector": "LoggingConfigTests.test_ip_formatter_uses_record_level_name"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.market-app.install-default-storage-class",
       "title": "Use platform default storage class for marketplace installs",
       "title_zh": "应用市场安装使用平台默认存储类",
@@ -5748,6 +5896,39 @@
         {
           "path": "console/tests/market_app_storage_test.py",
           "selector": "MarketAppDefaultStorageClassTests.test_template_to_volumes_uses_configured_default_storage_class"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.market-app.install-unlimited-resources",
+      "title": "Preserve unlimited resources in market publish and install",
+      "title_zh": "市场发布和安装保留不限制资源",
+      "interface_type": "workflow",
+      "interface": "console.services.share_services.ShareService.query_share_service_info / console.services.market_app.new_components.NewComponents._template_to_component / console.services.market_app_service.MarketAppService.__init_component_from_market_app / console.services.app_import_and_export_service.AppImportService.__normalize_import_component_template",
+      "code_paths": [
+        "console/services/share_services.py",
+        "console/services/market_app/new_components.py",
+        "console/services/market_app_service.py",
+        "console/services/app_import_and_export_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/service_share_test.py",
+          "selector": "ShareServiceQueryResourceLimitTestCase.test_query_share_service_info_preserves_unlimited_resource_limits"
+        },
+        {
+          "path": "console/tests/market_app_update_components_test.py",
+          "selector": "MarketAppNewComponentsResourceLimitTests.test_template_to_component_preserves_explicit_unlimited_cpu_and_memory"
+        },
+        {
+          "path": "console/tests/market_app_service_test.py",
+          "selector": "MarketAppServiceResourceLimitTests.test_init_component_from_market_app_preserves_explicit_unlimited_cpu_and_memory"
+        },
+        {
+          "path": "console/tests/app_import_and_export_service_test.py",
+          "selector": "AppImportServiceMetadataTestCase.test_save_enterprise_import_info_preserves_explicit_unlimited_resources"
         }
       ],
       "test_type": "regression",
@@ -6376,6 +6557,24 @@
       "status": "active"
     },
     {
+      "id": "console.operator-managed.skip-kubeblocks-services",
+      "title": "Skip KubeBlocks services during operator-managed component import",
+      "title_zh": "Skip KubeBlocks services during operator-managed component import",
+      "interface_type": "service_method",
+      "interface": "console.services.group_service.GroupService.get_watch_managed_data",
+      "code_paths": [
+        "console/services/group_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/group_service_test.py",
+          "selector": "GroupServiceOperatorManagedTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.package-component.auto-create-flow",
       "title": "Run full package component auto-create flow",
       "title_zh": "执行制品包组件自动创建全流程",
@@ -6772,6 +6971,42 @@
       "status": "active"
     },
     {
+      "id": "console.plugin.delete-by-sid",
+      "title": "Delete all plugin relations for a service by service id",
+      "title_zh": "按组件 ID 删除其全部插件关联",
+      "interface_type": "dao_method",
+      "interface": "console.repositories.plugin.service_plugin_repo.AppPluginRelationRepo.delete_by_sid",
+      "code_paths": [
+        "console/repositories/plugin/service_plugin_repo.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/service_plugin_repo_delete_by_sid_test.py",
+          "selector": "DeleteBySidTest.test_delete_by_sid_deletes_matching_relations"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.plugin.downstream-port-config",
+      "title": "Read downstream port dest service attributes from ORM model not dict",
+      "title_zh": "下游端口配置从 ORM 模型对象读取目标组件属性",
+      "interface_type": "service_method",
+      "interface": "console.services.plugin.app_plugin.AppPluginService.create_plugin_cfg_4marketsvc",
+      "code_paths": [
+        "console/services/plugin/app_plugin.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_plugin_downstream_port_test.py",
+          "selector": "CreatePluginCfg4MarketsvcDownstreamPortTest.test_downstream_port_reads_dest_service_attributes"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.pod.detail",
       "title": "Pod Detail",
       "title_zh": "Pod Detail",
@@ -6846,6 +7081,28 @@
         {
           "path": "console/tests/utils/randomutil_test.py",
           "selector": "RandomUtilTests.test_make_default_version"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.region.update-region-config",
+      "title": "Persist region config via update or add based on existing key",
+      "title_zh": "依据配置项是否存在选择更新或新增数据中心配置",
+      "interface_type": "service_method",
+      "interface": "console.services.region_services.RegionService.update_region_config",
+      "code_paths": [
+        "console/services/region_services.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/region_config_update_test.py",
+          "selector": "UpdateRegionConfigTest.test_update_when_config_exists_passes_dict_value"
+        },
+        {
+          "path": "console/tests/region_config_update_test.py",
+          "selector": "UpdateRegionConfigTest.test_add_when_config_missing_passes_json_string_and_desc"
         }
       ],
       "test_type": "regression",
@@ -8160,6 +8417,25 @@
       "status": "active"
     },
     {
+      "id": "console.user.get-users-by-ids",
+      "title": "Fetch users by a list of user ids via the user repository",
+      "title_zh": "通过用户仓储按用户 ID 列表批量查询用户",
+      "interface_type": "service_method",
+      "interface": "console.services.user_services.UserService.get_users_by_user_ids",
+      "code_paths": [
+        "console/services/user_services.py",
+        "console/repositories/user_repo.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/user_services_get_by_ids_test.py",
+          "selector": "GetUsersByUserIdsTest.test_delegates_to_repo_get_by_user_ids"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.validation.display-name",
       "title": "Validate user-facing display names with Chinese alnum dash and underscore rules",
       "title_zh": "校验用户展示名称的中英文数字与连接符规则",
@@ -9072,6 +9348,660 @@
         {
           "path": "scripts/validate_test_manifest_test.py",
           "selector": "ValidateTestManifestTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.team.create-invalid-namespace",
+      "title": "Reject team creation with an invalid namespace name",
+      "title_zh": "创建团队时拒绝非法命名空间",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.team.AddTeamView.post",
+      "code_paths": [
+        "console/views/team.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/add_team_namespace_validation_test.py",
+          "selector": "AddTeamInvalidNamespaceTest.test_invalid_namespace_raises_qualified_name_error_not_typeerror"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.enterprise.bind-market-token-decode",
+      "title": "Decode the cloud-market bind token payload",
+      "title_zh": "解码云市绑定企业的认证信息",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.enterprise_active.BindMarketEnterpriseOptimizAccessTokenView.post",
+      "code_paths": [
+        "console/views/enterprise_active.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/bind_market_token_decode_test.py",
+          "selector": "BindMarketTokenDecodeTest.test_market_info_is_base64_decoded"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.enterprise.region-dashboard-not-found",
+      "title": "Return 404 when the region dashboard target is missing",
+      "title_zh": "集群仪表盘目标缺失时返回 404",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.enterprise.EnterpriseRegionDashboard.dispatch",
+      "code_paths": [
+        "console/views/enterprise.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/enterprise_region_dashboard_notfound_test.py",
+          "selector": "EnterpriseRegionDashboardNotFoundTest.test_missing_region_returns_clean_404"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.user.access-token-delete-log",
+      "title": "Log the access token note when deleting a token",
+      "title_zh": "删除访问令牌时记录令牌备注",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.user_accesstoken.UserAccessTokenRUDView.delete",
+      "code_paths": [
+        "console/views/user_accesstoken.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/user_accesstoken_delete_log_test.py",
+          "selector": "UserAccessTokenDeleteLogTest.test_delete_logs_token_note_without_nameerror"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.user.favorite-delete-log",
+      "title": "Log the favorite name when deleting a favorite view",
+      "title_zh": "删除收藏视图时记录收藏名称",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.user_operation.UserFavoriteUDView.delete",
+      "code_paths": [
+        "console/views/user_operation.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/user_favorite_delete_log_test.py",
+          "selector": "UserFavoriteDeleteLogTest"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "openapi.app.create-third-component-deploy-key",
+      "title": "Generate API key for a third-party component via OpenAPI",
+      "title_zh": "OpenAPI 创建第三方 api 组件时生成密钥",
+      "interface_type": "view_endpoint",
+      "interface": "openapi.views.apps.apps.CreateThirdComponentView.post",
+      "code_paths": [
+        "openapi/views/apps/apps.py",
+        "console/repositories/deploy_repo.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/openapi_third_component_deploy_repo_test.py",
+          "selector": "ThirdComponentDeployRepoTest.test_deploy_repo_is_the_singleton_not_the_module"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "openapi.app.team-apps-close",
+      "title": "Close all team apps via OpenAPI",
+      "title_zh": "OpenAPI 关闭团队全部应用",
+      "interface_type": "view_endpoint",
+      "interface": "openapi.views.apps.apps.TeamAppsCloseView.post",
+      "code_paths": [
+        "openapi/views/apps/apps.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/openapi_team_apps_close_test.py",
+          "selector": "TeamAppsCloseTest.test_post_unpacks_three_return_values_from_batch_action"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "openapi.enterprise.service-overview",
+      "title": "Enterprise component status overview via OpenAPI",
+      "title_zh": "OpenAPI 企业组件状态总览",
+      "interface_type": "view_endpoint",
+      "interface": "openapi.views.enterprise_view.ServiceOverview.get",
+      "code_paths": [
+        "openapi/views/enterprise_view.py",
+        "console/services/service_overview.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/openapi_service_overview_import_test.py",
+          "selector": "ServiceOverviewImportTest.test_service_overview_singleton_is_resolvable"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "openapi.team.delete-error-propagation",
+      "title": "Surface team-deletion service errors via OpenAPI",
+      "title_zh": "OpenAPI 删除团队时正确透出业务异常",
+      "interface_type": "view_endpoint",
+      "interface": "openapi.views.team_view.TeamInfo.delete",
+      "code_paths": [
+        "openapi/views/team_view.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/openapi_team_delete_except_test.py",
+          "selector": "TeamDeleteExceptTest.test_service_error_propagates_instead_of_typeerror"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.app-status.region-status-typeddict",
+      "title": "Normalize region app status payload (AppStatus TypedDict adoption)",
+      "title_zh": "归一化集群应用状态返回（AppStatus TypedDict 落地）",
+      "interface_type": "service_method",
+      "interface": "console.services.group_service.GroupService.get_app_status",
+      "code_paths": [
+        "console/services/group_service.py",
+        "www/apiclient/regionapi.py",
+        "www/apiclient/region_types.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/group_app_status_typeddict_test.py",
+          "selector": "GroupAppStatusTypedDictTest"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.app-creator.full-permissions",
+      "title": "App creator full permissions",
+      "title_zh": "App creator full permissions",
+      "interface_type": "service_method",
+      "interface": "console.services.perm_services.UserKindPermService.get_user_perms",
+      "code_paths": [
+        "console/services/perm_services.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/perm_services_test.py"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.component-type.daemonset",
+      "title": "DaemonSet component type support",
+      "title_zh": "DaemonSet 组件类型支持",
+      "interface_type": "service_method",
+      "interface": "console.enum.component_enum.ComponentType",
+      "code_paths": [
+        "console/enum/component_enum.py",
+        "console/services/app_actions/app_manage.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_manage_test.py",
+          "selector": "ComponentDaemonSetSupportTests.test_daemonset_component_type_is_supported"
+        },
+        {
+          "path": "console/tests/app_manage_test.py",
+          "selector": "ComponentDaemonSetSupportTests.test_extend_method_name_supports_daemonset"
+        },
+        {
+          "path": "console/tests/app_manage_test.py",
+          "selector": "ComponentDaemonSetSupportTests.test_change_service_type_blocks_daemonset_transition"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.component.port-toggle-events",
+      "title": "Record component port toggle events",
+      "title_zh": "记录组件端口开关事件",
+      "interface_type": "service_method",
+      "interface": "console.services.app_config.port_service.AppPortService.manage_port",
+      "code_paths": [
+        "console/services/app_config/port_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/port_service_delete_test.py",
+          "selector": "PortServiceDeleteTests::test_open_outer_port_synchronizes_region_component_event"
+        },
+        {
+          "path": "console/tests/port_service_delete_test.py",
+          "selector": "PortServiceDeleteTests::test_close_outer_port_synchronizes_region_component_event"
+        },
+        {
+          "path": "console/tests/port_service_delete_test.py",
+          "selector": "PortServiceDeleteTests::test_inner_port_toggle_keeps_region_component_event_path"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.groupcopy.package-build-guard",
+      "title": "Reject quick copy for package upload components",
+      "title_zh": "上传软件包组件禁止快速复制",
+      "interface_type": "service_method",
+      "interface": "console.services.groupcopy_service.GroupAppCopyService.get_modify_group_metadata",
+      "code_paths": [
+        "console/services/groupcopy_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/groupcopy_service_test.py",
+          "selector": "GroupAppCopyServiceTests.test_get_modify_group_metadata_rejects_package_build"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.helm.daemonset-template",
+      "title": "Map Helm DaemonSet resource to component template",
+      "title_zh": "Helm DaemonSet 资源映射为组件模板",
+      "interface_type": "service_method",
+      "interface": "console.services.helm_app_yaml.HelmAppService.generate_template",
+      "code_paths": [
+        "console/services/helm_app_yaml.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_manage_test.py",
+          "selector": "ComponentDaemonSetSupportTests.test_helm_template_maps_daemonset_resource_type"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.image-webhook.harbor-push-artifact",
+      "title": "Parse Harbor push artifact image webhooks",
+      "title_zh": "解析 Harbor 镜像推送 Webhook",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.webhook.parse_image_webhook_payload",
+      "code_paths": [
+        "console/views/webhook.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/webhook_test.py",
+          "selector": "ImageWebhookPayloadTestCase"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.image.python36-websocket-client",
+      "title": "Console image Python 3.6 websocket-client compatibility",
+      "title_zh": "Console 镜像 Python 3.6 websocket-client 兼容性",
+      "interface_type": "other",
+      "interface": "requirements.txt",
+      "code_paths": [
+        "Dockerfile",
+        "requirements.txt"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/dependency_compat_test.py",
+          "selector": "ConsoleImageDependencyCompatibilityTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.realtime-proxy.http-forward",
+      "title": "Realtime proxy HTTP forward",
+      "title_zh": "实时代理 HTTP 转发",
+      "interface_type": "package_function",
+      "interface": "console.utils.realtime_proxy.proxy_http_request",
+      "code_paths": [
+        "console/utils/realtime_proxy.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/realtime_proxy_url_test.py",
+          "selector": "RealtimeProxyUrlTests.test_http_proxy_forwards_upload_request_to_region_websocket_service"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.realtime-proxy.internal-target-override",
+      "title": "Realtime proxy internal target override",
+      "title_zh": "实时代理内部目标覆盖",
+      "interface_type": "package_function",
+      "interface": "console.utils.realtime_proxy.build_region_realtime_proxy_url",
+      "code_paths": [
+        "console/utils/realtime_proxy.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/realtime_proxy_url_test.py",
+          "selector": "RealtimeProxyUrlTests.test_region_proxy_target_prefers_internal_override_for_builtin_region"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.realtime-proxy.region-target-url",
+      "title": "Realtime proxy region target URL",
+      "title_zh": "实时代理 Region 目标 URL",
+      "interface_type": "package_function",
+      "interface": "console.utils.realtime_proxy.build_region_realtime_proxy_url",
+      "code_paths": [
+        "console/utils/realtime_proxy.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/realtime_proxy_url_test.py",
+          "selector": "RealtimeProxyUrlTests.test_region_proxy_target_keeps_region_websocket_host_for_http"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.realtime-proxy.secure-websocket-url",
+      "title": "Realtime proxy secure websocket URL",
+      "title_zh": "实时代理安全 WebSocket URL",
+      "interface_type": "package_function",
+      "interface": "console.utils.realtime_proxy.build_console_realtime_proxy_url",
+      "code_paths": [
+        "console/utils/realtime_proxy.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/realtime_proxy_url_test.py",
+          "selector": "RealtimeProxyUrlTests.test_console_proxy_url_uses_wss_when_request_is_https"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.realtime-proxy.upload-url",
+      "title": "Realtime proxy upload URL",
+      "title_zh": "实时代理上传 URL",
+      "interface_type": "service_method",
+      "interface": "console.services.app_import_and_export_service.get_upload_package_url",
+      "code_paths": [
+        "console/services/app_import_and_export_service.py",
+        "console/utils/realtime_proxy.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/realtime_proxy_url_test.py",
+          "selector": "RealtimeProxyUrlTests.test_upload_package_url_returns_console_proxy_path"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.realtime-proxy.websocket-url",
+      "title": "Realtime proxy websocket URL",
+      "title_zh": "实时代理 WebSocket URL",
+      "interface_type": "service_method",
+      "interface": "console.services.app_actions.app_log.AppWebSocketService.get_event_log_ws",
+      "code_paths": [
+        "console/services/app_actions/app_log.py",
+        "console/utils/realtime_proxy.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/realtime_proxy_url_test.py",
+          "selector": "RealtimeProxyUrlTests.test_websocket_service_returns_console_proxy_url_without_6060"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.realtime-proxy.multipart-upload-forward",
+      "title": "Realtime proxy rebuilds multipart upload",
+      "title_zh": "实时代理重建分片上传请求",
+      "interface_type": "package_function",
+      "interface": "console.utils.realtime_proxy.build_multipart_payload",
+      "code_paths": [
+        "console/utils/realtime_proxy.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/realtime_proxy_url_test.py",
+          "selector": "RealtimeProxyUrlTests.test_http_proxy_rebuilds_multipart_upload_for_app_import"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.realtime-proxy.file-operate-raw-multipart-forward",
+      "title": "Forward file operation multipart upload without reparsing",
+      "title_zh": "文件操作上传原始转发 multipart 请求",
+      "interface_type": "package_function",
+      "interface": "console.utils.realtime_proxy.proxy_http_request",
+      "code_paths": [
+        "console/utils/realtime_proxy.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/realtime_proxy_url_test.py",
+          "selector": "RealtimeProxyUrlTests.test_file_operate_upload_forwards_raw_multipart_body"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.realtime-proxy.multipart-folder-upload-forward",
+      "title": "Forward repeated multipart file fields for folder uploads",
+      "title_zh": "转发文件夹上传中的重复 multipart 文件字段",
+      "interface_type": "package_function",
+      "interface": "console.utils.realtime_proxy.build_multipart_payload",
+      "code_paths": [
+        "console/utils/realtime_proxy.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/realtime_proxy_url_test.py",
+          "selector": "RealtimeProxyUrlTests.test_multipart_folder_upload_encodes_repeated_file_field"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.realtime-proxy.docker-console-subprotocol",
+      "title": "Docker console backend uses webtty subprotocol",
+      "title_zh": "Docker 控制台后端使用 webtty 子协议",
+      "interface_type": "package_function",
+      "interface": "console.utils.realtime_proxy._backend_websocket_subprotocols",
+      "code_paths": [
+        "console/utils/realtime_proxy.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/realtime_proxy_url_test.py",
+          "selector": "RealtimeProxyUrlTests.test_docker_console_backend_uses_webtty_subprotocol"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.realtime-proxy.forward-client-subprotocols",
+      "title": "Forward client requested websocket subprotocols",
+      "title_zh": "转发客户端请求的 websocket 子协议",
+      "interface_type": "package_function",
+      "interface": "console.utils.realtime_proxy._backend_websocket_subprotocols",
+      "code_paths": [
+        "console/utils/realtime_proxy.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/realtime_proxy_url_test.py",
+          "selector": "RealtimeProxyUrlTests.test_websocket_proxy_keeps_client_requested_subprotocols"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.realtime-proxy.websocket-idle-timeout",
+      "title": "Backend websocket uses short read timeout for idle checks",
+      "title_zh": "后端 websocket 使用短读超时检测空闲",
+      "interface_type": "package_function",
+      "interface": "console.utils.realtime_proxy.open_backend_websocket",
+      "code_paths": [
+        "console/utils/realtime_proxy.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/realtime_proxy_url_test.py",
+          "selector": "RealtimeProxyUrlTests.test_backend_websocket_uses_short_read_timeout_for_idle_checks"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.realtime-proxy.docker-console-user-idle-timeout",
+      "title": "Docker console activity tracker ignores webtty ping",
+      "title_zh": "Docker 控制台活动跟踪忽略 webtty 心跳",
+      "interface_type": "package_function",
+      "interface": "console.utils.realtime_proxy.DockerConsoleActivityTracker",
+      "code_paths": [
+        "console/utils/realtime_proxy.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/realtime_proxy_url_test.py",
+          "selector": "RealtimeProxyUrlTests.test_docker_console_activity_tracker_ignores_webtty_ping"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.realtime-proxy.docker-console-user-activity",
+      "title": "Docker console activity tracker refreshes on user input",
+      "title_zh": "Docker 控制台活动跟踪在用户输入时刷新",
+      "interface_type": "package_function",
+      "interface": "console.utils.realtime_proxy.DockerConsoleActivityTracker",
+      "code_paths": [
+        "console/utils/realtime_proxy.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/realtime_proxy_url_test.py",
+          "selector": "RealtimeProxyUrlTests.test_docker_console_activity_tracker_refreshes_on_user_input"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.realtime-proxy.non-terminal-no-user-idle-timeout",
+      "title": "Non terminal realtime proxy never user-idle expires",
+      "title_zh": "非终端实时代理不触发用户空闲超时",
+      "interface_type": "package_function",
+      "interface": "console.utils.realtime_proxy.DockerConsoleActivityTracker",
+      "code_paths": [
+        "console/utils/realtime_proxy.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/realtime_proxy_url_test.py",
+          "selector": "RealtimeProxyUrlTests.test_non_docker_console_activity_tracker_never_user_idle_expires"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.kubeblocks.app-resource-statistics",
+      "title": "Include app id in KubeBlocks cluster request for resource statistics",
+      "title_zh": "KubeBlocks 集群请求携带 app id 以支持资源统计",
+      "interface_type": "service_method",
+      "interface": "console.services.kubeblocks_service.KubeBlocksService._build_cluster_request",
+      "code_paths": [
+        "console/services/kubeblocks_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/kubeblocks_cluster_validation_test.py",
+          "selector": "KubeBlocksCreateFlowTests.test_build_cluster_request_includes_app_id_for_resource_statistics"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "openapi.app-service.team-not-found",
+      "title": "Raise error when team associated with app is not found",
+      "title_zh": "应用关联的团队不存在时返回404错误",
+      "interface_type": "service_method",
+      "interface": "openapi.services.app_service.AppService.get_app_services_and_status",
+      "code_paths": [
+        "openapi/services/app_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/openapi_app_service_team_not_found_test.py",
+          "selector": "AppServiceTeamNotFoundTest"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "openapi.base.team-not-initialized-in-region",
+      "title": "Raise error when team is not initialized in the requested region",
+      "title_zh": "团队未在该集群中初始化时返回409错误",
+      "interface_type": "view_endpoint",
+      "interface": "openapi.views.base.TeamAPIView.initial",
+      "code_paths": [
+        "openapi/views/base.py",
+        "openapi/views/exceptions.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/openapi_base_team_region_init_test.py",
+          "selector": "TeamAPIViewRegionInitTest"
         }
       ],
       "test_type": "regression",

@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 # creater by: barnett
 import logging
+from typing import Any
 
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from console.exception.exceptions import RegionUnreachableError
@@ -29,7 +31,7 @@ class ListRegionInfo(BaseOpenAPIView):
 
     @swagger_auto_schema(
         responses={200: RegionInfoRespSerializer(many=True)}, tags=['openapi-region'], operation_description="获取全部数据中心列表")
-    def get(self, req):
+    def get(self, req: Request) -> Response:
         regions = region_services.get_enterprise_regions(self.enterprise.enterprise_id, level="")
         serializer = RegionInfoRespSerializer(data=regions, many=True)
         serializer.is_valid(raise_exception=True)
@@ -63,13 +65,14 @@ class ListRegionInfo(BaseOpenAPIView):
         },
         tags=['openapi-region'],
     )
-    def post(self, request):
+    def post(self, request: Request) -> Response:
         try:
             serializer = RegionInfoSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
             region_data = serializer.data
             region_data["region_id"] = make_uuid()
-            region = region_services.add_region(region_data, request.user)
+            # NOTE: request.user typed as User|AnonymousUser per stubs.
+            region = region_services.add_region(region_data, request.user)  # type: ignore[arg-type]
             serializer = RegionInfoSerializer(region)
             if region:
                 return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -93,7 +96,7 @@ class RegionInfo(BaseOpenAPIView):
         },
         tags=['openapi-region'],
     )
-    def get(self, request, region_id, *args, **kwargs):
+    def get(self, request: Request, region_id: str, *args: Any, **kwargs: Any) -> Response:
         extend_info = request.GET.get("extend_info", False)
         if extend_info == "true":
             extend_info = True
@@ -104,8 +107,9 @@ class RegionInfo(BaseOpenAPIView):
         if not self.region:
             raise ServiceHandleException(msg="no found region", msg_show="数据中心不存在", status_code=404)
 
+        # NOTE: legacy — extend_info is reused as both bool and str ("yes"); param typed bool.
         data = region_services.get_enterprise_region(
-            self.enterprise.enterprise_id, self.region.region_id, check_status=extend_info)
+            self.enterprise.enterprise_id, self.region.region_id, check_status=extend_info)  # type: ignore[arg-type]
         serializers = RegionInfoRSerializer(data=data)
         serializers.is_valid(raise_exception=True)
         return Response(serializers.data, status=200)
@@ -166,19 +170,20 @@ class RegionStatusView(BaseOpenAPIView):
         },
         tags=['openapi-region'],
     )
-    def put(self, req, region_id):
+    def put(self, req: Request, region_id: str) -> Response:
         serializer = UpdateRegionStatusReqSerializer(data=req.data)
         serializer.is_valid(raise_exception=True)
 
         try:
             region = region_services.update_region_status(region_id, req.data["status"])
-            serializer = RegionInfoSerializer(region)
-            return Response(serializer.data, status.HTTP_200_OK)
+            resp_serializer = RegionInfoSerializer(region)
+            return Response(resp_serializer.data, status.HTTP_200_OK)
         except RegionConfig.DoesNotExist:
             fs = FailSerializer({"msg": "数据中心不存在"})
             return Response(fs.data, status.HTTP_404_NOT_FOUND)
         except RegionUnreachableError as e:
-            fs = FailSerializer({"msg": e.message})
+            # NOTE: py2-style Exception.message attribute, absent in py3.
+            fs = FailSerializer({"msg": e.message})  # type: ignore[attr-defined]
             return Response(fs.data, status.HTTP_400_BAD_REQUEST)
 
 
@@ -187,9 +192,11 @@ class ReplaceRegionIP(BaseOpenAPIView):
         operation_description="通过grctl修改region ip",
         tags=['openapi-region'],
     )
-    def post(self, request):
+    def post(self, request: Request) -> Response:
         region_name = request.data.get("region_name", "")
         region_info = region_services.get_by_region_name(region_name)
+        if not region_info:
+            return Response(general_message(404, "region not found", "数据中心不存在"), status.HTTP_404_NOT_FOUND)
         region_id = region_info.region_id
         try:
             region_data = {

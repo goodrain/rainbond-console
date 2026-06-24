@@ -3,7 +3,9 @@
   Created on 18/1/15.
 """
 import logging
+from typing import Any
 
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from console.exception.main import BusinessException, AbortRequest, ServiceHandleException
@@ -18,13 +20,19 @@ logger = logging.getLogger('default')
 
 
 class AppBaseView(RegionTenantHeaderView):
-    def __init__(self, *args, **kwargs):
+    # service is populated and guarded in initial(); app/component are loosely typed
+    # (app via get_app_by_id, component is set by subclasses) — see P5 convention.
+    service: TenantServiceInfo
+    app: Any
+    component: Any
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super(AppBaseView, self).__init__(*args, **kwargs)
-        self.service = None
+        self.service = None  # type: ignore[assignment]
         self.app = None
         self.component = None
 
-    def initial(self, request, *args, **kwargs):
+    def initial(self, request: Request, *args: Any, **kwargs: Any) -> None:
         super(AppBaseView, self).initial(request, *args, **kwargs)
         service_alias = kwargs.get("serviceAlias", None)
         if not service_alias:
@@ -59,29 +67,31 @@ class AppBaseView(RegionTenantHeaderView):
         app = group_service.get_service_group_info(self.service.service_id)
         if not app:
             raise ServiceHandleException("app not found", "应用不存在", 404, 404)
-        self.app = group_service.get_app_by_id(self.tenant, self.region_name, app.ID)
+        self.app = group_service.get_app_by_id(self.tenant, self.region_name, app.ID)  # type: ignore[arg-type]
         if not self.app:
             raise ServiceHandleException("app not found", "应用不存在", 404, 404)
 
 
 class AppBaseCloudEnterpriseCenterView(AppBaseView, CloudEnterpriseCenterView):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super(AppBaseCloudEnterpriseCenterView, self).__init__(*args, **kwargs)
         self.oauth_instance = None
         self.oauth = None
         self.oauth_user = None
 
-    def initial(self, request, *args, **kwargs):
+    def initial(self, request: Request, *args: Any, **kwargs: Any) -> None:
         AppBaseView.initial(self, request, *args, **kwargs)
         CloudEnterpriseCenterView.initial(self, request, *args, **kwargs)
 
 
 class ComponentGraphBaseView(AppBaseView):
-    def __init__(self, *args, **kwargs):
+    graph: Any
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super(ComponentGraphBaseView, self).__init__(*args, **kwargs)
         self.graph = None
 
-    def initial(self, request, *args, **kwargs):
+    def initial(self, request: Request, *args: Any, **kwargs: Any) -> None:
         super(ComponentGraphBaseView, self).initial(request, *args, **kwargs)
         try:
             graph_id = kwargs.get("graph_id", None)

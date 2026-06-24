@@ -4,13 +4,21 @@ import os
 import sys
 import importlib
 import json
+import typing
 from types import ModuleType
+from unittest import TestCase as UnitTestCase
 from unittest import mock
 from unittest.mock import patch
 
 for attr in ("Mapping", "MutableMapping", "Sequence", "Iterable", "Iterator"):
     if not hasattr(collections, attr):
         setattr(collections, attr, getattr(collections.abc, attr))
+if not hasattr(typing, "NotRequired"):
+    try:
+        from typing_extensions import NotRequired
+        typing.NotRequired = NotRequired
+    except ImportError:
+        typing.NotRequired = lambda item: item
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "src", "openapi-client")))
 sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
@@ -44,6 +52,11 @@ from django.test import SimpleTestCase  # noqa: E402
 
 django.setup()
 
+from django.db.models.query import QuerySet  # noqa: E402
+
+if not hasattr(QuerySet, "__class_getitem__"):
+    QuerySet.__class_getitem__ = classmethod(lambda cls, item: cls)
+
 
 class Obj(object):
     def __init__(self, **kwargs):
@@ -70,7 +83,7 @@ class MarketAppServiceTelemetryTests(SimpleTestCase):
                       return_value=(None, {"list": ["amd64"]})), \
                 patch.object(market_app_service, "_create_tenant_service_group", return_value=Obj()), \
                 patch("console.services.market_app_service.AppUpgrade", return_value=app_upgrade), \
-                patch("console.services.market_app_service.enterprise_first_deploy_service.bind_events"), \
+                patch("console.services.market_app_service.enterprise_first_deploy_service.safe_bind_events"), \
                 patch.object(market_app_service, "_create_rbdplugin_if_needed"), \
                 patch("console.services.market_app_service.telemetry_service", create=True) as telemetry:
             app_name = market_app_service.install_app(
@@ -122,6 +135,76 @@ class MarketAppServiceTelemetryTests(SimpleTestCase):
             app_model_version="1.2.3",
             market_type="cloud",
         )
+
+
+class MarketAppServiceResourceLimitTests(UnitTestCase):
+    # capability_id: console.market-app.install-unlimited-resources
+    def test_init_component_from_market_app_preserves_explicit_unlimited_cpu_and_memory(self):
+        from console.services.market_app_service import market_app_service
+
+        tenant = Obj(tenant_id="tenant-1")
+        user = Obj(pk=1)
+        app = {
+            "service_cname": "nginx",
+            "service_key": "service-1",
+            "image": "registry.example.com/nginx:alpine",
+            "share_image": "goodrain.me/nginx:20260622152758",
+            "cmd": "",
+            "extend_method": "stateless_multiple",
+            "version": "alpine",
+            "deploy_version": "20260622152758",
+            "service_type": "application",
+            "memory": 0,
+            "cpu": 0,
+            "extend_method_map": {
+                "min_node": 1,
+                "min_memory": 64,
+                "init_memory": 0,
+                "max_memory": 65536,
+                "step_memory": 64,
+            },
+        }
+
+        with mock.patch("console.services.market_app_service.TenantServiceInfo.save"):
+            component = market_app_service._MarketAppService__init_component_from_market_app(
+                tenant, "demo-region", user, app, 7)
+
+        self.assertEqual(0, component.min_memory)
+        self.assertEqual(0, component.min_cpu)
+        self.assertEqual(0, component.total_memory)
+
+    def test_init_component_from_market_app_defaults_daemonset_node_when_node_scaling_is_absent(self):
+        from console.services.market_app_service import market_app_service
+
+        tenant = Obj(tenant_id="tenant-1")
+        user = Obj(pk=1)
+        app = {
+            "service_cname": "agent",
+            "service_key": "service-1",
+            "image": "registry.example.com/agent:alpine",
+            "share_image": "goodrain.me/agent:20260622152758",
+            "cmd": "",
+            "extend_method": "daemonset",
+            "version": "alpine",
+            "deploy_version": "20260622152758",
+            "service_type": "application",
+            "extend_method_map": {
+                "min_memory": 64,
+                "init_memory": 1024,
+                "max_memory": 65536,
+                "step_memory": 64,
+                "container_cpu": 600,
+            },
+        }
+
+        with mock.patch("console.services.market_app_service.TenantServiceInfo.save"):
+            component = market_app_service._MarketAppService__init_component_from_market_app(
+                tenant, "demo-region", user, app, 7)
+
+        self.assertEqual(1, component.min_node)
+        self.assertEqual(1024, component.min_memory)
+        self.assertEqual(600, component.min_cpu)
+        self.assertEqual(1024, component.total_memory)
 
 
 class MarketAppServiceCreateRainbondAppTests(SimpleTestCase):

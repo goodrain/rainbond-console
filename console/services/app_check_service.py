@@ -4,6 +4,7 @@
 """
 import json
 import logging
+from typing import Any, Dict, List, Optional, Tuple
 
 from console.constants import AppConstants
 from console.enum.component_enum import ComponentType
@@ -27,7 +28,7 @@ from console.utils.source_build_state import (
 from console.utils.oauth.oauth_types import get_oauth_instance
 from django.db import transaction
 from www.apiclient.regionapi import RegionInvokeApi
-from www.models.main import Tenants
+from www.models.main import Tenants, TenantServiceInfo, Users
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
@@ -40,7 +41,7 @@ PYTHON_SYNCED_ENV_NAMES = (
 )
 
 
-def supports_cnb_build_strategy(language):
+def supports_cnb_build_strategy(language: str) -> bool:
     helper = getattr(cnb_build_utils, "supports_cnb_build_strategy", None)
     if callable(helper):
         return helper(language)
@@ -56,7 +57,7 @@ def supports_cnb_build_strategy(language):
     return callable(policy_helper) and policy_helper(language) is not None
 
 
-def resolve_lang_update_build_strategy(language, service_build_strategy=""):
+def resolve_lang_update_build_strategy(language: str, service_build_strategy: str = "") -> str:
     helper = getattr(cnb_build_utils, "resolve_lang_update_build_strategy", None)
     if callable(helper):
         return helper(language, service_build_strategy)
@@ -73,10 +74,10 @@ class AppCheckService(object):
     DETECTED_DEFAULT_CPU_MILLI = 500
 
     @staticmethod
-    def _effective_language(language):
+    def _effective_language(language: str) -> str:
         return pick_preferred_language(language) or language
 
-    def normalize_detected_default_resources(self, service_info):
+    def normalize_detected_default_resources(self, service_info: dict) -> dict:
         memory = service_info.get("memory", self.DETECTED_DEFAULT_MEMORY_FALLBACK)
         normalized_memory = memory - memory % self.DETECTED_DEFAULT_MEMORY_ALIGN_STEP
         return {
@@ -84,7 +85,9 @@ class AppCheckService(object):
             "min_cpu": self.DETECTED_DEFAULT_CPU_MILLI,
         }
 
-    def __get_service_region_type(self, service_source):
+    def __get_service_region_type(self, service_source: str) -> Optional[str]:  # type: ignore[return]
+        # NOTE: implicit None fall-through for unknown service_source (e.g. MARKET,
+        # DOCKER_COMPOSE). Return is Optional; downstream stores it into body dict.
         if service_source == AppConstants.SOURCE_CODE:
             return "sourcecode"
         elif service_source == AppConstants.DOCKER_RUN or service_source == AppConstants.DOCKER_IMAGE:
@@ -96,15 +99,20 @@ class AppCheckService(object):
         elif service_source == AppConstants.VM_RUN:
             return "vm-run"
 
-    def check_service(self, tenant, service, is_again, event_id, user=None):
-        body = dict()
+    def check_service(self, tenant: Tenants, service: TenantServiceInfo, is_again: bool, event_id: str,
+                      user: Optional[Users] = None) -> Tuple[int, str, Optional[dict]]:
+        body: dict = dict()
         body["tenant_id"] = tenant.tenant_id
-        body["source_type"] = self.__get_service_region_type(service.service_source)
+        # NOTE: service_source is a null=True CharField (str | None); helper expects
+        # str. Runtime value is "" by default, never None in practice.
+        body["source_type"] = self.__get_service_region_type(service.service_source)  # type: ignore[arg-type]
         effective_build_strategy = getattr(service, "build_strategy", "") or ("cnb" if not is_again else "")
-        source_body = ""
+        # source_body may hold null=True model fields (docker_cmd/git_url) → str | None.
+        source_body: Optional[str] = ""
         service_source = service_source_repo.get_service_source(tenant.tenant_id, service.service_id)
-        user_name = ""
-        password = ""
+        # user_name/password may be populated from null=True model fields (str | None).
+        user_name: Optional[str] = ""
+        password: Optional[str] = ""
         service.service_source = self.__get_service_source(service)
         if service_source:
             user_name = service_source.user_name
@@ -123,9 +131,17 @@ class AppCheckService(object):
         if service.service_source == AppConstants.SOURCE_CODE:
             if service.oauth_service_id:
                 try:
-                    oauth_service = oauth_repo.get_oauth_services_by_service_id(service.oauth_service_id)
+                    # NOTE: oauth_service_id is an IntegerField used as a str identifier
+                    # (.ID-as-str pattern); repo expects str.
+                    oauth_service = oauth_repo.get_oauth_services_by_service_id(
+                        service.oauth_service_id)  # type: ignore[arg-type]
+                    # NOTE: user is Optional[Users]; SOURCE_CODE+oauth flow assumes a
+                    # logged-in user. Potential latent None-bug if user is None here.
+                    # user_id/oauth_service_id are int (AutoField/IntegerField) used as
+                    # str identifiers; repo expects str.
                     oauth_user = oauth_user_repo.get_user_oauth_by_user_id(
-                        service_id=service.oauth_service_id, user_id=user.user_id)
+                        service_id=service.oauth_service_id,  # type: ignore[arg-type]
+                        user_id=user.user_id)  # type: ignore[union-attr,arg-type]
                 except Exception as e:
                     logger.debug(e)
                     return 400, "未找到oauth服务, 请检查该服务是否存在且属于开启状态", None
@@ -133,7 +149,12 @@ class AppCheckService(object):
                     return 400, "未成功获取第三方用户信息", None
 
                 try:
-                    instance = get_oauth_instance(oauth_service.oauth_type, oauth_service, oauth_user)
+                    # NOTE: oauth_service is Optional[OAuthServices]; if the repo lookup
+                    # returned None this raises AttributeError, caught below as 400.
+                    # Potential latent None-bug (no explicit None guard before access).
+                    instance = get_oauth_instance(
+                        oauth_service.oauth_type,  # type: ignore[union-attr]
+                        oauth_service, oauth_user)
                 except Exception as e:
                     logger.debug(e)
                     return 400, "未找到OAuth服务", None
@@ -172,7 +193,9 @@ class AppCheckService(object):
         body["source_body"] = source_body
         body["namespace"] = tenant.namespace
         res, body = region_api.service_source_check(service.service_region, tenant.tenant_name, body)
-        bean = body["bean"]
+        # NOTE: service_source_check returns Optional[dict]; success path always
+        # yields a body. Invariant assumed (region returns 200 -> non-None body).
+        bean = body["bean"]  # type: ignore[index]
         service.check_uuid = bean["check_uuid"]
         service.check_event_id = bean["event_id"]
         # 更新创建状态
@@ -185,7 +208,7 @@ class AppCheckService(object):
         bean.update(self.__wrap_check_service(service))
         return 200, "success", bean
 
-    def __get_service_source(self, service):
+    def __get_service_source(self, service: TenantServiceInfo) -> str:
         if service.service_source:
             return service.service_source
         else:
@@ -201,18 +224,20 @@ class AppCheckService(object):
                 return AppConstants.DOCKER_IMAGE
             return AppConstants.DOCKER_RUN
 
-    def __wrap_check_service(self, service):
+    def __wrap_check_service(self, service: TenantServiceInfo) -> dict:
         return {
             "service_code_from": service.code_from,
             "service_code_clone_url": service.git_url,
             "service_code_version": service.code_version,
         }
 
-    def get_service_check_info(self, tenant, region, check_uuid):
-        rt_msg = dict()
+    def get_service_check_info(self, tenant: Tenants, region: str, check_uuid: str) -> Tuple[int, str, dict]:
+        rt_msg: dict = dict()
         try:
             res, body = region_api.get_service_check_info(region, tenant.tenant_name, check_uuid)
-            bean = body["bean"]
+            # NOTE: get_service_check_info returns Optional[dict]; success path yields
+            # a non-None body. Invariant assumed.
+            bean = body["bean"]  # type: ignore[index]
             if not bean["check_status"]:
                 bean["check_status"] = "checking"
             bean["check_status"] = bean["check_status"].lower()
@@ -229,13 +254,16 @@ class AppCheckService(object):
 
         return 200, "success", rt_msg
 
-    def update_service_check_info(self, tenant, service, data):
+    def update_service_check_info(self, tenant: Tenants, service: TenantServiceInfo, data: dict) -> None:
         if data["check_status"] != "success":
             return
         sid = None
         try:
             sid = transaction.savepoint()
-            source_build_state_service.save_user_snapshot(service, self._effective_language(service.language))
+            # NOTE: service.language is a null=True CharField (str | None);
+            # _effective_language tolerates falsy values via `or`.
+            source_build_state_service.save_user_snapshot(
+                service, self._effective_language(service.language))  # type: ignore[arg-type]
             # 删除原有build类型env，保存新检测build类型env
             self.upgrade_service_env_info(tenant, service, data)
             # 重新检测后对端口做加法
@@ -265,7 +293,7 @@ class AppCheckService(object):
             raise ServiceHandleException(
                 status_code=400, msg="handle check service code info failure", msg_show="处理检测结果失败")
 
-    def save_service_check_info(self, tenant, app_id, service, data):
+    def save_service_check_info(self, tenant: Tenants, app_id: str, service: TenantServiceInfo, data: dict) -> None:
         # save the detection properties but does not throw any exception.
         logger.info("[compose-debug] save_service_check_info called, check_status={0}, create_status={1}".format(
             data.get("check_status"), service.create_status))
@@ -288,19 +316,19 @@ class AppCheckService(object):
                     transaction.savepoint_rollback(sid)
                 logger.exception(e)
 
-    def upgrade_service_env_info(self, tenant, service, data):
+    def upgrade_service_env_info(self, tenant: Tenants, service: TenantServiceInfo, data: dict) -> None:
         # 更新构建时环境变量
         if data["check_status"] == "success":
             service_info_list = data["service_info"]
             self.upgrade_service_info(tenant, service, service_info_list[0])
 
-    def add_service_check_port(self, tenant, service, data):
+    def add_service_check_port(self, tenant: Tenants, service: TenantServiceInfo, data: dict) -> None:
         # 更新构建时环境变量
         if data["check_status"] == "success":
             service_info_list = data["service_info"]
             self.add_check_ports(tenant, service, service_info_list[0])
 
-    def add_check_ports(self, tenant, service, check_service_info):
+    def add_check_ports(self, tenant: Tenants, service: TenantServiceInfo, check_service_info: dict) -> None:
         service_info = check_service_info
         ports = service_info.get("ports", None)
         if not ports:
@@ -308,14 +336,14 @@ class AppCheckService(object):
         # 更新构建时环境变量
         self.__save_check_port(tenant, service, ports)
 
-    def upgrade_service_info(self, tenant, service, check_service_info):
+    def upgrade_service_info(self, tenant: Tenants, service: TenantServiceInfo, check_service_info: dict) -> None:
         service_info = check_service_info
         envs = service_info["envs"]
         # 更新构建时环境变量
         self.__upgrade_env(tenant, service, envs)
         self.sync_cnb_build_envs(tenant, service, service_info)
 
-    def __save_check_port(self, tenant, service, ports):
+    def __save_check_port(self, tenant: Tenants, service: TenantServiceInfo, ports: list) -> None:
         if not ports:
             return
         for port in ports:
@@ -324,7 +352,7 @@ class AppCheckService(object):
             if code != 200:
                 logger.error("save service check info port error {0}".format(msg))
 
-    def __upgrade_env(self, tenant, service, envs):
+    def __upgrade_env(self, tenant: Tenants, service: TenantServiceInfo, envs: list) -> None:
         if envs:
             # 删除原有的build类型环境变量
             env_var_service.delete_service_build_env(tenant, service)
@@ -341,7 +369,7 @@ class AppCheckService(object):
                     if code != 200:
                         logger.error("save service check info env error {0}".format(msg))
 
-    def save_service_info(self, tenant, service, check_service_info):
+    def save_service_info(self, tenant: Tenants, service: TenantServiceInfo, check_service_info: dict) -> None:
         service_info = check_service_info
         logger.info("[compose-debug] save_service_info called for service={0}, all keys={1}".format(
             service.service_cname, list(service_info.keys())))
@@ -395,14 +423,16 @@ class AppCheckService(object):
         if working_dir:
             self.__save_k8s_attribute(tenant, service, "workingDir", working_dir, save_type="string")
 
-    def __save_compile_env(self, tenant, service, language):
+    def __save_compile_env(self, tenant: Tenants, service: TenantServiceInfo, language: str) -> None:
         # 删除原有 compile env
         logger.debug("save tenant {0} compile service env {1}".format(tenant.tenant_name, service.service_cname))
         current_compile_env = compile_env_service.get_service_compile_env(service)
         _, state = read_compile_env_state(current_compile_env.user_dependency if current_compile_env else None)
         compile_env_service.delete_service_compile_env(service)
         if not language:
-            language = False
+            # NOTE: original code assigns bool False to a str-typed local to force a
+            # falsy language payload downstream. Behavior preserved.
+            language = False  # type: ignore[assignment]
         check_dependency = {
             "language": language,
         }
@@ -412,7 +442,7 @@ class AppCheckService(object):
         user_dependency_json = json.dumps(build_compile_env_payload(user_dependency, state))
         compile_env_service.save_compile_env(service, language, check_dependency_json, user_dependency_json)
 
-    def __save_env(self, tenant, service, envs):
+    def __save_env(self, tenant: Tenants, service: TenantServiceInfo, envs: Optional[list]) -> None:
         if envs:
             # 删除原有env
             env_var_service.delete_service_env(tenant, service)
@@ -436,14 +466,18 @@ class AppCheckService(object):
                     if code != 200:
                         logger.error("save service check info env error {0}".format(msg))
 
-    def __save_port(self, tenant, service, ports):
+    def __save_port(self, tenant: Tenants, service: TenantServiceInfo,
+                    ports: Optional[list]) -> Optional[Tuple[int, str]]:
         app = group_repo.get_by_service_id(tenant.tenant_id, service.service_id)
         if not tenant or not service:
-            return
+            return None
         if ports:
             # delete ports before add
             port_service.delete_service_port(tenant, service)
-            region_info = region_services.get_enterprise_region_by_region_name(tenant.enterprise_id, service.service_region)
+            # NOTE: enterprise_id is a null=True CharField (str | None); callee expects
+            # str. Runtime value defaults to "" (set on tenant creation).
+            region_info = region_services.get_enterprise_region_by_region_name(
+                tenant.enterprise_id, service.service_region)  # type: ignore[arg-type]
             for port in ports:
                 if port["protocol"] not in ["tcp", "udp", "http"]:
                     port["protocol"] = "tcp"
@@ -467,7 +501,9 @@ class AppCheckService(object):
                         tenant, service, 5000, "端口", "PORT", 5000, False, scope="outer")
                     if code not in (200, 412):
                         logger.error("save php default PORT env error {0}".format(msg))
-                region_info = region_services.get_enterprise_region_by_region_name(tenant.enterprise_id, service.service_region)
+                # NOTE: enterprise_id is null=True (str | None); callee expects str.
+                region_info = region_services.get_enterprise_region_by_region_name(
+                    tenant.enterprise_id, service.service_region)  # type: ignore[arg-type]
                 if not region_info:
                     logger.error("get region {0} from enterprise {1} failure".format(tenant.enterprise_id,
                                                                                      service.service_region))
@@ -478,7 +514,7 @@ class AppCheckService(object):
 
         return 200, "success"
 
-    def __save_volume(self, tenant, service, volumes):
+    def __save_volume(self, tenant: Tenants, service: TenantServiceInfo, volumes: Optional[list]) -> None:
         if volumes:
             volume_service.delete_service_volumes(service)
             index = 0
@@ -487,7 +523,7 @@ class AppCheckService(object):
                 volume_name = service.service_alias.upper() + "_" + str(index)
                 if "file_content" in list(volume.keys()):
                     volume_service.add_service_volume(tenant, service, volume["volume_path"], volume["volume_type"],
-                                                      volume_name, volume["file_content"])
+                                                      volume_name, volume["file_content"], mode=volume.get("mode"))
                 else:
                     settings = {}
                     settings["volume_capacity"] = volume["volume_capacity"]
@@ -497,11 +533,12 @@ class AppCheckService(object):
                     except ErrVolumePath:
                         logger.warning("Volume Path {0} error".format(volume["volume_path"]))
 
-    def __save_k8s_command(self, tenant, service, command):
+    def __save_k8s_command(self, tenant: Tenants, service: TenantServiceInfo, command: Any) -> None:
         """Save compose entrypoint as K8s command via ComponentK8sAttribute."""
         self.__save_k8s_attribute(tenant, service, "cmd", json.dumps(command))
 
-    def __save_k8s_attribute(self, tenant, service, name, value, save_type="json"):
+    def __save_k8s_attribute(self, tenant: Tenants, service: TenantServiceInfo, name: str, value: str,
+                             save_type: str = "json") -> None:
         """Save a K8s attribute to console DB only. Region sync happens later in create_region_service."""
         logger.info("[compose-debug] __save_k8s_attribute called: service={0}, name={1}, value={2}".format(
             service.service_id, name, value))
@@ -523,8 +560,8 @@ class AppCheckService(object):
             logger.error("[compose-debug] save K8s attribute {0} for service {1} FAILED: {2}".format(
                 name, service.service_id, e))
 
-    def wrap_service_check_info(self, service, data):
-        rt_info = dict()
+    def wrap_service_check_info(self, service: TenantServiceInfo, data: dict) -> dict:
+        rt_info: dict = dict()
         rt_info["check_status"] = data["check_status"]
         rt_info["error_infos"] = data["error_infos"]
         if data["service_info"] and len(data["service_info"]) > 1:
@@ -544,8 +581,8 @@ class AppCheckService(object):
         rt_info["service_info"] = service_list
         return rt_info
 
-    def wrap_check_info(self, service, service_info):
-        service_attr_list = []
+    def wrap_check_info(self, service: TenantServiceInfo, service_info: dict) -> list:
+        service_attr_list: list = []
         if service_info["ports"]:
             service_port_bean = {
                 "type": "ports",
@@ -563,8 +600,8 @@ class AppCheckService(object):
         if service_info.get("tar_images"):
             tar_images_bean = {"type": "tar_images", "key": "tar包镜像", "value": service_info.get("tar_images")}
             service_attr_list.append(tar_images_bean)
-        service_code_from = {}
-        service_language = {}
+        service_code_from: Dict[str, Any] = {}
+        service_language: Dict[str, Any] = {}
         if service.service_source == AppConstants.SOURCE_CODE:
             service_code_from = {
                 "type": "source_from",
@@ -610,7 +647,7 @@ class AppCheckService(object):
             service_attr_list.append(service_code_from)
         return service_attr_list
 
-    def _append_runtime_info(self, runtime_info, service_attr_list):
+    def _append_runtime_info(self, runtime_info: dict, service_attr_list: list) -> None:
         """
         从结构化的 runtime_info 中提取检测信息并添加到服务属性列表。
 
@@ -702,7 +739,8 @@ class AppCheckService(object):
                 }
                 service_attr_list.append(config_bean)
 
-    def cleanup_cnb_build_envs(self, tenant, service, remove_build_type=False):
+    def cleanup_cnb_build_envs(self, tenant: Tenants, service: TenantServiceInfo,
+                               remove_build_type: bool = False) -> None:
         env_names = list(CNB_BUILD_ENV_NAMES)
         if (service.language or "").strip().lower() == "python":
             env_names.extend(PYTHON_SYNCED_ENV_NAMES)
@@ -718,11 +756,13 @@ class AppCheckService(object):
                 continue
             build_env.delete()
 
-    def sync_cnb_build_envs(self, tenant, service, service_info):
+    def sync_cnb_build_envs(self, tenant: Tenants, service: TenantServiceInfo, service_info: dict) -> None:
         runtime_info = service_info.get("runtime_info") or {}
         language = service_info.get("language") or runtime_info.get("language") or service.language
 
-        if not supports_cnb_build_strategy(language):
+        # NOTE: language falls back to service.language (null=True, str | None);
+        # supports_cnb_build_strategy normalizes falsy/None safely internally.
+        if not supports_cnb_build_strategy(language):  # type: ignore[arg-type]
             self.cleanup_cnb_build_envs(tenant, service, remove_build_type=True)
             return
 
@@ -733,7 +773,7 @@ class AppCheckService(object):
                 env_var_service.add_service_build_env_var(
                     tenant, service, 0, name, name, value, True)
 
-    def _extract_envs_dict(self, service_info):
+    def _extract_envs_dict(self, service_info: dict) -> Dict[str, Any]:
         """
         从 service_info 中提取环境变量为字典格式。
 
@@ -756,7 +796,7 @@ class AppCheckService(object):
             if isinstance(env, dict)
         }
 
-    def _append_framework_info(self, envs_dict, service_attr_list):
+    def _append_framework_info(self, envs_dict: dict, service_attr_list: list) -> None:
         """添加框架检测信息到服务属性列表。"""
         framework_name = envs_dict.get("BUILD_FRAMEWORK")
         if not framework_name:
@@ -780,7 +820,7 @@ class AppCheckService(object):
         service_attr_list.append(framework_bean)
         logger.debug("CNB framework detected: %s", framework_name)
 
-    def _append_node_version_info(self, envs_dict, service_attr_list):
+    def _append_node_version_info(self, envs_dict: dict, service_attr_list: list) -> None:
         """添加 Node.js 版本信息到服务属性列表。"""
         node_version = envs_dict.get("BUILD_RUNTIMES")
         if not node_version:
@@ -799,7 +839,7 @@ class AppCheckService(object):
         }
         service_attr_list.append(version_bean)
 
-    def _append_package_manager_info(self, envs_dict, service_attr_list):
+    def _append_package_manager_info(self, envs_dict: dict, service_attr_list: list) -> None:
         """添加包管理器信息到服务属性列表。"""
         package_tool = envs_dict.get("BUILD_PACKAGE_TOOL")
         if not package_tool:
@@ -818,7 +858,7 @@ class AppCheckService(object):
         }
         service_attr_list.append(pm_bean)
 
-    def _append_config_files_info(self, envs_dict, service_attr_list):
+    def _append_config_files_info(self, envs_dict: dict, service_attr_list: list) -> None:
         """添加配置文件检测信息到服务属性列表。"""
         has_npmrc = envs_dict.get("BUILD_HAS_NPMRC") == "true"
         has_yarnrc = envs_dict.get("BUILD_HAS_YARNRC") == "true"

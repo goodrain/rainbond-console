@@ -2,6 +2,7 @@
 import json
 import logging
 import time
+from typing import Any, Dict, Optional
 
 from console.constants import SourceCodeType
 from console.exception.main import ServiceHandleException
@@ -11,8 +12,10 @@ from console.services.app import app_service as console_app_service
 from console.services.app_actions import app_manage_service
 from console.services.app_check_service import app_check_service
 from console.services.app_config.arch_service import arch_service
+from console.services.enterprise_first_deploy_service import enterprise_first_deploy_service
 from console.services.group_service import group_service
 from www.apiclient.regionapi import RegionInvokeApi
+from www.models.main import ServiceGroup, TenantServiceInfo, Tenants, Users
 from www.utils.crypt import make_uuid
 
 logger = logging.getLogger("default")
@@ -25,7 +28,7 @@ class SourceComponentService(object):
     VALID_SERVER_TYPES = ("git", "svn", "oss")
     DOCKERFILE_PREFERENCE_KEY = "prefer_dockerfile_when_detected"
 
-    def persist_dockerfile_preference(self, team, service):
+    def persist_dockerfile_preference(self, team: Tenants, service: TenantServiceInfo) -> None:
         """Persist the Dockerfile build preference in service_source.extend_info.
 
         Called when detection has not finished inside the create call (the
@@ -46,7 +49,7 @@ class SourceComponentService(object):
             logger.warning(
                 "persist dockerfile preference failed, service_id=%s", service.service_id, exc_info=True)
 
-    def load_dockerfile_preference(self, team, service):
+    def load_dockerfile_preference(self, team: Tenants, service: TenantServiceInfo) -> bool:
         """Read back the persisted Dockerfile build preference (default False)."""
         try:
             return bool(self._load_source_extend_info(team, service).get(self.DOCKERFILE_PREFERENCE_KEY, False))
@@ -56,7 +59,7 @@ class SourceComponentService(object):
             return False
 
     @staticmethod
-    def _load_source_extend_info(team, service):
+    def _load_source_extend_info(team: Tenants, service: TenantServiceInfo) -> dict:
         source = service_source_repo.get_service_source(team.tenant_id, service.service_id)
         if not source or not source.extend_info:
             return {}
@@ -67,44 +70,74 @@ class SourceComponentService(object):
         return extend_info if isinstance(extend_info, dict) else {}
 
     @classmethod
-    def build_unapplied_preference_note(cls, selected_language):
+    def build_unapplied_preference_note(cls, selected_language: Optional[str]) -> str:
         return (
             "已请求 Dockerfile 构建（prefer_dockerfile_when_detected=true），但代码检测未在构建目录根路径发现 Dockerfile，"
             "已回退为 {} 语言构建。如需 Dockerfile 构建，请通过 subdirectories 指向包含 Dockerfile 的目录，"
             "或改用镜像方式部署。".format(selected_language or "检测到的")
         )
 
+    def _report_source_check_failure(
+            self,
+            team: Tenants,
+            app: ServiceGroup,
+            user: Users,
+            component: TenantServiceInfo,
+            git_url: str,
+            code_version: str,
+            server_type: str,
+            check_uuid: str,
+            reason: str) -> None:
+        enterprise_first_deploy_service.safe_report_source_check_failure(
+            enterprise_id=team.enterprise_id,
+            tenant_name=team.tenant_name,
+            region_name=app.region_name,
+            reason=reason,
+            service=component,
+            operator=getattr(user, "nick_name", ""),
+            app_context=enterprise_first_deploy_service.build_service_app_context(app),
+            source_context={
+                "git_url": git_url,
+                "code_version": code_version,
+                "server_type": server_type,
+                "check_uuid": check_uuid,
+            },
+        )
+
     def auto_create_component(
             self,
-            team,
-            app,
-            user,
-            service_cname,
-            code_from,
-            git_url,
-            git_project_id=None,
-            code_version="master",
-            server_type=None,
-            version_type=None,
-            subdirectories=None,
-            username="",
-            password="",
-            check_uuid=None,
-            event_id=None,
-            oauth_service_id=None,
-            full_name=None,
-            k8s_component_name="",
-            arch="amd64",
-            is_deploy=True,
-            prefer_dockerfile_when_detected=False,
-            max_check_retries=None,
-            check_poll_interval=None):
+            team: Tenants,
+            app: ServiceGroup,
+            user: Users,
+            service_cname: str,
+            code_from: str,
+            git_url: str,
+            git_project_id: Any = None,
+            code_version: str = "master",
+            server_type: Optional[str] = None,
+            version_type: Optional[str] = None,
+            subdirectories: Optional[str] = None,
+            username: str = "",
+            password: str = "",
+            check_uuid: Optional[str] = None,
+            event_id: Optional[str] = None,
+            oauth_service_id: Any = None,
+            full_name: Optional[str] = None,
+            k8s_component_name: str = "",
+            arch: str = "amd64",
+            is_deploy: bool = True,
+            prefer_dockerfile_when_detected: bool = False,
+            max_check_retries: Optional[int] = None,
+            check_poll_interval: Optional[int] = None) -> dict:
         git_url = self.normalize_git_url(git_url, subdirectories)
         server_type = self.infer_server_type(git_url, server_type)
         code_from = self.normalize_code_from(code_from, git_url)
         code_version = self.normalize_code_version(code_version, version_type, server_type)
 
-        if k8s_component_name and console_app_service.is_k8s_component_name_duplicate(app.ID, k8s_component_name):
+        # NOTE: app.ID is the Django int PK; is_k8s_component_name_duplicate types app_id
+        # as str. The ORM coerces int->str in the lookup, so behavior is unchanged.
+        if k8s_component_name and console_app_service.is_k8s_component_name_duplicate(
+                app.ID, k8s_component_name):  # type: ignore[arg-type]
             raise ServiceHandleException(msg="component name exists", msg_show="组件英文名称已存在", status_code=400)
 
         code, msg_show, component = console_app_service.create_source_code_app(
@@ -126,29 +159,45 @@ class SourceComponentService(object):
         )
         if code != 200:
             raise ServiceHandleException(msg="service create fail", msg_show=msg_show, status_code=code)
+        # NOTE: create_source_code_app returns Optional[TenantServiceInfo]; it is None only
+        # when code != 200, which is excluded by the guard above. So on this path component is
+        # always non-None (invariant), and the [arg-type]/[union-attr] ignores below are safe.
 
         if username or password:
-            console_app_service.create_service_source_info(team, component, username, password)
+            console_app_service.create_service_source_info(
+                team, component, username, password)  # type: ignore[arg-type]
 
-        code, msg_show = group_service.add_service_to_group(team, app.region_name, app.ID, component.service_id)
+        code, msg_show = group_service.add_service_to_group(
+            team, app.region_name, app.ID, component.service_id)  # type: ignore[union-attr]
         if code != 200:
             raise ServiceHandleException(msg="add service to app failure", msg_show=msg_show, status_code=code)
 
-        code, msg, check_info = app_check_service.check_service(team, component, False, "", user)
+        # component is Optional[TenantServiceInfo] but non-None on this path (code==200 guard above)
+        code, msg, check_info = app_check_service.check_service(team, component, False, "", user)  # type: ignore[arg-type]
         if code != 200:
             raise ServiceHandleException(msg="check service error", msg_show=msg, status_code=code)
 
-        check_uuid = check_info.get("check_uuid") or component.check_uuid
+        check_uuid = check_info.get("check_uuid") or component.check_uuid  # type: ignore[union-attr]
         effective_poll_interval = check_poll_interval or self.CHECK_POLL_INTERVAL
         try:
             bean = self._wait_for_check_result(
                 app.region_name,
                 team,
-                check_uuid,
+                check_uuid,  # type: ignore[arg-type]
                 max_retries=max_check_retries or self.MAX_CHECK_RETRIES,
                 poll_interval=effective_poll_interval,
             )
         except ServiceHandleException as exc:
+            self._report_source_check_failure(
+                team,
+                app,
+                user,
+                component,  # type: ignore[arg-type]
+                git_url,
+                code_version,
+                server_type,
+                check_uuid,  # type: ignore[arg-type]
+                exc.msg_show)
             if getattr(exc, "msg", "") == "check timeout":
                 build_mode_note = None
                 if prefer_dockerfile_when_detected:
@@ -156,7 +205,7 @@ class SourceComponentService(object):
                     # repos take minutes to clone), so persist the preference;
                     # get_component_check_result reads it back and applies it
                     # before persisting the detection result.
-                    self.persist_dockerfile_preference(team, component)
+                    self.persist_dockerfile_preference(team, component)  # type: ignore[arg-type]
                     build_mode_note = (
                         "Dockerfile 构建偏好已持久化，检测完成后调用 rainbond_get_component_check_result 会自动应用，"
                         "无需重新传递 prefer_dockerfile_when_detected。"
@@ -164,7 +213,7 @@ class SourceComponentService(object):
                 return {
                     "prefer_dockerfile_when_detected": bool(prefer_dockerfile_when_detected),
                     "build_mode_note": build_mode_note,
-                    "service_id": component.service_id,
+                    "service_id": component.service_id,  # type: ignore[union-attr]
                     "service_alias": getattr(component, "service_alias", ""),
                     "service_cname": getattr(component, "service_cname", service_cname),
                     "app_id": app.ID,
@@ -205,10 +254,12 @@ class SourceComponentService(object):
                 dockerfile_preference_applied = selected_language == "dockerfile"
                 if not dockerfile_preference_applied:
                     build_mode_note = self.build_unapplied_preference_note(selected_language)
-            app_check_service.save_service_check_info(team, app.ID, component, bean)
-            self.apply_default_build_config(team, component, selected_service_info)
+            # app.ID is int (AutoField used as str id) and component is Optional but non-None here
+            app_check_service.save_service_check_info(team, app.ID, component, bean)  # type: ignore[arg-type]
+            self.apply_default_build_config(team, component, selected_service_info)  # type: ignore[arg-type]
 
-        region_component = console_app_service.create_region_service(team, component, self._get_username(user))
+        region_component = console_app_service.create_region_service(
+            team, component, self._get_username(user))  # type: ignore[arg-type]
         deploy_event_id = None
         if is_deploy:
             arch_service.update_affinity_by_arch(region_component.arch, team, app.region_name, region_component)
@@ -239,7 +290,7 @@ class SourceComponentService(object):
         }
 
     @staticmethod
-    def _select_service_info(service_info, prefer_dockerfile_when_detected=False):
+    def _select_service_info(service_info: Optional[dict], prefer_dockerfile_when_detected: bool = False) -> dict:
         normalized = dict(service_info or {})
         if not prefer_dockerfile_when_detected:
             return normalized
@@ -251,12 +302,16 @@ class SourceComponentService(object):
             normalized["language"] = "dockerfile"
         return normalized
 
-    def _wait_for_check_result(self, region_name, team, check_uuid, max_retries, poll_interval):
+    def _wait_for_check_result(self, region_name: str, team: Tenants, check_uuid: str, max_retries: int,
+                               poll_interval: int) -> dict:
         retry_count = 0
         while retry_count < max_retries:
             try:
                 _, body = region_api.get_service_check_info(region_name, team.tenant_name, check_uuid)
-                bean = body["bean"]
+                # NOTE: body is Optional[Dict]; the region client returns a body only on a 2xx
+                # response and raises CallApiError otherwise (caught below), so on this line
+                # body is non-None (invariant).
+                bean = body["bean"]  # type: ignore[index]
                 if not bean.get("check_status"):
                     bean["check_status"] = "checking"
                 bean["check_status"] = bean["check_status"].lower()
@@ -280,14 +335,14 @@ class SourceComponentService(object):
         raise ServiceHandleException(msg="check timeout", msg_show="代码检测超时", status_code=500)
 
     @staticmethod
-    def _format_check_failure(bean):
+    def _format_check_failure(bean: dict) -> str:
         error_infos = bean.get("error_infos") or []
         if error_infos:
             first_error = error_infos[0]
             return first_error.get("error_info") or first_error.get("solve_advice") or "代码检测失败"
         return "代码检测失败"
 
-    def apply_default_build_config(self, team, component, service_info):
+    def apply_default_build_config(self, team: Tenants, component: TenantServiceInfo, service_info: dict) -> None:
         language = (service_info.get("language") or getattr(component, "language", "") or "").strip()
         normalized_language = self.normalize_build_language(language)
         if normalized_language not in ("Node.js", "static"):
@@ -330,15 +385,18 @@ class SourceComponentService(object):
         component.language = normalized_language
 
     @staticmethod
-    def normalize_build_language(language):
+    def normalize_build_language(language: Optional[str]) -> str:
         lowered = (language or "").strip().lower()
         if lowered == "static":
             return "static"
         if "node" in lowered:
             return "Node.js"
-        return language
+        # NOTE: language is Optional[str]; returning it as-is preserves the original
+        # passthrough behavior. The sole caller (apply_default_build_config) already
+        # coerces it to a non-None stripped string, so this returns a str in practice.
+        return language  # type: ignore[return-value]
 
-    def infer_server_type(self, git_url, server_type=None):
+    def infer_server_type(self, git_url: str, server_type: Optional[str] = None) -> str:
         server_type = (server_type or "").strip().lower()
         if server_type:
             if server_type not in self.VALID_SERVER_TYPES:
@@ -353,7 +411,7 @@ class SourceComponentService(object):
             return "oss"
         return "git"
 
-    def normalize_git_url(self, git_url, subdirectories=None):
+    def normalize_git_url(self, git_url: str, subdirectories: Optional[str] = None) -> str:
         git_url = (git_url or "").strip()
         subdirectories = (subdirectories or "").strip()
         if not subdirectories or "dir=" in git_url:
@@ -361,7 +419,8 @@ class SourceComponentService(object):
         separator = "&" if "?" in git_url else "?"
         return "{}{}dir={}".format(git_url, separator, subdirectories)
 
-    def normalize_code_version(self, code_version, version_type=None, server_type=None):
+    def normalize_code_version(self, code_version: Optional[str], version_type: Optional[str] = None,
+                               server_type: Optional[str] = None) -> str:
         if server_type == "oss":
             return ""
         code_version = (code_version or "master").strip()
@@ -369,7 +428,7 @@ class SourceComponentService(object):
             return "tag:{}".format(code_version)
         return code_version
 
-    def normalize_code_from(self, code_from, git_url):
+    def normalize_code_from(self, code_from: Optional[str], git_url: Optional[str]) -> str:
         code_from = (code_from or "").strip()
         git_url = (git_url or "").strip().lower()
         if not code_from:
@@ -397,7 +456,7 @@ class SourceComponentService(object):
         return SourceCodeType.GITLAB_MANUAL
 
     @staticmethod
-    def is_github_proxy_url(git_url):
+    def is_github_proxy_url(git_url: Optional[str]) -> bool:
         git_url = (git_url or "").strip().lower()
         return git_url.startswith((
             "https://ghfast.top/https://github.com/",
@@ -405,7 +464,7 @@ class SourceComponentService(object):
         ))
 
     @staticmethod
-    def _get_username(user):
+    def _get_username(user: Users) -> str:
         if hasattr(user, "get_username") and callable(user.get_username):
             return user.get_username()
         return getattr(user, "nick_name", "")

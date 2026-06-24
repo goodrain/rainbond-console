@@ -7,16 +7,17 @@ import logging
 from console.exception.main import ServiceHandleException
 from console.exception.main import CallRegionAPIException
 from www.apiclient.regionapi import RegionInvokeApi
+from www.models.main import TenantServiceInfo, Tenants
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
 
 
 class DeployTypeService(object):
-    def get_service_deploy_type(self, service):
+    def get_service_deploy_type(self, service: TenantServiceInfo) -> str:
         return service.extend_method
 
-    def put_service_deploy_type(self, tenant, service, deploy_type):
+    def put_service_deploy_type(self, tenant: Tenants, service: TenantServiceInfo, deploy_type: str) -> None:
         label = {
             "label_key": "service-type",
             "label_value": "StatelessServiceType" if deploy_type == "stateless" else "StatefulServiceType",

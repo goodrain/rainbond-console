@@ -5,16 +5,19 @@
 import json
 import logging
 from re import split as re_spilt
+from typing import Any
 
 from console.serializer import TenantServiceUpdateSerilizer
 from console.services.app_config import env_var_service
 from console.services.app import app_service
 from console.services.app_check_service import (app_check_service, resolve_lang_update_build_strategy,
                                                 supports_cnb_build_strategy)
+from console.services.enterprise_first_deploy_service import enterprise_first_deploy_service
 from console.services.source_build_state_service import source_build_state_service
 from console.utils.oauth.oauth_types import support_oauth_type
 from console.views.app_config.base import AppBaseView
-from django.views.decorators.cache import never_cache
+from console.utils.cache_decorators import never_cache
+from rest_framework.request import Request
 from rest_framework.response import Response
 from www.utils.return_message import general_message
 
@@ -23,11 +26,11 @@ logger = logging.getLogger("default")
 
 class LangUpdate(AppBaseView):
     @never_cache
-    def put(self, request, *args, **kwargs):
+    def put(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         lang = request.GET.get('lang', None)
         dockerfile_path = request.data.get('dockerfile_path', '')
         if lang:
-            source_build_state_service.save_user_snapshot(self.service, self.service.language)
+            source_build_state_service.save_user_snapshot(self.service, self.service.language)  # type: ignore[arg-type]
             restored = source_build_state_service.restore_language(self.service, lang)
             self.service.language = lang
             self.service.build_strategy = restored.get("build_strategy") or resolve_lang_update_build_strategy(
@@ -57,7 +60,7 @@ class LangUpdate(AppBaseView):
 
 class AppCheck(AppBaseView):
     @never_cache
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         获取组件检测信息
         ---
@@ -84,6 +87,8 @@ class AppCheck(AppBaseView):
             return Response(general_message(400, "params error", "参数错误，请求参数应该包含请求的ID"), status=400)
         code, msg, data = app_check_service.get_service_check_info(self.tenant, self.service.service_region, check_uuid)
         logger.debug("check resp! {0}".format(data))
+        if data.get("check_status") == "failure":
+            self._report_source_check_failure(check_uuid, data)
         # 如果已创建完成
         if self.service.create_status == "complete":
             service_info = data.get("service_info")
@@ -110,8 +115,26 @@ class AppCheck(AppBaseView):
         result = general_message(200, "success", "请求成功", bean=check_brief_info)
         return Response(result, status=result["code"])
 
+    def _report_source_check_failure(self, check_uuid: str, data: dict) -> None:
+        error_infos = data.get("error_infos") or []
+        first_error = error_infos[0] if error_infos else {}
+        reason = first_error.get("error_info") or first_error.get("solve_advice") or "代码检测失败"
+        enterprise_first_deploy_service.safe_report_source_check_failure(
+            enterprise_id=self.tenant.enterprise_id,
+            tenant_name=self.tenant.tenant_name,
+            region_name=self.service.service_region,
+            reason=reason,
+            service=self.service,
+            app_context=enterprise_first_deploy_service.build_service_app_context(self.app),
+            source_context={
+                "git_url": getattr(self.service, "git_url", ""),
+                "code_version": getattr(self.service, "code_version", ""),
+                "server_type": getattr(self.service, "server_type", ""),
+                "check_uuid": check_uuid,
+            })
+
     @never_cache
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         组件信息检测
         ---
@@ -131,7 +154,8 @@ class AppCheck(AppBaseView):
         user = request.user
         is_again = request.data.get("is_again", False)
         event_id = request.data.get("event_id", "")
-        code, msg, service_info = app_check_service.check_service(self.tenant, self.service, is_again, event_id, user)
+        code, msg, service_info = app_check_service.check_service(
+            self.tenant, self.service, is_again, event_id, user)  # type: ignore[arg-type]
         if code != 200:
             result = general_message(code, "check service error", msg)
         else:
@@ -141,14 +165,14 @@ class AppCheck(AppBaseView):
 
 class GetCheckUUID(AppBaseView):
     @never_cache
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         result = general_message(200, "success", "获取成功", bean={"check_uuid": self.service.check_uuid})
         return Response(result, status=200)
 
 
 class AppCheckUpdate(AppBaseView):
     @never_cache
-    def put(self, request, *args, **kwargs):
+    def put(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         组件检测信息修改
         ---

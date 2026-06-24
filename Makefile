@@ -14,3 +14,7 @@ build-base:
 	docker build -t rainbond/rbd-ui-base:V5.3 -f Dockerfile.base .
 build-allinone-image:
 	docker build --build-arg VERSION=V5.3 -t rainbond/rainbond:v5.3 -f Dockerfile.allinone .
+typecheck:
+	@mypy --config-file mypy.ini console/ www/ openapi/ || true
+typecheck-gate:
+	@bash scripts/typecheck_gate.sh

@@ -3,8 +3,10 @@
   Created on 18/5/5.
 """
 import logging
+from typing import Any
 
-from django.views.decorators.cache import never_cache
+from console.utils.cache_decorators import never_cache
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from console.services.message_service import msg_service
@@ -16,7 +18,7 @@ logger = logging.getLogger('default')
 
 class UserMessageView(RegionTenantHeaderView):
     @never_cache
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         查询用户的站内信息
         ---
@@ -51,7 +53,7 @@ class UserMessageView(RegionTenantHeaderView):
         msg_type = request.GET.get("msg_type", None)
         page_num = int(request.GET.get("page_num", 1))
         page_size = int(request.GET.get("page_size", 5))
-        is_read = request.GET.get("is_read", None)
+        is_read: Any = request.GET.get("is_read", None)
         if is_read:
             is_read = bool(int(is_read))
         # 先同步数据
@@ -62,7 +64,7 @@ class UserMessageView(RegionTenantHeaderView):
         return Response(result, status=result["code"])
 
     @never_cache
-    def put(self, request, *args, **kwargs):
+    def put(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         将站内信息标记为已读或未读
         ---
@@ -103,7 +105,7 @@ class UserMessageView(RegionTenantHeaderView):
         return Response(result, status=result["code"])
 
     @never_cache
-    def delete(self, request, *args, **kwargs):
+    def delete(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         删除站内信
         ---

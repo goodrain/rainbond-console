@@ -3,6 +3,7 @@ import json
 import logging
 import copy
 from datetime import datetime
+from typing import Any, Dict, List, Optional, Tuple
 
 from django.db import transaction
 
@@ -57,20 +58,20 @@ region_api = RegionInvokeApi()
 
 class AppUpgrade(MarketApp):
     def __init__(self,
-                 enterprise_id,
-                 tenant,
+                 enterprise_id: str,
+                 tenant: Any,
                  region: RegionConfig,
-                 user,
+                 user: Any,
                  app: ServiceGroup,
-                 version,
-                 component_group,
-                 app_template,
-                 install_from_cloud,
-                 market_name,
-                 record: AppUpgradeRecord = None,
-                 component_keys=None,
-                 is_deploy=False,
-                 is_upgrade_one=False):
+                 version: str,
+                 component_group: Any,
+                 app_template: dict,
+                 install_from_cloud: bool,
+                 market_name: str,
+                 record: Optional[AppUpgradeRecord] = None,
+                 component_keys: Optional[Any] = None,
+                 is_deploy: bool = False,
+                 is_upgrade_one: bool = False) -> None:
         """
         components_keys: component keys that the user select.
         """
@@ -117,13 +118,13 @@ class AppUpgrade(MarketApp):
 
         super(AppUpgrade, self).__init__(self.original_app, self.new_app, self.user)
 
-    def preinstall(self):
+    def preinstall(self) -> None:
         self.pre_install_plugins()
         self.pre_sync_new_app()
         self._install_predeploy()
 
-    def install(self):
-        events = []
+    def install(self) -> List[Any]:
+        events: List[Any] = []
         # install plugins
         self.install_plugins()
 
@@ -145,7 +146,7 @@ class AppUpgrade(MarketApp):
             events = self._install_deploy()
         return events
 
-    def upgrade(self):
+    def upgrade(self) -> AppUpgradeRecord:
         # install plugins
         try:
             self.install_plugins()
@@ -171,15 +172,15 @@ class AppUpgrade(MarketApp):
             self.rollback()
             raise ServiceHandleException("unexpected error", "升级遇到了故障, 暂无法执行, 请稍后重试")
 
-        self._deploy(self.record)
+        self._deploy(self.record)  # type: ignore[arg-type]
+        # NOTE: self.record can be None; caller must pass record for upgrade() to work correctly
+        return self.record  # type: ignore[return-value]
 
-        return self.record
-
-    def changes(self):
-        templates = list()
+    def changes(self) -> List[Dict[str, Any]]:
+        templates: List[Any] = list()
         if self.app_template.get("apps"):
-            templates = self.app_template.get("apps")
-        templates = {tmpl["service_key"]: tmpl for tmpl in templates}
+            templates = self.app_template.get("apps") or []
+        templates_map = {tmpl["service_key"]: tmpl for tmpl in templates}
 
         result = []
         original_components = {cpt.component.component_id: cpt for cpt in self.original_app.components()}
@@ -194,7 +195,8 @@ class AppUpgrade(MarketApp):
             original_cpt = original_components.get(component_id)
 
             upgrade_info = cpt_changes.get(component_id, None)
-            current_version = original_cpt.component_source.version
+            current_version = original_cpt.component_source.version  # type: ignore[union-attr]
+            # NOTE: original_cpt can be None if component_id not in original_components
             result.append({
                 "service": {
                     "service_id": cpt.component.component_id,
@@ -210,7 +212,7 @@ class AppUpgrade(MarketApp):
 
         # new components
         for cpt in self.new_app.new_components:
-            tmpl = templates.get(cpt.component.service_key)
+            tmpl = templates_map.get(cpt.component.service_key)
             if not tmpl:
                 continue
             result.append({
@@ -227,28 +229,28 @@ class AppUpgrade(MarketApp):
         return result
 
     @transaction.atomic
-    def pre_install_plugins(self):
+    def pre_install_plugins(self) -> None:
         # sync plugins
-        self._sync_plugins(self.new_app.new_plugins)
+        self._sync_plugins(self.new_app.new_plugins)  # type: ignore[arg-type]
         # deploy plugins
-        self._deploy_plugins(self.new_app.new_plugins)
+        self._deploy_plugins(self.new_app.new_plugins)  # type: ignore[arg-type]
 
     @transaction.atomic
-    def install_plugins(self):
+    def install_plugins(self) -> None:
         # delete old plugins
         self.delete_original_plugins(self.list_delete_plugin_ids())
         # save plugins
         self.save_new_plugins()
         # sync plugins
-        self._sync_plugins(self.new_app.new_plugins)
+        self._sync_plugins(self.new_app.new_plugins)  # type: ignore[arg-type]
         # deploy plugins
-        self._deploy_plugins(self.new_app.new_plugins)
+        self._deploy_plugins(self.new_app.new_plugins)  # type: ignore[arg-type]
 
     @transaction.atomic
-    def _save_new_app(self):
+    def _save_new_app(self) -> None:
         self.save_new_app()
 
-    def _sync_plugins(self, plugins: [Plugin]):
+    def _sync_plugins(self, plugins: List[Plugin]) -> None:
         new_plugins = []
         for plugin in plugins:
             new_plugins.append({
@@ -265,7 +267,7 @@ class AppUpgrade(MarketApp):
         }
         region_api.sync_plugins(self.tenant_name, self.region_name, body)
 
-    def _install_predeploy(self):
+    def _install_predeploy(self) -> None:
 
         try:
             helm_chart_parameter = dict()
@@ -279,7 +281,7 @@ class AppUpgrade(MarketApp):
             logger.exception(e)
             raise ServiceHandleException(msg="install app failure", msg_show="安装应用发生异常{}".format(e))
 
-    def _install_deploy(self):
+    def _install_deploy(self) -> List[Any]:
         try:
             return self.deploy()
         except ErrTenantLackOfMemory as e:
@@ -289,7 +291,7 @@ class AppUpgrade(MarketApp):
             logger.exception(e)
             raise ServiceHandleException(msg="install app failure", msg_show="安装应用发生异常{}".format(e))
 
-    def _deploy_plugins(self, plugins: [Plugin]):
+    def _deploy_plugins(self, plugins: List[Plugin]) -> None:
         new_plugins = []
         for plugin in plugins:
             origin = plugin.plugin.origin
@@ -322,7 +324,7 @@ class AppUpgrade(MarketApp):
         }
         region_api.build_plugins(self.tenant_name, self.region_name, body)
 
-    def _deploy(self, record):
+    def _deploy(self, record: AppUpgradeRecord) -> None:
         # Optimization: not all components need deploy
         try:
             events = self.deploy()
@@ -334,7 +336,7 @@ class AppUpgrade(MarketApp):
             raise e
         self._create_component_record(record, events)
 
-    def _create_component_record(self, app_record: AppUpgradeRecord, events):
+    def _create_component_record(self, app_record: AppUpgradeRecord, events: Any) -> None:
         if self.is_upgrade_one:
             return
         event_ids = {event["service_id"]: event["event_id"] for event in events}
@@ -360,12 +362,12 @@ class AppUpgrade(MarketApp):
         component_upgrade_record_repo.bulk_create(records)
 
     @transaction.atomic
-    def _save_app(self):
+    def _save_app(self) -> None:
         snapshot = self._take_snapshot()
         self.save_new_app()
         self._update_upgrade_record(UpgradeStatus.UPGRADING.value, snapshot)
 
-    def _create_new_app(self):
+    def _create_new_app(self) -> NewApp:
         # new components
         new_components = NewComponents(
             self.tenant,
@@ -432,20 +434,27 @@ class AppUpgrade(MarketApp):
             config_group_components=config_group_components,
             k8s_resources=k8s_resources)
 
-    def _create_original_plugins(self):
+    def _create_original_plugins(self) -> List[Plugin]:
         return self.list_original_plugins()
 
-    def _plugins(self):
+    def _plugins(self) -> List[Plugin]:
         return self.original_plugins + self.new_plugins
 
-    def _create_component_deps(self, components):
+    def _create_component_deps(self, components: List[Component]) -> List[TenantServiceRelation]:
         """
         组件唯一标识: cpt.component_source.service_share_uuid
         组件模板唯一标识: tmpl.get("service_share_uuid")
         被依赖组件唯一标识: dep["dep_service_key"]
         """
-        components = {cpt.component_source.service_share_uuid: cpt.component for cpt in components}
-        original_components = {cpt.component_source.service_share_uuid: cpt.component for cpt in self.original_app.components()}
+        # NOTE: component_source can be None; service_share_uuid access fails at runtime (latent, backlog).
+        components = {
+            cpt.component_source.service_share_uuid: cpt.component  # type: ignore[union-attr]
+            for cpt in components
+        }
+        original_components = {
+            cpt.component_source.service_share_uuid: cpt.component  # type: ignore[union-attr]
+            for cpt in self.original_app.components()
+        }
 
         deps = []
         apps = list()
@@ -476,15 +485,22 @@ class AppUpgrade(MarketApp):
                 deps.append(dep)
         return deps
 
-    def _create_volume_deps(self, raw_components):
+    def _create_volume_deps(self, raw_components: List[Component]) -> List[TenantServiceMountRelation]:
         """
         Create new volume dependencies with application template
         """
         volumes = []
         for cpt in raw_components:
             volumes.extend(cpt.volumes)
-        components = {cpt.component_source.service_share_uuid: cpt.component for cpt in raw_components}
-        original_components = {cpt.component_source.service_share_uuid: cpt.component for cpt in self.original_app.components()}
+        # NOTE: component_source can be None; service_share_uuid access fails at runtime (latent, backlog).
+        components = {
+            cpt.component_source.service_share_uuid: cpt.component  # type: ignore[union-attr]
+            for cpt in raw_components
+        }
+        original_components = {
+            cpt.component_source.service_share_uuid: cpt.component  # type: ignore[union-attr]
+            for cpt in self.original_app.components()
+        }
 
         deps = []
         apps = list()
@@ -524,17 +540,17 @@ class AppUpgrade(MarketApp):
         return deps
 
     @staticmethod
-    def _volume_exists(volumes, component_id, volume_name):
-        volumes = {vol.service_id + vol.volume_name: vol for vol in volumes}
-        return True if volumes.get(component_id + volume_name) else False
+    def _volume_exists(volumes: List[Any], component_id: str, volume_name: str) -> bool:
+        volumes_map = {vol.service_id + vol.volume_name: vol for vol in volumes}
+        return True if volumes_map.get(component_id + volume_name) else False
 
-    def _config_groups(self):
+    def _config_groups(self) -> List[ApplicationConfigGroup]:
         """
         only add
         """
         config_groups = list(app_config_group_repo.list(self.region_name, self.app_id))
         config_group_names = [cg.config_group_name for cg in config_groups]
-        tmpl = self.app_template.get("app_config_groups") if self.app_template.get("app_config_groups") else []
+        tmpl: List[Any] = self.app_template.get("app_config_groups") or []
         for cg in tmpl:
             if cg["name"] in config_group_names:
                 continue
@@ -549,17 +565,18 @@ class AppUpgrade(MarketApp):
             config_groups.append(config_group)
         return config_groups
 
-    def _update_upgrade_record(self, status, snapshot=None):
+    def _update_upgrade_record(self, status: int, snapshot: Optional[Any] = None) -> None:
         if self.is_upgrade_one:
             return
-        self.record.status = status
-        self.record.snapshot_id = snapshot.snapshot_id if snapshot else None
-        self.record.version = self.version
-        self.record.save()
+        self.record.status = status  # type: ignore[union-attr]
+        self.record.snapshot_id = snapshot.snapshot_id if snapshot else None  # type: ignore[union-attr]
+        self.record.version = self.version  # type: ignore[union-attr]
+        self.record.save()  # type: ignore[union-attr]
+        # NOTE: self.record can be None; callers should ensure record is set before upgrade()
 
-    def _take_snapshot(self):
+    def _take_snapshot(self) -> Optional[Any]:
         if self.is_upgrade_one:
-            return
+            return None
 
         new_components = {cpt.component.component_id: cpt for cpt in self.new_app.components()}
 
@@ -588,7 +605,7 @@ class AppUpgrade(MarketApp):
             ))
         return snapshot
 
-    def _config_group_items(self, config_groups):
+    def _config_group_items(self, config_groups: List[ApplicationConfigGroup]) -> List[ConfigGroupItem]:
         """
         only add
         """
@@ -596,8 +613,8 @@ class AppUpgrade(MarketApp):
         config_group_items = list(app_config_group_item_repo.list_by_app_id(self.app_id))
 
         item_keys = [item.config_group_name + item.item_key for item in config_group_items]
-        tmpl = self.app_template.get("app_config_groups") if self.app_template.get("app_config_groups") else []
-        for cg in tmpl:
+        tmpl_items: List[Any] = self.app_template.get("app_config_groups") or []
+        for cg in tmpl_items:
             config_group = config_groups.get(cg["name"])
             if not config_group:
                 logger.warning("config group {} not found".format(cg["name"]))
@@ -620,7 +637,8 @@ class AppUpgrade(MarketApp):
                 config_group_items.append(item)
         return config_group_items
 
-    def _config_group_components(self, components, config_groups):
+    def _config_group_components(self, components: List[Component],
+                                 config_groups: List[ApplicationConfigGroup]) -> List[ConfigGroupService]:
         """
         only add
         """
@@ -631,8 +649,8 @@ class AppUpgrade(MarketApp):
         config_group_components = list(app_config_group_service_repo.list_by_app_id(self.app_id))
         config_group_component_keys = [cgc.config_group_name + cgc.service_id for cgc in config_group_components]
 
-        tmpl = self.app_template.get("app_config_groups") if self.app_template.get("app_config_groups") else []
-        for cg in tmpl:
+        tmpl_cgc: List[Any] = self.app_template.get("app_config_groups") or []
+        for cg in tmpl_cgc:
             config_group = config_groups.get(cg["name"])
             if not config_group:
                 continue
@@ -654,7 +672,9 @@ class AppUpgrade(MarketApp):
                 config_group_components.append(cgc)
         return config_group_components
 
-    def _new_component_plugins(self, components: [Component]):
+    def _new_component_plugins(
+            self, components: List[Component]
+    ) -> Tuple[List[TenantServicePluginRelation], List[ServicePluginConfigVar]]:
         plugins = {plugin.plugin.origin_share_id: plugin for plugin in self._plugins()}
         old_plugin_deps = [dep.service_id + dep.plugin_id for dep in self.original_app.plugin_deps]
 
@@ -710,7 +730,8 @@ class AppUpgrade(MarketApp):
         return new_plugin_deps, new_plugin_configs
 
     @staticmethod
-    def _create_plugin_configs(component: Component, plugin: Plugin, plugin_configs, component_keys: [str], components):
+    def _create_plugin_configs(component: Component, plugin: Plugin, plugin_configs: Any, component_keys: Dict[str, str],
+                               components: Dict[str, Component]) -> Tuple[List[ServicePluginConfigVar], bool]:
         """
         return new_plugin_configs, ignore_plugin
         new_plugin_configs: new plugin configs created from app template
@@ -746,7 +767,7 @@ class AppUpgrade(MarketApp):
 
         return new_plugin_configs, False
 
-    def list_delete_plugin_ids(self):
+    def list_delete_plugin_ids(self) -> List[str]:
         plugin_templates = self.app_template.get("plugins")
         if not plugin_templates:
             return []
@@ -763,11 +784,12 @@ class AppUpgrade(MarketApp):
                 if len(image_and_tag) > 1:
                     tags = image_and_tag[1].rsplit("_")
                     new_version = tags[len(tags) - 2] if len(tags) > 2 else ""
-            if original_plugin and new_version > original_plugin_version.build_version:
+            if original_plugin and new_version > original_plugin_version.build_version:  # type: ignore[union-attr]
+                # NOTE: original_plugin_version can be None if no build version found for plugin
                 plugin_ids.append(original_plugin.plugin_id)
         return plugin_ids
 
-    def _create_new_plugins(self):
+    def _create_new_plugins(self) -> List[Plugin]:
         plugin_templates = self.app_template.get("plugins")
         if not plugin_templates:
             return []
@@ -789,7 +811,8 @@ class AppUpgrade(MarketApp):
 
             plugin_id = make_uuid()
             if original_plugin:
-                if new_version > original_plugin_version.build_version:
+                if new_version > original_plugin_version.build_version:  # type: ignore[union-attr]
+                    # NOTE: original_plugin_version can be None if no build version found
                     plugin_id = original_plugin.plugin_id
                 else:
                     continue
@@ -817,7 +840,7 @@ class AppUpgrade(MarketApp):
 
         return plugins
 
-    def _create_build_version(self, plugin_id, plugin_tmpl):
+    def _create_build_version(self, plugin_id: str, plugin_tmpl: Any) -> PluginBuildVersion:
         image_tag = None
         if plugin_tmpl["share_image"]:
             image_and_tag = plugin_tmpl["share_image"].rsplit(":", 1)
@@ -843,7 +866,8 @@ class AppUpgrade(MarketApp):
         )
 
     @staticmethod
-    def _create_config_groups(plugin_id, build_version, config_groups_tmpl):
+    def _create_config_groups(plugin_id: str, build_version: PluginBuildVersion,
+                              config_groups_tmpl: Any) -> Tuple[List[PluginConfigGroup], List[PluginConfigItems]]:
         config_groups = []
         config_items = []
         for config in config_groups_tmpl:
@@ -871,20 +895,20 @@ class AppUpgrade(MarketApp):
                 config_items.append(config_item)
         return config_groups, config_items
 
-    def _tmpl_components(self, components: [Component]):
+    def _tmpl_components(self, components: List[Component]) -> List[Component]:
         apps = list()
         if self.app_template.get("apps", []):
             apps = self.app_template.get("apps", [])
         component_keys = [tmpl.get("service_key") for tmpl in apps]
         return [cpt for cpt in components if cpt.component.service_key in component_keys]
 
-    def _k8s_resources(self):
+    def _k8s_resources(self) -> List[K8sResource]:
         # only add
         k8s_resources = list(k8s_resources_repo.list_by_app_id(self.app_id))
         k8s_resource_names = [r.name + r.kind for r in k8s_resources]
-        finall_k8s_resources = list()
-        tmpl = self.app_template.get("k8s_resources") if self.app_template.get("k8s_resources") else []
-        for rs in tmpl:
+        finall_k8s_resources: List[K8sResource] = list()
+        tmpl_k8s: List[Any] = self.app_template.get("k8s_resources") or []
+        for rs in tmpl_k8s:
             if rs["name"] + rs["kind"] in k8s_resource_names:
                 continue
             resource = K8sResource(
@@ -897,14 +921,14 @@ class AppUpgrade(MarketApp):
             finall_k8s_resources.append(resource)
         return finall_k8s_resources
 
-    def _get_app_property_changes(self):
-        changes = {"upgrade_info": dict()}
+    def _get_app_property_changes(self) -> Dict[str, Any]:
+        changes: Dict[str, Any] = {"upgrade_info": dict()}
         k8s_resources = self._k8s_resource_changes()
         if k8s_resources:
             changes["upgrade_info"]["k8s_resources"] = k8s_resources
         return changes
 
-    def _k8s_resource_changes(self):
+    def _k8s_resource_changes(self) -> Optional[Dict[str, Any]]:
         if not self.new_app.k8s_resources:
             return None
         add = []

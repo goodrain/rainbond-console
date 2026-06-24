@@ -3,8 +3,10 @@
   Created by leon on 18/1/5.
 """
 import logging
+from typing import Any
 
-from django.views.decorators.cache import never_cache
+from console.utils.cache_decorators import never_cache
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from console.exception.bcode import ErrK8sComponentNameExists
@@ -15,13 +17,14 @@ from www.utils.crypt import make_uuid
 from www.models.main import ServiceGroup
 from www.utils.return_message import general_message
 from console.services.group_service import group_service
+from console.services.team_services import team_services
 
 logger = logging.getLogger("default")
 
 
 class DockerRunCreateView(RegionTenantHeaderView):
     @never_cache
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         image和docker-run创建组件
         ---
@@ -61,6 +64,11 @@ class DockerRunCreateView(RegionTenantHeaderView):
         # 私有docker仓库地址
         docker_password = request.data.get("password", None)
         docker_user_name = request.data.get("user_name", None)
+        registry_auth_id = request.data.get("registry_auth_id", None)
+        if registry_auth_id:
+            registry_auth = team_services.resolve_registry_auth(self.user, registry_auth_id)
+            docker_user_name = registry_auth.username
+            docker_password = registry_auth.password
         k8s_component_name = request.data.get("k8s_component_name", "")
         arch = request.data.get("arch", "amd64")
         if is_demo:
@@ -78,14 +86,14 @@ class DockerRunCreateView(RegionTenantHeaderView):
                     self.tenant,
                     self.region_name,
                     "镜像构建示例",
-                    None,
+                    None,  # type: ignore[arg-type] # NOTE: create_app legacy signature expects str but callers pass None
                     self.user.get_username(),
-                    None,
-                    None,
-                    None,
-                    None,
-                    self.user.enterprise_id,
-                    None,
+                    None,  # type: ignore[arg-type]
+                    None,  # type: ignore[arg-type]
+                    None,  # type: ignore[arg-type]
+                    None,  # type: ignore[arg-type]
+                    self.user.enterprise_id,  # type: ignore[arg-type]
+                    None,  # type: ignore[arg-type]
                     k8s_app=k8s_app_name)
                 group_id = data["group_id"]
         if k8s_component_name and app_service.is_k8s_component_name_duplicate(group_id, k8s_component_name):
@@ -100,23 +108,26 @@ class DockerRunCreateView(RegionTenantHeaderView):
                 return Response(general_message(400, "docker_cmd cannot be null", "参数错误"), status=400)
 
             code, msg_show, new_service = app_service.create_docker_run_app(self.response_region, self.tenant, self.user,
-                                                                            service_cname, docker_cmd, image_type,
+                                                                            service_cname,  # type: ignore[arg-type]
+                                                                            docker_cmd, image_type,
                                                                             k8s_component_name, "", arch)
             if code != 200:
                 return Response(general_message(code, "service create fail", msg_show), status=code)
 
             # 添加username,password信息
             if docker_password or docker_user_name:
-                app_service.create_service_source_info(self.tenant, new_service, docker_user_name, docker_password)
+                # NOTE: new_service may be None; create_service_source_info also expects non-None str args; backlog
+                app_service.create_service_source_info(self.tenant, new_service, docker_user_name, docker_password)  # type: ignore[arg-type]
 
             code, msg_show = group_service.add_service_to_group(self.tenant, self.response_region, group_id,
-                                                                new_service.service_id)
+                                                                new_service.service_id)  # type: ignore[union-attr]
             if code != 200:
                 logger.debug("service.create", msg_show)
-            result = general_message(200, "success", "创建成功", bean=new_service.to_dict())
+            result = general_message(200, "success", "创建成功", bean=new_service.to_dict())  # type: ignore[union-attr]
         except ResourceNotEnoughException as re:
             raise re
         except AccountOverdueException as re:
             logger.exception(re)
-            return Response(general_message(10410, "resource is not enough", re.message), status=412)
+            # NOTE: py2-style Exception.message
+            return Response(general_message(10410, "resource is not enough", re.message), status=412)  # type: ignore[attr-defined]
         return Response(result, status=result["code"])

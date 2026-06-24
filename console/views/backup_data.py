@@ -1,23 +1,27 @@
 # -*- coding: utf-8 -*-
+from typing import Any
+
 from console.services.backup_data_service import platform_data_services
 from console.views.base import EnterpriseAdminView
 from django.contrib.auth import authenticate
+from django.http import HttpResponse
+from rest_framework.request import Request
 from rest_framework.response import Response
 from www.utils.return_message import general_message
 
 
 class BackupDataCView(EnterpriseAdminView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         backups = platform_data_services.list_backups()
         result = general_message(200, "success", "数据上传成功", list=backups)
         return Response(result, status=result["code"])
 
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         platform_data_services.create_backup()
         result = general_message(200, "success", "删除成功")
         return Response(result, status=result["code"])
 
-    def delete(self, request, *args, **kwargs):
+    def delete(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         name = request.data.get("name")
         if not name:
             result = general_message(200, "backup file can not be empty", "备份文件名称不能为空")
@@ -28,12 +32,12 @@ class BackupDataCView(EnterpriseAdminView):
 
 
 class BackupDateDownload(EnterpriseAdminView):
-    def get(self, request, backup_name, *args, **kwargs):
+    def get(self, request: Request, backup_name: str, *args: Any, **kwargs: Any) -> HttpResponse:
         return platform_data_services.download_file(backup_name)
 
 
 class BackupUploadCView(EnterpriseAdminView):
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         if not request.FILES or not request.FILES.get('file'):
             return Response(general_message(400, "param error", "请指定需要上传的文件"), status=400)
 
@@ -48,7 +52,7 @@ class BackupUploadCView(EnterpriseAdminView):
 
 
 class BackupRecoverCView(EnterpriseAdminView):
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         name = request.data.get("name")
         password = request.data.get("password")
         u = authenticate(username=request.user.get_username(), password=password)

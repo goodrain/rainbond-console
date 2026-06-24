@@ -3,6 +3,7 @@ import logging
 import os
 import tempfile
 import zipfile
+from typing import Any, Dict, Optional, Tuple
 
 import requests
 
@@ -21,7 +22,7 @@ class PackageUploadToolService(object):
     SUPPORTED_FILE_SUFFIXES = (".zip", ".jar", ".war", ".tar", ".tar.gz")
 
     @staticmethod
-    def _build_local_path_error_details(local_path, normalized_path=None):
+    def _build_local_path_error_details(local_path: Any, normalized_path: Optional[str] = None) -> Dict[str, Any]:
         return {
             "field": "local_path",
             "provided_value": local_path,
@@ -30,7 +31,7 @@ class PackageUploadToolService(object):
             "suggestion": "请确认该路径位于 rainbond-console 进程所在机器或容器可见的挂载目录中，而不是 MCP 客户端本机路径。",
         }
 
-    def init_upload(self, team_name, region_name, component_id=""):
+    def init_upload(self, team_name: str, region_name: str, component_id: str = "") -> Dict[str, Any]:
         event_id = make_uuid()
         try:
             region_api.create_upload_file_dir(region_name, team_name, event_id)
@@ -60,7 +61,7 @@ class PackageUploadToolService(object):
             "upload_url": upload_url,
         }
 
-    def upload_package(self, team_name, region_name, event_id, local_path, archive_name=""):
+    def upload_package(self, team_name: str, region_name: str, event_id: str, local_path: str, archive_name: str = "") -> Dict[str, Any]:
         upload_record = package_upload_service.get_upload_record(team_name, region_name, event_id)
         if not upload_record:
             raise ServiceHandleException(
@@ -70,7 +71,7 @@ class PackageUploadToolService(object):
             )
 
         archive_path, should_cleanup = self._prepare_upload_archive(local_path, archive_name)
-        upload_url = import_service.get_upload_package_url(region_name, event_id)
+        upload_url = import_service.get_upload_package_url(region_name, event_id, proxy=False)
 
         try:
             with open(archive_path, "rb") as archive_file:
@@ -97,7 +98,7 @@ class PackageUploadToolService(object):
             if should_cleanup and archive_path and os.path.exists(archive_path):
                 os.remove(archive_path)
 
-    def get_upload_status(self, team_name, region_name, event_id):
+    def get_upload_status(self, team_name: str, region_name: str, event_id: str) -> Dict[str, Any]:
         try:
             _, body = region_api.get_upload_file_dir(region_name, team_name, event_id)
         except region_api.CallApiError as e:
@@ -107,7 +108,7 @@ class PackageUploadToolService(object):
                 msg_show="查询软件包上传状态失败",
                 status_code=getattr(e, "status", 500) or 500,
             )
-        packages = body.get("bean", {}).get("packages", []) or []
+        packages = body.get("bean", {}).get("packages", []) or []  # type: ignore[union-attr]  # NOTE: body may be None if region_api returns (status, None); caller guards via CallApiError
         package_upload_service.update_upload_record(team_name, event_id, source_dir=packages)
         return {
             "event_id": event_id,
@@ -115,7 +116,7 @@ class PackageUploadToolService(object):
             "uploaded": bool(packages),
         }
 
-    def delete_upload(self, team_name, region_name, event_id):
+    def delete_upload(self, team_name: str, region_name: str, event_id: str) -> Dict[str, Any]:
         try:
             region_api.delete_upload_file_dir(region_name, team_name, event_id)
         except region_api.CallApiError as e:
@@ -133,15 +134,15 @@ class PackageUploadToolService(object):
 
     def auto_create_component_from_local_path(
             self,
-            team,
-            app,
-            user,
-            local_path,
-            service_cname,
-            k8s_component_name="",
-            arch="amd64",
-            is_deploy=True,
-            archive_name=""):
+            team: Any,
+            app: Any,
+            user: Any,
+            local_path: str,
+            service_cname: str,
+            k8s_component_name: str = "",
+            arch: str = "amd64",
+            is_deploy: bool = True,
+            archive_name: str = "") -> Dict[str, Any]:
         upload_info = self.init_upload(team.tenant_name, app.region_name, "")
         event_id = upload_info["event_id"]
         self.upload_package(team.tenant_name, app.region_name, event_id, local_path, archive_name)
@@ -167,7 +168,7 @@ class PackageUploadToolService(object):
         result["local_path"] = os.path.abspath(local_path)
         return result
 
-    def _prepare_upload_archive(self, local_path, archive_name=""):
+    def _prepare_upload_archive(self, local_path: str, archive_name: str = "") -> Tuple[str, bool]:
         normalized_path = self._normalize_local_path(local_path)
         if os.path.isfile(normalized_path):
             if not self._is_supported_package_file(normalized_path):
@@ -180,7 +181,7 @@ class PackageUploadToolService(object):
         return self._zip_directory(normalized_path, archive_name)
 
     @staticmethod
-    def _normalize_local_path(local_path):
+    def _normalize_local_path(local_path: Any) -> str:
         if not local_path or not isinstance(local_path, str):
             raise ServiceHandleException(
                 msg="local path required",
@@ -205,7 +206,7 @@ class PackageUploadToolService(object):
             )
         return normalized_path
 
-    def _zip_directory(self, directory_path, archive_name=""):
+    def _zip_directory(self, directory_path: str, archive_name: str = "") -> Tuple[str, bool]:
         archive_basename = os.path.basename(archive_name.strip()) if archive_name else os.path.basename(
             os.path.normpath(directory_path)
         )
@@ -238,7 +239,7 @@ class PackageUploadToolService(object):
                 os.remove(archive_path)
             raise
 
-    def _is_supported_package_file(self, file_path):
+    def _is_supported_package_file(self, file_path: str) -> bool:
         lower_path = file_path.lower()
         return lower_path.endswith(self.SUPPORTED_FILE_SUFFIXES)
 

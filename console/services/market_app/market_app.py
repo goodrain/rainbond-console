@@ -2,12 +2,14 @@
 import datetime
 import json
 import logging
+from typing import Any, Dict, List, Optional
 
 from django.db import transaction
 
 from www.utils.crypt import make_uuid
 from .enum import ActionType
 from .new_app import NewApp
+from .component import Component
 from console.repositories.app import service_repo
 from .original_app import OriginalApp
 from .plugin import Plugin
@@ -24,6 +26,7 @@ from console.constants import PluginMetaType
 from console.constants import PluginInjection
 # model
 from www.models.main import ServiceDomain
+from console.models.main import RegionConfig
 # www
 from www.apiclient.regionapi import RegionInvokeApi
 from console.repositories.region_app import region_app_repo
@@ -33,7 +36,7 @@ logger = logging.getLogger("default")
 
 
 class MarketApp(object):
-    def __init__(self, original_app: OriginalApp, new_app: NewApp, user):
+    def __init__(self, original_app: OriginalApp, new_app: NewApp, user: Any) -> None:
         self.original_app = original_app
         self.new_app = new_app
 
@@ -45,14 +48,14 @@ class MarketApp(object):
         self.labels = {label.label_id: label for label in label_repo.get_all_labels()}
 
     @transaction.atomic
-    def save_new_app(self):
+    def save_new_app(self) -> None:
         self.new_app.save()
 
-    def pre_sync_new_app(self):
+    def pre_sync_new_app(self) -> None:
         self._sync_new_components()
         self._sync_app_config_groups(self.new_app)
 
-    def sync_new_app(self):
+    def sync_new_app(self) -> None:
         k8s_component_names = [component.component.k8s_component_name for component in self.new_app.new_components]
         services = service_repo.get_service_by_tenant_and_k8s_component_name(self.new_app.tenant.tenant_id, k8s_component_names)
         exist_k8s_component_name = {service.k8s_component_name: True for service in services}
@@ -64,16 +67,16 @@ class MarketApp(object):
         self._sync_app_config_groups(self.new_app)
         self._sync_app_k8s_resources(self.new_app)
 
-    def rollback(self):
+    def rollback(self) -> None:
         self._rollback_components()
         self._sync_app_config_groups(self.original_app)
         # Since the application of k8s resources can create PV and other resources,
         # this kind of resources will not be rolled back for the time being
         # self._sync_app_k8s_resources(self.original_app)
 
-    def predeploy(self, helm_chart_parameter):
+    def predeploy(self, helm_chart_parameter: dict) -> List[Any]:
         builds = self._generate_builds("export_helm_chart")
-        res = []
+        res: List[Any] = []
         body = {
             "operator": self.user.nick_name,
             "operation": "export",
@@ -84,22 +87,22 @@ class MarketApp(object):
             },
         }
         _, body = region_api.batch_operation_service(self.new_app.region_name, self.new_app.tenant.tenant_name, body)
-        batch_result = list()
-        if body["bean"]["batch_result"]:
+        batch_result: List[Any] = list()
+        if body["bean"]["batch_result"]:  # type: ignore[index]
             batch_result = batch_result
 
         res += batch_result
 
         return res
 
-    def deploy(self):
+    def deploy(self) -> List[Any]:
 
         builds = self._generate_builds()
         upgrades = self._generate_upgrades()
 
         # Region do not support different operation in one API.
         # We have to call build, then upgrade.
-        res = []
+        res: List[Any] = []
         if builds:
             body = {
                 "operator": self.user.nick_name,
@@ -107,7 +110,7 @@ class MarketApp(object):
                 "build_infos": builds,
             }
             _, body = region_api.batch_operation_service(self.new_app.region_name, self.new_app.tenant.tenant_name, body)
-            res += body["bean"]["batch_result"]
+            res += body["bean"]["batch_result"]  # type: ignore[index]
 
         if upgrades:
             body = {
@@ -116,11 +119,11 @@ class MarketApp(object):
                 "upgrade_infos": upgrades,
             }
             _, body = region_api.batch_operation_service(self.new_app.region_name, self.new_app.tenant.tenant_name, body)
-            res += body["bean"]["batch_result"]
+            res += body["bean"]["batch_result"]  # type: ignore[index]
 
         return res
 
-    def ensure_component_deps(self, new_deps, tmpl_component_ids=[], is_upgrade_one=False):
+    def ensure_component_deps(self, new_deps: List[Any], tmpl_component_ids: List[str] = [], is_upgrade_one: bool = False) -> List[Any]:  # noqa: B006
         """
         确保组件依赖关系的正确性.
         根据已有的依赖关系, 新的依赖关系计算出最终的依赖关系, 计算规则如下:
@@ -148,7 +151,7 @@ class MarketApp(object):
         deps.extend(new_deps)
         return self._dedup_deps(deps)
 
-    def ensure_volume_deps(self, new_deps, tmpl_component_ids=[], is_upgrade_one=False):
+    def ensure_volume_deps(self, new_deps: List[Any], tmpl_component_ids: List[str] = [], is_upgrade_one: bool = False) -> List[Any]:  # noqa: B006
         """
         确保存储依赖关系的正确性.
         根据已有的依赖关系, 新的依赖关系计算出最终的依赖关系, 计算规则如下:
@@ -176,7 +179,7 @@ class MarketApp(object):
         deps.extend(new_deps)
         return self._dedup_deps(deps)
 
-    def _sync_new_components(self):
+    def _sync_new_components(self) -> None:
         """
         synchronous components to the application in region
         """
@@ -185,14 +188,14 @@ class MarketApp(object):
         }
         region_api.sync_components(self.tenant_name, self.region_name, self.new_app.region_app_id, body)
 
-    def _rollback_components(self):
+    def _rollback_components(self) -> None:
         body = {
             "components": self._create_component_body(self.original_app),
             "delete_component_ids": [cpt.component.component_id for cpt in self.new_app.new_components]
         }
         region_api.sync_components(self.tenant_name, self.region_name, self.new_app.region_app_id, body)
 
-    def _create_component_body(self, app):
+    def _create_component_body(self, app: Any) -> List[Any]:
         components = app.components()
         plugin_bodies = self._create_plugin_body(components)
         new_components = []
@@ -256,16 +259,16 @@ class MarketApp(object):
             new_components.append(component)
         return new_components
 
-    def _create_plugin_body(self, components):
-        components = {cpt.component.component_id: cpt for cpt in components}
+    def _create_plugin_body(self, components: List[Component]) -> Dict[str, List[Any]]:
+        components = {cpt.component.component_id: cpt for cpt in components}  # type: ignore[assignment]
         plugins = {plugin.plugin.plugin_id: plugin for plugin in self.new_app.plugins}
-        plugin_configs = {}
+        plugin_configs: Dict[str, List[Any]] = {}
         for plugin_config in self.new_app.plugin_configs:
             pcs = plugin_configs.get(plugin_config.service_id, [])
             pcs.append(plugin_config)
             plugin_configs[plugin_config.service_id] = pcs
 
-        new_plugin_deps = {}
+        new_plugin_deps: Dict[str, List[Any]] = {}
         for plugin_dep in self.new_app.plugin_deps:
             plugin = plugins.get(plugin_dep.plugin_id)
             if not plugin:
@@ -327,7 +330,7 @@ class MarketApp(object):
         return new_plugin_deps
 
     @staticmethod
-    def _create_http_rules(gateway_rules: [ServiceDomain], cert_id_rels: dict):
+    def _create_http_rules(gateway_rules: List[ServiceDomain], cert_id_rels: dict) -> List[Any]:
         rules = []
         for gateway_rule in gateway_rules:
             rule = gateway_rule.to_dict()
@@ -356,14 +359,14 @@ class MarketApp(object):
             rules.append(rule)
         return rules
 
-    def _sync_app_config_groups(self, app):
-        config_group_items = dict()
+    def _sync_app_config_groups(self, app: Any) -> None:
+        config_group_items: Dict[str, List[Any]] = dict()
         for item in app.config_group_items:
             items = config_group_items.get(item.config_group_name, [])
             new_item = item.to_dict()
             items.append(new_item)
             config_group_items[item.config_group_name] = items
-        config_group_components = dict()
+        config_group_components: Dict[str, List[Any]] = dict()
         for cgc in app.config_group_components:
             cgcs = config_group_components.get(cgc.config_group_name, [])
             new_cgc = cgc.to_dict()
@@ -381,10 +384,11 @@ class MarketApp(object):
         }
         region_api.sync_config_groups(self.tenant_name, self.region_name, self.new_app.region_app_id, body)
 
-    def _sync_app_k8s_resources(self, app):
+    def _sync_app_k8s_resources(self, app: Any) -> None:
         # only add k8s resources
         k8s_resources = list()
-        region_app_id = region_app_repo.get_region_app_id(self.region_name, self.app.app_id)
+        region_app_id = region_app_repo.get_region_app_id(self.region_name, self.app.app_id)  # type: ignore[attr-defined]
+        # NOTE: self.app is defined in subclasses (AppUpgrade, AppRestore) but not in MarketApp base
         for k8s_resource in app.k8s_resources:
             resource = {
                 "name": k8s_resource.name,
@@ -398,9 +402,9 @@ class MarketApp(object):
             "k8s_resources": k8s_resources,
         }
         res, body = region_api.sync_k8s_resources(self.tenant_name, self.region_name, data)
-        if not body.get("list"):
+        if not body.get("list"):  # type: ignore[union-attr]
             return
-        resource_statuses = {resource["name"] + resource["kind"]: resource for resource in body["list"]}
+        resource_statuses = {resource["name"] + resource["kind"]: resource for resource in body["list"]}  # type: ignore[index]
         for k8s_resource in app.k8s_resources:
             resource_key = k8s_resource.name + k8s_resource.kind
             if resource_statuses.get(resource_key):
@@ -410,7 +414,7 @@ class MarketApp(object):
         if isinstance(app, NewApp):
             self.new_app.k8s_resources = app.k8s_resources
 
-    def list_original_plugins(self):
+    def list_original_plugins(self) -> List[Plugin]:
         plugins = plugin_repo.list_by_tenant_id(self.original_app.tenant_id, self.region_name)
         plugin_ids = [plugin.plugin_id for plugin in plugins]
         plugin_versions = self._list_plugin_versions(plugin_ids)
@@ -418,38 +422,39 @@ class MarketApp(object):
         new_plugins = []
         for plugin in plugins:
             plugin_version = plugin_versions.get(plugin.plugin_id)
-            new_plugins.append(Plugin(plugin, plugin_version))
+            new_plugins.append(Plugin(plugin, plugin_version))  # type: ignore[arg-type]
+            # NOTE: plugin_version may be None if build_version not found for plugin_id
         return new_plugins
 
     @staticmethod
-    def _list_plugin_versions(plugin_ids):
+    def _list_plugin_versions(plugin_ids: List[str]) -> Dict[str, Any]:
         plugin_versions = plugin_version_repo.list_by_plugin_ids(plugin_ids)
         return {plugin_version.plugin_id: plugin_version for plugin_version in plugin_versions}
 
     @staticmethod
-    def delete_original_plugins(plugin_ids):
+    def delete_original_plugins(plugin_ids: List[str]) -> None:
         plugin_repo.delete_by_plugin_ids(plugin_ids)
         build_version_repo.delete_build_version_by_plugin_ids(plugin_ids)
         config_group_repo.delete_config_group_by_plugin_ids(plugin_ids)
         config_item_repo.delete_config_items_by_plugin_ids(plugin_ids)
 
-    def save_new_plugins(self):
+    def save_new_plugins(self) -> None:
         plugins = []
         build_versions = []
-        config_groups = []
-        config_items = []
-        for plugin in self.new_app.new_plugins:
+        config_groups: List[Any] = []
+        config_items: List[Any] = []
+        for plugin in self.new_app.new_plugins:  # type: ignore[union-attr]
             plugins.append(plugin.plugin)
             build_versions.append(plugin.build_version)
-            config_groups.extend(plugin.config_groups)
-            config_items.extend(plugin.config_items)
+            config_groups.extend(plugin.config_groups)  # type: ignore[arg-type]
+            config_items.extend(plugin.config_items)  # type: ignore[arg-type]
 
         plugin_repo.bulk_create(plugins)
         build_version_repo.bulk_create(build_versions)
         config_group_repo.bulk_create_plugin_config_group(config_groups)
         config_item_repo.bulk_create_items(config_items)
 
-    def _generate_builds(self, kind="build_from_market_image"):
+    def _generate_builds(self, kind: str = "build_from_market_image") -> List[Any]:
         builds = []
         for cpt in self.new_app.components():
             if cpt.action_type != ActionType.BUILD.value:
@@ -472,7 +477,7 @@ class MarketApp(object):
             builds.append(build)
         return builds
 
-    def _generate_upgrades(self):
+    def _generate_upgrades(self) -> List[Any]:
         upgrades = []
         for cpt in self.new_app.components():
             if cpt.action_type != ActionType.UPDATE.value:
@@ -482,7 +487,7 @@ class MarketApp(object):
             upgrades.append(upgrade)
         return upgrades
 
-    def _dedup_deps(self, deps):
+    def _dedup_deps(self, deps: List[Any]) -> List[Any]:
         result = []
         if not deps:
             return []
@@ -495,16 +500,16 @@ class MarketApp(object):
             exists.append(dep.service_id + dep.dep_service_id)
         return result
 
-    def create_service_tcp_domains(self, region):
+    def create_service_tcp_domains(self, region: RegionConfig) -> Any:
         components = self.new_app.components()
         for cpt in components:
             for port in cpt.ports:
                 if port.protocol == "tcp" and port.is_outer_service:
                     service = cpt.component
                     res, data = region_api.get_port(self.region_name, self.tenant_name, True)
-                    if int(res.status) != 200:
+                    if int(res.status) != 200:  # type: ignore[union-attr]
                         return 400, "请求数据中心异常"
-                    end_point = "0.0.0.0:{0}".format(data["bean"])
+                    end_point = "0.0.0.0:{0}".format(data["bean"])  # type: ignore[index]
                     service_id = service.service_id
                     service_name = service.service_alias
                     create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')

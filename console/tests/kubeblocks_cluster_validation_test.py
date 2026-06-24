@@ -2,6 +2,7 @@
 import collections
 import os
 import sys
+import typing
 from types import ModuleType
 from types import SimpleNamespace
 from unittest import mock
@@ -10,6 +11,13 @@ import unittest
 for attr in ("Mapping", "MutableMapping", "Sequence", "Iterable", "Iterator"):
     if not hasattr(collections, attr):
         setattr(collections, attr, getattr(collections.abc, attr))
+
+if not hasattr(typing, "NotRequired"):
+    try:
+        from typing_extensions import NotRequired
+        typing.NotRequired = NotRequired
+    except ImportError:
+        typing.NotRequired = lambda item: item
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "src", "openapi-client")))
 openapi_client = ModuleType("openapi_client")
@@ -28,6 +36,11 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
 import django  # noqa: E402
 
 django.setup()
+
+from django.db.models.query import QuerySet  # noqa: E402
+
+if not hasattr(QuerySet, "__class_getitem__"):
+    QuerySet.__class_getitem__ = classmethod(lambda cls, item: cls)
 
 from console.services import kubeblocks_service as kubeblocks_module  # noqa: E402
 from console.services.kubeblocks_service import KubeBlocksService  # noqa: E402
@@ -86,6 +99,72 @@ class KubeBlocksCreateFlowTests(unittest.TestCase):
 
     def setUp(self):
         self.service = KubeBlocksService()
+
+    # capability_id: console.kubeblocks.app-resource-statistics
+    def test_build_cluster_request_prefers_region_app_id_for_resource_statistics(self):
+        new_service = SimpleNamespace(
+            service_id="service-1",
+            service_alias="gr000001",
+        )
+
+        cluster_request = self.service._build_cluster_request(
+            {
+                "cluster_name": "mysql-demo",
+                "database_type": "mysql",
+                "version": "8.0.30",
+                "cpu": "500m",
+                "memory": "512Mi",
+                "storage_size": "10Gi",
+                "replicas": 1,
+                "storage_class": "standard",
+                "group_id": 2,
+                "region_app_id": "region-app-2",
+            },
+            new_service,
+            "team-a-ns",
+        )
+
+        self.assertEqual(cluster_request["rbdService"]["service_id"], "service-1")
+        self.assertEqual(cluster_request["rbdService"]["app_id"], "region-app-2")
+
+    # capability_id: console.kubeblocks.app-resource-statistics
+    def test_create_cluster_resolves_region_app_id_for_resource_statistics(self):
+        tenant = SimpleNamespace(tenant_id="tenant-1", namespace="team-a-ns")
+        user = SimpleNamespace(nick_name="alice")
+        service = SimpleNamespace(
+            service_id="service-1",
+            service_alias="gr000001",
+            k8s_component_name="mysql-demo",
+        )
+        params = {
+            "cluster_name": "mysql-demo",
+            "database_type": "mysql",
+            "version": "8.0.30",
+            "cpu": "500m",
+            "memory": "512Mi",
+            "storage_size": "10Gi",
+            "replicas": 1,
+            "storage_class": "standard",
+            "group_id": 2,
+        }
+
+        with mock.patch.object(kubeblocks_module.region_app_repo, "get_region_app_id",
+                               return_value="region-app-2") as get_region_app_id, \
+                mock.patch.object(kubeblocks_module.region_api, "create_kubeblocks_cluster",
+                                  return_value=({"status": 200}, {"bean": {}})) as create_cluster:
+            success, body = self.service._create_cluster(
+                tenant=tenant,
+                user=user,
+                region_name="region-a",
+                params=params,
+                kubeblocks_service=service,
+            )
+
+        self.assertTrue(success)
+        self.assertEqual(body, {"bean": {}})
+        get_region_app_id.assert_called_once_with("region-a", 2)
+        sent_body = create_cluster.call_args[0][1]
+        self.assertEqual(sent_body["rbdService"]["app_id"], "region-app-2")
 
     # capability_id: console.kubeblocks.create-credential-sync
     def test_create_complete_syncs_database_credentials(self):

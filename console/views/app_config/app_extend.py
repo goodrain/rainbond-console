@@ -4,11 +4,13 @@
 """
 
 import logging
+from typing import Any
 
 from console.services.app_config import extend_service
 from www.apiclient.regionapi import RegionInvokeApi
 from console.views.app_config.base import AppBaseView
-from django.views.decorators.cache import never_cache
+from console.utils.cache_decorators import never_cache
+from rest_framework.request import Request
 from rest_framework.response import Response
 from www.utils.return_message import general_message
 
@@ -18,7 +20,7 @@ region_api = RegionInvokeApi()
 
 class AppExtendView(AppBaseView):
     @never_cache
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         获取组件扩展方式
         ---

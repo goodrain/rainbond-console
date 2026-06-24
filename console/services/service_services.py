@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 import json
 import logging
+from typing import Any, Dict, List, Optional
 from urllib.parse import urlsplit, urlunsplit
+
+from www.models.main import TenantServiceInfo, Tenants
 
 from console.exception.main import RbdAppNotFound, ServiceHandleException
 from console.repositories.app import service_source_repo, service_repo
@@ -21,7 +24,7 @@ region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
 
 
-def strip_url_userinfo(url):
+def strip_url_userinfo(url: Optional[str]) -> str:
     url = (url or "").strip()
     if "@" not in url:
         return url
@@ -39,24 +42,24 @@ def strip_url_userinfo(url):
 
 
 class BaseService(object):
-    def _get_cnb_version_policy(self, tenant, service):
+    def _get_cnb_version_policy(self, tenant: Tenants, service: TenantServiceInfo) -> dict:
         definition = get_cnb_policy_definition(service.language)
         if not definition:
             return {}
 
         from console.services.region_lang_version import region_lang_version
 
-        records = []
+        records: list = []
         try:
             response = region_lang_version.show_long_version(
-                tenant.enterprise_id, service.service_region, definition["lang_key"], "cnb")
+                tenant.enterprise_id, service.service_region, definition["lang_key"], "cnb")  # type: ignore[arg-type]  # NOTE: Optional region_name (latent)
             records = response.get("list", []) if isinstance(response, dict) else []
         except Exception as err:
             logger.debug("load enterprise cnb version policy failed: %s", err)
 
         return build_cnb_version_policy(service.language, records, [])
 
-    def get_services_list(self, team_id, region_name):
+    def get_services_list(self, team_id: str, region_name: str) -> Any:
         dsn = BaseConnection()
         query_sql = '''
             SELECT
@@ -88,7 +91,7 @@ class BaseService(object):
         services = dsn.query(query_sql)
         return services
 
-    def get_group_services_list(self, team_id, region_name, group_id, query=""):
+    def get_group_services_list(self, team_id: str, region_name: str, group_id: str, query: str = "") -> Any:
         dsn = BaseConnection()
         query_sql = '''
             SELECT
@@ -118,7 +121,7 @@ class BaseService(object):
         services = dsn.query(query_sql)
         return services
 
-    def get_no_group_services_list(self, team_id, region_name):
+    def get_no_group_services_list(self, team_id: str, region_name: str) -> Any:
         dsn = BaseConnection()
         query_sql = '''
             SELECT
@@ -147,7 +150,7 @@ class BaseService(object):
         services = dsn.query(query_sql)
         return services
 
-    def get_fuzzy_services_list(self, team_id, region_name, query_key, fields, order):
+    def get_fuzzy_services_list(self, team_id: str, region_name: str, query_key: str, fields: str, order: str) -> Any:
         if fields != "update_time" and fields != "ID":
             fields = "ID"
         if order != "desc" and order != "asc":
@@ -181,10 +184,11 @@ class BaseService(object):
         services = dsn.query(query_sql)
         return services
 
-    def status_multi_service(self, region, tenant_name, service_ids, enterprise_id):
+    def status_multi_service(self, region: str, tenant_name: str, service_ids: Any, enterprise_id: str) -> list:
         try:
             body = region_api.service_status(region, tenant_name, {"service_ids": service_ids, "enterprise_id": enterprise_id})
-            status_list = body["list"]
+            # NOTE: service_status may return None; a None index raises and is caught below (returns []).
+            status_list = body["list"]  # type: ignore[index]
             
             # 处理 KubeBlocks 组件状态和资源替换
             status_list = self._process_kubeblocks_status(status_list, service_ids, region)
@@ -194,7 +198,7 @@ class BaseService(object):
             logger.exception(e)
             return []
     
-    def _process_kubeblocks_status(self, status_list, service_ids, region):
+    def _process_kubeblocks_status(self, status_list: list, service_ids: Any, region: str) -> list:
         """处理 KubeBlocks 组件状态和资源信息替换"""
         try:
             from console.enum.component_enum import is_kubeblocks
@@ -224,32 +228,35 @@ class BaseService(object):
             logger.exception(f"处理 KubeBlocks 状态失败: {str(e)}")
             return status_list
 
-    def get_watch_managed(self, region_name, tenant_name, region_app_id):
+    def get_watch_managed(self, region_name: str, tenant_name: str, region_app_id: str) -> Any:
         try:
             body = region_api.watch_operator_managed(region_name, tenant_name, region_app_id)
-            return body.get("bean")
+            # NOTE: watch_operator_managed may return None; a None .get raises and is caught below (returns {}).
+            return body.get("bean")  # type: ignore[union-attr]
         except Exception as e:
             logger.exception(e)
             return {}
 
-    def get_apps_deploy_versions(self, region, tenant_name, service_ids):
+    def get_apps_deploy_versions(self, region: str, tenant_name: str, service_ids: Any) -> list:
         data = {"service_ids": service_ids}
         try:
             res, body = region_api.get_team_services_deploy_version(region, tenant_name, data)
-            return body["list"]
+            # NOTE: get_team_services_deploy_version may return None body; None index raises and is caught (returns []).
+            return body["list"]  # type: ignore[index]
         except Exception as e:
             logger.exception(e)
             return []
 
-    def get_app_deploy_version(self, region, tenant_name, service_alias):
+    def get_app_deploy_version(self, region: str, tenant_name: str, service_alias: str) -> Any:
         try:
             res, body = region_api.get_service_deploy_version(region, tenant_name, service_alias)
-            return body["bean"]
+            # NOTE: get_service_deploy_version may return None body; None index raises and is caught (returns None).
+            return body["bean"]  # type: ignore[index]
         except Exception as e:
             logger.exception(e)
             return None
 
-    def get_enterprise_group_services(self, enterprise_id):
+    def get_enterprise_group_services(self, enterprise_id: str) -> Any:
         where = 'WHERE group_id IN (SELECT ID FROM service_group WHERE tenant_id IN (SELECT tenant_id FROM ' \
                 'tenant_info WHERE enterprise_id="{enterprise_id}")) '.format(enterprise_id=enterprise_id)
         group_by = "GROUP BY group_id"
@@ -265,11 +272,11 @@ class BaseService(object):
         result = conn.query(sql)
         return result
 
-    def get_build_infos(self, tenant, service_ids):
+    def get_build_infos(self, tenant: Tenants, service_ids: Any) -> dict:
         from console.repositories.service_repo import service_repo
-        apps = dict()
-        markets = dict()
-        build_infos = dict()
+        apps: dict = dict()
+        markets: dict = dict()
+        build_infos: dict = dict()
         services = service_repo.list_by_component_ids(service_ids=service_ids)
         svc_sources = service_source_repo.get_service_sources(team_id=tenant.tenant_id, service_ids=service_ids)
         service_sources = {svc_ss.service_id: svc_ss for svc_ss in svc_sources}
@@ -306,7 +313,8 @@ class BaseService(object):
                 "language": service.language,
                 "build_strategy": build_strategy,
                 "oauth_service_id": service.oauth_service_id,
-                "full_name": service.git_full_name
+                "full_name": service.git_full_name,
+                "dockerfile": service.dockerfile or ""
             }
             bean["build_env_dict"] = build_env_dict
             if service_source:
@@ -334,12 +342,15 @@ class BaseService(object):
                             market = markets.get(market_name, None)
                             if not market:
                                 market = app_market_service.get_app_market_by_name(
-                                    tenant.enterprise_id, market_name, raise_exception=True)
+                                    # NOTE: tenant.enterprise_id is Optional[str]; potential None passed as str
+                                    tenant.enterprise_id, market_name, raise_exception=True)  # type: ignore[arg-type]
                                 markets[market_name] = market
 
                             app = apps.get(service_source.group_key, None)
                             if not app:
-                                app, _ = app_market_service.cloud_app_model_to_db_model(market, service_source.group_key, None)
+                                # NOTE: service_source.group_key is Optional[str]; potential None passed as app_id str
+                                app, _ = app_market_service.cloud_app_model_to_db_model(
+                                    market, service_source.group_key, None)  # type: ignore[arg-type]
                                 apps[service_source.group_key] = app
 
                             bean["market_error_code"] = 200
@@ -357,7 +368,9 @@ class BaseService(object):
                         bean["app_detail_url"] = app.describe
                 if not app:
                     try:
-                        app = market_app_service.get_rainbond_app(tenant.enterprise_id, service_source.group_key)
+                        # tenant.enterprise_id / service_source.group_key are Optional[str]; get_rainbond_app declares str
+                        app = market_app_service.get_rainbond_app(
+                            tenant.enterprise_id, service_source.group_key)  # type: ignore[arg-type]
                     except RbdAppNotFound:
                         logger.warning("not found app {0} version {1} in local market".format(
                             service_source.group_key, service_source.version))
@@ -377,14 +390,15 @@ class BaseService(object):
             build_infos[service.service_id] = bean
         return build_infos
 
-    def get_not_run_services_request_memory(self, tenant, services):
+    def get_not_run_services_request_memory(self, tenant: Tenants, services: Any) -> int:
         if not services or len(services) == 0:
             return 0
-        not_run_service_ids = []
+        not_run_service_ids: list = []
         memory = 0
         service_ids = [service.service_id for service in services]
+        # NOTE: Tenants.enterprise_id is Optional[str]; only forwarded into a request body dict, so None is benign here.
         service_status_list = self.status_multi_service(services[0].service_region, tenant.tenant_name, service_ids,
-                                                        tenant.enterprise_id)
+                                                        tenant.enterprise_id)  # type: ignore[arg-type]
         if service_status_list:
             for status_map in service_status_list:
                 if status_map.get("status") in ["undeploy", "closed"]:

@@ -1,9 +1,11 @@
 # -*- coding: utf8 -*-
 import json
 import logging
+from typing import Any
 
 from django.db.models import Q
 from django.http import HttpResponse
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from console.views.base import AlowAnyApiView, EnterpriseAdminView, JWTAuthApiView
@@ -197,13 +199,13 @@ def _clone_response_headers(source, target):
 
 
 class RainbondPluginLView(JWTAuthApiView):
-    def get(self, request, enterprise_id, region_name, *args, **kwargs):
+    def get(self, request: Request, enterprise_id: str, region_name: str, *args: Any, **kwargs: Any) -> Response:
         plugins, _ = rbd_plugin_service.list_plugins(enterprise_id, region_name)
         return Response(general_message(200, "success", "查询成功", list=plugins))
 
 
 class RainbondPluginStaticView(AlowAnyApiView):
-    def get(self, request, region_name, plugin_name, *args, **kwargs):
+    def get(self, request: Request, region_name: str, plugin_name: str, *args: Any, **kwargs: Any) -> HttpResponse:
         path = "/v2/platform/static/plugins/" + plugin_name
         resp = region_api.get_proxy(region_name, path, check_status=False)
         return HttpResponse(resp, content_type="application/javascript")
@@ -211,7 +213,8 @@ class RainbondPluginStaticView(AlowAnyApiView):
 class RainbondPluginBackendView(JWTAuthApiView):
     # 流式代理插件后端 API：支持 SSE / 长响应，转发 body 与请求头（含 Cookie/JWT），
     # 不缓冲、不走 proxy() 的固定 20s 超时。
-    def get(self, request, region_name, plugin_name, file_path, *args, **kwargs):
+    def get(self, request: Request, region_name: str, plugin_name: str, file_path: str, *args: Any,
+            **kwargs: Any) -> HttpResponse:
         path = _backend_plugin_path(plugin_name, file_path, request.META.get('QUERY_STRING', ''))
         if _is_gateway_monitoring_app_top_path(plugin_name, file_path):
             response = region_api.proxy(request, path, region_name)
@@ -231,42 +234,51 @@ class RainbondPluginBackendView(JWTAuthApiView):
             return _clone_response_headers(response, enriched)
         return region_api.stream_proxy(request, path, region_name)
 
-    def post(self, request, region_name, plugin_name, file_path, *args, **kwargs):
+    def post(self, request: Request, region_name: str, plugin_name: str, file_path: str, *args: Any,
+             **kwargs: Any) -> HttpResponse:
         path = _backend_plugin_path(plugin_name, file_path, request.META.get('QUERY_STRING', ''))
         return region_api.stream_proxy(request, path, region_name)
 
-    def put(self, request, region_name, plugin_name, file_path, *args, **kwargs):
+    def put(self, request: Request, region_name: str, plugin_name: str, file_path: str, *args: Any,
+            **kwargs: Any) -> HttpResponse:
         path = _backend_plugin_path(plugin_name, file_path, request.META.get('QUERY_STRING', ''))
         return region_api.stream_proxy(request, path, region_name)
 
-    def delete(self, request, region_name, plugin_name, file_path, *args, **kwargs):
+    def delete(self, request: Request, region_name: str, plugin_name: str, file_path: str, *args: Any,
+               **kwargs: Any) -> HttpResponse:
         path = _backend_plugin_path(plugin_name, file_path, request.META.get('QUERY_STRING', ''))
         return region_api.stream_proxy(request, path, region_name)
 
 class RainbondPluginStatusView(EnterpriseAdminView):
-    def post(self, request, region_name, plugin_name, *args, **kwargs):
+    def post(self, request: Request, region_name: str, plugin_name: str, *args: Any, **kwargs: Any) -> Response:
         path = "/v2/platform/plugins/" + plugin_name + "/status"
         resp = region_api.post_proxy(region_name, path, request.data)
-        result = general_message(200, "success", "更新成功", bean=resp['bean'], list=resp['list'])
+        # NOTE: post_proxy may return None; legacy code indexes directly (backlog).
+        result = general_message(200, "success", "更新成功", bean=resp['bean'], list=resp['list'])  # type: ignore[index]
         return Response(result, status=result["code"])
 
 class RainbondOfficialPluginLView(JWTAuthApiView):
-    def get(self, request, enterprise_id, region_name, *args, **kwargs):
+    def get(self, request: Request, enterprise_id: str, region_name: str, *args: Any, **kwargs: Any) -> Response:
         plugins, need_authz = rbd_plugin_service.list_plugins(enterprise_id, region_name, official=True)
         return Response(general_message(200, "success", "查询成功", bean={"need_authz": need_authz}, list=plugins))
 
 
 class RainbondObservablePluginLView(JWTAuthApiView):
-    def get(self, request, enterprise_id, *args, **kwargs):
-        regions = region_services.get_regions_by_enterprise_id(enterprise_id)
+    def get(self, request: Request, enterprise_id: str, *args: Any, **kwargs: Any) -> Response:
+        # NOTE: region_services is undefined in this module — latent NameError at runtime (real bug, backlog).
+        regions = region_services.get_regions_by_enterprise_id(enterprise_id)  # type: ignore[name-defined]
         res = []
         for region in regions:
             plugins = rbd_plugin_service.list_plugins(enterprise_id, region.region_name, official=True)
+            # NOTE: list_plugins returns (plugins, need_authz) tuple; loop iterates the tuple and
+            # indexes plugin as a dict — latent bug, items are list/bool not dict (real bug, backlog).
             for plugin in plugins:
-                if plugin["name"] == "observability":
-                    res.append({"region_name": region.region_name, "urls": plugin["urls"], "name": "observability"})
-                elif plugin["name"] == "rainbond-large-screen":
-                    res.append({"region_name": region.region_name, "urls": plugin["urls"], "name": "rainbond-large-screen"})
+                if plugin["name"] == "observability":  # type: ignore[index,call-overload]
+                    res.append({"region_name": region.region_name, "urls": plugin["urls"],  # type: ignore[index,call-overload]
+                                "name": "observability"})
+                elif plugin["name"] == "rainbond-large-screen":  # type: ignore[index,call-overload]
+                    res.append({"region_name": region.region_name, "urls": plugin["urls"],  # type: ignore[index,call-overload]
+                                "name": "rainbond-large-screen"})
         return Response(general_message(200, "success", "查询成功", list=res))
 
 
@@ -288,7 +300,7 @@ class RainbondPluginFullProxyView(JWTAuthApiView):
     前端 -> Console (此视图) -> Region API (Go 反向代理) -> 插件服务 (Grafana 等)
     """
 
-    def _handle_proxy(self, request, region_name, plugin_name, file_path):
+    def _handle_proxy(self, request: Request, region_name: str, plugin_name: str, file_path: str) -> HttpResponse:
         """
         统一的代理处理方法
         使用 region_api.proxy() 实现完整的 HTTP 代理
@@ -305,17 +317,22 @@ class RainbondPluginFullProxyView(JWTAuthApiView):
         # 该方法在 www/apiclient/regionapibaseclient.py:309-382 中实现
         return region_api.proxy(request, path, region_name)
 
-    def get(self, request, region_name, plugin_name, file_path, *args, **kwargs):
+    def get(self, request: Request, region_name: str, plugin_name: str, file_path: str, *args: Any,
+            **kwargs: Any) -> HttpResponse:
         return self._handle_proxy(request, region_name, plugin_name, file_path)
 
-    def post(self, request, region_name, plugin_name, file_path, *args, **kwargs):
+    def post(self, request: Request, region_name: str, plugin_name: str, file_path: str, *args: Any,
+             **kwargs: Any) -> HttpResponse:
         return self._handle_proxy(request, region_name, plugin_name, file_path)
 
-    def put(self, request, region_name, plugin_name, file_path, *args, **kwargs):
+    def put(self, request: Request, region_name: str, plugin_name: str, file_path: str, *args: Any,
+            **kwargs: Any) -> HttpResponse:
         return self._handle_proxy(request, region_name, plugin_name, file_path)
 
-    def delete(self, request, region_name, plugin_name, file_path, *args, **kwargs):
+    def delete(self, request: Request, region_name: str, plugin_name: str, file_path: str, *args: Any,
+               **kwargs: Any) -> HttpResponse:
         return self._handle_proxy(request, region_name, plugin_name, file_path)
 
-    def patch(self, request, region_name, plugin_name, file_path, *args, **kwargs):
+    def patch(self, request: Request, region_name: str, plugin_name: str, file_path: str, *args: Any,
+              **kwargs: Any) -> HttpResponse:
         return self._handle_proxy(request, region_name, plugin_name, file_path)

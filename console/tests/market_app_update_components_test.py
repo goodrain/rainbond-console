@@ -3,12 +3,19 @@ import collections
 import json
 import os
 import sys
+import typing
 from types import ModuleType
 from unittest import TestCase
 
 for attr in ("Mapping", "MutableMapping", "Sequence", "Iterable", "Iterator"):
     if not hasattr(collections, attr):
         setattr(collections, attr, getattr(collections.abc, attr))
+if not hasattr(typing, "NotRequired"):
+    try:
+        from typing_extensions import NotRequired
+        typing.NotRequired = NotRequired
+    except ImportError:
+        typing.NotRequired = lambda item: item
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "src", "openapi-client")))
 sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
@@ -18,6 +25,11 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
 import django  # noqa: E402
 
 django.setup()
+
+from django.db.models.query import QuerySet  # noqa: E402
+
+if not hasattr(QuerySet, "__class_getitem__"):
+    QuerySet.__class_getitem__ = classmethod(lambda cls, item: cls)
 
 from console.services.market_app.update_components import UpdateComponents  # noqa: E402
 from console.services.market_app.new_components import NewComponents  # noqa: E402
@@ -176,3 +188,71 @@ class MarketAppNewComponentsVMK8sAttrsTests(TestCase):
         component = creator._template_to_component("tenant-a", template)
 
         self.assertEqual("vm", component.service_type)
+
+
+class MarketAppNewComponentsResourceLimitTests(TestCase):
+    # capability_id: console.market-app.install-unlimited-resources
+    def test_template_to_component_preserves_explicit_unlimited_cpu_and_memory(self):
+        creator = NewComponents.__new__(NewComponents)
+        creator.user = type("FakeUser", (), {"pk": 1})()
+        creator.region_name = "demo-region"
+        creator.original_app = type("FakeApp", (), {"upgrade_group_id": 1})()
+        creator.is_deploy = False
+        template = {
+            "service_cname": "nginx",
+            "service_key": "service-1",
+            "version": "alpine",
+            "deploy_version": "20260622152758",
+            "arch": "amd64",
+            "share_image": "goodrain.me/nginx:20260622152758",
+            "image": "registry.example.com/nginx:alpine",
+            "extend_method": "stateless_multiple",
+            "service_type": "application",
+            "memory": 0,
+            "cpu": 0,
+            "extend_method_map": {
+                "min_node": 1,
+                "min_memory": 64,
+                "init_memory": 0,
+                "max_memory": 65536,
+                "step_memory": 64,
+            },
+        }
+
+        component = creator._template_to_component("tenant-a", template)
+
+        self.assertEqual(0, component.min_memory)
+        self.assertEqual(0, component.min_cpu)
+        self.assertEqual(0, component.total_memory)
+
+    def test_template_to_component_defaults_daemonset_node_when_node_scaling_is_absent(self):
+        creator = NewComponents.__new__(NewComponents)
+        creator.user = type("FakeUser", (), {"pk": 1})()
+        creator.region_name = "demo-region"
+        creator.original_app = type("FakeApp", (), {"upgrade_group_id": 1})()
+        creator.is_deploy = False
+        template = {
+            "service_cname": "agent",
+            "service_key": "service-1",
+            "version": "alpine",
+            "deploy_version": "20260622152758",
+            "arch": "amd64",
+            "share_image": "goodrain.me/agent:20260622152758",
+            "image": "registry.example.com/agent:alpine",
+            "extend_method": "daemonset",
+            "service_type": "application",
+            "extend_method_map": {
+                "min_memory": 64,
+                "init_memory": 1024,
+                "max_memory": 65536,
+                "step_memory": 64,
+                "container_cpu": 600,
+            },
+        }
+
+        component = creator._template_to_component("tenant-a", template)
+
+        self.assertEqual(1, component.min_node)
+        self.assertEqual(1024, component.min_memory)
+        self.assertEqual(600, component.min_cpu)
+        self.assertEqual(1024, component.total_memory)

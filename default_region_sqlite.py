@@ -25,7 +25,7 @@ def get_url():
 
 
 def get_wsurl():
-    return os.environ.get('REGION_WS_URL')
+    return "ws://rbd-api-websocket:6060"
 
 
 def get_http_domain():

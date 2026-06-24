@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from django.conf.urls import url
+from django.urls import re_path
 
 from console.views.team_resources import (
     NsResourceTypesView,
@@ -19,34 +19,34 @@ from console.views.team_resources import (
 )
 
 urlpatterns = [
-    url(r'^teams/(?P<team_name>[^/]+)/regions/(?P<region_name>[^/]+)/components$',
+    re_path(r'^teams/(?P<team_name>[^/]+)/regions/(?P<region_name>[^/]+)/components$',
         TeamComponentsView.as_view()),
-    url(r'^teams/(?P<team_name>[^/]+)/regions/(?P<region_name>[^/]+)/ns-resource-types$',
+    re_path(r'^teams/(?P<team_name>[^/]+)/regions/(?P<region_name>[^/]+)/ns-resource-types$',
         NsResourceTypesView.as_view()),
-    url(r'^teams/(?P<team_name>[^/]+)/regions/(?P<region_name>[^/]+)/ns-resources$',
+    re_path(r'^teams/(?P<team_name>[^/]+)/regions/(?P<region_name>[^/]+)/ns-resources$',
         NsResourcesView.as_view()),
-    url(r'^teams/(?P<team_name>[^/]+)/regions/(?P<region_name>[^/]+)/ns-resources/(?P<name>[^/]+)$',
+    re_path(r'^teams/(?P<team_name>[^/]+)/regions/(?P<region_name>[^/]+)/ns-resources/(?P<name>[^/]+)$',
         NsResourceDetailView.as_view()),
-    url(r'^teams/(?P<team_name>[^/]+)/regions/(?P<region_name>[^/]+)/helm/releases$',
+    re_path(r'^teams/(?P<team_name>[^/]+)/regions/(?P<region_name>[^/]+)/helm/releases$',
         HelmReleasesView.as_view()),
-    url(r'^teams/(?P<team_name>[^/]+)/regions/(?P<region_name>[^/]+)/helm/chart-preview$',
+    re_path(r'^teams/(?P<team_name>[^/]+)/regions/(?P<region_name>[^/]+)/helm/chart-preview$',
         HelmChartPreviewView.as_view()),
-    url(r'^teams/(?P<team_name>[^/]+)/regions/(?P<region_name>[^/]+)/helm/releases/(?P<release_name>[^/]+)$',
+    re_path(r'^teams/(?P<team_name>[^/]+)/regions/(?P<region_name>[^/]+)/helm/releases/(?P<release_name>[^/]+)$',
         HelmReleaseDetailView.as_view()),
-    url(r'^teams/(?P<team_name>[^/]+)/regions/(?P<region_name>[^/]+)/helm/releases/(?P<release_name>[^/]+)/history$',
+    re_path(r'^teams/(?P<team_name>[^/]+)/regions/(?P<region_name>[^/]+)/helm/releases/(?P<release_name>[^/]+)/history$',
         HelmReleaseHistoryView.as_view()),
-    url(r'^teams/(?P<team_name>[^/]+)/regions/(?P<region_name>[^/]+)/helm/releases/(?P<release_name>[^/]+)/rollback$',
+    re_path(r'^teams/(?P<team_name>[^/]+)/regions/(?P<region_name>[^/]+)/helm/releases/(?P<release_name>[^/]+)/rollback$',
         HelmReleaseRollbackView.as_view()),
-    url(
+    re_path(
         r'^teams/(?P<team_name>[^/]+)/regions/(?P<region_name>[^/]+)/resource-center/workloads/'
         r'(?P<resource>[^/]+)/(?P<name>[^/]+)$',
         ResourceCenterWorkloadDetailView.as_view()),
-    url(r'^teams/(?P<team_name>[^/]+)/regions/(?P<region_name>[^/]+)/resource-center/pods/(?P<pod_name>[^/]+)$',
+    re_path(r'^teams/(?P<team_name>[^/]+)/regions/(?P<region_name>[^/]+)/resource-center/pods/(?P<pod_name>[^/]+)$',
         ResourceCenterPodDetailView.as_view()),
-    url(r'^teams/(?P<team_name>[^/]+)/regions/(?P<region_name>[^/]+)/resource-center/events$',
+    re_path(r'^teams/(?P<team_name>[^/]+)/regions/(?P<region_name>[^/]+)/resource-center/events$',
         ResourceCenterEventsView.as_view()),
-    url(r'^teams/(?P<team_name>[^/]+)/regions/(?P<region_name>[^/]+)/resource-center/pods/(?P<pod_name>[^/]+)/logs$',
+    re_path(r'^teams/(?P<team_name>[^/]+)/regions/(?P<region_name>[^/]+)/resource-center/pods/(?P<pod_name>[^/]+)/logs$',
         ResourceCenterPodLogsView.as_view()),
-    url(r'^teams/(?P<team_name>[^/]+)/regions/(?P<region_name>[^/]+)/resource-center/ws-info$',
+    re_path(r'^teams/(?P<team_name>[^/]+)/regions/(?P<region_name>[^/]+)/resource-center/ws-info$',
         ResourceCenterWSInfoView.as_view()),
 ]

@@ -165,7 +165,7 @@ function check_ports_only_macos() {
   fi
 
   # Check ports
-  local ports=("7070" "80" "443" "6060")
+  local ports=("7070" "80" "443")
   local occupied_ports=()
   
   for port in "${ports[@]}"; do
@@ -345,7 +345,7 @@ function check_base_env() {
   fi
 
   # Check ports
-  local ports=("7070" "80" "443" "6060")
+  local ports=("7070" "80" "443")
   local occupied_ports=()
   
   for port in "${ports[@]}"; do
@@ -578,12 +578,12 @@ docker run --privileged -d \\
   -p 7070:7070 \\
   -p 80:80 \\
   -p 443:443 \\
-  -p 6060:6060 \\
   -p 30000-30010:30000-30010 \\
   --name=rainbond \\
   --restart=always \\
   ${VOLUME_OPTS}\\
   -e EIP=${EIP} \\
+  -e REGION_WS_PROXY_TARGET=ws://127.0.0.1:6060 \\
   -e UUID=${UUID} \\
   ${IMAGE}
 EOF
@@ -595,12 +595,12 @@ docker run --privileged -d \\
   -p 7070:7070 \\
   -p 80:80 \\
   -p 443:443 \\
-  -p 6060:6060 \\
   -p 30000-30010:30000-30010 \\
   --name=rainbond \\
   --restart=always \\
   ${VOLUME_OPTS}\\
   -e EIP=${EIP} \\
+  -e REGION_WS_PROXY_TARGET=ws://127.0.0.1:6060 \\
   -e UUID=${UUID} \\
   ${IMAGE}
 EOF
@@ -1508,8 +1508,8 @@ elif [ "$OS_TYPE" = "Darwin" ]; then
 fi
 
 # Generate cmd
-docker_run_cmd="docker run --privileged -d --gpus all -p 7070:7070 -p 80:80 -p 443:443 -p 6060:6060 -p 30000-30010:30000-30010 --name=rainbond --restart=always \
-${VOLUME_OPTS} -e ENABLE_GPU=${ENABLE_GPU} -e GPU_PROVIDER=${GPU_PROVIDER} -e GPU_RUNTIME_CLASS_NAME=${GPU_RUNTIME_CLASS_NAME} -e NVIDIA_VISIBLE_DEVICES=${NVIDIA_VISIBLE_DEVICES} -e NVIDIA_DRIVER_CAPABILITIES=${NVIDIA_DRIVER_CAPABILITIES} -e EIP=$EIP -e UUID=${UUID} ${RBD_IMAGE}"
+docker_run_cmd="docker run --privileged -d --gpus all -p 7070:7070 -p 80:80 -p 443:443 -p 30000-30010:30000-30010 --name=rainbond --restart=always \
+${VOLUME_OPTS} -e ENABLE_GPU=${ENABLE_GPU} -e GPU_PROVIDER=${GPU_PROVIDER} -e GPU_RUNTIME_CLASS_NAME=${GPU_RUNTIME_CLASS_NAME} -e NVIDIA_VISIBLE_DEVICES=${NVIDIA_VISIBLE_DEVICES} -e NVIDIA_DRIVER_CAPABILITIES=${NVIDIA_DRIVER_CAPABILITIES} -e EIP=$EIP -e REGION_WS_PROXY_TARGET=ws://127.0.0.1:6060 -e UUID=${UUID} ${RBD_IMAGE}"
 send_info "$docker_run_cmd"
 
 # Pull image with retry mechanism
@@ -1731,7 +1731,6 @@ if [ "$LANG" == "zh_CN.UTF-8" ]; then
 #     - 7070: 控制台访问端口
 #     - 80:   HTTP 服务端口
 #     - 443:  HTTPS 服务端口
-#     - 6060: WebSocket 端口
 #
 # 文档和支持:
 #     📖 文档: https://www.rainbond.com/docs
@@ -1755,7 +1754,6 @@ EOF
 #     - 7070: 控制台访问端口
 #     - 80:   HTTP 服务端口
 #     - 443:  HTTPS 服务端口
-#     - 6060: WebSocket 端口
 #
 # 监控命令:
 #     docker exec -it rainbond bash
@@ -1789,7 +1787,6 @@ else
 #     - 7070: Console access port
 #     - 80:   HTTP service port
 #     - 443:  HTTPS service port
-#     - 6060: WebSocket port
 #
 # Documentation and Support:
 #     📖 Docs: https://www.rainbond.com/docs
@@ -1814,7 +1811,6 @@ EOF
 #     - 7070: Console access port
 #     - 80:   HTTP service port
 #     - 443:  HTTPS service port
-#     - 6060: WebSocket port
 #
 # Monitoring Commands:
 #     docker exec -it rainbond bash

@@ -1,0 +1,220 @@
+name: claude
+
+# Comment "/claude" in an issue or issue comment (in this repo) and Claude Code
+# will analyze the request, figure out which Rainbond repo actually needs the
+# fix (rainbond / rainbond-console / rainbond-ui), make the change, run that
+# repo's quality gate, and open a PR back-linked to the issue.
+#
+# Only members/collaborators (people with write access) can trigger it, so
+# random visitors cannot burn your Anthropic credits.
+
+on:
+  issue_comment:
+    types: [created]
+  issues:
+    types: [opened]
+  pull_request_review_comment:
+    types: [created]
+
+# Token used by the action is the GitHub App token (cross-repo). These job
+# permissions cover the action's own bookkeeping on THIS repo.
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+  actions: read      # read CI run logs in PR mode (fix failing checks)
+  checks: read       # read PR check status in PR mode
+  id-token: write
+
+jobs:
+  claude:
+    # Gate: trigger phrase present AND author has write access.
+    if: |
+      (github.event_name == 'issue_comment' &&
+        contains(github.event.comment.body, '/claude') &&
+        (github.event.comment.author_association == 'OWNER' ||
+         github.event.comment.author_association == 'MEMBER' ||
+         github.event.comment.author_association == 'COLLABORATOR')) ||
+      (github.event_name == 'pull_request_review_comment' &&
+        contains(github.event.comment.body, '/claude') &&
+        (github.event.comment.author_association == 'OWNER' ||
+         github.event.comment.author_association == 'MEMBER' ||
+         github.event.comment.author_association == 'COLLABORATOR')) ||
+      (github.event_name == 'issues' &&
+        contains(github.event.issue.body, '/claude') &&
+        (github.event.issue.author_association == 'OWNER' ||
+         github.event.issue.author_association == 'MEMBER' ||
+         github.event.issue.author_association == 'COLLABORATOR'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      # 1) Mint a token that can write to ALL three repos.
+      - name: Generate cross-repo GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.CLAUDE_APP_ID }}
+          private-key: ${{ secrets.CLAUDE_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: |
+            rainbond
+            rainbond-console
+            rainbond-ui
+
+      # 2) Check out the triggering repo (rainbond/Go) for immediate context.
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          fetch-depth: 0
+
+      # 3) Make git/gh use the cross-repo token, and resolve the App's bot
+      #    identity so commits are authored by the app (not claude[bot]) and the
+      #    DCO sign-off matches the author. Exported as env for the agent to apply
+      #    inside each cloned repo before committing.
+      - name: Configure git auth and bot identity
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          APP_SLUG: ${{ steps.app-token.outputs.app-slug }}
+        run: |
+          gh auth setup-git
+          BOT_ID=$(gh api "/users/${APP_SLUG}[bot]" --jq .id)
+          BOT_NAME="${APP_SLUG}[bot]"
+          BOT_EMAIL="${BOT_ID}+${APP_SLUG}[bot]@users.noreply.github.com"
+          git config --global user.name "$BOT_NAME"
+          git config --global user.email "$BOT_EMAIL"
+          echo "BOT_NAME=$BOT_NAME" >> "$GITHUB_ENV"
+          echo "BOT_EMAIL=$BOT_EMAIL" >> "$GITHUB_ENV"
+          echo "bot identity: $BOT_NAME <$BOT_EMAIL>"
+
+      # 4) Run Claude in agent mode with explicit cross-repo instructions.
+      - name: Run Claude Code
+        uses: anthropics/claude-code-action@v1
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          # Third-party Anthropic-compatible endpoint. Stored as a SECRET (not a
+          # var) so a private relay domain is masked in public Actions logs.
+          # Leave the secret empty to use the official Anthropic API.
+          ANTHROPIC_BASE_URL: ${{ secrets.ANTHROPIC_BASE_URL }}
+          # Bearer-auth third parties need ANTHROPIC_AUTH_TOKEN (sent as
+          # "Authorization: Bearer ..."), which takes precedence over x-api-key.
+          # For the OFFICIAL Anthropic API leave this secret empty and instead
+          # set the ANTHROPIC_API_KEY secret below.
+          ANTHROPIC_AUTH_TOKEN: ${{ secrets.ANTHROPIC_AUTH_TOKEN }}
+        with:
+          # Satisfies the action's auth preflight. When ANTHROPIC_AUTH_TOKEN is
+          # set above, Claude Code uses the Bearer token and ignores this.
+          anthropic_api_key: ${{ secrets.ANTHROPIC_AUTH_TOKEN || secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ steps.app-token.outputs.token }}
+          # Post a live-updating progress comment on the issue (todo checklist +
+          # current action). Better than log-watching: visible on the issue and
+          # safe on public repos (it is a comment, not secret-bearing logs).
+          track_progress: true
+          # Full transcript in the Actions log ONLY on private repos. On public
+          # repos (e.g. goodrain) this auto-disables so runtime values the agent
+          # prints are not exposed in the world-readable logs.
+          show_full_output: ${{ github.event.repository.private }}
+          # --max-turns caps how long the agent runs => caps token spend.
+          # --allowedTools lets the agent run git/gh/build commands non-interactively;
+          #   without it every Bash call is denied (permission_denials) and nothing happens.
+          # --model sets the third-party model name (e.g. deepseek-chat).
+          # Set vars.ANTHROPIC_MODEL to override; defaults to the official model.
+          claude_args: "--max-turns 120 --allowedTools Bash,Edit,MultiEdit,Write,Read,Glob,Grep,TodoWrite,WebFetch ${{ vars.ANTHROPIC_MODEL && format('--model {0}', vars.ANTHROPIC_MODEL) || '' }}"
+          prompt: |
+            You are an automated engineer for the Rainbond platform. Issue
+            #${{ github.event.issue.number }} was filed in the
+            ${{ github.repository }} repository.
+
+            The Rainbond platform spans three repos under the
+            "${{ github.repository_owner }}" GitHub org:
+              - ${{ github.repository_owner }}/rainbond         (Go, port 8443) core services
+                (API/builder/worker); the only layer that talks to Kubernetes.
+              - ${{ github.repository_owner }}/rainbond-console (Python / Django, port 7070)
+                web backend; serves the UI and orchestrates calls to rainbond via
+                RegionInvokeApi (HTTP to /v2/tenants/...). Shares the MySQL instance
+                with rainbond but uses a separate logical DB (no shared tables).
+              - ${{ github.repository_owner }}/rainbond-ui      (React / UMI) frontend dashboard;
+                calls console at /console/* and /openapi/v1/*.
+
+            Request flow: rainbond-ui -> rainbond-console -> rainbond -> Kubernetes.
+            Each repo has its own CLAUDE.md and AGENTS.md with detailed conventions —
+            ALWAYS read the target repo's CLAUDE.md before changing it.
+
+            The current working directory is a checkout of the rainbond (Go) repo.
+
+            Steps:
+            0. Determine context. Run:
+                 gh pr view ${{ github.event.issue.number }} --repo ${{ github.repository }}
+               If #${{ github.event.issue.number }} IS a pull request, use PR MODE
+               below and STOP (skip the issue steps). Otherwise it is an issue —
+               continue at step 1.
+
+            PR MODE (iterate on THIS existing PR — never open a new PR):
+               - Check out the PR branch:
+                   gh pr checkout ${{ github.event.issue.number }} --repo ${{ github.repository }}
+               - Do what the comment asks. If asked to fix failing CI:
+                   gh pr checks ${{ github.event.issue.number }} --repo ${{ github.repository }}
+                 open the failing check's logs (e.g. gh run view --log --job=<id>),
+                 find the real cause, and fix it.
+               - Set the bot identity (git config user.name "$BOT_NAME";
+                 git config user.email "$BOT_EMAIL"), then `git commit -s` and
+                 `git push` to the SAME PR branch. Do NOT create a new branch or PR.
+               - Comment on the PR with a short summary of what you changed.
+
+            ISSUE MODE:
+            1. Read the full request and the triggering comment:
+               gh issue view ${{ github.event.issue.number }} --repo ${{ github.repository }} --comments
+            2. Pick a MODE based on what is actually being asked:
+               - ANSWER: it is a question → reply in an issue comment. No code, no PR.
+               - DESIGN: a feature / new requirement, or the comment says things
+                 like "设计 / 方案 / 讨论 / 先别写代码 / don't implement / just propose"
+                 → post a DESIGN PROPOSAL as an issue comment covering: affected
+                 repos & files, API / data-model / UX changes, a step-by-step plan,
+                 and risks / alternatives. DO NOT write code or open a PR.
+               - IMPLEMENT: an explicit ask to fix a bug or build something already
+                 agreed → follow steps 3-5 below.
+               When ambiguous: a clear bug → IMPLEMENT; a feature with no agreed
+               design → prefer DESIGN (propose first, do not build).
+               (Steps 3-5 apply to IMPLEMENT mode only.)
+            3. Decide which repo(s) ACTUALLY need the change. Do NOT assume it is
+               the Go repo — many issues filed here are really console (Python)
+               or ui (React) problems. Investigate the code before deciding.
+            4. For each repo that needs a change:
+               - If it is not the current repo, clone it:
+                   gh repo clone ${{ github.repository_owner }}/<repo> /tmp/<repo>
+                 then cd into it.
+               - Create branch: claude/issue-${{ github.event.issue.number }}-<short-slug>
+               - Add a regression test ONLY IF the repo already has a test
+                 framework (package.json has a "test" script, or pytest / go test
+                 exist) AND the test can exercise the REAL code path — import or
+                 call the actual code; NEVER copy the logic being fixed into the
+                 test (a copied snippet tests nothing and is dead weight). A good
+                 test FAILS before your change and PASSES after. If the repo has no
+                 test runner, or the fix can only be "tested" by duplicating
+                 logic, do NOT add a test — describe manual verification in the PR.
+               - Make the MINIMAL correct change. Follow that repo's CLAUDE.md.
+               - Run the repo's quality gate BEFORE committing:
+                   * rainbond (Go):         go build ./... && go vet ./...
+                   * rainbond-console (Py): make check && pytest (relevant subset)
+                   * rainbond-ui (React):   yarn install && yarn build
+               - Before committing in this repo, set the bot identity (overrides
+                 any default so the author is the app, not claude[bot]):
+                   git config user.name "$BOT_NAME"
+                   git config user.email "$BOT_EMAIL"
+                 Then commit with `git commit -s` (the -s Signed-off-by is REQUIRED
+                 by the repo's DCO check and matches the author above; it is NOT AI
+                 attribution). Use Conventional Commits, English, NO emoji and NO
+                 Co-authored-by / AI attribution lines.
+               - Push and open a PR:
+                   gh pr create -R ${{ github.repository_owner }}/<repo> --base main
+                 In the PR body, reference the issue:
+                   "Ref ${{ github.repository_owner }}/rainbond#${{ github.event.issue.number }}"
+            5. Comment on issue #${{ github.event.issue.number }} summarizing what
+               you did and linking the PR(s).
+
+            Hard rules:
+            - NEVER push to main. Always open a PR.
+            - If a quality gate fails and you cannot fix it, do NOT open the PR.
+              Instead comment on the issue explaining what you found and stop.
+            - Keep changes scoped to the issue. No drive-by refactors.
+            - If the issue is unclear or not reproducible, comment asking for
+              clarification instead of guessing.

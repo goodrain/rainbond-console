@@ -1,14 +1,17 @@
 # -*- coding: utf-8 -*-
 from datetime import datetime
+from typing import Any, Optional
+
+from django.db.models import QuerySet
 
 from console.models.main import ConsoleSysConfig
 
 
 class ConfigRepository(object):
-    def list_by_keys(self, keys):
+    def list_by_keys(self, keys: Any) -> QuerySet[ConsoleSysConfig]:
         return ConsoleSysConfig.objects.filter(enable=True, key__in=keys)
 
-    def delete_by_key(self, key):
+    def delete_by_key(self, key: str) -> None:
         KEYS = [
             "OPEN_DATA_CENTER_STATUS", "NEWBIE_GUIDE", "DOCUMENT", "OFFICIAL_DEMO", "EXPORT_APP", "CLOUD_MARKET",
             "REGISTER_STATUS"
@@ -22,30 +25,30 @@ class ConfigRepository(object):
         else:
             cfg.delete()
 
-    def update_by_key(self, key, value):
+    def update_by_key(self, key: str, value: Any) -> int:
         return ConsoleSysConfig.objects.filter(key=key).update(value=value)
 
-    def update_or_create_by_key(self, key, value):
+    def update_or_create_by_key(self, key: str, value: Any) -> None:
+        ConsoleSysConfig.objects.update_or_create(
+            key=key,
+            defaults={
+                "value": value,
+                "type": "json",
+                "desc": "git配置",
+                "enable": True,
+            },
+        )
+
+    def get_by_key(self, key: str) -> Optional[ConsoleSysConfig]:
         try:
-            obj = ConsoleSysConfig.objects.get(key=key)
-            setattr(obj, "value", value)
-            obj.save()
+            return ConsoleSysConfig.objects.get(key=key, enable=True)
         except ConsoleSysConfig.DoesNotExist:
-            ConsoleSysConfig.objects.create(
-                key=key,
-                value=value,
-                type="json",
-                desc="git配置",
-                enable=True,
-                create_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+            return None
 
-    def get_by_key(self, key):
-        return ConsoleSysConfig.objects.get(key=key, enable=True)
-
-    def get_by_value_eid(self, value):
+    def get_by_value_eid(self, value: Any) -> ConsoleSysConfig:
         return ConsoleSysConfig.objects.get(value=value, enable=True)
 
-    def create_token_record(self, key, value, eid):
+    def create_token_record(self, key: str, value: Any, eid: str) -> ConsoleSysConfig:
         return ConsoleSysConfig.objects.create(
             key=key,
             value=value,

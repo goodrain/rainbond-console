@@ -2,6 +2,8 @@
 import collections
 import os
 import sys
+import typing
+from addict import Dict
 from copy import deepcopy
 from types import ModuleType
 from unittest import TestCase, mock
@@ -9,6 +11,8 @@ from unittest import TestCase, mock
 for attr in ("Mapping", "MutableMapping", "Sequence", "Iterable", "Iterator"):
     if not hasattr(collections, attr):
         setattr(collections, attr, getattr(collections.abc, attr))
+if not hasattr(typing, "NotRequired"):
+    typing.NotRequired = typing.Optional
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "src", "openapi-client")))
 sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
@@ -20,7 +24,16 @@ import django  # noqa: E402
 
 django.setup()
 
+from django.db.models.query import QuerySet  # noqa: E402
+
+if not hasattr(QuerySet, "__class_getitem__"):
+    QuerySet.__class_getitem__ = classmethod(lambda cls, item: cls)
+
 from console.services.enterprise_first_deploy_service import EnterpriseFirstDeployService  # noqa: E402
+
+
+# capability_id: console.deploy-diagnostics.v3
+# capability_id: console.deploy-diagnostics.source-check
 
 
 class Obj(object):
@@ -31,25 +44,45 @@ class Obj(object):
 class FirstDeployRepoStub(object):
     def __init__(self, payload):
         self.record = Obj(key="record-key")
+        self.attempt_record = Obj(key="attempt-key")
         self.payload = deepcopy(payload)
+        self.attempt_payload = {}
         self.saved_payloads = []
+        self.created_payloads = []
 
     def get_by_enterprise_id(self, _enterprise_id):
         return self.record
 
     def update_payload(self, _record, payload):
-        self.payload = deepcopy(payload)
+        if getattr(_record, "key", "") == self.attempt_record.key:
+            self.attempt_payload = deepcopy(payload)
+        else:
+            self.payload = deepcopy(payload)
         self.saved_payloads.append(deepcopy(payload))
-        return self.record
+        return _record
 
     def get_by_key(self, _key):
+        if _key == self.attempt_record.key:
+            return self.attempt_record
         return self.record
 
     def list_tracking_records(self):
         return [self.record]
 
     def load_payload(self, _record):
+        if getattr(_record, "key", "") == self.attempt_record.key:
+            return deepcopy(self.attempt_payload)
         return deepcopy(self.payload)
+
+    def create_attempt(self, _enterprise_id, payload):
+        self.attempt_payload = deepcopy(payload)
+        self.created_payloads.append(deepcopy(payload))
+        return self.attempt_record, True
+
+    def create_if_absent(self, _enterprise_id, payload):
+        self.payload = deepcopy(payload)
+        self.created_payloads.append(deepcopy(payload))
+        return self.record, True
 
 
 class EnterpriseFirstDeployServiceTests(TestCase):
@@ -77,6 +110,61 @@ class EnterpriseFirstDeployServiceTests(TestCase):
 
         self.assertEqual(payload["service_ids"], ["service-1"])
 
+    def test_build_payload_includes_v3_diagnostic_context(self):
+        enterprise = Obj(enterprise_alias="demo-enterprise", enterprise_name="demo-enterprise")
+        service = Obj(
+            service_id="service-1",
+            service_alias="grabc123",
+            service_cname="用户订单服务",
+            service_source="source_code",
+            language="Java-maven",
+            arch="amd64",
+            build_strategy="cnb",
+            min_memory=512,
+            min_cpu=100,
+            min_node=2,
+            total_memory=1024,
+        )
+        app_context = {
+            "app_name": "客户生产应用",
+            "market_app_name": "WordPress",
+            "app_model_key": "wordpress",
+            "app_model_version": "1.0.0",
+            "component_count": 2,
+        }
+        environment_context = {
+            "collect_status": "success",
+            "node_count": 3,
+            "ready_nodes": 2,
+            "arch": ["amd64"],
+        }
+
+        with mock.patch("console.services.enterprise_first_deploy_service.TenantEnterprise.objects.filter") as mock_filter:
+            mock_filter.return_value.first.return_value = enterprise
+            payload = self.service._build_payload(
+                enterprise_id="eid-1",
+                tenant_name="demo-team",
+                region_name="demo-region",
+                deploy_type=self.service.DEPLOY_TYPE_SOURCE_CODE,
+                operator="admin",
+                source_language="Java",
+                service_id="service-1",
+                service_alias="grabc123",
+                service=service,
+                trigger="create_and_deploy",
+                app_context=app_context,
+                environment_context=environment_context)
+
+        self.assertEqual(payload["payload_version"], 3)
+        self.assertEqual(payload["deployment_context"]["trigger"], "create_and_deploy")
+        self.assertEqual(payload["deployment_context"]["service_source"], "source_code")
+        self.assertEqual(payload["app_context"]["market_app_name"], "WordPress")
+        self.assertEqual(payload["app_context"]["app_name_hash"], self.service._hash_identifier("eid-1", "客户生产应用"))
+        self.assertNotIn("app_name", payload["app_context"])
+        self.assertEqual(payload["environment_context"]["node_count"], 3)
+        self.assertEqual(payload["workload_context"]["total_memory"], 1024)
+        self.assertEqual(payload["workload_context"]["min_node"], 2)
+
     def test_begin_tracking_does_not_block_on_pending_report(self):
         self.service.report_async = True
         payload = {
@@ -95,7 +183,12 @@ class EnterpriseFirstDeployServiceTests(TestCase):
 
         with mock.patch("console.services.enterprise_first_deploy_service.enterprise_first_deploy_repo", repo), \
                 mock.patch.object(self.service, "_start_report_thread", create=True) as mock_start_report, \
+                mock.patch.object(self.service, "_start_environment_collect_thread", create=True) as mock_start_collect, \
+                mock.patch("console.services.enterprise_first_deploy_service.TenantEnterprise.objects.filter") as mock_filter, \
                 mock.patch("console.services.enterprise_first_deploy_service.requests.post") as mock_post:
+            mock_filter.return_value.first.return_value = Obj(
+                enterprise_alias="demo-enterprise",
+                enterprise_name="demo-enterprise")
             tracker = self.service.begin_tracking(
                 enterprise_id="eid-1",
                 tenant_name="demo-team",
@@ -107,7 +200,101 @@ class EnterpriseFirstDeployServiceTests(TestCase):
 
         self.assertIsNone(tracker)
         mock_start_report.assert_called_once_with("record-key")
+        mock_start_collect.assert_not_called()
         self.assertFalse(mock_post.called)
+        self.assertEqual(len(repo.created_payloads), 0)
+
+    def test_begin_tracking_skips_after_first_success_result(self):
+        payload = {
+            "enterprise_id": "eid-1",
+            "enterprise_name": "demo-enterprise",
+            "deploy_type": self.service.DEPLOY_TYPE_IMAGE,
+            "source_language": "",
+            "status": self.service.STATUS_SUCCESS,
+            "reported": True,
+            "tenant_name": "demo-team",
+            "region_name": "demo-region",
+            "event_ids": [],
+            "service_ids": [],
+        }
+        repo = FirstDeployRepoStub(payload)
+
+        with mock.patch("console.services.enterprise_first_deploy_service.enterprise_first_deploy_repo", repo), \
+                mock.patch.object(self.service, "_start_report_thread", create=True) as mock_start_report, \
+                mock.patch.object(self.service, "_start_environment_collect_thread", create=True) as mock_start_collect:
+            tracker = self.service.begin_tracking(
+                enterprise_id="eid-1",
+                tenant_name="demo-team",
+                region_name="demo-region",
+                deploy_type=self.service.DEPLOY_TYPE_IMAGE)
+
+        self.assertIsNone(tracker)
+        self.assertEqual(len(repo.created_payloads), 0)
+        mock_start_report.assert_not_called()
+        mock_start_collect.assert_not_called()
+
+    def test_begin_tracking_skips_after_first_failure_result(self):
+        payload = {
+            "enterprise_id": "eid-1",
+            "enterprise_name": "demo-enterprise",
+            "deploy_type": self.service.DEPLOY_TYPE_SOURCE_CODE,
+            "source_language": "Java",
+            "status": self.service.STATUS_FAILURE,
+            "reported": True,
+            "tenant_name": "demo-team",
+            "region_name": "demo-region",
+            "event_ids": ["event-build-1"],
+            "service_ids": ["service-1"],
+            "failure_stage": self.service.FAILURE_STAGE_BUILD,
+            "failure_reason": "build failed",
+        }
+        repo = FirstDeployRepoStub(payload)
+
+        with mock.patch("console.services.enterprise_first_deploy_service.enterprise_first_deploy_repo", repo), \
+                mock.patch.object(self.service, "_start_report_thread", create=True) as mock_start_report, \
+                mock.patch.object(self.service, "_start_environment_collect_thread", create=True) as mock_start_collect:
+            tracker = self.service.begin_tracking(
+                enterprise_id="eid-1",
+                tenant_name="demo-team",
+                region_name="demo-region",
+                deploy_type=self.service.DEPLOY_TYPE_SOURCE_CODE)
+
+        self.assertIsNone(tracker)
+        self.assertEqual(len(repo.created_payloads), 0)
+        mock_start_report.assert_not_called()
+        mock_start_collect.assert_not_called()
+
+    def test_begin_tracking_creates_first_enterprise_record(self):
+        repo = mock.Mock()
+        repo.get_by_enterprise_id.return_value = None
+        repo.create_if_absent.return_value = (Obj(key="record-key"), True)
+
+        with mock.patch("console.services.enterprise_first_deploy_service.enterprise_first_deploy_repo", repo), \
+                mock.patch.object(self.service, "_start_environment_collect_thread", create=True) as mock_start_collect, \
+                mock.patch("console.services.enterprise_first_deploy_service.TenantEnterprise.objects.filter") as mock_filter:
+            mock_filter.return_value.first.return_value = Obj(enterprise_alias="demo-enterprise")
+            tracker = self.service.begin_tracking(
+                enterprise_id="eid-1",
+                tenant_name="demo-team",
+                region_name="demo-region",
+                deploy_type=self.service.DEPLOY_TYPE_IMAGE)
+
+        self.assertEqual(tracker["key"], "record-key")
+        repo.create_if_absent.assert_called_once()
+        mock_start_collect.assert_called_once_with("record-key", "eid-1", "demo-region")
+
+    def test_safe_begin_tracking_returns_none_when_collection_setup_fails(self):
+        repo = mock.Mock()
+        repo.get_by_enterprise_id.side_effect = RuntimeError("db unavailable")
+
+        with mock.patch("console.services.enterprise_first_deploy_service.enterprise_first_deploy_repo", repo):
+            tracker = self.service.safe_begin_tracking(
+                enterprise_id="eid-1",
+                tenant_name="demo-team",
+                region_name="demo-region",
+                deploy_type=self.service.DEPLOY_TYPE_SOURCE_CODE)
+
+        self.assertIsNone(tracker)
 
     def test_sync_record_reports_build_failure_with_redacted_logs(self):
         payload = {
@@ -158,6 +345,107 @@ class EnterpriseFirstDeployServiceTests(TestCase):
         self.assertEqual(report_payload["failure_logs"][0]["stage"], self.service.FAILURE_STAGE_BUILD)
         self.assertEqual(report_payload["failure_logs"][0]["lines"][0]["message"], "PASSWORD=<redacted>")
         self.assertTrue(repo.payload["reported"])
+
+    def test_sync_record_falls_back_to_service_event_log_for_build_failure(self):
+        payload = {
+            "enterprise_id": "eid-1",
+            "enterprise_name": "demo-enterprise",
+            "deploy_type": self.service.DEPLOY_TYPE_SOURCE_CODE,
+            "source_language": "Go",
+            "status": self.service.STATUS_PENDING,
+            "build_status": self.service.STAGE_STATUS_PENDING,
+            "runtime_status": self.service.STAGE_STATUS_PENDING,
+            "reported": False,
+            "tenant_name": "demo-team",
+            "region_name": "demo-region",
+            "event_ids": ["event-build-1"],
+            "service_ids": ["service-1"],
+            "service_alias": "grbuild1",
+        }
+        repo = FirstDeployRepoStub(payload)
+        report_response = Obj(status_code=200)
+
+        with mock.patch("console.services.enterprise_first_deploy_service.enterprise_first_deploy_repo", repo), \
+                mock.patch("console.services.enterprise_first_deploy_service.region_api.get_tenant_events",
+                           return_value={"list": [{
+                               "event_id": "event-build-1",
+                               "service_id": "",
+                               "opt_type": "build-service",
+                               "status": "failure",
+                               "final_status": "complete",
+                               "message": "编译失败，请查看构建日志",
+                               "reason": "",
+                               "start_time": "2026-05-06 10:00:00",
+                               "end_time": "2026-05-06 10:03:00",
+                           }]}), \
+                mock.patch("console.services.enterprise_first_deploy_service.region_api.get_events_log",
+                           side_effect=RuntimeError("event log api down")), \
+                mock.patch("console.services.enterprise_first_deploy_service.region_api.get_event_log",
+                           return_value=(Obj(status=200), {"list": [
+                               {"time": "2026-05-06 10:02:58", "message": "go: module example.com/missing not found"},
+                               {"time": "2026-05-06 10:02:59", "message": "make: *** [build] Error 1"},
+                           ]})) as mock_service_log, \
+                mock.patch("console.services.enterprise_first_deploy_service.time.sleep"), \
+                mock.patch("console.services.enterprise_first_deploy_service.requests.post",
+                           return_value=report_response) as mock_post:
+            status = self.service._sync_record(repo.record, payload, "demo-team", "demo-region")
+
+        self.assertEqual(status, self.service.STATUS_FAILURE)
+        report_payload = mock_post.call_args[1]["json"]
+        self.assertEqual(report_payload["log_collect_status"], self.service.LOG_COLLECT_STATUS_COLLECTED)
+        self.assertEqual(report_payload["failure_logs"][0]["source"], "service_event_log")
+        self.assertIn("go: module example.com/missing not found", report_payload["failure_logs"][0]["lines"][0]["message"])
+        mock_service_log.assert_called()
+
+    def test_report_failure_includes_v3_context_and_ignores_send_errors(self):
+        payload = {
+            "enterprise_id": "eid-1",
+            "enterprise_name": "demo-enterprise",
+            "deploy_type": self.service.DEPLOY_TYPE_SOURCE_CODE,
+            "source_language": "Java",
+            "payload_version": 3,
+            "status": self.service.STATUS_FAILURE,
+            "reported": False,
+            "tenant_name": "demo-team",
+            "region_name": "demo-region",
+            "event_ids": ["event-build-1"],
+            "service_ids": ["service-1"],
+            "deployment_context": {
+                "deploy_attempt_id": "attempt-1",
+                "trigger": "create_and_deploy",
+                "service_source": "source_code",
+            },
+            "app_context": {
+                "app_name_hash": "hash-app",
+                "component_count": 1,
+            },
+            "environment_context": {
+                "collect_status": "failed",
+                "error": "region unavailable",
+            },
+            "workload_context": {
+                "min_memory": 512,
+            },
+            "failure_stage": self.service.FAILURE_STAGE_BUILD,
+            "failure_reason": "build failed",
+            "failure_category": self.service.FAILURE_CATEGORY_COMPILE_FAILED,
+            "log_collect_status": self.service.LOG_COLLECT_STATUS_NO_EVENT_ID,
+            "failure_events": [],
+            "failure_logs": [],
+        }
+        repo = FirstDeployRepoStub(payload)
+
+        with mock.patch("console.services.enterprise_first_deploy_service.enterprise_first_deploy_repo", repo), \
+                mock.patch("console.services.enterprise_first_deploy_service.requests.post",
+                           side_effect=RuntimeError("network down")) as mock_post:
+            self.service._report_if_needed(repo.record, payload, async_report=False)
+
+        report_payload = mock_post.call_args[1]["json"]
+        self.assertEqual(report_payload["payload_version"], 3)
+        self.assertEqual(report_payload["deployment_context"]["deploy_attempt_id"], "attempt-1")
+        self.assertEqual(report_payload["environment_context"]["collect_status"], "failed")
+        self.assertEqual(report_payload["workload_context"]["min_memory"], 512)
+        self.assertFalse(repo.payload.get("reported"))
 
     def test_sync_record_retries_build_failure_logs_before_reporting(self):
         payload = {
@@ -265,6 +553,341 @@ class EnterpriseFirstDeployServiceTests(TestCase):
         self.assertEqual(report_payload["failure_events"][0]["failure_category"], "compile_failed")
         self.assertEqual(report_payload["failure_logs"][0]["source"], "diagnostic_summary")
         self.assertIn("event_log_empty_after_retry", report_payload["failure_logs"][0]["lines"][0]["message"])
+
+    def test_collect_failure_logs_accepts_return_success_bean_shape(self):
+        event = {
+            "event_id": "event-build-1",
+            "opt_type": "build-service",
+            "status": "failure",
+            "message": "编译失败，请查看构建日志",
+        }
+        body = {"bean": [{"message": "dotnet restore failed: package NotFound"}]}
+
+        with mock.patch("console.services.enterprise_first_deploy_service.region_api.get_events_log",
+                        return_value=(Obj(status=200), body)):
+            logs, status = self.service._collect_failure_logs_with_status(
+                "demo-team",
+                "demo-region",
+                [event],
+                self.service.FAILURE_STAGE_BUILD,
+                self.service.FAILURE_CATEGORY_COMPILE_FAILED,
+                "编译失败，请查看构建日志")
+
+        self.assertEqual(status, self.service.LOG_COLLECT_STATUS_COLLECTED)
+        self.assertEqual(logs[0]["source"], "event_log")
+        self.assertEqual(logs[0]["lines"][0]["message"], "dotnet restore failed: package NotFound")
+
+    def test_collect_failure_logs_accepts_region_dict_status_response(self):
+        event = {
+            "event_id": "event-build-1",
+            "opt_type": "build-service",
+            "status": "failure",
+            "message": "编译失败，请查看构建日志",
+        }
+
+        with mock.patch("console.services.enterprise_first_deploy_service.region_api.get_events_log",
+                        return_value=({"status": 200}, {"list": [{
+                            "message": "main.go:21:12: pattern all:frontend/dist: no matching files found",
+                        }]})):
+            logs, status = self.service._collect_failure_logs_with_status(
+                "demo-team",
+                "demo-region",
+                [event],
+                self.service.FAILURE_STAGE_BUILD,
+                self.service.FAILURE_CATEGORY_COMPILE_FAILED,
+                "编译失败，请查看构建日志")
+
+        self.assertEqual(status, self.service.LOG_COLLECT_STATUS_COLLECTED)
+        self.assertEqual(logs[0]["source"], "event_log")
+        self.assertIn("all:frontend/dist", logs[0]["lines"][0]["message"])
+
+    def test_collect_failure_logs_accepts_region_addict_status_response(self):
+        event = {
+            "event_id": "event-build-1",
+            "opt_type": "build-service",
+            "status": "failure",
+            "message": "编译失败，请查看构建日志",
+        }
+
+        with mock.patch("console.services.enterprise_first_deploy_service.region_api.get_events_log",
+                        return_value=(Dict({"status": 200}), {"list": [{
+                            "message": "failed to execute 'go build': exit status 1",
+                        }]})):
+            logs, status = self.service._collect_failure_logs_with_status(
+                "demo-team",
+                "demo-region",
+                [event],
+                self.service.FAILURE_STAGE_BUILD,
+                self.service.FAILURE_CATEGORY_COMPILE_FAILED,
+                "编译失败，请查看构建日志")
+
+        self.assertEqual(status, self.service.LOG_COLLECT_STATUS_COLLECTED)
+        self.assertEqual(logs[0]["source"], "event_log")
+        self.assertIn("go build", logs[0]["lines"][0]["message"])
+
+    def test_collect_failure_logs_tries_bound_build_event_when_failure_event_log_is_empty(self):
+        self.service.COMPILE_FAILURE_LOG_WAIT_WINDOW = 0
+        failed_event = {
+            "event_id": "failure-summary-event",
+            "opt_type": "build-service",
+            "status": "failure",
+            "message": "编译失败，请查看构建日志",
+        }
+        payload = {
+            "build_event_id": "real-build-event",
+            "event_ids": ["real-build-event", "failure-summary-event"],
+        }
+
+        def fake_get_events_log(_tenant_name, _region_name, event_id):
+            if event_id == "real-build-event":
+                return Obj(status=200), {"list": [{
+                    "time": "2026-06-23T23:12:54+08:00",
+                    "message": "main.go:21:12: pattern all:frontend/dist: no matching files found",
+                }]}
+            return Obj(status=200), {"list": []}
+
+        with mock.patch("console.services.enterprise_first_deploy_service.region_api.get_events_log",
+                        side_effect=fake_get_events_log), \
+                mock.patch("console.services.enterprise_first_deploy_service.time.sleep"):
+            logs, status = self.service._collect_failure_logs_with_status(
+                "demo-team",
+                "demo-region",
+                [failed_event],
+                self.service.FAILURE_STAGE_BUILD,
+                self.service.FAILURE_CATEGORY_COMPILE_FAILED,
+                "编译失败，请查看构建日志",
+                payload)
+
+        self.assertEqual(status, self.service.LOG_COLLECT_STATUS_COLLECTED)
+        self.assertEqual(logs[0]["event_id"], "real-build-event")
+        self.assertEqual(logs[0]["source"], "event_log")
+        self.assertIn("all:frontend/dist", logs[0]["lines"][0]["message"])
+
+    def test_collect_failure_logs_reports_service_event_log_fallback_failure(self):
+        event = {
+            "event_id": "event-build-1",
+            "opt_type": "build-service",
+            "status": "failure",
+            "message": "编译失败，请查看构建日志",
+        }
+        payload = {
+            "enterprise_id": "eid-1",
+            "service_alias": "grbuild1",
+            "deployment_context": {
+                "service_alias": "grbuild1",
+            },
+        }
+
+        with mock.patch("console.services.enterprise_first_deploy_service.region_api.get_events_log",
+                        side_effect=RuntimeError("event log api down")), \
+                mock.patch("console.services.enterprise_first_deploy_service.region_api.get_event_log",
+                           return_value=(Obj(status=500), {"msg": "event store unavailable"})), \
+                mock.patch("console.services.enterprise_first_deploy_service.time.sleep"):
+            logs, status = self.service._collect_failure_logs_with_status(
+                "demo-team",
+                "demo-region",
+                [event],
+                self.service.FAILURE_STAGE_BUILD,
+                self.service.FAILURE_CATEGORY_COMPILE_FAILED,
+                "编译失败，请查看构建日志",
+                payload)
+
+        self.assertEqual(status, self.service.LOG_COLLECT_STATUS_API_ERROR)
+        self.assertEqual(logs[0]["source"], "diagnostic_summary")
+        self.assertIn("event_log_api_error", logs[0]["lines"][0]["message"])
+        self.assertIn("service_event_log_status=500", logs[0]["lines"][0]["message"])
+        self.assertIn("service_alias=grbuild1", logs[0]["lines"][0]["message"])
+        self.assertIn("event_id=event-build-1", logs[0]["lines"][0]["message"])
+
+    def test_collect_failure_logs_uses_service_event_log_info_level_fallback(self):
+        event = {
+            "event_id": "event-build-1",
+            "opt_type": "build-service",
+            "status": "failure",
+            "message": "编译失败，请查看构建日志",
+        }
+        payload = {
+            "enterprise_id": "eid-1",
+            "service_alias": "grbuild1",
+            "deployment_context": {
+                "service_alias": "grbuild1",
+            },
+        }
+
+        def fake_get_event_log(_region_name, _tenant_name, _service_alias, body):
+            if body.get("level") == "debug":
+                return Obj(status=200), {"list": []}
+            if body.get("level") == "info":
+                return Obj(status=200), {"list": [{"message": "go: module example.com/missing not found"}]}
+            return Obj(status=200), {"list": []}
+
+        with mock.patch("console.services.enterprise_first_deploy_service.region_api.get_events_log",
+                        return_value=(Obj(status=200), {"list": []})), \
+                mock.patch("console.services.enterprise_first_deploy_service.region_api.get_event_log",
+                           side_effect=fake_get_event_log), \
+                mock.patch("console.services.enterprise_first_deploy_service.time.sleep"):
+            logs, status = self.service._collect_failure_logs_with_status(
+                "demo-team",
+                "demo-region",
+                [event],
+                self.service.FAILURE_STAGE_BUILD,
+                self.service.FAILURE_CATEGORY_COMPILE_FAILED,
+                "编译失败，请查看构建日志",
+                payload)
+
+        self.assertEqual(status, self.service.LOG_COLLECT_STATUS_COLLECTED)
+        self.assertEqual(logs[0]["source"], "service_event_log")
+        self.assertIn("go: module example.com/missing not found", logs[0]["lines"][0]["message"])
+
+    def test_source_compile_failure_collects_full_build_log_window(self):
+        event = {
+            "event_id": "event-build-1",
+            "opt_type": "build-service",
+            "status": "failure",
+            "message": "编译失败，请查看构建日志",
+        }
+        body = {"list": [{"message": "line-{}".format(index)} for index in range(350)]}
+
+        with mock.patch("console.services.enterprise_first_deploy_service.region_api.get_events_log",
+                        return_value=(Obj(status=200), body)):
+            logs, status = self.service._collect_failure_logs_with_status(
+                "demo-team",
+                "demo-region",
+                [event],
+                self.service.FAILURE_STAGE_BUILD,
+                self.service.FAILURE_CATEGORY_COMPILE_FAILED,
+                "编译失败，请查看构建日志")
+
+        self.assertEqual(status, self.service.LOG_COLLECT_STATUS_COLLECTED)
+        self.assertEqual(len(logs[0]["lines"]), 350)
+        self.assertEqual(logs[0]["lines"][0]["message"], "line-0")
+
+    def test_report_source_check_failure_sends_pre_deploy_diagnostic(self):
+        report_response = Obj(status_code=200)
+        repo = FirstDeployRepoStub({})
+        repo.record = Obj(key="record-key")
+
+        with mock.patch("console.services.enterprise_first_deploy_service.enterprise_first_deploy_repo", repo), \
+                mock.patch("console.services.enterprise_first_deploy_service.TenantEnterprise.objects.filter") as mock_filter, \
+                mock.patch("console.services.enterprise_first_deploy_service.requests.post",
+                           return_value=report_response) as mock_post:
+            mock_filter.return_value.first.return_value = Obj(enterprise_alias="demo-enterprise")
+            self.service.report_source_check_failure(
+                enterprise_id="eid-1",
+                tenant_name="demo-team",
+                region_name="demo-region",
+                reason="获取代码超时 请确认源码仓库能否正常访问",
+                service=Obj(
+                    service_id="svc-1",
+                    service_alias="grsource",
+                    service_cname="源码组件",
+                    service_source="source_code",
+                    language="",
+                    arch="amd64",
+                    min_memory=512,
+                    min_cpu=100,
+                    min_node=1,
+                    total_memory=128,
+                ),
+                app_context={"app_id": 12, "component_count": 1},
+                source_context={
+                    "git_url": "https://git.example.com/demo.git",
+                    "code_version": "master",
+                    "server_type": "git",
+                    "check_uuid": "check-1",
+                })
+
+        report_payload = mock_post.call_args[1]["json"]
+        self.assertFalse(report_payload["is_success"])
+        self.assertEqual(report_payload["deploy_type"], "source_code")
+        self.assertEqual(report_payload["failure_stage"], "source_check")
+        self.assertEqual(report_payload["failure_category"], "source_fetch_timeout")
+        self.assertEqual(report_payload["log_collect_status"], "provided")
+        self.assertEqual(report_payload["failure_events"][0]["opt_type"], "source-check")
+        self.assertEqual(report_payload["deployment_context"]["deploy_attempt_id"], "check-1")
+        self.assertEqual(report_payload["deployment_context"]["trigger"], "source_check")
+        self.assertEqual(report_payload["app_context"]["source_context"]["server_type"], "git")
+        self.assertIn("repo_host=git.example.com", report_payload["failure_logs"][0]["lines"][0]["message"])
+        self.assertIn("component_alias=grsource", report_payload["failure_logs"][0]["lines"][0]["message"])
+        self.assertEqual(repo.payload["status"], self.service.STATUS_FAILURE)
+        self.assertTrue(repo.payload["reported"])
+
+    def test_report_source_check_failure_skips_after_first_result(self):
+        repo = FirstDeployRepoStub({
+            "enterprise_id": "eid-1",
+            "deploy_type": self.service.DEPLOY_TYPE_IMAGE,
+            "status": self.service.STATUS_SUCCESS,
+            "reported": True,
+        })
+
+        with mock.patch("console.services.enterprise_first_deploy_service.enterprise_first_deploy_repo", repo), \
+                mock.patch.object(self.service, "_start_report_thread") as mock_start_report, \
+                mock.patch.object(self.service, "_post_report_payload") as mock_post_report:
+            self.service.report_source_check_failure(
+                enterprise_id="eid-1",
+                tenant_name="demo-team",
+                region_name="demo-region",
+                reason="获取代码超时",
+                source_context={"git_url": "https://git.example.com/demo.git", "check_uuid": "check-1"},
+                async_report=True)
+
+        self.assertEqual(len(repo.created_payloads), 0)
+        mock_start_report.assert_not_called()
+        mock_post_report.assert_not_called()
+
+    def test_report_source_check_failure_can_send_in_background(self):
+        self.service.report_async = True
+        repo = FirstDeployRepoStub({})
+        repo.record = Obj(key="record-key")
+
+        with mock.patch("console.services.enterprise_first_deploy_service.enterprise_first_deploy_repo", repo), \
+                mock.patch("console.services.enterprise_first_deploy_service.TenantEnterprise.objects.filter") as mock_filter, \
+                mock.patch.object(self.service, "_start_report_thread") as mock_start_report, \
+                mock.patch.object(self.service, "_post_report_payload") as mock_post_report:
+            mock_filter.return_value.first.return_value = Obj(enterprise_alias="demo-enterprise")
+            with mock.patch.object(repo, "get_by_enterprise_id", return_value=None):
+                self.service.report_source_check_failure(
+                    enterprise_id="eid-1",
+                    tenant_name="demo-team",
+                    region_name="demo-region",
+                    reason="获取代码超时 请确认源码仓库能否正常访问",
+                    service=Obj(
+                        service_id="svc-1",
+                        service_alias="grsource",
+                        service_cname="源码组件",
+                        service_source="source_code"),
+                    source_context={"git_url": "https://git.example.com/demo.git", "check_uuid": "check-1"},
+                    async_report=True)
+
+        mock_start_report.assert_called_once_with("record-key")
+        mock_post_report.assert_not_called()
+        self.assertEqual(repo.payload["failure_stage"], "source_check")
+        self.assertEqual(repo.payload["deployment_context"]["deploy_attempt_id"], "check-1")
+
+    def test_safe_report_source_check_failure_defaults_to_background_report(self):
+        with mock.patch.object(self.service, "report_source_check_failure") as mock_report:
+            self.service.safe_report_source_check_failure(
+                enterprise_id="eid-1",
+                tenant_name="demo-team",
+                region_name="demo-region",
+                reason="获取代码超时")
+
+        self.assertTrue(mock_report.call_args[1]["async_report"])
+
+    def test_source_check_context_redacts_repo_credentials(self):
+        context = self.service._sanitize_source_context(
+            "eid-1",
+            {
+                "git_url": "https://user:secret@git.example.com/org/demo.git",
+                "code_version": "master",
+                "server_type": "git",
+                "check_uuid": "check-1",
+            })
+
+        self.assertEqual(context["repo_host"], "git.example.com")
+        self.assertIn("repo_url_hash", context)
+        self.assertNotIn("secret", str(context))
+        self.assertNotIn("user:secret", str(context))
 
     def test_sync_record_reports_build_image_pull_event_details(self):
         payload = {
@@ -1254,6 +1877,63 @@ class EnterpriseFirstDeployServiceTests(TestCase):
         self.assertEqual(report_payload["failure_events"][0]["opt_type"], "RuntimeVerificationTimeout")
         self.assertEqual(report_payload["failure_logs"][0]["source"], "runtime_snapshot")
         self.assertIn("no pods observed", report_payload["failure_logs"][0]["lines"][0]["message"])
+
+    def test_runtime_timeout_includes_service_failure_events_when_no_pods_observed(self):
+        payload = {
+            "enterprise_id": "eid-1",
+            "enterprise_name": "demo-enterprise",
+            "deploy_type": self.service.DEPLOY_TYPE_APP_MARKET,
+            "source_language": "",
+            "status": self.service.STATUS_PENDING,
+            "build_status": self.service.STATUS_SUCCESS,
+            "runtime_status": self.service.STAGE_STATUS_PENDING,
+            "reported": False,
+            "tenant_name": "demo-team",
+            "region_name": "demo-region",
+            "event_ids": ["event-1"],
+            "service_ids": ["service-1"],
+            "service_alias": "demo-service",
+            "service_aliases": [],
+            "runtime_started_at": "2026-05-07 18:18:10",
+            "runtime_watch_started_at": "2026-05-07 18:18:10",
+        }
+        repo = FirstDeployRepoStub(payload)
+        report_response = Obj(status_code=200)
+        runtime_event = {
+            "event_id": "sched-1",
+            "status": "failure",
+            "target": "pod",
+            "opt_type": "FailedScheduling",
+            "service_id": "service-1",
+            "message": "0/1 nodes are available: 1 Insufficient memory.",
+            "reason": "FailedScheduling",
+            "create_time": "2026-05-07 18:18:30",
+        }
+
+        with mock.patch("console.services.enterprise_first_deploy_service.enterprise_first_deploy_repo", repo), \
+                mock.patch("console.services.enterprise_first_deploy_service.region_api.get_tenant_events",
+                           return_value={"list": [{"event_id": "event-1", "status": "success",
+                                                   "opt_type": "start-service", "service_id": "service-1",
+                                                   "final_status": "complete", "message": "", "reason": "",
+                                                   "start_time": "2026-05-07 18:18:07",
+                                                   "end_time": "2026-05-07 18:18:10"}]}), \
+                mock.patch("console.services.enterprise_first_deploy_service.region_api.get_target_events_list",
+                           return_value=(Obj(status=200), {"list": [runtime_event]})), \
+                mock.patch("console.services.enterprise_first_deploy_service.region_api.get_service_pods",
+                           return_value={"bean": {"new_pods": [], "old_pods": []}}), \
+                mock.patch.object(self.service, "_now", return_value="2026-05-07 18:19:45"), \
+                mock.patch("console.services.enterprise_first_deploy_service.requests.post",
+                           return_value=report_response) as mock_post:
+            status = self.service._sync_record(repo.record, payload, "demo-team", "demo-region")
+
+        self.assertEqual(status, self.service.STATUS_FAILURE)
+        report_payload = mock_post.call_args[1]["json"]
+        self.assertEqual(report_payload["failure_events"][0]["event_id"], "sched-1")
+        self.assertEqual(report_payload["failure_events"][0]["failure_category"], "no_available_nodes")
+        log_messages = "\n".join(line["message"] for log in report_payload["failure_logs"] for line in log["lines"])
+        self.assertIn("no pods observed", log_messages)
+        self.assertIn("FailedScheduling", log_messages)
+        self.assertIn("Insufficient memory", log_messages)
 
     def test_runtime_timeout_reports_partial_no_pods_for_multi_component_app(self):
         payload = {

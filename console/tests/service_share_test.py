@@ -3,15 +3,38 @@ import collections
 import json
 import os
 import sys
+import typing
 from types import ModuleType
 from unittest import TestCase, mock
 
 for attr in ("Mapping", "MutableMapping", "Sequence", "Iterable", "Iterator"):
     if not hasattr(collections, attr):
         setattr(collections, attr, getattr(collections.abc, attr))
+if not hasattr(typing, "NotRequired"):
+    try:
+        from typing_extensions import NotRequired
+        typing.NotRequired = NotRequired
+    except ImportError:
+        typing.NotRequired = lambda item: item
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "src", "openapi-client")))
 sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
+if "rest_framework_simplejwt.tokens" not in sys.modules:
+    simplejwt_module = ModuleType("rest_framework_simplejwt")
+    simplejwt_tokens_module = ModuleType("rest_framework_simplejwt.tokens")
+
+    class _DummyAccessToken(dict):
+        @classmethod
+        def for_user(cls, user):
+            return cls()
+
+        def __str__(self):
+            return ""
+
+    simplejwt_tokens_module.AccessToken = _DummyAccessToken
+    simplejwt_module.tokens = simplejwt_tokens_module
+    sys.modules["rest_framework_simplejwt"] = simplejwt_module
+    sys.modules["rest_framework_simplejwt.tokens"] = simplejwt_tokens_module
 if "openapi_client" not in sys.modules:
     openapi_client_module = ModuleType("openapi_client")
     configuration_module = ModuleType("openapi_client.configuration")
@@ -42,6 +65,11 @@ import django  # noqa: E402
 from rest_framework.test import APIRequestFactory  # noqa: E402
 
 django.setup()
+
+from django.db.models.query import QuerySet  # noqa: E402
+
+if not hasattr(QuerySet, "__class_getitem__"):
+    QuerySet.__class_getitem__ = classmethod(lambda cls, item: cls)
 
 from console.services.share_services import share_service as share_service_instance  # noqa: E402
 from console.services import share_services as share_services_module  # noqa: E402
@@ -239,6 +267,117 @@ class ShareRepoVMServiceSourceTestCase(TestCase):
         service_filter.assert_called_once_with(service_id__in=["svc-vm"])
         query.exclude.assert_called_once_with(service_source="third_party")
         self.assertIs(result, query)
+
+
+class ShareServiceQueryResourceLimitTestCase(TestCase):
+    # capability_id: console.market-app.install-unlimited-resources
+    def test_query_share_service_info_preserves_unlimited_resource_limits(self):
+        team = mock.Mock(tenant_id=1)
+        service = mock.Mock(
+            service_id="svc-web",
+            tenant_id=1,
+            service_cname="nginx",
+            service_key="svc-web",
+            category="app_publish",
+            language="",
+            extend_method="stateless_multiple",
+            version="alpine",
+            min_memory=0,
+            service_type="application",
+            service_source="docker_image",
+            k8s_component_name="nginx",
+            deploy_version="20260622152758",
+            image="registry.example.com/nginx:alpine",
+            git_url="",
+            arch="amd64",
+            service_alias="grd0070a",
+            service_name="",
+            service_region="demo-region",
+            creater=7,
+            cmd="",
+            min_node=1,
+            min_cpu=0,
+            component_id="component-web",
+        )
+
+        with mock.patch.object(share_services_module.share_repo, "get_service_list_by_group_id",
+                               return_value=[service]), \
+                mock.patch.object(share_service_instance, "get_team_service_deploy_version",
+                                  return_value={"svc-web": "20260622152758"}), \
+                mock.patch.object(share_service_instance, "get_service_ports_by_ids", return_value={}), \
+                mock.patch.object(share_service_instance, "get_service_dependencys_by_ids", return_value={}), \
+                mock.patch.object(share_service_instance, "get_service_env_by_ids", return_value={}), \
+                mock.patch.object(share_service_instance, "get_service_volume_by_ids", return_value={}), \
+                mock.patch.object(share_service_instance, "get_dep_mnts_by_ids", return_value={}), \
+                mock.patch.object(share_service_instance, "get_service_probes", return_value={}), \
+                mock.patch.object(share_service_instance, "list_service_monitors", return_value={}), \
+                mock.patch.object(share_service_instance, "list_component_graphs", return_value={}), \
+                mock.patch.object(share_service_instance, "list_component_k8s_attributes", return_value={}), \
+                mock.patch.object(share_service_instance, "list_component_labels", return_value={}), \
+                mock.patch.object(share_services_module.share_repo, "get_plugins_relation_by_service_ids",
+                                  return_value=[]):
+            components = share_service_instance.query_share_service_info(team, 30)
+
+        self.assertEqual(1, len(components))
+        component = components[0]
+        self.assertEqual(0, component["memory"])
+        self.assertEqual(0, component["extend_method_map"]["min_memory"])
+        self.assertEqual(0, component["extend_method_map"]["init_memory"])
+        self.assertEqual(0, component["extend_method_map"]["container_cpu"])
+
+    def test_query_share_service_info_keeps_daemonset_node_scaling_fields_for_display(self):
+        team = mock.Mock(tenant_id=1)
+        service = mock.Mock(
+            service_id="svc-agent",
+            tenant_id=1,
+            service_cname="agent",
+            service_key="svc-agent",
+            category="app_publish",
+            language="",
+            extend_method="daemonset",
+            version="alpine",
+            min_memory=1024,
+            service_type="application",
+            service_source="docker_image",
+            k8s_component_name="agent",
+            deploy_version="20260622152758",
+            image="registry.example.com/agent:alpine",
+            git_url="",
+            arch="amd64",
+            service_alias="grd0070b",
+            service_name="",
+            service_region="demo-region",
+            creater=7,
+            cmd="",
+            min_node=3,
+            min_cpu=600,
+            component_id="component-agent",
+        )
+
+        with mock.patch.object(share_services_module.share_repo, "get_service_list_by_group_id",
+                               return_value=[service]), \
+                mock.patch.object(share_service_instance, "get_team_service_deploy_version",
+                                  return_value={"svc-agent": "20260622152758"}), \
+                mock.patch.object(share_service_instance, "get_service_ports_by_ids", return_value={}), \
+                mock.patch.object(share_service_instance, "get_service_dependencys_by_ids", return_value={}), \
+                mock.patch.object(share_service_instance, "get_service_env_by_ids", return_value={}), \
+                mock.patch.object(share_service_instance, "get_service_volume_by_ids", return_value={}), \
+                mock.patch.object(share_service_instance, "get_dep_mnts_by_ids", return_value={}), \
+                mock.patch.object(share_service_instance, "get_service_probes", return_value={}), \
+                mock.patch.object(share_service_instance, "list_service_monitors", return_value={}), \
+                mock.patch.object(share_service_instance, "list_component_graphs", return_value={}), \
+                mock.patch.object(share_service_instance, "list_component_k8s_attributes", return_value={}), \
+                mock.patch.object(share_service_instance, "list_component_labels", return_value={}), \
+                mock.patch.object(share_services_module.share_repo, "get_plugins_relation_by_service_ids",
+                                  return_value=[]):
+            components = share_service_instance.query_share_service_info(team, 30)
+
+        extend_method_map = components[0]["extend_method_map"]
+        self.assertEqual(3, extend_method_map["min_node"])
+        self.assertEqual(64, extend_method_map["max_node"])
+        self.assertEqual(1, extend_method_map["step_node"])
+        self.assertEqual(1024, extend_method_map["init_memory"])
+        self.assertEqual(600, extend_method_map["container_cpu"])
 
 
 # capability_id: console.service-share.stopped-component-publish

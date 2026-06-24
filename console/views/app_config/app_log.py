@@ -1,5 +1,8 @@
 # -*- coding: utf8 -*-
+from typing import Any
+
 from django.http.response import StreamingHttpResponse
+from rest_framework.request import Request
 
 from console.views.app_config.base import AppBaseView
 from console.services.app_config.component_logs import component_log_service
@@ -7,7 +10,7 @@ from console.exception.main import AbortRequest
 
 
 class ComponentLogView(AppBaseView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> StreamingHttpResponse:
         pod_name = request.GET.get("pod_name")
         if not pod_name:
             raise AbortRequest("the field 'pod_name' is required")

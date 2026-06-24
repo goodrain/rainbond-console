@@ -3,8 +3,10 @@
   Created on 18/1/15.
 """
 import logging
+from typing import Any
 
-from django.views.decorators.cache import never_cache
+from console.utils.cache_decorators import never_cache
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from console.serializer import ProbeSerilizer
@@ -18,7 +20,7 @@ logger = logging.getLogger("default")
 
 class AppProbeView(AppBaseView):
     @never_cache
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         获取组件指定模式的探针
         ---
@@ -43,14 +45,15 @@ class AppProbeView(AppBaseView):
             code, msg, probe = probe_service.get_service_probe(self.service)
             if code != 200:
                 return Response(general_message(code, "get probe error", msg))
-            result = general_message(200, "success", "查询成功", bean=probe.to_dict())
+            # NOTE: probe is None only on code!=200 path which already returned above (backlog)
+            result = general_message(200, "success", "查询成功", bean=probe.to_dict())  # type: ignore[union-attr]
         else:
             mode = request.GET.get("mode", None)
             if not mode:
                 code, msg, probe = probe_service.get_service_probe(self.service)
                 if code != 200:
                     return Response(general_message(code, "get probe error", msg))
-                result = general_message(200, "success", "查询成功", bean=probe.to_dict())
+                result = general_message(200, "success", "查询成功", bean=probe.to_dict())  # type: ignore[union-attr]
             else:
                 code, msg, probe = probe_service.get_service_probe_by_mode(self.service, mode)
                 if code != 200:
@@ -62,7 +65,7 @@ class AppProbeView(AppBaseView):
         return Response(result, status=result["code"])
 
     @never_cache
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         添加组件探针
         ---
@@ -98,7 +101,7 @@ class AppProbeView(AppBaseView):
         return Response(result, status=result["code"])
 
     @never_cache
-    def put(self, request, *args, **kwargs):
+    def put(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         修改组件探针,包括启用停用 mode参数必填
         ---
@@ -107,7 +110,8 @@ class AppProbeView(AppBaseView):
         data = request.data
         _, _, old_probe = probe_service.get_service_probe(self.service)
         probe = probe_service.update_service_probea(
-            tenant=self.tenant, service=self.service, data=data, user_name=self.user.nick_name)
+            tenant=self.tenant, service=self.service, data=data,
+            user_name=self.user.nick_name)  # type: ignore[arg-type] # NOTE: nick_name is str|None (backlog)
         result = general_message(200, "success", "修改成功", bean=(probe.to_dict() if probe else probe))
         old_information = ''
         if old_probe:

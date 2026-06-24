@@ -2,6 +2,8 @@
 """
   Created on 2018/5/21.
 """
+from typing import Any, List, Optional, Tuple
+
 from console.repositories.message_repo import msg_repo, announcement_repo
 from console.models.main import UserMessage
 from goodrain_web.tools import JuncheePaginator
@@ -11,7 +13,7 @@ from django.db.models import Q
 
 
 class MessageService(object):
-    def sync_announcements_for_user(self, user):
+    def sync_announcements_for_user(self, user: Any) -> None:
         msgs = msg_repo.get_user_announcements(user.user_id)
         noticed_msg_ids = [msg.announcement_id for msg in msgs]
         announcements = announcement_repo.get_enabled_announcements().exclude(announcement_id__in=noticed_msg_ids)
@@ -43,7 +45,14 @@ class MessageService(object):
         close_announcements_list = [obj.announcement_id for obj in close_announcements]
         msg_repo.get_all_usermessage().filter(announcement_id__in=close_announcements_list).delete()
 
-    def get_user_msgs(self, user, page_num, page_size, msg_type, is_read):
+    def get_user_msgs(
+        self,
+        user: Any,
+        page_num: int,
+        page_size: int,
+        msg_type: Optional[str],
+        is_read: Optional[bool],
+    ) -> Tuple[Any, int]:
         query = Q()
         if msg_type:
             query &= Q(msg_type=msg_type)
@@ -58,13 +67,13 @@ class MessageService(object):
         page_msgs = msg_paginator.page(page_num)
         return page_msgs, total
 
-    def update_user_msgs(self, user, action, msg_id_list):
+    def update_user_msgs(self, user: Any, action: str, msg_id_list: List[Any]) -> None:
         if action == "mark_read":
             UserMessage.objects.filter(receiver_id=user.user_id, ID__in=msg_id_list).update(is_read=True)
         else:
             UserMessage.objects.filter(receiver_id=user.user_id, ID__in=msg_id_list).update(is_read=False)
 
-    def delete_user_msgs(self, user, msg_id_list):
+    def delete_user_msgs(self, user: Any, msg_id_list: List[Any]) -> None:
         UserMessage.objects.filter(receiver_id=user.user_id, ID__in=msg_id_list).delete()
 
 

@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
-from django.db.models import Q
+from typing import Any, List, Optional, Tuple
+
+from django.db.models import Q, QuerySet
 from console.models.main import ServiceShareRecord, RainbondCenterPlugin
 from www.models.main import ServiceGroupRelation, TenantServiceInfo, TenantServicesPort, TenantServiceRelation, \
     TenantServiceEnvVar, TenantServiceVolume, ServiceProbe
@@ -9,53 +11,59 @@ from django.core.paginator import Paginator
 
 
 class ShareRepo(object):
-    def get_service_list_by_group_id(self, team, group_id):
+    def get_service_list_by_group_id(self, team: Any, group_id: str) -> Any:
         svc_relations = ServiceGroupRelation.objects.filter(tenant_id=team.tenant_id, group_id=group_id)
         if not svc_relations:
             return []
         svc_ids = [svc_rel.service_id for svc_rel in svc_relations]
         return TenantServiceInfo.objects.filter(service_id__in=svc_ids).exclude(service_source="third_party")
 
-    def get_port_list_by_service_ids(self, service_ids):
+    def get_port_list_by_service_ids(self, service_ids: List[str]) -> Any:
         port_list = TenantServicesPort.objects.filter(service_id__in=service_ids)
         if port_list:
             return port_list
         else:
             return []
 
-    def get_relation_list_by_service_ids(self, service_ids):
+    def get_relation_list_by_service_ids(self, service_ids: List[str]) -> QuerySet[TenantServiceRelation]:
         return TenantServiceRelation.objects.filter(service_id__in=service_ids)
 
-    def get_env_list_by_service_ids(self, service_ids):
+    def get_env_list_by_service_ids(self, service_ids: List[str]) -> Any:
         env_list = TenantServiceEnvVar.objects.filter(service_id__in=service_ids)
         if env_list:
             return env_list
         else:
             return []
 
-    def get_volume_list_by_service_ids(self, service_ids):
+    def get_volume_list_by_service_ids(self, service_ids: List[str]) -> Any:
         volume_list = TenantServiceVolume.objects.filter(service_id__in=service_ids)
         if volume_list:
             return volume_list
         else:
             return []
 
-    def get_plugins_attr_by_service_ids(self, service_ids):
-        plugins_attr_list = TenantServicePluginAttr.objects.filter(service_id__in=service_ids).all()
+    def get_plugins_attr_by_service_ids(self, service_ids: List[str]) -> Any:
+        # www.models.plugin models are not in the app registry at django.setup()
+        # time, so django-stubs cannot resolve `.objects`; ignore is a false-
+        # positive suppressor (see module note).
+        attr_mgr = TenantServicePluginAttr.objects  # type: ignore[attr-defined]
+        plugins_attr_list = attr_mgr.filter(service_id__in=service_ids).all()
         return plugins_attr_list or []
 
-    def get_plugin_config_var_by_service_ids(self, service_ids):
-        return ServicePluginConfigVar.objects.filter(service_id__in=service_ids)
+    def get_plugin_config_var_by_service_ids(self, service_ids: List[str]) -> QuerySet[ServicePluginConfigVar]:
+        return ServicePluginConfigVar.objects.filter(service_id__in=service_ids)  # type: ignore[attr-defined]
 
-    def get_plugins_relation_by_service_ids(self, service_ids):
-        plugins_relation_list = TenantServicePluginRelation.objects.filter(service_id__in=service_ids).all()
+    def get_plugins_relation_by_service_ids(self, service_ids: List[str]) -> Any:
+        rel_mgr = TenantServicePluginRelation.objects  # type: ignore[attr-defined]
+        plugins_relation_list = rel_mgr.filter(service_id__in=service_ids).all()
         return plugins_relation_list or []
 
-    def get_probe_list_by_service_ids(self, service_ids):
+    def get_probe_list_by_service_ids(self, service_ids: List[str]) -> Any:
         probes = ServiceProbe.objects.filter(service_id__in=service_ids).all()
         return probes or []
 
-    def get_last_shared_app_version_by_group_id(self, group_id, team_name=None, scope=None):
+    def get_last_shared_app_version_by_group_id(self, group_id: str, team_name: Optional[str] = None,
+                                                scope: Optional[str] = None) -> Optional[ServiceShareRecord]:
         if scope == "goodrain":
             return ServiceShareRecord.objects.filter(
                 group_id=group_id, scope=scope, is_success=True).order_by("-create_time").first()
@@ -64,7 +72,7 @@ class ShareRepo(object):
                 group_id=group_id, scope__in=["team", "enterprise"], team_name=team_name,
                 is_success=True).order_by("-create_time").first()
 
-    def get_last_app_versions_by_app_id(self, app_id):
+    def get_last_app_versions_by_app_id(self, app_id: str) -> Any:
         conn = BaseConnection()
         sql = """
             SELECT B.version, B.version_alias, B.dev_status, B.app_version_info as `describe`
@@ -79,102 +87,98 @@ class ShareRepo(object):
         result = conn.query(sql)
         return result
 
-    def create_service(self, **kwargs):
-        service = ServiceInfo(**kwargs)
-        service.save()
-        return service
-
-    def create_tenant_service(self, **kwargs):
+    def create_tenant_service(self, **kwargs: Any) -> TenantServiceInfo:
         tenant_service = TenantServiceInfo(**kwargs)
         tenant_service.save()
         return tenant_service
 
-    def create_tenant_service_port(self, **kwargs):
+    def create_tenant_service_port(self, **kwargs: Any) -> TenantServicesPort:
         tenant_service_port = TenantServicesPort(**kwargs)
         tenant_service_port.save()
         return tenant_service_port
 
-    def create_tenant_service_env_var(self, **kwargs):
+    def create_tenant_service_env_var(self, **kwargs: Any) -> TenantServiceEnvVar:
         tenant_service_env_var = TenantServiceEnvVar(**kwargs)
         tenant_service_env_var.save()
         return tenant_service_env_var
 
-    def create_tenant_service_volume(self, **kwargs):
+    def create_tenant_service_volume(self, **kwargs: Any) -> TenantServiceVolume:
         tenant_service_volume = TenantServiceVolume(**kwargs)
         tenant_service_volume.save()
         return tenant_service_volume
 
-    def create_tenant_service_relation(self, **kwargs):
+    def create_tenant_service_relation(self, **kwargs: Any) -> TenantServiceRelation:
         tenant_service_relation = TenantServiceRelation(**kwargs)
         tenant_service_relation.save()
         return tenant_service_relation
 
-    def create_tenant_service_plugin(self, **kwargs):
+    def create_tenant_service_plugin(self, **kwargs: Any) -> TenantServicePluginAttr:
         tenant_service_plugin = TenantServicePluginAttr(**kwargs)
         tenant_service_plugin.save()
         return tenant_service_plugin
 
-    def create_tenant_service_plugin_relation(self, **kwargs):
+    def create_tenant_service_plugin_relation(self, **kwargs: Any) -> TenantServicePluginRelation:
         tenant_service_plugin_relation = TenantServicePluginRelation(**kwargs)
         tenant_service_plugin_relation.save()
         return tenant_service_plugin_relation
 
-    def delete_tenant_service_plugin_relation(self, service_id):
-        TenantServicePluginRelation.objects.filter(service_id=service_id).delete()
+    def delete_tenant_service_plugin_relation(self, service_id: str) -> None:
+        TenantServicePluginRelation.objects.filter(service_id=service_id).delete()  # type: ignore[attr-defined]
 
-    def create_service_share_record(self, **kwargs):
+    def create_service_share_record(self, **kwargs: Any) -> ServiceShareRecord:
         service_share_record = ServiceShareRecord(**kwargs)
         service_share_record.save()
         return service_share_record
 
-    def get_service_share_record(self, group_share_id):
+    def get_service_share_record(self, group_share_id: str) -> Optional[ServiceShareRecord]:
         share_record = ServiceShareRecord.objects.filter(group_share_id=group_share_id)
         if not share_record:
             return None
         else:
             return share_record[0]
 
-    def get_service_share_record_by_ID(self, ID, team_name):
+    def get_service_share_record_by_ID(self, ID: int, team_name: str) -> Optional[ServiceShareRecord]:
         share_record = ServiceShareRecord.objects.filter(ID=ID, team_name=team_name)
         if not share_record:
             return None
         else:
             return share_record[0]
 
-    def get_service_share_record_by_groupid(self, group_id):
+    def get_service_share_record_by_groupid(self, group_id: str) -> Optional[ServiceShareRecord]:
         share_record = ServiceShareRecord.objects.filter(group_id=group_id)
         if not share_record:
             return None
         else:
             return share_record[0]
 
-    def get_service_share_records_by_groupid(self, team_name, group_id, page=1, page_size=10):
+    def get_service_share_records_by_groupid(self, team_name: str, group_id: str, page: int = 1,
+                                             page_size: int = 10) -> Tuple[int, Any]:
         query = ServiceShareRecord.objects.filter(
             group_id=group_id, team_name=team_name, status__in=[0, 1, 2]).order_by("-create_time")
         ptr = Paginator(query, page_size)
         return ptr.count, ptr.page(page)
 
-    def get_service_share_record_by_id(self, group_id, record_id):
+    def get_service_share_record_by_id(self, group_id: str, record_id: int) -> Optional[ServiceShareRecord]:
         return ServiceShareRecord.objects.filter(group_id=group_id, ID=record_id).first()
 
-    def get_multi_app_share_records(self, group_ids):
+    def get_multi_app_share_records(self, group_ids: List[str]) -> QuerySet[ServiceShareRecord]:
         return ServiceShareRecord.objects.filter(group_id__in=group_ids)
 
-    def get_app_share_records_by_groupid(self, team_name, group_id):
+    def get_app_share_records_by_groupid(self, team_name: str, group_id: str) -> QuerySet[ServiceShareRecord]:
         return ServiceShareRecord.objects.filter(group_id=group_id, team_name=team_name, status__in=[0, 1, 2])
 
-    def get_app_share_record_count_by_groupid(self, group_id):
+    def get_app_share_record_count_by_groupid(self, group_id: str) -> int:
         return ServiceShareRecord.objects.filter(group_id=group_id, step=3).count()
 
     @staticmethod
-    def count_by_app_id(app_id):
+    def count_by_app_id(app_id: str) -> int:
         return ServiceShareRecord.objects.filter(group_id=app_id).count()
 
-    def get_share_plugin(self, plugin_id):
+    def get_share_plugin(self, plugin_id: str) -> Optional[RainbondCenterPlugin]:
         plugins = RainbondCenterPlugin.objects.filter(plugin_id=plugin_id).order_by('-ID')
         return plugins.first() if plugins else None
 
-    def check_app_by_eid(self, eid):
+    def check_app_by_eid(self, eid: str) -> bool:
         """
         check if an app has been shared
         """

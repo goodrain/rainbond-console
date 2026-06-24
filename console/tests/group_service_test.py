@@ -136,3 +136,58 @@ class GroupServiceAppStatusAggregationTests(TestCase):
         )
 
         self.assertEqual(result[42]["status"], "CLOSED")
+
+
+# capability_id: console.operator-managed.skip-kubeblocks-services
+class GroupServiceOperatorManagedTests(TestCase):
+    def test_get_watch_managed_data_skips_services_backing_kubeblocks_components(self):
+        tenant = Obj(tenant_name="demo-team", namespace="demo-ns")
+        kubeblocks_component = Obj(
+            extend_method="kubeblocks_component",
+            service_source="kubeblocks",
+            k8s_component_name="test-5060-mysql",
+        )
+        app_service_stub = ModuleType("console.services.app")
+        app_service_stub.app_service = Obj(
+            is_k8s_component_name_duplicate=mock.Mock(return_value=False)
+        )
+
+        with mock.patch.object(group_service_module.region_app_repo,
+                               "get_region_app_id",
+                               return_value="region-app-1"), \
+                mock.patch.object(group_service_module.base_service,
+                                  "get_watch_managed",
+                                  return_value={
+                                      "services": [
+                                          {
+                                              "name": "test-5060-mysql",
+                                              "ip": "None",
+                                              "port": "3306",
+                                          },
+                                          {
+                                              "name": "external-api",
+                                              "ip": "None",
+                                              "port": "8080",
+                                          },
+                                      ]
+                }), \
+                mock.patch.object(group_service,
+                                  "list_components",
+                                  return_value=[kubeblocks_component]), \
+                mock.patch.dict(sys.modules, {"console.services.app": app_service_stub}):
+            data = group_service.get_watch_managed_data(tenant, "demo-region", 42)
+
+        self.assertEqual(
+            data,
+            {
+                "service": [
+                    {
+                        "name": "external-api-svc",
+                        "static": False,
+                        "namespace": "demo-ns",
+                        "service": "external-api",
+                        "port": "8080",
+                    }
+                ]
+            },
+        )

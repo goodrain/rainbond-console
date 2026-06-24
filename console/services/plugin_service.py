@@ -1,5 +1,6 @@
 # -*- coding: utf8 -*-
 import logging
+from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import urlparse, urlunparse
 import time
 
@@ -21,7 +22,7 @@ VM_PLUGIN_VNC_SERVICE_NAME = "virtvnc"
 
 class RainbondPluginService(object):
     @staticmethod
-    def _parse_frontend_service(frontend_service):
+    def _parse_frontend_service(frontend_service: Any) -> Tuple[str, Optional[int]]:
         frontend_service = str(frontend_service or "").strip()
         if not frontend_service:
             return "", None
@@ -35,7 +36,7 @@ class RainbondPluginService(object):
         return service_name, parsed.port
 
     @staticmethod
-    def _request_host_name(request):
+    def _request_host_name(request: Any) -> str:
         if not request or not hasattr(request, "get_host"):
             return ""
         host = str(request.get_host() or "").strip()
@@ -45,7 +46,7 @@ class RainbondPluginService(object):
             return host.rsplit(":", 1)[0]
         return host
 
-    def _normalize_access_url(self, raw_url, request=None):
+    def _normalize_access_url(self, raw_url: Any, request: Any = None) -> str:
         raw_url = str(raw_url or "").strip()
         if not raw_url:
             return ""
@@ -73,7 +74,7 @@ class RainbondPluginService(object):
 
         return raw_url.rstrip("/")
 
-    def _get_ns_service_resource(self, region_name, team_name, service_name):
+    def _get_ns_service_resource(self, region_name: str, team_name: str, service_name: str) -> dict:
         if not team_name or not service_name:
             return {}
         try:
@@ -95,7 +96,7 @@ class RainbondPluginService(object):
         bean = body.get("bean", {}) if isinstance(body, dict) else {}
         return bean if isinstance(bean, dict) else {}
 
-    def _build_service_nodeport_url(self, service_resource, target_port, request=None):
+    def _build_service_nodeport_url(self, service_resource: dict, target_port: Optional[int], request: Any = None) -> str:
         spec = service_resource.get("spec", {}) if isinstance(service_resource, dict) else {}
         ports = spec.get("ports", []) if isinstance(spec, dict) else []
         if not isinstance(ports, list):
@@ -117,7 +118,7 @@ class RainbondPluginService(object):
                 return self._normalize_access_url("0.0.0.0:{}".format(node_port), request=request)
         return ""
 
-    def _resolve_vm_plugin_urls(self, plugin, app_id, team, app_component_rels, region_name, request=None):
+    def _resolve_vm_plugin_urls(self, plugin: dict, app_id: Any, team: Any, app_component_rels: Dict[Any, List[Any]], region_name: str, request: Any = None) -> List[str]:
         if plugin.get("name") != "rainbond-vm":
             return []
         if not team:
@@ -133,7 +134,7 @@ class RainbondPluginService(object):
             return [nodeport_url]
         return []
 
-    def get_vm_plugin_url(self, enterprise_id, region_name, request=None):
+    def get_vm_plugin_url(self, enterprise_id: str, region_name: str, request: Any = None) -> str:
         plugins, _ = self.list_plugins(enterprise_id, region_name, official=True, request=request)
         for plugin in plugins:
             if plugin.get("name") == "rainbond-vm":
@@ -142,34 +143,38 @@ class RainbondPluginService(object):
                     return urls[0]
         return ""
 
-    def list_plugins(self, enterprise_id, region_name, official=False, request=None):
-        team_names, team_ids, region_app_ids, app_ids, component_ids = [], [], [], [], []
+    def list_plugins(self, enterprise_id: str, region_name: str, official: bool = False, request: Any = None) -> Tuple[List[Any], bool]:
+        team_names: List[str] = []
+        team_ids: List[Any] = []
+        region_app_ids: List[Any] = []
+        app_ids: List[Any] = []
+        component_ids: List[Any] = []
         region_apps_map = {}
 
         total_start = time.time()
-        region_elapsed_ms = 0
-        market_elapsed_ms = 0
-        console_db_elapsed_ms = 0
-        enrich_elapsed_ms = 0
+        region_elapsed_ms: float = 0
+        market_elapsed_ms: float = 0
+        console_db_elapsed_ms: float = 0
+        enrich_elapsed_ms: float = 0
         need_authz = False
-        logger.info("Calling region_api.list_plugins: enterprise_id={}, region_name={}, official={}".format(
+        logger.debug("Calling region_api.list_plugins: enterprise_id={}, region_name={}, official={}".format(
             enterprise_id, region_name, official))
         region_start = time.time()
         _, body = region_api.list_plugins(enterprise_id, region_name, official)
         region_elapsed_ms = (time.time() - region_start) * 1000
-        plugins = body["list"] if body.get("list") else []
-        logger.info("region_api.list_plugins returned {} plugins from region".format(len(plugins)))
+        plugins = body["list"] if body.get("list") else []  # type: ignore[union-attr, index]  # NOTE: body Optional from region_api (latent None, backlog)
+        logger.debug("region_api.list_plugins returned {} plugins from region".format(len(plugins)))
 
         # Log raw plugin data from region API
         for idx, plugin in enumerate(plugins):
-            logger.info("Raw plugin {} from region: name={}, category={}, alias={}".format(
+            logger.debug("Raw plugin {} from region: name={}, category={}, alias={}".format(
                 idx + 1,
                 plugin.get("name", "unknown"),
                 plugin.get("category", "unknown"),
                 plugin.get("alias", "unknown")))
 
-        market_plugins = []
-        market_plugin_map = {}
+        market_plugins: List[Any] = []
+        market_plugin_map: Dict[str, Any] = {}
         if official and not is_cloud_market_disabled():
             market_start = time.time()
             try:
@@ -184,7 +189,7 @@ class RainbondPluginService(object):
             finally:
                 market_elapsed_ms = (time.time() - market_start) * 1000
         elif official:
-            logger.info("official plugin market metadata skipped because cloud market is disabled")
+            logger.debug("official plugin market metadata skipped because cloud market is disabled")
 
         for plugin in plugins:
             region_app_ids.append(plugin["region_app_id"])
@@ -210,7 +215,7 @@ class RainbondPluginService(object):
         for region_app in region_apps:
             app_ids.append(region_app.app_id)
             region_apps_map[region_app.region_app_id] = region_app.app_id
-        app_component_rels = {}
+        app_component_rels: Dict[Any, List[Any]] = {}
         relations = service_group_relation_repo.list_by_tenant_ids(team_ids)
         for relation in relations:
             component_ids.append(relation.service_id)
@@ -219,7 +224,7 @@ class RainbondPluginService(object):
                 continue
             app_component_rels[relation.group_id] = [relation.service_id]
 
-        component_url_rels = {}
+        component_url_rels: Dict[Any, List[str]] = {}
         domains = domain_repo.list_by_component_ids(component_ids)
         for domain in domains:
             if domain.is_outer_service:
@@ -260,7 +265,7 @@ class RainbondPluginService(object):
             plugin["urls"] = [self._normalize_access_url(url, request=request) for url in plugin["urls"] if url]
             plugin["urls"] = [self._normalize_access_url(url, request=request) for url in plugin["urls"] if url]
         enrich_elapsed_ms = (time.time() - enrich_start) * 1000
-        logger.info(
+        logger.debug(
             "official plugin list timing enterprise_id=%s region_name=%s official=%s plugin_count=%s "
             "market_plugin_count=%s region_ms=%.1f market_ms=%.1f console_db_ms=%.1f enrich_ms=%.1f total_ms=%.1f",
             enterprise_id,

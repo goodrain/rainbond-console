@@ -2,11 +2,13 @@
 # creater by: barnett
 import copy
 import logging
+from typing import Any, Optional
 
 from django.forms.models import model_to_dict
 
 from console.repositories.app import service_repo
 from console.repositories.group import group_repo, group_service_relation_repo
+from openapi.views.exceptions import ErrTeamNotFound
 from console.repositories.team_repo import team_repo
 from console.services.group_service import group_service
 from console.services.service_services import base_service
@@ -16,12 +18,16 @@ logger = logging.getLogger("default")
 
 
 class AppService(object):
-    def get_app_services_and_status(self, app):
+    def get_app_services_and_status(self, app: Any) -> list:
         services = group_service.get_group_services(app.ID)
         service_ids = [service.service_id for service in services]
         team = team_services.get_team_by_team_id(app.tenant_id)
+        if not team:
+            raise ErrTeamNotFound
+        # NOTE: enterprise_id typed str|None by stubs; runtime always str.
         status_list = base_service.status_multi_service(
-            region=app.region_name, tenant_name=team.tenant_name, service_ids=service_ids, enterprise_id=team.enterprise_id)
+            region=app.region_name, tenant_name=team.tenant_name, service_ids=service_ids,
+            enterprise_id=team.enterprise_id)  # type: ignore[arg-type]
         status_map = {}
         if status_list:
             for status in status_list:
@@ -33,7 +39,7 @@ class AppService(object):
             re_services.append(s)
         return re_services
 
-    def get_group_services_by_id(self, app_id):
+    def get_group_services_by_id(self, app_id: str) -> list:
         services = group_service_relation_repo.get_services_by_group(app_id)
         if not services:
             return []
@@ -45,10 +51,10 @@ class AppService(object):
                 service_ids.remove(service_id)
         return service_ids
 
-    def get_services_by_group_id(self, group_id):
+    def get_services_by_group_id(self, group_id: str) -> Any:
         return group_service_relation_repo.get_services_by_group(group_id)
 
-    def get_service_by_service_key_and_group_id(self, service_key, group_id):
+    def get_service_by_service_key_and_group_id(self, service_key: str, group_id: str) -> Any:
         rst = None
         services = group_service_relation_repo.get_services_by_group(group_id)
         if not services:
@@ -63,7 +69,7 @@ class AppService(object):
             break
         return rst
 
-    def get_tenant_by_group_id(self, group_id):
+    def get_tenant_by_group_id(self, group_id: str) -> Optional[Any]:
         service_group = group_repo.get_group_by_id(group_id)
         if not service_group:
             return None
@@ -73,20 +79,20 @@ class AppService(object):
         except Exception:
             return None
 
-    def get_app_service_count(self, group_id):
+    def get_app_service_count(self, group_id: str) -> int:
         services = group_service_relation_repo.get_services_by_group(group_id)
         if not services:
             return 0
         return len(services)
 
-    def get_app_running_service_count(self, tenant, services):
+    def get_app_running_service_count(self, tenant: Any, services: list) -> int:
         count = 0
         for service in services:
             if service["status"] == "running":
                 count += 1
         return count
 
-    def get_app_memory_and_cpu_used(self, services):
+    def get_app_memory_and_cpu_used(self, services: list) -> tuple:
         memory = 0
         cpu = 0
         for service in services:

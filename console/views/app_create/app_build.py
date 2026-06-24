@@ -3,6 +3,7 @@
   Created on 18/2/1.
 """
 import logging
+from typing import Any
 
 from console.cloud.services import check_account_quota
 from console.exception.bcode import ErrComponentBuildFailed
@@ -18,7 +19,8 @@ from console.services.operation_log import operation_log_service, Operation
 from console.views.app_config.base import AppBaseView
 from console.views.base import (CloudEnterpriseCenterView, RegionTenantHeaderCloudEnterpriseCenterView)
 from django.db import transaction
-from django.views.decorators.cache import never_cache
+from console.utils.cache_decorators import never_cache
+from rest_framework.request import Request
 from rest_framework.response import Response
 from www.apiclient.baseclient import HttpClient
 from www.utils.return_message import error_message, general_message
@@ -29,7 +31,7 @@ logger = logging.getLogger("default")
 class AppBuild(AppBaseView, CloudEnterpriseCenterView):
     @never_cache
     @transaction.atomic
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         组件构建
         ---
@@ -55,41 +57,47 @@ class AppBuild(AppBaseView, CloudEnterpriseCenterView):
             if self.service.service_source == "third_party":
                 is_deploy = False
                 # create third component from region
-                new_service = app_service.create_third_party_service(self.tenant, self.service, self.user.nick_name)
+                new_service = app_service.create_third_party_service(
+                    self.tenant, self.service, self.user.nick_name)  # type: ignore[arg-type]
             else:
                 # 数据中心创建组件
-                new_service = app_service.create_region_service(self.tenant, self.service, self.user.nick_name)
+                new_service = app_service.create_region_service(
+                    self.tenant, self.service, self.user.nick_name)  # type: ignore[arg-type]
 
             self.service = new_service
 
             if is_deploy:
-                tracker = enterprise_first_deploy_service.begin_tracking(
-                    enterprise_id=self.tenant.enterprise_id,
+                tracker = enterprise_first_deploy_service.safe_begin_tracking(
+                    enterprise_id=self.tenant.enterprise_id,  # type: ignore[arg-type]
                     tenant_name=self.tenant.tenant_name,
                     region_name=self.service.service_region,
-                    deploy_type=enterprise_first_deploy_service.get_deploy_type(self.service.service_source),
-                    operator=self.user.nick_name,
+                    deploy_type=enterprise_first_deploy_service.get_deploy_type(
+                        self.service.service_source),  # type: ignore[arg-type]
+                    operator=self.user.nick_name,  # type: ignore[arg-type]
                     source_language=self.service.language or "",
                     service_id=self.service.service_id,
-                    service_alias=self.service.service_alias)
+                    service_alias=self.service.service_alias,
+                    service=self.service,
+                    trigger="create_and_deploy",
+                    app_context=enterprise_first_deploy_service.build_service_app_context(self.app))
                 try:
                     arch_service.update_affinity_by_arch(self.service.arch, self.tenant, self.region.region_name, self.service)
                     code, msg, event_id = app_manage_service.deploy(
                         self.tenant, self.service, self.user, oauth_instance=self.oauth_instance)
                     if code != 200:
-                        enterprise_first_deploy_service.mark_failure(tracker, reason=msg)
+                        enterprise_first_deploy_service.safe_mark_failure(tracker, reason=msg)
                         result = general_message(code, "deploy app error", msg)
                         return Response(result, status=code)
-                    enterprise_first_deploy_service.bind_events(tracker, [event_id])
+                    enterprise_first_deploy_service.safe_bind_events(tracker, [event_id])
                 except ErrInsufficientResource as e:
-                    enterprise_first_deploy_service.mark_failure(tracker, reason=getattr(e, "msg", str(e)))
+                    enterprise_first_deploy_service.safe_mark_failure(tracker, reason=getattr(e, "msg", str(e)))
                     result = general_message(e.error_code, e.msg, e.msg_show)
                     return Response(result, status=e.status_code)
                 except ServiceHandleException as e:
-                    enterprise_first_deploy_service.mark_failure(tracker, reason=getattr(e, "message", str(e)))
+                    enterprise_first_deploy_service.safe_mark_failure(tracker, reason=getattr(e, "message", str(e)))
                     raise e
                 except Exception as e:
-                    enterprise_first_deploy_service.mark_failure(tracker, reason=str(e))
+                    enterprise_first_deploy_service.safe_mark_failure(tracker, reason=str(e))
                     logger.exception(e)
                     err = ErrComponentBuildFailed()
                     result = general_message(err.error_code, e, err.msg_show)
@@ -141,7 +149,7 @@ class AppBuild(AppBaseView, CloudEnterpriseCenterView):
         self.service.save()
         return Response(result, status=status)
 
-    def is_need_to_add_default_probe(self):
+    def is_need_to_add_default_probe(self) -> bool:
         if self.service.service_source != "source_code":
             return True
         else:
@@ -154,7 +162,7 @@ class AppBuild(AppBaseView, CloudEnterpriseCenterView):
 
 class ComposeBuildView(RegionTenantHeaderCloudEnterpriseCenterView):
     @never_cache
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         docker-compose组件检测
         ---
@@ -175,7 +183,7 @@ class ComposeBuildView(RegionTenantHeaderCloudEnterpriseCenterView):
               type: string
               paramType: form
         """
-        probe_map = dict()
+        probe_map: dict = dict()
         services = None
 
         try:
@@ -187,10 +195,12 @@ class ComposeBuildView(RegionTenantHeaderCloudEnterpriseCenterView):
             # 数据中心创建组件
             new_app_list = []
             for service in services:
-                new_service = app_service.create_region_service(self.tenant, service, self.user.nick_name)
+                new_service = app_service.create_region_service(
+                    self.tenant, service, self.user.nick_name)  # type: ignore[arg-type]
                 new_app_list.append(new_service)
-            group_compose.create_status = "complete"
-            group_compose.save()
+            # NOTE: get_group_compose_by_compose_id may return None; backlog
+            group_compose.create_status = "complete"  # type: ignore[union-attr]
+            group_compose.save()  # type: ignore[union-attr]
             for s in new_app_list:
                 try:
                     app_manage_service.deploy(self.tenant, s, self.user, oauth_instance=self.oauth_instance)
@@ -204,12 +214,12 @@ class ComposeBuildView(RegionTenantHeaderCloudEnterpriseCenterView):
             result = general_message(200, "success", "构建成功")
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)
+            result = error_message(e.message)  # type: ignore[attr-defined]
             if services:
                 for service in services:
                     if probe_map:
                         probe_id = probe_map.get(service.service_id)
-                        probe_service.delete_service_probe(self.tenant, service, probe_id)
+                        probe_service.delete_service_probe(self.tenant, service, probe_id)  # type: ignore[arg-type]
                     event_service.delete_service_events(service)
                     port_service.delete_region_port(self.tenant, service)
                     volume_service.delete_region_volumes(self.tenant, service)
@@ -224,7 +234,7 @@ class ComposeBuildView(RegionTenantHeaderCloudEnterpriseCenterView):
 
 class CodeBuildLangVersionView(AppBaseView):
     @never_cache
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         源码构建组件获取构建环境版本。
         ---

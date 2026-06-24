@@ -426,7 +426,7 @@ class TenantServiceInfoDelete(BaseModel):
     min_cpu = models.IntegerField(help_text="cpu个数", default=500)
     min_memory = models.IntegerField(help_text="内存大小单位（M）", default=256)
     container_gpu = models.IntegerField(help_text="gpu显存数量", default=0)
-    inner_port = models.IntegerField(help_text="内部端口")
+    inner_port = models.IntegerField(help_text="内部端口", default=0)
     volume_mount_path = models.CharField(max_length=200, null=True, blank=True, help_text="mount目录")
     host_path = models.CharField(max_length=300, null=True, blank=True, help_text="mount目录")
     deploy_version = models.CharField(max_length=20, null=True, blank=True, help_text="部署版本")
@@ -678,7 +678,7 @@ class TenantServiceVolume(BaseModel):
     share_policy = models.CharField(max_length=100, null=True, default='', blank=True, help_text="共享模式")
     backup_policy = models.CharField(max_length=100, null=True, default='', blank=True, help_text="备份策略")
     reclaim_policy = models.CharField(max_length=100, null=True, default='', blank=True, help_text="回收策略")
-    allow_expansion = models.NullBooleanField(max_length=100, null=True, default=0, blank=True, help_text="只是支持控制扩展，0：不支持；1：支持")
+    allow_expansion = models.BooleanField(max_length=100, null=True, default=0, blank=True, help_text="只是支持控制扩展，0：不支持；1：支持")
     mode = models.IntegerField(null=True, help_text="存储权限")
 
 

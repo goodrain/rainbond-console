@@ -1,6 +1,11 @@
 ARG IMAGE_NAMESPACE=rainbond
 ARG VERSION=v6.0.0-release
 ARG IMAGE_VERSION=v6.0.0-release
+# Python base images, overridable to a mirror (e.g. GHCR) to avoid Docker Hub
+# pull-rate limits in CI. Defaults keep pulling from Docker Hub (release builds
+# unchanged); dev-build overrides these to a mirror via --build-arg.
+ARG PYTHON_BASE=python:3.11-bookworm
+ARG PYTHON_SLIM_BASE=python:3.11-slim-bookworm
 
 # build ui
 FROM ${IMAGE_NAMESPACE}/rainbond-ui:${IMAGE_VERSION} AS ui
@@ -14,7 +19,7 @@ RUN mv /dist/index.html /app/ui/www/templates/index.html && \
     cp -a /dist/* /app/ui/www/static/dists/
 
 # build console
-FROM python:3.6-stretch AS build-console
+FROM ${PYTHON_BASE} AS build-console
 ARG PYTHONPROXY
 ARG TARGETARCH
 ARG VERSION
@@ -24,16 +29,19 @@ WORKDIR /app/ui
 ENV PATH="/app/ui/py_venv/bin:$PATH"
 
 RUN python -m venv --copies /app/ui/py_venv && \
-    python -m pip install --upgrade pip && pip install numpy==1.19.3 && \
-    pip install -r requirements.txt $PYTHONPROXY && \
+    python -m pip install --no-cache-dir --upgrade pip 'setuptools<70' && \
+    pip install --no-cache-dir -r requirements.txt $PYTHONPROXY && \
     curl -fsSL https://gitee.com/zhangsetsail/appstore-sdk-python/repository/archive/python3.tar.gz -o /tmp/openapi-client.tar.gz && \
     mkdir -p /tmp/openapi-client && \
     tar xzf /tmp/openapi-client.tar.gz -C /tmp/openapi-client --strip-components=1 && \
-    pip install /tmp/openapi-client $PYTHONPROXY && \
+    pip install --no-cache-dir /tmp/openapi-client $PYTHONPROXY && \
     rm -rf /tmp/openapi-client /tmp/openapi-client.tar.gz && \
-    python manage.py collectstatic --noinput --ignore weavescope-src --ignore drf-yasg --ignore rest_framework
+    python manage.py collectstatic --noinput --ignore weavescope-src --ignore drf-yasg --ignore rest_framework && \
+    find /app/ui/py_venv/lib/python3.11/site-packages -depth -type d \( -name __pycache__ -o -name tests \) -exec rm -rf {} + && \
+    find /app/ui/py_venv -name '*.pyc' -delete
 
 RUN git clone --depth=1 -b main https://github.com/goodrain/rainbond-chart /app/ui/rainbond-chart && \
+    rm -rf /app/ui/rainbond-chart/.git && \
     sed -i "s/installVersion: .*/installVersion: $VERSION/" /app/ui/rainbond-chart/values.yaml && \
     wget https://get.helm.sh/helm-v3.16.2-linux-$TARGETARCH.tar.gz -O /tmp/helm.tar.gz && \
     tar -zxvf /tmp/helm.tar.gz -C /tmp && \
@@ -41,7 +49,7 @@ RUN git clone --depth=1 -b main https://github.com/goodrain/rainbond-chart /app/
     chmod +x /tmp/helm
 
 # build console image
-FROM python:3.6-slim-stretch
+FROM ${PYTHON_SLIM_BASE}
 
 ARG RELEASE_DESC=
 ARG VERSION
@@ -62,10 +70,9 @@ WORKDIR /app/ui
 
 RUN ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
 	echo 'Asia/Shanghai' >/etc/timezone && \
-	echo "deb http://archive.debian.org/debian/ stretch main" > /etc/apt/sources.list && \
-	echo "deb http://archive.debian.org/debian-security stretch/updates main" >> /etc/apt/sources.list && \
 	apt-get update && apt-get --no-install-recommends install -y \
-	curl mysql-client sqlite3 default-libmysqlclient-dev && \
+	curl mariadb-client sqlite3 libmariadb3 \
+	libjpeg62-turbo libfreetype6 libpng16-16 zlib1g liblcms2-2 libwebp7 libtiff6 libopenjp2-7 libxcb1 && \
   mkdir -p /app/logs /app/data && \
 	rm -rf /var/lib/apt/lists/*
 

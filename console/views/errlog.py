@@ -1,6 +1,8 @@
 # -*- coding: utf8 -*-
 import logging
+from typing import Any
 
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from console.services.errlog_service import errlog_service
@@ -11,12 +13,13 @@ logger = logging.getLogger("default")
 
 
 class ErrLogView(JWTAuthApiView):
-    def post(self, req, *args, **kwargslf):
+    def post(self, req: Request, *args: Any, **kwargslf: Any) -> Response:
         msg = req.data.get("msg")
         username = req.data.get("username")
         enterprise_id = req.data.get("enterprise_id")
         address = req.data.get("address")
         if msg:
             logger.error("error from frontend: {}".format(msg))
-            errlog_service.create(msg, username, enterprise_id, address)
+            # NOTE: request.data.get returns Optional; service expects str (legacy mismatch, backlog).
+            errlog_service.create(msg, username, enterprise_id, address)  # type: ignore[arg-type]
         return Response(general_message(200, "success", "ok"), status=200)

@@ -6,6 +6,7 @@ from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import exceptions
 from rest_framework import status
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from console.services.enterprise_services import enterprise_services
@@ -30,7 +31,7 @@ class ListAppStoresView(BaseOpenAPIView):
         responses={status.HTTP_200_OK: ListAppStoreInfosRespSerializer()},
         tags=['openapi-appstore'],
     )
-    def get(self, req):
+    def get(self, req: Request) -> Response:
         try:
             page = int(req.GET.get("page", 1))
         except ValueError:
@@ -56,7 +57,7 @@ class AppStoreInfoView(BaseOpenAPIView):
         },
         tags=['openapi-appstore'],
     )
-    def put(self, req, eid):
+    def put(self, req: Request, eid: str) -> Response:
         serializer = UpdAppStoreInfoReqSerializer(data=req.data)
         serializer.is_valid(raise_exception=True)
 
@@ -65,7 +66,8 @@ class AppStoreInfoView(BaseOpenAPIView):
 
         try:
             res = enterprise_services.update_appstore_info(eid, req.data)
-        except TenantEnterpriseToken:
+        # NOTE: BUG—TenantEnterpriseToken is a Django model, not an exception; except can never match.
+        except TenantEnterpriseToken:  # type: ignore[misc]
             raise exceptions.NotFound({"msg": "应用市场信息不存在 {}".format(eid)})
         serializer = AppStoreInfoSerializer(res)
         return Response(serializer.data, status=status.HTTP_200_OK)

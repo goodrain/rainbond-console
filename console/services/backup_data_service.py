@@ -6,6 +6,7 @@ import shutil
 import subprocess
 import time
 import zipfile
+from typing import Any, Dict, List
 
 import requests
 from console.exception.main import ServiceHandleException
@@ -19,7 +20,7 @@ logger = logging.getLogger('default')
 
 
 class PlatformDataBackupServices(object):
-    def list_backups(self):
+    def list_backups(self) -> List[Dict[str, Any]]:
         g = os.walk(settings.DATA_DIR + "/backups/")
         if not os.path.exists(os.path.join(settings.DATA_DIR, "backups")):
             os.makedirs(os.path.join(settings.DATA_DIR, "backups"), 0o777)
@@ -33,10 +34,10 @@ class PlatformDataBackupServices(object):
                     backups.append({"name": file, "size": size})
         return backups
 
-    def remove_backup(self, name):
+    def remove_backup(self, name: str) -> None:
         os.remove(settings.DATA_DIR + "/backups/" + name)
 
-    def create_backup(self):
+    def create_backup(self) -> None:
         backup_path = settings.DATA_DIR + "/backups/" + time.strftime("%Y-%m-%d", time.localtime())
         if not os.path.exists(backup_path):
             os.makedirs(backup_path, 0o777)
@@ -47,17 +48,17 @@ class PlatformDataBackupServices(object):
         self.compressed_file_by_tar(backup_path, full_tarname)
         shutil.rmtree(backup_path)
 
-    def write_version(self, backup_path):
+    def write_version(self, backup_path: str) -> None:
         with open(os.path.join(backup_path, 'version'), 'w') as f:
             f.write(settings.VERSION)
 
-    def version_than(self, backup_path):
-        with open(os.path.join(backup_path, 'version'), 'w') as f:
+    def version_than(self, backup_path: str) -> None:
+        with open(os.path.join(backup_path, 'version'), 'r') as f:
             if f.read() != settings.VERSION:
                 raise ServiceHandleException(
                     msg="The data version is inconsistent with the code version.", msg_show="数据版本不同，不能导入")
 
-    def upload_file(self, upload_file):
+    def upload_file(self, upload_file: Any) -> None:
         try:
             if not os.path.exists(os.path.join(settings.DATA_DIR, "backups")):
                 os.makedirs(os.path.join(settings.DATA_DIR, "backups"), 0o777)
@@ -69,7 +70,7 @@ class PlatformDataBackupServices(object):
             logger.exception(e)
             raise ServiceHandleException(msg="upload data file failed", msg_show="导入数据文件失败")
 
-    def recover_platform_data(self, name):
+    def recover_platform_data(self, name: str) -> None:
         recover_path = os.path.join(settings.DATA_DIR, "backups", "recover-{}".format(make_uuid()[:6]))
         if not os.path.exists(recover_path):
             os.makedirs(recover_path, 0o777)
@@ -80,7 +81,7 @@ class PlatformDataBackupServices(object):
                 self.recover_console_data(os.path.join(recover_path, file))
         shutil.rmtree(recover_path)
 
-    def recover_console_data(self, file_name):
+    def recover_console_data(self, file_name: str) -> None:
         # 首先尝试使用自定义的 restore_backup 命令（如果存在）
         # 该命令会处理重复键的问题
         try:
@@ -109,7 +110,7 @@ class PlatformDataBackupServices(object):
             # 如果所有方法都失败，尝试智能恢复作为最后手段
             self._smart_recover_console_data(file_name)
 
-    def _smart_recover_console_data(self, file_name):
+    def _smart_recover_console_data(self, file_name: str) -> None:
         """智能恢复控制台数据，处理重复键问题"""
         logger.info("Starting smart recovery for console data")
 
@@ -119,7 +120,7 @@ class PlatformDataBackupServices(object):
                 data = json.load(f)
 
             # 按模型分组数据
-            objects_by_model = {}
+            objects_by_model: Dict[str, List[Any]] = {}
             for obj in data:
                 model_label = obj.get('model')
                 if model_label:
@@ -151,7 +152,7 @@ class PlatformDataBackupServices(object):
             logger.error("Smart recovery failed: {}".format(e))
             raise ServiceHandleException(msg="recover data failed", msg_show="恢复控制台数据失败")
 
-    def _restore_console_sys_config(self, model, objects):
+    def _restore_console_sys_config(self, model: Any, objects: List[Any]) -> None:
         """特殊处理 ConsoleSysConfig 的恢复"""
         success_count = 0
         update_count = 0
@@ -189,7 +190,7 @@ class PlatformDataBackupServices(object):
 
         logger.info("ConsoleSysConfig: {} created, {} updated".format(success_count, update_count))
 
-    def _restore_generic_model(self, model, objects):
+    def _restore_generic_model(self, model: Any, objects: List[Any]) -> None:
         """通用模型恢复"""
         success_count = 0
         error_count = 0
@@ -240,7 +241,7 @@ class PlatformDataBackupServices(object):
         if error_count > 0:
             logger.warning("{}: {} records failed".format(model.__name__, error_count))
 
-    def recover_adaptor_data(self, file_name):
+    def recover_adaptor_data(self, file_name: str) -> None:
         files = {'file': open(file_name, 'rb')}
         remoteurl = "http://{0}:{1}/{2}".format(
             os.getenv("ADAPTOR_HOST", "127.0.0.1"), os.getenv("ADAPTOR_PORT", "8080"), "enterprise-server/api/v1/recover")
@@ -248,7 +249,7 @@ class PlatformDataBackupServices(object):
         if r.status_code != 200:
             raise ServiceHandleException(msg="export adaptor data failed", msg_show="恢复adaptor数据失败")
 
-    def export_console_data(self, data_path):
+    def export_console_data(self, data_path: str) -> str:
         console_data_name = "console_data.json"
         dump_command = "python3 manage.py dumpdata --exclude auth.permission --exclude contenttypes > {}".format(
             data_path + "/{}".format(console_data_name))
@@ -258,7 +259,7 @@ class PlatformDataBackupServices(object):
             raise ServiceHandleException(msg="export console data failed", msg_show="导出控制台数据失败")
         return console_data_name
 
-    def compressed_file_by_tar(self, backup_path, tarname):
+    def compressed_file_by_tar(self, backup_path: str, tarname: str) -> None:
 
         dump_resp = subprocess.run(
             "tar -czf {0} ./".format(tarname),
@@ -271,7 +272,7 @@ class PlatformDataBackupServices(object):
             logger.error(msg=dump_resp.stderr)
             raise ServiceHandleException(msg="export adaptor data failed", msg_show="备份数据打包失败")
 
-    def un_compressed_file_by_tar(self, recover_path, tarname):
+    def un_compressed_file_by_tar(self, recover_path: str, tarname: str) -> None:
         dump_resp = subprocess.run(
             "tar -xzf {0} -C {1}".format(tarname, recover_path),
             shell=True,
@@ -283,7 +284,7 @@ class PlatformDataBackupServices(object):
             logger.error(msg=dump_resp.stderr)
             raise ServiceHandleException(msg="export adaptor data failed", msg_show="备份数据解压失败")
 
-    def upzip_file(self, file_path):
+    def upzip_file(self, file_path: str) -> str:
         file_name = file_path.split('/')[-1]
         extract_dir = settings.BASE_DIR + "/data/" + file_name.split('.')[0]
         os.makedirs(extract_dir, 0o777)
@@ -292,7 +293,7 @@ class PlatformDataBackupServices(object):
         file.extractall(extract_dir)
         return extract_dir
 
-    def download_file(self, file_name):
+    def download_file(self, file_name: str) -> HttpResponse:
         file_path = os.path.join(settings.DATA_DIR, "backups", file_name)
         if os.path.exists(file_path):
             with open(file_path, 'rb') as fh:

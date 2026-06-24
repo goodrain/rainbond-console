@@ -3,6 +3,7 @@ import base64
 import hashlib
 import json
 import logging
+from typing import Any, Optional
 
 from cryptography.fernet import Fernet, InvalidToken
 from django.conf import settings
@@ -22,12 +23,12 @@ ALLOWED_REASONING_EFFORTS = ("", "low", "medium", "high")
 
 class AgentLLMConfigService(object):
 
-    def get_masked_config(self):
+    def get_masked_config(self) -> dict:
         config = self._load_config()
         api_key = self._decrypt_api_key(config.get("OPENAI_API_KEY", ""))
         return self._to_masked_config(config, api_key)
 
-    def update_config(self, data, updated_by=""):
+    def update_config(self, data: Optional[dict] = None, updated_by: str = "") -> dict:
         data = data or {}
         existing = self._load_config()
         existing_stored_key = existing.get("OPENAI_API_KEY", "")
@@ -49,10 +50,10 @@ class AgentLLMConfigService(object):
             "updated_at": timezone.now().isoformat(),
         }
         self._save_config(next_config)
-        api_key = self._decrypt_api_key(next_config.get("OPENAI_API_KEY", ""))
+        api_key = self._decrypt_api_key(next_config.get("OPENAI_API_KEY", ""))  # type: ignore[arg-type]  # NOTE: next_config is dict[str, Any]; .get() returns Any here, safe at runtime
         return self._to_masked_config(next_config, api_key)
 
-    def get_runtime_config(self):
+    def get_runtime_config(self) -> dict:
         config = self._load_config()
         api_key = self._decrypt_api_key(config.get("OPENAI_API_KEY", ""))
         return {
@@ -64,11 +65,11 @@ class AgentLLMConfigService(object):
             "updated_at": config.get("updated_at") or "",
         }
 
-    def clear_config(self):
+    def clear_config(self) -> dict:
         ConsoleSysConfig.objects.filter(key=AI_AGENT_LLM_CONFIG_KEY).delete()
         return self._to_masked_config({}, "")
 
-    def _load_config(self):
+    def _load_config(self) -> dict:
         try:
             obj = ConsoleSysConfig.objects.get(key=AI_AGENT_LLM_CONFIG_KEY)
         except ObjectDoesNotExist:
@@ -85,7 +86,7 @@ class AgentLLMConfigService(object):
             return {}
         return parsed if isinstance(parsed, dict) else {}
 
-    def _save_config(self, config):
+    def _save_config(self, config: dict) -> None:
         value = self._serialize_config(config)
         try:
             obj = ConsoleSysConfig.objects.get(key=AI_AGENT_LLM_CONFIG_KEY)
@@ -104,10 +105,10 @@ class AgentLLMConfigService(object):
                 enterprise_id="",
             )
 
-    def _serialize_config(self, config):
+    def _serialize_config(self, config: Optional[dict]) -> str:
         return json.dumps(config or {}, ensure_ascii=False, sort_keys=True)
 
-    def _validate_update(self, data, has_existing_api_key=False):
+    def _validate_update(self, data: dict, has_existing_api_key: bool = False) -> None:
         errors = []
         required_fields = (
             ("openai_model", "OPENAI_MODEL"),
@@ -140,7 +141,7 @@ class AgentLLMConfigService(object):
                 status_code=400,
             )
 
-    def _to_masked_config(self, config, api_key):
+    def _to_masked_config(self, config: dict, api_key: str) -> dict:
         return {
             "openai_api_key_set": bool(api_key),
             "openai_api_key_masked": self._mask_api_key(api_key),
@@ -152,13 +153,13 @@ class AgentLLMConfigService(object):
             "updated_by": config.get("updated_by") or "",
         }
 
-    def _encrypt_api_key(self, api_key):
+    def _encrypt_api_key(self, api_key: str) -> str:
         if not api_key:
             return ""
         encrypted = self._fernet().encrypt(api_key.encode("utf-8")).decode("utf-8")
         return API_KEY_PREFIX + encrypted
 
-    def _decrypt_api_key(self, stored):
+    def _decrypt_api_key(self, stored: str) -> str:
         if not stored:
             return ""
         if not stored.startswith(API_KEY_PREFIX):
@@ -170,19 +171,19 @@ class AgentLLMConfigService(object):
             logger.warning("failed to decrypt ai agent api key: %s", exc)
             return ""
 
-    def _fernet(self):
+    def _fernet(self) -> Fernet:
         secret = getattr(settings, "SECRET_KEY", "") or "rainbond-agent"
         digest = hashlib.sha256(secret.encode("utf-8")).digest()
         return Fernet(base64.urlsafe_b64encode(digest))
 
-    def _mask_api_key(self, api_key):
+    def _mask_api_key(self, api_key: str) -> str:
         if not api_key:
             return ""
         if len(api_key) <= 8:
             return "****"
         return "{}****{}".format(api_key[:3], api_key[-4:])
 
-    def _read_string(self, *values):
+    def _read_string(self, *values: Any) -> str:
         for value in values:
             if value is None:
                 continue
@@ -191,7 +192,7 @@ class AgentLLMConfigService(object):
                 return text
         return ""
 
-    def _read_bool(self, value, default=False):
+    def _read_bool(self, value: Any, default: bool = False) -> bool:
         if value is None:
             return bool(default)
         if isinstance(value, bool):
@@ -203,7 +204,7 @@ class AgentLLMConfigService(object):
             return False
         return bool(default)
 
-    def _format_bool(self, value):
+    def _format_bool(self, value: Any) -> str:
         return "true" if self._read_bool(value, False) else "false"
 
 

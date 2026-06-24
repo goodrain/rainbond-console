@@ -8,13 +8,15 @@ import os
 import re
 import time
 import requests
+from typing import Any, Dict, List, Optional, Tuple
 
+from django.db.models import QuerySet
 from console.appstore.appstore import app_store
 from console.enum.app import GovernanceModeEnum
 from console.enum.component_enum import is_singleton, is_kubeblocks
 from console.exception.main import (AbortRequest, RbdAppNotFound, ServiceHandleException)
 from console.models.main import (PluginShareRecordEvent, RainbondCenterApp, RainbondCenterAppVersion,
-                                 ServiceShareRecordEvent, ServiceSourceInfo)
+                                 RegionConfig, ServiceShareRecordEvent, ServiceSourceInfo)
 from console.repositories.app import app_tag_repo
 from console.repositories.app_config import mnt_repo, volume_repo
 from console.repositories.app_config_group import (app_config_group_item_repo, app_config_group_repo,
@@ -49,10 +51,10 @@ class ShareService(object):
     VM_PUBLISH_CLOSED_STATUSES = ("closed", "stopped", "undeploy")
 
     @classmethod
-    def is_snapshot_publish_version(cls, version_obj):
+    def is_snapshot_publish_version(cls, version_obj: Any) -> bool:
         return bool(version_obj and getattr(version_obj, "template_type", None) == cls.SNAPSHOT_TEMPLATE_TYPE)
 
-    def get_snapshot_publish_version(self, share_record):
+    def get_snapshot_publish_version(self, share_record: Any) -> Optional[RainbondCenterAppVersion]:
         if not share_record or not share_record.app_id or not share_record.share_version:
             return None
         version = rainbond_app_repo.get_app_version(share_record.app_id, share_record.share_version)
@@ -60,14 +62,14 @@ class ShareService(object):
             return None
         return version
 
-    def is_snapshot_publish_record(self, share_record):
+    def is_snapshot_publish_record(self, share_record: Any) -> bool:
         return bool(self.get_snapshot_publish_version(share_record))
 
     @staticmethod
-    def _is_vm_runtime_service(service):
+    def _is_vm_runtime_service(service: Any) -> bool:
         return getattr(service, "extend_method", "") == "vm" or getattr(service, "service_source", "") == "vm_run"
 
-    def check_service_source(self, team, team_name, group_id, region_name):
+    def check_service_source(self, team: Any, team_name: str, group_id: str, region_name: str) -> dict:
         service_list = share_repo.get_service_list_by_group_id(team=team, group_id=group_id)
         # 过滤掉 kubeblocks 类型的组件
         service_list = [s for s in service_list if not is_kubeblocks(s.extend_method)]
@@ -96,7 +98,7 @@ class ShareService(object):
             data = {"code": 200, "success": True, "msg_show": "应用可以发布。", "list": list(), "bean": dict()}
         return data
 
-    def get_service_ports_by_ids(self, service_ids):
+    def get_service_ports_by_ids(self, service_ids: list) -> dict:
         """
         根据多个组件ID查询组件的端口信息
         :param service_ids: 组件ID列表
@@ -104,19 +106,19 @@ class ShareService(object):
         """
         port_list = share_repo.get_port_list_by_service_ids(service_ids=service_ids)
         if port_list:
-            service_port_map = {}
+            service_port_map: Dict[Any, list] = {}
             for port in port_list:
                 service_id = port.service_id
-                tmp_list = []
+                tmp_list: list = []
                 if service_id in list(service_port_map.keys()):
-                    tmp_list = service_port_map.get(service_id)
+                    tmp_list = service_port_map[service_id]
                 tmp_list.append(port)
                 service_port_map[service_id] = tmp_list
             return service_port_map
         else:
             return {}
 
-    def get_service_dependencys_by_ids(self, service_ids):
+    def get_service_dependencys_by_ids(self, service_ids: list) -> dict:
         """
         根据多个组件ID查询组件的依赖组件信息
         :param service_ids:组件ID列表
@@ -125,7 +127,7 @@ class ShareService(object):
         relation_list = share_repo.get_relation_list_by_service_ids(service_ids=service_ids)
         if relation_list:
             relation_list_service_ids = relation_list.values_list("service_id", flat=True)
-            dep_service_map = {service_id: [] for service_id in relation_list_service_ids}
+            dep_service_map: Dict[Any, list] = {service_id: [] for service_id in relation_list_service_ids}
             for dep_service in relation_list:
                 dep_service_info = TenantServiceInfo.objects.filter(
                     service_id=dep_service.dep_service_id, tenant_id=dep_service.tenant_id).first()
@@ -137,9 +139,9 @@ class ShareService(object):
             return {}
 
     @staticmethod
-    def list_service_monitors(tenant_id, service_ids):
+    def list_service_monitors(tenant_id: str, service_ids: list) -> dict:
         monitors = component_service_monitor.list_by_service_ids(tenant_id, service_ids)
-        result = {}
+        result: Dict[Any, Any] = {}
         for monitor in monitors:
             if not result.get(monitor.service_id):
                 result[monitor.service_id] = []
@@ -149,9 +151,9 @@ class ShareService(object):
         return result
 
     @staticmethod
-    def list_component_graphs(component_ids):
+    def list_component_graphs(component_ids: list) -> dict:
         graphs = component_graph_repo.list_by_component_ids(component_ids)
-        result = {}
+        result: Dict[Any, Any] = {}
         for graph in graphs:
             if not result.get(graph.component_id):
                 result[graph.component_id] = []
@@ -161,12 +163,12 @@ class ShareService(object):
         return result
 
     @staticmethod
-    def list_component_labels(component_ids):
+    def list_component_labels(component_ids: list) -> dict:
         component_labels = service_label_repo.list_by_component_ids(component_ids)
         labels = label_repo.list_by_label_ids([label.label_id for label in component_labels])
         labels = {label.label_id: label for label in labels}
 
-        res = {}
+        res: Dict[Any, Any] = {}
         for component_label in component_labels:
             clabels = res.get(component_label.service_id, {})
             label = labels.get(component_label.label_id)
@@ -178,15 +180,15 @@ class ShareService(object):
             res[component_label.service_id] = clabels
         return res
 
-    def get_dep_mnts_by_ids(self, tenant_id, service_ids):
+    def get_dep_mnts_by_ids(self, tenant_id: str, service_ids: list) -> dict:
         mnt_relations = mnt_repo.list_mnt_relations_by_service_ids(tenant_id, service_ids)
         if not mnt_relations:
             return {}
-        result = {}
+        result: Dict[Any, list] = {}
         for mnt_relation in mnt_relations:
             service_id = mnt_relation.service_id
             if service_id in list(result.keys()):
-                values = result.get(service_id)
+                values = result[service_id]
             else:
                 values = []
                 result[service_id] = values
@@ -194,7 +196,7 @@ class ShareService(object):
 
         return result
 
-    def get_service_env_by_ids(self, service_ids):
+    def get_service_env_by_ids(self, service_ids: list) -> dict:
         """
         获取组件env
         :param service_ids: 组件ID列表
@@ -203,62 +205,63 @@ class ShareService(object):
         """
         env_list = share_repo.get_env_list_by_service_ids(service_ids=service_ids)
         if env_list:
-            service_env_map = {}
+            service_env_map: Dict[Any, list] = {}
             for env in env_list:
                 if env.scope == "build":
                     continue
                 service_id = env.service_id
-                tmp_list = []
+                tmp_list: list = []
                 if service_id in list(service_env_map.keys()):
-                    tmp_list = service_env_map.get(service_id)
+                    tmp_list = service_env_map[service_id]
                 tmp_list.append(env)
                 service_env_map[service_id] = tmp_list
             return service_env_map
         else:
             return {}
 
-    def get_service_volume_by_ids(self, service_ids):
+    def get_service_volume_by_ids(self, service_ids: list) -> dict:
         """
         获取组件持久化目录
         """
         volume_list = share_repo.get_volume_list_by_service_ids(service_ids=service_ids)
         if volume_list:
-            service_volume_map = {}
+            service_volume_map: Dict[Any, list] = {}
             for volume in volume_list:
                 service_id = volume.service_id
-                tmp_list = []
+                tmp_list: list = []
                 if service_id in list(service_volume_map.keys()):
-                    tmp_list = service_volume_map.get(service_id)
+                    tmp_list = service_volume_map[service_id]
                 tmp_list.append(volume)
                 service_volume_map[service_id] = tmp_list
             return service_volume_map
         else:
             return {}
 
-    def get_service_probes(self, service_ids):
+    def get_service_probes(self, service_ids: list) -> dict:
         """
         获取组件健康检测探针
         """
         probe_list = share_repo.get_probe_list_by_service_ids(service_ids=service_ids)
         if probe_list:
-            service_probe_map = {}
+            service_probe_map: Dict[Any, list] = {}
             for probe in probe_list:
                 service_id = probe.service_id
-                tmp_list = []
+                tmp_list: list = []
                 if service_id in list(service_probe_map.keys()):
-                    tmp_list = service_probe_map.get(service_id)
+                    tmp_list = service_probe_map[service_id]
                 tmp_list.append(probe)
                 service_probe_map[service_id] = tmp_list
             return service_probe_map
         else:
             return {}
 
-    def get_team_service_deploy_version(self, region, team, service_ids):
+    def get_team_service_deploy_version(self, region: str, team: Any, service_ids: list) -> Optional[dict]:
         try:
             res, body = region_api.get_team_services_deploy_version(region, team.tenant_name, {"service_ids": service_ids})
             if res.status == 200:
-                service_versions = {}
-                for version in body["list"]:
+                service_versions: Dict[Any, Any] = {}
+                # NOTE: region body is Optional[Dict]; index guarded by the surrounding try/except.
+                for version in body["list"]:  # type: ignore[index]
                     if version and "service_id" in version and "build_version" in version:
                         service_versions[version["service_id"]] = version["build_version"]
                 return service_versions
@@ -267,7 +270,7 @@ class ShareService(object):
         logger.debug("======>get services deploy version failure")
         return None
 
-    def query_share_service_info(self, team, group_id, scope=None):
+    def query_share_service_info(self, team: Any, group_id: Any, scope: Optional[str] = None) -> list:
         service_list = share_repo.get_service_list_by_group_id(team=team, group_id=group_id)
         # 过滤掉 kubeblocks 类型的组件
         service_list = [s for s in service_list if not is_kubeblocks(s.extend_method)]
@@ -333,14 +336,14 @@ class ShareService(object):
                 data["cmd"] = service.cmd
                 data['probes'] = [probe.to_dict() for probe in probe_map.get(service.service_id, [])]
                 e_m = dict()
-                e_m['step_node'] = 1
-                e_m['min_memory'] = 64
+                e_m['min_memory'] = 0 if service.min_memory == 0 else 64
                 e_m['init_memory'] = service.min_memory
                 e_m['max_memory'] = 65536
                 e_m['step_memory'] = 64
                 e_m['is_restart'] = 0
-                e_m['min_node'] = service.min_node
                 e_m['container_cpu'] = service.min_cpu
+                e_m['step_node'] = 1
+                e_m['min_node'] = service.min_node
                 if is_singleton(service.extend_method):
                     e_m['max_node'] = 1
                 else:
@@ -348,7 +351,7 @@ class ShareService(object):
                 data['extend_method_map'] = e_m
                 data['port_map_list'] = list()
                 if service_port_map.get(service.service_id):
-                    for port in service_port_map.get(service.service_id):
+                    for port in service_port_map.get(service.service_id) or []:
                         p = dict()
                         # 写需要返回的port数据
                         p['protocol'] = port.protocol
@@ -363,7 +366,7 @@ class ShareService(object):
 
                 data['service_volume_map_list'] = list()
                 if service_volume_map.get(service.service_id):
-                    for volume in service_volume_map.get(service.service_id):
+                    for volume in service_volume_map.get(service.service_id) or []:
                         s_v = dict()
                         s_v['file_content'] = ''
                         if volume.volume_type == "config-file":
@@ -385,7 +388,7 @@ class ShareService(object):
                 data['service_env_map_list'] = list()
                 data['service_connect_info_map_list'] = list()
                 if service_env_map.get(service.service_id):
-                    for env_change in service_env_map.get(service.service_id):
+                    for env_change in service_env_map.get(service.service_id) or []:
                         e_c = dict()
                         e_c['name'] = env_change.name
                         e_c['attr_name'] = env_change.attr_name
@@ -434,7 +437,7 @@ class ShareService(object):
                 service["mnt_relation_list"] = list()
 
                 if dep_mnt_map.get(service_id):
-                    for dep_mnt in dep_mnt_map.get(service_id):
+                    for dep_mnt in dep_mnt_map.get(service_id) or []:
                         if not all_data_map.get(dep_mnt.dep_service_id):
                             continue
                         service["mnt_relation_list"].append({
@@ -450,7 +453,7 @@ class ShareService(object):
         else:
             return []
 
-    def service_last_share_cache(self, service_info, last_share_info):
+    def service_last_share_cache(self, service_info: Any, last_share_info: Any) -> Any:
         if service_info:
             if isinstance(service_info, dict):
                 service_info.update(last_share_info)
@@ -466,7 +469,7 @@ class ShareService(object):
         return service_info
 
     # 查询应用内使用的插件列表
-    def query_group_service_plugin_list(self, team, group_id):
+    def query_group_service_plugin_list(self, team: Any, group_id: str) -> list:
         service_list = share_repo.get_service_list_by_group_id(team=team, group_id=group_id)
         # 过滤掉 kubeblocks 类型的组件
         service_list = [s for s in service_list if not is_kubeblocks(s.extend_method)]
@@ -480,7 +483,7 @@ class ShareService(object):
         else:
             return []
 
-    def get_group_services_used_plugins(self, group_id):
+    def get_group_services_used_plugins(self, group_id: Any) -> list:
         service_list = group_service.get_group_services(group_id)
         if not service_list:
             return []
@@ -499,10 +502,10 @@ class ShareService(object):
             temp_plugin_ids.append(spr.plugin_id)
         return plugin_list
 
-    def get_k8s_resources(self, app_id):
+    def get_k8s_resources(self, app_id: Any) -> Any:
         return k8s_resources_repo.list_available_resources(app_id).values()
 
-    def wrapper_service_plugin_config(self, service_related_plugin_config, shared_plugin_info):
+    def wrapper_service_plugin_config(self, service_related_plugin_config: list, shared_plugin_info: Any) -> list:
         """添加plugin key信息"""
         id_key_map = {}
         if shared_plugin_info:
@@ -514,10 +517,10 @@ class ShareService(object):
             service_plugin_config_list.append(config)
         return service_plugin_config_list
 
-    def create_basic_app_info(self, **kwargs):
+    def create_basic_app_info(self, **kwargs: Any) -> RainbondCenterApp:
         return rainbond_app_repo.add_basic_app_info(**kwargs)
 
-    def create_publish_event(self, record_event, user_name, event_type):
+    def create_publish_event(self, record_event: Any, user_name: str, event_type: str) -> ServiceEvent:
         import datetime
         event = ServiceEvent(
             event_id=make_uuid(),
@@ -530,7 +533,7 @@ class ShareService(object):
         return event
 
     @staticmethod
-    def normalize_platform_plugin_positions(positions):
+    def normalize_platform_plugin_positions(positions: Any) -> list:
         normalized_positions = []
         for position in positions or []:
             if not position:
@@ -542,7 +545,7 @@ class ShareService(object):
         return normalized_positions
 
     @staticmethod
-    def _build_platform_plugin_config(share_version_info):
+    def _build_platform_plugin_config(share_version_info: dict) -> Optional[dict]:
         if not share_version_info.get("is_platform_plugin", False):
             return None
         return {
@@ -559,8 +562,9 @@ class ShareService(object):
             "route_path": share_version_info.get("route_path", ""),
         }
 
-    def _build_publish_template_from_snapshot(self, snapshot_template, app_model_id, app_model_name, version, governance_mode,
-                                              share_version_info):
+    def _build_publish_template_from_snapshot(self, snapshot_template: dict, app_model_id: str, app_model_name: str,
+                                              version: str, governance_mode: str,
+                                              share_version_info: dict) -> dict:
         app_template = copy.deepcopy(snapshot_template)
         app_template["template_version"] = self._resolve_publish_template_version(app_template.get("apps", []))
         app_template["group_key"] = app_model_id
@@ -582,14 +586,14 @@ class ShareService(object):
         return app_template
 
     @staticmethod
-    def _apply_image_delivery(service, image_info):
+    def _apply_image_delivery(service: dict, image_info: Any) -> None:
         service["service_image"] = image_info
         service["share_type"] = "image"
         service.pop("service_slug", None)
         service.pop("share_slug_path", None)
 
     @staticmethod
-    def _load_json_value(value, default):
+    def _load_json_value(value: Any, default: Any) -> Any:
         if value in (None, ""):
             return default
         if isinstance(value, (dict, list)):
@@ -600,7 +604,7 @@ class ShareService(object):
             return default
 
     @classmethod
-    def _extract_vm_attr_value(cls, service, attr_name, default=None):
+    def _extract_vm_attr_value(cls, service: dict, attr_name: str, default: Any = None) -> Any:
         attrs = service.get("component_k8s_attributes") or []
         for attr in attrs:
             if attr.get("name") != attr_name:
@@ -612,7 +616,7 @@ class ShareService(object):
         return default
 
     @classmethod
-    def _build_vm_publish_metadata(cls, service):
+    def _build_vm_publish_metadata(cls, service: dict) -> Optional[dict]:
         if service.get("extend_method") != "vm":
             return None
         boot_mode = cls._extract_vm_attr_value(service, "vm_boot_mode", "") or ""
@@ -669,7 +673,7 @@ class ShareService(object):
         }
 
     @classmethod
-    def _sync_vm_root_disk_image(cls, service, image_name):
+    def _sync_vm_root_disk_image(cls, service: dict, image_name: str) -> None:
         vm = service.get("vm")
         if not isinstance(vm, dict):
             return
@@ -683,7 +687,7 @@ class ShareService(object):
                 return
 
     @staticmethod
-    def _extract_vm_root_source_uri(service):
+    def _extract_vm_root_source_uri(service: dict) -> str:
         vm = service.get("vm")
         if not isinstance(vm, dict):
             return service.get("git_url", "") or ""
@@ -695,7 +699,7 @@ class ShareService(object):
         return service.get("git_url", "") or ""
 
     @staticmethod
-    def _is_vm_publish_component(service):
+    def _is_vm_publish_component(service: Any) -> bool:
         return bool(
             isinstance(service, dict) and (
                 service.get("vm")
@@ -705,12 +709,12 @@ class ShareService(object):
         )
 
     @staticmethod
-    def _is_existing_vm_export_source(source_uri):
+    def _is_existing_vm_export_source(source_uri: Any) -> bool:
         source_uri = str(source_uri or "").strip().lower()
         return source_uri.startswith(("http://", "https://")) and "/volumes/" in source_uri and "disk.img" in source_uri
 
     @staticmethod
-    def _sync_vm_root_disk_source_uri(service, source_uri):
+    def _sync_vm_root_disk_source_uri(service: dict, source_uri: str) -> None:
         vm = service.get("vm")
         if not isinstance(vm, dict):
             return
@@ -723,7 +727,7 @@ class ShareService(object):
                 return
 
     @staticmethod
-    def _normalize_vm_export_name(value):
+    def _normalize_vm_export_name(value: Any) -> str:
         export_name = re.sub(r"[^a-z0-9-]+", "-", str(value or "").lower()).strip("-")
         if not export_name:
             export_name = "vm-root-export"
@@ -731,8 +735,9 @@ class ShareService(object):
             export_name = export_name[:48].strip("-")
         return export_name or "vm-root-export"
 
-    def _prepare_vm_publish_image_source(self, region_name, tenant_name, service, record_event, wait_seconds=60,
-                                         interval_seconds=2, force_export=False):
+    def _prepare_vm_publish_image_source(self, region_name: str, tenant_name: str, service: dict, record_event: Any,
+                                         wait_seconds: int = 60, interval_seconds: int = 2,
+                                         force_export: bool = False) -> Tuple[str, str]:
         source_uri = self._extract_vm_root_source_uri(service)
         if not self._is_vm_publish_component(service):
             return source_uri, ""
@@ -833,7 +838,7 @@ class ShareService(object):
         raise ServiceHandleException(msg="vm export not ready", msg_show="虚拟机系统盘导出未就绪，请稍后重试", status_code=500)
 
     @staticmethod
-    def _resolve_publish_template_version(services):
+    def _resolve_publish_template_version(services: Any) -> str:
         for service in services or []:
             if not isinstance(service, dict):
                 continue
@@ -842,19 +847,20 @@ class ShareService(object):
         return "v2"
 
     @staticmethod
-    def _apply_slug_delivery(service, slug_info):
+    def _apply_slug_delivery(service: dict, slug_info: Any) -> None:
         service["service_slug"] = slug_info
         service["share_type"] = "slug"
         service.pop("service_image", None)
         service.pop("share_image", None)
 
     @transaction.atomic
-    def sync_event(self, user, region_name, tenant_name, record_event):
+    def sync_event(self, user: Any, region_name: str, tenant_name: str, record_event: Any) -> Any:
         app_version = rainbond_app_repo.get_rainbond_app_version_by_record_id(record_event.record_id)
         if not app_version:
             raise RbdAppNotFound("分享的应用不存在")
         event_type = "share-yb"
-        if app_version.scope.startswith("goodrain"):
+        # NOTE: scope is an Optional[str] model field; .startswith assumes it is set.
+        if app_version.scope.startswith("goodrain"):  # type: ignore[union-attr]
             event_type = "share-ys"
         event = self.create_publish_event(record_event, user.nick_name, event_type)
         record_event.event_id = event.event_id
@@ -921,7 +927,9 @@ class ShareService(object):
                             bool(body.get("slug_info")),
                         )
                         res, re_body = region_api.share_service(region_name, tenant_name, record_event.service_alias, body)
-                        bean = re_body.get("bean")
+                        # NOTE: region body is Optional[Dict]; unguarded .get is a potential latent
+                        # None-bug, though wrapped by the surrounding try/except.
+                        bean = re_body.get("bean")  # type: ignore[union-attr]
                         if bean:
                             record_event.region_share_id = bean.get("share_id", None)
                             record_event.event_id = bean.get("event_id", None)
@@ -982,7 +990,8 @@ class ShareService(object):
             raise ServiceHandleException(msg="share failed", msg_show="应用分享介质同步发生错误", status_code=500)
 
     @transaction.atomic
-    def sync_service_plugin_event(self, user, region_name, tenant_name, record_id, record_event):
+    def sync_service_plugin_event(self, user: Any, region_name: str, tenant_name: str, record_id: str,
+                                  record_event: Any) -> Any:
         apps_version = rainbond_app_repo.get_rainbond_app_version_by_record_id(record_event.record_id)
         if not apps_version:
             raise RbdAppNotFound("分享的应用不存在")
@@ -1005,8 +1014,10 @@ class ShareService(object):
                 }
                 sid = transaction.savepoint()
                 try:
-                    res, body = region_api.share_plugin(region_name, tenant_name, plugin["plugin_id"], body)
-                    data = body.get("bean")
+                    res, re_body = region_api.share_plugin(region_name, tenant_name, plugin["plugin_id"], body)
+                    # NOTE: region body is Optional[Dict]; unguarded .get is a potential latent
+                    # None-bug, though wrapped by the surrounding try/except.
+                    data = re_body.get("bean")  # type: ignore[union-attr]
                     if not data:
                         transaction.savepoint_rollback(sid)
                         raise ServiceHandleException(msg="share failed", msg_show="数据中心分享错误")
@@ -1033,19 +1044,23 @@ class ShareService(object):
         apps_version.save()
         return record_event
 
-    def get_sync_plugin_events(self, region_name, tenant_name, record_event):
+    def get_sync_plugin_events(self, region_name: str, tenant_name: str, record_event: Any) -> Any:
         res, body = region_api.share_plugin_result(region_name, tenant_name, record_event.plugin_id,
                                                    record_event.region_share_id)
-        ret = body.get('bean')
+        # NOTE: region_api.share_plugin_result body is Optional[Dict]; unguarded .get is a
+        # potential latent None-bug if the region call returns no body.
+        ret = body.get('bean')  # type: ignore[union-attr]
         if ret and ret.get('status'):
             record_event.event_status = ret.get("status")
             record_event.save()
         return record_event
 
-    def get_sync_event_result(self, region_name, tenant_name, record_event):
+    def get_sync_event_result(self, region_name: str, tenant_name: str, record_event: Any) -> Any:
         res, re_body = region_api.share_service_result(region_name, tenant_name, record_event.service_alias,
                                                        record_event.region_share_id)
-        bean = re_body.get("bean")
+        # NOTE: region_api.share_service_result body is Optional[Dict]; unguarded .get is a
+        # potential latent None-bug if the region call returns no body.
+        bean = re_body.get("bean")  # type: ignore[union-attr]
         logger.info(
             "[vm-publish] poll region share result: record_id=%s service_alias=%s region_share_id=%s "
             "current_status=%s remote_status=%s",
@@ -1061,55 +1076,57 @@ class ShareService(object):
         return record_event
 
     @staticmethod
-    def get_app_by_app_id(app_id):
+    def get_app_by_app_id(app_id: str) -> Optional[RainbondCenterApp]:
         return rainbond_app_repo.get_rainbond_app_by_app_id(app_id=app_id)
 
-    def get_app_version_by_app_id(self, app_id, is_complete):
+    def get_app_version_by_app_id(self, app_id: str, is_complete: bool) -> QuerySet:
         return rainbond_app_repo.get_app_versions_by_app_id(app_id, is_complete)
 
-    def get_app_by_key(self, key):
+    def get_app_by_key(self, key: str) -> Optional[RainbondCenterApp]:
         return rainbond_app_repo.get_rainbond_app_by_app_id(key)
 
-    def delete_app(self, app):
+    def delete_app(self, app: Any) -> None:
         app.delete()
 
-    def delete_record(self, record):
+    def delete_record(self, record: Any) -> None:
         record.delete()
 
-    def create_tenant_service(self, **kwargs):
+    def create_tenant_service(self, **kwargs: Any) -> Any:
         return share_repo.create_tenant_service(**kwargs)
 
-    def create_tenant_service_port(self, **kwargs):
+    def create_tenant_service_port(self, **kwargs: Any) -> Any:
         return share_repo.create_tenant_service_port(**kwargs)
 
-    def create_tenant_service_env_var(self, **kwargs):
+    def create_tenant_service_env_var(self, **kwargs: Any) -> Any:
         return share_repo.create_tenant_service_env_var(**kwargs)
 
-    def create_tenant_service_volume(self, **kwargs):
+    def create_tenant_service_volume(self, **kwargs: Any) -> Any:
         return share_repo.create_tenant_service_volume(**kwargs)
 
-    def create_tenant_service_relation(self, **kwargs):
+    def create_tenant_service_relation(self, **kwargs: Any) -> Any:
         return share_repo.create_tenant_service_relation(**kwargs)
 
-    def create_tenant_service_plugin(self, **kwargs):
+    def create_tenant_service_plugin(self, **kwargs: Any) -> Any:
         return share_repo.create_tenant_service_plugin(**kwargs)
 
-    def create_tenant_service_plugin_relation(self, **kwargs):
+    def create_tenant_service_plugin_relation(self, **kwargs: Any) -> Any:
         return share_repo.create_tenant_service_plugin_relation(**kwargs)
 
-    def create_service_share_record(self, **kwargs):
+    def create_service_share_record(self, **kwargs: Any) -> Any:
         return share_repo.create_service_share_record(**kwargs)
 
-    def get_service_share_record(self, group_share_id):
+    def get_service_share_record(self, group_share_id: str) -> Any:
         return share_repo.get_service_share_record(group_share_id=group_share_id)
 
-    def get_service_share_record_by_ID(self, ID, team_name):
-        return share_repo.get_service_share_record_by_ID(ID=ID, team_name=team_name)
+    def get_service_share_record_by_ID(self, ID: str, team_name: str) -> Any:
+        # NOTE: ID is the int AutoField PK used as a str identifier by callers (view path
+        # params); the repo declares it int, hence the arg-type suppression.
+        return share_repo.get_service_share_record_by_ID(ID=ID, team_name=team_name)  # type: ignore[arg-type]
 
-    def get_service_share_record_by_group_id(self, group_id):
+    def get_service_share_record_by_group_id(self, group_id: str) -> Any:
         return share_repo.get_service_share_record_by_groupid(group_id=group_id)
 
-    def get_plugins_group_items(self, plugins):
+    def get_plugins_group_items(self, plugins: list) -> list:
         rt_list = []
         for p in plugins:
             config_group_list = plugin_config_service.get_config_details(p["plugin_id"], p["build_version"])
@@ -1125,7 +1142,8 @@ class ShareService(object):
     # 创建应用记录
     # 创建介质同步记录
     @transaction.atomic
-    def create_share_info(self, tenant, region_name, share_record, share_team, share_user, share_info, use_force, user_id):
+    def create_share_info(self, tenant: Any, region_name: str, share_record: Any, share_team: Any, share_user: Any,
+                          share_info: dict, use_force: bool, user_id: str) -> Tuple[int, str, Optional[dict]]:
         # 开启事务
         sid = transaction.savepoint()
         try:
@@ -1166,7 +1184,12 @@ class ShareService(object):
             ServiceShareRecordEvent.objects.filter(record_id=share_record.ID).delete()
 
             app = group_service.get_app_by_id(share_team, region_name, share_record.group_id)
-            governance_mode = app.governance_mode if app.governance_mode else GovernanceModeEnum.BUILD_IN_SERVICE_MESH.name
+            # NOTE: get_app_by_id returns Optional[ServiceGroup]; unguarded .governance_mode is a
+            # potential latent None-bug if the app is not found.
+            governance_mode = (
+                app.governance_mode  # type: ignore[union-attr]
+                if app.governance_mode  # type: ignore[union-attr]
+                else GovernanceModeEnum.BUILD_IN_SERVICE_MESH.name)
             snapshot_publish_version = self.get_snapshot_publish_version(share_record)
             snapshot_template = None
             if snapshot_publish_version:
@@ -1356,21 +1379,25 @@ class ShareService(object):
                 app_template=json.dumps(app_template),
                 template_version="v2",
                 enterprise_id=share_team.enterprise_id,
-                upgrade_time=time.time(),
+                # NOTE: model field upgrade_time is declared str/int but a float (time.time())
+                # is passed; pre-existing wrong-arg-type, not changing behavior.
+                upgrade_time=time.time(),  # type: ignore[misc]
                 arch=app_template["arch"],
             )
             if app_store.is_no_multiple_region_hub(enterprise_id=share_team.enterprise_id):
                 app_version.region_name = region_name
             app_version.save()
             if not market_id:
-                if local_app_version.arch:
-                    arch = list(local_app_version.arch.split(","))
+                # NOTE: invariant — when market_id is falsy, local_app_version was assigned in the
+                # `else` branch above (with an early return if None), so it is guaranteed non-None here.
+                if local_app_version.arch:  # type: ignore[union-attr]
+                    arch = list(local_app_version.arch.split(","))  # type: ignore[union-attr]
                     if app_version.arch not in arch:
                         arch.append(app_version.arch)
-                    local_app_version.arch = ",".join(arch)
+                    local_app_version.arch = ",".join(arch)  # type: ignore[union-attr]
                 else:
-                    local_app_version.arch = app_version.arch
-                local_app_version.save()
+                    local_app_version.arch = app_version.arch  # type: ignore[union-attr]
+                local_app_version.save()  # type: ignore[union-attr]
             share_record.step = 2
             share_record.scope = scope
             share_record.app_id = app_model_id
@@ -1394,7 +1421,7 @@ class ShareService(object):
                 transaction.savepoint_rollback(sid)
             return 500, "应用分享处理发生错误", None
 
-    def _list_http_ingresses(self, tenant, component_keys):
+    def _list_http_ingresses(self, tenant: Any, component_keys: dict) -> list:
         service_domains = domain_repo.list_by_component_ids(component_keys.keys())
         if not service_domains:
             return []
@@ -1439,7 +1466,7 @@ class ShareService(object):
         return ingress_http_routes
 
     @staticmethod
-    def _parse_cookie_or_header(cookies: str):
+    def _parse_cookie_or_header(cookies: str) -> dict:
         # example: foo=bar;apple=pie
         cookies = cookies.replace(" ", "")
         result = {}
@@ -1450,8 +1477,8 @@ class ShareService(object):
             result[kvs[0]] = kvs[1]
         return result
 
-    def config_groups(self, region_name, service_ids_keys_map):
-        groups = app_config_group_repo.list_by_service_ids(region_name, service_ids_keys_map.keys())
+    def config_groups(self, region_name: str, service_ids_keys_map: dict) -> list:
+        groups = app_config_group_repo.list_by_service_ids(region_name, list(service_ids_keys_map.keys()))
         cgs = []
         for group in groups:
             # list related items
@@ -1475,10 +1502,10 @@ class ShareService(object):
         return cgs
 
     @staticmethod
-    def _handle_dependencies(service, dev_service_set, use_force):
+    def _handle_dependencies(service: dict, dev_service_set: set, use_force: bool) -> None:
         """检查组件依赖信息，如果依赖不完整则中断请求， 如果强制执行则删除依赖"""
 
-        def filter_dep(dev_service):
+        def filter_dep(dev_service: dict) -> bool:
             """过滤依赖关系"""
             dep_service_key = dev_service['dep_service_key']
             if dep_service_key not in dev_service_set:
@@ -1494,19 +1521,25 @@ class ShareService(object):
         if service.get('dep_service_map_list'):
             service['dep_service_map_list'] = list(filter(filter_dep, service['dep_service_map_list']))
 
-    def complete(self, tenant, user, share_record, is_plugin, user_id, region_name=None):
+    def complete(self, tenant: Any, user: Any, share_record: Any, is_plugin: bool, user_id: str,
+                 region_name: Optional[str] = None) -> Optional[str]:
         app_version = rainbond_app_repo.get_rainbond_app_version_by_record_id(share_record.ID)
-        app = rainbond_app_repo.get_rainbond_app_by_app_id(app_version.app_id)
+        # NOTE: potential latent None-bug — app_version may be None (record not found), yet .app_id
+        # is dereferenced here before the `if app_version:` guard below.
+        app = rainbond_app_repo.get_rainbond_app_by_app_id(app_version.app_id)  # type: ignore[union-attr]
         app_market_url = None
         if app_version:
             # 分享到云市
-            if app_version.scope.startswith("goodrain"):
+            # NOTE: scope is an Optional[str] model field; .startswith assumes it is set.
+            if app_version.scope.startswith("goodrain"):  # type: ignore[union-attr]
                 share_type = "private"
-                info = app_version.scope.split(":")
+                info = app_version.scope.split(":")  # type: ignore[union-attr]
                 if len(info) > 1:
                     share_type = info[1]
-                app_market_url = self.publish_app_to_public_market(tenant, share_record, user.nick_name, app_version,
-                                                                   is_plugin, user_id, share_type)
+                # NOTE: publish_app_to_public_market never returns a value (only None / raises),
+                # so app_market_url is always None here — pre-existing dead assignment.
+                app_market_url = self.publish_app_to_public_market(  # type: ignore[func-returns-value]
+                    tenant, share_record, user.nick_name, app_version, is_plugin, user_id, share_type)
 
             # 检测企业级别发布中的流水线插件
             if app_version.scope == "enterprise" and region_name:
@@ -1528,10 +1561,13 @@ class ShareService(object):
             share_record.update_time = datetime.datetime.now()
             share_record.save()
         # 应用有更新，删除导出记录
-        app_export_record_repo.delete_by_key_and_version(app_version.app_id, app_version.version)
+        # NOTE: potential latent None-bug — app_version may be None and is dereferenced here
+        # outside the `if app_version:` block above.
+        app_export_record_repo.delete_by_key_and_version(app_version.app_id, app_version.version)  # type: ignore[union-attr]
         return app_market_url
 
-    def publish_app_to_public_market(self, tenant, share_record, user_name, app, is_plugin, user_id, share_type="private"):
+    def publish_app_to_public_market(self, tenant: Any, share_record: Any, user_name: str, app: Any, is_plugin: bool,
+                                     user_id: str, share_type: str = "private") -> None:
         try:
             data = dict()
             data["description"] = app.app_version_info
@@ -1569,7 +1605,8 @@ class ShareService(object):
             else:
                 raise ServiceHandleException("call cloud api failure", msg_show="云市请求错误", status_code=500, error_code=500)
 
-    def _handle_pipeline_plugin_for_enterprise(self, tenant, app_version, share_record, user_id, region_name):
+    def _handle_pipeline_plugin_for_enterprise(self, tenant: Any, app_version: Any, share_record: Any, user_id: str,
+                                               region_name: str) -> None:
         """
         处理企业级别发布中的流水线插件
         通过region API获取插件列表，检测是否存在流水线插件，如果存在则调用相应接口
@@ -1630,7 +1667,11 @@ class ShareService(object):
 
             # 如果存在流水线插件，调用接口
             if has_pipeline_plugin:
-                self._call_pipeline_plugin_api(tenant, app_version, share_record, user_id, region_name, pipeline_plugin_info)
+                # NOTE: invariant — pipeline_plugin_info is a dict whenever has_pipeline_plugin is
+                # True (set together in the loop above); mypy cannot link the two flags.
+                self._call_pipeline_plugin_api(
+                    tenant, app_version, share_record, user_id, region_name,
+                    pipeline_plugin_info)  # type: ignore[arg-type]
             else:
                 logger.info("No pipeline plugin found, skip trigger: app_id={}, version={}".format(
                     app_version.app_id, app_version.version))
@@ -1641,7 +1682,8 @@ class ShareService(object):
             logger.exception("Error handling pipeline plugin for enterprise: {}".format(e))
             # 这里不抛出异常，避免影响主流程
 
-    def _call_pipeline_plugin_api(self, tenant, app_version, share_record, user_id, region_name, pipeline_plugin_info):
+    def _call_pipeline_plugin_api(self, tenant: Any, app_version: Any, share_record: Any, user_id: str,
+                                  region_name: str, pipeline_plugin_info: dict) -> None:
         """
         调用流水线插件模板版本触发接口
         在模板发布成功后，调用此接口触发相关工作流
@@ -1722,7 +1764,7 @@ class ShareService(object):
         # 注意：所有异常都被捕获，不会影响主流程
 
     @staticmethod
-    def get_shared_services_list(service):
+    def get_shared_services_list(service: dict) -> dict:
         data = {
             "group_name": service["group_name"],
             "group_key": service["group_key"],
@@ -1730,7 +1772,7 @@ class ShareService(object):
         return data
 
     @staticmethod
-    def get_shared_services_versions_list(service):
+    def get_shared_services_versions_list(service: Any) -> dict:
         data = {
             "group_name": service.group_name,
             "group_key": service.group_key,
@@ -1739,7 +1781,7 @@ class ShareService(object):
         return data
 
     @staticmethod
-    def get_shared_services_records_list(service):
+    def get_shared_services_records_list(service: Any) -> dict:
         data = {
             "group_name": service.group_name,
             "group_key": service.group_key,
@@ -1751,7 +1793,8 @@ class ShareService(object):
         }
         return data
 
-    def get_team_local_apps_versions(self, enterprise_id, team_name, preferred_app_id=None, template_scope=None):
+    def get_team_local_apps_versions(self, enterprise_id: str, team_name: str, preferred_app_id: Optional[str] = None,
+                                     template_scope: Optional[str] = None) -> list:
         app_list = []
         visible_team_names = None
         if template_scope == "enterprise":
@@ -1797,8 +1840,9 @@ class ShareService(object):
                 })
         return app_list
 
-    def get_last_shared_app_and_app_list(self, enterprise_id, tenant, group_id, scope, market_name, user_id,
-                                         preferred_app_id=None, preferred_version=None):
+    def get_last_shared_app_and_app_list(self, enterprise_id: str, tenant: Any, group_id: str, scope: str,
+                                         market_name: str, user_id: str, preferred_app_id: Optional[str] = None,
+                                         preferred_version: Optional[str] = None) -> dict:
         last_shared = share_repo.get_last_shared_app_version_by_group_id(group_id, tenant.tenant_name, scope)
         snapshot_publish = False
         if preferred_app_id and preferred_version:
@@ -1806,7 +1850,7 @@ class ShareService(object):
             snapshot_publish = self.is_snapshot_publish_version(preferred_app_version)
         local_preferred_app_id = None if snapshot_publish else preferred_app_id
         local_template_scope = "enterprise" if snapshot_publish else None
-        dt = {}
+        dt: Dict[str, Any] = {}
         dt["app_model_list"] = []
         dt["last_shared_app"] = {}
         dt["scope"] = scope
@@ -1854,7 +1898,8 @@ class ShareService(object):
                         }
         else:
             if last_shared:
-                last_shared_app_info = rainbond_app_repo.get_rainbond_app_by_app_id(last_shared.app_id)
+                # NOTE: last_shared.app_id is an Optional model field; callee expects str.
+                last_shared_app_info = rainbond_app_repo.get_rainbond_app_by_app_id(last_shared.app_id)  # type: ignore[arg-type]
                 if last_shared_app_info:
                     self._patch_rainbond_app_tag(last_shared_app_info)
                     if not snapshot_publish or last_shared_app_info.scope == "enterprise":
@@ -1866,7 +1911,9 @@ class ShareService(object):
                             "app_describe": last_shared_app_info.describe,
                             "dev_status": last_shared_app_info.dev_status,
                             "scope": last_shared_app_info.scope,
-                            "tags": last_shared_app_info.tags
+                            # NOTE: .tags is set dynamically by _patch_rainbond_app_tag above; it is
+                            # not a declared model field, hence the attr-defined suppression.
+                            "tags": last_shared_app_info.tags  # type: ignore[attr-defined]
                         }
             app_list = self.get_team_local_apps_versions(
                 enterprise_id,
@@ -1894,7 +1941,7 @@ class ShareService(object):
         return dt
 
     # patch rainbond app tag
-    def _patch_rainbond_app_tag(self, app):
+    def _patch_rainbond_app_tag(self, app: Any) -> None:
         tags = app_tag_repo.get_app_with_tags(app.enterprise_id, app.app_id)
         app.tags = []
         if not tags:
@@ -1903,12 +1950,12 @@ class ShareService(object):
             app.tags.append({"tag_id": tag.ID, "name": tag.name})
 
     # patch rainbond app tag
-    def _patch_rainbond_apps_tag(self, eid, apps):
+    def _patch_rainbond_apps_tag(self, eid: str, apps: list) -> None:
         app_ids = [app["app_id"] for app in apps]
         tags = app_tag_repo.get_multi_apps_tags(eid, app_ids)
         if not tags:
             return
-        app_with_tags = dict()
+        app_with_tags: Dict[Any, Any] = dict()
         for tag in tags:
             if not app_with_tags.get(tag.app_id):
                 app_with_tags[tag.app_id] = []
@@ -1917,28 +1964,35 @@ class ShareService(object):
         for app in apps:
             app["tags"] = app_with_tags.get(app["app_id"])
 
-    def get_last_shared_app_version(self, tenant, group_id, scope=None):
+    def get_last_shared_app_version(self, tenant: Any, group_id: str,
+                                    scope: Optional[str] = None) -> Tuple[Any, Any]:
         last_shared = share_repo.get_last_shared_app_version_by_group_id(group_id, tenant.tenant_name, scope)
         if not last_shared:
             return None, None
         if last_shared.scope == "goodrain":
             try:
+                # NOTE: last_shared.share_app_market_name/app_id/share_version are Optional model
+                # fields; callees expect str.
                 market = app_market_service.get_app_market_by_name(
-                    tenant.enterprise_id, last_shared.share_app_market_name, raise_exception=True)
+                    tenant.enterprise_id, last_shared.share_app_market_name,  # type: ignore[arg-type]
+                    raise_exception=True)
                 app_version = app_market_service.get_market_app_model_version(
-                    market, last_shared.app_id, last_shared.share_version, get_template=True)
+                    market, last_shared.app_id, last_shared.share_version,  # type: ignore[arg-type]
+                    get_template=True)
             except ServiceHandleException as e:
                 logger.debug(e)
                 return None, None
             dt = (json.loads(app_version.template), app_version.app_version_info)
         else:
-            app_version = rainbond_app_repo.get_app_version(last_shared.app_id, last_shared.share_version)
+            # NOTE: last_shared.app_id/share_version are Optional model fields; callee expects str.
+            app_version = rainbond_app_repo.get_app_version(
+                last_shared.app_id, last_shared.share_version)  # type: ignore[arg-type]
             if not app_version:
                 return None, None
             dt = (json.loads(app_version.app_template), app_version.app_version_info)
         return dt
 
-    def create_cloud_app(self, tenant, market_name, data):
+    def create_cloud_app(self, tenant: Any, market_name: str, data: dict) -> Any:
         body = {
             "group_key": data.get("app_id"),
             "update_note": data["describe"],
@@ -1951,9 +2005,9 @@ class ShareService(object):
         return app_market_service.create_market_app_model(market, body)
 
     @staticmethod
-    def list_component_k8s_attributes(component_ids):
+    def list_component_k8s_attributes(component_ids: list) -> dict:
         attrs = k8s_attribute_repo.list_by_component_ids(component_ids)
-        result = {}
+        result: Dict[Any, Any] = {}
         for attr in attrs:
             if not result.get(attr.component_id):
                 result[attr.component_id] = []
@@ -1962,7 +2016,8 @@ class ShareService(object):
             result[attr.component_id].append(a)
         return result
 
-    def update_or_create_rainbond_center_app_version(self, tenant, region, user, app_id, version, app_template):
+    def update_or_create_rainbond_center_app_version(self, tenant: Any, region: RegionConfig, user: Any, app_id: str,
+                                                     version: str, app_template: dict) -> None:
         try:
             obj = RainbondCenterAppVersion.objects.get(app_id=app_id, version=version)
             obj.app_template = json.dumps(app_template)
@@ -1986,7 +2041,9 @@ class ShareService(object):
                 region_name=region.region_name,
                 arch=app_template["arch"],
                 is_complete=True,
-                upgrade_time=time.time())
+                # NOTE: model field upgrade_time is declared str/int but a float (time.time())
+                # is passed; pre-existing wrong-arg-type, not changing behavior.
+                upgrade_time=time.time())  # type: ignore[misc]
 
 
 share_service = ShareService()

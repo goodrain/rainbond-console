@@ -5,6 +5,7 @@
 # creater by: barnett
 
 import logging
+from typing import Any
 
 from console.constants import DomainType
 from console.exception.main import ServiceHandleException
@@ -21,6 +22,7 @@ from openapi.serializer.gateway_serializer import (EnterpriseHTTPGatewayRuleSeri
 from openapi.views.base import BaseOpenAPIView, TeamAppAPIView
 from openapi.views.exceptions import ErrAppNotFound
 from rest_framework import status
+from rest_framework.request import Request
 from rest_framework.response import Response
 from www.apiclient.regionapi import RegionInvokeApi
 
@@ -37,7 +39,7 @@ class ListAppGatewayHTTPRuleView(TeamAppAPIView):
         responses={200: HTTPGatewayRuleSerializer(many=True)},
         tags=['openapi-gateway'],
     )
-    def get(self, req, app_id, *args, **kwargs):
+    def get(self, req: Request, app_id: str, *args: Any, **kwargs: Any) -> Response:
         app = group_service.get_app_by_id(self.team, self.region_name, app_id)
         if not app:
             raise ErrAppNotFound
@@ -54,7 +56,7 @@ class ListAppGatewayHTTPRuleView(TeamAppAPIView):
         responses={200: HTTPGatewayRuleSerializer()},
         tags=['openapi-gateway'],
     )
-    def post(self, request, app_id, *args, **kwargs):
+    def post(self, request: Request, app_id: str, *args: Any, **kwargs: Any) -> Response:
         ads = PostHTTPGatewayRuleSerializer(data=request.data)
         ads.is_valid(raise_exception=True)
         app = group_service.get_app_by_id(self.team, self.region_name, app_id)
@@ -120,7 +122,7 @@ class ListEnterpriseAppGatewayHTTPRuleView(BaseOpenAPIView):
         responses={200: EnterpriseHTTPGatewayRuleSerializer(many=True)},
         tags=['openapi-gateway'],
     )
-    def get(self, req, *args, **kwargs):
+    def get(self, req: Request, *args: Any, **kwargs: Any) -> Response:
         auto_ssl = req.GET.get("auto_ssl", None)
         is_auto_ssl = None
         if auto_ssl is not None:
@@ -144,7 +146,7 @@ class UpdateAppGatewayHTTPRuleView(TeamAppAPIView):
         responses={200: HTTPGatewayRuleSerializer()},
         tags=['openapi-gateway'],
     )
-    def get(self, req, app_id, rule_id, *args, **kwargs):
+    def get(self, req: Request, app_id: str, rule_id: str, *args: Any, **kwargs: Any) -> Response:
         rule = domain_service.get_http_rules_by_app_id(self.app.ID).filter(http_rule_id=rule_id).first()
         re = HTTPGatewayRuleSerializer(rule)
         return Response(re.data, status=status.HTTP_200_OK)
@@ -159,7 +161,7 @@ class UpdateAppGatewayHTTPRuleView(TeamAppAPIView):
         responses={200: HTTPGatewayRuleSerializer()},
         tags=['openapi-gateway'],
     )
-    def put(self, request, app_id, rule_id, *args, **kwargs):
+    def put(self, request: Request, app_id: str, rule_id: str, *args: Any, **kwargs: Any) -> Response:
         ads = UpdatePostHTTPGatewayRuleSerializer(data=request.data)
         ads.is_valid(raise_exception=True)
         app = group_service.get_app_by_id(self.team, self.region_name, app_id)
@@ -182,7 +184,7 @@ class UpdateAppGatewayHTTPRuleView(TeamAppAPIView):
         responses={200: HTTPGatewayRuleSerializer()},
         tags=['openapi-gateway'],
     )
-    def delete(self, request, app_id, rule_id, *args, **kwargs):
+    def delete(self, request: Request, app_id: str, rule_id: str, *args: Any, **kwargs: Any) -> Response:
         rule = domain_service.get_http_rule_by_id(self.team.tenant_id, rule_id)
         if not rule:
             raise ErrNotFoundDomain
@@ -201,7 +203,7 @@ class ListAppGatewayRuleView(TeamAppAPIView):
         responses={200: GatewayRuleSerializer()},
         tags=['openapi-gateway'],
     )
-    def get(self, req, app_id, *args, **kwargs):
+    def get(self, req: Request, app_id: str, *args: Any, **kwargs: Any) -> Response:
         query = req.GET.get("query", None)
         data = {}
         if query == "http":
@@ -225,7 +227,7 @@ class ListAppGatewayRuleView(TeamAppAPIView):
         responses={200: GatewayRuleSerializer()},
         tags=['openapi-apps'],
     )
-    def post(self, request, app_id, *args, **kwargs):
+    def post(self, request: Request, app_id: str, *args: Any, **kwargs: Any) -> Response:
         ads = PostGatewayRuleSerializer(data=request.data)
         ads.is_valid(raise_exception=True)
         if ads.data.get("protocol") == "tcp":
@@ -255,9 +257,9 @@ class ListAppGatewayRuleView(TeamAppAPIView):
             try:
                 tenant_service_port = port_service.get_service_port_by_port(service, container_port)
                 # 仅打开对外端口
-                code, msg, data = port_service.manage_port(self.team, service, service.service_region,
-                                                           int(tenant_service_port.container_port), "only_open_outer",
-                                                           tenant_service_port.protocol, tenant_service_port.port_alias)
+                code, msg, port_data = port_service.manage_port(self.team, service, service.service_region,
+                                                               int(tenant_service_port.container_port), "only_open_outer",
+                                                               tenant_service_port.protocol, tenant_service_port.port_alias)
                 if code != 200:
                     raise ServiceHandleException(status_code=code, msg="change port fail", msg_show=msg)
             except Exception as e:
@@ -295,9 +297,9 @@ class ListAppGatewayRuleView(TeamAppAPIView):
             if httpdomain.get("whether_open", True):
                 tenant_service_port = port_service.get_service_port_by_port(service, httpdomain["container_port"])
                 # 仅开启对外端口
-                code, msg, data = port_service.manage_port(self.team, service, service.service_region,
-                                                           int(tenant_service_port.container_port), "only_open_outer",
-                                                           tenant_service_port.protocol, tenant_service_port.port_alias)
+                code, msg, port_data = port_service.manage_port(self.team, service, service.service_region,
+                                                               int(tenant_service_port.container_port), "only_open_outer",
+                                                               tenant_service_port.protocol, tenant_service_port.port_alias)
                 if code != 200:
                     return Response({"msg": "change port fail"}, status=code)
             tenant_service_port = port_service.get_service_port_by_port(service, httpdomain["container_port"])
@@ -327,7 +329,7 @@ class UpdateAppGatewayRuleView(TeamAppAPIView):
         responses={200: HTTPGatewayRuleSerializer()},
         tags=['openapi-gateway'],
     )
-    def put(self, request, app_id, rule_id, *args, **kwargs):
+    def put(self, request: Request, app_id: str, rule_id: str, *args: Any, **kwargs: Any) -> Response:
         ads = UpdatePostHTTPGatewayRuleSerializer(data=request.data)
         ads.is_valid(raise_exception=True)
         app = group_service.get_app_by_id(self.team, self.region_name, app_id)
@@ -350,7 +352,7 @@ class UpdateAppGatewayRuleView(TeamAppAPIView):
         responses={200: HTTPGatewayRuleSerializer()},
         tags=['openapi-gateway'],
     )
-    def delete(self, request, app_id, rule_id, *args, **kwargs):
+    def delete(self, request: Request, app_id: str, rule_id: str, *args: Any, **kwargs: Any) -> Response:
         rule = domain_service.get_http_rule_by_id(self.team.tenant_id, rule_id)
         if not rule:
             raise ErrNotFoundDomain

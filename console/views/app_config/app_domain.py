@@ -5,6 +5,7 @@
 import json
 import logging
 import re
+from typing import Any, Tuple
 
 from console.constants import DomainType
 from console.repositories.app import service_repo
@@ -24,8 +25,9 @@ from console.utils.reqparse import parse_item
 from console.views.app_config.base import AppBaseView
 from console.views.base import RegionTenantHeaderView
 from django.db import connection
-from django.views.decorators.cache import never_cache
+from console.utils.cache_decorators import never_cache
 from rest_framework import status
+from rest_framework.request import Request
 from rest_framework.response import Response
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import ServiceDomain
@@ -40,7 +42,7 @@ region_api = RegionInvokeApi()
 dns1123_subdomain_max_length = 253
 
 
-def validate_domain(domain):
+def validate_domain(domain: str) -> Tuple[bool, str]:
     if len(domain) > dns1123_subdomain_max_length:
         return False, "域名长度不能超过{}".format(dns1123_subdomain_max_length)
 
@@ -60,7 +62,7 @@ def validate_domain(domain):
 
 class TenantCertificateView(RegionTenantHeaderView):
     @never_cache
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         获取团队下的证书
         ---
@@ -86,7 +88,7 @@ class TenantCertificateView(RegionTenantHeaderView):
         return Response(result, status=result["code"])
 
     @never_cache
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         为团队添加证书
         ---
@@ -114,14 +116,15 @@ class TenantCertificateView(RegionTenantHeaderView):
 
         """
         alias = request.data.get("alias", None)
-        if len(alias) > 64:
+        if len(alias) > 64:  # type: ignore[arg-type]
             return Response(general_message(400, "alias len is not allow more than 64", "证书名称最大长度64位"), status=400)
         private_key = request.data.get("private_key", None)
         certificate = request.data.get("certificate", None)
         certificate_type = request.data.get("certificate_type", None)
         certificate_id = make_uuid()
-        new_c = domain_service.add_certificate(self.region, self.tenant, alias, certificate_id, certificate, private_key,
-                                               certificate_type)
+        new_c = domain_service.add_certificate(
+            self.region, self.tenant, alias, certificate_id, certificate, private_key,  # type: ignore[arg-type]
+            certificate_type)  # type: ignore[arg-type]
         bean = {"alias": alias, "id": new_c.ID}
         result = general_message(200, "success", "操作成功", bean=bean)
         new_information = json.dumps({
@@ -133,14 +136,14 @@ class TenantCertificateView(RegionTenantHeaderView):
             ensure_ascii=False)
         comment = operation_log_service.generate_team_comment(
             operation=Operation.FOR,
-            module_name=self.tenant.tenant_alias,
+            module_name=self.tenant.tenant_alias,  # type: ignore[arg-type]
             region=self.response_region,
             team_name=self.tenant.tenant_name,
             suffix=" 添加了 {} 证书".format(alias))
         operation_log_service.create_team_log(
             user=self.user,
             comment=comment,
-            enterprise_id=self.user.enterprise_id,
+            enterprise_id=self.user.enterprise_id,  # type: ignore[arg-type]
             team_name=self.tenant.tenant_name,
             new_information=new_information)
         return Response(result, status=result["code"])
@@ -148,7 +151,7 @@ class TenantCertificateView(RegionTenantHeaderView):
 
 class TenantCertificateManageView(RegionTenantHeaderView):
     @never_cache
-    def delete(self, request, *args, **kwargs):
+    def delete(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         删除证书
         ---
@@ -166,32 +169,32 @@ class TenantCertificateManageView(RegionTenantHeaderView):
 
         """
         certificate_id = kwargs.get("certificate_id", None)
-        _, _, cert = domain_service.get_certificate_by_pk(certificate_id)
+        _, _, cert = domain_service.get_certificate_by_pk(certificate_id)  # type: ignore[arg-type]
         old_information = json.dumps({
-            "证书名称": cert["alias"],
-            "证书类型": cert["certificate_type"],
-            "公钥证书": cert["certificate"],
-            "私钥": cert["private_key"]
+            "证书名称": cert["alias"],  # type: ignore[index]
+            "证书类型": cert["certificate_type"],  # type: ignore[index]
+            "公钥证书": cert["certificate"],  # type: ignore[index]
+            "私钥": cert["private_key"]  # type: ignore[index]
         },
             ensure_ascii=False)
-        domain_service.delete_certificate_by_pk(self.region.region_name, self.tenant, certificate_id)
+        domain_service.delete_certificate_by_pk(self.region.region_name, self.tenant, certificate_id)  # type: ignore[arg-type]
         result = general_message(200, "success", "证书删除成功")
         comment = operation_log_service.generate_team_comment(
             operation=Operation.DELETE,
-            module_name=self.tenant.tenant_alias,
+            module_name=self.tenant.tenant_alias,  # type: ignore[arg-type]
             region=self.response_region,
             team_name=self.tenant.tenant_name,
-            suffix=" 下的 {} 证书".format(cert.get("alias", "")))
+            suffix=" 下的 {} 证书".format(cert.get("alias", "")))  # type: ignore[union-attr]
         operation_log_service.create_team_log(
             user=self.user,
             comment=comment,
-            enterprise_id=self.user.enterprise_id,
+            enterprise_id=self.user.enterprise_id,  # type: ignore[arg-type]
             team_name=self.tenant.tenant_name,
             old_information=old_information)
         return Response(result, status=result["code"])
 
     @never_cache
-    def put(self, request, *args, **kwargs):
+    def put(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         修改证书
         ---
@@ -225,9 +228,11 @@ class TenantCertificateManageView(RegionTenantHeaderView):
         """
         certificate_id = kwargs.get("certificate_id", None)
         if not certificate_id:
-            return Response(400, "no param certificate_id", "缺少未指明具体证书")
+            # NOTE: latent bug — Response()'s 2nd positional arg is `status` (int) but a str is
+            # passed here; behavior preserved as-is (backlog)
+            return Response(400, "no param certificate_id", "缺少未指明具体证书")  # type: ignore[arg-type]
         new_alias = request.data.get("alias", None)
-        if len(new_alias) > 64:
+        if len(new_alias) > 64:  # type: ignore[arg-type]
             return Response(general_message(400, "alias len is not allow more than 64", "证书名称最大长度64位"), status=400)
 
         private_key = request.data.get("private_key", None)
@@ -235,17 +240,18 @@ class TenantCertificateManageView(RegionTenantHeaderView):
         certificate_type = request.data.get("certificate_type", None)
         _, _, cert = domain_service.get_certificate_by_pk(certificate_id)
         old_information = json.dumps({
-            "证书名称": cert["alias"],
-            "证书类型": cert["certificate_type"],
-            "公钥证书": cert["certificate"],
-            "私钥": cert["private_key"]
+            "证书名称": cert["alias"],  # type: ignore[index]
+            "证书类型": cert["certificate_type"],  # type: ignore[index]
+            "公钥证书": cert["certificate"],  # type: ignore[index]
+            "私钥": cert["private_key"]  # type: ignore[index]
         },
                                      ensure_ascii=False)
         domain_repo.get_certificate_by_pk(int(certificate_id))
 
-        cert = domain_service.update_certificate(self.region, self.tenant, certificate_id, new_alias, certificate,
-                                                 private_key,
-                                                 certificate_type)
+        cert = domain_service.update_certificate(
+            self.region, self.tenant, certificate_id, new_alias, certificate,  # type: ignore[arg-type]
+            private_key,  # type: ignore[arg-type]
+            certificate_type)  # type: ignore[arg-type]
         new_information = json.dumps({
             "证书名称": cert.alias,
             "证书类型": certificate_type,
@@ -256,21 +262,21 @@ class TenantCertificateManageView(RegionTenantHeaderView):
         result = general_message(200, "success", "证书修改成功")
         comment = operation_log_service.generate_team_comment(
             operation=Operation.UPDATE,
-            module_name=self.tenant.tenant_alias,
+            module_name=self.tenant.tenant_alias,  # type: ignore[arg-type]
             region=self.response_region,
             team_name=self.tenant.tenant_name,
             suffix=" 下的 {} 证书".format(cert.alias))
         operation_log_service.create_team_log(
             user=self.user,
             comment=comment,
-            enterprise_id=self.user.enterprise_id,
+            enterprise_id=self.user.enterprise_id,  # type: ignore[arg-type]
             team_name=self.tenant.tenant_name,
             old_information=old_information,
             new_information=new_information)
         return Response(result, status=result["code"])
 
     @never_cache
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         查询某个证书详情
         ---
@@ -288,7 +294,7 @@ class TenantCertificateManageView(RegionTenantHeaderView):
 
         """
         certificate_id = kwargs.get("certificate_id", None)
-        code, msg, certificate = domain_service.get_certificate_by_pk(certificate_id)
+        code, msg, certificate = domain_service.get_certificate_by_pk(certificate_id)  # type: ignore[arg-type]
         if code != 200:
             return Response(general_message(code, "delete error", msg), status=code)
 
@@ -298,7 +304,7 @@ class TenantCertificateManageView(RegionTenantHeaderView):
 
 class ServiceDomainView(AppBaseView):
     @never_cache
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         获取组件下某个端口绑定的域名
         ---
@@ -321,13 +327,13 @@ class ServiceDomainView(AppBaseView):
 
         """
         container_port = request.GET.get("container_port", None)
-        domains = domain_service.get_port_bind_domains(self.service, int(container_port))
+        domains = domain_service.get_port_bind_domains(self.service, int(container_port))  # type: ignore[arg-type]
         domain_list = [domain.to_dict() for domain in domains]
         result = general_message(200, "success", "查询成功", list=domain_list)
         return Response(result, status=result["code"])
 
     @never_cache
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         组件端口绑定域名
         ---
@@ -366,7 +372,7 @@ class ServiceDomainView(AppBaseView):
         """
         container_port = request.data.get("container_port", None)
         domain_name = request.data.get("domain_name", None)
-        flag, msg = validate_domain(domain_name)
+        flag, msg = validate_domain(domain_name)  # type: ignore[arg-type]
         if not flag:
             result = general_message(400, "invalid domain", msg)
             return Response(result, status=400)
@@ -375,21 +381,25 @@ class ServiceDomainView(AppBaseView):
         rule_extensions = request.data.get("rule_extensions", None)
 
         # 判断策略是否存在
-        service_domain = domain_repo.get_domain_by_name_and_port_and_protocol(self.service.service_id, container_port,
-                                                                              domain_name, protocol)
+        service_domain = domain_repo.get_domain_by_name_and_port_and_protocol(
+            self.service.service_id, container_port,  # type: ignore[arg-type]
+            domain_name, protocol)  # type: ignore[arg-type]
         if service_domain:
             result = general_message(400, "failed", "策略已存在")
             return Response(result, status=400)
 
-        domain_service.bind_domain(self.tenant, self.user, self.service, domain_name, container_port, protocol, certificate_id,
-                                   DomainType.WWW, rule_extensions)
+        domain_service.bind_domain(
+            self.tenant, self.user, self.service, domain_name, container_port, protocol,  # type: ignore[arg-type]
+            certificate_id, DomainType.WWW, rule_extensions)  # type: ignore[arg-type]
         # htt与https共存的协议需存储两条数据(创建完https数据再创建一条http数据)
         if protocol == "httpandhttps":
             certificate_id = 0
-            domain_service.bind_domain(self.tenant, self.user, self.service, domain_name, container_port, protocol,
-                                       certificate_id, DomainType.WWW, rule_extensions)
+            domain_service.bind_domain(
+                self.tenant, self.user, self.service, domain_name, container_port, protocol,  # type: ignore[arg-type]
+                certificate_id, DomainType.WWW, rule_extensions)  # type: ignore[arg-type]
         result = general_message(200, "success", "域名绑定成功")
-        svc = port_repo.get_service_port_by_port(self.tenant.tenant_id, self.service.service_id, container_port)
+        svc = port_repo.get_service_port_by_port(
+            self.tenant.tenant_id, self.service.service_id, container_port)  # type: ignore[arg-type]
 
         region_api.api_gateway_bind_http_domain(self.service.service_alias, self.region, self.tenant.tenant_name,
                                                 [domain_name], svc, self.app.app_id)
@@ -414,7 +424,7 @@ class ServiceDomainView(AppBaseView):
         return Response(result, status=result["code"])
 
     @never_cache
-    def delete(self, request, *args, **kwargs):
+    def delete(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         组件端口解绑域名
         ---
@@ -444,7 +454,7 @@ class ServiceDomainView(AppBaseView):
 
         container_port = request.data.get("container_port", None)
         domain_name = request.data.get("domain_name", None)
-        flag, msg = validate_domain(domain_name)
+        flag, msg = validate_domain(domain_name)  # type: ignore[arg-type]
         if not flag:
             result = general_message(400, "invalid domain", msg)
             return Response(result, status=400)
@@ -462,7 +472,7 @@ class ServiceDomainView(AppBaseView):
             if protocol == "https" else "HTTP和HTTPS"
         service_domain = {"端口": container_port, "协议": agreement, "域名": domain_name}
         if protocol != "http":
-            certificate = domain_repo.get_certificate_by_id(old_service_domain.certificate_id)
+            certificate = domain_repo.get_certificate_by_id(old_service_domain.certificate_id)  # type: ignore[attr-defined]
             if certificate:
                 service_domain["证书别名"] = certificate.alias
         domain_service.unbind_domain(self.tenant, self.service, container_port, domain_name, is_tcp, self.app.app_id)
@@ -489,17 +499,17 @@ class ServiceDomainView(AppBaseView):
 
 class CalibrationCertificate(RegionTenantHeaderView):
     @never_cache
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         certificate_id = request.data.get("certificate_id", None)
         domain_name = request.data.get("domain_name", None)
-        is_pass = domain_service.check_certificate(certificate_id, domain_name)
+        is_pass = domain_service.check_certificate(certificate_id, domain_name)  # type: ignore[arg-type]
         result = general_message(200, "success", "查询成功", bean={"is_pass": is_pass})
         return Response(result, status=result["code"])
 
 
 class HttpStrategyView(RegionTenantHeaderView):
     @never_cache
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         获取单个http策略
 
@@ -518,13 +528,13 @@ class HttpStrategyView(RegionTenantHeaderView):
             if service:
                 gsr = group_service_relation_repo.get_group_by_service_id(service.service_id)
                 if gsr:
-                    group = group_repo.get_group_by_id(int(gsr.group_id))
+                    group = group_repo.get_group_by_id(int(gsr.group_id))  # type: ignore[arg-type]
                     group_name = group.group_name if group else ''
                     g_id = int(gsr.group_id)
             if domain.certificate_id:
                 certificate_info = domain_repo.get_certificate_by_pk(int(domain.certificate_id))
 
-                bean.update({"certificate_name": certificate_info.alias})
+                bean.update({"certificate_name": certificate_info.alias})  # type: ignore[union-attr]
             bean.update({"service_alias": service_alias})
             bean.update({"group_name": group_name})
             bean.update({"g_id": g_id})
@@ -542,7 +552,7 @@ class HttpStrategyView(RegionTenantHeaderView):
         return Response(result, status=result["code"])
 
     @never_cache
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         添加http策略
 
@@ -555,14 +565,14 @@ class HttpStrategyView(RegionTenantHeaderView):
 
         domain_heander = request.data.get("domain_heander", None)
         # 检查设置的请求头对不对
-        header_items = domain_heander.split('=')
+        header_items = domain_heander.split('=')  # type: ignore[union-attr]
         if len(header_items) > 1 and not self.check_nginx_header(header_items[0], header_items[1]):
             result = general_message(400, "success", "请求头配置有误")
             return Response(result, status=status.HTTP_400_BAD_REQUEST)
 
         container_port = request.data.get("container_port", None)
         domain_name = request.data.get("domain_name", None)
-        flag, msg = validate_domain(domain_name)
+        flag, msg = validate_domain(domain_name)  # type: ignore[arg-type]
         if not flag:
             result = general_message(400, "invalid domain", msg)
             return Response(result, status=400)
@@ -603,7 +613,8 @@ class HttpStrategyView(RegionTenantHeaderView):
         if auto_ssl:
             auto_ssl = True
         if auto_ssl:
-            auto_ssl_configs = EnterpriseConfigService(self.tenant.enterprise_id, self.user.user_id).get_auto_ssl_info()
+            auto_ssl_configs = EnterpriseConfigService(
+                self.tenant.enterprise_id, self.user.user_id).get_auto_ssl_info()  # type: ignore[arg-type]
             if not auto_ssl_configs:
                 result = general_message(400, "failed", "未找到自动分发证书相关配置")
                 return Response(result, status=400)
@@ -680,7 +691,7 @@ class HttpStrategyView(RegionTenantHeaderView):
         return Response(result, status=status.HTTP_201_CREATED)
 
     # 预先检查nginx 的header 值是否正确
-    def check_nginx_syntax(self, config_data):
+    def check_nginx_syntax(self, config_data: dict) -> bool:
         try:
             if "set_headers" not in config_data:
                 return False
@@ -696,14 +707,14 @@ class HttpStrategyView(RegionTenantHeaderView):
             return False
         return True
 
-    def check_nginx_header(self, key, value):
+    def check_nginx_header(self, key: str, value: str) -> Any:
         # Nginx 标准的正则表达式模式
         nginx_key_pattern = re.compile(r'^[a-zA-Z0-9_\-]+$')
         nginx_value_pattern = re.compile(r'^[a-zA-Z0-9_\-.*$()#]+(\s*[a-zA-Z0-9_\-.*$()#]+)*$')
         return re.match(nginx_key_pattern, key) and re.match(nginx_value_pattern, value)
 
     @never_cache
-    def put(self, request, *args, **kwargs):
+    def put(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         编辑http策略
         """
@@ -715,14 +726,14 @@ class HttpStrategyView(RegionTenantHeaderView):
 
         domain_heander = request.data.get("domain_heander", None)
         # 检查设置的请求头对不对
-        header_items = domain_heander.split('=')
+        header_items = domain_heander.split('=')  # type: ignore[union-attr]
         if len(header_items) > 1 and not self.check_nginx_header(header_items[0], header_items[1]):
             result = general_message(400, "success", "请求头配置有误")
             return Response(result, status=status.HTTP_400_BAD_REQUEST)
 
         container_port = request.data.get("container_port", None)
         domain_name = request.data.get("domain_name", None)
-        flag, msg = validate_domain(domain_name)
+        flag, msg = validate_domain(domain_name)  # type: ignore[arg-type]
         if not flag:
             result = general_message(400, "invalid domain", msg)
             return Response(result, status=400)
@@ -796,7 +807,7 @@ class HttpStrategyView(RegionTenantHeaderView):
         return Response(result, status=200)
 
     @never_cache
-    def delete(self, request, *args, **kwargs):
+    def delete(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
        删除策略
 
@@ -811,7 +822,7 @@ class HttpStrategyView(RegionTenantHeaderView):
 
 
 class GatewayRouteBatch(RegionTenantHeaderView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         app_id = request.GET.get("app_id", "")
         namespace = self.tenant.namespace
         data = gateway_api.list_http_routes(self.region_name, self.tenant_name, namespace, app_id)
@@ -820,7 +831,7 @@ class GatewayRouteBatch(RegionTenantHeaderView):
 
 
 class TenantService(RegionTenantHeaderView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         ports = port_repo.get_tenant_services(self.tenant.tenant_id)
         component_list = service_repo.get_tenant_region_services(self.region_name, self.tenant.tenant_id)
         component_dict = {component.service_id: component.service_cname for component in component_list}
@@ -831,7 +842,7 @@ class TenantService(RegionTenantHeaderView):
                 port_dict = dict()
                 port_dict["service_name"] = port.k8s_service_name
                 port_dict["namespace"] = self.tenant.namespace
-                port_dict["component_name"] = component_dict.get(port.service_id)
+                port_dict["component_name"] = component_dict.get(port.service_id)  # type: ignore[assignment]
                 port_list.append(port_dict)
         ret_data = {"namespace": self.tenant.namespace, "ports": port_list}
         result = general_message(200, "success", "查询成功", bean=ret_data)
@@ -839,14 +850,14 @@ class TenantService(RegionTenantHeaderView):
 
 
 class GatewayRoute(RegionTenantHeaderView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         namespace = self.tenant.namespace
         name = request.GET.get("name", "")
         data = gateway_api.get_http_route(self.region_name, self.tenant_name, namespace, name)
         result = general_message(200, "success", "查询成功", bean=data)
         return Response(result, status=result["code"])
 
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         app_id = request.data.get("app_id")
         gateway_name = request.data.get("gateway_name")
         gateway_namespace = request.data.get("gateway_namespace")
@@ -854,12 +865,13 @@ class GatewayRoute(RegionTenantHeaderView):
         rules = request.data.get("rules", [])
         section_name = request.data.get("section_name", "")
         namespace = self.tenant.namespace
-        data = gateway_api.add_http_route(self.region_name, self.tenant_name, app_id, namespace, gateway_name,
-                                          gateway_namespace, hosts, rules, section_name)
+        data = gateway_api.add_http_route(
+            self.region_name, self.tenant_name, app_id, namespace, gateway_name,  # type: ignore[arg-type]
+            gateway_namespace, hosts, rules, section_name)  # type: ignore[arg-type]
         result = general_message(200, "success", "查询成功", bean=data)
         return Response(result, status=result["code"])
 
-    def put(self, request, *args, **kwargs):
+    def put(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         app_id = request.data.get("app_id")
         name = request.data.get("name")
         gateway_namespace = request.data.get("gateway_namespace")
@@ -868,35 +880,38 @@ class GatewayRoute(RegionTenantHeaderView):
         hosts = request.data.get("hosts", [])
         section_name = request.data.get("section_name", "")
         namespace = self.tenant.namespace
-        region_app_id = region_app_repo.get_region_app_id(self.region_name, app_id)
+        region_app_id = region_app_repo.get_region_app_id(self.region_name, app_id)  # type: ignore[arg-type]
         if not region_app_id:
             return Response(general_message(400, "can not find app by region_app_id", "提供的region_app_id查找不到应用"), status=400)
-        ret = gateway_api.update_http_route(self.region_name, self.tenant_name, name, app_id, namespace, gateway_name,
-                                            gateway_namespace, hosts, rules, section_name)
+        ret = gateway_api.update_http_route(
+            self.region_name, self.tenant_name, name, app_id, namespace, gateway_name,  # type: ignore[arg-type]
+            gateway_namespace, hosts, rules, section_name)  # type: ignore[arg-type]
         if ret:
             data = {
                 "content": ret.get("content"),
                 "state": 2,
                 "error_overview": "更新成功",
             }
-            k8s_resources_repo.update(app_id, name, "HTTPRoute", **data)
+            k8s_resources_repo.update(app_id, name, "HTTPRoute", **data)  # type: ignore[arg-type]
         result = general_message(200, "success", "更新成功", bean=ret)
         return Response(result, status=result["code"])
 
-    def delete(self, request, *args, **kwargs):
+    def delete(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         region_app_id = request.GET.get("region_app_id")
         name = request.GET.get("name", "")
         namespace = self.tenant.namespace
-        app_id = region_app_repo.get_app_id(self.region_name, region_app_id)
-        data = gateway_api.delete_http_route(self.region_name, self.tenant_name, namespace, name, region_app_id)
-        k8s_resources_repo.delete_by_name(app_id, "HTTPRoute", name)
+        app_id = region_app_repo.get_app_id(self.region_name, region_app_id)  # type: ignore[arg-type]
+        operator = request.user.nick_name  # type: ignore[union-attr]
+        data = gateway_api.delete_http_route(
+            self.region_name, self.tenant_name, namespace, name, region_app_id, operator)  # type: ignore[arg-type]
+        k8s_resources_repo.delete_by_name(app_id, "HTTPRoute", name)  # type: ignore[arg-type]
         result = general_message(200, "success", "查询成功", bean=data)
         return Response(result, status=result["code"])
 
 
 class DomainView(RegionTenantHeaderView):
     @never_cache
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         查询某个域名是否存在
         ---
@@ -924,7 +939,7 @@ class DomainView(RegionTenantHeaderView):
 
 class SecondLevelDomainView(AppBaseView):
     @never_cache
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         获取二级域名后缀
         ---
@@ -946,7 +961,7 @@ class SecondLevelDomainView(AppBaseView):
         return Response(result, status=result["code"])
 
     @never_cache
-    def put(self, request, *args, **kwargs):
+    def put(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         组件端口自定义二级域名
         ---
@@ -985,15 +1000,22 @@ class SecondLevelDomainView(AppBaseView):
         container_port = int(container_port)
         sld_domains = domain_service.get_sld_domains(self.service, container_port)
         if not sld_domains:
-            domain_service.bind_domain(self.tenant, self.user, self.service, domain_name, container_port, "http", None,
-                                       DomainType.SLD_DOMAIN)
+            # NOTE: latent bug — bind_domain is missing the required `rule_extensions` arg and
+            # passes None for a str param; behavior preserved as-is (backlog)
+            domain_service.bind_domain(  # type: ignore[call-arg]
+                self.tenant, self.user, self.service, domain_name, container_port, "http",
+                None,  # type: ignore[arg-type]
+                DomainType.SLD_DOMAIN)
         else:
-            code, msg = domain_service.unbind_domain(
+            # NOTE: latent bug — unbind_domain returns None but is unpacked into (code, msg) (backlog)
+            code, msg = domain_service.unbind_domain(  # type: ignore[func-returns-value]
                 self.tenant, self.service, container_port, sld_domains[0].domain_name, is_tcp=False, app_id=self.app.app_id)
             if code != 200:
                 return Response(general_message(code, "unbind domain error", msg), status=code)
-            domain_service.bind_domain(self.tenant, self.user, self.service, domain_name, container_port, "http", None,
-                                       DomainType.SLD_DOMAIN)
+            domain_service.bind_domain(  # type: ignore[call-arg]
+                self.tenant, self.user, self.service, domain_name, container_port, "http",
+                None,  # type: ignore[arg-type]
+                DomainType.SLD_DOMAIN)
 
         result = general_message(200, "success", "二级域名修改成功")
         return Response(result, status=result["code"])
@@ -1001,7 +1023,7 @@ class SecondLevelDomainView(AppBaseView):
 
 # 获取团队下的策略
 class DomainQueryView(RegionTenantHeaderView):
-    def get(self, request, tenantName, *args, **kwargs):
+    def get(self, request: Request, tenantName: str, *args: Any, **kwargs: Any) -> Response:
 
         page = int(request.GET.get("page", 1))
         page_size = int(request.GET.get("page_size", 10))
@@ -1019,7 +1041,8 @@ class DomainQueryView(RegionTenantHeaderView):
                 where sd.tenant_id='{0}' and sd.region_id='{1}' \
                     and (sd.domain_name like '%{2}%' \
                         or sd.service_alias like '%{2}%' \
-                        or sg.group_name like '%{2}%');".format(tenant.tenant_id, region.region_id, search_conditions))
+                        or sg.group_name like '%{2}%');".format(
+                tenant.tenant_id, region.region_id, search_conditions))  # type: ignore[union-attr]
             domain_count = cursor.fetchall()
 
             total = domain_count[0][0]
@@ -1044,14 +1067,15 @@ class DomainQueryView(RegionTenantHeaderView):
                         and (sd.domain_name like '%{2}%' \
                             or sd.service_alias like '%{2}%' \
                             or sg.group_name like '%{2}%') \
-                    order by type desc LIMIT {3},{4};".format(tenant.tenant_id, region.region_id, search_conditions, start,
-                                                              end))
+                    order by type desc LIMIT {3},{4};".format(
+                        tenant.tenant_id, region.region_id, search_conditions, start,  # type: ignore[union-attr]
+                        end))
                 tenant_tuples = cursor.fetchall()
         else:
             # 获取总数
             cursor = connection.cursor()
             cursor.execute("select count(1) from service_domain where tenant_id='{0}' and region_id='{1}';".format(
-                tenant.tenant_id, region.region_id))
+                tenant.tenant_id, region.region_id))  # type: ignore[union-attr]
             domain_count = cursor.fetchall()
 
             total = domain_count[0][0]
@@ -1069,8 +1093,9 @@ class DomainQueryView(RegionTenantHeaderView):
                     service_name, container_port, http_rule_id, service_id, domain_path, domain_cookie,
                     domain_heander, the_weight, is_outer_service, path_rewrite,
                     rewrites from service_domain where tenant_id='{0}'
-                    and region_id='{1}' order by type desc LIMIT {2},{3};""".format(tenant.tenant_id, region.region_id, start,
-                                                                                    end))
+                    and region_id='{1}' order by type desc LIMIT {2},{3};""".format(
+                        tenant.tenant_id, region.region_id, start,  # type: ignore[union-attr]
+                        end))
                 tenant_tuples = cursor.fetchall()
         # 拼接展示数据
         domain_list = list()
@@ -1083,7 +1108,7 @@ class DomainQueryView(RegionTenantHeaderView):
             if service:
                 gsr = group_service_relation_repo.get_group_by_service_id(service.service_id)
                 if gsr:
-                    group = group_repo.get_group_by_id(int(gsr.group_id))
+                    group = group_repo.get_group_by_id(int(gsr.group_id))  # type: ignore[arg-type]
                     group_name = group.group_name if group else ''
                     group_id = int(gsr.group_id)
             domain_dict = dict()
@@ -1111,7 +1136,7 @@ class DomainQueryView(RegionTenantHeaderView):
             if isinstance(rewrites, str):
                 rewrites = eval(rewrites)
             domain_dict["rewrites"] = rewrites
-            domain_dict["group_id"] = group_id
+            domain_dict["group_id"] = group_id  # type: ignore[assignment]
             domain_list.append(domain_dict)
         bean = dict()
         bean["total"] = total
@@ -1121,7 +1146,7 @@ class DomainQueryView(RegionTenantHeaderView):
 
 class ServiceTcpDomainQueryView(RegionTenantHeaderView):
     # 查询团队下tcp/udp策略
-    def get(self, request, tenantName, *args, **kwargs):
+    def get(self, request: Request, tenantName: str, *args: Any, **kwargs: Any) -> Response:
         page = int(request.GET.get("page", 1))
         page_size = int(request.GET.get("page_size", 10))
         search_conditions = request.GET.get("search_conditions", None)
@@ -1138,7 +1163,8 @@ class ServiceTcpDomainQueryView(RegionTenantHeaderView):
                     where std.tenant_id='{0}' and std.region_id='{1}' \
                         and (std.end_point like '%{2}%' \
                             or std.service_alias like '%{2}%' \
-                            or sg.group_name like '%{2}%');".format(tenant.tenant_id, region.region_id, search_conditions))
+                            or sg.group_name like '%{2}%');".format(
+                    tenant.tenant_id, region.region_id, search_conditions))  # type: ignore[union-attr]
                 domain_count = cursor.fetchall()
 
                 total = domain_count[0][0]
@@ -1158,14 +1184,15 @@ class ServiceTcpDomainQueryView(RegionTenantHeaderView):
                         and (std.end_point like '%{2}%' \
                             or std.service_alias like '%{2}%' \
                             or sg.group_name like '%{2}%') \
-                    order by type desc LIMIT {3},{4};".format(tenant.tenant_id, region.region_id, search_conditions, start,
-                                                              end))
+                    order by type desc LIMIT {3},{4};".format(
+                        tenant.tenant_id, region.region_id, search_conditions, start,  # type: ignore[union-attr]
+                        end))
                 tenant_tuples = cursor.fetchall()
             else:
                 # 获取总数
                 cursor = connection.cursor()
                 cursor.execute("select count(1) from service_tcp_domain where tenant_id='{0}' and region_id='{1}';".format(
-                    tenant.tenant_id, region.region_id))
+                    tenant.tenant_id, region.region_id))  # type: ignore[union-attr]
                 domain_count = cursor.fetchall()
 
                 total = domain_count[0][0]
@@ -1185,7 +1212,7 @@ class ServiceTcpDomainQueryView(RegionTenantHeaderView):
                         from service_tcp_domain
                         where tenant_id='{0}' and region_id='{1}' order by type desc
                         LIMIT {2},{3};
-                    """.format(tenant.tenant_id, region.region_id, start, end))
+                    """.format(tenant.tenant_id, region.region_id, start, end))  # type: ignore[union-attr]
                 tenant_tuples = cursor.fetchall()
         except Exception as e:
             logger.exception(e)
@@ -1202,7 +1229,7 @@ class ServiceTcpDomainQueryView(RegionTenantHeaderView):
             if service:
                 gsr = group_service_relation_repo.get_group_by_service_id(service.service_id)
                 if gsr:
-                    group = group_repo.get_group_by_id(int(gsr.group_id))
+                    group = group_repo.get_group_by_id(int(gsr.group_id))  # type: ignore[arg-type]
                     group_name = group.group_name if group else ''
                     group_id = int(gsr.group_id)
             domain_dict = dict()
@@ -1228,14 +1255,15 @@ class ServiceTcpDomainQueryView(RegionTenantHeaderView):
 
 # 查询应用下策略
 class AppServiceDomainQueryView(RegionTenantHeaderView):
-    def get(self, request, enterprise_id, team_name, app_id, *args, **kwargs):
+    def get(self, request: Request, enterprise_id: str, team_name: str, app_id: str, *args: Any, **kwargs: Any) -> Response:
         page = int(request.GET.get("page", 1))
         page_size = int(request.GET.get("page_size", 10))
         search_conditions = request.GET.get("search_conditions", None)
         tenant = team_services.get_enterprise_tenant_by_tenant_name(enterprise_id, team_name)
         region = region_repo.get_region_by_region_name(self.response_region)
-        tenant_tuples, total = domain_service.get_app_service_domain_list(region, tenant, app_id, search_conditions, page,
-                                                                          page_size)
+        tenant_tuples, total = domain_service.get_app_service_domain_list(
+            region, tenant, app_id, search_conditions, page,  # type: ignore[arg-type]
+            page_size)
         # 拼接展示数据
         domain_list = list()
         for tenant_tuple in tenant_tuples:
@@ -1247,7 +1275,7 @@ class AppServiceDomainQueryView(RegionTenantHeaderView):
             if service:
                 gsr = group_service_relation_repo.get_group_by_service_id(service.service_id)
                 if gsr:
-                    group = group_repo.get_group_by_id(int(gsr.group_id))
+                    group = group_repo.get_group_by_id(int(gsr.group_id))  # type: ignore[arg-type]
                     group_name = group.group_name if group else ''
                     group_id = int(gsr.group_id)
             domain_dict = dict()
@@ -1275,7 +1303,7 @@ class AppServiceDomainQueryView(RegionTenantHeaderView):
             if isinstance(rewrites, str):
                 rewrites = eval(rewrites)
             domain_dict["rewrites"] = rewrites
-            domain_dict["group_id"] = group_id
+            domain_dict["group_id"] = group_id  # type: ignore[assignment]
             domain_list.append(domain_dict)
         bean = dict()
         bean["total"] = total
@@ -1285,15 +1313,16 @@ class AppServiceDomainQueryView(RegionTenantHeaderView):
 
 class AppServiceTcpDomainQueryView(RegionTenantHeaderView):
     # 查询应用下tcp/udp策略
-    def get(self, request, enterprise_id, team_name, app_id, *args, **kwargs):
+    def get(self, request: Request, enterprise_id: str, team_name: str, app_id: str, *args: Any, **kwargs: Any) -> Response:
         page = int(request.GET.get("page", 1))
         page_size = int(request.GET.get("page_size", 10))
         search_conditions = request.GET.get("search_conditions", None)
         tenant = team_services.get_enterprise_tenant_by_tenant_name(enterprise_id, team_name)
         region = region_repo.get_region_by_region_name(self.response_region)
 
-        tenant_tuples, total = domain_service.get_app_service_tcp_domain_list(region, tenant, app_id, search_conditions, page,
-                                                                              page_size)
+        tenant_tuples, total = domain_service.get_app_service_tcp_domain_list(
+            region, tenant, app_id, search_conditions, page,  # type: ignore[arg-type]
+            page_size)
 
         # 拼接展示数据
         domain_list = list()
@@ -1305,7 +1334,7 @@ class AppServiceTcpDomainQueryView(RegionTenantHeaderView):
             if service:
                 gsr = group_service_relation_repo.get_group_by_service_id(service.service_id)
                 if gsr:
-                    group = group_repo.get_group_by_id(int(gsr.group_id))
+                    group = group_repo.get_group_by_id(int(gsr.group_id))  # type: ignore[arg-type]
                     group_name = group.group_name if group else ''
                     group_id = int(gsr.group_id)
             domain_dict = dict()
@@ -1332,7 +1361,7 @@ class AppServiceTcpDomainQueryView(RegionTenantHeaderView):
 # tcp/ucp策略操作
 class ServiceTcpDomainView(RegionTenantHeaderView):
     @never_cache
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         # 获取单个tcp/udp策略信息
         tcp_rule_id = request.GET.get("tcp_rule_id", None)
         # 判断参数
@@ -1349,7 +1378,7 @@ class ServiceTcpDomainView(RegionTenantHeaderView):
             if service:
                 gsr = group_service_relation_repo.get_group_by_service_id(service.service_id)
                 if gsr:
-                    group = group_repo.get_group_by_id(int(gsr.group_id))
+                    group = group_repo.get_group_by_id(int(gsr.group_id))  # type: ignore[arg-type]
                     group_name = group.group_name if group else ''
                     g_id = int(gsr.group_id)
             bean.update({"service_alias": service_alias})
@@ -1363,7 +1392,7 @@ class ServiceTcpDomainView(RegionTenantHeaderView):
 
     @never_cache
     # 添加
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         container_port = request.data.get("container_port", None)
         service_id = request.data.get("service_id", None)
         end_point = request.data.get("end_point", None)
@@ -1381,7 +1410,7 @@ class ServiceTcpDomainView(RegionTenantHeaderView):
 
         # Check if the given endpoint exists.
         region = region_repo.get_region_by_region_name(service.service_region)
-        service_tcpdomain = tcp_domain.get_tcpdomain_by_end_point(region.region_id, end_point)
+        service_tcpdomain = tcp_domain.get_tcpdomain_by_end_point(region.region_id, end_point)  # type: ignore[union-attr]
         if service_tcpdomain:
             result = general_message(400, "failed", "策略已存在")
             return Response(result)
@@ -1406,14 +1435,15 @@ class ServiceTcpDomainView(RegionTenantHeaderView):
             return Response(general_message(200, "not outer port", "没有开启对外端口", bean={"is_outer_service": False}), status=200)
 
         # 添加tcp策略
-        data = domain_service.bind_tcpdomain(self.tenant, self.user, service, end_point, container_port, default_port,
-                                             rule_extensions, default_ip)
+        data = domain_service.bind_tcpdomain(
+            self.tenant, self.user, service, end_point, container_port, default_port,  # type: ignore[assignment,arg-type]
+            rule_extensions, default_ip)
         result = general_message(200, "success", "tcp策略添加成功", bean=data)
         return Response(result, status=result["code"])
 
     @never_cache
     # 修改
-    def put(self, request, *args, **kwargs):
+    def put(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         container_port = request.data.get("container_port", None)
         service_id = request.data.get("service_id", None)
         end_point = request.data.get("end_point", None)
@@ -1426,12 +1456,12 @@ class ServiceTcpDomainView(RegionTenantHeaderView):
         if not tcp_rule_id:
             return Response(general_message(400, "parameters are missing", "参数缺失"), status=400)
 
-        service = service_repo.get_service_by_service_id(service_id)
+        service = service_repo.get_service_by_service_id(service_id)  # type: ignore[arg-type]
         if not service:
             return Response(general_message(400, "not service", "组件不存在"), status=400)
 
         # 查询端口协议
-        tenant_service_port = port_service.get_service_port_by_port(service, container_port)
+        tenant_service_port = port_service.get_service_port_by_port(service, container_port)  # type: ignore[arg-type]
         if tenant_service_port:
             protocol = tenant_service_port.protocol
         else:
@@ -1439,14 +1469,16 @@ class ServiceTcpDomainView(RegionTenantHeaderView):
 
         # Check if the given endpoint exists.
         region = region_repo.get_region_by_region_name(service.service_region)
-        service_tcpdomain = tcp_domain.get_tcpdomain_by_end_point(region.region_id, end_point)
+        service_tcpdomain = tcp_domain.get_tcpdomain_by_end_point(
+            region.region_id, end_point)  # type: ignore[union-attr,arg-type]
         if service_tcpdomain and service_tcpdomain[0].tcp_rule_id != tcp_rule_id:
             result = general_message(400, "failed", "策略已存在")
             return Response(result)
 
         # 修改策略
-        code, msg = domain_service.update_tcpdomain(self.tenant, self.user, service, end_point, container_port, tcp_rule_id,
-                                                    protocol, type, rule_extensions, default_ip)
+        code, msg = domain_service.update_tcpdomain(
+            self.tenant, self.user, service, end_point, container_port, tcp_rule_id,  # type: ignore[arg-type]
+            protocol, type, rule_extensions, default_ip)  # type: ignore[arg-type]
 
         if code != 200:
             return Response(general_message(code, "bind domain error", msg), status=code)
@@ -1457,7 +1489,7 @@ class ServiceTcpDomainView(RegionTenantHeaderView):
 
     @never_cache
     # 删除
-    def delete(self, request, *args, **kwargs):
+    def delete(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         tcp_rule_id = request.data.get("tcp_rule_id", None)
 
         if not tcp_rule_id:
@@ -1469,24 +1501,24 @@ class ServiceTcpDomainView(RegionTenantHeaderView):
 
 # 给数据中心发请求获取可用端口
 class GetPortView(RegionTenantHeaderView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         ipres, ipdata = region_api.get_ips(self.response_region, self.tenant.tenant_name)
         if int(ipres.status) != 200:
             result = general_message(400, "call region error", "请求数据中心异常")
             return Response(result, status=400)
-        result = general_message(200, "success", "可用端口查询成功", list=ipdata.get("list"))
+        result = general_message(200, "success", "可用端口查询成功", list=ipdata.get("list"))  # type: ignore[union-attr]
         return Response(result, status=200)
 
 
 # 查看高级路由信息
 class GetSeniorUrlView(RegionTenantHeaderView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         http_rule_id = request.GET.get("http_rule_id", None)
         # 判断参数
         if not http_rule_id:
             return Response(general_message(400, "parameters are missing", "参数缺失"), status=400)
         service_domain = domain_repo.get_service_domain_by_http_rule_id(http_rule_id)
-        result = general_message(200, "success", "查询成功", bean=service_domain.to_dict())
+        result = general_message(200, "success", "查询成功", bean=service_domain.to_dict())  # type: ignore[union-attr]
         return Response(result, status=200)
 
 
@@ -1494,7 +1526,7 @@ class GetSeniorUrlView(RegionTenantHeaderView):
 class GatewayCustomConfigurationView(RegionTenantHeaderView):
     # 获取策略的网关自定义参数
     @never_cache
-    def get(self, request, rule_id, *args, **kwargs):
+    def get(self, request: Request, rule_id: str, *args: Any, **kwargs: Any) -> Response:
         if not rule_id:
             return Response(general_message(400, "parameters are missing", "参数缺失"), status=400)
         cf = configuration_repo.get_configuration_by_rule_id(rule_id)
@@ -1507,7 +1539,7 @@ class GatewayCustomConfigurationView(RegionTenantHeaderView):
 
     # 修改网关的自定义参数
     @never_cache
-    def put(self, request, rule_id, *args, **kwargs):
+    def put(self, request: Request, rule_id: str, *args: Any, **kwargs: Any) -> Response:
         value = parse_item(request, 'value', required=True, error='value is a required parameter')
         domain_service.update_http_rule_config(self.tenant, self.response_region, rule_id, value)
         result = general_message(200, "success", "更新成功")
@@ -1515,39 +1547,41 @@ class GatewayCustomConfigurationView(RegionTenantHeaderView):
 
 
 class VirtualMachineImageView(RegionTenantHeaderView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         data = vms.list_vm_image(self.tenant.tenant_id, self.response_region, self.tenant.tenant_name)
         result = general_message(200, "success", "查询成功", list=data)
         return Response(result, status=result["code"])
 
 
 class VirtualMachineCapabilityView(RegionTenantHeaderView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         data = vms.get_vm_capabilities(self.response_region, self.tenant.tenant_name)
         result = general_message(200, "success", "查询成功", bean=data)
         return Response(result, status=result["code"])
 
 
 class VirtualMachineAssetListView(RegionTenantHeaderView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         data = vms.list_vm_image(self.tenant.tenant_id, self.response_region, self.tenant.tenant_name)
         result = general_message(200, "success", "查询成功", list=data)
         return Response(result, status=result["code"])
 
 
 class VirtualMachineAssetManageView(RegionTenantHeaderView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         asset_id = kwargs.get("asset_id")
-        asset = vms.get_vm_asset(self.tenant.tenant_id, asset_id, self.response_region, self.tenant.tenant_name)
+        asset = vms.get_vm_asset(
+            self.tenant.tenant_id, asset_id, self.response_region, self.tenant.tenant_name)  # type: ignore[arg-type]
         if not asset:
             return Response(general_message(404, "vm asset not found", "虚拟机镜像资产不存在"), status=404)
         result = general_message(200, "success", "查询成功", bean=asset)
         return Response(result, status=result["code"])
 
-    def delete(self, request, *args, **kwargs):
+    def delete(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         asset_id = kwargs.get("asset_id")
         try:
-            deleted, _ = vms.delete_vm_image(self.tenant.tenant_id, asset_id, self.response_region, self.tenant.tenant_name)
+            deleted, _ = vms.delete_vm_image(
+                self.tenant.tenant_id, asset_id, self.response_region, self.tenant.tenant_name)  # type: ignore[arg-type]
         except ValueError:
             result = general_message(409, "vm asset is referenced", "虚拟机镜像资产仍被引用，无法删除")
             return Response(result, status=409)

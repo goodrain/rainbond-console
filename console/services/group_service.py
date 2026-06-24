@@ -7,11 +7,15 @@ import logging
 import re
 from urllib.parse import quote
 from datetime import datetime
+from typing import Any, Dict, List, Optional, Tuple
 
-from deprecated import deprecated
+from deprecated import deprecated  # type: ignore[import-untyped]
+from django.db.models import QuerySet
 
 from console.enum.app import GovernanceModeEnum, AppType
+from console.enum.component_enum import is_kubeblocks
 from console.exception.bcode import ErrUserNotFound, ErrApplicationNotFound, ErrK8sAppExists
+from console.models.main import RegionConfig
 from console.exception.main import AbortRequest, ServiceHandleException
 from console.repositories.app import service_repo, service_source_repo
 from console.repositories.app_config import (domain_repo, env_var_repo, port_repo, tcp_domain, dep_relation_repo,
@@ -35,18 +39,19 @@ from console.services.topological_services import topological_service
 from console.utils.shortcuts import get_object_or_404
 from django.db import transaction
 from www.apiclient.regionapi import RegionInvokeApi
-from www.models.main import RegionApp, ServiceGroup, ServiceGroupRelation
+from www.models.main import (RegionApp, ServiceGroup, ServiceGroupRelation, TenantServiceInfo, Tenants, Users)
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
 
 
 class GroupService(object):
-    def get_tenant_groups_by_region(self, tenant, region_name):
+    def get_tenant_groups_by_region(self, tenant: Tenants, region_name: str) -> Any:
         return group_repo.list_tenant_group_on_region(tenant, region_name)
 
     @staticmethod
-    def check_app_name(tenant, region_name, group_name, app: ServiceGroup = None, k8s_app=""):
+    def check_app_name(tenant: Tenants, region_name: str, group_name: str,
+                       app: Optional[ServiceGroup] = None, k8s_app: str = "") -> None:
         if not group_name:
             raise ServiceHandleException(msg="app name required", msg_show="应用名不能为空")
         if len(group_name) > 128:
@@ -56,7 +61,8 @@ class GroupService(object):
             raise ServiceHandleException(msg="app_name illegal", msg_show="应用名称只支持中英文, 数字, 下划线, 中划线和点")
         exist_app = group_repo.get_group_by_unique_key(tenant.tenant_id, region_name, group_name)
         app_id = app.app_id if app else 0
-        if group_repo.is_k8s_app_duplicate(tenant.tenant_id, region_name, k8s_app, app_id):
+        # NOTE: app_id may be int 0 when app is None; repo signature expects str.
+        if group_repo.is_k8s_app_duplicate(tenant.tenant_id, region_name, k8s_app, app_id):  # type: ignore[arg-type]
             raise ErrK8sAppExists
         if not exist_app:
             return
@@ -65,18 +71,18 @@ class GroupService(object):
 
     @transaction.atomic
     def create_app(self,
-                   tenant,
-                   region_name,
-                   app_name,
-                   note="",
-                   username="",
-                   app_store_name="",
-                   app_store_url="",
-                   app_template_name="",
-                   version="",
-                   eid="",
-                   logo="",
-                   k8s_app=""):
+                   tenant: Tenants,
+                   region_name: str,
+                   app_name: str,
+                   note: str = "",
+                   username: str = "",
+                   app_store_name: str = "",
+                   app_store_url: str = "",
+                   app_template_name: str = "",
+                   version: str = "",
+                   eid: str = "",
+                   logo: str = "",
+                   k8s_app: str = "") -> dict:
         self.check_app_name(tenant, region_name, app_name, k8s_app=k8s_app)
         # check parameter for helm app
         app_type = AppType.rainbond.name
@@ -127,15 +133,17 @@ class GroupService(object):
         )
         return res
 
-    def json_app(self, app_name, k8s_app, logo, note):
+    def json_app(self, app_name: str, k8s_app: str, logo: str, note: str) -> str:
         return json.dumps({"应用名称": app_name, "应用英文名称": k8s_app, "Logo": logo, "应用备注": note}, ensure_ascii=False)
 
-    def create_default_app(self, tenant, region_name):
-        app = group_repo.get_or_create_default_group(tenant.tenant_id, region_name)
+    def create_default_app(self, tenant: Tenants, region_name: str) -> dict:
+        # NOTE: get_or_create_default_group expects a Tenants object but tenant_id
+        # (str) is passed; potential latent bug.
+        app = group_repo.get_or_create_default_group(tenant.tenant_id, region_name)  # type: ignore[arg-type]
         self.create_region_app(tenant, region_name, app)
         return app.to_dict()
 
-    def create_region_app(self, tenant, region_name, app, eid=""):
+    def create_region_app(self, tenant: Tenants, region_name: str, app: ServiceGroup, eid: str = "") -> None:
         region_app = region_api.create_application(
             region_name, tenant.tenant_name, {
                 "eid": eid,
@@ -160,7 +168,7 @@ class GroupService(object):
         app.save()
 
     @staticmethod
-    def _parse_overrides(overrides):
+    def _parse_overrides(overrides: Any) -> List[str]:
         new_overrides = []
         for key in overrides:
             val = overrides[key]
@@ -173,17 +181,17 @@ class GroupService(object):
 
     @transaction.atomic
     def update_group(self,
-                     tenant,
-                     region_name,
-                     app_id,
-                     app_name,
-                     note="",
-                     username=None,
-                     overrides="",
-                     version="",
-                     revision=0,
-                     logo="",
-                     k8s_app=""):
+                     tenant: Tenants,
+                     region_name: str,
+                     app_id: str,
+                     app_name: str,
+                     note: str = "",
+                     username: Optional[str] = None,
+                     overrides: Any = "",
+                     version: str = "",
+                     revision: int = 0,
+                     logo: str = "",
+                     k8s_app: str = "") -> None:
         # check app id
         if not app_id or not str.isdigit(app_id) or int(app_id) < 0:
             raise ServiceHandleException(msg="app id illegal", msg_show="应用ID不合法")
@@ -223,7 +231,7 @@ class GroupService(object):
         data["k8s_app"] = bean["k8s_app"]
         group_repo.update(app_id, **data)
 
-    def delete_group(self, group_id, default_group_id):
+    def delete_group(self, group_id: str, default_group_id: str) -> Tuple[int, str, Any]:
         if not group_id or not str.isdigit(group_id) or int(group_id) < 0:
             return 400, "需要删除的应用不合法", None
         backups = backup_record_repo.get_record_by_group_id(group_id)
@@ -236,68 +244,77 @@ class GroupService(object):
         return 200, "删除成功", group_id
 
     @staticmethod
-    def add_component_to_app(tenant, region_name, app_id, component_id):
+    def add_component_to_app(tenant: Tenants, region_name: str, app_id: str, component_id: str) -> None:
         if not app_id:
             return
-        app_id = int(app_id)
-        if app_id > 0:
-            group = group_repo.get_group_by_pk(tenant.tenant_id, region_name, app_id)
+        app_id_int = int(app_id)
+        if app_id_int > 0:
+            group = group_repo.get_group_by_pk(tenant.tenant_id, region_name, app_id_int)  # type: ignore[arg-type]
             if not group:
                 raise ErrApplicationNotFound
-            group_service_relation_repo.add_service_group_relation(app_id, component_id, tenant.tenant_id, region_name)
+            group_service_relation_repo.add_service_group_relation(
+                app_id_int, component_id, tenant.tenant_id, region_name)  # type: ignore[arg-type]
 
     @deprecated("You should use 'add_component_to_app'")
-    def add_service_to_group(self, tenant, region_name, group_id, service_id):
+    def add_service_to_group(self, tenant: Tenants, region_name: str, group_id: str,
+                             service_id: str) -> Tuple[int, str]:
         if group_id:
-            group_id = int(group_id)
-            if group_id > 0:
-                group = group_repo.get_group_by_pk(tenant.tenant_id, region_name, group_id)
+            group_id_int = int(group_id)
+            if group_id_int > 0:
+                group = group_repo.get_group_by_pk(tenant.tenant_id, region_name, group_id_int)  # type: ignore[arg-type]
                 if not group:
                     return 404, "应用不存在"
-                group_service_relation_repo.add_service_group_relation(group_id, service_id, tenant.tenant_id, region_name)
+                group_service_relation_repo.add_service_group_relation(
+                    group_id_int, service_id, tenant.tenant_id, region_name)  # type: ignore[arg-type]
         return 200, "success"
 
-    def sync_app_services(self, tenant, region_name, app_id):
+    def sync_app_services(self, tenant: Tenants, region_name: str, app_id: str) -> str:
         group_services = base_service.get_group_services_list(tenant.tenant_id, region_name, app_id)
         service_ids = []
         if group_services:
             for service in group_services:
                 service_ids.append(service["service_id"])
 
+        # NOTE: get_group_by_id may return None; app accessed unguarded below;
+        # potential latent None-bug.
         app = group_repo.get_group_by_id(app_id)
         try:
             region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
             body = {"service_ids": service_ids}
             region_api.batch_update_service_app_id(region_name, tenant.tenant_name, region_app_id, body)
         except RegionApp.DoesNotExist:
-            create_body = {"app_name": app.group_name, "service_ids": service_ids}
-            if app.k8s_app:
-                create_body["k8s_app"] = app.k8s_app
-            bean = region_api.create_application(region_name, tenant, create_body)
+            create_body = {"app_name": app.group_name, "service_ids": service_ids}  # type: ignore[union-attr]
+            if app.k8s_app:  # type: ignore[union-attr]
+                create_body["k8s_app"] = app.k8s_app  # type: ignore[union-attr]
+            # NOTE: create_application expects tenant_name (str) but tenant object is
+            # passed here; potential latent bug.
+            bean = region_api.create_application(region_name, tenant, create_body)  # type: ignore[arg-type]
             region_app_id = bean["app_id"]
             req = {"region_name": region_name, "region_app_id": region_app_id, "app_id": app_id}
             region_app_repo.create(**req)
-            app.k8s_app = bean["k8s_app"]
-            app.save()
-        if not app.k8s_app:
+            app.k8s_app = bean["k8s_app"]  # type: ignore[union-attr]
+            app.save()  # type: ignore[union-attr]
+        if not app.k8s_app:  # type: ignore[union-attr]
             status = region_api.get_app_status(region_name, tenant.tenant_name, region_app_id)
-            app.k8s_app = status["k8s_app"] if status.get("k8s_app") else ""
-            app.save()
+            app.k8s_app = status["k8s_app"] if status and status.get("k8s_app") else ""  # type: ignore[union-attr]
+            app.save()  # type: ignore[union-attr]
         return region_app_id
 
-    def get_app_detail(self, tenant, region, app_id):
+    def get_app_detail(self, tenant: Tenants, region: RegionConfig, app_id: str) -> dict:
         # app metadata
         region_name = region.region_name
         app = group_repo.get_group_by_pk(tenant.tenant_id, region_name, app_id)
 
         region_app_id = self.sync_app_services(tenant, region_name, app_id)
 
-        res = app.to_dict()
+        # NOTE: get_group_by_pk may return None; app accessed unguarded below;
+        # potential latent None-bug.
+        res = app.to_dict()  # type: ignore[union-attr]
         res['region_app_id'] = region_app_id
         res['namespace'] = tenant.namespace
-        res['app_id'] = app.ID
-        res['app_name'] = app.group_name
-        res['app_type'] = app.app_type
+        res['app_id'] = app.ID  # type: ignore[union-attr]
+        res['app_name'] = app.group_name  # type: ignore[union-attr]
+        res['app_type'] = app.app_type  # type: ignore[union-attr]
         res['service_num'] = group_service_relation_repo.count_service_by_app_id(app_id)
         res['share_num'] = share_repo.count_by_app_id(app_id)
         res['resources_num'] = k8s_resources_repo.list_by_app_id(app_id).count()
@@ -306,23 +323,25 @@ class GroupService(object):
         if body and body["list"]:
             res['ingress_num'] = len(body["list"])
         res['config_group_num'] = app_config_group_service.count_by_app_id(region_name, app_id)
-        res['logo'] = app.logo
-        res['k8s_app'] = app.k8s_app
+        res['logo'] = app.logo  # type: ignore[union-attr]
+        res['k8s_app'] = app.k8s_app  # type: ignore[union-attr]
         res['can_edit'] = True
         components = group_service_relation_repo.get_services_by_group(app_id)
         services = service_repo.get_services_by_service_ids([component.service_id for component in components])
         res['app_arch'] = {service.arch: "1" for service in services if service.arch}.keys()
         running_components = region_api.get_dynamic_services_pods(region_name, tenant.tenant_name,
                                                                   [component.service_id for component in components])
-        if running_components.get("list") and len(running_components["list"]) > 0:
+        # NOTE: get_dynamic_services_pods may return None; accessed unguarded;
+        # potential latent None-bug.
+        if running_components.get("list") and len(running_components["list"]) > 0:  # type: ignore[union-attr, index]
             res['can_edit'] = False
 
         try:
-            principal = user_repo.get_user_by_username(app.username)
+            principal = user_repo.get_user_by_username(app.username)  # type: ignore[union-attr, arg-type]
             res['principal'] = principal.get_name()
             res['email'] = principal.email
         except ErrUserNotFound:
-            res['principal'] = app.username
+            res['principal'] = app.username  # type: ignore[union-attr]
 
         res["create_status"] = "complete"
         res["compose_id"] = None
@@ -334,25 +353,25 @@ class GroupService(object):
 
         return res
 
-    def get_service_volume_by_ids(self, service_ids):
+    def get_service_volume_by_ids(self, service_ids: Any) -> dict:
         """
         获取组件持久化目录
         """
         volume_list = share_repo.get_volume_list_by_service_ids(service_ids=service_ids)
         if volume_list:
-            service_volume_map = {}
+            service_volume_map: Dict[Any, List[Any]] = {}
             for volume in volume_list:
                 service_id = volume.service_id
-                tmp_list = []
+                tmp_list: List[Any] = []
                 if service_id in list(service_volume_map.keys()):
-                    tmp_list = service_volume_map.get(service_id)
+                    tmp_list = service_volume_map.get(service_id)  # type: ignore[assignment]
                 tmp_list.append(volume)
                 service_volume_map[service_id] = tmp_list
             return service_volume_map
         else:
             return {}
 
-    def is_service_related_by_other_app_service(self, tenant, service):
+    def is_service_related_by_other_app_service(self, tenant: Tenants, service: TenantServiceInfo) -> bool:
         tsrs = dep_relation_repo.get_dependency_by_dep_id(tenant.tenant_id, service.service_id)
         if tsrs:
             sids = list(set([tsr.service_id for tsr in tsrs]))
@@ -366,22 +385,27 @@ class GroupService(object):
             return True
         return False
 
-    def service_status(self, tenant, service):
+    def service_status(self, tenant: Tenants, service: TenantServiceInfo) -> Any:
         status = ""
         try:
             if service.create_status != "complete":
                 return False
-            status_info = region_api.check_service_status(service.service_region, tenant.tenant_name, service.service_alias,
-                                                          tenant.enterprise_id)
-            status = status_info["bean"]["cur_status"]
+            # NOTE: service_region and enterprise_id are nullable fields;
+            # check_service_status expects str.
+            status_info = region_api.check_service_status(
+                service.service_region, tenant.tenant_name, service.service_alias,
+                tenant.enterprise_id)  # type: ignore[arg-type]
+            # NOTE: check_service_status may return None; accessed unguarded;
+            # potential latent None-bug.
+            status = status_info["bean"]["cur_status"]  # type: ignore[index]
         except region_api.CallApiError as e:
             if int(e.status) == 404:
                 return False
         return status
 
-    def get_app_resource(self, tenant_id, region_name, app_id):
+    def get_app_resource(self, tenant_id: str, region_name: str, app_id: str) -> dict:
         # app all service info
-        res = {}
+        res: Dict[str, Any] = {}
         services_info = []
         tenant = team_repo.get_team_by_team_id(tenant_id)
         service_ids = group_service_relation_repo.list_serivce_ids_by_app_id(tenant_id, region_name, app_id)
@@ -421,7 +445,7 @@ class GroupService(object):
         } for share_record in share_records]
         return res
 
-    def batch_delete_app_services(self, user, tenant_id, region_name, app_id):
+    def batch_delete_app_services(self, user: Users, tenant_id: str, region_name: str, app_id: str) -> Any:
         service_ids = group_service_relation_repo.list_serivce_ids_by_app_id(tenant_id, region_name, app_id)
         services = service_repo.get_services_by_service_ids(service_ids)
         tenant = team_repo.get_team_by_team_id(tenant_id)
@@ -446,7 +470,7 @@ class GroupService(object):
             app_manage_service.batch_delete(user, tenant, service, is_force=True, is_del_app=True)
         return services
 
-    def delete_app_share_records(self, team_name, app_id):
+    def delete_app_share_records(self, team_name: str, app_id: str) -> None:
         share_records = share_repo.get_app_share_records_by_groupid(team_name, app_id)
         if share_records:
             for share_record in share_records:
@@ -454,15 +478,16 @@ class GroupService(object):
                 share_record.save()
         return
 
-    def get_group_by_id(self, tenant, region, group_id):
-        principal_info = dict()
+    def get_group_by_id(self, tenant: Tenants, region: str, group_id: str) -> dict:
+        principal_info: Dict[str, Any] = dict()
         principal_info["email"] = ""
         principal_info["is_delete"] = False
         group = group_repo.get_group_by_pk(tenant.tenant_id, region, group_id)
         if not group:
             raise ServiceHandleException(status_code=404, msg="app not found", msg_show="目标应用不存在")
         try:
-            user = user_repo.get_user_by_username(group.username)
+            # NOTE: group.username is a nullable field; get_user_by_username expects str.
+            user = user_repo.get_user_by_username(group.username)  # type: ignore[arg-type]
             principal_info["real_name"] = user.get_name()
             principal_info["username"] = user.nick_name
             principal_info["email"] = user.email
@@ -472,10 +497,10 @@ class GroupService(object):
             principal_info["username"] = group.username
         return {"group_id": group.ID, "group_name": group.group_name, "group_note": group.note, "principal": principal_info}
 
-    def get_app_by_id(self, tenant, region, app_id):
+    def get_app_by_id(self, tenant: Tenants, region: str, app_id: str) -> Optional[ServiceGroup]:
         return group_repo.get_group_by_pk(tenant.tenant_id, region, app_id)
 
-    def get_group_or_404(self, tenant, response_region, group_id):
+    def get_group_or_404(self, tenant: Tenants, response_region: str, group_id: str) -> ServiceGroup:
         """
         :param tenant:
         :param response_region:
@@ -490,16 +515,17 @@ class GroupService(object):
             region_name=response_region,
             pk=group_id)
 
-    def get_service_group_info(self, service_id):
+    def get_service_group_info(self, service_id: str) -> Optional[ServiceGroup]:
         return group_service_relation_repo.get_group_info_by_service_id(service_id)
 
-    def get_services_group_name(self, service_ids):
+    def get_services_group_name(self, service_ids: Any) -> Any:
         return group_service_relation_repo.get_group_by_service_ids(service_ids)
 
-    def delete_service_group_relation_by_service_id(self, service_id):
+    def delete_service_group_relation_by_service_id(self, service_id: str) -> None:
         group_service_relation_repo.delete_relation_by_service_id(service_id)
 
-    def update_or_create_service_group_relation(self, tenant, service, group_id):
+    def update_or_create_service_group_relation(self, tenant: Tenants, service: TenantServiceInfo,
+                                                group_id: str) -> None:
         gsr = group_service_relation_repo.get_group_by_service_id(service.service_id)
         if gsr:
             gsr.group_id = group_id
@@ -513,14 +539,14 @@ class GroupService(object):
             }
             group_service_relation_repo.create_service_group_relation(**params)
 
-    def get_groups_and_services(self, tenant, region, query="", app_type=""):
+    def get_groups_and_services(self, tenant: Tenants, region: str, query: str = "", app_type: str = "") -> list:
         groups = group_repo.get_tenant_region_groups(tenant.tenant_id, region, query, app_type)
         services = service_repo.get_tenant_region_services(region, tenant.tenant_id).values(
             "service_id", "service_cname", "service_alias")
         service_id_map = {s["service_id"]: s for s in services}
         service_group_relations = group_service_relation_repo.get_service_group_relation_by_groups([g.ID for g in groups])
         service_group_map = {sgr.service_id: sgr.group_id for sgr in service_group_relations}
-        group_services_map = dict()
+        group_services_map: Dict[Any, list] = dict()
         for k, v in list(service_group_map.items()):
             service_list = group_services_map.get(v, None)
             service_info = service_id_map.get(k, None)
@@ -531,9 +557,9 @@ class GroupService(object):
                     service_list.append(service_info)
                 service_id_map.pop(k)
 
-        result = []
+        result: List[Any] = []
         for g in groups:
-            bean = dict()
+            bean: Dict[str, Any] = dict()
             bean["group_id"] = g.ID
             bean["group_name"] = g.group_name
             bean["service_list"] = group_services_map.get(g.ID)
@@ -541,14 +567,15 @@ class GroupService(object):
 
         return result
 
-    def get_group_services(self, group_id):
+    def get_group_services(self, group_id: str) -> Any:
         """查询某一应用下的组件"""
         gsr = group_service_relation_repo.get_services_by_group(group_id)
         service_ids = [gs.service_id for gs in gsr]
         services = service_repo.get_services_by_service_ids(service_ids)
         return services
 
-    def get_multi_apps_all_info(self, sort, groups, app_ids, region, tenant_name, enterprise_id, tenant):
+    def get_multi_apps_all_info(self, sort: Any, groups: Any, app_ids: Any, region: str, tenant_name: str,
+                                enterprise_id: str, tenant: Tenants) -> list:
         app_list = groups.filter(ID__in=app_ids)
         service_list = service_repo.get_services_in_multi_apps_with_app_info(app_ids)
         # memory info
@@ -563,9 +590,9 @@ class GroupService(object):
         app_id_statuses = self._add_component_status_to_apps(
             app_list, service_list, service_status, app_id_statuses
         )
-        apps = dict()
+        apps: Dict[Any, Dict[str, Any]] = dict()
         volumes = volume_repo.get_services_volumes(service_ids)
-        service_volume = dict()
+        service_volume: Dict[Any, int] = dict()
         for volume in volumes:
             if volume.volume_type != "config-file":
                 volume.volume_capacity = 10 if volume.volume_capacity == 0 else volume.volume_capacity
@@ -599,7 +626,8 @@ class GroupService(object):
 
         re_app_list = []
         for a in app_list:
-            app = apps.get(a.ID)
+            # a.ID was inserted into apps above; index access is equivalent to .get here.
+            app = apps[a.ID]
             app["services_num"] = len(app["service_list"])
             if not app.get("run_service_num"):
                 app["run_service_num"] = 0
@@ -624,7 +652,8 @@ class GroupService(object):
         return re_app_list
 
     @staticmethod
-    def _add_component_status_to_apps(apps, service_list, service_status, app_id_statuses):
+    def _add_component_status_to_apps(apps: Any, service_list: Any, service_status: Any,
+                                      app_id_statuses: Any) -> dict:
         """将普通 rainbond 应用的组件状态聚合进应用状态"""
         from collections import defaultdict
         if app_id_statuses is None:
@@ -642,7 +671,6 @@ class GroupService(object):
             if not app or app.app_type == AppType.helm.name:
                 continue
 
-            services = app_components.get(app_id)
             if not services:
                 continue
 
@@ -657,7 +685,7 @@ class GroupService(object):
         return app_id_statuses
 
     @staticmethod
-    def get_region_app_statuses(tenant_name, region_name, app_ids):
+    def get_region_app_statuses(tenant_name: str, region_name: str, app_ids: Any) -> dict:
         # Obtain the application ID of the cluster and
         # record the corresponding relationship of the console application ID
         region_apps = region_app_repo.list_by_region_and_app_ids(region_name, app_ids)
@@ -669,7 +697,8 @@ class GroupService(object):
         # Get the status of cluster application
         try:
             resp = region_api.list_app_statuses_by_app_ids(tenant_name, region_name, {"app_ids": region_app_ids})
-            app_statuses = resp.get("list", [])
+            # NOTE: list_app_statuses_by_app_ids may return None; guarded by except below.
+            app_statuses = resp.get("list", [])  # type: ignore[union-attr]
         except Exception:
             app_statuses = list()
         if not app_statuses:
@@ -692,7 +721,7 @@ class GroupService(object):
         return app_id_status_rels
 
     @staticmethod
-    def list_components_by_upgrade_group_id(group_id, upgrade_group_id):
+    def list_components_by_upgrade_group_id(group_id: str, upgrade_group_id: str) -> Any:
         gsr = group_service_relation_repo.get_services_by_group(group_id)
         service_ids = gsr.values_list('service_id', flat=True)
         components = service_repo.list_by_ids(service_ids)
@@ -700,7 +729,7 @@ class GroupService(object):
             return components
         return components.filter(tenant_service_group_id=upgrade_group_id)
 
-    def get_rainbond_services(self, group_id, group_key, upgrade_group_id=None):
+    def get_rainbond_services(self, group_id: str, group_key: str, upgrade_group_id: Optional[str] = None) -> Any:
         """获取云市应用下的所有组件"""
         gsr = group_service_relation_repo.get_services_by_group(group_id)
         service_ids = gsr.values_list('service_id', flat=True)
@@ -709,28 +738,28 @@ class GroupService(object):
             return components.filter(tenant_service_group_id=upgrade_group_id)
         return components
 
-    def get_group_service_sources(self, group_id):
+    def get_group_service_sources(self, group_id: str) -> Any:
         """查询某一应用下的组件源信息"""
         gsr = group_service_relation_repo.get_services_by_group(group_id)
         service_ids = gsr.values_list('service_id', flat=True)
         return service_source_repo.get_service_sources_by_service_ids(service_ids)
 
     # get component resource list, component will in app and belong to group_ids
-    def get_component_and_resource_by_group_ids(self, app_id, group_ids):
+    def get_component_and_resource_by_group_ids(self, app_id: str, group_ids: Any) -> Tuple[Any, Any]:
         gsr = group_service_relation_repo.get_services_by_group(app_id)
         components = service_repo.get_services_by_service_group_ids(gsr.values_list('service_id', flat=True), group_ids)
         service_ids = components.values_list('service_id', flat=True)
         return components, service_source_repo.get_service_sources_by_service_ids(service_ids)
 
-    def get_group_service_source(self, service_id):
+    def get_group_service_source(self, service_id: str) -> Any:
         """ get only one service source"""
         return service_source_repo.get_service_sources_by_service_ids([service_id])
 
-    def get_service_source_by_group_key(self, group_key):
+    def get_service_source_by_group_key(self, group_key: str) -> Any:
         """ get service source by group key"""
         return service_source_repo.get_service_sources_by_group_key(group_key)
 
-    def delete_app_with_resources(self, user, tenant, region_name, app):
+    def delete_app_with_resources(self, user: Users, tenant: Tenants, region_name: str, app: ServiceGroup) -> Any:
         """Delete an application along with all of its resources:
         components, kubeblocks clusters, k8s resources, config groups and share records.
         Returns the deleted components for callers that need them (e.g. operation log).
@@ -748,7 +777,7 @@ class GroupService(object):
         # delete k8s resource
         k8s_resources = k8s_resource_service.list_by_app_id(str(app_id))
         resource_ids = [k8s_resource.ID for k8s_resource in k8s_resources]
-        k8s_resource_service.batch_delete_k8s_resource(user.enterprise_id, tenant.tenant_name, str(app_id), region_name,
+        k8s_resource_service.batch_delete_k8s_resource(user.enterprise_id, tenant.tenant_name, str(app_id), region_name,  # type: ignore[arg-type]  # NOTE: region_name Optional (latent)
                                                        resource_ids)
         # delete configs
         app_config_group_service.batch_delete_config_group(region_name, tenant.tenant_name, app_id)
@@ -759,13 +788,14 @@ class GroupService(object):
         return services
 
     @transaction.atomic
-    def delete_app(self, tenant, region_name, app):
+    def delete_app(self, tenant: Tenants, region_name: str, app: ServiceGroup) -> None:
         if app.app_type == AppType.helm.name:
             self._delete_helm_app(tenant, region_name, app)
             return
         self._delete_rainbond_app(tenant, region_name, app)
 
-    def _delete_helm_app(self, tenant, region_name, app, user=None):
+    def _delete_helm_app(self, tenant: Tenants, region_name: str, app: ServiceGroup,
+                         user: Optional[Users] = None) -> None:
         """
         For helm application,  can be delete directly, regardless of whether there are components
         """
@@ -777,11 +807,11 @@ class GroupService(object):
         app_manage_service.delete_components(tenant, components, user)
         self._delete_app(tenant.tenant_name, region_name, app.app_id)
 
-    def _delete_rainbond_app(self, tenant, region_name, app):
+    def _delete_rainbond_app(self, tenant: Tenants, region_name: str, app: ServiceGroup) -> None:
         self._delete_app(tenant.tenant_name, region_name, app.app_id)
 
     @staticmethod
-    def _delete_app(tenant_name, region_name, app_id):
+    def _delete_app(tenant_name: str, region_name: str, app_id: str) -> None:
         from console.services.app_version_service import app_version_service
 
         app_version_service.delete_hidden_template(app_id)
@@ -798,7 +828,7 @@ class GroupService(object):
                 keys.append(record.restore_id)
         region_api.delete_app(region_name, tenant_name, region_app_id, {"etcd_keys": keys})
 
-    def get_service_group_memory(self, app_template):
+    def get_service_group_memory(self, app_template: dict) -> int:
         """获取一应用组件内存"""
         try:
             apps = app_template["apps"]
@@ -806,9 +836,9 @@ class GroupService(object):
             for app in apps:
                 extend_method_map = app.get("extend_method_map", None)
                 if extend_method_map and extend_method_map["init_memory"]:
-                    total_memory += extend_method_map["min_node"] * extend_method_map["init_memory"]
+                    total_memory += extend_method_map.get("min_node", 1) * extend_method_map["init_memory"]
                 elif extend_method_map and extend_method_map["min_memory"]:
-                    total_memory += extend_method_map["min_node"] * extend_method_map["min_memory"]
+                    total_memory += extend_method_map.get("min_node", 1) * extend_method_map["min_memory"]
                 else:
                     total_memory += 128
             return total_memory
@@ -816,42 +846,46 @@ class GroupService(object):
             logger.debug("==============================>{0}".format(e))
             return 0
 
-    def get_apps_list(self, team_id=None, region_name=None, query=None):
+    def get_apps_list(self, team_id: Optional[str] = None, region_name: Optional[str] = None,
+                      query: Optional[str] = None) -> Any:
         return group_repo.get_apps_list(team_id, region_name, query)
 
     # get apps by service ids
     # return app id and service id maps
-    def get_app_id_by_service_ids(self, service_ids):
+    def get_app_id_by_service_ids(self, service_ids: Any) -> dict:
         sgr = ServiceGroupRelation.objects.filter(service_id__in=service_ids)
         return {s.service_id: s.group_id for s in sgr}
 
-    def count_ingress_by_app_id(self, tenant_id, region_name, app_id):
+    def count_ingress_by_app_id(self, tenant_id: str, region_name: str, app_id: str) -> int:
         # list service_ids
         service_ids = group_service_relation_repo.list_serivce_ids_by_app_id(tenant_id, region_name, app_id)
         if not service_ids:
             return 0
 
         region = region_repo.get_by_region_name(region_name)
+        if not region:
+            return 0
 
         # count ingress
         return domain_repo.count_by_service_ids(region.region_id, service_ids) + tcp_domain.count_by_service_ids(
             region.region_id, service_ids)
 
-    def set_app_update_time_by_service(self, service):
+    def set_app_update_time_by_service(self, service: TenantServiceInfo) -> None:
         sg = self.get_service_group_info(service.service_id)
         if sg and sg.ID:
-            group_repo.update_group_time(sg.ID)
+            group_repo.update_group_time(sg.ID)  # type: ignore[arg-type]  # NOTE: ID is int; repo expects str
 
     @transaction.atomic
-    def update_governance_mode(self, tenant, region_name, app_id, governance_mode, action=None):
+    def update_governance_mode(self, tenant: Tenants, region_name: str, app_id: str, governance_mode: str,
+                               action: Optional[str] = None) -> Any:
         # update the value of host env. eg. MYSQL_HOST
         component_ids = group_service_relation_repo.list_serivce_ids_by_app_id(tenant.tenant_id, region_name, app_id)
 
-        components = service_repo.list_by_ids(component_ids)
-        components = {cpt.component_id: cpt for cpt in components}
+        component_qs = service_repo.list_by_ids(component_ids)
+        components = {cpt.component_id: cpt for cpt in component_qs}
 
-        ports = port_repo.list_inner_ports_by_service_ids(tenant.tenant_id, component_ids)
-        ports = {port.service_id + str(port.container_port): port for port in ports}
+        port_qs = port_repo.list_inner_ports_by_service_ids(tenant.tenant_id, component_ids)
+        ports = {port.service_id + str(port.container_port): port for port in port_qs}
 
         envs = env_var_repo.list_envs_by_component_ids(tenant.tenant_id, component_ids)
         for env in envs:
@@ -888,7 +922,7 @@ class GroupService(object):
             return governance_cr
 
     @staticmethod
-    def sync_envs(tenant_name, region_name, region_app_id, components, envs):
+    def sync_envs(tenant_name: str, region_name: str, region_app_id: str, components: Any, envs: Any) -> None:
         # make sure attr_value is string.
         for env in envs:
             if type(env.attr_value) != str:
@@ -921,7 +955,7 @@ class GroupService(object):
         region_api.sync_components(tenant_name, region_name, region_app_id, body)
 
     @staticmethod
-    def list_kubernetes_services(tenant_id, region_name, app_id):
+    def list_kubernetes_services(tenant_id: str, region_name: str, app_id: str) -> list:
         # list service_ids
         service_ids = group_service_relation_repo.list_serivce_ids_by_app_id(tenant_id, region_name, app_id)
         if not service_ids:
@@ -949,7 +983,8 @@ class GroupService(object):
         return k8s_services
 
     @transaction.atomic()
-    def update_kubernetes_services(self, tenant, region_name, app, k8s_services):
+    def update_kubernetes_services(self, tenant: Tenants, region_name: str, app: ServiceGroup,
+                                   k8s_services: Any) -> None:
         from console.services.app_config import port_service
         port_service.check_k8s_service_names(tenant.tenant_id, k8s_services)
 
@@ -964,9 +999,12 @@ class GroupService(object):
         port_service.update_by_k8s_services(tenant, region_name, app, k8s_services)
 
     @staticmethod
-    def get_app_status(tenant, region_name, app_id):
+    def get_app_status(tenant: Tenants, region_name: str, app_id: str) -> Dict[str, Any]:
         region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
-        status = region_api.get_app_status(region_name, tenant.tenant_name, region_app_id)
+        region_status = region_api.get_app_status(region_name, tenant.tenant_name, region_app_id)
+        # Copy the region AppStatus payload into a plain dict before reshaping it for the
+        # response (status NIL -> None, overrides "k=v" -> [{k: v}]); guards a null payload.
+        status: Dict[str, Any] = dict(region_status) if region_status else {}
         if status.get("status") == "NIL":
             status["status"] = None
         overrides = status.get("overrides", [])
@@ -976,7 +1014,7 @@ class GroupService(object):
         return status
 
     @staticmethod
-    def _add_component_status_to_app(tenant, region_name, app_id, original_status):
+    def _add_component_status_to_app(tenant: Tenants, region_name: str, app_id: str, original_status: Any) -> Any:
         """为普通 rainbond 应用补充组件聚合状态"""
         try:
             app = group_repo.get_group_by_id(app_id)
@@ -992,8 +1030,9 @@ class GroupService(object):
             if not service_list:
                 return original_status
 
+            # NOTE: enterprise_id is a nullable field; status_multi_service expects str.
             status_list = base_service.status_multi_service(
-                region_name, tenant.tenant_name, service_ids, tenant.enterprise_id
+                region_name, tenant.tenant_name, service_ids, tenant.enterprise_id  # type: ignore[arg-type]
             )
             if not status_list:
                 return original_status
@@ -1013,12 +1052,12 @@ class GroupService(object):
             return original_status
 
     @staticmethod
-    def get_detect_process(tenant, region_name, app_id):
+    def get_detect_process(tenant: Tenants, region_name: str, app_id: str) -> Any:
         region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
         process = region_api.get_app_detect_process(region_name, tenant.tenant_name, region_app_id)
         return process
 
-    def install_app(self, tenant, region_name, app_id, overrides):
+    def install_app(self, tenant: Tenants, region_name: str, app_id: str, overrides: Any) -> None:
         if overrides:
             overrides = self._parse_overrides(overrides)
 
@@ -1028,33 +1067,43 @@ class GroupService(object):
         })
 
     @staticmethod
-    def get_pod(tenant, region_name, pod_name):
+    def get_pod(tenant: Tenants, region_name: str, pod_name: str) -> Any:
         return region_api.get_pod(region_name, tenant.tenant_name, pod_name)
 
     @staticmethod
-    def list_components(app_id):
+    def list_components(app_id: str) -> Any:
         service_groups = group_service_relation_repo.list_service_groups(app_id)
         return service_repo.list_by_ids([sg.service_id for sg in service_groups])
 
-    def check_governance_mode(self, tenant, region_name, app_id, governance_mode):
+    def check_governance_mode(self, tenant: Tenants, region_name: str, app_id: str, governance_mode: str) -> None:
         region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
         return region_api.check_app_governance_mode(region_name, tenant.tenant_name, region_app_id, governance_mode)
 
-    def get_file_and_dir(self, region_name, tenant_name, service_alias, path, pod_name, container_name, namespace):
+    def get_file_and_dir(self, region_name: str, tenant_name: str, service_alias: str, path: str, pod_name: str,
+                         container_name: str, namespace: str) -> Any:
         body = region_api.get_files(region_name, tenant_name, service_alias, quote(path), pod_name, container_name,
                                     namespace)
-        return body["list"]
+        # NOTE: get_files may return None; accessed unguarded; potential latent None-bug.
+        return body["list"]  # type: ignore[index]
 
-    def get_watch_managed_data(self, tenant, region_name, app_id):
+    def get_watch_managed_data(self, tenant: Tenants, region_name: str, app_id: str) -> dict:
         from console.services.app import app_service
         # 如果 app_id 为空，返回空数据
         if not app_id:
             return {"service": [], "config_map": [], "secret": []}
         region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
         watch_managed_data = base_service.get_watch_managed(region_name, tenant.tenant_name, region_app_id)
+        kubeblocks_service_names = {
+            getattr(component, "k8s_component_name", "")
+            for component in self.list_components(app_id)
+            if is_kubeblocks(getattr(component, "extend_method", ""))
+            or getattr(component, "service_source", "") == "kubeblocks"
+        }
         services = list()
         if watch_managed_data:
             for service in watch_managed_data.get("services", []):
+                if service.get("name") in kubeblocks_service_names:
+                    continue
                 if app_service.is_k8s_component_name_duplicate(app_id, service.get("name") + "-svc"):
                     continue
                 if service.get("ip") != "None":

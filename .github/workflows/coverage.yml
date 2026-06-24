@@ -1,0 +1,91 @@
+name: coverage
+
+# Advisory diff-coverage report, moved OFF the PR critical path. Collecting
+# coverage runs the whole suite with per-file subprocess instrumentation, which
+# is intrinsically slow (~20min) and parallelizes poorly, so running it on every
+# PR just made checks sit "in progress" for 20min for a signal that never blocked
+# merges. Instead it runs after code lands on main (and on demand), comparing the
+# merged commit against its parent.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  coverage-gate:
+    runs-on: ubuntu-latest
+    container: python:3.11-bookworm
+    # Advisory: never blocks. Flip by removing continue-on-error once the team
+    # has settled into the 80% standard.
+    continue-on-error: true
+    env:
+      PIP_SRC: /tmp/pip-src
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Compare against the commit the push moved from (github.event.before).
+      # Falls back to HEAD^ for workflow_dispatch / first push / unreachable SHA.
+      - name: Resolve comparison base
+        id: base
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          base="${{ github.event.before }}"
+          if [ -z "$base" ] || [ "$base" = "0000000000000000000000000000000000000000" ] || ! git cat-file -e "${base}^{commit}" 2>/dev/null; then
+            base="$(git rev-parse HEAD^)"
+          fi
+          echo "ref=$base" >> "$GITHUB_OUTPUT"
+          if git diff --name-only "$base" HEAD | grep -qE '\.py$'; then
+            echo "py_changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "py_changed=false" >> "$GITHUB_OUTPUT"
+            echo "No Python files changed since $base; skipping coverage gate."
+          fi
+
+      - name: Cache pip
+        if: steps.base.outputs.py_changed == 'true'
+        uses: actions/cache@v4
+        with:
+          path: /root/.cache/pip
+          key: pip-${{ runner.os }}-py311-${{ hashFiles('requirements.txt', 'requirements-typing.txt') }}
+          restore-keys: |
+            pip-${{ runner.os }}-py311-
+
+      - name: Install native dependencies
+        if: steps.base.outputs.py_changed == 'true'
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends gcc git make default-libmysqlclient-dev sqlite3 curl
+
+      - name: Install Python dependencies
+        if: steps.base.outputs.py_changed == 'true'
+        run: |
+          mkdir -p "$PIP_SRC"
+          python -m pip install --upgrade pip 'setuptools<70'
+          pip install -r requirements.txt
+          pip install diff-cover
+
+      - name: Install openapi-client
+        if: steps.base.outputs.py_changed == 'true'
+        run: |
+          curl -fsSL https://gitee.com/zhangsetsail/appstore-sdk-python/repository/archive/python3.tar.gz -o /tmp/openapi-client.tar.gz
+          mkdir -p /tmp/openapi-client
+          tar xzf /tmp/openapi-client.tar.gz -C /tmp/openapi-client --strip-components=1
+          pip install /tmp/openapi-client
+          rm -rf /tmp/openapi-client /tmp/openapi-client.tar.gz
+
+      - name: Run tests with coverage
+        if: steps.base.outputs.py_changed == 'true'
+        run: |
+          coverage erase || true
+          python scripts/run_pytest.py . -- -q --cov=console --cov=www --cov=openapi --cov-append --cov-report= \
+            || echo "::warning::some tests failed; diff coverage may be partial"
+          coverage xml -o coverage.xml
+
+      - name: Diff coverage gate (new/changed code >= 80%)
+        if: steps.base.outputs.py_changed == 'true'
+        run: |
+          diff-cover coverage.xml --compare-branch="${{ steps.base.outputs.ref }}" --fail-under=80
