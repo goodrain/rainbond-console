@@ -1,7 +1,7 @@
 # -*- coding: utf8 -*-
 import json
 import logging
-from typing import Any
+from typing import Any, Dict, Optional, Set
 
 from django.db.models import Q
 from django.http import HttpResponse
@@ -31,24 +31,24 @@ GATEWAY_MONITORING_APP_TOP_ACTIONS = set([
 UNKNOWN_ID_VALUES = set(["", "unknown", "unknown_app", "unknown_team", "unknown_component"])
 
 
-def _backend_plugin_path(plugin_name, file_path, query_string):
+def _backend_plugin_path(plugin_name: str, file_path: str, query_string: str) -> str:
     path = "/v2/platform/backend/plugins/" + plugin_name + "/" + file_path
     if query_string:
         path = path + "?" + query_string
     return path
 
 
-def _normalize_text(value):
+def _normalize_text(value: Any) -> str:
     if value is None:
         return ""
     return str(value).strip()
 
 
-def _is_unknown_value(value):
+def _is_unknown_value(value: Any) -> bool:
     return _normalize_text(value) in UNKNOWN_ID_VALUES
 
 
-def _to_int(value):
+def _to_int(value: Any) -> Optional[int]:
     value = _normalize_text(value)
     if not value:
         return None
@@ -58,7 +58,7 @@ def _to_int(value):
         return None
 
 
-def _is_gateway_monitoring_app_top_path(plugin_name, file_path):
+def _is_gateway_monitoring_app_top_path(plugin_name: str, file_path: str) -> bool:
     if plugin_name != GATEWAY_MONITORING_PLUGIN:
         return False
     normalized = (file_path or "").strip("/")
@@ -75,14 +75,14 @@ def _is_gateway_monitoring_app_top_path(plugin_name, file_path):
     )
 
 
-def _enrich_gateway_monitoring_app_items(payload, region_name):
+def _enrich_gateway_monitoring_app_items(payload: Any, region_name: str) -> Any:
     data = payload.get("data") if isinstance(payload, dict) else None
     if not isinstance(data, list) or not data:
         return payload
 
-    region_app_ids = set()
-    namespace_values = set()
-    app_ids = set()
+    region_app_ids: Set[str] = set()
+    namespace_values: Set[str] = set()
+    app_ids: Set[int] = set()
     for item in data:
         if not isinstance(item, dict):
             continue
@@ -96,7 +96,7 @@ def _enrich_gateway_monitoring_app_items(payload, region_name):
         if app_id is not None:
             app_ids.add(app_id)
 
-    region_app_id_to_app_id = {}
+    region_app_id_to_app_id: Dict[str, Any] = {}
     if region_app_ids:
         region_apps = RegionApp.objects.filter(
             region_name=region_name,
@@ -107,22 +107,22 @@ def _enrich_gateway_monitoring_app_items(payload, region_name):
             if region_app.get("app_id") is not None:
                 app_ids.add(region_app.get("app_id"))
 
-    service_groups_by_id = {}
-    tenant_ids = set()
+    service_groups_by_id: Dict[Any, Any] = {}
+    tenant_ids: Set[str] = set()
     if app_ids:
         service_groups = ServiceGroup.objects.filter(
             ID__in=list(app_ids),
             region_name=region_name,
         ).values("ID", "tenant_id", "group_name", "region_name")
-        for service_group in service_groups:
-            app_id = service_group.get("ID")
-            tenant_id = _normalize_text(service_group.get("tenant_id"))
-            service_groups_by_id[app_id] = service_group
+        for service_group_row in service_groups:
+            app_id = service_group_row.get("ID")
+            tenant_id = _normalize_text(service_group_row.get("tenant_id"))
+            service_groups_by_id[app_id] = service_group_row
             if tenant_id:
                 tenant_ids.add(tenant_id)
 
-    tenants_by_namespace = {}
-    tenants_by_id = {}
+    tenants_by_namespace: Dict[str, Any] = {}
+    tenants_by_id: Dict[str, Any] = {}
     tenant_filter = Q()
     if namespace_values:
         tenant_filter |= Q(namespace__in=list(namespace_values))
@@ -135,13 +135,13 @@ def _enrich_gateway_monitoring_app_items(payload, region_name):
             "tenant_alias",
             "namespace",
         )
-        for tenant in tenants:
-            namespace = _normalize_text(tenant.get("namespace"))
-            tenant_id = _normalize_text(tenant.get("tenant_id"))
+        for tenant_row in tenants:
+            namespace = _normalize_text(tenant_row.get("namespace"))
+            tenant_id = _normalize_text(tenant_row.get("tenant_id"))
             if namespace:
-                tenants_by_namespace[namespace] = tenant
+                tenants_by_namespace[namespace] = tenant_row
             if tenant_id:
-                tenants_by_id[tenant_id] = tenant
+                tenants_by_id[tenant_id] = tenant_row
 
     for item in data:
         if not isinstance(item, dict):
@@ -153,7 +153,7 @@ def _enrich_gateway_monitoring_app_items(payload, region_name):
         app_id = mapped_app_id if mapped_app_id is not None else current_app_id
         service_group = service_groups_by_id.get(app_id)
 
-        tenant = None
+        tenant: Any = None
         if service_group:
             group_name = _normalize_text(service_group.get("group_name"))
             tenant_id = _normalize_text(service_group.get("tenant_id"))
@@ -189,7 +189,7 @@ def _enrich_gateway_monitoring_app_items(payload, region_name):
     return payload
 
 
-def _clone_response_headers(source, target):
+def _clone_response_headers(source: HttpResponse, target: HttpResponse) -> HttpResponse:
     excluded_headers = set(["content-length", "content-encoding", "transfer-encoding"])
     for key, value in source.items():
         if key.lower() in excluded_headers:
