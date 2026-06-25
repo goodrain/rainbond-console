@@ -157,4 +157,13 @@
 
 > **M0 验收结论:达成。** Dify 核心子集在 Rainbond 真正可用——建号、登录、配模型、跑代码节点全通,9 组件 running、nginx 单入口、依赖成形、api/worker 共享持久存储。层3 仅差一个 Embedding 模型,属用户侧配置,不阻塞 M0 结论。
 
+### 19. M3 预验:share→快照→app_template(趁 dify-poc running)
+
+- `create_app_share_record`(scope="")→ share_id 702 → `get_app_share_info` 拿到 runtime 草稿。
+- **依赖完整 capture ✅**(因为建了依赖边):api/worker→5依赖、nginx→api·web、web→api、plugin-daemon→db·redis;**worker `mnt_relation` 共享存储、nginx `config-file` 全文**都进模版。→ 坐实"依赖边不建则模版残缺"。
+- **本地发布受阻 + 新 MCP 缺口**:`submit_app_share_info` 要 `app_version_info.app_model_id`,但**无"建本地 app_model"的 MCP 工具**(Web 端发布页现建)→ 程序化本地市场发布走不通。与 compose 上传缺口同类,记入 action-space。
+- **改走快照路线(MCP 完整)**:`create_app_version_snapshot` 成功 → version_id 492、app_model_id `c56344e369f94b1f05cd99b0468ac198`、arch amd64。这是"部署快照法"的 app_template 工件;`create_app_from_snapshot_version` 可回装验证(未做,避免再起一套 ~6GB)。
+- **模版质量隐患(M3 必解)**:模版把 `SECRET_KEY`、`DB_PASSWORD`、inner API Key、WEAVIATE_API_KEY 等**明文冻结**进 env。真正上架必须**密钥参数化**(安装时生成/填写),否则全网用户共享同一套密钥=安全事故。→ M3 设计新增"敏感 env 参数化"环节。
+- **入口 URL 写死隐患**:nginx/web/api 的 `CONSOLE_API_URL` 等含本次网关域名 `gre6dee1-80-tynwrm27.dev.goodrain.com`,模版到别的环境会失效 → M3 需把对外 URL 改为安装时回填(留空走相对路径,靠 nginx 单入口同源)。
+
 > **M0 总结(终)**:排障 loop 共 **5 类阻滞**:配置缺失(FM-01)、跨 origin 路由(FM-04)、依赖未建(15A)、登录协议(FM-03)、存储非持久致密钥对丢失(FM-05)。3 类靠日志/平台知识定位,2 类(FM-03/05)需 Dify 框架知识。决策树补强规则:①逐组件必显式建依赖边;②登录类协议查源码、别用明文 curl 误判;③Dify 模版必须持久化 `/app/api/storage` 且 api/worker 共享、保证可写。三个 M1 闭环工具痛感排序:get_app_health_overview > wait_for_build_completion > get_config_file_content。**整条"导入→排障→跑通"耗时主要在策展(理解 Dify 结构 + 接线),验证了'内核是排障调优而非格式转译'的核心假设。**
