@@ -9564,6 +9564,57 @@
       "status": "active"
     },
     {
+      "id": "console.mcp.env-conflicts",
+      "title": "MCP analyze_env_conflicts tool",
+      "title_zh": "MCP 环境变量多源冲突检测工具",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[console.mcp.env-conflicts]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_env_conflicts_test.py"
+        }
+      ],
+      "test_type": "unit",
+      "status": "active"
+    },
+    {
+      "id": "console.mcp.app-health-overview",
+      "title": "MCP get_app_health_overview tool",
+      "title_zh": "MCP 应用健康总览工具",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[console.mcp.app-health-overview]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_health_overview_test.py"
+        }
+      ],
+      "test_type": "unit",
+      "status": "active"
+    },
+    {
+      "id": "console.mcp.wait-for-build-completion",
+      "title": "MCP wait_for_build_completion tool",
+      "title_zh": "MCP 构建/部署就绪等待工具",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[console.mcp.wait-for-build-completion]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_wait_build_test.py"
+        }
+      ],
+      "test_type": "unit",
+      "status": "active"
+    },
+    {
       "id": "console.mcp.operation-failure-context",
       "title": "MCP get_operation_failure_context tool",
       "title_zh": "MCP 操作失败上下文工具",
