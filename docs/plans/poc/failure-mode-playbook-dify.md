@@ -31,14 +31,23 @@
 - **人工确认点**:URL 形态(跨 origin 直连 vs 后续改回 nginx 单入口模版)。
 - **模版启示**:正式模版应保留 nginx 单入口(config-file 挂载 `nginx.conf`),比跨 origin 直连更干净、单 URL。
 
-### FM-03: 登录 "Invalid encrypted data"(存储权限 / 密钥对;未结)
-- **症状**:`POST /console/api/login` 401 `Invalid encrypted data`;错/对密码同错,早于密码校验。
-- **根因假设**:① 砍 `init_permissions`(chown 存储)→ api uid 1001 对 `/app/api/storage`(opendal 本地)不可写(佐证启动日志 `Permission denied: '/home/dify'`)→ setup 期租户 RSA 密钥对存坏 → 登录解密失败;**或** ② curl 发明文,而前端对密码做加密(服务端期待密文)。
-- **RuntimeState**:存储权限缺失 / 客户端协议差异。
-- **已试修法**:给 api 挂可写 `share-file` 卷于 `/app/api/storage` + 重部署 → curl 登录仍失败(现有租户密钥对已坏,需重置才能重生成)。
-- **待验证**:浏览器 UI 登录(若前端加密则可能直接成功);或清账号+writable storage 重跑 setup。
-- **是否需文档**:是,需懂 Dify 存储/密钥对与 init_permissions 职责。
-- **模版启示**:Dify 模版必须保证 `/app/api/storage` 可写且 api/worker **共享**该卷;`init_permissions`(或等价 chown/fsGroup)是必备前置。
+### FM-03: 登录 "Invalid encrypted data" → 真根因=前端加密密码(已解,需外部知识)
+- **症状**:`POST /console/api/login`(curl 明文)401 `Invalid encrypted data`;错/对密码同错;**经 nginx 同源后仍同错** → 排除跨 origin/CORS。
+- **真根因(WebSearch 命中)**:Dify 登录端点带 `@decrypt_password_field`,**前端 `encryptPassword` 把密码加密后再发,后端拒绝明文** → curl 发明文必然报此错。源码:`api/controllers/console/auth/login.py`、`wraps.py`。
+- **结论**:**curl 永远复现不了登录**(发明文);**浏览器前端会加密 → 登录正常**。早先"砍 init_permissions/存储权限"是误判(`/home/dify` 警告虚惊,不影响登录)。
+- **关键纠偏**:这是本轮**唯一一个"纯日志/平台知识定位不了、必须查外部文档/源码"的阻滞** → 印证 M1"文档/源码获取"环节对**协议级**问题有不可替代价值(虽对配置类问题非必需)。
+- **RuntimeState**:客户端协议契约(前端加密)。
+- **是否需文档**:**是,且不可省** —— 决策树无此知识会误判为存储/SECRET_KEY 问题并做无用的破坏性修复(差点清库重 setup)。
+- **模版启示**:验证脚本测登录必须复刻前端加密逻辑(取 pubkey + encrypt),或直接走 UI/E2E,不能用明文 curl 判定登录失败。
+
+### FM-04: web UI "This page couldn't load"(跨 origin 路由 → nginx 单入口解)
+- **症状**:直接访问 web 外网地址 `/apps` 浏览器报 "This page couldn't load";web 容器日志干净(Next.js ready 无报错)→ 纯 client 端。
+- **根因**:砍 nginx 后 web 与 api 不同 origin,client 端 `CONSOLE_API_URL` 注入/跨 origin 取数失败。
+- **修法(Dify 本来设计)**:加 **nginx 单入口**组件(`nginx:1.27-alpine` + **config-file 挂载** `/etc/nginx/conf.d/default.conf` 路由 `/console/api|/api|/v1|/files|/mcp|/e`→api、`/`→web)+ 对外端口 80 + 依赖 nginx→api,web;web/api 的 `CONSOLE_API_URL`/`CONSOLE_WEB_URL` 全指 nginx 外网地址(同源)。
+- **验证**:经 nginx `/signin`/`/install` 200 真页面、`/console/api/*` 200、根路径 →`/apps`、`_next` 静态资源正常。
+- **是否需文档**:部分(需懂 Dify nginx 反代职责)。
+- **模版启示**:**正式模版必用 nginx 单入口**(单 URL、同源、前端加密登录才工作);跨 origin 直连是死路。config-file 挂载是 Dify 模版的必备能力 → 印证 M1 `get_config_file_content` 工具价值。
+- **正确入口 URL**:`http://gre6dee1-80-tynwrm27.dev.goodrain.com`(nginx),**不是** web 直连的 3000 地址。
 
 ## 预判坑对照(执行后复盘)
 

@@ -121,3 +121,20 @@
   2. 若浏览器也失败:清账号(exec db-postgres 删 accounts/tenants)+ 保持可写存储 → 重跑 `/console/api/setup` 让密钥对重新生成 → 再登录。
 - **layers 3–4(知识库索引/代码节点)**:需配置 LLM provider API Key,属用户在 UI 内完成,M0 不代办。
 - **api/worker 共享存储**:目前仅 api 挂了卷;Dify 文件存储需 api+worker 共享同一卷,层3验证前需补 worker 挂载同卷。
+
+### 15. 用户反馈驱动的两处修正(2026-06-25)
+
+**(A) 拓扑无依赖边**:用户指出拓扑图 8 组件全绿但**无连线**(只 api/web 连网关)。根因:我全靠"k8s 原生 DNS + 手填 env"接线,**没建 Rainbond 依赖边** → 运行时连通但拓扑不反映关系,**且 share 成模版时依赖结构 capture 不到**(依赖是模版核心价值)。
+- 修法:`manage_component_dependency add` 建边:api/worker→db-postgres·redis·weaviate·sandbox·plugin-daemon;plugin-daemon→db-postgres·redis;web→api;nginx→api·web。
+- **重要 M0 纪律**:逐组件建模时**必须显式建依赖边**,不能只靠 DNS 连通 —— 否则模版残缺。写入 playbook/M1 skill 硬规则。
+
+**(B) web UI 打不开 + 登录**:见 FM-03 / FM-04。加 nginx 单入口(config-file 挂载路由)修好 web UI;登录 "Invalid encrypted data" 经 WebSearch 定位为**前端加密密码**(curl 明文必败,浏览器正常)。
+
+### 16. 最终拓扑(11 组件,8 核心 + nginx;全 running + 依赖成形)
+
+- 入口:**nginx** 单入口 `http://gre6dee1-80-tynwrm27.dev.goodrain.com`(对外)。
+- nginx → api(`/console/api|/api|/v1|/files|/mcp|/e`)、web(`/`)。
+- web → api;api/worker → db-postgres·redis·weaviate·sandbox·plugin-daemon;plugin-daemon → db-postgres·redis。
+- **四层冒烟**:层1(建号)✅;登录/层2–4 待用户浏览器在 nginx 入口验证(层3–4 需 LLM Key)。
+
+> **M0 总结(更新)**:核心子集跑通(含 nginx 共 9 组件 running,依赖成形),排障 loop 共 4 类阻滞:配置缺失(FM-01)、跨 origin 路由(FM-04)、依赖未建(15A)、登录协议(FM-03)。前三类纯日志/平台知识可定位;**FM-03 必须查外部源码知识**,是本轮唯一"非文档不可"的阻滞。决策树对配置/连接类够用,但需补两条硬规则:①逐组件建模必须显式建依赖边;②登录类协议问题要查源码、且别用明文 curl 误判。
