@@ -146,4 +146,15 @@
 - 修法:`rainbond_exec` 进 api pod 跑 `flask reset-encrypt-key-pair`(uid=1001 可写,成功重生成密钥对入持久卷)+ 给 worker `create_mnt` 挂 api 同卷 + 重部署 worker。
 - 验证:待用户 UI 重配 API Key。
 
-> **M0 总结(更新2)**:核心子集跑通(含 nginx 共 9 组件,依赖成形,api/worker 共享持久存储),排障 loop 共 **5 类阻滞**:配置缺失(FM-01)、跨 origin 路由(FM-04)、依赖未建(15A)、登录协议(FM-03)、**存储非持久致密钥对丢失(FM-05)**。日志/平台知识可定位 3 类;**FM-03(登录加密)、FM-05(reset-encrypt-key-pair)需 Dify 框架/运维知识**。决策树补强规则:①逐组件必显式建依赖边;②登录类协议查源码、别用明文 curl 误判;③**Dify 模版必须持久化 `/app/api/storage` 且 api/worker 共享、保证可写**,否则 setup 后凭据全瘫。
+### 18. 四层冒烟结果(M0 验收)
+
+| 层 | 内容 | 结果 | 证据 |
+|----|------|------|------|
+| 1 | /install 建号 | ✅ | `POST /console/api/setup` 201 |
+| 2 | 登录 + 控制台 + 模型供应商配置 | ✅ | 浏览器经 nginx 登录成功;配 API Key 保存成功(reset-encrypt-key-pair 后凭据加解密通) |
+| 4 | 代码节点跑 sandbox | ✅ | `POST .../workflows/draft/run` 200;sandbox `POST /v1/sandbox/run` 200,代码节点 UI 测试成功(用户侧配置后) |
+| 3 | 知识库索引 | ⏳ 未做 | 需配 Embedding 模型(MiMo 仅 LLM)或用经济模式;非阻塞,留作可选 |
+
+> **M0 验收结论:达成。** Dify 核心子集在 Rainbond 真正可用——建号、登录、配模型、跑代码节点全通,9 组件 running、nginx 单入口、依赖成形、api/worker 共享持久存储。层3 仅差一个 Embedding 模型,属用户侧配置,不阻塞 M0 结论。
+
+> **M0 总结(终)**:排障 loop 共 **5 类阻滞**:配置缺失(FM-01)、跨 origin 路由(FM-04)、依赖未建(15A)、登录协议(FM-03)、存储非持久致密钥对丢失(FM-05)。3 类靠日志/平台知识定位,2 类(FM-03/05)需 Dify 框架知识。决策树补强规则:①逐组件必显式建依赖边;②登录类协议查源码、别用明文 curl 误判;③Dify 模版必须持久化 `/app/api/storage` 且 api/worker 共享、保证可写。三个 M1 闭环工具痛感排序:get_app_health_overview > wait_for_build_completion > get_config_file_content。**整条"导入→排障→跑通"耗时主要在策展(理解 Dify 结构 + 接线),验证了'内核是排障调优而非格式转译'的核心假设。**
