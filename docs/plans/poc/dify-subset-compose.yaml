@@ -1,0 +1,195 @@
+# Dify 核心子集 compose —— M0 PoC 策展产物
+# 来源:langgenius/dify main docker/docker-compose.yaml (1.14.2) + .env.example 默认值内联
+#
+# 策展改动(对照原始 compose):
+#  1. 服务名去下划线 → 连字符(K8s service 名约束):
+#       db_postgres → db-postgres, plugin_daemon → plugin-daemon
+#     并把所有引用这些 host 的 env 重指向(预判坑#1,已在配置层消解)。
+#  2. 删除 profiles(原始 db_postgres/weaviate 等被 profile 默认禁用)。
+#  3. env_file 外置配置 → 内联具体值(原始连接配置全在 ./envs/**/*.env,compose 里没有)。
+#  4. 初版砍掉 nginx(改用 Rainbond 网关暴露 web:3000 / api:5001)和 ssrf_proxy
+#     (sandbox 暂不走代理)。→ 留给排障 loop 回补,验证 config-file 挂载 gap。
+#  5. 删除 worker_beat / api_websocket / certbot / init_permissions / 20+ 备选向量库。
+#  6. 凭证用 Dify .env.example 公开默认值(非生产密钥);SECRET_KEY 新生成。
+#
+# 待 loop 验证的预判风险:
+#  - plugin-daemon 用独立库 dify_plugin,但 db-postgres 只建了 dify 库 → 预判坑#2,预计会炸。
+#  - 无 nginx 时 web→api 的同源路由(CONSOLE_API_URL 等为空走相对路径)需重新接。
+#  - sandbox 无 ssrf_proxy 时代码节点联网行为待观察(预判坑#3)。
+
+version: "3"
+
+services:
+  db-postgres:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: difyai123456
+      POSTGRES_DB: dify
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - ./volumes/db/data:/var/lib/postgresql/data
+    ports:
+      - "5432"
+
+  redis:
+    image: redis:6-alpine
+    restart: always
+    command: redis-server --requirepass difyai123456
+    volumes:
+      - ./volumes/redis/data:/data
+    ports:
+      - "6379"
+
+  weaviate:
+    image: semitechnologies/weaviate:1.27.0
+    restart: always
+    environment:
+      PERSISTENCE_DATA_PATH: /var/lib/weaviate
+      QUERY_DEFAULTS_LIMIT: "25"
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: "false"
+      DEFAULT_VECTORIZER_MODULE: none
+      CLUSTER_HOSTNAME: node1
+      AUTHENTICATION_APIKEY_ENABLED: "true"
+      AUTHENTICATION_APIKEY_ALLOWED_KEYS: WVF5YThaHlkYwhGUSmCRgsX3tD5ngdN8pkih
+      AUTHENTICATION_APIKEY_USERS: hello@dify.ai
+      AUTHORIZATION_ADMINLIST_ENABLED: "true"
+      AUTHORIZATION_ADMINLIST_USERS: hello@dify.ai
+    volumes:
+      - ./volumes/weaviate:/var/lib/weaviate
+    ports:
+      - "8080"
+
+  sandbox:
+    image: langgenius/dify-sandbox:0.2.15
+    restart: always
+    environment:
+      API_KEY: dify-sandbox
+      GIN_MODE: release
+      WORKER_TIMEOUT: "15"
+      ENABLE_NETWORK: "true"
+      SANDBOX_PORT: "8194"
+    volumes:
+      - ./volumes/sandbox/dependencies:/dependencies
+      - ./volumes/sandbox/conf:/conf
+    ports:
+      - "8194"
+
+  plugin-daemon:
+    image: langgenius/dify-plugin-daemon:0.6.1-local
+    restart: always
+    environment:
+      DB_HOST: db-postgres
+      DB_PORT: "5432"
+      DB_USERNAME: postgres
+      DB_PASSWORD: difyai123456
+      DB_DATABASE: dify_plugin
+      DB_SSL_MODE: disable
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      REDIS_PASSWORD: difyai123456
+      SERVER_PORT: "5002"
+      SERVER_KEY: lYkiYYT6owG+71oLerGzA7GXCgOT++6ovaezWAjpCjf+Sjc3ZtU+qUEi
+      DIFY_INNER_API_URL: http://api:5001
+      DIFY_INNER_API_KEY: QaHbTe77CtuXmsfyhR7+vRjI/+XbV1AaFy691iy+kGDv2Jvy0/eAh8Y1
+      PLUGIN_WORKING_PATH: /app/storage/cwd
+      FORCE_VERIFYING_SIGNATURE: "true"
+      PLUGIN_STORAGE_TYPE: local
+      PLUGIN_STORAGE_LOCAL_ROOT: /app/storage
+      PLUGIN_INSTALLED_PATH: plugin
+      PLUGIN_PACKAGE_CACHE_PATH: plugin_packages
+      PLUGIN_MEDIA_CACHE_PATH: assets
+      MAX_PLUGIN_PACKAGE_SIZE: "52428800"
+    volumes:
+      - ./volumes/plugin_daemon:/app/storage
+    ports:
+      - "5002"
+
+  api:
+    image: langgenius/dify-api:1.14.2
+    restart: always
+    environment:
+      MODE: api
+      LOG_LEVEL: INFO
+      DEBUG: "false"
+      DEPLOY_ENV: PRODUCTION
+      SECRET_KEY: sk-jhGabJ6v6O/IVTvFxkZ/3Zb3jgSKeCgl0XYw9pdnYdrPfIb1KF1rYqWB
+      MIGRATION_ENABLED: "true"
+      CONSOLE_API_URL: ""
+      CONSOLE_WEB_URL: ""
+      SERVICE_API_URL: ""
+      APP_API_URL: ""
+      APP_WEB_URL: ""
+      FILES_URL: ""
+      DB_USERNAME: postgres
+      DB_PASSWORD: difyai123456
+      DB_HOST: db-postgres
+      DB_PORT: "5432"
+      DB_DATABASE: dify
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      REDIS_USERNAME: ""
+      REDIS_PASSWORD: difyai123456
+      REDIS_DB: "0"
+      CELERY_BROKER_URL: redis://:difyai123456@redis:6379/1
+      BROKER_USE_SSL: "false"
+      STORAGE_TYPE: opendal
+      VECTOR_STORE: weaviate
+      WEAVIATE_ENDPOINT: http://weaviate:8080
+      WEAVIATE_API_KEY: WVF5YThaHlkYwhGUSmCRgsX3tD5ngdN8pkih
+      CODE_EXECUTION_ENDPOINT: http://sandbox:8194
+      CODE_EXECUTION_API_KEY: dify-sandbox
+      PLUGIN_DAEMON_URL: http://plugin-daemon:5002
+      PLUGIN_DAEMON_KEY: lYkiYYT6owG+71oLerGzA7GXCgOT++6ovaezWAjpCjf+Sjc3ZtU+qUEi
+      INNER_API_KEY_FOR_PLUGIN: QaHbTe77CtuXmsfyhR7+vRjI/+XbV1AaFy691iy+kGDv2Jvy0/eAh8Y1
+      PLUGIN_DIFY_INNER_API_URL: http://api:5001
+      PLUGIN_DIFY_INNER_API_KEY: QaHbTe77CtuXmsfyhR7+vRjI/+XbV1AaFy691iy+kGDv2Jvy0/eAh8Y1
+      MARKETPLACE_API_URL: https://marketplace.dify.ai
+      MARKETPLACE_URL: https://marketplace.dify.ai
+    volumes:
+      - ./volumes/app/storage:/app/api/storage
+    ports:
+      - "5001"
+
+  worker:
+    image: langgenius/dify-api:1.14.2
+    restart: always
+    environment:
+      MODE: worker
+      LOG_LEVEL: INFO
+      SECRET_KEY: sk-jhGabJ6v6O/IVTvFxkZ/3Zb3jgSKeCgl0XYw9pdnYdrPfIb1KF1rYqWB
+      DB_USERNAME: postgres
+      DB_PASSWORD: difyai123456
+      DB_HOST: db-postgres
+      DB_PORT: "5432"
+      DB_DATABASE: dify
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      REDIS_PASSWORD: difyai123456
+      REDIS_DB: "0"
+      CELERY_BROKER_URL: redis://:difyai123456@redis:6379/1
+      STORAGE_TYPE: opendal
+      VECTOR_STORE: weaviate
+      WEAVIATE_ENDPOINT: http://weaviate:8080
+      WEAVIATE_API_KEY: WVF5YThaHlkYwhGUSmCRgsX3tD5ngdN8pkih
+      CODE_EXECUTION_ENDPOINT: http://sandbox:8194
+      CODE_EXECUTION_API_KEY: dify-sandbox
+      PLUGIN_DAEMON_URL: http://plugin-daemon:5002
+      PLUGIN_DAEMON_KEY: lYkiYYT6owG+71oLerGzA7GXCgOT++6ovaezWAjpCjf+Sjc3ZtU+qUEi
+      INNER_API_KEY_FOR_PLUGIN: QaHbTe77CtuXmsfyhR7+vRjI/+XbV1AaFy691iy+kGDv2Jvy0/eAh8Y1
+    volumes:
+      - ./volumes/app/storage:/app/api/storage
+
+  web:
+    image: langgenius/dify-web:1.14.2
+    restart: always
+    environment:
+      CONSOLE_API_URL: ""
+      APP_API_URL: ""
+      SERVER_CONSOLE_API_URL: http://api:5001
+      MARKETPLACE_API_URL: https://marketplace.dify.ai
+      MARKETPLACE_URL: https://marketplace.dify.ai
+      NEXT_TELEMETRY_DISABLED: "1"
+    ports:
+      - "3000"
