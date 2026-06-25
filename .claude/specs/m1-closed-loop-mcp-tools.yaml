@@ -1,0 +1,955 @@
+meta:
+  name: "M1 自动排障 loop 内核 — 3 个闭环信号 MCP 工具"
+  version: "1.0"
+  repo: "/Users/yangk/code/rainbond-console"
+  branch: "feat/app-to-template"
+  design_doc: "docs/plans/2026-06-25-opensource-app-to-template-design.md"
+  created_at: "2026-06-25"
+  notes: |
+    按 M0 实测痛感排序逐个 TDD（health > build > env-conflict）。
+    全部实现在 console/services/mcp_query_service.py，复用现有 region API 客户端与既有 helper。
+    每个工具按既有模式接入：实现方法 + call_tool 分发 + _tool_xxx schema + list_tools 注册 + test-manifest.json 能力登记。
+    brainstorming 已确认的范围裁剪：get_config_file_content 已被现有 rainbond_get_config_file 覆盖，本次不重复实现。
+  decisions:
+    - "get_app_health_overview：全组件状态走一次批量 status_multi_service；仅对 status != running 的组件再抓 pod warnings + classify_failure（成本随故障数而非总数增长）。"
+    - "wait_for_build_completion：有界阻塞轮询，poll_interval=5s，default timeout=60s，硬上限 120s（超限 clamp）。终态(success/failure/timeout)立即返回；达上限仍未终态返回 status=running + event_id 供续等。失败时复用 _read_failure_event_log_tail(已脱敏) + classify_failure 出 error_summary。"
+    - "analyze_env_conflicts：基于 env_var_service.get_all_envs_incloud_depend_env 合并自身+依赖注入 env，按 attr_name 分组，多源/多值即冲突。覆盖 M0 的 <ALIAS>_PORT 412 同名碰撞类。"
+
+sprints:
+  - id: sprint-1
+    name: "M1 三闭环信号 MCP 工具"
+
+    commits:
+      - id: commit-1
+        message: "feat(mcp): add get_app_health_overview tool for one-call app health + per-component blocker"
+        tasks: [task-1.1, task-1.2]
+      - id: commit-2
+        message: "feat(mcp): add wait_for_build_completion tool with bounded blocking poll"
+        tasks: [task-2.1, task-2.2]
+      - id: commit-3
+        message: "feat(mcp): add analyze_env_conflicts tool for multi-source env collision detection"
+        tasks: [task-3.1, task-3.2]
+
+    tasks:
+      # ============================================================
+      # Tool 1 (最痛): get_app_health_overview
+      # ============================================================
+      - id: task-1.1
+        name: "TDD: get_app_health_overview 服务方法 + 测试"
+        status: pending
+        files:
+          create:
+            - path: "console/tests/mcp_query_health_overview_test.py"
+          modify:
+            - path: "console/services/mcp_query_service.py"
+              note: "新增 get_app_health_overview 方法（紧邻 get_app_detail 之后，约 568 行后）+ 一个内部 helper _build_component_blocker"
+        steps:
+          - action: "write-test"
+            description: "编写失败测试：全绿无 blocker、部分异常时仅异常组件深挖 blocker、依赖查询失败降级"
+            code: |
+              # -*- coding: utf-8 -*-
+              """Service-level tests for the get_app_health_overview MCP tool.
+
+              One batched status_multi_service call gives every component's status;
+              only non-running components are deep-dived (pod warnings + classify).
+              region_api / repos are mocked so no live region is needed.
+              """
+              import os
+              import sys
+              from types import ModuleType
+              from unittest.mock import patch
+
+              import django
+              from django.test import SimpleTestCase
+
+              sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "src", "openapi-client")))
+              sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
+
+              os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
+              django.setup()
+
+              from console.services.mcp_query_service import mcp_query_service
+
+
+              class Obj(object):
+                  def __init__(self, **kwargs):
+                      self.__dict__.update(kwargs)
+
+
+              def _team():
+                  return Obj(tenant_name="team1", tenant_id="tid-1", enterprise_id="eid-1")
+
+
+              def _app():
+                  return Obj(ID=7, region_name="rg")
+
+
+              class _Svc(object):
+                  def __init__(self, sid, cname, k8s):
+                      self.service_id = sid
+                      self.service_cname = cname
+                      self.k8s_component_name = k8s
+                      self.service_alias = "gr" + sid
+                      self.service_region = "rg"
+
+                  def to_dict(self):
+                      return {"service_id": self.service_id, "service_cname": self.service_cname,
+                              "k8s_component_name": self.k8s_component_name}
+
+
+              class HealthOverviewTests(SimpleTestCase):
+
+                  # capability_id: console.mcp.app-health-overview
+                  def test_all_running_no_blocker_no_deepdive(self):
+                      args = {"team_name": "team1", "region_name": "rg", "app_id": "7"}
+                      services = [_Svc("a", "api", "api"), _Svc("b", "db", "db-postgres")]
+                      status_list = [{"service_id": "a", "status": "running"},
+                                     {"service_id": "b", "status": "running"}]
+                      with patch.object(mcp_query_service, "_get_team_app_context",
+                                        return_value=(_team(), _app())):
+                          with patch("console.services.mcp_query_service.group_service.get_group_services",
+                                     return_value=services):
+                              with patch("console.services.mcp_query_service.base_service.status_multi_service",
+                                         return_value=status_list):
+                                  with patch.object(mcp_query_service, "_collect_pod_warnings") as deep:
+                                      result = mcp_query_service.get_app_health_overview(Obj(nick_name="t"), args)
+                      # all running => app_status running, no per-component deep-dive at all
+                      self.assertEqual(result["app_status"], "running")
+                      deep.assert_not_called()
+                      blockers = {c["service_id"]: c["critical_blocker"] for c in result["components"]}
+                      self.assertEqual(blockers, {"a": None, "b": None})
+                      self.assertEqual(result["total"], 2)
+
+                  # capability_id: console.mcp.app-health-overview
+                  def test_abnormal_component_deepdived_for_blocker(self):
+                      args = {"team_name": "team1", "region_name": "rg", "app_id": "7"}
+                      services = [_Svc("a", "api", "api"), _Svc("b", "db", "db-postgres")]
+                      status_list = [{"service_id": "a", "status": "running"},
+                                     {"service_id": "b", "status": "abnormal"}]
+                      warnings = [{"reason": "ImagePullBackOff", "message": "Back-off pulling image"}]
+                      with patch.object(mcp_query_service, "_get_team_app_context",
+                                        return_value=(_team(), _app())):
+                          with patch("console.services.mcp_query_service.group_service.get_group_services",
+                                     return_value=services):
+                              with patch("console.services.mcp_query_service.base_service.status_multi_service",
+                                         return_value=status_list):
+                                  with patch.object(mcp_query_service, "_collect_pod_warnings",
+                                                    return_value=warnings) as deep:
+                                      result = mcp_query_service.get_app_health_overview(Obj(nick_name="t"), args)
+                      # only the abnormal component is deep-dived
+                      self.assertEqual(deep.call_count, 1)
+                      self.assertEqual(result["app_status"], "part_running")
+                      blockers = {c["service_id"]: c["critical_blocker"] for c in result["components"]}
+                      self.assertIsNone(blockers["a"])
+                      self.assertEqual(blockers["b"], "image_pull_failed")
+
+                  # capability_id: console.mcp.app-health-overview
+                  def test_deepdive_failure_degrades_to_unknown(self):
+                      args = {"team_name": "team1", "region_name": "rg", "app_id": "7"}
+                      services = [_Svc("b", "db", "db-postgres")]
+                      status_list = [{"service_id": "b", "status": "abnormal"}]
+                      with patch.object(mcp_query_service, "_get_team_app_context",
+                                        return_value=(_team(), _app())):
+                          with patch("console.services.mcp_query_service.group_service.get_group_services",
+                                     return_value=services):
+                              with patch("console.services.mcp_query_service.base_service.status_multi_service",
+                                         return_value=status_list):
+                                  with patch.object(mcp_query_service, "_collect_pod_warnings",
+                                                    side_effect=Exception("region down")):
+                                      result = mcp_query_service.get_app_health_overview(Obj(nick_name="t"), args)
+                      # deep-dive failure must not break aggregation
+                      self.assertEqual(result["components"][0]["critical_blocker"], "unknown")
+
+                  # capability_id: console.mcp.app-health-overview
+                  def test_empty_app(self):
+                      args = {"team_name": "team1", "region_name": "rg", "app_id": "7"}
+                      with patch.object(mcp_query_service, "_get_team_app_context",
+                                        return_value=(_team(), _app())):
+                          with patch("console.services.mcp_query_service.group_service.get_group_services",
+                                     return_value=[]):
+                              result = mcp_query_service.get_app_health_overview(Obj(nick_name="t"), args)
+                      self.assertEqual(result["components"], [])
+                      self.assertEqual(result["total"], 0)
+                      self.assertEqual(result["app_status"], "closed")
+            run: "(see project test harness — Docker py3.6 + openapi-client; runner cmd in references)"
+            expect: "FAIL (get_app_health_overview not implemented)"
+          - action: "implement"
+            description: "实现 get_app_health_overview + _build_component_blocker，插入 get_app_detail 方法之后"
+            code: |
+              def get_app_health_overview(self, user: Any, arguments: dict) -> dict:
+                  """One call returns every component's status + a critical_blocker
+                  for the abnormal ones. Replaces N get_component_summary calls in the
+                  troubleshoot loop. Cost grows with the number of *unhealthy*
+                  components, not the total: status comes from one batched
+                  status_multi_service call; only non-running components are
+                  deep-dived (pod warnings -> classify_failure)."""
+                  team, app = self._get_team_app_context(
+                      user,
+                      self._require_string(arguments, "team_name"),
+                      self._require_string(arguments, "region_name"),
+                      self._require_int(arguments, "app_id"),
+                  )
+                  services = group_service.get_group_services(app.ID)
+                  service_ids = [s.service_id for s in services]
+                  status_list = []
+                  if service_ids:
+                      status_list = base_service.status_multi_service(
+                          region=app.region_name,
+                          tenant_name=team.tenant_name,
+                          service_ids=service_ids,
+                          enterprise_id=team.enterprise_id,
+                      )
+                  status_map = {s["service_id"]: s["status"] for s in (status_list or [])}
+
+                  components = []
+                  running_count = 0
+                  for service in services:
+                      status = status_map.get(service.service_id, "")
+                      if status == "running":
+                          running_count += 1
+                          blocker = None
+                      else:
+                          blocker = self._build_component_blocker(team, app.region_name, service)
+                      data = service.to_dict()
+                      components.append({
+                          "service_id": service.service_id,
+                          "name": data.get("k8s_component_name") or data.get("service_cname") or service.service_id,
+                          "service_cname": data.get("service_cname"),
+                          "status": status,
+                          "critical_blocker": blocker,
+                      })
+
+                  return {
+                      "team_name": team.tenant_name,
+                      "region_name": app.region_name,
+                      "app_id": app.ID,
+                      "app_status": self._get_app_status(running_count, len(services)),
+                      "components": components,
+                      "total": len(components),
+                  }
+
+              def _build_component_blocker(self, team: Any, region_name: str, service: Any) -> str:
+                  """Classify a non-running component's blocker. Best-effort: any
+                  region failure degrades to 'unknown' rather than aborting the whole
+                  overview."""
+                  try:
+                      pod_warnings = self._collect_pod_warnings(team, region_name, service)
+                      return classify_failure(pod_warnings, [])
+                  except Exception as e:
+                      logger.warning("health_overview: classify failed for %s: %s", service.service_id, e)
+                      return "unknown"
+            run: "(test harness)"
+            expect: "PASS"
+        acceptance:
+          - cmd: "run mcp_query_health_overview_test.py"
+            expect: "all tests PASS"
+        references:
+          - path: "console/services/mcp_query_service.py:549-568"
+            note: "get_app_detail — _get_team_app_context + group_service + status_multi_service 用法母版"
+          - path: "console/services/mcp_query_service.py:5008-5053"
+            note: "_get_app_services_and_status / _get_app_status — 状态聚合与 app_status 枚举(closed/part_running/running)"
+          - path: "console/services/mcp_query_service.py:1090-1117"
+            note: "_collect_pod_warnings — 抓异常 pod 的 Warning 事件(best-effort)"
+          - path: "console/services/mcp_failure_classifier.py:104-126"
+            note: "classify_failure(pod_warnings, log_tail) -> 稳定 enum；无匹配返回 'unknown'"
+          - path: "console/tests/mcp_query_failure_context_test.py:55-100"
+            note: "测试 mock 母版：patch _get_team_app_context / region_api.* / SimpleTestCase + django.setup()"
+
+      - id: task-1.2
+        name: "注册 get_app_health_overview：call_tool 分发 + schema + list_tools + manifest"
+        status: pending
+        files:
+          modify:
+            - path: "console/services/mcp_query_service.py"
+              lines: "324-326"
+              note: "call_tool 内新增 if name == 'rainbond_get_app_health_overview'"
+            - path: "console/services/mcp_query_service.py"
+              lines: "262-263"
+              note: "list_tools 列表加入 self._tool_get_app_health_overview()"
+            - path: "console/services/mcp_query_service.py"
+              note: "新增 _tool_get_app_health_overview schema 方法（紧邻 _tool_get_app_detail 之后，约 5320 行）"
+            - path: "test-manifest.json"
+              note: "新增能力条目 console.mcp.app-health-overview"
+        steps:
+          - action: "implement"
+            description: "call_tool 分发（放在 rainbond_get_app_detail 分支之后）"
+            code: |
+                      if name == "rainbond_get_app_health_overview":
+                          return self.get_app_health_overview(user, arguments)
+            run: "(test harness — registration test in 1.1 covers list+dispatch)"
+            expect: "PASS"
+          - action: "implement"
+            description: "list_tools 注册（加到 self._tool_get_app_detail() 之后）"
+            code: |
+              # 在 tools = [ ... self._tool_get_app_detail(), 之后追加：
+              self._tool_get_app_health_overview(),
+            run: "(test harness)"
+            expect: "PASS"
+          - action: "implement"
+            description: "schema 定义 _tool_get_app_health_overview（紧邻 _tool_get_app_detail）"
+            code: |
+              def _tool_get_app_health_overview(self) -> dict:
+                  return {
+                      "name": "rainbond_get_app_health_overview",
+                      "description": (
+                          "一次性返回应用下全部组件的运行状态与每个异常组件的 critical_blocker，"
+                          "用于排障 loop 的健康总览，免去逐个组件调用 get_component_summary。"
+                          "全绿组件 critical_blocker 为 null；非 running 组件会自动深挖 pod 告警并归类阻滞原因"
+                          "（如 image_pull_failed / crash_loop / config_file_configmap_missing / unknown）。"
+                      ),
+                      "inputSchema": {
+                          "type": "object",
+                          "properties": {
+                              "team_name": {"type": "string"},
+                              "region_name": {"type": "string"},
+                              "app_id": {"type": "integer", "minimum": 1},
+                          },
+                          "required": ["team_name", "region_name", "app_id"],
+                      },
+                  }
+            run: "(test harness)"
+            expect: "PASS"
+          - action: "implement"
+            description: "test-manifest.json 新增能力条目（放在 console.mcp.operation-failure-context 条目附近）"
+            code: |
+              {
+                "id": "console.mcp.app-health-overview",
+                "title": "MCP get_app_health_overview tool",
+                "title_zh": "MCP 应用健康总览工具",
+                "interface_type": "workflow",
+                "interface": "console.services.mcp_query_service.call_tool[console.mcp.app-health-overview]",
+                "code_paths": ["console/services/mcp_query_service.py"],
+                "tests": [{"path": "console/tests/mcp_query_health_overview_test.py"}],
+                "test_type": "unit",
+                "status": "active"
+              }
+            run: "python3 -c \"import json; json.load(open('test-manifest.json'))\""
+            expect: "exit 0 (valid JSON)"
+          - action: "verify"
+            description: "lint + 全量 mcp 测试"
+            run: "make check (flake8 max-line 129) + run console/tests/mcp_query_health_overview_test.py"
+            expect: "exit 0；测试 PASS"
+        acceptance:
+          - cmd: "list_tools 含 rainbond_get_app_health_overview 且 call_tool 可分发"
+            expect: "registration 测试 PASS"
+        references:
+          - path: "console/services/mcp_query_service.py:5307-5320"
+            note: "_tool_get_app_detail schema 母版"
+          - path: "console/services/mcp_query_service.py:261-317"
+            note: "list_tools 注册位置"
+          - path: "test-manifest.json:9285-9301"
+            note: "console.mcp.operation-failure-context 条目母版"
+
+      # ============================================================
+      # Tool 2: wait_for_build_completion
+      # ============================================================
+      - id: task-2.1
+        name: "TDD: wait_for_build_completion 服务方法 + 测试"
+        status: pending
+        files:
+          create:
+            - path: "console/tests/mcp_query_wait_build_test.py"
+          modify:
+            - path: "console/services/mcp_query_service.py"
+              lines: "2-7"
+              note: "顶部新增 import time"
+            - path: "console/services/mcp_query_service.py"
+              note: "新增 wait_for_build_completion 方法 + _query_operation_event + 终态常量；放在 get_operation_failure_context 区块之后（约 1020 行后）"
+        steps:
+          - action: "write-test"
+            description: "编写失败测试：首轮即终态 success 不 sleep；running→success 续轮；failure 出 error_summary+classified_reason；超上限返回 running"
+            code: |
+              # -*- coding: utf-8 -*-
+              """Service-level tests for the wait_for_build_completion MCP tool.
+
+              Bounded blocking poll: returns immediately on terminal state; on
+              failure attaches a redacted error_summary + classified_reason; when the
+              (clamped) timeout elapses without a terminal state, returns
+              status=running so the caller can resume. time.sleep is patched to a
+              no-op so tests never actually wait.
+              """
+              import os
+              import sys
+              from types import ModuleType
+              from unittest.mock import patch
+
+              import django
+              from django.test import SimpleTestCase
+
+              sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "src", "openapi-client")))
+              sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
+
+              os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
+              django.setup()
+
+              from console.services.mcp_query_service import mcp_query_service
+
+
+              class Obj(object):
+                  def __init__(self, **kwargs):
+                      self.__dict__.update(kwargs)
+
+
+              def _team():
+                  return Obj(tenant_name="team1", tenant_id="tid-1", enterprise_id="eid-1")
+
+
+              def _app():
+                  return Obj(ID=7, region_name="rg")
+
+
+              def _service():
+                  return Obj(service_id="svc-1", service_alias="gr1234", service_region="rg", tenant_id="tid-1")
+
+
+              def _resp(status):
+                  return Obj(status=status)
+
+
+              def _events_body(items):
+                  return (_resp(200), {"list": items})
+
+
+              class WaitBuildTerminalTests(SimpleTestCase):
+
+                  # capability_id: console.mcp.wait-for-build-completion
+                  def test_success_first_poll_no_sleep(self):
+                      args = {"team_name": "team1", "region_name": "rg", "app_id": "7",
+                              "service_id": "svc-1", "event_id": "ev-1"}
+                      items = [{"event_id": "ev-1", "status": "success", "final_status": "complete",
+                                "opt_type": "build"}]
+                      with patch.object(mcp_query_service, "_get_team_app_service_context",
+                                        return_value=(_team(), _app(), _service())):
+                          with patch("console.services.mcp_query_service.region_api.get_target_events_list",
+                                     return_value=_events_body(items)):
+                              with patch("console.services.mcp_query_service.time.sleep") as slept:
+                                  result = mcp_query_service.wait_for_build_completion(Obj(nick_name="t"), args)
+                      self.assertEqual(result["status"], "success")
+                      self.assertEqual(result["event_id"], "ev-1")
+                      slept.assert_not_called()
+
+                  # capability_id: console.mcp.wait-for-build-completion
+                  def test_failure_attaches_error_summary_and_reason(self):
+                      args = {"team_name": "team1", "region_name": "rg", "app_id": "7",
+                              "service_id": "svc-1", "event_id": "ev-1"}
+                      items = [{"event_id": "ev-1", "status": "failure", "final_status": "complete",
+                                "opt_type": "build", "message": "build failed"}]
+                      log = [{"message": "ImagePullBackOff: Back-off pulling image foo"}]
+                      with patch.object(mcp_query_service, "_get_team_app_service_context",
+                                        return_value=(_team(), _app(), _service())):
+                          with patch("console.services.mcp_query_service.region_api.get_target_events_list",
+                                     return_value=_events_body(items)):
+                              with patch("console.services.mcp_query_service.region_api.get_events_log",
+                                         return_value=(_resp(200), {"list": log})):
+                                  with patch("console.services.mcp_query_service.time.sleep"):
+                                      result = mcp_query_service.wait_for_build_completion(Obj(nick_name="t"), args)
+                      self.assertEqual(result["status"], "failure")
+                      self.assertEqual(result["classified_reason"], "image_pull_failed")
+                      self.assertTrue(result["error_summary"])
+
+                  # capability_id: console.mcp.wait-for-build-completion
+                  def test_running_then_success_polls_again(self):
+                      args = {"team_name": "team1", "region_name": "rg", "app_id": "7",
+                              "service_id": "svc-1", "event_id": "ev-1"}
+                      running = [{"event_id": "ev-1", "status": "", "final_status": "", "opt_type": "build"}]
+                      done = [{"event_id": "ev-1", "status": "success", "final_status": "complete", "opt_type": "build"}]
+                      with patch.object(mcp_query_service, "_get_team_app_service_context",
+                                        return_value=(_team(), _app(), _service())):
+                          with patch("console.services.mcp_query_service.region_api.get_target_events_list",
+                                     side_effect=[_events_body(running), _events_body(done)]):
+                              with patch("console.services.mcp_query_service.time.sleep") as slept:
+                                  result = mcp_query_service.wait_for_build_completion(Obj(nick_name="t"), args)
+                      self.assertEqual(result["status"], "success")
+                      slept.assert_called_once()
+
+                  # capability_id: console.mcp.wait-for-build-completion
+                  def test_timeout_returns_running_with_event_id(self):
+                      args = {"team_name": "team1", "region_name": "rg", "app_id": "7",
+                              "service_id": "svc-1", "event_id": "ev-1", "timeout": 5}
+                      running = [{"event_id": "ev-1", "status": "", "final_status": "", "opt_type": "build"}]
+                      # monotonic: start=0, then >=deadline so the loop exits after first check
+                      with patch.object(mcp_query_service, "_get_team_app_service_context",
+                                        return_value=(_team(), _app(), _service())):
+                          with patch("console.services.mcp_query_service.region_api.get_target_events_list",
+                                     return_value=_events_body(running)):
+                              with patch("console.services.mcp_query_service.time.sleep"):
+                                  with patch("console.services.mcp_query_service.time.monotonic",
+                                             side_effect=[0.0, 100.0, 100.0]):
+                                      result = mcp_query_service.wait_for_build_completion(Obj(nick_name="t"), args)
+                      self.assertEqual(result["status"], "running")
+                      self.assertEqual(result["event_id"], "ev-1")
+
+                  # capability_id: console.mcp.wait-for-build-completion
+                  def test_timeout_clamped_to_max(self):
+                      args = {"team_name": "team1", "region_name": "rg", "app_id": "7",
+                              "service_id": "svc-1", "event_id": "ev-1", "timeout": 99999}
+                      done = [{"event_id": "ev-1", "status": "success", "final_status": "complete", "opt_type": "build"}]
+                      with patch.object(mcp_query_service, "_get_team_app_service_context",
+                                        return_value=(_team(), _app(), _service())):
+                          with patch("console.services.mcp_query_service.region_api.get_target_events_list",
+                                     return_value=_events_body(done)):
+                              with patch("console.services.mcp_query_service.time.sleep"):
+                                  result = mcp_query_service.wait_for_build_completion(Obj(nick_name="t"), args)
+                      # success regardless; the assertion here is that an absurd timeout
+                      # does not blow up (clamp applied internally).
+                      self.assertEqual(result["status"], "success")
+                      self.assertLessEqual(result["timeout"], mcp_query_service.WAIT_BUILD_MAX_TIMEOUT)
+
+
+              class WaitBuildRegistrationTests(SimpleTestCase):
+                  # capability_id: console.mcp.wait-for-build-completion
+                  def test_tool_is_listed_and_dispatchable(self):
+                      user = Obj(user_id=1, enterprise_id="eid-1", nick_name="u", is_enterprise_admin=False)
+                      names = [t["name"] for t in mcp_query_service.list_tools(user)]
+                      self.assertIn("rainbond_wait_for_build_completion", names)
+            run: "(test harness)"
+            expect: "FAIL (wait_for_build_completion not implemented)"
+          - action: "implement"
+            description: "顶部 import time"
+            code: |
+              import time
+            run: "(test harness)"
+            expect: "import OK"
+          - action: "implement"
+            description: "实现 wait_for_build_completion + _query_operation_event + 常量"
+            code: |
+              # --- wait_for_build_completion ---------------------------------
+              WAIT_BUILD_POLL_INTERVAL_SECONDS = 5
+              WAIT_BUILD_DEFAULT_TIMEOUT = 60
+              WAIT_BUILD_MAX_TIMEOUT = 120
+              # Event terminal statuses: success -> "success"; failure/timeout -> "failure".
+              _WAIT_BUILD_SUCCESS_STATUSES = ("success",)
+              _WAIT_BUILD_FAILURE_STATUSES = ("failure", "timeout")
+
+              def wait_for_build_completion(self, user: Any, arguments: dict) -> dict:
+                  """Bounded blocking poll of a build/deploy operation event until it
+                  reaches a terminal state. Returns success/failure immediately on
+                  terminal; on failure attaches a redacted error_summary +
+                  classified_reason (NOT raw logs). When the clamped timeout elapses
+                  without a terminal state, returns status='running' plus event_id so
+                  the caller can resume waiting with another call. Replaces the M0
+                  for+sleep+curl self-spin while bounding worker occupancy to
+                  <= WAIT_BUILD_MAX_TIMEOUT seconds."""
+                  team, app, service = self._get_team_app_service_context(
+                      user,
+                      self._require_string(arguments, "team_name"),
+                      self._require_string(arguments, "region_name"),
+                      self._require_int(arguments, "app_id"),
+                      self._require_string(arguments, "service_id"),
+                  )
+                  event_id = self._require_string(arguments, "event_id")
+                  timeout = self._parse_int_with_default(arguments.get("timeout"), self.WAIT_BUILD_DEFAULT_TIMEOUT)
+                  if timeout <= 0:
+                      timeout = self.WAIT_BUILD_DEFAULT_TIMEOUT
+                  timeout = min(timeout, self.WAIT_BUILD_MAX_TIMEOUT)
+
+                  deadline = time.monotonic() + timeout
+                  last_status = ""
+                  while True:
+                      event = self._query_operation_event(team, app, service, event_id)
+                      last_status = (event.get("status") or "").lower() if event else ""
+                      if last_status in self._WAIT_BUILD_SUCCESS_STATUSES:
+                          return self._wait_build_result(team, app, service, event_id, "success",
+                                                         event, timeout, last_status)
+                      if last_status in self._WAIT_BUILD_FAILURE_STATUSES:
+                          return self._wait_build_result(team, app, service, event_id, "failure",
+                                                         event, timeout, last_status)
+                      if time.monotonic() >= deadline:
+                          return self._wait_build_result(team, app, service, event_id, "running",
+                                                         event, timeout, last_status)
+                      time.sleep(self.WAIT_BUILD_POLL_INTERVAL_SECONDS)
+
+              def _query_operation_event(self, team: Any, app: Any, service: Any, event_id: str) -> Optional[dict]:
+                  """Locate the operation event by id from the service event list.
+                  Best-effort: any sub-query failure returns None (treated as still
+                  running) rather than aborting the poll."""
+                  try:
+                      res, body = region_api.get_target_events_list(
+                          app.region_name, team.tenant_name, "service", service.service_id,
+                          1, self.FAILURE_CONTEXT_EVENT_QUERY_SIZE)
+                      items = body.get("list") or [] if (int(res.status) == 200 and isinstance(body, dict)) else []
+                  except Exception as e:
+                      logger.warning("wait_build: list events failed for %s: %s", service.service_id, e)
+                      return None
+                  for item in items:
+                      if isinstance(item, dict) and (item.get("event_id") or "") == event_id:
+                          return item
+                  return None
+
+              def _wait_build_result(self, team: Any, app: Any, service: Any, event_id: str,
+                                     status: str, event: Optional[dict], timeout: int,
+                                     event_status: str) -> dict:
+                  error_summary = []
+                  classified_reason = None
+                  if status == "failure":
+                      log_tail = self._read_failure_event_log_tail(
+                          team, app.region_name, event_id, self.FAILURE_CONTEXT_DEFAULT_LOG_TAIL)
+                      error_summary = log_tail
+                      classified_reason = classify_failure([], log_tail)
+                  return {
+                      "team_name": team.tenant_name,
+                      "region_name": app.region_name,
+                      "app_id": app.ID,
+                      "service_id": service.service_id,
+                      "event_id": event_id,
+                      "status": status,
+                      "event_status": event_status,
+                      "timeout": timeout,
+                      "error_summary": error_summary,
+                      "classified_reason": classified_reason,
+                  }
+            run: "(test harness)"
+            expect: "PASS"
+        acceptance:
+          - cmd: "run mcp_query_wait_build_test.py"
+            expect: "all PASS（含 no-sleep / running续轮 / failure摘要 / timeout续等 / clamp）"
+        references:
+          - path: "console/services/mcp_query_service.py:1022-1066"
+            note: "_resolve_failure_event / _shape_failure_event — get_target_events_list 用法母版"
+          - path: "console/services/mcp_query_service.py:1068-1088"
+            note: "_read_failure_event_log_tail（已脱敏）/ _redact_failure_line — error_summary 复用"
+          - path: "console/services/mcp_query_service.py:953-957"
+            note: "FAILURE_CONTEXT_* 常量（EVENT_QUERY_SIZE / DEFAULT_LOG_TAIL）"
+          - path: "console/services/app_actions/app_log.py:63-124,186-206"
+            note: "事件 status/final_status 取值：success/failure/timeout/restoring/complete/''"
+
+      - id: task-2.2
+        name: "注册 wait_for_build_completion：call_tool + schema + list_tools + manifest"
+        status: pending
+        files:
+          modify:
+            - path: "console/services/mcp_query_service.py"
+              note: "call_tool 分发 + list_tools 注册 + _tool_wait_for_build_completion schema"
+            - path: "test-manifest.json"
+              note: "新增 console.mcp.wait-for-build-completion"
+        steps:
+          - action: "implement"
+            description: "call_tool 分发（放在 rainbond_operate_app 附近）"
+            code: |
+                      if name == "rainbond_wait_for_build_completion":
+                          return self.wait_for_build_completion(user, arguments)
+            run: "(test harness)"
+            expect: "PASS"
+          - action: "implement"
+            description: "list_tools 注册 + schema"
+            code: |
+              # list_tools 列表追加：self._tool_wait_for_build_completion(),
+
+              def _tool_wait_for_build_completion(self) -> dict:
+                  return {
+                      "name": "rainbond_wait_for_build_completion",
+                      "description": (
+                          "有界阻塞轮询某次构建/部署操作事件直到终态，用于排障 loop 在部署后获取统一就绪信号，"
+                          "免去客户端 for+sleep+curl 自旋。返回 status=success/failure/running："
+                          "success/failure 在事件终态时立即返回，failure 附带脱敏后的关键错误摘要(error_summary)"
+                          "与归类原因(classified_reason)；若在超时(默认 60s，最大 120s)内仍未终态，返回 status=running 与 event_id，"
+                          "调用方可携带同一 event_id 再次调用以续等。event_id 来自 operate_app/build_component 的返回。"
+                      ),
+                      "inputSchema": {
+                          "type": "object",
+                          "properties": {
+                              "team_name": {"type": "string"},
+                              "region_name": {"type": "string"},
+                              "app_id": {"type": "integer", "minimum": 1},
+                              "service_id": {"type": "string"},
+                              "event_id": {"type": "string", "description": "构建/部署操作事件 ID，来自 operate_app/build_component 返回"},
+                              "timeout": {"type": "integer", "minimum": 1,
+                                          "description": "阻塞等待上限秒数，默认 60，超过 120 按 120 截断"},
+                          },
+                          "required": ["team_name", "region_name", "app_id", "service_id", "event_id"],
+                      },
+                  }
+            run: "(test harness)"
+            expect: "PASS"
+          - action: "implement"
+            description: "test-manifest.json 新增条目"
+            code: |
+              {
+                "id": "console.mcp.wait-for-build-completion",
+                "title": "MCP wait_for_build_completion tool",
+                "title_zh": "MCP 构建/部署就绪等待工具",
+                "interface_type": "workflow",
+                "interface": "console.services.mcp_query_service.call_tool[console.mcp.wait-for-build-completion]",
+                "code_paths": ["console/services/mcp_query_service.py"],
+                "tests": [{"path": "console/tests/mcp_query_wait_build_test.py"}],
+                "test_type": "unit",
+                "status": "active"
+              }
+            run: "python3 -c \"import json; json.load(open('test-manifest.json'))\""
+            expect: "exit 0"
+          - action: "verify"
+            run: "make check + run mcp_query_wait_build_test.py"
+            expect: "exit 0; PASS"
+        acceptance:
+          - cmd: "registration test"
+            expect: "rainbond_wait_for_build_completion 在 list_tools"
+        references:
+          - path: "console/services/mcp_query_service.py:356-357"
+            note: "rainbond_operate_app 分发位置参考"
+
+      # ============================================================
+      # Tool 3: analyze_env_conflicts (get_config_file_content 已存在，不重复实现)
+      # ============================================================
+      - id: task-3.1
+        name: "TDD: analyze_env_conflicts 服务方法 + 测试"
+        status: pending
+        files:
+          create:
+            - path: "console/tests/mcp_query_env_conflicts_test.py"
+          modify:
+            - path: "console/services/mcp_query_service.py"
+              note: "新增 analyze_env_conflicts 方法（放在 get_config_file 之后，约 870 行后）"
+        steps:
+          - action: "write-test"
+            description: "失败测试：同名多值=冲突、自身 vs 依赖注入跨源冲突、同名同值不算冲突、无冲突空列表"
+            code: |
+              # -*- coding: utf-8 -*-
+              """Service-level tests for the analyze_env_conflicts MCP tool.
+
+              Detects the same env attr_name supplied by more than one source
+              (component self-define vs dependency-injected) and/or with diverging
+              values — the M0 <ALIAS>_PORT 412 collision class. Backed by
+              env_var_service.get_all_envs_incloud_depend_env, mocked here.
+              """
+              import os
+              import sys
+              from types import ModuleType
+              from unittest.mock import patch
+
+              import django
+              from django.test import SimpleTestCase
+
+              sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "src", "openapi-client")))
+              sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
+
+              os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
+              django.setup()
+
+              from console.services.mcp_query_service import mcp_query_service
+
+
+              class Obj(object):
+                  def __init__(self, **kwargs):
+                      self.__dict__.update(kwargs)
+
+
+              def _team():
+                  return Obj(tenant_name="team1", tenant_id="tid-1", enterprise_id="eid-1")
+
+
+              def _app():
+                  return Obj(ID=7, region_name="rg")
+
+
+              def _service():
+                  return Obj(service_id="svc-self", service_alias="gr1234", service_region="rg", tenant_id="tid-1")
+
+
+              def _env(attr_name, attr_value, service_id, scope="inner"):
+                  return Obj(attr_name=attr_name, attr_value=attr_value, service_id=service_id,
+                             scope=scope, name=attr_name, container_port=0)
+
+
+              class EnvConflictTests(SimpleTestCase):
+
+                  # capability_id: console.mcp.env-conflicts
+                  def test_same_name_diff_value_is_conflict(self):
+                      args = {"team_name": "team1", "region_name": "rg", "app_id": "7", "service_id": "svc-self"}
+                      envs = [_env("SANDBOX_PORT", "8194", "svc-self"),
+                              _env("SANDBOX_PORT", "9999", "svc-self")]
+                      with patch.object(mcp_query_service, "_get_team_app_service_context",
+                                        return_value=(_team(), _app(), _service())):
+                          with patch("console.services.mcp_query_service.env_var_service.get_all_envs_incloud_depend_env",
+                                     return_value=iter(envs)):
+                              result = mcp_query_service.analyze_env_conflicts(Obj(nick_name="t"), args)
+                      self.assertEqual(result["total"], 1)
+                      c = result["conflicts"][0]
+                      self.assertEqual(c["attr_name"], "SANDBOX_PORT")
+                      self.assertEqual(len(c["sources"]), 2)
+
+                  # capability_id: console.mcp.env-conflicts
+                  def test_self_vs_dependency_cross_source_conflict(self):
+                      args = {"team_name": "team1", "region_name": "rg", "app_id": "7", "service_id": "svc-self"}
+                      envs = [_env("DB_HOST", "db-postgres", "svc-self"),
+                              _env("DB_HOST", "old-host", "svc-dep")]
+                      with patch.object(mcp_query_service, "_get_team_app_service_context",
+                                        return_value=(_team(), _app(), _service())):
+                          with patch("console.services.mcp_query_service.env_var_service.get_all_envs_incloud_depend_env",
+                                     return_value=iter(envs)):
+                              result = mcp_query_service.analyze_env_conflicts(Obj(nick_name="t"), args)
+                      self.assertEqual(result["total"], 1)
+                      origins = {s["origin"] for s in result["conflicts"][0]["sources"]}
+                      self.assertEqual(origins, {"self", "dependency"})
+
+                  # capability_id: console.mcp.env-conflicts
+                  def test_same_name_same_value_not_conflict(self):
+                      args = {"team_name": "team1", "region_name": "rg", "app_id": "7", "service_id": "svc-self"}
+                      envs = [_env("REDIS_HOST", "redis", "svc-self"),
+                              _env("REDIS_HOST", "redis", "svc-dep")]
+                      with patch.object(mcp_query_service, "_get_team_app_service_context",
+                                        return_value=(_team(), _app(), _service())):
+                          with patch("console.services.mcp_query_service.env_var_service.get_all_envs_incloud_depend_env",
+                                     return_value=iter(envs)):
+                              result = mcp_query_service.analyze_env_conflicts(Obj(nick_name="t"), args)
+                      # identical value from two sources is harmless: not flagged
+                      self.assertEqual(result["total"], 0)
+
+                  # capability_id: console.mcp.env-conflicts
+                  def test_no_conflict_unique_names(self):
+                      args = {"team_name": "team1", "region_name": "rg", "app_id": "7", "service_id": "svc-self"}
+                      envs = [_env("A", "1", "svc-self"), _env("B", "2", "svc-self")]
+                      with patch.object(mcp_query_service, "_get_team_app_service_context",
+                                        return_value=(_team(), _app(), _service())):
+                          with patch("console.services.mcp_query_service.env_var_service.get_all_envs_incloud_depend_env",
+                                     return_value=iter(envs)):
+                              result = mcp_query_service.analyze_env_conflicts(Obj(nick_name="t"), args)
+                      self.assertEqual(result["conflicts"], [])
+                      self.assertEqual(result["total"], 0)
+
+
+              class EnvConflictRegistrationTests(SimpleTestCase):
+                  # capability_id: console.mcp.env-conflicts
+                  def test_tool_is_listed_and_dispatchable(self):
+                      user = Obj(user_id=1, enterprise_id="eid-1", nick_name="u", is_enterprise_admin=False)
+                      names = [t["name"] for t in mcp_query_service.list_tools(user)]
+                      self.assertIn("rainbond_analyze_env_conflicts", names)
+            run: "(test harness)"
+            expect: "FAIL"
+          - action: "implement"
+            description: "实现 analyze_env_conflicts，放在 get_config_file 之后"
+            code: |
+              def analyze_env_conflicts(self, user: Any, arguments: dict) -> dict:
+                  """Detect env vars whose same attr_name is supplied by more than one
+                  source (component self-define vs dependency-injected) with diverging
+                  values. Surfaces the M0 collision class where an upserted env clashes
+                  with an auto-generated port-alias env (<ALIAS>_PORT) or a
+                  dependency-injected connection env. Identical value from two sources
+                  is harmless and not flagged."""
+                  team, app, service = self._get_team_app_service_context(
+                      user,
+                      self._require_string(arguments, "team_name"),
+                      self._require_string(arguments, "region_name"),
+                      self._require_int(arguments, "app_id"),
+                      self._require_string(arguments, "service_id"),
+                  )
+                  grouped = {}  # type: dict
+                  order = []  # preserve first-seen order for stable output
+                  for env in env_var_service.get_all_envs_incloud_depend_env(team, service):
+                      attr_name = getattr(env, "attr_name", None)
+                      if not attr_name:
+                          continue
+                      origin = "self" if getattr(env, "service_id", None) == service.service_id else "dependency"
+                      source = {
+                          "origin": origin,
+                          "value": getattr(env, "attr_value", ""),
+                          "scope": getattr(env, "scope", ""),
+                          "service_id": getattr(env, "service_id", ""),
+                      }
+                      if attr_name not in grouped:
+                          grouped[attr_name] = []
+                          order.append(attr_name)
+                      grouped[attr_name].append(source)
+
+                  conflicts = []
+                  for attr_name in order:
+                      sources = grouped[attr_name]
+                      if len(sources) < 2:
+                          continue
+                      distinct_values = {s["value"] for s in sources}
+                      if len(distinct_values) < 2:
+                          # same name, same value from multiple sources: harmless
+                          continue
+                      conflicts.append({"attr_name": attr_name, "sources": sources})
+
+                  return {
+                      "team_name": team.tenant_name,
+                      "region_name": app.region_name,
+                      "app_id": app.ID,
+                      "service_id": service.service_id,
+                      "conflicts": conflicts,
+                      "total": len(conflicts),
+                  }
+            run: "(test harness)"
+            expect: "PASS"
+        acceptance:
+          - cmd: "run mcp_query_env_conflicts_test.py"
+            expect: "all PASS"
+        references:
+          - path: "console/services/app_config/env_service.py:360-370"
+            note: "get_all_envs_incloud_depend_env(tenant, service) — 合并自身 env + 依赖注入 outer env"
+          - path: "console/services/mcp_query_service.py:830-870"
+            note: "get_config_file — _get_team_app_service_context 用法 + 返回结构母版"
+
+      - id: task-3.2
+        name: "注册 analyze_env_conflicts：call_tool + schema + list_tools + manifest"
+        status: pending
+        files:
+          modify:
+            - path: "console/services/mcp_query_service.py"
+              note: "call_tool 分发 + list_tools 注册 + _tool_analyze_env_conflicts schema"
+            - path: "test-manifest.json"
+              note: "新增 console.mcp.env-conflicts"
+        steps:
+          - action: "implement"
+            description: "call_tool 分发（放在 rainbond_get_config_file 附近）"
+            code: |
+                      if name == "rainbond_analyze_env_conflicts":
+                          return self.analyze_env_conflicts(user, arguments)
+            run: "(test harness)"
+            expect: "PASS"
+          - action: "implement"
+            description: "list_tools 注册 + schema"
+            code: |
+              # list_tools 列表追加（紧邻 _tool_get_config_file()）：self._tool_analyze_env_conflicts(),
+
+              def _tool_analyze_env_conflicts(self) -> dict:
+                  return {
+                      "name": "rainbond_analyze_env_conflicts",
+                      "description": (
+                          "检测组件环境变量的多源冲突：同一 attr_name 由多个来源（组件自身定义 vs 依赖注入的连接变量/"
+                          "端口别名自动生成变量）提供且取值不一致时判定为冲突。用于排障 loop 在改 env 前规避 M0 实测的"
+                          "<ALIAS>_PORT 同名 412 类问题。同名同值不算冲突。"
+                      ),
+                      "inputSchema": {
+                          "type": "object",
+                          "properties": {
+                              "team_name": {"type": "string"},
+                              "region_name": {"type": "string"},
+                              "app_id": {"type": "integer", "minimum": 1},
+                              "service_id": {"type": "string"},
+                          },
+                          "required": ["team_name", "region_name", "app_id", "service_id"],
+                      },
+                  }
+            run: "(test harness)"
+            expect: "PASS"
+          - action: "implement"
+            description: "test-manifest.json 新增条目"
+            code: |
+              {
+                "id": "console.mcp.env-conflicts",
+                "title": "MCP analyze_env_conflicts tool",
+                "title_zh": "MCP 环境变量多源冲突检测工具",
+                "interface_type": "workflow",
+                "interface": "console.services.mcp_query_service.call_tool[console.mcp.env-conflicts]",
+                "code_paths": ["console/services/mcp_query_service.py"],
+                "tests": [{"path": "console/tests/mcp_query_env_conflicts_test.py"}],
+                "test_type": "unit",
+                "status": "active"
+              }
+            run: "python3 -c \"import json; json.load(open('test-manifest.json'))\""
+            expect: "exit 0"
+          - action: "verify"
+            description: "全量验证：lint + 3 个工具测试全跑 + manifest 校验"
+            run: "make check + run all three mcp_query_*_test.py"
+            expect: "exit 0; all PASS"
+        acceptance:
+          - cmd: "registration test"
+            expect: "rainbond_analyze_env_conflicts 在 list_tools"
+          - cmd: "回灌文档进度行（action-space-inventory + 设计文档第九章/进度行）"
+            expect: "标注 3 工具已实现，痛感排序工具落地"
+        references:
+          - path: "console/services/mcp_query_service.py:338-339"
+            note: "rainbond_get_config_file 分发位置参考"
+          - path: "console/services/mcp_query_service.py:5419-5439"
+            note: "_tool_get_config_file schema 母版"

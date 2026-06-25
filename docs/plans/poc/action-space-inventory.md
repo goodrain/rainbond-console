@@ -30,14 +30,18 @@
 
 ## 动作空间缺口(给 M1)
 
-| 缺口 | M0 痛点 | 痛感 |
-|------|---------|------|
-| **无 compose 上传 MCP 工具** | `check_yaml_app` 要 `compose_id`,但 MCP 无"创建 compose 记录"步 → 程序化 compose 导入走不通,改逐组件建 | 中(逐组件建反而更可控) |
-| **无逐组件健康聚合** | `get_app_detail` 只给计数;要逐个 summary 才知哪个 abnormal+为何 | **高 → M1 `get_app_health_overview`** |
-| **无构建/部署就绪信号** | 每次 deploy 后 `for+sleep+curl /health` 自旋 | **高 → M1 `wait_for_build_completion`** |
-| **改内部域名要两步** | `add` 不认 `k8s_service_name`,需再 `update_alias` | 低(记录即可) |
-| **vertical_scale 必传 new_gpu=0** | 不传报 500 | 低(工具应默认 0) |
+| 缺口 | M0 痛点 | 痛感 | M1 状态 |
+|------|---------|------|---------|
+| **无 compose 上传 MCP 工具** | `check_yaml_app` 要 `compose_id`,但 MCP 无"创建 compose 记录"步 → 程序化 compose 导入走不通,改逐组件建 | 中(逐组件建反而更可控) | M1 不补(记着) |
+| **无逐组件健康聚合** | `get_app_detail` 只给计数;要逐个 summary 才知哪个 abnormal+为何 | **高 → `get_app_health_overview`** | ✅ **已实现**(`rainbond_get_app_health_overview`) |
+| **无构建/部署就绪信号** | 每次 deploy 后 `for+sleep+curl /health` 自旋 | **高 → `wait_for_build_completion`** | ✅ **已实现**(`rainbond_wait_for_build_completion`,有界阻塞轮询 ≤120s) |
+| **无 env 多源冲突检测** | upsert env 撞端口别名自动生成的 `<ALIAS>_PORT` → 412 | 中 → `analyze_env_conflicts` | ✅ **已实现**(`rainbond_analyze_env_conflicts`,敏感值脱敏) |
+| **config 内容读取** | config 覆盖 gate 只能"检测有挂载" | 中 | ✅ 已被现有 `rainbond_get_config_file`(#1930)覆盖,M1 不重复造 |
+| **改内部域名要两步** | `add` 不认 `k8s_service_name`,需再 `update_alias` | 低(记录即可) | 未改(记着) |
+| **vertical_scale 必传 new_gpu=0** | 不传报 500 | 低(工具应默认 0) | 未改(记着) |
 
 ## 一句话结论
 
-现有 MCP **修复动作**足以驱动整个 loop(envs/ports/storage/scale/operate);真正缺的是 **3 个信号聚合/就绪类只读工具**(健康总览、构建就绪、config 内容/env 冲突),这与 M1 设计的 3 个闭环工具完全吻合,且 M0 给出了**痛感排序:健康总览 > 构建就绪 > config 比对**。
+现有 MCP **修复动作**足以驱动整个 loop(envs/ports/storage/scale/operate);真正缺的是 **3 个信号聚合/就绪类只读工具**(健康总览、构建就绪、env 冲突),这与 M1 设计的 3 个闭环工具完全吻合,且 M0 给出了**痛感排序:健康总览 > 构建就绪 > env 冲突**。
+
+> **M1 落地(2026-06-25):** 三工具已在 `console/services/mcp_query_service.py` 按痛感排序逐个 TDD 实现并接入(实现+`call_tool`分发+`_tool_*` schema+`list_tools`注册+`test-manifest.json` 能力登记),测试 `console/tests/mcp_query_{health_overview,wait_build,env_conflicts}_test.py` 全绿、无回归。`get_config_file_content` 复用现有 `rainbond_get_config_file`,未重复实现。规范见 `.claude/specs/m1-closed-loop-mcp-tools.{yaml,md}`。下一步:M1.4 新建 `rainbond-app-to-template` skill 串排障 loop + 用 dify-poc(app_id 3141)活体验证 3 工具。

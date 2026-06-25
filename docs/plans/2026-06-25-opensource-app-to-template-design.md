@@ -229,7 +229,7 @@
 
 **优先级说明:** 用户直觉顺序是"自动寻找"在最前,但工程上它排最后——因为它在核心闭环(M1~M3)跑通前毫无价值,且最不确定。**先证明"一个应用能自动转出可用模版并上架",再谈"自动找一堆应用"。**
 
-**当前进度(2026-06-25 更新):** **M0 已端到端跑通 + M3 预验证完成**(详见第九章实证回灌与 `docs/plans/poc/`)。下一步:据 M0 实测痛感排序 → `/spec-gen` 出 M1 的 3 个闭环 MCP 工具任务规范 → 执行 M1。
+**当前进度(2026-06-25 更新):** **M0 已端到端跑通 + M3 预验证完成**(详见第九章实证回灌与 `docs/plans/poc/`)。**M1 三闭环信号工具已实现**:`get_app_health_overview` / `wait_for_build_completion` / `analyze_env_conflicts` 按 M0 痛感排序逐个 TDD 落地于 `console/services/mcp_query_service.py`,测试全绿无回归(规范 `.claude/specs/m1-closed-loop-mcp-tools.{yaml,md}`);`get_config_file_content` 复用现有 `rainbond_get_config_file`(#1930),未重复实现。**M1 剩余(Task 1.4–1.6):** 新建 `rainbond-app-to-template` skill 串导入→文档获取→排障 loop(半自动确认)→收敛判据,并用 dify-poc(app_id 3141)二次跑通度量自动化率。
 
 ### 跨层覆盖检查
 
@@ -353,6 +353,6 @@
 
 ### 9.6 MCP 动作空间实测(印证 M1 + 新增缺口)
 
-- **M1 三闭环工具痛感实测排序(确认)**:`get_app_health_overview`(最痛,8 组件逐个查才知哪个 abnormal)> `wait_for_build_completion`(每次部署靠 for+sleep+curl 自旋)> `get_config_file_content`(本轮 nginx config-file 用到,价值确认)。
+- **M1 三闭环工具痛感实测排序(确认)**:`get_app_health_overview`(最痛,8 组件逐个查才知哪个 abnormal)> `wait_for_build_completion`(每次部署靠 for+sleep+curl 自旋)> `get_config_file_content`(本轮 nginx config-file 用到,价值确认)。**实现裁剪(2026-06-25 M1)**:`get_config_file_content` 已被现有 `rainbond_get_config_file`(#1930)覆盖,故 M1 第三件落地为更缺的 `analyze_env_conflicts`(env 多源冲突检测,敏感值脱敏),`get_app_health_overview` 仅对异常组件深挖 blocker、`wait_for_build_completion` 采有界阻塞轮询(默认 60s/上限 120s)。三者均已 TDD 实现+注册+test-manifest 登记。
 - **新发现缺口(记入实施计划)**:① **无 compose 上传 MCP 工具** → 程序化 compose 导入走不通,改逐组件 `create_component_from_image`;② **无"建本地 app_model"MCP 工具** → 程序化本地市场发布受阻,M3 需补;③ 改内部域名要两步(`add` 忽略 `k8s_service_name`,需再 `update_alias`);④ `vertical_scale` 必传 `new_gpu=0`。
 - **结论**:现有 MCP **修复动作**足以驱动 loop;缺的是**信号聚合/就绪类只读工具**(= M1 三工具)+ 上述发布链工具。
