@@ -137,4 +137,13 @@
 - web → api;api/worker → db-postgres·redis·weaviate·sandbox·plugin-daemon;plugin-daemon → db-postgres·redis。
 - **四层冒烟**:层1(建号)✅;登录/层2–4 待用户浏览器在 nginx 入口验证(层3–4 需 LLM Key)。
 
-> **M0 总结(更新)**:核心子集跑通(含 nginx 共 9 组件 running,依赖成形),排障 loop 共 4 类阻滞:配置缺失(FM-01)、跨 origin 路由(FM-04)、依赖未建(15A)、登录协议(FM-03)。前三类纯日志/平台知识可定位;**FM-03 必须查外部源码知识**,是本轮唯一"非文档不可"的阻滞。决策树对配置/连接类够用,但需补两条硬规则:①逐组件建模必须显式建依赖边;②登录类协议问题要查源码、且别用明文 curl 误判。
+### 17. 登录成功 + 配 API Key 500 → 密钥对丢失(FM-05)
+
+- 用户浏览器经 nginx 入口**登录成功**(层1+2 过),进入设置→模型供应商。
+- 配 Xiaomi MiMo API Key → **500 Internal Server Error**(`credentials`/`model-providers`/`llm`/`datasets` 全 500)。
+- 栈定位:`PrivkeyNotFoundError: Private key not found, tenant_id 263d3aea...`(`libs/rsa.py:58` ← `opendal_storage.py:50 FileNotFoundError`)。凭据用 PKCS1_OAEP(租户 RSA 公钥)加密。
+- 根因:setup 时密钥对写进**非持久临时 fs**,重部署丢失;新持久卷空 → 私钥找不到。**FM-03 担心的存储问题在此真正坐实(咬凭据非登录)。**
+- 修法:`rainbond_exec` 进 api pod 跑 `flask reset-encrypt-key-pair`(uid=1001 可写,成功重生成密钥对入持久卷)+ 给 worker `create_mnt` 挂 api 同卷 + 重部署 worker。
+- 验证:待用户 UI 重配 API Key。
+
+> **M0 总结(更新2)**:核心子集跑通(含 nginx 共 9 组件,依赖成形,api/worker 共享持久存储),排障 loop 共 **5 类阻滞**:配置缺失(FM-01)、跨 origin 路由(FM-04)、依赖未建(15A)、登录协议(FM-03)、**存储非持久致密钥对丢失(FM-05)**。日志/平台知识可定位 3 类;**FM-03(登录加密)、FM-05(reset-encrypt-key-pair)需 Dify 框架/运维知识**。决策树补强规则:①逐组件必显式建依赖边;②登录类协议查源码、别用明文 curl 误判;③**Dify 模版必须持久化 `/app/api/storage` 且 api/worker 共享、保证可写**,否则 setup 后凭据全瘫。

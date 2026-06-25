@@ -49,6 +49,16 @@
 - **模版启示**:**正式模版必用 nginx 单入口**(单 URL、同源、前端加密登录才工作);跨 origin 直连是死路。config-file 挂载是 Dify 模版的必备能力 → 印证 M1 `get_config_file_content` 工具价值。
 - **正确入口 URL**:`http://gre6dee1-80-tynwrm27.dev.goodrain.com`(nginx),**不是** web 直连的 3000 地址。
 
+### FM-05: 配 API Key / 模型供应商 500 → 租户私钥丢失(存储非持久)
+- **症状**:UI 配模型 API Key 弹 `Internal Server Error` 500;`/console/api/datasets`、`model-providers`、`credentials` 全 500。
+- **证据(栈)**:`libs/rsa.py:58 PrivkeyNotFoundError: Private key not found, tenant_id: 263d3aea-...` ← `opendal_storage.py:50 FileNotFoundError` ← `provider_manager._get_and_decrypt_credentials` → `encrypter.get_decrypt_decoding`。弹窗明示凭据用 **PKCS1_OAEP**(租户 RSA 公钥)加密存储。
+- **根因**:setup 时租户密钥对写进了**当时还没挂持久卷的临时容器 fs**,重部署后丢失;新挂的持久卷 `/app/api/storage` 是空的 → 私钥找不到 → 一切凭据加解密 500。**这才是"砍 init_permissions/存储非持久"真正咬人的地方(咬的是凭据,不是登录)。**
+- **RuntimeState**:存储非持久 + 密钥对状态损坏。
+- **修法**:① 已给 api 挂持久 `share-file` 卷于 `/app/api/storage`;② `rainbond_exec` 进 api pod 跑 `flask reset-encrypt-key-pair`(为租户重生成密钥对写入持久卷,实测 uid=1001 可写、命令成功);③ 给 **worker `create_mnt` 挂载 api 同一卷**(api/worker 必须共享密钥对+文件存储)+ 重部署。
+- **验证**:重生成后 UI 再配 API Key 应不再 500(待用户确认)。
+- **是否需文档**:是(`flask reset-encrypt-key-pair` 命令需 Dify 运维知识)。
+- **模版启示(强化 FM-03)**:**Dify 模版必须:① `/app/api/storage` 用持久卷;② api/worker 共享同一卷;③ 等价 init_permissions 的 chown/fsGroup 保证可写。** 否则 setup 后密钥对丢失,所有凭据功能瘫痪。这是"部署快照法"必须替用户踩平的硬坑——纯转译绝不会自动补。
+
 ## 预判坑对照(执行后复盘)
 
 | 预判坑 | 是否命中 | 实际 |
