@@ -1,9 +1,10 @@
 # 开源应用自动化转 Rainbond 应用模版 设计文档
 
-> 状态:草案 v1 · 待评审
+> 状态:**M0 实证版 v2** · M0 端到端跑通 + M3 预验证(2026-06-25)
 > 日期:2026-06-25
 > 主协调:AI(Claude) · 决策:yangk
 > 关联记忆:`opensource-app-to-template-initiative`、`rainbond-test-env-topology`、`test-server-build-ops`
+> M0 实证记录:`docs/plans/poc/`(run-log / failure-mode-playbook-dify / evidence-diagnosis-fix-map / action-space-inventory)
 
 ---
 
@@ -222,13 +223,13 @@
 | **M0 端到端 PoC** | 用真实 Dify 跑一遍半成品发动机,验证决策树够不够、文档输入与 3 个闭环缺口多关键 | Dify 在 `rainbond`/北京 集群跑通;动作空间清单 / 失败模式 playbook / 证据→诊断→修法映射(三件套) | Dify 可正常登录使用(四层冒烟过);三件套文档完成 | **P0(立即)** | MCP 就绪(✓ 2026-06-25 已确认) |
 | **M1 自动排障 loop 内核** | 把 M0 人工干的活自动化,产出"保证能跑"的模版前置环节 | 3 个闭环信号 MCP 工具 + `rainbond-app-to-template` skill(含文档获取、半自动确认、收敛判据) | Dify 用新 loop 跑通,人工确认次数较 M0 显著下降;3 工具有测试覆盖 | **P0** | M0 产出 |
 | **M2 验证门禁** | 把"测试验证"固化成红绿灯 | 对外 URL 可访问性探测 + 业务冒烟脚本框架 + 收敛/放弃判据 | 能对一个应用自动判定 通过/失败/需人工 并出诊断报告 | **P1** | 与 M1 耦合,可并入 M1 收尾 |
-| **M3 快照上架自动化** | 验证通过→快照→推市场,全自动 | share 快照→app-store OpenAPI 上架封装 + AccessKey 配置 + 模版血缘最小记录 + **镜像策略(发布引用上游多架构镜像 + arch manifest 探测,见 6.3)**;**第二个应用 Harbor** 验证 | Dify/Harbor 两个模版自动上架成功,终端用户可一键安装跑通,**arm64 节点也能装** | **P1** | M1+M2 |
+| **M3 快照上架自动化** | 验证通过→快照→推市场,全自动 | share 快照→app-store OpenAPI 上架封装 + AccessKey 配置 + 模版血缘最小记录 + **镜像策略(见 6.3)** + **【M0实证新增】敏感 env 参数化 + 对外 URL 模板化(见第九章)**;**第二个应用 Harbor** 验证 | Dify/Harbor 两个模版自动上架成功,终端用户可一键安装跑通(**密钥安装时生成、URL 自动回填**),**arm64 节点也能装** | **P1** | M1+M2 |
 | **M4 升级追踪** | 上游出新版→自动重出升级版本 | `template_lineage` 表 + 上游版本监测(镜像 tag/chart/release)→重跑 loop→升级 diff | 监测到 Dify 新版本能自动产出升级版本模版 | **P2** | M3 |
 | **M5 自动发现** | 自动找候选开源应用喂给 loop | 从 Artifact Hub/Helm repo/awesome 清单索引候选 | 能自动产出一批候选并喂入 M1 | **P3(最后)** | M1~M4 闭环成立 |
 
 **优先级说明:** 用户直觉顺序是"自动寻找"在最前,但工程上它排最后——因为它在核心闭环(M1~M3)跑通前毫无价值,且最不确定。**先证明"一个应用能自动转出可用模版并上架",再谈"自动找一堆应用"。**
 
-**当前进度:** 设计评审中。下一步评审通过 → `/spec-gen` 出 M0(或 M0+M1)YAML 任务规范 → 执行 M0。
+**当前进度(2026-06-25 更新):** **M0 已端到端跑通 + M3 预验证完成**(详见第九章实证回灌与 `docs/plans/poc/`)。下一步:据 M0 实测痛感排序 → `/spec-gen` 出 M1 的 3 个闭环 MCP 工具任务规范 → 执行 M1。
 
 ### 跨层覆盖检查
 
@@ -314,3 +315,44 @@
    - **连带影响**:此核心改进落地后,决策 2 的"默认上游直连"可重新评估——届时"内部 bundle"也是多架构,离线客户可默认走自包含多架构内部镜像。故"默认上游直连"是**零核心改动的当下最优解,非永久绑定**。
    - **需改 rainbond 核心镜像客户端,惠及全平台,列为 backlog,不阻塞本项目。**
 | Dify 部署坑地图 | 本设计 1.3 / Sprint0 + 调研记录 | service-name host / plugin_daemon / sandbox 网络 |
+
+---
+
+## 九、M0 / M3 实证回灌(2026-06-25)
+
+> 本章把 M0 端到端 PoC + M3 预验证的实测结论回灌进设计。原始记录见 `docs/plans/poc/`。运行环境:默认集群 `rainbond`/北京,team `tynwrm27`,app_id 3141,9 组件(api/worker/web/nginx/db-postgres/redis/weaviate/sandbox/plugin-daemon)。
+
+### 9.1 核心假设验证:成立
+
+"内核是 AI 排障调优 loop、非格式转译"**得到端到端验证**:整条耗时主要在**策展**(读懂 Dify 结构 + 理顺接线),而非转译。9 组件只用 **1 次关键修复**(补 `PLUGIN_REMOTE_INSTALLING_HOST`)即全绿;四层冒烟 层1建号/层2登录+配模型/层4代码节点(sandbox)全部通过;快照成 app_template 成功(version_id 492)。
+
+### 9.2 预判坑纠偏
+
+| 预判(1.3 / 调研) | 实证结论 |
+|------|---------|
+| 坑① service-name host 重指向 | ✅ **命中且更严重**:`db_postgres`/`plugin_daemon`/`ssrf_proxy` 带下划线是**非法 K8s service 名**,必须改连字符 + 重指向所有引用。 |
+| 坑② plugin_daemon 独立 `dify_plugin` 库 + 竞态会炸 | ❌ **证伪**:plugin-daemon **自建库自迁移**,不阻滞。决策树应加"先看组件是否自 provision 依赖再判阻滞"。 |
+| 坑③ sandbox/ssrf_proxy 网络段 | ⚪ 未触发(子集砍 ssrf_proxy,sandbox 免代理可跑;代码节点跑通)。 |
+
+### 9.3 实测出的 5 类阻滞 & 文档获取价值修正
+
+阻滞:① 必填 env 缺失(纯日志)② 跨 origin 路由(平台知识)③ 依赖边未建(平台知识)④ 登录 `Invalid encrypted data`=前端加密密码(**必须查源码**)⑤ setup 后租户 RSA 私钥丢失致凭据 500(**需框架运维知识 `flask reset-encrypt-key-pair`**)。
+
+**修正 6.1 关于"文档获取"的判断**:配置类阻滞靠日志/平台知识即可;但**协议级/框架约定级阻滞(④⑤)纯日志彻底定位不了,文档/源码获取不可替代**。M1 应做**双轨**:沉淀型 playbook(配置类)+ 按需源码/文档获取(协议类),而非二选一。
+
+### 9.4 Dify 模版三条硬约束(部署快照法必须替用户踩平)
+
+1. **逐组件建模必须显式建依赖边**(`manage_component_dependency`)——只靠 K8s DNS 连通虽能跑,但 share 成模版时 `dep_service_map_list` 为空、拓扑与依赖丢失。M3 实证:建了边,模版才完整 capture 依赖 + 共享存储挂载 + nginx config-file。
+2. **必用 nginx 单入口 + config-file 路由**(`/console/api|/api|/v1|/files|/mcp|/e`→api、`/`→web)——跨 origin 直连会让浏览器端 `CONSOLE_API_URL` 失效、登录前端加密无法工作。
+3. **`/app/api/storage` 必须持久卷 + api/worker 共享 + 可写**(等价 init_permissions 的 chown/fsGroup)——否则 setup 后租户密钥对丢失,所有凭据功能瘫痪。
+
+### 9.5 M3 新增设计项(模版上架前必做)
+
+- **敏感 env 参数化**:快照模版把 `SECRET_KEY`/`DB_PASSWORD`/inner API Key/`WEAVIATE_API_KEY` 等**明文冻结**。上架前必须改为**安装时生成或用户填写**(Rainbond 模版支持 env 占位/必填项),否则全网用户共享同一套密钥=安全事故。
+- **对外 URL 模板化**:`CONSOLE_API_URL`/`CONSOLE_WEB_URL`/`APP_*_URL` 含本次网关域名,换环境即失效。应**留空走相对路径 + 靠 nginx 单入口同源**,安装时无需回填。
+
+### 9.6 MCP 动作空间实测(印证 M1 + 新增缺口)
+
+- **M1 三闭环工具痛感实测排序(确认)**:`get_app_health_overview`(最痛,8 组件逐个查才知哪个 abnormal)> `wait_for_build_completion`(每次部署靠 for+sleep+curl 自旋)> `get_config_file_content`(本轮 nginx config-file 用到,价值确认)。
+- **新发现缺口(记入实施计划)**:① **无 compose 上传 MCP 工具** → 程序化 compose 导入走不通,改逐组件 `create_component_from_image`;② **无"建本地 app_model"MCP 工具** → 程序化本地市场发布受阻,M3 需补;③ 改内部域名要两步(`add` 忽略 `k8s_service_name`,需再 `update_alias`);④ `vertical_scale` 必传 `new_gpu=0`。
+- **结论**:现有 MCP **修复动作**足以驱动 loop;缺的是**信号聚合/就绪类只读工具**(= M1 三工具)+ 上述发布链工具。
