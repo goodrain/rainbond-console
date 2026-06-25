@@ -229,7 +229,7 @@
 
 **优先级说明:** 用户直觉顺序是"自动寻找"在最前,但工程上它排最后——因为它在核心闭环(M1~M3)跑通前毫无价值,且最不确定。**先证明"一个应用能自动转出可用模版并上架",再谈"自动找一堆应用"。**
 
-**当前进度(2026-06-25 更新):** **M0 已端到端跑通 + M3 预验证完成**(详见第九章实证回灌与 `docs/plans/poc/`)。**M1 三闭环信号工具已实现**:`get_app_health_overview` / `wait_for_build_completion` / `analyze_env_conflicts` 按 M0 痛感排序逐个 TDD 落地于 `console/services/mcp_query_service.py`,测试全绿无回归(规范 `.claude/specs/m1-closed-loop-mcp-tools.{yaml,md}`);`get_config_file_content` 复用现有 `rainbond_get_config_file`(#1930),未重复实现。**M1 剩余(Task 1.4–1.6):** 新建 `rainbond-app-to-template` skill 串导入→文档获取→排障 loop(半自动确认)→收敛判据,并用 dify-poc(app_id 3141)二次跑通度量自动化率。
+**当前进度(2026-06-25 更新):** **M0 已端到端跑通 + M3 预验证完成**(详见第九章实证回灌与 `docs/plans/poc/`)。**M1 三闭环信号工具已实现**:`get_app_health_overview` / `wait_for_build_completion` / `analyze_env_conflicts` 按 M0 痛感排序逐个 TDD 落地于 `console/services/mcp_query_service.py`,测试全绿无回归(规范 `.claude/specs/m1-closed-loop-mcp-tools.{yaml,md}`);`get_config_file_content` 复用现有 `rainbond_get_config_file`(#1930),未重复实现。**M1 Task 1.4–1.6 已完成(2026-06-25)**:新建 skill `rainbond-app-to-template`(`~/code/rainbond-skills/`,主 `SKILL.md` + `references/failure-mode-playbook.md`)串 导入→文档获取(双轨)→排障 loop(分级自动确认门控)→收敛/放弃判据,复用 troubleshooter 决策树作修复引擎、app-assistant Iron Law 作写动作纪律;3 信号工具按痛感融入 loop;M0 五类阻滞(FM-01…FM-05)+ 三条模版硬约束 + Dify 逐组件导入拓扑沉淀进 playbook。**3 工具经 dify-poc(app_id 3141)活体验证通过**(MCP 热同步后调用);收敛终点=快照就绪+交接 M3,不自动发布。自动化率结构性提升:预测人工确认 M0 五次 → M1 一次(仅 FM-05 触数据需确认)。**M1 全部完成。下一步 M2/M3。**
 
 ### 跨层覆盖检查
 

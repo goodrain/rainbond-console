@@ -44,4 +44,8 @@
 
 现有 MCP **修复动作**足以驱动整个 loop(envs/ports/storage/scale/operate);真正缺的是 **3 个信号聚合/就绪类只读工具**(健康总览、构建就绪、env 冲突),这与 M1 设计的 3 个闭环工具完全吻合,且 M0 给出了**痛感排序:健康总览 > 构建就绪 > env 冲突**。
 
-> **M1 落地(2026-06-25):** 三工具已在 `console/services/mcp_query_service.py` 按痛感排序逐个 TDD 实现并接入(实现+`call_tool`分发+`_tool_*` schema+`list_tools`注册+`test-manifest.json` 能力登记),测试 `console/tests/mcp_query_{health_overview,wait_build,env_conflicts}_test.py` 全绿、无回归。`get_config_file_content` 复用现有 `rainbond_get_config_file`,未重复实现。规范见 `.claude/specs/m1-closed-loop-mcp-tools.{yaml,md}`。下一步:M1.4 新建 `rainbond-app-to-template` skill 串排障 loop + 用 dify-poc(app_id 3141)活体验证 3 工具。
+> **M1 落地(2026-06-25):** 三工具已在 `console/services/mcp_query_service.py` 按痛感排序逐个 TDD 实现并接入(实现+`call_tool`分发+`_tool_*` schema+`list_tools`注册+`test-manifest.json` 能力登记),测试 `console/tests/mcp_query_{health_overview,wait_build,env_conflicts}_test.py` 全绿、无回归。`get_config_file_content` 复用现有 `rainbond_get_config_file`,未重复实现。规范见 `.claude/specs/m1-closed-loop-mcp-tools.{yaml,md}`。
+>
+> **M1.4–1.6 完成(2026-06-25):** 新建 skill `rainbond-app-to-template`(`~/code/rainbond-skills/`,含 `references/failure-mode-playbook.md`)串起 导入→文档获取(双轨)→排障 loop(分级自动确认门控)→收敛/放弃判据,3 信号工具按痛感融入(health_overview 做 step-4 健康总览、wait_for_build_completion 做 step-3/5f 就绪信号、analyze_env_conflicts 做 step-5e 改 env 前防 412)。**3 工具已对 dify-poc(app_id 3141)活体验证通过**(MCP 热同步后本会话拉到新工具):① `get_app_health_overview` 一次返回 `app_status=running` + 9/9 running + 各 `critical_blocker=null`(取代 9× summary);② `analyze_env_conflicts`(api)`conflicts=[]`(已收敛);③ `wait_for_build_completion` 传历史终态 build event 立即返回 `status=success`、`error_summary=[]`。收敛终点定在「快照就绪+交接 M3」,不自动发布。
+>
+> **自动化率(M1 vs M0,结构性提升):** M0 全程 5 类阻滞各需一次人工交互修复;新 skill 把 5 类沉淀进 playbook 并经分级门控:FM-01 必填 env、FM-02/04 nginx 单入口路由、依赖边未建 → **自动应用(仅播报)**;仅 FM-05(进 pod 跑 `flask reset-encrypt-key-pair`,触数据/存储)→ **人工确认**。预测人工确认数 5 → 1。叠加 3 信号工具把每轮数十次只读自旋压成个位数调用。
