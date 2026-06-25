@@ -4,6 +4,7 @@ import json
 import logging
 import os
 import re
+import time
 from typing import Any, List, Optional, Tuple
 
 from django.core import signing
@@ -260,15 +261,18 @@ class MCPQueryService(object):
 
     def list_tools(self, user: Any = None) -> List[dict]:
         tools = [
-            self._tool_get_current_user(), self._tool_get_app_detail(), self._tool_create_app(),
+            self._tool_get_current_user(), self._tool_get_app_detail(), self._tool_get_app_health_overview(),
+            self._tool_create_app(),
             self._tool_get_component_summary(), self._tool_get_component_detail(),
             self._tool_get_component_pods(), self._tool_get_pod_detail(),
             self._tool_get_component_logs(), self._tool_exec_component(), self._tool_get_config_file(),
+            self._tool_analyze_env_conflicts(),
             self._tool_get_component_events(), self._tool_get_component_build_logs(),
             self._tool_get_operation_failure_context(),
             self._tool_get_component_build_source(), self._tool_update_component_build_source(),
             self._tool_create_component(),
-            self._tool_delete_component(), self._tool_operate_app(), self._tool_manage_component_envs(),
+            self._tool_delete_component(), self._tool_operate_app(), self._tool_wait_for_build_completion(),
+            self._tool_manage_component_envs(),
             self._tool_manage_component_connection_envs(),
             self._tool_change_component_image(), self._tool_manage_component_ports(),
             self._tool_manage_component_storage(),
@@ -323,6 +327,8 @@ class MCPQueryService(object):
             return self.get_current_user(user)
         if name == "rainbond_get_app_detail":
             return self.get_app_detail(user, arguments)
+        if name == "rainbond_get_app_health_overview":
+            return self.get_app_health_overview(user, arguments)
         if name == "rainbond_create_app":
             return self.create_app(user, arguments)
         if name == "rainbond_get_component_summary":
@@ -337,6 +343,8 @@ class MCPQueryService(object):
             return self.exec_component(user, arguments)
         if name == "rainbond_get_config_file":
             return self.get_config_file(user, arguments)
+        if name == "rainbond_analyze_env_conflicts":
+            return self.analyze_env_conflicts(user, arguments)
         if name == "rainbond_get_component_build_logs":
             return self.get_component_build_logs(user, arguments)
         if name == "rainbond_get_component_build_source":
@@ -355,6 +363,8 @@ class MCPQueryService(object):
             return self.delete_component(user, arguments)
         if name == "rainbond_operate_app":
             return self.operate_app(user, arguments)
+        if name == "rainbond_wait_for_build_completion":
+            return self.wait_for_build_completion(user, arguments)
         if name == "rainbond_manage_component_envs":
             return self.manage_component_envs(user, arguments)
         if name == "rainbond_manage_component_connection_envs":
@@ -566,6 +576,73 @@ class MCPQueryService(object):
         app_info["used_memory"] = used_memory
         app_info["app_id"] = app.ID
         return app_info
+
+    def get_app_health_overview(self, user: Any, arguments: dict) -> dict:
+        """One call returns every component's status + a critical_blocker for the
+        abnormal ones. Replaces N get_component_summary calls in the troubleshoot
+        loop. Cost grows with the number of *unhealthy* components, not the total:
+        status comes from one batched status_multi_service call; only non-running
+        components are deep-dived (pod warnings -> classify_failure)."""
+        team, app = self._get_team_app_context(
+            user,
+            self._require_string(arguments, "team_name"),
+            self._require_string(arguments, "region_name"),
+            self._require_int(arguments, "app_id"),
+        )
+        services = group_service.get_group_services(app.ID)
+        service_ids = [s.service_id for s in services]
+        status_list = []
+        if service_ids:
+            status_list = base_service.status_multi_service(
+                region=app.region_name,
+                tenant_name=team.tenant_name,
+                service_ids=service_ids,
+                enterprise_id=team.enterprise_id,
+            )
+        status_map = {s["service_id"]: s["status"] for s in (status_list or [])}
+
+        components = []
+        running_count = 0
+        for service in services:
+            status = status_map.get(service.service_id, "")
+            if status == "running":
+                running_count += 1
+                blocker = None
+            else:
+                blocker = self._build_component_blocker(team, app.region_name, service)
+            data = service.to_dict()
+            components.append({
+                "service_id": service.service_id,
+                "name": data.get("k8s_component_name") or data.get("service_cname") or service.service_id,
+                "service_cname": data.get("service_cname"),
+                "status": status,
+                "critical_blocker": blocker,
+            })
+
+        return {
+            "team_name": team.tenant_name,
+            "region_name": app.region_name,
+            "app_id": app.ID,
+            "app_status": self._get_app_status(running_count, len(services)),
+            "components": components,
+            "total": len(components),
+        }
+
+    def _build_component_blocker(self, team: Any, region_name: str, service: Any) -> str:
+        """Classify a non-running component's blocker. Best-effort: any region
+        failure degrades to 'unknown' rather than aborting the whole overview.
+        The event-log tail is deliberately NOT fetched here (the empty second arg
+        to classify_failure): an overview deep-dives every abnormal component, so
+        adding a per-component event-log fetch would re-introduce the N+1 calls
+        this tool exists to avoid. Pod warnings carry the actionable signal
+        (image_pull/crash_loop/mount); use get_operation_failure_context for the
+        single-component event-log drilldown."""
+        try:
+            pod_warnings = self._collect_pod_warnings(team, region_name, service)
+            return classify_failure(pod_warnings, [])
+        except Exception as e:
+            logger.warning("health_overview: classify failed for %s: %s", service.service_id, e)
+            return "unknown"
 
     def create_app(self, user: Any, arguments: dict) -> dict:
         team = self._get_team_context(user, self._require_string(arguments, "team_name"))
@@ -869,6 +946,65 @@ class MCPQueryService(object):
             "total": len(items),
         }
 
+    def analyze_env_conflicts(self, user: Any, arguments: dict) -> dict:
+        """Detect env vars whose same attr_name is supplied by more than one
+        source (component self-define vs dependency-injected) with diverging
+        values. Surfaces the M0 collision class where an upserted env clashes with
+        an auto-generated port-alias env (<ALIAS>_PORT) or a dependency-injected
+        connection env. Identical value from two sources is harmless and not
+        flagged."""
+        team, app, service = self._get_team_app_service_context(
+            user,
+            self._require_string(arguments, "team_name"),
+            self._require_string(arguments, "region_name"),
+            self._require_int(arguments, "app_id"),
+            self._require_string(arguments, "service_id"),
+        )
+        grouped = {}  # type: dict
+        order = []  # type: List[str]  # preserve first-seen order for stable output
+        for env in env_var_service.get_all_envs_incloud_depend_env(team, service):
+            attr_name = getattr(env, "attr_name", None)
+            if not attr_name:
+                continue
+            origin = "self" if getattr(env, "service_id", None) == service.service_id else "dependency"
+            source = {
+                "origin": origin,
+                "value": getattr(env, "attr_value", ""),
+                "scope": getattr(env, "scope", ""),
+                "service_id": getattr(env, "service_id", ""),
+            }
+            if attr_name not in grouped:
+                grouped[attr_name] = []
+                order.append(attr_name)
+            grouped[attr_name].append(source)
+
+        conflicts = []
+        for attr_name in order:
+            sources = grouped[attr_name]
+            if len(sources) < 2:
+                continue
+            # Distinctness is computed on the REAL values; the output values are
+            # masked for secret-looking names so a SECRET_KEY/DB_PASSWORD conflict
+            # is still surfaced without leaking the secret to the AI client.
+            distinct_values = {s["value"] for s in sources}
+            if len(distinct_values) < 2:
+                # same name, same value from multiple sources: harmless
+                continue
+            masked_sources = [
+                {**s, "value": self._mask_env_value(attr_name, s["value"])}
+                for s in sources
+            ]
+            conflicts.append({"attr_name": attr_name, "sources": masked_sources})
+
+        return {
+            "team_name": team.tenant_name,
+            "region_name": app.region_name,
+            "app_id": app.ID,
+            "service_id": service.service_id,
+            "conflicts": conflicts,
+            "total": len(conflicts),
+        }
+
     def get_component_events(self, user: Any, arguments: dict) -> dict:
         page = self._parse_int_with_default(arguments.get("page"), 1)
         page_size = self._parse_int_with_default(arguments.get("page_size"), 10)
@@ -1086,6 +1222,114 @@ class MCPQueryService(object):
 
     def _redact_failure_line(self, message: Any) -> str:
         return self._FAILURE_CONTEXT_SECRET_RE.sub(r"\1\2***", str(message or ""))
+
+    # Env var names whose value must be masked in analyze_env_conflicts output:
+    # the AI only needs to know the values differ, never the secret itself.
+    _SENSITIVE_ENV_NAME_RE = re.compile(
+        r"(?i)(password|passwd|pwd|token|secret|access[_-]?key|api[_-]?key|"
+        r"authorization|private[_-]?key|credential)")
+
+    @classmethod
+    def _mask_env_value(cls, attr_name: str, value: Any) -> Any:
+        if cls._SENSITIVE_ENV_NAME_RE.search(str(attr_name or "")):
+            return "***"
+        return value
+
+    # --- wait_for_build_completion ---------------------------------------
+    WAIT_BUILD_POLL_INTERVAL_SECONDS = 5
+    WAIT_BUILD_DEFAULT_TIMEOUT = 60
+    # Bounds the blocking wait the caller asked for. Note the worker is held for
+    # at most WAIT_BUILD_MAX_TIMEOUT plus the duration of one in-flight region
+    # call (region_api default read timeout x retries) before the deadline check
+    # fires; under a healthy region that tail is sub-second.
+    WAIT_BUILD_MAX_TIMEOUT = 120
+    # Page-1 window when locating the awaited event by id. The event was just
+    # triggered (operate_app/build_component returned it) so it is the newest
+    # event; a wide window guards against it scrolling off page 1 on a chatty
+    # component. Kept separate from FAILURE_CONTEXT_EVENT_QUERY_SIZE.
+    WAIT_BUILD_EVENT_QUERY_SIZE = 100
+    # Event terminal statuses: success -> "success"; failure/timeout -> "failure".
+    _WAIT_BUILD_SUCCESS_STATUSES = ("success",)
+    _WAIT_BUILD_FAILURE_STATUSES = ("failure", "timeout")
+
+    def wait_for_build_completion(self, user: Any, arguments: dict) -> dict:
+        """Bounded blocking poll of a build/deploy operation event until it
+        reaches a terminal state. Returns success/failure immediately on terminal;
+        on failure attaches a redacted error_summary + classified_reason (NOT raw
+        logs). When the clamped timeout elapses without a terminal state, returns
+        status='running' plus event_id so the caller can resume waiting with
+        another call. Replaces the M0 for+sleep+curl self-spin while bounding
+        worker occupancy to <= WAIT_BUILD_MAX_TIMEOUT seconds."""
+        team, app, service = self._get_team_app_service_context(
+            user,
+            self._require_string(arguments, "team_name"),
+            self._require_string(arguments, "region_name"),
+            self._require_int(arguments, "app_id"),
+            self._require_string(arguments, "service_id"),
+        )
+        event_id = self._require_string(arguments, "event_id")
+        timeout = self._parse_int_with_default(arguments.get("timeout"), self.WAIT_BUILD_DEFAULT_TIMEOUT)
+        if timeout <= 0:
+            timeout = self.WAIT_BUILD_DEFAULT_TIMEOUT
+        timeout = min(timeout, self.WAIT_BUILD_MAX_TIMEOUT)
+
+        deadline = time.monotonic() + timeout
+        while True:
+            event = self._query_operation_event(team, app, service, event_id)
+            event_status = (event.get("status") or "").lower() if event else ""
+            if event_status in self._WAIT_BUILD_SUCCESS_STATUSES:
+                return self._wait_build_result(team, app, service, event_id, "success", timeout, event_status)
+            if event_status in self._WAIT_BUILD_FAILURE_STATUSES:
+                return self._wait_build_result(team, app, service, event_id, "failure", timeout, event_status)
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                return self._wait_build_result(team, app, service, event_id, "running", timeout, event_status)
+            # Cap the sleep to the remaining budget so a small timeout (e.g. 1s)
+            # is honored rather than over-blocking by a full poll interval.
+            time.sleep(min(self.WAIT_BUILD_POLL_INTERVAL_SECONDS, remaining))
+
+    def _query_operation_event(self, team: Any, app: Any, service: Any, event_id: str) -> Optional[dict]:
+        """Locate the operation event by id from the service event list.
+        Best-effort: any sub-query failure returns None (treated as still running)
+        rather than aborting the poll."""
+        try:
+            res, body = region_api.get_target_events_list(
+                app.region_name, team.tenant_name, "service", service.service_id,
+                1, self.WAIT_BUILD_EVENT_QUERY_SIZE)
+            items = body.get("list") or [] if (int(res.status) == 200 and isinstance(body, dict)) else []
+        except Exception as e:
+            logger.warning("wait_build: list events failed for %s: %s", service.service_id, e)
+            return None
+        for item in items:
+            if isinstance(item, dict) and (item.get("event_id") or "") == event_id:
+                return item
+        return None
+
+    def _wait_build_result(self, team: Any, app: Any, service: Any, event_id: str,
+                           status: str, timeout: int, event_status: str) -> dict:
+        error_summary = []  # type: List[str]
+        classified_reason = None
+        if status == "failure":
+            error_summary = self._read_failure_event_log_tail(
+                team, app.region_name, event_id, self.FAILURE_CONTEXT_DEFAULT_LOG_TAIL)
+            # Image-pull / crash-loop signals live in pod warnings, not the event
+            # log; the log tail only carries the k8s_api_rejected fallback. Gather
+            # both so the build failure classifies the same way as
+            # get_operation_failure_context. _collect_pod_warnings is best-effort.
+            pod_warnings = self._collect_pod_warnings(team, app.region_name, service)
+            classified_reason = classify_failure(pod_warnings, error_summary)
+        return {
+            "team_name": team.tenant_name,
+            "region_name": app.region_name,
+            "app_id": app.ID,
+            "service_id": service.service_id,
+            "event_id": event_id,
+            "status": status,
+            "event_status": event_status,
+            "timeout": timeout,
+            "error_summary": error_summary,
+            "classified_reason": classified_reason,
+        }
 
     def _collect_pod_warnings(self, team: Any, region_name: str, service: Any) -> List[dict]:
         """Pull Warning events from up to N abnormal pods. Best-effort: any
@@ -5319,6 +5563,26 @@ class MCPQueryService(object):
             }
         }
 
+    def _tool_get_app_health_overview(self) -> dict:
+        return {
+            "name": "rainbond_get_app_health_overview",
+            "description": (
+                "一次性返回应用下全部组件的运行状态与每个异常组件的 critical_blocker，"
+                "用于排障 loop 的健康总览，免去逐个组件调用 get_component_summary。"
+                "全绿组件 critical_blocker 为 null；非 running 组件会自动深挖 pod 告警并归类阻滞原因"
+                "（如 image_pull_failed / crash_loop / config_file_configmap_missing / unknown）。"
+            ),
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "team_name": {"type": "string"},
+                    "region_name": {"type": "string"},
+                    "app_id": {"type": "integer", "minimum": 1},
+                },
+                "required": ["team_name", "region_name", "app_id"],
+            },
+        }
+
     def _tool_create_app(self) -> dict:
         return {
             "name": "rainbond_create_app",
@@ -5436,6 +5700,26 @@ class MCPQueryService(object):
                 },
                 "required": ["team_name", "region_name", "app_id", "service_id"]
             }
+        }
+
+    def _tool_analyze_env_conflicts(self) -> dict:
+        return {
+            "name": "rainbond_analyze_env_conflicts",
+            "description": (
+                "检测组件环境变量的多源冲突：同一 attr_name 由多个来源（组件自身定义 vs 依赖注入的连接变量/"
+                "端口别名自动生成变量）提供且取值不一致时判定为冲突。用于排障 loop 在改 env 前规避 M0 实测的"
+                "<ALIAS>_PORT 同名 412 类问题。同名同值不算冲突。"
+            ),
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "team_name": {"type": "string"},
+                    "region_name": {"type": "string"},
+                    "app_id": {"type": "integer", "minimum": 1},
+                    "service_id": {"type": "string"},
+                },
+                "required": ["team_name", "region_name", "app_id", "service_id"],
+            },
         }
 
     def _tool_manage_component_envs(self) -> dict:
@@ -5774,6 +6058,31 @@ class MCPQueryService(object):
                 },
                 "required": ["team_name", "region_name", "app_id", "action"]
             }
+        }
+
+    def _tool_wait_for_build_completion(self) -> dict:
+        return {
+            "name": "rainbond_wait_for_build_completion",
+            "description": (
+                "有界阻塞轮询某次构建/部署操作事件直到终态，用于排障 loop 在部署后获取统一就绪信号，"
+                "免去客户端 for+sleep+curl 自旋。返回 status=success/failure/running："
+                "success/failure 在事件终态时立即返回，failure 附带脱敏后的关键错误摘要(error_summary)"
+                "与归类原因(classified_reason)；若在超时(默认 60s，最大 120s)内仍未终态，返回 status=running 与 event_id，"
+                "调用方可携带同一 event_id 再次调用以续等。event_id 来自 operate_app/build_component 的返回。"
+            ),
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "team_name": {"type": "string"},
+                    "region_name": {"type": "string"},
+                    "app_id": {"type": "integer", "minimum": 1},
+                    "service_id": {"type": "string"},
+                    "event_id": {"type": "string", "description": "构建/部署操作事件 ID，来自 operate_app/build_component 返回"},
+                    "timeout": {"type": "integer", "minimum": 1,
+                                "description": "阻塞等待上限秒数，默认 60，超过 120 按 120 截断"},
+                },
+                "required": ["team_name", "region_name", "app_id", "service_id", "event_id"],
+            },
         }
 
     def _tool_update_component_envs(self) -> dict:
