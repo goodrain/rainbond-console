@@ -3,7 +3,7 @@
 # This script is used to install Rainbond standalone on Linux and MacOS
 
 # Basic environment variables
-RAINBOND_VERSION=${VERSION:-'v6.9.0-dev'}
+RAINBOND_VERSION=${VERSION:-'v6.9.2-release'}
 IMGHUB_MIRROR=${IMGHUB_MIRROR:-'registry.cn-hangzhou.aliyuncs.com/goodrain'}
 ENABLE_GPU=${ENABLE_GPU:-auto}
 
@@ -13,6 +13,10 @@ GREEN='\033[32;1m'
 YELLOW='\033[33;1m'
 NC='\033[0m'
 TIME="+%Y-%m-%d %H:%M:%S"
+INSTALL_ATTEMPT_ID=${INSTALL_ATTEMPT_ID:-"single-$(date +%Y%m%d%H%M%S)-$$"}
+RAINBOND_INSTALL_METHOD=${RAINBOND_INSTALL_METHOD:-"single_node"}
+RAINBOND_FINAL_EVENT_ENABLED=false
+RAINBOND_FINAL_STATUS_SENT=false
 
 ########################################
 # Information collection
@@ -20,21 +24,379 @@ TIME="+%Y-%m-%d %H:%M:%S"
 # Help us improve the success rate of installation.
 ########################################
 
+# Rainbond startup diagnostics
+# Collects a compact snapshot when the installer times out waiting for services.
+function rainbond_json_escape() {
+    printf '%s' "${1:-}" | awk '
+        BEGIN { ORS = "" }
+        {
+            gsub(/\\/,"\\\\")
+            gsub(/"/,"\\\"")
+            gsub(/\t/,"\\t")
+            gsub(/\r/,"\\r")
+            if (NR > 1) {
+                printf "\\n"
+            }
+            printf "%s", $0
+        }
+    '
+}
+
+function rainbond_diag_kubectl() {
+    if [ -n "${RAINBOND_DIAG_KUBECTL:-}" ]; then
+        "$RAINBOND_DIAG_KUBECTL" "$@"
+    else
+        docker exec rainbond /bin/k3s kubectl "$@"
+    fi
+}
+
+function rainbond_diag_compact() {
+    printf '%s' "${1:-}" | tr '\r\n' '  ' | sed 's/[[:space:]][[:space:]]*/ /g' | cut -c 1-500
+}
+
+function rainbond_diag_append_json_string() {
+    local current="${1:-}"
+    local value
+    value=$(rainbond_json_escape "$(rainbond_diag_compact "${2:-}")")
+    if [ -n "$current" ]; then
+        printf '%s,"%s"' "$current" "$value"
+    else
+        printf '"%s"' "$value"
+    fi
+}
+
+function rainbond_classify_timeout_reason() {
+    local raw="${1:-}"
+
+    if printf '%s' "$raw" | grep -Eqi 'unbound immediate PersistentVolumeClaims|PersistentVolumeClaim|FailedMount|MountVolume|storageclass|provisioner|PVC|Pending.*local-path'; then
+        printf 'storage_pvc_pending'
+    elif printf '%s' "$raw" | grep -Eqi 'NodeNotReady|Node is not ready|NotReady'; then
+        printf 'node_not_ready'
+    elif printf '%s' "$raw" | grep -Eqi 'ImagePullBackOff|ErrImagePull|pull image|failed to pull'; then
+        printf 'image_pull_failed'
+    elif printf '%s' "$raw" | grep -Eqi 'CrashLoopBackOff|Back-off restarting failed container|BackOff'; then
+        printf 'container_backoff'
+    elif printf '%s' "$raw" | grep -Eqi 'Startup probe failed'; then
+        printf 'startup_probe_failed'
+    elif printf '%s' "$raw" | grep -Eqi 'Readiness probe failed'; then
+        printf 'readiness_probe_failed'
+    elif printf '%s' "$raw" | grep -Eqi 'mysql.sock|Can.t connect to local MySQL|rbd-db|database'; then
+        printf 'database_not_ready'
+    elif printf '%s' "$raw" | grep -Eqi 'Get pod log error|try resolving symlinks|no such file or directory'; then
+        printf 'component_log_collect_failed'
+    else
+        printf 'unknown_rainbond_timeout'
+    fi
+}
+
+function rainbond_timeout_reason_summary() {
+    case "${1:-}" in
+        storage_pvc_pending)
+            printf 'PVC or storage provisioning is not ready'
+            ;;
+        node_not_ready)
+            printf 'Kubernetes node is NotReady'
+            ;;
+        image_pull_failed)
+            printf 'Container image pull failed'
+            ;;
+        container_backoff)
+            printf 'Container is restarting or backed off'
+            ;;
+        startup_probe_failed)
+            printf 'Startup probe failed'
+            ;;
+        readiness_probe_failed)
+            printf 'Readiness probe failed'
+            ;;
+        database_not_ready)
+            printf 'Database component is not ready'
+            ;;
+        component_log_collect_failed)
+            printf 'Failed to collect component logs'
+            ;;
+        *)
+            printf 'Rainbond services did not become ready before timeout'
+            ;;
+    esac
+}
+
+function rainbond_collect_timeout_diagnostics() {
+    local wait_seconds="${1:-600}"
+    local attempt_id="${2:-${INSTALL_ATTEMPT_ID:-}}"
+    local pod_status pvc_status node_status raw root_cause_code root_cause_summary
+    local failed_components="" evidence_items="" pod_count=0
+
+    pod_status=$(rainbond_diag_kubectl get pods -n rbd-system --no-headers 2>&1 || true)
+    pvc_status=$(rainbond_diag_kubectl get pvc -n rbd-system --no-headers 2>&1 || true)
+    node_status=$(rainbond_diag_kubectl get nodes --no-headers 2>&1 || true)
+    raw="$pod_status
+$pvc_status
+$node_status"
+
+    while read -r pod_name ready status rest; do
+        [ -n "$pod_name" ] || continue
+        [ "$status" = "Succeeded" ] && continue
+        local current_ready="${ready%/*}"
+        local expected_ready="${ready#*/}"
+        local is_failed="false"
+        local pod_describe pod_log pod_evidence
+
+        if [ "$ready" = "$expected_ready" ] || [ "$current_ready" != "$expected_ready" ] || [ "$status" != "Running" ]; then
+            is_failed="true"
+        fi
+
+        if [ "$is_failed" = "true" ]; then
+            failed_components=$(rainbond_diag_append_json_string "$failed_components" "$pod_name")
+            pod_count=$((pod_count + 1))
+            pod_describe=$(rainbond_diag_kubectl describe pod "$pod_name" -n rbd-system 2>&1 || true)
+            pod_log=$(rainbond_diag_kubectl logs "$pod_name" -n rbd-system --all-containers --tail=80 2>&1 || true)
+            pod_evidence=$(printf '%s\n' "$pod_describe" | grep -E 'Warning|Failed|BackOff|Unhealthy|FailedScheduling|FailedMount|ImagePull|ErrImagePull|NodeNotReady|PersistentVolumeClaim' | head -n 8)
+            if [ -n "$pod_evidence" ]; then
+                evidence_items=$(rainbond_diag_append_json_string "$evidence_items" "$pod_name: $pod_evidence")
+            fi
+            if [ -n "$pod_log" ]; then
+                evidence_items=$(rainbond_diag_append_json_string "$evidence_items" "$pod_name log: $pod_log")
+            fi
+            raw="$raw
+$pod_describe
+$pod_log"
+        fi
+
+        if [ "$pod_count" -ge 8 ]; then
+            break
+        fi
+    done <<EOF
+$pod_status
+EOF
+
+    if [ -n "$pvc_status" ]; then
+        evidence_items=$(rainbond_diag_append_json_string "$evidence_items" "pvc: $pvc_status")
+    fi
+    if [ -n "$node_status" ]; then
+        evidence_items=$(rainbond_diag_append_json_string "$evidence_items" "nodes: $node_status")
+    fi
+
+    root_cause_code=$(rainbond_classify_timeout_reason "$raw")
+    root_cause_summary=$(rainbond_timeout_reason_summary "$root_cause_code")
+
+    printf '{"diagnosis_version":"v1","install_method":"%s","install_attempt_id":"%s","wait_seconds":%s,"root_cause_code":"%s","root_cause_summary":"%s","failed_components":[%s],"evidence":[%s]}' \
+        "$(rainbond_json_escape "${RAINBOND_INSTALL_METHOD:-single_node}")" \
+        "$(rainbond_json_escape "$attempt_id")" \
+        "$wait_seconds" \
+        "$(rainbond_json_escape "$root_cause_code")" \
+        "$(rainbond_json_escape "$root_cause_summary")" \
+        "$failed_components" \
+        "$evidence_items"
+}
+
+function docker_network_repair_message() {
+    local failed_check="${1:-unknown}"
+    local backend="${2:-unknown}"
+    local error_detail="${3:-}"
+
+    if [ "$LANG" == "zh_CN.UTF-8" ]; then
+        if [ "$failed_check" = "bridge" ]; then
+            cat <<EOF
+Docker 网络前置检查失败：默认 bridge 网络不存在或不可用
+检测命令: docker network inspect bridge
+错误信息: $(rainbond_diag_compact "$error_detail")
+修复命令:
+  sudo systemctl restart docker
+  docker network inspect bridge
+如果仍失败，请继续查看 Docker 服务日志:
+  sudo systemctl status docker --no-pager -l
+修复后请重新执行安装脚本。
+EOF
+        else
+            cat <<EOF
+Docker 网络前置检查失败：iptables nat 表 DOCKER 链不可用
+检测命令: iptables -t nat -S DOCKER
+当前 iptables backend: ${backend}
+错误信息: $(rainbond_diag_compact "$error_detail")
+修复命令:
+  sudo modprobe br_netfilter
+  sudo modprobe iptable_nat
+  sudo systemctl restart docker
+  sudo iptables -t nat -S DOCKER
+如果当前 backend 是 nf_tables 且仍失败，可切换 legacy 后重启 Docker:
+  sudo update-alternatives --set iptables /usr/sbin/iptables-legacy
+  sudo update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy
+  sudo systemctl restart docker
+修复后请重新执行安装脚本。
+EOF
+        fi
+    else
+        if [ "$failed_check" = "bridge" ]; then
+            cat <<EOF
+Docker network preflight failed: default bridge network is missing or unavailable
+Check command: docker network inspect bridge
+Error: $(rainbond_diag_compact "$error_detail")
+Repair commands:
+  sudo systemctl restart docker
+  docker network inspect bridge
+If it still fails, inspect Docker service logs:
+  sudo systemctl status docker --no-pager -l
+Re-run this installer after repairing Docker.
+EOF
+        else
+            cat <<EOF
+Docker network preflight failed: iptables nat DOCKER chain is unavailable
+Check command: iptables -t nat -S DOCKER
+Current iptables backend: ${backend}
+Error: $(rainbond_diag_compact "$error_detail")
+Repair commands:
+  sudo modprobe br_netfilter
+  sudo modprobe iptable_nat
+  sudo systemctl restart docker
+  sudo iptables -t nat -S DOCKER
+If the current backend is nf_tables and it still fails, switch to legacy and restart Docker:
+  sudo update-alternatives --set iptables /usr/sbin/iptables-legacy
+  sudo update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy
+  sudo systemctl restart docker
+Re-run this installer after repairing Docker.
+EOF
+        fi
+    fi
+}
+
+function check_docker_network_preflight() {
+    local backend bridge_error docker_chain_output docker_chain_status
+
+    if [ "${OS_TYPE:-}" != "Linux" ]; then
+        return 0
+    fi
+
+    if [ "$LANG" == "zh_CN.UTF-8" ]; then
+        send_info "开始 Docker 网络前置检查..."
+    else
+        send_info "Starting Docker network preflight..."
+    fi
+
+    if ! command -v docker >/dev/null 2>&1; then
+        if [ "$LANG" == "zh_CN.UTF-8" ]; then
+            send_error "Docker 命令不存在，请先安装 Docker 后重试"
+        else
+            send_error "Docker command not found. Please install Docker and try again."
+        fi
+        return 1
+    fi
+
+    if ! command -v iptables >/dev/null 2>&1; then
+        if [ "$LANG" == "zh_CN.UTF-8" ]; then
+            send_error "iptables 命令不存在，请先安装 iptables 后重试"
+        else
+            send_error "iptables command not found. Please install iptables and try again."
+        fi
+        return 1
+    fi
+
+    backend=$(iptables --version 2>/dev/null | sed -n 's/.*(\(.*\)).*/\1/p')
+    backend=${backend:-unknown}
+
+    if ! bridge_error=$(docker network inspect bridge >/dev/null 2>&1); then
+        bridge_error=$(docker network inspect bridge 2>&1 >/dev/null || true)
+        send_error "$(docker_network_repair_message bridge "$backend" "$bridge_error")"
+        return 1
+    fi
+
+    docker_chain_status=0
+    docker_chain_output=$(iptables -t nat -S DOCKER 2>&1) || docker_chain_status=$?
+    if [ "$docker_chain_status" -ne 0 ]; then
+        send_error "$(docker_network_repair_message docker_chain "$backend" "$docker_chain_output")"
+        return 1
+    fi
+
+    if [ "$LANG" == "zh_CN.UTF-8" ]; then
+        send_info "Docker 网络前置检查通过，iptables backend: ${backend}"
+    else
+        send_info "Docker network preflight passed, iptables backend: ${backend}"
+    fi
+    return 0
+}
+
 function send_msg() {
     dest_url="https://log.rainbond.com"
     #msg=${1:-"Terminating by userself."}
     if [ -z "$1" ]; then
         msg="Terminating by userself."
     else
-        msg=$(echo $1 | tr '"' " " | tr "'" " ")
+        msg=$1
     fi
+    msg_json=$(rainbond_json_escape "$msg")
+    os_info_json=$(rainbond_json_escape "${OS_INFO:-}")
+    eip_json=$(rainbond_json_escape "${EIP:-}")
+    uuid_json=$(rainbond_json_escape "${UUID:-}")
+    attempt_json=$(rainbond_json_escape "${INSTALL_ATTEMPT_ID:-}")
+    method_json=$(rainbond_json_escape "${RAINBOND_INSTALL_METHOD:-single_node}")
     # send a message to remote url
     curl --silent -H "Content-Type: application/json" -X POST "$dest_url/dindlog" \
-        -d "{\"message\":\"$msg\", \"os_info\":\"${OS_INFO}\", \"eip\":\"$EIP\", \"uuid\":\"${UUID}\"}" 2>&1 >/dev/null || :
+        -d "{\"message\":\"$msg_json\", \"os_info\":\"$os_info_json\", \"eip\":\"$eip_json\", \"uuid\":\"$uuid_json\", \"install_attempt_id\":\"$attempt_json\", \"install_method\":\"$method_json\"}" 2>&1 >/dev/null || :
 
     if [ "$msg" == "Terminating by userself." ]; then
         exit 1
     fi
+}
+
+function rainbond_final_event_enabled() {
+    [ "${RAINBOND_FINAL_EVENT_ENABLED:-false}" = "true" ] && [ -n "${UUID:-}" ]
+}
+
+function rainbond_signal_exit_code() {
+    case "${1:-}" in
+        INT)
+            printf '130'
+            ;;
+        TERM)
+            printf '143'
+            ;;
+        *)
+            printf '1'
+            ;;
+    esac
+}
+
+function rainbond_send_final_event() {
+    local final_status="${1:-failed}"
+    local reason="${2:-unknown}"
+    local exit_code="${3:-1}"
+    local details="${4:-}"
+    local details_field=""
+    local final_message
+
+    if [ "${RAINBOND_FINAL_STATUS_SENT:-false}" = "true" ]; then
+        return 0
+    fi
+    if ! rainbond_final_event_enabled; then
+        return 0
+    fi
+
+    RAINBOND_FINAL_STATUS_SENT=true
+    if [ -n "$details" ]; then
+        details_field=",\"details\":\"$(rainbond_json_escape "$(rainbond_diag_compact "$details")")\""
+    fi
+    final_message="{\"event_type\":\"install_final\",\"install_method\":\"$(rainbond_json_escape "${RAINBOND_INSTALL_METHOD:-single_node}")\",\"install_attempt_id\":\"$(rainbond_json_escape "${INSTALL_ATTEMPT_ID:-}")\",\"final_status\":\"$(rainbond_json_escape "$final_status")\",\"reason\":\"$(rainbond_json_escape "$reason")\",\"exit_code\":$exit_code${details_field}}"
+    send_msg "Rainbond install final event: ${final_message}"
+}
+
+function rainbond_handle_exit() {
+    local exit_code="${1:-0}"
+
+    if [ "$exit_code" -eq 0 ]; then
+        rainbond_send_final_event success exit_zero 0
+    else
+        rainbond_send_final_event failed exit_nonzero "$exit_code"
+    fi
+    return "$exit_code"
+}
+
+function rainbond_handle_signal() {
+    local signal_name="${1:-TERM}"
+    local exit_code
+
+    exit_code=$(rainbond_signal_exit_code "$signal_name")
+    rainbond_send_final_event aborted "signal_${signal_name}" "$exit_code"
+    return "$exit_code"
 }
 
 function send_info() {
@@ -54,8 +416,10 @@ function send_error() {
     send_msg "$error"
 }
 
-# Trap SIGINT signal when detect Ctrl + C
-trap send_msg SIGINT
+# Trap script exits and user/system interrupts so every started EID gets a final state.
+trap 'rainbond_exit_code=$?; rainbond_handle_exit "$rainbond_exit_code"; exit "$rainbond_exit_code"' EXIT
+trap 'rainbond_handle_signal INT; exit $?' INT
+trap 'rainbond_handle_signal TERM; exit $?' TERM
 
 function is_truthy() {
     case "$(echo "${1:-}" | tr '[:upper:]' '[:lower:]')" in
@@ -856,6 +1220,7 @@ fi
 OS_INFO=$(uname -a)
 UUID=$(echo "$OS_INFO" | ${MD5_CMD} | cut -b 1-32)
 
+RAINBOND_FINAL_EVENT_ENABLED=true
 send_msg "Starting Rainbond installation"
 
 ########################################
@@ -1686,6 +2051,10 @@ if [ "$pull_success" = false ]; then
   exit 1
 fi
 
+if ! check_docker_network_preflight; then
+  exit 1
+fi
+
 sleep 3
 
 # Start container
@@ -1805,6 +2174,7 @@ while [ $elapsed_time -le $MAX_SERVICE_WAIT ]; do
           send_info "🎉 All services are ready!"
         fi
         send_msg "Rainbond installation successfully"
+        rainbond_send_final_event success services_ready 0
         services_ready=true
         break
       fi
@@ -1833,14 +2203,19 @@ done
 printf "\r\033[K"
 
 if [ "$services_ready" = false ]; then
+  timeout_diagnosis=$(rainbond_collect_timeout_diagnostics "$MAX_SERVICE_WAIT" "$INSTALL_ATTEMPT_ID")
   if [ "$LANG" == "zh_CN.UTF-8" ]; then
     send_warn "Rainbond 服务启动超时（等待了 ${MAX_SERVICE_WAIT} 秒）"
+    send_msg "Rainbond 服务启动超时诊断: ${timeout_diagnosis}"
+    rainbond_send_final_event timeout services_timeout 124 "$timeout_diagnosis"
     send_info "服务可能仍在启动中，请使用以下命令检查状态："
     echo -e "${YELLOW}    docker exec -it rainbond bash${NC}"
     echo -e "${YELLOW}    kubectl get pod -n rbd-system${NC}"
     echo -e "${YELLOW}    kubectl describe pod <pod-name> -n rbd-system${NC}"
   else
     send_warn "Rainbond services startup timeout (waited ${MAX_SERVICE_WAIT} seconds)"
+    send_msg "Rainbond services startup timeout diagnosis: ${timeout_diagnosis}"
+    rainbond_send_final_event timeout services_timeout 124 "$timeout_diagnosis"
     send_info "Services may still be starting, please check status with:"
     echo -e "${YELLOW}    docker exec -it rainbond bash${NC}"
     echo -e "${YELLOW}    kubectl get pod -n rbd-system${NC}"
