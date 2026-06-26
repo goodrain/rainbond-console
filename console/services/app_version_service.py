@@ -292,7 +292,11 @@ class AppVersionService(object):
     def rewrite_snapshot_images_to_upstream(
             self, app_id: str, version_id: str,
             image_overrides: Optional[Dict[str, str]] = None) -> dict:
-        version_obj = app_snapshot_repo.get_by_snapshot_id_and_app(version_id, app_id)
+        relation, _ = self.get_hidden_template(app_id)
+        if not relation:
+            raise ServiceHandleException(msg="hidden template not found", msg_show="应用版本模板不存在", status_code=404)
+        version_obj = RainbondCenterAppVersion.objects.filter(
+            ID=version_id, app_id=relation.app_model_id).first()
         if not version_obj:
             raise ServiceHandleException(msg="snapshot version not found", msg_show="快照版本不存在", status_code=404)
         app_template = json.loads(version_obj.app_template)
@@ -462,15 +466,49 @@ class AppVersionService(object):
     def _build_app_template_from_share_info(self, tenant: Tenants, region: RegionConfig, user: Users,
                                             app: ServiceGroup, hidden_app_id: str, version: str,
                                             share_info: dict) -> dict:
-        services = share_info.get("share_service_list") or share_service.query_share_service_info(
+        services = share_service.query_share_service_info(
             team=tenant, group_id=app.ID, scope="team"
         )
+        overrides = share_info.get("share_service_list")
+        if overrides:
+            services = self._apply_share_overrides(services, overrides)
         plugins = share_info.get("share_plugin_list") or share_service.get_group_services_used_plugins(group_id=app.ID)
         plugins = share_service.get_plugins_group_items(plugins) if plugins else []
         k8s_resources = share_info.get("share_k8s_resources")
         if k8s_resources is None:
             k8s_resources = list(share_service.get_k8s_resources(app.ID))
         return self._assemble_app_template(tenant, region, app, hidden_app_id, version, services, plugins, k8s_resources)
+
+    @staticmethod
+    def _apply_share_overrides(services: list, overrides: list) -> list:
+        override_map = {}
+        for item in overrides:
+            key = item.get("service_key") or item.get("service_id", "")
+            if key:
+                override_map[key] = item
+        result = []
+        for svc in services:
+            svc_key = svc.get("service_key", "")
+            svc_id = svc.get("service_id", "")
+            override = override_map.get(svc_key) or override_map.get(svc_id)
+            if not override:
+                result.append(svc)
+                continue
+            svc = dict(svc)
+            override_envs = override.get("service_env_map_list")
+            if override_envs is not None:
+                env_map = {e.get("attr_name"): e for e in override_envs}
+                merged = []
+                for env in svc.get("service_env_map_list", []):
+                    replacement = env_map.pop(env.get("attr_name"), None)
+                    merged.append(replacement if replacement else env)
+                merged.extend(env_map.values())
+                svc["service_env_map_list"] = merged
+            override_conn = override.get("service_connect_info_map_list")
+            if override_conn is not None:
+                svc["service_connect_info_map_list"] = override_conn
+            result.append(svc)
+        return result
 
     def _assemble_app_template(self, tenant: Tenants, region: RegionConfig, app: ServiceGroup, hidden_app_id: str,
                                version: str, services: list, plugins: list, k8s_resources: Any) -> dict:
