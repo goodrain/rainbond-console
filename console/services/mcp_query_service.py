@@ -4,7 +4,10 @@ import json
 import logging
 import os
 import re
-from typing import Any, List, Optional, Tuple
+import time
+from typing import Any, Dict, List, Optional, Tuple
+
+import requests as http_requests
 
 from django.core import signing
 from django.core.exceptions import ObjectDoesNotExist
@@ -13,7 +16,7 @@ from console.constants import AppConstants, PluginCategoryConstants
 from console.models.main import PluginShareRecordEvent, ServiceShareRecordEvent
 from console.exception.exceptions import ExterpriseNotExistError, TenantNotExistError
 from console.exception.main import ServiceHandleException
-from console.repositories.app import service_repo, service_source_repo
+from console.repositories.app import app_market_repo, service_repo, service_source_repo
 from console.repositories.app_config import volume_repo, compile_env_repo, env_var_repo
 from console.repositories.app_snapshot import app_snapshot_repo
 from console.repositories.deploy_repo import deploy_repo
@@ -277,7 +280,8 @@ class MCPQueryService(object):
             self._tool_vertical_scale_component(), self._tool_close_apps(), self._tool_get_team_apps(),
             self._tool_get_app_version_overview(), self._tool_list_app_version_snapshots(),
             self._tool_get_app_version_snapshot_detail(), self._tool_create_app_version_snapshot(),
-            self._tool_delete_app_version_snapshot(), self._tool_rollback_app_version_snapshot(),
+            self._tool_delete_app_version_snapshot(), self._tool_rewrite_snapshot_images(),
+            self._tool_publish_snapshot_to_store(), self._tool_rollback_app_version_snapshot(),
             self._tool_list_app_version_rollback_records(), self._tool_get_app_version_rollback_record_detail(),
             self._tool_delete_app_version_rollback_record(), self._tool_create_app_from_snapshot_version(),
             self._tool_get_app_publish_candidates(),
@@ -395,6 +399,10 @@ class MCPQueryService(object):
             return self.create_app_version_snapshot(user, arguments)
         if name == "rainbond_delete_app_version_snapshot":
             return self.delete_app_version_snapshot(user, arguments)
+        if name == "rainbond_rewrite_snapshot_images":
+            return self.rewrite_snapshot_images(user, arguments)
+        if name == "rainbond_publish_snapshot_to_store":
+            return self.publish_snapshot_to_store(user, arguments)
         if name == "rainbond_rollback_app_version_snapshot":
             return self.rollback_app_version_snapshot(user, arguments)
         if name == "rainbond_list_app_version_rollback_records":
@@ -2364,6 +2372,110 @@ class MCPQueryService(object):
         version_id = self._require_int(arguments, "version_id")
         app_version_service.delete_snapshot(app.ID, version_id)
         return {"app_id": app.ID, "version_id": version_id, "deleted": True}
+
+    def rewrite_snapshot_images(self, user: Any, arguments: dict) -> dict:
+        team, app = self._get_team_app_context(
+            user,
+            self._require_string(arguments, "team_name"),
+            self._require_string(arguments, "region_name"),
+            self._require_int(arguments, "app_id"),
+        )
+        version_id = self._require_int(arguments, "version_id")
+        image_overrides = arguments.get("image_overrides") or None
+        result = app_version_service.rewrite_snapshot_images_to_upstream(app.ID, version_id, image_overrides)
+        return {"app_id": app.ID, **result}
+
+    def publish_snapshot_to_store(self, user: Any, arguments: dict) -> dict:
+        team, app = self._get_team_app_context(
+            user,
+            self._require_string(arguments, "team_name"),
+            self._require_string(arguments, "region_name"),
+            self._require_int(arguments, "app_id"),
+        )
+        version_id = self._require_int(arguments, "version_id")
+        market_id = self._require_int(arguments, "market_id")
+        app_name = self._require_string(arguments, "app_name")
+        version_str = self._require_string(arguments, "version")
+        version_alias = arguments.get("version_alias", "") or ""
+        description = arguments.get("description", "") or ""
+        publish_type = arguments.get("publish_type", "public") or "public"
+        logo = arguments.get("logo", "") or ""
+        store_app_id = arguments.get("store_app_id", "") or ""
+        arch = arguments.get("arch", "") or ""
+        rewrite_images = self._parse_bool_with_default(
+            arguments.get("rewrite_images"), True)
+
+        enterprise_id = team.enterprise_id
+        market = app_market_repo.get_app_market(
+            enterprise_id, str(market_id), raise_exception=True)
+        detail = app_version_service.get_snapshot_detail(app.ID, version_id)
+        if not detail:
+            raise ServiceHandleException(
+                msg="snapshot not found", msg_show="快照版本不存在",
+                status_code=404)
+        app_template = detail.get("template", {})
+        if rewrite_images:
+            app_template = app_version_service._rewrite_template_images_to_upstream(
+                app_template)
+        if not arch:
+            arch = app_template.get("arch", "amd64")
+
+        base_url = market.url.rstrip("/")
+        headers = {}
+        if market.access_key:
+            headers["Authorization"] = market.access_key
+        headers["Content-Type"] = "application/json"
+
+        if not store_app_id:
+            resp = http_requests.post(
+                f"{base_url}/app-server/openapi/apps",
+                headers=headers,
+                params={"marketDomain": market.domain},
+                json={
+                    "name": app_name,
+                    "desc": description,
+                    "publishType": publish_type,
+                    "logo": logo,
+                },
+                timeout=30,
+            )
+            if resp.status_code != 200:
+                raise ServiceHandleException(
+                    msg=f"app-store create app failed: {resp.text}",
+                    msg_show=f"应用市场创建应用失败: {resp.status_code}",
+                    status_code=resp.status_code)
+            store_app_id = resp.json().get("appKeyID", "")
+
+        app_template["group_key"] = store_app_id
+
+        resp = http_requests.post(
+            f"{base_url}/app-server/openapi/apps/{store_app_id}/versions",
+            headers=headers,
+            params={"marketDomain": market.domain},
+            json={
+                "version": version_str,
+                "versionAlias": version_alias,
+                "description": description,
+                "templateType": "RAM",
+                "template": app_template,
+                "arch": arch,
+            },
+            timeout=60,
+        )
+        if resp.status_code != 200:
+            raise ServiceHandleException(
+                msg=f"app-store create version failed: {resp.text}",
+                msg_show=f"应用市场创建版本失败: {resp.status_code}",
+                status_code=resp.status_code)
+        version_data = resp.json()
+        return {
+            "app_id": app.ID,
+            "store_app_id": store_app_id,
+            "store_version_id": version_data.get("id"),
+            "version": version_str,
+            "market_name": market.name,
+            "market_url": market.url,
+        }
 
     def rollback_app_version_snapshot(self, user: Any, arguments: dict) -> dict:
         team, app = self._get_team_app_context(
@@ -5918,6 +6030,117 @@ class MCPQueryService(object):
                     "version_id": {"type": "integer", "minimum": 1}
                 },
                 "required": ["team_name", "region_name", "app_id", "version_id"]
+            }
+        }
+
+    def _tool_rewrite_snapshot_images(self) -> dict:
+        return {
+            "name": "rainbond_rewrite_snapshot_images",
+            "description": (
+                "Rewrite a snapshot template's component images from internal registry "
+                "(goodrain.me) back to upstream originals. Each component's share_image and "
+                "service_image are set to the upstream image field. Arch-specific nodeAffinity "
+                "attributes are removed. Use this before publishing a template to the app store "
+                "so that end-users pull directly from upstream multi-arch registries."
+            ),
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "team_name": {"type": "string"},
+                    "region_name": {"type": "string"},
+                    "app_id": {"type": "integer", "minimum": 1},
+                    "version_id": {"type": "integer", "minimum": 1},
+                    "image_overrides": {
+                        "type": "object",
+                        "description": (
+                            "Optional mapping of component_name -> upstream_image to override "
+                            "the default (which uses each component's existing 'image' field). "
+                            "Use when the upstream image differs from what was deployed."
+                        ),
+                        "additionalProperties": {"type": "string"}
+                    }
+                },
+                "required": ["team_name", "region_name", "app_id", "version_id"]
+            }
+        }
+
+    def _tool_publish_snapshot_to_store(self) -> dict:
+        return {
+            "name": "rainbond_publish_snapshot_to_store",
+            "description": (
+                "Publish a snapshot version's template to a cloud app store. "
+                "Creates the app in the store if store_app_id is not provided, "
+                "then creates a version with the snapshot template. By default "
+                "rewrites component images to upstream originals (skipping "
+                "internal registry references). Use rainbond_query_cloud_markets "
+                "to find available market_id values."
+            ),
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "team_name": {"type": "string"},
+                    "region_name": {"type": "string"},
+                    "app_id": {
+                        "type": "integer", "minimum": 1,
+                        "description": "Rainbond app ID (source app)"
+                    },
+                    "version_id": {
+                        "type": "integer", "minimum": 1,
+                        "description": "Snapshot version ID to publish"
+                    },
+                    "market_id": {
+                        "type": "integer", "minimum": 1,
+                        "description": (
+                            "ID of the target cloud market "
+                            "(from rainbond_query_cloud_markets)"
+                        )
+                    },
+                    "app_name": {
+                        "type": "string",
+                        "description": "Display name in the app store"
+                    },
+                    "version": {
+                        "type": "string",
+                        "description": (
+                            "Version string (e.g. '1.14.2')"
+                        )
+                    },
+                    "version_alias": {"type": "string"},
+                    "description": {"type": "string"},
+                    "publish_type": {
+                        "type": "string",
+                        "enum": [
+                            "public", "private", "integral", "show"
+                        ],
+                        "description": "Visibility (default: public)"
+                    },
+                    "logo": {"type": "string"},
+                    "store_app_id": {
+                        "type": "string",
+                        "description": (
+                            "Existing app-store appKeyID to add a "
+                            "version to. Omit to create a new app."
+                        )
+                    },
+                    "arch": {
+                        "type": "string",
+                        "description": (
+                            "CPU architecture (e.g. 'amd64', "
+                            "'amd64&arm64'). Auto-detected if omitted."
+                        )
+                    },
+                    "rewrite_images": {
+                        "type": "boolean",
+                        "description": (
+                            "Rewrite component images to upstream "
+                            "originals (default: true)"
+                        )
+                    }
+                },
+                "required": [
+                    "team_name", "region_name", "app_id",
+                    "version_id", "market_id", "app_name", "version"
+                ]
             }
         }
 

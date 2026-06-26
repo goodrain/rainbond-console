@@ -259,6 +259,58 @@ class AppVersionService(object):
         template["plugins"] = [cls._normalize_template_image(plugin) for plugin in template.get("plugins", [])]
         return template
 
+    @staticmethod
+    def _rewrite_component_image_to_upstream(component: dict, image_overrides: Optional[Dict[str, str]] = None) -> dict:
+        data = dict(component)
+        cname = data.get("service_cname", "")
+        upstream = (image_overrides or {}).get(cname) or data.get("image", "")
+        if not upstream:
+            return data
+        data["share_image"] = upstream
+        data["service_image"] = {"image_url": upstream}
+        k8s_attrs = data.get("component_k8s_attributes") or []
+        data["component_k8s_attributes"] = [
+            attr for attr in k8s_attrs
+            if attr.get("name") != "affinity" or "kubernetes.io/arch" not in (attr.get("attribute_value") or "")
+        ]
+        return data
+
+    @classmethod
+    def _rewrite_template_images_to_upstream(cls, app_template: dict,
+                                             image_overrides: Optional[Dict[str, str]] = None) -> dict:
+        template = copy.deepcopy(app_template or {})
+        template["apps"] = [
+            cls._rewrite_component_image_to_upstream(c, image_overrides)
+            for c in template.get("apps", [])
+        ]
+        template["plugins"] = [
+            cls._rewrite_component_image_to_upstream(p, image_overrides)
+            for p in template.get("plugins", [])
+        ]
+        return template
+
+    def rewrite_snapshot_images_to_upstream(
+            self, app_id: str, version_id: str,
+            image_overrides: Optional[Dict[str, str]] = None) -> dict:
+        version_obj = app_snapshot_repo.get_by_snapshot_id_and_app(version_id, app_id)
+        if not version_obj:
+            raise ServiceHandleException(msg="snapshot version not found", msg_show="快照版本不存在", status_code=404)
+        app_template = json.loads(version_obj.app_template)
+        rewritten = self._rewrite_template_images_to_upstream(app_template, image_overrides)
+        version_obj.app_template = json.dumps(rewritten)
+        version_obj.save(update_fields=["app_template"])
+        rewrite_summary = []
+        for component in rewritten.get("apps", []):
+            rewrite_summary.append({
+                "component": component.get("service_cname", ""),
+                "upstream_image": component.get("share_image", ""),
+            })
+        return {
+            "version_id": version_id,
+            "components_rewritten": len(rewrite_summary),
+            "details": rewrite_summary,
+        }
+
     @classmethod
     def _is_vm_template_component(cls, component: Any) -> bool:
         if not isinstance(component, dict):
