@@ -1002,7 +1002,8 @@ class MarketAppService(object):
         for env in outer_envs:
             if env.get("attr_name"):
                 container_port = env.get("container_port", 0)
-                if env.get("attr_value") == "**None**":
+                attr_val = env.get("attr_value") or ""
+                if attr_val == "**None**" or (attr_val.startswith("**None:") and attr_val.endswith("**")):
                     env["attr_value"] = make_uuid()[:8]
                 envs.append(
                     TenantServiceEnvVar(

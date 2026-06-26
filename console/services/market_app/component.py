@@ -164,7 +164,7 @@ class Component(object):
             attr_name = env.get("attr_name", "")
             if not attr_name:
                 continue
-            if container_port == 0 and value == "**None**":
+            if container_port == 0 and (value == "**None**" or (value.startswith("**None:") and value.endswith("**"))):
                 value = self.component.service_id[:8]
             try:
                 env_var_service.check_env(self.component, attr_name, value)
