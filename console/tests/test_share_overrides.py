@@ -51,7 +51,7 @@ def _env(name, value):
     return {"attr_name": name, "attr_value": value, "name": name, "is_change": True}
 
 
-class TestApplyShareOverrides:
+class ApplyShareOverridesTests:
 
     def test_override_replaces_matching_env(self):
         services = [_svc("s1", "k1", "api", [_env("SECRET", "old"), _env("MODE", "api")])]
