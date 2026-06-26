@@ -79,6 +79,33 @@ class NewComponents(object):
         self.components_keys = components_keys
         self.components = self.create_components()
 
+    def _collect_hostname_remap(self, components: list, templates: dict) -> dict:
+        remap = {}
+        for cpt in components:
+            tmpl = templates.get(cpt.service_key)
+            if not tmpl:
+                continue
+            ports = self._template_to_ports(cpt, tmpl.get("port_map_list"))
+            for port_tmpl, port_obj in zip(tmpl.get("port_map_list") or [], ports):
+                old_name = port_tmpl.get("k8s_service_name", "")
+                new_name = port_obj.k8s_service_name
+                if old_name and new_name and old_name != new_name:
+                    remap[old_name] = new_name
+            self._port_cache[cpt.service_key] = ports
+        return remap
+
+    @staticmethod
+    def _apply_hostname_remap(value: str, remap: dict) -> str:
+        if not value or not remap:
+            return value
+        for old, new in remap.items():
+            if value == old:
+                value = new
+                continue
+            value = value.replace("://" + old + ":", "://" + new + ":")
+            value = value.replace("://" + old + "/", "://" + new + "/")
+        return value
+
     def create_components(self) -> List[Component]:
         """
         create component and related attributes
@@ -95,6 +122,9 @@ class NewComponents(object):
         # make a map of templates
         templates = {tmpl.get("service_key"): tmpl for tmpl in templates}
 
+        self._port_cache = {}  # type: dict
+        hostname_remap = self._collect_hostname_remap(components, templates)
+
         result = []
         for cpt in components:
             component_tmpl = templates.get(cpt.service_key)
@@ -102,14 +132,17 @@ class NewComponents(object):
             # component source
             component_source = self._template_to_component_source(cpt, component_tmpl)
             # ports
-            ports = self._template_to_ports(cpt, component_tmpl.get("port_map_list"))  # type: ignore[union-attr]
+            ports = self._port_cache.get(cpt.service_key) or \
+                self._template_to_ports(cpt, component_tmpl.get("port_map_list"))  # type: ignore[union-attr]
             # NOTE: component_tmpl can be None if service_key not found in templates dict
             # envs
             inner_envs = component_tmpl.get("service_env_map_list", [])  # type: ignore[union-attr]
             outer_envs = component_tmpl.get("service_connect_info_map_list", [])  # type: ignore[union-attr]
-            envs = self._template_to_envs(cpt, inner_envs, outer_envs, ports)
+            envs = self._template_to_envs(cpt, inner_envs, outer_envs, ports, hostname_remap)
             # volumes
-            volumes, config_files = self._template_to_volumes(cpt, component_tmpl.get("service_volume_map_list"))  # type: ignore[union-attr]
+            volumes, config_files = self._template_to_volumes(
+                cpt, component_tmpl.get("service_volume_map_list"),  # type: ignore[union-attr]
+                hostname_remap)
             # probe
             probes = self._template_to_probes(cpt, component_tmpl.get("probes"))  # type: ignore[union-attr]
             # extend info
@@ -262,7 +295,8 @@ class NewComponents(object):
         )
 
     def _template_to_envs(self, component: TenantServiceInfo, inner_envs: Any, outer_envs: Any,
-                          ports: List[TenantServicesPort]) -> List[TenantServiceEnvVar]:
+                          ports: List[TenantServicesPort],
+                          hostname_remap: Optional[dict] = None) -> List[TenantServiceEnvVar]:
         if not inner_envs and not outer_envs:
             return []
         envs = []
@@ -270,6 +304,8 @@ class NewComponents(object):
         for env in inner_envs:
             if not env.get("attr_name"):
                 continue
+            attr_value = env.get("attr_value", "")
+            attr_value = self._apply_hostname_remap(attr_value, hostname_remap or {})
             envs.append(
                 TenantServiceEnvVar(
                     tenant_id=component.tenant_id,
@@ -277,7 +313,7 @@ class NewComponents(object):
                     container_port=0,
                     name=env.get("name"),
                     attr_name=env.get("attr_name"),
-                    attr_value=env.get("attr_value"),
+                    attr_value=attr_value,
                     is_change=env.get("is_change", True),
                     scope="inner"))
         for env in outer_envs:
@@ -366,7 +402,8 @@ class NewComponents(object):
             service_alias=component.service_alias,
             region_id=self.region.region_id)
 
-    def _template_to_volumes(self, component: TenantServiceInfo, volumes: Any) -> Tuple[List[Any], List[TenantServiceConfigurationFile]]:
+    def _template_to_volumes(self, component: TenantServiceInfo, volumes: Any,
+                             hostname_remap: Optional[dict] = None) -> Tuple[List[Any], List[TenantServiceConfigurationFile]]:
         if not volumes:
             return [], []
         volumes2 = []
@@ -375,10 +412,12 @@ class NewComponents(object):
             try:
                 if volume["volume_type"] == "config-file" and volume["file_content"] != "":
                     settings = None
+                    file_content = self._apply_hostname_remap(
+                        volume["file_content"], hostname_remap or {})
                     config_file = TenantServiceConfigurationFile(
                         service_id=component.component_id,
                         volume_name=volume["volume_name"],
-                        file_content=volume["file_content"])
+                        file_content=file_content)
                     config_files.append(config_file)
                 else:
                     original_volume_type = volume["volume_type"]
