@@ -292,7 +292,11 @@ class AppVersionService(object):
     def rewrite_snapshot_images_to_upstream(
             self, app_id: str, version_id: str,
             image_overrides: Optional[Dict[str, str]] = None) -> dict:
-        version_obj = app_snapshot_repo.get_by_snapshot_id_and_app(version_id, app_id)
+        relation, _ = self.get_hidden_template(app_id)
+        if not relation:
+            raise ServiceHandleException(msg="hidden template not found", msg_show="应用版本模板不存在", status_code=404)
+        version_obj = RainbondCenterAppVersion.objects.filter(
+            ID=version_id, app_id=relation.app_model_id).first()
         if not version_obj:
             raise ServiceHandleException(msg="snapshot version not found", msg_show="快照版本不存在", status_code=404)
         app_template = json.loads(version_obj.app_template)

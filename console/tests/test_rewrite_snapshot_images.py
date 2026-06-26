@@ -72,7 +72,7 @@ def _make_template(components: list, plugins: list = None) -> dict:
     }
 
 
-class TestRewriteComponentImageToUpstream:
+class RewriteComponentImageToUpstreamTests:
 
     def test_basic_rewrite(self):
         component = _make_component("api", "langgenius/dify-api:1.14.2", "internal.goodrain.me/dev-api:20260625")
@@ -127,7 +127,7 @@ class TestRewriteComponentImageToUpstream:
         assert result["component_k8s_attributes"] == []
 
 
-class TestRewriteTemplateImagesToUpstream:
+class RewriteTemplateImagesToUpstreamTests:
 
     def test_rewrites_all_components(self):
         template = _make_template([
@@ -173,7 +173,7 @@ class TestRewriteTemplateImagesToUpstream:
         assert result["plugins"] == []
 
 
-class TestRewriteSnapshotImagesToUpstream:
+class RewriteSnapshotImagesToUpstreamTests:
 
     def test_rewrites_and_saves(self):
         template = _make_template([
@@ -222,7 +222,7 @@ class TestRewriteSnapshotImagesToUpstream:
         assert saved_template["apps"][0]["share_image"] == "langgenius/dify-api:2.0.0"
 
 
-class TestRewriteWithRealDifyTemplate:
+class RewriteWithRealDifyTemplateTests:
     """Verify rewrite against a realistic Dify-like template structure."""
 
     DIFY_COMPONENTS = [
