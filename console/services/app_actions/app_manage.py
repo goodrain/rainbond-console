@@ -488,7 +488,8 @@ class AppManageService(AppManageBase):
                 continue
             container_port = env.get("container_port", 0)
             if container_port == 0:
-                if env.get("attr_value") == "**None**":
+                attr_val = env.get("attr_value") or ""
+                if attr_val == "**None**" or (attr_val.startswith("**None:") and attr_val.endswith("**")):
                     env["attr_value"] = service.service_id[:8]
                 code, msg, env_data = env_var_service. \
                     add_service_env_var(tenant, service, container_port,

@@ -510,7 +510,7 @@ class MarketService(object):
             is_change = env.get("is_change", True)
             if not attr_name:
                 continue
-            if container_port == 0 and value == "**None**":
+            if container_port == 0 and (value == "**None**" or (value.startswith("**None:") and value.endswith("**"))):
                 value = self.service.service_id[:8]
             try:
                 env_var_service.create_env_var(self.service, container_port, name, attr_name, value, is_change, scope)
@@ -595,7 +595,8 @@ class MarketService(object):
         container_port = env.get("container_port", 0)
         if 'attr_name' not in env:
             return None
-        if container_port == 0 and env.get("attr_value") == "**None**":
+        attr_val = env.get("attr_value") or ""
+        if container_port == 0 and (attr_val == "**None**" or (attr_val.startswith("**None:") and attr_val.endswith("**"))):
             env["attr_value"] = self.service.service_id[:8]
         result = {
             "container_port": container_port,
