@@ -76,6 +76,17 @@ class TestApplyHostnameRemap:
             "http://sandbox:8194", remap)
         assert result == "http://sandbox-abcd:8194"
 
+    def test_hostname_port_without_scheme(self):
+        remap = {"gitea-db": "gitea-db-a842"}
+        result = NewComponents._apply_hostname_remap("gitea-db:5432", remap)
+        assert result == "gitea-db-a842:5432"
+
+    def test_hostname_port_no_false_positive_with_scheme(self):
+        remap = {"redis": "redis-c3d4"}
+        result = NewComponents._apply_hostname_remap("redis://redis:6379/1", remap)
+        assert result.startswith("redis://")
+        assert "redis-c3d4:6379" in result
+
     def test_config_file_content(self):
         remap = {"api": "api-1234", "web": "web-5678"}
         config = (

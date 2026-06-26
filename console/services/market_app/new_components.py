@@ -104,6 +104,8 @@ class NewComponents(object):
                 continue
             value = value.replace("://" + old + ":", "://" + new + ":")
             value = value.replace("://" + old + "/", "://" + new + "/")
+            if value.startswith(old + ":") and "://" not in value:
+                value = new + value[len(old):]
         return value
 
     def create_components(self) -> List[Component]:
