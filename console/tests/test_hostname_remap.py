@@ -38,7 +38,7 @@ if not hasattr(QuerySet, "__class_getitem__"):
 from console.services.market_app.new_components import NewComponents  # noqa: E402
 
 
-class TestApplyHostnameRemap:
+class ApplyHostnameRemapTests:
 
     def test_exact_match(self):
         assert NewComponents._apply_hostname_remap("db-postgres", {"db-postgres": "db-postgres-a1b2"}) == "db-postgres-a1b2"
@@ -106,7 +106,7 @@ class TestApplyHostnameRemap:
         assert remap == original
 
 
-class TestCollectHostnameRemap:
+class CollectHostnameRemapTests:
 
     def _make_port_tmpl(self, k8s_name, port, alias):
         return {

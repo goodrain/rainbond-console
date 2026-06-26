@@ -2651,6 +2651,10 @@ class MCPQueryService(object):
         enterprise_id = team.enterprise_id
         market = app_market_repo.get_app_market(
             enterprise_id, str(market_id), raise_exception=True)
+        if not market:
+            raise ServiceHandleException(
+                msg="market not found", msg_show="应用市场不存在",
+                status_code=404)
         detail = app_version_service.get_snapshot_detail(app.ID, version_id)
         if not detail:
             raise ServiceHandleException(
