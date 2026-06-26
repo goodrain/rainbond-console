@@ -92,7 +92,7 @@ def _fake_original_app(governance_mode="BUILD_IN_SERVICE_MESH"):
 # ===================================================================
 
 
-class TestResolveNonePlaceholder:
+class ResolveNonePlaceholderTests:
     """Test the ``_resolve_none_placeholder`` method."""
 
     def test_plain_none_returns_8_chars(self):
@@ -167,7 +167,7 @@ class TestResolveNonePlaceholder:
 # ===================================================================
 
 
-class TestTemplateToEnvsNoneProcessing:
+class TemplateToEnvsNoneProcessingTests:
     """Test that ``_template_to_envs`` processes ``**None**`` for both
     inner and outer envs, including the ``**None:group**`` variant.
     """
