@@ -351,6 +351,24 @@
 - **敏感 env 参数化**:快照模版把 `SECRET_KEY`/`DB_PASSWORD`/inner API Key/`WEAVIATE_API_KEY` 等**明文冻结**。上架前必须改为**安装时生成或用户填写**(Rainbond 模版支持 env 占位/必填项),否则全网用户共享同一套密钥=安全事故。
 - **对外 URL 模板化**:`CONSOLE_API_URL`/`CONSOLE_WEB_URL`/`APP_*_URL` 含本次网关域名,换环境即失效。应**留空走相对路径 + 靠 nginx 单入口同源**,安装时无需回填。
 
+### 9.7 M3 Phase 1 实证(2026-06-26): 净化快照→回装验证通过
+
+**调研结论**: 平台原生 `**None**` 机制仅覆盖 outer envs(连接信息),Dify 全部敏感 env 在 inner envs 中——原生机制不适用。跨组件密钥组(同一 DB_PASSWORD 需 4 组件一致)无平台支持。
+
+**采用三步安装法(零平台代码改动)**:
+1. `create_app_version_snapshot` 传 `share_service_list` 覆盖 env 值 → 净化快照(version_id 501, 23 个 env 清空)
+2. `create_app_from_snapshot_version(is_deploy=false)` → 9 组件建模不部署
+3. 批量 `manage_component_envs(upsert)` 注入 6 组新密钥 + 修 host env(同租户 DNS 后缀) + 更新 nginx config-file → `operate_app(start)`
+
+**验证通过**: 9/9 running,nginx 入口 `http://gr3e3f70-80-tynwrm27.dev.goodrain.com/console/api/setup` 返回 `{"step":"not_started"}`; exec 进 api pod 确认 6 组密钥全为新生成值、4 个 URL env 为空,**无一个原始密钥泄漏、无网关域名残留**。
+
+**新发现**:
+- `operate_app(deploy)` 对 market-installed 组件只触发 build 不启动 pod,需再 `operate_app(start)`
+- 同租户 DNS 碰撞可管理(平台自动后缀 k8s_service_name)但代价大(~40 env 要改);正式场景建议装入独立 namespace
+- `_hydrate_snapshot_delivery_info` 会覆盖 `share_image`/`service_image` 为内部镜像,image 改写需在 M3 Phase 2 另行处理
+
+实证记录:`docs/plans/poc/m3-phase1-sanitize-verify.md`。验证 app dify-m3-verify(app_id 3156)待清理;原 dify-poc(3141)保留。
+
 ### 9.6 MCP 动作空间实测(印证 M1 + 新增缺口)
 
 - **M1 三闭环工具痛感实测排序(确认)**:`get_app_health_overview`(最痛,8 组件逐个查才知哪个 abnormal)> `wait_for_build_completion`(每次部署靠 for+sleep+curl 自旋)> `get_config_file_content`(本轮 nginx config-file 用到,价值确认)。**实现裁剪(2026-06-25 M1)**:`get_config_file_content` 已被现有 `rainbond_get_config_file`(#1930)覆盖,故 M1 第三件落地为更缺的 `analyze_env_conflicts`(env 多源冲突检测,敏感值脱敏),`get_app_health_overview` 仅对异常组件深挖 blocker、`wait_for_build_completion` 采有界阻塞轮询(默认 60s/上限 120s)。三者均已 TDD 实现+注册+test-manifest 登记。
