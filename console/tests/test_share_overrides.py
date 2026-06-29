@@ -133,3 +133,19 @@ class ApplyShareOverridesTests:
         overrides = [{"service_key": "k3", "service_env_map_list": [_env("X", "Y")]}]
         result = AppVersionService._apply_share_overrides(services, overrides)
         assert len(result) == 9
+
+    def test_override_without_name_preserves_original_fields(self):
+        # MCP share_service_list overrides carry only {attr_name, attr_value}.
+        # The field-merge must keep the original env's `name` (and `is_change`),
+        # otherwise install bulk_create hits NOT NULL on the env `name` column
+        # ((1048, "Column 'name' cannot be null")).
+        services = [_svc("s1", "k1", "api", [_env("SECRET", "old")])]
+        overrides = [{"service_id": "s1", "service_env_map_list": [
+            {"attr_name": "SECRET", "attr_value": "**None:secret_key**"},
+        ]}]
+        result = AppVersionService._apply_share_overrides(services, overrides)
+        secret_env = next(e for e in result[0]["service_env_map_list"]
+                          if e["attr_name"] == "SECRET")
+        assert secret_env["attr_value"] == "**None:secret_key**"
+        assert secret_env.get("name") == "SECRET"
+        assert secret_env.get("is_change") is True

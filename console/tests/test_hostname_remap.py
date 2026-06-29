@@ -145,7 +145,7 @@ class CollectHostnameRemapTests:
 
     def test_collision_produces_remap(self):
         from unittest.mock import patch, MagicMock
-        from console.exception.main import ErrK8sServiceNameExists
+        from console.exception.bcode import ErrK8sServiceNameExists
         from www.models.main import TenantServiceInfo
 
         cpt = MagicMock(spec=TenantServiceInfo)
