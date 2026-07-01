@@ -9481,6 +9481,115 @@
       "status": "active"
     },
     {
+      "id": "openapi.service-config.env-note-optional",
+      "title": "OpenAPI service env note is optional",
+      "title_zh": "OpenAPI 组件环境变量备注可省略",
+      "interface_type": "service_method",
+      "interface": "console.services.app_config.env_service.AppEnvVarService.update_or_create_envs",
+      "code_paths": [
+        "console/services/app_config/env_service.py",
+        "openapi/serializer/app_serializer.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/openapi_service_config_validation_test.py",
+          "selector": "OpenAPIServiceConfigValidationTest.test_update_or_create_envs_defaults_missing_note"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "openapi.service-config.port-alias-blank",
+      "title": "OpenAPI service port alias can be blank for auto generation",
+      "title_zh": "OpenAPI 组件端口别名可留空自动生成",
+      "interface_type": "view_endpoint",
+      "interface": "openapi.serializer.app_serializer.ComponentPortReqSerializers",
+      "code_paths": [
+        "openapi/serializer/app_serializer.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/openapi_service_config_validation_test.py",
+          "selector": "OpenAPIServiceConfigValidationTest.test_component_port_serializer_allows_blank_alias_for_auto_generation"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "openapi.service-config.validation-error-shape",
+      "title": "OpenAPI validation errors omit traceback details",
+      "title_zh": "OpenAPI 参数校验错误不返回 traceback",
+      "interface_type": "package_function",
+      "interface": "console.views.base.custom_exception_handler",
+      "code_paths": [
+        "console/views/base.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/openapi_service_config_validation_test.py",
+          "selector": "OpenAPIServiceConfigValidationTest.test_validation_error_response_does_not_expose_traceback"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "openapi.service-config.http-set-headers-optional",
+      "title": "OpenAPI HTTP gateway set_headers is optional",
+      "title_zh": "OpenAPI HTTP 网关 set_headers 可省略",
+      "interface_type": "view_endpoint",
+      "interface": "openapi.serializer.gateway_serializer.HTTPConfiguration",
+      "code_paths": [
+        "openapi/serializer/gateway_serializer.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/openapi_service_config_validation_test.py",
+          "selector": "OpenAPIServiceConfigValidationTest.test_http_configuration_defaults_missing_set_headers"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "openapi.service-config.domain-set-headers-service-default",
+      "title": "HTTP rule config service defaults missing set_headers",
+      "title_zh": "HTTP 策略高级配置服务层默认缺失 set_headers",
+      "interface_type": "service_method",
+      "interface": "console.services.app_config.domain_service.DomainService.update_http_rule_config",
+      "code_paths": [
+        "console/services/app_config/domain_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/openapi_service_config_validation_test.py",
+          "selector": "OpenAPIServiceConfigValidationTest.test_http_rule_config_defaults_missing_set_headers_in_service"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "openapi.service-config.port-open-outer-app-context",
+      "title": "Resolve app context when OpenAPI opens outer service ports",
+      "title_zh": "OpenAPI 开启组件外部端口时解析应用上下文",
+      "interface_type": "service_method",
+      "interface": "console.services.app_config.port_service.AppPortService.manage_port",
+      "code_paths": [
+        "console/services/app_config/port_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/openapi_service_config_validation_test.py",
+          "selector": "OpenAPIServiceConfigValidationTest.test_manage_port_resolves_app_when_opening_outer_port"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "openapi.enterprise.service-overview",
       "title": "Enterprise component status overview via OpenAPI",
       "title_zh": "OpenAPI 企业组件状态总览",

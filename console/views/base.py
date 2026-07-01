@@ -32,7 +32,7 @@ from console.utils.perms import get_perms, APP
 from default_region import make_uuid
 from goodrain_web import errors
 from rest_framework import exceptions, status
-from rest_framework.exceptions import NotFound, ValidationError
+from rest_framework.exceptions import ErrorDetail, NotFound, ValidationError
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -43,6 +43,18 @@ from console.login.jwt_authentication import (JSONWebTokenAuthentication, JWTAut
 from console.services.auth.authentication import InternalTokenAuthentication
 
 logger = logging.getLogger("default")
+
+
+def _normalize_error_detail(detail: Any) -> Any:
+    if isinstance(detail, ErrorDetail):
+        return str(detail)
+    if isinstance(detail, dict):
+        return {key: _normalize_error_detail(value) for key, value in detail.items()}
+    if isinstance(detail, list):
+        return [_normalize_error_detail(value) for value in detail]
+    if isinstance(detail, tuple):
+        return tuple(_normalize_error_detail(value) for value in detail)
+    return detail
 
 
 class BaseApiView(APIView):
@@ -585,13 +597,12 @@ def custom_exception_handler(exc: Exception, context: Any) -> Optional[Response]
             data = {"code": 400, "msg": exc.message, "msg_show": "数据中心操作故障 {}".format(core_error)}
         return Response(data, status=data["code"])  # type: ignore[arg-type]
     elif isinstance(exc, ValidationError):
-        logger.error(exc)
+        logger.debug(exc)
         return Response({
             "detail": "参数错误",
-            "err": exc.detail,
+            "err": _normalize_error_detail(exc.detail),
             "code": 20400,
             "error_type": exc.__class__.__name__,
-            "error_trace": traceback.format_exc()
         }, status=exc.status_code)
     elif isinstance(exc, exceptions.APIException):
         headers = {}
