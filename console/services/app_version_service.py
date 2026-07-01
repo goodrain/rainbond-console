@@ -445,7 +445,11 @@ class AppVersionService(object):
                 merged = []
                 for env in svc.get("service_env_map_list", []):
                     replacement = env_map.pop(env.get("attr_name"), None)
-                    merged.append(replacement if replacement else env)
+                    # Field-merge the override onto the original env so untouched
+                    # fields (e.g. human-readable `name`, `is_change`) are preserved.
+                    # A bare {attr_name, attr_value} override must not drop `name`,
+                    # otherwise install bulk_create hits NOT NULL on the name column.
+                    merged.append({**env, **replacement} if replacement else env)
                 merged.extend(env_map.values())
                 svc["service_env_map_list"] = merged
             override_conn = override.get("service_connect_info_map_list")
