@@ -772,6 +772,25 @@
       "status": "active"
     },
     {
+      "id": "console.app-config.volume-service-module-export",
+      "title": "App config volume service module export",
+      "title_zh": "应用配置存储服务模块导出",
+      "interface_type": "package_function",
+      "interface": "console.services.app_config.volume_service.volume_service",
+      "code_paths": [
+        "console/services/app_config/volume_service.py",
+        "console/services/app_config/__init__.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_config_volume_service_import_test.py",
+          "selector": "AppConfigVolumeServiceImportTests.test_volume_service_module_exports_package_singleton"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.app-export.query-status",
       "title": "Query application export status",
       "title_zh": "查询应用导出状态",
@@ -7087,6 +7106,61 @@
       "status": "active"
     },
     {
+      "id": "console.rke2.cluster-install-structured-helm-error",
+      "title": "Return structured Rainbond install errors without marking integration started",
+      "title_zh": "Rainbond 安装失败时返回结构化错误且不进入集成中状态",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.rke2.ClusterRKEInstallRB.post",
+      "code_paths": [
+        "console/views/rke2.py",
+        "console/utils/k8s_cli.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/rke2_cluster_errors_test.py",
+          "selector": "ClusterRKEErrorTests.test_cluster_install_returns_structured_helm_error_without_saving_integrating"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.rke2.cluster-missing-metadata-404",
+      "title": "Return 404 when requested RKE cluster metadata is missing",
+      "title_zh": "请求的 RKE 集群元数据缺失时返回 404",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.rke2.ClusterRKE.get",
+      "code_paths": [
+        "console/views/rke2.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/rke2_cluster_errors_test.py",
+          "selector": "ClusterRKEErrorTests.test_cluster_get_returns_structured_404_when_cluster_metadata_missing"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.rke2.helm-subprocess-error-sanitized",
+      "title": "Sanitize Helm subprocess failures from Rainbond install",
+      "title_zh": "清洗 Rainbond 安装中的 Helm 子进程失败信息",
+      "interface_type": "workflow",
+      "interface": "console.utils.k8s_cli.K8sClient.install_rainbond",
+      "code_paths": [
+        "console/utils/k8s_cli.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/rke2_cluster_errors_test.py",
+          "selector": "ClusterRKEErrorTests.test_install_rainbond_returns_sanitized_subprocess_error"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.region.update-region-config",
       "title": "Persist region config via update or add based on existing key",
       "title_zh": "依据配置项是否存在选择更新或新增数据中心配置",
@@ -9475,6 +9549,115 @@
         {
           "path": "console/tests/openapi_team_apps_close_test.py",
           "selector": "TeamAppsCloseTest.test_post_unpacks_three_return_values_from_batch_action"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "openapi.service-config.env-note-optional",
+      "title": "OpenAPI service env note is optional",
+      "title_zh": "OpenAPI 组件环境变量备注可省略",
+      "interface_type": "service_method",
+      "interface": "console.services.app_config.env_service.AppEnvVarService.update_or_create_envs",
+      "code_paths": [
+        "console/services/app_config/env_service.py",
+        "openapi/serializer/app_serializer.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/openapi_service_config_validation_test.py",
+          "selector": "OpenAPIServiceConfigValidationTest.test_update_or_create_envs_defaults_missing_note"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "openapi.service-config.port-alias-blank",
+      "title": "OpenAPI service port alias can be blank for auto generation",
+      "title_zh": "OpenAPI 组件端口别名可留空自动生成",
+      "interface_type": "view_endpoint",
+      "interface": "openapi.serializer.app_serializer.ComponentPortReqSerializers",
+      "code_paths": [
+        "openapi/serializer/app_serializer.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/openapi_service_config_validation_test.py",
+          "selector": "OpenAPIServiceConfigValidationTest.test_component_port_serializer_allows_blank_alias_for_auto_generation"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "openapi.service-config.validation-error-shape",
+      "title": "OpenAPI validation errors omit traceback details",
+      "title_zh": "OpenAPI 参数校验错误不返回 traceback",
+      "interface_type": "package_function",
+      "interface": "console.views.base.custom_exception_handler",
+      "code_paths": [
+        "console/views/base.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/openapi_service_config_validation_test.py",
+          "selector": "OpenAPIServiceConfigValidationTest.test_validation_error_response_does_not_expose_traceback"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "openapi.service-config.http-set-headers-optional",
+      "title": "OpenAPI HTTP gateway set_headers is optional",
+      "title_zh": "OpenAPI HTTP 网关 set_headers 可省略",
+      "interface_type": "view_endpoint",
+      "interface": "openapi.serializer.gateway_serializer.HTTPConfiguration",
+      "code_paths": [
+        "openapi/serializer/gateway_serializer.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/openapi_service_config_validation_test.py",
+          "selector": "OpenAPIServiceConfigValidationTest.test_http_configuration_defaults_missing_set_headers"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "openapi.service-config.domain-set-headers-service-default",
+      "title": "HTTP rule config service defaults missing set_headers",
+      "title_zh": "HTTP 策略高级配置服务层默认缺失 set_headers",
+      "interface_type": "service_method",
+      "interface": "console.services.app_config.domain_service.DomainService.update_http_rule_config",
+      "code_paths": [
+        "console/services/app_config/domain_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/openapi_service_config_validation_test.py",
+          "selector": "OpenAPIServiceConfigValidationTest.test_http_rule_config_defaults_missing_set_headers_in_service"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "openapi.service-config.port-open-outer-app-context",
+      "title": "Resolve app context when OpenAPI opens outer service ports",
+      "title_zh": "OpenAPI 开启组件外部端口时解析应用上下文",
+      "interface_type": "service_method",
+      "interface": "console.services.app_config.port_service.AppPortService.manage_port",
+      "code_paths": [
+        "console/services/app_config/port_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/openapi_service_config_validation_test.py",
+          "selector": "OpenAPIServiceConfigValidationTest.test_manage_port_resolves_app_when_opening_outer_port"
         }
       ],
       "test_type": "regression",
