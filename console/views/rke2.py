@@ -19,9 +19,14 @@ logger = logging.getLogger("default")
 
 class BaseClusterView(AlowAnyApiView):
     def handle_exception(self, e: Any, message: str = "Operation failed", message_cn: str = "操作失败") -> Response:
-        logger.error(f"{message}: {str(e)}")
-        result = general_message(500, message, message_cn, bean={"error": str(e)})
+        error = e if isinstance(e, dict) else str(e)
+        logger.error("%s: %s", message, error)
+        result = general_message(500, message, message_cn, bean={"error": error})
         return Response(result, status=500)
+
+    def cluster_not_found(self, cluster_id: str = "") -> Response:
+        result = general_message(404, "Cluster not found.", "集群不存在", bean={"cluster_id": cluster_id})
+        return Response(result, status=404)
 
 
 # 获取集群部署状态的接口
@@ -31,13 +36,14 @@ class ClusterRKE(BaseClusterView):
         try:
             cluster_id = request.GET.get("cluster_id", "")
             cluster = rke_cluster.get_rke_cluster(cluster_id=cluster_id)
-            # NOTE: get_rke_cluster may return None; legacy code accesses attrs directly (backlog).
+            if not cluster:
+                return self.cluster_not_found(cluster_id)
             result = general_message(200, "Get cluster successful.", "获取集群成功", bean={
-                "event_id": cluster.event_id,  # type: ignore[union-attr]
-                "create_status": cluster.create_status,  # type: ignore[union-attr]
-                "cluster_name": cluster.cluster_name,  # type: ignore[union-attr]
-                "cluster_id": cluster.cluster_id,  # type: ignore[union-attr]
-                "server_host": cluster.server_host,  # type: ignore[union-attr]
+                "event_id": cluster.event_id,
+                "create_status": cluster.create_status,
+                "cluster_name": cluster.cluster_name,
+                "cluster_id": cluster.cluster_id,
+                "server_host": cluster.server_host,
             })
             return Response(result, status=200)
         except Exception as e:
@@ -256,8 +262,9 @@ class ClusterRKERBStatus(BaseClusterView):
                 result = general_message(200, "No cluster config available.", "无可用的集群配置", bean=[])
                 return Response(result, status=200)
             k8s_api = K8sClient(cluster.config)  # type: ignore[union-attr]
-            rb_components_status, rb_installed = k8s_api.rb_components_status(cluster.third_db,  # type: ignore[union-attr]
-                                                                            cluster.third_hub)  # type: ignore[union-attr]
+            rb_components_status, rb_installed = k8s_api.rb_components_status(
+                cluster.third_db,  # type: ignore[union-attr]
+                cluster.third_hub)  # type: ignore[union-attr]
             if rb_installed:
                 cluster.create_status = "integrated"  # type: ignore[union-attr]
                 cluster.save()  # type: ignore[union-attr]
@@ -323,20 +330,20 @@ class ClusterRBComponentLogSSE(BaseClusterView):
             container_name = request.GET.get('container_name', '')
             follow = request.GET.get('follow', 'true').lower() == 'true'
             tail_lines = int(request.GET.get('tail_lines', '100'))
-            
+
             if not cluster_id:
                 return self._sse_error("cluster_id is required", "集群ID是必需的")
-            
+
             if not pod_name:
                 return self._sse_error("pod_name is required", "Pod名称是必需的")
-            
+
             # 获取集群配置
             cluster = rke_cluster.get_rke_cluster(cluster_id=cluster_id)
             if not cluster or not cluster.config:
                 return self._sse_error("No cluster config available", "无可用的集群配置")
-            
+
             k8s_api = K8sClient(cluster.config)
-            
+
             def generate_log_stream() -> Iterator[str]:
                 log_stream = None
                 try:
@@ -346,9 +353,9 @@ class ClusterRBComponentLogSSE(BaseClusterView):
                         "message": f"Connected to {pod_name} logs",
                         "timestamp": time.time()
                     })
-                    
+
                     logger.info(f"Starting SSE log stream for pod {pod_name}, container: {container_name}, follow: {follow}")
-                    
+
                     # 获取日志流
                     log_stream = k8s_api.get_pod_logs_stream(
                         pod_name=pod_name,
@@ -357,10 +364,10 @@ class ClusterRBComponentLogSSE(BaseClusterView):
                         follow=follow,
                         tail_lines=tail_lines
                     )
-                    
+
                     log_count = 0
                     last_heartbeat = time.time()
-                    
+
                     for log_line in log_stream:
                         if log_line and log_line.strip():
                             # 检查是否是错误消息
@@ -380,7 +387,7 @@ class ClusterRBComponentLogSSE(BaseClusterView):
                                     "timestamp": time.time()
                                 })
                                 log_count += 1
-                                
+
                                 # 防止无限制的日志输出，每1000行发送一次心跳
                                 if log_count % 1000 == 0:
                                     yield self._format_sse_message({
@@ -399,14 +406,14 @@ class ClusterRBComponentLogSSE(BaseClusterView):
                                     "timestamp": current_time
                                 })
                                 last_heartbeat = current_time
-                        
+
                 except GeneratorExit:
                     # 客户端断开连接
                     logger.info(f"Client disconnected from log stream for pod {pod_name}")
                 except Exception as e:
                     error_msg = str(e)
                     logger.error(f"Error in log stream for pod {pod_name}: {error_msg}")
-                    
+
                     # 发送具体的错误信息
                     if "不存在" in error_msg or "not found" in error_msg.lower():
                         yield self._format_sse_message({
@@ -429,13 +436,13 @@ class ClusterRBComponentLogSSE(BaseClusterView):
                                 log_stream.close()
                         except Exception as cleanup_e:
                             logger.warning(f"Failed to cleanup log stream for pod {pod_name}: {str(cleanup_e)}")
-                    
+
                     yield self._format_sse_message({
                         "type": "disconnected",
                         "message": "Log stream ended",
                         "timestamp": time.time()
                     })
-            
+
             response = StreamingHttpResponse(
                 generate_log_stream(),
                 content_type='text/event-stream'
@@ -445,16 +452,16 @@ class ClusterRBComponentLogSSE(BaseClusterView):
             response['Content-Encoding'] = 'identity'
             response['Access-Control-Allow-Origin'] = '*'
             response['Access-Control-Allow-Headers'] = 'Cache-Control'
-            
+
             return response
-            
+
         except Exception as e:
             return self._sse_error(f"Failed to start log stream: {str(e)}", "启动日志流失败")
-    
+
     def _format_sse_message(self, data: dict) -> str:
         """格式化 SSE 消息"""
         return f"data: {json.dumps(data, ensure_ascii=False)}\n\n"
-    
+
     def _sse_error(self, error_message: str, error_message_cn: str) -> StreamingHttpResponse:
         """返回 SSE 错误响应"""
         def error_stream() -> Iterator[str]:
@@ -464,7 +471,7 @@ class ClusterRBComponentLogSSE(BaseClusterView):
                 "message_cn": error_message_cn,
                 "timestamp": time.time()
             })
-        
+
         response = StreamingHttpResponse(
             error_stream(),
             content_type='text/event-stream'

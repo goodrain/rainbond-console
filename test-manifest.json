@@ -7087,6 +7087,61 @@
       "status": "active"
     },
     {
+      "id": "console.rke2.cluster-install-structured-helm-error",
+      "title": "Return structured Rainbond install errors without marking integration started",
+      "title_zh": "Rainbond 安装失败时返回结构化错误且不进入集成中状态",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.rke2.ClusterRKEInstallRB.post",
+      "code_paths": [
+        "console/views/rke2.py",
+        "console/utils/k8s_cli.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/rke2_cluster_errors_test.py",
+          "selector": "ClusterRKEErrorTests.test_cluster_install_returns_structured_helm_error_without_saving_integrating"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.rke2.cluster-missing-metadata-404",
+      "title": "Return 404 when requested RKE cluster metadata is missing",
+      "title_zh": "请求的 RKE 集群元数据缺失时返回 404",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.rke2.ClusterRKE.get",
+      "code_paths": [
+        "console/views/rke2.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/rke2_cluster_errors_test.py",
+          "selector": "ClusterRKEErrorTests.test_cluster_get_returns_structured_404_when_cluster_metadata_missing"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.rke2.helm-subprocess-error-sanitized",
+      "title": "Sanitize Helm subprocess failures from Rainbond install",
+      "title_zh": "清洗 Rainbond 安装中的 Helm 子进程失败信息",
+      "interface_type": "workflow",
+      "interface": "console.utils.k8s_cli.K8sClient.install_rainbond",
+      "code_paths": [
+        "console/utils/k8s_cli.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/rke2_cluster_errors_test.py",
+          "selector": "ClusterRKEErrorTests.test_install_rainbond_returns_sanitized_subprocess_error"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.region.update-region-config",
       "title": "Persist region config via update or add based on existing key",
       "title_zh": "依据配置项是否存在选择更新或新增数据中心配置",
