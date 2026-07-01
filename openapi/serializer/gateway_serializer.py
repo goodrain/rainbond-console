@@ -61,7 +61,7 @@ class HTTPConfiguration(serializers.Serializer):
     proxy_connect_timeout = serializers.IntegerField(help_text="连接超时时间", default=75)
     proxy_read_timeout = serializers.IntegerField(help_text="读超时时间", default=60)
     proxy_send_timeout = serializers.IntegerField(help_text="发送超时时间", default=60)
-    set_headers = HTTPHeaderSerializer(many=True)
+    set_headers = HTTPHeaderSerializer(many=True, required=False, default=list)
 
 
 class PostHTTPGatewayRuleSerializer(serializers.Serializer):
