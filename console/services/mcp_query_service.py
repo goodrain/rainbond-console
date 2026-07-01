@@ -1734,9 +1734,9 @@ class MCPQueryService(object):
             port = self._require_int(arguments, "port")
             action = self._normalize_port_action(self._require_string(arguments, "action"))
             protocol_value = arguments.get("protocol")
-            protocol = None
+            update_protocol: Optional[str] = None
             if action == "change_protocol":
-                protocol = self._normalize_port_protocol(protocol_value)
+                update_protocol = self._normalize_port_protocol(protocol_value)
             port_alias = arguments.get("port_alias")
             k8s_service_name = arguments.get("k8s_service_name", "") or ""
             code, msg, port_info = port_service.manage_port(
@@ -1745,7 +1745,7 @@ class MCPQueryService(object):
                 app.region_name,
                 port,
                 action,
-                protocol,
+                update_protocol,
                 port_alias,
                 k8s_service_name,
                 user.nick_name,
