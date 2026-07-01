@@ -120,6 +120,8 @@ class MCPQueryService(object):
         "open_outer", "only_open_outer", "close_outer", "open_inner",
         "close_inner", "change_protocol", "change_port_alias"
     )
+    PORT_PROTOCOL_ENUM = ("http", "https", "stream", "grpc")
+    PORT_PROTOCOL_DESCRIPTION = "端口协议，仅支持小写: http、https、stream、grpc。"
     PORT_ACTION_ALIASES = {
         "open_public": "open_outer",
         "open_outer": "open_outer",
@@ -1719,7 +1721,7 @@ class MCPQueryService(object):
             }
         if operation == "add":
             port = self._require_int(arguments, "port")
-            protocol = self._require_string(arguments, "protocol")
+            protocol = self._normalize_port_protocol(arguments.get("protocol"))
             port_alias = arguments.get("port_alias", "") or ""
             is_inner_service = bool(arguments.get("is_inner_service", False))
             code, msg, port_info = port_service.add_service_port(
@@ -1732,6 +1734,8 @@ class MCPQueryService(object):
             port = self._require_int(arguments, "port")
             action = self._normalize_port_action(self._require_string(arguments, "action"))
             protocol = arguments.get("protocol")
+            if action == "change_protocol":
+                protocol = self._normalize_port_protocol(protocol)
             port_alias = arguments.get("port_alias")
             k8s_service_name = arguments.get("k8s_service_name", "") or ""
             code, msg, port_info = port_service.manage_port(
@@ -1820,7 +1824,14 @@ class MCPQueryService(object):
             self._require_int(arguments, "app_id"),
             self._require_string(arguments, "service_id"),
         )
-        created = port_service.batch_add_service_ports(team, service, ports_list, user.nick_name, app=app)
+        normalized_ports = []
+        for item in ports_list:
+            if not isinstance(item, dict):
+                raise ServiceHandleException(msg="invalid ports", msg_show="批量新增端口时 ports 每项必须是对象", status_code=400)
+            normalized_item = dict(item)
+            normalized_item["protocol"] = self._normalize_port_protocol(normalized_item.get("protocol"))
+            normalized_ports.append(normalized_item)
+        created = port_service.batch_add_service_ports(team, service, normalized_ports, user.nick_name, app=app)
         return {"ports": [self._serialize_model_item(p) for p in created]}
 
     def _batch_update_ports(self, user: Any, arguments: dict, action: str, ports_list: Any) -> dict:
@@ -1834,9 +1845,18 @@ class MCPQueryService(object):
         results = []
         for item in ports_list:
             port_num = item if isinstance(item, int) else int(item.get("port", item))
+            protocol = None
+            if action == "change_protocol":
+                if not isinstance(item, dict):
+                    raise ServiceHandleException(
+                        msg="invalid ports",
+                        msg_show="批量修改协议时 ports 每项必须包含 port 和 protocol",
+                        status_code=400,
+                    )
+                protocol = self._normalize_port_protocol(item.get("protocol"))
             code, msg, port_info = port_service.manage_port(
                 team, service, app.region_name, port_num, action,
-                None, None, "", user.nick_name, app=app,
+                protocol, None, "", user.nick_name, app=app,
             )
             if code != 200:
                 self._raise_port_tool_error("port operation failed", msg, code)
@@ -1924,6 +1944,36 @@ class MCPQueryService(object):
                     status_code=412,
                 )
 
+    def _resolve_component_volume_target(self, service: Any, arguments: dict) -> Any:
+        volume = None
+        if arguments.get("volume_id") not in (None, ""):
+            volume_id = self._require_int(arguments, "volume_id")
+            volume = volume_repo.get_service_volume_by_pk(volume_id)
+            if volume and getattr(volume, "service_id", None) != service.service_id:
+                raise ServiceHandleException(
+                    msg="volume not in current service",
+                    msg_show="存储不属于当前组件，请先调用 summary 获取当前组件的 volume_id",
+                    status_code=400,
+                )
+            if volume:
+                return volume
+
+        if self._has_value(arguments, "volume_path"):
+            volume = volume_repo.get_service_volume_by_path(service.service_id, self._require_string(arguments, "volume_path"))
+            if volume:
+                return volume
+
+        if self._has_value(arguments, "volume_name"):
+            volume = volume_repo.get_service_volume_by_name(service.service_id, self._require_string(arguments, "volume_name"))
+            if volume:
+                return volume
+
+        raise ServiceHandleException(
+            msg="volume is null",
+            msg_show="存储不存在，请先调用 summary 获取当前组件的 volume_id，或传当前组件已有的 volume_path/volume_name",
+            status_code=400,
+        )
+
     def manage_component_storage(self, user: Any, arguments: dict) -> dict:
         team, app, service = self._get_team_app_service_context(
             user,
@@ -1996,8 +2046,11 @@ class MCPQueryService(object):
             )
             return {"created": True, "volume": self._serialize_model_item(volume)}
         if operation == "update_volume":
-            volume_id = self._require_int(arguments, "volume_id")
-            new_volume_path = self._require_string(arguments, "new_volume_path")
+            volume = self._resolve_component_volume_target(service, arguments)
+            if self._has_value(arguments, "new_volume_path"):
+                new_volume_path = self._require_string(arguments, "new_volume_path")
+            else:
+                new_volume_path = volume.volume_path
             new_file_content = arguments.get("new_file_content")
             volume_capacity = arguments.get("volume_capacity")
             mode = arguments.get("mode")
@@ -2005,9 +2058,6 @@ class MCPQueryService(object):
                 mode = self._ensure_volume_mode(mode)
             if volume_capacity is not None:
                 volume_capacity = self._parse_int_with_default(volume_capacity, 0)
-            volume = volume_repo.get_service_volume_by_pk(volume_id)
-            if not volume:
-                raise ServiceHandleException(msg="volume is null", msg_show="存储不存在", status_code=400)
             service_config = volume_repo.get_service_config_file(volume)
             if volume.volume_type == "config-file" and not service_config:
                 raise ServiceHandleException(msg="file_content is null", msg_show="配置文件内容不存在", status_code=400)
@@ -2040,7 +2090,8 @@ class MCPQueryService(object):
                 service_config.save()
             return {"updated": True, "volume": self._serialize_model_item(volume)}
         if operation == "delete_volume":
-            volume_id = self._require_int(arguments, "volume_id")
+            volume = self._resolve_component_volume_target(service, arguments)
+            volume_id = getattr(volume, "ID", None) or getattr(volume, "volume_id", None)
             force = None
             if "force" in arguments:
                 force = "1" if bool(arguments.get("force")) else "0"
@@ -3868,8 +3919,8 @@ class MCPQueryService(object):
 
     def get_region_detail(self, user: Any, arguments: dict) -> dict:
         self._ensure_enterprise_admin(user)
-        region_id = self._require_string(arguments, "region_id")
-        region_model = self._get_region_model(user, region_id)
+        region_model = self._resolve_region_detail_model(user, arguments)
+        region_id = self._value(region_model, "region_id", "")
         region_data = self._serialize_region(region_model)
         if arguments.get("extend_info", False):
             region_detail = self._get_region_context(user, region_id, check_status=True)
@@ -4124,6 +4175,25 @@ class MCPQueryService(object):
         if getattr(region, "enterprise_id", None) != getattr(user, "enterprise_id", None):
             self._raise_permission_denied("无该企业集群访问权限")
         return region
+
+    def _resolve_region_detail_model(self, user: Any, arguments: dict) -> Any:
+        region_id = (arguments.get("region_id") or "").strip()
+        region_name = (arguments.get("region_name") or "").strip()
+
+        if region_id:
+            try:
+                return self._get_region_model(user, region_id)
+            except ServiceHandleException as exc:
+                if exc.status_code != 404:
+                    raise
+                if region_name and region_name != region_id:
+                    raise
+                return self._get_region_by_name_context(user, region_name or region_id)
+
+        if region_name:
+            return self._get_region_by_name_context(user, region_name)
+
+        self._require_string(arguments, "region_id")
 
     def _get_region_by_name_context(self, user: Any, region_name: str) -> Any:
         region = region_services.get_enterprise_region_by_region_name(
@@ -4470,6 +4540,18 @@ class MCPQueryService(object):
             status_code=400,
         )
 
+    def _normalize_port_protocol(self, protocol: Any) -> str:
+        if not isinstance(protocol, str) or not protocol.strip():
+            raise ServiceHandleException(msg="invalid protocol", msg_show="参数protocol无效", status_code=400)
+        normalized = protocol.strip().lower()
+        if normalized in self.PORT_PROTOCOL_ENUM:
+            return normalized
+        raise ServiceHandleException(
+            msg="invalid protocol",
+            msg_show="端口 protocol 无效，可选值为: {}".format(", ".join(self.PORT_PROTOCOL_ENUM)),
+            status_code=400,
+        )
+
     @staticmethod
     def _normalize_component_operation(operation: Optional[str], aliases: dict, allowed: Any, label: str) -> str:
         operation = (operation or "").strip().lower()
@@ -4488,6 +4570,14 @@ class MCPQueryService(object):
             "type": "string",
             "pattern": cls.PORT_ALIAS_PATTERN,
             "description": cls.PORT_ALIAS_DESCRIPTION,
+        }
+
+    @classmethod
+    def _port_protocol_schema(cls) -> dict:
+        return {
+            "type": "string",
+            "enum": list(cls.PORT_PROTOCOL_ENUM),
+            "description": cls.PORT_PROTOCOL_DESCRIPTION,
         }
 
     @classmethod
@@ -7026,7 +7116,7 @@ class MCPQueryService(object):
                     "service_id": {"type": "string"},
                     "operation": {"type": "string"},
                     "port": {"type": "integer", "minimum": 1},
-                    "protocol": {"type": "string"},
+                    "protocol": self._port_protocol_schema(),
                     "port_alias": self._port_alias_schema(),
                     "is_inner_service": {"type": "boolean"},
                     "action": {
@@ -7096,7 +7186,7 @@ class MCPQueryService(object):
                                     "type": "object",
                                     "properties": {
                                         "port": {"type": "integer", "minimum": 1},
-                                        "protocol": {"type": "string"},
+                                        "protocol": self._port_protocol_schema(),
                                         "is_inner_service": {"type": "boolean"},
                                         "enable_inner": {"type": "boolean"},
                                         "port_alias": self._port_alias_schema(),
@@ -7106,7 +7196,7 @@ class MCPQueryService(object):
                             ]
                         },
                     },
-                    "protocol": {"type": "string"},
+                    "protocol": self._port_protocol_schema(),
                     "port_alias": self._port_alias_schema(),
                     "is_inner_service": {"type": "boolean", "description": "新增端口时是否默认开启对内服务"},
                     "enable_inner": {"type": "boolean", "description": "新增端口时更推荐用这个字段表达是否开启对内服务"},
@@ -7156,9 +7246,10 @@ class MCPQueryService(object):
                 "高层存储管理工具，统一处理组件 volume 和挂载关系 mnt。"
                 "各 operation 必填/常用参数组合（注意 create 与 update 使用不同的参数名，不要混用）："
                 "create_volume 必填 volume_name + volume_type + volume_path（config-file 类型还需 file_content）；"
-                "update_volume 必填 volume_id + new_volume_path（config-file 类型用 new_file_content 改内容，可选 volume_capacity 改容量），"
+                "update_volume 推荐先 summary 获取 volume_id，也可用当前组件已有的 volume_path 或 volume_name 定位；"
+                "new_volume_path 仅在修改路径时传，config-file 类型用 new_file_content 改内容，可选 volume_capacity 改容量；"
                 "改存储用 new_volume_path / new_file_content，不是 volume_path / file_content；"
-                "delete_volume 必填 volume_id（有依赖时需 force=true 强制删除）；"
+                "delete_volume 推荐先 summary 获取 volume_id，也可用当前组件已有的 volume_path 或 volume_name 定位（有依赖时需 force=true 强制删除）；"
                 "create_mnt 必填 mounts 数组（每项含 dep_vol_id + mount_path）；"
                 "delete_mnt 必填 dep_vol_id。"
             ),
@@ -7187,7 +7278,8 @@ class MCPQueryService(object):
                     "new_volume_path": {
                         "type": "string",
                         "description": (
-                            "仅用于 update_volume：修改已存在存储的挂载路径（config-file 类型即容器内文件完整路径）。"
+                            "仅用于 update_volume：修改已存在存储的挂载路径（config-file 类型即容器内文件完整路径）；"
+                            "如果只改容量、权限或配置文件内容，可不传，系统会沿用当前 volume_path。"
                             "create_volume 不要用这个字段，应使用 volume_path。"
                         ),
                     },
@@ -7215,7 +7307,7 @@ class MCPQueryService(object):
                         "description": (
                             "create_volume 必填：容器内挂载路径。volume_type=config-file 时填容器内文件的完整路径，"
                             "例如 /etc/nginx/conf.d/default.conf；其它类型填挂载目录如 /data。"
-                            "修改已存在存储路径请改用 update_volume + new_volume_path。"
+                            "update_volume/delete_volume 时也可填当前组件已有 volume_path 来定位目标；修改路径请改用 new_volume_path。"
                         ),
                     },
                     "volume_capacity": {"type": "integer", "minimum": 0},
@@ -7431,14 +7523,18 @@ class MCPQueryService(object):
     def _tool_get_region_detail(self) -> dict:
         return {
             "name": "rainbond_get_region_detail",
-            "description": "Get cluster detail by region ID. Only available for enterprise administrators.",
+            "description": "Get cluster detail by region ID or region name. Only available for enterprise administrators.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
                     "region_id": {"type": "string"},
+                    "region_name": {"type": "string"},
                     "extend_info": {"type": "boolean"}
                 },
-                "required": ["region_id"]
+                "anyOf": [
+                    {"required": ["region_id"]},
+                    {"required": ["region_name"]}
+                ]
             }
         }
 
