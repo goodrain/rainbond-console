@@ -322,6 +322,17 @@ class MCPQueryServiceToolVisibilityTests(SimpleTestCase):
         self.assertIn("update_protocol", tool["inputSchema"]["properties"]["operation"]["enum"])
         self.assertIn("update_alias", tool["inputSchema"]["properties"]["operation"]["enum"])
 
+    # capability_id: console.gateway.port-protocol-schema
+    def test_manage_component_ports_tool_schema_exposes_protocol_enum(self):
+        tool = mcp_query_service._tool_manage_component_ports()
+
+        protocol_schema = tool["inputSchema"]["properties"]["protocol"]
+        port_item_schema = tool["inputSchema"]["properties"]["ports"]["items"]["oneOf"][1]["properties"]["protocol"]
+
+        self.assertEqual(protocol_schema["enum"], ["http", "https", "stream", "grpc"])
+        self.assertEqual(port_item_schema["enum"], ["http", "https", "stream", "grpc"])
+        self.assertIn("小写", protocol_schema["description"])
+
     # capability_id: console.gateway.port-constraints-schema
     def test_manage_component_ports_tool_schema_exposes_port_constraints(self):
         tool = mcp_query_service._tool_manage_component_ports()
@@ -579,6 +590,129 @@ class MCPQueryServiceToolVisibilityTests(SimpleTestCase):
         self.assertEqual(result["region_name"], "rainbond")
         self.assertEqual(result["region_alias"], "Rainbond Region")
         self.assertEqual(result["url"], "https://region.example.com")
+
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    # capability_id: console.enterprise.region-detail-by-name
+    def test_get_region_detail_accepts_region_name(self, mock_get_region):
+        user = Obj(
+            user_id=1,
+            enterprise_id="eid-1",
+            nick_name="admin",
+            real_name="Admin User",
+            email="admin@example.com",
+            is_active=True,
+            is_enterprise_admin=True,
+        )
+        mock_get_region.return_value = Obj(
+            region_id="r1",
+            enterprise_id="eid-1",
+            region_name="rainbond",
+            region_alias="Rainbond Region",
+            region_type='[]',
+            url="https://region.example.com",
+            token="token-1",
+            wsurl="wss://region.example.com/ws",
+            httpdomain="apps.example.com",
+            tcpdomain="1.1.1.1",
+            scope="private",
+            ssl_ca_cert="ca",
+            cert_file="cert",
+            key_file="key",
+            status="1",
+            desc="region-desc",
+            provider="",
+            provider_cluster_id="",
+            create_time=None,
+        )
+
+        result = mcp_query_service.call_tool(user, "rainbond_get_region_detail", {"region_name": "rainbond"})
+
+        self.assertEqual(result["region_id"], "r1")
+        self.assertEqual(result["region_name"], "rainbond")
+        mock_get_region.assert_called_once_with("eid-1", "rainbond")
+
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.region_services.get_region_by_region_id")
+    # capability_id: console.enterprise.region-detail-region-name-fallback
+    def test_get_region_detail_treats_missing_region_id_as_region_name(self, mock_get_region_by_id,
+                                                                        mock_get_region_by_name):
+        user = Obj(
+            user_id=1,
+            enterprise_id="eid-1",
+            nick_name="admin",
+            real_name="Admin User",
+            email="admin@example.com",
+            is_active=True,
+            is_enterprise_admin=True,
+        )
+        mock_get_region_by_id.return_value = None
+        mock_get_region_by_name.return_value = Obj(
+            region_id="r1",
+            enterprise_id="eid-1",
+            region_name="rainbond",
+            region_alias="Rainbond Region",
+            region_type='[]',
+            url="https://region.example.com",
+            token="token-1",
+            wsurl="wss://region.example.com/ws",
+            httpdomain="apps.example.com",
+            tcpdomain="1.1.1.1",
+            scope="private",
+            ssl_ca_cert="ca",
+            cert_file="cert",
+            key_file="key",
+            status="1",
+            desc="region-desc",
+            provider="",
+            provider_cluster_id="",
+            create_time=None,
+        )
+
+        result = mcp_query_service.call_tool(
+            user, "rainbond_get_region_detail", {"region_id": "rainbond", "region_name": "rainbond"})
+
+        self.assertEqual(result["region_id"], "r1")
+        mock_get_region_by_name.assert_called_once_with("eid-1", "rainbond")
+
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.region_services.get_region_by_region_id")
+    # capability_id: console.enterprise.region-detail-no-cross-fallback
+    def test_get_region_detail_does_not_override_distinct_bad_region_id(self, mock_get_region_by_id,
+                                                                        mock_get_region_by_name):
+        user = Obj(
+            user_id=1,
+            enterprise_id="eid-1",
+            nick_name="admin",
+            real_name="Admin User",
+            email="admin@example.com",
+            is_active=True,
+            is_enterprise_admin=True,
+        )
+        mock_get_region_by_id.return_value = None
+
+        with self.assertRaises(ServiceHandleException) as context:
+            mcp_query_service.call_tool(
+                user, "rainbond_get_region_detail", {"region_id": "missing-id", "region_name": "rainbond"})
+
+        self.assertEqual(context.exception.status_code, 404)
+        mock_get_region_by_name.assert_not_called()
+
+    # capability_id: console.enterprise.region-detail-schema
+    def test_get_region_detail_schema_accepts_region_name(self):
+        user = Obj(
+            user_id=1,
+            enterprise_id="eid-1",
+            nick_name="admin",
+            real_name="Admin User",
+            email="admin@example.com",
+            is_active=True,
+            is_enterprise_admin=True,
+        )
+
+        tool = next(tool for tool in mcp_query_service.list_tools(user) if tool["name"] == "rainbond_get_region_detail")
+
+        self.assertIn("region_id", tool["inputSchema"]["properties"])
+        self.assertIn("region_name", tool["inputSchema"]["properties"])
 
     @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
     @patch("console.services.mcp_query_service.enterprise_services.get_nodes")
@@ -2280,10 +2414,10 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
                      k8s_service_name="alias-1", mapping_port=80)
         port80.to_dict = lambda: {"container_port": 80, "protocol": "http",
                                   "is_inner_service": True, "is_outer_service": False}
-        port8080 = Obj(tenant_id="team-1", service_id="svc-1", container_port=8080, protocol="tcp",
+        port8080 = Obj(tenant_id="team-1", service_id="svc-1", container_port=8080, protocol="stream",
                        is_inner_service=False, is_outer_service=False, port_alias="ALIAS18080",
                        k8s_service_name="alias-1", mapping_port=8080)
-        port8080.to_dict = lambda: {"container_port": 8080, "protocol": "tcp",
+        port8080.to_dict = lambda: {"container_port": 8080, "protocol": "stream",
                                     "is_inner_service": False, "is_outer_service": False}
         mock_get_team.return_value = self.team
         mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
@@ -2302,8 +2436,8 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
                 "service_id": "svc-1",
                 "operation": "add",
                 "ports": [
-                    {"port": 80, "protocol": "http", "enable_inner": True},
-                    {"port": 8080, "protocol": "tcp"},
+                    {"port": 80, "protocol": " HTTP ", "enable_inner": True},
+                    {"port": 8080, "protocol": "Stream"},
                 ],
             },
         )
@@ -2315,7 +2449,9 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         passed_ports = call_args[0][2]
         self.assertEqual(len(passed_ports), 2)
         self.assertEqual(passed_ports[0]["port"], 80)
+        self.assertEqual(passed_ports[0]["protocol"], "http")
         self.assertEqual(passed_ports[1]["port"], 8080)
+        self.assertEqual(passed_ports[1]["protocol"], "stream")
 
     @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
     @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
@@ -2411,6 +2547,125 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         self.assertEqual(mock_manage_port.call_args_list[0][0][3], 80)
         self.assertEqual(mock_manage_port.call_args_list[1][0][3], 443)
         self.assertEqual(mock_manage_port.call_args_list[0][0][4], "open_outer")
+        self.assertEqual(mock_manage_port.call_args_list[1][0][4], "open_outer")
+
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.group_service.get_app_by_id")
+    @patch("console.services.mcp_query_service.service_repo.get_service_by_service_id")
+    @patch("console.services.mcp_query_service.group_service_relation_repo.get_services_by_group")
+    @patch("console.services.mcp_query_service.port_service.manage_port")
+    # capability_id: console.component.port-protocol-normalize
+    def test_manage_component_ports_update_protocol_normalizes_protocol(
+            self,
+            mock_manage_port,
+            mock_relations,
+            mock_get_service,
+            mock_get_app,
+            mock_get_region,
+            mock_get_team,
+    ):
+        port = Obj(container_port=80, protocol="https", is_inner_service=True, is_outer_service=False)
+        port.to_dict = lambda: {"container_port": 80, "protocol": "https"}
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
+        mock_get_app.return_value = self.app
+        mock_get_service.return_value = self.service
+        mock_relations.return_value = [Obj(service_id="svc-1")]
+        mock_manage_port.return_value = (200, "success", port)
+
+        mcp_query_service.call_tool(
+            self.user,
+            "rainbond_manage_component_ports",
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "app_id": 12,
+                "service_id": "svc-1",
+                "operation": "update_protocol",
+                "port": 80,
+                "protocol": " HTTPS ",
+            },
+        )
+
+        self.assertEqual(mock_manage_port.call_args[0][5], "https")
+
+    @patch("console.services.mcp_query_service.port_service.manage_port")
+    # capability_id: console.component.port-protocol-validation
+    def test_manage_component_ports_update_protocol_rejects_invalid_protocol_before_service_call(
+            self,
+            mock_manage_port,
+    ):
+        with self.assertRaises(ServiceHandleException) as cm:
+            mcp_query_service.call_tool(
+                self.user,
+                "rainbond_manage_component_ports",
+                {
+                    "team_name": "demo-team",
+                    "region_name": "rainbond",
+                    "app_id": 12,
+                    "service_id": "svc-1",
+                    "operation": "update_protocol",
+                    "port": 80,
+                    "protocol": "tcp",
+                },
+            )
+
+        self.assertEqual(cm.exception.status_code, 400)
+        self.assertIn("protocol", cm.exception.msg_show)
+        self.assertIn("http", cm.exception.msg_show)
+        self.assertFalse(mock_manage_port.called)
+
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.group_service.get_app_by_id")
+    @patch("console.services.mcp_query_service.service_repo.get_service_by_service_id")
+    @patch("console.services.mcp_query_service.group_service_relation_repo.get_services_by_group")
+    @patch("console.services.mcp_query_service.port_service.manage_port")
+    # capability_id: console.component.port-batch-protocol
+    def test_manage_component_ports_batch_update_protocol_passes_each_normalized_protocol(
+            self,
+            mock_manage_port,
+            mock_relations,
+            mock_get_service,
+            mock_get_app,
+            mock_get_region,
+            mock_get_team,
+    ):
+        def make_port(n, protocol):
+            p = Obj(container_port=n, protocol=protocol, is_inner_service=True, is_outer_service=False)
+            p.to_dict = lambda: {"container_port": n, "protocol": protocol}
+            return p
+
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
+        mock_get_app.return_value = self.app
+        mock_get_service.return_value = self.service
+        mock_relations.return_value = [Obj(service_id="svc-1")]
+        mock_manage_port.side_effect = [
+            (200, "success", make_port(80, "http")),
+            (200, "success", make_port(443, "grpc")),
+        ]
+
+        result = mcp_query_service.call_tool(
+            self.user,
+            "rainbond_manage_component_ports",
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "app_id": 12,
+                "service_id": "svc-1",
+                "operation": "update_protocol",
+                "ports": [
+                    {"port": 80, "protocol": " HTTP "},
+                    {"port": 443, "protocol": "Grpc"},
+                ],
+            },
+        )
+
+        self.assertEqual(len(result["ports"]), 2)
+        self.assertEqual(mock_manage_port.call_args_list[0][0][5], "http")
+        self.assertEqual(mock_manage_port.call_args_list[1][0][5], "grpc")
 
     @patch("console.services.mcp_query_service.service_repo.get_services_by_service_ids")
     @patch("console.services.mcp_query_service.group_service_relation_repo.get_services_by_group")
