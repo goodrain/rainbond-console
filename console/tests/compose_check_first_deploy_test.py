@@ -17,7 +17,7 @@ os.environ.setdefault("DISABLE_FIRST_DEPLOY_SWEEPER", "1")
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
 
 import django  # noqa: E402
-from django.test import SimpleTestCase  # noqa: E402
+from django.test import RequestFactory, SimpleTestCase  # noqa: E402
 
 django.setup()
 
@@ -99,6 +99,7 @@ from console.views.app_create.docker_compose import ComposeCheckView  # noqa: E4
 # capability_id: console.deploy-diagnostics.v3
 class ComposeCheckFirstDeployTrackingTests(SimpleTestCase):
     def setUp(self):
+        self.factory = RequestFactory()
         first_deploy_service.reset()
         self.view = ComposeCheckView()
         self.view.tenant = Obj(tenant_name="demo-team", enterprise_id="eid-1")
@@ -108,7 +109,8 @@ class ComposeCheckFirstDeployTrackingTests(SimpleTestCase):
 
     def test_compose_check_task_failure_records_first_deploy_failure(self):
         compose_service.check_compose = mock.Mock(return_value=(500, "compose yaml invalid", None))
-        request = Obj(data={"compose_id": "compose-1"})
+        request = self.factory.post("/console/compose/check")
+        request.data = {"compose_id": "compose-1"}
 
         response = self.view.post(request)
 
@@ -140,7 +142,7 @@ class ComposeCheckFirstDeployTrackingTests(SimpleTestCase):
         compose_service.save_compose_services = mock.Mock(return_value=(200, "success", []))
         compose_service.wrap_compose_check_info = mock.Mock(return_value={"check_status": "failure", "service_info": []})
         app_check_service.get_service_check_info = mock.Mock(return_value=(200, "success", data))
-        request = Obj(GET={"check_uuid": "check-1", "compose_id": "compose-1"})
+        request = self.factory.get("/console/compose/check", {"check_uuid": "check-1", "compose_id": "compose-1"})
 
         with mock.patch("console.views.app_create.docker_compose.transaction.savepoint_commit"):
             response = self.view.get(request)
