@@ -1721,7 +1721,7 @@ class MCPQueryService(object):
             }
         if operation == "add":
             port = self._require_int(arguments, "port")
-            protocol = self._normalize_port_protocol(arguments.get("protocol"))
+            protocol = self._require_string(arguments, "protocol")
             port_alias = arguments.get("port_alias", "") or ""
             is_inner_service = bool(arguments.get("is_inner_service", False))
             code, msg, port_info = port_service.add_service_port(
@@ -1811,6 +1811,8 @@ class MCPQueryService(object):
             payload = dict(arguments)
             payload["operation"] = "update"
             payload["action"] = action_map[operation]
+            if payload["action"] == "change_protocol":
+                payload["protocol"] = self._normalize_port_protocol(payload.get("protocol"))
             return self.handle_component_ports(user, payload)
 
         payload = dict(arguments)
@@ -2091,9 +2093,13 @@ class MCPQueryService(object):
                 service_config.save()
             return {"updated": True, "volume": self._serialize_model_item(volume)}
         if operation == "delete_volume":
-            volume = self._resolve_component_volume_target(service, arguments)
-            volume_id = self._require_positive_int_value(getattr(volume, "ID", None) or getattr(volume, "volume_id", None),
-                                                         "volume_id")
+            if arguments.get("volume_id") not in (None, ""):
+                volume_id = self._require_int(arguments, "volume_id")
+            else:
+                volume = self._resolve_component_volume_target(service, arguments)
+                volume_id = self._require_positive_int_value(
+                    getattr(volume, "ID", None) or getattr(volume, "volume_id", None), "volume_id"
+                )
             force = None
             if "force" in arguments:
                 force = "1" if bool(arguments.get("force")) else "0"
