@@ -13,6 +13,7 @@ if not hasattr(typing, "NotRequired"):
     typing.NotRequired = typing.Optional
 
 sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
+os.environ.setdefault("DISABLE_FIRST_DEPLOY_SWEEPER", "1")
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
 
 import django  # noqa: E402
