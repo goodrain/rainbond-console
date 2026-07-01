@@ -1733,9 +1733,10 @@ class MCPQueryService(object):
         if operation == "update":
             port = self._require_int(arguments, "port")
             action = self._normalize_port_action(self._require_string(arguments, "action"))
-            protocol = arguments.get("protocol")
+            protocol_value = arguments.get("protocol")
+            protocol = None
             if action == "change_protocol":
-                protocol = self._normalize_port_protocol(protocol)
+                protocol = self._normalize_port_protocol(protocol_value)
             port_alias = arguments.get("port_alias")
             k8s_service_name = arguments.get("k8s_service_name", "") or ""
             code, msg, port_info = port_service.manage_port(
@@ -2091,7 +2092,8 @@ class MCPQueryService(object):
             return {"updated": True, "volume": self._serialize_model_item(volume)}
         if operation == "delete_volume":
             volume = self._resolve_component_volume_target(service, arguments)
-            volume_id = getattr(volume, "ID", None) or getattr(volume, "volume_id", None)
+            volume_id = self._require_positive_int_value(getattr(volume, "ID", None) or getattr(volume, "volume_id", None),
+                                                         "volume_id")
             force = None
             if "force" in arguments:
                 force = "1" if bool(arguments.get("force")) else "0"
@@ -4322,6 +4324,10 @@ class MCPQueryService(object):
         # other methods pass the result to region/service helpers whose ID params
         # are declared str (latent int/str inconsistency across the codebase).
         value = arguments.get(field)
+        return MCPQueryService._require_positive_int_value(value, field)
+
+    @staticmethod
+    def _require_positive_int_value(value: Any, field: str) -> int:
         try:
             ivalue = int(value)  # type: ignore[arg-type]  # TypeError caught below for None
         except (TypeError, ValueError):
