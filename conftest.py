@@ -3,6 +3,7 @@ import os
 
 import pytest
 
+os.environ.setdefault("DISABLE_FIRST_DEPLOY_SWEEPER", "1")
 
 OPENAPI_CLIENT_TEST_DIRS = (
     os.path.join("src", "openapi-client", "test"),
