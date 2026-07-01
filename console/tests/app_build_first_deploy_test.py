@@ -185,7 +185,7 @@ class AppBuildFirstDeployTrackingTests(TestCase):
                 service_cname="demo",
             )
             tracker = {"key": "FIRST_DEPLOY_x", "enterprise_id": "eid-1"}
-            request = Obj(data={"is_deploy": True})
+            request = Obj(data={"is_deploy": True}, META={})
 
             with mock.patch("console.views.app_create.app_build.app_service.create_region_service",
                             return_value=built_service), \

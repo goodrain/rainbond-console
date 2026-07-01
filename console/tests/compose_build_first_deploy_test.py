@@ -170,7 +170,7 @@ class ComposeBuildFirstDeployTrackingTests(SimpleTestCase):
             arch="amd64",
         )
         tracker = {"key": "FIRST_DEPLOY_x", "enterprise_id": "eid-1"}
-        request = Obj(data={"compose_id": "compose-1"})
+        request = Obj(data={"compose_id": "compose-1"}, META={})
 
         with mock.patch("console.views.app_create.app_build.compose_service.get_group_compose_by_compose_id",
                         return_value=Obj(create_status="checked", save=lambda: None)), \
