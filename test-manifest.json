@@ -772,6 +772,25 @@
       "status": "active"
     },
     {
+      "id": "console.app-config.volume-service-module-export",
+      "title": "App config volume service module export",
+      "title_zh": "应用配置存储服务模块导出",
+      "interface_type": "package_function",
+      "interface": "console.services.app_config.volume_service.volume_service",
+      "code_paths": [
+        "console/services/app_config/volume_service.py",
+        "console/services/app_config/__init__.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_config_volume_service_import_test.py",
+          "selector": "AppConfigVolumeServiceImportTests.test_volume_service_module_exports_package_singleton"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.app-export.query-status",
       "title": "Query application export status",
       "title_zh": "查询应用导出状态",
