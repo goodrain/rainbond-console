@@ -248,10 +248,13 @@
 | console.component.port-batch-add | manage_component_ports 批量新增委托给批量服务 | active | regression | console.services.mcp_query_service.call_tool[console.component.port-batch-add] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_manage_component_ports_batch_add_delegates_to_batch_service |
 | console.component.port-batch-enable-inner | manage_component_ports 批量开启内网端口只加载一次上下文 | active | regression | console.services.mcp_query_service.call_tool[console.component.port-batch-enable-inner] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_manage_component_ports_batch_enable_inner_loads_context_once |
 | console.component.port-batch-enable-outer | manage_component_ports 批量开启外网端口接受整数项 | active | regression | console.services.mcp_query_service.call_tool[console.component.port-batch-enable-outer] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_manage_component_ports_batch_enable_outer_accepts_integer_items |
+| console.component.port-batch-protocol | manage_component_ports 批量修改协议时归一化每一项 | active | regression | console.services.mcp_query_service.call_tool[rainbond_manage_component_ports#update_protocol] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_manage_component_ports_batch_update_protocol_passes_each_normalized_protocol |
 | console.component.port-list | 查询组件端口列表 | active | regression | console.services.mcp_query_service.call_tool[rainbond_handle_component_ports#list] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_handle_component_ports_list_returns_ports |
 | console.component.port-open-inner | 开放组件内网端口 | active | regression | console.services.mcp_query_service.call_tool[rainbond_manage_component_ports#enable_inner] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_manage_component_ports_enable_inner_maps_to_open_inner |
 | console.component.port-open-outer-only | 仅开放组件公网端口 | active | regression | console.services.mcp_query_service.call_tool[rainbond_manage_component_ports#enable_outer_only] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_manage_component_ports_enable_outer_only_maps_to_only_open_outer |
 | console.component.port-open-public | 打开组件公网端口 | active | regression | console.services.mcp_query_service.call_tool[rainbond_handle_component_ports] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_handle_component_ports_alias_action_maps_to_standard_action |
+| console.component.port-protocol-normalize | 归一化组件端口协议参数 | active | regression | console.services.mcp_query_service.call_tool[rainbond_manage_component_ports#update_protocol] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_manage_component_ports_update_protocol_normalizes_protocol |
+| console.component.port-protocol-validation | 调用服务前拦截非法组件端口协议 | active | regression | console.services.mcp_query_service.call_tool[rainbond_manage_component_ports#update_protocol] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_manage_component_ports_update_protocol_rejects_invalid_protocol_before_service_call |
 | console.component.port-summary | 查看组件端口概览 | active | regression | console.services.mcp_query_service.call_tool[rainbond_manage_component_ports] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_manage_component_ports_summary_delegates_to_port_handler |
 | console.component.port-toggle-events | 记录组件端口开关事件 | active | regression | console.services.app_config.port_service.AppPortService.manage_port | console/tests/port_service_delete_test.py::PortServiceDeleteTests::test_open_outer_port_synchronizes_region_component_event<br>console/tests/port_service_delete_test.py::PortServiceDeleteTests::test_close_outer_port_synchronizes_region_component_event<br>console/tests/port_service_delete_test.py::PortServiceDeleteTests::test_inner_port_toggle_keeps_region_component_event_path |
 | console.component.probe-summary | 查看组件探针概览 | active | regression | console.services.mcp_query_service.call_tool[rainbond_manage_component_probe] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_manage_component_probe_summary_returns_probe_snapshot |
@@ -261,12 +264,14 @@
 | console.component.storage-delete-mount | 删除组件共享存储挂载 | active | regression | console.services.mcp_query_service.call_tool[rainbond_manage_component_storage#delete_mnt] | console/tests/mcp_query_storage_ops_test.py::ManageComponentStorageTests.test_delete_mnt_removes_relation |
 | console.component.storage-delete-volume | 删除组件存储卷 | active | regression | console.services.mcp_query_service.call_tool[rainbond_manage_component_storage#delete_volume] | console/tests/mcp_query_storage_ops_test.py::ManageComponentStorageTests.test_delete_volume_requires_force_branch<br>console/tests/mcp_query_storage_ops_test.py::ManageComponentStorageTests.test_delete_volume_success_branch |
 | console.component.storage-summary | 查看组件存储概览 | active | regression | console.services.mcp_query_service.call_tool[rainbond_manage_component_storage] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_manage_component_storage_summary_returns_storage_snapshot<br>console/tests/mcp_query_storage_ops_test.py::ManageComponentStorageTests.test_summary_includes_config_file_volumes |
+| console.component.storage-target-scope | 拒绝操作其他组件的存储卷 | active | regression | console.services.mcp_query_service.call_tool[rainbond_manage_component_storage#update_volume] | console/tests/mcp_query_storage_ops_test.py::ManageComponentStorageTests.test_update_volume_rejects_volume_id_from_another_component |
 | console.component.storage-update-capacity | Component Storage Update Capacity | active | regression | console.views.app_config.app_volume.AppVolumeManageView.put | console/tests/app_volume_view_test.py::AppVolumeManageViewTestCase.test_put_allows_updating_volume_capacity_without_path_change |
+| console.component.storage-update-volume | 按当前路径更新组件存储卷 | active | regression | console.services.mcp_query_service.call_tool[rainbond_manage_component_storage#update_volume] | console/tests/mcp_query_storage_ops_test.py::ManageComponentStorageTests.test_update_volume_can_resolve_target_by_current_volume_path |
 | console.component.storage-update-volume-capacity | Component Storage Update Volume Capacity | active | regression | console.services.mcp_query_service.call_tool[rainbond_manage_component_storage] | console/tests/mcp_query_storage_ops_test.py::ManageComponentStorageTests.test_update_volume_allows_capacity_change_without_path_change |
 | console.component.summary | 查看组件概览 | active | regression | console.services.mcp_query_service.call_tool[rainbond_get_component_summary] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_get_component_summary_returns_aggregated_info |
 | console.dependency.invalid-container-port | Dependency Invalid Container Port | active | regression | console.services.app_config.app_relation_service.AppServiceRelationService | console/tests/app_relation_service_test.py::AppRelationServiceTests.test_add_service_dependency_rejects_unknown_dep_service_port |
 | console.deploy-diagnostics.source-check | 源码构建源检测失败诊断埋点 | active | regression | console.views.app_create.app_check.AppCheck.get | console/tests/app_check_view_test.py::AppCheckSourceDiagnosticTests.test_get_reports_source_check_failure_without_changing_response<br>console/tests/source_component_service_test.py::SourceComponentServiceTests.test_auto_create_component_raises_on_check_failure<br>console/tests/enterprise_first_deploy_service_test.py::EnterpriseFirstDeployServiceTests.test_report_source_check_failure_sends_pre_deploy_diagnostic |
-| console.deploy-diagnostics.v3 | 部署失败 v3 诊断埋点 | active | regression | console.services.enterprise_first_deploy_service.EnterpriseFirstDeployService | console/tests/enterprise_first_deploy_service_test.py<br>console/tests/app_build_first_deploy_test.py::AppBuildFirstDeployTrackingTests.test_app_build_tracks_source_image_and_package_deploy_types<br>console/tests/market_app_first_deploy_test.py::MarketAppFirstDeployTrackingTests.test_install_app_reports_first_deploy_tracking_for_market_install<br>console/tests/compose_build_first_deploy_test.py::ComposeBuildFirstDeployTrackingTests.test_compose_build_tracks_first_deploy_and_binds_all_component_events<br>console/tests/auto_create_first_deploy_tracking_test.py<br>console/tests/platform_plugin_first_deploy_test.py::PlatformPluginFirstDeployTrackingTests.test_install_platform_plugin_reports_first_deploy_tracking |
+| console.deploy-diagnostics.v3 | 部署失败 v3 诊断埋点 | active | regression | console.services.enterprise_first_deploy_service.EnterpriseFirstDeployService | console/tests/enterprise_first_deploy_service_test.py<br>console/tests/app_build_first_deploy_test.py::AppBuildFirstDeployTrackingTests.test_app_build_tracks_source_image_and_package_deploy_types<br>console/tests/market_app_first_deploy_test.py::MarketAppFirstDeployTrackingTests.test_install_app_reports_first_deploy_tracking_for_market_install<br>console/tests/compose_check_first_deploy_test.py<br>console/tests/compose_build_first_deploy_test.py::ComposeBuildFirstDeployTrackingTests.test_compose_build_tracks_first_deploy_and_binds_all_component_events<br>console/tests/auto_create_first_deploy_tracking_test.py<br>console/tests/platform_plugin_first_deploy_test.py::PlatformPluginFirstDeployTrackingTests.test_install_platform_plugin_reports_first_deploy_tracking |
 | console.endpoint-address.reject-invalid-format | 拒绝既不是 IP 也不是域名的非法端点地址 | active | regression | console.utils.validation.validate_endpoint_address | console/tests/utils/validation_test.py::EndpointValidationTests.test_validate_endpoint_address_rejects_invalid_format |
 | console.endpoint-address.reject-special-ranges | 拒绝 unspecified 和 loopback 的端点地址 | active | regression | console.utils.validation.validate_endpoint_address | console/tests/utils/validation_test.py::EndpointValidationTests.test_validate_endpoint_address_rejects_special_ranges |
 | console.endpoint-list.normalize-scheme-port | 在多端点校验前规范化协议和端口 | active | regression | console.utils.validation.validate_endpoints_info | console/tests/utils/validation_test.py::EndpointValidationTests.test_validate_endpoints_info_normalizes_scheme_and_port |
@@ -279,6 +284,10 @@
 | console.enterprise.region-dashboard-not-found | 集群仪表盘目标缺失时返回 404 | active | regression | console.views.enterprise.EnterpriseRegionDashboard.dispatch | console/tests/enterprise_region_dashboard_notfound_test.py::EnterpriseRegionDashboardNotFoundTest.test_missing_region_returns_clean_404 |
 | console.enterprise.region-delete | 删除企业集群 | active | regression | console.services.mcp_query_service.call_tool[rainbond_delete_region] | console/tests/mcp_query_service_test.py::MCPQueryServiceRegionMutationTests.test_delete_region_executes_directly |
 | console.enterprise.region-detail | 查看企业集群详情 | active | regression | console.services.mcp_query_service.call_tool[rainbond_get_region_detail] | console/tests/mcp_query_service_test.py::MCPQueryServiceToolVisibilityTests.test_get_region_detail_returns_region_data |
+| console.enterprise.region-detail-by-name | 按集群名称查看企业集群详情 | active | regression | console.services.mcp_query_service.call_tool[rainbond_get_region_detail] | console/tests/mcp_query_service_test.py::MCPQueryServiceToolVisibilityTests.test_get_region_detail_accepts_region_name |
+| console.enterprise.region-detail-no-cross-fallback | 不同集群 ID 无效时不跨字段回退 | active | regression | console.services.mcp_query_service.call_tool[rainbond_get_region_detail] | console/tests/mcp_query_service_test.py::MCPQueryServiceToolVisibilityTests.test_get_region_detail_does_not_override_distinct_bad_region_id |
+| console.enterprise.region-detail-region-name-fallback | 集群详情支持从集群 ID 回退到名称查询 | active | regression | console.services.mcp_query_service.call_tool[rainbond_get_region_detail] | console/tests/mcp_query_service_test.py::MCPQueryServiceToolVisibilityTests.test_get_region_detail_treats_missing_region_id_as_region_name |
+| console.enterprise.region-detail-schema | 集群详情工具 schema 暴露集群名称参数 | active | regression | console.services.mcp_query_service._tool_get_region_detail | console/tests/mcp_query_service_test.py::MCPQueryServiceToolVisibilityTests.test_get_region_detail_schema_accepts_region_name |
 | console.enterprise.region-list | 查看企业集群列表 | active | regression | console.services.mcp_query_service.call_tool[rainbond_query_regions] | console/tests/mcp_query_service_test.py::MCPQueryServiceToolVisibilityTests.test_query_regions_requires_enterprise_admin<br>console/tests/mcp_query_service_test.py::MCPQueryServiceToolVisibilityTests.test_query_regions_returns_paginated_regions_for_enterprise_admin<br>console/tests/mcp_query_service_test.py::MCPQueryServiceToolVisibilityTests.test_query_regions_rejects_cross_enterprise_access_for_enterprise_admin |
 | console.enterprise.region-list-authz | 校验企业集群列表访问权限 | active | regression | console.services.mcp_query_service.query_regions | console/tests/mcp_query_service_test.py::MCPQueryServiceToolVisibilityTests.test_query_regions_requires_enterprise_admin<br>console/tests/mcp_query_service_test.py::MCPQueryServiceToolVisibilityTests.test_query_regions_rejects_cross_enterprise_access_for_enterprise_admin |
 | console.enterprise.region-node-detail | 查看集群节点详情 | active | regression | console.services.mcp_query_service.call_tool[rainbond_get_region_node_detail] | console/tests/mcp_query_service_test.py::MCPQueryServiceToolVisibilityTests.test_get_region_node_detail_returns_node_detail_for_enterprise_admin |
@@ -300,6 +309,7 @@
 | console.gateway.operation-schema | 暴露组件端口管理操作枚举 | active | regression | console.services.mcp_query_service._tool_manage_component_ports | console/tests/mcp_query_service_test.py::MCPQueryServiceToolVisibilityTests.test_manage_component_ports_tool_schema_exposes_operation_enum |
 | console.gateway.port-action-schema | 暴露组件端口操作枚举 | active | regression | console.services.mcp_query_service._tool_handle_component_ports | console/tests/mcp_query_service_test.py::MCPQueryServiceToolVisibilityTests.test_handle_component_ports_tool_schema_exposes_action_enum |
 | console.gateway.port-constraints-schema | Gateway Port Constraints Schema | active | regression | console.services.mcp_query_service.call_tool[console.gateway.port-constraints-schema] | console/tests/mcp_query_service_test.py::MCPQueryServiceToolVisibilityTests.test_manage_component_ports_tool_schema_exposes_port_constraints |
+| console.gateway.port-protocol-schema | 暴露组件端口协议枚举 | active | regression | console.services.mcp_query_service._tool_manage_component_ports | console/tests/mcp_query_service_test.py::MCPQueryServiceToolVisibilityTests.test_manage_component_ports_tool_schema_exposes_protocol_enum |
 | console.gateway.protocol-guard | 拦截不支持的网关协议 | active | regression | console.services.mcp_query_service.create_gateway_rules | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_create_gateway_rules_rejects_invalid_protocol |
 | console.gateway.source-code-from-schema | Gateway Source Code From Schema | active | regression | console.services.mcp_query_service.call_tool[console.gateway.source-code-from-schema] | console/tests/mcp_query_service_test.py::MCPQueryServiceToolVisibilityTests.test_create_component_from_source_schema_exposes_code_from_guidance |
 | console.gateway.tcp-port-open-failure | TCP 网关开端口失败时拦截创建 | active | regression | console.services.mcp_query_service.create_gateway_rules[tcp] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_create_gateway_rules_tcp_rejects_port_open_failure |
@@ -414,9 +424,6 @@
 | console.pod.detail-kubeblocks | Pod Detail Kubeblocks | active | regression | console.services.mcp_query_service.call_tool[console.pod.detail-kubeblocks] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_get_pod_detail_uses_kubeblocks_endpoint_for_kubeblocks_component |
 | console.port-inner.env-sync-idempotent | Treat duplicate region env create as idempotent during inner port enable | active | regression | console.services.app_config.env_service.AppEnvVarService.add_service_env_var | console/tests/env_service_region_idempotency_test.py::EnvServiceRegionIdempotencyTests.test_add_service_env_var_updates_region_when_env_already_exists<br>console/tests/env_service_region_idempotency_test.py::EnvServiceRegionIdempotencyTests.test_add_service_env_var_retries_add_when_region_update_reports_record_not_found<br>console/tests/env_service_region_idempotency_test.py::EnvServiceRegionIdempotencyTests.test_add_service_env_var_treats_second_add_conflict_as_success |
 | console.random.default-version | 生成默认随机版本标识 | active | regression | console.utils.randomutil.make_default_version | console/tests/utils/randomutil_test.py::RandomUtilTests.test_make_default_version |
-| console.rke2.cluster-install-structured-helm-error | Rainbond 安装失败时返回结构化错误且不进入集成中状态 | active | regression | console.views.rke2.ClusterRKEInstallRB.post | console/tests/rke2_cluster_errors_test.py::ClusterRKEErrorTests.test_cluster_install_returns_structured_helm_error_without_saving_integrating |
-| console.rke2.cluster-missing-metadata-404 | 请求的 RKE 集群元数据缺失时返回 404 | active | regression | console.views.rke2.ClusterRKE.get | console/tests/rke2_cluster_errors_test.py::ClusterRKEErrorTests.test_cluster_get_returns_structured_404_when_cluster_metadata_missing |
-| console.rke2.helm-subprocess-error-sanitized | 清洗 Rainbond 安装中的 Helm 子进程失败信息 | active | regression | console.utils.k8s_cli.K8sClient.install_rainbond | console/tests/rke2_cluster_errors_test.py::ClusterRKEErrorTests.test_install_rainbond_returns_sanitized_subprocess_error |
 | console.realtime-proxy.docker-console-subprotocol | Docker 控制台后端使用 webtty 子协议 | active | regression | console.utils.realtime_proxy._backend_websocket_subprotocols | console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_docker_console_backend_uses_webtty_subprotocol |
 | console.realtime-proxy.docker-console-user-activity | Docker 控制台活动跟踪在用户输入时刷新 | active | regression | console.utils.realtime_proxy.DockerConsoleActivityTracker | console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_docker_console_activity_tracker_refreshes_on_user_input |
 | console.realtime-proxy.docker-console-user-idle-timeout | Docker 控制台活动跟踪忽略 webtty 心跳 | active | regression | console.utils.realtime_proxy.DockerConsoleActivityTracker | console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_docker_console_activity_tracker_ignores_webtty_ping |
@@ -2992,6 +2999,16 @@
 - 代码路径: `console/services/mcp_query_service.py`
 - 测试路径: `console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_manage_component_ports_batch_enable_outer_accepts_integer_items`
 
+### manage_component_ports 批量修改协议时归一化每一项
+
+- Capability ID: `console.component.port-batch-protocol`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `workflow`
+- 业务入口: `console.services.mcp_query_service.call_tool[rainbond_manage_component_ports#update_protocol]`
+- 代码路径: `console/services/mcp_query_service.py`
+- 测试路径: `console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_manage_component_ports_batch_update_protocol_passes_each_normalized_protocol`
+
 ### 查询组件端口列表
 
 - Capability ID: `console.component.port-list`
@@ -3031,6 +3048,26 @@
 - 业务入口: `console.services.mcp_query_service.call_tool[rainbond_handle_component_ports]`
 - 代码路径: `console/services/mcp_query_service.py`, `console/services/app_config/port_service.py`
 - 测试路径: `console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_handle_component_ports_alias_action_maps_to_standard_action`
+
+### 归一化组件端口协议参数
+
+- Capability ID: `console.component.port-protocol-normalize`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `workflow`
+- 业务入口: `console.services.mcp_query_service.call_tool[rainbond_manage_component_ports#update_protocol]`
+- 代码路径: `console/services/mcp_query_service.py`
+- 测试路径: `console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_manage_component_ports_update_protocol_normalizes_protocol`
+
+### 调用服务前拦截非法组件端口协议
+
+- Capability ID: `console.component.port-protocol-validation`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `workflow`
+- 业务入口: `console.services.mcp_query_service.call_tool[rainbond_manage_component_ports#update_protocol]`
+- 代码路径: `console/services/mcp_query_service.py`
+- 测试路径: `console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_manage_component_ports_update_protocol_rejects_invalid_protocol_before_service_call`
 
 ### 查看组件端口概览
 
@@ -3122,6 +3159,16 @@
 - 代码路径: `console/services/mcp_query_service.py`, `console/services/app_config/volume_service.py`, `console/services/app_config/mnt_service.py`
 - 测试路径: `console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_manage_component_storage_summary_returns_storage_snapshot`, `console/tests/mcp_query_storage_ops_test.py::ManageComponentStorageTests.test_summary_includes_config_file_volumes`
 
+### 拒绝操作其他组件的存储卷
+
+- Capability ID: `console.component.storage-target-scope`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `workflow`
+- 业务入口: `console.services.mcp_query_service.call_tool[rainbond_manage_component_storage#update_volume]`
+- 代码路径: `console/services/mcp_query_service.py`, `console/services/app_config/volume_service.py`
+- 测试路径: `console/tests/mcp_query_storage_ops_test.py::ManageComponentStorageTests.test_update_volume_rejects_volume_id_from_another_component`
+
 ### Component Storage Update Capacity
 
 - Capability ID: `console.component.storage-update-capacity`
@@ -3131,6 +3178,16 @@
 - 业务入口: `console.views.app_config.app_volume.AppVolumeManageView.put`
 - 代码路径: `console/views/app_config/app_volume.py`
 - 测试路径: `console/tests/app_volume_view_test.py::AppVolumeManageViewTestCase.test_put_allows_updating_volume_capacity_without_path_change`
+
+### 按当前路径更新组件存储卷
+
+- Capability ID: `console.component.storage-update-volume`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `workflow`
+- 业务入口: `console.services.mcp_query_service.call_tool[rainbond_manage_component_storage#update_volume]`
+- 代码路径: `console/services/mcp_query_service.py`, `console/services/app_config/volume_service.py`
+- 测试路径: `console/tests/mcp_query_storage_ops_test.py::ManageComponentStorageTests.test_update_volume_can_resolve_target_by_current_volume_path`
 
 ### Component Storage Update Volume Capacity
 
@@ -3180,7 +3237,7 @@
 - 接口类型: `workflow`
 - 业务入口: `console.services.enterprise_first_deploy_service.EnterpriseFirstDeployService`
 - 代码路径: `console/services/enterprise_first_deploy_service.py`, `console/repositories/first_deploy_repo.py`, `console/views/app_create/app_build.py`, `console/views/app_manage.py`, `console/services/market_app_service.py`, `console/services/platform_plugin_service.py`, `console/services/source_component_service.py`, `console/services/package_component_service.py`
-- 测试路径: `console/tests/enterprise_first_deploy_service_test.py`, `console/tests/app_build_first_deploy_test.py::AppBuildFirstDeployTrackingTests.test_app_build_tracks_source_image_and_package_deploy_types`, `console/tests/market_app_first_deploy_test.py::MarketAppFirstDeployTrackingTests.test_install_app_reports_first_deploy_tracking_for_market_install`, `console/tests/compose_build_first_deploy_test.py::ComposeBuildFirstDeployTrackingTests.test_compose_build_tracks_first_deploy_and_binds_all_component_events`, `console/tests/auto_create_first_deploy_tracking_test.py`, `console/tests/platform_plugin_first_deploy_test.py::PlatformPluginFirstDeployTrackingTests.test_install_platform_plugin_reports_first_deploy_tracking`
+- 测试路径: `console/tests/enterprise_first_deploy_service_test.py`, `console/tests/app_build_first_deploy_test.py::AppBuildFirstDeployTrackingTests.test_app_build_tracks_source_image_and_package_deploy_types`, `console/tests/market_app_first_deploy_test.py::MarketAppFirstDeployTrackingTests.test_install_app_reports_first_deploy_tracking_for_market_install`, `console/tests/compose_check_first_deploy_test.py`, `console/tests/compose_build_first_deploy_test.py::ComposeBuildFirstDeployTrackingTests.test_compose_build_tracks_first_deploy_and_binds_all_component_events`, `console/tests/auto_create_first_deploy_tracking_test.py`, `console/tests/platform_plugin_first_deploy_test.py::PlatformPluginFirstDeployTrackingTests.test_install_platform_plugin_reports_first_deploy_tracking`
 
 ### 拒绝既不是 IP 也不是域名的非法端点地址
 
@@ -3301,6 +3358,46 @@
 - 业务入口: `console.services.mcp_query_service.call_tool[rainbond_get_region_detail]`
 - 代码路径: `console/services/mcp_query_service.py`
 - 测试路径: `console/tests/mcp_query_service_test.py::MCPQueryServiceToolVisibilityTests.test_get_region_detail_returns_region_data`
+
+### 按集群名称查看企业集群详情
+
+- Capability ID: `console.enterprise.region-detail-by-name`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `workflow`
+- 业务入口: `console.services.mcp_query_service.call_tool[rainbond_get_region_detail]`
+- 代码路径: `console/services/mcp_query_service.py`
+- 测试路径: `console/tests/mcp_query_service_test.py::MCPQueryServiceToolVisibilityTests.test_get_region_detail_accepts_region_name`
+
+### 不同集群 ID 无效时不跨字段回退
+
+- Capability ID: `console.enterprise.region-detail-no-cross-fallback`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `workflow`
+- 业务入口: `console.services.mcp_query_service.call_tool[rainbond_get_region_detail]`
+- 代码路径: `console/services/mcp_query_service.py`
+- 测试路径: `console/tests/mcp_query_service_test.py::MCPQueryServiceToolVisibilityTests.test_get_region_detail_does_not_override_distinct_bad_region_id`
+
+### 集群详情支持从集群 ID 回退到名称查询
+
+- Capability ID: `console.enterprise.region-detail-region-name-fallback`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `workflow`
+- 业务入口: `console.services.mcp_query_service.call_tool[rainbond_get_region_detail]`
+- 代码路径: `console/services/mcp_query_service.py`
+- 测试路径: `console/tests/mcp_query_service_test.py::MCPQueryServiceToolVisibilityTests.test_get_region_detail_treats_missing_region_id_as_region_name`
+
+### 集群详情工具 schema 暴露集群名称参数
+
+- Capability ID: `console.enterprise.region-detail-schema`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `workflow`
+- 业务入口: `console.services.mcp_query_service._tool_get_region_detail`
+- 代码路径: `console/services/mcp_query_service.py`
+- 测试路径: `console/tests/mcp_query_service_test.py::MCPQueryServiceToolVisibilityTests.test_get_region_detail_schema_accepts_region_name`
 
 ### 查看企业集群列表
 
@@ -3511,6 +3608,16 @@
 - 业务入口: `console.services.mcp_query_service.call_tool[console.gateway.port-constraints-schema]`
 - 代码路径: `console/services/mcp_query_service.py`
 - 测试路径: `console/tests/mcp_query_service_test.py::MCPQueryServiceToolVisibilityTests.test_manage_component_ports_tool_schema_exposes_port_constraints`
+
+### 暴露组件端口协议枚举
+
+- Capability ID: `console.gateway.port-protocol-schema`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `workflow`
+- 业务入口: `console.services.mcp_query_service._tool_manage_component_ports`
+- 代码路径: `console/services/mcp_query_service.py`
+- 测试路径: `console/tests/mcp_query_service_test.py::MCPQueryServiceToolVisibilityTests.test_manage_component_ports_tool_schema_exposes_protocol_enum`
 
 ### 拦截不支持的网关协议
 
@@ -4651,36 +4758,6 @@
 - 业务入口: `console.utils.randomutil.make_default_version`
 - 代码路径: `console/utils/randomutil.py`
 - 测试路径: `console/tests/utils/randomutil_test.py::RandomUtilTests.test_make_default_version`
-
-### Rainbond 安装失败时返回结构化错误且不进入集成中状态
-
-- Capability ID: `console.rke2.cluster-install-structured-helm-error`
-- 状态: `active`
-- 测试类型: `regression`
-- 接口类型: `view_endpoint`
-- 业务入口: `console.views.rke2.ClusterRKEInstallRB.post`
-- 代码路径: `console/views/rke2.py`, `console/utils/k8s_cli.py`
-- 测试路径: `console/tests/rke2_cluster_errors_test.py::ClusterRKEErrorTests.test_cluster_install_returns_structured_helm_error_without_saving_integrating`
-
-### 请求的 RKE 集群元数据缺失时返回 404
-
-- Capability ID: `console.rke2.cluster-missing-metadata-404`
-- 状态: `active`
-- 测试类型: `regression`
-- 接口类型: `view_endpoint`
-- 业务入口: `console.views.rke2.ClusterRKE.get`
-- 代码路径: `console/views/rke2.py`
-- 测试路径: `console/tests/rke2_cluster_errors_test.py::ClusterRKEErrorTests.test_cluster_get_returns_structured_404_when_cluster_metadata_missing`
-
-### 清洗 Rainbond 安装中的 Helm 子进程失败信息
-
-- Capability ID: `console.rke2.helm-subprocess-error-sanitized`
-- 状态: `active`
-- 测试类型: `regression`
-- 接口类型: `workflow`
-- 业务入口: `console.utils.k8s_cli.K8sClient.install_rainbond`
-- 代码路径: `console/utils/k8s_cli.py`
-- 测试路径: `console/tests/rke2_cluster_errors_test.py::ClusterRKEErrorTests.test_install_rainbond_returns_sanitized_subprocess_error`
 
 ### Docker 控制台后端使用 webtty 子协议
 

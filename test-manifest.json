@@ -4852,6 +4852,9 @@
           "selector": "MarketAppFirstDeployTrackingTests.test_install_app_reports_first_deploy_tracking_for_market_install"
         },
         {
+          "path": "console/tests/compose_check_first_deploy_test.py"
+        },
+        {
           "path": "console/tests/compose_build_first_deploy_test.py",
           "selector": "ComposeBuildFirstDeployTrackingTests.test_compose_build_tracks_first_deploy_and_binds_all_component_events"
         },
