@@ -252,7 +252,7 @@ def name_validator(value: Any) -> None:
 
 
 class ComponentEnvsBaseSerializers(serializers.Serializer):
-    note = serializers.CharField(max_length=100, required=False, help_text="备注")
+    note = serializers.CharField(max_length=100, required=False, allow_blank=True, default="", help_text="备注")
     name = serializers.CharField(max_length=100, validators=[name_validator], help_text="环境变量名")
     value = serializers.CharField(max_length=1024, help_text="环境变量值")
     is_change = serializers.BooleanField(default=True, help_text="是否可改变")
@@ -280,7 +280,8 @@ class ComponentEventSerializers(serializers.Serializer):
 
 class ComponentUpdatePortReqSerializers(serializers.Serializer):
     action = serializers.ChoiceField(choices=COMPONENT_PORT_ACTION, required=True, allow_null=False, help_text="端口操作类型")
-    port_alias = serializers.CharField(max_length=255, required=False, allow_null=True, help_text="端口别名")
+    port_alias = serializers.CharField(
+        max_length=255, required=False, allow_null=True, allow_blank=True, default="", help_text="端口别名")
     protocol = serializers.ChoiceField(
         choices=COMPONENT_PORT_PROTOCOL, default='http', required=False, allow_null=True, help_text="端口协议")
     k8s_service_name = serializers.CharField(max_length=255, required=False, allow_null=True, help_text="内部域名")
@@ -290,7 +291,8 @@ class ComponentPortReqSerializers(serializers.Serializer):
     port = serializers.IntegerField(help_text="组件端口", required=True, allow_null=False)
     protocol = serializers.ChoiceField(
         choices=COMPONENT_PORT_PROTOCOL, default='http', required=False, allow_null=True, help_text="端口协议")
-    port_alias = serializers.CharField(max_length=255, required=False, allow_null=True, help_text="端口别名")
+    port_alias = serializers.CharField(
+        max_length=255, required=False, allow_null=True, allow_blank=True, default="", help_text="端口别名")
     is_inner_service = serializers.BooleanField(help_text="开启对内端口")
 
 

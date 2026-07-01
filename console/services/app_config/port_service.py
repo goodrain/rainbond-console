@@ -582,6 +582,11 @@ class AppPortService(object):
         if action == "open_outer":
             if not deal_port.is_inner_service:
                 raise ServiceHandleException(msg="inner port is not open", msg_show="对内服务未开启，需先开启对内服务", status_code=404)
+            if not app:
+                try:
+                    app = group_repo.get_by_service_id(tenant.tenant_id, service.service_id)
+                except ServiceGroup.DoesNotExist:
+                    raise ServiceHandleException(msg="app not found", msg_show="应用不存在", status_code=404)
             # NOTE: region may be None when region_name is unknown (potential latent
             # None-bug); callees deref region attrs without guarding.
             code, msg = self.__open_outer(tenant, service, region, deal_port, app, user_name)  # type: ignore[arg-type]

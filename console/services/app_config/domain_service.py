@@ -893,6 +893,8 @@ class DomainService(object):
         return re_rules
 
     def update_http_rule_config(self, team: Any, region_name: str, rule_id: str, configs: dict) -> None:
+        configs = dict(configs or {})
+        configs["set_headers"] = configs.get("set_headers") or []
         self.check_set_header(configs["set_headers"])
         service_domain = get_object_or_404(ServiceDomain, msg="no domain", msg_show="策略不存在", http_rule_id=rule_id)
         service = get_object_or_404(TenantServiceInfo, msg="no service", msg_show="组件不存在", service_id=service_domain.service_id)

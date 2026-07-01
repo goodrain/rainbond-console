@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 
 from console.appstore.appstore import app_store
 from console.exception.main import ServiceHandleException
-from console.models.main import AppMarket, RegionConfig
+from console.models.main import AppMarket
 from console.repositories.app import (
     PLATFORM_PLUGIN_DEFAULT_URL,
     PLATFORM_PLUGIN_MARKET_DOMAIN,
@@ -19,6 +19,7 @@ from console.repositories.group import group_repo, tenant_service_group_repo
 from console.repositories.region_app import region_app_repo
 from console.repositories.region_repo import region_repo
 from console.services.app import app_market_service
+from console.services.enterprise_first_deploy_service import enterprise_first_deploy_service
 from console.services.group_service import group_service
 from console.services.license import license_service
 from console.services.market_app.app_upgrade import AppUpgrade
@@ -681,7 +682,46 @@ class PlatformPluginService(object):
             enterprise_id, tenant, region, user, app,  # type: ignore[arg-type]  # NOTE: app is Optional[ServiceGroup]; see above
             latest_version, component_group, app_template,
             True, PLATFORM_PLUGIN_MARKET_NAME, is_deploy=True)
-        app_upgrade.install()
+        app_context = enterprise_first_deploy_service.build_market_app_context(
+            app, market_app, app_key, latest_version, PLATFORM_PLUGIN_MARKET_NAME, True, app_template)
+        app_context.update({
+            "plugin_id": plugin_id,
+            "plugin_name": plugin_name,
+            "install_source": "extension",
+        })
+        tracker = enterprise_first_deploy_service.safe_begin_tracking(
+            enterprise_id=enterprise_id,
+            tenant_name=tenant.tenant_name,
+            region_name=region.region_name,
+            deploy_type=enterprise_first_deploy_service.DEPLOY_TYPE_APP_MARKET,
+            operator=getattr(user, "nick_name", "") or "",
+            trigger="platform_plugin_install",
+            app_context=app_context,
+            workload_context=enterprise_first_deploy_service.build_market_workload_context(app_template))
+        try:
+            events = app_upgrade.install()
+        except Exception as e:
+            enterprise_first_deploy_service.safe_mark_failure(tracker, reason=str(e))
+            raise
+        new_components = app_upgrade.new_app.components() or []
+        component_service_ids = [
+            cpt.component.component_id for cpt in new_components
+            if getattr(cpt.component, "component_id", None)
+        ]
+        component_service_alias = ""
+        component_service_aliases = []
+        if len(new_components) == 1:
+            component_service_alias = getattr(new_components[0].component, "service_alias", "") or ""
+        elif len(new_components) > 1:
+            component_service_aliases = [
+                a for a in (getattr(cpt.component, "service_alias", "") or "" for cpt in new_components) if a
+            ]
+        enterprise_first_deploy_service.safe_bind_events(
+            tracker,
+            market_app_service._extract_event_ids(events),
+            service_ids=component_service_ids,
+            service_alias=component_service_alias,
+            service_aliases=component_service_aliases)
 
         # 8. Create RBDPlugin CR if template has platform_plugin info
         market_app_service._create_rbdplugin_if_needed(tenant, region, app_template, app.ID)  # type: ignore[union-attr, arg-type]  # NOTE: app is Optional[ServiceGroup]; _create_rbdplugin_if_needed expects str|None but app.ID is int (pre-existing int/str mismatch at call site)

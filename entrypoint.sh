@@ -47,7 +47,11 @@ function init_database() {
     echo -e "${RED}ERROR: failed to makemigrations console${NC}"
     exit 1
   fi
-  if ! python manage.py migrate; then
+  if ! python manage.py repair_legacy_schema --apps authtoken,www,console; then
+    echo -e "${RED}ERROR: failed to repair legacy schema${NC}"
+    exit 1
+  fi
+  if ! python manage.py migrate --fake-initial --noinput; then
     echo -e "${RED}ERROR: failed to migrate${NC}"
     exit 1
   fi
