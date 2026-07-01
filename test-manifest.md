@@ -264,8 +264,8 @@
 | console.component.storage-update-volume-capacity | Component Storage Update Volume Capacity | active | regression | console.services.mcp_query_service.call_tool[rainbond_manage_component_storage] | console/tests/mcp_query_storage_ops_test.py::ManageComponentStorageTests.test_update_volume_allows_capacity_change_without_path_change |
 | console.component.summary | 查看组件概览 | active | regression | console.services.mcp_query_service.call_tool[rainbond_get_component_summary] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_get_component_summary_returns_aggregated_info |
 | console.dependency.invalid-container-port | Dependency Invalid Container Port | active | regression | console.services.app_config.app_relation_service.AppServiceRelationService | console/tests/app_relation_service_test.py::AppRelationServiceTests.test_add_service_dependency_rejects_unknown_dep_service_port |
-| console.deploy-diagnostics.source-check | 源码构建源检测失败诊断埋点 | active | regression | console.views.app_create.app_check.AppCheck.get | console/tests/app_check_view_test.py::AppCheckViewDiagnosticsTests.test_get_reports_source_check_failure_without_changing_response<br>console/tests/source_component_service_test.py::SourceComponentServiceTests.test_auto_create_component_raises_on_check_failure<br>console/tests/enterprise_first_deploy_service_test.py::EnterpriseFirstDeployServiceTests.test_report_source_check_failure_sends_pre_deploy_diagnostic |
-| console.deploy-diagnostics.v3 | 部署失败 v3 诊断埋点 | active | regression | console.services.enterprise_first_deploy_service.EnterpriseFirstDeployService | console/tests/enterprise_first_deploy_service_test.py |
+| console.deploy-diagnostics.source-check | 源码构建源检测失败诊断埋点 | active | regression | console.views.app_create.app_check.AppCheck.get | console/tests/app_check_view_test.py::AppCheckSourceDiagnosticTests.test_get_reports_source_check_failure_without_changing_response<br>console/tests/source_component_service_test.py::SourceComponentServiceTests.test_auto_create_component_raises_on_check_failure<br>console/tests/enterprise_first_deploy_service_test.py::EnterpriseFirstDeployServiceTests.test_report_source_check_failure_sends_pre_deploy_diagnostic |
+| console.deploy-diagnostics.v3 | 部署失败 v3 诊断埋点 | active | regression | console.services.enterprise_first_deploy_service.EnterpriseFirstDeployService | console/tests/enterprise_first_deploy_service_test.py<br>console/tests/app_build_first_deploy_test.py::AppBuildFirstDeployTrackingTests.test_app_build_tracks_source_image_and_package_deploy_types<br>console/tests/market_app_first_deploy_test.py::MarketAppFirstDeployTrackingTests.test_install_app_reports_first_deploy_tracking_for_market_install<br>console/tests/compose_build_first_deploy_test.py::ComposeBuildFirstDeployTrackingTests.test_compose_build_tracks_first_deploy_and_binds_all_component_events<br>console/tests/auto_create_first_deploy_tracking_test.py<br>console/tests/platform_plugin_first_deploy_test.py::PlatformPluginFirstDeployTrackingTests.test_install_platform_plugin_reports_first_deploy_tracking |
 | console.endpoint-address.reject-invalid-format | 拒绝既不是 IP 也不是域名的非法端点地址 | active | regression | console.utils.validation.validate_endpoint_address | console/tests/utils/validation_test.py::EndpointValidationTests.test_validate_endpoint_address_rejects_invalid_format |
 | console.endpoint-address.reject-special-ranges | 拒绝 unspecified 和 loopback 的端点地址 | active | regression | console.utils.validation.validate_endpoint_address | console/tests/utils/validation_test.py::EndpointValidationTests.test_validate_endpoint_address_rejects_special_ranges |
 | console.endpoint-list.normalize-scheme-port | 在多端点校验前规范化协议和端口 | active | regression | console.utils.validation.validate_endpoints_info | console/tests/utils/validation_test.py::EndpointValidationTests.test_validate_endpoints_info_normalizes_scheme_and_port |
@@ -416,8 +416,8 @@
 | console.realtime-proxy.docker-console-subprotocol | Docker 控制台后端使用 webtty 子协议 | active | regression | console.utils.realtime_proxy._backend_websocket_subprotocols | console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_docker_console_backend_uses_webtty_subprotocol |
 | console.realtime-proxy.docker-console-user-activity | Docker 控制台活动跟踪在用户输入时刷新 | active | regression | console.utils.realtime_proxy.DockerConsoleActivityTracker | console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_docker_console_activity_tracker_refreshes_on_user_input |
 | console.realtime-proxy.docker-console-user-idle-timeout | Docker 控制台活动跟踪忽略 webtty 心跳 | active | regression | console.utils.realtime_proxy.DockerConsoleActivityTracker | console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_docker_console_activity_tracker_ignores_webtty_ping |
-| console.realtime-proxy.forward-client-subprotocols | 转发客户端请求的 websocket 子协议 | active | regression | console.utils.realtime_proxy._backend_websocket_subprotocols | console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_websocket_proxy_keeps_client_requested_subprotocols |
 | console.realtime-proxy.file-operate-raw-multipart-forward | 文件操作上传原始转发 multipart 请求 | active | regression | console.utils.realtime_proxy.proxy_http_request | console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_file_operate_upload_forwards_raw_multipart_body |
+| console.realtime-proxy.forward-client-subprotocols | 转发客户端请求的 websocket 子协议 | active | regression | console.utils.realtime_proxy._backend_websocket_subprotocols | console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_websocket_proxy_keeps_client_requested_subprotocols |
 | console.realtime-proxy.http-forward | 实时代理 HTTP 转发 | active | regression | console.utils.realtime_proxy.proxy_http_request | console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_http_proxy_forwards_upload_request_to_region_websocket_service |
 | console.realtime-proxy.internal-target-override | 实时代理内部目标覆盖 | active | regression | console.utils.realtime_proxy.build_region_realtime_proxy_url | console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_region_proxy_target_prefers_internal_override_for_builtin_region |
 | console.realtime-proxy.multipart-folder-upload-forward | 转发文件夹上传中的重复 multipart 文件字段 | active | regression | console.utils.realtime_proxy.build_multipart_payload | console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_multipart_folder_upload_encodes_repeated_file_field |
@@ -463,6 +463,9 @@
 | console.request-data.parse-date-keep-falsy | 解析请求 data 映射时保留 falsy 值 | active | regression | console.utils.reqparse.parse_date | console/tests/utils/reqparse_test.py::ParseDateTestCase.test_parse_date_keep_falsy_values |
 | console.request-data.required-default-error | 缺失请求 data 时抛出默认必填字段错误 | active | regression | console.utils.reqparse.parse_item | console/tests/utils/reqparse_test.py::ParseDateTestCase.test_parse_item_required_uses_default_error_message |
 | console.resource-center.pod-logs | 查看资源中心 Pod 日志 | active | regression | console.views.team_resources.ResourceCenterPodLogsView.get | console/tests/team_resources_test.py::ResourceCenterPodLogsViewTestCase.test_get_sends_heartbeat_before_upstream_logs<br>console/tests/regionapi_sse_proxy_test.py::RegionApiSSEProxyTests.test_sse_proxy_passes_region_auth_headers<br>console/tests/regionapi_sse_proxy_test.py::RegionApiSSEProxyTests.test_sse_proxy_rewrites_console_tenant_name_to_region_tenant_name<br>console/tests/regionapi_sse_proxy_test.py::RegionApiSSEProxyTests.test_get_component_pod_log_uses_bounded_read_timeout |
+| console.rke2.cluster-install-structured-helm-error | Rainbond 安装失败时返回结构化错误且不进入集成中状态 | active | regression | console.views.rke2.ClusterRKEInstallRB.post | console/tests/rke2_cluster_errors_test.py::ClusterRKEErrorTests.test_cluster_install_returns_structured_helm_error_without_saving_integrating |
+| console.rke2.cluster-missing-metadata-404 | 请求的 RKE 集群元数据缺失时返回 404 | active | regression | console.views.rke2.ClusterRKE.get | console/tests/rke2_cluster_errors_test.py::ClusterRKEErrorTests.test_cluster_get_returns_structured_404_when_cluster_metadata_missing |
+| console.rke2.helm-subprocess-error-sanitized | 清洗 Rainbond 安装中的 Helm 子进程失败信息 | active | regression | console.utils.k8s_cli.K8sClient.install_rainbond | console/tests/rke2_cluster_errors_test.py::ClusterRKEErrorTests.test_install_rainbond_returns_sanitized_subprocess_error |
 | console.service-share.create-record | 创建组件共享记录 | active | regression | console.views.service_share.ServiceShareRecordView.post | console/tests/service_share_test.py::ServiceShareRecordViewTestCase |
 | console.service-share.create-snapshot-record | 创建基于快照的服务分享记录 | active | regression | console.views.service_share.ServiceShareRecordView.post | console/tests/service_share_test.py::ServiceShareRecordViewTestCase.test_post_snapshot_mode_uses_hidden_template_app_id |
 | console.service-share.error-response | 服务分享异常时返回错误响应 | active | regression | console.views.service_share.ServiceShareRecordView.post | console/tests/service_share_test.py::ServiceShareRecordViewTestCase.test_post_returns_500_response_for_unexpected_exception |
@@ -528,6 +531,12 @@
 | openapi.app.team-apps-close | OpenAPI 关闭团队全部应用 | active | regression | openapi.views.apps.apps.TeamAppsCloseView.post | console/tests/openapi_team_apps_close_test.py::TeamAppsCloseTest.test_post_unpacks_three_return_values_from_batch_action |
 | openapi.base.team-not-initialized-in-region | 团队未在该集群中初始化时返回409错误 | active | regression | openapi.views.base.TeamAPIView.initial | console/tests/openapi_base_team_region_init_test.py::TeamAPIViewRegionInitTest |
 | openapi.enterprise.service-overview | OpenAPI 企业组件状态总览 | active | regression | openapi.views.enterprise_view.ServiceOverview.get | console/tests/openapi_service_overview_import_test.py::ServiceOverviewImportTest.test_service_overview_singleton_is_resolvable |
+| openapi.service-config.domain-set-headers-service-default | HTTP 策略高级配置服务层默认缺失 set_headers | active | regression | console.services.app_config.domain_service.DomainService.update_http_rule_config | console/tests/openapi_service_config_validation_test.py::OpenAPIServiceConfigValidationTest.test_http_rule_config_defaults_missing_set_headers_in_service |
+| openapi.service-config.env-note-optional | OpenAPI 组件环境变量备注可省略 | active | regression | console.services.app_config.env_service.AppEnvVarService.update_or_create_envs | console/tests/openapi_service_config_validation_test.py::OpenAPIServiceConfigValidationTest.test_update_or_create_envs_defaults_missing_note |
+| openapi.service-config.http-set-headers-optional | OpenAPI HTTP 网关 set_headers 可省略 | active | regression | openapi.serializer.gateway_serializer.HTTPConfiguration | console/tests/openapi_service_config_validation_test.py::OpenAPIServiceConfigValidationTest.test_http_configuration_defaults_missing_set_headers |
+| openapi.service-config.port-alias-blank | OpenAPI 组件端口别名可留空自动生成 | active | regression | openapi.serializer.app_serializer.ComponentPortReqSerializers | console/tests/openapi_service_config_validation_test.py::OpenAPIServiceConfigValidationTest.test_component_port_serializer_allows_blank_alias_for_auto_generation |
+| openapi.service-config.port-open-outer-app-context | OpenAPI 开启组件外部端口时解析应用上下文 | active | regression | console.services.app_config.port_service.AppPortService.manage_port | console/tests/openapi_service_config_validation_test.py::OpenAPIServiceConfigValidationTest.test_manage_port_resolves_app_when_opening_outer_port |
+| openapi.service-config.validation-error-shape | OpenAPI 参数校验错误不返回 traceback | active | regression | console.views.base.custom_exception_handler | console/tests/openapi_service_config_validation_test.py::OpenAPIServiceConfigValidationTest.test_validation_error_response_does_not_expose_traceback |
 | openapi.team.delete-error-propagation | OpenAPI 删除团队时正确透出业务异常 | active | regression | openapi.views.team_view.TeamInfo.delete | console/tests/openapi_team_delete_except_test.py::TeamDeleteExceptTest.test_service_error_propagates_instead_of_typeerror |
 | rainbond-console.vm-disks.container-disk-cdrom | VM disk layout accepts container disk CD-ROM media | active | regression | console.services.virtual_machine.VirtualMachineService.validate_vm_disk_layout | console/tests/vm_create_flow_regression_test.py::VMCreateFlowRegressionUnitTests.test_validate_vm_disk_layout_accepts_container_disk_cdrom<br>console/tests/vm_create_flow_regression_test.py::VMCreateFlowRegressionUnitTests.test_validate_vm_disk_layout_rejects_container_disk_without_image |
 | rainbond-console.vm-disks.iso-installer-compat | 当 VM 运行时提示不完整时仍为 ISO 虚拟机磁盘列表补出安装光盘 | active | regression | console.services.virtual_machine.VirtualMachineService.list_vm_disks | console/tests/vm_disk_installer_compat_test.py::VMInstallerMediaCompatUnitTests.test_get_vm_runtime_config_includes_boot_source_format<br>console/tests/vm_disk_installer_compat_test.py::VMInstallerMediaCompatUnitTests.test_list_vm_disks_falls_back_to_asset_format_for_legacy_iso_vm_without_runtime_hint |
@@ -3147,7 +3156,7 @@
 - 接口类型: `workflow`
 - 业务入口: `console.views.app_create.app_check.AppCheck.get`
 - 代码路径: `console/views/app_create/app_check.py`, `console/services/source_component_service.py`, `console/services/enterprise_first_deploy_service.py`
-- 测试路径: `console/tests/app_check_view_test.py::AppCheckViewDiagnosticsTests.test_get_reports_source_check_failure_without_changing_response`, `console/tests/source_component_service_test.py::SourceComponentServiceTests.test_auto_create_component_raises_on_check_failure`, `console/tests/enterprise_first_deploy_service_test.py::EnterpriseFirstDeployServiceTests.test_report_source_check_failure_sends_pre_deploy_diagnostic`
+- 测试路径: `console/tests/app_check_view_test.py::AppCheckSourceDiagnosticTests.test_get_reports_source_check_failure_without_changing_response`, `console/tests/source_component_service_test.py::SourceComponentServiceTests.test_auto_create_component_raises_on_check_failure`, `console/tests/enterprise_first_deploy_service_test.py::EnterpriseFirstDeployServiceTests.test_report_source_check_failure_sends_pre_deploy_diagnostic`
 
 ### 部署失败 v3 诊断埋点
 
@@ -3156,8 +3165,8 @@
 - 测试类型: `regression`
 - 接口类型: `workflow`
 - 业务入口: `console.services.enterprise_first_deploy_service.EnterpriseFirstDeployService`
-- 代码路径: `console/services/enterprise_first_deploy_service.py`, `console/repositories/first_deploy_repo.py`, `console/views/app_create/app_build.py`, `console/views/app_manage.py`, `console/services/market_app_service.py`
-- 测试路径: `console/tests/enterprise_first_deploy_service_test.py`
+- 代码路径: `console/services/enterprise_first_deploy_service.py`, `console/repositories/first_deploy_repo.py`, `console/views/app_create/app_build.py`, `console/views/app_manage.py`, `console/services/market_app_service.py`, `console/services/platform_plugin_service.py`, `console/services/source_component_service.py`, `console/services/package_component_service.py`
+- 测试路径: `console/tests/enterprise_first_deploy_service_test.py`, `console/tests/app_build_first_deploy_test.py::AppBuildFirstDeployTrackingTests.test_app_build_tracks_source_image_and_package_deploy_types`, `console/tests/market_app_first_deploy_test.py::MarketAppFirstDeployTrackingTests.test_install_app_reports_first_deploy_tracking_for_market_install`, `console/tests/compose_build_first_deploy_test.py::ComposeBuildFirstDeployTrackingTests.test_compose_build_tracks_first_deploy_and_binds_all_component_events`, `console/tests/auto_create_first_deploy_tracking_test.py`, `console/tests/platform_plugin_first_deploy_test.py::PlatformPluginFirstDeployTrackingTests.test_install_platform_plugin_reports_first_deploy_tracking`
 
 ### 拒绝既不是 IP 也不是域名的非法端点地址
 
@@ -4659,6 +4668,16 @@
 - 代码路径: `console/utils/realtime_proxy.py`
 - 测试路径: `console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_docker_console_activity_tracker_ignores_webtty_ping`
 
+### 文件操作上传原始转发 multipart 请求
+
+- Capability ID: `console.realtime-proxy.file-operate-raw-multipart-forward`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `package_function`
+- 业务入口: `console.utils.realtime_proxy.proxy_http_request`
+- 代码路径: `console/utils/realtime_proxy.py`
+- 测试路径: `console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_file_operate_upload_forwards_raw_multipart_body`
+
 ### 转发客户端请求的 websocket 子协议
 
 - Capability ID: `console.realtime-proxy.forward-client-subprotocols`
@@ -4688,16 +4707,6 @@
 - 业务入口: `console.utils.realtime_proxy.build_region_realtime_proxy_url`
 - 代码路径: `console/utils/realtime_proxy.py`
 - 测试路径: `console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_region_proxy_target_prefers_internal_override_for_builtin_region`
-
-### 文件操作上传原始转发 multipart 请求
-
-- Capability ID: `console.realtime-proxy.file-operate-raw-multipart-forward`
-- 状态: `active`
-- 测试类型: `regression`
-- 接口类型: `package_function`
-- 业务入口: `console.utils.realtime_proxy.proxy_http_request`
-- 代码路径: `console/utils/realtime_proxy.py`
-- 测试路径: `console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_file_operate_upload_forwards_raw_multipart_body`
 
 ### 转发文件夹上传中的重复 multipart 文件字段
 
@@ -5128,6 +5137,36 @@
 - 业务入口: `console.views.team_resources.ResourceCenterPodLogsView.get`
 - 代码路径: `console/views/team_resources.py`, `www/apiclient/regionapi.py`
 - 测试路径: `console/tests/team_resources_test.py::ResourceCenterPodLogsViewTestCase.test_get_sends_heartbeat_before_upstream_logs`, `console/tests/regionapi_sse_proxy_test.py::RegionApiSSEProxyTests.test_sse_proxy_passes_region_auth_headers`, `console/tests/regionapi_sse_proxy_test.py::RegionApiSSEProxyTests.test_sse_proxy_rewrites_console_tenant_name_to_region_tenant_name`, `console/tests/regionapi_sse_proxy_test.py::RegionApiSSEProxyTests.test_get_component_pod_log_uses_bounded_read_timeout`
+
+### Rainbond 安装失败时返回结构化错误且不进入集成中状态
+
+- Capability ID: `console.rke2.cluster-install-structured-helm-error`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `view_endpoint`
+- 业务入口: `console.views.rke2.ClusterRKEInstallRB.post`
+- 代码路径: `console/views/rke2.py`, `console/utils/k8s_cli.py`
+- 测试路径: `console/tests/rke2_cluster_errors_test.py::ClusterRKEErrorTests.test_cluster_install_returns_structured_helm_error_without_saving_integrating`
+
+### 请求的 RKE 集群元数据缺失时返回 404
+
+- Capability ID: `console.rke2.cluster-missing-metadata-404`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `view_endpoint`
+- 业务入口: `console.views.rke2.ClusterRKE.get`
+- 代码路径: `console/views/rke2.py`
+- 测试路径: `console/tests/rke2_cluster_errors_test.py::ClusterRKEErrorTests.test_cluster_get_returns_structured_404_when_cluster_metadata_missing`
+
+### 清洗 Rainbond 安装中的 Helm 子进程失败信息
+
+- Capability ID: `console.rke2.helm-subprocess-error-sanitized`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `workflow`
+- 业务入口: `console.utils.k8s_cli.K8sClient.install_rainbond`
+- 代码路径: `console/utils/k8s_cli.py`
+- 测试路径: `console/tests/rke2_cluster_errors_test.py::ClusterRKEErrorTests.test_install_rainbond_returns_sanitized_subprocess_error`
 
 ### 创建组件共享记录
 
@@ -5778,6 +5817,66 @@
 - 业务入口: `openapi.views.enterprise_view.ServiceOverview.get`
 - 代码路径: `openapi/views/enterprise_view.py`, `console/services/service_overview.py`
 - 测试路径: `console/tests/openapi_service_overview_import_test.py::ServiceOverviewImportTest.test_service_overview_singleton_is_resolvable`
+
+### HTTP 策略高级配置服务层默认缺失 set_headers
+
+- Capability ID: `openapi.service-config.domain-set-headers-service-default`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.app_config.domain_service.DomainService.update_http_rule_config`
+- 代码路径: `console/services/app_config/domain_service.py`
+- 测试路径: `console/tests/openapi_service_config_validation_test.py::OpenAPIServiceConfigValidationTest.test_http_rule_config_defaults_missing_set_headers_in_service`
+
+### OpenAPI 组件环境变量备注可省略
+
+- Capability ID: `openapi.service-config.env-note-optional`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.app_config.env_service.AppEnvVarService.update_or_create_envs`
+- 代码路径: `console/services/app_config/env_service.py`, `openapi/serializer/app_serializer.py`
+- 测试路径: `console/tests/openapi_service_config_validation_test.py::OpenAPIServiceConfigValidationTest.test_update_or_create_envs_defaults_missing_note`
+
+### OpenAPI HTTP 网关 set_headers 可省略
+
+- Capability ID: `openapi.service-config.http-set-headers-optional`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `view_endpoint`
+- 业务入口: `openapi.serializer.gateway_serializer.HTTPConfiguration`
+- 代码路径: `openapi/serializer/gateway_serializer.py`
+- 测试路径: `console/tests/openapi_service_config_validation_test.py::OpenAPIServiceConfigValidationTest.test_http_configuration_defaults_missing_set_headers`
+
+### OpenAPI 组件端口别名可留空自动生成
+
+- Capability ID: `openapi.service-config.port-alias-blank`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `view_endpoint`
+- 业务入口: `openapi.serializer.app_serializer.ComponentPortReqSerializers`
+- 代码路径: `openapi/serializer/app_serializer.py`
+- 测试路径: `console/tests/openapi_service_config_validation_test.py::OpenAPIServiceConfigValidationTest.test_component_port_serializer_allows_blank_alias_for_auto_generation`
+
+### OpenAPI 开启组件外部端口时解析应用上下文
+
+- Capability ID: `openapi.service-config.port-open-outer-app-context`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.app_config.port_service.AppPortService.manage_port`
+- 代码路径: `console/services/app_config/port_service.py`
+- 测试路径: `console/tests/openapi_service_config_validation_test.py::OpenAPIServiceConfigValidationTest.test_manage_port_resolves_app_when_opening_outer_port`
+
+### OpenAPI 参数校验错误不返回 traceback
+
+- Capability ID: `openapi.service-config.validation-error-shape`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `package_function`
+- 业务入口: `console.views.base.custom_exception_handler`
+- 代码路径: `console/views/base.py`
+- 测试路径: `console/tests/openapi_service_config_validation_test.py::OpenAPIServiceConfigValidationTest.test_validation_error_response_does_not_expose_traceback`
 
 ### OpenAPI 删除团队时正确透出业务异常
 

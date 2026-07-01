@@ -5,7 +5,6 @@
 import logging
 from typing import Any
 
-from console.cloud.services import check_account_quota
 from console.exception.bcode import ErrComponentBuildFailed
 from console.exception.main import (ErrInsufficientResource, ServiceHandleException)
 from console.repositories.deploy_repo import deploy_repo
@@ -201,15 +200,48 @@ class ComposeBuildView(RegionTenantHeaderCloudEnterpriseCenterView):
             # NOTE: get_group_compose_by_compose_id may return None; backlog
             group_compose.create_status = "complete"  # type: ignore[union-attr]
             group_compose.save()  # type: ignore[union-attr]
+            tracker = None
+            if new_app_list:
+                tracker = enterprise_first_deploy_service.safe_begin_tracking(
+                    enterprise_id=self.tenant.enterprise_id,  # type: ignore[arg-type]
+                    tenant_name=self.tenant.tenant_name,
+                    region_name=self.region_name,
+                    deploy_type=enterprise_first_deploy_service.DEPLOY_TYPE_IMAGE,
+                    operator=self.user.nick_name,  # type: ignore[arg-type]
+                    source_language="docker-compose",
+                    trigger="compose_build",
+                    app_context=enterprise_first_deploy_service.build_service_app_context(
+                        getattr(self, "app", None),
+                        component_count=len(new_app_list)))
+            event_ids = []
+            service_ids = []
+            service_aliases = []
             for s in new_app_list:
                 try:
-                    app_manage_service.deploy(self.tenant, s, self.user, oauth_instance=self.oauth_instance)
+                    code, msg, event_id = app_manage_service.deploy(
+                        self.tenant, s, self.user, oauth_instance=self.oauth_instance)
+                    if code != 200:
+                        enterprise_first_deploy_service.safe_mark_failure(tracker, reason=msg)
+                        continue
+                    if event_id:
+                        event_ids.append(event_id)
+                    if getattr(s, "service_id", ""):
+                        service_ids.append(s.service_id)
+                    if getattr(s, "service_alias", ""):
+                        service_aliases.append(s.service_alias)
                 except ErrInsufficientResource as e:
+                    enterprise_first_deploy_service.safe_mark_failure(tracker, reason=getattr(e, "msg", str(e)))
                     result = general_message(e.error_code, e.msg, e.msg_show)
                     return Response(result, status=e.status_code)
                 except Exception as e:
+                    enterprise_first_deploy_service.safe_mark_failure(tracker, reason=str(e))
                     logger.exception(e)
                     continue
+            enterprise_first_deploy_service.safe_bind_events(
+                tracker,
+                event_ids,
+                service_ids=service_ids,
+                service_aliases=service_aliases)
 
             result = general_message(200, "success", "构建成功")
         except Exception as e:
