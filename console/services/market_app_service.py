@@ -41,9 +41,9 @@ from console.services.app_config_group import app_config_group_service
 from console.services.enterprise_first_deploy_service import enterprise_first_deploy_service
 from console.services.group_service import group_service
 from console.services.market_app.app_upgrade import AppUpgrade
+from console.services.market_app.utils import apply_hostname_remap, collect_install_hostname_remap, resolve_none_placeholders
 # market app
 from console.services.market_app.component_group import ComponentGroup
-from console.services.market_app.utils import resolve_none_placeholders
 from console.services.plugin import (app_plugin_service, plugin_config_service, plugin_service, plugin_version_service)
 from console.services.region_services import region_services
 from console.services.share_services import share_service
@@ -401,9 +401,9 @@ class MarketAppService(object):
             app_templates = json.loads(market_app_version.app_template)
             self._ensure_vm_template_allowed(tenant, region_name, app_templates)
             apps = app_templates["apps"]
-            # resolve **None** / **None:group** secret placeholders before saving components,
-            # sharing one cache so grouped secrets stay consistent across all components
             resolve_none_placeholders(apps)
+            hostname_remap = collect_install_hostname_remap(tenant.tenant_id, apps)
+            apply_hostname_remap(apps, hostname_remap)
             tenant_service_group = self._create_tenant_service_group(region_name, tenant.tenant_id, group_id, market_app.app_id,
                                                                      market_app_version.version, market_app.app_name)
             # install plugin for tenant
@@ -522,8 +522,9 @@ class MarketAppService(object):
             region = region_services.get_enterprise_region_by_region_name(
                 tenant.enterprise_id, region_name)  # type: ignore[arg-type]
             apps = market_app_template["apps"]
-            # resolve **None** / **None:group** secret placeholders before saving components
             resolve_none_placeholders(apps)
+            hostname_remap = collect_install_hostname_remap(tenant.tenant_id, apps)
+            apply_hostname_remap(apps, hostname_remap)
             tenant_service_group = tenant_service_group_repo.get_component_group(upgrade_group_id)
 
             self.create_plugin_for_tenant(region_name, user, tenant, market_app_template.get("plugins", []))
