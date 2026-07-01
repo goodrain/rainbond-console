@@ -652,3 +652,6 @@ class AppVolumeService(object):
                     tenant.enterprise_id)  # type: ignore[arg-type]
             except Exception as e:
                 logger.exception(e)
+
+
+volume_service = AppVolumeService()

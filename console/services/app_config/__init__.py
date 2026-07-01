@@ -12,12 +12,13 @@ from .mnt_service import AppMntService
 from .port_service import AppPortService, EndpointService
 from .probe_service import ProbeService
 from .service_monitor import ComponentServiceMonitor
-from .volume_service import AppVolumeService
+from . import volume_service as _volume_service_module
 
 port_service = AppPortService()
 endpoint_service = EndpointService()
 env_var_service = AppEnvVarService()
-volume_service = AppVolumeService()
+AppVolumeService = _volume_service_module.AppVolumeService
+volume_service = _volume_service_module.volume_service
 dependency_service = AppServiceRelationService()
 mnt_service = AppMntService()
 domain_service = DomainService()

@@ -46,6 +46,7 @@
 | console.app-config-group.get | 查看应用配置组详情 | active | regression | console.services.app_config_group.AppConfigGroupService.get_config_group | console/tests/app_config_group_service_test.py::AppConfigGroupServiceWorkflowTests.test_get_config_group_returns_built_response |
 | console.app-config-group.list | 查询应用配置组列表 | active | regression | console.services.app_config_group.AppConfigGroupService.list_config_groups | console/tests/app_config_group_service_test.py::AppConfigGroupServiceWorkflowTests.test_list_config_groups_returns_items_and_total |
 | console.app-config-group.update | 更新应用配置组 | active | regression | console.services.app_config_group.AppConfigGroupService.update_config_group | console/tests/app_config_group_service_test.py::AppConfigGroupServiceWorkflowTests.test_update_config_group_updates_remote_and_local_records |
+| console.app-config.volume-service-module-export | 应用配置存储服务模块导出 | active | regression | console.services.app_config.volume_service.volume_service | console/tests/app_config_volume_service_import_test.py::AppConfigVolumeServiceImportTests.test_volume_service_module_exports_package_singleton |
 | console.app-creator.full-permissions | App creator full permissions | active | regression | console.services.perm_services.UserKindPermService.get_user_perms | console/tests/perm_services_test.py |
 | console.app-export.query-status | 查询应用导出状态 | active | regression | console.services.app_import_and_export_service.AppExportService.get_export_status | console/tests/app_import_and_export_service_test.py::AppExportServiceMetadataTestCase.test_get_export_status_updates_exporting_record_and_wraps_download_url |
 | console.app-import.abandon | 放弃应用导入 | active | regression | console.views.center_pool.app_import.CenterAppImportView.delete | console/tests/app_import_and_export_service_test.py::CenterAppImportViewWorkflowTestCase.test_delete_abandons_import |
@@ -961,6 +962,16 @@
 - 业务入口: `console.services.app_config_group.AppConfigGroupService.update_config_group`
 - 代码路径: `console/services/app_config_group.py`, `console/views/app_config_group.py`
 - 测试路径: `console/tests/app_config_group_service_test.py::AppConfigGroupServiceWorkflowTests.test_update_config_group_updates_remote_and_local_records`
+
+### 应用配置存储服务模块导出
+
+- Capability ID: `console.app-config.volume-service-module-export`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `package_function`
+- 业务入口: `console.services.app_config.volume_service.volume_service`
+- 代码路径: `console/services/app_config/volume_service.py`, `console/services/app_config/__init__.py`
+- 测试路径: `console/tests/app_config_volume_service_import_test.py::AppConfigVolumeServiceImportTests.test_volume_service_module_exports_package_singleton`
 
 ### App creator full permissions
 
