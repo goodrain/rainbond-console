@@ -2,7 +2,7 @@
 import json
 import logging
 import time
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from console.constants import SourceCodeType
 from console.exception.main import ServiceHandleException
@@ -262,10 +262,35 @@ class SourceComponentService(object):
             team, component, self._get_username(user))  # type: ignore[arg-type]
         deploy_event_id = None
         if is_deploy:
-            arch_service.update_affinity_by_arch(region_component.arch, team, app.region_name, region_component)
-            code, msg, deploy_event_id = app_manage_service.deploy(team, region_component, user)
-            if code != 200:
-                raise ServiceHandleException(msg="deploy failed", msg_show=msg, status_code=code)
+            service_alias = getattr(region_component, "service_alias", "") or getattr(component, "service_alias", "")
+            tracker = enterprise_first_deploy_service.safe_begin_tracking(
+                enterprise_id=team.enterprise_id,
+                tenant_name=team.tenant_name,
+                region_name=app.region_name,
+                deploy_type=enterprise_first_deploy_service.get_deploy_type(
+                    getattr(region_component, "service_source", "") or getattr(component, "service_source", "")),
+                operator=getattr(user, "nick_name", ""),
+                source_language=selected_language or getattr(component, "language", "") or "",
+                service_id=region_component.service_id,
+                service_alias=service_alias,
+                service=region_component,
+                trigger="source_auto_create",
+                app_context=enterprise_first_deploy_service.build_service_app_context(app))
+            try:
+                arch_service.update_affinity_by_arch(region_component.arch, team, app.region_name, region_component)
+                code, msg, deploy_event_id = app_manage_service.deploy(team, region_component, user)
+                if code != 200:
+                    raise ServiceHandleException(msg="deploy failed", msg_show=msg, status_code=code)
+            except Exception as exc:
+                enterprise_first_deploy_service.safe_mark_failure(
+                    tracker,
+                    reason=getattr(exc, "msg_show", str(exc)))
+                raise
+            enterprise_first_deploy_service.safe_bind_events(
+                tracker,
+                [deploy_event_id],
+                service_ids=[region_component.service_id],
+                service_alias=service_alias)
             deploy_repo.create_deploy_relation_by_service_id(service_id=region_component.service_id)
 
         return {

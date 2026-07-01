@@ -4834,11 +4834,33 @@
         "console/repositories/first_deploy_repo.py",
         "console/views/app_create/app_build.py",
         "console/views/app_manage.py",
-        "console/services/market_app_service.py"
+        "console/services/market_app_service.py",
+        "console/services/platform_plugin_service.py",
+        "console/services/source_component_service.py",
+        "console/services/package_component_service.py"
       ],
       "tests": [
         {
           "path": "console/tests/enterprise_first_deploy_service_test.py"
+        },
+        {
+          "path": "console/tests/app_build_first_deploy_test.py",
+          "selector": "AppBuildFirstDeployTrackingTests.test_app_build_tracks_source_image_and_package_deploy_types"
+        },
+        {
+          "path": "console/tests/market_app_first_deploy_test.py",
+          "selector": "MarketAppFirstDeployTrackingTests.test_install_app_reports_first_deploy_tracking_for_market_install"
+        },
+        {
+          "path": "console/tests/compose_build_first_deploy_test.py",
+          "selector": "ComposeBuildFirstDeployTrackingTests.test_compose_build_tracks_first_deploy_and_binds_all_component_events"
+        },
+        {
+          "path": "console/tests/auto_create_first_deploy_tracking_test.py"
+        },
+        {
+          "path": "console/tests/platform_plugin_first_deploy_test.py",
+          "selector": "PlatformPluginFirstDeployTrackingTests.test_install_platform_plugin_reports_first_deploy_tracking"
         }
       ],
       "test_type": "regression",

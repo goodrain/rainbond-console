@@ -12,6 +12,17 @@ GPU_RUNTIME_CLASS_NAME=${GPU_RUNTIME_CLASS_NAME:-nvidia}
 NVIDIA_VISIBLE_DEVICES=${NVIDIA_VISIBLE_DEVICES:-all}
 NVIDIA_DRIVER_CAPABILITIES=${NVIDIA_DRIVER_CAPABILITIES:-compute,utility}
 
+function rainbond_use_chinese_prompt() {
+    case "${RAINBOND_INSTALL_LANG:-zh}" in
+        en | en_US | en-US | en_US.UTF-8 | en-US.UTF-8 | english | English | EN)
+            return 1
+            ;;
+        *)
+            return 0
+            ;;
+    esac
+}
+
 # Define colorful stdout
 RED='\033[0;31m'
 GREEN='\033[32;1m'
@@ -78,7 +89,7 @@ function check_required_commands() {
     done
 
     if [ ${#missing_commands[@]} -gt 0 ]; then
-        if [ "$LANG" == "zh_CN.UTF-8" ]; then
+        if rainbond_use_chinese_prompt; then
             send_error "缺少必需命令: ${missing_commands[*]}\n\t请安装这些命令后重试"
         else
             send_error "Missing required commands: ${missing_commands[*]}\n\tPlease install these commands and try again"
@@ -101,7 +112,7 @@ if [ "${OS_TYPE}" == "Linux" ]; then
 elif [ "${OS_TYPE}" == "Darwin" ]; then
     MD5_CMD="md5"
 else
-    if [ "$LANG" == "zh_CN.UTF-8" ]; then
+    if rainbond_use_chinese_prompt; then
         send_error "${OS_TYPE} 操作系统暂不支持"
         exit 1
     else
@@ -112,7 +123,7 @@ fi
 
 # Use root user or sudo to run this script, Ignore MacOS
 if [ "${OS_TYPE}" != "Darwin" ] && [ "$EUID" -ne 0 ]; then
-    if [ "$LANG" == "zh_CN.UTF-8" ]; then
+    if rainbond_use_chinese_prompt; then
         send_error "请使用 root 用户或 sudo 运行此脚本\n\t示例: sudo bash $0"
         exit 1
     else
@@ -125,7 +136,7 @@ fi
 if [ "${OS_TYPE}" == "Linux" ]; then
     KERNEL_VERSION=$(uname -r | cut -d'.' -f1)
     if [ "$KERNEL_VERSION" -lt 4 ] 2>/dev/null; then
-        if [ "$LANG" == "zh_CN.UTF-8" ]; then
+        if rainbond_use_chinese_prompt; then
             send_error "Linux 内核版本过低，当前版本: $(uname -r)，要求最低版本: 4.x\n\t请升级内核后重试"
         else
             send_error "Linux kernel version is too low, current version: $(uname -r), minimum required: 4.x\n\tPlease upgrade the kernel and try again"
@@ -140,7 +151,7 @@ if [ "${OS_TYPE}" == "Linux" ]; then
         if ! lsmod | grep iptable_raw >/dev/null 2>&1; then
             echo iptable_raw >/etc/modules-load.d/iptable_raw.conf
             if ! modprobe iptable_raw 2>/dev/null; then
-                if [ "$LANG" == "zh_CN.UTF-8" ]; then
+                if rainbond_use_chinese_prompt; then
                     send_warn "无法加载 iptable_raw 模块，可能影响网络功能"
                 else
                     send_warn "Failed to load iptable_raw module, may affect network functionality"
@@ -158,7 +169,7 @@ fi
 
 # Function to check only ports for macOS
 function check_ports_only_macos() {
-  if [ "$LANG" == "zh_CN.UTF-8" ]; then
+  if rainbond_use_chinese_prompt; then
     send_info "######## 开始检测端口... ########"
   else
     send_info "######## Starting port check... ########"
@@ -182,21 +193,21 @@ function check_ports_only_macos() {
   done
   
   if [ ${#occupied_ports[@]} -gt 0 ]; then
-    if [ "$LANG" == "zh_CN.UTF-8" ]; then
+    if rainbond_use_chinese_prompt; then
       send_error "以下端口被占用: \n\t- ${occupied_ports[*]}\n\t请释放这些端口后重试."
     else
       send_error "The following ports are occupied: \n\t- ${occupied_ports[*]}\n\tPlease free these ports and try again."
     fi
     exit 1
   else
-    if [ "$LANG" == "zh_CN.UTF-8" ]; then
+    if rainbond_use_chinese_prompt; then
       send_info "端口检测通过，所有必需端口可用"
     else
       send_info "Port check passed, all required ports are available"
     fi
   fi
 
-  if [ "$LANG" == "zh_CN.UTF-8" ]; then
+  if rainbond_use_chinese_prompt; then
     send_info "######## 端口检测通过 ########"
   else
     send_info "######## Port check passed ########"
@@ -205,7 +216,7 @@ function check_ports_only_macos() {
 
 function check_iptables_command_linux() {
   if ! command -v iptables >/dev/null 2>&1; then
-    if [ "$LANG" == "zh_CN.UTF-8" ]; then
+    if rainbond_use_chinese_prompt; then
       send_error "未找到 iptables 命令，请执行 yum -y install iptables 或 apt-get update && apt-get -y install iptables 后重试"
     else
       send_error "iptables command not found. Please run yum -y install iptables or apt-get update && apt-get -y install iptables, then try again."
@@ -224,7 +235,7 @@ function check_memory_requirement_linux() {
 
   memory_kb=$(awk '/MemTotal/ {print $2; exit}' /proc/meminfo 2>/dev/null)
   if ! echo "${memory_kb}" | grep -Eq '^[0-9]+$'; then
-    if [ "$LANG" == "zh_CN.UTF-8" ]; then
+    if rainbond_use_chinese_prompt; then
       send_error "无法检测系统内存，请检查系统环境后重试"
     else
       send_error "Failed to detect system memory, please check the system environment and try again"
@@ -234,7 +245,7 @@ function check_memory_requirement_linux() {
 
   memory_gb=$((memory_kb / 1024 / 1024))
   if [ "${memory_kb}" -lt "${MIN_MEMORY_KB}" ]; then
-    if [ "$LANG" == "zh_CN.UTF-8" ]; then
+    if rainbond_use_chinese_prompt; then
       send_error "内存不足，当前: ${memory_gb}GB，最低要求: 4GB"
     else
       send_error "Memory is insufficient, current: ${memory_gb}GB, minimum required: 4GB"
@@ -242,7 +253,7 @@ function check_memory_requirement_linux() {
     return 1
   fi
 
-  if [ "$LANG" == "zh_CN.UTF-8" ]; then
+  if rainbond_use_chinese_prompt; then
     send_info "内存检测通过，当前: ${memory_gb}GB"
   else
     send_info "Memory check passed, current: ${memory_gb}GB"
@@ -252,14 +263,14 @@ function check_memory_requirement_linux() {
 }
 
 function check_base_env() {
-  if [ "$LANG" == "zh_CN.UTF-8" ]; then
+  if rainbond_use_chinese_prompt; then
     send_info "######## 开始检测基础环境... ########"
   else
     send_info "######## Starting base environment check... ########"
   fi
 
   # Check and disable firewall
-  if [ "$LANG" == "zh_CN.UTF-8" ]; then
+  if rainbond_use_chinese_prompt; then
     send_info "检查并关闭防火墙..."
   else
     send_info "Checking and disabling firewall..."
@@ -268,7 +279,7 @@ function check_base_env() {
   # Check and disable firewalld
   if systemctl list-unit-files 2>/dev/null | grep -q firewalld; then
     if systemctl is-active --quiet firewalld 2>/dev/null; then
-      if [ "$LANG" == "zh_CN.UTF-8" ]; then
+      if rainbond_use_chinese_prompt; then
         send_info "检测到 firewalld 正在运行，正在停止并禁用..."
       else
         send_info "firewalld is running, stopping and disabling..."
@@ -285,7 +296,7 @@ function check_base_env() {
   # Check and disable ufw
   if command -v ufw >/dev/null 2>&1; then
     if ufw status | grep -q "Status: active"; then
-      if [ "$LANG" == "zh_CN.UTF-8" ]; then
+      if rainbond_use_chinese_prompt; then
         send_info "检测到 ufw 正在运行，正在停止并禁用..."
       else
         send_info "ufw is active, stopping and disabling..."
@@ -303,7 +314,7 @@ function check_base_env() {
   fi
 
   # Check and disable swap
-  if [ "$LANG" == "zh_CN.UTF-8" ]; then
+  if rainbond_use_chinese_prompt; then
     send_info "检查并关闭交换分区..."
   else
     send_info "Checking and disabling swap..."
@@ -311,7 +322,7 @@ function check_base_env() {
   
   # Check if swap is enabled
   if [ "$(cat /proc/swaps | wc -l)" -gt 1 ]; then
-    if [ "$LANG" == "zh_CN.UTF-8" ]; then
+    if rainbond_use_chinese_prompt; then
       send_info "检测到交换分区正在使用，正在关闭..."
     else
       send_info "Swap is enabled, disabling..."
@@ -323,13 +334,13 @@ function check_base_env() {
     # Comment out swap entries in /etc/fstab to prevent re-enabling on reboot
     if [ -f /etc/fstab ]; then
       if sed -i.bak '/^[^#].*swap/s/^/#/' /etc/fstab 2>/dev/null; then
-        if [ "$LANG" == "zh_CN.UTF-8" ]; then
+        if rainbond_use_chinese_prompt; then
           send_info "已修改 /etc/fstab 防止重启后重新启用交换分区"
         else
           send_info "Modified /etc/fstab to prevent swap re-enabling on reboot"
         fi
       else
-        if [ "$LANG" == "zh_CN.UTF-8" ]; then
+        if rainbond_use_chinese_prompt; then
           send_warn "修改 /etc/fstab 失败，重启后可能重新启用 swap"
         else
           send_warn "Failed to modify /etc/fstab, swap may re-enable after reboot"
@@ -337,7 +348,7 @@ function check_base_env() {
       fi
     fi
     
-    if [ "$LANG" == "zh_CN.UTF-8" ]; then
+    if rainbond_use_chinese_prompt; then
       send_info "交换分区已关闭"
     else
       send_info "Swap disabled successfully"
@@ -372,14 +383,14 @@ function check_base_env() {
   done
   
   if [ ${#occupied_ports[@]} -gt 0 ]; then
-    if [ "$LANG" == "zh_CN.UTF-8" ]; then
+    if rainbond_use_chinese_prompt; then
       send_error "以下端口被占用: ${occupied_ports[*]}. 请释放这些端口后重试."
     else
       send_error "The following ports are occupied: ${occupied_ports[*]}. Please free these ports and try again."
     fi
     exit 1
   else
-    if [ "$LANG" == "zh_CN.UTF-8" ]; then
+    if rainbond_use_chinese_prompt; then
       send_info "端口检测通过，所有必需端口可用"
     else
       send_info "Port check passed, all required ports are available"
@@ -388,13 +399,13 @@ function check_base_env() {
 
   # Test connection to docker registry
   if curl -s --connect-timeout 10 --max-time 30 "https://registry.cn-hangzhou.aliyuncs.com" >/dev/null 2>&1; then
-    if [ "$LANG" == "zh_CN.UTF-8" ]; then
+    if rainbond_use_chinese_prompt; then
       send_info "Docker 镜像仓库连接正常"
     else
       send_info "Docker registry connectivity is working"
     fi
   else
-    if [ "$LANG" == "zh_CN.UTF-8" ]; then
+    if rainbond_use_chinese_prompt; then
       send_error "Docker 镜像仓库连接测试失败，可能影响镜像下载"
     else
       send_error "Docker registry connectivity test failed, may affect image download"
@@ -426,7 +437,7 @@ function check_base_env() {
   # Check if at least 10GB available (10485760 KB)
   if [ "$available_space" -lt 10485760 ] 2>/dev/null; then
     local available_gb=$((available_space / 1024 / 1024))
-    if [ "$LANG" == "zh_CN.UTF-8" ]; then
+    if rainbond_use_chinese_prompt; then
       send_error "磁盘空间不足，当前可用: ${available_gb}GB, 请至少保留10GB空间后重试"
     else
       send_error "Disk space is insufficient, available: ${available_gb}GB, please reserve at least 10GB space and try again"
@@ -434,14 +445,14 @@ function check_base_env() {
     exit 1
   else
     local available_gb=$((available_space / 1024 / 1024))
-    if [ "$LANG" == "zh_CN.UTF-8" ]; then
+    if rainbond_use_chinese_prompt; then
       send_info "磁盘空间检测通过，可用空间: ${available_gb}GB"
     else
       send_info "Disk space check passed, available space: ${available_gb}GB"
     fi
   fi
 
-  if [ "$LANG" == "zh_CN.UTF-8" ]; then
+  if rainbond_use_chinese_prompt; then
     send_info "######## 基础环境检测通过 ########"
   else
     send_info "######## Base environment check passed ########"
@@ -480,7 +491,7 @@ function get_container_eip() {
 # Ensure container exists (exit with error if not)
 function require_container_exists() {
   if ! container_exists; then
-    if [ "$LANG" == "zh_CN.UTF-8" ]; then
+    if rainbond_use_chinese_prompt; then
       send_error "rainbond 容器不存在，请先运行安装脚本"
     else
       send_error "rainbond container does not exist, please run the installation script first"
@@ -494,7 +505,7 @@ function require_container_running() {
   require_container_exists
 
   if ! container_is_running; then
-    if [ "$LANG" == "zh_CN.UTF-8" ]; then
+    if rainbond_use_chinese_prompt; then
       send_error "rainbond 容器未运行，请先启动容器"
     else
       send_error "rainbond container is not running, please start the container first"
@@ -510,7 +521,7 @@ function check_rainbond_container() {
         # Rainbond container is running, get EIP and exit
         local get_eip
         get_eip=$(get_container_eip)
-        if [ "$LANG" == "zh_CN.UTF-8" ]; then
+        if rainbond_use_chinese_prompt; then
           send_info "Rainbond 容器已在运行中.\n\t- 请在浏览器中输入 http://$get_eip:7070 访问 Rainbond."
         else
           send_info "Rainbond container is already running.\n\t- Please enter http://$get_eip:7070 in the browser to access Rainbond."
@@ -518,7 +529,7 @@ function check_rainbond_container() {
         exit 0
       else
         # Container exists but is not running, try to start it
-        if [ "$LANG" == "zh_CN.UTF-8" ]; then
+        if rainbond_use_chinese_prompt; then
           send_info "Rainbond 容器已存在但未运行，正在尝试启动..."
         else
           send_info "Rainbond container exists but not running, trying to start..."
@@ -528,14 +539,14 @@ function check_rainbond_container() {
           sleep 3
           local get_eip
           get_eip=$(get_container_eip)
-          if [ "$LANG" == "zh_CN.UTF-8" ]; then
+          if rainbond_use_chinese_prompt; then
             send_info "Rainbond 容器启动成功.\n\t- 请在浏览器中输入 http://$get_eip:7070 访问 Rainbond."
           else
             send_info "Rainbond container started successfully.\n\t- Please enter http://$get_eip:7070 in the browser to access Rainbond."
           fi
           exit 0
         else
-          if [ "$LANG" == "zh_CN.UTF-8" ]; then
+          if rainbond_use_chinese_prompt; then
             send_error "Rainbond 容器启动失败，请手动执行 docker start rainbond"
           else
             send_error "Failed to start Rainbond container, please manually run docker start rainbond"
@@ -569,7 +580,7 @@ function show_docker_command() {
 
   # Display the command
   echo -e "${GREEN}"
-  if [ "$LANG" == "zh_CN.UTF-8" ]; then
+  if rainbond_use_chinese_prompt; then
     cat << EOF
 ###############################################
 # 您可以复制并修改以下命令来重新部署:
@@ -617,7 +628,7 @@ EOF
 function setup_port_forward() {
   # Only support Linux
   if [ "${OS_TYPE}" != "Linux" ]; then
-    if [ "$LANG" == "zh_CN.UTF-8" ]; then
+    if rainbond_use_chinese_prompt; then
       send -e "${RED}错误: 端口转发功能仅在 Linux 系统上支持${NC}"
     else
       echo -e "${RED}Error: Port forwarding is only supported on Linux${NC}"
@@ -632,7 +643,7 @@ function setup_port_forward() {
   local CONTAINER_IP
   CONTAINER_IP=$(get_container_ip)
   if [ -z "$CONTAINER_IP" ]; then
-    if [ "$LANG" == "zh_CN.UTF-8" ]; then
+    if rainbond_use_chinese_prompt; then
       echo -e "${RED}错误: 无法获取容器 IP 地址${NC}"
     else
       echo -e "${RED}Error: Failed to get container IP address${NC}"
@@ -645,7 +656,7 @@ function setup_port_forward() {
   local HOST_PORT=$2
 
   if [ -z "$CONTAINER_PORT" ] || [ -z "$HOST_PORT" ]; then
-    if [ "$LANG" == "zh_CN.UTF-8" ]; then
+    if rainbond_use_chinese_prompt; then
       echo -e "${RED}错误: 缺少端口参数${NC}"
       echo -e "${YELLOW}用法: $0 port-forward <容器端口> <宿主机端口>${NC}"
       echo -e "${YELLOW}示例: $0 port-forward 30011 30011${NC}"
@@ -659,7 +670,7 @@ function setup_port_forward() {
 
   # Validate port numbers
   if ! [[ "$CONTAINER_PORT" =~ ^[0-9]+$ ]] || [ "$CONTAINER_PORT" -lt 1 ] || [ "$CONTAINER_PORT" -gt 65535 ]; then
-    if [ "$LANG" == "zh_CN.UTF-8" ]; then
+    if rainbond_use_chinese_prompt; then
       echo -e "${RED}错误: 无效的容器端口号: $CONTAINER_PORT (必须是 1-65535 之间的数字)${NC}"
     else
       echo -e "${RED}Error: Invalid container port: $CONTAINER_PORT (must be a number between 1-65535)${NC}"
@@ -668,7 +679,7 @@ function setup_port_forward() {
   fi
 
   if ! [[ "$HOST_PORT" =~ ^[0-9]+$ ]] || [ "$HOST_PORT" -lt 1 ] || [ "$HOST_PORT" -gt 65535 ]; then
-    if [ "$LANG" == "zh_CN.UTF-8" ]; then
+    if rainbond_use_chinese_prompt; then
       echo -e "${RED}错误: 无效的宿主机端口号: $HOST_PORT (必须是 1-65535 之间的数字)${NC}"
     else
       echo -e "${RED}Error: Invalid host port: $HOST_PORT (must be a number between 1-65535)${NC}"
@@ -678,7 +689,7 @@ function setup_port_forward() {
 
   # Check if iptables command exists
   if ! command -v iptables >/dev/null 2>&1; then
-    if [ "$LANG" == "zh_CN.UTF-8" ]; then
+    if rainbond_use_chinese_prompt; then
       echo -e "${RED}错误: 未找到 iptables 命令，请先安装 iptables${NC}"
     else
       echo -e "${RED}Error: iptables command not found, please install iptables first${NC}"
@@ -687,7 +698,7 @@ function setup_port_forward() {
   fi
 
   if ! iptables -t nat -I DOCKER -p tcp --dport "${HOST_PORT}" -j DNAT --to-destination "${CONTAINER_IP}:${CONTAINER_PORT}" 2>/dev/null; then
-    if [ "$LANG" == "zh_CN.UTF-8" ]; then
+    if rainbond_use_chinese_prompt; then
       echo -e "${RED}错误: 添加 NAT 规则失败${NC}"
     else
       echo -e "${RED}Error: Failed to add NAT rule${NC}"
@@ -696,14 +707,14 @@ function setup_port_forward() {
   fi
 
   if ! iptables -I DOCKER -d "${CONTAINER_IP}" -p tcp --dport "${CONTAINER_PORT}" -j ACCEPT 2>/dev/null; then
-    if [ "$LANG" == "zh_CN.UTF-8" ]; then
+    if rainbond_use_chinese_prompt; then
       echo -e "${YELLOW}警告: 添加 FILTER 规则失败，但 NAT 规则已添加${NC}"
     else
       echo -e "${YELLOW}Warning: Failed to add FILTER rule, but NAT rule has been added${NC}"
     fi
   fi
 
-  if [ "$LANG" == "zh_CN.UTF-8" ]; then
+  if rainbond_use_chinese_prompt; then
     echo -e "${GREEN}✓ 端口转发配置成功！${NC}"
     echo -e "${GREEN}您现在可以通过宿主机的 ${HOST_PORT} 端口访问容器的 ${CONTAINER_PORT} 端口${NC}"
     echo ""
@@ -745,7 +756,7 @@ cat << "EOF"
 EOF
 echo -e "${NC}"
 
-if [ "$LANG" == "zh_CN.UTF-8" ]; then
+if rainbond_use_chinese_prompt; then
   echo -e "${GREEN}欢迎安装 Rainbond${NC}"
   echo -e "${GREEN}版本: ${RAINBOND_VERSION}${NC}"
   echo ""
@@ -776,13 +787,13 @@ elif [ "$(arch)" = "aarch64" ] || [ "$(arch)" = "arm64" ]; then
     ARCH_TYPE=arm64
 elif [ "$(arch)" = "i386" ]; then
     ARCH_TYPE=amd64
-    if [ "$LANG" == "zh_CN.UTF-8" ]; then
+    if rainbond_use_chinese_prompt; then
         send_warn "检测到 i386, 我们把它当做 x86_64(amd64). 如果您使用的是 M1 芯片的 MacOS, 确保您禁用了 Rosetta. \n\t 请参阅: https://github.com/goodrain/rainbond/issues/1439 "
     else
         send_warn "i386 has been detected, we'll treat it like x86_64(amd64). If you are using the M1 chip MacOS, make sure your terminal has Rosetta disabled.\n\t Have a look : https://github.com/goodrain/rainbond/issues/1439 "
     fi
 else
-    if [ "$LANG" == "zh_CN.UTF-8" ]; then
+    if rainbond_use_chinese_prompt; then
         send_error "Rainbond 目前还不支持 $(arch) 架构"
         exit 1
     else
@@ -823,7 +834,7 @@ check_docker_running() {
 
 # Function to start Docker service on Linux
 start_docker_service_linux() {
-    if [ "$LANG" == "zh_CN.UTF-8" ]; then
+    if rainbond_use_chinese_prompt; then
         send_info "检测到 Docker 已安装但未运行，正在自动启动 Docker 服务..."
     else
         send_info "Docker is installed but not running, starting Docker service automatically..."
@@ -832,14 +843,14 @@ start_docker_service_linux() {
     if systemctl start docker >/dev/null 2>&1; then
         sleep 3
         if docker info >/dev/null 2>&1; then
-            if [ "$LANG" == "zh_CN.UTF-8" ]; then
+            if rainbond_use_chinese_prompt; then
                 send_info "Docker 服务启动成功"
             else
                 send_info "Docker service started successfully"
             fi
             return 0
         else
-            if [ "$LANG" == "zh_CN.UTF-8" ]; then
+            if rainbond_use_chinese_prompt; then
                 send_error "Docker 服务启动失败，请手动启动: systemctl start docker"
             else
                 send_error "Docker service failed to start, please start manually: systemctl start docker"
@@ -847,7 +858,7 @@ start_docker_service_linux() {
             return 1
         fi
     else
-        if [ "$LANG" == "zh_CN.UTF-8" ]; then
+        if rainbond_use_chinese_prompt; then
             send_error "Docker 服务启动失败，请手动启动: systemctl start docker"
         else
             send_error "Docker service failed to start, please start manually: systemctl start docker"
@@ -873,14 +884,14 @@ check_orbstack_running() {
 
 # Function to handle OrbStack requirement on macOS
 handle_orbstack_macos() {
-    if [ "$LANG" == "zh_CN.UTF-8" ]; then
+    if rainbond_use_chinese_prompt; then
         send_info "检查 OrbStack 安装状态..."
     else
         send_info "Checking OrbStack installation..."
     fi
 
     if ! check_orbstack_installed; then
-        if [ "$LANG" == "zh_CN.UTF-8" ]; then
+        if rainbond_use_chinese_prompt; then
             send_error "macOS 上必须使用 OrbStack，请先安装 OrbStack 后重新执行脚本.\n\t下载地址: https://orbstack.dev/"
         else
             send_error "OrbStack is required on macOS. Please install OrbStack and re-run this script.\n\tDownload: https://orbstack.dev/"
@@ -889,7 +900,7 @@ handle_orbstack_macos() {
     fi
 
     if ! check_orbstack_running; then
-        if [ "$LANG" == "zh_CN.UTF-8" ]; then
+        if rainbond_use_chinese_prompt; then
             send_error "检测到 OrbStack 已安装但未运行，请先启动 OrbStack 后重新执行脚本."
         else
             send_error "OrbStack is installed but not running. Please start OrbStack and re-run this script."
@@ -899,7 +910,7 @@ handle_orbstack_macos() {
 
     # Check if Docker is available through OrbStack
     if ! docker info >/dev/null 2>&1; then
-        if [ "$LANG" == "zh_CN.UTF-8" ]; then
+        if rainbond_use_chinese_prompt; then
             send_error "OrbStack 已运行，但 Docker 不可用。请检查 OrbStack 配置."
         else
             send_error "OrbStack is running, but Docker is not available. Please check OrbStack configuration."
@@ -907,7 +918,7 @@ handle_orbstack_macos() {
         exit 1
     fi
 
-    if [ "$LANG" == "zh_CN.UTF-8" ]; then
+    if rainbond_use_chinese_prompt; then
         send_info "✓ OrbStack 检查通过"
     else
         send_info "✓ OrbStack check passed"
@@ -921,7 +932,7 @@ handle_docker_desktop_macos() {
 
 # Function to create containerd systemd service file
 create_containerd_service() {
-    if [ "$LANG" == "zh_CN.UTF-8" ]; then
+    if rainbond_use_chinese_prompt; then
         send_info "创建 containerd systemd 服务文件..."
     else
         send_info "Creating containerd systemd service file..."
@@ -979,7 +990,7 @@ EOF
 
 # Function to create Docker systemd service file
 create_docker_service() {
-    if [ "$LANG" == "zh_CN.UTF-8" ]; then
+    if rainbond_use_chinese_prompt; then
         send_info "创建 Docker systemd 服务文件..."
     else
         send_info "Creating Docker systemd service file..."
@@ -1048,7 +1059,7 @@ EOF
 
 # Function to install Docker on Linux using binary installation
 install_docker_linux() {
-    if [ "$LANG" == "zh_CN.UTF-8" ]; then
+    if rainbond_use_chinese_prompt; then
         send_info "未检测到 Docker 环境，开始二进制安装..."
     else
         send_info "Docker not detected, starting binary installation..."
@@ -1068,7 +1079,7 @@ install_docker_linux() {
     local download_needed=true
     
     if [ -f "$docker_file" ]; then
-        if [ "$LANG" == "zh_CN.UTF-8" ]; then
+        if rainbond_use_chinese_prompt; then
             send_info "检测到已存在的Docker二进制文件，正在验证完整性..."
         else
             send_info "Found existing Docker binary file, verifying integrity..."
@@ -1076,7 +1087,7 @@ install_docker_linux() {
         
          # Check if tar command is available
         if ! command -v tar >/dev/null 2>&1; then
-          if [ "$LANG" == "zh_CN.UTF-8" ]; then
+          if rainbond_use_chinese_prompt; then
             send_error "tar 命令未找到，请安装 tar 软件包"
           else
             send_error "tar command not found - please install tar package"
@@ -1086,14 +1097,14 @@ install_docker_linux() {
     
         # Try to test if the file is a valid tar.gz
         if tar -tzf "$docker_file" >/dev/null 2>&1; then
-            if [ "$LANG" == "zh_CN.UTF-8" ]; then
+            if rainbond_use_chinese_prompt; then
                 send_info "文件完整，跳过下载"
             else
                 send_info "File is complete, skipping download"
             fi
             download_needed=false
         else
-            if [ "$LANG" == "zh_CN.UTF-8" ]; then
+            if rainbond_use_chinese_prompt; then
                 send_warn "文件损坏或不完整，重新下载"
             else
                 send_warn "File is corrupted or incomplete, re-downloading"
@@ -1104,7 +1115,7 @@ install_docker_linux() {
     
     # Download Docker binary with progress and resume capability
     if [ "$download_needed" = true ]; then
-        if [ "$LANG" == "zh_CN.UTF-8" ]; then
+        if rainbond_use_chinese_prompt; then
             send_info "正在下载Docker二进制文件... $docker_url"
         else
             send_info "Downloading Docker binary... $docker_url"
@@ -1112,7 +1123,7 @@ install_docker_linux() {
         
         # Use curl with resume capability, timeout, and progress bar
         if ! curl --connect-timeout 30 --max-time 600 -C - --progress-bar -L "$docker_url" -o "$docker_file"; then
-            if [ "$LANG" == "zh_CN.UTF-8" ]; then
+            if rainbond_use_chinese_prompt; then
                 send_error "Docker二进制文件下载失败，请检查网络连接"
             else
                 send_error "Failed to download Docker binary, please check network connection"
@@ -1123,7 +1134,7 @@ install_docker_linux() {
         
         # Verify downloaded file
         if ! tar -tzf "$docker_file" >/dev/null 2>&1; then
-            if [ "$LANG" == "zh_CN.UTF-8" ]; then
+            if rainbond_use_chinese_prompt; then
                 send_error "下载的文件损坏，请重新执行脚本"
             else
                 send_error "Downloaded file is corrupted, please re-run the script"
@@ -1135,7 +1146,7 @@ install_docker_linux() {
 
     # Extract Docker binary
     if ! tar -xzf "$docker_file" -C /tmp; then
-        if [ "$LANG" == "zh_CN.UTF-8" ]; then
+        if rainbond_use_chinese_prompt; then
             send_error "Docker二进制文件解压失败"
         else
             send_error "Failed to extract Docker binary"
@@ -1146,7 +1157,7 @@ install_docker_linux() {
     
     # Copy Docker binaries to /usr/bin
     if ! cp -r /tmp/docker/* /usr/bin/; then
-        if [ "$LANG" == "zh_CN.UTF-8" ]; then
+        if rainbond_use_chinese_prompt; then
             send_error "Docker二进制文件复制失败"
         else
             send_error "Failed to copy Docker binaries"
@@ -1171,7 +1182,7 @@ install_docker_linux() {
     rm -rf /tmp/docker
     rm -f "$docker_file"
     
-    if [ "$LANG" == "zh_CN.UTF-8" ]; then
+    if rainbond_use_chinese_prompt; then
         send_info "Docker二进制安装完成"
     else
         send_info "Docker binary installation completed"
@@ -1179,7 +1190,7 @@ install_docker_linux() {
 
     # Start containerd first, then Docker service
     if systemctl enable containerd && systemctl start containerd >/dev/null 2>&1; then
-        if [ "$LANG" == "zh_CN.UTF-8" ]; then
+        if rainbond_use_chinese_prompt; then
             send_info "containerd 服务启动成功"
         else
             send_info "containerd service started successfully"
@@ -1188,14 +1199,14 @@ install_docker_linux() {
 
         # Now start Docker service
         if systemctl enable docker.socket && systemctl enable docker && systemctl start docker >/dev/null 2>&1; then
-            if [ "$LANG" == "zh_CN.UTF-8" ]; then
+            if rainbond_use_chinese_prompt; then
                 send_info "Docker 服务启动成功"
             else
                 send_info "Docker service started successfully"
             fi
             sleep 3
         else
-            if [ "$LANG" == "zh_CN.UTF-8" ]; then
+            if rainbond_use_chinese_prompt; then
                 send_error "Docker 服务启动失败，请手动启动: systemctl start docker"
             else
                 send_error "Docker service failed to start, please start manually: systemctl start docker"
@@ -1203,7 +1214,7 @@ install_docker_linux() {
             exit 1
         fi
     else
-        if [ "$LANG" == "zh_CN.UTF-8" ]; then
+        if rainbond_use_chinese_prompt; then
             send_error "containerd 服务启动失败，请手动启动: systemctl start containerd"
         else
             send_error "containerd service failed to start, please start manually: systemctl start containerd"
@@ -1214,7 +1225,7 @@ install_docker_linux() {
 
 # Function to handle Docker installation requirement on macOS
 handle_docker_install_macos() {
-    if [ "$LANG" == "zh_CN.UTF-8" ]; then
+    if rainbond_use_chinese_prompt; then
         send_error "未检测到 Docker 环境, macOS 上必须使用 OrbStack, 请先安装 OrbStack 然后重新执行本脚本.\n\t下载地址: https://orbstack.dev/"
     else
         send_error "Ops! Docker has not been installed. OrbStack is required on macOS.\nPlease visit the following website to get OrbStack.\n\tDownload: https://orbstack.dev/"
@@ -1235,7 +1246,7 @@ validate_docker_version() {
     local min_version=20
     
     if [ "$docker_version" -lt $min_version ]; then
-        if [ "$LANG" == "zh_CN.UTF-8" ]; then
+        if rainbond_use_chinese_prompt; then
             send_error "Docker 版本过低，当前版本: $docker_version.x, 要求最低版本: $min_version.x\n\t- 请更新 Docker 版本: https://docs.docker.com/engine/install/"
         else
             send_error "Docker version is too low, current version: $docker_version.x, minimum required: $min_version.x\n\t- Please update Docker version: https://docs.docker.com/engine/install/"
@@ -1274,215 +1285,156 @@ manage_docker() {
 manage_docker
 
 ########################################
-# EIP Detect
-# Automatically check the IP address.
-# User customization is also supported.
+# EIP Configure
+# Automatically detect the host IP used by Rainbond.
+# User customization via EIP is also supported.
 ########################################
 
-# Choose tool for IP detect.
-if which ip >/dev/null; then
-    IF_NUM=$(ip -4 a | egrep -v "docker0|flannel|cni|calico|kube|127.0.0.1" | grep inet | wc -l)
-    IPS=$(ip -4 a | egrep -v "docker0|flannel|cni|calico|kube|127.0.0.1" | grep inet | awk '{print $2}' | awk -F '/' '{print $1}' | tr '\n' ' ')
-elif which ifconfig >/dev/null; then
-    IF_NUM=$(ifconfig | grep -w inet | awk '{print $2}' | grep -v 127.0.0.1 | wc -l)
-    IPS=$(ifconfig | grep -w inet | awk '{print $2}' | grep -v 127.0.0.1)
-elif which ipconfig >/dev/null; then
-    # TODO
-    IF_NUM=$(ipconfig ifcount)
-    IPS=""
-else
-    IF_NUM=0
-    IPS=""
-fi
+function rainbond_is_usable_ipv4() {
+    local result=$1
+    if [ -z "$result" ]; then
+        return 1
+    elif [[ $result =~ ^([0-9]{1,2}|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\.([0-9]{1,2}|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\.([0-9]{1,2}|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\.([0-9]{1,2}|1[0-9][0-9]|2[0-4][0-9]|25[0-5])$ ]]; then
+        [ "$result" != "127.0.0.1" ] && [ "$result" != "0.0.0.0" ]
+        return $?
+    fi
+    return 1
+}
 
 # Func for verify the result entered.
 function verify_eip() {
-    local result=$2
-    local max=$1
-    if [ -z $result ]; then
-        echo -e "${YELLOW}Do not enter null values${NC}"
-        return 1
-    # Regular matching IPv4
-    elif [[ $result =~ ^([0-9]{1,2}|1[0-9][0-9]|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9][0-9]|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9][0-9]|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9][0-9]|2[0-4][0-9]|25[0-5])$ ]]; then
-        # Check if it's 127.0.0.1
-        if [ "$result" == "127.0.0.1" ]; then
-            if [ "$LANG" == "zh_CN.UTF-8" ]; then
-                echo -e "${YELLOW}不能使用回环地址 127.0.0.1${NC}"
-            else
-                echo -e "${YELLOW}Cannot use loopback address 127.0.0.1${NC}"
-            fi
-            return 1
-        fi
-        if [ "$result" == "0.0.0.0" ]; then
-          if [ "$LANG" == "zh_CN.UTF-8" ]; then
-            echo -e "${YELLOW}不能使用 0.0.0.0${NC}"
-          else
-            echo -e "${YELLOW}Cannot use 0.0.0.0${NC}"
-          fi
-          return 1
-        fi
-        export EIP=$result
+    local result=$1
+    if rainbond_is_usable_ipv4 "$result"; then
+        export EIP="$result"
         return 0
-    # Regular matching positive integer
-    elif [[ $result =~ ^[0-9]+$ ]]; then
-        if [ $result -gt 0 ] && [ $result -le $max ]; then
-            export EIP=${ip_list[$result - 1]}
-            return 0
-        else
-            return 1
-        fi
-    else
-        return 1
     fi
+
+    if [ -z "$result" ]; then
+        echo -e "${YELLOW}Do not enter null values${NC}"
+    elif [ "$result" == "127.0.0.1" ]; then
+        if rainbond_use_chinese_prompt; then
+            echo -e "${YELLOW}不能使用回环地址 127.0.0.1${NC}"
+        else
+            echo -e "${YELLOW}Cannot use loopback address 127.0.0.1${NC}"
+        fi
+    elif [ "$result" == "0.0.0.0" ]; then
+        if rainbond_use_chinese_prompt; then
+            echo -e "${YELLOW}不能使用 0.0.0.0${NC}"
+        else
+            echo -e "${YELLOW}Cannot use 0.0.0.0${NC}"
+        fi
+    fi
+    return 1
+}
+
+function rainbond_is_private_ipv4() {
+    local ip_addr=$1
+    case "$ip_addr" in
+        10.* | 192.168.*)
+            return 0
+            ;;
+        172.*)
+            local second_octet
+            second_octet=$(printf '%s' "$ip_addr" | cut -d. -f2)
+            [ "$second_octet" -ge 16 ] 2>/dev/null && [ "$second_octet" -le 31 ] 2>/dev/null
+            return $?
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
+function rainbond_skip_ip_interface() {
+    case "${1:-}" in
+        lo | lo:* | docker* | br-* | veth* | flannel* | cni* | cali* | calico* | kube* | tunl*)
+            return 0
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
+function rainbond_candidate_host_ips() {
+    local line iface cidr ip_addr
+
+    if command -v ip >/dev/null 2>&1; then
+        ip -4 -o addr show scope global 2>/dev/null | while IFS= read -r line; do
+            set -- $line
+            iface=${2:-}
+            cidr=${4:-}
+            ip_addr=${cidr%%/*}
+            rainbond_skip_ip_interface "$iface" && continue
+            rainbond_is_usable_ipv4 "$ip_addr" && printf '%s\n' "$ip_addr"
+        done
+    elif command -v ifconfig >/dev/null 2>&1; then
+        ifconfig 2>/dev/null | grep -w inet | awk '{print $2}' | while IFS= read -r ip_addr; do
+            rainbond_is_usable_ipv4 "$ip_addr" && printf '%s\n' "$ip_addr"
+        done
+    else
+        return 0
+    fi
+}
+
+function rainbond_detect_host_eip() {
+    local first_ip="" private_ip="" ip_addr
+
+    while IFS= read -r ip_addr; do
+        [ -n "$ip_addr" ] || continue
+        if [ -z "$first_ip" ]; then
+            first_ip=$ip_addr
+        fi
+        if rainbond_is_private_ipv4 "$ip_addr"; then
+            private_ip=$ip_addr
+            break
+        fi
+    done <<EOF
+$(rainbond_candidate_host_ips)
+EOF
+
+    if [ -n "$private_ip" ]; then
+        export EIP="$private_ip"
+        return 0
+    fi
+    if [ -n "$first_ip" ]; then
+        export EIP="$first_ip"
+        return 0
+    fi
+    return 1
 }
 
 # Check if EIP is already set via environment variable
 if [ -n "$EIP" ]; then
-    # Validate the EIP value
-    if [[ $EIP =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then
-        if [ "$EIP" == "127.0.0.1" ]; then
-            if [ "$LANG" == "zh_CN.UTF-8" ]; then
-                send_error "环境变量 EIP 不能使用回环地址 127.0.0.1"
-            else
-                send_error "EIP environment variable cannot use loopback address 127.0.0.1"
-            fi
-            exit 1
-        elif [ "$EIP" == "0.0.0.0" ]; then
-            if [ "$LANG" == "zh_CN.UTF-8" ]; then
-                send_error "环境变量 EIP 不能使用 0.0.0.0"
-            else
-                send_error "EIP environment variable cannot use 0.0.0.0"
-            fi
-            exit 1
+    if verify_eip "$EIP"; then
+        if rainbond_use_chinese_prompt; then
+            send_info "使用环境变量指定的 IP 地址: $EIP"
         else
-            if [ "$LANG" == "zh_CN.UTF-8" ]; then
-                send_info "使用环境变量指定的 IP 地址: $EIP"
-            else
-                send_info "Using IP address from environment variable: $EIP"
-            fi
+            send_info "Using IP address from environment variable: $EIP"
         fi
     else
-        if [ "$LANG" == "zh_CN.UTF-8" ]; then
-            send_error "环境变量 EIP 的值无效: $EIP (必须是有效的 IPv4 地址)"
+        if rainbond_use_chinese_prompt; then
+            send_error "环境变量 EIP 的值无效: $EIP (必须是有效的 IPv4 地址，且不能是 127.0.0.1 或 0.0.0.0)"
         else
-            send_error "Invalid EIP environment variable value: $EIP (must be a valid IPv4 address)"
+            send_error "Invalid EIP environment variable value: $EIP (must be a valid IPv4 address, and cannot be 127.0.0.1 or 0.0.0.0)"
         fi
         exit 1
     fi
-# The user chooses the IP address to use
-elif [ -n "$IPS" ]; then
-    # Convert to indexed array
-    declare -a ip_list=$(echo \($IPS\))
-
-    # Gave some tips
-    if [ "$LANG" == "zh_CN.UTF-8" ]; then
-        echo -e ${GREEN}
-        cat <<EOF
-###############################################
-# 脚本将自动检测到系统中存在的 IP 地址
-# 您可以通过输入序号来选择一个 IP 地址
-# 如果您有公网 IP 地址, 直接输入即可
-###############################################
- 
-检测到以下IP:
-EOF
-        echo -e ${NC}
-    else
-        echo -e ${GREEN}
-        cat <<EOF
-###############################################
-# The script automatically detects IP addresses in the system
-# You can choose one by enter its index
-# If you have an Public IP, Just type it in
-###############################################
- 
-The following IP has been detected:
-EOF
-        echo -e ${NC}
-    fi
-    for ((i = 1; i <= $IF_NUM; i++)); do
-        echo -e "\t${GREEN}$i${NC} : ${ip_list[$i - 1]}"
-    done
-
-    for i in 1 2 3; do
-        if [ "$LANG" == "zh_CN.UTF-8" ]; then
-            echo -e "\n${GREEN}例如: 输入 '1 or 2' 选择 IP, 或指定IP '11.22.33.44'(IPv4 address), 直接回车则使用默认 IP 地址${NC}"
-            verify_eip $IF_NUM 1
-            echo -n -e "输入您的选择或指定 IP 地址(默认IP是: $EIP):"
-        else
-            echo -e "\n${GREEN}For example: enter '1 or 2' to choose the IP, or input '11.22.33.44'(IPv4 address) for specific one, press enter to use the default IP address${NC}"
-            verify_eip $IF_NUM 1
-            echo -n -e "Enter your choose or a specific IP address( Default IP is $EIP):"
-        fi
-        read res
-        if [ -z $res ]; then
-            verify_eip $IF_NUM 1 && break
-        else
-            verify_eip $IF_NUM $res && break
-        fi
-        if [ "$LANG" == "zh_CN.UTF-8" ]; then
-            echo -e "${RED}输入错误, 请重新输入${NC}"
-        else
-            echo -e "${RED}Incorrect input, please try again${NC}"
-        fi
-        if [ "$i" = "3" ]; then
-            if [ "$LANG" == "zh_CN.UTF-8" ]; then
-                send_error "输入错误超过3次, 中止安装"
-                exit 1
-            else
-                send_error "The input error exceeds 3 times, aborting"
-                exit 1
-            fi
-        fi
-    done
 else
-    # Gave some tips
-    if [ "$LANG" == "zh_CN.UTF-8" ]; then
-        echo -e ${YELLOW}
-        cat <<EOF
-###############################################
-# 自定检测 IP 失败
-# 您必须指定一个 IP
-# 例如: 
-#   您可以输入 "11.22.33.44" 来指定一个 IP
-###############################################
-EOF
-        echo -e ${NC}
+    if rainbond_detect_host_eip; then
+        if rainbond_use_chinese_prompt; then
+            send_info "自动检测到服务器 IP: $EIP"
+        else
+            send_info "Detected server IP automatically: $EIP"
+        fi
     else
-        echo -e ${YELLOW}
-        cat <<EOF
-###############################################
-# Failed to automatically detect IP
-# You have to specify your own IP
-# For example: 
-#   you can enter "11.22.33.44" for specific one
-###############################################
-EOF
-        echo -e ${NC}
+        if rainbond_use_chinese_prompt; then
+            send_error "未能自动检测到可用服务器 IP，请使用 EIP=<服务器IP> 重新执行安装脚本"
+        else
+            send_error "Failed to detect an available server IP automatically. Please rerun the installer with EIP=<server-ip>"
+        fi
+        exit 1
     fi
-    for i in 1 2 3; do
-        if [ "$LANG" == "zh_CN.UTF-8" ]; then
-            echo -n -e "请输入您的 IP 地址:"
-        else
-            echo -n -e "Enter your IP address:"
-        fi
-        read RES
-        verify_eip $IF_NUM $RES && break
-        if [ "$LANG" == "zh_CN.UTF-8" ]; then
-            echo -e "${RED}输入错误, 请重新输入${NC}"
-        else
-            echo -e "${RED}Incorrect input, please try again${NC}"
-        fi
-        if [ "$i" = "3" ]; then
-            if [ "$LANG" == "zh_CN.UTF-8" ]; then
-                send_error "输入错误超过3次, 中止安装"
-                exit 1
-            else
-                send_error "The input error exceeds 3 times, aborting"
-                exit 1
-            fi
-        fi
-    done
 fi
 
 ################## Main ################
@@ -1490,7 +1442,7 @@ fi
 # Automatically generate install cmd with envs
 ########################################
 
-if [ "$LANG" == "zh_CN.UTF-8" ]; then
+if rainbond_use_chinese_prompt; then
     echo -e "${GREEN}生成安装命令:${NC}"
     sleep 3
 else
@@ -1513,7 +1465,7 @@ ${VOLUME_OPTS} -e ENABLE_GPU=${ENABLE_GPU} -e GPU_PROVIDER=${GPU_PROVIDER} -e GP
 send_info "$docker_run_cmd"
 
 # Pull image with retry mechanism
-if [ "$LANG" == "zh_CN.UTF-8" ]; then
+if rainbond_use_chinese_prompt; then
     send_info "获取镜像中 ${RBD_IMAGE}..."
 else
     send_info "Pulling image ${RBD_IMAGE}..."
@@ -1525,7 +1477,7 @@ for retry in 1 2 3; do
   if docker pull ${RBD_IMAGE}; then
     pull_success=true
     rbd_image_id=$(docker images | grep k3s | grep "${RAINBOND_VERSION}" | awk '{print $3}')
-    if [ "$LANG" == "zh_CN.UTF-8" ]; then
+    if rainbond_use_chinese_prompt; then
       send_info "Rainbond 镜像获取成功，ID: ${rbd_image_id}"
     else
       send_info "Rainbond image pulled successfully, ID: ${rbd_image_id}"
@@ -1533,7 +1485,7 @@ for retry in 1 2 3; do
     break
   else
     if [ "$retry" -lt 3 ]; then
-      if [ "$LANG" == "zh_CN.UTF-8" ]; then
+      if rainbond_use_chinese_prompt; then
         send_warn "镜像拉取失败，正在重试 ($retry/3)..."
       else
         send_warn "Image pull failed, retrying ($retry/3)..."
@@ -1544,7 +1496,7 @@ for retry in 1 2 3; do
 done
 
 if [ "$pull_success" = false ]; then
-  if [ "$LANG" == "zh_CN.UTF-8" ]; then
+  if rainbond_use_chinese_prompt; then
     send_error "镜像拉取失败，请检查网络连接"
   else
     send_error "Image pull failed, please check network connection"
@@ -1555,14 +1507,14 @@ fi
 sleep 3
 
 # Start container
-if [ "$LANG" == "zh_CN.UTF-8" ]; then
+if rainbond_use_chinese_prompt; then
   send_info "正在启动 Rainbond 容器..."
 else
   send_info "Starting Rainbond container..."
 fi
 
 if ! docker_run_meg=$(bash -c "$docker_run_cmd" 2>&1); then
-    if [ "$LANG" == "zh_CN.UTF-8" ]; then
+    if rainbond_use_chinese_prompt; then
         send_error "Docker 容器启动命令执行失败: $docker_run_meg"
     else
         send_error "Docker container start command failed: $docker_run_meg"
@@ -1572,7 +1524,7 @@ fi
 send_info "$docker_run_meg"
 
 # Verify startup with retry loop
-if [ "$LANG" == "zh_CN.UTF-8" ]; then
+if rainbond_use_chinese_prompt; then
   send_info "正在等待容器启动..."
 else
   send_info "Waiting for container to start..."
@@ -1583,7 +1535,7 @@ MAX_WAIT_TIME=60  # Maximum wait time in seconds
 for i in $(seq 1 $MAX_WAIT_TIME); do
   if docker ps --filter "name=rainbond" --filter "status=running" | grep -q "rainbond"; then
     container_started=true
-    if [ "$LANG" == "zh_CN.UTF-8" ]; then
+    if rainbond_use_chinese_prompt; then
       send_info "Rainbond 容器启动成功（耗时 ${i} 秒）"
     else
       send_info "Rainbond container started successfully (took ${i} seconds)"
@@ -1592,7 +1544,7 @@ for i in $(seq 1 $MAX_WAIT_TIME); do
   fi
   # Show progress every 10 seconds
   if [ $((i % 10)) -eq 0 ]; then
-    if [ "$LANG" == "zh_CN.UTF-8" ]; then
+    if rainbond_use_chinese_prompt; then
       send_info "仍在等待容器启动... (${i}/${MAX_WAIT_TIME}秒)"
     else
       send_info "Still waiting for container to start... (${i}/${MAX_WAIT_TIME}s)"
@@ -1602,7 +1554,7 @@ for i in $(seq 1 $MAX_WAIT_TIME); do
 done
 
 if [ "$container_started" = false ]; then
-  if [ "$LANG" == "zh_CN.UTF-8" ]; then
+  if rainbond_use_chinese_prompt; then
     send_error "Rainbond 容器启动失败或超时（等待了 ${MAX_WAIT_TIME} 秒）"
   else
     send_error "Rainbond container startup failed or timeout (waited ${MAX_WAIT_TIME} seconds)"
@@ -1611,7 +1563,7 @@ if [ "$container_started" = false ]; then
 fi
 
 # Wait for Rainbond services to be ready
-if [ "$LANG" == "zh_CN.UTF-8" ]; then
+if rainbond_use_chinese_prompt; then
   send_info "正在等待 Rainbond 服务启动..."
 else
   send_info "Waiting for Rainbond services to start..."
@@ -1665,7 +1617,7 @@ while [ $elapsed_time -le $MAX_SERVICE_WAIT ]; do
       if curl -s --connect-timeout 5 --max-time 10 "http://127.0.0.1:7070" >/dev/null 2>&1 || \
          curl -s --connect-timeout 5 --max-time 10 "http://${EIP}:7070" >/dev/null 2>&1; then
         printf "\r\033[K"  # Clear spinner line
-        if [ "$LANG" == "zh_CN.UTF-8" ]; then
+        if rainbond_use_chinese_prompt; then
           send_info "🎉 所有服务启动完成！"
         else
           send_info "🎉 All services are ready!"
@@ -1683,7 +1635,7 @@ while [ $elapsed_time -le $MAX_SERVICE_WAIT ]; do
 
   # Show spinner while waiting (5 seconds with 0.2 second intervals)
   for i in $(seq 1 25); do
-    if [ "$LANG" == "zh_CN.UTF-8" ]; then
+    if rainbond_use_chinese_prompt; then
       printf "\r  %s 等待服务启动..." "${spinner_chars[$spinner_index]}"
     else
       printf "\r  %s Waiting for services..." "${spinner_chars[$spinner_index]}"
@@ -1699,7 +1651,7 @@ done
 printf "\r\033[K"
 
 if [ "$services_ready" = false ]; then
-  if [ "$LANG" == "zh_CN.UTF-8" ]; then
+  if rainbond_use_chinese_prompt; then
     send_warn "Rainbond 服务启动超时（等待了 ${MAX_SERVICE_WAIT} 秒）"
     send_info "服务可能仍在启动中，请使用以下命令检查状态："
     echo -e "${YELLOW}    docker exec -it rainbond bash${NC}"
@@ -1714,7 +1666,7 @@ if [ "$services_ready" = false ]; then
   fi
 fi
 
-if [ "$LANG" == "zh_CN.UTF-8" ]; then
+if rainbond_use_chinese_prompt; then
   echo -e "${GREEN}"
   if [ "$services_ready" = true ]; then
     cat <<EOF
@@ -1723,8 +1675,9 @@ if [ "$LANG" == "zh_CN.UTF-8" ]; then
 # 版本: $RAINBOND_VERSION
 # 架构: $ARCH_TYPE
 # 操作系统: $OS_TYPE
-# 访问 Rainbond:
-#     🌐 控制台地址: http://$EIP:7070
+# Rainbond 访问地址:
+#     当前检测地址: http://$EIP:7070
+#     云服务器请用公网 IP: http://<公网IP>:7070
 #
 # ⚠️  重要提示:
 #     请确保以下端口已在防火墙/安全组中开放:
@@ -1745,8 +1698,9 @@ EOF
 # 版本: $RAINBOND_VERSION
 # 架构: $ARCH_TYPE
 # 操作系统: $OS_TYPE
-# 访问 Rainbond:
-#     🌐 控制台地址: http://$EIP:7070
+# Rainbond 访问地址:
+#     当前检测地址: http://$EIP:7070
+#     云服务器请用公网 IP: http://<公网IP>:7070
 #     ⚠️  请等待几分钟后访问
 #
 # ⚠️  重要提示:
@@ -1778,8 +1732,9 @@ else
 # Version: $RAINBOND_VERSION
 # Arch: $ARCH_TYPE
 # OS: $OS_TYPE
-# Access Rainbond:
-#     🌐 Console: http://$EIP:7070
+# Rainbond Access URL:
+#     Detected URL: http://$EIP:7070
+#     Cloud server, use public IP: http://<public-ip>:7070
 #
 # ⚠️  Important:
 #     Please ensure the following ports are open
@@ -1801,8 +1756,9 @@ EOF
 # Version: $RAINBOND_VERSION
 # Arch: $ARCH_TYPE
 # OS: $OS_TYPE
-# Access Rainbond:
-#     🌐 Console: http://$EIP:7070
+# Rainbond Access URL:
+#     Detected URL: http://$EIP:7070
+#     Cloud server, use public IP: http://<public-ip>:7070
 #     ⚠️  Please wait a few minutes before accessing
 #
 # ⚠️  Important:
