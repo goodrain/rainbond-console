@@ -8,6 +8,53 @@ from www.utils.crypt import make_uuid
 logger = logging.getLogger("default")
 
 
+def _resolve_none_value(raw_value: str, secret_groups: Dict[str, str]) -> Optional[str]:
+    """Resolve a single env value. Returns the generated value, or None if the
+    value is not a **None** / **None:group** placeholder.
+
+    - ``**None**``        -> a fresh random value (``make_uuid()[:8]``)
+    - ``**None:group**``  -> one shared random value per group (``make_uuid()``)
+    """
+    if not isinstance(raw_value, str):
+        return None
+    if raw_value == "**None**":
+        return make_uuid()[:8]
+    if raw_value.startswith("**None:") and raw_value.endswith("**"):
+        group = raw_value[7:-2]
+        if group not in secret_groups:
+            secret_groups[group] = make_uuid()
+        return secret_groups[group]
+    return None
+
+
+def resolve_none_placeholders(apps: List[dict]) -> None:
+    """In-place resolve **None** / **None:group** env placeholders across all apps.
+
+    Replaces matching values in each app's ``service_env_map_list`` and
+    ``service_connect_info_map_list``. A single ``secret_groups`` cache is shared
+    across every app so that all envs referencing the same group (e.g.
+    ``**None:db_password**``) end up with the IDENTICAL value, keeping secrets
+    consistent across components. Non-placeholder values are left untouched and
+    missing/empty env lists are handled safely.
+    """
+    if not apps:
+        return
+    secret_groups: Dict[str, str] = {}
+    for app in apps:
+        if not app:
+            continue
+        for env_key in ("service_env_map_list", "service_connect_info_map_list"):
+            envs = app.get(env_key)
+            if not envs:
+                continue
+            for env in envs:
+                if not isinstance(env, dict):
+                    continue
+                resolved = _resolve_none_value(env.get("attr_value") or "", secret_groups)
+                if resolved is not None:
+                    env["attr_value"] = resolved
+
+
 def collect_install_hostname_remap(tenant_id: str, apps: List[dict]) -> Dict[str, str]:
     """Pre-scan all apps' ports for k8s_service_name collisions and build a remap.
 

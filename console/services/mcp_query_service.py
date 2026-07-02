@@ -123,6 +123,8 @@ class MCPQueryService(object):
         "open_outer", "only_open_outer", "close_outer", "open_inner",
         "close_inner", "change_protocol", "change_port_alias"
     )
+    PORT_PROTOCOL_ENUM = ("http", "https", "stream", "grpc")
+    PORT_PROTOCOL_DESCRIPTION = "端口协议，仅支持小写: http、https、stream、grpc。"
     PORT_ACTION_ALIASES = {
         "open_public": "open_outer",
         "open_outer": "open_outer",
@@ -263,15 +265,18 @@ class MCPQueryService(object):
 
     def list_tools(self, user: Any = None) -> List[dict]:
         tools = [
-            self._tool_get_current_user(), self._tool_get_app_detail(), self._tool_create_app(),
+            self._tool_get_current_user(), self._tool_get_app_detail(), self._tool_get_app_health_overview(),
+            self._tool_create_app(),
             self._tool_get_component_summary(), self._tool_get_component_detail(),
             self._tool_get_component_pods(), self._tool_get_pod_detail(),
             self._tool_get_component_logs(), self._tool_exec_component(), self._tool_get_config_file(),
+            self._tool_analyze_env_conflicts(),
             self._tool_get_component_events(), self._tool_get_component_build_logs(),
             self._tool_get_operation_failure_context(),
             self._tool_get_component_build_source(), self._tool_update_component_build_source(),
             self._tool_create_component(),
-            self._tool_delete_component(), self._tool_operate_app(), self._tool_manage_component_envs(),
+            self._tool_delete_component(), self._tool_operate_app(), self._tool_wait_for_build_completion(),
+            self._tool_manage_component_envs(),
             self._tool_manage_component_connection_envs(),
             self._tool_change_component_image(), self._tool_manage_component_ports(),
             self._tool_manage_component_storage(),
@@ -327,6 +332,8 @@ class MCPQueryService(object):
             return self.get_current_user(user)
         if name == "rainbond_get_app_detail":
             return self.get_app_detail(user, arguments)
+        if name == "rainbond_get_app_health_overview":
+            return self.get_app_health_overview(user, arguments)
         if name == "rainbond_create_app":
             return self.create_app(user, arguments)
         if name == "rainbond_get_component_summary":
@@ -341,6 +348,8 @@ class MCPQueryService(object):
             return self.exec_component(user, arguments)
         if name == "rainbond_get_config_file":
             return self.get_config_file(user, arguments)
+        if name == "rainbond_analyze_env_conflicts":
+            return self.analyze_env_conflicts(user, arguments)
         if name == "rainbond_get_component_build_logs":
             return self.get_component_build_logs(user, arguments)
         if name == "rainbond_get_component_build_source":
@@ -359,6 +368,8 @@ class MCPQueryService(object):
             return self.delete_component(user, arguments)
         if name == "rainbond_operate_app":
             return self.operate_app(user, arguments)
+        if name == "rainbond_wait_for_build_completion":
+            return self.wait_for_build_completion(user, arguments)
         if name == "rainbond_manage_component_envs":
             return self.manage_component_envs(user, arguments)
         if name == "rainbond_manage_component_connection_envs":
@@ -574,6 +585,73 @@ class MCPQueryService(object):
         app_info["used_memory"] = used_memory
         app_info["app_id"] = app.ID
         return app_info
+
+    def get_app_health_overview(self, user: Any, arguments: dict) -> dict:
+        """One call returns every component's status + a critical_blocker for the
+        abnormal ones. Replaces N get_component_summary calls in the troubleshoot
+        loop. Cost grows with the number of *unhealthy* components, not the total:
+        status comes from one batched status_multi_service call; only non-running
+        components are deep-dived (pod warnings -> classify_failure)."""
+        team, app = self._get_team_app_context(
+            user,
+            self._require_string(arguments, "team_name"),
+            self._require_string(arguments, "region_name"),
+            self._require_int(arguments, "app_id"),
+        )
+        services = group_service.get_group_services(app.ID)
+        service_ids = [s.service_id for s in services]
+        status_list = []
+        if service_ids:
+            status_list = base_service.status_multi_service(
+                region=app.region_name,
+                tenant_name=team.tenant_name,
+                service_ids=service_ids,
+                enterprise_id=team.enterprise_id,
+            )
+        status_map = {s["service_id"]: s["status"] for s in (status_list or [])}
+
+        components = []
+        running_count = 0
+        for service in services:
+            status = status_map.get(service.service_id, "")
+            if status == "running":
+                running_count += 1
+                blocker = None
+            else:
+                blocker = self._build_component_blocker(team, app.region_name, service)
+            data = service.to_dict()
+            components.append({
+                "service_id": service.service_id,
+                "name": data.get("k8s_component_name") or data.get("service_cname") or service.service_id,
+                "service_cname": data.get("service_cname"),
+                "status": status,
+                "critical_blocker": blocker,
+            })
+
+        return {
+            "team_name": team.tenant_name,
+            "region_name": app.region_name,
+            "app_id": app.ID,
+            "app_status": self._get_app_status(running_count, len(services)),
+            "components": components,
+            "total": len(components),
+        }
+
+    def _build_component_blocker(self, team: Any, region_name: str, service: Any) -> str:
+        """Classify a non-running component's blocker. Best-effort: any region
+        failure degrades to 'unknown' rather than aborting the whole overview.
+        The event-log tail is deliberately NOT fetched here (the empty second arg
+        to classify_failure): an overview deep-dives every abnormal component, so
+        adding a per-component event-log fetch would re-introduce the N+1 calls
+        this tool exists to avoid. Pod warnings carry the actionable signal
+        (image_pull/crash_loop/mount); use get_operation_failure_context for the
+        single-component event-log drilldown."""
+        try:
+            pod_warnings = self._collect_pod_warnings(team, region_name, service)
+            return classify_failure(pod_warnings, [])
+        except Exception as e:
+            logger.warning("health_overview: classify failed for %s: %s", service.service_id, e)
+            return "unknown"
 
     def create_app(self, user: Any, arguments: dict) -> dict:
         team = self._get_team_context(user, self._require_string(arguments, "team_name"))
@@ -877,6 +955,65 @@ class MCPQueryService(object):
             "total": len(items),
         }
 
+    def analyze_env_conflicts(self, user: Any, arguments: dict) -> dict:
+        """Detect env vars whose same attr_name is supplied by more than one
+        source (component self-define vs dependency-injected) with diverging
+        values. Surfaces the M0 collision class where an upserted env clashes with
+        an auto-generated port-alias env (<ALIAS>_PORT) or a dependency-injected
+        connection env. Identical value from two sources is harmless and not
+        flagged."""
+        team, app, service = self._get_team_app_service_context(
+            user,
+            self._require_string(arguments, "team_name"),
+            self._require_string(arguments, "region_name"),
+            self._require_int(arguments, "app_id"),
+            self._require_string(arguments, "service_id"),
+        )
+        grouped = {}  # type: dict
+        order = []  # type: List[str]  # preserve first-seen order for stable output
+        for env in env_var_service.get_all_envs_incloud_depend_env(team, service):
+            attr_name = getattr(env, "attr_name", None)
+            if not attr_name:
+                continue
+            origin = "self" if getattr(env, "service_id", None) == service.service_id else "dependency"
+            source = {
+                "origin": origin,
+                "value": getattr(env, "attr_value", ""),
+                "scope": getattr(env, "scope", ""),
+                "service_id": getattr(env, "service_id", ""),
+            }
+            if attr_name not in grouped:
+                grouped[attr_name] = []
+                order.append(attr_name)
+            grouped[attr_name].append(source)
+
+        conflicts = []
+        for attr_name in order:
+            sources = grouped[attr_name]
+            if len(sources) < 2:
+                continue
+            # Distinctness is computed on the REAL values; the output values are
+            # masked for secret-looking names so a SECRET_KEY/DB_PASSWORD conflict
+            # is still surfaced without leaking the secret to the AI client.
+            distinct_values = {s["value"] for s in sources}
+            if len(distinct_values) < 2:
+                # same name, same value from multiple sources: harmless
+                continue
+            masked_sources = [
+                {**s, "value": self._mask_env_value(attr_name, s["value"])}
+                for s in sources
+            ]
+            conflicts.append({"attr_name": attr_name, "sources": masked_sources})
+
+        return {
+            "team_name": team.tenant_name,
+            "region_name": app.region_name,
+            "app_id": app.ID,
+            "service_id": service.service_id,
+            "conflicts": conflicts,
+            "total": len(conflicts),
+        }
+
     def get_component_events(self, user: Any, arguments: dict) -> dict:
         page = self._parse_int_with_default(arguments.get("page"), 1)
         page_size = self._parse_int_with_default(arguments.get("page_size"), 10)
@@ -1094,6 +1231,114 @@ class MCPQueryService(object):
 
     def _redact_failure_line(self, message: Any) -> str:
         return self._FAILURE_CONTEXT_SECRET_RE.sub(r"\1\2***", str(message or ""))
+
+    # Env var names whose value must be masked in analyze_env_conflicts output:
+    # the AI only needs to know the values differ, never the secret itself.
+    _SENSITIVE_ENV_NAME_RE = re.compile(
+        r"(?i)(password|passwd|pwd|token|secret|access[_-]?key|api[_-]?key|"
+        r"authorization|private[_-]?key|credential)")
+
+    @classmethod
+    def _mask_env_value(cls, attr_name: str, value: Any) -> Any:
+        if cls._SENSITIVE_ENV_NAME_RE.search(str(attr_name or "")):
+            return "***"
+        return value
+
+    # --- wait_for_build_completion ---------------------------------------
+    WAIT_BUILD_POLL_INTERVAL_SECONDS = 5
+    WAIT_BUILD_DEFAULT_TIMEOUT = 60
+    # Bounds the blocking wait the caller asked for. Note the worker is held for
+    # at most WAIT_BUILD_MAX_TIMEOUT plus the duration of one in-flight region
+    # call (region_api default read timeout x retries) before the deadline check
+    # fires; under a healthy region that tail is sub-second.
+    WAIT_BUILD_MAX_TIMEOUT = 120
+    # Page-1 window when locating the awaited event by id. The event was just
+    # triggered (operate_app/build_component returned it) so it is the newest
+    # event; a wide window guards against it scrolling off page 1 on a chatty
+    # component. Kept separate from FAILURE_CONTEXT_EVENT_QUERY_SIZE.
+    WAIT_BUILD_EVENT_QUERY_SIZE = 100
+    # Event terminal statuses: success -> "success"; failure/timeout -> "failure".
+    _WAIT_BUILD_SUCCESS_STATUSES = ("success",)
+    _WAIT_BUILD_FAILURE_STATUSES = ("failure", "timeout")
+
+    def wait_for_build_completion(self, user: Any, arguments: dict) -> dict:
+        """Bounded blocking poll of a build/deploy operation event until it
+        reaches a terminal state. Returns success/failure immediately on terminal;
+        on failure attaches a redacted error_summary + classified_reason (NOT raw
+        logs). When the clamped timeout elapses without a terminal state, returns
+        status='running' plus event_id so the caller can resume waiting with
+        another call. Replaces the M0 for+sleep+curl self-spin while bounding
+        worker occupancy to <= WAIT_BUILD_MAX_TIMEOUT seconds."""
+        team, app, service = self._get_team_app_service_context(
+            user,
+            self._require_string(arguments, "team_name"),
+            self._require_string(arguments, "region_name"),
+            self._require_int(arguments, "app_id"),
+            self._require_string(arguments, "service_id"),
+        )
+        event_id = self._require_string(arguments, "event_id")
+        timeout = self._parse_int_with_default(arguments.get("timeout"), self.WAIT_BUILD_DEFAULT_TIMEOUT)
+        if timeout <= 0:
+            timeout = self.WAIT_BUILD_DEFAULT_TIMEOUT
+        timeout = min(timeout, self.WAIT_BUILD_MAX_TIMEOUT)
+
+        deadline = time.monotonic() + timeout
+        while True:
+            event = self._query_operation_event(team, app, service, event_id)
+            event_status = (event.get("status") or "").lower() if event else ""
+            if event_status in self._WAIT_BUILD_SUCCESS_STATUSES:
+                return self._wait_build_result(team, app, service, event_id, "success", timeout, event_status)
+            if event_status in self._WAIT_BUILD_FAILURE_STATUSES:
+                return self._wait_build_result(team, app, service, event_id, "failure", timeout, event_status)
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                return self._wait_build_result(team, app, service, event_id, "running", timeout, event_status)
+            # Cap the sleep to the remaining budget so a small timeout (e.g. 1s)
+            # is honored rather than over-blocking by a full poll interval.
+            time.sleep(min(self.WAIT_BUILD_POLL_INTERVAL_SECONDS, remaining))
+
+    def _query_operation_event(self, team: Any, app: Any, service: Any, event_id: str) -> Optional[dict]:
+        """Locate the operation event by id from the service event list.
+        Best-effort: any sub-query failure returns None (treated as still running)
+        rather than aborting the poll."""
+        try:
+            res, body = region_api.get_target_events_list(
+                app.region_name, team.tenant_name, "service", service.service_id,
+                1, self.WAIT_BUILD_EVENT_QUERY_SIZE)
+            items = body.get("list") or [] if (int(res.status) == 200 and isinstance(body, dict)) else []
+        except Exception as e:
+            logger.warning("wait_build: list events failed for %s: %s", service.service_id, e)
+            return None
+        for item in items:
+            if isinstance(item, dict) and (item.get("event_id") or "") == event_id:
+                return item
+        return None
+
+    def _wait_build_result(self, team: Any, app: Any, service: Any, event_id: str,
+                           status: str, timeout: int, event_status: str) -> dict:
+        error_summary = []  # type: List[str]
+        classified_reason = None
+        if status == "failure":
+            error_summary = self._read_failure_event_log_tail(
+                team, app.region_name, event_id, self.FAILURE_CONTEXT_DEFAULT_LOG_TAIL)
+            # Image-pull / crash-loop signals live in pod warnings, not the event
+            # log; the log tail only carries the k8s_api_rejected fallback. Gather
+            # both so the build failure classifies the same way as
+            # get_operation_failure_context. _collect_pod_warnings is best-effort.
+            pod_warnings = self._collect_pod_warnings(team, app.region_name, service)
+            classified_reason = classify_failure(pod_warnings, error_summary)
+        return {
+            "team_name": team.tenant_name,
+            "region_name": app.region_name,
+            "app_id": app.ID,
+            "service_id": service.service_id,
+            "event_id": event_id,
+            "status": status,
+            "event_status": event_status,
+            "timeout": timeout,
+            "error_summary": error_summary,
+            "classified_reason": classified_reason,
+        }
 
     def _collect_pod_warnings(self, team: Any, region_name: str, service: Any) -> List[dict]:
         """Pull Warning events from up to N abnormal pods. Best-effort: any
@@ -1739,7 +1984,10 @@ class MCPQueryService(object):
         if operation == "update":
             port = self._require_int(arguments, "port")
             action = self._normalize_port_action(self._require_string(arguments, "action"))
-            protocol = arguments.get("protocol")
+            protocol_value = arguments.get("protocol")
+            update_protocol: Optional[str] = None
+            if action == "change_protocol":
+                update_protocol = self._normalize_port_protocol(protocol_value)
             port_alias = arguments.get("port_alias")
             k8s_service_name = arguments.get("k8s_service_name", "") or ""
             code, msg, port_info = port_service.manage_port(
@@ -1748,7 +1996,7 @@ class MCPQueryService(object):
                 app.region_name,
                 port,
                 action,
-                protocol,
+                update_protocol,
                 port_alias,
                 k8s_service_name,
                 user.nick_name,
@@ -1814,6 +2062,8 @@ class MCPQueryService(object):
             payload = dict(arguments)
             payload["operation"] = "update"
             payload["action"] = action_map[operation]
+            if payload["action"] == "change_protocol":
+                payload["protocol"] = self._normalize_port_protocol(payload.get("protocol"))
             return self.handle_component_ports(user, payload)
 
         payload = dict(arguments)
@@ -1828,7 +2078,14 @@ class MCPQueryService(object):
             self._require_int(arguments, "app_id"),
             self._require_string(arguments, "service_id"),
         )
-        created = port_service.batch_add_service_ports(team, service, ports_list, user.nick_name, app=app)
+        normalized_ports = []
+        for item in ports_list:
+            if not isinstance(item, dict):
+                raise ServiceHandleException(msg="invalid ports", msg_show="批量新增端口时 ports 每项必须是对象", status_code=400)
+            normalized_item = dict(item)
+            normalized_item["protocol"] = self._normalize_port_protocol(normalized_item.get("protocol"))
+            normalized_ports.append(normalized_item)
+        created = port_service.batch_add_service_ports(team, service, normalized_ports, user.nick_name, app=app)
         return {"ports": [self._serialize_model_item(p) for p in created]}
 
     def _batch_update_ports(self, user: Any, arguments: dict, action: str, ports_list: Any) -> dict:
@@ -1842,9 +2099,18 @@ class MCPQueryService(object):
         results = []
         for item in ports_list:
             port_num = item if isinstance(item, int) else int(item.get("port", item))
+            protocol = None
+            if action == "change_protocol":
+                if not isinstance(item, dict):
+                    raise ServiceHandleException(
+                        msg="invalid ports",
+                        msg_show="批量修改协议时 ports 每项必须包含 port 和 protocol",
+                        status_code=400,
+                    )
+                protocol = self._normalize_port_protocol(item.get("protocol"))
             code, msg, port_info = port_service.manage_port(
                 team, service, app.region_name, port_num, action,
-                None, None, "", user.nick_name, app=app,
+                protocol, None, "", user.nick_name, app=app,
             )
             if code != 200:
                 self._raise_port_tool_error("port operation failed", msg, code)
@@ -1932,6 +2198,36 @@ class MCPQueryService(object):
                     status_code=412,
                 )
 
+    def _resolve_component_volume_target(self, service: Any, arguments: dict) -> Any:
+        volume = None
+        if arguments.get("volume_id") not in (None, ""):
+            volume_id = self._require_int(arguments, "volume_id")
+            volume = volume_repo.get_service_volume_by_pk(volume_id)
+            if volume and getattr(volume, "service_id", None) != service.service_id:
+                raise ServiceHandleException(
+                    msg="volume not in current service",
+                    msg_show="存储不属于当前组件，请先调用 summary 获取当前组件的 volume_id",
+                    status_code=400,
+                )
+            if volume:
+                return volume
+
+        if self._has_value(arguments, "volume_path"):
+            volume = volume_repo.get_service_volume_by_path(service.service_id, self._require_string(arguments, "volume_path"))
+            if volume:
+                return volume
+
+        if self._has_value(arguments, "volume_name"):
+            volume = volume_repo.get_service_volume_by_name(service.service_id, self._require_string(arguments, "volume_name"))
+            if volume:
+                return volume
+
+        raise ServiceHandleException(
+            msg="volume is null",
+            msg_show="存储不存在，请先调用 summary 获取当前组件的 volume_id，或传当前组件已有的 volume_path/volume_name",
+            status_code=400,
+        )
+
     def manage_component_storage(self, user: Any, arguments: dict) -> dict:
         team, app, service = self._get_team_app_service_context(
             user,
@@ -2004,8 +2300,11 @@ class MCPQueryService(object):
             )
             return {"created": True, "volume": self._serialize_model_item(volume)}
         if operation == "update_volume":
-            volume_id = self._require_int(arguments, "volume_id")
-            new_volume_path = self._require_string(arguments, "new_volume_path")
+            volume = self._resolve_component_volume_target(service, arguments)
+            if self._has_value(arguments, "new_volume_path"):
+                new_volume_path = self._require_string(arguments, "new_volume_path")
+            else:
+                new_volume_path = volume.volume_path
             new_file_content = arguments.get("new_file_content")
             volume_capacity = arguments.get("volume_capacity")
             mode = arguments.get("mode")
@@ -2013,9 +2312,6 @@ class MCPQueryService(object):
                 mode = self._ensure_volume_mode(mode)
             if volume_capacity is not None:
                 volume_capacity = self._parse_int_with_default(volume_capacity, 0)
-            volume = volume_repo.get_service_volume_by_pk(volume_id)
-            if not volume:
-                raise ServiceHandleException(msg="volume is null", msg_show="存储不存在", status_code=400)
             service_config = volume_repo.get_service_config_file(volume)
             if volume.volume_type == "config-file" and not service_config:
                 raise ServiceHandleException(msg="file_content is null", msg_show="配置文件内容不存在", status_code=400)
@@ -2048,7 +2344,13 @@ class MCPQueryService(object):
                 service_config.save()
             return {"updated": True, "volume": self._serialize_model_item(volume)}
         if operation == "delete_volume":
-            volume_id = self._require_int(arguments, "volume_id")
+            if arguments.get("volume_id") not in (None, ""):
+                volume_id = self._require_int(arguments, "volume_id")
+            else:
+                volume = self._resolve_component_volume_target(service, arguments)
+                volume_id = self._require_positive_int_value(
+                    getattr(volume, "ID", None) or getattr(volume, "volume_id", None), "volume_id"
+                )
             force = None
             if "force" in arguments:
                 force = "1" if bool(arguments.get("force")) else "0"
@@ -3984,8 +4286,8 @@ class MCPQueryService(object):
 
     def get_region_detail(self, user: Any, arguments: dict) -> dict:
         self._ensure_enterprise_admin(user)
-        region_id = self._require_string(arguments, "region_id")
-        region_model = self._get_region_model(user, region_id)
+        region_model = self._resolve_region_detail_model(user, arguments)
+        region_id = self._value(region_model, "region_id", "")
         region_data = self._serialize_region(region_model)
         if arguments.get("extend_info", False):
             region_detail = self._get_region_context(user, region_id, check_status=True)
@@ -4241,6 +4543,25 @@ class MCPQueryService(object):
             self._raise_permission_denied("无该企业集群访问权限")
         return region
 
+    def _resolve_region_detail_model(self, user: Any, arguments: dict) -> Any:
+        region_id = (arguments.get("region_id") or "").strip()
+        region_name = (arguments.get("region_name") or "").strip()
+
+        if region_id:
+            try:
+                return self._get_region_model(user, region_id)
+            except ServiceHandleException as exc:
+                if exc.status_code != 404:
+                    raise
+                if region_name and region_name != region_id:
+                    raise
+                return self._get_region_by_name_context(user, region_name or region_id)
+
+        if region_name:
+            return self._get_region_by_name_context(user, region_name)
+
+        self._require_string(arguments, "region_id")
+
     def _get_region_by_name_context(self, user: Any, region_name: str) -> Any:
         region = region_services.get_enterprise_region_by_region_name(
             getattr(user, "enterprise_id", None), region_name)  # type: ignore[arg-type]
@@ -4368,6 +4689,10 @@ class MCPQueryService(object):
         # other methods pass the result to region/service helpers whose ID params
         # are declared str (latent int/str inconsistency across the codebase).
         value = arguments.get(field)
+        return MCPQueryService._require_positive_int_value(value, field)
+
+    @staticmethod
+    def _require_positive_int_value(value: Any, field: str) -> int:
         try:
             ivalue = int(value)  # type: ignore[arg-type]  # TypeError caught below for None
         except (TypeError, ValueError):
@@ -4586,6 +4911,18 @@ class MCPQueryService(object):
             status_code=400,
         )
 
+    def _normalize_port_protocol(self, protocol: Any) -> str:
+        if not isinstance(protocol, str) or not protocol.strip():
+            raise ServiceHandleException(msg="invalid protocol", msg_show="参数protocol无效", status_code=400)
+        normalized = protocol.strip().lower()
+        if normalized in self.PORT_PROTOCOL_ENUM:
+            return normalized
+        raise ServiceHandleException(
+            msg="invalid protocol",
+            msg_show="端口 protocol 无效，可选值为: {}".format(", ".join(self.PORT_PROTOCOL_ENUM)),
+            status_code=400,
+        )
+
     @staticmethod
     def _normalize_component_operation(operation: Optional[str], aliases: dict, allowed: Any, label: str) -> str:
         operation = (operation or "").strip().lower()
@@ -4604,6 +4941,14 @@ class MCPQueryService(object):
             "type": "string",
             "pattern": cls.PORT_ALIAS_PATTERN,
             "description": cls.PORT_ALIAS_DESCRIPTION,
+        }
+
+    @classmethod
+    def _port_protocol_schema(cls) -> dict:
+        return {
+            "type": "string",
+            "enum": list(cls.PORT_PROTOCOL_ENUM),
+            "description": cls.PORT_PROTOCOL_DESCRIPTION,
         }
 
     @classmethod
@@ -5435,6 +5780,26 @@ class MCPQueryService(object):
             }
         }
 
+    def _tool_get_app_health_overview(self) -> dict:
+        return {
+            "name": "rainbond_get_app_health_overview",
+            "description": (
+                "一次性返回应用下全部组件的运行状态与每个异常组件的 critical_blocker，"
+                "用于排障 loop 的健康总览，免去逐个组件调用 get_component_summary。"
+                "全绿组件 critical_blocker 为 null；非 running 组件会自动深挖 pod 告警并归类阻滞原因"
+                "（如 image_pull_failed / crash_loop / config_file_configmap_missing / unknown）。"
+            ),
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "team_name": {"type": "string"},
+                    "region_name": {"type": "string"},
+                    "app_id": {"type": "integer", "minimum": 1},
+                },
+                "required": ["team_name", "region_name", "app_id"],
+            },
+        }
+
     def _tool_create_app(self) -> dict:
         return {
             "name": "rainbond_create_app",
@@ -5552,6 +5917,26 @@ class MCPQueryService(object):
                 },
                 "required": ["team_name", "region_name", "app_id", "service_id"]
             }
+        }
+
+    def _tool_analyze_env_conflicts(self) -> dict:
+        return {
+            "name": "rainbond_analyze_env_conflicts",
+            "description": (
+                "检测组件环境变量的多源冲突：同一 attr_name 由多个来源（组件自身定义 vs 依赖注入的连接变量/"
+                "端口别名自动生成变量）提供且取值不一致时判定为冲突。用于排障 loop 在改 env 前规避 M0 实测的"
+                "<ALIAS>_PORT 同名 412 类问题。同名同值不算冲突。"
+            ),
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "team_name": {"type": "string"},
+                    "region_name": {"type": "string"},
+                    "app_id": {"type": "integer", "minimum": 1},
+                    "service_id": {"type": "string"},
+                },
+                "required": ["team_name", "region_name", "app_id", "service_id"],
+            },
         }
 
     def _tool_manage_component_envs(self) -> dict:
@@ -5890,6 +6275,31 @@ class MCPQueryService(object):
                 },
                 "required": ["team_name", "region_name", "app_id", "action"]
             }
+        }
+
+    def _tool_wait_for_build_completion(self) -> dict:
+        return {
+            "name": "rainbond_wait_for_build_completion",
+            "description": (
+                "有界阻塞轮询某次构建/部署操作事件直到终态，用于排障 loop 在部署后获取统一就绪信号，"
+                "免去客户端 for+sleep+curl 自旋。返回 status=success/failure/running："
+                "success/failure 在事件终态时立即返回，failure 附带脱敏后的关键错误摘要(error_summary)"
+                "与归类原因(classified_reason)；若在超时(默认 60s，最大 120s)内仍未终态，返回 status=running 与 event_id，"
+                "调用方可携带同一 event_id 再次调用以续等。event_id 来自 operate_app/build_component 的返回。"
+            ),
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "team_name": {"type": "string"},
+                    "region_name": {"type": "string"},
+                    "app_id": {"type": "integer", "minimum": 1},
+                    "service_id": {"type": "string"},
+                    "event_id": {"type": "string", "description": "构建/部署操作事件 ID，来自 operate_app/build_component 返回"},
+                    "timeout": {"type": "integer", "minimum": 1,
+                                "description": "阻塞等待上限秒数，默认 60，超过 120 按 120 截断"},
+                },
+                "required": ["team_name", "region_name", "app_id", "service_id", "event_id"],
+            },
         }
 
     def _tool_update_component_envs(self) -> dict:
@@ -7253,7 +7663,7 @@ class MCPQueryService(object):
                     "service_id": {"type": "string"},
                     "operation": {"type": "string"},
                     "port": {"type": "integer", "minimum": 1},
-                    "protocol": {"type": "string"},
+                    "protocol": self._port_protocol_schema(),
                     "port_alias": self._port_alias_schema(),
                     "is_inner_service": {"type": "boolean"},
                     "action": {
@@ -7323,7 +7733,7 @@ class MCPQueryService(object):
                                     "type": "object",
                                     "properties": {
                                         "port": {"type": "integer", "minimum": 1},
-                                        "protocol": {"type": "string"},
+                                        "protocol": self._port_protocol_schema(),
                                         "is_inner_service": {"type": "boolean"},
                                         "enable_inner": {"type": "boolean"},
                                         "port_alias": self._port_alias_schema(),
@@ -7333,7 +7743,7 @@ class MCPQueryService(object):
                             ]
                         },
                     },
-                    "protocol": {"type": "string"},
+                    "protocol": self._port_protocol_schema(),
                     "port_alias": self._port_alias_schema(),
                     "is_inner_service": {"type": "boolean", "description": "新增端口时是否默认开启对内服务"},
                     "enable_inner": {"type": "boolean", "description": "新增端口时更推荐用这个字段表达是否开启对内服务"},
@@ -7383,9 +7793,10 @@ class MCPQueryService(object):
                 "高层存储管理工具，统一处理组件 volume 和挂载关系 mnt。"
                 "各 operation 必填/常用参数组合（注意 create 与 update 使用不同的参数名，不要混用）："
                 "create_volume 必填 volume_name + volume_type + volume_path（config-file 类型还需 file_content）；"
-                "update_volume 必填 volume_id + new_volume_path（config-file 类型用 new_file_content 改内容，可选 volume_capacity 改容量），"
+                "update_volume 推荐先 summary 获取 volume_id，也可用当前组件已有的 volume_path 或 volume_name 定位；"
+                "new_volume_path 仅在修改路径时传，config-file 类型用 new_file_content 改内容，可选 volume_capacity 改容量；"
                 "改存储用 new_volume_path / new_file_content，不是 volume_path / file_content；"
-                "delete_volume 必填 volume_id（有依赖时需 force=true 强制删除）；"
+                "delete_volume 推荐先 summary 获取 volume_id，也可用当前组件已有的 volume_path 或 volume_name 定位（有依赖时需 force=true 强制删除）；"
                 "create_mnt 必填 mounts 数组（每项含 dep_vol_id + mount_path）；"
                 "delete_mnt 必填 dep_vol_id。"
             ),
@@ -7414,7 +7825,8 @@ class MCPQueryService(object):
                     "new_volume_path": {
                         "type": "string",
                         "description": (
-                            "仅用于 update_volume：修改已存在存储的挂载路径（config-file 类型即容器内文件完整路径）。"
+                            "仅用于 update_volume：修改已存在存储的挂载路径（config-file 类型即容器内文件完整路径）；"
+                            "如果只改容量、权限或配置文件内容，可不传，系统会沿用当前 volume_path。"
                             "create_volume 不要用这个字段，应使用 volume_path。"
                         ),
                     },
@@ -7442,7 +7854,7 @@ class MCPQueryService(object):
                         "description": (
                             "create_volume 必填：容器内挂载路径。volume_type=config-file 时填容器内文件的完整路径，"
                             "例如 /etc/nginx/conf.d/default.conf；其它类型填挂载目录如 /data。"
-                            "修改已存在存储路径请改用 update_volume + new_volume_path。"
+                            "update_volume/delete_volume 时也可填当前组件已有 volume_path 来定位目标；修改路径请改用 new_volume_path。"
                         ),
                     },
                     "volume_capacity": {"type": "integer", "minimum": 0},
@@ -7658,14 +8070,18 @@ class MCPQueryService(object):
     def _tool_get_region_detail(self) -> dict:
         return {
             "name": "rainbond_get_region_detail",
-            "description": "Get cluster detail by region ID. Only available for enterprise administrators.",
+            "description": "Get cluster detail by region ID or region name. Only available for enterprise administrators.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
                     "region_id": {"type": "string"},
+                    "region_name": {"type": "string"},
                     "extend_info": {"type": "boolean"}
                 },
-                "required": ["region_id"]
+                "anyOf": [
+                    {"required": ["region_id"]},
+                    {"required": ["region_name"]}
+                ]
             }
         }
 

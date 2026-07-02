@@ -77,6 +77,7 @@ class NewComponents(object):
         self.support_labels = support_labels if support_labels else []
 
         self.components_keys = components_keys
+        self._secret_groups: Dict[str, str] = {}
         self.components = self.create_components()
 
     def _collect_hostname_remap(self, components: list, templates: dict) -> dict:
@@ -107,6 +108,16 @@ class NewComponents(object):
             if value.startswith(old + ":") and "://" not in value:
                 value = new + value[len(old):]
         return value
+
+    def _resolve_none_placeholder(self, raw_value: str) -> Optional[str]:
+        if raw_value == "**None**":
+            return make_uuid()[:8]
+        if raw_value.startswith("**None:") and raw_value.endswith("**"):
+            group = raw_value[7:-2]
+            if group not in self._secret_groups:
+                self._secret_groups[group] = make_uuid()
+            return self._secret_groups[group]
+        return None
 
     def create_components(self) -> List[Component]:
         """
@@ -307,6 +318,9 @@ class NewComponents(object):
             if not env.get("attr_name"):
                 continue
             attr_value = env.get("attr_value", "")
+            resolved = self._resolve_none_placeholder(attr_value)
+            if resolved is not None:
+                attr_value = resolved
             attr_value = self._apply_hostname_remap(attr_value, hostname_remap or {})
             envs.append(
                 TenantServiceEnvVar(
@@ -322,8 +336,9 @@ class NewComponents(object):
             if not env.get("attr_name"):
                 continue
             container_port = env.get("container_port", 0)
-            if env.get("attr_value") == "**None**":
-                env["attr_value"] = make_uuid()[:8]
+            resolved = self._resolve_none_placeholder(env.get("attr_value") or "")
+            if resolved is not None:
+                env = dict(env, attr_value=resolved)
             service_env = TenantServiceEnvVar(
                 tenant_id=component.tenant_id,
                 service_id=component.service_id,

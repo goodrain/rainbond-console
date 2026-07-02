@@ -336,14 +336,15 @@ class AppEnvVarService(object):
         has_envs = env_var_repo.get_service_env(service.tenant_id, service.service_id)
         env_attr_names = {env.attr_name: env for env in has_envs}
         for env in envs:
+            note = env.get("note") or ""
             if env["name"] in list(env_attr_names.keys()):
-                code, msg, env = self.update_env_by_env_id(team, service, str(env_attr_names[env["name"]].ID), env["note"],
+                code, msg, env = self.update_env_by_env_id(team, service, str(env_attr_names[env["name"]].ID), note,
                                                            env["value"])
                 if code != 200:
                     raise ServiceHandleException(status_code=code, msg="update or create envs error", msg_show=msg)
             else:
-                code, msg, env = self.add_service_env_var(team, service, 0, env["note"], env["name"], env["value"],
-                                                          env["is_change"], env["scope"])
+                code, msg, env = self.add_service_env_var(team, service, 0, note, env["name"], env["value"], env["is_change"],
+                                                          env["scope"])
                 if code != 200:
                     raise ServiceHandleException(status_code=code, msg="update or create envs error", msg_show=msg)
         total_envs = env_var_repo.get_service_env(service.tenant_id, service.service_id)

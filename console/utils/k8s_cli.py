@@ -3,9 +3,18 @@ import logging
 import subprocess
 import yaml
 from datetime import datetime
+from typing import Any, Dict, List, Optional
 from kubernetes import client, config
 
 logger = logging.getLogger('default')
+
+MAX_COMMAND_OUTPUT_LENGTH = 2000
+
+
+class K8sCommandError(Exception):
+    def __init__(self, error_info: Dict[str, Any]):
+        self.error_info = error_info
+        super().__init__(error_info.get("error", "command failed"))
 
 
 class K8sClient:
@@ -41,20 +50,58 @@ class K8sClient:
             logger.error(error_message)
             raise Exception(error_message)
 
-    def _run_subprocess(self, command_list):
+    def _decode_output(self, value: Any) -> str:
+        if value is None:
+            return ""
+        if isinstance(value, bytes):
+            value = value.decode("utf-8", errors="replace")
+        value = str(value).strip()
+        if len(value) > MAX_COMMAND_OUTPUT_LENGTH:
+            return value[:MAX_COMMAND_OUTPUT_LENGTH] + "...(truncated)"
+        return value
+
+    def _command_summary(self, command_list: List[str]) -> str:
+        if len(command_list) >= 3 and command_list[0] == "helm":
+            return " ".join(command_list[:3])
+        return command_list[0] if command_list else "command"
+
+    def _build_command_error(self,
+                             command_list: List[str],
+                             stage: str,
+                             return_code: Optional[int] = None,
+                             stdout: Any = "",
+                             stderr: Any = "",
+                             error: Any = "") -> Dict[str, Any]:
+        error_text = self._decode_output(error) or "command failed"
+        return {
+            "stage": stage,
+            "command": self._command_summary(command_list),
+            "return_code": return_code,
+            "stdout": self._decode_output(stdout),
+            "stderr": self._decode_output(stderr),
+            "error": error_text,
+        }
+
+    def _run_subprocess(self, command_list, stage="command"):
         """运行 subprocess 命令并检查返回码"""
         try:
             result = subprocess.run(command_list, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             if result.returncode == 0:
-                return result.stdout.decode('utf-8')
-            else:
-                error_message = f"Command '{' '.join(command_list)}' failed: {result.stderr.decode('utf-8')}"
-                logger.error(error_message)
-                raise Exception(error_message)
+                return result.stdout.decode('utf-8', errors="replace")
+            error_info = self._build_command_error(command_list,
+                                                   stage,
+                                                   return_code=result.returncode,
+                                                   stdout=result.stdout,
+                                                   stderr=result.stderr,
+                                                   error="command failed")
+            logger.error("Command failed at stage %s: %s", stage, error_info)
+            raise K8sCommandError(error_info)
+        except K8sCommandError:
+            raise
         except Exception as e:
-            error_message = f"Error running command '{' '.join(command_list)}': {str(e)}"
-            logger.error(error_message)
-            raise Exception(error_message)
+            error_info = self._build_command_error(command_list, stage, error=str(e))
+            logger.error("Error running command at stage %s: %s", stage, error_info)
+            raise K8sCommandError(error_info)
 
     def get_nodes(self):
         """获取所有节点的信息"""
@@ -162,7 +209,9 @@ class K8sClient:
         try:
             pod_list = self.core_v1_api.list_namespaced_pod(namespace="kube-system",
                                                             field_selector=f"spec.nodeName={node_name}")
-            no_run_pods = [pod.metadata.name for pod in pod_list.items if pod.status.phase != "Running" and pod.status.phase != "Succeeded"]
+            no_run_pods = [
+                pod.metadata.name for pod in pod_list.items if pod.status.phase != "Running" and pod.status.phase != "Succeeded"
+            ]
             if no_run_pods:
                 if len(no_run_pods) > 2:
                     return "Waiting for pod start: {}...".format(",".join(no_run_pods[:2]))
@@ -190,12 +239,15 @@ class K8sClient:
                 "--create-namespace",
                 "--kubeconfig", "kube.config",
                 "-f", "values.yaml"
-            ])
+            ], stage="helm_install")
             logger.info("Successfully installed Rainbond using Helm")
 
+        except K8sCommandError as e:
+            self.uninstall_rainbond()
+            return e.error_info
         except Exception as e:
             self.uninstall_rainbond()
-            return str(e)
+            return self._build_command_error(["helm", "install", "rainbond"], "helm_install", error=str(e))
 
     def uninstall_rainbond(self):
         """卸载 Rainbond"""
@@ -204,7 +256,7 @@ class K8sClient:
                 "helm", "uninstall", "rainbond",
                 "-n", "rbd-system",
                 "--kubeconfig", "kube.config"
-            ])
+            ], stage="helm_uninstall")
             logger.info("Successfully uninstalled Rainbond.")
         except Exception as e:
             logger.error(f"Failed to uninstall Rainbond: {str(e)}")
@@ -410,7 +462,6 @@ class K8sClient:
             logger.error(f"Failed to retrieve region config: {str(e)}")
             return {"error": str(e)}
 
-
     def _get_container_info(self, container_status):
         """获取容器的信息"""
         image = container_status.image
@@ -474,7 +525,7 @@ class K8sClient:
                     raise Exception(f"Pod '{pod_name}' 不存在于命名空间 '{namespace}' 中")
                 else:
                     raise e
-            
+
             # 构建日志查询参数
             kwargs = {
                 'name': pod_name,
@@ -484,7 +535,7 @@ class K8sClient:
                 '_preload_content': False,
                 'timestamps': True  # 添加时间戳
             }
-            
+
             # 如果指定了容器名称，则添加到参数中
             if container_name:
                 # 验证容器是否存在
@@ -493,17 +544,17 @@ class K8sClient:
                     if container_status.name == container_name:
                         container_found = True
                         break
-                
+
                 if not container_found:
                     raise Exception(f"容器 '{container_name}' 不存在于 Pod '{pod_name}' 中")
-                
+
                 kwargs['container'] = container_name
-            
+
             logger.info(f"Starting log stream for pod {pod_name} with follow={follow}")
-            
+
             # 获取日志流
             log_response = self.core_v1_api.read_namespaced_pod_log(**kwargs)
-            
+
             # 逐行读取日志
             try:
                 line_count = 0
@@ -517,17 +568,17 @@ class K8sClient:
                         # 如果没有新日志，稍微等待一下避免CPU占用过高
                         import time
                         time.sleep(0.1)
-                        
+
                 logger.info(f"Log stream ended for pod {pod_name}, total lines: {line_count}")
-                        
+
             except Exception as stream_e:
                 logger.error(f"Error reading log stream for pod {pod_name}: {str(stream_e)}")
                 yield f"日志流读取错误: {str(stream_e)}\n"
-                    
+
         except Exception as e:
             error_msg = str(e)
             logger.error(f"Failed to get logs for pod {pod_name}: {error_msg}")
-            
+
             # 更友好的错误信息
             if "404" in error_msg or "NotFound" in error_msg:
                 yield f"错误: Pod '{pod_name}' 不存在\n"
