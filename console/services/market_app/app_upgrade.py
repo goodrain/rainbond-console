@@ -15,6 +15,7 @@ from console.services.market_app.original_app import OriginalApp
 from console.services.market_app.new_components import NewComponents
 from console.services.market_app.update_components import UpdateComponents
 from console.services.market_app.property_changes import PropertyChanges
+from console.services.market_app.utils import is_same_component
 from console.services.market_app.component_group import ComponentGroup
 from console.services.market_app.component import Component
 # service
@@ -104,6 +105,15 @@ class AppUpgrade(MarketApp):
         # original app
         self.original_app = OriginalApp(self.tenant, self.region, self.app, self.upgrade_group_id, self.support_labels)
 
+        # On install, k8s_service_name collisions are resolved by suffixing the
+        # name (e.g. api-tpl -> api-tpl-cfd0). The upgrade template still carries
+        # the raw template hostnames, so rewrite it to the installed names before
+        # computing the diff (PropertyChanges) and the new app (_create_new_app).
+        # This keeps inner-env host values and config-file content pointing at the
+        # actually-assigned services. No-op when names already match.
+        install_remap = self._build_install_remap(self.original_app.components(), self.app_template)
+        self._apply_install_remap_to_template(self.app_template, install_remap)
+
         # plugins
         self.original_plugins = self.list_original_plugins()
         self.delete_plugin_ids = self.list_delete_plugin_ids()
@@ -117,6 +127,61 @@ class AppUpgrade(MarketApp):
         self.app_property_changes = self._get_app_property_changes()
 
         super(AppUpgrade, self).__init__(self.original_app, self.new_app, self.user)
+
+    @staticmethod
+    def _build_install_remap(original_components: List[Component], app_template: dict) -> Dict[str, str]:
+        """
+        Build a {template_k8s_service_name -> installed_k8s_service_name} map.
+
+        Matches each template app to its installed component using the same
+        logic as get_component_template (is_same_component), then pairs ports
+        by container_port. Only differing names are recorded, so the result is
+        empty when no install-time collision suffix was applied.
+        """
+        remap: Dict[str, str] = {}
+        apps = app_template.get("apps") or []
+        for tmpl in apps:
+            matched = None
+            for cpt in original_components:
+                if is_same_component(cpt, tmpl):
+                    matched = cpt
+                    break
+            if not matched:
+                continue
+            installed_ports = {port.container_port: port for port in matched.ports}
+            for port_tmpl in tmpl.get("port_map_list") or []:
+                container_port = port_tmpl.get("container_port")
+                installed_port = installed_ports.get(container_port)
+                if not installed_port:
+                    continue
+                old_name = port_tmpl.get("k8s_service_name", "")
+                new_name = installed_port.k8s_service_name
+                if old_name and new_name and old_name != new_name:
+                    remap[old_name] = new_name
+        return remap
+
+    @staticmethod
+    def _apply_install_remap_to_template(app_template: dict, remap: Dict[str, str]) -> None:
+        """
+        Rewrite inner-env host values and config-file content in the template
+        (in place) using the remap. Reuses NewComponents._apply_hostname_remap.
+        """
+        if not remap:
+            return
+        apply_remap = NewComponents._apply_hostname_remap
+        for tmpl in app_template.get("apps") or []:
+            for env in tmpl.get("service_env_map_list") or []:
+                value = env.get("attr_value")
+                if isinstance(value, str) and value:
+                    env["attr_value"] = apply_remap(value, remap)
+            for env in tmpl.get("service_connect_info_map_list") or []:
+                value = env.get("attr_value")
+                if isinstance(value, str) and value:
+                    env["attr_value"] = apply_remap(value, remap)
+            for volume in tmpl.get("service_volume_map_list") or []:
+                file_content = volume.get("file_content")
+                if isinstance(file_content, str) and file_content:
+                    volume["file_content"] = apply_remap(file_content, remap)
 
     def preinstall(self) -> None:
         self.pre_install_plugins()
