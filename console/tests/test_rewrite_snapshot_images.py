@@ -33,6 +33,7 @@ if not hasattr(QuerySet, "__class_getitem__"):
     QuerySet.__class_getitem__ = classmethod(lambda cls, item: cls)  # type: ignore[assignment]
 
 import pytest  # noqa: E402
+from console.exception.main import ServiceHandleException  # noqa: E402
 from console.services.app_version_service import AppVersionService  # noqa: E402
 
 
@@ -182,11 +183,14 @@ class RewriteSnapshotImagesToUpstreamTests:
         ])
         mock_version = MagicMock()
         mock_version.app_template = json.dumps(template)
+        mock_relation = MagicMock()
+        mock_relation.app_model_id = "model-1"
 
         svc = AppVersionService()
-        with patch("console.services.app_version_service.app_snapshot_repo") as mock_repo:
-            mock_repo.get_by_snapshot_id_and_app.return_value = mock_version
-            result = svc.rewrite_snapshot_images_to_upstream("app-123", "42")
+        with patch.object(svc, "get_hidden_template", return_value=(mock_relation, None)), \
+             patch("console.models.main.RainbondCenterAppVersion.objects") as mock_qs:
+            mock_qs.filter.return_value.first.return_value = mock_version
+            result = svc.rewrite_snapshot_images_to_upstream("123", "42")
 
         assert result["version_id"] == "42"
         assert result["components_rewritten"] == 2
@@ -199,11 +203,10 @@ class RewriteSnapshotImagesToUpstreamTests:
 
     def test_not_found_raises(self):
         svc = AppVersionService()
-        with patch("console.services.app_version_service.app_snapshot_repo") as mock_repo:
-            mock_repo.get_by_snapshot_id_and_app.return_value = None
-            with pytest.raises(Exception) as exc_info:
-                svc.rewrite_snapshot_images_to_upstream("app-123", "999")
-            assert "404" in str(exc_info.value.status_code) or exc_info.value.status_code == 404
+        with patch.object(svc, "get_hidden_template", return_value=(None, None)):
+            with pytest.raises(ServiceHandleException) as exc_info:
+                svc.rewrite_snapshot_images_to_upstream("123", "999")
+            assert exc_info.value.status_code == 404
 
     def test_with_image_overrides(self):
         template = _make_template([
@@ -211,11 +214,14 @@ class RewriteSnapshotImagesToUpstreamTests:
         ])
         mock_version = MagicMock()
         mock_version.app_template = json.dumps(template)
+        mock_relation = MagicMock()
+        mock_relation.app_model_id = "model-1"
 
         svc = AppVersionService()
-        with patch("console.services.app_version_service.app_snapshot_repo") as mock_repo:
-            mock_repo.get_by_snapshot_id_and_app.return_value = mock_version
-            result = svc.rewrite_snapshot_images_to_upstream("app-123", "42", {"api": "langgenius/dify-api:2.0.0"})
+        with patch.object(svc, "get_hidden_template", return_value=(mock_relation, None)), \
+             patch("console.models.main.RainbondCenterAppVersion.objects") as mock_qs:
+            mock_qs.filter.return_value.first.return_value = mock_version
+            result = svc.rewrite_snapshot_images_to_upstream("123", "42", {"api": "langgenius/dify-api:2.0.0"})
 
         assert result["details"][0]["upstream_image"] == "langgenius/dify-api:2.0.0"
         saved_template = json.loads(mock_version.app_template)

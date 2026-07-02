@@ -141,6 +141,10 @@ install_stub("console.services.group_service", group_service=Obj())
 install_stub("console.services.market_app", package=True)
 install_stub("console.services.market_app.app_upgrade", AppUpgrade=object)
 install_stub("console.services.market_app.component_group", ComponentGroup=object)
+install_stub("console.services.market_app.utils",
+             resolve_none_placeholders=lambda apps: None,
+             collect_install_hostname_remap=lambda tenant_id, apps: {},
+             apply_hostname_remap=lambda apps, remap: None)
 install_stub(
     "console.services.plugin",
     app_plugin_service=Obj(),
