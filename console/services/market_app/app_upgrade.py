@@ -169,15 +169,16 @@ class AppUpgrade(MarketApp):
         if not remap:
             return
         apply_remap = NewComponents._apply_hostname_remap
+        is_host = NewComponents._is_host_env_name
         for tmpl in app_template.get("apps") or []:
             for env in tmpl.get("service_env_map_list") or []:
                 value = env.get("attr_value")
                 if isinstance(value, str) and value:
-                    env["attr_value"] = apply_remap(value, remap)
+                    env["attr_value"] = apply_remap(value, remap, is_host(env.get("attr_name")))
             for env in tmpl.get("service_connect_info_map_list") or []:
                 value = env.get("attr_value")
                 if isinstance(value, str) and value:
-                    env["attr_value"] = apply_remap(value, remap)
+                    env["attr_value"] = apply_remap(value, remap, is_host(env.get("attr_name")))
             for volume in tmpl.get("service_volume_map_list") or []:
                 file_content = volume.get("file_content")
                 if isinstance(file_content, str) and file_content:
