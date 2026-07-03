@@ -296,7 +296,7 @@ class UpgradeService(object):
         # save app record and component records
         self.save_upgrade_record(record, component_records)
 
-    def deploy(self, tenant: Tenants, region_name: str, user: Any, record: AppUpgradeRecord) -> None:
+    def deploy(self, tenant: Tenants, region_name: str, user: Any, record: AppUpgradeRecord) -> list:
         if not record.can_deploy():
             raise ErrAppUpgradeRecordCanNotDeploy
 
@@ -323,6 +323,7 @@ class UpgradeService(object):
             upgrade_repo.change_app_record_status(record, UpgradeStatus.DEPLOY_FAILED.value)
             raise e
         self._update_component_records(record, failed_component_records.values(), events)
+        return events or []
 
     @staticmethod
     def save_upgrade_record(app_upgrade_record: AppUpgradeRecord, component_upgrade_records: Any) -> None:
