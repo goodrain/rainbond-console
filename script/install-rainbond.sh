@@ -3,7 +3,7 @@
 # This script is used to install Rainbond standalone on Linux and MacOS
 
 # Basic environment variables
-RAINBOND_VERSION=${VERSION:-'v6.9.2-release'}
+RAINBOND_VERSION=${VERSION:-'v6.9.3-release'}
 IMGHUB_MIRROR=${IMGHUB_MIRROR:-'registry.cn-hangzhou.aliyuncs.com/goodrain'}
 ENABLE_GPU=${ENABLE_GPU:-auto}
 
