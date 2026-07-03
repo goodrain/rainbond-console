@@ -96,11 +96,27 @@ class NewComponents(object):
         return remap
 
     @staticmethod
-    def _apply_hostname_remap(value: str, remap: dict) -> str:
+    def _is_host_env_name(attr_name: str) -> bool:
+        """Whether an env holds a bare hostname (``*_HOST`` / ``*_HOSTNAME`` / ``HOST``).
+
+        Only these may have their whole value exact-matched against a colliding
+        service name during hostname remap. Other envs whose value happens to
+        equal a service name (e.g. Harbor's ``POSTGRESQL_DATABASE=registry``,
+        which collides with the ``registry`` component) must NOT be rewritten.
+        """
+        if not attr_name:
+            return False
+        return attr_name == "HOST" or attr_name.endswith("_HOST") or attr_name.endswith("_HOSTNAME")
+
+    @staticmethod
+    def _apply_hostname_remap(value: str, remap: dict, is_host_env: bool = False) -> str:
         if not value or not remap:
             return value
         for old, new in remap.items():
-            if value == old:
+            # Exact whole-value match is only safe for hostname-valued envs; a
+            # database name / username that merely equals a service name must be
+            # left alone. URL and host:port rewrites below are unambiguous.
+            if is_host_env and value == old:
                 value = new
                 continue
             value = value.replace("://" + old + ":", "://" + new + ":")
@@ -321,7 +337,8 @@ class NewComponents(object):
             resolved = self._resolve_none_placeholder(attr_value)
             if resolved is not None:
                 attr_value = resolved
-            attr_value = self._apply_hostname_remap(attr_value, hostname_remap or {})
+            attr_value = self._apply_hostname_remap(
+                attr_value, hostname_remap or {}, self._is_host_env_name(env.get("attr_name")))
             envs.append(
                 TenantServiceEnvVar(
                     tenant_id=component.tenant_id,

@@ -194,3 +194,17 @@ class ApplyHostnameRemapTests:
         content = apps[0]["service_volume_map_list"][0]["file_content"]
         assert "http://api-tpl-aaaa:5001" in content
         assert "http://db-tpl-bbbb:5432" in content
+
+    def test_does_not_remap_non_host_env_matching_service_name(self):
+        # Regression (Harbor): the Harbor DB name "registry" collides with the
+        # registry component's k8s service name. A non-host env value that merely
+        # equals a service name must NOT be rewritten — only host references are.
+        apps = [_app(inner=[_env("POSTGRESQL_DATABASE", "registry")])]
+        apply_hostname_remap(apps, {"registry": "registry-e51e"})
+        assert apps[0]["service_env_map_list"][0]["attr_value"] == "registry"
+
+    def test_remaps_bare_host_env_matching_service_name(self):
+        # A *_HOST env whose bare value equals a colliding service name IS remapped.
+        apps = [_app(inner=[_env("POSTGRESQL_HOST", "harbor-postgresql")])]
+        apply_hostname_remap(apps, {"harbor-postgresql": "harbor-postgresql-673b"})
+        assert apps[0]["service_env_map_list"][0]["attr_value"] == "harbor-postgresql-673b"
