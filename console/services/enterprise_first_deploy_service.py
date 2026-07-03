@@ -122,6 +122,7 @@ class EnterpriseFirstDeployService(object):
     def __init__(self) -> None:
         self._running_keys = set()  # type: set
         self._reporting_keys = set()  # type: set
+        self._memory_payloads = {}  # type: Dict[str, dict]
         self._lock = threading.Lock()
         self.report_async = True
         if os.getenv("DISABLE_FIRST_DEPLOY_SWEEPER") != "1":
@@ -223,18 +224,20 @@ class EnterpriseFirstDeployService(object):
             report_type=self.REPORT_TYPE_DEPLOY_ATTEMPT,
             is_first_deploy=False,
         )
-        record, _ = enterprise_first_deploy_repo.create_attempt(enterprise_id, payload)
-        if not record:
-            return None
+        deploy_attempt_id = payload.get("deployment_context", {}).get("deploy_attempt_id")
+        key = enterprise_first_deploy_repo.build_attempt_key(enterprise_id, deploy_attempt_id)
         tracker = {
             "enterprise_id": enterprise_id,
-            "key": record.key,
+            "key": key,
             "tenant_name": tenant_name,
             "region_name": region_name,
             "service_id": payload.get("deployment_context", {}).get("service_id") or "",
             "service_alias": payload.get("deployment_context", {}).get("service_alias") or "",
+            "memory_only": True,
+            "payload": payload,
         }
-        transaction.on_commit(lambda: self._start_environment_collect_thread(record.key, enterprise_id, region_name))
+        self._save_memory_payload(key, payload)
+        transaction.on_commit(lambda: self._start_environment_collect_thread(key, enterprise_id, region_name))
         return tracker
 
     def safe_begin_tracking(self, *args: Any, **kwargs: Any) -> Optional[dict]:
@@ -349,6 +352,39 @@ class EnterpriseFirstDeployService(object):
     def _first_deploy_finished(self, payload: dict) -> bool:
         return payload.get("status") in self.FINAL_STATUSES
 
+    def _save_memory_payload(self, key: str, payload: dict) -> None:
+        with self._lock:
+            self._memory_payloads[key] = payload
+
+    def _load_memory_payload(self, key: str) -> Optional[dict]:
+        with self._lock:
+            return self._memory_payloads.get(key)
+
+    def _forget_memory_payload(self, key: str) -> None:
+        with self._lock:
+            self._memory_payloads.pop(key, None)
+
+    def _load_tracker_payload(self, tracker: dict) -> Tuple[Optional[ConsoleSysConfig], dict]:
+        key = tracker.get("key", "")
+        if tracker.get("memory_only"):
+            payload = tracker.get("payload") or self._load_memory_payload(key) or {}
+            if payload and not tracker.get("payload"):
+                tracker["payload"] = payload
+            return None, payload
+        record = (
+            enterprise_first_deploy_repo.get_by_key(key)
+            or enterprise_first_deploy_repo.get_by_enterprise_id(tracker["enterprise_id"]))
+        if not record:
+            return None, {}
+        return record, enterprise_first_deploy_repo.load_payload(record)
+
+    def _save_tracking_payload(self, record: Optional[ConsoleSysConfig], payload: dict, key: str = "") -> None:
+        if record:
+            enterprise_first_deploy_repo.update_payload(record, payload)
+            return
+        if key:
+            self._save_memory_payload(key, payload)
+
     def bind_events(self,
                     tracker: Optional[dict],
                     event_ids: Any,
@@ -357,14 +393,12 @@ class EnterpriseFirstDeployService(object):
                     service_aliases: Any = None) -> None:
         if not tracker:
             return
-        record = (
-            enterprise_first_deploy_repo.get_by_key(tracker.get("key"))
-            or enterprise_first_deploy_repo.get_by_enterprise_id(tracker["enterprise_id"]))
-        if not record:
+        record, payload = self._load_tracker_payload(tracker)
+        key = tracker.get("key", "")
+        if not payload:
             return
-        payload = enterprise_first_deploy_repo.load_payload(record)
         if payload.get("status") in self.FINAL_STATUSES:
-            self._report_if_needed(record, payload)
+            self._report_if_needed(record, payload, key=key)
             return
 
         event_ids = [str(event_id) for event_id in (event_ids or []) if event_id]
@@ -385,39 +419,40 @@ class EnterpriseFirstDeployService(object):
         if not payload["event_ids"]:
             self._mark_stage_success(payload, self.FAILURE_STAGE_BUILD, service_id=tracker_service_id)
             self._mark_stage_success(payload, self.FAILURE_STAGE_RUNTIME, service_id=tracker_service_id)
-            self._complete_tracking(record, payload, self.STATUS_SUCCESS)
+            self._complete_tracking(record, payload, self.STATUS_SUCCESS, key=key)
             return
 
-        enterprise_first_deploy_repo.update_payload(record, payload)
-        transaction.on_commit(lambda: self._start_sync_thread(record.key, tracker["tenant_name"], tracker["region_name"]))
+        sync_key = key
+        if not sync_key and record:
+            sync_key = record.key
+        if not sync_key:
+            return
+        self._save_tracking_payload(record, payload, key=sync_key)
+        transaction.on_commit(lambda: self._start_sync_thread(sync_key, tracker["tenant_name"], tracker["region_name"]))
 
     def mark_success(self, tracker: Optional[dict]) -> None:
         if not tracker:
             return
-        record = (
-            enterprise_first_deploy_repo.get_by_key(tracker.get("key"))
-            or enterprise_first_deploy_repo.get_by_enterprise_id(tracker["enterprise_id"]))
-        if not record:
+        record, payload = self._load_tracker_payload(tracker)
+        key = tracker.get("key", "")
+        if not payload:
             return
-        payload = enterprise_first_deploy_repo.load_payload(record)
         if payload.get("status") in self.FINAL_STATUSES:
-            self._report_if_needed(record, payload)
+            self._report_if_needed(record, payload, key=key)
             return
         self._mark_stage_success(payload, self.FAILURE_STAGE_BUILD)
         self._mark_stage_success(payload, self.FAILURE_STAGE_RUNTIME)
-        self._complete_tracking(record, payload, self.STATUS_SUCCESS)
+        self._complete_tracking(record, payload, self.STATUS_SUCCESS, key=key)
 
     def mark_failure(self, tracker: Optional[dict], reason: str = "", failure_stage: str = "") -> None:
         if not tracker:
             return
-        record = (
-            enterprise_first_deploy_repo.get_by_key(tracker.get("key"))
-            or enterprise_first_deploy_repo.get_by_enterprise_id(tracker["enterprise_id"]))
-        if not record:
+        record, payload = self._load_tracker_payload(tracker)
+        key = tracker.get("key", "")
+        if not payload:
             return
-        payload = enterprise_first_deploy_repo.load_payload(record)
         if payload.get("status") in self.FINAL_STATUSES:
-            self._report_if_needed(record, payload)
+            self._report_if_needed(record, payload, key=key)
             return
         stage = self._normalize_stage(failure_stage)
         self._set_stage_failure(
@@ -426,7 +461,7 @@ class EnterpriseFirstDeployService(object):
             tenant_name=payload.get("tenant_name"),
             region_name=payload.get("region_name"),
             reason=reason)
-        self._complete_tracking(record, payload, self.STATUS_FAILURE)
+        self._complete_tracking(record, payload, self.STATUS_FAILURE, key=key)
 
     def sync_once(self, enterprise_id: str, tenant_name: str, region_name: str) -> Optional[str]:
         record = enterprise_first_deploy_repo.get_by_enterprise_id(enterprise_id)
@@ -571,10 +606,10 @@ class EnterpriseFirstDeployService(object):
             "lines": [{"time": "", "message": "; ".join(parts)}],
         }
 
-    def _sync_record(self, record: ConsoleSysConfig, payload: dict, tenant_name: str,
-                     region_name: str) -> Optional[str]:
+    def _sync_record(self, record: Optional[ConsoleSysConfig], payload: dict, tenant_name: str,
+                     region_name: str, key: str = "") -> Optional[str]:
         if payload.get("status") in self.FINAL_STATUSES:
-            self._report_if_needed(record, payload)
+            self._report_if_needed(record, payload, key=key)
             return payload.get("status")
 
         event_ids = payload.get("event_ids") or []  # type: list
@@ -604,17 +639,17 @@ class EnterpriseFirstDeployService(object):
         ]
         if failed_events:
             self._set_stage_failure(payload, self.FAILURE_STAGE_BUILD, tenant_name, region_name, failed_events=failed_events)
-            self._complete_tracking(record, payload, self.STATUS_FAILURE)
+            self._complete_tracking(record, payload, self.STATUS_FAILURE, key=key)
             return self.STATUS_FAILURE
 
         if not status_map:
             if payload.get("build_status") == self.STATUS_SUCCESS:
                 runtime_status = self._inspect_runtime_status(record, payload, tenant_name, region_name)
                 if runtime_status == self.STATUS_FAILURE:
-                    self._complete_tracking(record, payload, self.STATUS_FAILURE)
+                    self._complete_tracking(record, payload, self.STATUS_FAILURE, key=key)
                     return self.STATUS_FAILURE
                 if runtime_status == self.STATUS_SUCCESS:
-                    self._complete_tracking(record, payload, self.STATUS_SUCCESS)
+                    self._complete_tracking(record, payload, self.STATUS_SUCCESS, key=key)
                     return self.STATUS_SUCCESS
             return None
 
@@ -632,31 +667,31 @@ class EnterpriseFirstDeployService(object):
                     service_id=build_service_id)
                 payload["runtime_started_at"] = self._now()
                 payload["runtime_watch_started_at"] = payload["runtime_started_at"]
-                enterprise_first_deploy_repo.update_payload(record, payload)
+                self._save_tracking_payload(record, payload, key=key)
                 return None
 
             runtime_status = self._inspect_runtime_status(record, payload, tenant_name, region_name)
             if runtime_status == self.STATUS_FAILURE:
-                self._complete_tracking(record, payload, self.STATUS_FAILURE)
+                self._complete_tracking(record, payload, self.STATUS_FAILURE, key=key)
                 return self.STATUS_FAILURE
             if runtime_status is None:
                 return None
-            self._complete_tracking(record, payload, self.STATUS_SUCCESS)
+            self._complete_tracking(record, payload, self.STATUS_SUCCESS, key=key)
             return self.STATUS_SUCCESS
 
         if "timeout" in normalized:
             self._set_stage_failure(
                 payload, self.FAILURE_STAGE_BUILD, tenant_name, region_name, stage_status=self.STAGE_STATUS_TIMEOUT)
-            self._complete_tracking(record, payload, self.STATUS_FAILURE)
+            self._complete_tracking(record, payload, self.STATUS_FAILURE, key=key)
             return self.STATUS_FAILURE
 
         return None
 
-    def _complete_tracking(self, record: ConsoleSysConfig, payload: dict, status: str) -> None:
+    def _complete_tracking(self, record: Optional[ConsoleSysConfig], payload: dict, status: str, key: str = "") -> None:
         payload["status"] = status
         payload["finished_at"] = self._now()
-        enterprise_first_deploy_repo.update_payload(record, payload)
-        self._report_if_needed(record, payload, async_report=True)
+        self._save_tracking_payload(record, payload, key=key)
+        self._report_if_needed(record, payload, async_report=True, key=key)
 
     def _start_sync_thread(self, key: str, tenant_name: str, region_name: str) -> None:
         with self._lock:
@@ -693,13 +728,17 @@ class EnterpriseFirstDeployService(object):
         try:
             deadline = time.time() + self.POLL_TIMEOUT
             while time.time() < deadline:
-                record = enterprise_first_deploy_repo.get_by_key(key)
-                if not record:
+                record = None
+                payload = self._load_memory_payload(key)
+                if payload is None:
+                    record = enterprise_first_deploy_repo.get_by_key(key)
+                    if record:
+                        payload = enterprise_first_deploy_repo.load_payload(record)
+                if payload is None:
                     time.sleep(self.POLL_INTERVAL)
                     continue
-                payload = enterprise_first_deploy_repo.load_payload(record)
                 try:
-                    status = self._sync_record(record, payload, tenant_name, region_name)
+                    status = self._sync_record(record, payload, tenant_name, region_name, key=key)
                 except Exception as e:
                     logger.exception("poll first deploy status failed: %s", e)
                     time.sleep(self.POLL_INTERVAL)
@@ -708,16 +747,20 @@ class EnterpriseFirstDeployService(object):
                     return
                 time.sleep(self.POLL_INTERVAL)
 
-            record = enterprise_first_deploy_repo.get_by_key(key)
-            if not record:
+            record = None
+            payload = self._load_memory_payload(key)
+            if payload is None:
+                record = enterprise_first_deploy_repo.get_by_key(key)
+                if record:
+                    payload = enterprise_first_deploy_repo.load_payload(record)
+            if payload is None:
                 return
-            payload = enterprise_first_deploy_repo.load_payload(record)
             if payload.get("status") == self.STATUS_PENDING:
                 stage = (
                     self.FAILURE_STAGE_BUILD
                     if payload.get("build_status") == self.STAGE_STATUS_PENDING else self.FAILURE_STAGE_RUNTIME)
                 self._set_stage_failure(payload, stage, stage_status=self.STAGE_STATUS_TIMEOUT)
-                self._complete_tracking(record, payload, self.STATUS_FAILURE)
+                self._complete_tracking(record, payload, self.STATUS_FAILURE, key=key)
         finally:
             with self._lock:
                 self._running_keys.discard(key)
@@ -820,7 +863,7 @@ class EnterpriseFirstDeployService(object):
         payload["failure_events"] = payload["{}_failure_events".format(stage)]
         payload["failure_logs"] = payload["{}_failure_logs".format(stage)]
 
-    def _inspect_runtime_status(self, _record: ConsoleSysConfig, payload: dict, tenant_name: str,
+    def _inspect_runtime_status(self, _record: Optional[ConsoleSysConfig], payload: dict, tenant_name: str,
                                 region_name: str) -> Optional[str]:
         runtime_watch_started_at = payload.get("runtime_watch_started_at")
         if not runtime_watch_started_at:
@@ -1126,27 +1169,39 @@ class EnterpriseFirstDeployService(object):
 
     def _report_by_key(self, key: str) -> None:
         try:
-            record = enterprise_first_deploy_repo.get_by_key(key)
-            if not record:
+            record = None
+            payload = self._load_memory_payload(key)
+            if payload is None:
+                record = enterprise_first_deploy_repo.get_by_key(key)
+                if record:
+                    payload = enterprise_first_deploy_repo.load_payload(record)
+            if payload is None:
                 return
-            payload = enterprise_first_deploy_repo.load_payload(record)
-            self._report_if_needed(record, payload, async_report=False)
+            self._report_if_needed(record, payload, async_report=False, key=key)
         finally:
             with self._lock:
                 self._reporting_keys.discard(key)
 
-    def _report_if_needed(self, record: ConsoleSysConfig, payload: dict, async_report: bool = False) -> None:
+    def _report_if_needed(self,
+                          record: Optional[ConsoleSysConfig],
+                          payload: dict,
+                          async_report: bool = False,
+                          key: str = "") -> None:
         if payload.get("status") not in self.FINAL_STATUSES or payload.get("reported"):
             return
-        if async_report and self.report_async:
-            self._start_report_thread(record.key)
+        report_key = key or getattr(record, "key", "")
+        if async_report and self.report_async and report_key:
+            self._start_report_thread(report_key)
             return
 
         report_payload = self._build_report_payload(payload)
         if self._post_report_payload(report_payload):
             payload["reported"] = True
             payload["reported_at"] = self._now()
-            enterprise_first_deploy_repo.update_payload(record, payload)
+            if record:
+                enterprise_first_deploy_repo.update_payload(record, payload)
+            elif key:
+                self._forget_memory_payload(key)
 
     def _build_report_payload(self, payload: dict) -> dict:
         report_payload = {
@@ -1196,6 +1251,15 @@ class EnterpriseFirstDeployService(object):
 
     def _collect_environment_by_key(self, key: str, enterprise_id: str, region_name: str) -> None:
         try:
+            payload = self._load_memory_payload(key)
+            if payload is not None:
+                environment_context = self._collect_environment_context(enterprise_id, region_name)
+                payload = self._load_memory_payload(key)
+                if not payload or payload.get("status") in self.FINAL_STATUSES:
+                    return
+                payload["environment_context"] = environment_context
+                self._save_memory_payload(key, payload)
+                return
             record = enterprise_first_deploy_repo.get_by_key(key)
             if not record:
                 return

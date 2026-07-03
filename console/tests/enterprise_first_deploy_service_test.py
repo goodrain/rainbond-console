@@ -129,6 +129,10 @@ class FirstDeployRepoStub(object):
         self.created_payloads.append(deepcopy(payload))
         return self.attempt_record, True
 
+    @staticmethod
+    def build_attempt_key(_enterprise_id, deploy_attempt_id):
+        return "attempt-key-{}".format(deploy_attempt_id)
+
     def create_if_absent(self, _enterprise_id, payload):
         self.payload = deepcopy(payload)
         self.created_payloads.append(deepcopy(payload))
@@ -173,7 +177,7 @@ class EnterpriseFirstDeployServiceTests(TestCase):
         self.assertEqual(payload["report_type"], self.service.REPORT_TYPE_FIRST_DEPLOY)
         self.assertTrue(payload["is_first_deploy"])
 
-    def test_begin_deploy_attempt_tracking_creates_attempt_even_after_first_deploy_finished(self):
+    def test_begin_deploy_attempt_tracking_keeps_attempt_in_memory_after_first_deploy_finished(self):
         repo = FirstDeployRepoStub({
             "enterprise_id": "eid-1",
             "deploy_type": self.service.DEPLOY_TYPE_IMAGE,
@@ -206,11 +210,42 @@ class EnterpriseFirstDeployServiceTests(TestCase):
                 trigger="manual_deploy")
 
         self.assertIsNotNone(tracker)
-        self.assertEqual(tracker["key"], "attempt-key")
-        self.assertEqual(repo.attempt_payload["report_type"], self.service.REPORT_TYPE_DEPLOY_ATTEMPT)
-        self.assertFalse(repo.attempt_payload["is_first_deploy"])
-        self.assertEqual(repo.attempt_payload["deployment_context"]["trigger"], "manual_deploy")
+        self.assertTrue(tracker["memory_only"])
+        self.assertEqual(repo.created_payloads, [])
+        self.assertEqual(repo.attempt_payload, {})
+        self.assertEqual(tracker["payload"]["report_type"], self.service.REPORT_TYPE_DEPLOY_ATTEMPT)
+        self.assertFalse(tracker["payload"]["is_first_deploy"])
+        self.assertEqual(tracker["payload"]["deployment_context"]["trigger"], "manual_deploy")
         self.assertEqual(repo.payload["status"], self.service.STATUS_SUCCESS)
+
+    def test_deploy_attempt_mark_failure_posts_without_console_repo_update(self):
+        repo = FirstDeployRepoStub({
+            "enterprise_id": "eid-1",
+            "deploy_type": self.service.DEPLOY_TYPE_IMAGE,
+            "status": self.service.STATUS_SUCCESS,
+            "reported": True,
+        })
+        with mock.patch("console.services.enterprise_first_deploy_service.enterprise_first_deploy_repo", repo), \
+                mock.patch("console.services.enterprise_first_deploy_service.TenantEnterprise.objects.filter") as mock_filter, \
+                mock.patch("console.services.enterprise_first_deploy_service.transaction.on_commit",
+                           side_effect=lambda _func: None), \
+                mock.patch("console.services.enterprise_first_deploy_service.requests.post",
+                           return_value=Obj(status_code=200)) as mock_post:
+            mock_filter.return_value.first.return_value = Obj(enterprise_alias="demo-enterprise")
+            tracker = self.service.begin_deploy_attempt_tracking(
+                enterprise_id="eid-1",
+                tenant_name="demo-team",
+                region_name="demo-region",
+                deploy_type=self.service.DEPLOY_TYPE_IMAGE,
+                trigger="manual_deploy")
+            self.service.mark_failure(tracker, reason="container startup failed")
+
+        self.assertEqual(repo.saved_payloads, [])
+        report_payload = mock_post.call_args[1]["json"]
+        self.assertEqual(report_payload["report_type"], self.service.REPORT_TYPE_DEPLOY_ATTEMPT)
+        self.assertFalse(report_payload["is_first_deploy"])
+        self.assertFalse(report_payload["is_success"])
+        self.assertEqual(report_payload["failure_reason"], "container startup failed")
 
     def test_build_payload_includes_v3_diagnostic_context(self):
         enterprise = Obj(enterprise_alias="demo-enterprise", enterprise_name="demo-enterprise")
