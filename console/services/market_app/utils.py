@@ -106,17 +106,18 @@ def apply_hostname_remap(apps: List[dict], remap: Dict[str, str]) -> None:
         return
     from console.services.market_app.new_components import NewComponents
     _remap = NewComponents._apply_hostname_remap
+    _is_host = NewComponents._is_host_env_name
     for app in apps:
         if not app:
             continue
         for env in app.get("service_env_map_list") or []:
             value = env.get("attr_value")
             if isinstance(value, str) and value:
-                env["attr_value"] = _remap(value, remap)
+                env["attr_value"] = _remap(value, remap, _is_host(env.get("attr_name")))
         for env in app.get("service_connect_info_map_list") or []:
             value = env.get("attr_value")
             if isinstance(value, str) and value:
-                env["attr_value"] = _remap(value, remap)
+                env["attr_value"] = _remap(value, remap, _is_host(env.get("attr_name")))
         for volume in app.get("service_volume_map_list") or []:
             file_content = volume.get("file_content")
             if isinstance(file_content, str) and file_content:
