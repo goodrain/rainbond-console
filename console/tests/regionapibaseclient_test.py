@@ -283,3 +283,43 @@ class RegionApiBaseHttpClientTestCase(TestCase):
         _, kwargs = proxy_client.request.call_args
         self.assertEqual(kwargs["headers"]["Authorization"], "region-token")
         self.assertEqual(kwargs["headers"]["X-Original-Authorization"], "GRJWT user-token")
+
+    def test_stream_proxy_replaces_frontend_authorization_with_region_token(self):
+        client = RegionApiBaseHttpClient()
+        request = mock.Mock()
+        request.method = "GET"
+        request.body = b""
+        request.META = {
+            "HTTP_AUTHORIZATION": "GRJWT user-token",
+        }
+
+        region = mock.Mock()
+        region.url = "http://region-api"
+        region.token = "region-token"
+
+        class MockStreamingResponse(object):
+            status = 200
+            headers = {"Content-Type": "application/json"}
+            url = "http://region-api/v2/platform/backend/plugins/rainbond-enterprise-alarm/"
+
+            def stream(self, _chunk_size, decode_content=False):
+                yield b"{}"
+
+            def release_conn(self):
+                return None
+
+        proxy_client = mock.Mock()
+        proxy_client.request.return_value = MockStreamingResponse()
+
+        with mock.patch("www.apiclient.regionapibaseclient.region_repo.get_region_by_region_name", return_value=region), \
+                mock.patch.object(client, "get_client", return_value=proxy_client):
+            response = client.stream_proxy(
+                request,
+                "/v2/platform/backend/plugins/rainbond-enterprise-alarm/",
+                "rainbond",
+            )
+            b"".join(response.streaming_content)
+
+        _, kwargs = proxy_client.request.call_args
+        self.assertEqual(kwargs["headers"]["Authorization"], "region-token")
+        self.assertEqual(kwargs["headers"]["X-Original-Authorization"], "GRJWT user-token")
