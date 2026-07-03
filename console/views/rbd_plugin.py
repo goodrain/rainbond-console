@@ -8,8 +8,14 @@ from django.http import HttpResponse
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from console.views.base import AlowAnyApiView, EnterpriseAdminView, JWTAuthApiView
+from console.views.base import (
+    AlowAnyApiView,
+    EnterpriseAdminView,
+    JWTAuthApiView,
+)
+from console.login.jwt_authentication import JSONWebTokenAuthentication
 from console.services.plugin_service import rbd_plugin_service
+from console.services.auth.authentication import InternalTokenAuthentication
 from www.utils.return_message import general_message
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import RegionApp, ServiceGroup, Tenants
@@ -28,7 +34,13 @@ GATEWAY_MONITORING_APP_TOP_ACTIONS = set([
     "top-latency",
     "top-throughput",
 ])
-UNKNOWN_ID_VALUES = set(["", "unknown", "unknown_app", "unknown_team", "unknown_component"])
+UNKNOWN_ID_VALUES = set([
+    "",
+    "unknown",
+    "unknown_app",
+    "unknown_team",
+    "unknown_component",
+])
 
 
 def _backend_plugin_path(plugin_name: str, file_path: str, query_string: str) -> str:
@@ -198,6 +210,25 @@ def _clone_response_headers(source: HttpResponse, target: HttpResponse) -> HttpR
     return target
 
 
+def _allow_sameorigin_frame(response: HttpResponse) -> HttpResponse:
+    response["X-Frame-Options"] = "SAMEORIGIN"
+    return response
+
+
+class PluginQueryTokenAuthentication(JSONWebTokenAuthentication):
+    def get_jwt_value(self, request: Request) -> Optional[str]:
+        jwt_value = super(
+            PluginQueryTokenAuthentication,
+            self,
+        ).get_jwt_value(request)
+        if jwt_value:
+            return jwt_value
+        query_params = getattr(request, "query_params", None)
+        if query_params:
+            return query_params.get("token")
+        return getattr(request, "GET", {}).get("token")
+
+
 class RainbondPluginLView(JWTAuthApiView):
     def get(self, request: Request, enterprise_id: str, region_name: str, *args: Any, **kwargs: Any) -> Response:
         plugins, _ = rbd_plugin_service.list_plugins(enterprise_id, region_name)
@@ -210,7 +241,10 @@ class RainbondPluginStaticView(AlowAnyApiView):
         resp = region_api.get_proxy(region_name, path, check_status=False)
         return HttpResponse(resp, content_type="application/javascript")
 
+
 class RainbondPluginBackendView(JWTAuthApiView):
+    authentication_classes = (InternalTokenAuthentication, PluginQueryTokenAuthentication)
+
     # 流式代理插件后端 API：支持 SSE / 长响应，转发 body 与请求头（含 Cookie/JWT），
     # 不缓冲、不走 proxy() 的固定 20s 超时。
     def get(self, request: Request, region_name: str, plugin_name: str, file_path: str, *args: Any,
@@ -219,35 +253,35 @@ class RainbondPluginBackendView(JWTAuthApiView):
         if _is_gateway_monitoring_app_top_path(plugin_name, file_path):
             response = region_api.proxy(request, path, region_name)
             if response.status_code != 200:
-                return response
+                return _allow_sameorigin_frame(response)
             try:
                 payload = json.loads(response.content.decode("utf-8"))
             except (TypeError, ValueError, UnicodeDecodeError) as exc:
                 logger.warning("enrich gateway monitoring app top failed to decode response: %s", exc)
-                return response
+                return _allow_sameorigin_frame(response)
             payload = _enrich_gateway_monitoring_app_items(payload, region_name)
             enriched = HttpResponse(
                 json.dumps(payload, ensure_ascii=False),
                 status=response.status_code,
                 content_type="application/json",
             )
-            return _clone_response_headers(response, enriched)
-        return region_api.stream_proxy(request, path, region_name)
+            return _allow_sameorigin_frame(_clone_response_headers(response, enriched))
+        return _allow_sameorigin_frame(region_api.stream_proxy(request, path, region_name))
 
     def post(self, request: Request, region_name: str, plugin_name: str, file_path: str, *args: Any,
              **kwargs: Any) -> HttpResponse:
         path = _backend_plugin_path(plugin_name, file_path, request.META.get('QUERY_STRING', ''))
-        return region_api.stream_proxy(request, path, region_name)
+        return _allow_sameorigin_frame(region_api.stream_proxy(request, path, region_name))
 
     def put(self, request: Request, region_name: str, plugin_name: str, file_path: str, *args: Any,
             **kwargs: Any) -> HttpResponse:
         path = _backend_plugin_path(plugin_name, file_path, request.META.get('QUERY_STRING', ''))
-        return region_api.stream_proxy(request, path, region_name)
+        return _allow_sameorigin_frame(region_api.stream_proxy(request, path, region_name))
 
     def delete(self, request: Request, region_name: str, plugin_name: str, file_path: str, *args: Any,
                **kwargs: Any) -> HttpResponse:
         path = _backend_plugin_path(plugin_name, file_path, request.META.get('QUERY_STRING', ''))
-        return region_api.stream_proxy(request, path, region_name)
+        return _allow_sameorigin_frame(region_api.stream_proxy(request, path, region_name))
 
 class RainbondPluginStatusView(EnterpriseAdminView):
     def post(self, request: Request, region_name: str, plugin_name: str, *args: Any, **kwargs: Any) -> Response:
@@ -283,6 +317,8 @@ class RainbondObservablePluginLView(JWTAuthApiView):
 
 
 class RainbondPluginFullProxyView(JWTAuthApiView):
+    authentication_classes = (InternalTokenAuthentication, PluginQueryTokenAuthentication)
+
     """
     完整的 HTTP 代理视图，用于代理完整的 Web 应用（如 Grafana）
 
@@ -315,7 +351,7 @@ class RainbondPluginFullProxyView(JWTAuthApiView):
 
         # 使用完整的 proxy 方法（保留所有 headers、content-type 等）
         # 该方法在 www/apiclient/regionapibaseclient.py:309-382 中实现
-        return region_api.proxy(request, path, region_name)
+        return _allow_sameorigin_frame(region_api.proxy(request, path, region_name))
 
     def get(self, request: Request, region_name: str, plugin_name: str, file_path: str, *args: Any,
             **kwargs: Any) -> HttpResponse:

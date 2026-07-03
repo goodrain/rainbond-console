@@ -217,6 +217,24 @@ class RegionApiBaseHttpClient(object):
         else:
             return res, body
 
+    def _apply_region_token_headers(self, headers, region):
+        if not settings.MODULES["RegionToken"]:
+            return headers
+
+        original_authorization = None
+        has_original_authorization = False
+        for key in list(headers.keys()):
+            if key.lower() == "authorization":
+                original_authorization = headers.pop(key)
+            elif key.lower() == "x-original-authorization":
+                has_original_authorization = True
+
+        if original_authorization and not has_original_authorization:
+            headers["X-Original-Authorization"] = original_authorization
+
+        headers["Authorization"] = getattr(region, "token", "") or os.environ.get("REGION_TOKEN", "")
+        return headers
+
     def _unpack(self, dict_body: Dict) -> Any:
         if 'data' not in dict_body:
             return dict_body
@@ -441,19 +459,7 @@ class RegionApiBaseHttpClient(object):
         if not region:
             raise ServiceHandleException("region {0} not found".format(region_name), error_code=10412)
 
-        if settings.MODULES["RegionToken"]:
-            original_authorization = None
-            for key in list(headers.keys()):
-                if key.lower() == "authorization":
-                    original_authorization = headers.pop(key)
-                    break
-
-            if original_authorization and "X-Original-Authorization" not in headers:
-                headers["X-Original-Authorization"] = original_authorization
-
-            headers["Authorization"] = getattr(region, "token", "") or os.environ.get("REGION_TOKEN", "")
-
-        requests_args['headers'] = headers
+        requests_args['headers'] = self._apply_region_token_headers(headers, region)
 
         client = self.get_client(region_config=region)
         response = client.request(
@@ -544,6 +550,7 @@ class RegionApiBaseHttpClient(object):
         region = region_repo.get_region_by_region_name(region_name)
         if not region:
             raise ServiceHandleException("region {0} not found".format(region_name), error_code=10412)
+        headers = self._apply_region_token_headers(headers, region)
         client = self.get_client(region_config=region)
         response = client.request(
             method=request.method,

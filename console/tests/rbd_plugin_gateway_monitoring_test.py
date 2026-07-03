@@ -1,12 +1,55 @@
 # -*- coding: utf-8 -*-
-from unittest import mock
+import collections
+import os
+import sys
+from types import ModuleType, SimpleNamespace
+from unittest import TestCase, mock
 
-from django.test import SimpleTestCase
+from django.http import HttpResponse
 
-from console.views.rbd_plugin import (
-    _enrich_gateway_monitoring_app_items,
-    _is_gateway_monitoring_app_top_path,
+for attr in ("Mapping", "MutableMapping", "Sequence", "Iterable", "Iterator"):
+    if not hasattr(collections, attr):
+        setattr(collections, attr, getattr(collections.abc, attr))
+
+openapi_client_module = ModuleType("openapi_client")
+openapi_client_module.ApiClient = lambda configuration=None: SimpleNamespace(
+    configuration=configuration)
+openapi_client_module.MarketOpenapiApi = lambda client=None: SimpleNamespace(
+    client=client)
+
+openapi_client_configuration = ModuleType("openapi_client.configuration")
+
+
+class _OpenAPIConfiguration(object):
+    def __init__(self):
+        self.client_side_validation = False
+        self.host = ""
+        self.api_key = {}
+
+
+openapi_client_configuration.Configuration = _OpenAPIConfiguration
+
+openapi_client_rest = ModuleType("openapi_client.rest")
+
+
+class _ApiException(Exception):
+    def __init__(self, status=400, body=""):
+        super().__init__(body)
+        self.status = status
+        self.body = body
+
+
+openapi_client_rest.ApiException = _ApiException
+
+sys.modules.setdefault("openapi_client", openapi_client_module)
+sys.modules.setdefault(
+    "openapi_client.configuration",
+    openapi_client_configuration,
 )
+sys.modules.setdefault("openapi_client.rest", openapi_client_rest)
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
+
+from console.views import rbd_plugin  # noqa: E402
 
 
 class FakeValuesQuerySet(list):
@@ -14,24 +57,55 @@ class FakeValuesQuerySet(list):
         return self
 
 
-class GatewayMonitoringPluginProxyTests(SimpleTestCase):
+class GatewayMonitoringPluginProxyTests(TestCase):
     def test_gateway_monitoring_app_top_path_detection(self):
-        self.assertTrue(_is_gateway_monitoring_app_top_path(
+        self.assertTrue(rbd_plugin._is_gateway_monitoring_app_top_path(
             "rainbond-gateway-monitoring",
             "api/v1/platform/apps/top-latency",
         ))
-        self.assertTrue(_is_gateway_monitoring_app_top_path(
+        self.assertTrue(rbd_plugin._is_gateway_monitoring_app_top_path(
             "rainbond-gateway-monitoring",
             "api/v1/teams/rbd-prd/apps/top-throughput",
         ))
-        self.assertFalse(_is_gateway_monitoring_app_top_path(
+        self.assertFalse(rbd_plugin._is_gateway_monitoring_app_top_path(
             "rainbond-gateway-monitoring",
             "api/v1/apps/3/components/summary",
         ))
-        self.assertFalse(_is_gateway_monitoring_app_top_path(
+        self.assertFalse(rbd_plugin._is_gateway_monitoring_app_top_path(
             "other-plugin",
             "api/v1/platform/apps/top-latency",
         ))
+
+    def test_plugin_query_token_authentication_accepts_iframe_token(self):
+        request = mock.Mock()
+        request.META = {}
+        request.COOKIES = {}
+        request.GET = {"token": "iframe-token"}
+        request.query_params = {}
+        request.path = (
+            "/console/regions/rainbond/backend/plugins/"
+            "rainbond-enterprise-alarm/"
+        )
+
+        auth = rbd_plugin.PluginQueryTokenAuthentication()
+
+        self.assertEqual(auth.get_jwt_value(request), "iframe-token")
+
+    @mock.patch("console.views.rbd_plugin.region_api.stream_proxy")
+    def test_backend_proxy_allows_same_origin_iframe(self, stream_proxy):
+        request = mock.Mock()
+        request.META = {}
+        response = HttpResponse("ok")
+        stream_proxy.return_value = response
+
+        result = rbd_plugin.RainbondPluginBackendView().get(
+            request,
+            region_name="rainbond",
+            plugin_name="rainbond-enterprise-alarm",
+            file_path="",
+        )
+
+        self.assertEqual(result["X-Frame-Options"], "SAMEORIGIN")
 
     @mock.patch("console.views.rbd_plugin.Tenants.objects.filter")
     @mock.patch("console.views.rbd_plugin.ServiceGroup.objects.filter")
@@ -78,7 +152,7 @@ class GatewayMonitoringPluginProxyTests(SimpleTestCase):
             ],
         }
 
-        _enrich_gateway_monitoring_app_items(payload, "rainbond")
+        rbd_plugin._enrich_gateway_monitoring_app_items(payload, "rainbond")
 
         self.assertEqual(payload["data"][0]["app_id"], "3")
         self.assertEqual(payload["data"][0]["name"], "订单系统")
