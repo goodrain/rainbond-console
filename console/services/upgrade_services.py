@@ -845,10 +845,12 @@ class UpgradeService(object):
                 continue
             exist_component = services.first()
             pc = PropertiesChanges(exist_component, team, all_component_one_model=services)
+            upgrade_group_id = update_version.get("upgrade_group_id") or exist_component.tenant_service_group_id
             recode_kwargs = {
                 "tenant_id": team.tenant_id,
                 "group_id": int(app_id),
                 "group_key": app_model_id,
+                "upgrade_group_id": upgrade_group_id,
                 "is_from_cloud": bool(market_name),
                 "market_name": market_name,
             }
