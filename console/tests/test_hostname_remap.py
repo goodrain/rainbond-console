@@ -40,8 +40,16 @@ from console.services.market_app.new_components import NewComponents  # noqa: E4
 
 class ApplyHostnameRemapTests:
 
-    def test_exact_match(self):
-        assert NewComponents._apply_hostname_remap("db-postgres", {"db-postgres": "db-postgres-a1b2"}) == "db-postgres-a1b2"
+    def test_exact_match_host_env(self):
+        # A bare hostname value is remapped only when the env is host-valued.
+        assert NewComponents._apply_hostname_remap(
+            "db-postgres", {"db-postgres": "db-postgres-a1b2"}, is_host_env=True) == "db-postgres-a1b2"
+
+    def test_exact_match_non_host_env_left_alone(self):
+        # A non-host value that merely equals a service name must not be rewritten
+        # (e.g. Harbor POSTGRESQL_DATABASE=registry vs the registry component).
+        assert NewComponents._apply_hostname_remap(
+            "db-postgres", {"db-postgres": "db-postgres-a1b2"}) == "db-postgres"
 
     def test_embedded_in_url(self):
         remap = {"redis": "redis-c3d4"}
