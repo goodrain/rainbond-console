@@ -1797,6 +1797,24 @@
       "status": "active"
     },
     {
+      "id": "console.app-upgrade.openapi-upgrade-group-id",
+      "title": "OpenAPI upgrade passes upgrade_group_id to record creation",
+      "title_zh": "OpenAPI 升级向记录创建传递 upgrade_group_id",
+      "interface_type": "service_method",
+      "interface": "console.services.upgrade_services.UpgradeService.openapi_upgrade_app_models",
+      "code_paths": [
+        "console/services/upgrade_services.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/upgrade_services_test.py",
+          "selector": "OpenapiUpgradeGroupIdTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.app-upgrade.records",
       "title": "App Upgrade Records",
       "title_zh": "App Upgrade Records",
