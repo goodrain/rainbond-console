@@ -422,8 +422,13 @@ class EnterpriseFirstDeployService(object):
             self._complete_tracking(record, payload, self.STATUS_SUCCESS, key=key)
             return
 
-        self._save_tracking_payload(record, payload, key=key)
-        transaction.on_commit(lambda: self._start_sync_thread(key or record.key, tracker["tenant_name"], tracker["region_name"]))
+        sync_key = key
+        if not sync_key and record:
+            sync_key = record.key
+        if not sync_key:
+            return
+        self._save_tracking_payload(record, payload, key=sync_key)
+        transaction.on_commit(lambda: self._start_sync_thread(sync_key, tracker["tenant_name"], tracker["region_name"]))
 
     def mark_success(self, tracker: Optional[dict]) -> None:
         if not tracker:
@@ -858,7 +863,7 @@ class EnterpriseFirstDeployService(object):
         payload["failure_events"] = payload["{}_failure_events".format(stage)]
         payload["failure_logs"] = payload["{}_failure_logs".format(stage)]
 
-    def _inspect_runtime_status(self, _record: ConsoleSysConfig, payload: dict, tenant_name: str,
+    def _inspect_runtime_status(self, _record: Optional[ConsoleSysConfig], payload: dict, tenant_name: str,
                                 region_name: str) -> Optional[str]:
         runtime_watch_started_at = payload.get("runtime_watch_started_at")
         if not runtime_watch_started_at:
