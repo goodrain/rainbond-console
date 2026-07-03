@@ -37,6 +37,8 @@ class EnterpriseFirstDeployService(object):
     DEPLOY_TYPE_SOURCE_CODE = "source_code"
     DEPLOY_TYPE_APP_MARKET = "app_market"
     DEPLOY_TYPE_IMAGE = "image"
+    REPORT_TYPE_FIRST_DEPLOY = "first_deploy"
+    REPORT_TYPE_DEPLOY_ATTEMPT = "deploy_attempt"
     FAILURE_STAGE_SOURCE_CHECK = "source_check"
     FAILURE_STAGE_BUILD = "build"
     FAILURE_STAGE_RUNTIME = "runtime"
@@ -192,11 +194,61 @@ class EnterpriseFirstDeployService(object):
         transaction.on_commit(lambda: self._start_environment_collect_thread(record.key, enterprise_id, region_name))
         return tracker
 
+    def begin_deploy_attempt_tracking(self,
+                                      enterprise_id: str,
+                                      tenant_name: str,
+                                      region_name: str,
+                                      deploy_type: str,
+                                      operator: str = "",
+                                      source_language: str = "",
+                                      service_id: str = "",
+                                      service_alias: str = "",
+                                      service: Any = None,
+                                      trigger: str = "",
+                                      app_context: Optional[dict] = None,
+                                      workload_context: Optional[dict] = None) -> Optional[dict]:
+        payload = self._build_payload(
+            enterprise_id=enterprise_id,
+            tenant_name=tenant_name,
+            region_name=region_name,
+            deploy_type=deploy_type,
+            operator=operator,
+            source_language=source_language,
+            service_id=service_id,
+            service_alias=service_alias,
+            service=service,
+            trigger=trigger,
+            app_context=app_context,
+            workload_context=workload_context,
+            report_type=self.REPORT_TYPE_DEPLOY_ATTEMPT,
+            is_first_deploy=False,
+        )
+        record, _ = enterprise_first_deploy_repo.create_attempt(enterprise_id, payload)
+        if not record:
+            return None
+        tracker = {
+            "enterprise_id": enterprise_id,
+            "key": record.key,
+            "tenant_name": tenant_name,
+            "region_name": region_name,
+            "service_id": payload.get("deployment_context", {}).get("service_id") or "",
+            "service_alias": payload.get("deployment_context", {}).get("service_alias") or "",
+        }
+        transaction.on_commit(lambda: self._start_environment_collect_thread(record.key, enterprise_id, region_name))
+        return tracker
+
     def safe_begin_tracking(self, *args: Any, **kwargs: Any) -> Optional[dict]:
         try:
             return self.begin_tracking(*args, **kwargs)
         except Exception as exc:
             logger.debug("begin deploy diagnostic tracking failed: %s", exc)
+            return None
+
+    def safe_begin_deploy_attempt_tracking(self, *args: Any, **kwargs: Any) -> Optional[dict]:
+        try:
+            return self.begin_deploy_attempt_tracking(*args, **kwargs)
+        except Exception as exc:
+            logger.debug("begin deploy attempt diagnostic tracking failed: %s", exc)
             return None
 
     def safe_bind_events(self, tracker: Optional[dict], *args: Any, **kwargs: Any) -> None:
@@ -262,7 +314,8 @@ class EnterpriseFirstDeployService(object):
             payload["deployment_context"]["deploy_attempt_id"] = str(source_check_id)
         failed_event = self._build_source_check_event(payload, reason, source_context or {})
         payload["event_ids"] = [failed_event["event_id"]] if failed_event.get("event_id") else []
-        payload["service_ids"] = [failed_event["service_id"]] if failed_event.get("service_id") else payload.get("service_ids", [])
+        payload["service_ids"] = (
+            [failed_event["service_id"]] if failed_event.get("service_id") else payload.get("service_ids", []))
         self._set_stage_failure(
             payload,
             self.FAILURE_STAGE_SOURCE_CHECK,
@@ -304,8 +357,9 @@ class EnterpriseFirstDeployService(object):
                     service_aliases: Any = None) -> None:
         if not tracker:
             return
-        record = enterprise_first_deploy_repo.get_by_key(tracker.get("key")) or enterprise_first_deploy_repo.get_by_enterprise_id(
-            tracker["enterprise_id"])
+        record = (
+            enterprise_first_deploy_repo.get_by_key(tracker.get("key"))
+            or enterprise_first_deploy_repo.get_by_enterprise_id(tracker["enterprise_id"]))
         if not record:
             return
         payload = enterprise_first_deploy_repo.load_payload(record)
@@ -340,8 +394,9 @@ class EnterpriseFirstDeployService(object):
     def mark_success(self, tracker: Optional[dict]) -> None:
         if not tracker:
             return
-        record = enterprise_first_deploy_repo.get_by_key(tracker.get("key")) or enterprise_first_deploy_repo.get_by_enterprise_id(
-            tracker["enterprise_id"])
+        record = (
+            enterprise_first_deploy_repo.get_by_key(tracker.get("key"))
+            or enterprise_first_deploy_repo.get_by_enterprise_id(tracker["enterprise_id"]))
         if not record:
             return
         payload = enterprise_first_deploy_repo.load_payload(record)
@@ -355,8 +410,9 @@ class EnterpriseFirstDeployService(object):
     def mark_failure(self, tracker: Optional[dict], reason: str = "", failure_stage: str = "") -> None:
         if not tracker:
             return
-        record = enterprise_first_deploy_repo.get_by_key(tracker.get("key")) or enterprise_first_deploy_repo.get_by_enterprise_id(
-            tracker["enterprise_id"])
+        record = (
+            enterprise_first_deploy_repo.get_by_key(tracker.get("key"))
+            or enterprise_first_deploy_repo.get_by_enterprise_id(tracker["enterprise_id"]))
         if not record:
             return
         payload = enterprise_first_deploy_repo.load_payload(record)
@@ -392,7 +448,9 @@ class EnterpriseFirstDeployService(object):
                        trigger: str = "",
                        app_context: Optional[dict] = None,
                        environment_context: Optional[dict] = None,
-                       workload_context: Optional[dict] = None) -> dict:
+                       workload_context: Optional[dict] = None,
+                       report_type: str = REPORT_TYPE_FIRST_DEPLOY,
+                       is_first_deploy: bool = True) -> dict:
         enterprise = TenantEnterprise.objects.filter(enterprise_id=enterprise_id).first()
         service_id = service_id or getattr(service, "service_id", "") or ""
         service_alias = service_alias or getattr(service, "service_alias", "") or ""
@@ -406,6 +464,8 @@ class EnterpriseFirstDeployService(object):
             "deploy_type": deploy_type,
             "source_language": source_language if deploy_type == self.DEPLOY_TYPE_SOURCE_CODE else "",
             "payload_version": self.PAYLOAD_VERSION,
+            "report_type": report_type,
+            "is_first_deploy": is_first_deploy,
             "deployment_context": {
                 "deploy_attempt_id": uuid.uuid4().hex,
                 "trigger": trigger or "deploy",
@@ -1095,6 +1155,8 @@ class EnterpriseFirstDeployService(object):
             "deploy_type": payload.get("deploy_type"),
             "source_language": payload.get("source_language", ""),
             "is_success": payload.get("status") == self.STATUS_SUCCESS,
+            "report_type": payload.get("report_type", self.REPORT_TYPE_FIRST_DEPLOY),
+            "is_first_deploy": payload.get("is_first_deploy", True),
         }
         if payload.get("payload_version", 1) >= 3:
             report_payload.update({
