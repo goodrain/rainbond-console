@@ -8,8 +8,10 @@ from rest_framework.request import Request
 
 from console.exception.main import ServiceHandleException
 from console.repositories.upgrade_repo import upgrade_repo
+from console.repositories.app import service_repo
 from console.services.app_actions import app_manage_service
 from console.cloud.services import check_account_quota
+from console.services.enterprise_first_deploy_service import enterprise_first_deploy_service
 from console.services.group_service import group_service
 from console.services.market_app_service import market_app_service
 from console.services.telemetry import telemetry_service
@@ -167,7 +169,28 @@ class AppUpgradeDeployView(AppUpgradeRecordView):
     def post(self, request: Request, app_id: str, record_id: str, *args: Any, **kwargs: Any) -> MessageResponse:
         if not check_account_quota(self.tenant.creater, self.region_name, app_manage_service.ResourceOperationDeploy):
             raise ServiceHandleException(error_code=20002, msg="not enough quota")
-        upgrade_service.deploy(self.tenant, self.region_name, self.user, self.app_upgrade_record)
+        tracker = enterprise_first_deploy_service.safe_begin_deploy_attempt_tracking(
+            enterprise_id=self.tenant.enterprise_id,  # type: ignore[arg-type]
+            tenant_name=self.tenant.tenant_name,
+            region_name=self.region_name,
+            deploy_type=enterprise_first_deploy_service.DEPLOY_TYPE_APP_MARKET,
+            operator=self.user.nick_name,
+            trigger="market_upgrade_deploy",
+            app_context=enterprise_first_deploy_service.build_service_app_context(self.app))
+        try:
+            events = upgrade_service.deploy(self.tenant, self.region_name, self.user, self.app_upgrade_record)
+        except Exception as e:
+            enterprise_first_deploy_service.safe_mark_failure(tracker, reason=getattr(e, "msg", str(e)))
+            raise e
+        event_ids = [event.get("event_id") for event in (events or []) if event.get("event_id")]
+        service_ids = [event.get("service_id") for event in (events or []) if event.get("service_id")]
+        services = service_repo.get_services_by_service_ids(service_ids) if service_ids else []
+        service_aliases = [service.service_alias for service in services if getattr(service, "service_alias", "")]
+        enterprise_first_deploy_service.safe_bind_events(
+            tracker,
+            event_ids,
+            service_ids=service_ids,
+            service_aliases=service_aliases)
         return MessageResponse(msg="success", msg_show="部署成功")
 
 

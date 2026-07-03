@@ -101,7 +101,8 @@ class StartAppView(AppBaseCloudEnterpriseCenterView):
         try:
             code, msg = app_manage_service.start(self.tenant, self.service, self.user, oauth_instance=self.oauth_instance)
             if is_kubeblocks(self.service.extend_method):
-                code, msg = kubeblocks_service.manage_cluster_status(self.service, self.region_name, oauth_instance=self.oauth_instance, operation="start")
+                code, msg = kubeblocks_service.manage_cluster_status(
+                    self.service, self.region_name, oauth_instance=self.oauth_instance, operation="start")
             bean: dict = {}
             if code != 200:
                 return Response(general_message(code, "start app error", msg, bean=bean), status=code)
@@ -253,7 +254,8 @@ class ReStartAppView(AppBaseCloudEnterpriseCenterView):
         """
         code, msg = app_manage_service.restart(self.tenant, self.service, self.user, oauth_instance=self.oauth_instance)
         if is_kubeblocks(self.service.extend_method):
-            kubeblocks_service.manage_cluster_status(self.service, self.region_name, oauth_instance=self.oauth_instance, operation="restart")
+            kubeblocks_service.manage_cluster_status(
+                self.service, self.region_name, oauth_instance=self.oauth_instance, operation="restart")
         bean: dict = {}
         if code != 200:
             return Response(general_message(code, "restart app error", msg, bean=bean), status=code)
@@ -298,7 +300,7 @@ class DeployAppView(AppBaseCloudEnterpriseCenterView):
         tracker = None
         try:
             group_version = request.data.get("group_version", None)
-            tracker = enterprise_first_deploy_service.safe_begin_tracking(
+            tracker = enterprise_first_deploy_service.safe_begin_deploy_attempt_tracking(
                 enterprise_id=self.tenant.enterprise_id,  # type: ignore[arg-type]
                 tenant_name=self.tenant.tenant_name,
                 region_name=self.service.service_region,
@@ -693,8 +695,8 @@ class BatchActionView(RegionTenantHeaderCloudEnterpriseCenterView):
         # NOTE: service_ids comes from request body (Any|None); legacy code assumes str (backlog).
         service_id_list = service_ids.split(",")  # type: ignore[union-attr]
         app = group_service.get_service_group_info(service_id_list[0])
-        code, msg, services = app_manage_service.batch_action(self.region_name, self.tenant, self.user, action, service_id_list,
-                                                    move_group_id, self.oauth_instance)
+        code, msg, services = app_manage_service.batch_action(
+            self.region_name, self.tenant, self.user, action, service_id_list, move_group_id, self.oauth_instance)
 
         # NOTE: get_service_group_info may return None; legacy code assumes present (backlog).
         app_name = operation_log_service.process_app_name(
@@ -1136,6 +1138,8 @@ class PackageToolView(AppBaseCloudEnterpriseCenterView):
             if code != 200:
                 return Response(status=code, data=general_message(code, "failed", "操作失败"))
         return Response(status=200, data=general_message(200, "succeed", "操作成功"))
+
+
 class TarImageView(AppBaseCloudEnterpriseCenterView):
     @never_cache
     def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:

@@ -13,9 +13,49 @@ for attr in ("Mapping", "MutableMapping", "Sequence", "Iterable", "Iterator"):
         setattr(collections, attr, getattr(collections.abc, attr))
 if not hasattr(typing, "NotRequired"):
     typing.NotRequired = typing.Optional
+if not hasattr(typing, "TypedDict"):
+    try:
+        from typing_extensions import TypedDict
+        typing.TypedDict = TypedDict
+    except ImportError:
+        class _TypedDict(dict):
+            pass
+
+        typing.TypedDict = _TypedDict
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "src", "openapi-client")))
 sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
+
+
+class RegionInvokeApiStub(object):
+    def get_tenant_events(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def get_events_log(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def get_event_log(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def get_region_resources(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def get_cluster_nodes_arch(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def get_target_events_list(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def get_service_pods(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def pod_detail(self, *args, **kwargs):
+        raise NotImplementedError
+
+
+regionapi_stub = ModuleType("www.apiclient.regionapi")
+regionapi_stub.RegionInvokeApi = RegionInvokeApiStub
+sys.modules.setdefault("www.apiclient.regionapi", regionapi_stub)
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
 os.environ.setdefault("DISABLE_FIRST_DEPLOY_SWEEPER", "1")
@@ -24,10 +64,20 @@ import django  # noqa: E402
 
 django.setup()
 
+from django.db import models  # noqa: E402
 from django.db.models.query import QuerySet  # noqa: E402
 
 if not hasattr(QuerySet, "__class_getitem__"):
     QuerySet.__class_getitem__ = classmethod(lambda cls, item: cls)
+
+    class _SubscriptableQuerySetMeta(type(QuerySet)):
+        def __getitem__(cls, item):
+            return cls
+
+    class SubscriptableQuerySet(QuerySet, metaclass=_SubscriptableQuerySetMeta):
+        pass
+
+    models.QuerySet = SubscriptableQuerySet
 
 from console.services.enterprise_first_deploy_service import EnterpriseFirstDeployService  # noqa: E402
 
@@ -79,6 +129,10 @@ class FirstDeployRepoStub(object):
         self.created_payloads.append(deepcopy(payload))
         return self.attempt_record, True
 
+    @staticmethod
+    def build_attempt_key(_enterprise_id, deploy_attempt_id):
+        return "attempt-key-{}".format(deploy_attempt_id)
+
     def create_if_absent(self, _enterprise_id, payload):
         self.payload = deepcopy(payload)
         self.created_payloads.append(deepcopy(payload))
@@ -109,6 +163,89 @@ class EnterpriseFirstDeployServiceTests(TestCase):
                 service_id="service-1")
 
         self.assertEqual(payload["service_ids"], ["service-1"])
+
+    def test_build_payload_marks_first_deploy_report_type(self):
+        enterprise = Obj(enterprise_alias="demo-enterprise", enterprise_name="demo-enterprise")
+        with mock.patch("console.services.enterprise_first_deploy_service.TenantEnterprise.objects.filter") as mock_filter:
+            mock_filter.return_value.first.return_value = enterprise
+            payload = self.service._build_payload(
+                enterprise_id="eid-1",
+                tenant_name="demo-team",
+                region_name="demo-region",
+                deploy_type=self.service.DEPLOY_TYPE_IMAGE)
+
+        self.assertEqual(payload["report_type"], self.service.REPORT_TYPE_FIRST_DEPLOY)
+        self.assertTrue(payload["is_first_deploy"])
+
+    def test_begin_deploy_attempt_tracking_keeps_attempt_in_memory_after_first_deploy_finished(self):
+        repo = FirstDeployRepoStub({
+            "enterprise_id": "eid-1",
+            "deploy_type": self.service.DEPLOY_TYPE_IMAGE,
+            "status": self.service.STATUS_SUCCESS,
+            "reported": True,
+        })
+        service = Obj(
+            service_id="service-1",
+            service_alias="grdemo",
+            service_cname="demo",
+            service_source="source_code",
+            language="Java",
+        )
+
+        with mock.patch("console.services.enterprise_first_deploy_service.enterprise_first_deploy_repo", repo), \
+                mock.patch("console.services.enterprise_first_deploy_service.TenantEnterprise.objects.filter") as mock_filter, \
+                mock.patch("console.services.enterprise_first_deploy_service.transaction.on_commit",
+                           side_effect=lambda _func: None):
+            mock_filter.return_value.first.return_value = Obj(enterprise_alias="demo-enterprise")
+            tracker = self.service.begin_deploy_attempt_tracking(
+                enterprise_id="eid-1",
+                tenant_name="demo-team",
+                region_name="demo-region",
+                deploy_type=self.service.DEPLOY_TYPE_SOURCE_CODE,
+                operator="admin",
+                source_language="Java",
+                service_id="service-1",
+                service_alias="grdemo",
+                service=service,
+                trigger="manual_deploy")
+
+        self.assertIsNotNone(tracker)
+        self.assertTrue(tracker["memory_only"])
+        self.assertEqual(repo.created_payloads, [])
+        self.assertEqual(repo.attempt_payload, {})
+        self.assertEqual(tracker["payload"]["report_type"], self.service.REPORT_TYPE_DEPLOY_ATTEMPT)
+        self.assertFalse(tracker["payload"]["is_first_deploy"])
+        self.assertEqual(tracker["payload"]["deployment_context"]["trigger"], "manual_deploy")
+        self.assertEqual(repo.payload["status"], self.service.STATUS_SUCCESS)
+
+    def test_deploy_attempt_mark_failure_posts_without_console_repo_update(self):
+        repo = FirstDeployRepoStub({
+            "enterprise_id": "eid-1",
+            "deploy_type": self.service.DEPLOY_TYPE_IMAGE,
+            "status": self.service.STATUS_SUCCESS,
+            "reported": True,
+        })
+        with mock.patch("console.services.enterprise_first_deploy_service.enterprise_first_deploy_repo", repo), \
+                mock.patch("console.services.enterprise_first_deploy_service.TenantEnterprise.objects.filter") as mock_filter, \
+                mock.patch("console.services.enterprise_first_deploy_service.transaction.on_commit",
+                           side_effect=lambda _func: None), \
+                mock.patch("console.services.enterprise_first_deploy_service.requests.post",
+                           return_value=Obj(status_code=200)) as mock_post:
+            mock_filter.return_value.first.return_value = Obj(enterprise_alias="demo-enterprise")
+            tracker = self.service.begin_deploy_attempt_tracking(
+                enterprise_id="eid-1",
+                tenant_name="demo-team",
+                region_name="demo-region",
+                deploy_type=self.service.DEPLOY_TYPE_IMAGE,
+                trigger="manual_deploy")
+            self.service.mark_failure(tracker, reason="container startup failed")
+
+        self.assertEqual(repo.saved_payloads, [])
+        report_payload = mock_post.call_args[1]["json"]
+        self.assertEqual(report_payload["report_type"], self.service.REPORT_TYPE_DEPLOY_ATTEMPT)
+        self.assertFalse(report_payload["is_first_deploy"])
+        self.assertFalse(report_payload["is_success"])
+        self.assertEqual(report_payload["failure_reason"], "container startup failed")
 
     def test_build_payload_includes_v3_diagnostic_context(self):
         enterprise = Obj(enterprise_alias="demo-enterprise", enterprise_name="demo-enterprise")
@@ -446,6 +583,33 @@ class EnterpriseFirstDeployServiceTests(TestCase):
         self.assertEqual(report_payload["environment_context"]["collect_status"], "failed")
         self.assertEqual(report_payload["workload_context"]["min_memory"], 512)
         self.assertFalse(repo.payload.get("reported"))
+
+    def test_report_payload_includes_deploy_attempt_routing_fields(self):
+        payload = {
+            "enterprise_id": "eid-1",
+            "enterprise_name": "demo-enterprise",
+            "deploy_type": self.service.DEPLOY_TYPE_IMAGE,
+            "source_language": "",
+            "payload_version": 3,
+            "report_type": self.service.REPORT_TYPE_DEPLOY_ATTEMPT,
+            "is_first_deploy": False,
+            "status": self.service.STATUS_SUCCESS,
+            "reported": False,
+            "deployment_context": {
+                "deploy_attempt_id": "attempt-1",
+                "trigger": "manual_deploy",
+            },
+            "app_context": {},
+            "environment_context": {},
+            "workload_context": {},
+        }
+
+        report_payload = self.service._build_report_payload(payload)
+
+        self.assertEqual(report_payload["report_type"], self.service.REPORT_TYPE_DEPLOY_ATTEMPT)
+        self.assertFalse(report_payload["is_first_deploy"])
+        self.assertTrue(report_payload["is_success"])
+        self.assertNotIn("failure_logs", report_payload)
 
     def test_sync_record_retries_build_failure_logs_before_reporting(self):
         payload = {
@@ -1280,6 +1444,59 @@ class EnterpriseFirstDeployServiceTests(TestCase):
         self.assertEqual(report_payload["failure_events"][0]["event_id"], "runtime-event-1")
         self.assertEqual(report_payload["failure_logs"][0]["event_id"], "runtime-event-1")
         self.assertEqual(report_payload["failure_logs"][0]["lines"][0]["message"], "runtime stack trace line")
+
+    def test_deploy_attempt_runtime_failure_report_keeps_logs(self):
+        payload = {
+            "enterprise_id": "eid-1",
+            "enterprise_name": "demo-enterprise",
+            "deploy_type": self.service.DEPLOY_TYPE_IMAGE,
+            "source_language": "",
+            "payload_version": 3,
+            "report_type": self.service.REPORT_TYPE_DEPLOY_ATTEMPT,
+            "is_first_deploy": False,
+            "status": self.service.STATUS_PENDING,
+            "build_status": self.service.STATUS_SUCCESS,
+            "build_event_id": "deploy-event-1",
+            "runtime_status": self.service.STAGE_STATUS_PENDING,
+            "reported": False,
+            "tenant_name": "demo-team",
+            "region_name": "demo-region",
+            "event_ids": ["deploy-event-1"],
+            "service_ids": ["service-1"],
+            "runtime_watch_started_at": "2026-05-06 10:03:00",
+        }
+        repo = FirstDeployRepoStub(payload)
+
+        with mock.patch("console.services.enterprise_first_deploy_service.enterprise_first_deploy_repo", repo), \
+                mock.patch("console.services.enterprise_first_deploy_service.region_api.get_tenant_events",
+                           return_value={"list": [{
+                               "event_id": "deploy-event-1",
+                               "service_id": "service-1",
+                               "opt_type": "start-service",
+                               "status": "success",
+                           }]}), \
+                mock.patch("console.services.enterprise_first_deploy_service.region_api.get_target_events_list",
+                           return_value=(Obj(status=200), {"list": [{
+                               "event_id": "runtime-event-1",
+                               "service_id": "service-1",
+                               "target": "pod",
+                               "opt_type": "ContainerExitError",
+                               "status": "failure",
+                               "message": "container failed",
+                               "create_time": "2026-05-06T10:03:05+08:00",
+                           }]})), \
+                mock.patch("console.services.enterprise_first_deploy_service.region_api.get_events_log",
+                           return_value=(Obj(status=200), {"list": [{
+                               "message": "runtime log line",
+                           }]})), \
+                mock.patch("console.services.enterprise_first_deploy_service.requests.post",
+                           return_value=Obj(status_code=200)) as mock_post:
+            self.service._sync_record(repo.record, payload, "demo-team", "demo-region")
+
+        report_payload = mock_post.call_args[1]["json"]
+        self.assertEqual(report_payload["report_type"], self.service.REPORT_TYPE_DEPLOY_ATTEMPT)
+        self.assertFalse(report_payload["is_first_deploy"])
+        self.assertEqual(report_payload["failure_logs"][0]["lines"][0]["message"], "runtime log line")
 
     def test_sync_record_reports_runtime_failure_from_pod_events(self):
         payload = {
