@@ -2,12 +2,19 @@
 import collections
 import os
 import sys
+import typing
 from types import ModuleType
 from unittest import mock
 
 for attr in ("Mapping", "MutableMapping", "Sequence", "Iterable", "Iterator"):
     if not hasattr(collections, attr):
         setattr(collections, attr, getattr(collections.abc, attr))
+if not hasattr(typing, "NotRequired"):
+    try:
+        from typing_extensions import NotRequired
+        typing.NotRequired = NotRequired
+    except ImportError:
+        typing.NotRequired = lambda item: item
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "src", "openapi-client")))
 sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
@@ -39,9 +46,13 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
 
 import django  # noqa: E402
 from django.core.files.uploadedfile import SimpleUploadedFile  # noqa: E402
+from django.db.models.query import QuerySet  # noqa: E402
 from django.test import RequestFactory, SimpleTestCase  # noqa: E402
 
 django.setup()
+
+if not hasattr(QuerySet, "__class_getitem__"):
+    QuerySet.__class_getitem__ = classmethod(lambda cls, item: cls)
 
 from console.services.app_actions.app_log import AppWebSocketService  # noqa: E402
 from console.services.app_import_and_export_service import import_service  # noqa: E402
@@ -258,6 +269,49 @@ class RealtimeProxyUrlTests(SimpleTestCase):
         self.assertIn(b'name="path"', forwarded_body)
         self.assertIn(b"/data", forwarded_body)
         self.assertIn(b'filename="demo/file.txt"', forwarded_body)
+        self.assertEqual(response.status_code, 200)
+
+    # capability_id: console.realtime-proxy.package-build-raw-multipart-forward
+    def test_package_build_upload_forwards_raw_multipart_body(self):
+        boundary = "----RainbondBoundary"
+        body = (
+            b"------RainbondBoundary\r\n"
+            b'Content-Disposition: form-data; name="packageTarFile"; filename="demo.iso"\r\n'
+            b"Content-Type: application/octet-stream\r\n\r\n"
+            b"iso content\r\n"
+            b"------RainbondBoundary--\r\n"
+        )
+        request = self.factory.post(
+            "/console/regions/rainbond/websocket/package_build/component/events/evt-1",
+            data=body,
+            content_type="multipart/form-data; boundary={0}".format(boundary),
+            HTTP_AUTHORIZATION="JWT token",
+        )
+        backend_response = mock.Mock()
+        backend_response.status_code = 200
+        backend_response.headers = {"Content-Type": "application/json"}
+        backend_response.iter_content.return_value = iter([b'{"ok":true}'])
+
+        with mock.patch(
+            "console.utils.realtime_proxy.region_repo.get_region_by_region_name",
+            return_value=mock.Mock(wsurl="ws://region.example.com:6060"),
+        ), mock.patch("console.utils.realtime_proxy.requests.request", return_value=backend_response) as request_mock:
+            response = proxy_http_request(request, "rainbond", "package_build/component/events/evt-1")
+
+        _, kwargs = request_mock.call_args
+        self.assertEqual(
+            request_mock.call_args[0][1],
+            "http://region.example.com:6060/package_build/component/events/evt-1",
+        )
+        self.assertEqual(kwargs["headers"]["Authorization"], "JWT token")
+        self.assertIn("multipart/form-data", kwargs["headers"]["Content-Type"])
+        self.assertIn("boundary=", kwargs["headers"]["Content-Type"])
+        self.assertIsNone(kwargs["files"])
+        forwarded_body = kwargs["data"].read(len(body) + 1)
+        self.assertEqual(forwarded_body, body)
+        self.assertEqual(kwargs["data"].read(1), b"")
+        self.assertEqual(kwargs["headers"]["Content-Length"], str(len(body)))
+        self.assertIn(b'filename="demo.iso"', forwarded_body)
         self.assertEqual(response.status_code, 200)
 
     # capability_id: console.realtime-proxy.docker-console-subprotocol

@@ -130,7 +130,11 @@ def _is_multipart_request(request):
 
 
 def _should_forward_raw_multipart(proxy_path):
-    return normalize_proxy_path(proxy_path) == "/v2/file-operate/upload"
+    normalized_path = normalize_proxy_path(proxy_path)
+    return (
+        normalized_path == "/v2/file-operate/upload"
+        or normalized_path.startswith("/package_build/component/events/")
+    )
 
 
 def build_multipart_payload(request):
