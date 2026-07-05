@@ -37,6 +37,7 @@ class FirstDeployServiceStub(object):
 
     def __init__(self):
         self.safe_begin_tracking = mock.Mock(return_value={"key": "first-deploy"})
+        self.safe_begin_deploy_tracking = mock.Mock(return_value={"key": "first-deploy"})
         self.safe_bind_events = mock.Mock()
         self.safe_mark_failure = mock.Mock()
 
@@ -154,8 +155,8 @@ class PlatformPluginFirstDeployTrackingTests(TestCase):
         with mock.patch.object(platform_module, "AppUpgrade", return_value=app_upgrade):
             platform_plugin_service.install_platform_plugin("eid", "rainbond", "rainbond-agent", user)
 
-        first_deploy_service.safe_begin_tracking.assert_called_once()
-        tracking_kwargs = first_deploy_service.safe_begin_tracking.call_args[1]
+        first_deploy_service.safe_begin_deploy_tracking.assert_called_once()
+        tracking_kwargs = first_deploy_service.safe_begin_deploy_tracking.call_args[1]
         self.assertEqual("eid", tracking_kwargs["enterprise_id"])
         self.assertEqual("rbd-plugins", tracking_kwargs["tenant_name"])
         self.assertEqual("rainbond", tracking_kwargs["region_name"])

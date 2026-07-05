@@ -167,7 +167,7 @@ class ComposeCheckView(ComposeGroupBaseView):
     def _report_compose_check_failure(self, compose_id: str, check_uuid: str, reason: str) -> None:
         app_context = enterprise_first_deploy_service.build_service_app_context(self.group)
         app_context["compose_id"] = compose_id or ""
-        tracker = enterprise_first_deploy_service.safe_begin_tracking(
+        tracker = enterprise_first_deploy_service.safe_begin_deploy_tracking(
             enterprise_id=self.tenant.enterprise_id,
             tenant_name=self.tenant.tenant_name,
             region_name=self.response_region,

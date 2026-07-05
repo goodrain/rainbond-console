@@ -95,7 +95,7 @@ class PackageComponentService(object):
             source_language = ""
             if service_info_list:
                 source_language = service_info_list[0].get("language") or ""
-            tracker = enterprise_first_deploy_service.safe_begin_tracking(
+            tracker = enterprise_first_deploy_service.safe_begin_deploy_tracking(
                 enterprise_id=team.enterprise_id,
                 tenant_name=team.tenant_name,
                 region_name=app.region_name,

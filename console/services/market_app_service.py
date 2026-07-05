@@ -155,7 +155,7 @@ class MarketAppService(object):
             market_name,
             is_deploy=is_deploy)
         if is_deploy and not dry_run:
-            tracker = enterprise_first_deploy_service.safe_begin_tracking(
+            tracker = enterprise_first_deploy_service.safe_begin_deploy_tracking(
                 # NOTE: tenant.enterprise_id / user.nick_name are Optional[str] model fields
                 enterprise_id=tenant.enterprise_id,  # type: ignore[arg-type]
                 tenant_name=tenant.tenant_name,

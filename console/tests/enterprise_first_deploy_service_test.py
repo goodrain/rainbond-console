@@ -229,6 +229,65 @@ class EnterpriseFirstDeployServiceTests(TestCase):
         self.assertEqual(tracker["key"], repo.attempt_record.key)
         self.assertEqual(repo.payload["status"], self.service.STATUS_SUCCESS)
 
+    def test_begin_deploy_tracking_creates_first_deploy_record_when_enterprise_has_no_record(self):
+        repo = mock.Mock()
+        repo.get_by_enterprise_id.return_value = None
+        repo.create_if_absent.return_value = (Obj(key="record-key"), True)
+
+        with mock.patch("console.services.enterprise_first_deploy_service.enterprise_first_deploy_repo", repo), \
+                mock.patch.object(self.service, "_start_environment_collect_thread", create=True) as mock_start_collect, \
+                mock.patch("console.services.enterprise_first_deploy_service.transaction.on_commit",
+                           side_effect=lambda func: func()), \
+                mock.patch("console.services.enterprise_first_deploy_service.TenantEnterprise.objects.filter") as mock_filter:
+            mock_filter.return_value.first.return_value = Obj(enterprise_alias="demo-enterprise")
+            tracker = self.service.begin_deploy_tracking(
+                enterprise_id="eid-1",
+                tenant_name="demo-team",
+                region_name="demo-region",
+                deploy_type=self.service.DEPLOY_TYPE_IMAGE,
+                trigger="create_and_deploy")
+
+        self.assertEqual(tracker["key"], "record-key")
+        repo.create_if_absent.assert_called_once()
+        mock_start_collect.assert_called_once_with("record-key", "eid-1", "demo-region")
+
+    def test_begin_deploy_tracking_creates_deploy_attempt_after_first_deploy_finished(self):
+        repo = FirstDeployRepoStub({
+            "enterprise_id": "eid-1",
+            "deploy_type": self.service.DEPLOY_TYPE_IMAGE,
+            "status": self.service.STATUS_SUCCESS,
+            "reported": True,
+        })
+        service = Obj(
+            service_id="service-1",
+            service_alias="grdemo",
+            service_cname="demo",
+            service_source="docker_image",
+            language="",
+        )
+
+        with mock.patch("console.services.enterprise_first_deploy_service.enterprise_first_deploy_repo", repo), \
+                mock.patch("console.services.enterprise_first_deploy_service.TenantEnterprise.objects.filter") as mock_filter, \
+                mock.patch("console.services.enterprise_first_deploy_service.transaction.on_commit",
+                           side_effect=lambda _func: None):
+            mock_filter.return_value.first.return_value = Obj(enterprise_alias="demo-enterprise")
+            tracker = self.service.begin_deploy_tracking(
+                enterprise_id="eid-1",
+                tenant_name="demo-team",
+                region_name="demo-region",
+                deploy_type=self.service.DEPLOY_TYPE_IMAGE,
+                service_id="service-1",
+                service_alias="grdemo",
+                service=service,
+                trigger="create_and_deploy")
+
+        self.assertIsNotNone(tracker)
+        self.assertEqual(tracker["key"], repo.attempt_record.key)
+        self.assertEqual(repo.attempt_payload["report_type"], self.service.REPORT_TYPE_DEPLOY_ATTEMPT)
+        self.assertFalse(repo.attempt_payload["is_first_deploy"])
+        self.assertEqual(repo.attempt_payload["deployment_context"]["trigger"], "create_and_deploy")
+        self.assertEqual(repo.payload["status"], self.service.STATUS_SUCCESS)
+
     def test_deploy_attempt_mark_failure_posts_and_removes_recoverable_attempt_record(self):
         repo = FirstDeployRepoStub({
             "enterprise_id": "eid-1",

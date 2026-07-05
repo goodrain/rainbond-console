@@ -87,6 +87,9 @@ class FirstDeployServiceStub(object):
     def safe_begin_tracking(self, *args, **kwargs):
         return None
 
+    def safe_begin_deploy_tracking(self, *args, **kwargs):
+        return None
+
     def safe_bind_events(self, *args, **kwargs):
         return None
 
@@ -180,8 +183,9 @@ class ComposeBuildFirstDeployTrackingTests(SimpleTestCase):
                            side_effect=[built_a, built_b]), \
                 mock.patch("console.views.app_create.app_build.app_manage_service.deploy",
                            side_effect=[(200, "success", "event-a"), (200, "success", "event-b")]), \
-                mock.patch("console.views.app_create.app_build.enterprise_first_deploy_service.safe_begin_tracking",
-                           return_value=tracker) as begin_tracking, \
+                mock.patch(
+                    "console.views.app_create.app_build.enterprise_first_deploy_service.safe_begin_deploy_tracking",
+                    return_value=tracker) as begin_tracking, \
                 mock.patch("console.views.app_create.app_build.enterprise_first_deploy_service.safe_bind_events") as bind_events:
             response = view.post(request)
 

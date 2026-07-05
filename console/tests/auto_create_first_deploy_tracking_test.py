@@ -40,6 +40,7 @@ class FirstDeployServiceStub(object):
 
     def __init__(self):
         self.safe_begin_tracking = mock.Mock(return_value={"key": "first-deploy"})
+        self.safe_begin_deploy_tracking = mock.Mock(return_value={"key": "first-deploy"})
         self.safe_bind_events = mock.Mock()
         self.safe_mark_failure = mock.Mock()
 
@@ -57,6 +58,8 @@ class FirstDeployServiceStub(object):
     def reset(self):
         self.safe_begin_tracking.reset_mock(return_value=True)
         self.safe_begin_tracking.return_value = {"key": "first-deploy"}
+        self.safe_begin_deploy_tracking.reset_mock(return_value=True)
+        self.safe_begin_deploy_tracking.return_value = {"key": "first-deploy"}
         self.safe_bind_events.reset_mock()
         self.safe_mark_failure.reset_mock()
 
@@ -166,7 +169,7 @@ class AutoCreateFirstDeployTrackingTests(TestCase):
             git_url="https://git.example.com/demo.git",
             code_version="main")
 
-        tracking_kwargs = first_deploy_service.safe_begin_tracking.call_args[1]
+        tracking_kwargs = first_deploy_service.safe_begin_deploy_tracking.call_args[1]
         self.assertEqual(tracking_kwargs["enterprise_id"], "eid-1")
         self.assertEqual(tracking_kwargs["tenant_name"], "demo-team")
         self.assertEqual(tracking_kwargs["region_name"], "rainbond")
@@ -222,7 +225,7 @@ class AutoCreateFirstDeployTrackingTests(TestCase):
                 event_id="evt-upload-1",
                 service_cname="package-demo")
 
-        tracking_kwargs = first_deploy_service.safe_begin_tracking.call_args[1]
+        tracking_kwargs = first_deploy_service.safe_begin_deploy_tracking.call_args[1]
         self.assertEqual(tracking_kwargs["enterprise_id"], "eid-1")
         self.assertEqual(tracking_kwargs["tenant_name"], "demo-team")
         self.assertEqual(tracking_kwargs["region_name"], "rainbond")
