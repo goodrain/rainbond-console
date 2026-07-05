@@ -33,6 +33,7 @@ class FirstDeployServiceStub(object):
 
     def __init__(self):
         self.safe_begin_tracking = mock.Mock(return_value={"key": "first-deploy"})
+        self.safe_begin_deploy_tracking = mock.Mock(return_value={"key": "first-deploy"})
         self.safe_mark_failure = mock.Mock()
 
     @staticmethod
@@ -46,6 +47,8 @@ class FirstDeployServiceStub(object):
     def reset(self):
         self.safe_begin_tracking.reset_mock()
         self.safe_begin_tracking.return_value = {"key": "first-deploy"}
+        self.safe_begin_deploy_tracking.reset_mock()
+        self.safe_begin_deploy_tracking.return_value = {"key": "first-deploy"}
         self.safe_mark_failure.reset_mock()
 
 
@@ -115,8 +118,8 @@ class ComposeCheckFirstDeployTrackingTests(SimpleTestCase):
         response = self.view.post(request)
 
         self.assertEqual(response.data["code"], 500)
-        first_deploy_service.safe_begin_tracking.assert_called_once()
-        begin_kwargs = first_deploy_service.safe_begin_tracking.call_args[1]
+        first_deploy_service.safe_begin_deploy_tracking.assert_called_once()
+        begin_kwargs = first_deploy_service.safe_begin_deploy_tracking.call_args[1]
         self.assertEqual(begin_kwargs["enterprise_id"], "eid-1")
         self.assertEqual(begin_kwargs["tenant_name"], "demo-team")
         self.assertEqual(begin_kwargs["region_name"], "rainbond")
@@ -148,8 +151,8 @@ class ComposeCheckFirstDeployTrackingTests(SimpleTestCase):
             response = self.view.get(request)
 
         self.assertEqual(response.data["data"]["bean"]["check_status"], "failure")
-        first_deploy_service.safe_begin_tracking.assert_called_once()
-        begin_kwargs = first_deploy_service.safe_begin_tracking.call_args[1]
+        first_deploy_service.safe_begin_deploy_tracking.assert_called_once()
+        begin_kwargs = first_deploy_service.safe_begin_deploy_tracking.call_args[1]
         self.assertEqual(begin_kwargs["trigger"], "compose_check")
         self.assertEqual(begin_kwargs["app_context"]["compose_id"], "compose-1")
         self.assertEqual(begin_kwargs["workload_context"]["check_uuid"], "check-1")

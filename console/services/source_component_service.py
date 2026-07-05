@@ -263,7 +263,7 @@ class SourceComponentService(object):
         deploy_event_id = None
         if is_deploy:
             service_alias = getattr(region_component, "service_alias", "") or getattr(component, "service_alias", "")
-            tracker = enterprise_first_deploy_service.safe_begin_tracking(
+            tracker = enterprise_first_deploy_service.safe_begin_deploy_tracking(
                 enterprise_id=team.enterprise_id,
                 tenant_name=team.tenant_name,
                 region_name=app.region_name,

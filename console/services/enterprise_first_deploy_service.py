@@ -238,6 +238,73 @@ class EnterpriseFirstDeployService(object):
         transaction.on_commit(lambda: self._start_environment_collect_thread(record.key, enterprise_id, region_name))
         return tracker
 
+    def begin_deploy_tracking(self,
+                              enterprise_id: str,
+                              tenant_name: str,
+                              region_name: str,
+                              deploy_type: str,
+                              operator: str = "",
+                              source_language: str = "",
+                              service_id: str = "",
+                              service_alias: str = "",
+                              service: Any = None,
+                              trigger: str = "",
+                              app_context: Optional[dict] = None,
+                              workload_context: Optional[dict] = None) -> Optional[dict]:
+        existing_record = enterprise_first_deploy_repo.get_by_enterprise_id(enterprise_id)
+        if existing_record:
+            existing = enterprise_first_deploy_repo.load_payload(existing_record)
+            if self._first_deploy_finished(existing):
+                self._report_if_needed(existing_record, existing, async_report=True)
+                logger.info(
+                    "deploy diagnostic tracking selected deploy_attempt: enterprise_id_empty=%s tenant=%s "
+                    "region=%s deploy_type=%s trigger=%s service_id=%s",
+                    not bool(enterprise_id),
+                    tenant_name,
+                    region_name,
+                    deploy_type,
+                    trigger,
+                    service_id or getattr(service, "service_id", "") or "",
+                )
+                return self.begin_deploy_attempt_tracking(
+                    enterprise_id=enterprise_id,
+                    tenant_name=tenant_name,
+                    region_name=region_name,
+                    deploy_type=deploy_type,
+                    operator=operator,
+                    source_language=source_language,
+                    service_id=service_id,
+                    service_alias=service_alias,
+                    service=service,
+                    trigger=trigger,
+                    app_context=app_context,
+                    workload_context=workload_context,
+                )
+        logger.info(
+            "deploy diagnostic tracking selected first_deploy: enterprise_id_empty=%s tenant=%s "
+            "region=%s deploy_type=%s trigger=%s service_id=%s",
+            not bool(enterprise_id),
+            tenant_name,
+            region_name,
+            deploy_type,
+            trigger,
+            service_id or getattr(service, "service_id", "") or "",
+        )
+        return self.begin_tracking(
+            enterprise_id=enterprise_id,
+            tenant_name=tenant_name,
+            region_name=region_name,
+            deploy_type=deploy_type,
+            operator=operator,
+            source_language=source_language,
+            service_id=service_id,
+            service_alias=service_alias,
+            service=service,
+            trigger=trigger,
+            app_context=app_context,
+            workload_context=workload_context,
+        )
+
     def safe_begin_tracking(self, *args: Any, **kwargs: Any) -> Optional[dict]:
         try:
             return self.begin_tracking(*args, **kwargs)
@@ -245,18 +312,25 @@ class EnterpriseFirstDeployService(object):
             logger.debug("begin deploy diagnostic tracking failed: %s", exc)
             return None
 
+    def safe_begin_deploy_tracking(self, *args: Any, **kwargs: Any) -> Optional[dict]:
+        try:
+            return self.begin_deploy_tracking(*args, **kwargs)
+        except Exception as exc:
+            logger.warning("begin deploy diagnostic tracking failed: %s", exc)
+            return None
+
     def safe_begin_deploy_attempt_tracking(self, *args: Any, **kwargs: Any) -> Optional[dict]:
         try:
             return self.begin_deploy_attempt_tracking(*args, **kwargs)
         except Exception as exc:
-            logger.debug("begin deploy attempt diagnostic tracking failed: %s", exc)
+            logger.warning("begin deploy attempt diagnostic tracking failed: %s", exc)
             return None
 
     def safe_bind_events(self, tracker: Optional[dict], *args: Any, **kwargs: Any) -> None:
         try:
             self.bind_events(tracker, *args, **kwargs)
         except Exception as exc:
-            logger.debug("bind deploy diagnostic events failed: %s", exc)
+            logger.warning("bind deploy diagnostic events failed: %s", exc)
 
     def safe_mark_success(self, tracker: Optional[dict]) -> None:
         try:
@@ -268,7 +342,7 @@ class EnterpriseFirstDeployService(object):
         try:
             self.mark_failure(tracker, reason=reason, failure_stage=failure_stage)
         except Exception as exc:
-            logger.debug("mark deploy diagnostic failure failed: %s", exc)
+            logger.warning("mark deploy diagnostic failure failed: %s", exc)
 
     def safe_report_source_check_failure(self, *args: Any, **kwargs: Any) -> None:
         try:
@@ -426,6 +500,17 @@ class EnterpriseFirstDeployService(object):
         if not sync_key:
             return
         self._save_tracking_payload(record, payload, key=sync_key)
+        logger.info(
+            "deploy diagnostic events bound: report_type=%s tenant=%s region=%s deploy_type=%s "
+            "deploy_attempt_id=%s event_count=%s service_id=%s",
+            payload.get("report_type"),
+            payload.get("tenant_name"),
+            payload.get("region_name"),
+            payload.get("deploy_type"),
+            (payload.get("deployment_context") or {}).get("deploy_attempt_id"),
+            len(event_ids),
+            tracker_service_id,
+        )
         self._report_deploy_attempt_dispatch_success(payload, event_ids, tracker_service_id)
         transaction.on_commit(lambda: self._start_sync_thread(sync_key, tracker["tenant_name"], tracker["region_name"]))
 
@@ -1310,6 +1395,15 @@ class EnterpriseFirstDeployService(object):
             try:
                 response = requests.post(self.REPORT_URL, json=report_payload, timeout=5)
                 if 200 <= response.status_code < 300:
+                    logger.info(
+                        "report deployment diagnostic success: report_type=%s is_success=%s deploy_type=%s "
+                        "deploy_attempt_id=%s enterprise_name_empty=%s",
+                        report_payload.get("report_type"),
+                        report_payload.get("is_success"),
+                        report_payload.get("deploy_type"),
+                        (report_payload.get("deployment_context") or {}).get("deploy_attempt_id"),
+                        not bool(report_payload.get("enterprise_name")),
+                    )
                     return True
                 logger.warning(
                     "report deployment diagnostic failed: status=%s body=%s report_type=%s is_success=%s "

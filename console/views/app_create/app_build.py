@@ -66,7 +66,7 @@ class AppBuild(AppBaseView, CloudEnterpriseCenterView):
             self.service = new_service
 
             if is_deploy:
-                tracker = enterprise_first_deploy_service.safe_begin_tracking(
+                tracker = enterprise_first_deploy_service.safe_begin_deploy_tracking(
                     enterprise_id=self.tenant.enterprise_id,  # type: ignore[arg-type]
                     tenant_name=self.tenant.tenant_name,
                     region_name=self.service.service_region,
@@ -202,7 +202,7 @@ class ComposeBuildView(RegionTenantHeaderCloudEnterpriseCenterView):
             group_compose.save()  # type: ignore[union-attr]
             tracker = None
             if new_app_list:
-                tracker = enterprise_first_deploy_service.safe_begin_tracking(
+                tracker = enterprise_first_deploy_service.safe_begin_deploy_tracking(
                     enterprise_id=self.tenant.enterprise_id,  # type: ignore[arg-type]
                     tenant_name=self.tenant.tenant_name,
                     region_name=self.region_name,

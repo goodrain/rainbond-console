@@ -39,6 +39,7 @@ class FirstDeployServiceStub(object):
 
     def __init__(self):
         self.safe_begin_tracking = mock.Mock(return_value={"key": "first-deploy"})
+        self.safe_begin_deploy_tracking = mock.Mock(return_value={"key": "first-deploy"})
         self.safe_bind_events = mock.Mock()
         self.safe_mark_failure = mock.Mock()
 
@@ -224,8 +225,8 @@ class MarketAppFirstDeployTrackingTests(TestCase):
                 is_deploy=True)
 
         self.assertEqual("Demo App", app_name)
-        first_deploy_service.safe_begin_tracking.assert_called_once()
-        tracking_kwargs = first_deploy_service.safe_begin_tracking.call_args[1]
+        first_deploy_service.safe_begin_deploy_tracking.assert_called_once()
+        tracking_kwargs = first_deploy_service.safe_begin_deploy_tracking.call_args[1]
         self.assertEqual("eid-1", tracking_kwargs["enterprise_id"])
         self.assertEqual("team-a", tracking_kwargs["tenant_name"])
         self.assertEqual("region-a", tracking_kwargs["region_name"])

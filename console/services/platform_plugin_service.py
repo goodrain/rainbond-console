@@ -689,7 +689,7 @@ class PlatformPluginService(object):
             "plugin_name": plugin_name,
             "install_source": "extension",
         })
-        tracker = enterprise_first_deploy_service.safe_begin_tracking(
+        tracker = enterprise_first_deploy_service.safe_begin_deploy_tracking(
             enterprise_id=enterprise_id,
             tenant_name=tenant.tenant_name,
             region_name=region.region_name,
