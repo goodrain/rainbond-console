@@ -779,6 +779,32 @@ class EnterpriseFirstDeployServiceTests(TestCase):
         self.assertTrue(report_payload["is_success"])
         self.assertNotIn("failure_logs", report_payload)
 
+    def test_post_report_payload_logs_non_success_response(self):
+        report_payload = {
+            "eid": "eid-1",
+            "enterprise_name": "",
+            "deploy_type": self.service.DEPLOY_TYPE_IMAGE,
+            "is_success": True,
+            "report_type": self.service.REPORT_TYPE_DEPLOY_ATTEMPT,
+            "is_first_deploy": False,
+            "deployment_context": {"deploy_attempt_id": "attempt-1"},
+        }
+
+        with mock.patch("console.services.enterprise_first_deploy_service.requests.post",
+                        return_value=Obj(status_code=400, text="bad request")), \
+                mock.patch("console.services.enterprise_first_deploy_service.time.sleep"), \
+                mock.patch("console.services.enterprise_first_deploy_service.logger.warning") as mock_warning:
+            result = self.service._post_report_payload(report_payload)
+
+        self.assertFalse(result)
+        self.assertEqual(mock_warning.call_count, 3)
+        warning_args = mock_warning.call_args[0]
+        self.assertIn("status=%s", warning_args[0])
+        self.assertEqual(warning_args[1], 400)
+        self.assertEqual(warning_args[2], "bad request")
+        self.assertEqual(warning_args[3], self.service.REPORT_TYPE_DEPLOY_ATTEMPT)
+        self.assertEqual(warning_args[6], "attempt-1")
+
     def test_report_payload_uses_stable_eid_when_enterprise_id_is_empty(self):
         payload = {
             "enterprise_id": "",
