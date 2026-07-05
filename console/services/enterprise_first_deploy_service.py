@@ -403,7 +403,7 @@ class EnterpriseFirstDeployService(object):
         payload["event_ids"] = sorted(set(event_ids))
         if event_ids:
             payload["build_event_id"] = event_ids[0]
-        tracker_service_id = tracker.get("service_id")
+        tracker_service_id = str(tracker.get("service_id") or "")
         if tracker_service_id and tracker_service_id not in payload.get("service_ids", []):
             payload.setdefault("service_ids", []).append(tracker_service_id)
         for sid in (service_ids or []):
@@ -426,6 +426,7 @@ class EnterpriseFirstDeployService(object):
         if not sync_key:
             return
         self._save_tracking_payload(record, payload, key=sync_key)
+        self._report_deploy_attempt_dispatch_success(payload, event_ids, tracker_service_id)
         transaction.on_commit(lambda: self._start_sync_thread(sync_key, tracker["tenant_name"], tracker["region_name"]))
 
     def mark_success(self, tracker: Optional[dict]) -> None:
@@ -698,7 +699,11 @@ class EnterpriseFirstDeployService(object):
         payload["status"] = status
         payload["finished_at"] = self._now()
         self._save_tracking_payload(record, payload, key=key)
-        self._report_if_needed(record, payload, async_report=True, key=key)
+        self._report_if_needed(
+            record,
+            payload,
+            async_report=payload.get("report_type") != self.REPORT_TYPE_DEPLOY_ATTEMPT,
+            key=key)
 
     def _start_sync_thread(self, key: str, tenant_name: str, region_name: str) -> None:
         with self._lock:
@@ -1181,6 +1186,32 @@ class EnterpriseFirstDeployService(object):
         return "{} failure: no failure reason reported".format(
             failure_stage or self.FAILURE_STAGE_UNKNOWN)
 
+    def _report_deploy_attempt_dispatch_success(self, payload: dict, event_ids: Any, service_id: str = "") -> None:
+        if payload.get("report_type") != self.REPORT_TYPE_DEPLOY_ATTEMPT or not event_ids:
+            return
+        dispatch_payload = dict(payload)
+        dispatch_payload["status"] = self.STATUS_SUCCESS
+        dispatch_payload["finished_at"] = self._now()
+        success_events = list(payload.get("success_events") or [])
+        existing_ids = set([event.get("event_id") for event in success_events])
+        for event_id in event_ids:
+            if not event_id or event_id in existing_ids:
+                continue
+            success_events.append({
+                "event_id": str(event_id),
+                "service_id": service_id or self._first_service_id(payload),
+                "opt_type": "deploy-dispatch",
+                "status": self.STATUS_SUCCESS,
+                "final_status": "",
+                "message": "deploy task accepted",
+                "reason": "",
+                "start_time": payload.get("started_at", ""),
+                "end_time": dispatch_payload["finished_at"],
+            })
+            existing_ids.add(event_id)
+        dispatch_payload["success_events"] = self._shrink_success_events(success_events)
+        self._post_report_payload(self._build_report_payload(dispatch_payload))
+
     def _start_report_thread(self, key: str) -> None:
         with self._lock:
             if key in self._reporting_keys:
@@ -1232,7 +1263,7 @@ class EnterpriseFirstDeployService(object):
 
     def _build_report_payload(self, payload: dict) -> dict:
         report_payload = {
-            "eid": payload.get("enterprise_id"),
+            "eid": self._report_eid(payload),
             "enterprise_name": payload.get("enterprise_name"),
             "deploy_type": payload.get("deploy_type"),
             "source_language": payload.get("source_language", ""),
@@ -1261,6 +1292,18 @@ class EnterpriseFirstDeployService(object):
                 "failure_logs": payload.get("failure_logs") or [],
             })
         return report_payload
+
+    def _report_eid(self, payload: dict) -> str:
+        enterprise_id = str(payload.get("enterprise_id") or "").strip()
+        if enterprise_id:
+            return enterprise_id
+        deployment_context = payload.get("deployment_context") or {}
+        tenant_region = "|".join([
+            str(payload.get("tenant_name") or "").strip(),
+            str(payload.get("region_name") or "").strip(),
+        ]).strip("|")
+        seed = tenant_region or str(deployment_context.get("deploy_attempt_id") or "").strip() or "unknown"
+        return uuid.uuid5(uuid.NAMESPACE_URL, "rainbond-deploy-diagnostic:{}".format(seed)).hex
 
     def _post_report_payload(self, report_payload: dict) -> bool:
         for _ in range(3):

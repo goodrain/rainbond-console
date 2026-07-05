@@ -261,6 +261,99 @@ class EnterpriseFirstDeployServiceTests(TestCase):
         self.assertFalse(report_payload["is_success"])
         self.assertEqual(report_payload["failure_reason"], "container startup failed")
 
+    def test_bind_events_reports_deploy_attempt_dispatch_success_immediately(self):
+        payload = {
+            "enterprise_id": "eid-1",
+            "enterprise_name": "demo-enterprise",
+            "deploy_type": self.service.DEPLOY_TYPE_IMAGE,
+            "source_language": "",
+            "payload_version": 3,
+            "report_type": self.service.REPORT_TYPE_DEPLOY_ATTEMPT,
+            "is_first_deploy": False,
+            "status": self.service.STATUS_PENDING,
+            "reported": False,
+            "tenant_name": "demo-team",
+            "region_name": "demo-region",
+            "event_ids": [],
+            "service_ids": ["service-1"],
+            "deployment_context": {
+                "deploy_attempt_id": "attempt-dispatch-1",
+                "trigger": "manual_deploy",
+            },
+            "app_context": {},
+            "environment_context": {},
+            "workload_context": {},
+            "success_events": [],
+            "failure_events": [],
+            "failure_logs": [],
+        }
+        repo = FirstDeployRepoStub({"status": self.service.STATUS_SUCCESS, "reported": True})
+        repo.attempt_payload = deepcopy(payload)
+        repo.attempt_record.key = "attempt-key"
+        tracker = {
+            "enterprise_id": "eid-1",
+            "key": "attempt-key",
+            "tenant_name": "demo-team",
+            "region_name": "demo-region",
+            "service_id": "service-1",
+        }
+
+        with mock.patch("console.services.enterprise_first_deploy_service.enterprise_first_deploy_repo", repo), \
+                mock.patch("console.services.enterprise_first_deploy_service.transaction.on_commit",
+                           side_effect=lambda func: func()), \
+                mock.patch.object(self.service, "_start_sync_thread") as mock_start_sync_thread, \
+                mock.patch.object(self.service, "_post_report_payload", return_value=True) as mock_post:
+            self.service.bind_events(tracker, ["deploy-event-1"])
+
+        report_payload = mock_post.call_args[0][0]
+        self.assertEqual(report_payload["report_type"], self.service.REPORT_TYPE_DEPLOY_ATTEMPT)
+        self.assertTrue(report_payload["is_success"])
+        self.assertEqual(report_payload["deployment_context"]["deploy_attempt_id"], "attempt-dispatch-1")
+        self.assertEqual(report_payload["success_events"][0]["event_id"], "deploy-event-1")
+        self.assertEqual(repo.attempt_payload["status"], self.service.STATUS_PENDING)
+        mock_start_sync_thread.assert_called_once_with("attempt-key", "demo-team", "demo-region")
+
+    def test_deploy_attempt_completion_reports_without_background_thread(self):
+        payload = {
+            "enterprise_id": "eid-1",
+            "enterprise_name": "demo-enterprise",
+            "deploy_type": self.service.DEPLOY_TYPE_IMAGE,
+            "source_language": "",
+            "payload_version": 3,
+            "report_type": self.service.REPORT_TYPE_DEPLOY_ATTEMPT,
+            "is_first_deploy": False,
+            "status": self.service.STATUS_PENDING,
+            "reported": False,
+            "tenant_name": "demo-team",
+            "region_name": "demo-region",
+            "event_ids": ["deploy-event-1"],
+            "service_ids": ["service-1"],
+            "deployment_context": {
+                "deploy_attempt_id": "attempt-failure-1",
+                "trigger": "manual_deploy",
+            },
+            "app_context": {},
+            "environment_context": {},
+            "workload_context": {},
+            "success_events": [],
+            "failure_events": [],
+            "failure_logs": [],
+        }
+        repo = FirstDeployRepoStub({"status": self.service.STATUS_SUCCESS, "reported": True})
+        repo.attempt_payload = deepcopy(payload)
+        repo.attempt_record.key = "attempt-key"
+        self.service.report_async = True
+
+        with mock.patch("console.services.enterprise_first_deploy_service.enterprise_first_deploy_repo", repo), \
+                mock.patch.object(self.service, "_start_report_thread") as mock_start_report_thread, \
+                mock.patch.object(self.service, "_post_report_payload", return_value=True) as mock_post:
+            self.service._set_stage_failure(payload, self.service.FAILURE_STAGE_BUILD, reason="build failed")
+            self.service._complete_tracking(repo.attempt_record, payload, self.service.STATUS_FAILURE, key="attempt-key")
+
+        self.assertEqual(mock_post.call_count, 1)
+        self.assertFalse(mock_start_report_thread.called)
+        self.assertEqual(repo.deleted_records, ["attempt-key"])
+
     def test_build_payload_includes_v3_diagnostic_context(self):
         enterprise = Obj(enterprise_alias="demo-enterprise", enterprise_name="demo-enterprise")
         service = Obj(
@@ -652,6 +745,34 @@ class EnterpriseFirstDeployServiceTests(TestCase):
         self.assertEqual(warning_args[2], "bad request")
         self.assertEqual(warning_args[3], self.service.REPORT_TYPE_DEPLOY_ATTEMPT)
         self.assertEqual(warning_args[6], "attempt-1")
+
+    def test_report_payload_uses_stable_eid_when_enterprise_id_is_empty(self):
+        payload = {
+            "enterprise_id": "",
+            "enterprise_name": "",
+            "deploy_type": self.service.DEPLOY_TYPE_IMAGE,
+            "source_language": "",
+            "payload_version": 3,
+            "report_type": self.service.REPORT_TYPE_DEPLOY_ATTEMPT,
+            "is_first_deploy": False,
+            "status": self.service.STATUS_SUCCESS,
+            "reported": False,
+            "tenant_name": "demo-team",
+            "region_name": "demo-region",
+            "deployment_context": {
+                "deploy_attempt_id": "attempt-empty-eid-1",
+                "trigger": "manual_deploy",
+            },
+            "app_context": {},
+            "environment_context": {},
+            "workload_context": {},
+        }
+
+        report_payload = self.service._build_report_payload(payload)
+
+        self.assertEqual(len(report_payload["eid"]), 32)
+        self.assertNotEqual(report_payload["eid"], "")
+        self.assertEqual(report_payload["eid"], self.service._report_eid(payload))
 
     def test_sync_record_retries_build_failure_logs_before_reporting(self):
         payload = {
