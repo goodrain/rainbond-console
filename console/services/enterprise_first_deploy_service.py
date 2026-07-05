@@ -224,20 +224,18 @@ class EnterpriseFirstDeployService(object):
             report_type=self.REPORT_TYPE_DEPLOY_ATTEMPT,
             is_first_deploy=False,
         )
-        deploy_attempt_id = payload.get("deployment_context", {}).get("deploy_attempt_id")
-        key = enterprise_first_deploy_repo.build_attempt_key(enterprise_id, deploy_attempt_id)
+        record, _ = enterprise_first_deploy_repo.create_attempt(enterprise_id, payload)
+        if not record:
+            return None
         tracker = {
             "enterprise_id": enterprise_id,
-            "key": key,
+            "key": record.key,
             "tenant_name": tenant_name,
             "region_name": region_name,
             "service_id": payload.get("deployment_context", {}).get("service_id") or "",
             "service_alias": payload.get("deployment_context", {}).get("service_alias") or "",
-            "memory_only": True,
-            "payload": payload,
         }
-        self._save_memory_payload(key, payload)
-        transaction.on_commit(lambda: self._start_environment_collect_thread(key, enterprise_id, region_name))
+        transaction.on_commit(lambda: self._start_environment_collect_thread(record.key, enterprise_id, region_name))
         return tracker
 
     def safe_begin_tracking(self, *args: Any, **kwargs: Any) -> Optional[dict]:
@@ -723,6 +721,10 @@ class EnterpriseFirstDeployService(object):
     def _resume_pending_trackers_once(self) -> None:
         for record in enterprise_first_deploy_repo.list_tracking_records():
             payload = enterprise_first_deploy_repo.load_payload(record)
+            if payload.get("status") in self.FINAL_STATUSES:
+                if not payload.get("reported"):
+                    self._report_if_needed(record, payload, async_report=True, key=record.key)
+                continue
             if payload.get("status") != self.STATUS_PENDING:
                 continue
             tenant_name = payload.get("tenant_name")
@@ -1221,7 +1223,10 @@ class EnterpriseFirstDeployService(object):
             payload["reported"] = True
             payload["reported_at"] = self._now()
             if record:
-                enterprise_first_deploy_repo.update_payload(record, payload)
+                if payload.get("report_type") == self.REPORT_TYPE_DEPLOY_ATTEMPT:
+                    enterprise_first_deploy_repo.delete_payload(record)
+                else:
+                    enterprise_first_deploy_repo.update_payload(record, payload)
             elif key:
                 self._forget_memory_payload(key)
 
