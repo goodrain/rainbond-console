@@ -403,7 +403,7 @@ class EnterpriseFirstDeployService(object):
         payload["event_ids"] = sorted(set(event_ids))
         if event_ids:
             payload["build_event_id"] = event_ids[0]
-        tracker_service_id = tracker.get("service_id")
+        tracker_service_id = str(tracker.get("service_id") or "")
         if tracker_service_id and tracker_service_id not in payload.get("service_ids", []):
             payload.setdefault("service_ids", []).append(tracker_service_id)
         for sid in (service_ids or []):
