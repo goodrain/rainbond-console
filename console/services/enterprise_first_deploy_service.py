@@ -1268,6 +1268,17 @@ class EnterpriseFirstDeployService(object):
                 response = requests.post(self.REPORT_URL, json=report_payload, timeout=5)
                 if 200 <= response.status_code < 300:
                     return True
+                logger.warning(
+                    "report deployment diagnostic failed: status=%s body=%s report_type=%s is_success=%s "
+                    "deploy_type=%s deploy_attempt_id=%s enterprise_name_empty=%s",
+                    response.status_code,
+                    self._shrink_text(getattr(response, "text", ""), self.MAX_FAILURE_REASON_LENGTH),
+                    report_payload.get("report_type"),
+                    report_payload.get("is_success"),
+                    report_payload.get("deploy_type"),
+                    (report_payload.get("deployment_context") or {}).get("deploy_attempt_id"),
+                    not bool(report_payload.get("enterprise_name")),
+                )
             except Exception as e:
                 logger.warning("report first deploy log failed: %s", e)
             time.sleep(1)
