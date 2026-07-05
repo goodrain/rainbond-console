@@ -79,7 +79,7 @@ class UserService(object):
             pass
         user.delete()
 
-    def get_users_by_user_ids(self, user_ids: List[str]) -> QuerySet[Users]:
+    def get_users_by_user_ids(self, user_ids: List[str]) -> QuerySet:
         return user_repo.get_by_user_ids(user_ids)
 
     def get_user_tenants(self, user_id: str) -> QuerySet:
@@ -87,7 +87,7 @@ class UserService(object):
         tenant_list = Tenants.objects.filter(pk__in=tenant_id_list).values_list("tenant_name", flat=True)
         return tenant_list
 
-    def get_user_by_filter(self, args: Any = None, kwargs: Any = None) -> QuerySet[Users]:
+    def get_user_by_filter(self, args: Any = None, kwargs: Any = None) -> QuerySet:
         return user_repo.get_user_by_filter(args=args, kwargs=kwargs)
 
     def get_client_ip(self, request: Any) -> Optional[str]:
@@ -266,7 +266,7 @@ class UserService(object):
                 return True
         return False
 
-    def get_user_in_enterprise_perm(self, user: Any, enterprise_id: str) -> QuerySet[EnterpriseUserPerm]:
+    def get_user_in_enterprise_perm(self, user: Any, enterprise_id: str) -> QuerySet:
         return enterprise_user_perm_repo.get_user_enterprise_perm(user.user_id, enterprise_id)
 
     def get_user_by_openapi_token(self, token: str) -> Optional[Users]:
@@ -304,7 +304,7 @@ class UserService(object):
     def get_user_by_user_id(self, user_id: str) -> Users:
         return user_repo.get_user_by_user_id(user_id=user_id)
 
-    def get_user_by_eid(self, eid: str, name: str, page: int, page_size: int) -> Tuple[QuerySet[Users], int]:
+    def get_user_by_eid(self, eid: str, name: str, page: int, page_size: int) -> Tuple[QuerySet, int]:
         users = user_repo.get_enterprise_users(eid)
         if name:
             users = users.filter(

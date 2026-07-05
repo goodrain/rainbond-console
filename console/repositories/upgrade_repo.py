@@ -72,14 +72,14 @@ class UpgradeRepo(object):
             raise ErrAppUpgradeRecordNotFound
 
     @staticmethod
-    def list_records_by_app_id(app_id: str, record_type: Optional[str] = None) -> QuerySet[AppUpgradeRecord]:
+    def list_records_by_app_id(app_id: str, record_type: Optional[str] = None) -> QuerySet:
         q = Q(group_id=app_id)
         if record_type:
             q &= Q(record_type=record_type)
         return AppUpgradeRecord.objects.filter(q).order_by("-create_time")
 
     @staticmethod
-    def list_by_rollback_records(parent_id: int) -> QuerySet[AppUpgradeRecord]:
+    def list_by_rollback_records(parent_id: int) -> QuerySet:
         return AppUpgradeRecord.objects.filter(parent_id=parent_id).order_by("-create_time")
 
 
@@ -89,7 +89,7 @@ class ComponentUpgradeRecordRepository(object):
         ServiceUpgradeRecord.objects.bulk_create(records)
 
     @staticmethod
-    def list_by_app_record_id(app_record_id: int) -> QuerySet[ServiceUpgradeRecord]:
+    def list_by_app_record_id(app_record_id: int) -> QuerySet:
         return ServiceUpgradeRecord.objects.filter(app_upgrade_record_id=app_record_id)
 
     @staticmethod

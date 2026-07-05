@@ -127,7 +127,7 @@ class AppConfigGroupService(object):
         query: Optional[str] = None,
     ) -> Tuple[List[Dict[str, Any]], int]:
         cgroup_info: List[Dict[str, Any]] = []
-        config_groups: QuerySet[ApplicationConfigGroup] = app_config_group_repo.list(region_name, app_id)
+        config_groups: QuerySet = app_config_group_repo.list(region_name, app_id)
         if query:
             config_groups = config_groups.filter(config_group_name__contains=query)
         p = Paginator(config_groups, page_size)
@@ -184,8 +184,8 @@ class AppConfigGroupService(object):
 
 
 def convert_todict(
-    cgroup_items: QuerySet[ConfigGroupItem],
-    cgroup_services: QuerySet[ConfigGroupService],
+    cgroup_items: QuerySet,
+    cgroup_services: QuerySet,
 ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
     # Convert application config group items to dict
     config_group_items: List[Dict[str, Any]] = []

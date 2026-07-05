@@ -10,20 +10,20 @@ from console.exception.bcode import ErrComponentGraphExists, ErrComponentGraphNo
 
 class ComponentGraphRepository(object):
     @staticmethod
-    def list(component_id: str) -> QuerySet[ComponentGraph]:
+    def list(component_id: str) -> QuerySet:
         return ComponentGraph.objects.filter(component_id=component_id).order_by("sequence")
 
     @staticmethod
-    def list_by_component_ids(component_ids: List[str]) -> QuerySet[ComponentGraph]:
+    def list_by_component_ids(component_ids: List[str]) -> QuerySet:
         return ComponentGraph.objects.filter(component_id__in=component_ids)
 
     @staticmethod
-    def list_gt_sequence(component_id: str, sequence: int) -> QuerySet[ComponentGraph]:
+    def list_gt_sequence(component_id: str, sequence: int) -> QuerySet:
         return ComponentGraph.objects.filter(component_id=component_id, sequence__gt=sequence)
 
     @staticmethod
     def list_between_sequence(component_id: str, left_sequence: int,
-                              right_sequence: int) -> QuerySet[ComponentGraph]:
+                              right_sequence: int) -> QuerySet:
         return ComponentGraph.objects.filter(
             component_id=component_id, sequence__gte=left_sequence, sequence__lt=right_sequence)
 
@@ -35,7 +35,7 @@ class ComponentGraphRepository(object):
             raise ErrComponentGraphNotFound
 
     @staticmethod
-    def gets(component_id: str, graph_id: List[str]) -> QuerySet[ComponentGraph]:
+    def gets(component_id: str, graph_id: List[str]) -> QuerySet:
         return ComponentGraph.objects.filter(component_id=component_id, graph_id__in=graph_id)
 
     @staticmethod

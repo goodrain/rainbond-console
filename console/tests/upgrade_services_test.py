@@ -151,7 +151,7 @@ class OpenapiUpgradeGroupIdTests(TestCase):
             "upgrade_group_id": 2867,
         })
 
-        self.assertEqual(2867, mock_get_or_create.call_args.kwargs["upgrade_group_id"])
+        self.assertEqual(2867, mock_get_or_create.call_args[1]["upgrade_group_id"])
 
     def test_falls_back_to_component_group_id_when_request_omits_it(self):
         mock_get_or_create = self._run({
@@ -160,4 +160,4 @@ class OpenapiUpgradeGroupIdTests(TestCase):
             "market_name": "market-1",
         })
 
-        self.assertEqual(2878, mock_get_or_create.call_args.kwargs["upgrade_group_id"])
+        self.assertEqual(2878, mock_get_or_create.call_args[1]["upgrade_group_id"])

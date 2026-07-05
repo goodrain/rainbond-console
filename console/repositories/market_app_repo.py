@@ -16,19 +16,19 @@ logger = logging.getLogger("default")
 class RainbondCenterAppRepository(object):
     HIDDEN_APP_VERSION_SOURCE = "app_version"
 
-    def base_filter_rainbond_app_by_app_id(self, app_id: str) -> QuerySet[RainbondCenterApp]:
+    def base_filter_rainbond_app_by_app_id(self, app_id: str) -> QuerySet:
         return RainbondCenterApp.objects.filter(app_id=app_id)
 
     def get_rainbond_app_by_app_id(self, app_id: str) -> Optional[RainbondCenterApp]:
         return self.base_filter_rainbond_app_by_app_id(app_id).first()
 
-    def get_rainbond_app_by_app_id_team(self, app_ids: List[str]) -> QuerySet[RainbondCenterApp]:
+    def get_rainbond_app_by_app_id_team(self, app_ids: List[str]) -> QuerySet:
         return RainbondCenterApp.objects.filter(app_id__in=app_ids, scope="team").exclude(
             source=self.HIDDEN_APP_VERSION_SOURCE
         )
 
     def get_enterprise_team_apps(self, enterprise_id: str, team_name: str, scope: Optional[str] = None,
-                                 visible_team_names: Optional[List[str]] = None) -> QuerySet[RainbondCenterApp]:
+                                 visible_team_names: Optional[List[str]] = None) -> QuerySet:
         apps = RainbondCenterApp.objects.filter(source="local").exclude(source=self.HIDDEN_APP_VERSION_SOURCE)
         if scope == "enterprise":
             if visible_team_names:
@@ -50,11 +50,11 @@ class RainbondCenterAppRepository(object):
     def bulk_create_rainbond_apps(self, rainbond_apps: List[RainbondCenterApp]) -> None:
         RainbondCenterApp.objects.bulk_create(rainbond_apps)
 
-    def get_rainbond_app_versions(self, app_id: str) -> QuerySet[RainbondCenterAppVersion]:
+    def get_rainbond_app_versions(self, app_id: str) -> QuerySet:
         return RainbondCenterAppVersion.objects.filter(app_id=app_id)
 
     def filter_rainbond_app_version_by_app_id_and_version(self, app_id: str,
-                                                          version: str) -> QuerySet[RainbondCenterAppVersion]:
+                                                          version: str) -> QuerySet:
         return self.get_rainbond_app_versions(app_id=app_id).filter(version=version)
 
     def delete_app_version_by_id(self, app_id: str, version: str = "") -> Tuple[int, dict]:
@@ -66,7 +66,7 @@ class RainbondCenterAppRepository(object):
     def bulk_create_rainbond_app_versions(self, rainbond_app_versions: List[RainbondCenterAppVersion]) -> None:
         RainbondCenterAppVersion.objects.bulk_create(rainbond_app_versions)
 
-    def get_app_versions_by_app_id(self, app_id: str, is_complete: bool) -> QuerySet[RainbondCenterAppVersion]:
+    def get_app_versions_by_app_id(self, app_id: str, is_complete: bool) -> QuerySet:
         return self.get_rainbond_app_versions(app_id=app_id).filter(is_complete=is_complete)
 
     def add_basic_app_info(self, **kwargs: Any) -> RainbondCenterApp:
@@ -83,7 +83,7 @@ class RainbondCenterAppRepository(object):
         return self.filter_rainbond_app_version_by_app_id_and_version(app_id, version).order_by("-create_time").first()
 
     def get_rainbond_app_version_by_app_ids(self, app_ids: List[str],
-                                            is_complete: Optional[bool] = None) -> QuerySet[RainbondCenterAppVersion]:
+                                            is_complete: Optional[bool] = None) -> QuerySet:
         q = Q(app_id__in=app_ids)
         if is_complete:
             q = q & Q(is_complete=is_complete)
@@ -92,7 +92,7 @@ class RainbondCenterAppRepository(object):
     def get_rainbond_app_version_by_record_id(self, record_id: str) -> Optional[RainbondCenterAppVersion]:
         return RainbondCenterAppVersion.objects.filter(record_id=record_id).last()
 
-    def get_rainbond_app_version_by_id(self, eid: str, group_id: str) -> QuerySet[RainbondCenterAppVersion]:
+    def get_rainbond_app_version_by_id(self, eid: str, group_id: str) -> QuerySet:
         return RainbondCenterAppVersion.objects.filter(group_id=group_id, scope="team")
 
 
@@ -105,7 +105,7 @@ class RainbondCenterAppRepository(object):
                                     need_install: str = "",
                                     arch: str = "",
                                     is_plugin: Optional[str] = None
-                                    ) -> Tuple[QuerySet[RainbondCenterApp], int]:
+                                    ) -> Tuple[QuerySet, int]:
         if scope:
             app = RainbondCenterApp.objects.filter(scope=scope)
             if scope == "team" and teams:
@@ -140,7 +140,7 @@ class RainbondCenterAppRepository(object):
                                                                              ).order_by("-update_time").first()
         return app, app_version
 
-    def get_app_helm_overrides(self, app_id: str, app_model_id: str) -> QuerySet[AppHelmOverrides]:
+    def get_app_helm_overrides(self, app_id: str, app_model_id: str) -> QuerySet:
         return AppHelmOverrides.objects.filter(app_id=app_id, app_model_id=app_model_id)
 
     def get_rainbond_app_by_key_version(self, group_key: str, version: str) -> Optional[RainbondCenterAppVersion]:
@@ -173,7 +173,7 @@ class RainbondCenterAppRepository(object):
         logger.warning("Enterprise ID: {0}; Group Key: {1}; Version: {2}".format(enterprise_id, group_key, group_version))
         return None
 
-    def get_app_tag_by_id(self, enterprise_id: str, app_id: str) -> QuerySet[RainbondCenterAppTagsRelation]:
+    def get_app_tag_by_id(self, enterprise_id: str, app_id: str) -> QuerySet:
         return RainbondCenterAppTagsRelation.objects.filter(enterprise_id=enterprise_id, app_id=app_id)
 
     def delete_app_tag_by_id(self, enterprise_id: str, app_id: str) -> None:
@@ -226,11 +226,11 @@ class AppExportRepository(object):
     def delete_by_key_and_version(self, group_key: str, version: str) -> None:
         AppExportRecord.objects.filter(group_key=group_key, version=version).delete()
 
-    def get_by_key_and_version(self, group_key: str, version: str) -> QuerySet[AppExportRecord]:
+    def get_by_key_and_version(self, group_key: str, version: str) -> QuerySet:
         return AppExportRecord.objects.filter(group_key=group_key, version=version)
 
     def get_enter_export_record_by_key_and_version(self, enterprise_id: str, group_key: str,
-                                                   version: str) -> QuerySet[AppExportRecord]:
+                                                   version: str) -> QuerySet:
         return AppExportRecord.objects.filter(group_key=group_key, version=version, enterprise_id__in=["public", enterprise_id])
 
 
@@ -250,15 +250,15 @@ class AppImportRepository(object):
     def create_app_import_record(self, **params: Any) -> AppImportRecord:
         return AppImportRecord.objects.create(**params)
 
-    def get_importing_record(self, user_name: str, team_name: str) -> QuerySet[AppImportRecord]:
+    def get_importing_record(self, user_name: str, team_name: str) -> QuerySet:
         return AppImportRecord.objects.filter(user_name=user_name, team_name=team_name, status="importing")
 
-    def get_user_unfinished_import_record(self, team_name: str, user_name: str) -> QuerySet[AppImportRecord]:
+    def get_user_unfinished_import_record(self, team_name: str, user_name: str) -> QuerySet:
         return AppImportRecord.objects.filter(
             user_name=user_name, team_name=team_name).exclude(status__in=["success", "failed"])
 
     def get_user_not_finished_import_record_in_enterprise(self, eid: str,
-                                                          user_name: str) -> QuerySet[AppImportRecord]:
+                                                          user_name: str) -> QuerySet:
         return AppImportRecord.objects.filter(user_name=user_name, enterprise_id=eid).exclude(status__in=["success", "failed"])
 
 

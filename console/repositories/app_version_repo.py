@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from typing import Any, Optional
+from typing import Any, Dict, Optional, Tuple
 
 from console.models.main import AppVersionTemplateRelation
 
@@ -15,11 +15,11 @@ class AppVersionTemplateRelationRepo(object):
         return AppVersionTemplateRelation.objects.filter(app_model_id=app_model_id).first()
 
     @staticmethod
-    def delete_by_group_id(group_id: str) -> tuple[int, dict[str, int]]:
+    def delete_by_group_id(group_id: str) -> Tuple[int, Dict[str, int]]:
         return AppVersionTemplateRelation.objects.filter(group_id=group_id).delete()
 
     @staticmethod
-    def delete_by_app_model_id(app_model_id: str) -> tuple[int, dict[str, int]]:
+    def delete_by_app_model_id(app_model_id: str) -> Tuple[int, Dict[str, int]]:
         return AppVersionTemplateRelation.objects.filter(app_model_id=app_model_id).delete()
 
     @staticmethod

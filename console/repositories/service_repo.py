@@ -67,7 +67,7 @@ class ServiceRepo(object):
         result = conn.query(sql)
         return True if len(result) > 0 else False
 
-    def list_svc_by_tenant(self, tenant: Any) -> QuerySet[TenantServiceInfo]:
+    def list_svc_by_tenant(self, tenant: Any) -> QuerySet:
         return TenantServiceInfo.objects.filter(tenant_id=tenant.tenant_id)
 
     def get_team_service_num_by_team_id(self, team_id: str, region_name: str) -> int:
@@ -158,7 +158,7 @@ class ServiceRepo(object):
         return None
 
     @staticmethod
-    def list_by_component_ids(service_ids: List[str]) -> QuerySet[TenantServiceInfo]:
+    def list_by_component_ids(service_ids: List[str]) -> QuerySet:
         return TenantServiceInfo.objects.filter(service_id__in=service_ids)
 
     @staticmethod

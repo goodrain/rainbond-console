@@ -78,7 +78,7 @@ class GroupAppsMigrateView(ApplicationView):
             migrate_team.tenant_name, self.tenant.enterprise_id)  # type: ignore[arg-type]
         if not regions:
             return Response(general_message(412, "region is not usable", "团队未开通任何集群"), status=412)
-        if migrate_region not in [r.region_name for r in regions]:
+        if not isinstance(migrate_region, str) or migrate_region not in [r.region_name for r in regions]:
             msg_cn = "无法迁移至集群{0},请确保该集群可用且团队{1}已开通该集群权限".format(migrate_region, migrate_team.tenant_name)
             return Response(general_message(412, "region is not usable", msg_cn), status=412)
 

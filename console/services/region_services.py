@@ -54,7 +54,7 @@ class RegionNotExistException(Exception):
 
 
 class RegionService(object):
-    def get_region_by_tenant_name(self, tenant_name: str) -> Optional[QuerySet[TenantRegionInfo]]:
+    def get_region_by_tenant_name(self, tenant_name: str) -> Optional[QuerySet]:
         return region_repo.get_region_by_tenant_name(tenant_name=tenant_name)
 
     def get_region_by_region_id(self, region_id: str) -> Optional[RegionConfig]:
@@ -171,7 +171,7 @@ class RegionService(object):
         unopen_regions = usable_regions.exclude(region_name__in=opened_regions_name)
         return [unopen_region.to_dict() for unopen_region in unopen_regions]
 
-    def get_open_regions(self, enterprise_id: str) -> QuerySet[RegionConfig]:
+    def get_open_regions(self, enterprise_id: str) -> QuerySet:
         usable_regions = region_repo.get_usable_regions(enterprise_id)
         return usable_regions
 
@@ -401,7 +401,7 @@ class RegionService(object):
             token = "Token {}".format(token)
         return url, token
 
-    def get_team_usable_regions(self, team_name: str, enterprise_id: str) -> Optional[QuerySet[TenantRegionInfo]]:
+    def get_team_usable_regions(self, team_name: str, enterprise_id: str) -> Optional[QuerySet]:
         usable_regions = region_repo.get_usable_regions(enterprise_id)
         region_names = [r.region_name for r in usable_regions]
         team_opened_regions = region_repo.get_team_opened_region(team_name)
@@ -423,7 +423,7 @@ class RegionService(object):
         json_region_dict["备注"] = region["desc"]
         return json.dumps(json_region_dict, ensure_ascii=False)
 
-    def get_regions_by_enterprise_id(self, enterprise_id: str) -> QuerySet[RegionConfig]:
+    def get_regions_by_enterprise_id(self, enterprise_id: str) -> QuerySet:
         return RegionConfig.objects.filter(enterprise_id=enterprise_id)
 
     def add_region(self, region_data: dict, user: Users) -> RegionConfig:

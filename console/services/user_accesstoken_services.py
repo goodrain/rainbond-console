@@ -29,13 +29,13 @@ class UserAccessTokenServices(object):
     def check_user_access_key(self, access_key: str) -> Optional[UserAccessKey]:
         return user_access_repo.get_user_perm_by_access_key(access_key)
 
-    def get_user_access_key(self, user_id: str) -> QuerySet[UserAccessKey]:
+    def get_user_access_key(self, user_id: str) -> QuerySet:
         return user_access_repo.get_user_access_key(user_id)
 
-    def get_user_access_key_by_id(self, user_id: str, id: str) -> QuerySet[UserAccessKey]:
+    def get_user_access_key_by_id(self, user_id: str, id: str) -> QuerySet:
         return user_access_repo.get_user_access_key_by_id(user_id, id)
 
-    def get_user_access_key_by_note(self, user_id: str, note: str) -> QuerySet[UserAccessKey]:
+    def get_user_access_key_by_note(self, user_id: str, note: str) -> QuerySet:
         return user_access_repo.get_user_access_key_by_note(user_id, note)
 
     def delete_user_access_key_by_id(self, user_id: str, note: str) -> tuple:

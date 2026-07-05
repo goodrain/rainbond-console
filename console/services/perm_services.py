@@ -35,7 +35,7 @@ class RoleService(object):
 
 
 class RoleKindService(object):
-    def get_roles(self, kind: str, kind_id: str, with_default: bool = False) -> QuerySet[RoleInfo]:
+    def get_roles(self, kind: str, kind_id: str, with_default: bool = False) -> QuerySet:
         return role_kind_repo.get_roles(kind, kind_id, with_default)
 
     def get_role_by_id(self, kind: str, kind_id: str, id: str, with_default: bool = False) -> Optional[RoleInfo]:

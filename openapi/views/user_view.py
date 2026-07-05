@@ -21,7 +21,6 @@ from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 from www.models.main import Users, Tenants
-from www.utils.return_message import general_message
 
 logger = logging.getLogger("default")
 
@@ -295,7 +294,8 @@ class UserTenantDelete(BaseOpenAPIView):
                 # delete records
                 group_service.delete_app_share_records(tenant.tenant_name, app_id)
                 # delete app
-                # NOTE: get_app_by_id may return None; loop var typed ServiceGroup (assignment).
-                app = group_service.get_app_by_id(tenant, app.region_name, app_id)  # type: ignore[assignment]
-                group_service.delete_app(tenant, app.region_name, app)
+                app_to_delete = group_service.get_app_by_id(tenant, app.region_name, app_id)
+                if not app_to_delete:
+                    continue
+                group_service.delete_app(tenant, app_to_delete.region_name, app_to_delete)
         return Response({"bean": "delete success"}, status=200)

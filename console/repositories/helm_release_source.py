@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from typing import Any, Optional
+from typing import Any, Dict, Optional, Tuple
 
 from console.models.main import TeamHelmReleaseSource
 
@@ -44,7 +44,7 @@ class TeamHelmReleaseSourceRepository(object):
         }
 
     def delete_by_release(self, region_name: str, namespace: str,
-                          release_name: str) -> tuple[int, dict[str, int]]:
+                          release_name: str) -> Tuple[int, Dict[str, int]]:
         return TeamHelmReleaseSource.objects.filter(
             region_name=region_name,
             namespace=namespace,

@@ -1,4 +1,4 @@
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from django.db import IntegrityError
 from django.db.models import QuerySet
@@ -10,10 +10,10 @@ class HelmRepo(object):
     def create_helm_repo(self, **params: Any) -> HelmRepoInfo:
         return HelmRepoInfo.objects.create(**params)
 
-    def get_all_repo(self) -> QuerySet[HelmRepoInfo]:
+    def get_all_repo(self) -> QuerySet:
         return HelmRepoInfo.objects.filter()
 
-    def delete_helm_repo(self, repo_name: str) -> Optional[tuple[int, dict[str, int]]]:
+    def delete_helm_repo(self, repo_name: str) -> Optional[Tuple[int, Dict[str, int]]]:
         data = HelmRepoInfo.objects.filter(repo_name=repo_name)
         if not data:
             return None
@@ -52,7 +52,7 @@ class RegionEvent(object):
             raise Exception(f"Error creating TaskEvent: {str(e)}")
 
     # 列出指定 enterprise_id 和 task_id 的事件
-    def list_event(self, eid: str, task_id: str) -> QuerySet[TaskEvent]:
+    def list_event(self, eid: str, task_id: str) -> QuerySet:
         return TaskEvent.objects.filter(enterprise_id=eid, task_id=task_id)
 
     # 更新状态批量更新 TaskEvent 的状态

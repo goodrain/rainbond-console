@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from typing import Any
+from typing import Any, Tuple
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -21,7 +21,7 @@ def _parse_bool(value: Any) -> bool:
     return bool(value)
 
 
-def _get_or_create_global_image_registry_config(eid: str) -> tuple[EnterpriseConfigService, ConsoleSysConfig]:
+def _get_or_create_global_image_registry_config(eid: str) -> Tuple[EnterpriseConfigService, ConsoleSysConfig]:
     config_service = EnterpriseConfigService(eid, None)
     config = config_service.get_config_by_key(GLOBAL_IMAGE_REGISTRY_CONFIG_KEY)
     if not config:

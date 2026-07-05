@@ -25,7 +25,7 @@ class ShareRepo(object):
         else:
             return []
 
-    def get_relation_list_by_service_ids(self, service_ids: List[str]) -> QuerySet[TenantServiceRelation]:
+    def get_relation_list_by_service_ids(self, service_ids: List[str]) -> QuerySet:
         return TenantServiceRelation.objects.filter(service_id__in=service_ids)
 
     def get_env_list_by_service_ids(self, service_ids: List[str]) -> Any:
@@ -50,7 +50,7 @@ class ShareRepo(object):
         plugins_attr_list = attr_mgr.filter(service_id__in=service_ids).all()
         return plugins_attr_list or []
 
-    def get_plugin_config_var_by_service_ids(self, service_ids: List[str]) -> QuerySet[ServicePluginConfigVar]:
+    def get_plugin_config_var_by_service_ids(self, service_ids: List[str]) -> QuerySet:
         return ServicePluginConfigVar.objects.filter(service_id__in=service_ids)  # type: ignore[attr-defined]
 
     def get_plugins_relation_by_service_ids(self, service_ids: List[str]) -> Any:
@@ -161,10 +161,10 @@ class ShareRepo(object):
     def get_service_share_record_by_id(self, group_id: str, record_id: int) -> Optional[ServiceShareRecord]:
         return ServiceShareRecord.objects.filter(group_id=group_id, ID=record_id).first()
 
-    def get_multi_app_share_records(self, group_ids: List[str]) -> QuerySet[ServiceShareRecord]:
+    def get_multi_app_share_records(self, group_ids: List[str]) -> QuerySet:
         return ServiceShareRecord.objects.filter(group_id__in=group_ids)
 
-    def get_app_share_records_by_groupid(self, team_name: str, group_id: str) -> QuerySet[ServiceShareRecord]:
+    def get_app_share_records_by_groupid(self, team_name: str, group_id: str) -> QuerySet:
         return ServiceShareRecord.objects.filter(group_id=group_id, team_name=team_name, status__in=[0, 1, 2])
 
     def get_app_share_record_count_by_groupid(self, group_id: str) -> int:

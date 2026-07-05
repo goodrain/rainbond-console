@@ -9,7 +9,7 @@ from console.models import KubeBlocksBackupRepo
 
 
 class KubeBlocksBackupRepoRepository(object):
-    def list_by_team(self, tenant_id: str, region_name: str) -> QuerySet[KubeBlocksBackupRepo]:
+    def list_by_team(self, tenant_id: str, region_name: str) -> QuerySet:
         return KubeBlocksBackupRepo.objects.filter(
             tenant_id=tenant_id,
             region_name=region_name,

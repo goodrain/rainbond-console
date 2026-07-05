@@ -260,7 +260,7 @@ class AppEnvVarService(object):
         return env_var_repo.get_service_env_by_attr_name(tenant.tenant_id, service.service_id, attr_name)
 
     def get_env_by_container_port(self, tenant: Any, service: Any,
-                                  container_port: int) -> QuerySet[TenantServiceEnvVar]:
+                                  container_port: int) -> QuerySet:
         return env_var_repo.get_service_env_by_port(tenant.tenant_id, service.service_id, container_port)
 
     def patch_env_scope(self, tenant: Any, service: Any, env_id: str, scope: str,

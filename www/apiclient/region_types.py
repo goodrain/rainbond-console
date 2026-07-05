@@ -19,7 +19,9 @@ Conventions
 These are additive type aids; adopt them incrementally on regionapi methods that
 already unwrap ``bean``/``list``.
 """
-from typing import Any, Dict, List, NotRequired, Optional, TypedDict
+from typing import Any, Dict, List, Optional
+
+from typing_extensions import NotRequired, TypedDict
 
 
 class ResponseBody(TypedDict, total=False):

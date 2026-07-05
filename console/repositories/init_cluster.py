@@ -117,7 +117,7 @@ class ClusterNode(object):
         ).first()
         return cluster_node
 
-    def get_cluster_nodes(self, cluster_id: str) -> QuerySet[RKEClusterNode]:
+    def get_cluster_nodes(self, cluster_id: str) -> QuerySet:
         cluster_nodes = RKEClusterNode.objects.filter(
             cluster_id=cluster_id,
         )

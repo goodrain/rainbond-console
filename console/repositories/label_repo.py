@@ -16,7 +16,7 @@ import datetime
 
 
 class ServiceLabelsReporsitory(object):
-    def get_service_labels(self, service_id: str) -> QuerySet[ServiceLabels]:
+    def get_service_labels(self, service_id: str) -> QuerySet:
         return ServiceLabels.objects.filter(service_id=service_id)  # type: ignore[attr-defined]
 
     def delete_service_labels(self, service_id: str, label_id: str) -> None:
@@ -29,7 +29,7 @@ class ServiceLabelsReporsitory(object):
         return ServiceLabels.objects.filter(service_id=service_id, label_id=label_id).first()  # type: ignore[attr-defined]
 
     @staticmethod
-    def list_by_component_ids(component_ids: List[str]) -> QuerySet[ServiceLabels]:
+    def list_by_component_ids(component_ids: List[str]) -> QuerySet:
         return ServiceLabels.objects.filter(service_id__in=component_ids)  # type: ignore[attr-defined]
 
     @staticmethod
@@ -42,16 +42,16 @@ class ServiceLabelsReporsitory(object):
 
 
 class NodeLabelsReporsitory(object):
-    def get_node_label_by_region(self, region_id: str) -> QuerySet[NodeLabels]:
+    def get_node_label_by_region(self, region_id: str) -> QuerySet:
         return NodeLabels.objects.filter(region_id=region_id)  # type: ignore[attr-defined]
 
-    def get_all_labels(self) -> QuerySet[NodeLabels]:
+    def get_all_labels(self) -> QuerySet:
         labels = NodeLabels.objects.all()  # type: ignore[attr-defined]
         return labels
 
 
 class LabelsReporsitory(object):
-    def get_labels_by_label_ids(self, label_ids: List[str]) -> QuerySet[Labels]:
+    def get_labels_by_label_ids(self, label_ids: List[str]) -> QuerySet:
         return Labels.objects.filter(label_id__in=label_ids)  # type: ignore[attr-defined]
 
     def get_label_by_label_id(self, label_id: str) -> Optional[Labels]:
@@ -60,7 +60,7 @@ class LabelsReporsitory(object):
             return labels[0]
         return None
 
-    def get_all_labels(self) -> QuerySet[Labels]:
+    def get_all_labels(self) -> QuerySet:
         labels = Labels.objects.all()  # type: ignore[attr-defined]
         return labels
 
@@ -75,7 +75,7 @@ class LabelsReporsitory(object):
         return Labels.objects.filter(label_name=label_name).first()  # type: ignore[attr-defined]
 
     @staticmethod
-    def list_by_label_ids(label_ids: List[str]) -> QuerySet[Labels]:
+    def list_by_label_ids(label_ids: List[str]) -> QuerySet:
         return Labels.objects.filter(label_id__in=label_ids)  # type: ignore[attr-defined]
 
     @staticmethod

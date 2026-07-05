@@ -43,14 +43,14 @@ class GrayReleaseRepo(object):
         ).first()
 
     def list_by_app(self, tenant_id: str, app_id: str,
-                    status: Optional[str] = None) -> QuerySet[GrayReleaseRecord]:
+                    status: Optional[str] = None) -> QuerySet:
         """获取应用的灰度发布记录列表"""
         q = Q(tenant_id=tenant_id, app_id=app_id)
         if status:
             q &= Q(status=status)
         return GrayReleaseRecord.objects.filter(q).order_by('-create_time')
 
-    def list_by_tenant(self, tenant_id: str, status: Optional[str] = None) -> QuerySet[GrayReleaseRecord]:
+    def list_by_tenant(self, tenant_id: str, status: Optional[str] = None) -> QuerySet:
         """获取租户的灰度发布记录列表"""
         q = Q(tenant_id=tenant_id)
         if status:

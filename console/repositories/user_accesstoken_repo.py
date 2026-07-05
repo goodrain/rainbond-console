@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import logging
 from time import time
-from typing import Any, Optional
+from typing import Any, Dict, Optional, Tuple
 
 from django.db.models import Q, QuerySet
 
@@ -19,16 +19,16 @@ class UserAccessTokenRepo(object):
         return UserAccessKey.objects.filter(
             Q(access_key=access_key, expire_time__gt=_now) | Q(access_key=access_key, expire_time=None)).first()
 
-    def get_user_access_key(self, user_id: str) -> QuerySet[UserAccessKey]:
+    def get_user_access_key(self, user_id: str) -> QuerySet:
         return UserAccessKey.objects.filter(user_id=user_id)
 
-    def get_user_access_key_by_id(self, user_id: str, id: str) -> QuerySet[UserAccessKey]:
+    def get_user_access_key_by_id(self, user_id: str, id: str) -> QuerySet:
         return UserAccessKey.objects.filter(ID=id, user_id=user_id)
 
-    def get_user_access_key_by_note(self, user_id: str, note: str) -> QuerySet[UserAccessKey]:
+    def get_user_access_key_by_note(self, user_id: str, note: str) -> QuerySet:
         return UserAccessKey.objects.filter(note=note, user_id=user_id)
 
-    def delete_user_access_key_by_id(self, user_id: str, id: str) -> tuple[int, dict[str, int]]:
+    def delete_user_access_key_by_id(self, user_id: str, id: str) -> Tuple[int, Dict[str, int]]:
         return self.get_user_access_key_by_id(user_id, id).delete()
 
 

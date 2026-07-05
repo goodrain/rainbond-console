@@ -34,7 +34,7 @@ class UserRepo(object):
         user = Users.objects.filter(nick_name=user_name).first()
         return user
 
-    def get_user_by_filter(self, args: Any = None, kwargs: Any = None) -> QuerySet[Users]:
+    def get_user_by_filter(self, args: Any = None, kwargs: Any = None) -> QuerySet:
         args = tuple(args) if isinstance(args, (tuple, list, set)) else tuple()
         kwargs = kwargs if isinstance(kwargs, dict) else dict()
         users = Users.objects.filter(*args, **kwargs)
@@ -46,11 +46,11 @@ class UserRepo(object):
             return u[0]
         return None
 
-    def get_by_user_ids(self, user_ids: List[str]) -> QuerySet[Users]:
+    def get_by_user_ids(self, user_ids: List[str]) -> QuerySet:
         u = Users.objects.filter(user_id__in=user_ids)
         return u
 
-    def get_enterprise_users(self, enterprise_id: str) -> QuerySet[Users]:
+    def get_enterprise_users(self, enterprise_id: str) -> QuerySet:
         return Users.objects.filter(enterprise_id=enterprise_id)
 
     def get_user_by_email(self, email: str) -> Optional[Users]:
@@ -71,7 +71,7 @@ class UserRepo(object):
             return u[0]
         return None
 
-    def get_all_users(self) -> QuerySet[Users]:
+    def get_all_users(self) -> QuerySet:
         return Users.objects.all()
 
     def get_user_nickname_by_id(self, user_id: str) -> Optional[str]:
@@ -81,7 +81,7 @@ class UserRepo(object):
         else:
             return None
 
-    def list_users(self, item: str = "") -> QuerySet[Users]:
+    def list_users(self, item: str = "") -> QuerySet:
         """
         Support search by username, email, phone number
         """
@@ -183,11 +183,11 @@ class UserRepo(object):
         result = conn.query(sql)
         return result[0].get("total")
 
-    def get_user_favorite(self, user_id: Any) -> QuerySet[UserFavorite]:
+    def get_user_favorite(self, user_id: Any) -> QuerySet:
         # user_id arrives as str from some callers and as the int model field from others
         return UserFavorite.objects.filter(user_id=user_id).order_by("custom_sort")
 
-    def get_user_favorite_by_name(self, user_id: str, name: str) -> QuerySet[UserFavorite]:
+    def get_user_favorite_by_name(self, user_id: str, name: str) -> QuerySet:
         return UserFavorite.objects.filter(user_id=user_id, name=name)
 
     def get_user_favorite_by_ID(self, user_id: str, favorite_id: str) -> UserFavorite:
