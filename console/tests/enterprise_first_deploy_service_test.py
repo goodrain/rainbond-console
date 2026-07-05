@@ -99,6 +99,7 @@ class FirstDeployRepoStub(object):
         self.attempt_payload = {}
         self.saved_payloads = []
         self.created_payloads = []
+        self.deleted_records = []
 
     def get_by_enterprise_id(self, _enterprise_id):
         return self.record
@@ -117,17 +118,27 @@ class FirstDeployRepoStub(object):
         return self.record
 
     def list_tracking_records(self):
-        return [self.record]
+        records = [self.record]
+        if self.attempt_payload:
+            records.append(self.attempt_record)
+        return records
 
     def load_payload(self, _record):
         if getattr(_record, "key", "") == self.attempt_record.key:
             return deepcopy(self.attempt_payload)
         return deepcopy(self.payload)
 
-    def create_attempt(self, _enterprise_id, payload):
+    def create_attempt(self, enterprise_id, payload):
+        deploy_attempt_id = (payload.get("deployment_context") or {}).get("deploy_attempt_id")
+        self.attempt_record.key = self.build_attempt_key(enterprise_id, deploy_attempt_id)
         self.attempt_payload = deepcopy(payload)
         self.created_payloads.append(deepcopy(payload))
         return self.attempt_record, True
+
+    def delete_payload(self, record):
+        self.deleted_records.append(getattr(record, "key", ""))
+        if getattr(record, "key", "") == self.attempt_record.key:
+            self.attempt_payload = {}
 
     @staticmethod
     def build_attempt_key(_enterprise_id, deploy_attempt_id):
@@ -177,7 +188,7 @@ class EnterpriseFirstDeployServiceTests(TestCase):
         self.assertEqual(payload["report_type"], self.service.REPORT_TYPE_FIRST_DEPLOY)
         self.assertTrue(payload["is_first_deploy"])
 
-    def test_begin_deploy_attempt_tracking_keeps_attempt_in_memory_after_first_deploy_finished(self):
+    def test_begin_deploy_attempt_tracking_uses_recoverable_attempt_record_after_first_deploy_finished(self):
         repo = FirstDeployRepoStub({
             "enterprise_id": "eid-1",
             "deploy_type": self.service.DEPLOY_TYPE_IMAGE,
@@ -210,15 +221,15 @@ class EnterpriseFirstDeployServiceTests(TestCase):
                 trigger="manual_deploy")
 
         self.assertIsNotNone(tracker)
-        self.assertTrue(tracker["memory_only"])
-        self.assertEqual(repo.created_payloads, [])
-        self.assertEqual(repo.attempt_payload, {})
-        self.assertEqual(tracker["payload"]["report_type"], self.service.REPORT_TYPE_DEPLOY_ATTEMPT)
-        self.assertFalse(tracker["payload"]["is_first_deploy"])
-        self.assertEqual(tracker["payload"]["deployment_context"]["trigger"], "manual_deploy")
+        self.assertNotIn("memory_only", tracker)
+        self.assertEqual(len(repo.created_payloads), 1)
+        self.assertEqual(repo.attempt_payload["report_type"], self.service.REPORT_TYPE_DEPLOY_ATTEMPT)
+        self.assertFalse(repo.attempt_payload["is_first_deploy"])
+        self.assertEqual(repo.attempt_payload["deployment_context"]["trigger"], "manual_deploy")
+        self.assertEqual(tracker["key"], repo.attempt_record.key)
         self.assertEqual(repo.payload["status"], self.service.STATUS_SUCCESS)
 
-    def test_deploy_attempt_mark_failure_posts_without_console_repo_update(self):
+    def test_deploy_attempt_mark_failure_posts_and_removes_recoverable_attempt_record(self):
         repo = FirstDeployRepoStub({
             "enterprise_id": "eid-1",
             "deploy_type": self.service.DEPLOY_TYPE_IMAGE,
@@ -240,7 +251,10 @@ class EnterpriseFirstDeployServiceTests(TestCase):
                 trigger="manual_deploy")
             self.service.mark_failure(tracker, reason="container startup failed")
 
-        self.assertEqual(repo.saved_payloads, [])
+        self.assertEqual(len(repo.saved_payloads), 1)
+        self.assertEqual(repo.saved_payloads[0]["status"], self.service.STATUS_FAILURE)
+        self.assertEqual(repo.attempt_payload, {})
+        self.assertEqual(repo.deleted_records, [repo.attempt_record.key])
         report_payload = mock_post.call_args[1]["json"]
         self.assertEqual(report_payload["report_type"], self.service.REPORT_TYPE_DEPLOY_ATTEMPT)
         self.assertFalse(report_payload["is_first_deploy"])
@@ -408,6 +422,8 @@ class EnterpriseFirstDeployServiceTests(TestCase):
 
         with mock.patch("console.services.enterprise_first_deploy_service.enterprise_first_deploy_repo", repo), \
                 mock.patch.object(self.service, "_start_environment_collect_thread", create=True) as mock_start_collect, \
+                mock.patch("console.services.enterprise_first_deploy_service.transaction.on_commit",
+                           side_effect=lambda func: func()), \
                 mock.patch("console.services.enterprise_first_deploy_service.TenantEnterprise.objects.filter") as mock_filter:
             mock_filter.return_value.first.return_value = Obj(enterprise_alias="demo-enterprise")
             tracker = self.service.begin_tracking(
@@ -1912,6 +1928,38 @@ class EnterpriseFirstDeployServiceTests(TestCase):
             self.service._resume_pending_trackers_once()
 
         mock_start_sync_thread.assert_called_once_with("record-key", "demo-team", "demo-region")
+
+    def test_resume_pending_trackers_reports_finished_unreported_attempt(self):
+        repo = FirstDeployRepoStub({
+            "enterprise_id": "eid-1",
+            "tenant_name": "demo-team",
+            "region_name": "demo-region",
+            "status": self.service.STATUS_SUCCESS,
+            "reported": True,
+        })
+        repo.attempt_payload = {
+            "enterprise_id": "eid-1",
+            "tenant_name": "demo-team",
+            "region_name": "demo-region",
+            "deploy_type": self.service.DEPLOY_TYPE_IMAGE,
+            "report_type": self.service.REPORT_TYPE_DEPLOY_ATTEMPT,
+            "status": self.service.STATUS_FAILURE,
+            "reported": False,
+            "deployment_context": {"deploy_attempt_id": "attempt-1"},
+        }
+
+        with mock.patch("console.services.enterprise_first_deploy_service.enterprise_first_deploy_repo", repo), \
+                mock.patch.object(self.service, "_report_if_needed") as mock_report, \
+                mock.patch.object(self.service, "_start_sync_thread") as mock_start_sync_thread:
+            self.service._resume_pending_trackers_once()
+
+        mock_report.assert_called_once()
+        report_args, report_kwargs = mock_report.call_args
+        self.assertEqual(report_args[0], repo.attempt_record)
+        self.assertEqual(report_args[1]["report_type"], self.service.REPORT_TYPE_DEPLOY_ATTEMPT)
+        self.assertTrue(report_kwargs["async_report"])
+        self.assertEqual(report_kwargs["key"], repo.attempt_record.key)
+        mock_start_sync_thread.assert_not_called()
 
     def test_readiness_probe_failure_within_observe_window_does_not_immediately_fail(self):
         """ContainersNotReady during observe window should not trigger immediate FAILURE."""

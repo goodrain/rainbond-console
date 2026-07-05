@@ -75,6 +75,10 @@ class EnterpriseFirstDeployRepository(object):
         return record
 
     @staticmethod
+    def delete_payload(record: ConsoleSysConfig) -> None:
+        record.delete()
+
+    @staticmethod
     def load_payload(record: Optional[ConsoleSysConfig]) -> dict:
         if not record or not record.value:
             return {}
