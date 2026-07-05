@@ -30,7 +30,7 @@ class PermsRepo(object):
                 perms_list.append(PermsInfo(name=perm[0], desc=perm[1], code=perm[2], group=perm[3], kind=perm[4]))
             PermsInfo.objects.bulk_create(perms_list)
 
-    def get_all_perms(self) -> QuerySet[PermsInfo]:
+    def get_all_perms(self) -> QuerySet:
         perms = PermsInfo.objects.all()
         return perms
 
@@ -50,7 +50,7 @@ class PermsRepo(object):
 
 
 class RoleKindRepo(object):
-    def get_roles(self, kind: str, kind_id: str, with_default: bool = False) -> QuerySet[RoleInfo]:
+    def get_roles(self, kind: str, kind_id: str, with_default: bool = False) -> QuerySet:
         if with_default:
             return RoleInfo.objects.filter(Q(kind_id=kind_id) | Q(kind_id="default")).filter(kind=kind)
         return RoleInfo.objects.filter(kind=kind, kind_id=kind_id)
@@ -65,7 +65,7 @@ class RoleKindRepo(object):
             return RoleInfo.objects.filter(Q(kind_id=kind_id) | Q(kind_id="default")).filter(kind=kind, name=name).first()
         return RoleInfo.objects.filter(kind=kind, kind_id=kind_id, name=name).first()
 
-    def get_roles_by_names(self, kind: str, kind_id: str, names: List[str]) -> QuerySet[RoleInfo]:
+    def get_roles_by_names(self, kind: str, kind_id: str, names: List[str]) -> QuerySet:
         return RoleInfo.objects.filter(kind=kind, kind_id=kind_id, name__in=names)
 
     def create_role(self, kind: str, kind_id: str, name: str) -> RoleInfo:
@@ -83,10 +83,10 @@ class RoleRepo(object):
 
 
 class RolePermRelationRepo(object):
-    def get_role_perm_relation(self, role_id: str) -> QuerySet[RolePerms]:
+    def get_role_perm_relation(self, role_id: str) -> QuerySet:
         return RolePerms.objects.filter(role_id=role_id)
 
-    def get_roles_perm_relation(self, role_ids: List[str]) -> QuerySet[RolePerms]:
+    def get_roles_perm_relation(self, role_ids: List[str]) -> QuerySet:
         return RolePerms.objects.filter(role_id__in=role_ids)
 
     def create_role_perm_relation(self, role_id: str, perm_codes: List[str]) -> List[RolePerms]:

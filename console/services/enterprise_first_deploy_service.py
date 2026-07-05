@@ -529,6 +529,7 @@ class EnterpriseFirstDeployService(object):
             "build_started_at": self._now(),
             "build_finished_at": "",
             "build_event_id": "",
+            "build_success_events": [],
             "build_failure_reason": "",
             "build_failure_events": [],
             "build_failure_logs": [],
@@ -536,6 +537,7 @@ class EnterpriseFirstDeployService(object):
             "runtime_started_at": "",
             "runtime_finished_at": "",
             "runtime_event_id": "",
+            "runtime_success_events": [],
             "runtime_failure_reason": "",
             "runtime_failure_events": [],
             "runtime_failure_logs": [],
@@ -544,6 +546,7 @@ class EnterpriseFirstDeployService(object):
             "failure_reason": "",
             "failure_category": "",
             "log_collect_status": "",
+            "success_events": [],
             "failure_events": [],
             "failure_logs": [],
         }
@@ -633,8 +636,9 @@ class EnterpriseFirstDeployService(object):
             if event_id and status:
                 status_map[str(event_id)] = status
 
+        normalized_events = [self._normalize_event_data(event) for event in events]
         failed_events = [
-            event for event in [self._normalize_event_data(event) for event in events]
+            event for event in normalized_events
             if event.get("status") in (self.STATUS_FAILURE, "timeout")
         ]
         if failed_events:
@@ -659,12 +663,17 @@ class EnterpriseFirstDeployService(object):
         normalized = set(status_map.values())
         if normalized == {self.STATUS_SUCCESS}:
             build_service_id = self._merge_service_ids(payload, events)
+            success_events = [
+                event for event in normalized_events
+                if event.get("status") == self.STATUS_SUCCESS
+            ]
             if payload.get("build_status") == self.STAGE_STATUS_PENDING:
                 self._mark_stage_success(
                     payload,
                     self.FAILURE_STAGE_BUILD,
                     event_id=payload.get("build_event_id") or (event_ids[0] if event_ids else ""),
-                    service_id=build_service_id)
+                    service_id=build_service_id,
+                    success_events=success_events)
                 payload["runtime_started_at"] = self._now()
                 payload["runtime_watch_started_at"] = payload["runtime_started_at"]
                 self._save_tracking_payload(record, payload, key=key)
@@ -799,7 +808,7 @@ class EnterpriseFirstDeployService(object):
         return service_ids[0] if service_ids else ""
 
     def _mark_stage_success(self, payload: dict, stage: str, event_id: str = "",
-                            service_id: Optional[str] = "") -> None:
+                            service_id: Optional[str] = "", success_events: Any = None) -> None:
         now = self._now()
         payload["payload_version"] = self.PAYLOAD_VERSION
         payload["{}_status".format(stage)] = self.STATUS_SUCCESS
@@ -810,6 +819,19 @@ class EnterpriseFirstDeployService(object):
             payload["{}_event_id".format(stage)] = event_id
         if service_id and service_id not in payload.get("service_ids", []):
             payload.setdefault("service_ids", []).append(service_id)
+        compact_events = self._shrink_success_events(success_events)
+        if compact_events:
+            payload["{}_success_events".format(stage)] = compact_events
+            existing_events = payload.get("success_events") or []
+            existing_ids = set([event.get("event_id") for event in existing_events])
+            for event in compact_events:
+                event_id_for_merge = event.get("event_id")
+                if event_id_for_merge and event_id_for_merge in existing_ids:
+                    continue
+                existing_events.append(event)
+                if event_id_for_merge:
+                    existing_ids.add(event_id_for_merge)
+            payload["success_events"] = existing_events
         payload["{}_failure_reason".format(stage)] = ""
         payload["{}_failure_events".format(stage)] = []
         payload["{}_failure_logs".format(stage)] = []
@@ -1221,6 +1243,8 @@ class EnterpriseFirstDeployService(object):
                 "environment_context": payload.get("environment_context") or {},
                 "workload_context": payload.get("workload_context") or {},
             })
+        if payload.get("success_events"):
+            report_payload["success_events"] = payload.get("success_events") or []
         if payload.get("status") == self.STATUS_FAILURE:
             report_payload.update({
                 "payload_version": payload.get("payload_version", self.PAYLOAD_VERSION),
@@ -1478,6 +1502,9 @@ class EnterpriseFirstDeployService(object):
                 "end_time": event.get("end_time", ""),
             })
         return compact_events
+
+    def _shrink_success_events(self, success_events: Any) -> list:
+        return self._shrink_failure_events(success_events)
 
     def _collect_failure_logs(self, tenant_name: str, region_name: str, failed_events: Any,
                               failure_stage: str) -> list:

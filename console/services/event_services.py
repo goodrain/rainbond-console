@@ -21,7 +21,7 @@ e_s = AppEventService()
 
 class ServiceEventDynamic(object):
     def get_team_current_region_service_events(
-            self, region: str, team: Tenants, page: int, page_size: int) -> QuerySet[ServiceEvent]:
+            self, region: str, team: Tenants, page: int, page_size: int) -> QuerySet:
         dsn = BaseConnection()
         start = (int(page) - 1) * int(page_size)
         end = page_size
@@ -167,7 +167,7 @@ class ServiceEventDynamic(object):
                 local_event.save()
 
     def __sync_region_service_event_status(
-            self, region: str, tenant_name: str, events: QuerySet[ServiceEvent], timeout: bool = False) -> None:
+            self, region: str, tenant_name: str, events: QuerySet, timeout: bool = False) -> None:
         local_events_not_complete: Dict[str, ServiceEvent] = dict()
         for event in events:
             if event.final_status == '':

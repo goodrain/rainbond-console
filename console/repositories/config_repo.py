@@ -8,7 +8,7 @@ from console.models.main import ConsoleSysConfig
 
 
 class ConfigRepository(object):
-    def list_by_keys(self, keys: Any) -> QuerySet[ConsoleSysConfig]:
+    def list_by_keys(self, keys: Any) -> QuerySet:
         return ConsoleSysConfig.objects.filter(enable=True, key__in=keys)
 
     def delete_by_key(self, key: str) -> None:

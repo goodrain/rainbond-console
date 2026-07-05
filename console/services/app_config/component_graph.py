@@ -20,11 +20,11 @@ logger = logging.getLogger("default")
 
 class ComponentGraphService(object):
     @staticmethod
-    def select_component_graphs(component_id: str, graph_ids: List[str]) -> QuerySet[ComponentGraph]:
+    def select_component_graphs(component_id: str, graph_ids: List[str]) -> QuerySet:
         graphs = component_graph_repo.gets(component_id, graph_ids)
         return graphs
 
-    def json_component_graphs(self, graphs: QuerySet[ComponentGraph]) -> str:
+    def json_component_graphs(self, graphs: QuerySet) -> str:
         component_graph_list = list()
         for graph in graphs:
             component_graph_dict = dict()

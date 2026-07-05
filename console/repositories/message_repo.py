@@ -10,10 +10,10 @@ from console.constants import MessageType
 
 
 class AnnouncementRepository(object):
-    def get_enabled_announcements(self) -> QuerySet[Announcement]:
+    def get_enabled_announcements(self) -> QuerySet:
         return Announcement.objects.filter(active=True)
 
-    def get_close_announcements(self) -> QuerySet[Announcement]:
+    def get_close_announcements(self) -> QuerySet:
         return Announcement.objects.filter(active=False)
 
     def get_all_announcements_id(self) -> list:
@@ -22,16 +22,16 @@ class AnnouncementRepository(object):
 
 
 class MessageRepository(object):
-    def get_user_announcements(self, use_id: str) -> QuerySet[UserMessage]:
+    def get_user_announcements(self, use_id: str) -> QuerySet:
         return UserMessage.objects.filter(receiver_id=use_id, msg_type=MessageType.ANNOUNCEMENT)
 
-    def get_user_all_msgs(self, user_id: str) -> QuerySet[UserMessage]:
+    def get_user_all_msgs(self, user_id: str) -> QuerySet:
         return UserMessage.objects.filter(receiver_id=user_id)
 
-    def get_usermessage_queryset(self, announcement_id: str) -> QuerySet[UserMessage]:
+    def get_usermessage_queryset(self, announcement_id: str) -> QuerySet:
         return UserMessage.objects.filter(announcement_id=announcement_id)
 
-    def get_all_usermessage(self) -> QuerySet[UserMessage]:
+    def get_all_usermessage(self) -> QuerySet:
         return UserMessage.objects.exclude(announcement_id__isnull=True)
 
 

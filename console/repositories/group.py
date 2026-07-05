@@ -32,7 +32,7 @@ class GroupRepository(object):
     def update(app_id: str, **data: Any) -> None:
         ServiceGroup.objects.filter(pk=app_id).update(**data)
 
-    def list_tenant_group_on_region(self, tenant: Tenants, region_name: str) -> QuerySet[ServiceGroup]:
+    def list_tenant_group_on_region(self, tenant: Tenants, region_name: str) -> QuerySet:
         return ServiceGroup.objects.filter(
             tenant_id=tenant.tenant_id, region_name=region_name).order_by("-update_time", "-order_index")
 
@@ -94,7 +94,7 @@ class GroupRepository(object):
         return group_count
 
     def get_tenant_region_groups(self, team_id: str, region: str, query: str = "", app_type: str = "",
-                                 app_ids: List[int] = []) -> QuerySet[ServiceGroup]:
+                                 app_ids: List[int] = []) -> QuerySet:
         q = Q(tenant_id=team_id, region_name=region)
         if app_type:
             q &= Q(app_type=app_type)
@@ -110,10 +110,10 @@ class GroupRepository(object):
     def get_tenant_groups_count(self, team_id: str) -> int:
         return ServiceGroup.objects.filter(tenant_id=team_id).count()
 
-    def get_groups_by_tenant_ids(self, tenant_ids: List[str]) -> QuerySet[ServiceGroup]:
+    def get_groups_by_tenant_ids(self, tenant_ids: List[str]) -> QuerySet:
         return ServiceGroup.objects.filter(tenant_id__in=tenant_ids).order_by("-update_time", "-order_index")
 
-    def get_groups_by_tenant_id(self, tenant_id: str) -> QuerySet[ServiceGroup]:
+    def get_groups_by_tenant_id(self, tenant_id: str) -> QuerySet:
         return ServiceGroup.objects.filter(tenant_id=tenant_id)
 
     def get_group_by_id(self, group_id: str) -> Optional[ServiceGroup]:
@@ -155,16 +155,16 @@ class GroupRepository(object):
         app.save()
 
     def get_apps_list(self, team_id: Optional[str] = None, region_name: Optional[str] = None,
-                      query: Optional[str] = None) -> QuerySet[ServiceGroup]:
+                      query: Optional[str] = None) -> QuerySet:
         q = Q(region_name=region_name) & Q(tenant_id=team_id)
         if query:
             q = q & Q(group_name__icontains=query)
         return ServiceGroup.objects.filter(q).order_by("-update_time", "-order_index")
 
-    def get_multi_app_info(self, app_ids: List[int]) -> QuerySet[ServiceGroup]:
+    def get_multi_app_info(self, app_ids: List[int]) -> QuerySet:
         return ServiceGroup.objects.filter(ID__in=app_ids).order_by("-update_time", "-order_index")
 
-    def get_apps_in_multi_team(self, team_ids: List[str], region_names: List[str]) -> QuerySet[ServiceGroup]:
+    def get_apps_in_multi_team(self, team_ids: List[str], region_names: List[str]) -> QuerySet:
         return ServiceGroup.objects.filter(
             tenant_id__in=team_ids, region_name__in=region_names).order_by("-update_time", "-order_index")
 
@@ -192,7 +192,7 @@ class GroupServiceRelationRepository(object):
     def delete_relation_by_group_id(self, group_id: str) -> None:
         ServiceGroupRelation.objects.filter(group_id=group_id).delete()
 
-    def get_relation_by_tenant_id(self, tenant_id: str) -> QuerySet[ServiceGroupRelation]:
+    def get_relation_by_tenant_id(self, tenant_id: str) -> QuerySet:
         return ServiceGroupRelation.objects.filter(tenant_id=tenant_id)
 
     def delete_relation_by_service_id(self, service_id: str) -> None:
@@ -246,10 +246,10 @@ class GroupServiceRelationRepository(object):
     def create_service_group_relation(self, **params: Any) -> ServiceGroupRelation:
         return ServiceGroupRelation.objects.create(**params)
 
-    def get_service_group_relation_by_groups(self, group_ids: List[int]) -> QuerySet[ServiceGroupRelation]:
+    def get_service_group_relation_by_groups(self, group_ids: List[int]) -> QuerySet:
         return ServiceGroupRelation.objects.filter(group_id__in=group_ids)
 
-    def get_services_by_group(self, group_id: str) -> QuerySet[ServiceGroupRelation]:
+    def get_services_by_group(self, group_id: str) -> QuerySet:
         return ServiceGroupRelation.objects.filter(group_id=group_id)
 
     def get_service_number(self, region_name: str) -> int:
@@ -270,7 +270,7 @@ class GroupServiceRelationRepository(object):
         return ServiceGroupRelation.objects.filter(group_id=group_id).first()
 
     @staticmethod
-    def list_service_groups(group_id: str) -> QuerySet[ServiceGroupRelation]:
+    def list_service_groups(group_id: str) -> QuerySet:
         return ServiceGroupRelation.objects.filter(group_id=group_id).all()
 
     def update_service_relation(self, group_id: str, default_group_id: str) -> None:
@@ -291,7 +291,7 @@ class TenantServiceGroupRepository(object):
             raise ErrComponentGroupNotFound
         return component_group
 
-    def get_group_by_app_id(self, app_id: str) -> QuerySet[TenantServiceGroup]:
+    def get_group_by_app_id(self, app_id: str) -> QuerySet:
         return TenantServiceGroup.objects.filter(service_group_id=app_id)
 
 

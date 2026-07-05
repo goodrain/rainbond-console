@@ -24,7 +24,7 @@ class ServiceProbeRepository(object):
         return ServiceProbe.objects.filter(service_id=service_id).first()
 
     @staticmethod
-    def list_probes(service_id: str) -> QuerySet[ServiceProbe]:
+    def list_probes(service_id: str) -> QuerySet:
         return ServiceProbe.objects.filter(service_id=service_id)
 
     def add_service_probe(self, **probe_data: Any) -> ServiceProbe:
@@ -45,7 +45,7 @@ class ServiceProbeRepository(object):
     def delete_service_probe(self, service_id: str) -> None:
         ServiceProbe.objects.filter(service_id=service_id).delete()
 
-    def get_service_probe(self, service_id: str) -> QuerySet[ServiceProbe]:
+    def get_service_probe(self, service_id: str) -> QuerySet:
         return ServiceProbe.objects.filter(service_id=service_id)
 
     def update_or_create(self, service_id: str, defaults: dict) -> ServiceProbe:

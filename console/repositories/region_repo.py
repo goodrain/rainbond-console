@@ -11,7 +11,7 @@ from www.models.main import TenantRegionInfo
 
 
 class RegionRepo(object):
-    def get_active_region_by_tenant_name(self, tenant_name: str) -> Optional[QuerySet[TenantRegionInfo]]:
+    def get_active_region_by_tenant_name(self, tenant_name: str) -> Optional[QuerySet]:
         tenant = team_repo.get_tenant_by_tenant_name(tenant_name=tenant_name, exception=True)
         # exception=True guarantees a non-None tenant (raises otherwise)
         regions = TenantRegionInfo.objects.filter(
@@ -20,13 +20,13 @@ class RegionRepo(object):
             return regions
         return None
 
-    def list_active_region_by_tenant_ids(self, tenant_ids: List[str]) -> Optional[QuerySet[TenantRegionInfo]]:
+    def list_active_region_by_tenant_ids(self, tenant_ids: List[str]) -> Optional[QuerySet]:
         regions = TenantRegionInfo.objects.filter(tenant_id__in=tenant_ids, is_active=True, is_init=True)
         if regions:
             return regions
         return None
 
-    def get_region_by_tenant_name(self, tenant_name: str) -> Optional[QuerySet[TenantRegionInfo]]:
+    def get_region_by_tenant_name(self, tenant_name: str) -> Optional[QuerySet]:
         tenant = team_repo.get_tenant_by_tenant_name(tenant_name=tenant_name, exception=True)
         # exception=True guarantees a non-None tenant (raises otherwise)
         regions = TenantRegionInfo.objects.filter(tenant_id=tenant.tenant_id)  # type: ignore[union-attr]
@@ -54,12 +54,12 @@ class RegionRepo(object):
         else:
             return None
 
-    def get_usable_regions(self, enterprise_id: str) -> QuerySet[RegionConfig]:
+    def get_usable_regions(self, enterprise_id: str) -> QuerySet:
         """获取可使用的数据中心"""
         usable_regions = RegionConfig.objects.filter(status="1", enterprise_id=enterprise_id)
         return usable_regions
 
-    def get_team_opened_region(self, team_name: str) -> Optional[QuerySet[TenantRegionInfo]]:
+    def get_team_opened_region(self, team_name: str) -> Optional[QuerySet]:
         """获取团队已开通的数据中心"""
         tenant = team_repo.get_team_by_team_name(team_name)
         if not tenant:
@@ -72,7 +72,7 @@ class RegionRepo(object):
             return region_configs[0]
         return None
 
-    def get_region_info_all(self) -> QuerySet[RegionConfig]:
+    def get_region_info_all(self) -> QuerySet:
         return RegionConfig.objects.all()
 
     def get_enterprise_region_by_region_name(self, enterprise_id: str, region_name: str) -> Optional[RegionConfig]:
@@ -87,7 +87,7 @@ class RegionRepo(object):
         except RegionConfig.DoesNotExist:
             return None
 
-    def get_region_by_region_names(self, region_names: List[str]) -> QuerySet[RegionConfig]:
+    def get_region_by_region_names(self, region_names: List[str]) -> QuerySet:
         return RegionConfig.objects.filter(region_name__in=region_names)
 
     def get_team_region_by_tenant_and_region(self, tenant_id: str, region: str) -> Optional[TenantRegionInfo]:
@@ -108,22 +108,22 @@ class RegionRepo(object):
         region.save()
         return region
 
-    def get_all_regions(self, query: str = "") -> QuerySet[RegionConfig]:
+    def get_all_regions(self, query: str = "") -> QuerySet:
         if query:
             return RegionConfig.objects.filter(Q(region_name__constains=query) | Q(region_alias__constains=query)).all()
         return RegionConfig.objects.all()
 
-    def get_regions_by_region_ids(self, enterprise_id: str, region_ids: List[str]) -> QuerySet[RegionConfig]:
+    def get_regions_by_region_ids(self, enterprise_id: str, region_ids: List[str]) -> QuerySet:
         return RegionConfig.objects.filter(region_id__in=region_ids, enterprise_id=enterprise_id)
 
     def get_regions_by_tenant_ids(self, tenant_ids: List[str]) -> Any:
         # values_list(flat=True) returns a scalar QuerySet of region_name strings
         return TenantRegionInfo.objects.filter(tenant_id__in=tenant_ids, is_init=True).values_list("region_name", flat=True)
 
-    def get_region_info_by_region_name(self, region_name: str) -> QuerySet[RegionConfig]:
+    def get_region_info_by_region_name(self, region_name: str) -> QuerySet:
         return RegionConfig.objects.filter(region_name=region_name)
 
-    def get_tenant_regions_by_teamid(self, team_id: str) -> QuerySet[TenantRegionInfo]:
+    def get_tenant_regions_by_teamid(self, team_id: str) -> QuerySet:
         return TenantRegionInfo.objects.filter(tenant_id=team_id)
 
     # not list tenant region if region is not exist
@@ -198,7 +198,7 @@ class RegionRepo(object):
                     return tr
         return None
 
-    def get_regions_by_enterprise_id(self, eid: str, status: Optional[str] = None) -> QuerySet[RegionConfig]:
+    def get_regions_by_enterprise_id(self, eid: str, status: Optional[str] = None) -> QuerySet:
         if status:
             return RegionConfig.objects.filter(enterprise_id=eid, status=status)
         return RegionConfig.objects.filter(enterprise_id=eid)

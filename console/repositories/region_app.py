@@ -25,15 +25,15 @@ class RegionAppRepository(object):
         return region_app.app_id
 
     @staticmethod
-    def list_by_app_ids(region_name: str, app_ids: Any) -> QuerySet[RegionApp]:
+    def list_by_app_ids(region_name: str, app_ids: Any) -> QuerySet:
         return RegionApp.objects.filter(region_name=region_name, app_id__in=app_ids)
 
     @staticmethod
-    def list_by_region_app_ids(region_name: str, region_app_ids: Any) -> QuerySet[RegionApp]:
+    def list_by_region_app_ids(region_name: str, region_app_ids: Any) -> QuerySet:
         return RegionApp.objects.filter(region_name=region_name, region_app_id__in=region_app_ids)
 
     @staticmethod
-    def list_by_region_and_app_ids(region_name: str, app_ids: Any) -> QuerySet[RegionApp]:
+    def list_by_region_and_app_ids(region_name: str, app_ids: Any) -> QuerySet:
         return RegionApp.objects.filter(region_name=region_name, app_id__in=app_ids)
 
     @staticmethod

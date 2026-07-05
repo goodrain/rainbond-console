@@ -43,7 +43,7 @@ class ComposeServiceRepository(object):
                                         compose_id: str) -> ComposeServiceRelation:
         return ComposeServiceRelation.objects.create(team_id=team_id, service_id=service_id, compose_id=compose_id)
 
-    def get_compose_service_relation_by_compose_id(self, compose_id: str) -> QuerySet[ComposeServiceRelation]:
+    def get_compose_service_relation_by_compose_id(self, compose_id: str) -> QuerySet:
         return ComposeServiceRelation.objects.filter(compose_id=compose_id)
 
     def bulk_create_compose_service_relation(self, service_ids: List[str], team_id: str, compose_id: str) -> None:

@@ -28,11 +28,11 @@ class ServiceEventRepository(object):
         except ServiceEvent.DoesNotExist:
             return None
 
-    def get_events_by_event_ids(self, event_ids: Any) -> QuerySet[ServiceEvent]:
+    def get_events_by_event_ids(self, event_ids: Any) -> QuerySet:
         return ServiceEvent.objects.filter(event_id__in=event_ids)
 
     def get_events_before_specify_time(self, tenant_id: str, service_id: str,
-                                       start_time: Any) -> QuerySet[ServiceEvent]:
+                                       start_time: Any) -> QuerySet:
         if start_time:
             return ServiceEvent.objects.filter(
                 tenant_id=tenant_id, service_id=service_id, start_time__lte=start_time).order_by("-start_time")
@@ -48,11 +48,11 @@ class ServiceEventRepository(object):
     def delete_event_by_build_version(self, service_id: str, deploy_version: str) -> None:
         ServiceEvent.objects.filter(deploy_version=deploy_version, service_id=service_id).delete()
 
-    def get_specified_num_events(self, tenant_id: str, service_id: str, num: int = 6) -> QuerySet[ServiceEvent]:
+    def get_specified_num_events(self, tenant_id: str, service_id: str, num: int = 6) -> QuerySet:
         """查询指定条数的日志"""
         return ServiceEvent.objects.filter(tenant_id=tenant_id, service_id=service_id).order_by("-ID")[:num]
 
-    def get_specified_region_events(self, tenant_id: str, region: str) -> QuerySet[ServiceEvent]:
+    def get_specified_region_events(self, tenant_id: str, region: str) -> QuerySet:
         return ServiceEvent.objects.filter(tenant_id=tenant_id, region=region).order_by("-ID")
 
     def get_evevt_by_tenant_id_region(self, tenant_id: str) -> Any:

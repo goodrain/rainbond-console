@@ -16,7 +16,7 @@ class AutoscalerRulesRepository(object):
         res = AutoscalerRules.objects.get(rule_id=rule_id)
         return res
 
-    def list_by_service_id(self, service_id: str) -> QuerySet[AutoscalerRules]:
+    def list_by_service_id(self, service_id: str) -> QuerySet:
         return AutoscalerRules.objects.filter(service_id=service_id)
 
     def get_by_rule_id(self, rule_id: str) -> AutoscalerRules:
@@ -37,7 +37,7 @@ class AutoscalerRuleMetricsRepository(object):
                 ))
         return AutoscalerRuleMetrics.objects.bulk_create(metrics)
 
-    def list_by_rule_ids(self, rule_ids: Any) -> QuerySet[AutoscalerRuleMetrics]:
+    def list_by_rule_ids(self, rule_ids: Any) -> QuerySet:
         return AutoscalerRuleMetrics.objects.filter(rule_id__in=rule_ids)
 
     def update_or_create(self, rule_id: str, metric: dict) -> AutoscalerRuleMetrics:

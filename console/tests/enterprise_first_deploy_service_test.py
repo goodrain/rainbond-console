@@ -1377,6 +1377,50 @@ class EnterpriseFirstDeployServiceTests(TestCase):
         self.assertEqual(repo.payload["build_status"], self.service.STATUS_SUCCESS)
         self.assertFalse(mock_post.called)
 
+    def test_sync_record_reports_success_events_after_runtime_success(self):
+        payload = {
+            "enterprise_id": "eid-1",
+            "enterprise_name": "demo-enterprise",
+            "deploy_type": self.service.DEPLOY_TYPE_IMAGE,
+            "source_language": "",
+            "status": self.service.STATUS_PENDING,
+            "build_status": self.service.STAGE_STATUS_PENDING,
+            "runtime_status": self.service.STAGE_STATUS_PENDING,
+            "reported": False,
+            "tenant_name": "demo-team",
+            "region_name": "demo-region",
+            "event_ids": ["deploy-event-1"],
+        }
+        repo = FirstDeployRepoStub(payload)
+        event_body = {"list": [{
+            "event_id": "deploy-event-1",
+            "service_id": "service-1",
+            "opt_type": "start-service",
+            "status": "success",
+            "final_status": "complete",
+            "message": "deploy success",
+            "reason": "",
+            "start_time": "2026-05-06 10:00:00",
+            "end_time": "2026-05-06 10:03:00",
+        }]}
+
+        with mock.patch("console.services.enterprise_first_deploy_service.enterprise_first_deploy_repo", repo), \
+                mock.patch("console.services.enterprise_first_deploy_service.region_api.get_tenant_events",
+                           return_value=event_body), \
+                mock.patch.object(self.service, "_inspect_runtime_status", return_value=self.service.STATUS_SUCCESS), \
+                mock.patch("console.services.enterprise_first_deploy_service.requests.post",
+                           return_value=Obj(status_code=200)) as mock_post:
+            self.assertIsNone(self.service._sync_record(repo.record, payload, "demo-team", "demo-region"))
+            status = self.service._sync_record(repo.record, repo.payload, "demo-team", "demo-region")
+
+        self.assertEqual(status, self.service.STATUS_SUCCESS)
+        report_payload = mock_post.call_args[1]["json"]
+        self.assertTrue(report_payload["is_success"])
+        self.assertEqual(report_payload["success_events"][0]["event_id"], "deploy-event-1")
+        self.assertEqual(report_payload["success_events"][0]["service_id"], "service-1")
+        self.assertEqual(report_payload["success_events"][0]["opt_type"], "start-service")
+        self.assertNotIn("failure_events", report_payload)
+
     def test_sync_record_reports_runtime_failure_after_deploy_event_success(self):
         payload = {
             "enterprise_id": "eid-1",

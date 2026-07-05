@@ -22,7 +22,7 @@ class ComponentK8sResourceService(object):
         resources = k8s_resources_repo.get_by_app_id_kind_name(app_id, kind, name)
         return resources
 
-    def list_by_app_id(self, app_id: str) -> QuerySet[K8sResource]:
+    def list_by_app_id(self, app_id: str) -> QuerySet:
         resources = k8s_resources_repo.list_by_app_id(app_id)
         return resources
 

@@ -18,7 +18,7 @@ class ApplicationConfigGroupRepository(object):
     def get(self, region_name: str, app_id: str, config_group_name: str) -> ApplicationConfigGroup:
         return ApplicationConfigGroup.objects.get(region_name=region_name, app_id=app_id, config_group_name=config_group_name)
 
-    def list(self, region_name: str, app_id: str) -> QuerySet[ApplicationConfigGroup]:
+    def list(self, region_name: str, app_id: str) -> QuerySet:
         return ApplicationConfigGroup.objects.filter(region_name=region_name, app_id=app_id).order_by('-create_time')
 
     def count(self, region_name: str, app_id: str) -> int:
@@ -33,7 +33,7 @@ class ApplicationConfigGroupRepository(object):
         return ApplicationConfigGroup.objects.filter(
             region_name=region_name, app_id=app_id, config_group_name__in=config_group_names).delete()
 
-    def list_by_service_ids(self, region_name: str, service_ids: List[str]) -> QuerySet[ApplicationConfigGroup]:
+    def list_by_service_ids(self, region_name: str, service_ids: List[str]) -> QuerySet:
         config_group_ids = ConfigGroupService.objects.filter(
             service_id__in=service_ids, ).values_list(
                 "config_group_id", flat=True)
@@ -65,11 +65,11 @@ class ApplicationConfigGroupServiceRepository(object):
     def create(self, **data: Any) -> ConfigGroupService:
         return ConfigGroupService.objects.create(**data)
 
-    def list(self, config_group_id: str) -> QuerySet[ConfigGroupService]:
+    def list(self, config_group_id: str) -> QuerySet:
         return ConfigGroupService.objects.filter(config_group_id=config_group_id)
 
     @staticmethod
-    def list_by_app_id(app_id: str) -> QuerySet[ConfigGroupService]:
+    def list_by_app_id(app_id: str) -> QuerySet:
         return ConfigGroupService.objects.filter(app_id=app_id)
 
     def delete(self, config_group_id: str) -> Tuple[int, Dict[str, int]]:
@@ -78,7 +78,7 @@ class ApplicationConfigGroupServiceRepository(object):
     def batch_delete(self, config_group_ids: List[str]) -> Tuple[int, Dict[str, int]]:
         return ConfigGroupService.objects.filter(config_group_id__in=config_group_ids).delete()
 
-    def list_by_service_id(self, service_id: str) -> QuerySet[ConfigGroupService]:
+    def list_by_service_id(self, service_id: str) -> QuerySet:
         return ConfigGroupService.objects.filter(service_id=service_id)
 
     def delete_effective_service(self, service_id: str) -> Tuple[int, Dict[str, int]]:
@@ -95,11 +95,11 @@ class ApplicationConfigGroupItemRepository(object):
     def create(self, **data: Any) -> ConfigGroupItem:
         return ConfigGroupItem.objects.create(**data)
 
-    def list(self, config_group_id: str) -> QuerySet[ConfigGroupItem]:
+    def list(self, config_group_id: str) -> QuerySet:
         return ConfigGroupItem.objects.filter(config_group_id=config_group_id)
 
     @staticmethod
-    def list_by_app_id(app_id: str) -> QuerySet[ConfigGroupItem]:
+    def list_by_app_id(app_id: str) -> QuerySet:
         return ConfigGroupItem.objects.filter(app_id=app_id)
 
     def delete(self, config_group_id: str) -> Tuple[int, Dict[str, int]]:

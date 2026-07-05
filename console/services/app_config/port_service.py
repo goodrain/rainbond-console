@@ -1323,7 +1323,7 @@ class AppPortService(object):
         return port_domains
 
     def get_team_region_usable_tcp_ports(self, tenant: Tenants,
-                                         service: TenantServiceInfo) -> QuerySet[TenantServicesPort]:
+                                         service: TenantServiceInfo) -> QuerySet:
         services = service_repo.get_service_by_tenant(tenant.tenant_id)
         current_service_tcp_ports = port_repo.get_service_ports(
             tenant.tenant_id, service.service_id).filter(is_outer_service=True).exclude(protocol__in=("http", "https"))
