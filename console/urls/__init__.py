@@ -70,7 +70,7 @@ from console.views.center_pool.app_export import CenterAppExportView
 from console.views.center_pool.app_import import (CenterAppImportView, CenterAppTarballDirView, EnterpriseAppImportInitView)
 from console.views.center_pool.apps import (AppTagCDView, AppVersionUDView, CenterAppCLView, CenterAppUDView, CenterAppView,
                                             LocalComponentLibraryConfigCheck, TagCLView, TagUDView, CenterPluginAppView,
-                                            CmdInstallAppView)
+                                            CmdInstallAppView, CenterAppPreflightView)
 from console.views.center_pool.groupapp_backup import (AllTeamGroupAppsBackupView, GroupAppsBackupExportView,
                                                        GroupAppsBackupImportView, GroupAppsBackupStatusView,
                                                        GroupAppsBackupView, TeamGroupAppsBackupView)
@@ -874,6 +874,7 @@ urlpatterns = [
     re_path(r'^market/plugins/install$', InstallMarketPlugin.as_view(), perms.TEAM_PLUGIN_MANAGE),
     re_path(r'^plugins$', InternalMarketPluginsView.as_view(), perms.TEAM_PLUGIN_MANAGE),
     re_path(r'^plugins/installable$', InstallableInteralPluginsView.as_view(), perms.TEAM_PLUGIN_MANAGE),
+    re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/market_create/preflight$', CenterAppPreflightView.as_view()),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/market_create$', CenterAppView.as_view()),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/cmd_create$', CmdInstallAppView.as_view(), perms.APP_OVERVIEW_CREATE),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/plugins$', CenterPluginAppView.as_view(), perms.TEAM_PLUGIN_MANAGE),
