@@ -258,7 +258,7 @@ class Component(object):
 
     def _update_port_data(self, port: dict) -> None:
         container_port = int(port["container_port"])
-        port_alias = self.component.service_alias.upper()
+        port_alias = port.get("port_alias") or self.component.service_alias.upper()
         k8s_service_name = port.get("k8s_service_name", self.component.service_alias)
         if k8s_service_name:
             filter_port = port_repo.get_by_k8s_service_name(self.component.tenant_id, k8s_service_name)
