@@ -42,6 +42,7 @@ from console.services.enterprise_first_deploy_service import enterprise_first_de
 from console.services.group_service import group_service
 from console.services.market_app.app_upgrade import AppUpgrade
 from console.services.market_app.utils import apply_hostname_remap, collect_install_hostname_remap, resolve_none_placeholders
+from console.services.market_app_preflight_service import market_install_preflight_service
 # market app
 from console.services.market_app.component_group import ComponentGroup
 from console.services.plugin import (app_plugin_service, plugin_config_service, plugin_service, plugin_version_service)
@@ -103,6 +104,20 @@ class MarketAppService(object):
         except Exception as exc:
             logger.debug("posthog telemetry market install event failed: %s", exc)
 
+    def preflight_install_app(self,
+                              tenant: Tenants,
+                              region: RegionConfig,
+                              user: Users,
+                              app_id: str,
+                              app_model_key: str,
+                              version: str,
+                              market_name: str,
+                              install_from_cloud: bool) -> Dict[str, Any]:
+        app_template, _ = self.get_app_template(app_model_key, install_from_cloud, market_name, region, tenant, user,
+                                                version)
+        self._ensure_vm_template_allowed(tenant, region.region_name, app_template)
+        return market_install_preflight_service.run(tenant, region, app_template)
+
     def install_app(self,
                     tenant: Tenants,
                     region: RegionConfig,
@@ -128,13 +143,14 @@ class MarketAppService(object):
         app_template, market_app = self.get_app_template(app_model_key, install_from_cloud, market_name, region, tenant, user,
                                                          version)
         self._ensure_vm_template_allowed(tenant, region.region_name, app_template)
-        res, body = region_api.get_cluster_nodes_arch(region.region_name)
-        # NOTE: regionapi return typed Optional[dict]; runtime invariant returns a dict body.
-        chaos_arch = list(set(body.get("list")))  # type: ignore[union-attr, arg-type]
-        template_arch = app_template.get("arch", "amd64")
-        template_arch = template_arch if template_arch else "amd64"
-        if template_arch not in chaos_arch and len(chaos_arch) < 2:
-            raise AbortRequest("app arch does not match build node arch", "应用架构与构建节点架构不匹配", status_code=404, error_code=404)
+        preflight = market_install_preflight_service.run(tenant, region, app_template)
+        if preflight.get("should_block"):
+            raise AbortRequest(
+                "market app preflight blocked",
+                preflight.get("summary") or "当前环境不满足应用市场安装条件",
+                status_code=412,
+                error_code=10412,
+                bean=preflight)
         if not app_template.get("goavernance_mode"):
             app_template["governance_mode"] = GovernanceModeEnum.KUBERNETES_NATIVE_SERVICE.name
         if app.governance_mode == GovernanceModeEnum.KUBERNETES_NATIVE_SERVICE.name:
