@@ -150,9 +150,7 @@ class MarketInstallPreflightService(object):
                     self.REASON_REGISTRY_PROBE_TIMEOUT,
                     {"images": images})
             status, message, reason = self._probe_image_manifest(image, remaining)
-            if status == self.STATUS_BLOCK:
-                return self._check("image_manifest", status, message, reason, {"image": image})
-            if status == self.STATUS_WARNING:
+            if status in (self.STATUS_WARNING, self.STATUS_BLOCK):
                 warnings.append({"image": image, "message": message, "reason": reason})
         if warnings:
             return self._check("image_manifest", self.STATUS_WARNING, "部分镜像版本检测无法确认", warnings[0]["reason"],
@@ -184,7 +182,7 @@ class MarketInstallPreflightService(object):
         except requests.RequestException:
             return self.STATUS_WARNING, "镜像仓库访问异常，无法确认镜像版本", self.REASON_REGISTRY_NETWORK_ERROR
         if response.status_code == 404:
-            return self.STATUS_BLOCK, "镜像版本不存在：{}".format(image), self.REASON_IMAGE_NOT_FOUND
+            return self.STATUS_WARNING, "镜像版本无法确认，可能不存在：{}".format(image), self.REASON_IMAGE_NOT_FOUND
         if response.status_code in (401, 403):
             return self.STATUS_WARNING, "镜像仓库需要认证，无法确认镜像版本", self.REASON_REGISTRY_AUTH_REQUIRED
         if 200 <= response.status_code < 300:
