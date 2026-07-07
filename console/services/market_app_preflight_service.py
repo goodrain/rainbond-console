@@ -81,7 +81,7 @@ class MarketInstallPreflightService(object):
             return self._check(
                 "resource_capacity",
                 self.STATUS_WARNING,
-                "集群资源检测不可用，已降级为安装中观察",
+                "集群资源检测不可用，无法确认资源是否满足安装要求",
                 self.REASON_REGION_CAPABILITY_MISSING,
                 {"error": str(exc)})
         ready_nodes = self._int_value(resources.get("node_ready"))
@@ -123,7 +123,7 @@ class MarketInstallPreflightService(object):
             return self._check(
                 "architecture",
                 self.STATUS_WARNING,
-                "集群架构检测不可用，已降级为安装中观察",
+                "集群架构检测不可用，无法确认架构是否匹配",
                 self.REASON_REGION_CAPABILITY_MISSING,
                 {"error": str(exc), "template_arch": template_arch})
         details = {
@@ -146,16 +146,14 @@ class MarketInstallPreflightService(object):
                 return self._check(
                     "image_manifest",
                     self.STATUS_WARNING,
-                    "镜像仓库检测超时，安装将继续",
+                    "镜像仓库检测超时，无法确认镜像版本",
                     self.REASON_REGISTRY_PROBE_TIMEOUT,
                     {"images": images})
             status, message, reason = self._probe_image_manifest(image, remaining)
-            if status == self.STATUS_BLOCK:
-                return self._check("image_manifest", status, message, reason, {"image": image})
-            if status == self.STATUS_WARNING:
+            if status in (self.STATUS_WARNING, self.STATUS_BLOCK):
                 warnings.append({"image": image, "message": message, "reason": reason})
         if warnings:
-            return self._check("image_manifest", self.STATUS_WARNING, "部分镜像版本检测未完成，安装将继续", warnings[0]["reason"],
+            return self._check("image_manifest", self.STATUS_WARNING, "部分镜像版本检测无法确认", warnings[0]["reason"],
                                {"warnings": warnings})
         return self._check("image_manifest", self.STATUS_PASS, "镜像版本存在", "", {"images": images})
 
@@ -170,7 +168,7 @@ class MarketInstallPreflightService(object):
     def _probe_image_manifest(self, image: str, timeout_seconds: float) -> Tuple[str, str, str]:
         parsed = self._parse_image(image)
         if not parsed:
-            return self.STATUS_WARNING, "镜像地址无法解析，安装将继续", "image_reference_invalid"
+            return self.STATUS_WARNING, "镜像地址无法解析，无法确认镜像版本", "image_reference_invalid"
         registry, repository, tag = parsed
         url = "https://{}/v2/{}/manifests/{}".format(registry, quote(repository), quote(tag))
         try:
@@ -180,16 +178,16 @@ class MarketInstallPreflightService(object):
                 headers={"Accept": "application/vnd.docker.distribution.manifest.v2+json"},
             )
         except requests.Timeout:
-            return self.STATUS_WARNING, "镜像仓库检测超时，安装将继续", self.REASON_REGISTRY_PROBE_TIMEOUT
+            return self.STATUS_WARNING, "镜像仓库检测超时，无法确认镜像版本", self.REASON_REGISTRY_PROBE_TIMEOUT
         except requests.RequestException:
-            return self.STATUS_WARNING, "镜像仓库访问异常，安装将继续", self.REASON_REGISTRY_NETWORK_ERROR
+            return self.STATUS_WARNING, "镜像仓库访问异常，无法确认镜像版本", self.REASON_REGISTRY_NETWORK_ERROR
         if response.status_code == 404:
-            return self.STATUS_BLOCK, "镜像版本不存在：{}".format(image), self.REASON_IMAGE_NOT_FOUND
+            return self.STATUS_WARNING, "镜像版本无法确认，可能不存在：{}".format(image), self.REASON_IMAGE_NOT_FOUND
         if response.status_code in (401, 403):
-            return self.STATUS_WARNING, "镜像仓库需要认证，已跳过版本确认", self.REASON_REGISTRY_AUTH_REQUIRED
+            return self.STATUS_WARNING, "镜像仓库需要认证，无法确认镜像版本", self.REASON_REGISTRY_AUTH_REQUIRED
         if 200 <= response.status_code < 300:
             return self.STATUS_PASS, "镜像版本存在", ""
-        return self.STATUS_WARNING, "镜像仓库返回状态{}，安装将继续".format(response.status_code), "registry_probe_failed"
+        return self.STATUS_WARNING, "镜像仓库返回状态{}，无法确认镜像版本".format(response.status_code), "registry_probe_failed"
 
     def _parse_image(self, image: str) -> Optional[Tuple[str, str, str]]:
         image = (image or "").strip()
@@ -233,7 +231,7 @@ class MarketInstallPreflightService(object):
                 if item["status"] == self.STATUS_BLOCK:
                     return item["message"]
         if status == self.STATUS_WARNING:
-            return "部分安装环境检测未完成，安装可继续"
+            return "部分安装前检测无法确认"
         return "安装环境检测通过，应用预计需要{}m CPU、{}Mi 内存".format(
             requirements.get("cpu", 0), requirements.get("memory", 0))
 

@@ -122,7 +122,7 @@ class DeployPreflightService(object):
             return self._check("package_upload", self.STATUS_BLOCK, "软件包格式不支持", "package_type_unsupported",
                                {"packages": packages, "unsupported": unsupported})
         if getattr(record, "status", "") not in ("finished", "success"):
-            return self._check("package_upload", self.STATUS_WARNING, "软件包上传状态未确认，安装可继续观察", "package_status_unknown",
+            return self._check("package_upload", self.STATUS_WARNING, "软件包上传状态未确认，无法确认软件包是否完全可用", "package_status_unknown",
                                {"status": getattr(record, "status", "")})
         return self._check("package_upload", self.STATUS_PASS, "软件包上传记录可用", details={"packages": packages})
 
@@ -194,9 +194,11 @@ class DeployPreflightService(object):
     @staticmethod
     def _deploy_wording(message: str) -> str:
         replacements = (
+            ("部分安装前检测无法确认", "部分部署前检测无法确认"),
             ("部分安装环境检测未完成，安装可继续", "部分部署前检测未完成，部署可继续"),
             ("安装环境检测通过，应用预计需要", "部署前检测通过，组件预计需要"),
             ("无法安装应用", "无法部署组件"),
+            ("安装要求", "部署要求"),
             ("安装可继续", "部署可继续"),
             ("安装将继续", "部署将继续"),
             ("安装中观察", "部署中观察"),
@@ -218,7 +220,7 @@ class DeployPreflightService(object):
                 if item["status"] == self.STATUS_BLOCK:
                     return item["message"]
         if status == self.STATUS_WARNING:
-            return "部分部署前检测未完成，部署可继续"
+            return "部分部署前检测无法确认"
         return "部署前检测通过"
 
     @staticmethod

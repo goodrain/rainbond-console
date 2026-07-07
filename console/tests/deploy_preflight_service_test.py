@@ -56,8 +56,6 @@ django.setup()
 class Obj(object):
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
-        if "data" in kwargs and "META" not in kwargs:
-            self.META = {}
 
 
 class DeployPreflightServiceTests(SimpleTestCase):
@@ -68,10 +66,10 @@ class DeployPreflightServiceTests(SimpleTestCase):
         self.tenant = Obj(tenant_id="tenant-1", tenant_name="team-a", enterprise_id="eid-1")
         self.region = Obj(region_name="region-a")
 
-    def test_image_preflight_blocks_when_image_tag_is_missing(self):
+    def test_image_preflight_warns_when_image_tag_cannot_be_confirmed(self):
         self._stub_template_checks()
         self.service.template_preflight._probe_image_manifest = mock.Mock(
-            return_value=("block", "镜像版本不存在", "image_not_found"))
+            return_value=("warning", "镜像版本无法确认，可能不存在", "image_not_found"))
 
         result = self.service.run(self.tenant, self.region, "image", {
             "docker_cmd": "registry.example.com/team/demo:missing",
@@ -79,8 +77,8 @@ class DeployPreflightServiceTests(SimpleTestCase):
             "arch": "amd64",
         })
 
-        self.assertEqual("block", result["status"])
-        self.assertTrue(result["should_block"])
+        self.assertEqual("warning", result["status"])
+        self.assertFalse(result["should_block"])
         self.assertEqual("image_not_found", self._check(result, "image_manifest")["reason"])
 
     def test_source_code_preflight_blocks_when_repository_is_missing(self):
@@ -215,7 +213,7 @@ class DeployPreflightServiceTests(SimpleTestCase):
     def test_image_preflight_warning_uses_deploy_wording(self):
         self._stub_template_checks()
         self.service.template_preflight._probe_image_manifest = mock.Mock(
-            return_value=("warning", "镜像仓库检测超时，安装将继续", "registry_probe_timeout"))
+            return_value=("warning", "镜像仓库检测超时，无法确认镜像版本", "registry_probe_timeout"))
 
         result = self.service.run(self.tenant, self.region, "image", {
             "docker_cmd": "registry.example.com/team/web:v1",
@@ -224,8 +222,8 @@ class DeployPreflightServiceTests(SimpleTestCase):
         })
 
         self.assertEqual("warning", result["status"])
-        self.assertEqual("部分部署前检测未完成，部署可继续", result["summary"])
-        self.assertEqual("部分镜像版本检测未完成，部署将继续",
+        self.assertEqual("部分部署前检测无法确认", result["summary"])
+        self.assertEqual("部分镜像版本检测无法确认",
                          self._check(result, "image_manifest")["message"])
 
     def test_unknown_deploy_type_blocks(self):
