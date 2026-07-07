@@ -104,10 +104,10 @@ class DeployPreflightService(object):
 
     def _check_package_upload(self, tenant: Any, region: Any, payload: Dict[str, Any]) -> Dict[str, Any]:
         event_id = payload.get("event_id")
-        region_name = payload.get("region") or payload.get("region_name") or getattr(region, "region_name", "")
+        region_name = str(payload.get("region") or payload.get("region_name") or getattr(region, "region_name", ""))
         if not event_id:
             return self._check("package_upload", self.STATUS_BLOCK, "上传事件不能为空", "package_event_missing")
-        record = self.package_upload_service.get_upload_record(tenant.tenant_name, region_name, event_id)
+        record = self.package_upload_service.get_upload_record(tenant.tenant_name, region_name, str(event_id))
         if not record:
             return self._check("package_upload", self.STATUS_BLOCK, "未找到软件包上传记录", "package_record_missing")
         packages = self._parse_package_names(getattr(record, "source_dir", ""))

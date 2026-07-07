@@ -56,6 +56,8 @@ django.setup()
 class Obj(object):
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
+        if "data" in kwargs and "META" not in kwargs:
+            self.META = {}
 
 
 class DeployPreflightServiceTests(SimpleTestCase):
