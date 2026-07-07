@@ -38,6 +38,7 @@ from console.views.app_create.app_check import (AppCheck, AppCheckUpdate, GetChe
 from console.views.app_create.docker_compose import (ComposeCheckUpdate, ComposeCheckView, ComposeContentView,
                                                      ComposeDeleteView, ComposeServicesView, DockerComposeCreateView,
                                                      GetComposeCheckUUID)
+from console.views.app_create.deploy_preflight import DeployPreflightView
 from console.views.app_create.docker_run import DockerRunCreateView
 from console.views.app_create.image_repositories import TenantImageRepositories, TenantImageTags
 from console.views.app_create.multi_app import (MultiAppCheckView, MultiAppCreateView)
@@ -497,6 +498,9 @@ urlpatterns = [
         TarImageLoadResultView.as_view(), perms.APP_OVERVIEW_CREATE),
     # 本地文件创建组件
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/package_build$', PackageCreateView.as_view(), perms.APP_OVERVIEW_CREATE),
+    # 部署前快速检测
+    re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/deploy_preflight$', DeployPreflightView.as_view(),
+        perms.APP_OVERVIEW_CREATE),
     # 源码创建
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/source_code$', SourceCodeCreateView.as_view(), perms.APP_OVERVIEW_CREATE),
     # 第三方组件创建

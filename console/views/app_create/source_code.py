@@ -8,10 +8,11 @@ import os
 from typing import Any
 
 from console.exception.bcode import ErrK8sComponentNameExists
-from console.exception.main import (AccountOverdueException, ResourceNotEnoughException)
+from console.exception.main import (AbortRequest, AccountOverdueException, ResourceNotEnoughException)
 from console.repositories.app import service_webhooks_repo
 from console.repositories.oauth_repo import oauth_repo, oauth_user_repo
 from console.services.app import app_service, package_upload_service
+from console.services.deploy_preflight_service import deploy_preflight_service
 from console.services.app_config import compile_env_service
 from console.services.app_import_and_export_service import import_service
 from console.services.group_service import group_service
@@ -32,6 +33,16 @@ from www.utils.return_message import general_message
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
+
+
+def abort_if_deploy_preflight_blocked(preflight: dict) -> None:
+    if preflight.get("should_block"):
+        raise AbortRequest(
+            "deploy preflight blocked",
+            preflight.get("summary") or "当前环境不满足部署条件",
+            status_code=412,
+            error_code=10412,
+            bean=preflight)
 
 
 class SourceCodeCreateView(ApplicationView):
@@ -152,6 +163,24 @@ class SourceCodeCreateView(ApplicationView):
             # 创建源码组件
             if service_code_clone_url:
                 service_code_clone_url = service_code_clone_url.strip()
+            preflight = deploy_preflight_service.run(
+                self.tenant, self.region, "source_code", {
+                    "group_id": group_id,
+                    "code_from": service_code_from,
+                    "service_cname": service_cname,
+                    "git_url": service_code_clone_url,
+                    "git_project_id": service_code_id,
+                    "code_version": service_code_version,
+                    "username": git_user_name,
+                    "password": git_password,
+                    "server_type": server_type,
+                    "service_id": oauth_service_id,
+                    "is_oauth": is_oauth,
+                    "full_name": git_full_name,
+                    "k8s_component_name": k8s_component_name,
+                    "arch": arch,
+                }, self.user)
+            abort_if_deploy_preflight_blocked(preflight)
             code, msg_show, new_service = app_service.create_source_code_app(
                 self.response_region,
                 self.tenant,
@@ -365,6 +394,16 @@ class PackageCreateView(RegionTenantHeaderView):
         arch = request.data.get("arch", "amd64")
         if k8s_component_name and app_service.is_k8s_component_name_duplicate(group_id, k8s_component_name):
             raise ErrK8sComponentNameExists
+        preflight = deploy_preflight_service.run(
+            self.tenant, self.region, "package", {
+                "region": region,
+                "event_id": event_id,
+                "group_id": group_id,
+                "service_cname": service_cname,
+                "k8s_component_name": k8s_component_name,
+                "arch": arch,
+            }, self.user)
+        abort_if_deploy_preflight_blocked(preflight)
         try:
             # NOTE: get_upload_record may return None; backlog
             pkg_record = package_upload_service.get_upload_record(self.team_name, region, event_id)  # type: ignore[arg-type]
