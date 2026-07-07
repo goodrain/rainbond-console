@@ -251,7 +251,7 @@ class DeployPreflightServiceTests(SimpleTestCase):
         view.tenant = self.tenant
         view.region = self.region
         view.user = Obj(user_id=1, enterprise_id="eid-1")
-        request = Obj(data={"deploy_type": "image", "payload": {"docker_cmd": "nginx:latest"}})
+        request = Obj(META={}, data={"deploy_type": "image", "payload": {"docker_cmd": "nginx:latest"}})
 
         with mock.patch("console.views.app_create.deploy_preflight.deploy_preflight_service.run",
                         return_value=preflight) as run:
@@ -272,7 +272,7 @@ class DeployPreflightServiceTests(SimpleTestCase):
         view.region_name = "region-a"
         view.response_region = "region-a"
         view.user = Obj(pk=1, enterprise_id="eid-1", nick_name="tester")
-        request = Obj(data={
+        request = Obj(META={}, data={
             "group_id": 7,
             "service_cname": "web",
             "docker_cmd": "registry.example.com/team/web:missing",
@@ -302,7 +302,7 @@ class DeployPreflightServiceTests(SimpleTestCase):
         view.response_region = "region-a"
         view.app_id = 7
         view.user = Obj(user_id=1, pk=1, enterprise_id="eid-1", nick_name="tester")
-        request = Obj(user=view.user, data={
+        request = Obj(META={}, user=view.user, data={
             "group_id": 7,
             "service_cname": "web",
             "code_from": "gitlab_manual",
@@ -334,7 +334,7 @@ class DeployPreflightServiceTests(SimpleTestCase):
         view.response_region = "region-a"
         view.team_name = "team-a"
         view.user = Obj(user_id=1, pk=1, enterprise_id="eid-1", nick_name="tester")
-        request = Obj(data={
+        request = Obj(META={}, data={
             "region": "region-a",
             "event_id": "event-1",
             "group_id": 7,
