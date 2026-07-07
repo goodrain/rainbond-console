@@ -118,7 +118,7 @@ class MarketInstallPreflightServiceTests(TestCase):
         self.assertEqual("block", arch_check["status"])
         self.assertIn("架构不匹配", arch_check["message"])
 
-    def test_blocks_when_market_image_tag_is_missing(self):
+    def test_warns_when_market_image_tag_cannot_be_confirmed(self):
         self.service._get_region_resources = mock.Mock(return_value={
             "all_node": 1,
             "node_ready": 1,
@@ -128,19 +128,32 @@ class MarketInstallPreflightServiceTests(TestCase):
             "req_mem": 0,
         })
         self.service._get_cluster_arches = mock.Mock(return_value=["amd64"])
-        self.service._probe_image_manifest = mock.Mock(return_value=("block", "镜像版本不存在", "image_not_found"))
+        self.service._probe_image_manifest = mock.Mock(
+            return_value=("warning", "镜像版本无法确认，可能不存在", "image_not_found"))
 
         result = self.service.run(self.tenant, self.region, self.template)
 
-        self.assertEqual("block", result["status"])
+        self.assertEqual("warning", result["status"])
+        self.assertFalse(result["should_block"])
         image_check = self._check(result, "image_manifest")
-        self.assertEqual("block", image_check["status"])
+        self.assertEqual("warning", image_check["status"])
         self.assertEqual("image_not_found", image_check["reason"])
+
+    def test_registry_404_is_warning_not_block(self):
+        with mock.patch("console.services.market_app_preflight_service.requests.head",
+                        return_value=Obj(status_code=404)):
+            status, message, reason = self.service._probe_image_manifest(
+                "registry.example.com/team/web:missing", 1)
+
+        self.assertEqual("warning", status)
+        self.assertEqual("image_not_found", reason)
+        self.assertIn("无法确认", message)
 
     def test_warns_when_region_capability_is_missing(self):
         self.service._get_region_resources = mock.Mock(side_effect=Exception("old region api"))
         self.service._get_cluster_arches = mock.Mock(side_effect=Exception("old region api"))
-        self.service._probe_image_manifest = mock.Mock(return_value=("warning", "镜像仓库检测超时，安装将继续", "registry_probe_timeout"))
+        self.service._probe_image_manifest = mock.Mock(
+            return_value=("warning", "镜像仓库检测超时，无法确认镜像版本", "registry_probe_timeout"))
 
         result = self.service.run(self.tenant, self.region, self.template)
 
