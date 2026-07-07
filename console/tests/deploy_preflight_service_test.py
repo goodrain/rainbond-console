@@ -66,10 +66,10 @@ class DeployPreflightServiceTests(SimpleTestCase):
         self.tenant = Obj(tenant_id="tenant-1", tenant_name="team-a", enterprise_id="eid-1")
         self.region = Obj(region_name="region-a")
 
-    def test_image_preflight_blocks_when_image_tag_is_missing(self):
+    def test_image_preflight_warns_when_image_tag_cannot_be_confirmed(self):
         self._stub_template_checks()
         self.service.template_preflight._probe_image_manifest = mock.Mock(
-            return_value=("block", "镜像版本不存在", "image_not_found"))
+            return_value=("warning", "镜像版本无法确认，可能不存在", "image_not_found"))
 
         result = self.service.run(self.tenant, self.region, "image", {
             "docker_cmd": "registry.example.com/team/demo:missing",
@@ -77,8 +77,8 @@ class DeployPreflightServiceTests(SimpleTestCase):
             "arch": "amd64",
         })
 
-        self.assertEqual("block", result["status"])
-        self.assertTrue(result["should_block"])
+        self.assertEqual("warning", result["status"])
+        self.assertFalse(result["should_block"])
         self.assertEqual("image_not_found", self._check(result, "image_manifest")["reason"])
 
     def test_source_code_preflight_blocks_when_repository_is_missing(self):
