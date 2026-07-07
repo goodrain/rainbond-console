@@ -127,11 +127,14 @@ class DeployPreflightService(object):
 
     def _build_result(self, deploy_type: str, checks: List[Dict[str, Any]], started: float) -> Dict[str, Any]:
         status = self._result_status(checks)
-        should_block = status == self.STATUS_BLOCK and os.getenv("DEPLOY_PREFLIGHT_MODE", "block") == "block"
+        mode = os.getenv("DEPLOY_PREFLIGHT_MODE", "block")
+        should_block = status == self.STATUS_BLOCK and mode == "block"
+        if status == self.STATUS_BLOCK and mode != "block":
+            status = self.STATUS_WARNING
         return {
             "deploy_type": deploy_type,
             "status": status,
-            "mode": os.getenv("DEPLOY_PREFLIGHT_MODE", "block"),
+            "mode": mode,
             "should_block": should_block,
             "duration_ms": int((time.time() - started) * 1000),
             "summary": self._summary(status, checks),

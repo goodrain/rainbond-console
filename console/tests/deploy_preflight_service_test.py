@@ -91,6 +91,44 @@ class DeployPreflightServiceTests(SimpleTestCase):
         self.assertEqual("block", result["status"])
         self.assertEqual("repository_missing", self._check(result, "source_repository")["reason"])
 
+    def test_source_code_preflight_warns_without_branch_and_does_not_block(self):
+        result = self.service.run(self.tenant, self.region, "source_code", {
+            "code_from": "gitlab_manual",
+            "server_type": "git",
+            "git_url": "https://git.example.com/team/web.git",
+        })
+
+        self.assertEqual("warning", result["status"])
+        self.assertFalse(result["should_block"])
+        self.assertEqual("branch_defaulted", self._check(result, "source_repository")["reason"])
+
+    def test_source_code_preflight_passes_for_oauth_repository_with_service(self):
+        result = self.service.run(self.tenant, self.region, "source_code", {
+            "code_from": "oauth_github",
+            "server_type": "git",
+            "git_url": "git@github.com:goodrain/demo.git",
+            "code_version": "main",
+            "is_oauth": True,
+            "service_id": 17,
+        })
+
+        self.assertEqual("pass", result["status"])
+        self.assertFalse(result["should_block"])
+        self.assertEqual("", self._check(result, "source_repository")["reason"])
+
+    def test_source_code_preflight_blocks_when_oauth_service_is_missing(self):
+        result = self.service.run(self.tenant, self.region, "source_code", {
+            "code_from": "oauth_github",
+            "server_type": "git",
+            "git_url": "git@github.com:goodrain/demo.git",
+            "code_version": "main",
+            "is_oauth": True,
+        })
+
+        self.assertEqual("block", result["status"])
+        self.assertTrue(result["should_block"])
+        self.assertEqual("oauth_service_missing", self._check(result, "source_repository")["reason"])
+
     def test_package_preflight_blocks_when_uploaded_file_type_is_not_supported(self):
         record = Obj(event_id="event-1", status="finished", source_dir="['demo.txt']")
         self.service.package_upload_service.get_upload_record = mock.Mock(return_value=record)
@@ -102,6 +140,41 @@ class DeployPreflightServiceTests(SimpleTestCase):
 
         self.assertEqual("block", result["status"])
         self.assertEqual("package_type_unsupported", self._check(result, "package_upload")["reason"])
+
+    def test_package_preflight_passes_for_supported_uploaded_packages(self):
+        record = Obj(event_id="event-1", status="finished", source_dir="['demo.JAR', 'api.war', 'web.zip']")
+        self.service.package_upload_service.get_upload_record = mock.Mock(return_value=record)
+
+        result = self.service.run(self.tenant, self.region, "package", {
+            "region": "region-a",
+            "event_id": "event-1",
+        })
+
+        self.assertEqual("pass", result["status"])
+        self.assertFalse(result["should_block"])
+        self.assertEqual(["demo.JAR", "api.war", "web.zip"],
+                         self._check(result, "package_upload")["details"]["packages"])
+
+    def test_package_preflight_warns_when_upload_status_is_not_finished(self):
+        record = Obj(event_id="event-1", status="uploading", source_dir=["demo.jar"])
+        self.service.package_upload_service.get_upload_record = mock.Mock(return_value=record)
+
+        result = self.service.run(self.tenant, self.region, "package", {
+            "event_id": "event-1",
+        })
+
+        self.service.package_upload_service.get_upload_record.assert_called_once_with(
+            "team-a", "region-a", "event-1")
+        self.assertEqual("warning", result["status"])
+        self.assertFalse(result["should_block"])
+        self.assertEqual("package_status_unknown", self._check(result, "package_upload")["reason"])
+
+    def test_package_preflight_blocks_when_upload_event_is_missing(self):
+        result = self.service.run(self.tenant, self.region, "package", {})
+
+        self.assertEqual("block", result["status"])
+        self.assertTrue(result["should_block"])
+        self.assertEqual("package_event_missing", self._check(result, "package_upload")["reason"])
 
     def test_uploaded_template_preflight_reuses_template_checks(self):
         self._stub_template_checks()
@@ -122,6 +195,35 @@ class DeployPreflightServiceTests(SimpleTestCase):
         self.assertEqual("pass", result["status"])
         self.assertEqual("template", result["deploy_type"])
         self.assertEqual("image_manifest", result["checks"][-1]["name"])
+
+    def test_docker_run_preflight_extracts_image_after_common_options(self):
+        self._stub_template_checks()
+        self.service.template_preflight._probe_image_manifest = mock.Mock(return_value=("pass", "镜像版本存在", ""))
+
+        result = self.service.run(self.tenant, self.region, "docker_run", {
+            "docker_cmd": "docker run -d --name web -p 80:80 registry.example.com/team/web:v1",
+            "image_type": "docker_run",
+            "arch": "amd64",
+        })
+
+        self.assertEqual("pass", result["status"])
+        self.assertEqual("docker_run", result["deploy_type"])
+        self.assertEqual("registry.example.com/team/web:v1", result["payload_summary"]["image"])
+
+    def test_unknown_deploy_type_blocks(self):
+        result = self.service.run(self.tenant, self.region, "helm", {})
+
+        self.assertEqual("block", result["status"])
+        self.assertTrue(result["should_block"])
+        self.assertEqual("deploy_type_unsupported", self._check(result, "deploy_type")["reason"])
+
+    def test_observe_mode_downgrades_block_to_warning_without_blocking(self):
+        with mock.patch.dict(os.environ, {"DEPLOY_PREFLIGHT_MODE": "observe"}):
+            result = self.service.run(self.tenant, self.region, "helm", {})
+
+        self.assertEqual("warning", result["status"])
+        self.assertFalse(result["should_block"])
+        self.assertEqual("observe", result["mode"])
 
     def test_deploy_preflight_view_returns_structured_result(self):
         from console.views.app_create.deploy_preflight import DeployPreflightView
