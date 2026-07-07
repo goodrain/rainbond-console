@@ -212,6 +212,22 @@ class DeployPreflightServiceTests(SimpleTestCase):
         self.assertEqual("docker_run", result["deploy_type"])
         self.assertEqual("registry.example.com/team/web:v1", result["payload_summary"]["image"])
 
+    def test_image_preflight_warning_uses_deploy_wording(self):
+        self._stub_template_checks()
+        self.service.template_preflight._probe_image_manifest = mock.Mock(
+            return_value=("warning", "镜像仓库检测超时，安装将继续", "registry_probe_timeout"))
+
+        result = self.service.run(self.tenant, self.region, "image", {
+            "docker_cmd": "registry.example.com/team/web:v1",
+            "image_type": "docker_image",
+            "arch": "amd64",
+        })
+
+        self.assertEqual("warning", result["status"])
+        self.assertEqual("部分部署前检测未完成，部署可继续", result["summary"])
+        self.assertEqual("部分镜像版本检测未完成，部署将继续",
+                         self._check(result, "image_manifest")["message"])
+
     def test_unknown_deploy_type_blocks(self):
         result = self.service.run(self.tenant, self.region, "helm", {})
 
@@ -235,7 +251,7 @@ class DeployPreflightServiceTests(SimpleTestCase):
         view.tenant = self.tenant
         view.region = self.region
         view.user = Obj(user_id=1, enterprise_id="eid-1")
-        request = Obj(data={"deploy_type": "image", "payload": {"docker_cmd": "nginx:latest"}})
+        request = Obj(META={}, data={"deploy_type": "image", "payload": {"docker_cmd": "nginx:latest"}})
 
         with mock.patch("console.views.app_create.deploy_preflight.deploy_preflight_service.run",
                         return_value=preflight) as run:
@@ -256,7 +272,7 @@ class DeployPreflightServiceTests(SimpleTestCase):
         view.region_name = "region-a"
         view.response_region = "region-a"
         view.user = Obj(pk=1, enterprise_id="eid-1", nick_name="tester")
-        request = Obj(data={
+        request = Obj(META={}, data={
             "group_id": 7,
             "service_cname": "web",
             "docker_cmd": "registry.example.com/team/web:missing",
@@ -286,7 +302,7 @@ class DeployPreflightServiceTests(SimpleTestCase):
         view.response_region = "region-a"
         view.app_id = 7
         view.user = Obj(user_id=1, pk=1, enterprise_id="eid-1", nick_name="tester")
-        request = Obj(user=view.user, data={
+        request = Obj(META={}, user=view.user, data={
             "group_id": 7,
             "service_cname": "web",
             "code_from": "gitlab_manual",
@@ -318,7 +334,7 @@ class DeployPreflightServiceTests(SimpleTestCase):
         view.response_region = "region-a"
         view.team_name = "team-a"
         view.user = Obj(user_id=1, pk=1, enterprise_id="eid-1", nick_name="tester")
-        request = Obj(data={
+        request = Obj(META={}, data={
             "region": "region-a",
             "event_id": "event-1",
             "group_id": 7,
