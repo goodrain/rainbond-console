@@ -66,7 +66,7 @@ class DeployPreflightService(object):
         result = self.template_preflight.run(tenant, region, template)
         result["deploy_type"] = deploy_type
         result["payload_summary"] = {"image": image, "registry_auth_id": payload.get("registry_auth_id") or ""}
-        return result
+        return self._normalize_deploy_wording(result)
 
     def _run_template_preflight(self, tenant: Any, region: Any, payload: Dict[str, Any],
                                 started: float) -> Dict[str, Any]:
@@ -77,7 +77,7 @@ class DeployPreflightService(object):
             ], started)
         result = self.template_preflight.run(tenant, region, app_template)
         result["deploy_type"] = self.DEPLOY_TYPE_TEMPLATE
-        return result
+        return self._normalize_deploy_wording(result)
 
     def _check_source_repository(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         git_url = (payload.get("git_url") or "").strip()
@@ -182,6 +182,27 @@ class DeployPreflightService(object):
     @staticmethod
     def _is_supported_repository_url(git_url: str) -> bool:
         return git_url.startswith(("http://", "https://", "ssh://", "git@"))
+
+    def _normalize_deploy_wording(self, result: Dict[str, Any]) -> Dict[str, Any]:
+        result["summary"] = self._deploy_wording(result.get("summary", ""))
+        for check in result.get("checks") or []:
+            if check.get("message"):
+                check["message"] = self._deploy_wording(check["message"])
+        return result
+
+    @staticmethod
+    def _deploy_wording(message: str) -> str:
+        replacements = (
+            ("部分安装环境检测未完成，安装可继续", "部分部署前检测未完成，部署可继续"),
+            ("安装环境检测通过，应用预计需要", "部署前检测通过，组件预计需要"),
+            ("无法安装应用", "无法部署组件"),
+            ("安装可继续", "部署可继续"),
+            ("安装将继续", "部署将继续"),
+            ("安装中观察", "部署中观察"),
+        )
+        for source, target in replacements:
+            message = message.replace(source, target)
+        return message
 
     def _result_status(self, checks: List[Dict[str, Any]]) -> str:
         if any(item["status"] == self.STATUS_BLOCK for item in checks):
