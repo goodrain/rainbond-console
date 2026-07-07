@@ -65,6 +65,8 @@ if not hasattr(QuerySet, "__class_getitem__"):
 class Obj(object):
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
+        if "data" in kwargs and "META" not in kwargs:
+            self.META = {}
 
 
 class MarketAppServiceTelemetryTests(SimpleTestCase):
@@ -77,15 +79,13 @@ class MarketAppServiceTelemetryTests(SimpleTestCase):
         view.region = Obj(region_name="region-a")
         view.region_name = "region-a"
         view.user = Obj(enterprise_id="eid-1", nick_name="tester")
-        request = Obj(
-            META={},
-            data={
-                "group_id": 7,
-                "app_id": "model-1",
-                "app_version": "1.2.3",
-                "market_name": "localApplication",
-                "install_from_cloud": False,
-            })
+        request = Obj(data={
+            "group_id": 7,
+            "app_id": "model-1",
+            "app_version": "1.2.3",
+            "market_name": "localApplication",
+            "install_from_cloud": False,
+        })
 
         with patch("console.views.center_pool.apps.check_account_quota", return_value=True), \
                 patch("console.views.center_pool.apps.market_app_service.preflight_install_app",

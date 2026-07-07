@@ -10,8 +10,9 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from console.exception.bcode import ErrK8sComponentNameExists
-from console.exception.main import ResourceNotEnoughException, AccountOverdueException
+from console.exception.main import AbortRequest, ResourceNotEnoughException, AccountOverdueException
 from console.services.app import app_service
+from console.services.deploy_preflight_service import deploy_preflight_service
 from console.views.base import RegionTenantHeaderView
 from www.utils.crypt import make_uuid
 from www.models.main import ServiceGroup
@@ -20,6 +21,16 @@ from console.services.group_service import group_service
 from console.services.team_services import team_services
 
 logger = logging.getLogger("default")
+
+
+def abort_if_deploy_preflight_blocked(preflight: dict) -> None:
+    if preflight.get("should_block"):
+        raise AbortRequest(
+            "deploy preflight blocked",
+            preflight.get("summary") or "当前环境不满足部署条件",
+            status_code=412,
+            error_code=10412,
+            bean=preflight)
 
 
 class DockerRunCreateView(RegionTenantHeaderView):
@@ -106,6 +117,21 @@ class DockerRunCreateView(RegionTenantHeaderView):
                 return Response(general_message(400, "image_type cannot be null", "参数错误"), status=400)
             if not docker_cmd:
                 return Response(general_message(400, "docker_cmd cannot be null", "参数错误"), status=400)
+
+            deploy_type = "image" if image_type == "docker_image" else "docker_run"
+            preflight = deploy_preflight_service.run(
+                self.tenant, self.region, deploy_type, {
+                    "group_id": group_id,
+                    "service_cname": service_cname,
+                    "docker_cmd": docker_cmd,
+                    "image_type": image_type,
+                    "user_name": docker_user_name,
+                    "password": docker_password,
+                    "registry_auth_id": registry_auth_id,
+                    "k8s_component_name": k8s_component_name,
+                    "arch": arch,
+                }, self.user)
+            abort_if_deploy_preflight_blocked(preflight)
 
             code, msg_show, new_service = app_service.create_docker_run_app(self.response_region, self.tenant, self.user,
                                                                             service_cname,  # type: ignore[arg-type]
