@@ -145,6 +145,22 @@ class CenterAppView(RegionTenantHeaderView):
         return Response(general_message(200, "success", "创建成功"), status=200)
 
 
+class CenterAppPreflightView(RegionTenantHeaderView):
+    @never_cache
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
+        app_id = request.data.get("group_id", -1)
+        app_model_key = request.data.get("app_id", None)
+        version = request.data.get("app_version", None)
+        install_from_cloud = request.data.get("install_from_cloud", False)
+        market_name = request.data.get("market_name", None)
+        if not check_account_quota(self.tenant.creater, self.region_name, app_manage_service.ResourceOperationDeploy):
+            raise ServiceHandleException(error_code=20002, msg="not enough quota")
+        preflight = market_app_service.preflight_install_app(
+            self.tenant, self.region, self.user, app_id,
+            app_model_key, version, market_name, install_from_cloud)  # type: ignore[arg-type]
+        return Response(general_message(200, "success", "检测完成", bean=preflight), status=200)
+
+
 class CmdInstallAppView(RegionTenantHeaderView):
     @never_cache
     def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
