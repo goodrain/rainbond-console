@@ -213,7 +213,7 @@ class DeployPreflightServiceTests(SimpleTestCase):
     def test_image_preflight_warning_uses_deploy_wording(self):
         self._stub_template_checks()
         self.service.template_preflight._probe_image_manifest = mock.Mock(
-            return_value=("warning", "镜像仓库检测超时，安装将继续", "registry_probe_timeout"))
+            return_value=("warning", "镜像仓库检测超时，无法确认镜像版本", "registry_probe_timeout"))
 
         result = self.service.run(self.tenant, self.region, "image", {
             "docker_cmd": "registry.example.com/team/web:v1",
@@ -222,8 +222,8 @@ class DeployPreflightServiceTests(SimpleTestCase):
         })
 
         self.assertEqual("warning", result["status"])
-        self.assertEqual("部分部署前检测未完成，部署可继续", result["summary"])
-        self.assertEqual("部分镜像版本检测未完成，部署将继续",
+        self.assertEqual("部分部署前检测无法确认", result["summary"])
+        self.assertEqual("部分镜像版本检测无法确认",
                          self._check(result, "image_manifest")["message"])
 
     def test_unknown_deploy_type_blocks(self):

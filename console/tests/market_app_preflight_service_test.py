@@ -140,7 +140,8 @@ class MarketInstallPreflightServiceTests(TestCase):
     def test_warns_when_region_capability_is_missing(self):
         self.service._get_region_resources = mock.Mock(side_effect=Exception("old region api"))
         self.service._get_cluster_arches = mock.Mock(side_effect=Exception("old region api"))
-        self.service._probe_image_manifest = mock.Mock(return_value=("warning", "镜像仓库检测超时，安装将继续", "registry_probe_timeout"))
+        self.service._probe_image_manifest = mock.Mock(
+            return_value=("warning", "镜像仓库检测超时，无法确认镜像版本", "registry_probe_timeout"))
 
         result = self.service.run(self.tenant, self.region, self.template)
 
