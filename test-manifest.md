@@ -328,6 +328,7 @@
 | console.image.slug-detect | 为非 docker 类语言识别基于 runner 的 slug 镜像 | active | regression | console.utils.slug_util.is_slug | console/tests/utils/image_classify_test.py::ImageClassifyTests.test_is_slug |
 | console.init-cluster.prefer-latest-pending | 初始化时优先选择最新待处理集群 | active | regression | console.repositories.init_cluster.Cluster.get_rke_cluster_exclude_integrated | console/tests/init_cluster_test.py::ClusterRepositoryTests.test_get_rke_cluster_exclude_integrated_prefers_latest_pending_cluster |
 | console.init-cluster.recycle-empty-interconnected | 回收空白联通集群用于重新初始化 | active | regression | console.repositories.init_cluster.Cluster.get_rke_cluster_exclude_integrated | console/tests/init_cluster_test.py::ClusterRepositoryTests.test_get_rke_cluster_exclude_integrated_recycles_blank_cluster |
+| console.k8s-attribute.upsert-region-sync | Console 与 region 组件 K8s 属性幂等同步 | active | regression | console.services.k8s_attribute.ComponentK8sAttributeService | console/tests/k8s_attribute_service_test.py |
 | console.k8s-namespace.normalize-user-prefix | 将用户名规范化为合法的 Kubernetes 命名空间名 | active | regression | console.utils.validation.normalize_name_for_k8s_namespace | console/tests/utils/validation_test.py::NamespaceNormalizationTests.test_normalize_name_for_k8s_namespace |
 | console.kubeblocks.app-resource-statistics | KubeBlocks 集群请求携带 app id 以支持资源统计 | active | regression | console.services.kubeblocks_service.KubeBlocksService._build_cluster_request | console/tests/kubeblocks_cluster_validation_test.py::KubeBlocksCreateFlowTests.test_build_cluster_request_includes_app_id_for_resource_statistics |
 | console.kubeblocks.backup-repo.ready-guard | 使用 KubeBlocks 备份仓库前校验就绪状态 | active | regression | console.services.kubeblocks_service.KubeBlocksService.ensure_backup_repo_ready_for_use | console/tests/kubeblocks_backup_repo_test.py::KubeBlocksBackupRepoServiceTests.test_ensure_backup_repo_ready_for_use_rejects_prechecking_repo<br>console/tests/kubeblocks_backup_repo_test.py::KubeBlocksBackupRepoServiceTests.test_ensure_backup_repo_ready_for_use_accepts_ready_repo<br>console/tests/kubeblocks_backup_repo_test.py::KubeBlocksBackupRepoServiceTests.test_ensure_backup_repo_ready_for_use_rejects_missing_live_repo<br>console/tests/kubeblocks_cluster_validation_test.py::KubeBlocksCreateFlowTests.test_create_cluster_returns_backup_repo_not_ready_message |
@@ -3792,6 +3793,16 @@
 - 业务入口: `console.repositories.init_cluster.Cluster.get_rke_cluster_exclude_integrated`
 - 代码路径: `console/repositories/init_cluster.py`
 - 测试路径: `console/tests/init_cluster_test.py::ClusterRepositoryTests.test_get_rke_cluster_exclude_integrated_recycles_blank_cluster`
+
+### Console 与 region 组件 K8s 属性幂等同步
+
+- Capability ID: `console.k8s-attribute.upsert-region-sync`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.k8s_attribute.ComponentK8sAttributeService`
+- 代码路径: `console/services/k8s_attribute.py`
+- 测试路径: `console/tests/k8s_attribute_service_test.py`
 
 ### 将用户名规范化为合法的 Kubernetes 命名空间名
 

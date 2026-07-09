@@ -5908,6 +5908,23 @@
       "status": "active"
     },
     {
+      "id": "console.k8s-attribute.upsert-region-sync",
+      "title": "Upsert component k8s attributes between Console and region",
+      "title_zh": "Console 与 region 组件 K8s 属性幂等同步",
+      "interface_type": "service_method",
+      "interface": "console.services.k8s_attribute.ComponentK8sAttributeService",
+      "code_paths": [
+        "console/services/k8s_attribute.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/k8s_attribute_service_test.py"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.k8s-namespace.normalize-user-prefix",
       "title": "Normalize user names into valid Kubernetes namespace names",
       "title_zh": "将用户名规范化为合法的 Kubernetes 命名空间名",

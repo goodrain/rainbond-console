@@ -14,6 +14,10 @@ region_api = RegionInvokeApi()
 
 class ComponentK8sAttributeService(object):
     @staticmethod
+    def _is_record_already_exists_error(error: Exception) -> bool:
+        return "already exist" in str(error).lower()
+
+    @staticmethod
     def _serialize_json_attribute_value(attribute_value: Any) -> str:
         if isinstance(attribute_value, str):
             try:
@@ -66,7 +70,12 @@ class ComponentK8sAttributeService(object):
             attribute["attribute_value"] = self._serialize_json_attribute_value(attribute.get("attribute_value", []))
         k8s_attribute_repo.create(tenant_id=tenant.tenant_id, component_id=component.service_id, **attribute)
         attribute['operator'] = user_name
-        region_api.create_component_k8s_attribute(tenant.tenant_name, region_name, component.service_alias, attribute)
+        try:
+            region_api.create_component_k8s_attribute(tenant.tenant_name, region_name, component.service_alias, attribute)
+        except Exception as error:
+            if not self._is_record_already_exists_error(error):
+                raise
+            region_api.update_component_k8s_attribute(tenant.tenant_name, region_name, component.service_alias, attribute)
 
     @transaction.atomic
     def update_k8s_attribute(self, tenant: Tenants, component: TenantServiceInfo, region_name: str,
@@ -76,7 +85,15 @@ class ComponentK8sAttributeService(object):
             attribute_value_json = self._serialize_json_attribute_value(attribute.get("attribute_value", []))
             attribute["attribute_value"] = attribute_value_json
             data = {"attribute_value": attribute_value_json}
-        k8s_attribute_repo.update(component.service_id, attribute["name"], **data)
+        updated = k8s_attribute_repo.update(component.service_id, attribute["name"], **data)
+        if updated == 0:
+            k8s_attribute_repo.create(
+                tenant_id=tenant.tenant_id,
+                component_id=component.service_id,
+                name=attribute["name"],
+                save_type=attribute.get("save_type", ""),
+                attribute_value=data["attribute_value"]
+            )
         region_api.update_component_k8s_attribute(tenant.tenant_name, region_name, component.service_alias, attribute)
 
     @transaction.atomic

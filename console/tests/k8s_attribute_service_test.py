@@ -44,6 +44,8 @@ django.setup()
 
 from console.services.k8s_attribute import k8s_attribute_service  # noqa: E402
 
+# capability_id: console.k8s-attribute.upsert-region-sync
+
 
 class ComponentK8sAttributeServiceTests(TestCase):
 
@@ -132,5 +134,94 @@ class ComponentK8sAttributeServiceTests(TestCase):
                 "name": "labels",
                 "save_type": "json",
                 "attribute_value": expected_value
+            }
+        )
+
+    def test_create_k8s_attribute_updates_region_when_region_record_exists(self):
+        attribute = {
+            "name": "securityContext",
+            "save_type": "yaml",
+            "attribute_value": "runAsNonRoot: true",
+        }
+
+        with mock.patch("console.services.k8s_attribute.k8s_attribute_repo.create") as repo_create, \
+                mock.patch(
+                    "console.services.k8s_attribute.region_api.create_component_k8s_attribute",
+                    side_effect=Exception("record already exist")
+                ) as region_create, \
+                mock.patch("console.services.k8s_attribute.region_api.update_component_k8s_attribute") as region_update:
+            k8s_attribute_service.create_k8s_attribute.__wrapped__(
+                k8s_attribute_service,
+                self.tenant,
+                self.component,
+                "demo-region",
+                attribute,
+                "alice"
+            )
+
+        repo_create.assert_called_once_with(
+            tenant_id="tenant-a",
+            component_id="service-a",
+            name="securityContext",
+            save_type="yaml",
+            attribute_value="runAsNonRoot: true"
+        )
+        expected_attribute = {
+            "name": "securityContext",
+            "save_type": "yaml",
+            "attribute_value": "runAsNonRoot: true",
+            "operator": "alice"
+        }
+        region_create.assert_called_once_with(
+            "team-a",
+            "demo-region",
+            "service-a",
+            expected_attribute
+        )
+        region_update.assert_called_once_with(
+            "team-a",
+            "demo-region",
+            "service-a",
+            expected_attribute
+        )
+
+    def test_update_k8s_attribute_creates_console_record_when_missing(self):
+        attribute = {
+            "name": "securityContext",
+            "save_type": "yaml",
+            "attribute_value": "runAsNonRoot: true",
+        }
+
+        with mock.patch("console.services.k8s_attribute.k8s_attribute_repo.update", return_value=0) as repo_update, \
+                mock.patch("console.services.k8s_attribute.k8s_attribute_repo.create") as repo_create, \
+                mock.patch("console.services.k8s_attribute.region_api.update_component_k8s_attribute") as region_update:
+            k8s_attribute_service.update_k8s_attribute.__wrapped__(
+                k8s_attribute_service,
+                self.tenant,
+                self.component,
+                "demo-region",
+                attribute
+            )
+
+        repo_update.assert_called_once_with(
+            "service-a",
+            "securityContext",
+            attribute_value="runAsNonRoot: true"
+        )
+        repo_create.assert_called_once_with(
+            tenant_id="tenant-a",
+            component_id="service-a",
+            name="securityContext",
+            save_type="yaml",
+            attribute_value="runAsNonRoot: true"
+        )
+        region_update.assert_called_once_with(
+            "team-a",
+            "demo-region",
+            "service-a",
+            {
+                "name": "securityContext",
+                "save_type": "yaml",
+                "attribute_value": "runAsNonRoot: true"
             }
         )
