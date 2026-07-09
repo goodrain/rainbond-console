@@ -1,7 +1,7 @@
 mirrors:
   "goodrain.me":
     endpoint:
-      - "https://goodrain.me"
+      - "http://goodrain.me"
 configs:
   "goodrain.me":
     auth:
