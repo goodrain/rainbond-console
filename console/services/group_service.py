@@ -759,34 +759,6 @@ class GroupService(object):
         """ get service source by group key"""
         return service_source_repo.get_service_sources_by_group_key(group_key)
 
-    def delete_app_with_resources(self, user: Users, tenant: Tenants, region_name: str, app: ServiceGroup) -> Any:
-        """Delete an application along with all of its resources:
-        components, kubeblocks clusters, k8s resources, config groups and share records.
-        Returns the deleted components for callers that need them (e.g. operation log).
-        """
-        # avoid circular import
-        from console.services.k8s_resource import k8s_resource_service
-        from console.services.kubeblocks_service import kubeblocks_service
-
-        app_id = app.app_id
-        # delete services
-        services = self.batch_delete_app_services(user, tenant.tenant_id, region_name, app_id)
-        # delete kubeblocks cluster if service is kubeblocks cluster
-        service_ids = [service.service_id for service in services]
-        kubeblocks_service.delete_kubeblocks_cluster(service_ids, region_name)
-        # delete k8s resource
-        k8s_resources = k8s_resource_service.list_by_app_id(str(app_id))
-        resource_ids = [k8s_resource.ID for k8s_resource in k8s_resources]
-        k8s_resource_service.batch_delete_k8s_resource(user.enterprise_id, tenant.tenant_name, str(app_id), region_name,  # type: ignore[arg-type]  # NOTE: region_name Optional (latent)
-                                                       resource_ids)
-        # delete configs
-        app_config_group_service.batch_delete_config_group(region_name, tenant.tenant_name, app_id)
-        # delete records
-        self.delete_app_share_records(tenant.tenant_name, app_id)
-        # delete app
-        self.delete_app(tenant, region_name, app)
-        return services
-
     @transaction.atomic
     def delete_app(self, tenant: Tenants, region_name: str, app: ServiceGroup) -> None:
         if app.app_type == AppType.helm.name:

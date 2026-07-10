@@ -9668,24 +9668,6 @@
       "status": "active"
     },
     {
-      "id": "console.app.delete-with-resources",
-      "title": "Delete application along with components and attached resources",
-      "title_zh": "删除应用及其组件与关联资源",
-      "interface_type": "service_method",
-      "interface": "console.services.group_service.GroupService.delete_app_with_resources",
-      "code_paths": [
-        "console/services/group_service.py"
-      ],
-      "tests": [
-        {
-          "path": "console/tests/group_service_test.py",
-          "selector": "GroupServiceDeleteAppWithResourcesTestCase"
-        }
-      ],
-      "test_type": "unit",
-      "status": "active"
-    },
-    {
       "id": "console.test-manifest.ignore-worktrees",
       "title": "Ignore nested worktree tests during manifest validation",
       "title_zh": "测试清单校验忽略嵌套 worktree 测试",
