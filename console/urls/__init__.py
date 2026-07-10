@@ -38,6 +38,7 @@ from console.views.app_create.app_check import (AppCheck, AppCheckUpdate, GetChe
 from console.views.app_create.docker_compose import (ComposeCheckUpdate, ComposeCheckView, ComposeContentView,
                                                      ComposeDeleteView, ComposeServicesView, DockerComposeCreateView,
                                                      GetComposeCheckUUID)
+from console.views.app_create.deploy_preflight import DeployPreflightView
 from console.views.app_create.docker_run import DockerRunCreateView
 from console.views.app_create.image_repositories import TenantImageRepositories, TenantImageTags
 from console.views.app_create.multi_app import (MultiAppCheckView, MultiAppCreateView)
@@ -70,7 +71,7 @@ from console.views.center_pool.app_export import CenterAppExportView
 from console.views.center_pool.app_import import (CenterAppImportView, CenterAppTarballDirView, EnterpriseAppImportInitView)
 from console.views.center_pool.apps import (AppTagCDView, AppVersionUDView, CenterAppCLView, CenterAppUDView, CenterAppView,
                                             LocalComponentLibraryConfigCheck, TagCLView, TagUDView, CenterPluginAppView,
-                                            CmdInstallAppView)
+                                            CmdInstallAppView, CenterAppPreflightView)
 from console.views.center_pool.groupapp_backup import (AllTeamGroupAppsBackupView, GroupAppsBackupExportView,
                                                        GroupAppsBackupImportView, GroupAppsBackupStatusView,
                                                        GroupAppsBackupView, TeamGroupAppsBackupView)
@@ -497,6 +498,9 @@ urlpatterns = [
         TarImageLoadResultView.as_view(), perms.APP_OVERVIEW_CREATE),
     # 本地文件创建组件
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/package_build$', PackageCreateView.as_view(), perms.APP_OVERVIEW_CREATE),
+    # 部署前快速检测
+    re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/deploy_preflight$', DeployPreflightView.as_view(),
+        perms.APP_OVERVIEW_CREATE),
     # 源码创建
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/source_code$', SourceCodeCreateView.as_view(), perms.APP_OVERVIEW_CREATE),
     # 第三方组件创建
@@ -874,6 +878,7 @@ urlpatterns = [
     re_path(r'^market/plugins/install$', InstallMarketPlugin.as_view(), perms.TEAM_PLUGIN_MANAGE),
     re_path(r'^plugins$', InternalMarketPluginsView.as_view(), perms.TEAM_PLUGIN_MANAGE),
     re_path(r'^plugins/installable$', InstallableInteralPluginsView.as_view(), perms.TEAM_PLUGIN_MANAGE),
+    re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/market_create/preflight$', CenterAppPreflightView.as_view()),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/market_create$', CenterAppView.as_view()),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/cmd_create$', CmdInstallAppView.as_view(), perms.APP_OVERVIEW_CREATE),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/plugins$', CenterPluginAppView.as_view(), perms.TEAM_PLUGIN_MANAGE),

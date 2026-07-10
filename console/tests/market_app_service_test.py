@@ -44,6 +44,10 @@ sys.modules.setdefault("openapi_client.rest", openapi_client_rest)
 market_openapi_api = ModuleType("openapi_client.api.market_openapi_api")
 market_openapi_api.MarketOpenapiApi = type("MarketOpenapiApi", (), {})
 sys.modules.setdefault("openapi_client.api.market_openapi_api", market_openapi_api)
+sys.modules.setdefault("rest_framework_simplejwt", ModuleType("rest_framework_simplejwt"))
+simplejwt_tokens = ModuleType("rest_framework_simplejwt.tokens")
+simplejwt_tokens.AccessToken = type("AccessToken", (), {})
+sys.modules.setdefault("rest_framework_simplejwt.tokens", simplejwt_tokens)
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
 
@@ -61,9 +65,109 @@ if not hasattr(QuerySet, "__class_getitem__"):
 class Obj(object):
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
+        if "data" in kwargs and "META" not in kwargs:
+            self.META = {}
 
 
 class MarketAppServiceTelemetryTests(SimpleTestCase):
+    def test_market_preflight_view_returns_structured_result(self):
+        from console.views.center_pool.apps import CenterAppPreflightView
+
+        preflight = {"status": "pass", "should_block": False, "summary": "可以安装", "checks": []}
+        view = CenterAppPreflightView()
+        view.tenant = Obj(tenant_id="tenant-1", tenant_name="team-a", enterprise_id="eid-1", creater="u-1")
+        view.region = Obj(region_name="region-a")
+        view.region_name = "region-a"
+        view.user = Obj(enterprise_id="eid-1", nick_name="tester")
+        request = Obj(data={
+            "group_id": 7,
+            "app_id": "model-1",
+            "app_version": "1.2.3",
+            "market_name": "localApplication",
+            "install_from_cloud": False,
+        })
+
+        with patch("console.views.center_pool.apps.check_account_quota", return_value=True), \
+                patch("console.views.center_pool.apps.market_app_service.preflight_install_app",
+                      return_value=preflight) as preflight_install_app:
+            response = view.post(request)
+
+        preflight_install_app.assert_called_once_with(
+            view.tenant, view.region, view.user, 7, "model-1", "1.2.3", "localApplication", False)
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(preflight, response.data["data"]["bean"])
+
+    def test_preflight_install_app_returns_structured_result(self):
+        from console.services.market_app_service import market_app_service
+
+        tenant = Obj(tenant_id="tenant-1", tenant_name="team-a", enterprise_id="eid-1")
+        region = Obj(region_name="region-a")
+        user = Obj(enterprise_id="eid-1", nick_name="tester")
+        app = Obj(ID=7, governance_mode="KUBERNETES_NATIVE_SERVICE", app_id="app-7")
+        market_app = Obj(app_id="model-1", app_name="Demo App", source="")
+        app_template = {"apps": [], "arch": "amd64"}
+        preflight = {"status": "warning", "should_block": False, "summary": "部分检测未完成", "checks": []}
+
+        with patch("console.services.market_app_service.group_repo.get_group_by_id", return_value=app), \
+                patch.object(market_app_service, "get_app_template", return_value=(app_template, market_app)), \
+                patch.object(market_app_service, "_ensure_vm_template_allowed"), \
+                patch("console.services.market_app_service.market_install_preflight_service.run",
+                      return_value=preflight):
+            result = market_app_service.preflight_install_app(
+                tenant, region, user, 7, "model-1", "1.2.3", "localApplication", False)
+
+        self.assertEqual(preflight, result)
+
+    def test_preflight_install_app_does_not_require_target_app(self):
+        from console.services.market_app_service import market_app_service
+
+        tenant = Obj(tenant_id="tenant-1", tenant_name="team-a", enterprise_id="eid-1")
+        region = Obj(region_name="region-a")
+        user = Obj(enterprise_id="eid-1", nick_name="tester")
+        market_app = Obj(app_id="model-1", app_name="Demo App", source="")
+        app_template = {"apps": [], "arch": "amd64"}
+        preflight = {"status": "pass", "should_block": False, "summary": "可以安装", "checks": []}
+
+        with patch("console.services.market_app_service.group_repo.get_group_by_id", return_value=None), \
+                patch.object(market_app_service, "get_app_template", return_value=(app_template, market_app)), \
+                patch.object(market_app_service, "_ensure_vm_template_allowed"), \
+                patch("console.services.market_app_service.market_install_preflight_service.run",
+                      return_value=preflight):
+            result = market_app_service.preflight_install_app(
+                tenant, region, user, 0, "model-1", "1.2.3", "localApplication", False)
+
+        self.assertEqual(preflight, result)
+
+    def test_install_app_blocks_when_market_preflight_has_fatal_issue(self):
+        from console.exception.main import AbortRequest
+        from console.services.market_app_service import market_app_service
+
+        tenant = Obj(tenant_id="tenant-1", tenant_name="team-a", enterprise_id="eid-1")
+        region = Obj(region_name="region-a")
+        user = Obj(enterprise_id="eid-1", nick_name="tester")
+        app = Obj(ID=7, governance_mode="KUBERNETES_NATIVE_SERVICE", app_id="app-7")
+        market_app = Obj(app_id="model-1", app_name="Demo App", source="")
+        app_template = {"apps": [], "arch": "amd64"}
+        preflight = {
+            "status": "block",
+            "should_block": True,
+            "summary": "内存不足：预计需要1024Mi，当前可用512Mi",
+            "checks": [{"name": "resource_capacity", "status": "block"}],
+        }
+
+        with patch("console.services.market_app_service.group_repo.get_group_by_id", return_value=app), \
+                patch.object(market_app_service, "get_app_template", return_value=(app_template, market_app)), \
+                patch.object(market_app_service, "_ensure_vm_template_allowed"), \
+                patch("console.services.market_app_service.market_install_preflight_service.run",
+                      return_value=preflight):
+            with self.assertRaises(AbortRequest) as ctx:
+                market_app_service.install_app(
+                    tenant, region, user, 7, "model-1", "1.2.3", "localApplication", False, is_deploy=True)
+
+        self.assertEqual(412, ctx.exception.status_code)
+        self.assertEqual("market app preflight blocked", ctx.exception.msg)
+        self.assertEqual(preflight, ctx.exception.bean)
+
     def test_install_app_tracks_market_install_after_successful_ui_install(self):
         from console.services.market_app_service import market_app_service
 
@@ -81,6 +185,8 @@ class MarketAppServiceTelemetryTests(SimpleTestCase):
                 patch.object(market_app_service, "get_app_template", return_value=(app_template, market_app)), \
                 patch("console.services.market_app_service.region_api.get_cluster_nodes_arch",
                       return_value=(None, {"list": ["amd64"]})), \
+                patch("console.services.market_app_service.market_install_preflight_service.run",
+                      return_value={"status": "pass", "should_block": False, "summary": "ok", "checks": []}), \
                 patch.object(market_app_service, "_create_tenant_service_group", return_value=Obj()), \
                 patch("console.services.market_app_service.AppUpgrade", return_value=app_upgrade), \
                 patch("console.services.market_app_service.enterprise_first_deploy_service.safe_bind_events"), \
