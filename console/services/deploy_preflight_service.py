@@ -66,6 +66,7 @@ class DeployPreflightService(object):
         result = self.template_preflight.run(tenant, region, template)
         result["deploy_type"] = deploy_type
         result["payload_summary"] = {"image": image, "registry_auth_id": payload.get("registry_auth_id") or ""}
+        self._ignore_direct_image_probe_uncertainty(result)
         return self._normalize_deploy_wording(result)
 
     def _run_template_preflight(self, tenant: Any, region: Any, payload: Dict[str, Any],
@@ -189,6 +190,29 @@ class DeployPreflightService(object):
         for check in result.get("checks") or []:
             if check.get("message"):
                 check["message"] = self._deploy_wording(check["message"])
+        return result
+
+    def _ignore_direct_image_probe_uncertainty(self, result: Dict[str, Any]) -> Dict[str, Any]:
+        checks = result.get("checks") or []
+        changed = False
+        for check in checks:
+            if check.get("name") != "image_manifest" or check.get("status") != self.STATUS_WARNING:
+                continue
+            details = dict(check.get("details") or {})
+            details["probe_warning_message"] = check.get("message") or ""
+            details["probe_warning_reason"] = check.get("reason") or ""
+            check["status"] = self.STATUS_PASS
+            check["message"] = "镜像地址已填写，镜像版本将在部署时确认"
+            check["reason"] = ""
+            check["details"] = details
+            changed = True
+        if changed:
+            status = self._result_status(checks)
+            mode = result.get("mode") or os.getenv("DEPLOY_PREFLIGHT_MODE", "block")
+            result["status"] = status
+            result["mode"] = mode
+            result["should_block"] = status == self.STATUS_BLOCK and mode == "block"
+            result["summary"] = self._summary(status, checks)
         return result
 
     @staticmethod

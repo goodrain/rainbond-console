@@ -191,13 +191,24 @@ class MarketInstallPreflightService(object):
 
     def _parse_image(self, image: str) -> Optional[Tuple[str, str, str]]:
         image = (image or "").strip()
-        if not image or "/" not in image:
+        if not image:
             return None
-        registry, rest = image.split("/", 1)
+        parts = image.split("/")
+        first = parts[0]
+        if len(parts) > 1 and ("." in first or ":" in first or first == "localhost"):
+            registry = first
+            rest = "/".join(parts[1:])
+        else:
+            registry = "registry-1.docker.io"
+            rest = image
         if ":" in rest.rsplit("/", 1)[-1]:
             repository, tag = rest.rsplit(":", 1)
         else:
             repository, tag = rest, "latest"
+        if not repository:
+            return None
+        if registry == "registry-1.docker.io" and "/" not in repository:
+            repository = "library/{}".format(repository)
         return registry, repository, tag
 
     def _remaining_seconds(self, started: float, timeout_budget_ms: int) -> float:
