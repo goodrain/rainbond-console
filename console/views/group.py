@@ -257,7 +257,7 @@ class TenantGroupHandleView(ApplicationView):
         # delete k8s resource
         k8s_resources = k8s_resource_service.list_by_app_id(str(app_id))
         resource_ids = [k8s_resource.ID for k8s_resource in k8s_resources]
-        k8s_resource_service.batch_delete_k8s_resource(self.user.enterprise_id, self.tenant.tenant_name, str(app_id),
+        k8s_resource_service.batch_delete_k8s_resource(self.enterprise.enterprise_id, self.tenant_name, str(app_id),
                                                        self.region_name, resource_ids)
         # delete configs
         app_config_group_service.batch_delete_config_group(self.region_name, self.tenant.tenant_name, app_id)
