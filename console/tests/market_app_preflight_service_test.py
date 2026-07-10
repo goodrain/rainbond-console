@@ -149,6 +149,21 @@ class MarketInstallPreflightServiceTests(TestCase):
         self.assertEqual("image_not_found", reason)
         self.assertIn("无法确认", message)
 
+    def test_parse_docker_hub_short_image_name(self):
+        parsed = self.service._parse_image("nginx:1.25")
+
+        self.assertEqual(("registry-1.docker.io", "library/nginx", "1.25"), parsed)
+
+    def test_parse_docker_hub_namespace_image_name(self):
+        parsed = self.service._parse_image("goodrain/demo")
+
+        self.assertEqual(("registry-1.docker.io", "goodrain/demo", "latest"), parsed)
+
+    def test_parse_registry_image_name(self):
+        parsed = self.service._parse_image("registry.example.com/team/web:v1")
+
+        self.assertEqual(("registry.example.com", "team/web", "v1"), parsed)
+
     def test_warns_when_region_capability_is_missing(self):
         self.service._get_region_resources = mock.Mock(side_effect=Exception("old region api"))
         self.service._get_cluster_arches = mock.Mock(side_effect=Exception("old region api"))

@@ -66,7 +66,7 @@ class DeployPreflightServiceTests(SimpleTestCase):
         self.tenant = Obj(tenant_id="tenant-1", tenant_name="team-a", enterprise_id="eid-1")
         self.region = Obj(region_name="region-a")
 
-    def test_image_preflight_warns_when_image_tag_cannot_be_confirmed(self):
+    def test_image_preflight_ignores_registry_probe_uncertainty(self):
         self._stub_template_checks()
         self.service.template_preflight._probe_image_manifest = mock.Mock(
             return_value=("warning", "镜像版本无法确认，可能不存在", "image_not_found"))
@@ -77,9 +77,12 @@ class DeployPreflightServiceTests(SimpleTestCase):
             "arch": "amd64",
         })
 
-        self.assertEqual("warning", result["status"])
+        self.assertEqual("pass", result["status"])
         self.assertFalse(result["should_block"])
-        self.assertEqual("image_not_found", self._check(result, "image_manifest")["reason"])
+        image_check = self._check(result, "image_manifest")
+        self.assertEqual("pass", image_check["status"])
+        self.assertEqual("", image_check["reason"])
+        self.assertEqual("image_not_found", image_check["details"]["probe_warning_reason"])
 
     def test_source_code_preflight_blocks_when_repository_is_missing(self):
         result = self.service.run(self.tenant, self.region, "source_code", {
@@ -210,7 +213,7 @@ class DeployPreflightServiceTests(SimpleTestCase):
         self.assertEqual("docker_run", result["deploy_type"])
         self.assertEqual("registry.example.com/team/web:v1", result["payload_summary"]["image"])
 
-    def test_image_preflight_warning_uses_deploy_wording(self):
+    def test_image_preflight_uses_deploy_wording_after_probe_uncertainty_is_ignored(self):
         self._stub_template_checks()
         self.service.template_preflight._probe_image_manifest = mock.Mock(
             return_value=("warning", "镜像仓库检测超时，无法确认镜像版本", "registry_probe_timeout"))
@@ -221,9 +224,9 @@ class DeployPreflightServiceTests(SimpleTestCase):
             "arch": "amd64",
         })
 
-        self.assertEqual("warning", result["status"])
-        self.assertEqual("部分部署前检测无法确认", result["summary"])
-        self.assertEqual("部分镜像版本检测无法确认",
+        self.assertEqual("pass", result["status"])
+        self.assertEqual("部署前检测通过", result["summary"])
+        self.assertEqual("镜像地址已填写，镜像版本将在部署时确认",
                          self._check(result, "image_manifest")["message"])
 
     def test_unknown_deploy_type_blocks(self):
