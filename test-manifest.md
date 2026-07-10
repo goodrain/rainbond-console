@@ -260,6 +260,7 @@
 | console.component.storage-custom-volume-filter | 过滤组件自定义卷列表中的内置卷类型 | active | regression | console.repositories.app_config.TenantServiceVolumnRepository.list_custom_volumes | console/tests/app_config_test.py::TenantServiceVolumnRepositoryTests.test_list_custom_volumes_treats_local_path_as_builtin_volume_type |
 | console.component.storage-delete-mount | 删除组件共享存储挂载 | active | regression | console.services.mcp_query_service.call_tool[rainbond_manage_component_storage#delete_mnt] | console/tests/mcp_query_storage_ops_test.py::ManageComponentStorageTests.test_delete_mnt_removes_relation |
 | console.component.storage-delete-volume | 删除组件存储卷 | active | regression | console.services.mcp_query_service.call_tool[rainbond_manage_component_storage#delete_volume] | console/tests/mcp_query_storage_ops_test.py::ManageComponentStorageTests.test_delete_volume_requires_force_branch<br>console/tests/mcp_query_storage_ops_test.py::ManageComponentStorageTests.test_delete_volume_success_branch |
+| console.component.volume-delete-blocks-shared-mount | 被共享挂载时阻止删除组件存储卷 | active | regression | console.services.app_config.volume_service.AppVolumeService.delete_service_volume_by_id | console/tests/app_config_volume_delete_test.py::AppVolumeDeleteTests.test_delete_service_volume_rejects_shared_mount_even_when_forced |
 | console.component.storage-summary | 查看组件存储概览 | active | regression | console.services.mcp_query_service.call_tool[rainbond_manage_component_storage] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_manage_component_storage_summary_returns_storage_snapshot<br>console/tests/mcp_query_storage_ops_test.py::ManageComponentStorageTests.test_summary_includes_config_file_volumes |
 | console.component.storage-update-capacity | Component Storage Update Capacity | active | regression | console.views.app_config.app_volume.AppVolumeManageView.put | console/tests/app_volume_view_test.py::AppVolumeManageViewTestCase.test_put_allows_updating_volume_capacity_without_path_change |
 | console.component.storage-update-volume-capacity | Component Storage Update Volume Capacity | active | regression | console.services.mcp_query_service.call_tool[rainbond_manage_component_storage] | console/tests/mcp_query_storage_ops_test.py::ManageComponentStorageTests.test_update_volume_allows_capacity_change_without_path_change |
@@ -3111,6 +3112,16 @@
 - 业务入口: `console.services.mcp_query_service.call_tool[rainbond_manage_component_storage#delete_volume]`
 - 代码路径: `console/services/mcp_query_service.py`, `console/services/app_config/volume_service.py`
 - 测试路径: `console/tests/mcp_query_storage_ops_test.py::ManageComponentStorageTests.test_delete_volume_requires_force_branch`, `console/tests/mcp_query_storage_ops_test.py::ManageComponentStorageTests.test_delete_volume_success_branch`
+
+### 被共享挂载时阻止删除组件存储卷
+
+- Capability ID: `console.component.volume-delete-blocks-shared-mount`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.app_config.volume_service.AppVolumeService.delete_service_volume_by_id`
+- 代码路径: `console/services/app_config/volume_service.py`
+- 测试路径: `console/tests/app_config_volume_delete_test.py::AppVolumeDeleteTests.test_delete_service_volume_rejects_shared_mount_even_when_forced`
 
 ### 查看组件存储概览
 
