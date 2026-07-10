@@ -600,24 +600,22 @@ class AppVolumeService(object):
 
     def delete_service_volume_by_id(self, tenant: Tenants, service: TenantServiceInfo, volume_id: int,
                                     user_name: str = '', force: Any = None) -> Tuple[int, str, Any]:
-        # force=0: 预先检查不要删除 force=1: 强制删除
+        # force=0: 预先检查不要删除
         volume = volume_repo.get_service_volume_by_pk(volume_id)
         if not volume:
             return 404, "需要删除的路径不存在", None
-        # 不是强制删除的话就需要判断是否被其他的组件依赖
-        if force != "1":
-            mnt = mnt_repo.get_mnt_by_dep_id_and_mntname(service.service_id, volume.volume_name)
-            if mnt:
-                ret_list = []
-                for item in mnt:
-                    s = service_repo.get_service_by_service_id(item.service_id)
-                    # NOTE: potential latent None-bug — get_service_by_service_id may return None and is
-                    # dereferenced unguarded; preserving existing behavior (no guard added)
-                    ret_list.append({
-                        "service_cname": s.service_cname,  # type: ignore[union-attr]
-                        "service_alias": s.service_alias,  # type: ignore[union-attr]
-                    })
-                return 202, "当前路径被以下组件共享,无法删除,是否要强制删除呢", ret_list
+        mnt = mnt_repo.get_mnt_by_dep_id_and_mntname(service.service_id, volume.volume_name)
+        if mnt:
+            ret_list = []
+            for item in mnt:
+                s = service_repo.get_service_by_service_id(item.service_id)
+                # NOTE: potential latent None-bug — get_service_by_service_id may return None and is
+                # dereferenced unguarded; preserving existing behavior (no guard added)
+                ret_list.append({
+                    "service_cname": s.service_cname,  # type: ignore[union-attr]
+                    "service_alias": s.service_alias,  # type: ignore[union-attr]
+                })
+            return 400, "组件存储被共享挂载，不允许删除", ret_list
         if force == "0":
             return 202, "没有任何组件依赖，可以直接删除", []
         if service.create_status == "complete":

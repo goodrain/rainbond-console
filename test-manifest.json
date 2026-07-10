@@ -4613,6 +4613,24 @@
       "status": "active"
     },
     {
+      "id": "console.component.volume-delete-blocks-shared-mount",
+      "title": "Block deleting shared mounted component volumes",
+      "title_zh": "被共享挂载时阻止删除组件存储卷",
+      "interface_type": "service_method",
+      "interface": "console.services.app_config.volume_service.AppVolumeService.delete_service_volume_by_id",
+      "code_paths": [
+        "console/services/app_config/volume_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_config_volume_delete_test.py",
+          "selector": "AppVolumeDeleteTests.test_delete_service_volume_rejects_shared_mount_even_when_forced"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.component.storage-summary",
       "title": "View component storage summary",
       "title_zh": "查看组件存储概览",

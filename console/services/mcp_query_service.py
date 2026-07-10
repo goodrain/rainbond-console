@@ -7796,7 +7796,7 @@ class MCPQueryService(object):
                 "update_volume 推荐先 summary 获取 volume_id，也可用当前组件已有的 volume_path 或 volume_name 定位；"
                 "new_volume_path 仅在修改路径时传，config-file 类型用 new_file_content 改内容，可选 volume_capacity 改容量；"
                 "改存储用 new_volume_path / new_file_content，不是 volume_path / file_content；"
-                "delete_volume 推荐先 summary 获取 volume_id，也可用当前组件已有的 volume_path 或 volume_name 定位（有依赖时需 force=true 强制删除）；"
+                "delete_volume 推荐先 summary 获取 volume_id，也可用当前组件已有的 volume_path 或 volume_name 定位（被共享挂载时不允许删除）；"
                 "create_mnt 必填 mounts 数组（每项含 dep_vol_id + mount_path）；"
                 "delete_mnt 必填 dep_vol_id。"
             ),
