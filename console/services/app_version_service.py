@@ -472,6 +472,7 @@ class AppVersionService(object):
         overrides = share_info.get("share_service_list")
         if overrides:
             services = self._apply_share_overrides(services, overrides)
+            services = self._filter_selected_services(services, overrides)
         plugins = share_info.get("share_plugin_list") or share_service.get_group_services_used_plugins(group_id=app.ID)
         plugins = share_service.get_plugins_group_items(plugins) if plugins else []
         k8s_resources = share_info.get("share_k8s_resources")
@@ -511,6 +512,44 @@ class AppVersionService(object):
             override_conn = override.get("service_connect_info_map_list")
             if override_conn is not None:
                 svc["service_connect_info_map_list"] = override_conn
+            result.append(svc)
+        return result
+
+    @staticmethod
+    def _filter_selected_services(services: list, overrides: list) -> list:
+        # The UI publish flow marks every selected component with `need_share`,
+        # so a share_service_list carrying that field is a component selection:
+        # unlisted (or need_share=false) components are excluded from the
+        # template. Override-only payloads (e.g. MCP env overrides) carry no
+        # `need_share` and must keep the full component list.
+        if not any("need_share" in item for item in overrides):
+            return services
+        selected_keys = set()
+        for item in overrides:
+            if not item.get("need_share"):
+                continue
+            for key in (item.get("service_key"), item.get("service_id")):
+                if key:
+                    selected_keys.add(key)
+        selected = [
+            svc for svc in services
+            if svc.get("service_key") in selected_keys or svc.get("service_id") in selected_keys
+        ]
+        if not selected or len(selected) == len(services):
+            return services
+        excluded_uuids = ({svc.get("service_share_uuid") for svc in services}
+                          - {svc.get("service_share_uuid") for svc in selected})
+        result = []
+        for svc in selected:
+            svc = dict(svc)
+            svc["dep_service_map_list"] = [
+                dep for dep in svc.get("dep_service_map_list", [])
+                if dep.get("dep_service_key") not in excluded_uuids
+            ]
+            svc["mnt_relation_list"] = [
+                mnt for mnt in svc.get("mnt_relation_list", [])
+                if mnt.get("service_share_uuid") not in excluded_uuids
+            ]
             result.append(svc)
         return result
 
