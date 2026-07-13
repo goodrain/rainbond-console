@@ -134,6 +134,65 @@ class ApplyShareOverridesTests:
         result = AppVersionService._apply_share_overrides(services, overrides)
         assert len(result) == 9
 
+    def test_selection_filters_unlisted_components(self):
+        services = [
+            _svc("s1", "k1", "api"),
+            _svc("s2", "k2", "redis"),
+            _svc("s3", "k3", "db"),
+        ]
+        overrides = [{"service_key": "k1", "need_share": True}]
+        result = AppVersionService._filter_selected_services(services, overrides)
+        assert [s["service_key"] for s in result] == ["k1"]
+
+    def test_selection_excludes_need_share_false(self):
+        services = [_svc("s1", "k1", "api"), _svc("s2", "k2", "redis")]
+        overrides = [
+            {"service_key": "k1", "need_share": True},
+            {"service_key": "k2", "need_share": False},
+        ]
+        result = AppVersionService._filter_selected_services(services, overrides)
+        assert [s["service_key"] for s in result] == ["k1"]
+
+    def test_override_only_payload_keeps_all_components(self):
+        # MCP env-override payloads carry no need_share and must not filter.
+        services = [_svc("s1", "k1", "api"), _svc("s2", "k2", "redis")]
+        overrides = [{"service_key": "k1", "service_env_map_list": [_env("X", "1")]}]
+        result = AppVersionService._filter_selected_services(services, overrides)
+        assert len(result) == 2
+
+    def test_selection_prunes_deps_to_excluded_components(self):
+        api = _svc("s1", "k1", "api")
+        api["service_share_uuid"] = "u1+u1"
+        api["dep_service_map_list"] = [
+            {"dep_service_key": "u2+u2"},
+            {"dep_service_key": "external+external"},
+        ]
+        api["mnt_relation_list"] = [
+            {"service_share_uuid": "u2+u2", "mnt_name": "d", "mnt_dir": "/d"},
+        ]
+        redis = _svc("s2", "k2", "redis")
+        redis["service_share_uuid"] = "u2+u2"
+        overrides = [{"service_key": "k1", "need_share": True}]
+        result = AppVersionService._filter_selected_services([api, redis], overrides)
+        assert len(result) == 1
+        assert result[0]["dep_service_map_list"] == [{"dep_service_key": "external+external"}]
+        assert result[0]["mnt_relation_list"] == []
+
+    def test_selection_of_all_components_is_noop(self):
+        services = [_svc("s1", "k1", "api"), _svc("s2", "k2", "redis")]
+        overrides = [
+            {"service_key": "k1", "need_share": True},
+            {"service_key": "k2", "need_share": True},
+        ]
+        result = AppVersionService._filter_selected_services(services, overrides)
+        assert result == services
+
+    def test_selection_matching_nothing_falls_back_to_all(self):
+        services = [_svc("s1", "k1", "api")]
+        overrides = [{"service_key": "missing", "need_share": True}]
+        result = AppVersionService._filter_selected_services(services, overrides)
+        assert result == services
+
     def test_override_without_name_preserves_original_fields(self):
         # MCP share_service_list overrides carry only {attr_name, attr_value}.
         # The field-merge must keep the original env's `name` (and `is_change`),
