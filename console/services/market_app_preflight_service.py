@@ -94,11 +94,14 @@ class MarketInstallPreflightService(object):
                 "no_ready_nodes",
                 {"all_node": all_nodes, "node_ready": ready_nodes})
 
-        free_cpu = self._int_value(resources.get("cap_cpu")) - self._int_value(resources.get("req_cpu"))
+        total_cpu, used_cpu = self._cluster_cpu_millicores(resources.get("cap_cpu"), resources.get("req_cpu"))
+        free_cpu = total_cpu - used_cpu
         free_memory = self._int_value(resources.get("cap_mem")) - self._int_value(resources.get("req_mem"))
         required_cpu = self._int_value(requirements.get("cpu"))
         required_memory = self._int_value(requirements.get("memory"))
         details = {
+            "total_cpu": total_cpu,
+            "used_cpu": used_cpu,
             "free_cpu": free_cpu,
             "required_cpu": required_cpu,
             "free_memory": free_memory,
@@ -222,10 +225,24 @@ class MarketInstallPreflightService(object):
             memory = self._int_value(extend_method_map.get("init_memory") or extend_method_map.get("min_memory"))
         return memory
 
+    def _cluster_cpu_millicores(self, cap_cpu: Any, req_cpu: Any) -> Tuple[int, int]:
+        total_cpu = self._float_value(cap_cpu)
+        used_cpu = self._float_value(req_cpu)
+        if 0 < total_cpu <= 512:
+            return int(round(total_cpu * 1000)), int(round(used_cpu * 1000))
+        return int(round(total_cpu)), int(round(used_cpu))
+
     @staticmethod
     def _int_value(value: Any) -> int:
         try:
             return int(value or 0)
+        except (TypeError, ValueError):
+            return 0
+
+    @staticmethod
+    def _float_value(value: Any) -> float:
+        try:
+            return float(value or 0)
         except (TypeError, ValueError):
             return 0
 
