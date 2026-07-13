@@ -112,11 +112,12 @@ class MarketAppServiceTelemetryTests(SimpleTestCase):
                 patch.object(market_app_service, "get_app_template", return_value=(app_template, market_app)), \
                 patch.object(market_app_service, "_ensure_vm_template_allowed"), \
                 patch("console.services.market_app_service.market_install_preflight_service.run",
-                      return_value=preflight):
+                      return_value=preflight) as run_preflight:
             result = market_app_service.preflight_install_app(
                 tenant, region, user, 7, "model-1", "1.2.3", "localApplication", False)
 
         self.assertEqual(preflight, result)
+        run_preflight.assert_called_once_with(tenant, region, app_template, check_images=False)
 
     def test_preflight_install_app_does_not_require_target_app(self):
         from console.services.market_app_service import market_app_service
@@ -159,7 +160,7 @@ class MarketAppServiceTelemetryTests(SimpleTestCase):
                 patch.object(market_app_service, "get_app_template", return_value=(app_template, market_app)), \
                 patch.object(market_app_service, "_ensure_vm_template_allowed"), \
                 patch("console.services.market_app_service.market_install_preflight_service.run",
-                      return_value=preflight):
+                      return_value=preflight) as run_preflight:
             with self.assertRaises(AbortRequest) as ctx:
                 market_app_service.install_app(
                     tenant, region, user, 7, "model-1", "1.2.3", "localApplication", False, is_deploy=True)
@@ -167,6 +168,7 @@ class MarketAppServiceTelemetryTests(SimpleTestCase):
         self.assertEqual(412, ctx.exception.status_code)
         self.assertEqual("market app preflight blocked", ctx.exception.msg)
         self.assertEqual(preflight, ctx.exception.bean)
+        run_preflight.assert_called_once_with(tenant, region, app_template, check_images=False)
 
     def test_install_app_tracks_market_install_after_successful_ui_install(self):
         from console.services.market_app_service import market_app_service

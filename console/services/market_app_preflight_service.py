@@ -30,15 +30,17 @@ class MarketInstallPreflightService(object):
             region: Any,
             app_template: dict,
             timeout_budget_ms: int = DEFAULT_TIMEOUT_BUDGET_MS,
-            mode: Optional[str] = None) -> Dict[str, Any]:
+            mode: Optional[str] = None,
+            check_images: bool = True) -> Dict[str, Any]:
         started = time.time()
         mode = mode or os.getenv("MARKET_INSTALL_PREFLIGHT_MODE", "block")
         requirements = self.parse_template_requirements(app_template)
         checks = [
             self._check_resource_capacity(tenant, region, requirements),
             self._check_architecture(region, requirements),
-            self._check_image_manifests(requirements, started, timeout_budget_ms),
         ]
+        if check_images:
+            checks.append(self._check_image_manifests(requirements, started, timeout_budget_ms))
         status = self._result_status(checks)
         should_block = status == self.STATUS_BLOCK and mode == "block"
         if status == self.STATUS_BLOCK and mode != "block":
