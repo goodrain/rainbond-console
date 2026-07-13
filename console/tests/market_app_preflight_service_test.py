@@ -99,6 +99,35 @@ class MarketInstallPreflightServiceTests(TestCase):
         self.assertIn("内存不足", resource_check["message"])
         self.assertTrue(result["should_block"])
 
+    def test_region_core_cpu_values_are_compared_as_millicores(self):
+        self.service._get_region_resources = mock.Mock(return_value={
+            "all_node": 2,
+            "node_ready": 2,
+            "cap_cpu": 64,
+            "req_cpu": 21.35,
+            "cap_mem": 257095,
+            "req_mem": 37253,
+        })
+        self.service._get_cluster_arches = mock.Mock(return_value=["amd64"])
+        self.service._probe_image_manifest = mock.Mock(return_value=("pass", "镜像版本存在", ""))
+        template = {
+            "arch": "amd64",
+            "apps": [{
+                "service_cname": "dify",
+                "share_image": "goodrain.me/dify:1.11.1",
+                "container_cpu": 2100,
+                "memory": 5120,
+            }],
+        }
+
+        result = self.service.run(self.tenant, self.region, template)
+
+        self.assertEqual("pass", result["status"])
+        resource_check = self._check(result, "resource_capacity")
+        self.assertEqual("pass", resource_check["status"])
+        self.assertEqual(42650, resource_check["details"]["free_cpu"])
+        self.assertEqual(2100, resource_check["details"]["required_cpu"])
+
     def test_blocks_when_template_arch_does_not_match_region(self):
         self.service._get_region_resources = mock.Mock(return_value={
             "all_node": 1,
