@@ -1650,7 +1650,7 @@ class EnterpriseFirstDeployService(object):
     @classmethod
     def build_database_workload_context(cls, params: Optional[dict] = None) -> dict:
         params = params or {}
-        context = {"source_type": "database"}
+        context: Dict[str, Any] = {"source_type": "database"}
         for key in ("database_type", "version", "cpu", "memory", "storage_size", "storage_class", "arch"):
             value = params.get(key)
             if value not in (None, ""):
@@ -1661,7 +1661,7 @@ class EnterpriseFirstDeployService(object):
     @classmethod
     def build_virtual_machine_workload_context(cls, params: Optional[dict] = None) -> dict:
         params = params or {}
-        context = {"source_type": "virtual_machine"}
+        context: Dict[str, Any] = {"source_type": "virtual_machine"}
         for key in ("arch", "image_name", "os_type", "os_name", "cpu", "memory", "disk_size", "boot_mode"):
             value = params.get(key)
             if value not in (None, ""):
@@ -1680,7 +1680,7 @@ class EnterpriseFirstDeployService(object):
 
     @classmethod
     def build_yaml_workload_context(cls, event_id: str = "", imported: Optional[dict] = None) -> dict:
-        context = {"source_type": "yaml"}
+        context: Dict[str, Any] = {"source_type": "yaml"}
         if event_id:
             context["event_id"] = event_id
         if imported:
@@ -1699,7 +1699,7 @@ class EnterpriseFirstDeployService(object):
                                     resource: Optional[dict] = None,
                                     overrides: Any = None) -> dict:
         resource = resource or {}
-        context = {"source_type": "helm"}
+        context: Dict[str, Any] = {"source_type": "helm"}
         if app_id:
             context["app_id"] = app_id
         chart = chart or resource.get("chart") or resource.get("chart_name") or ""
@@ -1791,10 +1791,12 @@ class EnterpriseFirstDeployService(object):
         if isinstance(resources, list):
             return [item for item in resources if isinstance(item, dict)]
         if isinstance(resources, dict):
-            if isinstance(resources.get("k8s_resources"), list):
-                return [item for item in resources.get("k8s_resources") if isinstance(item, dict)]
-            if isinstance(resources.get("app_resource"), list):
-                return [item for item in resources.get("app_resource") if isinstance(item, dict)]
+            k8s_resources = resources.get("k8s_resources")
+            if isinstance(k8s_resources, list):
+                return [item for item in k8s_resources if isinstance(item, dict)]
+            app_resource = resources.get("app_resource")
+            if isinstance(app_resource, list):
+                return [item for item in app_resource if isinstance(item, dict)]
             return [resources]
         if isinstance(resources, str):
             try:

@@ -648,8 +648,8 @@ class AppManageService(AppManageBase):
                         raise AbortRequest(
                             "app arch does not match build node arch", "应用架构与构建节点架构不匹配", status_code=404, error_code=404)
                     deploy_code, deploy_msg, event_id = self.deploy(tenant, service, user, oauth_instance=oauth_instance)
-                    service._last_deploy_event_id = event_id
-                    service._last_deploy_result = {"code": deploy_code, "msg": deploy_msg}
+                    setattr(service, "_last_deploy_event_id", event_id)
+                    setattr(service, "_last_deploy_result", {"code": deploy_code, "msg": deploy_msg})
                 elif action == "upgrade" and service.service_source != "third_party" and service.service_source != "vm_run":
                     self.upgrade(tenant, service, user, oauth_instance=oauth_instance)
                 code = 200
