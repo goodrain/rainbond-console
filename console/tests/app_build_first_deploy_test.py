@@ -77,6 +77,7 @@ class FirstDeployServiceStub(object):
     DEPLOY_TYPE_SOURCE_CODE = "source_code"
     DEPLOY_TYPE_APP_MARKET = "app_market"
     DEPLOY_TYPE_IMAGE = "image"
+    DEPLOY_TYPE_DOCKER_COMPOSE = "docker_compose"
 
     @staticmethod
     def get_deploy_type(service_source):
@@ -92,6 +93,17 @@ class FirstDeployServiceStub(object):
         if app is not None:
             context["app_id"] = getattr(app, "ID", "")
             context["app_name"] = getattr(app, "group_name", "")
+        return context
+
+    @staticmethod
+    def build_docker_compose_workload_context(compose_id="", check_uuid="", compose_file_path=""):
+        context = {"source_type": "docker-compose"}
+        if compose_id:
+            context["compose_id"] = compose_id
+        if check_uuid:
+            context["check_uuid"] = check_uuid
+        if compose_file_path:
+            context["compose_file_path"] = compose_file_path
         return context
 
     def safe_begin_tracking(self, *args, **kwargs):
