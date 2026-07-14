@@ -3993,6 +3993,23 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, response_body = self._post(url, self.default_headers, body=json.dumps(data), region=region_name)
         return res, response_body
 
+    def bootstrap_agent_plugin_credential(self, enterprise_id: str, region_name: str,
+                                          data: dict, user: Any) -> Tuple[Any, Optional[Dict[str, Any]]]:
+        """Store a generated kubeconfig in the rainbond-agent plugin backend."""
+        url, token = self.__get_region_access_info_by_enterprise_id(enterprise_id, region_name)
+        url = url + "/v2/platform/backend/plugins/rainbond-agent/api/v1/kubernetes/credentials/bootstrap"
+        self._set_headers(token)
+        headers = dict(self.default_headers)
+        headers.update({
+            "X-Copilot-User-Id": str(getattr(user, "user_id", "") or "system"),
+            "X-Copilot-Username": str(getattr(user, "nick_name", "") or getattr(user, "user_name", "") or "system"),
+            "X-Copilot-Roles": "enterprise_admin",
+            "X-Copilot-Source-System": "rainbond-console",
+            "X-Region-Name": region_name,
+        })
+        res, response_body = self._post(url, headers, body=json.dumps(data), region=region_name)
+        return res, response_body
+
     def delete_cluster_resource(self, region_name: str, path: str,
                                 params: Optional[dict] = None) -> Tuple[Any, Optional[Dict[str, Any]]]:
         """代理 DELETE 请求到 /v2/cluster/{path}"""

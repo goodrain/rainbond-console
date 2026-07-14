@@ -152,7 +152,9 @@ class PlatformPluginFirstDeployTrackingTests(TestCase):
         app_upgrade.install = mock.Mock(return_value=[{"event_id": "event-1"}])
         app_upgrade.new_app = Obj(components=mock.Mock(return_value=[component_snapshot]))
 
-        with mock.patch.object(platform_module, "AppUpgrade", return_value=app_upgrade):
+        with mock.patch.object(platform_module, "AppUpgrade", return_value=app_upgrade), \
+                mock.patch.object(platform_plugin_service, "bootstrap_agent_kubernetes_credentials",
+                                  return_value={"status": "synced", "region_name": "rainbond"}) as bootstrap_agent:
             platform_plugin_service.install_platform_plugin("eid", "rainbond", "rainbond-agent", user)
 
         first_deploy_service.safe_begin_deploy_tracking.assert_called_once()
@@ -164,6 +166,7 @@ class PlatformPluginFirstDeployTrackingTests(TestCase):
         self.assertEqual("platform_plugin_install", tracking_kwargs["trigger"])
         self.assertEqual("rainbond-agent", tracking_kwargs["app_context"]["plugin_id"])
         self.assertEqual("extension", tracking_kwargs["app_context"]["install_source"])
+        bootstrap_agent.assert_called_once_with("eid", "rainbond", user)
         first_deploy_service.safe_bind_events.assert_called_once_with(
             {"key": "first-deploy"},
             ["event-1"],
