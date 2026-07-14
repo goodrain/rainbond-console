@@ -171,20 +171,17 @@ class ComposeCheckView(ComposeGroupBaseView):
             enterprise_id=self.tenant.enterprise_id,
             tenant_name=self.tenant.tenant_name,
             region_name=self.response_region,
-            deploy_type=enterprise_first_deploy_service.DEPLOY_TYPE_IMAGE,
+            deploy_type=enterprise_first_deploy_service.DEPLOY_TYPE_DOCKER_COMPOSE,
             operator=getattr(self.user, "nick_name", ""),
             source_language="docker-compose",
             trigger="compose_check",
             app_context=app_context,
-            workload_context={
-                "source_type": "docker-compose",
-                "compose_id": compose_id or "",
-                "check_uuid": check_uuid or "",
-            })
+            workload_context=enterprise_first_deploy_service.build_docker_compose_workload_context(
+                compose_id=compose_id or "", check_uuid=check_uuid or ""))
         enterprise_first_deploy_service.safe_mark_failure(
             tracker,
             reason=reason or "Docker Compose 检测失败",
-            failure_stage=enterprise_first_deploy_service.FAILURE_STAGE_BUILD)
+            failure_stage=enterprise_first_deploy_service.FAILURE_STAGE_PREFLIGHT)
 
     @staticmethod
     def _compose_check_failure_reason(data: dict, default_reason: str = "") -> str:

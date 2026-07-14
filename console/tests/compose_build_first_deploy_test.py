@@ -75,6 +75,7 @@ def install_stub(module_name, **attrs):
 
 class FirstDeployServiceStub(object):
     DEPLOY_TYPE_IMAGE = "image"
+    DEPLOY_TYPE_DOCKER_COMPOSE = "docker_compose"
 
     @staticmethod
     def build_service_app_context(app=None, component_count=1):
@@ -82,6 +83,17 @@ class FirstDeployServiceStub(object):
         if app is not None:
             context["app_id"] = getattr(app, "ID", "")
             context["app_name"] = getattr(app, "group_name", "")
+        return context
+
+    @staticmethod
+    def build_docker_compose_workload_context(compose_id="", check_uuid="", compose_file_path=""):
+        context = {"source_type": "docker-compose"}
+        if compose_id:
+            context["compose_id"] = compose_id
+        if check_uuid:
+            context["check_uuid"] = check_uuid
+        if compose_file_path:
+            context["compose_file_path"] = compose_file_path
         return context
 
     def safe_begin_tracking(self, *args, **kwargs):
@@ -176,7 +188,7 @@ class ComposeBuildFirstDeployTrackingTests(SimpleTestCase):
         request = Obj(data={"compose_id": "compose-1"}, META={})
 
         with mock.patch("console.views.app_create.app_build.compose_service.get_group_compose_by_compose_id",
-                        return_value=Obj(create_status="checked", save=lambda: None)), \
+                        return_value=Obj(create_status="checked", compose_file_path="docker-compose.yml", save=lambda: None)), \
                 mock.patch("console.views.app_create.app_build.compose_service.get_compose_services",
                            return_value=[service_a, service_b]), \
                 mock.patch("console.views.app_create.app_build.app_service.create_region_service",
@@ -195,9 +207,11 @@ class ComposeBuildFirstDeployTrackingTests(SimpleTestCase):
         self.assertEqual(begin_kwargs["enterprise_id"], "eid-1")
         self.assertEqual(begin_kwargs["tenant_name"], "demo-team")
         self.assertEqual(begin_kwargs["region_name"], "rainbond")
-        self.assertEqual(begin_kwargs["deploy_type"], "image")
+        self.assertEqual(begin_kwargs["deploy_type"], "docker_compose")
         self.assertEqual(begin_kwargs["trigger"], "compose_build")
         self.assertEqual(begin_kwargs["app_context"]["component_count"], 2)
+        self.assertEqual(begin_kwargs["workload_context"]["compose_id"], "compose-1")
+        self.assertEqual(begin_kwargs["workload_context"]["compose_file_path"], "docker-compose.yml")
         bind_events.assert_called_once_with(
             tracker,
             ["event-a", "event-b"],
