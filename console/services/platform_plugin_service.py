@@ -40,6 +40,7 @@ MARKET_DOMAIN = PLATFORM_PLUGIN_MARKET_DOMAIN
 PLUGIN_TEAM_NAME = "rbd-plugins"
 PLUGIN_TEAM_ALIAS = "平台插件"
 VM_PLATFORM_PLUGIN_ID = "rainbond-vm"
+AGENT_PLATFORM_PLUGIN_ID = "rainbond-agent"
 VM_PLATFORM_RUNTIME_GUARD_MSG = "虚拟机功能未正常运行，不允许执行虚拟机相关操作"
 MARKET_PLUGIN_CACHE_TTL_SECONDS = 60
 REGION_ARCH_CACHE_TTL_SECONDS = 60
@@ -725,14 +726,58 @@ class PlatformPluginService(object):
 
         # 8. Create RBDPlugin CR if template has platform_plugin info
         market_app_service._create_rbdplugin_if_needed(tenant, region, app_template, app.ID)  # type: ignore[union-attr, arg-type]  # NOTE: app is Optional[ServiceGroup]; _create_rbdplugin_if_needed expects str|None but app.ID is int (pre-existing int/str mismatch at call site)
+        credential_bootstrap = None
+        if plugin_id == AGENT_PLATFORM_PLUGIN_ID:
+            credential_bootstrap = self.bootstrap_agent_kubernetes_credentials(
+                enterprise_id, region_name, user)
 
-        return {
+        result = {
             "plugin_id": plugin_id,
             "plugin_name": plugin_name,
             "version": latest_version,
             "team_name": tenant.tenant_name,
             "app_id": app.ID,  # type: ignore[union-attr]  # NOTE: app is Optional[ServiceGroup]; see above
         }
+        if credential_bootstrap:
+            result["kubernetes_credential_bootstrap"] = credential_bootstrap
+        return result
+
+    def bootstrap_agent_kubernetes_credentials(self, enterprise_id: str, region_name: str, user: Any) -> Dict[str, Any]:
+        """Generate region kubeconfig and store it in the rainbond-agent backend.
+
+        The generated kubeconfig is never logged or returned. Installation should
+        not fail only because the freshly deployed agent backend is still starting;
+        administrators can re-run credential sync from the plugin page.
+        """
+        try:
+            _, body = region_api.bootstrap_agent_kubeconfig(enterprise_id, region_name, {
+                "region_name": region_name,
+                "context_id": region_name,
+                "service_account": AGENT_PLATFORM_PLUGIN_ID,
+            })
+            bean = body.get("bean") if isinstance(body, dict) else body
+            if not isinstance(bean, dict) or not bean.get("kubeconfig"):
+                raise ServiceHandleException(msg="invalid kubeconfig response", msg_show="目标集群未返回有效 kubeconfig")
+
+            agent_payload = {
+                "enterprise_id": enterprise_id,
+                "region_name": bean.get("region_name") or region_name,
+                "region_alias": bean.get("region_name") or region_name,
+                "kubeconfig": bean.get("kubeconfig"),
+            }
+            region_api.bootstrap_agent_plugin_credential(
+                enterprise_id, region_name, agent_payload, user)
+            logger.info(
+                "rainbond-agent kubernetes credential bootstrap succeeded enterprise_id=%s region_name=%s",
+                enterprise_id, region_name,
+            )
+            return {"status": "synced", "region_name": region_name}
+        except Exception as e:
+            logger.warning(
+                "rainbond-agent kubernetes credential bootstrap deferred enterprise_id=%s region_name=%s error=%s",
+                enterprise_id, region_name, e,
+            )
+            return {"status": "deferred", "region_name": region_name, "message": str(e)}
 
     def _ensure_plugin_team(self, enterprise_id: str, region_name: str, user: Any) -> Tenants:
         """Find or create the rbd-plugins team and ensure it's initialized on the region."""

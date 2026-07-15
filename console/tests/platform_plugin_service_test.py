@@ -192,6 +192,31 @@ class PlatformPluginServiceTests(TestCase):
 
         self.assertEqual("该插件未授权", context.exception.msg_show)
 
+    def test_bootstrap_agent_kubernetes_credentials_syncs_without_returning_secret(self):
+        user = mock.Mock(user_id=1, nick_name="admin")
+        kubeconfig = "apiVersion: v1\nclusters: []\nusers: []"
+
+        with mock.patch("console.services.platform_plugin_service.region_api.bootstrap_agent_kubeconfig",
+                        return_value=(None, {"bean": {
+                            "region_name": "rainbond",
+                            "kubeconfig": kubeconfig,
+                        }})) as bootstrap_kubeconfig, \
+                mock.patch("console.services.platform_plugin_service.region_api.bootstrap_agent_plugin_credential",
+                           return_value=(None, {"ok": True})) as bootstrap_plugin:
+            result = platform_plugin_service.bootstrap_agent_kubernetes_credentials(
+                "eid", "rainbond", user)
+
+        self.assertEqual({"status": "synced", "region_name": "rainbond"}, result)
+        bootstrap_kubeconfig.assert_called_once_with("eid", "rainbond", {
+            "region_name": "rainbond",
+            "context_id": "rainbond",
+            "service_account": "rainbond-agent",
+        })
+        bootstrap_plugin.assert_called_once()
+        plugin_payload = bootstrap_plugin.call_args[0][2]
+        self.assertEqual(kubeconfig, plugin_payload["kubeconfig"])
+        self.assertNotIn("kubeconfig", result)
+
     def test_install_platform_plugin_prefers_free_variant_even_if_enterprise_variant_exists(self):
         market_plugins = [
             {
@@ -240,11 +265,13 @@ class PlatformPluginServiceTests(TestCase):
                 mock.patch("console.services.platform_plugin_service.market_app_service._create_tenant_service_group",
                            return_value=mock.Mock()), \
                 mock.patch("console.services.platform_plugin_service.AppUpgrade") as app_upgrade_cls, \
-                mock.patch("console.services.platform_plugin_service.market_app_service._create_rbdplugin_if_needed"):
+                mock.patch("console.services.platform_plugin_service.market_app_service._create_rbdplugin_if_needed"), \
+                mock.patch.object(platform_plugin_service, "bootstrap_agent_kubernetes_credentials") as bootstrap_agent:
             app_upgrade_cls.return_value.install.return_value = []
             platform_plugin_service.install_platform_plugin("eid", "rainbond", "rainbond-recovery", mock.Mock())
 
         cloud_model.assert_called_once()
+        bootstrap_agent.assert_not_called()
         call_args = cloud_model.call_args[0]
         self.assertEqual("free-app-key", call_args[1])
 
@@ -285,11 +312,13 @@ class PlatformPluginServiceTests(TestCase):
                 mock.patch("console.services.platform_plugin_service.market_app_service._create_tenant_service_group",
                            return_value=mock.Mock()), \
                 mock.patch("console.services.platform_plugin_service.AppUpgrade") as app_upgrade_cls, \
-                mock.patch("console.services.platform_plugin_service.market_app_service._create_rbdplugin_if_needed"):
+                mock.patch("console.services.platform_plugin_service.market_app_service._create_rbdplugin_if_needed"), \
+                mock.patch.object(platform_plugin_service, "bootstrap_agent_kubernetes_credentials") as bootstrap_agent:
             app_upgrade_cls.return_value.install.return_value = []
             platform_plugin_service.install_platform_plugin("eid", "rainbond", "rainbond-enterprise-pipeline", mock.Mock())
 
         cloud_model.assert_called_once()
+        bootstrap_agent.assert_not_called()
         call_args = cloud_model.call_args[0]
         self.assertEqual("arm-app-key", call_args[1])
 
@@ -540,10 +569,12 @@ class PlatformPluginServiceTests(TestCase):
                 mock.patch("console.services.platform_plugin_service.market_app_service._create_tenant_service_group",
                            return_value=mock.Mock()), \
                 mock.patch("console.services.platform_plugin_service.AppUpgrade") as app_upgrade_cls, \
-                mock.patch("console.services.platform_plugin_service.market_app_service._create_rbdplugin_if_needed"):
+                mock.patch("console.services.platform_plugin_service.market_app_service._create_rbdplugin_if_needed"), \
+                mock.patch.object(platform_plugin_service, "bootstrap_agent_kubernetes_credentials",
+                                  return_value={"status": "synced", "region_name": "rainbond"}) as bootstrap_agent:
             app_upgrade_cls.return_value.install.return_value = []
-            platform_plugin_service.install_platform_plugin("eid", "rainbond", plugin_id, mock.Mock())
-            return cloud_model
+            result = platform_plugin_service.install_platform_plugin("eid", "rainbond", plugin_id, mock.Mock())
+            return cloud_model, bootstrap_agent, result
 
     def test_install_platform_plugin_on_arm_cluster_picks_arm_sku(self):
         market_plugins = [
@@ -552,9 +583,13 @@ class PlatformPluginServiceTests(TestCase):
             {"plugin_id": "rainbond-agent", "plugin_name": "AI助手", "app_level": "free",
              "appKeyID": "arm-ak", "latest_version": "1.0.0", "arch": "arm64"},
         ]
-        cloud_model = self._install_with_arch(market_plugins, {"arm64"}, "rainbond-agent")
+        cloud_model, bootstrap_agent, result = self._install_with_arch(
+            market_plugins, {"arm64"}, "rainbond-agent")
         cloud_model.assert_called_once()
         self.assertEqual("arm-ak", cloud_model.call_args[0][1])
+        bootstrap_agent.assert_called_once()
+        self.assertEqual({"status": "synced", "region_name": "rainbond"},
+                         result["kubernetes_credential_bootstrap"])
 
     def test_install_platform_plugin_raises_when_arch_mismatch(self):
         market_plugins = [
