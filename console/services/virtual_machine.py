@@ -787,7 +787,19 @@ class VirtualMachineService(object):
 
         restore_url = self._resolve_root_restore_url(asset=asset, image_url=image_url, source_uri=source_uri)
         if not self._is_http_source(restore_url):
-            return None
+            registry_image = self._resolve_root_registry_image(asset=asset, image_url=image_url)
+            if not registry_image or not boot_source_format:
+                return None
+            return {
+                "volume_name": "disk",
+                "disk_key": "rootdisk",
+                "disk_name": "rootdisk",
+                "image_url": registry_image,
+                "source_uri": self._resolve_root_source_uri(asset=asset, source_uri=source_uri, fallback=registry_image),
+                "format": boot_source_format or "",
+                "checksum": "",
+                "source_type": "registry",
+            }
         return {
             "volume_name": "disk",
             "disk_key": "rootdisk",
@@ -842,6 +854,26 @@ class VirtualMachineService(object):
             if self._is_http_source(candidate):
                 return candidate
         return ""
+
+    def _resolve_root_registry_image(self, asset: Any = None, image_url: str = "") -> str:
+        candidates = []
+        if asset:
+            candidates.append(getattr(asset, "image_url", ""))
+        candidates.append(image_url)
+        for candidate in candidates:
+            value = str(candidate or "").strip()
+            if not value or self._is_http_source(value) or value.startswith("/grdata/"):
+                continue
+            return value
+        return ""
+
+    def _resolve_root_source_uri(self, asset: Any = None, source_uri: str = "", fallback: str = "") -> str:
+        if asset:
+            value = str(getattr(asset, "source_uri", "") or "").strip()
+            if value:
+                return value
+        value = str(source_uri or "").strip()
+        return value or fallback
 
     def _normalize_vm_boot_mode(self, value: Any) -> str:
         return str(value or "").strip().lower()

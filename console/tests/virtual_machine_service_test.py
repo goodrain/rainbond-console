@@ -695,6 +695,22 @@ class VirtualMachineServiceTests(TestCase):
             imports,
         )
 
+    def test_build_vm_root_disk_import_uses_internal_upload_image_as_registry_source(self):
+        asset = SimpleNamespace(
+            image_url="tenant-ns:uploaded-root",
+            source_uri="/grdata/package_build/temp/events/uploaded-root.qcow2",
+            format="qcow2",
+            extra_json="",
+        )
+
+        root_import = vms._build_vm_root_disk_import(asset=asset, image_name="uploaded-root")
+
+        self.assertEqual("disk", root_import["volume_name"])
+        self.assertEqual("registry", root_import["source_type"])
+        self.assertEqual("tenant-ns:uploaded-root", root_import["image_url"])
+        self.assertEqual("/grdata/package_build/temp/events/uploaded-root.qcow2", root_import["source_uri"])
+        self.assertEqual("qcow2", root_import["format"])
+
     def test_get_vm_profile_returns_asset_runtime_and_connections(self):
         asset = VirtualMachineImage.objects.create(
             tenant_id="tenant-a",

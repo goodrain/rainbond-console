@@ -2,6 +2,7 @@
 # capability_id: rainbond-console.vm-run.vm-export-multi-disk-create
 # capability_id: console.vm-run.platform-runtime-guard
 import collections
+import json
 import os
 from types import ModuleType, SimpleNamespace
 from unittest import mock
@@ -15,6 +16,22 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
 import sys  # noqa: E402
 
 sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
+if "rest_framework_simplejwt.tokens" not in sys.modules:
+    simplejwt_module = ModuleType("rest_framework_simplejwt")
+    simplejwt_tokens_module = ModuleType("rest_framework_simplejwt.tokens")
+
+    class _DummyAccessToken(dict):
+        @classmethod
+        def for_user(cls, user):
+            return cls()
+
+        def __str__(self):
+            return ""
+
+    simplejwt_tokens_module.AccessToken = _DummyAccessToken
+    simplejwt_module.tokens = simplejwt_tokens_module
+    sys.modules["rest_framework_simplejwt"] = simplejwt_module
+    sys.modules["rest_framework_simplejwt.tokens"] = simplejwt_tokens_module
 if "openapi_client" not in sys.modules:
     openapi_client_module = ModuleType("openapi_client")
     configuration_module = ModuleType("openapi_client.configuration")
@@ -159,6 +176,12 @@ class VMAssetInstantiationTests(TestCase):
         }
         self.assertEqual("uefi", attrs["vm_boot_mode"])
         self.assertEqual("qcow2", attrs["vm_boot_source_format"])
+        self.assertIn("vm_disk_imports", attrs)
+        disk_imports = json.loads(attrs["vm_disk_imports"])
+        self.assertEqual("registry", disk_imports["disk"]["source_type"])
+        self.assertEqual("tenant-ns:uploaded-root", disk_imports["disk"]["image_url"])
+        self.assertEqual("/grdata/package_build/temp/events/uploaded-root.qcow2",
+                         disk_imports["disk"]["source_uri"])
 
     def test_vm_run_create_from_iso_asset_keeps_boot_media_out_of_root_imports(self):
         iso_asset = VirtualMachineImage.objects.create(
