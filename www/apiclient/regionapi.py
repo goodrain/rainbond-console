@@ -3,7 +3,7 @@ import json
 import logging
 import os
 from typing import Any, Dict, List, Optional, Tuple
-from urllib.parse import quote
+from urllib.parse import quote, urlencode
 
 import httplib2
 import urllib3
@@ -3025,6 +3025,31 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             raise ServiceHandleException("region not found")
         url = region_info.url + "/v2/cluster/plugins"
         res, body = self._post(url, self.default_headers, json.dumps(plugin_data), region=region_name, timeout=10)
+        return res, body
+
+    def sync_security_center_network_policy_dependencies(self, tenant_name: str, region_name: str, query: Dict[str, Any],
+                                                         data: Dict[str, Any]) -> Tuple[Any, Optional[Dict[str, Any]]]:
+        region_info = self.get_region_info(region_name)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url += (
+            "/v2/platform/backend/plugins/rainbond-security-center/api/v1/"
+            "security-reports/component/network-policy/sync-dependencies"
+        )
+        params = {key: value for key, value in query.items() if value is not None}
+        if params:
+            url += "?" + urlencode(params)
+        self._set_headers(region_info.token)
+        res, body = self._post(
+            url,
+            self.default_headers,
+            json.dumps(data),
+            region=region_name,
+            timeout=5,
+            connect_timeout=2,
+            retries=0,
+        )
         return res, body
 
     def list_abilities(self, enterprise_id: str, region_name: str) -> Tuple[Any, Optional[Dict[str, Any]]]:
