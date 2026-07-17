@@ -2496,6 +2496,15 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         self._set_headers(token)
         _, _ = self._delete(url, self.default_headers, region=region_name, body=json.dumps(data))
 
+    def delete_registry_image_manifest(self, region_name: str, tenant_name: str,
+                                       image_url: str) -> Tuple[Any, Optional[Dict[str, Any]]]:
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region_name)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/image/manifest"
+
+        self._set_headers(token)
+        return self._delete(url, self.default_headers, region=region_name, body=json.dumps({"image": image_url}))
+
     def delete_compose_app_by_k8s_app(self, region_name: str, tenant_name: str, k8s_app: str) -> None:
         url, token = self.__get_region_access_info(tenant_name, region_name)
         tenant_region = self.__get_tenant_region_info(tenant_name, region_name)

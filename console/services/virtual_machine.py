@@ -24,6 +24,9 @@ from www.models.main import (
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
 
+INTERNAL_VM_IMAGE_SOURCE_TYPES = ("upload", "url", "public", "clone")
+INTERNAL_REGISTRY_HOSTS = ("goodrain.me", "rbd-hub:5000")
+
 VM_RUNTIME_ATTR_SPECS = {
     "vm_os_name": "string",
     "vm_gpu_enabled": "string",
@@ -173,7 +176,56 @@ class VirtualMachineService(object):
             return 0, {}
         if self.get_vm_asset_reference_count(tenant_id, vm_image) > 0:
             raise ValueError("vm asset is still referenced")
+        self.delete_vm_image_manifest_if_needed(tenant_id, vm_image, region_name, tenant_name)
         return vm_repo.delete_vm_image_by_id(tenant_id, asset_id)
+
+    def delete_vm_image_manifest_if_needed(self, tenant_id: str, vm_image: VirtualMachineImage,
+                                           region_name: Optional[str] = None,
+                                           tenant_name: Optional[str] = None) -> bool:
+        if not self.should_delete_vm_image_manifest(tenant_id, vm_image, region_name, tenant_name):
+            return False
+        try:
+            region_api.delete_registry_image_manifest(region_name, tenant_name, vm_image.image_url)  # type: ignore[arg-type]
+            return True
+        except ServiceHandleException:
+            raise
+        except RegionApiBaseHttpClient.CallApiError as err:
+            body = err.body if isinstance(err.body, dict) else {}
+            raise ServiceHandleException(
+                msg="delete vm image manifest failed",
+                msg_show=body.get("msg_show") or body.get("msg") or "底层镜像删除失败，请稍后重试",
+                status_code=getattr(err, "status", 500) or 500,
+                error_code=body.get("code") or getattr(err, "status", 500),
+                bean=body.get("bean") if isinstance(body, dict) else None)
+
+    def should_delete_vm_image_manifest(self, tenant_id: str, vm_image: VirtualMachineImage,
+                                        region_name: Optional[str] = None,
+                                        tenant_name: Optional[str] = None) -> bool:
+        if not region_name or not tenant_name or not vm_image or not vm_image.image_url:
+            return False
+        if vm_repo.get_vm_image_count_by_image_url(tenant_id, vm_image.image_url) > 1:
+            return False
+        return self.is_internal_vm_registry_image(vm_image)
+
+    def is_internal_vm_registry_image(self, vm_image: VirtualMachineImage) -> bool:
+        image_url = str(getattr(vm_image, "image_url", "") or "").strip()
+        if not image_url or image_url.startswith(("http://", "https://", "/")):
+            return False
+        source_type = str(getattr(vm_image, "source_type", "") or "").strip().lower()
+        host = self.extract_registry_host(image_url)
+        if host and host not in INTERNAL_REGISTRY_HOSTS:
+            return False
+        if source_type in INTERNAL_VM_IMAGE_SOURCE_TYPES:
+            return True
+        source_uri = str(getattr(vm_image, "source_uri", "") or "").strip()
+        return source_uri.startswith(("http://", "https://", "/grdata/"))
+
+    def extract_registry_host(self, image_url: str) -> str:
+        image_name = image_url.rsplit(":", 1)[0] if ":" in image_url.rsplit("/", 1)[-1] else image_url
+        first_segment = image_name.split("/", 1)[0]
+        if first_segment == "localhost" or "." in first_segment or ":" in first_segment:
+            return first_segment.lower()
+        return ""
 
     def get_vm_current_pod_ip(self, tenant: Tenants, service: TenantServiceInfo) -> str:
         if getattr(service, "extend_method", "") != "vm" or not tenant:

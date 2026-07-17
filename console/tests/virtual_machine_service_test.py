@@ -300,6 +300,71 @@ class VirtualMachineServiceTests(TestCase):
         deleted, _ = vms.delete_vm_image("tenant-a", asset.ID)
         self.assertEqual(1, deleted)
 
+    # capability_id: console.vm-asset.delete-internal-registry-manifest
+    def test_delete_vm_image_deletes_unique_internal_registry_manifest(self):
+        asset = VirtualMachineImage.objects.create(
+            tenant_id="tenant-a",
+            name="uploaded-asset",
+            image_url="tenant-a:uploaded-asset",
+            source_type="upload",
+            source_uri="/grdata/package_build/temp/events/event-a"
+        )
+
+        with mock.patch(
+            "console.services.virtual_machine.region_api.delete_registry_image_manifest",
+            return_value=(None, {"bean": {"deleted": True}}),
+            create=True,
+        ) as delete_manifest:
+            deleted, _ = vms.delete_vm_image("tenant-a", asset.ID, "demo-region", "demo-team")
+
+        self.assertEqual(1, deleted)
+        self.assertFalse(VirtualMachineImage.objects.filter(tenant_id="tenant-a", ID=asset.ID).exists())
+        delete_manifest.assert_called_once_with("demo-region", "demo-team", "tenant-a:uploaded-asset")
+
+    # capability_id: console.vm-asset.delete-internal-registry-manifest
+    def test_delete_vm_image_skips_registry_manifest_when_image_url_is_shared(self):
+        asset = VirtualMachineImage.objects.create(
+            tenant_id="tenant-a",
+            name="shared-a",
+            image_url="tenant-a:shared-image",
+            source_type="upload"
+        )
+        VirtualMachineImage.objects.create(
+            tenant_id="tenant-a",
+            name="shared-b",
+            image_url="tenant-a:shared-image",
+            source_type="upload"
+        )
+
+        with mock.patch(
+            "console.services.virtual_machine.region_api.delete_registry_image_manifest",
+            return_value=(None, {"bean": {"deleted": True}}),
+            create=True,
+        ) as delete_manifest:
+            deleted, _ = vms.delete_vm_image("tenant-a", asset.ID, "demo-region", "demo-team")
+
+        self.assertEqual(1, deleted)
+        delete_manifest.assert_not_called()
+
+    # capability_id: console.vm-asset.delete-internal-registry-manifest
+    def test_delete_vm_image_skips_registry_manifest_for_external_registry_asset(self):
+        asset = VirtualMachineImage.objects.create(
+            tenant_id="tenant-a",
+            name="external-asset",
+            image_url="registry.example.com/team-a/vm-image:latest",
+            source_type="registry"
+        )
+
+        with mock.patch(
+            "console.services.virtual_machine.region_api.delete_registry_image_manifest",
+            return_value=(None, {"bean": {"deleted": True}}),
+            create=True,
+        ) as delete_manifest:
+            deleted, _ = vms.delete_vm_image("tenant-a", asset.ID, "demo-region", "demo-team")
+
+        self.assertEqual(1, deleted)
+        delete_manifest.assert_not_called()
+
     def test_list_vm_image_returns_asset_catalog_metadata(self):
         source = VirtualMachineImage.objects.create(
             tenant_id="tenant-a",
