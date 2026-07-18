@@ -300,6 +300,70 @@ class VirtualMachineServiceTests(TestCase):
         deleted, _ = vms.delete_vm_image("tenant-a", asset.ID)
         self.assertEqual(1, deleted)
 
+    # capability_id: console.vm-asset.reference-components
+    def test_get_vm_asset_includes_explicit_reference_components(self):
+        asset = VirtualMachineImage.objects.create(
+            tenant_id="tenant-a",
+            name="used-asset",
+            image_url="demo/used-asset"
+        )
+        service = self._create_vm_service("tenant-a", "service-a", asset.image_url)
+        service.service_alias = "vm-a"
+        service.service_cname = "生产虚拟机"
+        service.tenant_service_group_id = 17
+        service.save(update_fields=["service_alias", "service_cname", "tenant_service_group_id"])
+        ComponentK8sAttributes.objects.create(
+            tenant_id="tenant-a",
+            component_id=service.service_id,
+            name="vm_asset_id",
+            save_type="string",
+            attribute_value=str(asset.ID)
+        )
+
+        serialized = vms.get_vm_asset("tenant-a", asset.ID)
+
+        self.assertEqual(1, serialized["reference_count"])
+        self.assertEqual([
+            {
+                "service_id": "service-a",
+                "component_id": "service-a",
+                "service_alias": "vm-a",
+                "service_cname": "生产虚拟机",
+                "display_name": "生产虚拟机",
+                "group_id": 17,
+                "app_id": 17,
+                "region_name": "demo-region",
+            }
+        ], serialized["references"])
+
+    # capability_id: console.vm-asset.reference-components
+    def test_get_vm_asset_includes_legacy_image_reference_components(self):
+        asset = VirtualMachineImage.objects.create(
+            tenant_id="tenant-a",
+            name="legacy-asset",
+            image_url="demo/legacy-asset"
+        )
+        service = self._create_vm_service("tenant-a", "service-legacy", asset.image_url)
+        service.service_cname = ""
+        service.tenant_service_group_id = 23
+        service.save(update_fields=["service_cname", "tenant_service_group_id"])
+
+        serialized = vms.get_vm_asset("tenant-a", asset.ID)
+
+        self.assertEqual(1, serialized["reference_count"])
+        self.assertEqual([
+            {
+                "service_id": "service-legacy",
+                "component_id": "service-legacy",
+                "service_alias": "service-legacy",
+                "service_cname": "",
+                "display_name": "service-legacy",
+                "group_id": 23,
+                "app_id": 23,
+                "region_name": "demo-region",
+            }
+        ], serialized["references"])
+
     # capability_id: console.vm-asset.delete-internal-registry-manifest
     def test_delete_vm_image_deletes_unique_internal_registry_manifest(self):
         asset = VirtualMachineImage.objects.create(

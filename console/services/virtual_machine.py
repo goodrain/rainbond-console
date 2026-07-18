@@ -524,6 +524,7 @@ class VirtualMachineService(object):
             extra.get("source_service_alias") or
             vm_image.name
         )
+        references = self.get_vm_asset_references(vm_image.tenant_id, vm_image)
         return {
             "id": vm_image.ID,
             "name": vm_image.name,
@@ -549,7 +550,8 @@ class VirtualMachineService(object):
             "disk_count": extra.get("disk_count", len(disks) if disks else 0),
             "source_service_id": extra.get("source_service_id", ""),
             "disks": disks,
-            "reference_count": self.get_vm_asset_reference_count(vm_image.tenant_id, vm_image),
+            "reference_count": len(references),
+            "references": references,
             "source_asset": {
                 "id": source_asset.ID,
                 "name": source_asset.name
@@ -630,24 +632,50 @@ class VirtualMachineService(object):
         return value
 
     def get_vm_asset_reference_count(self, tenant_id: str, vm_image: VirtualMachineImage) -> int:
+        return self.get_vm_asset_reference_services(tenant_id, vm_image).count()
+
+    def get_vm_asset_reference_services(self, tenant_id: str, vm_image: VirtualMachineImage) -> Any:
         # Incomplete VM rows are transient and should not block asset deletion or inflate catalog references.
         active_vm_services = TenantServiceInfo.objects.filter(
             tenant_id=tenant_id,
             extend_method="vm",
             create_status="complete")
         active_vm_service_ids = active_vm_services.values_list("service_id", flat=True)
-        attr_refs = ComponentK8sAttributes.objects.filter(
+        explicit_service_ids = ComponentK8sAttributes.objects.filter(
             tenant_id=tenant_id,
             component_id__in=active_vm_service_ids,
             name="vm_asset_id",
-            attribute_value=str(vm_image.ID)).count()
-        if attr_refs > 0:
-            return attr_refs
+            attribute_value=str(vm_image.ID)).values_list("component_id", flat=True)
+        if explicit_service_ids.exists():
+            return active_vm_services.filter(service_id__in=explicit_service_ids).order_by("service_alias")
         bound_service_ids = ComponentK8sAttributes.objects.filter(
             tenant_id=tenant_id,
             component_id__in=active_vm_service_ids,
             name="vm_asset_id").values_list("component_id", flat=True)
-        return active_vm_services.exclude(service_id__in=bound_service_ids).filter(image=vm_image.image_url).count()
+        return active_vm_services.exclude(service_id__in=bound_service_ids).filter(
+            image=vm_image.image_url).order_by("service_alias")
+
+    def get_vm_asset_references(self, tenant_id: str, vm_image: VirtualMachineImage) -> list:
+        return [
+            self.serialize_vm_asset_reference_service(service)
+            for service in self.get_vm_asset_reference_services(tenant_id, vm_image)
+        ]
+
+    def serialize_vm_asset_reference_service(self, service: TenantServiceInfo) -> dict:
+        group_id = getattr(service, "tenant_service_group_id", 0) or 0
+        service_alias = getattr(service, "service_alias", "") or ""
+        service_cname = getattr(service, "service_cname", "") or ""
+        service_id = getattr(service, "service_id", "") or ""
+        return {
+            "service_id": service_id,
+            "component_id": service_id,
+            "service_alias": service_alias,
+            "service_cname": service_cname,
+            "display_name": service_cname or service_alias or service_id,
+            "group_id": group_id,
+            "app_id": group_id,
+            "region_name": getattr(service, "service_region", "") or "",
+        }
 
     def _build_vm_runtime_attrs(self, runtime_config: dict) -> dict:
         attrs = {}

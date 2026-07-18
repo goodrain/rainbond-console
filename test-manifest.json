@@ -10024,6 +10024,28 @@
       "status": "active"
     },
     {
+      "id": "console.vm-asset.reference-components",
+      "title": "VM asset reference component listing",
+      "title_zh": "虚拟机镜像资产引用组件列表",
+      "interface_type": "service_method",
+      "interface": "console.services.virtual_machine.VirtualMachineService.serialize_vm_image",
+      "code_paths": [
+        "console/services/virtual_machine.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/virtual_machine_service_test.py",
+          "selector": "VirtualMachineServiceTests.test_get_vm_asset_includes_explicit_reference_components"
+        },
+        {
+          "path": "console/tests/virtual_machine_service_test.py",
+          "selector": "VirtualMachineServiceTests.test_get_vm_asset_includes_legacy_image_reference_components"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.vm-overview.vnc-url-plugin-fallback",
       "title": "Build VM overview VNC URL from plugin fallback",
       "title_zh": "在缺少查询参数时从插件回填虚拟机概览 VNC 地址",
