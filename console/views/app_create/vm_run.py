@@ -271,6 +271,7 @@ class VMRunCreateView(RegionTenantHeaderView):
                 image_name=image_name,
                 image_url=image,
                 source_uri=vm_url or getattr(asset, "source_uri", ""),
+                boot_source_format=boot_source_format,
             )
             logger.info(
                 "vm create resolved source: tenant=%s service=%s source_type=%s "
@@ -335,7 +336,7 @@ class VMRunCreateView(RegionTenantHeaderView):
 
     @staticmethod
     def resolve_disk_imports(asset: Any = None, restore_plan: Optional[dict] = None, image_name: str = "",
-                             image_url: str = "", source_uri: str = "") -> List:
+                             image_url: str = "", source_uri: str = "", boot_source_format: str = "") -> List:
         if restore_plan:
             return list(restore_plan.get("disk_imports") or [])
         return vms.build_vm_create_disk_imports(
@@ -343,4 +344,5 @@ class VMRunCreateView(RegionTenantHeaderView):
             image_name=image_name,
             image_url=image_url,
             source_uri=source_uri,
+            boot_source_format=boot_source_format,
         )

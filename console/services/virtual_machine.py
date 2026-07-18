@@ -755,7 +755,8 @@ class VirtualMachineService(object):
         return str(inferred or "").strip().lower()
 
     def build_vm_create_disk_imports(self, asset: Any = None, template_payload: Optional[dict] = None,
-                                     image_name: str = "", image_url: str = "", source_uri: str = "") -> list:
+                                     image_name: str = "", image_url: str = "", source_uri: str = "",
+                                     boot_source_format: str = "") -> list:
         imports = []
         root_import = self._build_vm_root_disk_import(
             asset=asset,
@@ -763,6 +764,7 @@ class VirtualMachineService(object):
             image_name=image_name,
             image_url=image_url,
             source_uri=source_uri,
+            boot_source_format=boot_source_format,
         )
         if root_import:
             imports.append(root_import)
@@ -777,13 +779,13 @@ class VirtualMachineService(object):
             source_uri,
             bool(root_import),
             len(imports),
-            self.infer_vm_boot_source_format(
+            str(boot_source_format or self.infer_vm_boot_source_format(
                 asset=asset,
                 template_payload=template_payload,
                 image_name=image_name,
                 image_url=image_url,
                 source_uri=source_uri,
-            ),
+            ) or "").strip().lower(),
         )
         return imports
 
@@ -832,16 +834,16 @@ class VirtualMachineService(object):
         return "uefi"
 
     def _build_vm_root_disk_import(self, asset: Any = None, template_payload: Optional[dict] = None,
-                                   image_name: str = "", image_url: str = "",
-                                   source_uri: str = "") -> Optional[dict]:
-        boot_source_format = self.infer_vm_boot_source_format(
+                                   image_name: str = "", image_url: str = "", source_uri: str = "",
+                                   boot_source_format: str = "") -> Optional[dict]:
+        resolved_boot_source_format = str(boot_source_format or self.infer_vm_boot_source_format(
             asset=asset,
             template_payload=template_payload,
             image_name=image_name,
             image_url=image_url,
             source_uri=source_uri,
-        )
-        if boot_source_format == "iso":
+        ) or "").strip().lower()
+        if resolved_boot_source_format == "iso":
             return None
 
         root_disk = self._extract_root_disk_payload(asset=asset, template_payload=template_payload)
@@ -860,7 +862,7 @@ class VirtualMachineService(object):
                 "disk_name": root_disk.get("disk_name") or root_disk.get("disk_key") or "rootdisk",
                 "image_url": restore_url,
                 "source_uri": root_disk.get("source_uri") or "",
-                "format": root_disk.get("format") or "",
+                "format": root_disk.get("format") or resolved_boot_source_format or "",
                 "checksum": root_disk.get("checksum") or "",
                 "source_type": source_type,
             }
@@ -868,7 +870,7 @@ class VirtualMachineService(object):
         restore_url = self._resolve_root_restore_url(asset=asset, image_url=image_url, source_uri=source_uri)
         if not self._is_http_source(restore_url):
             registry_image = self._resolve_root_registry_image(asset=asset, image_url=image_url)
-            if not registry_image or not boot_source_format:
+            if not registry_image or not resolved_boot_source_format:
                 return None
             return {
                 "volume_name": "disk",
@@ -876,7 +878,7 @@ class VirtualMachineService(object):
                 "disk_name": "rootdisk",
                 "image_url": registry_image,
                 "source_uri": self._resolve_root_source_uri(asset=asset, source_uri=source_uri, fallback=registry_image),
-                "format": boot_source_format or "",
+                "format": resolved_boot_source_format or "",
                 "checksum": "",
                 "source_type": "registry",
             }
@@ -886,7 +888,7 @@ class VirtualMachineService(object):
             "disk_name": "rootdisk",
             "image_url": restore_url,
             "source_uri": "",
-            "format": boot_source_format or "",
+            "format": resolved_boot_source_format or "",
             "checksum": "",
             "source_type": "http",
         }

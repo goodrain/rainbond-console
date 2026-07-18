@@ -10506,12 +10506,17 @@
       "interface": "console.views.app_create.vm_run.VMRunCreateView.post",
       "code_paths": [
         "console/views/app_create/vm_run.py",
+        "console/services/virtual_machine.py",
         "console/services/vm_boot_source.py"
       ],
       "tests": [
         {
           "path": "console/tests/vm_asset_instantiation_test.py",
           "selector": "VMAssetInstantiationTests::test_vm_run_create_from_existing_disk_asset_reuses_ready_runtime_image"
+        },
+        {
+          "path": "console/tests/vm_asset_instantiation_test.py",
+          "selector": "VMAssetInstantiationTests::test_vm_run_create_uses_requested_format_for_suffixless_existing_disk_asset_import"
         }
       ],
       "test_type": "regression",
