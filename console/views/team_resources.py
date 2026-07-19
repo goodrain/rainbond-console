@@ -180,6 +180,19 @@ class NsResourcesView(TenantHeaderView):
     def _ns_resource_source(params: dict) -> str:
         return str(params.get("source") or "").strip().lower()
 
+    @staticmethod
+    def _decode_request_body(body: Any) -> str:
+        if isinstance(body, bytes):
+            return body.decode("utf-8", "ignore")
+        return str(body or "")
+
+    def _tracking_enterprise_id(self, request: Request) -> str:
+        for owner in (getattr(self, "tenant", None), getattr(self, "enterprise", None), getattr(request, "user", None)):
+            enterprise_id = getattr(owner, "enterprise_id", "") if owner is not None else ""
+            if enterprise_id:
+                return enterprise_id
+        return ""
+
     def _build_ns_resource_tracker(self,
                                    request: Request,
                                    params: dict,
@@ -198,8 +211,15 @@ class NsResourcesView(TenantHeaderView):
                 self._decode_request_body(request.body))
             workload_context["source_type"] = (
                 "yaml" if deploy_type == enterprise_first_deploy_service.DEPLOY_TYPE_YAML else "k8s_resource")
+            logger.info(
+                "ns resource deploy diagnostic tracking begin: team=%s region=%s source=%s deploy_type=%s",
+                team_name,
+                region_name,
+                source,
+                deploy_type,
+            )
             return enterprise_first_deploy_service.safe_begin_deploy_tracking(
-                enterprise_id=getattr(self.tenant, "enterprise_id", ""),
+                enterprise_id=self._tracking_enterprise_id(request),
                 tenant_name=getattr(self.tenant, "tenant_name", "") or team_name,
                 region_name=region_name,
                 deploy_type=deploy_type,
@@ -209,14 +229,8 @@ class NsResourcesView(TenantHeaderView):
                 app_context={"component_count": 0},
                 workload_context=workload_context)
         except Exception as exc:
-            logger.debug("begin ns resource deploy diagnostic tracking failed: %s", exc)
+            logger.warning("begin ns resource deploy diagnostic tracking failed: %s", exc)
             return None
-
-    @staticmethod
-    def _decode_request_body(body: Any) -> Any:
-        if isinstance(body, bytes):
-            return body.decode("utf-8", "ignore")
-        return body
 
     @staticmethod
     def _ns_resource_failure_reason(data: Any, status_code: int) -> str:
