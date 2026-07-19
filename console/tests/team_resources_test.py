@@ -567,6 +567,49 @@ class NsResourceDetailViewTestCase(TestCase):
         tracking_service.safe_mark_failure.assert_not_called()
 
     # capability_id: console.ns-resource.batch-create
+    def test_post_uses_request_user_enterprise_id_when_tenant_context_missing_it(self):
+        yaml_body = "apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: demo\n"
+        request = APIRequestFactory().post(
+            "/console/teams/demo-team/regions/demo-region/ns-resources?source=yaml",
+            data=yaml_body,
+            content_type="application/yaml"
+        )
+        request.user = Obj(enterprise_id="user-eid", nick_name="admin")
+        view = NsResourcesView()
+        view.tenant = Obj(tenant_name="demo-team")
+        view.enterprise = Obj(enterprise_id="")
+
+        tracking_service = mock.Mock()
+        tracking_service.DEPLOY_TYPE_YAML = "yaml"
+        tracking_service.DEPLOY_TYPE_K8S_RESOURCE = "k8s_resource"
+        tracking_service.FAILURE_STAGE_PREFLIGHT = "preflight"
+        tracking_service.safe_begin_deploy_tracking.return_value = {"key": "tracker"}
+        tracking_service.build_k8s_resource_workload_context.return_value = {}
+
+        success_body = {
+            "code": 200,
+            "msg": "success",
+            "data": {
+                "bean": {
+                    "summary": {
+                        "failure_count": 0,
+                        "partial_success": False
+                    }
+                }
+            }
+        }
+
+        with mock.patch.object(team_resources, "enterprise_first_deploy_service", tracking_service, create=True), \
+                mock.patch.object(team_resources.region_api,
+                                  "post_tenant_ns_resource",
+                                  return_value=(mock.Mock(status=200), success_body)):
+            response = view.post(request, "demo-team", "demo-region")
+
+        self.assertEqual(response.status_code, 200)
+        begin_kwargs = tracking_service.safe_begin_deploy_tracking.call_args[1]
+        self.assertEqual(begin_kwargs["enterprise_id"], "user-eid")
+
+    # capability_id: console.ns-resource.batch-create
     def test_post_preserves_partial_success_status_and_payload(self):
         yaml_body = "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: demo\n"
         request = APIRequestFactory().post(
