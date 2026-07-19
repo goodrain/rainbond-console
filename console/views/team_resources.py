@@ -11,6 +11,7 @@ from console.repositories.app import service_repo
 from console.repositories.helm import helm_repo
 from console.repositories.helm_release_source import helm_release_source_repo
 from console.services.app_actions import ws_service
+from console.services.enterprise_first_deploy_service import enterprise_first_deploy_service
 from console.views.base import TenantHeaderView
 from www.utils.return_message import general_message
 from www.apiclient.regionapi import RegionInvokeApi
@@ -175,6 +176,64 @@ class NsResourceTypesView(TenantHeaderView):
 
 
 class NsResourcesView(TenantHeaderView):
+    @staticmethod
+    def _ns_resource_source(params: dict) -> str:
+        return str(params.get("source") or "").strip().lower()
+
+    def _build_ns_resource_tracker(self,
+                                   request: Request,
+                                   params: dict,
+                                   team_name: str,
+                                   region_name: str) -> Optional[dict]:
+        try:
+            source = self._ns_resource_source(params)
+            deploy_type = (
+                enterprise_first_deploy_service.DEPLOY_TYPE_YAML
+                if source == "yaml" else enterprise_first_deploy_service.DEPLOY_TYPE_K8S_RESOURCE)
+            source_language = "yaml" if deploy_type == enterprise_first_deploy_service.DEPLOY_TYPE_YAML else "k8s-resource"
+            trigger = (
+                "ns_resource_yaml_create"
+                if deploy_type == enterprise_first_deploy_service.DEPLOY_TYPE_YAML else "ns_resource_create")
+            workload_context = enterprise_first_deploy_service.build_k8s_resource_workload_context(
+                self._decode_request_body(request.body))
+            workload_context["source_type"] = (
+                "yaml" if deploy_type == enterprise_first_deploy_service.DEPLOY_TYPE_YAML else "k8s_resource")
+            return enterprise_first_deploy_service.safe_begin_deploy_tracking(
+                enterprise_id=getattr(self.tenant, "enterprise_id", ""),
+                tenant_name=getattr(self.tenant, "tenant_name", "") or team_name,
+                region_name=region_name,
+                deploy_type=deploy_type,
+                operator=get_request_operator(request),
+                source_language=source_language,
+                trigger=trigger,
+                app_context={"component_count": 0},
+                workload_context=workload_context)
+        except Exception as exc:
+            logger.debug("begin ns resource deploy diagnostic tracking failed: %s", exc)
+            return None
+
+    @staticmethod
+    def _decode_request_body(body: Any) -> Any:
+        if isinstance(body, bytes):
+            return body.decode("utf-8", "ignore")
+        return body
+
+    @staticmethod
+    def _ns_resource_failure_reason(data: Any, status_code: int) -> str:
+        body = data or {}
+        bean = ((body.get("data") or {}).get("bean") or {}) if isinstance(body, dict) else {}
+        summary = bean.get("summary") or {}
+        if isinstance(summary, dict):
+            failure_count = summary.get("failure_count") or 0
+            partial_success = bool(summary.get("partial_success"))
+            if failure_count or partial_success:
+                return body.get("msg_show") or body.get("msg") or "K8S 资源部分创建失败"
+        if status_code < 200 or status_code >= 300:
+            if not isinstance(body, dict):
+                return "K8S 资源创建失败"
+            return body.get("msg_show") or body.get("msg") or "K8S 资源创建失败"
+        return ""
+
     def get(self, request: Request, team_name: str, region_name: str, *args: Any, **kwargs: Any) -> Response:
         params = {k: v for k, v in request.GET.items()}
         res, data = region_api.get_tenant_ns_resources(region_name, team_name, params=params)
@@ -183,9 +242,23 @@ class NsResourcesView(TenantHeaderView):
     def post(self, request: Request, team_name: str, region_name: str, *args: Any, **kwargs: Any) -> Response:
         params = {k: v for k, v in request.GET.items()}
         content_type = request.META.get("CONTENT_TYPE")
-        res, data = region_api.post_tenant_ns_resource(
-            region_name, team_name, request.body, params=params, content_type=content_type)
+        tracker = self._build_ns_resource_tracker(request, params, team_name, region_name)
+        try:
+            res, data = region_api.post_tenant_ns_resource(
+                region_name, team_name, request.body, params=params, content_type=content_type)
+        except Exception as exc:
+            enterprise_first_deploy_service.safe_mark_failure(
+                tracker, reason=str(exc), failure_stage=enterprise_first_deploy_service.FAILURE_STAGE_PREFLIGHT)
+            raise
         status_code = getattr(res, "status", 200)
+        failure_reason = self._ns_resource_failure_reason(data, status_code)
+        if failure_reason:
+            enterprise_first_deploy_service.safe_mark_failure(
+                tracker,
+                reason=failure_reason,
+                failure_stage=enterprise_first_deploy_service.FAILURE_STAGE_PREFLIGHT)
+        else:
+            enterprise_first_deploy_service.safe_mark_success(tracker)
         return Response(data, status=status_code)
 
 
