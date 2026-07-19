@@ -1674,7 +1674,7 @@ class EnterpriseFirstDeployService(object):
 
     @classmethod
     def build_k8s_resource_workload_context(cls, resources: Any = None) -> dict:
-        context = {"source_type": "k8s_resource"}
+        context: Dict[str, Any] = {"source_type": "k8s_resource"}
         context.update(cls._summarize_k8s_resources(resources))
         return context
 
