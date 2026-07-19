@@ -12,6 +12,7 @@ from console.exception.bcode import ErrK8sComponentNameExists, ErrVMImageNameExi
 from console.exception.main import ResourceNotEnoughException, ServiceHandleException
 from console.repositories.virtual_machine import vm_repo
 from console.services.app import app_service
+from console.services.enterprise_first_deploy_service import enterprise_first_deploy_service
 from console.services.virtual_machine import vms
 from console.views.base import RegionTenantHeaderView
 from www.utils.return_message import general_message
@@ -104,7 +105,29 @@ class VMRunCreateView(RegionTenantHeaderView):
         asset_created = False
         restore_plan = None
         public_vm_meta = PUBLIC_VM_IMAGES.get(image_name)
+        tracker = enterprise_first_deploy_service.safe_begin_deploy_tracking(
+            enterprise_id=getattr(self.tenant, "enterprise_id", ""),
+            tenant_name=getattr(self.tenant, "tenant_name", ""),
+            region_name=self.response_region,
+            deploy_type=enterprise_first_deploy_service.DEPLOY_TYPE_VIRTUAL_MACHINE,
+            operator=getattr(self.user, "nick_name", ""),
+            source_language="virtual-machine",
+            trigger="vm_create",
+            app_context={
+                "app_id": group_id,
+                "component_count": 1,
+            },
+            workload_context=enterprise_first_deploy_service.build_virtual_machine_workload_context({
+                "arch": arch,
+                "image_name": image_name,
+                "asset_id": asset_id,
+                "boot_mode": boot_mode,
+            }))
         if k8s_component_name and app_service.is_k8s_component_name_duplicate(group_id, k8s_component_name):
+            enterprise_first_deploy_service.safe_mark_failure(
+                tracker,
+                reason="K8s component name already exists",
+                failure_stage=enterprise_first_deploy_service.FAILURE_STAGE_PREFLIGHT)
             raise ErrK8sComponentNameExists
         try:
             vms.ensure_vm_platform_running(self.tenant.enterprise_id, self.response_region)
@@ -166,6 +189,10 @@ class VMRunCreateView(RegionTenantHeaderView):
                 if not asset and image_name:
                     asset = vm_repo.get_vm_image_instance_by_tenant_id_and_name(self.tenant.tenant_id, image_name)
                 if asset and not vms.is_vm_asset_ready(asset):
+                    enterprise_first_deploy_service.safe_mark_failure(
+                        tracker,
+                        reason="虚拟机镜像导出尚未完成，请稍后再试",
+                        failure_stage=enterprise_first_deploy_service.FAILURE_STAGE_PREFLIGHT)
                     return Response(general_message(409, "vm image not ready", "虚拟机镜像导出尚未完成，请稍后再试"), status=409)
                 image = asset.image_url if asset else ""
                 if asset:
@@ -182,6 +209,10 @@ class VMRunCreateView(RegionTenantHeaderView):
                             source_uri=getattr(asset, "source_uri", ""),
                         )
                 if not image:
+                    enterprise_first_deploy_service.safe_mark_failure(
+                        tracker,
+                        reason="虚拟机镜像不存在",
+                        failure_stage=enterprise_first_deploy_service.FAILURE_STAGE_PREFLIGHT)
                     return Response(general_message(404, "vm image not found", "虚拟机镜像不存在"), status=404)
                 if not (event_id or vm_url):
                     boot_source = vms.resolve_vm_boot_source(
@@ -209,6 +240,10 @@ class VMRunCreateView(RegionTenantHeaderView):
                 self.response_region, self.tenant, self.user, service_cname,  # type: ignore[arg-type]
                 k8s_component_name, image, arch, event_id, vm_url)
             if code != 200:
+                enterprise_first_deploy_service.safe_mark_failure(
+                    tracker,
+                    reason=msg_show,
+                    failure_stage=enterprise_first_deploy_service.FAILURE_STAGE_PREFLIGHT)
                 return Response(general_message(code, "service create fail", msg_show), status=code)
             runtime_disk_layout = restore_plan.get("disk_layout") if restore_plan else None
             if not runtime_disk_layout:
@@ -260,12 +295,35 @@ class VMRunCreateView(RegionTenantHeaderView):
             if code != 200:
                 logger.debug("service.create", msg_show)
             result = general_message(200, "success", "创建成功", bean=new_service.to_dict())  # type: ignore[union-attr]
+            enterprise_first_deploy_service.safe_bind_events(
+                tracker,
+                [],
+                service_ids=[new_service.service_id],  # type: ignore[union-attr]
+                service_aliases=[new_service.service_alias])  # type: ignore[union-attr]
         except ResourceNotEnoughException as re:
+            enterprise_first_deploy_service.safe_mark_failure(
+                tracker,
+                reason=getattr(re, "msg", str(re)),
+                failure_stage=enterprise_first_deploy_service.FAILURE_STAGE_PREFLIGHT)
             raise re
         except ServiceHandleException as err:
+            enterprise_first_deploy_service.safe_mark_failure(
+                tracker,
+                reason=getattr(err, "msg", str(err)),
+                failure_stage=enterprise_first_deploy_service.FAILURE_STAGE_PREFLIGHT)
             return Response(general_message(err.status_code, err.msg, err.msg_show), status=err.status_code)
         except ValueError as err:
+            enterprise_first_deploy_service.safe_mark_failure(
+                tracker,
+                reason=str(err),
+                failure_stage=enterprise_first_deploy_service.FAILURE_STAGE_PREFLIGHT)
             return Response(general_message(400, "invalid vm runtime config", str(err)), status=400)
+        except Exception as err:
+            enterprise_first_deploy_service.safe_mark_failure(
+                tracker,
+                reason=str(err),
+                failure_stage=enterprise_first_deploy_service.FAILURE_STAGE_PREFLIGHT)
+            raise
         return Response(result, status=result["code"])
 
     @staticmethod

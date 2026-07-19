@@ -227,6 +227,91 @@ class HelmReleasesViewTestCase(TestCase):
         self.assertEqual(kwargs["values_yaml"], "server:\\n  extraArgs: []")
         self.assertEqual(response.data["data"]["bean"]["release_name"], "demo-release")
 
+    # capability_id: console.helm-release.install
+    def test_post_records_helm_release_install_success_diagnostic(self):
+        payload = {
+            "source_type": "repo",
+            "repo_name": "bitnami",
+            "chart_name": "nginx",
+            "version": "15.0.0",
+            "release_name": "demo-release",
+            "values": {
+                "replicaCount": 1
+            }
+        }
+        view = HelmReleasesView()
+        view.tenant = mock.Mock(namespace="demo-ns", tenant_name="demo-team", enterprise_id="eid-1")
+        factory = APIRequestFactory()
+        request = view.initialize_request(factory.post("/console/team-resources/helm/releases", payload, format="json"))
+
+        tracking_service = mock.Mock()
+        tracking_service.DEPLOY_TYPE_HELM = "helm"
+        tracking_service.FAILURE_STAGE_PREFLIGHT = "preflight"
+        tracking_service.safe_begin_deploy_tracking.return_value = {"key": "tracker"}
+        tracking_service.build_helm_workload_context.return_value = {
+            "source_type": "helm",
+            "chart": "nginx",
+            "version": "15.0.0",
+            "repo_name": "bitnami",
+            "override_count": 1
+        }
+
+        with mock.patch.object(team_resources, "enterprise_first_deploy_service", tracking_service, create=True), \
+                mock.patch.object(team_resources.region_api,
+                                  "install_tenant_helm_release",
+                                  return_value=({}, {
+                                      "bean": {
+                                          "release_name": "demo-release"
+                                      }
+                                  })):
+            response = view.post(request, "demo-team", "demo-region")
+
+        self.assertEqual(response.status_code, 200)
+        tracking_service.safe_begin_deploy_tracking.assert_called_once()
+        begin_kwargs = tracking_service.safe_begin_deploy_tracking.call_args[1]
+        self.assertEqual(begin_kwargs["enterprise_id"], "eid-1")
+        self.assertEqual(begin_kwargs["tenant_name"], "demo-team")
+        self.assertEqual(begin_kwargs["region_name"], "demo-region")
+        self.assertEqual(begin_kwargs["deploy_type"], "helm")
+        self.assertEqual(begin_kwargs["trigger"], "helm_release_install")
+        self.assertEqual(begin_kwargs["source_language"], "helm")
+        self.assertEqual(begin_kwargs["workload_context"]["source_type"], "helm")
+        tracking_service.safe_mark_success.assert_called_once_with({"key": "tracker"})
+        tracking_service.safe_mark_failure.assert_not_called()
+
+    # capability_id: console.helm-release.install
+    def test_post_records_helm_release_install_failure_diagnostic(self):
+        payload = {
+            "source_type": "repo",
+            "repo_name": "bitnami",
+            "chart_name": "nginx",
+            "version": "15.0.0",
+            "release_name": "demo-release"
+        }
+        view = HelmReleasesView()
+        view.tenant = mock.Mock(namespace="demo-ns", tenant_name="demo-team", enterprise_id="eid-1")
+        factory = APIRequestFactory()
+        request = view.initialize_request(factory.post("/console/team-resources/helm/releases", payload, format="json"))
+
+        tracking_service = mock.Mock()
+        tracking_service.DEPLOY_TYPE_HELM = "helm"
+        tracking_service.FAILURE_STAGE_PREFLIGHT = "preflight"
+        tracking_service.safe_begin_deploy_tracking.return_value = {"key": "tracker"}
+        tracking_service.build_helm_workload_context.return_value = {"source_type": "helm", "chart": "nginx"}
+
+        with mock.patch.object(team_resources, "enterprise_first_deploy_service", tracking_service, create=True), \
+                mock.patch.object(team_resources.region_api,
+                                  "install_tenant_helm_release",
+                                  side_effect=RuntimeError("helm install failed")):
+            with self.assertRaises(RuntimeError):
+                view.post(request, "demo-team", "demo-region")
+
+        tracking_service.safe_mark_failure.assert_called_once_with(
+            {"key": "tracker"},
+            reason="helm install failed",
+            failure_stage="preflight")
+        tracking_service.safe_mark_success.assert_not_called()
+
     # capability_id: console.helm-release.team-namespace-ops
     def test_delete_uses_team_namespace_for_helm_release_uninstall(self):
         view = HelmReleaseDetailView()
@@ -509,6 +594,107 @@ class HelmReleasesViewTestCase(TestCase):
 
 class NsResourceDetailViewTestCase(TestCase):
     # capability_id: console.ns-resource.batch-create
+    def test_post_records_yaml_create_success_diagnostic(self):
+        yaml_body = "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: demo\n"
+        request = APIRequestFactory().post(
+            "/console/teams/demo-team/regions/demo-region/ns-resources?source=yaml",
+            data=yaml_body,
+            content_type="application/yaml"
+        )
+        view = NsResourcesView()
+        view.tenant = Obj(enterprise_id="eid-1", tenant_name="demo-team")
+        view.user = Obj(nick_name="admin")
+
+        tracking_service = mock.Mock()
+        tracking_service.DEPLOY_TYPE_YAML = "yaml"
+        tracking_service.DEPLOY_TYPE_K8S_RESOURCE = "k8s_resource"
+        tracking_service.FAILURE_STAGE_PREFLIGHT = "preflight"
+        tracking_service.safe_begin_deploy_tracking.return_value = {"key": "tracker"}
+        tracking_service.build_k8s_resource_workload_context.return_value = {
+            "source_type": "k8s_resource",
+            "resource_count": 1
+        }
+
+        success_body = {
+            "code": 200,
+            "msg": "共创建 1 个资源，全部成功",
+            "msg_show": "共创建 1 个资源，全部成功",
+            "data": {
+                "bean": {
+                    "summary": {
+                        "total": 1,
+                        "success_count": 1,
+                        "failure_count": 0,
+                        "partial_success": False
+                    },
+                    "results": []
+                }
+            }
+        }
+
+        with mock.patch.object(team_resources, "enterprise_first_deploy_service", tracking_service, create=True), \
+                mock.patch.object(team_resources.region_api,
+                                  "post_tenant_ns_resource",
+                                  return_value=(mock.Mock(status=200), success_body)):
+            response = view.post(request, "demo-team", "demo-region")
+
+        self.assertEqual(response.status_code, 200)
+        tracking_service.safe_begin_deploy_tracking.assert_called_once()
+        begin_kwargs = tracking_service.safe_begin_deploy_tracking.call_args[1]
+        self.assertEqual(begin_kwargs["enterprise_id"], "eid-1")
+        self.assertEqual(begin_kwargs["tenant_name"], "demo-team")
+        self.assertEqual(begin_kwargs["region_name"], "demo-region")
+        self.assertEqual(begin_kwargs["deploy_type"], "yaml")
+        self.assertEqual(begin_kwargs["trigger"], "ns_resource_yaml_create")
+        self.assertEqual(begin_kwargs["source_language"], "yaml")
+        self.assertEqual(begin_kwargs["workload_context"]["source_type"], "yaml")
+        tracking_service.safe_mark_success.assert_called_once_with({"key": "tracker"})
+        tracking_service.safe_mark_failure.assert_not_called()
+
+    # capability_id: console.ns-resource.batch-create
+    def test_post_uses_request_user_enterprise_id_when_tenant_context_missing_it(self):
+        yaml_body = "apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: demo\n"
+        request = APIRequestFactory().post(
+            "/console/teams/demo-team/regions/demo-region/ns-resources?source=yaml",
+            data=yaml_body,
+            content_type="application/yaml"
+        )
+        request.user = Obj(enterprise_id="user-eid", nick_name="admin")
+        view = NsResourcesView()
+        view.tenant = Obj(tenant_name="demo-team")
+        view.enterprise = Obj(enterprise_id="")
+
+        tracking_service = mock.Mock()
+        tracking_service.DEPLOY_TYPE_YAML = "yaml"
+        tracking_service.DEPLOY_TYPE_K8S_RESOURCE = "k8s_resource"
+        tracking_service.FAILURE_STAGE_PREFLIGHT = "preflight"
+        tracking_service.safe_begin_deploy_tracking.return_value = {"key": "tracker"}
+        tracking_service.build_k8s_resource_workload_context.return_value = {}
+
+        success_body = {
+            "code": 200,
+            "msg": "success",
+            "data": {
+                "bean": {
+                    "summary": {
+                        "failure_count": 0,
+                        "partial_success": False
+                    }
+                }
+            }
+        }
+
+        with mock.patch.object(team_resources, "enterprise_first_deploy_service", tracking_service, create=True), \
+                mock.patch.object(team_resources.region_api,
+                                  "post_tenant_ns_resource",
+                                  return_value=(mock.Mock(status=200), success_body)):
+            response = view.post(request, "demo-team", "demo-region")
+
+        self.assertEqual(response.status_code, 200)
+        begin_kwargs = tracking_service.safe_begin_deploy_tracking.call_args[1]
+        self.assertEqual(begin_kwargs["enterprise_id"], "user-eid")
+
+    # capability_id: console.ns-resource.batch-create
     def test_post_preserves_partial_success_status_and_payload(self):
         yaml_body = "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: demo\n"
         request = APIRequestFactory().post(
@@ -517,6 +703,18 @@ class NsResourceDetailViewTestCase(TestCase):
             content_type="application/yaml"
         )
         view = NsResourcesView()
+        view.tenant = Obj(enterprise_id="eid-1", tenant_name="demo-team")
+        view.user = Obj(nick_name="admin")
+
+        tracking_service = mock.Mock()
+        tracking_service.DEPLOY_TYPE_YAML = "yaml"
+        tracking_service.DEPLOY_TYPE_K8S_RESOURCE = "k8s_resource"
+        tracking_service.FAILURE_STAGE_PREFLIGHT = "preflight"
+        tracking_service.safe_begin_deploy_tracking.return_value = {"key": "tracker"}
+        tracking_service.build_k8s_resource_workload_context.return_value = {
+            "source_type": "k8s_resource",
+            "resource_count": 2
+        }
 
         partial_success_body = {
             "code": 207,
@@ -542,14 +740,20 @@ class NsResourceDetailViewTestCase(TestCase):
             }
         }
 
-        with mock.patch.object(team_resources.region_api,
-                               "post_tenant_ns_resource",
-                               return_value=(mock.Mock(status=207), partial_success_body)) as post_mock:
+        with mock.patch.object(team_resources, "enterprise_first_deploy_service", tracking_service, create=True), \
+                mock.patch.object(team_resources.region_api,
+                                  "post_tenant_ns_resource",
+                                  return_value=(mock.Mock(status=207), partial_success_body)) as post_mock:
             response = view.post(request, "demo-team", "demo-region")
 
         self.assertEqual(response.status_code, 207)
         self.assertEqual(response.data["code"], 207)
         self.assertEqual(response.data["data"]["bean"]["summary"]["failure_count"], 1)
+        tracking_service.safe_mark_success.assert_not_called()
+        tracking_service.safe_mark_failure.assert_called_once_with(
+            {"key": "tracker"},
+            reason="共创建 2 个资源，1 个成功，1 个失败",
+            failure_stage="preflight")
         post_mock.assert_called_once_with(
             "demo-region",
             "demo-team",
@@ -557,6 +761,46 @@ class NsResourceDetailViewTestCase(TestCase):
             params={"source": "yaml"},
             content_type="application/yaml"
         )
+
+    # capability_id: console.ns-resource.batch-create
+    def test_post_continues_when_ns_resource_tracking_begin_fails(self):
+        yaml_body = "apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: demo\n"
+        request = APIRequestFactory().post(
+            "/console/teams/demo-team/regions/demo-region/ns-resources?source=yaml",
+            data=yaml_body,
+            content_type="application/yaml"
+        )
+        view = NsResourcesView()
+        view.tenant = Obj(enterprise_id="eid-1", tenant_name="demo-team")
+
+        tracking_service = mock.Mock()
+        tracking_service.DEPLOY_TYPE_YAML = "yaml"
+        tracking_service.DEPLOY_TYPE_K8S_RESOURCE = "k8s_resource"
+        tracking_service.FAILURE_STAGE_PREFLIGHT = "preflight"
+        tracking_service.build_k8s_resource_workload_context.side_effect = RuntimeError("tracking unavailable")
+
+        success_body = {
+            "code": 200,
+            "msg": "success",
+            "data": {
+                "bean": {
+                    "summary": {
+                        "failure_count": 0,
+                        "partial_success": False
+                    }
+                }
+            }
+        }
+
+        with mock.patch.object(team_resources, "enterprise_first_deploy_service", tracking_service, create=True), \
+                mock.patch.object(team_resources.region_api,
+                                  "post_tenant_ns_resource",
+                                  return_value=(mock.Mock(status=200), success_body)) as post_mock:
+            response = view.post(request, "demo-team", "demo-region")
+
+        self.assertEqual(response.status_code, 200)
+        post_mock.assert_called_once()
+        tracking_service.safe_begin_deploy_tracking.assert_not_called()
 
     # capability_id: console.ns-resource.update
     def test_put_accepts_yaml_media_type_and_forwards_raw_body(self):

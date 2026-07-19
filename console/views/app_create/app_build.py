@@ -206,13 +206,16 @@ class ComposeBuildView(RegionTenantHeaderCloudEnterpriseCenterView):
                     enterprise_id=self.tenant.enterprise_id,  # type: ignore[arg-type]
                     tenant_name=self.tenant.tenant_name,
                     region_name=self.region_name,
-                    deploy_type=enterprise_first_deploy_service.DEPLOY_TYPE_IMAGE,
+                    deploy_type=enterprise_first_deploy_service.DEPLOY_TYPE_DOCKER_COMPOSE,
                     operator=self.user.nick_name,  # type: ignore[arg-type]
                     source_language="docker-compose",
                     trigger="compose_build",
                     app_context=enterprise_first_deploy_service.build_service_app_context(
                         getattr(self, "app", None),
-                        component_count=len(new_app_list)))
+                        component_count=len(new_app_list)),
+                    workload_context=enterprise_first_deploy_service.build_docker_compose_workload_context(
+                        compose_id=compose_id or "",
+                        compose_file_path=getattr(group_compose, "compose_file_path", "") or ""))
             event_ids = []
             service_ids = []
             service_aliases = []

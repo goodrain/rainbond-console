@@ -29,6 +29,8 @@ class Obj(object):
 
 class FirstDeployServiceStub(object):
     DEPLOY_TYPE_IMAGE = "image"
+    DEPLOY_TYPE_DOCKER_COMPOSE = "docker_compose"
+    FAILURE_STAGE_PREFLIGHT = "preflight"
     FAILURE_STAGE_BUILD = "build"
 
     def __init__(self):
@@ -42,6 +44,17 @@ class FirstDeployServiceStub(object):
         if app is not None:
             context["app_id"] = getattr(app, "ID", "")
             context["app_name"] = getattr(app, "group_name", "")
+        return context
+
+    @staticmethod
+    def build_docker_compose_workload_context(compose_id="", check_uuid="", compose_file_path=""):
+        context = {"source_type": "docker-compose"}
+        if compose_id:
+            context["compose_id"] = compose_id
+        if check_uuid:
+            context["check_uuid"] = check_uuid
+        if compose_file_path:
+            context["compose_file_path"] = compose_file_path
         return context
 
     def reset(self):
@@ -75,6 +88,7 @@ install_stub(
     "console.exception.main",
     AccountOverdueException=type("AccountOverdueException", (Exception,), {}),
     BusinessException=type("BusinessException", (Exception,), {}),
+    ErrInsufficientResource=type("ErrInsufficientResource", (Exception,), {}),
     ResourceNotEnoughException=type("ResourceNotEnoughException", (Exception,), {}),
     ServiceHandleException=type("ServiceHandleException", (Exception,), {}))
 install_stub("console.models.main", ComposeGroup=object)
@@ -83,12 +97,23 @@ install_stub("console.repositories.group", group_repo=Obj(get_group_by_pk=lambda
 install_stub("console.services.app_check_service", app_check_service=app_check_service)
 install_stub("console.services.compose_service", compose_service=compose_service)
 install_stub("console.services.enterprise_first_deploy_service", enterprise_first_deploy_service=first_deploy_service)
-install_stub("console.services.group_service", group_service=Obj())
+install_stub("console.services.group_service", group_service=Obj(), GroupService=type("GroupService", (), {}))
 install_stub("console.services.team_services", team_services=Obj())
 install_stub("console.views.base", RegionTenantHeaderView=RegionTenantHeaderViewStub)
-install_stub("www.models.main", ServiceGroup=object)
+install_stub("www.models.main",
+             ServiceGroup=object,
+             TenantEnterprise=object,
+             TenantEnterpriseToken=object,
+             TenantServiceInfo=object,
+             Tenants=object)
 install_stub(
     "www.utils.return_message",
+    error_message=lambda code, msg, msg_show, **kwargs: {
+        "code": code,
+        "msg": msg,
+        "msg_show": msg_show,
+        "data": kwargs,
+    },
     general_message=lambda code, msg, msg_show, **kwargs: {
         "code": code,
         "msg": msg,
@@ -123,7 +148,7 @@ class ComposeCheckFirstDeployTrackingTests(SimpleTestCase):
         self.assertEqual(begin_kwargs["enterprise_id"], "eid-1")
         self.assertEqual(begin_kwargs["tenant_name"], "demo-team")
         self.assertEqual(begin_kwargs["region_name"], "rainbond")
-        self.assertEqual(begin_kwargs["deploy_type"], "image")
+        self.assertEqual(begin_kwargs["deploy_type"], "docker_compose")
         self.assertEqual(begin_kwargs["operator"], "tester")
         self.assertEqual(begin_kwargs["source_language"], "docker-compose")
         self.assertEqual(begin_kwargs["trigger"], "compose_check")
@@ -132,7 +157,7 @@ class ComposeCheckFirstDeployTrackingTests(SimpleTestCase):
         first_deploy_service.safe_mark_failure.assert_called_once_with(
             {"key": "first-deploy"},
             reason="compose yaml invalid",
-            failure_stage="build")
+            failure_stage="preflight")
 
     def test_compose_check_result_failure_records_first_deploy_failure(self):
         group_compose = Obj(compose_id="compose-1", create_status="checking")
@@ -159,4 +184,4 @@ class ComposeCheckFirstDeployTrackingTests(SimpleTestCase):
         first_deploy_service.safe_mark_failure.assert_called_once_with(
             {"key": "first-deploy"},
             reason="compose service image format invalid",
-            failure_stage="build")
+            failure_stage="preflight")

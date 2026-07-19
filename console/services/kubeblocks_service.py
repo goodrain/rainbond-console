@@ -16,6 +16,7 @@ from console.services.app import app_service
 from console.services.app_actions import app_manage_service
 from console.services.app_config.env_service import AppEnvVarService
 from console.services.app_config.port_service import AppPortService
+from console.services.enterprise_first_deploy_service import enterprise_first_deploy_service
 from console.services.group_service import GroupService
 from console.repositories.group import group_repo
 from console.repositories.kubeblocks_backup_repo import kubeblocks_backup_repo_repo
@@ -53,6 +54,19 @@ class KubeBlocksService(object):
         一次性创建 KubeBlocks Component
         """
         new_service = None
+        tracker = enterprise_first_deploy_service.safe_begin_deploy_tracking(
+            enterprise_id=getattr(tenant, "enterprise_id", ""),
+            tenant_name=getattr(tenant, "tenant_name", ""),
+            region_name=region_name,
+            deploy_type=enterprise_first_deploy_service.DEPLOY_TYPE_DATABASE,
+            operator=getattr(user, "nick_name", ""),
+            source_language="database",
+            trigger="kubeblocks_create",
+            app_context={
+                "app_id": creation_params.get("group_id"),
+                "component_count": 1,
+            },
+            workload_context=enterprise_first_deploy_service.build_database_workload_context(creation_params))
         try:
             # 创建组件元数据和基础配置
             new_service = self._create_component_metadata(tenant, user, region_name, creation_params)
@@ -61,6 +75,10 @@ class KubeBlocksService(object):
             success, cluster_result = self._create_cluster(tenant, user, region_name, creation_params, new_service)
             if not success:
                 logger.error("KubeBlocks集群创建失败，触发资源清理")
+                enterprise_first_deploy_service.safe_mark_failure(
+                    tracker,
+                    reason=str(cluster_result or "KubeBlocks集群创建失败"),
+                    failure_stage=enterprise_first_deploy_service.FAILURE_STAGE_PREFLIGHT)
                 self._cleanup_on_failure(new_service, tenant, region_name)
                 return False, None, cluster_result or "KubeBlocks集群创建失败"
 
@@ -102,6 +120,18 @@ class KubeBlocksService(object):
 
             # 构建部署组件
             deploy_result = self._deploy_component(tenant, new_service, user)
+            deploy_code, deploy_msg, deploy_event_id = self._normalize_deploy_result(deploy_result)
+            if deploy_code == 200 and deploy_event_id:
+                enterprise_first_deploy_service.safe_bind_events(
+                    tracker,
+                    [deploy_event_id],
+                    service_ids=[new_service.service_id],
+                    service_aliases=[new_service.service_alias])
+            elif deploy_code and deploy_code != 200:
+                enterprise_first_deploy_service.safe_mark_failure(
+                    tracker,
+                    reason=deploy_msg,
+                    failure_stage=enterprise_first_deploy_service.FAILURE_STAGE_BUILD)
 
             # 创建部署关系记录
             deploy_repo.create_deploy_relation_by_service_id(service_id=new_service.service_id)
@@ -113,12 +143,30 @@ class KubeBlocksService(object):
 
         except Exception as e:
             logger.exception(f"创建KubeBlocks组件失败: {str(e)}")
+            enterprise_first_deploy_service.safe_mark_failure(
+                tracker,
+                reason=str(e),
+                failure_stage=enterprise_first_deploy_service.FAILURE_STAGE_BUILD
+                if new_service else enterprise_first_deploy_service.FAILURE_STAGE_PREFLIGHT)
 
             # 清理资源
             if new_service:
                 self._cleanup_on_failure(new_service, tenant, region_name)
 
             return False, None, str(e)
+
+    @staticmethod
+    def _normalize_deploy_result(deploy_result: Any) -> Tuple[int, str, str]:
+        if isinstance(deploy_result, (list, tuple)):
+            code = deploy_result[0] if len(deploy_result) > 0 else 0
+            msg = deploy_result[1] if len(deploy_result) > 1 else ""
+            event_id = deploy_result[2] if len(deploy_result) > 2 else ""
+            try:
+                code = int(code)
+            except (TypeError, ValueError):
+                code = 0
+            return code, str(msg or ""), str(event_id or "")
+        return 0, "", ""
 
     def _create_component_metadata(self, tenant: Tenants, user: Any, region_name: str,
                                    params: dict) -> TenantServiceInfo:

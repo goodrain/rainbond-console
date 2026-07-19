@@ -168,6 +168,26 @@ class MarketInstallPreflightServiceTests(TestCase):
         self.assertEqual("warning", image_check["status"])
         self.assertEqual("image_not_found", image_check["reason"])
 
+    def test_can_skip_image_manifest_check_for_trusted_templates(self):
+        self.service._get_region_resources = mock.Mock(return_value={
+            "all_node": 1,
+            "node_ready": 1,
+            "cap_cpu": 4000,
+            "req_cpu": 0,
+            "cap_mem": 8192,
+            "req_mem": 0,
+        })
+        self.service._get_cluster_arches = mock.Mock(return_value=["amd64"])
+        self.service._probe_image_manifest = mock.Mock(
+            return_value=("warning", "镜像仓库检测超时，无法确认镜像版本", "registry_probe_timeout"))
+
+        result = self.service.run(self.tenant, self.region, self.template, check_images=False)
+
+        self.assertEqual("pass", result["status"])
+        self.assertFalse(result["should_block"])
+        self.service._probe_image_manifest.assert_not_called()
+        self.assertNotIn("image_manifest", [item["name"] for item in result["checks"]])
+
     def test_registry_404_is_warning_not_block(self):
         with mock.patch("console.services.market_app_preflight_service.requests.head",
                         return_value=Obj(status_code=404)):
