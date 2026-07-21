@@ -10555,6 +10555,32 @@
       ],
       "test_type": "regression",
       "status": "active"
+    },
+    {
+      "id": "console.app-scale.vertical-gpu-default",
+      "title": "Vertical scale keeps GPU value when omitted",
+      "title_zh": "垂直伸缩未传 GPU 时保留组件当前值",
+      "interface_type": "service_method",
+      "interface": "console.services.app_actions.app_manage.AppManageService.vertical_upgrade",
+      "code_paths": [
+        "console/services/app_actions/app_manage.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/vertical_upgrade_gpu_test.py",
+          "selector": "VerticalUpgradeGPUTests.test_omitted_gpu_keeps_current_value_instead_of_null"
+        },
+        {
+          "path": "console/tests/vertical_upgrade_gpu_test.py",
+          "selector": "VerticalUpgradeGPUTests.test_omitted_gpu_defaults_to_zero_when_current_is_none"
+        },
+        {
+          "path": "console/tests/vertical_upgrade_gpu_test.py",
+          "selector": "VerticalUpgradeGPUTests.test_explicit_gpu_is_applied_and_sent_to_region"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
     }
   ]
 }
