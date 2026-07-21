@@ -128,6 +128,46 @@ class AgentKubernetesBootstrapViewTests(SimpleTestCase):
         bootstrap.assert_not_called()
         proxy.assert_not_called()
 
+    def test_post_rejects_readonly_with_non_readonly_context(self):
+        request, stack, bootstrap, proxy = self._post({
+            "credential_profile": "readonly",
+            "context_id": "rainbond",
+        })
+
+        with stack:
+            response = self.view(request, enterprise_id="eid", region_name="rainbond")
+
+        self.assertEqual(400, response.status_code)
+        bootstrap.assert_not_called()
+        proxy.assert_not_called()
+
+    def test_post_accepts_explicit_readonly_context(self):
+        request, stack, bootstrap, proxy = self._post({
+            "credential_profile": "readonly",
+            "context_id": "rainbond:readonly",
+        })
+        bootstrap.return_value = (None, {
+            "bean": {
+                "region_name": "rainbond",
+                "credential_profile": "readonly",
+                "service_account": "rainbond-agent-reader",
+                "context_id": "rainbond:readonly",
+                "kubeconfig": "reader-kubeconfig",
+            }
+        })
+
+        with stack:
+            response = self.view(request, enterprise_id="eid", region_name="rainbond")
+
+        self.assertEqual(200, response.status_code)
+        bootstrap.assert_called_once_with("eid", "rainbond", {
+            "credential_profile": "readonly",
+            "context_id": "rainbond:readonly",
+            "region_name": "rainbond",
+            "service_account": "rainbond-agent-reader",
+        })
+        proxy.assert_called_once()
+
     def test_post_rejects_unknown_credential_profile(self):
         request, stack, bootstrap, proxy = self._post({"credential_profile": "administrator"})
 

@@ -45,7 +45,13 @@ class AgentKubernetesBootstrapView(JWTAuthApiView):
                     general_message(400, "invalid readonly service account", "只读凭据必须使用 rainbond-agent-reader"),
                     status=400,
                 )
-            payload.setdefault("context_id", "{}:readonly".format(region_name))
+            readonly_context_id = "{}:readonly".format(region_name)
+            if "context_id" in payload and payload["context_id"] != readonly_context_id:
+                return Response(
+                    general_message(400, "invalid readonly context", "只读凭据必须使用 {}".format(readonly_context_id)),
+                    status=400,
+                )
+            payload["context_id"] = readonly_context_id
             payload["service_account"] = READONLY_SERVICE_ACCOUNT
         else:
             payload.setdefault("context_id", region_name)
