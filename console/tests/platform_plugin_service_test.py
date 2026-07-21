@@ -199,6 +199,9 @@ class PlatformPluginServiceTests(TestCase):
         with mock.patch("console.services.platform_plugin_service.region_api.bootstrap_agent_kubeconfig",
                         return_value=(None, {"bean": {
                             "region_name": "rainbond",
+                            "credential_profile": "ops",
+                            "service_account": "rainbond-agent",
+                            "context_id": "rainbond:ops",
                             "kubeconfig": kubeconfig,
                         }})) as bootstrap_kubeconfig, \
                 mock.patch("console.services.platform_plugin_service.region_api.bootstrap_agent_plugin_credential",
@@ -210,11 +213,15 @@ class PlatformPluginServiceTests(TestCase):
         bootstrap_kubeconfig.assert_called_once_with("eid", "rainbond", {
             "region_name": "rainbond",
             "context_id": "rainbond",
+            "credential_profile": "ops",
             "service_account": "rainbond-agent",
         })
         bootstrap_plugin.assert_called_once()
         plugin_payload = bootstrap_plugin.call_args[0][2]
         self.assertEqual(kubeconfig, plugin_payload["kubeconfig"])
+        self.assertEqual("ops", plugin_payload["credential_profile"])
+        self.assertEqual("rainbond-agent", plugin_payload["service_account"])
+        self.assertEqual("rainbond:ops", plugin_payload["context_id"])
         self.assertNotIn("kubeconfig", result)
 
     def test_bootstrap_agent_service_mcp_credentials_injects_api_envs_without_returning_secret(self):

@@ -43,6 +43,7 @@ PLUGIN_TEAM_NAME = "rbd-plugins"
 PLUGIN_TEAM_ALIAS = "平台插件"
 VM_PLATFORM_PLUGIN_ID = "rainbond-vm"
 AGENT_PLATFORM_PLUGIN_ID = "rainbond-agent"
+AGENT_OPS_CREDENTIAL_PROFILE = "ops"
 AGENT_SERVICE_ENV_AUTHORIZATION = "COPILOT_SERVICE_AUTHORIZATION"
 AGENT_SERVICE_ENV_COOKIE = "COPILOT_SERVICE_COOKIE"
 VM_PLATFORM_RUNTIME_GUARD_MSG = "虚拟机功能未正常运行，不允许执行虚拟机相关操作"
@@ -878,20 +879,28 @@ class PlatformPluginService(object):
         administrators can re-run credential sync from the plugin page.
         """
         try:
-            _, body = region_api.bootstrap_agent_kubeconfig(enterprise_id, region_name, {
+            bootstrap_payload = {
                 "region_name": region_name,
                 "context_id": region_name,
+                "credential_profile": AGENT_OPS_CREDENTIAL_PROFILE,
                 "service_account": AGENT_PLATFORM_PLUGIN_ID,
-            })
+            }
+            _, body = region_api.bootstrap_agent_kubeconfig(enterprise_id, region_name, bootstrap_payload)
             bean = body.get("bean") if isinstance(body, dict) else body
             if not isinstance(bean, dict) or not bean.get("kubeconfig"):
-                raise ServiceHandleException(msg="invalid kubeconfig response", msg_show="目标集群未返回有效 kubeconfig")
+                raise ServiceHandleException(
+                    msg="invalid kubeconfig response",
+                    msg_show="目标集群未返回有效 kubeconfig",
+                )
 
             agent_payload = {
                 "enterprise_id": enterprise_id,
                 "region_name": bean.get("region_name") or region_name,
                 "region_alias": bean.get("region_name") or region_name,
                 "kubeconfig": bean.get("kubeconfig"),
+                "credential_profile": bean.get("credential_profile") or bootstrap_payload["credential_profile"],
+                "service_account": bean.get("service_account") or bootstrap_payload["service_account"],
+                "context_id": bean.get("context_id") or bootstrap_payload["context_id"],
             }
             region_api.bootstrap_agent_plugin_credential(
                 enterprise_id, region_name, agent_payload, user)
