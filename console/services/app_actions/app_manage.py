@@ -958,6 +958,9 @@ class AppManageService(AppManageBase):
             body["container_cpu"] = new_cpu
             if new_gpu is not None and type(new_gpu) == int:
                 body["container_gpu"] = new_gpu
+            else:
+                # container_gpu 为非空列，未传 GPU 时保持组件当前值，避免写入 NULL
+                new_gpu = service.container_gpu if service.container_gpu is not None else 0
             body["operator"] = str(user.nick_name)
             body["enterprise_id"] = tenant.enterprise_id
             try:
