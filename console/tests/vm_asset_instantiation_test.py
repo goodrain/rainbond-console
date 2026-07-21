@@ -2,6 +2,7 @@
 # capability_id: rainbond-console.vm-run.vm-export-multi-disk-create
 # capability_id: console.vm-run.platform-runtime-guard
 import collections
+import json
 import os
 from types import ModuleType, SimpleNamespace
 from unittest import mock
@@ -15,6 +16,22 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
 import sys  # noqa: E402
 
 sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
+if "rest_framework_simplejwt.tokens" not in sys.modules:
+    simplejwt_module = ModuleType("rest_framework_simplejwt")
+    simplejwt_tokens_module = ModuleType("rest_framework_simplejwt.tokens")
+
+    class _DummyAccessToken(dict):
+        @classmethod
+        def for_user(cls, user):
+            return cls()
+
+        def __str__(self):
+            return ""
+
+    simplejwt_tokens_module.AccessToken = _DummyAccessToken
+    simplejwt_module.tokens = simplejwt_tokens_module
+    sys.modules["rest_framework_simplejwt"] = simplejwt_module
+    sys.modules["rest_framework_simplejwt.tokens"] = simplejwt_tokens_module
 if "openapi_client" not in sys.modules:
     openapi_client_module = ModuleType("openapi_client")
     configuration_module = ModuleType("openapi_client.configuration")
@@ -159,6 +176,80 @@ class VMAssetInstantiationTests(TestCase):
         }
         self.assertEqual("uefi", attrs["vm_boot_mode"])
         self.assertEqual("qcow2", attrs["vm_boot_source_format"])
+        self.assertIn("vm_disk_imports", attrs)
+        disk_imports = json.loads(attrs["vm_disk_imports"])
+        self.assertEqual("registry", disk_imports["disk"]["source_type"])
+        self.assertEqual("tenant-ns:uploaded-root", disk_imports["disk"]["image_url"])
+        self.assertEqual("/grdata/package_build/temp/events/uploaded-root.qcow2",
+                         disk_imports["disk"]["source_uri"])
+
+    def test_vm_run_create_uses_requested_format_for_suffixless_existing_disk_asset_import(self):
+        asset = VirtualMachineImage.objects.create(
+            tenant_id="tenant-a",
+            name="vava",
+            image_url="tenant-ns:vava",
+            source_type="upload",
+            source_uri="/grdata/package_build/temp/events/daba864158f342cab041cb3e008d4afd",
+            status="ready",
+            format="",
+            boot_mode="uefi"
+        )
+        factory = APIRequestFactory()
+        view = VMRunCreateView()
+        view.tenant = SimpleNamespace(
+            tenant_id="tenant-a", tenant_name="demo-team", namespace="tenant-ns", enterprise_id="eid")
+        view.response_region = "demo-region"
+        view.user = SimpleNamespace(pk=1, nick_name="tester")
+
+        request = view.initialize_request(factory.post(
+            "/console/teams/demo-team/apps/create/vm",
+            {
+                "group_id": 7,
+                "service_cname": "vava-vm",
+                "k8s_component_name": "vava-vm",
+                "asset_id": asset.ID,
+                "image_name": asset.name,
+                "format": "qcow2",
+            },
+            format="json"
+        ))
+
+        new_service = SimpleNamespace(
+            service_id="service-new-vava",
+            service_alias="gr123462",
+            service_source="vm_run",
+            create_status="creating",
+            to_dict=lambda: {"service_id": "service-new-vava", "service_alias": "gr123462"}
+        )
+
+        with mock.patch(
+                "console.views.app_create.vm_run.app_service.is_k8s_component_name_duplicate",
+                return_value=False,
+                create=True), \
+                mock.patch(
+                    "console.views.app_create.vm_run.vms.ensure_vm_platform_running",
+                    return_value=None,
+                    create=True), \
+                mock.patch(
+                    "console.views.app_create.vm_run.app_service.create_vm_run_app",
+                    return_value=(200, "创建成功", new_service),
+                    create=True), \
+                mock.patch(
+                    "console.views.app_create.vm_run.group_service.add_service_to_group",
+                    return_value=(200, "success")):
+            response = view.post(request)
+
+        self.assertEqual(response.status_code, 200)
+        attrs = {
+            item.name: item.attribute_value
+            for item in ComponentK8sAttributes.objects.filter(component_id="service-new-vava")
+        }
+        self.assertEqual("qcow2", attrs["vm_boot_source_format"])
+        disk_imports = json.loads(attrs["vm_disk_imports"])
+        self.assertEqual("registry", disk_imports["disk"]["source_type"])
+        self.assertEqual("tenant-ns:vava", disk_imports["disk"]["image_url"])
+        self.assertEqual("/grdata/package_build/temp/events/daba864158f342cab041cb3e008d4afd",
+                         disk_imports["disk"]["source_uri"])
 
     def test_vm_run_create_from_iso_asset_keeps_boot_media_out_of_root_imports(self):
         iso_asset = VirtualMachineImage.objects.create(

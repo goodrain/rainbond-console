@@ -10,6 +10,7 @@ from console.exception.main import (InnerPortNotFound, ServiceHandleException, S
 from console.repositories.app import service_repo
 from console.repositories.app_config import (dep_relation_repo, env_var_repo, port_repo)
 from console.repositories.k8s_attribute import k8s_attribute_repo
+from console.services.app_config.network_policy_dependency_sync_service import network_policy_dependency_sync_service
 from console.services.app_config.port_service import AppPortService
 from console.services.exception import ErrDepServiceNotFound
 from console.services.group_service import group_service
@@ -195,6 +196,7 @@ class AppServiceRelationService(object):
             }
             res.append(tenant_service_relation)
         data = dep_relation_repo.bulk_add_service_dependency(res)
+        network_policy_dependency_sync_service.sync_reverse_dependency_change(tenant, service, be_dep_service_ids)
         return [item.to_dict() for item in data]
 
     def add_service_dependency(self, tenant: Tenants, service: TenantServiceInfo, dep_service_id: str, open_inner: Any = None,
@@ -256,6 +258,7 @@ class AppServiceRelationService(object):
         if service.create_status == "complete":
             from console.services.plugin import app_plugin_service
             app_plugin_service.update_config_if_have_export_plugin(tenant, service)
+            network_policy_dependency_sync_service.sync_after_dependency_change(tenant, service, dep_service_id)
         return 200, "success", dep_relation
 
     def patch_add_dependency(self, tenant: Tenants, service: TenantServiceInfo, dep_service_ids: Any,
@@ -298,6 +301,7 @@ class AppServiceRelationService(object):
         if service.create_status == "complete":
             from console.services.plugin import app_plugin_service
             app_plugin_service.update_config_if_have_export_plugin(tenant, service)
+            network_policy_dependency_sync_service.sync_after_dependency_change(tenant, service, dep_service_id)
         return 200, "success", dependency
 
     def delete_region_dependency(self, tenant: Tenants, service: TenantServiceInfo) -> None:

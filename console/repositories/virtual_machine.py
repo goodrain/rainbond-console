@@ -32,6 +32,9 @@ class VirtualMachineImageRepo(object):
                                                          image_url: str) -> Optional[VirtualMachineImage]:
         return VirtualMachineImage.objects.filter(tenant_id=tenant_id, image_url=image_url).order_by("-ID").first()
 
+    def get_vm_image_count_by_image_url(self, tenant_id: str, image_url: str) -> int:
+        return VirtualMachineImage.objects.filter(tenant_id=tenant_id, image_url=image_url).count()
+
     def create_vm_image(self, **params: Any) -> VirtualMachineImage:
         return VirtualMachineImage.objects.create(**params)
 
