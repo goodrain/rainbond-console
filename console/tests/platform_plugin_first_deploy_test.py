@@ -94,6 +94,7 @@ install_stub("console.repositories.group", group_repo=Obj(), tenant_service_grou
 install_stub("console.repositories.region_app", region_app_repo=Obj())
 install_stub("console.repositories.region_repo", region_repo=region_repo)
 install_stub("console.services.app", app_market_service=app_market_service)
+install_stub("console.services.app_config", env_var_service=Obj())
 install_stub("console.services.enterprise_first_deploy_service", enterprise_first_deploy_service=first_deploy_service)
 install_stub("console.services.group_service", group_service=Obj())
 install_stub("console.services.license", license_service=Obj())
@@ -102,9 +103,10 @@ install_stub("console.services.market_app.app_upgrade", AppUpgrade=object)
 install_stub("console.services.market_app_service", market_app_service=market_app_service)
 install_stub("console.services.region_services", region_services=Obj())
 install_stub("console.services.team_services", team_services=Obj())
+install_stub("console.utils.jwt_issuer", issue_jwt=mock.Mock())
 install_stub("console.utils.offline", is_cloud_market_disabled=lambda: False)
 install_stub("www.apiclient.regionapi", RegionInvokeApi=RegionInvokeApi)
-install_stub("www.models.main", ServiceGroup=object, Tenants=object)
+install_stub("www.models.main", ServiceGroup=object, TenantServiceInfo=object, Tenants=object)
 
 from console.services.platform_plugin_service import platform_plugin_service  # noqa: E402
 import console.services.platform_plugin_service as platform_module  # noqa: E402
@@ -153,6 +155,8 @@ class PlatformPluginFirstDeployTrackingTests(TestCase):
         app_upgrade.new_app = Obj(components=mock.Mock(return_value=[component_snapshot]))
 
         with mock.patch.object(platform_module, "AppUpgrade", return_value=app_upgrade), \
+                mock.patch.object(platform_plugin_service, "bootstrap_agent_service_mcp_credentials",
+                                  return_value={"status": "synced"}) as bootstrap_mcp, \
                 mock.patch.object(platform_plugin_service, "bootstrap_agent_kubernetes_credentials",
                                   return_value={"status": "synced", "region_name": "rainbond"}) as bootstrap_agent:
             platform_plugin_service.install_platform_plugin("eid", "rainbond", "rainbond-agent", user)
@@ -166,6 +170,7 @@ class PlatformPluginFirstDeployTrackingTests(TestCase):
         self.assertEqual("platform_plugin_install", tracking_kwargs["trigger"])
         self.assertEqual("rainbond-agent", tracking_kwargs["app_context"]["plugin_id"])
         self.assertEqual("extension", tracking_kwargs["app_context"]["install_source"])
+        bootstrap_mcp.assert_called_once_with(tenant, app, "rainbond", [component_snapshot], user)
         bootstrap_agent.assert_called_once_with("eid", "rainbond", user)
         first_deploy_service.safe_bind_events.assert_called_once_with(
             {"key": "first-deploy"},

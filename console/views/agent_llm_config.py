@@ -9,6 +9,7 @@ from rest_framework.views import APIView
 from console.exception.main import ServiceHandleException
 from console.services.agent_llm_config_service import agent_llm_config_service
 from console.services.auth.authentication import AgentRuntimeAuthentication
+from console.utils import jwt_issuer
 from console.views.base import EnterpriseAdminView, JWTAuthApiView
 from www.utils.return_message import general_message
 
@@ -51,4 +52,17 @@ class AgentLLMRuntimeConfigView(APIView):
 
     def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         data = agent_llm_config_service.get_runtime_config()
+        return Response(general_message(200, "success", "获取成功", bean=data), status=200)
+
+
+class AgentMCPRuntimeCredentialsView(APIView):
+    authentication_classes = (AgentRuntimeAuthentication, )
+    permission_classes = (IsAuthenticated, )
+
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
+        token = jwt_issuer.issue_jwt(request.user)
+        data = {
+            "authorization": "{} {}".format(jwt_issuer.JWT_AUTH_HEADER_PREFIX, token),
+            "cookie": "{}={}".format(jwt_issuer.JWT_AUTH_COOKIE, token),
+        }
         return Response(general_message(200, "success", "获取成功", bean=data), status=200)

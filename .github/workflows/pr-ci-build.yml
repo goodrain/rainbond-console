@@ -37,12 +37,7 @@ jobs:
           pip install -r requirements.txt
 
       - name: Install openapi-client
-        run: |
-          curl -fsSL https://gitee.com/zhangsetsail/appstore-sdk-python/repository/archive/python3.tar.gz -o /tmp/openapi-client.tar.gz
-          mkdir -p /tmp/openapi-client
-          tar xzf /tmp/openapi-client.tar.gz -C /tmp/openapi-client --strip-components=1
-          pip install /tmp/openapi-client
-          rm -rf /tmp/openapi-client /tmp/openapi-client.tar.gz
+        run: bash scripts/install_openapi_client.sh
 
       - name: Run tests
         run: python scripts/run_pytest.py . -- -q
@@ -92,12 +87,7 @@ jobs:
           pip install -r requirements.txt
 
       - name: Install openapi-client
-        run: |
-          curl -fsSL https://gitee.com/zhangsetsail/appstore-sdk-python/repository/archive/python3.tar.gz -o /tmp/openapi-client.tar.gz
-          mkdir -p /tmp/openapi-client
-          tar xzf /tmp/openapi-client.tar.gz -C /tmp/openapi-client --strip-components=1
-          pip install /tmp/openapi-client
-          rm -rf /tmp/openapi-client /tmp/openapi-client.tar.gz
+        run: bash scripts/install_openapi_client.sh
 
       - name: Install typing dependencies
         run: pip install -r requirements-typing.txt
