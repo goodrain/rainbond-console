@@ -5466,7 +5466,7 @@ class MCPQueryService(object):
             if isinstance(value, dict):
                 candidates.append(value)
 
-        def first_value(*keys):
+        def first_value(*keys: str) -> Any:
             for item in candidates:
                 for key in keys:
                     if key in item and item.get(key) not in (None, ""):

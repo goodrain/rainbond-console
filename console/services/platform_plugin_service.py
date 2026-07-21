@@ -668,6 +668,8 @@ class PlatformPluginService(object):
         if not region:
             raise ServiceHandleException(msg="region not found", msg_show="集群不存在")
         app = self._ensure_plugin_app(tenant, region_name, plugin_name, enterprise_id, plugin_id)
+        if app is None:
+            raise ServiceHandleException(msg="plugin app not found", msg_show="插件应用创建失败")
 
         # 6. Get app template from market
         market_app, app_version = app_market_service.cloud_app_model_to_db_model(
