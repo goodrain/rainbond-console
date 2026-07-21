@@ -768,6 +768,9 @@ class MCPQueryService(object):
         )
         resource = self._get_component_resource(team, service)
 
+        port_items = [self._serialize_model_item(port) for port in ports]
+        summary_metrics = self._build_component_summary_metrics(service_data, resource, port_items)
+
         return {
             "team_name": team.tenant_name,
             "region_name": app.region_name,
@@ -776,7 +779,8 @@ class MCPQueryService(object):
             "service": service_data,
             "status": {"status": service_data["status"]},
             "resource": resource,
-            "ports": {"items": [self._serialize_model_item(port) for port in ports], "total": len(ports)},
+            "summary_metrics": summary_metrics,
+            "ports": {"items": port_items, "total": len(ports)},
             "envs": {"items": [self._serialize_model_item(env) for env in envs], "total": len(envs)},
             "build_envs": {
                 "items": [self._serialize_model_item(env) for env in build_envs],
@@ -4346,7 +4350,12 @@ class MCPQueryService(object):
         region_name = self._require_string(arguments, "region_name")
         node_name = self._require_string(arguments, "node_name")
         self._get_region_by_name_context(user, region_name)
-        return enterprise_services.get_node_detail(region_name, node_name)
+        detail = enterprise_services.get_node_detail(region_name, node_name)
+        if isinstance(detail, dict):
+            result = dict(detail)
+            result["summary_metrics"] = self._build_node_detail_summary_metrics(result, node_name)
+            return result
+        return detail
 
     def query_region_rbd_components(self, user: Any, arguments: dict) -> dict:
         self._ensure_enterprise_admin(user)
@@ -5371,6 +5380,146 @@ class MCPQueryService(object):
         if isinstance(data, dict):
             return data.get(key, default)
         return getattr(data, key, default)
+
+    @staticmethod
+    def _number_value(value: Any) -> Optional[float]:
+        try:
+            if value is None or value == "":
+                return None
+            return float(value)
+        except Exception:
+            return None
+
+    @staticmethod
+    def _percent_value(used: Any, total: Any) -> Optional[float]:
+        used_value = MCPQueryService._number_value(used)
+        total_value = MCPQueryService._number_value(total)
+        if used_value is None or total_value is None or total_value <= 0:
+            return None
+        return round(used_value * 100 / total_value, 2)
+
+    @staticmethod
+    def _build_component_summary_metrics(service_data: dict, resource: dict, ports: list) -> list:
+        metrics = []
+        status = service_data.get("status")
+        if status:
+            metrics.append({
+                "subject": "component",
+                "subject_name": service_data.get("service_cname") or service_data.get("service_alias"),
+                "field": "component.status",
+                "value": status,
+                "type": "string",
+                "message": "组件当前状态为 %s" % status,
+            })
+        replica_metrics = (
+            ("component.replicas.desired", service_data.get("min_node")),
+            ("component.replicas.ready", service_data.get("cur_status")),
+        )
+        for field_name, value in replica_metrics:
+            number = MCPQueryService._number_value(value)
+            if number is not None:
+                metrics.append({
+                    "subject": "component",
+                    "field": field_name,
+                    "value": int(number),
+                    "type": "number",
+                    "message": "%s 为 %s" % (field_name, int(number)),
+                })
+        for port in ports:
+            container_port = port.get("container_port") or port.get("port")
+            if not container_port:
+                continue
+            if isinstance(port.get("is_inner_service"), bool):
+                metrics.append({
+                    "subject": "component",
+                    "field": "component.port.%s.inner_service" % container_port,
+                    "value": port.get("is_inner_service"),
+                    "type": "boolean",
+                    "message": "%s 端口对内访问为 %s" % (container_port, port.get("is_inner_service")),
+                })
+            if isinstance(port.get("is_outer_service"), bool):
+                metrics.append({
+                    "subject": "component",
+                    "field": "component.port.%s.outer_service" % container_port,
+                    "value": port.get("is_outer_service"),
+                    "type": "boolean",
+                    "message": "%s 端口对外访问为 %s" % (container_port, port.get("is_outer_service")),
+                })
+        for key, field_name in (("memory", "component.memory"), ("cpu", "component.cpu"), ("disk", "component.disk")):
+            number = MCPQueryService._number_value(resource.get(key) if isinstance(resource, dict) else None)
+            if number is not None:
+                metrics.append({
+                    "subject": "component",
+                    "field": field_name,
+                    "value": number,
+                    "type": "number",
+                    "message": "%s 为 %s" % (field_name, number),
+                })
+        return metrics
+
+    @staticmethod
+    def _build_node_detail_summary_metrics(detail: dict, node_name: str) -> list:
+        metrics = []
+        candidates = [detail]
+        for key in ("node", "bean", "detail", "stat", "resource"):
+            value = detail.get(key)
+            if isinstance(value, dict):
+                candidates.append(value)
+
+        def first_value(*keys):
+            for item in candidates:
+                for key in keys:
+                    if key in item and item.get(key) not in (None, ""):
+                        return item.get(key)
+            return None
+
+        disk_percent = first_value("disk_usage_percent", "disk_used_percent", "disk_percent", "disk_rate")
+        if disk_percent is None:
+            disk_percent = MCPQueryService._percent_value(
+                first_value("used_disk", "disk_used", "usedDisk"),
+                first_value("total_disk", "disk_total", "totalDisk"),
+            )
+        memory_percent = first_value("memory_usage_percent", "memory_used_percent", "memory_percent", "memory_rate")
+        if memory_percent is None:
+            memory_percent = MCPQueryService._percent_value(
+                first_value("used_memory", "memory_used", "usedMemory"),
+                first_value("total_memory", "memory_total", "totalMemory"),
+            )
+        cpu_percent = first_value("cpu_usage_percent", "cpu_used_percent", "cpu_percent", "cpu_rate")
+        if cpu_percent is None:
+            cpu_percent = MCPQueryService._percent_value(
+                first_value("used_cpu", "cpu_used", "usedCPU"),
+                first_value("total_cpu", "cpu_total", "totalCPU"),
+            )
+
+        for field_name, label, value in (
+            ("node.disk.usage_percent", "节点磁盘使用率", disk_percent),
+            ("node.memory.usage_percent", "节点内存使用率", memory_percent),
+            ("node.cpu.usage_percent", "节点 CPU 使用率", cpu_percent),
+        ):
+            number = MCPQueryService._number_value(value)
+            if number is not None:
+                metrics.append({
+                    "subject": "node",
+                    "subject_name": node_name,
+                    "field": field_name,
+                    "value": round(number, 2),
+                    "type": "number",
+                    "unit": "%",
+                    "message": "%s为 %.2f%%" % (label, number),
+                })
+
+        ready = first_value("ready", "node_ready", "is_ready")
+        if isinstance(ready, bool):
+            metrics.append({
+                "subject": "node",
+                "subject_name": node_name,
+                "field": "node.ready",
+                "value": ready,
+                "type": "boolean",
+                "message": "节点 Ready 状态为 %s" % ready,
+            })
+        return metrics
 
     def _serialize_enterprise(self, enterprise: Any) -> dict:
         return {
