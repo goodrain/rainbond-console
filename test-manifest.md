@@ -425,6 +425,7 @@
 | console.package-upload.upload-flow | Package Upload Upload Flow | active | regression | console.services.package_upload_tool_service | console/tests/package_upload_tool_service_test.py::PackageUploadToolServiceTests.test_upload_package_uploads_archive_and_returns_status |
 | console.platform-plugin.vm-access-url-fallback | 从前端组件访问地址回填官方虚拟机插件访问前缀 | active | regression | console.services.plugin_service.RainbondPluginService.list_plugins | console/tests/rbd_plugin_service_test.py::RainbondPluginServiceTests.test_official_vm_plugin_uses_frontend_component_access_url_when_region_urls_missing |
 | console.platform-plugin.vm-runtime-status-guard | 校验虚拟机平台插件运行状态 | active | regression | console.services.platform_plugin_service.PlatformPluginService.ensure_vm_plugin_running | console/tests/platform_plugin_service_test.py::PlatformPluginServiceTests.test_ensure_vm_plugin_running_rejects_non_running_status |
+| console.plugin-build.infer-arch | Infer plugin build architecture from region chaos nodes | active | regression | console.services.plugin_build_arch.resolve_plugin_build_arch | console/tests/plugin_build_arch_test.py::PluginBuildArchTests |
 | console.plugin.delete-by-sid | 按组件 ID 删除其全部插件关联 | active | regression | console.repositories.plugin.service_plugin_repo.AppPluginRelationRepo.delete_by_sid | console/tests/service_plugin_repo_delete_by_sid_test.py::DeleteBySidTest.test_delete_by_sid_deletes_matching_relations |
 | console.plugin.downstream-port-config | 下游端口配置从 ORM 模型对象读取目标组件属性 | active | regression | console.services.plugin.app_plugin.AppPluginService.create_plugin_cfg_4marketsvc | console/tests/app_plugin_downstream_port_test.py::CreatePluginCfg4MarketsvcDownstreamPortTest.test_downstream_port_reads_dest_service_attributes |
 | console.pod.detail | Pod Detail | active | regression | console.services.mcp_query_service.call_tool[console.pod.detail] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_get_pod_detail_returns_runtime_diagnostics |
@@ -4778,6 +4779,16 @@
 - 业务入口: `console.services.platform_plugin_service.PlatformPluginService.ensure_vm_plugin_running`
 - 代码路径: `console/services/platform_plugin_service.py`
 - 测试路径: `console/tests/platform_plugin_service_test.py::PlatformPluginServiceTests.test_ensure_vm_plugin_running_rejects_non_running_status`
+
+### Infer plugin build architecture from region chaos nodes
+
+- Capability ID: `console.plugin-build.infer-arch`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.plugin_build_arch.resolve_plugin_build_arch`
+- 代码路径: `console/services/plugin_build_arch.py`, `console/services/plugin/app_plugin.py`, `console/views/plugin/plugin_manage.py`
+- 测试路径: `console/tests/plugin_build_arch_test.py::PluginBuildArchTests`
 
 ### 按组件 ID 删除其全部插件关联
 

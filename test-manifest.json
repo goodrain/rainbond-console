@@ -7926,6 +7926,26 @@
       "status": "active"
     },
     {
+      "id": "console.plugin-build.infer-arch",
+      "title": "Infer plugin build architecture from region chaos nodes",
+      "title_zh": "Infer plugin build architecture from region chaos nodes",
+      "interface_type": "service_method",
+      "interface": "console.services.plugin_build_arch.resolve_plugin_build_arch",
+      "code_paths": [
+        "console/services/plugin_build_arch.py",
+        "console/services/plugin/app_plugin.py",
+        "console/views/plugin/plugin_manage.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/plugin_build_arch_test.py",
+          "selector": "PluginBuildArchTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.plugin.delete-by-sid",
       "title": "Delete all plugin relations for a service by service id",
       "title_zh": "按组件 ID 删除其全部插件关联",

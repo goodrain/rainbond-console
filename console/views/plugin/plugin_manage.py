@@ -15,12 +15,10 @@ from console.services.plugin import plugin_config_service
 from console.services.plugin import plugin_service
 from console.services.plugin import plugin_version_service
 from console.views.plugin.base import PluginBaseView
-from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.crypt import make_uuid
 from www.utils.return_message import general_message
 
 logger = logging.getLogger("default")
-region_api = RegionInvokeApi()
 
 
 class PluginBuildView(PluginBaseView):
@@ -52,7 +50,7 @@ class PluginBuildView(PluginBaseView):
               paramType: form
         """
         update_info = request.data.get("update_info", None)
-        arch = request.data.get("arch", "amd64")  # 获取架构参数，默认 amd64
+        arch = request.data.get("arch")
         if self.plugin_version.build_status == "building":
             return Response(general_message(409, "too offen", "构建中，请稍后再试"), status=409)
         if update_info:
