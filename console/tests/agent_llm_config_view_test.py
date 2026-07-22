@@ -281,3 +281,17 @@ class AgentLLMConfigViewTests(SimpleTestCase):
             response = self.delegated_credentials_view(request)
 
         self.assertIn(response.status_code, (401, 403))
+
+    def test_delegated_credentials_reject_invalid_user_id_types(self):
+        for invalid_user_id in (None, [], {}, True, "not-a-number"):
+            request = self.factory.post(
+                "/console/internal/agent-mcp-credentials/delegated",
+                data=json.dumps({"enterprise_id": "eid", "user_id": invalid_user_id}),
+                content_type="application/json",
+                HTTP_AUTHORIZATION="GRJWT service-token",
+            )
+            force_authenticate(request, user=self._admin_user(), token="service-token")
+            with mock.patch("console.views.agent_llm_config.jwt_issuer.decode_jwt",
+                            return_value={"token_purpose": "agent_service", "enterprise_id": "eid"}):
+                response = self.delegated_credentials_view(request)
+            self.assertEqual(response.status_code, 400)

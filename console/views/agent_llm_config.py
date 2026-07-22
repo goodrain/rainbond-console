@@ -98,11 +98,14 @@ class AgentMCPDelegatedCredentialsView(APIView):
         if denied:
             return denied
         enterprise_id = str(request.data.get("enterprise_id") or "").strip()
-        raw_user_id = request.data.get("user_id")
-        try:
-            user_id = int(raw_user_id)
-        except (TypeError, ValueError):
+        raw_user_id: object = request.data.get("user_id")
+        if isinstance(raw_user_id, bool) or not isinstance(raw_user_id, (int, str)):
             user_id = 0
+        else:
+            try:
+                user_id = int(raw_user_id)
+            except ValueError:
+                user_id = 0
         if not enterprise_id or user_id <= 0:
             return Response(
                 general_message(400, "invalid_request", "enterprise_id 和 user_id 必填"), status=400)
@@ -113,8 +116,11 @@ class AgentMCPDelegatedCredentialsView(APIView):
         if not TenantEnterprise.objects.filter(enterprise_id=enterprise_id).exists():
             return Response(general_message(403, "forbidden", "企业不存在"), status=403)
 
+        caller_user_id = getattr(request.user, "user_id", None)
+        if not isinstance(caller_user_id, int) or caller_user_id <= 0:
+            return Response(general_message(403, "forbidden", "无效的 Agent 服务用户"), status=403)
         if not getattr(request.user, "sys_admin", False) and not EnterpriseUserPerm.objects.filter(
-                enterprise_id=enterprise_id, user_id=request.user.user_id, identity="admin").exists():
+                enterprise_id=enterprise_id, user_id=caller_user_id, identity="admin").exists():
             return Response(general_message(403, "forbidden", "Agent 服务身份无企业管理权限"), status=403)
 
         permission = EnterpriseUserPerm.objects.filter(
