@@ -6,7 +6,7 @@ from typing import Any, Optional, Tuple
 from rest_framework import authentication
 from rest_framework import exceptions
 from django.conf import settings
-from www.models.main import Users, TenantEnterprise
+from www.models.main import Users
 
 logger = logging.getLogger('default')
 
@@ -44,18 +44,12 @@ class InternalTokenAuthentication(authentication.BaseAuthentication):
 
 
 class AgentRuntimeAuthentication(authentication.BaseAuthentication):
-    """AI 助手 runtime 配置接口的零配置鉴权。
+    """Legacy internal-token authentication without predictable ID fallback.
 
-    rainagent (rainbond-copilot) 部署在集群内，调用方把 enterprise_id 作为
-    X-Internal-Token 传入。两道关卡都通过才放行：
-
-      1. 来源关卡：必须是集群内直连。console 由 gunicorn 直接服务，走公网
-         网关的请求一定带代理头(X-Forwarded-For 等)且网关只追加不能删除；
-         带任一代理头、或直连对端不是私网/回环地址，都视为集群外请求拒绝。
-      2. 身份关卡：token 必须命中已存在的 enterprise_id；为兼容老部署，
-         settings.INTERNAL_API_TOKEN 配置了的话也接受其值。
-
-    这样开源用户无需在 console / copilot 两端手动配置共享密钥。
+    New Agent runtime endpoints use purpose-bound JWT authentication. This
+    class remains for compatibility with older callers, but only an explicitly
+    configured INTERNAL_API_TOKEN is accepted; enterprise IDs are scope values,
+    never credentials.
     """
 
     def authenticate(self, request: Any) -> Optional[Tuple[Users, None]]:
@@ -99,6 +93,4 @@ class AgentRuntimeAuthentication(authentication.BaseAuthentication):
     @staticmethod
     def _token_allowed(token: str) -> bool:
         legacy_token = getattr(settings, 'INTERNAL_API_TOKEN', None)
-        if legacy_token and token == legacy_token:
-            return True
-        return TenantEnterprise.objects.filter(enterprise_id=token).exists()
+        return bool(legacy_token and token == legacy_token)
