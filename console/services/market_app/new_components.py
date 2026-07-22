@@ -121,6 +121,12 @@ class NewComponents(object):
                 continue
             value = value.replace("://" + old + ":", "://" + new + ":")
             value = value.replace("://" + old + "/", "://" + new + "/")
+            # DSNs with userinfo credentials keep the host after an "@",
+            # e.g. mongodb://user:pass@mongo:27017/db or redis://default:pass@redis:6379.
+            value = value.replace("@" + old + ":", "@" + new + ":")
+            value = value.replace("@" + old + "/", "@" + new + "/")
+            if "://" in value and value.endswith("@" + old):
+                value = value[:-len(old)] + new
             if value.startswith(old + ":") and "://" not in value:
                 value = new + value[len(old):]
         return value
