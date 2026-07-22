@@ -551,6 +551,7 @@ class AppCheckService(object):
                 value = [value]
         if not isinstance(value, list):
             value = [value]
+        value = [str(item) for item in value]
         return yaml.safe_dump(value, default_flow_style=False, allow_unicode=True)
 
     def __save_k8s_attribute(self, tenant: Tenants, service: TenantServiceInfo, name: str, value: Any,

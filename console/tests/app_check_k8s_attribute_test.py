@@ -66,3 +66,22 @@ class AppCheckK8sAttributeTests(TestCase):
             save_type="yaml",
             attribute_value=yaml.safe_dump(args, default_flow_style=False, allow_unicode=True),
         )
+
+    def test_save_k8s_attribute_converts_compose_args_items_to_strings(self):
+        service = AppCheckService()
+        existing = mock.Mock()
+        existing.exists.return_value = False
+
+        with mock.patch("console.services.app_check_service.k8s_attribute_repo.get_by_component_id_name",
+                        return_value=existing), \
+                mock.patch("console.services.app_check_service.k8s_attribute_repo.create") as repo_create:
+            service._AppCheckService__save_k8s_attribute(
+                self.tenant,
+                self.service,
+                "args",
+                ["sleep", 10],
+                save_type="yaml"
+            )
+
+        attribute_value = repo_create.call_args.kwargs["attribute_value"]
+        self.assertEqual(yaml.safe_load(attribute_value), ["sleep", "10"])
