@@ -238,7 +238,7 @@ class PlatformPluginServiceTests(TestCase):
                 return existing_cookie_env
             return None
 
-        with mock.patch("console.services.platform_plugin_service.jwt_issuer.issue_jwt",
+        with mock.patch("console.services.platform_plugin_service.jwt_issuer.issue_agent_service_jwt",
                         return_value="jwt-token") as issue_jwt, \
                 mock.patch("console.services.platform_plugin_service.env_var_service.get_env_by_attr_name",
                            side_effect=get_env_by_attr_name), \

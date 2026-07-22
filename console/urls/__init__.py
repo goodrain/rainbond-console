@@ -11,6 +11,7 @@ from console.views.api_gateway import AppApiGatewayView, AppApiGatewayConvertVie
 from console.views.agent_access import AgentAccessView
 from console.views.agent_kubernetes import AgentKubernetesBootstrapView
 from console.views.agent_llm_config import (AgentLLMConfigView, AgentLLMRuntimeConfigView,
+                                            AgentMCPDelegatedCredentialsView,
                                             AgentMCPRuntimeCredentialsView)
 from console.views.app_autoscaler import (AppAutoscalerView, AppScalingRecords, ListAppAutoscalerView)
 from console.views.app_config.app_dependency import (AppDependencyManageView, AppDependencyView, AppNotDependencyView,
@@ -216,6 +217,7 @@ urlpatterns = [
     re_path(r'^enterprise/(?P<eid>[^/]+)/agent-llm-config$', AgentLLMConfigView.as_view()),
     re_path(r'^internal/agent-llm-config/runtime$', AgentLLMRuntimeConfigView.as_view()),
     re_path(r'^internal/agent-mcp-credentials/runtime$', AgentMCPRuntimeCredentialsView.as_view()),
+    re_path(r'^internal/agent-mcp-credentials/delegated$', AgentMCPDelegatedCredentialsView.as_view()),
 
     # record error logs
     re_path(r'^errlog$', ErrLogView.as_view()),

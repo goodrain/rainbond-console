@@ -769,7 +769,7 @@ class PlatformPluginService(object):
                     msg_show="未找到 AI 助手 API 组件",
                     status_code=404,
                 )
-            token = jwt_issuer.issue_jwt(user)
+            token = jwt_issuer.issue_agent_service_jwt(user)
             credentials = {
                 AGENT_SERVICE_ENV_AUTHORIZATION: "{} {}".format(jwt_issuer.JWT_AUTH_HEADER_PREFIX, token),
                 AGENT_SERVICE_ENV_COOKIE: "{}={}".format(jwt_issuer.JWT_AUTH_COOKIE, token),

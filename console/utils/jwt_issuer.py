@@ -40,6 +40,22 @@ def issue_jwt(user):
     return str(ConsoleAccessToken.for_user(user))
 
 
+def issue_short_lived_jwt(user, lifetime_seconds=300):
+    """Issue a user JWT for internal delegation without creating a long-lived credential."""
+    lifetime_seconds = max(60, min(int(lifetime_seconds), 900))
+    token = ConsoleAccessToken.for_user(user)
+    token.set_exp(lifetime=datetime.timedelta(seconds=lifetime_seconds))
+    return str(token)
+
+
+def issue_agent_service_jwt(user):
+    """Issue the JWT injected into rainbond-agent with a non-user service purpose."""
+    token = ConsoleAccessToken.for_user(user)
+    token["token_purpose"] = "agent_service"
+    token["enterprise_id"] = str(getattr(user, "enterprise_id", "") or "")
+    return str(token)
+
+
 def decode_jwt(raw_token):
     """Validate signature/expiration and return the payload dict.
 
