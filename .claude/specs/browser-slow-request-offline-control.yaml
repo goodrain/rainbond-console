@@ -1,0 +1,77 @@
+meta:
+  name: "browser-slow-request-offline-control"
+  version: "1.0"
+  repo: "/Users/goodrain/.config/superpowers/worktrees/rainbond-console/browser-slow-request-telemetry"
+  branch: "codex/browser-slow-request-telemetry"
+  design_doc: "/Users/goodrain/.config/superpowers/worktrees/rainbond-ui/browser-slow-request-telemetry/docs/plans/2026-07-23-browser-slow-request-telemetry-design.md"
+  created_at: "2026-07-23"
+
+constraints:
+  - "DISABLE_DEFAULT_APP_MARKET is the canonical and only offline indicator used by this feature"
+  - "Offline frontend configuration must expose enabled=false and an empty DSN"
+  - "Console server SDK configuration remains unchanged; this feature only controls frontend runtime config and the proxy"
+  - "DISABLE_CLOUD_MARKET alone must not activate this feature's offline behavior"
+  - "Offline proxy requests must return HTTP 204 with CORS headers and make no upstream request"
+  - "Existing online Sentry configuration, tunnel routing, and proxy behavior must remain unchanged"
+
+sprints:
+  - id: sprint-1
+    name: "Disable Sentry network activity in offline installations"
+    commits:
+      - id: commit-1
+        message: "fix: disable Sentry in offline mode"
+        tasks: [task-1.1, task-1.2]
+    tasks:
+      - id: task-1.1
+        name: "Cover offline frontend Sentry configuration"
+        status: completed
+        files:
+          modify:
+            - path: "console/tests/sentry_config_test.py"
+              lines: "45-130"
+            - path: "goodrain_web/sentry_config.py"
+              lines: "99-166"
+        steps:
+          - action: "test"
+            description: "Add failing tests with a configured DSN. Assert DISABLE_DEFAULT_APP_MARKET=true makes frontend enabled false and DSN empty while backend config remains enabled; assert DISABLE_CLOUD_MARKET=true alone leaves frontend Sentry enabled."
+            run: "PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 /Users/goodrain/Desktop/code/rainbond-console/venv/bin/python -m pytest -q console/tests/sentry_config_test.py"
+            expect: "FAIL before implementation, then PASS"
+          - action: "implement"
+            description: "Make get_frontend_sentry_config(env) require not is_offline_mode(env), preserving the shared/backend get_enabled behavior and all existing explicit telemetry switches."
+          - action: "verify"
+            description: "Run the focused configuration test module and confirm existing online behavior still passes."
+            run: "PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 /Users/goodrain/Desktop/code/rainbond-console/venv/bin/python -m pytest -q console/tests/sentry_config_test.py"
+            expect: "exit 0"
+        acceptance:
+          - cmd: "PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 /Users/goodrain/Desktop/code/rainbond-console/venv/bin/python -m pytest -q console/tests/sentry_config_test.py"
+            expect: "exit 0"
+      - id: task-1.2
+        name: "Short-circuit the Sentry proxy in offline mode"
+        status: completed
+        files:
+          modify:
+            - path: "console/tests/sentry_proxy_test.py"
+              lines: "80-160"
+            - path: "console/views/sentry_proxy.py"
+              lines: "1-12,164-197"
+        steps:
+          - action: "test"
+            description: "Add a failing POST test with DISABLE_DEFAULT_APP_MARKET=true. Assert status 204, CORS headers are present, and _send_upstream_request is not called."
+            run: "PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 /Users/goodrain/Desktop/code/rainbond-console/venv/bin/python -m pytest -q console/tests/sentry_proxy_test.py"
+            expect: "FAIL before implementation, then PASS"
+          - action: "implement"
+            description: "Import is_offline_mode and return a CORS-decorated 204 response at the start of SentryProxyView.post before URL construction or request-body forwarding."
+          - action: "verify"
+            description: "Run both focused Sentry test modules."
+            run: "PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 /Users/goodrain/Desktop/code/rainbond-console/venv/bin/python -m pytest -q console/tests/sentry_config_test.py console/tests/sentry_proxy_test.py"
+            expect: "exit 0"
+        acceptance:
+          - cmd: "PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 /Users/goodrain/Desktop/code/rainbond-console/venv/bin/python -m pytest -q console/tests/sentry_config_test.py console/tests/sentry_proxy_test.py"
+            expect: "exit 0"
+          - cmd: "/Users/goodrain/Desktop/code/rainbond-console/venv/bin/flake8 --extend-ignore=W605,E501,E302 --max-line-length 129 goodrain_web/sentry_config.py console/views/sentry_proxy.py console/tests/sentry_config_test.py console/tests/sentry_proxy_test.py"
+            expect: "exit 0"
+          - cmd: "python3 scripts/validate_test_manifest.py --repo-root . --manifest test-manifest.json"
+            expect: "exit 0"
+
+verification_notes:
+  - "PATH=/Users/goodrain/Desktop/code/rainbond-console/venv/bin:$PATH make check was run and exited 2 on the repository's pre-existing lint baseline (1466 reported lines across unrelated files); no repository-wide lint cleanup is included in this scoped change"
