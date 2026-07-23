@@ -77,6 +77,7 @@
 | console.app-migration.unfinished-record-guard | 查询未完成迁移记录时必须提供 group_uuid | active | regression | console.views.center_pool.groupapp_migration.MigrateRecordView.get | console/tests/groupapp_backup_migration_test.py::GroupAppsMigrateRecordViewTests.test_get_requires_group_uuid |
 | console.app-migration.usable-region-guard | 目标团队无可用集群时阻止迁移 | active | regression | console.views.center_pool.groupapp_migration.GroupAppsMigrateView.post | console/tests/groupapp_backup_migration_test.py::GroupAppsMigrationViewWorkflowTests.test_post_rejects_when_target_team_has_no_usable_regions |
 | console.app-publish.candidates | App Publish Candidates | active | regression | console.services.mcp_query_service.call_tool[console.app-publish.candidates] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_get_app_publish_candidates_returns_models |
+| console.app-scale.vertical-gpu-default | 垂直伸缩未传 GPU 时保留组件当前值 | active | regression | console.services.app_actions.app_manage.AppManageService.vertical_upgrade | console/tests/vertical_upgrade_gpu_test.py::VerticalUpgradeGPUTests.test_omitted_gpu_keeps_current_value_instead_of_null<br>console/tests/vertical_upgrade_gpu_test.py::VerticalUpgradeGPUTests.test_omitted_gpu_defaults_to_zero_when_current_is_none<br>console/tests/vertical_upgrade_gpu_test.py::VerticalUpgradeGPUTests.test_explicit_gpu_is_applied_and_sent_to_region |
 | console.app-share.complete | App Share Complete | active | regression | console.services.mcp_query_service.call_tool[console.app-share.complete] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_complete_app_share_calls_share_service_complete |
 | console.app-share.create-record | App Share Create Record | active | regression | console.services.mcp_query_service.call_tool[console.app-share.create-record] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_create_app_share_record_supports_snapshot_mode |
 | console.app-share.events | App Share Events | active | regression | console.services.mcp_query_service.call_tool[console.app-share.events] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_list_app_share_events_returns_service_and_plugin_events |
@@ -277,6 +278,7 @@
 | console.endpoint-address.reject-special-ranges | 拒绝 unspecified 和 loopback 的端点地址 | active | regression | console.utils.validation.validate_endpoint_address | console/tests/utils/validation_test.py::EndpointValidationTests.test_validate_endpoint_address_rejects_special_ranges |
 | console.endpoint-list.normalize-scheme-port | 在多端点校验前规范化协议和端口 | active | regression | console.utils.validation.validate_endpoints_info | console/tests/utils/validation_test.py::EndpointValidationTests.test_validate_endpoints_info_normalizes_scheme_and_port |
 | console.endpoint-list.reject-duplicate | 在多实例端点列表中拒绝重复地址 | active | regression | console.utils.validation.validate_endpoints_info | console/tests/utils/validation_test.py::EndpointValidationTests.test_validate_endpoints_info_rejects_duplicate_addresses |
+| console.enterprise-config.concurrent-initialization | 处理企业配置并发初始化 | active | regression | console.services.config_service.ConfigService.add_config | console/tests/config_service_test.py::EnterpriseConfigServiceTests.test_add_config_returns_existing_record_when_concurrent_create_wins |
 | console.enterprise-config.custom-fields-disabled-bool | get_custom_fields 包含被禁用的布尔字段 | active | regression | console.services.config_service.EnterpriseConfigService.get_custom_fields | console/tests/config_service_test.py::EnterpriseConfigServiceTests.test_get_custom_fields_includes_disabled_bool_fields |
 | console.enterprise-config.user-context | 解析企业配置服务用户上下文 | active | regression | console.services.config_service.EnterpriseConfigService.__init__ | console/tests/config_service_test.py::EnterpriseConfigServiceTests.test_enterprise_config_service_defaults_user_id_to_none<br>console/tests/config_service_test.py::EnterpriseConfigServiceTests.test_enterprise_config_service_keeps_explicit_user_id |
 | console.enterprise.bind-market-token-decode | 解码云市绑定企业的认证信息 | active | regression | console.views.enterprise_active.BindMarketEnterpriseOptimizAccessTokenView.post | console/tests/bind_market_token_decode_test.py::BindMarketTokenDecodeTest.test_market_info_is_base64_decoded |
@@ -561,7 +563,7 @@
 | rainbond-console.vm-disks.iso-installer-compat | 当 VM 运行时提示不完整时仍为 ISO 虚拟机磁盘列表补出安装光盘 | active | regression | console.services.virtual_machine.VirtualMachineService.list_vm_disks | console/tests/vm_disk_installer_compat_test.py::VMInstallerMediaCompatUnitTests.test_get_vm_runtime_config_includes_boot_source_format<br>console/tests/vm_disk_installer_compat_test.py::VMInstallerMediaCompatUnitTests.test_list_vm_disks_falls_back_to_asset_format_for_legacy_iso_vm_without_runtime_hint |
 | rainbond-console.vm-export.asset-ready-storage-status | 虚拟机资产就绪需要 ready 状态与镜像地址 | active | regression | console.services.virtual_machine.VirtualMachineService.is_vm_asset_ready | console/tests/vm_create_flow_regression_test.py |
 | rainbond-console.vm-live-migration-unique-disk-path | resolve_vm_volume_path 为虚拟机热迁移分配唯一磁盘路径 | active | regression | console.services.app_config.volume_service.AppVolumeService.resolve_vm_volume_path | console/tests/vm_live_migration_storage_test.py::VMLiveMigrationStorageTests.test_resolve_vm_volume_path_allocates_unique_disk_suffix_for_duplicate_vm_device_path<br>console/tests/vm_live_migration_storage_test.py::VMLiveMigrationStorageTests.test_resolve_vm_volume_path_keeps_existing_path_when_editing_same_vm_device_type |
-| rainbond-console.vm-run.disk-asset-create | 从现有磁盘资产创建虚拟机时复用已就绪运行时镜像 | active | regression | console.views.app_create.vm_run.VMRunCreateView.post | console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests::test_vm_run_create_from_existing_disk_asset_reuses_ready_runtime_image |
+| rainbond-console.vm-run.disk-asset-create | 从现有磁盘资产创建虚拟机时复用已就绪运行时镜像 | active | regression | console.views.app_create.vm_run.VMRunCreateView.post | console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests::test_vm_run_create_from_existing_disk_asset_reuses_ready_runtime_image<br>console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests::test_vm_run_create_uses_requested_format_for_suffixless_existing_disk_asset_import |
 | rainbond-console.vm-run.vm-export-ignore-stale-boot-mode | resolve_vm_boot_mode 对 Windows ISO 忽略过期资产启动模式 | active | regression | console.services.virtual_machine.VirtualMachineService.resolve_vm_boot_mode | console/tests/vm_create_flow_regression_test.py |
 | rainbond-console.vm-run.vm-export-multi-disk-create | 虚拟机运行创建支持多磁盘资产实例化 | active | regression | console.views.app_create.vm_run.VMRunCreateView.post | console/tests/vm_asset_instantiation_test.py |
 
@@ -1296,6 +1298,16 @@
 - 业务入口: `console.services.mcp_query_service.call_tool[console.app-publish.candidates]`
 - 代码路径: `console/services/mcp_query_service.py`
 - 测试路径: `console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_get_app_publish_candidates_returns_models`
+
+### 垂直伸缩未传 GPU 时保留组件当前值
+
+- Capability ID: `console.app-scale.vertical-gpu-default`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.app_actions.app_manage.AppManageService.vertical_upgrade`
+- 代码路径: `console/services/app_actions/app_manage.py`
+- 测试路径: `console/tests/vertical_upgrade_gpu_test.py::VerticalUpgradeGPUTests.test_omitted_gpu_keeps_current_value_instead_of_null`, `console/tests/vertical_upgrade_gpu_test.py::VerticalUpgradeGPUTests.test_omitted_gpu_defaults_to_zero_when_current_is_none`, `console/tests/vertical_upgrade_gpu_test.py::VerticalUpgradeGPUTests.test_explicit_gpu_is_applied_and_sent_to_region`
 
 ### App Share Complete
 
@@ -3296,6 +3308,16 @@
 - 业务入口: `console.utils.validation.validate_endpoints_info`
 - 代码路径: `console/utils/validation.py`
 - 测试路径: `console/tests/utils/validation_test.py::EndpointValidationTests.test_validate_endpoints_info_rejects_duplicate_addresses`
+
+### 处理企业配置并发初始化
+
+- Capability ID: `console.enterprise-config.concurrent-initialization`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.config_service.ConfigService.add_config`
+- 代码路径: `console/services/config_service.py`
+- 测试路径: `console/tests/config_service_test.py::EnterpriseConfigServiceTests.test_add_config_returns_existing_record_when_concurrent_create_wins`
 
 ### get_custom_fields 包含被禁用的布尔字段
 
@@ -6144,8 +6166,8 @@
 - 测试类型: `regression`
 - 接口类型: `view_endpoint`
 - 业务入口: `console.views.app_create.vm_run.VMRunCreateView.post`
-- 代码路径: `console/views/app_create/vm_run.py`, `console/services/vm_boot_source.py`
-- 测试路径: `console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests::test_vm_run_create_from_existing_disk_asset_reuses_ready_runtime_image`
+- 代码路径: `console/views/app_create/vm_run.py`, `console/services/virtual_machine.py`, `console/services/vm_boot_source.py`
+- 测试路径: `console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests::test_vm_run_create_from_existing_disk_asset_reuses_ready_runtime_image`, `console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests::test_vm_run_create_uses_requested_format_for_suffixless_existing_disk_asset_import`
 
 ### resolve_vm_boot_mode 对 Windows ISO 忽略过期资产启动模式
 

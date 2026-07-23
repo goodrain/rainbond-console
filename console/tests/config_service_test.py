@@ -25,6 +25,10 @@ class DummyModel(object):
     objects = DummyQuerySet()
 
 
+class IntegrityError(Exception):
+    pass
+
+
 class CustomFieldQuerySet(object):
     def __init__(self, configs):
         self.configs = configs
@@ -75,6 +79,7 @@ class EnterpriseConfigServiceTests(TestCase):
             "console.enum.system_config",
             "goodrain_web.custom_config",
             "django.conf",
+            "django.db",
             "django.db.models",
         ):
             sys.modules.pop(module_name, None)
@@ -110,6 +115,7 @@ class EnterpriseConfigServiceTests(TestCase):
             custom_config=types.SimpleNamespace(reload=lambda: None),
         )
         install_stub("django.conf", settings=types.SimpleNamespace())
+        install_stub("django.db", IntegrityError=IntegrityError)
         install_stub("django.db.models", Q=lambda *args, **kwargs: None)
         return importlib.import_module("console.services.config_service")
 
@@ -154,3 +160,43 @@ class EnterpriseConfigServiceTests(TestCase):
                 "enable": False,
             }],
         )
+
+    # capability_id: console.enterprise-config.concurrent-initialization
+    def test_add_config_returns_existing_record_when_concurrent_create_wins(self):
+        config_service = self.import_config_service_module()
+        existing_config = types.SimpleNamespace(key="TITLE", value="", enable=True)
+
+        class RaceQuerySet(object):
+            def exists(self):
+                return False
+
+        class RaceManager(object):
+            def __init__(self):
+                self.get_kwargs = None
+
+            def filter(self, **kwargs):
+                return RaceQuerySet()
+
+            def create(self, **kwargs):
+                raise IntegrityError("UNIQUE constraint failed: console_sys_config.key")
+
+            def get(self, **kwargs):
+                self.get_kwargs = kwargs
+                return existing_config
+
+        race_manager = RaceManager()
+
+        class RaceConsoleSysConfig(object):
+            objects = race_manager
+            DoesNotExist = LookupError
+
+        reload_calls = []
+        config_service.ConsoleSysConfig = RaceConsoleSysConfig
+        config_service.custom_settings = types.SimpleNamespace(reload=lambda: reload_calls.append(True))
+
+        service = config_service.EnterpriseConfigService("enterprise-id", "user-id")
+        config = service.add_config(key="TITLE", default_value="", type="string", enable=True, desc="title")
+
+        self.assertIs(config, existing_config)
+        self.assertEqual(race_manager.get_kwargs, {"key": "TITLE"})
+        self.assertEqual(reload_calls, [])

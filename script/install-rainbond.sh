@@ -3,7 +3,7 @@
 # This script is used to install Rainbond standalone on Linux and MacOS
 
 # Basic environment variables
-RAINBOND_VERSION=${VERSION:-'v6.9.3-release'}
+RAINBOND_VERSION=${VERSION:-'v6.9.4-release'}
 IMGHUB_MIRROR=${IMGHUB_MIRROR:-'registry.cn-hangzhou.aliyuncs.com/goodrain'}
 ENABLE_GPU=${ENABLE_GPU:-auto}
 
@@ -1489,7 +1489,7 @@ start_docker_service_linux() {
 
 # Function to check if OrbStack is installed
 check_orbstack_installed() {
-    command -v orb >/dev/null 2>&1 || [ -d "/Applications/OrbStack.app" ]
+    command -v orb >/dev/null 2>&1 || [ -d "/Applications/OrbStack.app" ] || [ -d "${HOME}/Applications/OrbStack.app" ]
 }
 
 # Function to check if OrbStack is running
@@ -1502,6 +1502,299 @@ check_orbstack_running() {
     fi
 }
 
+orbstack_wait_seconds() {
+    local wait_seconds="${RAINBOND_ORBSTACK_WAIT_SECONDS:-120}"
+    case "$wait_seconds" in
+        ''|*[!0-9]*)
+            wait_seconds=120
+            ;;
+    esac
+    if [ "$wait_seconds" -lt 1 ]; then
+        wait_seconds=120
+    fi
+    echo "$wait_seconds"
+}
+
+install_orbstack_macos() {
+    if ! is_truthy "${RAINBOND_AUTO_INSTALL_ORBSTACK:-}"; then
+        return 1
+    fi
+
+    if install_orbstack_from_dmg_macos; then
+        return 0
+    fi
+
+    if rainbond_use_chinese_prompt; then
+        send_warn "OrbStack 官方安装包自动安装失败，正在尝试 Homebrew..."
+    else
+        send_warn "Official OrbStack installer failed, trying Homebrew..."
+    fi
+
+    install_orbstack_with_brew_macos
+}
+
+install_orbstack_with_brew_macos() {
+    if ! command -v brew >/dev/null 2>&1; then
+        if rainbond_use_chinese_prompt; then
+            send_warn "未检测到 Homebrew，无法继续通过 Homebrew 安装 OrbStack"
+        else
+            send_warn "Homebrew is not installed, cannot continue installing OrbStack with Homebrew"
+        fi
+        return 1
+    fi
+
+    local brew_log
+    brew_log=$(mktemp "${TMPDIR:-/tmp}/rainbond-brew-orbstack.XXXXXX")
+
+    if rainbond_use_chinese_prompt; then
+        send_info "正在通过 Homebrew 自动安装 OrbStack..."
+    else
+        send_info "Installing OrbStack with Homebrew..."
+    fi
+
+    if brew install --cask orbstack >"$brew_log" 2>&1; then
+        rm -f "$brew_log"
+        hash -r 2>/dev/null || true
+        return 0
+    fi
+
+    if grep -Eqi 'unknown or unsupported macOS version|MacOSVersion::Error' "$brew_log"; then
+        if rainbond_use_chinese_prompt; then
+            send_warn "当前 Homebrew 无法识别此 macOS 版本"
+        else
+            send_warn "Homebrew cannot run on this macOS version"
+        fi
+    else
+        if rainbond_use_chinese_prompt; then
+            send_warn "Homebrew 安装 OrbStack 失败"
+        else
+            send_warn "Homebrew failed to install OrbStack"
+        fi
+    fi
+    rm -f "$brew_log"
+    return 1
+}
+
+orbstack_download_arch() {
+    case "$(uname -m 2>/dev/null)" in
+        arm64|aarch64)
+            echo "arm64"
+            ;;
+        x86_64|amd64|i386)
+            echo "amd64"
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
+orbstack_install_dir() {
+    if [ -n "${RAINBOND_ORBSTACK_INSTALL_DIR:-}" ]; then
+        mkdir -p "$RAINBOND_ORBSTACK_INSTALL_DIR"
+        echo "$RAINBOND_ORBSTACK_INSTALL_DIR"
+        return
+    fi
+
+    if [ -w "/Applications" ]; then
+        echo "/Applications"
+        return
+    fi
+
+    mkdir -p "${HOME}/Applications"
+    echo "${HOME}/Applications"
+}
+
+install_orbstack_from_dmg_macos() {
+    local required_cmd
+    for required_cmd in curl hdiutil find; do
+        if ! command -v "$required_cmd" >/dev/null 2>&1; then
+            if rainbond_use_chinese_prompt; then
+                send_warn "无法通过官方安装包自动安装 OrbStack，缺少命令: ${required_cmd}"
+            else
+                send_warn "Cannot install OrbStack from the official installer, missing command: ${required_cmd}"
+            fi
+            return 1
+        fi
+    done
+
+    local download_arch
+    if ! download_arch=$(orbstack_download_arch); then
+        if rainbond_use_chinese_prompt; then
+            send_warn "无法通过官方安装包自动安装 OrbStack，不支持的 macOS 架构: $(uname -m 2>/dev/null)"
+        else
+            send_warn "Cannot install OrbStack from the official installer, unsupported macOS architecture: $(uname -m 2>/dev/null)"
+        fi
+        return 1
+    fi
+
+    local tmp_dir dmg_file mount_dir install_dir source_app target_app
+    tmp_dir=$(mktemp -d "${TMPDIR:-/tmp}/rainbond-orbstack.XXXXXX")
+    dmg_file="${tmp_dir}/OrbStack.dmg"
+    mount_dir="${tmp_dir}/mount"
+    install_dir=$(orbstack_install_dir)
+    target_app="${install_dir}/OrbStack.app"
+
+    local max_download_attempts="${RAINBOND_ORBSTACK_DOWNLOAD_RETRIES:-3}"
+    case "$max_download_attempts" in
+        ''|*[!0-9]*)
+            max_download_attempts=3
+            ;;
+    esac
+    if [ "$max_download_attempts" -lt 1 ]; then
+        max_download_attempts=3
+    fi
+
+    local download_max_time="${RAINBOND_ORBSTACK_DOWNLOAD_MAX_TIME:-1800}"
+    case "$download_max_time" in
+        ''|*[!0-9]*)
+            download_max_time=1800
+            ;;
+    esac
+    if [ "$download_max_time" -lt 60 ]; then
+        download_max_time=1800
+    fi
+
+    local download_attempt=1
+    local download_completed=false
+    while [ "$download_attempt" -le "$max_download_attempts" ]; do
+        if rainbond_use_chinese_prompt; then
+            send_info "正在下载 OrbStack 官方安装包..."
+        else
+            send_info "Downloading the official OrbStack installer..."
+        fi
+
+        if curl --fail --location --connect-timeout 30 --max-time "$download_max_time" -C - --progress-bar "https://orbstack.dev/download/stable/latest/${download_arch}" -o "$dmg_file"; then
+            download_completed=true
+            break
+        fi
+
+        if [ "$download_attempt" -lt "$max_download_attempts" ]; then
+            if rainbond_use_chinese_prompt; then
+                send_warn "OrbStack 安装包下载失败，正在续传重试 (${download_attempt}/${max_download_attempts})..."
+            else
+                send_warn "OrbStack installer download failed, retrying (${download_attempt}/${max_download_attempts})..."
+            fi
+            sleep 2
+        fi
+        download_attempt=$((download_attempt + 1))
+    done
+
+    if [ "$download_completed" != true ]; then
+        rm -rf "$tmp_dir"
+        if rainbond_use_chinese_prompt; then
+            send_warn "OrbStack 安装包下载失败"
+        else
+            send_warn "Failed to download OrbStack installer"
+        fi
+        return 1
+    fi
+
+    mkdir -p "$mount_dir"
+    if ! hdiutil attach "$dmg_file" -nobrowse -quiet -mountpoint "$mount_dir"; then
+        rm -rf "$tmp_dir"
+        if rainbond_use_chinese_prompt; then
+            send_warn "OrbStack 安装包挂载失败"
+        else
+            send_warn "Failed to mount OrbStack installer"
+        fi
+        return 1
+    fi
+
+    source_app=$(find "$mount_dir" -maxdepth 2 -name "OrbStack.app" -type d | head -n 1)
+    if [ -z "$source_app" ]; then
+        hdiutil detach "$mount_dir" -quiet >/dev/null 2>&1 || true
+        rm -rf "$tmp_dir"
+        if rainbond_use_chinese_prompt; then
+            send_warn "OrbStack 安装包中未找到 OrbStack.app"
+        else
+            send_warn "OrbStack.app was not found in the installer"
+        fi
+        return 1
+    fi
+
+    rm -rf "$target_app"
+    if command -v ditto >/dev/null 2>&1; then
+        if ! ditto "$source_app" "$target_app"; then
+            hdiutil detach "$mount_dir" -quiet >/dev/null 2>&1 || true
+            rm -rf "$tmp_dir"
+            if rainbond_use_chinese_prompt; then
+                send_warn "复制 OrbStack.app 失败"
+            else
+                send_warn "Failed to copy OrbStack.app"
+            fi
+            return 1
+        fi
+    else
+        if ! cp -R "$source_app" "$install_dir/"; then
+            hdiutil detach "$mount_dir" -quiet >/dev/null 2>&1 || true
+            rm -rf "$tmp_dir"
+            if rainbond_use_chinese_prompt; then
+                send_warn "复制 OrbStack.app 失败"
+            else
+                send_warn "Failed to copy OrbStack.app"
+            fi
+            return 1
+        fi
+    fi
+
+    hdiutil detach "$mount_dir" -quiet >/dev/null 2>&1 || true
+    rm -rf "$tmp_dir"
+
+    if rainbond_use_chinese_prompt; then
+        send_info "OrbStack 已安装到 ${target_app}"
+    else
+        send_info "OrbStack installed to ${target_app}"
+    fi
+    return 0
+}
+
+start_orbstack_macos() {
+    if rainbond_use_chinese_prompt; then
+        send_info "正在启动 OrbStack..."
+    else
+        send_info "Starting OrbStack..."
+    fi
+
+    if command -v orb >/dev/null 2>&1 && orb >/dev/null 2>&1; then
+        return 0
+    fi
+
+    if [ -d "/Applications/OrbStack.app" ] && command -v open >/dev/null 2>&1 && open -g "/Applications/OrbStack.app" >/dev/null 2>&1; then
+        return 0
+    fi
+
+    if [ -d "${HOME}/Applications/OrbStack.app" ] && command -v open >/dev/null 2>&1 && open -g "${HOME}/Applications/OrbStack.app" >/dev/null 2>&1; then
+        return 0
+    fi
+
+    if [ -n "${RAINBOND_ORBSTACK_INSTALL_DIR:-}" ] && [ -d "${RAINBOND_ORBSTACK_INSTALL_DIR}/OrbStack.app" ] && command -v open >/dev/null 2>&1 && open -g "${RAINBOND_ORBSTACK_INSTALL_DIR}/OrbStack.app" >/dev/null 2>&1; then
+        return 0
+    fi
+
+    if command -v open >/dev/null 2>&1 && open -ga OrbStack >/dev/null 2>&1; then
+        return 0
+    fi
+
+    return 1
+}
+
+wait_orbstack_docker_ready() {
+    local wait_seconds
+    wait_seconds=$(orbstack_wait_seconds)
+    local elapsed=0
+
+    while [ "$elapsed" -lt "$wait_seconds" ]; do
+        if docker info >/dev/null 2>&1; then
+            return 0
+        fi
+        sleep 2
+        elapsed=$((elapsed + 2))
+    done
+
+    return 1
+}
+
 # Function to handle OrbStack requirement on macOS
 handle_orbstack_macos() {
     if rainbond_use_chinese_prompt; then
@@ -1511,21 +1804,25 @@ handle_orbstack_macos() {
     fi
 
     if ! check_orbstack_installed; then
-        if rainbond_use_chinese_prompt; then
-            send_error "macOS 上必须使用 OrbStack，请先安装 OrbStack 后重新执行脚本.\n\t下载地址: https://orbstack.dev/"
-        else
-            send_error "OrbStack is required on macOS. Please install OrbStack and re-run this script.\n\tDownload: https://orbstack.dev/"
+        if ! install_orbstack_macos; then
+            if rainbond_use_chinese_prompt; then
+                send_error "macOS 上必须使用 OrbStack，请先安装 OrbStack 后重新执行脚本.\n\t下载地址: https://orbstack.dev/\n\t如需脚本自动安装，请执行: RAINBOND_AUTO_INSTALL_ORBSTACK=true bash ./install.sh"
+            else
+                send_error "OrbStack is required on macOS. Please install OrbStack and re-run this script.\n\tDownload: https://orbstack.dev/\n\tTo let this script install it automatically, run: RAINBOND_AUTO_INSTALL_ORBSTACK=true bash ./install.sh"
+            fi
+            exit 1
         fi
-        exit 1
     fi
 
-    if ! check_orbstack_running; then
-        if rainbond_use_chinese_prompt; then
-            send_error "检测到 OrbStack 已安装但未运行，请先启动 OrbStack 后重新执行脚本."
-        else
-            send_error "OrbStack is installed but not running. Please start OrbStack and re-run this script."
+    if ! check_orbstack_running || ! docker info >/dev/null 2>&1; then
+        if ! start_orbstack_macos || ! wait_orbstack_docker_ready; then
+            if rainbond_use_chinese_prompt; then
+                send_error "OrbStack 启动后 Docker 仍不可用，请检查 OrbStack 授权和 Docker 兼容模式后重新执行脚本."
+            else
+                send_error "Docker is still unavailable after starting OrbStack. Please check OrbStack permissions and Docker compatibility, then re-run this script."
+            fi
+            exit 1
         fi
-        exit 1
     fi
 
     # Check if Docker is available through OrbStack
@@ -1735,31 +2032,66 @@ install_docker_linux() {
     
     # Download Docker binary with progress and resume capability
     if [ "$download_needed" = true ]; then
-        if rainbond_use_chinese_prompt; then
-            send_info "正在下载Docker二进制文件... $docker_url"
-        else
-            send_info "Downloading Docker binary... $docker_url"
+        local max_download_attempts="${RAINBOND_DOCKER_DOWNLOAD_RETRIES:-3}"
+        case "$max_download_attempts" in
+            ''|*[!0-9]*)
+                max_download_attempts=3
+                ;;
+        esac
+        if [ "$max_download_attempts" -lt 1 ]; then
+            max_download_attempts=3
         fi
-        
-        # Use curl with resume capability, timeout, and progress bar
-        if ! curl --connect-timeout 30 --max-time 600 -C - --progress-bar -L "$docker_url" -o "$docker_file"; then
+
+        local docker_tmp_file="${docker_file}.download"
+        local download_verified=false
+        local download_attempt=1
+
+        while [ "$download_attempt" -le "$max_download_attempts" ]; do
+            rm -f "$docker_tmp_file"
+
             if rainbond_use_chinese_prompt; then
-                send_error "Docker二进制文件下载失败，请检查网络连接"
+                send_info "正在下载Docker二进制文件... $docker_url"
             else
-                send_error "Failed to download Docker binary, please check network connection"
+                send_info "Downloading Docker binary... $docker_url"
             fi
-            rm -f "$docker_file"
-            exit 1
-        fi
-        
-        # Verify downloaded file
-        if ! tar -tzf "$docker_file" >/dev/null 2>&1; then
+
+            if curl --fail --connect-timeout 30 --max-time 600 --progress-bar -L "$docker_url" -o "$docker_tmp_file"; then
+                if tar -tzf "$docker_tmp_file" >/dev/null 2>&1; then
+                    mv "$docker_tmp_file" "$docker_file"
+                    download_verified=true
+                    break
+                fi
+
+                rm -f "$docker_tmp_file"
+                if [ "$download_attempt" -lt "$max_download_attempts" ]; then
+                    if rainbond_use_chinese_prompt; then
+                        send_warn "下载的Docker二进制文件损坏，正在重试 (${download_attempt}/${max_download_attempts})..."
+                    else
+                        send_warn "Downloaded Docker binary is corrupted, retrying (${download_attempt}/${max_download_attempts})..."
+                    fi
+                fi
+            else
+                rm -f "$docker_tmp_file"
+                if [ "$download_attempt" -lt "$max_download_attempts" ]; then
+                    if rainbond_use_chinese_prompt; then
+                        send_warn "Docker二进制文件下载失败，正在重试 (${download_attempt}/${max_download_attempts})..."
+                    else
+                        send_warn "Docker binary download failed, retrying (${download_attempt}/${max_download_attempts})..."
+                    fi
+                fi
+            fi
+
+            download_attempt=$((download_attempt + 1))
+            sleep 2
+        done
+
+        if [ "$download_verified" != true ]; then
             if rainbond_use_chinese_prompt; then
-                send_error "下载的文件损坏，请重新执行脚本"
+                send_error "Docker二进制文件多次下载或校验失败，请检查网络、代理或磁盘空间后重试"
             else
-                send_error "Downloaded file is corrupted, please re-run the script"
+                send_error "Docker binary download or verification failed after retries. Please check network, proxy, or disk space and try again"
             fi
-            rm -f "$docker_file"
+            rm -f "$docker_tmp_file" "$docker_file"
             exit 1
         fi
     fi
@@ -1984,14 +2316,34 @@ validate_gpu_support_linux
 ########################################
 
 function rainbond_is_usable_ipv4() {
-    local result=$1
+    local result=$1 old_ifs octet octet_value
     if [ -z "$result" ]; then
         return 1
-    elif [[ $result =~ ^([0-9]{1,2}|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\.([0-9]{1,2}|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\.([0-9]{1,2}|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\.([0-9]{1,2}|1[0-9][0-9]|2[0-4][0-9]|25[0-5])$ ]]; then
-        [ "$result" != "127.0.0.1" ] && [ "$result" != "0.0.0.0" ]
-        return $?
     fi
-    return 1
+
+    case "$result" in
+        *[!0-9.]* | .* | *. | *..*)
+            return 1
+            ;;
+    esac
+
+    old_ifs=$IFS
+    IFS=.
+    set -- $result
+    IFS=$old_ifs
+
+    [ "$#" -eq 4 ] || return 1
+    for octet in "$@"; do
+        case "$octet" in
+            '' | *[!0-9]*)
+                return 1
+                ;;
+        esac
+        octet_value=$((10#$octet))
+        [ "$octet_value" -le 255 ] || return 1
+    done
+
+    [ "$result" != "127.0.0.1" ] && [ "$result" != "0.0.0.0" ]
 }
 
 # Func for verify the result entered.
