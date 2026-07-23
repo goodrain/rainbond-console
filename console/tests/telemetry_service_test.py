@@ -95,6 +95,16 @@ class RainbondTelemetryServiceTests(TestCase):
         self.assertFalse(disabled.capture("rainbond_app_created", {}))
         self.assertFalse(enabled.capture("rainbond_app_created", {}))
 
+    def test_capture_is_disabled_in_offline_mode_without_transport_request(self):
+        transport = FakeTransport()
+        service = RainbondTelemetryService(
+            env={"DISABLE_DEFAULT_APP_MARKET": "true"},
+            transport=transport,
+        )
+
+        self.assertFalse(service.capture("rainbond_app_created", {}))
+        self.assertEqual(transport.requests, [])
+
     def test_track_registration_and_heartbeat_are_idempotent(self):
         transport = FakeTransport()
         service = RainbondTelemetryService(

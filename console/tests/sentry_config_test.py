@@ -187,6 +187,15 @@ def test_frontend_posthog_config_respects_disabled_switches():
     assert scoped_config["enabled"] is False
 
 
+def test_frontend_posthog_config_is_disabled_in_offline_mode():
+    config = sentry_config.get_frontend_posthog_config({
+        "DISABLE_DEFAULT_APP_MARKET": "true",
+    })
+
+    assert config["enabled"] is False
+    assert config["projectToken"] == ""
+
+
 def test_frontend_posthog_config_can_mask_click_text_when_requested():
     config = sentry_config.get_frontend_posthog_config({
         "RAINBOND_POSTHOG_PROJECT_TOKEN": "project-token",

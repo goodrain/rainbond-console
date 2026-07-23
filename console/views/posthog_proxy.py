@@ -8,6 +8,8 @@ from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 
+from console.utils.offline import is_offline_mode
+
 
 DEFAULT_POSTHOG_API_PROXY_TARGET = "https://posthog.goodrain.com"
 DEFAULT_POSTHOG_ASSET_PROXY_TARGET = "https://posthog.goodrain.com"
@@ -141,6 +143,9 @@ class PostHogProxyView(View):
         return self._proxy(request, path)
 
     def _proxy(self, request: HttpRequest, path: str) -> HttpResponse:
+        if is_offline_mode():
+            return _add_cors_headers(HttpResponse(status=204), request)
+
         try:
             target_url = _build_target_url(path, request.META.get("QUERY_STRING", ""))
         except ValueError:
