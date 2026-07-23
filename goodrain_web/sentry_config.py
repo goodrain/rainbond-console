@@ -8,6 +8,8 @@ try:
 except ImportError:  # pragma: no cover - Python 2 compatibility guard
     from urlparse import urlparse
 
+from console.utils.offline import is_offline_mode
+
 
 SENSITIVE_KEY_RE = re.compile(r"(token|password|secret|authorization|cookie|key|dsn)", re.I)
 SENSITIVE_VALUE_RE = re.compile(
@@ -174,7 +176,12 @@ def get_frontend_sentry_config_json(env=None):
 
 
 def get_posthog_enabled(env, project_token):
-    if is_telemetry_disabled(env) or str_to_bool(env.get("RAINBOND_POSTHOG_DISABLED")) or str_to_bool(env.get("POSTHOG_DISABLED")):
+    if (
+        is_offline_mode(env)
+        or is_telemetry_disabled(env)
+        or str_to_bool(env.get("RAINBOND_POSTHOG_DISABLED"))
+        or str_to_bool(env.get("POSTHOG_DISABLED"))
+    ):
         return False
     if "RAINBOND_POSTHOG_ENABLED" in env:
         return str_to_bool(env.get("RAINBOND_POSTHOG_ENABLED")) and bool(project_token)

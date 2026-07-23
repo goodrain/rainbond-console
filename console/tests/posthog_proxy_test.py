@@ -130,3 +130,20 @@ class PostHogProxyViewTests(SimpleTestCase):
         self.assertIn("POST", response["Access-Control-Allow-Methods"])
         self.assertEqual(response["Access-Control-Allow-Headers"], "content-type")
         request_mock.assert_not_called()
+
+    def test_offline_mode_returns_no_content_without_upstream_call(self):
+        request = self.factory.post(
+            "/console/posthog/e/",
+            data=b'{"event":"rainbond_ui_click"}',
+            content_type="application/json",
+        )
+        upstream_response = Obj(status_code=200, content=b"ok", headers={"Content-Type": "text/plain"})
+
+        with mock.patch.dict(os.environ, {"DISABLE_DEFAULT_APP_MARKET": "true"}, clear=True), mock.patch(
+            "console.views.posthog_proxy._send_upstream_request",
+            return_value=upstream_response,
+        ) as request_mock:
+            response = self.view(request, path="e/")
+
+        self.assertEqual(response.status_code, 204)
+        request_mock.assert_not_called()
