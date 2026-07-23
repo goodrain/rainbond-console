@@ -136,6 +136,7 @@ exit 0
   bash -c '
     set +e
     source "$1"
+    rainbond_use_chinese_prompt() { return 1; }
     send_msg() { :; }
     send_info() { printf "INFO: %s\n" "$*" >>"${STUB_LOG}"; }
     send_warn() { printf "WARN: %s\n" "$*" >>"${STUB_LOG}"; }

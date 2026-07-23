@@ -152,12 +152,13 @@ EOF"
 }
 
 for install_script in "${INSTALL_SCRIPTS[@]}"; do
-  script_content=$(sed -n '1,2600p' "$install_script")
+  script_content=$(sed -n '1,$p' "$install_script")
 
   assert_contains "$script_content" "rainbond_detect_host_eip"
   assert_contains "$script_content" "自动检测到服务器 IP"
   assert_contains "$script_content" "云服务器请用公网 IP"
   assert_contains "$script_content" "Cloud server, use public IP"
+  assert_not_contains "$script_content" '[[ $result =~'
   assert_not_contains "$script_content" "浏览器访问云服务器，通常要用公网 IP"
   assert_not_contains "$script_content" "如果上面是内网 IP，从自己电脑访问时通常打不开"
   assert_not_contains "$script_content" "请到云厂商控制台复制公网 IP"
