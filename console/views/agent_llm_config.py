@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from typing import Any, Optional
+from typing import Any, Dict, Optional
 
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
@@ -8,6 +8,7 @@ from rest_framework.views import APIView
 
 from console.exception.main import ServiceHandleException
 from console.services.agent_llm_config_service import agent_llm_config_service
+from console.services.auth.authentication import AgentRuntimeAuthentication
 from console.login.jwt_authentication import JSONWebTokenAuthentication
 from console.models.main import EnterpriseUserPerm
 from console.utils import jwt_issuer
@@ -15,16 +16,24 @@ from console.views.base import EnterpriseAdminView, JWTAuthApiView
 from www.models.main import TenantEnterprise, Users
 from www.utils.return_message import general_message
 
+FEISHU_MCP_CREDENTIAL_TTL_SECONDS = 1800
+
+
+def _decode_agent_service_token(request: Request) -> Dict[str, Any]:
+    try:
+        payload = jwt_issuer.decode_jwt(request.auth or "")
+        return dict(payload) if isinstance(payload, dict) else {}
+    except Exception:
+        return {}
+
 
 def _require_agent_service_token(request: Request) -> Optional[Response]:
-    try:
-        payload = jwt_issuer.decode_jwt(str(request.auth or ""))
-    except Exception:
-        payload = {}
+    payload = _decode_agent_service_token(request)
     token_enterprise_id = str(payload.get("enterprise_id") or "")
     user_enterprise_id = str(getattr(request.user, "enterprise_id", "") or "")
+    is_global_admin = bool(getattr(request.user, "sys_admin", False))
     if payload.get("token_purpose") != "agent_service" or not token_enterprise_id or \
-            token_enterprise_id != user_enterprise_id:
+            (not is_global_admin and token_enterprise_id != user_enterprise_id):
         return Response(general_message(403, "forbidden", "无效的 Agent 服务身份"), status=403)
     return None
 
@@ -62,29 +71,45 @@ class AgentLLMConfigView(JWTAuthApiView):
 
 
 class AgentLLMRuntimeConfigView(APIView):
-    authentication_classes = (JSONWebTokenAuthentication, )
+    authentication_classes = (AgentRuntimeAuthentication, )
     permission_classes = (IsAuthenticated, )
 
     def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
-        denied = _require_agent_service_token(request)
-        if denied:
-            return denied
         data = agent_llm_config_service.get_runtime_config()
         return Response(general_message(200, "success", "获取成功", bean=data), status=200)
 
 
 class AgentMCPRuntimeCredentialsView(APIView):
-    authentication_classes = (JSONWebTokenAuthentication, )
+    authentication_classes = (AgentRuntimeAuthentication, )
     permission_classes = (IsAuthenticated, )
 
     def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
-        denied = _require_agent_service_token(request)
-        if denied:
-            return denied
         token = jwt_issuer.issue_jwt(request.user)
         data = {
             "authorization": "{} {}".format(jwt_issuer.JWT_AUTH_HEADER_PREFIX, token),
             "cookie": "{}={}".format(jwt_issuer.JWT_AUTH_COOKIE, token),
+        }
+        return Response(general_message(200, "success", "获取成功", bean=data), status=200)
+
+
+class AgentMCPServiceCredentialsView(APIView):
+    """Issue a short-lived service identity for Feishu user delegation."""
+
+    authentication_classes = (AgentRuntimeAuthentication, )
+    permission_classes = (IsAuthenticated, )
+
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
+        enterprise_id = str(request.META.get("HTTP_X_INTERNAL_TOKEN") or "").strip()
+        if not enterprise_id or not TenantEnterprise.objects.filter(enterprise_id=enterprise_id).exists():
+            return Response(general_message(403, "forbidden", "企业范围无效"), status=403)
+        token = jwt_issuer.issue_agent_service_jwt(
+            request.user, enterprise_id=enterprise_id,
+            lifetime_seconds=FEISHU_MCP_CREDENTIAL_TTL_SECONDS)
+        data = {
+            "authorization": "{} {}".format(jwt_issuer.JWT_AUTH_HEADER_PREFIX, token),
+            "cookie": "{}={}".format(jwt_issuer.JWT_AUTH_COOKIE, token),
+            "enterprise_id": enterprise_id,
+            "expires_in": FEISHU_MCP_CREDENTIAL_TTL_SECONDS,
         }
         return Response(general_message(200, "success", "获取成功", bean=data), status=200)
 
@@ -110,7 +135,7 @@ class AgentMCPDelegatedCredentialsView(APIView):
             return Response(
                 general_message(400, "invalid_request", "enterprise_id 和 user_id 必填"), status=400)
 
-        caller_enterprise_id = str(getattr(request.user, "enterprise_id", "") or "")
+        caller_enterprise_id = str(_decode_agent_service_token(request).get("enterprise_id") or "")
         if caller_enterprise_id != enterprise_id:
             return Response(general_message(403, "forbidden", "企业范围不匹配"), status=403)
         if not TenantEnterprise.objects.filter(enterprise_id=enterprise_id).exists():
@@ -131,12 +156,13 @@ class AgentMCPDelegatedCredentialsView(APIView):
         if not delegated_user:
             return Response(general_message(404, "user_not_found", "用户不存在"), status=404)
 
-        token = jwt_issuer.issue_short_lived_jwt(delegated_user, lifetime_seconds=300)
+        token = jwt_issuer.issue_short_lived_jwt(
+            delegated_user, lifetime_seconds=FEISHU_MCP_CREDENTIAL_TTL_SECONDS)
         data = {
             "authorization": "{} {}".format(jwt_issuer.JWT_AUTH_HEADER_PREFIX, token),
             "cookie": "{}={}".format(jwt_issuer.JWT_AUTH_COOKIE, token),
             "user_id": str(delegated_user.user_id),
             "enterprise_id": enterprise_id,
-            "expires_in": 300,
+            "expires_in": FEISHU_MCP_CREDENTIAL_TTL_SECONDS,
         }
         return Response(general_message(200, "success", "获取成功", bean=data), status=200)

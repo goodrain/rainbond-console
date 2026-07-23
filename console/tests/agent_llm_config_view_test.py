@@ -18,7 +18,8 @@ django.setup()
 
 from console.views.agent_llm_config import (AgentLLMConfigView, AgentLLMRuntimeConfigView,
                                             AgentMCPDelegatedCredentialsView,
-                                            AgentMCPRuntimeCredentialsView)
+                                            AgentMCPRuntimeCredentialsView,
+                                            AgentMCPServiceCredentialsView)
 
 
 class AgentLLMConfigViewTests(SimpleTestCase):
@@ -28,6 +29,7 @@ class AgentLLMConfigViewTests(SimpleTestCase):
         self.manage_view = AgentLLMConfigView.as_view()
         self.runtime_view = AgentLLMRuntimeConfigView.as_view()
         self.mcp_credentials_view = AgentMCPRuntimeCredentialsView.as_view()
+        self.service_credentials_view = AgentMCPServiceCredentialsView.as_view()
         self.delegated_credentials_view = AgentMCPDelegatedCredentialsView.as_view()
 
     def _admin_user(self):
@@ -118,30 +120,24 @@ class AgentLLMConfigViewTests(SimpleTestCase):
 
         self.assertEqual(response.status_code, 403)
 
-    def test_runtime_config_accepts_agent_service_jwt(self):
+    @override_settings(INTERNAL_API_TOKEN=None)
+    def test_runtime_config_accepts_cluster_internal_enterprise_token(self):
         request = self.factory.get(
             "/console/internal/agent-llm-config/runtime",
-            HTTP_AUTHORIZATION="GRJWT service-token",
+            HTTP_X_INTERNAL_TOKEN="eid",
+            REMOTE_ADDR="10.42.0.10",
         )
-        force_authenticate(request, user=self._admin_user(), token="service-token")
 
-        with mock.patch("console.views.agent_llm_config.jwt_issuer.decode_jwt",
-                        return_value={"token_purpose": "agent_service", "enterprise_id": "eid"}), \
+        with mock.patch("console.services.auth.authentication.TenantEnterprise.objects.filter") as enterprise_filter, \
+                mock.patch("console.services.auth.authentication.Users.objects.filter") as users_filter, \
                 mock.patch("console.views.agent_llm_config.agent_llm_config_service.get_runtime_config",
                            return_value={"OPENAI_API_KEY": "sk-runtime", "OPENAI_MODEL": "gpt-4o-mini"}):
+            enterprise_filter.return_value.exists.return_value = True
+            users_filter.return_value.first.return_value = self._admin_user()
             response = self.runtime_view(request)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual("sk-runtime", response.data["data"]["bean"]["OPENAI_API_KEY"])
-
-    def test_runtime_config_rejects_enterprise_id_as_token(self):
-        request = self.factory.get(
-            "/console/internal/agent-llm-config/runtime",
-            HTTP_X_INTERNAL_TOKEN="5ae43b0db81042d0ba8005386022d1c5",
-        )
-
-        response = self.runtime_view(request)
-        self.assertIn(response.status_code, (401, 403))
 
     def test_runtime_config_rejects_request_through_public_gateway(self):
         request = self.factory.get(
@@ -171,7 +167,9 @@ class AgentLLMConfigViewTests(SimpleTestCase):
             HTTP_X_INTERNAL_TOKEN="not-an-enterprise-id",
         )
 
-        response = self.runtime_view(request)
+        with mock.patch("console.services.auth.authentication.TenantEnterprise.objects.filter") as enterprise_filter:
+            enterprise_filter.return_value.exists.return_value = False
+            response = self.runtime_view(request)
 
         self.assertIn(response.status_code, (401, 403))
 
@@ -182,21 +180,60 @@ class AgentLLMConfigViewTests(SimpleTestCase):
 
         self.assertIn(response.status_code, (401, 403))
 
-    def test_mcp_runtime_credentials_generates_console_jwt_headers(self):
+    @override_settings(INTERNAL_API_TOKEN=None)
+    def test_mcp_runtime_credentials_preserves_cluster_internal_authentication(self):
         request = self.factory.get(
             "/console/internal/agent-mcp-credentials/runtime",
-            HTTP_AUTHORIZATION="GRJWT service-token",
+            HTTP_X_INTERNAL_TOKEN="eid",
+            REMOTE_ADDR="10.42.0.10",
         )
-        force_authenticate(request, user=self._admin_user(), token="service-token")
 
-        with mock.patch("console.views.agent_llm_config.jwt_issuer.decode_jwt",
-                        return_value={"token_purpose": "agent_service", "enterprise_id": "eid"}), \
+        with mock.patch("console.services.auth.authentication.TenantEnterprise.objects.filter") as enterprise_filter, \
+                mock.patch("console.services.auth.authentication.Users.objects.filter") as users_filter, \
                 mock.patch("console.views.agent_llm_config.jwt_issuer.issue_jwt", return_value="jwt-token"):
+            enterprise_filter.return_value.exists.return_value = True
+            users_filter.return_value.first.return_value = self._admin_user()
             response = self.mcp_credentials_view(request)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual("GRJWT jwt-token", response.data["data"]["bean"]["authorization"])
         self.assertEqual("token=jwt-token", response.data["data"]["bean"]["cookie"])
+
+    @override_settings(INTERNAL_API_TOKEN=None)
+    def test_service_credentials_issue_short_lived_purpose_token_for_internal_agent(self):
+        request = self.factory.get(
+            "/console/internal/agent-mcp-credentials/service",
+            HTTP_X_INTERNAL_TOKEN="eid",
+            REMOTE_ADDR="10.42.0.10",
+        )
+
+        with mock.patch("console.services.auth.authentication.TenantEnterprise.objects.filter") as enterprise_filter, \
+                mock.patch("console.services.auth.authentication.Users.objects.filter") as users_filter, \
+                mock.patch("console.views.agent_llm_config.jwt_issuer.issue_agent_service_jwt",
+                           return_value="service-jwt") as issue_jwt:
+            enterprise_filter.return_value.exists.return_value = True
+            users_filter.return_value.first.return_value = self._admin_user()
+            response = self.service_credentials_view(request)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual("GRJWT service-jwt", response.data["data"]["bean"]["authorization"])
+        self.assertEqual("token=service-jwt", response.data["data"]["bean"]["cookie"])
+        self.assertEqual("eid", response.data["data"]["bean"]["enterprise_id"])
+        self.assertEqual(1800, response.data["data"]["bean"]["expires_in"])
+        issue_jwt.assert_called_once_with(
+            self._admin_user(), enterprise_id="eid", lifetime_seconds=1800)
+
+    def test_service_credentials_reject_public_gateway_request(self):
+        request = self.factory.get(
+            "/console/internal/agent-mcp-credentials/service",
+            HTTP_X_INTERNAL_TOKEN="eid",
+            HTTP_X_FORWARDED_FOR="203.0.113.7",
+            REMOTE_ADDR="10.42.0.10",
+        )
+
+        response = self.service_credentials_view(request)
+
+        self.assertIn(response.status_code, (401, 403))
 
     @override_settings(INTERNAL_API_TOKEN="legacy-internal-token")
     def test_delegated_credentials_use_bound_enterprise_admin_identity(self):
@@ -235,7 +272,57 @@ class AgentLLMConfigViewTests(SimpleTestCase):
             mock.call(enterprise_id="eid", user_id=1, identity="admin"),
             mock.call(enterprise_id="eid", user_id=7, identity="admin"),
         ])
-        issue_jwt.assert_called_once_with(delegated_user, lifetime_seconds=300)
+        self.assertEqual(1800, response.data["data"]["bean"]["expires_in"])
+        issue_jwt.assert_called_once_with(delegated_user, lifetime_seconds=1800)
+
+    def test_delegated_credentials_accept_real_authorization_header_bytes(self):
+        request = self.factory.post(
+            "/console/internal/agent-mcp-credentials/delegated",
+            data=json.dumps({"enterprise_id": "eid", "user_id": "7"}),
+            content_type="application/json",
+            HTTP_AUTHORIZATION="GRJWT service-token",
+        )
+        service_user = self._admin_user()
+        service_user.username = service_user.nick_name
+        delegated_user = SimpleNamespace(
+            user_id=7,
+            nick_name="bound-admin",
+            email="admin@example.com",
+            is_authenticated=True,
+        )
+        service_payload = {
+            "user_id": service_user.user_id,
+            "username": service_user.nick_name,
+            "token_purpose": "agent_service",
+            "enterprise_id": "eid",
+        }
+
+        def decode_service_token(raw_token):
+            if raw_token != b"service-token":
+                raise ValueError("unexpected token representation")
+            return service_payload
+
+        with mock.patch("console.views.agent_llm_config.jwt_issuer.decode_jwt",
+                        side_effect=decode_service_token) as decode_jwt, \
+                mock.patch("console.login.jwt_authentication.JSONWebTokenAuthentication.authenticate_credentials",
+                           return_value=service_user), \
+                mock.patch("console.login.jwt_authentication.JwtManager"), \
+                mock.patch("console.login.jwt_authentication.LoginEvent"), \
+                mock.patch("console.views.agent_llm_config.TenantEnterprise.objects.filter") as enterprise_filter, \
+                mock.patch("console.views.agent_llm_config.EnterpriseUserPerm.objects.filter") as perm_filter, \
+                mock.patch("console.views.agent_llm_config.Users.objects.filter") as users_filter, \
+                mock.patch("console.views.agent_llm_config.jwt_issuer.issue_short_lived_jwt",
+                           return_value="delegated-jwt"):
+            enterprise_filter.return_value.exists.return_value = True
+            perm_filter.return_value.exists.return_value = True
+            perm_filter.return_value.first.return_value = SimpleNamespace(identity="admin")
+            users_filter.return_value.first.return_value = delegated_user
+            response = self.delegated_credentials_view(request)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual("GRJWT delegated-jwt", response.data["data"]["bean"]["authorization"])
+        self.assertEqual(3, decode_jwt.call_count)
+        self.assertTrue(all(item == mock.call(b"service-token") for item in decode_jwt.call_args_list))
 
     def test_delegated_credentials_reject_cross_enterprise_and_non_admin(self):
         cross_enterprise = self.factory.post(
