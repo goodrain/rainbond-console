@@ -677,6 +677,24 @@
       "status": "active"
     },
     {
+      "id": "console.app-check.cmd-args-yaml",
+      "title": "Persist detected component cmd and args as YAML arrays",
+      "title_zh": "将检测出的组件 cmd 和 args 持久化为 YAML 数组",
+      "interface_type": "service_method",
+      "interface": "console.services.app_check_service.AppCheckService.save_service_info",
+      "code_paths": [
+        "console/services/app_check_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_check_k8s_attribute_test.py",
+          "selector": "AppCheckK8sAttributeTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.app-config-group.create",
       "title": "Create app config group",
       "title_zh": "创建应用配置组",
@@ -6328,6 +6346,24 @@
       "status": "active"
     },
     {
+      "id": "console.k8s-attribute.cmd-args-yaml",
+      "title": "Normalize cmd and args Kubernetes attributes as YAML arrays",
+      "title_zh": "将 cmd 和 args Kubernetes 属性规范化为 YAML 数组",
+      "interface_type": "service_method",
+      "interface": "console.services.k8s_attribute.ComponentK8sAttributeService.create_k8s_attribute",
+      "code_paths": [
+        "console/services/k8s_attribute.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/k8s_attribute_service_test.py",
+          "selector": "ComponentK8sAttributeServiceTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.k8s-attribute.upsert-region-sync",
       "title": "Upsert component k8s attributes between Console and region",
       "title_zh": "Console 与 region 组件 K8s 属性幂等同步",
@@ -7920,6 +7956,26 @@
         {
           "path": "console/tests/platform_plugin_service_test.py",
           "selector": "PlatformPluginServiceTests.test_ensure_vm_plugin_running_rejects_non_running_status"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.plugin-build.infer-arch",
+      "title": "Infer plugin build architecture from region chaos nodes",
+      "title_zh": "Infer plugin build architecture from region chaos nodes",
+      "interface_type": "service_method",
+      "interface": "console.services.plugin_build_arch.resolve_plugin_build_arch",
+      "code_paths": [
+        "console/services/plugin_build_arch.py",
+        "console/services/plugin/app_plugin.py",
+        "console/views/plugin/plugin_manage.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/plugin_build_arch_test.py",
+          "selector": "PluginBuildArchTests"
         }
       ],
       "test_type": "regression",

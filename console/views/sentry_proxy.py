@@ -9,6 +9,8 @@ from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 
+from console.utils.offline import is_offline_mode
+
 
 DEFAULT_SENTRY_PROXY_TARGET = "https://sentry.goodrain.com"
 REQUEST_TIMEOUT = (3, 10)
@@ -169,6 +171,9 @@ class SentryProxyView(View):
         return _add_cors_headers(HttpResponse(status=204), request)
 
     def post(self, request: Any, path: str = "") -> HttpResponse:
+        if is_offline_mode():
+            return _add_cors_headers(HttpResponse(status=204), request)
+
         try:
             target_url = _build_target_url(path, request.META.get("QUERY_STRING", ""))
         except ValueError:

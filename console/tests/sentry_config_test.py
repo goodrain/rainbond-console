@@ -125,6 +125,31 @@ def test_frontend_dsn_takes_precedence_over_shared_dsn():
     assert config["dsn"] == "https://browser.example.invalid/2"
 
 
+def test_offline_mode_disables_frontend_sentry_but_not_console_sentry():
+    env = {
+        "DISABLE_DEFAULT_APP_MARKET": "true",
+        "RAINBOND_ERROR_REPORTING_DSN": "https://example.invalid/1",
+    }
+
+    frontend_config = sentry_config.get_frontend_sentry_config(env)
+    console_config = sentry_config.get_sentry_config(env)
+
+    assert frontend_config["enabled"] is False
+    assert frontend_config["dsn"] == ""
+    assert console_config["enabled"] is True
+    assert console_config["dsn"] == "https://example.invalid/1"
+
+
+def test_cloud_market_disable_does_not_disable_frontend_sentry():
+    config = sentry_config.get_frontend_sentry_config({
+        "DISABLE_CLOUD_MARKET": "true",
+        "RAINBOND_ERROR_REPORTING_DSN": "https://example.invalid/1",
+    })
+
+    assert config["enabled"] is True
+    assert config["dsn"] == "https://example.invalid/1"
+
+
 def test_frontend_sentry_tunnel_can_be_overridden():
     config = sentry_config.get_frontend_sentry_config({
         "RAINBOND_ERROR_REPORTING_DSN": "https://example.invalid/1",
