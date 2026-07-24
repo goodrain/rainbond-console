@@ -12,6 +12,7 @@ from django.http import HttpResponse, StreamingHttpResponse
 from console.utils.cache_decorators import never_cache
 
 from console.exception.main import ServiceHandleException
+from console.services.deployment_invocation import deployment_invocation_context
 from console.services.user_services import user_services
 from console.services.mcp_query_service import mcp_query_service
 from console.views.base import JSONWebTokenAuthentication, InternalTokenAuthentication
@@ -482,6 +483,8 @@ class MCPQueryHTTPView(MCPQueryRPCMixin, APIView):  # type: ignore[misc]
     """Streamable HTTP MCP endpoint."""
 
     _EXPOSE_HEADERS = "Mcp-Session-Id, MCP-Protocol-Version"
+    deploy_origin = "unknown"
+    deploy_client = "unknown"
 
     @staticmethod
     def _get_http_session_user(session_payload: Optional[dict]) -> Any:
@@ -536,7 +539,8 @@ class MCPQueryHTTPView(MCPQueryRPCMixin, APIView):  # type: ignore[misc]
                 return Response({"detail": "Mcp-Session-Id header is required."}, status=400)
 
         user = authenticated_user or self._get_http_session_user(session_payload)
-        rpc_response = self._dispatch_rpc(payload, user, protocol_version=protocol_version)
+        with deployment_invocation_context(self.deploy_origin, self.deploy_client):
+            rpc_response = self._dispatch_rpc(payload, user, protocol_version=protocol_version)
 
         if payload.get("id") is None:
             response = HttpResponse(status=202)
