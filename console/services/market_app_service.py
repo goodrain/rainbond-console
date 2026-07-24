@@ -128,7 +128,8 @@ class MarketAppService(object):
                     market_name: str,
                     install_from_cloud: bool,
                     is_deploy: bool = False,
-                    dry_run: bool = False) -> str:
+                    dry_run: bool = False,
+                    return_details: bool = False) -> Any:
         tracker = None
         app = group_repo.get_group_by_id(app_id)
         if dry_run:
@@ -216,6 +217,12 @@ class MarketAppService(object):
         self._create_rbdplugin_if_needed(tenant, region, app_template, app.app_id)
         if not dry_run:
             self._track_market_app_installed(tenant, region.region_name, version, market_app, install_from_cloud)
+        if return_details:
+            return {
+                "app_name": market_app.app_name,
+                "event_ids": self._extract_event_ids(events),
+                "service_ids": component_service_ids,
+            }
         return market_app.app_name
 
     def get_app_template(self, app_model_key: str, install_from_cloud: bool, market_name: str, region: RegionConfig,

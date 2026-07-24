@@ -12,9 +12,14 @@ from django.http import HttpResponse, StreamingHttpResponse
 from console.utils.cache_decorators import never_cache
 
 from console.exception.main import ServiceHandleException
-from console.services.deployment_invocation import deployment_invocation_context
+from console.services.deployment_invocation import (
+    deployment_invocation_context,
+    get_deployment_invocation,
+    is_rainskills_invocation,
+)
 from console.services.user_services import user_services
 from console.services.mcp_query_service import mcp_query_service
+from console.services.rainskills_deployment_service import rainskills_deployment_service
 from console.views.base import JSONWebTokenAuthentication, InternalTokenAuthentication
 from console.exception.exceptions import AuthenticationInfoHasExpiredError
 from django.utils.encoding import smart_str
@@ -271,7 +276,7 @@ class MCPQueryRPCMixin(object):
                 })
 
             try:
-                data = mcp_query_service.call_tool(user, tool_name, arguments)
+                data = self._call_tool(user, tool_name, arguments)
                 return self._jsonrpc_result(request_id, {
                     "isError": False,
                     "content": [{"type": "text", "text": json.dumps(data, ensure_ascii=False, default=str)}],
@@ -311,6 +316,75 @@ class MCPQueryRPCMixin(object):
                 })
 
         return self._jsonrpc_error(request_id, -32601, "Method not found: {}".format(method))
+
+    def _call_tool(self, user: Any, tool_name: str, arguments: dict) -> Any:
+        if not is_rainskills_invocation():
+            return mcp_query_service.call_tool(user, tool_name, arguments)
+
+        service_sources = None
+        if tool_name in ("rainbond_build_component", "rainbond_operate_app"):
+            try:
+                service_sources = mcp_query_service.resolve_deployment_service_sources(
+                    user, tool_name, arguments)
+            except Exception as exc:
+                logger.warning(
+                    "resolve RainSkills deployment sources failed: tool=%s error=%s",
+                    tool_name, exc)
+                service_sources = []
+
+        tracker = None
+        try:
+            spec = rainskills_deployment_service.classify_tool_call(
+                tool_name, arguments, service_sources=service_sources)
+            if spec is not None:
+                invocation = get_deployment_invocation()
+                source_language = arguments.get("source_language") or arguments.get("language") or ""
+                if not isinstance(source_language, str):
+                    source_language = ""
+                tracker = rainskills_deployment_service.safe_begin_tracking(
+                    client=invocation.client,
+                    tool=tool_name,
+                    deploy_type=spec.deploy_type,
+                    deploy_stage=spec.deploy_stage,
+                    trigger=spec.trigger,
+                    enterprise_id=getattr(user, "enterprise_id", "") or "",
+                    tenant_name=arguments.get("team_name") or "",
+                    region_name=arguments.get("region_name") or "",
+                    app_id=arguments.get("app_id") or 0,
+                    resource_created=spec.resource_created,
+                    source_language=source_language,
+                )
+        except Exception as exc:
+            logger.warning(
+                "start RainSkills deployment tracking failed: tool=%s error=%s",
+                tool_name, exc)
+
+        try:
+            result = mcp_query_service.call_tool(user, tool_name, arguments)
+        except Exception as exc:
+            reason = getattr(exc, "msg_show", None) or str(exc)
+            if tracker is not None:
+                try:
+                    rainskills_deployment_service.safe_mark_failure(
+                        tracker,
+                        reason=reason,
+                        failure_stage="tool",
+                        failure_category=exc.__class__.__name__.lower(),
+                    )
+                except Exception as tracking_exc:
+                    logger.warning(
+                        "mark RainSkills deployment failure failed: tool=%s error=%s",
+                        tool_name, tracking_exc)
+            raise
+
+        if tracker is not None:
+            try:
+                rainskills_deployment_service.safe_bind_tool_result(tracker, result)
+            except Exception as exc:
+                logger.warning(
+                    "bind RainSkills deployment result failed: tool=%s error=%s",
+                    tool_name, exc)
+        return result
 
     @staticmethod
     def _jsonrpc_result(request_id: Any, result: Any) -> dict:

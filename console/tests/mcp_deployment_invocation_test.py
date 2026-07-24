@@ -25,6 +25,7 @@ from console.services.deployment_invocation import (  # noqa: E402
     get_deployment_invocation,
     is_rainskills_invocation,
 )
+from console.services.rainskills_deployment_service import DeploymentSpec  # noqa: E402
 from console.views.mcp_query import MCPQueryHTTPView  # noqa: E402
 
 
@@ -75,7 +76,7 @@ class MCPDeploymentInvocationTests(SimpleTestCase):
         self.factory = APIRequestFactory()
         self.user = SimpleNamespace(user_id=1, is_authenticated=True, nick_name="tester")
 
-    def _request(self, arguments=None):
+    def _request(self, arguments=None, tool_name="rainbond_test_tool"):
         request = self.factory.post(
             "/console/mcp/query",
             data=json.dumps({
@@ -83,7 +84,7 @@ class MCPDeploymentInvocationTests(SimpleTestCase):
                 "id": 1,
                 "method": "tools/call",
                 "params": {
-                    "name": "rainbond_test_tool",
+                    "name": tool_name,
                     "arguments": arguments or {},
                 },
             }),
@@ -184,3 +185,127 @@ class MCPDeploymentInvocationTests(SimpleTestCase):
                 match = resolve(path)
                 self.assertIs(match.func.view_class, MCPQueryHTTPView)
                 self.assertEqual(match.func.view_initkwargs, {"deploy_origin": "rainskills", "deploy_client": client})
+
+    def test_rainskills_deployment_starts_and_binds_independent_tracker(self):
+        spec = DeploymentSpec("initial", "source_create", "source_code", True, True)
+        tracker = {"key": "RAINSKILLS_DEPLOY_test"}
+        result = {"app_id": 7, "event_ids": ["event-1"], "service_ids": ["service-1"]}
+        view = MCPQueryHTTPView.as_view(deploy_origin="rainskills", deploy_client="codex")
+
+        with patch(
+                "console.views.mcp_query.rainskills_deployment_service.classify_tool_call",
+                return_value=spec) as classify:
+            with patch(
+                    "console.views.mcp_query.rainskills_deployment_service.safe_begin_tracking",
+                    return_value=tracker) as begin:
+                with patch(
+                        "console.views.mcp_query.rainskills_deployment_service.safe_bind_tool_result",
+                        side_effect=RuntimeError("bind telemetry unavailable")) as bind:
+                    with patch("console.views.mcp_query.mcp_query_service.call_tool", return_value=result):
+                        response = view(self._request(
+                            arguments={
+                                "team_name": "team-a",
+                                "region_name": "region-a",
+                                "app_id": 7,
+                                "language": "Go",
+                            },
+                            tool_name="rainbond_create_component_from_source"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["result"]["structuredContent"], result)
+        classify.assert_called_once_with(
+            "rainbond_create_component_from_source", {
+                "team_name": "team-a",
+                "region_name": "region-a",
+                "app_id": 7,
+                "language": "Go",
+            }, service_sources=None)
+        begin.assert_called_once_with(
+            client="codex",
+            tool="rainbond_create_component_from_source",
+            deploy_type="source_code",
+            deploy_stage="initial",
+            trigger="source_create",
+            enterprise_id="",
+            tenant_name="team-a",
+            region_name="region-a",
+            app_id=7,
+            resource_created=True,
+            source_language="Go",
+        )
+        bind.assert_called_once_with(tracker, result)
+
+    def test_generic_route_never_starts_rainskills_tracker(self):
+        result = {"event_id": "event-1"}
+        view = MCPQueryHTTPView.as_view()
+
+        with patch("console.views.mcp_query.rainskills_deployment_service.classify_tool_call") as classify:
+            with patch("console.views.mcp_query.rainskills_deployment_service.safe_begin_tracking") as begin:
+                with patch("console.views.mcp_query.mcp_query_service.call_tool", return_value=result):
+                    response = view(self._request(
+                        arguments={"is_deploy": True},
+                        tool_name="rainbond_create_component_from_image"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["result"]["structuredContent"], result)
+        classify.assert_not_called()
+        begin.assert_not_called()
+
+    def test_rainskills_tool_failure_marks_tracker_without_changing_error_contract(self):
+        spec = DeploymentSpec("continuous", "build_component", "source_code", False, False)
+        tracker = {"key": "RAINSKILLS_DEPLOY_test"}
+        failure = ServiceHandleException(msg="failed", msg_show="same failure", status_code=409)
+        view = MCPQueryHTTPView.as_view(deploy_origin="rainskills", deploy_client="claude_code")
+
+        with patch(
+                "console.views.mcp_query.rainskills_deployment_service.classify_tool_call",
+                return_value=spec):
+            with patch(
+                    "console.views.mcp_query.mcp_query_service.resolve_deployment_service_sources",
+                    return_value=[SimpleNamespace(service_source="source_code")]):
+                with patch(
+                        "console.views.mcp_query.rainskills_deployment_service.safe_begin_tracking",
+                        return_value=tracker):
+                    with patch(
+                            "console.views.mcp_query.rainskills_deployment_service.safe_mark_failure",
+                            side_effect=RuntimeError("failure telemetry unavailable")) as mark:
+                        with patch("console.views.mcp_query.mcp_query_service.call_tool", side_effect=failure):
+                            response = view(self._request(
+                                arguments={
+                                    "team_name": "team-a",
+                                    "region_name": "region-a",
+                                    "app_id": 7,
+                                    "service_id": "service-1",
+                                },
+                                tool_name="rainbond_build_component"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data["result"]["isError"])
+        self.assertEqual(response.data["result"]["structuredContent"]["status_code"], 409)
+        self.assertEqual(response.data["result"]["structuredContent"]["msg_show"], "same failure")
+        mark.assert_called_once_with(
+            tracker,
+            reason="same failure",
+            failure_stage="tool",
+            failure_category="servicehandleexception",
+        )
+
+    def test_telemetry_failures_do_not_change_successful_tool_response(self):
+        spec = DeploymentSpec("initial", "image_create", "image", True, False)
+        result = {"app_id": 3, "event_id": "event-3"}
+        view = MCPQueryHTTPView.as_view(deploy_origin="rainskills", deploy_client="codex")
+
+        with patch(
+                "console.views.mcp_query.rainskills_deployment_service.classify_tool_call",
+                return_value=spec):
+            with patch(
+                    "console.views.mcp_query.rainskills_deployment_service.safe_begin_tracking",
+                    side_effect=RuntimeError("telemetry unavailable")):
+                with patch("console.views.mcp_query.mcp_query_service.call_tool", return_value=result) as call_tool:
+                    response = view(self._request(
+                        arguments={"is_deploy": True},
+                        tool_name="rainbond_create_component_from_image"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["result"]["structuredContent"], result)
+        call_tool.assert_called_once()
