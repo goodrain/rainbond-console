@@ -145,5 +145,5 @@ class PostHogProxyViewTests(SimpleTestCase):
         ) as request_mock:
             response = self.view(request, path="e/")
 
-        self.assertEqual(response.status_code, 204)
+        self.assertEqual(response.status_code, 200)
         request_mock.assert_not_called()

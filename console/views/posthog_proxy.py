@@ -144,7 +144,7 @@ class PostHogProxyView(View):
 
     def _proxy(self, request: HttpRequest, path: str) -> HttpResponse:
         if is_offline_mode():
-            return _add_cors_headers(HttpResponse(status=204), request)
+            return _add_cors_headers(HttpResponse(status=200), request)
 
         try:
             target_url = _build_target_url(path, request.META.get("QUERY_STRING", ""))
