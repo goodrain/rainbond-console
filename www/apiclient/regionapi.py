@@ -4005,10 +4005,28 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             "X-Copilot-Username": str(getattr(user, "nick_name", "") or getattr(user, "user_name", "") or "system"),
             "X-Copilot-Roles": "enterprise_admin",
             "X-Copilot-Source-System": "rainbond-console",
+            "X-Copilot-Enterprise-Id": enterprise_id,
             "X-Region-Name": region_name,
         })
         res, response_body = self._post(url, headers, body=json.dumps(data), region=region_name)
         return res, response_body
+
+    def get_agent_plugin_encryption_status(self, enterprise_id: str, region_name: str,
+                                           user: Any) -> Tuple[Any, Optional[Dict[str, Any]]]:
+        """Read rainbond-agent credential encryption state without returning key material."""
+        url, token = self.__get_region_access_info_by_enterprise_id(enterprise_id, region_name)
+        url = url + "/v2/platform/backend/plugins/rainbond-agent/api/v1/kubernetes/credentials/encryption/status"
+        self._set_headers(token)
+        headers = dict(self.default_headers)
+        headers.update({
+            "X-Copilot-User-Id": str(getattr(user, "user_id", "") or "system"),
+            "X-Copilot-Username": str(getattr(user, "nick_name", "") or "system"),
+            "X-Copilot-Roles": "enterprise_admin",
+            "X-Copilot-Source-System": "rainbond-console",
+            "X-Copilot-Enterprise-Id": enterprise_id,
+            "X-Region-Name": region_name,
+        })
+        return self._get(url, headers, region=region_name)
 
     def delete_cluster_resource(self, region_name: str, path: str,
                                 params: Optional[dict] = None) -> Tuple[Any, Optional[Dict[str, Any]]]:

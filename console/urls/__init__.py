@@ -9,7 +9,7 @@ from console.views import app_version
 from console.views.adaptor import Appstore, Appstores, AppstoreCharts, AppstoreChart, HelmRegionInstall
 from console.views.api_gateway import AppApiGatewayView, AppApiGatewayConvertView
 from console.views.agent_access import AgentAccessView
-from console.views.agent_kubernetes import AgentKubernetesBootstrapView
+from console.views.agent_kubernetes import AgentKubernetesBootstrapView, AgentKubernetesEncryptionKeyView
 from console.views.agent_llm_config import (AgentLLMConfigView, AgentLLMRuntimeConfigView,
                                             AgentMCPDelegatedCredentialsView,
                                             AgentMCPRuntimeCredentialsView,
@@ -1026,6 +1026,8 @@ urlpatterns = [
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/platform-plugins/(?P<plugin_id>[\w\-]+)/install$', PlatformPluginInstallView.as_view()),
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/agent-kubernetes/bootstrap$',
         AgentKubernetesBootstrapView.as_view()),
+    re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/agent-kubernetes/encryption-key$',
+        AgentKubernetesEncryptionKeyView.as_view()),
     re_path(r'^regions/(?P<region_name>[\w\-]+)/plugins/(?P<plugin_name>[\w\-]+)/status$', RainbondPluginStatusView.as_view()),
     re_path(r'^regions/(?P<region_name>[\w\-]+)/static/plugins/(?P<plugin_name>[\w\-]+)$', RainbondPluginStaticView.as_view()),
     # 完整代理路由 - 用于代理完整的 Web 应用（Grafana 等），保留所有 HTTP 响应头

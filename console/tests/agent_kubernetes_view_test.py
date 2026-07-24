@@ -18,7 +18,7 @@ from rest_framework.test import APIRequestFactory, force_authenticate
 
 django.setup()
 
-from console.views.agent_kubernetes import AgentKubernetesBootstrapView
+from console.views.agent_kubernetes import AgentKubernetesBootstrapView, AgentKubernetesEncryptionKeyView
 
 
 class AgentKubernetesBootstrapViewTests(SimpleTestCase):
@@ -207,3 +207,120 @@ class AgentKubernetesBootstrapViewTests(SimpleTestCase):
         self.assertEqual(403, response.status_code)
         bootstrap.assert_not_called()
         proxy.assert_not_called()
+
+
+class AgentKubernetesEncryptionKeyViewTests(SimpleTestCase):
+
+    def setUp(self):
+        self.factory = APIRequestFactory()
+        self.view = AgentKubernetesEncryptionKeyView.as_view()
+
+    @staticmethod
+    def _user(enterprise_id="eid"):
+        return SimpleNamespace(
+            user_id=1,
+            nick_name="admin",
+            enterprise_id=enterprise_id,
+            is_authenticated=True,
+        )
+
+    def _request(self, method="get", data=None, *, is_admin=True, user=None):
+        request_data = data or {}
+        if method != "get":
+            request_data = json.dumps(request_data)
+        request = getattr(self.factory, method)(
+            "/console/enterprise/eid/regions/rainbond/agent-kubernetes/encryption-key",
+            data=request_data,
+            content_type="application/json",
+        )
+        force_authenticate(request, user=user or self._user())
+        stack = ExitStack()
+        enterprise_filter = stack.enter_context(mock.patch("console.views.base.TenantEnterprise.objects.filter"))
+        enterprise_filter.return_value.first.return_value = SimpleNamespace(enterprise_id="eid")
+        stack.enter_context(mock.patch("console.views.base.enterprise_user_perm_repo.is_admin", return_value=is_admin))
+        stack.enter_context(mock.patch("console.views.base.user_services.list_roles", return_value=[]))
+        stack.enter_context(mock.patch("console.views.base.perms.list_enterprise_perm_codes_by_roles", return_value=[]))
+        return request, stack
+
+    def test_get_returns_persisted_non_sensitive_status(self):
+        request, stack = self._request()
+        expected = {
+            "status": "configured",
+            "configured": True,
+            "key_source": "shared",
+            "service_alias": "rainbond-agent-api",
+        }
+        status = stack.enter_context(mock.patch(
+            "console.views.agent_kubernetes.platform_plugin_service.get_agent_credential_encryption_key_status",
+            return_value=expected,
+        ))
+        with stack:
+            response = self.view(request, enterprise_id="eid", region_name="rainbond")
+
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(expected, response.data["data"]["bean"])
+        status.assert_called_once_with("eid", "rainbond")
+
+    def test_get_rejects_non_admin(self):
+        request, stack = self._request(is_admin=False)
+        status = stack.enter_context(mock.patch(
+            "console.views.agent_kubernetes.platform_plugin_service.get_agent_credential_encryption_key_status"))
+        with stack:
+            response = self.view(request, enterprise_id="eid", region_name="rainbond")
+
+        self.assertEqual(403, response.status_code)
+        status.assert_not_called()
+
+    def test_post_requires_explicit_confirmation(self):
+        request, stack = self._request("post", {})
+        with stack:
+            response = self.view(request, enterprise_id="eid", region_name="rainbond")
+        self.assertEqual(400, response.status_code)
+        self.assertEqual("credential_key_confirmation_required", response.data["msg"])
+
+    def test_post_checks_agent_status_then_generates(self):
+        request, stack = self._request("post", {"confirm_create": True})
+        agent_status = stack.enter_context(mock.patch(
+            "console.views.agent_kubernetes.region_api.get_agent_plugin_encryption_status",
+            return_value=(None, {"data": {"status": "missing"}}),
+        ))
+        ensure = stack.enter_context(mock.patch(
+            "console.views.agent_kubernetes.platform_plugin_service.ensure_agent_credential_encryption_key",
+            return_value={"status": "generated", "generated": True, "restart_requested": True},
+        ))
+        with stack:
+            response = self.view(request, enterprise_id="eid", region_name="rainbond")
+
+        self.assertEqual(200, response.status_code)
+        agent_status.assert_called_once_with("eid", "rainbond", mock.ANY)
+        ensure.assert_called_once_with("eid", "rainbond", mock.ANY, {"status": "missing"})
+
+    def test_post_blocks_recovery_required(self):
+        request, stack = self._request("post", {"confirm_create": True})
+        stack.enter_context(mock.patch(
+            "console.views.agent_kubernetes.region_api.get_agent_plugin_encryption_status",
+            return_value=(None, {"data": {"status": "recovery_required"}}),
+        ))
+        ensure = stack.enter_context(mock.patch(
+            "console.views.agent_kubernetes.platform_plugin_service.ensure_agent_credential_encryption_key"))
+        with stack:
+            response = self.view(request, enterprise_id="eid", region_name="rainbond")
+
+        self.assertEqual(412, response.status_code)
+        self.assertEqual("credential_key_recovery_required", response.data["msg"])
+        ensure.assert_not_called()
+
+    def test_post_returns_503_when_agent_status_is_unavailable(self):
+        request, stack = self._request("post", {"confirm_create": True})
+        stack.enter_context(mock.patch(
+            "console.views.agent_kubernetes.region_api.get_agent_plugin_encryption_status",
+            side_effect=RuntimeError("connection failed"),
+        ))
+        ensure = stack.enter_context(mock.patch(
+            "console.views.agent_kubernetes.platform_plugin_service.ensure_agent_credential_encryption_key"))
+        with stack:
+            response = self.view(request, enterprise_id="eid", region_name="rainbond")
+
+        self.assertEqual(503, response.status_code)
+        self.assertEqual("agent_encryption_status_unavailable", response.data["msg"])
+        ensure.assert_not_called()
