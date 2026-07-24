@@ -150,7 +150,11 @@ def get_frontend_sentry_config(env=None):
         "SENTRY_FRONTEND_DSN",
         "SENTRY_DSN",
     )
-    enabled = get_enabled(env, "RAINBOND_ERROR_REPORTING_FRONTEND_ENABLED") and bool(dsn)
+    enabled = (
+        not is_offline_mode(env)
+        and get_enabled(env, "RAINBOND_ERROR_REPORTING_FRONTEND_ENABLED")
+        and bool(dsn)
+    )
     return {
         "enabled": enabled,
         "dsn": dsn if enabled else "",
