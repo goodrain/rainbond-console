@@ -301,6 +301,16 @@ class RainSkillsDeploymentRepositoryTests(TestCase):
 
 class RainSkillsDeploymentServiceTests(TestCase):
 
+    def test_report_url_is_always_the_canonical_request_server(self):
+        with mock.patch.dict(
+                os.environ,
+                {"RAINSKILLS_DEPLOY_REPORT_URL": "http://unused.example/api"}):
+            service = make_service()
+
+        self.assertEqual(
+            service.report_url,
+            "https://log.rainbond.com/api/rainskills/deployments")
+
     def test_classify_tool_call_covers_the_deployment_entry_matrix(self):
         service = make_service()
         cases = [

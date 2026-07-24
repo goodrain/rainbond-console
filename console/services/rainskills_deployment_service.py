@@ -233,8 +233,7 @@ class RainSkillsDeploymentService(object):
             lambda: datetime.datetime.now(datetime.timezone.utc))
         self.sleep = sleep or time.sleep
         self.thread_factory = thread_factory or threading.Thread
-        self.report_url = os.getenv("RAINSKILLS_DEPLOY_REPORT_URL",
-                                    self.DEFAULT_REPORT_URL)
+        self.report_url = self.DEFAULT_REPORT_URL
         self._running_keys = set()
         self._lock = threading.Lock()
         if start_sweeper is None:
