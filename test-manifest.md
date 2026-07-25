@@ -41,6 +41,7 @@
 | console.app-backup.state-service-guard | 有状态组件未关闭时阻止备份 | active | regression | console.views.center_pool.groupapp_backup.GroupAppsBackupView.post | console/tests/groupapp_backup_migration_test.py::GroupAppsBackupViewWorkflowTests.test_post_rejects_running_stateful_services |
 | console.app-backup.status-sanitize | 隐藏备份状态中的内部服务端信息 | active | regression | console.views.center_pool.groupapp_backup.GroupAppsBackupStatusView.get | console/tests/groupapp_backup_migration_test.py::GroupAppsBackupStatusViewWorkflowTests.test_get_returns_backup_status_list_without_internal_server_info |
 | console.app-backup.version-check | 备份版本与平台版本不一致时阻止恢复 | active | regression | console.services.backup_data_service.PlatformDataBackupServices.version_than | console/tests/backup_data_service_version_than_test.py::VersionThanTests |
+| console.app-check.cmd-args-yaml | 将检测出的组件 cmd 和 args 持久化为 YAML 数组 | active | regression | console.services.app_check_service.AppCheckService.save_service_info | console/tests/app_check_k8s_attribute_test.py::AppCheckK8sAttributeTests |
 | console.app-config-group.create | 创建应用配置组 | active | regression | console.services.app_config_group.AppConfigGroupService.create_config_group | console/tests/app_config_group_service_test.py::AppConfigGroupServiceWorkflowTests.test_create_config_group_creates_remote_and_local_records |
 | console.app-config-group.delete | 删除应用配置组 | active | regression | console.services.app_config_group.AppConfigGroupService.delete_config_group | console/tests/app_config_group_service_test.py::AppConfigGroupServiceWorkflowTests.test_delete_config_group_deletes_remote_and_local_records |
 | console.app-config-group.get | 查看应用配置组详情 | active | regression | console.services.app_config_group.AppConfigGroupService.get_config_group | console/tests/app_config_group_service_test.py::AppConfigGroupServiceWorkflowTests.test_get_config_group_returns_built_response |
@@ -340,6 +341,7 @@
 | console.image.slug-detect | 为非 docker 类语言识别基于 runner 的 slug 镜像 | active | regression | console.utils.slug_util.is_slug | console/tests/utils/image_classify_test.py::ImageClassifyTests.test_is_slug |
 | console.init-cluster.prefer-latest-pending | 初始化时优先选择最新待处理集群 | active | regression | console.repositories.init_cluster.Cluster.get_rke_cluster_exclude_integrated | console/tests/init_cluster_test.py::ClusterRepositoryTests.test_get_rke_cluster_exclude_integrated_prefers_latest_pending_cluster |
 | console.init-cluster.recycle-empty-interconnected | 回收空白联通集群用于重新初始化 | active | regression | console.repositories.init_cluster.Cluster.get_rke_cluster_exclude_integrated | console/tests/init_cluster_test.py::ClusterRepositoryTests.test_get_rke_cluster_exclude_integrated_recycles_blank_cluster |
+| console.k8s-attribute.cmd-args-yaml | 将 cmd 和 args Kubernetes 属性规范化为 YAML 数组 | active | regression | console.services.k8s_attribute.ComponentK8sAttributeService.create_k8s_attribute | console/tests/k8s_attribute_service_test.py::ComponentK8sAttributeServiceTests |
 | console.k8s-attribute.upsert-region-sync | Console 与 region 组件 K8s 属性幂等同步 | active | regression | console.services.k8s_attribute.ComponentK8sAttributeService | console/tests/k8s_attribute_service_test.py |
 | console.k8s-namespace.normalize-user-prefix | 将用户名规范化为合法的 Kubernetes 命名空间名 | active | regression | console.utils.validation.normalize_name_for_k8s_namespace | console/tests/utils/validation_test.py::NamespaceNormalizationTests.test_normalize_name_for_k8s_namespace |
 | console.kubeblocks.app-resource-statistics | KubeBlocks 集群请求携带 app id 以支持资源统计 | active | regression | console.services.kubeblocks_service.KubeBlocksService._build_cluster_request | console/tests/kubeblocks_cluster_validation_test.py::KubeBlocksCreateFlowTests.test_build_cluster_request_includes_app_id_for_resource_statistics |
@@ -425,6 +427,7 @@
 | console.package-upload.upload-flow | Package Upload Upload Flow | active | regression | console.services.package_upload_tool_service | console/tests/package_upload_tool_service_test.py::PackageUploadToolServiceTests.test_upload_package_uploads_archive_and_returns_status |
 | console.platform-plugin.vm-access-url-fallback | 从前端组件访问地址回填官方虚拟机插件访问前缀 | active | regression | console.services.plugin_service.RainbondPluginService.list_plugins | console/tests/rbd_plugin_service_test.py::RainbondPluginServiceTests.test_official_vm_plugin_uses_frontend_component_access_url_when_region_urls_missing |
 | console.platform-plugin.vm-runtime-status-guard | 校验虚拟机平台插件运行状态 | active | regression | console.services.platform_plugin_service.PlatformPluginService.ensure_vm_plugin_running | console/tests/platform_plugin_service_test.py::PlatformPluginServiceTests.test_ensure_vm_plugin_running_rejects_non_running_status |
+| console.plugin-build.infer-arch | Infer plugin build architecture from region chaos nodes | active | regression | console.services.plugin_build_arch.resolve_plugin_build_arch | console/tests/plugin_build_arch_test.py::PluginBuildArchTests |
 | console.plugin.delete-by-sid | 按组件 ID 删除其全部插件关联 | active | regression | console.repositories.plugin.service_plugin_repo.AppPluginRelationRepo.delete_by_sid | console/tests/service_plugin_repo_delete_by_sid_test.py::DeleteBySidTest.test_delete_by_sid_deletes_matching_relations |
 | console.plugin.downstream-port-config | 下游端口配置从 ORM 模型对象读取目标组件属性 | active | regression | console.services.plugin.app_plugin.AppPluginService.create_plugin_cfg_4marketsvc | console/tests/app_plugin_downstream_port_test.py::CreatePluginCfg4MarketsvcDownstreamPortTest.test_downstream_port_reads_dest_service_attributes |
 | console.pod.detail | Pod Detail | active | regression | console.services.mcp_query_service.call_tool[console.pod.detail] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_get_pod_detail_returns_runtime_diagnostics |
@@ -938,6 +941,16 @@
 - 业务入口: `console.services.backup_data_service.PlatformDataBackupServices.version_than`
 - 代码路径: `console/services/backup_data_service.py`
 - 测试路径: `console/tests/backup_data_service_version_than_test.py::VersionThanTests`
+
+### 将检测出的组件 cmd 和 args 持久化为 YAML 数组
+
+- Capability ID: `console.app-check.cmd-args-yaml`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.app_check_service.AppCheckService.save_service_info`
+- 代码路径: `console/services/app_check_service.py`
+- 测试路径: `console/tests/app_check_k8s_attribute_test.py::AppCheckK8sAttributeTests`
 
 ### 创建应用配置组
 
@@ -3929,6 +3942,16 @@
 - 代码路径: `console/repositories/init_cluster.py`
 - 测试路径: `console/tests/init_cluster_test.py::ClusterRepositoryTests.test_get_rke_cluster_exclude_integrated_recycles_blank_cluster`
 
+### 将 cmd 和 args Kubernetes 属性规范化为 YAML 数组
+
+- Capability ID: `console.k8s-attribute.cmd-args-yaml`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.k8s_attribute.ComponentK8sAttributeService.create_k8s_attribute`
+- 代码路径: `console/services/k8s_attribute.py`
+- 测试路径: `console/tests/k8s_attribute_service_test.py::ComponentK8sAttributeServiceTests`
+
 ### Console 与 region 组件 K8s 属性幂等同步
 
 - Capability ID: `console.k8s-attribute.upsert-region-sync`
@@ -4778,6 +4801,16 @@
 - 业务入口: `console.services.platform_plugin_service.PlatformPluginService.ensure_vm_plugin_running`
 - 代码路径: `console/services/platform_plugin_service.py`
 - 测试路径: `console/tests/platform_plugin_service_test.py::PlatformPluginServiceTests.test_ensure_vm_plugin_running_rejects_non_running_status`
+
+### Infer plugin build architecture from region chaos nodes
+
+- Capability ID: `console.plugin-build.infer-arch`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.plugin_build_arch.resolve_plugin_build_arch`
+- 代码路径: `console/services/plugin_build_arch.py`, `console/services/plugin/app_plugin.py`, `console/views/plugin/plugin_manage.py`
+- 测试路径: `console/tests/plugin_build_arch_test.py::PluginBuildArchTests`
 
 ### 按组件 ID 删除其全部插件关联
 

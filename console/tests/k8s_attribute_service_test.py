@@ -5,6 +5,8 @@ from types import ModuleType, SimpleNamespace
 from unittest import mock
 from unittest import TestCase
 
+import yaml
+
 for attr in ("Mapping", "MutableMapping", "Sequence", "Iterable", "Iterator"):
     if not hasattr(collections, attr):
         setattr(collections, attr, getattr(collections.abc, attr))
@@ -42,6 +44,7 @@ import django  # noqa: E402
 
 django.setup()
 
+from console.exception.main import ServiceHandleException  # noqa: E402
 from console.services.k8s_attribute import k8s_attribute_service  # noqa: E402
 
 # capability_id: console.k8s-attribute.upsert-region-sync
@@ -225,3 +228,132 @@ class ComponentK8sAttributeServiceTests(TestCase):
                 "attribute_value": "runAsNonRoot: true"
             }
         )
+
+    # capability_id: console.k8s-attribute.cmd-args-yaml
+    def test_create_k8s_attribute_normalizes_cmd_args_to_yaml_sequence(self):
+        attribute = {
+            "name": "args",
+            "save_type": "json",
+            "attribute_value": ["/bin/sh", "-c", "echo hello world"],
+        }
+
+        with mock.patch("console.services.k8s_attribute.k8s_attribute_repo.create") as repo_create, \
+                mock.patch("console.services.k8s_attribute.region_api.create_component_k8s_attribute") as region_create:
+            k8s_attribute_service.create_k8s_attribute.__wrapped__(
+                k8s_attribute_service,
+                self.tenant,
+                self.component,
+                "demo-region",
+                attribute,
+                "alice"
+            )
+
+        expected_value = yaml.safe_dump(["/bin/sh", "-c", "echo hello world"], default_flow_style=False,
+                                        allow_unicode=True)
+        repo_create.assert_called_once_with(
+            tenant_id="tenant-a",
+            component_id="service-a",
+            name="args",
+            save_type="yaml",
+            attribute_value=expected_value
+        )
+        region_create.assert_called_once_with(
+            "team-a",
+            "demo-region",
+            "service-a",
+            {
+                "name": "args",
+                "save_type": "yaml",
+                "attribute_value": expected_value,
+                "operator": "alice"
+            }
+        )
+
+    def test_update_k8s_attribute_preserves_cmd_yaml_sequence_and_save_type(self):
+        shell_line = "/entrypoint.sh;while true;do echo hello >/dev/null;sleep 1;done"
+        attribute = {
+            "name": "cmd",
+            "save_type": "yaml",
+            "attribute_value": "- {0}\n".format(shell_line),
+        }
+
+        with mock.patch("console.services.k8s_attribute.k8s_attribute_repo.update") as repo_update, \
+                mock.patch("console.services.k8s_attribute.region_api.update_component_k8s_attribute") as region_update:
+            k8s_attribute_service.update_k8s_attribute.__wrapped__(
+                k8s_attribute_service,
+                self.tenant,
+                self.component,
+                "demo-region",
+                attribute
+            )
+
+        expected_value = "- {0}\n".format(shell_line)
+        repo_update.assert_called_once_with(
+            "service-a",
+            "cmd",
+            save_type="yaml",
+            attribute_value=expected_value
+        )
+        region_update.assert_called_once_with(
+            "team-a",
+            "demo-region",
+            "service-a",
+            {
+                "name": "cmd",
+                "save_type": "yaml",
+                "attribute_value": expected_value
+            }
+        )
+
+    def test_update_k8s_attribute_converts_legacy_cmd_string_to_yaml_sequence(self):
+        shell_line = "/entrypoint.sh;while true;do echo hello >/dev/null;sleep 1;done"
+        attribute = {
+            "name": "cmd",
+            "save_type": "string",
+            "attribute_value": shell_line,
+        }
+
+        with mock.patch("console.services.k8s_attribute.k8s_attribute_repo.update") as repo_update, \
+                mock.patch("console.services.k8s_attribute.region_api.update_component_k8s_attribute") as region_update:
+            k8s_attribute_service.update_k8s_attribute.__wrapped__(
+                k8s_attribute_service,
+                self.tenant,
+                self.component,
+                "demo-region",
+                attribute
+            )
+
+        expected_value = yaml.safe_dump([shell_line], default_flow_style=False, allow_unicode=True)
+        repo_update.assert_called_once_with(
+            "service-a",
+            "cmd",
+            save_type="yaml",
+            attribute_value=expected_value
+        )
+        region_update.assert_called_once_with(
+            "team-a",
+            "demo-region",
+            "service-a",
+            {
+                "name": "cmd",
+                "save_type": "yaml",
+                "attribute_value": expected_value
+            }
+        )
+
+    def test_create_k8s_attribute_rejects_cmd_scalar_yaml(self):
+        attribute = {
+            "name": "cmd",
+            "save_type": "yaml",
+            "attribute_value": "npm start -- --port 3000",
+        }
+
+        with self.assertRaises(ServiceHandleException):
+            k8s_attribute_service.create_k8s_attribute.__wrapped__(
+                k8s_attribute_service,
+                self.tenant,
+                self.component,
+                "demo-region",
+                attribute,
+                "alice"
+            )

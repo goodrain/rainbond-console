@@ -5,7 +5,7 @@ import logging
 import os
 import re
 import time
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 import requests as http_requests
 
@@ -324,6 +324,42 @@ class MCPQueryService(object):
                 self._tool_query_region_rbd_components()
             ] + tools
         return tools
+
+    def resolve_deployment_service_sources(self, user: Any, tool_name: str,
+                                           arguments: Any) -> list:
+        arguments = arguments if isinstance(arguments, dict) else {}
+        if tool_name == "rainbond_build_component":
+            _, _, service = self._get_team_app_service_context(
+                user,
+                self._require_string(arguments, "team_name"),
+                self._require_string(arguments, "region_name"),
+                self._require_int(arguments, "app_id"),
+                self._require_string(arguments, "service_id"),
+            )
+            return [service]
+        if tool_name != "rainbond_operate_app" or str(
+                arguments.get("action") or "").strip().lower() not in (
+                    "deploy", "upgrade"):
+            return []
+        team, app = self._get_team_app_context(
+            user,
+            self._require_string(arguments, "team_name"),
+            self._require_string(arguments, "region_name"),
+            self._require_int(arguments, "app_id"),
+        )
+        service_ids = arguments.get("service_ids") or self._get_app_service_ids(
+            app)
+        if not isinstance(service_ids, list):
+            raise ServiceHandleException(
+                msg="invalid service_ids", msg_show="参数service_ids无效", status_code=400)
+        services = []
+        for service_id in dict.fromkeys(service_ids):
+            if not isinstance(service_id, str) or not service_id.strip():
+                raise ServiceHandleException(
+                    msg="invalid service_ids", msg_show="参数service_ids无效", status_code=400)
+            services.append(
+                self._get_service_in_team_app(team, app, service_id))
+        return services
 
     def call_tool(self, user: Any, name: str, arguments: Optional[dict] = None) -> Any:
         arguments = arguments or {}
@@ -1758,6 +1794,52 @@ class MCPQueryService(object):
             })
         return event_ids
 
+    @staticmethod
+    def _standard_deployment_event_fields(events: Any,
+                                          fallback_service_ids: Any = None
+                                          ) -> Dict[str, List[str]]:
+        event_ids: List[str] = []
+        service_ids: List[str] = []
+        event_values: Iterable[Any]
+        if isinstance(events, dict):
+            event_ids.extend(str(event_id) for event_id in events.keys()
+                             if event_id)
+            event_values = events.values()
+        elif isinstance(events, (list, tuple)):
+            event_values = events
+        else:
+            event_values = []
+        for event in event_values:
+            if isinstance(event, dict):
+                event_id = event.get("event_id") or event.get("EventID")
+                service_id = event.get("service_id") or event.get("ServiceID")
+            elif isinstance(event, (str, int)) and not isinstance(event, bool):
+                event_id = None
+                service_id = event
+            else:
+                event_id = getattr(event, "event_id", None)
+                service_id = getattr(event, "service_id", None)
+            if event_id:
+                event_ids.append(str(event_id))
+            if service_id:
+                service_ids.append(str(service_id))
+        service_ids.extend(
+            str(service_id) for service_id in (fallback_service_ids or [])
+            if service_id)
+        return {
+            "event_ids": list(dict.fromkeys(event_ids)),
+            "service_ids": list(dict.fromkeys(service_ids)),
+        }
+
+    def _standard_deployment_record_fields(self, record: Any) -> Dict[str, List[str]]:
+        data = self._serialize_model_item(record)
+        if not isinstance(data, dict):
+            return {"event_ids": [], "service_ids": []}
+        service_records = data.get("service_record")
+        if not isinstance(service_records, (list, tuple)):
+            return {"event_ids": [], "service_ids": []}
+        return self._standard_deployment_event_fields(service_records)
+
     def update_component_envs(self, user: Any, arguments: dict) -> dict:
         team, app, service = self._get_team_app_service_context(
             user,
@@ -2800,10 +2882,13 @@ class MCPQueryService(object):
                 status_code=400,
             )
         detail = app_version_service.get_rollback_record(team.tenant_name, app.region_name, app.ID, self._value(record, "ID"))
+        deployment_fields = self._standard_deployment_record_fields(detail or record)
         return {
             "app_id": app.ID,
             "version_id": version_id,
             "rollback_record": detail or record,
+            "event_ids": deployment_fields["event_ids"],
+            "service_ids": deployment_fields["service_ids"],
         }
 
     def list_app_version_rollback_records(self, user: Any, arguments: dict) -> dict:
@@ -2906,6 +2991,7 @@ class MCPQueryService(object):
             },
         )
         return {
+            "app_id": target_app_id_int,
             "source_app_id": source_app.ID,
             "source_app_name": source_app.group_name,
             "snapshot": {
@@ -2920,6 +3006,8 @@ class MCPQueryService(object):
             },
             "installed": True,
             "install_result": install_result,
+            "event_ids": install_result.get("event_ids", []) if isinstance(install_result, dict) else [],
+            "service_ids": install_result.get("service_ids", []) if isinstance(install_result, dict) else [],
         }
 
     def get_app_publish_candidates(self, user: Any, arguments: dict) -> dict:
@@ -3443,13 +3531,16 @@ class MCPQueryService(object):
             self._require_int(arguments, "app_id"),
             self._require_int(arguments, "record_id"),
         )
-        upgrade_service.deploy(team, app.region_name, user, record)
+        events = upgrade_service.deploy(team, app.region_name, user, record)
+        deployment_fields = self._standard_deployment_event_fields(events)
         detail = upgrade_service.get_app_upgrade_record(team.tenant_name, app.region_name, record.ID)
         return {
             "app_id": app.ID,
             "record_id": record.ID,
             "deployed": True,
             "record": self._serialize_upgrade_record_detail(detail),
+            "event_ids": deployment_fields["event_ids"],
+            "service_ids": deployment_fields["service_ids"],
         }
 
     def get_app_rollback_records(self, user: Any, arguments: dict) -> dict:
@@ -3479,12 +3570,16 @@ class MCPQueryService(object):
         )
         region = self._get_region_by_name_context(user, app.region_name)
         rollback_record, component_group_alias = upgrade_service.restore(team, region, user, app, record)
+        serialized_record = self._serialize_upgrade_record_detail(rollback_record)
+        deployment_fields = self._standard_deployment_record_fields(serialized_record)
         return {
             "app_id": app.ID,
             "record_id": self._value(rollback_record, "ID"),
             "rolled_back": True,
             "component_group_alias": component_group_alias,
-            "record": self._serialize_upgrade_record_detail(rollback_record),
+            "record": serialized_record,
+            "event_ids": deployment_fields["event_ids"],
+            "service_ids": deployment_fields["service_ids"],
         }
 
     def get_app_upgrade_info(self, user: Any, arguments: dict) -> dict:
@@ -3511,6 +3606,9 @@ class MCPQueryService(object):
             "update_versions": update_versions
         })
         event_ids = self._extract_upgrade_event_ids(app_records)
+        service_ids = list(dict.fromkeys(
+            event.get("service_id") for event in event_ids
+            if isinstance(event, dict) and event.get("service_id")))
         items = market_app_service.get_market_apps_in_app(app.region_name, team, app)
         return {
             "app_id": app.ID,
@@ -3518,6 +3616,7 @@ class MCPQueryService(object):
             "items": items,
             "total": len(items),
             "event_ids": event_ids,
+            "service_ids": service_ids,
         }
 
     @staticmethod
@@ -3543,8 +3642,10 @@ class MCPQueryService(object):
                 if not event_id:
                     continue
                 service = getattr(record, "service", None)
+                service_id = getattr(service, "service_id", "") if service else ""
                 service_alias = getattr(service, "service_alias", "") if service else ""
                 event_ids.append({
+                    "service_id": service_id or "",
                     "service_alias": service_alias or "",
                     "event_id": event_id,
                 })
@@ -3626,16 +3727,29 @@ class MCPQueryService(object):
         if not app_version_info:
             raise ServiceHandleException(status_code=404, msg="not found", msg_show="云端应用版本不存在")
 
-        market_app_service.install_service(
+        existing_service_ids = {
+            getattr(service, "service_id", "")
+            for service in group_service.get_group_services(app.ID)
+            if getattr(service, "service_id", "")
+        }
+        _, events = market_app_service.install_service(
             team, app.region_name, user, app.ID, market_app, app_version_info, is_deploy, True, market_name=market.name
         )
         services = group_service.get_group_services(app.ID)
+        created_service_ids = [
+            getattr(service, "service_id", "") for service in services
+            if getattr(service, "service_id", "") not in existing_service_ids
+        ]
+        deployment_fields = self._standard_deployment_event_fields(
+            events, created_service_ids)
         return {
             "installed": True,
             "app_id": app.ID,
             "app_name": app.group_name,
             "market_name": market.name,
             "service_list": [self._serialize_model_item(service) for service in services],
+            "event_ids": deployment_fields["event_ids"],
+            "service_ids": deployment_fields["service_ids"],
         }
 
     def query_cloud_markets(self, user: Any, arguments: dict) -> dict:
@@ -3762,7 +3876,7 @@ class MCPQueryService(object):
                 msg="invalid market_name", msg_show="云市场安装时必须提供market_name", status_code=400
             )
 
-        installed_app_name = market_app_service.install_app(
+        install_details = market_app_service.install_app(
             team,
             region,
             user,
@@ -3772,8 +3886,17 @@ class MCPQueryService(object):
             market_name,
             source == "cloud",
             self._parse_bool_with_default(arguments.get("is_deploy"), True),
+            return_details=True,
         )
         services = group_service.get_group_services(app.ID)
+        if isinstance(install_details, dict):
+            installed_app_name = install_details.get("app_name", "")
+            event_ids = install_details.get("event_ids", [])
+            service_ids = install_details.get("service_ids", [])
+        else:
+            installed_app_name = install_details
+            event_ids = []
+            service_ids = []
         return {
             "installed": True,
             "source": source,
@@ -3782,6 +3905,8 @@ class MCPQueryService(object):
             "installed_app_name": installed_app_name,
             "market_name": market_name or None,
             "service_list": [self._serialize_model_item(service) for service in services],
+            "event_ids": event_ids,
+            "service_ids": service_ids,
         }
 
     def create_component_from_source(self, user: Any, arguments: dict) -> Any:
