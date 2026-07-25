@@ -6,7 +6,7 @@ import re
 import threading
 import time
 import uuid
-from typing import Any, Callable, Dict, Iterable, NamedTuple, Optional, Tuple
+from typing import Any, Callable, Dict, Iterable, NamedTuple, Optional, Set, Tuple
 
 import requests
 
@@ -234,7 +234,7 @@ class RainSkillsDeploymentService(object):
         self.sleep = sleep or time.sleep
         self.thread_factory = thread_factory or threading.Thread
         self.report_url = self.DEFAULT_REPORT_URL
-        self._running_keys = set()
+        self._running_keys: Set[str] = set()
         self._lock = threading.Lock()
         if start_sweeper is None:
             start_sweeper = os.getenv("DISABLE_RAINSKILLS_DEPLOY_SWEEPER",

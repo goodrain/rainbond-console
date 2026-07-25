@@ -5,7 +5,7 @@ import logging
 import os
 import re
 import time
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 import requests as http_requests
 
@@ -1798,8 +1798,9 @@ class MCPQueryService(object):
     def _standard_deployment_event_fields(events: Any,
                                           fallback_service_ids: Any = None
                                           ) -> Dict[str, List[str]]:
-        event_ids = []
-        service_ids = []
+        event_ids: List[str] = []
+        service_ids: List[str] = []
+        event_values: Iterable[Any]
         if isinstance(events, dict):
             event_ids.extend(str(event_id) for event_id in events.keys()
                              if event_id)
