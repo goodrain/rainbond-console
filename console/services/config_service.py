@@ -104,26 +104,20 @@ class ConfigService(object):
 
     def add_config(self, key: str, default_value: Any, type: str, enable: bool = True,
                    desc: str = "") -> ConsoleSysConfig:
-        if not ConsoleSysConfig.objects.filter(key=key).exists():
-            create_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            try:
-                config = ConsoleSysConfig.objects.create(
-                    key=key,
-                    type=type,
-                    value=default_value,
-                    desc=desc,
-                    create_time=create_time,
-                    enable=enable,
-                    enterprise_id=self.enterprise_id)
-            except IntegrityError as exc:
-                try:
-                    return ConsoleSysConfig.objects.get(key=key)
-                except ConsoleSysConfig.DoesNotExist:
-                    raise exc
-            custom_settings.reload()
-            return config
-        else:
-            raise ConfigExistError("配置{}已存在".format(key))
+        create_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        try:
+            config = ConsoleSysConfig.objects.create(
+                key=key,
+                type=type,
+                value=default_value,
+                desc=desc,
+                create_time=create_time,
+                enable=enable,
+                enterprise_id=self.enterprise_id)
+        except IntegrityError as exc:
+            raise ConfigExistError("配置{}已存在".format(key)) from exc
+        custom_settings.reload()
+        return config
 
     def get_config_by_key(self, key: str) -> Optional[ConsoleSysConfig]:
         try:
