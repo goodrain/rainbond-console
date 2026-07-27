@@ -6,7 +6,7 @@ from rest_framework.response import Response
 
 from console.services.app_config_group import app_config_group_service
 from console.services.operation_log import operation_log_service
-from console.views.base import RegionTenantHeaderView, ApplicationView
+from console.views.base import ApplicationView
 from www.utils.return_message import general_data
 from console.services.group_service import group_service
 from console.serializer import AppConfigGroupCreateSerilizer
@@ -88,15 +88,14 @@ class AppConfigGroupView(ApplicationView):
         return Response(status=200, data=general_data(bean=acg))
 
     def delete(self, request: Request, team_name: str, app_id: str, name: str, *args: Any, **kwargs: Any) -> Response:
-        acg = app_config_group_service.delete_config_group(self.region_name, team_name, app_id, name)
-        # NOTE: delete_config_group returns None; indexing acg raises TypeError at runtime (real bug, backlog).
-        service_names = [service["service_cname"] for service in acg["services"]]  # type: ignore[index]
+        acg = app_config_group_service.get_config_group(self.region_name, app_id, name)
+        service_names = [service["service_cname"] for service in acg["services"]]
         config_items = [{"变量名": item["item_key"], "变量值": item["item_value"]}
-                        for item in acg["config_items"]]  # type: ignore[index]
+                        for item in acg["config_items"]]
         old_information = app_config_group_service.json_config_groups(
-            config_group_name=acg["config_group_name"],  # type: ignore[index]
+            config_group_name=acg["config_group_name"],
             config_items=config_items,
-            enable=acg["enable"],  # type: ignore[index]
+            enable=acg["enable"],
             services_names=service_names)
         app_config_group_service.delete_config_group(self.region_name, team_name, app_id, name)
         app_name = operation_log_service.process_app_name(self.app.app_name, self.region_name, self.tenant_name,
