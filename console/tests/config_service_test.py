@@ -25,8 +25,17 @@ class DummyModel(object):
     objects = DummyQuerySet()
 
 
+class ConfigExistError(Exception):
+    pass
+
+
 class IntegrityError(Exception):
     pass
+
+
+class DuplicateConfigManager(DummyQuerySet):
+    def create(self, **kwargs):
+        raise IntegrityError("duplicate config key")
 
 
 class CustomFieldQuerySet(object):
@@ -85,7 +94,7 @@ class EnterpriseConfigServiceTests(TestCase):
             sys.modules.pop(module_name, None)
 
     def import_config_service_module(self):
-        install_stub("console.exception.exceptions", ConfigExistError=Exception)
+        install_stub("console.exception.exceptions", ConfigExistError=ConfigExistError)
         install_stub("console.models.main", ConsoleSysConfig=DummyModel, OAuthServices=DummyModel)
         install_stub(
             "console.repositories.oauth_repo",
@@ -136,6 +145,14 @@ class EnterpriseConfigServiceTests(TestCase):
 
         self.assertEqual(service.user_id, "user-id")
 
+    # capability_id: console.enterprise-config.concurrent-initialization
+    def test_add_config_translates_duplicate_key_race_to_config_exist_error(self):
+        config_service = self.import_config_service_module()
+        config_service.ConsoleSysConfig = types.SimpleNamespace(objects=DuplicateConfigManager())
+
+        with self.assertRaises(ConfigExistError):
+            config_service.ConfigService().add_config("GLOBAL_IMAGE_REGISTRY", None, "string")
+
     # capability_id: console.enterprise-config.custom-fields-disabled-bool
     def test_get_custom_fields_includes_disabled_bool_fields(self):
         config_service = self.import_config_service_module()
@@ -160,43 +177,3 @@ class EnterpriseConfigServiceTests(TestCase):
                 "enable": False,
             }],
         )
-
-    # capability_id: console.enterprise-config.concurrent-initialization
-    def test_add_config_returns_existing_record_when_concurrent_create_wins(self):
-        config_service = self.import_config_service_module()
-        existing_config = types.SimpleNamespace(key="TITLE", value="", enable=True)
-
-        class RaceQuerySet(object):
-            def exists(self):
-                return False
-
-        class RaceManager(object):
-            def __init__(self):
-                self.get_kwargs = None
-
-            def filter(self, **kwargs):
-                return RaceQuerySet()
-
-            def create(self, **kwargs):
-                raise IntegrityError("UNIQUE constraint failed: console_sys_config.key")
-
-            def get(self, **kwargs):
-                self.get_kwargs = kwargs
-                return existing_config
-
-        race_manager = RaceManager()
-
-        class RaceConsoleSysConfig(object):
-            objects = race_manager
-            DoesNotExist = LookupError
-
-        reload_calls = []
-        config_service.ConsoleSysConfig = RaceConsoleSysConfig
-        config_service.custom_settings = types.SimpleNamespace(reload=lambda: reload_calls.append(True))
-
-        service = config_service.EnterpriseConfigService("enterprise-id", "user-id")
-        config = service.add_config(key="TITLE", default_value="", type="string", enable=True, desc="title")
-
-        self.assertIs(config, existing_config)
-        self.assertEqual(race_manager.get_kwargs, {"key": "TITLE"})
-        self.assertEqual(reload_calls, [])
