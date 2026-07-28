@@ -206,8 +206,11 @@ class MCPJSONWebTokenAuthentication(JSONWebTokenAuthentication):
             raise exceptions.AuthenticationFailed("群委托操作人不匹配")
         if str(getattr(user, "enterprise_id", "")) != str(payload.get("enterprise_id")):
             raise exceptions.AuthenticationFailed("群委托企业不匹配")
+        revision_value = payload.get("policy_revision")
+        if revision_value is None:
+            raise exceptions.AuthenticationFailed("群委托版本无效")
         try:
-            revision = int(payload.get("policy_revision"))
+            revision = int(revision_value)
         except (TypeError, ValueError):
             raise exceptions.AuthenticationFailed("群委托版本无效")
         if revision <= 0:
