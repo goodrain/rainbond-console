@@ -532,6 +532,7 @@ function check_rainbond_container() {
         # Rainbond container is running, get EIP and exit
         local get_eip
         get_eip=$(get_container_eip)
+        rainbond_warn_ip_drift "$get_eip"
         if rainbond_use_chinese_prompt; then
           send_info "Rainbond 容器已在运行中.\n\t- 请在浏览器中输入 http://$get_eip:7070 访问 Rainbond."
         else
@@ -550,6 +551,7 @@ function check_rainbond_container() {
           sleep 3
           local get_eip
           get_eip=$(get_container_eip)
+          rainbond_warn_ip_drift "$get_eip"
           if rainbond_use_chinese_prompt; then
             send_info "Rainbond 容器启动成功.\n\t- 请在浏览器中输入 http://$get_eip:7070 访问 Rainbond."
           else
@@ -740,6 +742,324 @@ function setup_port_forward() {
   fi
 
   exit 0
+}
+
+########################################
+# EIP Helpers
+# Detect both the LAN IP of this host and the public IP a browser needs to
+# reach it, so the console can advertise an address that actually works.
+########################################
+
+RAINBOND_EIP_CONFIRM_TIMEOUT=${RAINBOND_EIP_CONFIRM_TIMEOUT:-30}
+RAINBOND_LAN_IP=""
+RAINBOND_PUBLIC_IP=""
+RAINBOND_ACCESS_LINES_ZH=""
+RAINBOND_ACCESS_LINES_EN=""
+
+function rainbond_is_usable_ipv4() {
+    local result=$1 old_ifs octet octet_value
+    if [ -z "$result" ]; then
+        return 1
+    fi
+
+    case "$result" in
+        *[!0-9.]* | .* | *. | *..*)
+            return 1
+            ;;
+    esac
+
+    old_ifs=$IFS
+    IFS=.
+    set -- $result
+    IFS=$old_ifs
+
+    [ "$#" -eq 4 ] || return 1
+    for octet in "$@"; do
+        case "$octet" in
+            '' | *[!0-9]*)
+                return 1
+                ;;
+        esac
+        octet_value=$((10#$octet))
+        [ "$octet_value" -le 255 ] || return 1
+    done
+
+    [ "$result" != "127.0.0.1" ] && [ "$result" != "0.0.0.0" ]
+}
+
+# Func for verify the result entered.
+function verify_eip() {
+    local result=$1
+    if rainbond_is_usable_ipv4 "$result"; then
+        export EIP="$result"
+        return 0
+    fi
+
+    if [ -z "$result" ]; then
+        echo -e "${YELLOW}Do not enter null values${NC}"
+    elif [ "$result" == "127.0.0.1" ]; then
+        if rainbond_use_chinese_prompt; then
+            echo -e "${YELLOW}不能使用回环地址 127.0.0.1${NC}"
+        else
+            echo -e "${YELLOW}Cannot use loopback address 127.0.0.1${NC}"
+        fi
+    elif [ "$result" == "0.0.0.0" ]; then
+        if rainbond_use_chinese_prompt; then
+            echo -e "${YELLOW}不能使用 0.0.0.0${NC}"
+        else
+            echo -e "${YELLOW}Cannot use 0.0.0.0${NC}"
+        fi
+    fi
+    return 1
+}
+
+function rainbond_is_private_ipv4() {
+    local ip_addr=$1
+    case "$ip_addr" in
+        10.* | 192.168.*)
+            return 0
+            ;;
+        172.*)
+            local second_octet
+            second_octet=$(printf '%s' "$ip_addr" | cut -d. -f2)
+            [ "$second_octet" -ge 16 ] 2>/dev/null && [ "$second_octet" -le 31 ] 2>/dev/null
+            return $?
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
+function rainbond_skip_ip_interface() {
+    case "${1:-}" in
+        lo | lo:* | docker* | br-* | veth* | flannel* | cni* | cali* | calico* | kube* | tunl*)
+            return 0
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
+function rainbond_candidate_host_ips() {
+    local line iface cidr ip_addr
+
+    if command -v ip >/dev/null 2>&1; then
+        ip -4 -o addr show scope global 2>/dev/null | while IFS= read -r line; do
+            set -- $line
+            iface=${2:-}
+            cidr=${4:-}
+            ip_addr=${cidr%%/*}
+            rainbond_skip_ip_interface "$iface" && continue
+            rainbond_is_usable_ipv4 "$ip_addr" && printf '%s\n' "$ip_addr"
+        done
+    elif command -v ifconfig >/dev/null 2>&1; then
+        ifconfig 2>/dev/null | grep -w inet | awk '{print $2}' | while IFS= read -r ip_addr; do
+            rainbond_is_usable_ipv4 "$ip_addr" && printf '%s\n' "$ip_addr"
+        done
+    else
+        return 0
+    fi
+}
+
+function rainbond_detect_host_eip() {
+    local first_ip="" private_ip="" ip_addr
+
+    while IFS= read -r ip_addr; do
+        [ -n "$ip_addr" ] || continue
+        if [ -z "$first_ip" ]; then
+            first_ip=$ip_addr
+        fi
+        if rainbond_is_private_ipv4 "$ip_addr"; then
+            private_ip=$ip_addr
+            break
+        fi
+    done <<EOF
+$(rainbond_candidate_host_ips)
+EOF
+
+    if [ -n "$private_ip" ]; then
+        export EIP="$private_ip"
+        return 0
+    fi
+    if [ -n "$first_ip" ]; then
+        export EIP="$first_ip"
+        return 0
+    fi
+    return 1
+}
+
+function rainbond_detect_host_eip_value() {
+    (rainbond_detect_host_eip >/dev/null 2>&1 && printf '%s' "${EIP:-}")
+}
+
+# Public IP detection is on by default; EIP_PROBE=false turns it off.
+function rainbond_public_ip_probe_enabled() {
+    case "$(echo "${EIP_PROBE:-true}" | tr '[:upper:]' '[:lower:]')" in
+        0 | false | no | off)
+            return 1
+            ;;
+        *)
+            return 0
+            ;;
+    esac
+}
+
+# Sources for the public IP, tried in order: cloud metadata first (link-local,
+# authoritative, no Internet access needed), then public echo services.
+# Every source runs with a short timeout, so a blocked network costs the
+# installer a few seconds instead of minutes.
+function rainbond_public_ip_sources() {
+    cat <<'EOF'
+metadata|http://100.100.100.200/latest/meta-data/eipv4
+metadata|http://metadata.tencentyun.com/latest/meta-data/public-ipv4
+metadata|http://169.254.169.254/latest/meta-data/public-ipv4
+echo|https://api.ip.sb/ip
+echo|http://ip.3322.net
+echo|https://ifconfig.me/ip
+EOF
+}
+
+# Outputs the public IPv4 of this host, or nothing when it cannot be determined.
+function rainbond_probe_public_ip() {
+    local kind url value
+
+    command -v curl >/dev/null 2>&1 || return 1
+
+    while IFS='|' read -r kind url; do
+        [ -n "$url" ] || continue
+        if [ "$kind" = "metadata" ]; then
+            value=$(curl -sf --noproxy '*' --connect-timeout 1 --max-time 2 "$url" 2>/dev/null | tr -d '[:space:]')
+        else
+            value=$(curl -sf --connect-timeout 2 --max-time 3 "$url" 2>/dev/null | tr -d '[:space:]')
+        fi
+        if rainbond_is_usable_ipv4 "$value" && ! rainbond_is_private_ipv4 "$value"; then
+            printf '%s\n' "$value"
+            return 0
+        fi
+    done <<EOF
+$(rainbond_public_ip_sources)
+EOF
+
+    return 1
+}
+
+# The installer is normally run through a pipe (curl ... | bash), so stdin is
+# not a terminal even when the user is watching; /dev/tty still reaches them.
+function rainbond_tty_available() {
+    if is_truthy "${RAINBOND_NON_INTERACTIVE:-}"; then
+        return 1
+    fi
+    [ -e /dev/tty ] || return 1
+    (exec 3</dev/tty) 2>/dev/null
+}
+
+function rainbond_confirm_public_eip() {
+    local public_ip=$1 lan_ip=$2 answer=""
+
+    if rainbond_use_chinese_prompt; then
+        echo -e "${YELLOW}检测到本机公网 IP: ${public_ip}，内网 IP: ${lan_ip}${NC}"
+        echo -e "${YELLOW}从外部浏览器访问 Rainbond 需要使用公网 IP${NC}"
+        printf '%b' "${YELLOW}是否使用公网 IP ${public_ip} 作为访问地址? [Y/n] (${RAINBOND_EIP_CONFIRM_TIMEOUT} 秒无输入默认使用公网 IP): ${NC}"
+    else
+        echo -e "${YELLOW}Detected public IP: ${public_ip}, LAN IP: ${lan_ip}${NC}"
+        echo -e "${YELLOW}Reaching Rainbond from an external browser requires the public IP${NC}"
+        printf '%b' "${YELLOW}Use public IP ${public_ip} as the access address? [Y/n] (defaults to the public IP after ${RAINBOND_EIP_CONFIRM_TIMEOUT}s): ${NC}"
+    fi
+
+    if ! read -r -t "${RAINBOND_EIP_CONFIRM_TIMEOUT}" answer </dev/tty; then
+        answer=""
+    fi
+    echo ""
+
+    case "$answer" in
+        n | N | no | No | NO)
+            return 1
+            ;;
+        *)
+            return 0
+            ;;
+    esac
+}
+
+# Warn when the address recorded in the running container matches none of this
+# host's current addresses: the console builds its default *.nip.io domains from
+# it, and they stop resolving once the server IP changes.
+function rainbond_warn_ip_drift() {
+    local recorded_eip=$1 lan_ip="" public_ip=""
+
+    rainbond_is_usable_ipv4 "$recorded_eip" || return 0
+
+    lan_ip=$(rainbond_detect_host_eip_value)
+    if [ "$recorded_eip" = "$lan_ip" ]; then
+        return 0
+    fi
+
+    if rainbond_public_ip_probe_enabled; then
+        public_ip=$(rainbond_probe_public_ip)
+    fi
+    if [ -n "$public_ip" ] && [ "$recorded_eip" = "$public_ip" ]; then
+        return 0
+    fi
+
+    if rainbond_use_chinese_prompt; then
+        send_warn "服务器访问 IP 可能已变更: 容器记录的是 ${recorded_eip}，当前本机内网 IP 是 ${lan_ip:-未知}${public_ip:+，公网 IP 是 ${public_ip}}"
+        send_warn "控制台默认域名(*.${recorded_eip}.nip.io)和网关地址仍指向旧 IP，更换访问 IP 请参考 https://www.rainbond.com/docs/support"
+    else
+        send_warn "The access IP may have changed: the container records ${recorded_eip}, this host currently has LAN IP ${lan_ip:-unknown}${public_ip:+ and public IP ${public_ip}}"
+        send_warn "Default console domains (*.${recorded_eip}.nip.io) and the gateway address still point to the old IP, see https://www.rainbond.com/docs/support"
+    fi
+}
+
+# Builds the access address block shown on the completion screen. The console
+# address always comes with its counterpart, so a user who ends up on the wrong
+# side of a NAT still sees the address that works for them.
+function rainbond_build_access_lines() {
+    local zh_lines en_lines
+
+    zh_lines="#     控制台地址: http://${EIP}:7070"
+    en_lines="#     Console URL: http://${EIP}:7070"
+
+    if [ -n "${RAINBOND_PUBLIC_IP}" ] && [ "${RAINBOND_PUBLIC_IP}" != "${EIP}" ]; then
+        zh_lines="${zh_lines}
+#     公网地址: http://${RAINBOND_PUBLIC_IP}:7070"
+        en_lines="${en_lines}
+#     Public URL: http://${RAINBOND_PUBLIC_IP}:7070"
+    fi
+
+    if [ -n "${RAINBOND_LAN_IP}" ] && [ "${RAINBOND_LAN_IP}" != "${EIP}" ]; then
+        zh_lines="${zh_lines}
+#     内网地址: http://${RAINBOND_LAN_IP}:7070"
+        en_lines="${en_lines}
+#     LAN URL: http://${RAINBOND_LAN_IP}:7070"
+    fi
+
+    if [ -z "${RAINBOND_PUBLIC_IP}" ] && rainbond_is_private_ipv4 "${EIP}"; then
+        zh_lines="${zh_lines}
+#     云服务器请用公网 IP: http://<公网IP>:7070"
+        en_lines="${en_lines}
+#     Cloud server, use public IP: http://<public-ip>:7070"
+    fi
+
+    RAINBOND_ACCESS_LINES_ZH=$zh_lines
+    RAINBOND_ACCESS_LINES_EN=$en_lines
+}
+
+# Shown before the install starts: a closed security group is the most common
+# reason the console is unreachable after a successful installation.
+function rainbond_print_access_ports_notice() {
+    if rainbond_use_chinese_prompt; then
+        send_warn "安装前请确认云服务器安全组/防火墙已放行以下端口，否则浏览器无法访问 http://${EIP}:7070"
+        echo -e "${YELLOW}    - 7070: 控制台访问端口${NC}"
+        echo -e "${YELLOW}    - 80/443: 应用 HTTP/HTTPS 访问端口${NC}"
+        echo -e "${YELLOW}    - 30000-30010: 应用对外端口${NC}"
+    else
+        send_warn "Before installing, make sure the following ports are open in your security group/firewall, otherwise http://${EIP}:7070 stays unreachable"
+        echo -e "${YELLOW}    - 7070: console port${NC}"
+        echo -e "${YELLOW}    - 80/443: application HTTP/HTTPS ports${NC}"
+        echo -e "${YELLOW}    - 30000-30010: application external ports${NC}"
+    fi
 }
 
 ################################################################################
@@ -1629,147 +1949,17 @@ manage_docker
 
 ########################################
 # EIP Configure
-# Automatically detect the host IP used by Rainbond.
-# User customization via EIP is also supported.
+# Pick the address the console advertises to browsers:
+#   1. an explicit EIP always wins;
+#   2. otherwise the detected public IP is used - confirmed interactively when a
+#      terminal is reachable, adopted automatically when it is not;
+#   3. otherwise fall back to the LAN IP of this host.
+# Set EIP_PROBE=false to skip the public IP detection entirely.
 ########################################
 
-function rainbond_is_usable_ipv4() {
-    local result=$1 old_ifs octet octet_value
-    if [ -z "$result" ]; then
-        return 1
-    fi
-
-    case "$result" in
-        *[!0-9.]* | .* | *. | *..*)
-            return 1
-            ;;
-    esac
-
-    old_ifs=$IFS
-    IFS=.
-    set -- $result
-    IFS=$old_ifs
-
-    [ "$#" -eq 4 ] || return 1
-    for octet in "$@"; do
-        case "$octet" in
-            '' | *[!0-9]*)
-                return 1
-                ;;
-        esac
-        octet_value=$((10#$octet))
-        [ "$octet_value" -le 255 ] || return 1
-    done
-
-    [ "$result" != "127.0.0.1" ] && [ "$result" != "0.0.0.0" ]
-}
-
-# Func for verify the result entered.
-function verify_eip() {
-    local result=$1
-    if rainbond_is_usable_ipv4 "$result"; then
-        export EIP="$result"
-        return 0
-    fi
-
-    if [ -z "$result" ]; then
-        echo -e "${YELLOW}Do not enter null values${NC}"
-    elif [ "$result" == "127.0.0.1" ]; then
-        if rainbond_use_chinese_prompt; then
-            echo -e "${YELLOW}不能使用回环地址 127.0.0.1${NC}"
-        else
-            echo -e "${YELLOW}Cannot use loopback address 127.0.0.1${NC}"
-        fi
-    elif [ "$result" == "0.0.0.0" ]; then
-        if rainbond_use_chinese_prompt; then
-            echo -e "${YELLOW}不能使用 0.0.0.0${NC}"
-        else
-            echo -e "${YELLOW}Cannot use 0.0.0.0${NC}"
-        fi
-    fi
-    return 1
-}
-
-function rainbond_is_private_ipv4() {
-    local ip_addr=$1
-    case "$ip_addr" in
-        10.* | 192.168.*)
-            return 0
-            ;;
-        172.*)
-            local second_octet
-            second_octet=$(printf '%s' "$ip_addr" | cut -d. -f2)
-            [ "$second_octet" -ge 16 ] 2>/dev/null && [ "$second_octet" -le 31 ] 2>/dev/null
-            return $?
-            ;;
-        *)
-            return 1
-            ;;
-    esac
-}
-
-function rainbond_skip_ip_interface() {
-    case "${1:-}" in
-        lo | lo:* | docker* | br-* | veth* | flannel* | cni* | cali* | calico* | kube* | tunl*)
-            return 0
-            ;;
-        *)
-            return 1
-            ;;
-    esac
-}
-
-function rainbond_candidate_host_ips() {
-    local line iface cidr ip_addr
-
-    if command -v ip >/dev/null 2>&1; then
-        ip -4 -o addr show scope global 2>/dev/null | while IFS= read -r line; do
-            set -- $line
-            iface=${2:-}
-            cidr=${4:-}
-            ip_addr=${cidr%%/*}
-            rainbond_skip_ip_interface "$iface" && continue
-            rainbond_is_usable_ipv4 "$ip_addr" && printf '%s\n' "$ip_addr"
-        done
-    elif command -v ifconfig >/dev/null 2>&1; then
-        ifconfig 2>/dev/null | grep -w inet | awk '{print $2}' | while IFS= read -r ip_addr; do
-            rainbond_is_usable_ipv4 "$ip_addr" && printf '%s\n' "$ip_addr"
-        done
-    else
-        return 0
-    fi
-}
-
-function rainbond_detect_host_eip() {
-    local first_ip="" private_ip="" ip_addr
-
-    while IFS= read -r ip_addr; do
-        [ -n "$ip_addr" ] || continue
-        if [ -z "$first_ip" ]; then
-            first_ip=$ip_addr
-        fi
-        if rainbond_is_private_ipv4 "$ip_addr"; then
-            private_ip=$ip_addr
-            break
-        fi
-    done <<EOF
-$(rainbond_candidate_host_ips)
-EOF
-
-    if [ -n "$private_ip" ]; then
-        export EIP="$private_ip"
-        return 0
-    fi
-    if [ -n "$first_ip" ]; then
-        export EIP="$first_ip"
-        return 0
-    fi
-    return 1
-}
-
-# Check if EIP is already set via environment variable
 if [ -n "$EIP" ]; then
     if verify_eip "$EIP"; then
+        RAINBOND_LAN_IP=$(rainbond_detect_host_eip_value)
         if rainbond_use_chinese_prompt; then
             send_info "使用环境变量指定的 IP 地址: $EIP"
         else
@@ -1783,22 +1973,46 @@ if [ -n "$EIP" ]; then
         fi
         exit 1
     fi
-else
-    if rainbond_detect_host_eip; then
-        if rainbond_use_chinese_prompt; then
-            send_info "自动检测到服务器 IP: $EIP"
-        else
-            send_info "Detected server IP automatically: $EIP"
-        fi
-    else
-        if rainbond_use_chinese_prompt; then
-            send_error "未能自动检测到可用服务器 IP，请使用 EIP=<服务器IP> 重新执行安装脚本"
-        else
-            send_error "Failed to detect an available server IP automatically. Please rerun the installer with EIP=<server-ip>"
-        fi
-        exit 1
+elif rainbond_detect_host_eip; then
+    RAINBOND_LAN_IP=$EIP
+
+    if rainbond_public_ip_probe_enabled; then
+        RAINBOND_PUBLIC_IP=$(rainbond_probe_public_ip)
     fi
+
+    if [ -n "$RAINBOND_PUBLIC_IP" ] && [ "$RAINBOND_PUBLIC_IP" != "$RAINBOND_LAN_IP" ]; then
+        if rainbond_tty_available; then
+            if rainbond_confirm_public_eip "$RAINBOND_PUBLIC_IP" "$RAINBOND_LAN_IP"; then
+                export EIP="$RAINBOND_PUBLIC_IP"
+            else
+                export EIP="$RAINBOND_LAN_IP"
+            fi
+        else
+            export EIP="$RAINBOND_PUBLIC_IP"
+            if rainbond_use_chinese_prompt; then
+                send_info "非交互环境，自动使用检测到的公网 IP，如需改用内网 IP 请以 EIP=${RAINBOND_LAN_IP} 重新执行安装脚本"
+            else
+                send_info "Non-interactive run, using the detected public IP; rerun with EIP=${RAINBOND_LAN_IP} to use the LAN IP instead"
+            fi
+        fi
+    fi
+
+    if rainbond_use_chinese_prompt; then
+        send_info "自动检测到服务器 IP: $EIP"
+    else
+        send_info "Detected server IP automatically: $EIP"
+    fi
+else
+    if rainbond_use_chinese_prompt; then
+        send_error "未能自动检测到可用服务器 IP，请使用 EIP=<服务器IP> 重新执行安装脚本"
+    else
+        send_error "Failed to detect an available server IP automatically. Please rerun the installer with EIP=<server-ip>"
+    fi
+    exit 1
 fi
+
+rainbond_build_access_lines
+rainbond_print_access_ports_notice
 
 ################## Main ################
 # Start install rainbond standalone
@@ -2039,8 +2253,7 @@ if rainbond_use_chinese_prompt; then
 # 架构: $ARCH_TYPE
 # 操作系统: $OS_TYPE
 # Rainbond 访问地址:
-#     当前检测地址: http://$EIP:7070
-#     云服务器请用公网 IP: http://<公网IP>:7070
+$RAINBOND_ACCESS_LINES_ZH
 #
 # ⚠️  重要提示:
 #     请确保以下端口已在防火墙/安全组中开放:
@@ -2062,8 +2275,7 @@ EOF
 # 架构: $ARCH_TYPE
 # 操作系统: $OS_TYPE
 # Rainbond 访问地址:
-#     当前检测地址: http://$EIP:7070
-#     云服务器请用公网 IP: http://<公网IP>:7070
+$RAINBOND_ACCESS_LINES_ZH
 #     ⚠️  请等待几分钟后访问
 #
 # ⚠️  重要提示:
@@ -2096,8 +2308,7 @@ else
 # Arch: $ARCH_TYPE
 # OS: $OS_TYPE
 # Rainbond Access URL:
-#     Detected URL: http://$EIP:7070
-#     Cloud server, use public IP: http://<public-ip>:7070
+$RAINBOND_ACCESS_LINES_EN
 #
 # ⚠️  Important:
 #     Please ensure the following ports are open
@@ -2120,8 +2331,7 @@ EOF
 # Arch: $ARCH_TYPE
 # OS: $OS_TYPE
 # Rainbond Access URL:
-#     Detected URL: http://$EIP:7070
-#     Cloud server, use public IP: http://<public-ip>:7070
+$RAINBOND_ACCESS_LINES_EN
 #     ⚠️  Please wait a few minutes before accessing
 #
 # ⚠️  Important:
