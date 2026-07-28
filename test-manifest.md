@@ -153,6 +153,7 @@
 | console.app.copy-services-guard | 应用复制时拦截无效的 services 参数 | active | regression | console.services.mcp_query_service.copy_app | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_copy_app_rejects_non_list_services |
 | console.app.create | 创建应用 | active | regression | console.services.mcp_query_service.call_tool[rainbond_create_app] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_create_app_calls_group_service |
 | console.app.create-from-yaml | 从 YAML 创建应用 | active | regression | console.services.mcp_query_service.call_tool[rainbond_create_app_from_yaml] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_create_app_from_yaml_creates_compose_record |
+| console.app.create-k8s-name-autogen | 创建应用时自动生成 k8s_app 名称 | active | regression | console.services.mcp_query_service.call_tool[console.app.create-k8s-name-autogen] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_create_app_generates_k8s_app_when_empty<br>console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_create_app_generates_k8s_app_for_non_ascii_app_name<br>console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_create_app_normalizes_mixed_case_app_name<br>console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_create_app_appends_suffix_when_generated_name_taken_in_console<br>console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_create_app_retries_with_suffix_on_region_side_duplicate<br>console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_create_app_does_not_retry_explicit_k8s_app_on_duplicate |
 | console.app.create-k8s-name-duplicate | App Create K8s Name Duplicate | active | regression | console.services.mcp_query_service.call_tool[console.app.create-k8s-name-duplicate] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_create_app_exposes_structured_k8s_app_duplicate_error |
 | console.app.delete | 删除应用及隐藏快照模板 | active | regression | console.services.group_service._delete_app | console/tests/group_service_test.py::GroupServiceDeleteAppTestCase |
 | console.app.delete-confirmation-guard | 阻止无效的应用删除确认 | active | regression | console.services.mcp_query_service.call_tool[rainbond_delete_app] | console/tests/mcp_query_service_test.py::MCPQueryServiceDeleteAppTests.test_delete_app_rejects_invalid_confirmation_token |
@@ -2064,6 +2065,16 @@
 - 业务入口: `console.services.mcp_query_service.call_tool[rainbond_create_app_from_yaml]`
 - 代码路径: `console/services/mcp_query_service.py`, `console/services/compose_service.py`
 - 测试路径: `console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_create_app_from_yaml_creates_compose_record`
+
+### 创建应用时自动生成 k8s_app 名称
+
+- Capability ID: `console.app.create-k8s-name-autogen`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `workflow`
+- 业务入口: `console.services.mcp_query_service.call_tool[console.app.create-k8s-name-autogen]`
+- 代码路径: `console/services/mcp_query_service.py`
+- 测试路径: `console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_create_app_generates_k8s_app_when_empty`, `console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_create_app_generates_k8s_app_for_non_ascii_app_name`, `console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_create_app_normalizes_mixed_case_app_name`, `console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_create_app_appends_suffix_when_generated_name_taken_in_console`, `console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_create_app_retries_with_suffix_on_region_side_duplicate`, `console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_create_app_does_not_retry_explicit_k8s_app_on_duplicate`
 
 ### App Create K8s Name Duplicate
 

@@ -3009,7 +3009,7 @@ class MCPQueryService(object):
             "target_app": {
                 "app_id": target_app_id_int,
                 "app_name": self._value(created_app, "app_name") or target_app_name,
-                "k8s_app": k8s_app or None,
+                "k8s_app": self._value(created_app, "k8s_app") or k8s_app or None,
             },
             "installed": True,
             "install_result": install_result,
@@ -4987,25 +4987,55 @@ class MCPQueryService(object):
             }
         return None
 
+    K8S_APP_NAME_AUTO_BASE_MAX_LENGTH = 32
+
+    def _generate_k8s_app(self, team: Any, region_name: str, app_name: str, force_suffix: bool = False) -> str:
+        base = re.sub(r"[^a-z0-9-]+", "-", (app_name or "").lower())
+        base = re.sub(r"-+", "-", base).strip("-")
+        # k8s app 名称必须以小写字母开头
+        base = re.sub(r"^[^a-z]+", "", base).strip("-")
+        base = base[:self.K8S_APP_NAME_AUTO_BASE_MAX_LENGTH].rstrip("-")
+        if not re.match(self.K8S_APP_NAME_PATTERN, base):
+            base = "app"
+            force_suffix = True
+        candidate = "{}-{}".format(base, make_uuid()[:6]) if force_suffix else base
+        for _ in range(10):
+            if not group_repo.is_k8s_app_duplicate(team.tenant_id, region_name, candidate):
+                return candidate
+            candidate = "{}-{}".format(base, make_uuid()[:6])
+        return candidate
+
     def _create_app_with_mcp_error_details(self, team: Any, region_name: str, app_name: str, app_note: str,
                                            username: str, k8s_app: str = "") -> Any:
-        try:
-            return group_service.create_app(
-                team,
-                region_name,
-                app_name,
-                app_note,
-                username,
-                k8s_app=k8s_app if k8s_app else "",
-            )
-        except ServiceHandleException as exc:
-            raise ServiceHandleException(
-                msg=exc.msg,
-                msg_show=exc.msg_show,
-                status_code=exc.status_code,
-                error_code=exc.error_code,
-                details=self._build_create_app_error_details(exc, app_name, k8s_app),
-            )
+        auto_generated = not k8s_app
+        if auto_generated:
+            k8s_app = self._generate_k8s_app(team, region_name, app_name)
+        retried = False
+        while True:
+            try:
+                return group_service.create_app(
+                    team,
+                    region_name,
+                    app_name,
+                    app_note,
+                    username,
+                    k8s_app=k8s_app,
+                )
+            except ServiceHandleException as exc:
+                details = self._build_create_app_error_details(exc, app_name, k8s_app)
+                # 自动生成的名称与集群端残留记录冲突时，换一个带随机后缀的名称重试一次
+                if auto_generated and not retried and details and \
+                        details.get("field") == "k8s_app" and details.get("reason") == "duplicate":
+                    retried = True
+                    k8s_app = self._generate_k8s_app(team, region_name, app_name, force_suffix=True)
+                    continue
+                raise ServiceHandleException(
+                    msg=exc.msg,
+                    msg_show=exc.msg_show,
+                    status_code=exc.status_code,
+                    error_code=exc.error_code,
+                    details=details,
+                )
 
     @staticmethod
     def _parse_int_with_default(value: Any, default: Any) -> Any:
