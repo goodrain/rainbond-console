@@ -20,6 +20,7 @@ django.setup()
 from console.exception.exceptions import AuthenticationInfoHasExpiredError
 from console.exception.main import ServiceHandleException
 from console.views.mcp_query import (
+    MCPJSONWebTokenAuthentication,
     MCPQueryHTTPView,
     MCPQueryMessageView,
     MCPQuerySSEView,
@@ -27,6 +28,7 @@ from console.views.mcp_query import (
     _load_mcp_http_session,
     _remove_mcp_sse_session,
 )
+from console.login.jwt_authentication import JSONWebTokenAuthentication
 
 
 def _decode_chunk(chunk):
@@ -49,6 +51,36 @@ class MCPQuerySSEViewTests(SimpleTestCase):
         self.http_view = MCPQueryHTTPView.as_view()
         self.sse_view = MCPQuerySSEView.as_view()
         self.message_view = MCPQueryMessageView.as_view()
+
+    def test_group_mcp_token_is_admin_equivalent_only_in_mcp_authentication(self):
+        payload = {
+            "token_purpose": "agent_group_mcp",
+            "enterprise_id": "eid-1",
+            "operator_user_id": "7",
+            "delegated_by_user_id": "1",
+            "group_policy_id": "fgp-1",
+            "member_grant_id": "fgg-1",
+            "policy_revision": 2,
+        }
+        user = SimpleNamespace(
+            user_id=7, username="employee", enterprise_id="eid-1", is_authenticated=True,
+            is_enterprise_admin=False)
+        request = self.factory.get("/console/mcp/query", HTTP_AUTHORIZATION="GRJWT group-token")
+
+        with patch("console.login.jwt_authentication.jwt_issuer.decode_jwt", return_value=payload), \
+                patch("console.login.jwt_authentication.LoginEvent"), \
+                patch.object(JSONWebTokenAuthentication, "authenticate_credentials", return_value=user):
+            authenticated, _ = MCPJSONWebTokenAuthentication().authenticate(request)
+
+        self.assertTrue(authenticated.is_enterprise_admin)
+        self.assertEqual(authenticated.agent_group_mcp_context["operator_user_id"], "7")
+
+        regular_request = self.factory.get("/console/enterprise/eid-1/info",
+                                           HTTP_AUTHORIZATION="GRJWT group-token")
+        with patch("console.login.jwt_authentication.jwt_issuer.decode_jwt", return_value=payload), \
+                patch.object(JSONWebTokenAuthentication, "authenticate_credentials", return_value=user):
+            with self.assertRaises(Exception):
+                JSONWebTokenAuthentication().authenticate(regular_request)
 
     # capability_id: console.mcp.http-initialize
     def test_http_initialize_returns_json_and_session_header(self):

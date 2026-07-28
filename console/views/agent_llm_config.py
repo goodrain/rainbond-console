@@ -17,6 +17,7 @@ from www.models.main import TenantEnterprise, Users
 from www.utils.return_message import general_message
 
 FEISHU_MCP_CREDENTIAL_TTL_SECONDS = 1800
+FEISHU_GROUP_MCP_CREDENTIAL_TTL_SECONDS = 300
 
 
 def _decode_agent_service_token(request: Request) -> Dict[str, Any]:
@@ -166,3 +167,114 @@ class AgentMCPDelegatedCredentialsView(APIView):
             "expires_in": FEISHU_MCP_CREDENTIAL_TTL_SECONDS,
         }
         return Response(general_message(200, "success", "获取成功", bean=data), status=200)
+
+
+class AgentMCPGroupDelegatedCredentialsView(APIView):
+    """Issue an administrator-equivalent credential restricted to Console MCP."""
+
+    authentication_classes = (JSONWebTokenAuthentication, )
+    permission_classes = (IsAuthenticated, )
+
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
+        denied = _require_agent_service_token(request)
+        if denied:
+            return denied
+        allowed_keys = {
+            "enterprise_id", "operator_user_id", "delegated_by_user_id",
+            "group_policy_id", "member_grant_id", "policy_revision",
+        }
+        if set(request.data.keys()) != allowed_keys:
+            return Response(general_message(400, "invalid_request", "群委托参数不完整"), status=400)
+        enterprise_id = str(request.data.get("enterprise_id") or "").strip()
+        operator_user_id = _positive_int(request.data.get("operator_user_id"))
+        delegated_by_user_id = _positive_int(request.data.get("delegated_by_user_id"))
+        group_policy_id = str(request.data.get("group_policy_id") or "").strip()
+        member_grant_id = str(request.data.get("member_grant_id") or "").strip()
+        policy_revision = _positive_int(request.data.get("policy_revision"))
+        if not enterprise_id or not operator_user_id or not delegated_by_user_id or not policy_revision or \
+                not _valid_internal_id(group_policy_id) or not _valid_internal_id(member_grant_id):
+            return Response(general_message(400, "invalid_request", "群委托参数无效"), status=400)
+        service_enterprise_id = str(_decode_agent_service_token(request).get("enterprise_id") or "")
+        if service_enterprise_id != enterprise_id:
+            return Response(general_message(403, "forbidden", "企业范围不匹配"), status=403)
+        if not TenantEnterprise.objects.filter(enterprise_id=enterprise_id).exists():
+            return Response(general_message(403, "forbidden", "企业不存在"), status=403)
+        if not EnterpriseUserPerm.objects.filter(
+                enterprise_id=enterprise_id, user_id=delegated_by_user_id, identity="admin").exists():
+            return Response(general_message(403, "forbidden", "群授权签发人不再是企业管理员"), status=403)
+        operator = Users.objects.filter(
+            user_id=operator_user_id, enterprise_id=enterprise_id, is_active=True).first()
+        if not operator:
+            return Response(general_message(403, "forbidden", "群操作人不存在或已停用"), status=403)
+        token = jwt_issuer.issue_group_mcp_jwt(
+            operator,
+            enterprise_id=enterprise_id,
+            delegated_by_user_id=str(delegated_by_user_id),
+            group_policy_id=group_policy_id,
+            member_grant_id=member_grant_id,
+            policy_revision=policy_revision,
+            lifetime_seconds=FEISHU_GROUP_MCP_CREDENTIAL_TTL_SECONDS,
+        )
+        data = {
+            "authorization": "{} {}".format(jwt_issuer.JWT_AUTH_HEADER_PREFIX, token),
+            "cookie": "{}={}".format(jwt_issuer.JWT_AUTH_COOKIE, token),
+            "operator_user_id": str(operator_user_id),
+            "enterprise_id": enterprise_id,
+            "group_policy_id": group_policy_id,
+            "member_grant_id": member_grant_id,
+            "policy_revision": policy_revision,
+            "expires_in": FEISHU_GROUP_MCP_CREDENTIAL_TTL_SECONDS,
+        }
+        return Response(general_message(200, "success", "获取成功", bean=data), status=200)
+
+
+class AgentFeishuRuntimeIdentityView(APIView):
+    """Resolve a current enterprise employee for a server-issued Feishu invite."""
+
+    authentication_classes = (JSONWebTokenAuthentication, )
+    permission_classes = (IsAuthenticated, )
+
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
+        denied = _require_agent_service_token(request)
+        if denied:
+            return denied
+        if set(request.data.keys()) != {"enterprise_id", "user_id"}:
+            return Response(general_message(400, "invalid_request", "员工身份参数不完整"), status=400)
+        enterprise_id = str(request.data.get("enterprise_id") or "").strip()
+        user_id = _positive_int(request.data.get("user_id"))
+        service_enterprise_id = str(_decode_agent_service_token(request).get("enterprise_id") or "")
+        if not enterprise_id or not user_id:
+            return Response(general_message(400, "invalid_request", "员工身份参数无效"), status=400)
+        if service_enterprise_id != enterprise_id:
+            return Response(general_message(403, "forbidden", "企业范围不匹配"), status=403)
+        employee = Users.objects.filter(
+            user_id=user_id, enterprise_id=enterprise_id, is_active=True).first()
+        if not employee:
+            return Response(general_message(404, "user_not_found", "员工不存在或已停用"), status=404)
+        is_admin = bool(getattr(employee, "sys_admin", False)) or EnterpriseUserPerm.objects.filter(
+            enterprise_id=enterprise_id, user_id=user_id, identity="admin").exists()
+        data = {
+            "user_id": str(employee.user_id),
+            "username": employee.nick_name or str(employee.user_id),
+            "display_name": employee.real_name or employee.nick_name or str(employee.user_id),
+            "enterprise_id": enterprise_id,
+            "roles": ["enterprise_admin"] if is_admin else [],
+            "is_active": True,
+        }
+        return Response(general_message(200, "success", "获取成功", bean=data), status=200)
+
+
+def _positive_int(value: object) -> int:
+    if isinstance(value, bool) or not isinstance(value, (int, str)):
+        return 0
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        return 0
+    return parsed if parsed > 0 else 0
+
+
+def _valid_internal_id(value: str) -> bool:
+    if not value or len(value) > 64:
+        return False
+    return all(character.isalnum() or character in ("-", "_") for character in value)

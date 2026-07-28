@@ -17,7 +17,9 @@ from rest_framework.test import APIRequestFactory, force_authenticate
 django.setup()
 
 from console.views.agent_llm_config import (AgentLLMConfigView, AgentLLMRuntimeConfigView,
+                                            AgentFeishuRuntimeIdentityView,
                                             AgentMCPDelegatedCredentialsView,
+                                            AgentMCPGroupDelegatedCredentialsView,
                                             AgentMCPRuntimeCredentialsView,
                                             AgentMCPServiceCredentialsView)
 
@@ -31,6 +33,8 @@ class AgentLLMConfigViewTests(SimpleTestCase):
         self.mcp_credentials_view = AgentMCPRuntimeCredentialsView.as_view()
         self.service_credentials_view = AgentMCPServiceCredentialsView.as_view()
         self.delegated_credentials_view = AgentMCPDelegatedCredentialsView.as_view()
+        self.group_delegated_credentials_view = AgentMCPGroupDelegatedCredentialsView.as_view()
+        self.feishu_identity_view = AgentFeishuRuntimeIdentityView.as_view()
 
     def _admin_user(self):
         return SimpleNamespace(
@@ -274,6 +278,72 @@ class AgentLLMConfigViewTests(SimpleTestCase):
         ])
         self.assertEqual(1800, response.data["data"]["bean"]["expires_in"])
         issue_jwt.assert_called_once_with(delegated_user, lifetime_seconds=1800)
+
+    def test_group_delegated_credentials_issue_mcp_only_admin_equivalent_identity(self):
+        request = self.factory.post(
+            "/console/internal/agent-mcp-credentials/group-delegated",
+            data=json.dumps({
+                "enterprise_id": "eid",
+                "operator_user_id": "7",
+                "delegated_by_user_id": "1",
+                "group_policy_id": "fgp-1",
+                "member_grant_id": "fgg-1",
+                "policy_revision": 2,
+            }),
+            content_type="application/json",
+            HTTP_AUTHORIZATION="GRJWT service-token",
+        )
+        force_authenticate(request, user=self._admin_user(), token="service-token")
+        operator = SimpleNamespace(
+            user_id=7, nick_name="employee", email="employee@example.com",
+            enterprise_id="eid", is_active=True, is_authenticated=True)
+
+        with mock.patch("console.views.agent_llm_config.jwt_issuer.decode_jwt",
+                        return_value={"token_purpose": "agent_service", "enterprise_id": "eid"}), \
+                mock.patch("console.views.agent_llm_config.TenantEnterprise.objects.filter") as enterprise_filter, \
+                mock.patch("console.views.agent_llm_config.EnterpriseUserPerm.objects.filter") as perm_filter, \
+                mock.patch("console.views.agent_llm_config.Users.objects.filter") as users_filter, \
+                mock.patch("console.views.agent_llm_config.jwt_issuer.issue_group_mcp_jwt",
+                           return_value="group-jwt") as issue_jwt:
+            enterprise_filter.return_value.exists.return_value = True
+            perm_filter.return_value.exists.return_value = True
+            users_filter.return_value.first.return_value = operator
+            response = self.group_delegated_credentials_view(request)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["data"]["bean"]["authorization"], "GRJWT group-jwt")
+        self.assertEqual(response.data["data"]["bean"]["operator_user_id"], "7")
+        issue_jwt.assert_called_once_with(
+            operator,
+            enterprise_id="eid",
+            delegated_by_user_id="1",
+            group_policy_id="fgp-1",
+            member_grant_id="fgg-1",
+            policy_revision=2,
+            lifetime_seconds=300,
+        )
+
+    def test_feishu_runtime_identity_returns_current_employee_without_elevating_roles(self):
+        request = self.factory.post(
+            "/console/internal/agent-feishu/identity",
+            data=json.dumps({"enterprise_id": "eid", "user_id": "7"}),
+            content_type="application/json",
+            HTTP_AUTHORIZATION="GRJWT service-token",
+        )
+        force_authenticate(request, user=self._admin_user(), token="service-token")
+        employee = SimpleNamespace(
+            user_id=7, nick_name="employee", real_name="Employee",
+            enterprise_id="eid", is_active=True, sys_admin=False)
+        with mock.patch("console.views.agent_llm_config.jwt_issuer.decode_jwt",
+                        return_value={"token_purpose": "agent_service", "enterprise_id": "eid"}), \
+                mock.patch("console.views.agent_llm_config.Users.objects.filter") as users_filter, \
+                mock.patch("console.views.agent_llm_config.EnterpriseUserPerm.objects.filter") as perm_filter:
+            users_filter.return_value.first.return_value = employee
+            perm_filter.return_value.exists.return_value = False
+            response = self.feishu_identity_view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["data"]["bean"]["user_id"], "7")
+        self.assertEqual(response.data["data"]["bean"]["roles"], [])
 
     def test_delegated_credentials_accept_real_authorization_header_bytes(self):
         request = self.factory.post(

@@ -11,9 +11,12 @@ from console.views.api_gateway import AppApiGatewayView, AppApiGatewayConvertVie
 from console.views.agent_access import AgentAccessView
 from console.views.agent_kubernetes import AgentKubernetesBootstrapView, AgentKubernetesEncryptionKeyView
 from console.views.agent_llm_config import (AgentLLMConfigView, AgentLLMRuntimeConfigView,
+                                            AgentFeishuRuntimeIdentityView,
                                             AgentMCPDelegatedCredentialsView,
+                                            AgentMCPGroupDelegatedCredentialsView,
                                             AgentMCPRuntimeCredentialsView,
                                             AgentMCPServiceCredentialsView)
+from console.views.agent_feishu_identity import AgentFeishuEligibleUsersView
 from console.views.app_autoscaler import (AppAutoscalerView, AppScalingRecords, ListAppAutoscalerView)
 from console.views.app_config.app_dependency import (AppDependencyManageView, AppDependencyView, AppNotDependencyView,
                                                      AppDependencyReverseView, AppDependencyViewList)
@@ -220,6 +223,8 @@ urlpatterns = [
     re_path(r'^internal/agent-mcp-credentials/runtime$', AgentMCPRuntimeCredentialsView.as_view()),
     re_path(r'^internal/agent-mcp-credentials/service$', AgentMCPServiceCredentialsView.as_view()),
     re_path(r'^internal/agent-mcp-credentials/delegated$', AgentMCPDelegatedCredentialsView.as_view()),
+    re_path(r'^internal/agent-mcp-credentials/group-delegated$', AgentMCPGroupDelegatedCredentialsView.as_view()),
+    re_path(r'^internal/agent-feishu/identity$', AgentFeishuRuntimeIdentityView.as_view()),
 
     # record error logs
     re_path(r'^errlog$', ErrLogView.as_view()),
@@ -988,6 +993,7 @@ urlpatterns = [
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/overview/team$', EnterpriseTeamOverView.as_view()),
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/monitor$', EnterpriseMonitor.as_view()),
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/users$', EnterPriseUsersCLView.as_view()),
+    re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/agent/feishu/eligible-users$', AgentFeishuEligibleUsersView.as_view()),
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/user/(?P<user_id>[\d\-]+)$', EnterPriseUsersUDView.as_view()),
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/user/(?P<user_id>[\d\-]+)/teams$', EnterpriseUserTeams.as_view()),
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/myteams$', EnterpriseMyTeams.as_view()),

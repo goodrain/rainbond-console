@@ -20,6 +20,7 @@ JWT_AUTH_COOKIE = "token"
 JWT_AUTH_HEADER_PREFIX = "GRJWT"
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRATION_DELTA = datetime.timedelta(days=3650)  # ~10 years, effectively permanent
+GROUP_MCP_TOKEN_PURPOSE = "agent_group_mcp"
 
 
 class ConsoleAccessToken(AccessToken):
@@ -56,6 +57,22 @@ def issue_agent_service_jwt(user, enterprise_id=None, lifetime_seconds=None):
         token.set_exp(lifetime=datetime.timedelta(seconds=lifetime_seconds))
     token["token_purpose"] = "agent_service"
     token["enterprise_id"] = str(enterprise_id or getattr(user, "enterprise_id", "") or "")
+    return str(token)
+
+
+def issue_group_mcp_jwt(user, enterprise_id, delegated_by_user_id, group_policy_id,
+                        member_grant_id, policy_revision, lifetime_seconds=300):
+    """Issue a purpose-bound token accepted only by the Console MCP endpoints."""
+    lifetime_seconds = max(60, min(int(lifetime_seconds), 600))
+    token = ConsoleAccessToken.for_user(user)
+    token.set_exp(lifetime=datetime.timedelta(seconds=lifetime_seconds))
+    token["token_purpose"] = GROUP_MCP_TOKEN_PURPOSE
+    token["enterprise_id"] = str(enterprise_id)
+    token["operator_user_id"] = str(user.user_id)
+    token["delegated_by_user_id"] = str(delegated_by_user_id)
+    token["group_policy_id"] = str(group_policy_id)
+    token["member_grant_id"] = str(member_grant_id)
+    token["policy_revision"] = int(policy_revision)
     return str(token)
 
 
