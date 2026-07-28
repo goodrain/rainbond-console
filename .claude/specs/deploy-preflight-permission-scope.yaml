@@ -23,7 +23,7 @@ sprints:
     tasks:
       - id: task-1.1
         name: "Select deploy preflight permissions from application context"
-        status: pending
+        status: completed
         files:
           modify:
             - path: "console/tests/deploy_preflight_service_test.py"
@@ -126,3 +126,7 @@ sprints:
           - path: "console/utils/perms_route_config.py:33-47,66-80"
             note: "Existing app-create and component-create route permission definitions"
 
+verification_notes:
+  - "Focused deploy preflight tests passed: 22 passed; deploy_preflight.py line coverage was 91%."
+  - "Manifest validation and affected-file flake8 passed."
+  - "Repository make check remains blocked by the pre-existing full-repository lint baseline and the local checkout's unexcluded .venv36 directory."

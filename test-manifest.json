@@ -10655,6 +10655,24 @@
       ],
       "test_type": "regression",
       "status": "active"
+    },
+    {
+      "id": "console.deploy-preflight.permission-scope",
+      "title": "Deploy preflight permission scope",
+      "title_zh": "部署预检权限范围",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.app_create.deploy_preflight.DeployPreflightView",
+      "code_paths": [
+        "console/views/app_create/deploy_preflight.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/deploy_preflight_service_test.py",
+          "selector": "DeployPreflightServiceTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
     }
   ]
 }
