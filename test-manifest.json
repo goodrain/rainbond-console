@@ -1379,6 +1379,32 @@
       "status": "active"
     },
     {
+      "id": "console.app-scale.vertical-gpu-default",
+      "title": "Vertical scale keeps GPU value when omitted",
+      "title_zh": "垂直伸缩未传 GPU 时保留组件当前值",
+      "interface_type": "service_method",
+      "interface": "console.services.app_actions.app_manage.AppManageService.vertical_upgrade",
+      "code_paths": [
+        "console/services/app_actions/app_manage.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/vertical_upgrade_gpu_test.py",
+          "selector": "VerticalUpgradeGPUTests.test_omitted_gpu_keeps_current_value_instead_of_null"
+        },
+        {
+          "path": "console/tests/vertical_upgrade_gpu_test.py",
+          "selector": "VerticalUpgradeGPUTests.test_omitted_gpu_defaults_to_zero_when_current_is_none"
+        },
+        {
+          "path": "console/tests/vertical_upgrade_gpu_test.py",
+          "selector": "VerticalUpgradeGPUTests.test_explicit_gpu_is_applied_and_sent_to_region"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.app-share.complete",
       "title": "App Share Complete",
       "title_zh": "App Share Complete",
@@ -2753,6 +2779,44 @@
         {
           "path": "console/tests/mcp_query_service_test.py",
           "selector": "MCPQueryServiceApplicationToolTests.test_create_app_from_yaml_creates_compose_record"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.app.create-k8s-name-autogen",
+      "title": "App Create K8s Name Auto Generation",
+      "title_zh": "创建应用时自动生成 k8s_app 名称",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[console.app.create-k8s-name-autogen]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_create_app_generates_k8s_app_when_empty"
+        },
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_create_app_generates_k8s_app_for_non_ascii_app_name"
+        },
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_create_app_normalizes_mixed_case_app_name"
+        },
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_create_app_appends_suffix_when_generated_name_taken_in_console"
+        },
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_create_app_retries_with_suffix_on_region_side_duplicate"
+        },
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_create_app_does_not_retry_explicit_k8s_app_on_duplicate"
         }
       ],
       "test_type": "regression",
@@ -5199,6 +5263,24 @@
         {
           "path": "console/tests/utils/validation_test.py",
           "selector": "EndpointValidationTests.test_validate_endpoints_info_rejects_duplicate_addresses"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.enterprise-config.concurrent-initialization",
+      "title": "Handle concurrent enterprise config initialization",
+      "title_zh": "处理企业配置并发初始化",
+      "interface_type": "service_method",
+      "interface": "console.services.config_service.ConfigService.add_config",
+      "code_paths": [
+        "console/services/config_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/config_service_test.py",
+          "selector": "EnterpriseConfigServiceTests.test_add_config_returns_existing_record_when_concurrent_create_wins"
         }
       ],
       "test_type": "regression",
@@ -8460,18 +8542,18 @@
       "status": "active"
     },
     {
-      "id": "console.timeutil.current-time-str",
-      "title": "Return the current datetime formatted as a default timestamp string",
-      "title_zh": "返回格式化的当前时间字符串",
-      "interface_type": "workflow",
-      "interface": "console.utils.timeutil.current_time_str",
+      "id": "console.region-api.vm-snapshot-feature-gate-msg",
+      "title": "_check_status translates VM snapshot feature gate error to actionable msg_show",
+      "title_zh": "_check_status 将虚拟机快照功能门禁错误翻译为可操作提示",
+      "interface_type": "service_method",
+      "interface": "www.apiclient.regionapibaseclient.RegionApiBaseHttpClient._check_status",
       "code_paths": [
-        "console/utils/timeutil.py"
+        "www/apiclient/regionapibaseclient.py"
       ],
       "tests": [
         {
-          "path": "console/tests/utils/timeutil_test.py",
-          "selector": "TimeUtilTests.test_current_time_str"
+          "path": "console/tests/regionapibaseclient_test.py",
+          "selector": "RegionApiBaseHttpClientTestCase.test_check_status_translates_snapshot_feature_gate_error_to_actionable_msg_show"
         }
       ],
       "test_type": "regression",
@@ -9665,36 +9747,18 @@
       "status": "active"
     },
     {
-      "id": "console.enterprise-config.concurrent-initialization",
-      "title": "Handle concurrent enterprise config initialization",
-      "title_zh": "处理企业配置并发初始化",
-      "interface_type": "service_method",
-      "interface": "console.services.config_service.ConfigService.add_config",
+      "id": "console.timeutil.current-time-str",
+      "title": "Return the current datetime formatted as a default timestamp string",
+      "title_zh": "返回格式化的当前时间字符串",
+      "interface_type": "workflow",
+      "interface": "console.utils.timeutil.current_time_str",
       "code_paths": [
-        "console/services/config_service.py"
+        "console/utils/timeutil.py"
       ],
       "tests": [
         {
-          "path": "console/tests/config_service_test.py",
-          "selector": "EnterpriseConfigServiceTests.test_add_config_returns_existing_record_when_concurrent_create_wins"
-        }
-      ],
-      "test_type": "regression",
-      "status": "active"
-    },
-    {
-      "id": "console.region-api.vm-snapshot-feature-gate-msg",
-      "title": "_check_status translates VM snapshot feature gate error to actionable msg_show",
-      "title_zh": "_check_status 将虚拟机快照功能门禁错误翻译为可操作提示",
-      "interface_type": "service_method",
-      "interface": "www.apiclient.regionapibaseclient.RegionApiBaseHttpClient._check_status",
-      "code_paths": [
-        "www/apiclient/regionapibaseclient.py"
-      ],
-      "tests": [
-        {
-          "path": "console/tests/regionapibaseclient_test.py",
-          "selector": "RegionApiBaseHttpClientTestCase.test_check_status_translates_snapshot_feature_gate_error_to_actionable_msg_show"
+          "path": "console/tests/utils/timeutil_test.py",
+          "selector": "TimeUtilTests.test_current_time_str"
         }
       ],
       "test_type": "regression",
@@ -10625,32 +10689,6 @@
       "tests": [
         {
           "path": "console/tests/vm_asset_instantiation_test.py"
-        }
-      ],
-      "test_type": "regression",
-      "status": "active"
-    },
-    {
-      "id": "console.app-scale.vertical-gpu-default",
-      "title": "Vertical scale keeps GPU value when omitted",
-      "title_zh": "垂直伸缩未传 GPU 时保留组件当前值",
-      "interface_type": "service_method",
-      "interface": "console.services.app_actions.app_manage.AppManageService.vertical_upgrade",
-      "code_paths": [
-        "console/services/app_actions/app_manage.py"
-      ],
-      "tests": [
-        {
-          "path": "console/tests/vertical_upgrade_gpu_test.py",
-          "selector": "VerticalUpgradeGPUTests.test_omitted_gpu_keeps_current_value_instead_of_null"
-        },
-        {
-          "path": "console/tests/vertical_upgrade_gpu_test.py",
-          "selector": "VerticalUpgradeGPUTests.test_omitted_gpu_defaults_to_zero_when_current_is_none"
-        },
-        {
-          "path": "console/tests/vertical_upgrade_gpu_test.py",
-          "selector": "VerticalUpgradeGPUTests.test_explicit_gpu_is_applied_and_sent_to_region"
         }
       ],
       "test_type": "regression",

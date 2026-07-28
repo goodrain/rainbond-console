@@ -1058,10 +1058,12 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
     @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
     @patch("console.services.mcp_query_service.group_service.create_app")
+    @patch("console.services.mcp_query_service.group_repo.is_k8s_app_duplicate")
     # capability_id: console.app.create
-    def test_create_app_calls_group_service(self, mock_create_app, mock_get_region, mock_get_team):
+    def test_create_app_calls_group_service(self, mock_is_duplicate, mock_create_app, mock_get_region, mock_get_team):
         mock_get_team.return_value = self.team
         mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
+        mock_is_duplicate.return_value = False
         mock_create_app.return_value = {"app_id": 12, "app_name": "demo-app", "group_id": 12}
 
         result = mcp_query_service.call_tool(
@@ -1105,6 +1107,169 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         self.assertEqual(context.exception.details["field"], "k8s_app")
         self.assertEqual(context.exception.details["reason"], "duplicate")
         self.assertFalse(context.exception.details["retryable"])
+
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.group_repo.is_k8s_app_duplicate")
+    @patch("console.services.mcp_query_service.group_service.create_app")
+    # capability_id: console.app.create-k8s-name-autogen
+    def test_create_app_generates_k8s_app_when_empty(self, mock_create_app, mock_is_duplicate, mock_get_region, mock_get_team):
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
+        mock_is_duplicate.return_value = False
+        mock_create_app.return_value = {"app_id": 12, "app_name": "vf-test-xk27", "group_id": 12}
+
+        mcp_query_service.call_tool(
+            self.user,
+            "rainbond_create_app",
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "app_name": "vf-test-xk27",
+            },
+        )
+
+        mock_create_app.assert_called_once()
+        generated = mock_create_app.call_args.kwargs["k8s_app"]
+        self.assertEqual(generated, "vf-test-xk27")
+
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.group_repo.is_k8s_app_duplicate")
+    @patch("console.services.mcp_query_service.group_service.create_app")
+    # capability_id: console.app.create-k8s-name-autogen
+    def test_create_app_generates_k8s_app_for_non_ascii_app_name(
+            self, mock_create_app, mock_is_duplicate, mock_get_region, mock_get_team):
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
+        mock_is_duplicate.return_value = False
+        mock_create_app.return_value = {"app_id": 12, "app_name": "演示应用", "group_id": 12}
+
+        mcp_query_service.call_tool(
+            self.user,
+            "rainbond_create_app",
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "app_name": "演示应用",
+            },
+        )
+
+        generated = mock_create_app.call_args.kwargs["k8s_app"]
+        self.assertTrue(generated)
+        self.assertRegex(generated, mcp_query_service.K8S_APP_NAME_PATTERN)
+
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.group_repo.is_k8s_app_duplicate")
+    @patch("console.services.mcp_query_service.group_service.create_app")
+    # capability_id: console.app.create-k8s-name-autogen
+    def test_create_app_normalizes_mixed_case_app_name(
+            self, mock_create_app, mock_is_duplicate, mock_get_region, mock_get_team):
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
+        mock_is_duplicate.return_value = False
+        mock_create_app.return_value = {"app_id": 12, "app_name": "Demo_App.v1", "group_id": 12}
+
+        mcp_query_service.call_tool(
+            self.user,
+            "rainbond_create_app",
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "app_name": "Demo_App.v1",
+            },
+        )
+
+        generated = mock_create_app.call_args.kwargs["k8s_app"]
+        self.assertEqual(generated, "demo-app-v1")
+
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.group_repo.is_k8s_app_duplicate")
+    @patch("console.services.mcp_query_service.group_service.create_app")
+    # capability_id: console.app.create-k8s-name-autogen
+    def test_create_app_appends_suffix_when_generated_name_taken_in_console(
+            self, mock_create_app, mock_is_duplicate, mock_get_region, mock_get_team):
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
+        mock_is_duplicate.side_effect = [True, False]
+        mock_create_app.return_value = {"app_id": 12, "app_name": "demo-app", "group_id": 12}
+
+        mcp_query_service.call_tool(
+            self.user,
+            "rainbond_create_app",
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "app_name": "demo-app",
+            },
+        )
+
+        generated = mock_create_app.call_args.kwargs["k8s_app"]
+        self.assertRegex(generated, r"^demo-app-[0-9a-f]{6}$")
+
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.group_repo.is_k8s_app_duplicate")
+    @patch("console.services.mcp_query_service.group_service.create_app")
+    # capability_id: console.app.create-k8s-name-autogen
+    def test_create_app_retries_with_suffix_on_region_side_duplicate(
+            self, mock_create_app, mock_is_duplicate, mock_get_region, mock_get_team):
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
+        mock_is_duplicate.return_value = False
+        duplicate_exc = ServiceHandleException(
+            msg="k8s app name exists", msg_show="k8s app name exists", status_code=400, error_code=11011
+        )
+        mock_create_app.side_effect = [duplicate_exc, {"app_id": 12, "app_name": "demo-app", "group_id": 12}]
+
+        result = mcp_query_service.call_tool(
+            self.user,
+            "rainbond_create_app",
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "app_name": "demo-app",
+            },
+        )
+
+        self.assertEqual(result["app_name"], "demo-app")
+        self.assertEqual(mock_create_app.call_count, 2)
+        first_name = mock_create_app.call_args_list[0].kwargs["k8s_app"]
+        second_name = mock_create_app.call_args_list[1].kwargs["k8s_app"]
+        self.assertEqual(first_name, "demo-app")
+        self.assertRegex(second_name, r"^demo-app-[0-9a-f]{6}$")
+
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.group_repo.is_k8s_app_duplicate")
+    @patch("console.services.mcp_query_service.group_service.create_app")
+    # capability_id: console.app.create-k8s-name-autogen
+    def test_create_app_does_not_retry_explicit_k8s_app_on_duplicate(
+            self, mock_create_app, mock_is_duplicate, mock_get_region, mock_get_team):
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
+        mock_is_duplicate.return_value = False
+        mock_create_app.side_effect = ServiceHandleException(
+            msg="k8s app name exists", msg_show="k8s app name exists", status_code=400, error_code=11011
+        )
+
+        with self.assertRaises(ServiceHandleException) as context:
+            mcp_query_service.call_tool(
+                self.user,
+                "rainbond_create_app",
+                {
+                    "team_name": "demo-team",
+                    "region_name": "rainbond",
+                    "app_name": "demo-app",
+                    "k8s_app": "demo-app",
+                },
+            )
+
+        self.assertEqual(mock_create_app.call_count, 1)
+        self.assertEqual(mock_create_app.call_args.kwargs["k8s_app"], "demo-app")
+        self.assertEqual(context.exception.details["provided_value"], "demo-app")
 
     @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
     @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
@@ -3971,12 +4136,15 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.app_version_service.get_overview")
     @patch("console.services.mcp_query_service.app_version_service.get_snapshot_detail")
     @patch("console.services.mcp_query_service.group_service.create_app")
+    @patch("console.services.mcp_query_service.group_repo.is_k8s_app_duplicate")
     # capability_id: console.app-version.create-app-from-snapshot
     def test_create_app_from_snapshot_version_installs_hidden_template_into_new_app(
-            self, mock_create_app, mock_get_snapshot_detail, mock_get_overview, mock_get_app, mock_get_region, mock_get_team, mock_install_app_model):
+            self, mock_is_duplicate, mock_create_app, mock_get_snapshot_detail, mock_get_overview, mock_get_app,
+            mock_get_region, mock_get_team, mock_install_app_model):
         region = Obj(region_name="rainbond", enterprise_id="eid-1")
         mock_get_team.return_value = self.team
         mock_get_region.return_value = region
+        mock_is_duplicate.return_value = False
         mock_get_app.return_value = self.app
         mock_get_overview.return_value = {"template_id": "hidden-template-id"}
         mock_get_snapshot_detail.return_value = {"version_id": 5, "version": "1.2.3"}
@@ -4015,7 +4183,7 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
             "snapshot-copy",
             "from snapshot",
             self.user.nick_name,
-            k8s_app="",
+            k8s_app="snapshot-copy",
         )
         mock_install_app_model.assert_called_once_with(
             self.user,
@@ -4033,11 +4201,13 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
     @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
     @patch("console.services.mcp_query_service.group_service.create_app")
+    @patch("console.services.mcp_query_service.group_repo.is_k8s_app_duplicate")
     # capability_id: console.gateway.create-app-invalid-display-name
     def test_create_app_returns_structured_details_for_illegal_app_name(
-            self, mock_create_app, mock_get_region, mock_get_team):
+            self, mock_is_duplicate, mock_create_app, mock_get_region, mock_get_team):
         mock_get_team.return_value = self.team
         mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
+        mock_is_duplicate.return_value = False
         mock_create_app.side_effect = ServiceHandleException(
             msg="app_name illegal",
             msg_show="应用名称只支持中英文, 数字, 下划线, 中划线和点",
@@ -4066,11 +4236,14 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.app_version_service.get_overview")
     @patch("console.services.mcp_query_service.app_version_service.get_snapshot_detail")
     @patch("console.services.mcp_query_service.group_service.create_app")
+    @patch("console.services.mcp_query_service.group_repo.is_k8s_app_duplicate")
     # capability_id: console.app-version.create-app-from-snapshot-invalid-name
     def test_create_app_from_snapshot_version_returns_structured_details_for_illegal_target_app_name(
-            self, mock_create_app, mock_get_snapshot_detail, mock_get_overview, mock_get_app, mock_get_region, mock_get_team):
+            self, mock_is_duplicate, mock_create_app, mock_get_snapshot_detail, mock_get_overview, mock_get_app,
+            mock_get_region, mock_get_team):
         mock_get_team.return_value = self.team
         mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
+        mock_is_duplicate.return_value = False
         mock_get_app.return_value = self.app
         mock_get_overview.return_value = {"template_id": "hidden-template-id"}
         mock_get_snapshot_detail.return_value = {"version_id": 5, "version": "1.2.3"}
