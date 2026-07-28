@@ -29,8 +29,11 @@ from console.services.app_config.component_graph import component_graph_service
 from console.services.app_config.port_service import port_repo
 from console.services.app_config.service_monitor import service_monitor_repo
 from console.services.app_config_group import app_config_group_service
+from console.exception.bcode import ErrK8sServiceNameExists
+from console.exception.main import AbortRequest
 from console.services.config_service import EnterpriseConfigService
 from console.services.exception import (ErrBackupRecordNotFound, ErrNeedAllServiceCloesed, ErrObjectStorageInfoNotFound)
+from console.services.market_app.hostname_remap import (apply_hostname_remap, is_host_env_name)
 from console.services.group_service import group_service
 from django.db import transaction
 from www.apiclient.regionapi import RegionInvokeApi
@@ -241,6 +244,11 @@ class GroupappsMigrateService(object):
         tar_group_k8s_component_names = [service.k8s_component_name for service in services]
         apps = metadata["apps"]
 
+        # Decide every copied port's k8s_service_name up front so that env values
+        # and config files referencing a renamed (collision-suffixed) hostname
+        # can be rewritten, no matter which component they belong to.
+        port_name_map, hostname_remap = self.__collect_port_k8s_service_names(migrate_tenant, apps, changed_service_map)
+
         old_new_service_id_map = dict()
         service_relations_list: List[Dict[str, Any]] = []
         service_mnt_list: List[Dict[str, Any]] = []
@@ -260,13 +268,15 @@ class GroupappsMigrateService(object):
             old_new_service_id_map[app["service_base"]["service_id"]] = ts.service_id
             group_service.add_service_to_group(migrate_tenant, migrate_region, group.ID, ts.service_id)  # type: ignore[union-attr]  # NOTE: group may be None if group not found
             governance_mode = group.governance_mode  # type: ignore[union-attr]  # NOTE: group may be None
+            port_k8s_service_names = port_name_map.get(app["service_base"]["service_id"], {})
             port_failures = self.__save_port(migrate_region, migrate_tenant, ts, app["service_ports"],
-                                             governance_mode, app["service_env_vars"], sync_flag)  # type: ignore[arg-type]
+                                             governance_mode, app["service_env_vars"],  # type: ignore[arg-type]  # NOTE: governance_mode may be None if group not found
+                                             port_k8s_service_names, sync_flag)
             if port_failures:
                 failed_gateway_ports.extend(port_failures)
-            self.__save_env(migrate_tenant, ts, app["service_env_vars"])
+            self.__save_env(migrate_tenant, ts, app["service_env_vars"], hostname_remap, migrate_region, sync_flag)
             self.__save_volume(migrate_tenant, ts, app["service_volumes"],
-                               app["service_config_file"] if 'service_config_file' in app else None)
+                               app["service_config_file"] if 'service_config_file' in app else None, hostname_remap)
             self.__save_compile_env(ts, app["service_compile_env"])
             self.__save_service_label(migrate_tenant, ts, migrate_region, app["service_labels"])
             if sync_flag:
@@ -376,10 +386,73 @@ class GroupappsMigrateService(object):
         ts.save()
         return ts
 
-    def __save_env(self, tenant: Any, service: TenantServiceInfo, tenant_service_env_vars: List[Dict[str, Any]]) -> None:
+    def __collect_port_k8s_service_names(
+            self, tenant: Any, apps: List[Dict[str, Any]],
+            changed_service_map: Dict[str, Any]) -> Tuple[Dict[str, Dict[Any, str]], Dict[str, str]]:
+        """Decide each copied port's k8s_service_name before any data is saved.
+
+        The source port's semantic name (e.g. "postgres") is preserved when it is
+        free in the target tenant. On collision — the common case when copying an
+        app inside the same tenant — the name is suffixed the same way the
+        market-install remap engine does, and the old->new mapping is recorded so
+        custom envs and config files referencing the old hostname get rewritten.
+
+        Returns (port_name_map, hostname_remap): port_name_map maps the source
+        service_id to {container_port: k8s_service_name}; hostname_remap maps
+        renamed old hostnames to their new names.
+        """
+        assigned: Dict[str, str] = {}  # k8s_service_name -> new service_id claimed in this batch
+        port_name_map: Dict[str, Dict[Any, str]] = {}
+        hostname_remap: Dict[str, str] = {}
+        for app in apps:
+            old_service_id = app["service_base"]["service_id"]
+            new_service_id = changed_service_map[old_service_id]["ServiceID"]
+            new_service_alias = changed_service_map[old_service_id]["ServiceAlias"]
+            names = {}
+            for port in app.get("service_ports") or []:
+                old_name = port.get("k8s_service_name") or ""
+                new_name = old_name if old_name else new_service_alias
+                conflict = False
+                try:
+                    port_service.check_k8s_service_name(tenant.tenant_id, new_name, new_service_id)
+                except ErrK8sServiceNameExists:
+                    conflict = True
+                except AbortRequest:
+                    # invalid name (bad chars / too long): fall back to the new alias
+                    old_name = ""
+                    new_name = new_service_alias
+                # names claimed by other components of this batch are not yet in db
+                if not conflict and assigned.get(new_name, new_service_id) != new_service_id:
+                    conflict = True
+                if conflict:
+                    new_name = new_name + "-" + make_uuid()[:4]
+                assigned[new_name] = new_service_id
+                names[port["container_port"]] = new_name
+                if old_name and old_name != new_name:
+                    hostname_remap[old_name] = new_name
+            port_name_map[old_service_id] = names
+        return port_name_map, hostname_remap
+
+    def __save_env(self,
+                   tenant: Any,
+                   service: TenantServiceInfo,
+                   tenant_service_env_vars: List[Dict[str, Any]],
+                   hostname_remap: Optional[Dict[str, str]] = None,
+                   region_name: Optional[str] = None,
+                   sync_flag: bool = False) -> None:
         env_list = []
         for env in tenant_service_env_vars:
             env.pop("ID")
+            # rewrite custom envs (DB_HOST=postgres, redis://redis:6379, DSNs...)
+            # that reference a hostname renamed by a k8s_service_name collision
+            origin_attr_value = env.get("attr_value")
+            env["attr_value"] = apply_hostname_remap(origin_attr_value, hostname_remap or {},
+                                                     is_host_env_name(env.get("attr_name")))
+            if sync_flag and origin_attr_value != env["attr_value"]:
+                region_api.update_service_env(region_name, tenant.tenant_name, service.service_alias, {  # type: ignore[arg-type]  # NOTE: region_name always provided when sync_flag is True
+                    "env_name": env["attr_name"],
+                    "env_value": env["attr_value"]
+                })
             new_env = TenantServiceEnvVar(**env)
             new_env.tenant_id = tenant.tenant_id
             new_env.service_id = service.service_id
@@ -388,7 +461,8 @@ class GroupappsMigrateService(object):
             TenantServiceEnvVar.objects.bulk_create(env_list)
 
     def __save_volume(self, tenant: Any, service: TenantServiceInfo, tenant_service_volumes: List[Dict[str, Any]],
-                      service_config_file: Optional[List[Dict[str, Any]]]) -> None:
+                      service_config_file: Optional[List[Dict[str, Any]]],
+                      hostname_remap: Optional[Dict[str, str]] = None) -> None:
         volume_list = []
         config_list = []
         volume_name_id = {}
@@ -399,6 +473,10 @@ class GroupappsMigrateService(object):
                 for config_file in service_config_file:
                     if config_file["service_id"] == volume["service_id"] and config_file["volume_name"] == volume["volume_name"]:
                         config_file.pop("ID")
+                        # rewrite config-file content referencing hostnames renamed
+                        # by a k8s_service_name collision (e.g. nginx proxy_pass)
+                        config_file["file_content"] = apply_hostname_remap(config_file.get("file_content"), hostname_remap
+                                                                           or {})
                         new_config_file = TenantServiceConfigurationFile(**config_file)
                         new_config_file.service_id = service.service_id
                         config_list.append(new_config_file)
@@ -439,6 +517,7 @@ class GroupappsMigrateService(object):
                     tenant_service_ports: List[Dict[str, Any]],
                     governance_mode: str,
                     tenant_service_env_vars: List[Dict[str, Any]],
+                    port_k8s_service_names: Optional[Dict[Any, str]] = None,
                     sync_flag: bool = False) -> List[Dict[str, Any]]:
         # Best-effort gateway rebuild: collect ports whose data-center bind
         # failed instead of aborting the whole component's port loop. The
@@ -456,8 +535,9 @@ class GroupappsMigrateService(object):
         port_list: List[TenantServicesPort] = []
         for port in tenant_service_ports:
             port.pop("ID")
-            # 直接使用 service 的 service_alias 作为 k8s_service_name
-            k8s_service_name = service.service_alias
+            # 保留源端口的 k8s_service_name(撞名时已在 __collect_port_k8s_service_names
+            # 中按 remap 引擎语义加后缀);无预计算结果时回退到 service_alias
+            k8s_service_name = (port_k8s_service_names or {}).get(port["container_port"]) or service.service_alias
 
             if sync_flag:
                 body = port
