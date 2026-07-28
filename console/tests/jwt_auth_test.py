@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 import os
 import sys
+import datetime
 from types import ModuleType, SimpleNamespace
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, call, patch
 
 sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".venv", "src", "openapi-client")))
@@ -14,6 +15,7 @@ from django.test import SimpleTestCase
 django.setup()
 
 from console.exception.exceptions import AuthenticationInfoHasExpiredError
+from console.utils import jwt_issuer
 from console.views.base import JSONWebTokenAuthentication, custom_exception_handler
 
 
@@ -26,6 +28,22 @@ class FakeQuerySet(object):
 
 
 class JSONWebTokenAuthenticationTests(SimpleTestCase):
+
+    def test_agent_service_jwt_is_purpose_scoped_and_short_lived(self):
+        user = SimpleNamespace(user_id=33, nick_name="agent-service", email="")
+        token = MagicMock()
+        token.__str__.return_value = "encoded-service-token"
+
+        with patch.object(jwt_issuer.ConsoleAccessToken, "for_user", return_value=token):
+            encoded = jwt_issuer.issue_agent_service_jwt(
+                user, enterprise_id="eid", lifetime_seconds=1800)
+
+        self.assertEqual("encoded-service-token", encoded)
+        token.set_exp.assert_called_once_with(lifetime=datetime.timedelta(seconds=1800))
+        self.assertEqual([
+            call("token_purpose", "agent_service"),
+            call("enterprise_id", "eid"),
+        ], token.__setitem__.call_args_list)
 
     def test_authenticate_credentials_prefers_matching_user_id(self):
         user = SimpleNamespace(user_id=33, nick_name="user-83847590", is_active=True)

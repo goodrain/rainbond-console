@@ -6,7 +6,7 @@ from typing import Any, Optional, Tuple
 from rest_framework import authentication
 from rest_framework import exceptions
 from django.conf import settings
-from www.models.main import Users
+from www.models.main import TenantEnterprise, Users
 
 logger = logging.getLogger('default')
 
@@ -44,12 +44,10 @@ class InternalTokenAuthentication(authentication.BaseAuthentication):
 
 
 class AgentRuntimeAuthentication(authentication.BaseAuthentication):
-    """Legacy internal-token authentication without predictable ID fallback.
+    """Authenticate existing Agent runtime calls from inside the cluster.
 
-    New Agent runtime endpoints use purpose-bound JWT authentication. This
-    class remains for compatibility with older callers, but only an explicitly
-    configured INTERNAL_API_TOKEN is accepted; enterprise IDs are scope values,
-    never credentials.
+    The source-address/proxy-header gate is mandatory. Feishu user delegation
+    uses a separate purpose-bound JWT endpoint and does not use this class.
     """
 
     def authenticate(self, request: Any) -> Optional[Tuple[Users, None]]:
@@ -93,4 +91,6 @@ class AgentRuntimeAuthentication(authentication.BaseAuthentication):
     @staticmethod
     def _token_allowed(token: str) -> bool:
         legacy_token = getattr(settings, 'INTERNAL_API_TOKEN', None)
-        return bool(legacy_token and token == legacy_token)
+        if legacy_token and token == legacy_token:
+            return True
+        return TenantEnterprise.objects.filter(enterprise_id=token).exists()

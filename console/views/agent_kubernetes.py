@@ -7,6 +7,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from console.exception.main import ServiceHandleException
+from console.services.platform_plugin_service import platform_plugin_service
 from console.views.base import JWTAuthApiView
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.return_message import general_message
@@ -90,3 +91,73 @@ class AgentKubernetesBootstrapView(JWTAuthApiView):
                 "headers": {"Content-Type": "application/json"},
             },
         )
+
+
+class AgentKubernetesEncryptionKeyView(JWTAuthApiView):
+    """Manage the persisted Agent encryption-key state without exposing the key."""
+
+    def _check_access(self, enterprise_id: str) -> Response | None:
+        if not self.is_enterprise_admin:
+            return Response(general_message(403, "forbidden", "无权限管理凭据加密密钥"), status=403)
+        if enterprise_id != self.user.enterprise_id:
+            return Response(general_message(403, "forbidden", "无权限操作该企业"), status=403)
+        return None
+
+    def get(self, request: Request, enterprise_id: str, region_name: str, *args: Any, **kwargs: Any) -> Response:
+        denied = self._check_access(enterprise_id)
+        if denied:
+            return denied
+        try:
+            result = platform_plugin_service.get_agent_credential_encryption_key_status(
+                enterprise_id, region_name)
+            return Response(general_message(200, "success", "查询成功", bean=result), status=200)
+        except ServiceHandleException as exc:
+            return Response(general_message(exc.status_code, exc.msg, exc.msg_show), status=exc.status_code)
+
+    def post(self, request: Request, enterprise_id: str, region_name: str, *args: Any, **kwargs: Any) -> Response:
+        denied = self._check_access(enterprise_id)
+        if denied:
+            return denied
+        if (request.data or {}).get("confirm_create") is not True:
+            return Response(
+                general_message(400, "credential_key_confirmation_required", "请确认生成并启用凭据加密密钥"),
+                status=400,
+            )
+        try:
+            _, body = region_api.get_agent_plugin_encryption_status(enterprise_id, region_name, self.user)
+        except Exception:
+            logger.warning(
+                "agent credential encryption status unavailable enterprise_id=%s region_name=%s",
+                enterprise_id,
+                region_name,
+            )
+            return Response(
+                general_message(503, "agent_encryption_status_unavailable", "无法确认 AI 助手加密状态，请稍后重试"),
+                status=503,
+            )
+
+        try:
+            agent_status = body.get("data") if isinstance(body, dict) else None
+            if not isinstance(agent_status, dict) or not agent_status.get("status"):
+                raise ServiceHandleException(
+                    msg="agent_encryption_status_unavailable",
+                    msg_show="无法确认 AI 助手加密状态，请稍后重试",
+                    status_code=503,
+                )
+            if agent_status.get("status") == "recovery_required":
+                raise ServiceHandleException(
+                    msg="credential_key_recovery_required",
+                    msg_show="检测到历史密文无法解密，请恢复原加密密钥",
+                    status_code=412,
+                )
+            result = platform_plugin_service.ensure_agent_credential_encryption_key(
+                enterprise_id, region_name, self.user, agent_status)
+            return Response(general_message(200, "success", "加密密钥已处理", bean=result), status=200)
+        except ServiceHandleException as exc:
+            return Response(general_message(exc.status_code, exc.msg, exc.msg_show), status=exc.status_code)
+        except Exception:
+            logger.exception("ensure agent credential encryption key failed")
+            return Response(
+                general_message(503, "agent_encryption_status_unavailable", "无法确认 AI 助手加密状态，请稍后重试"),
+                status=503,
+            )

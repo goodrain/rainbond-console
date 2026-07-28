@@ -90,12 +90,16 @@ class JSONWebTokenAuthentication(BaseAuthentication):
             msg = _('认证信息错误,请求Token不合法')
             raise AuthenticationInfoHasExpiredError(msg)
 
+        if payload.get("token_purpose") == jwt_issuer.GROUP_MCP_TOKEN_PURPOSE and not \
+                getattr(request, "_allow_group_mcp_token", False):
+            raise exceptions.AuthenticationFailed(_("群委托凭据仅允许用于 MCP 接口"))
+
         user = self.authenticate_credentials(payload)
-        
+
         # Store token in jwt_manager for session tracking
         jwt_manager = JwtManager()
         jwt_manager.set(jwt_value, user.user_id)
-        
+
         login_event = LoginEvent(user, login_event_repo)
         login_event.active()
         return user, jwt_value

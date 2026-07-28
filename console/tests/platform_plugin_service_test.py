@@ -1,6 +1,7 @@
 import collections
 import os
 import sys
+from contextlib import nullcontext
 from types import ModuleType
 from unittest import TestCase, mock
 
@@ -270,6 +271,92 @@ class PlatformPluginServiceTests(TestCase):
         self.assertEqual("deferred", result["status"])
         self.assertIn("未找到 AI 助手 API 组件", result["message"])
 
+    def test_ensure_agent_credential_encryption_key_generates_once_and_restarts(self):
+        tenant = mock.Mock(tenant_id="team-1", enterprise_id="eid")
+        app = mock.Mock(ID=23)
+        service = mock.Mock(ID=7, service_alias="rainbond-agent-api", create_status="complete")
+        user = mock.Mock(nick_name="admin")
+        locked_service = mock.Mock(ID=7, service_alias="rainbond-agent-api", create_status="complete")
+
+        with mock.patch.object(platform_plugin_service, "_resolve_installed_agent_context",
+                               return_value=(tenant, app, service)), \
+                mock.patch("console.services.platform_plugin_service.TenantServiceInfo.objects.select_for_update") \
+                as select_for_update, \
+                mock.patch("console.services.platform_plugin_service.env_var_service.get_env_by_attr_name",
+                           return_value=None), \
+                mock.patch("console.services.platform_plugin_service.env_var_service.add_service_env_var",
+                           return_value=(200, "success", mock.Mock())) as add_env, \
+                mock.patch("console.services.platform_plugin_service.app_manage_service.restart",
+                           return_value=(200, "success")) as restart, \
+                mock.patch("console.services.platform_plugin_service.secrets.token_hex",
+                           return_value="a" * 64), \
+                mock.patch("django.db.transaction.atomic", return_value=nullcontext()):
+            select_for_update.return_value.get.return_value = locked_service
+            result = platform_plugin_service.ensure_agent_credential_encryption_key(
+                "eid", "rainbond", user, {"status": "missing"})
+
+        self.assertEqual({
+            "status": "generated",
+            "generated": True,
+            "restart_requested": True,
+            "service_alias": "rainbond-agent-api",
+        }, result)
+        self.assertEqual("COPILOT_CREDENTIAL_ENCRYPTION_KEY", add_env.call_args.kwargs["attr_name"])
+        self.assertEqual("inner", add_env.call_args.kwargs["scope"])
+        self.assertFalse(add_env.call_args.kwargs["is_change"])
+        restart.assert_called_once_with(tenant, locked_service, user, None)
+        self.assertNotIn("a" * 64, str(result))
+
+    def test_ensure_agent_credential_encryption_key_preserves_legacy_key(self):
+        tenant = mock.Mock(tenant_id="team-1", enterprise_id="eid")
+        app = mock.Mock(ID=23)
+        service = mock.Mock(ID=7, service_alias="rainbond-agent-api")
+        legacy_env = mock.Mock(attr_value="legacy-key")
+
+        def get_env(_tenant, _service, attr_name):
+            if attr_name == "COPILOT_KUBE_CREDENTIAL_KEY":
+                return legacy_env
+            return None
+
+        with mock.patch.object(platform_plugin_service, "_resolve_installed_agent_context",
+                               return_value=(tenant, app, service)), \
+                mock.patch("console.services.platform_plugin_service.TenantServiceInfo.objects.select_for_update") \
+                as select_for_update, \
+                mock.patch("console.services.platform_plugin_service.env_var_service.get_env_by_attr_name",
+                           side_effect=get_env), \
+                mock.patch("console.services.platform_plugin_service.env_var_service.add_service_env_var") as add_env, \
+                mock.patch("console.services.platform_plugin_service.app_manage_service.restart") as restart, \
+                mock.patch("django.db.transaction.atomic", return_value=nullcontext()):
+            select_for_update.return_value.get.return_value = service
+            result = platform_plugin_service.ensure_agent_credential_encryption_key(
+                "eid", "rainbond", mock.Mock(), {"status": "legacy_ready"})
+
+        self.assertEqual("already_configured", result["status"])
+        self.assertEqual("legacy", result["key_source"])
+        self.assertFalse(result["generated"])
+        add_env.assert_not_called()
+        restart.assert_not_called()
+
+    def test_bootstrap_agent_credential_encryption_key_injects_and_restarts(self):
+        tenant = mock.Mock(tenant_id="team-1")
+        app = mock.Mock(ID=23)
+        service = mock.Mock(service_alias="rainbond-agent-api")
+        component = mock.Mock(component=service)
+        user = mock.Mock(nick_name="admin")
+
+        with mock.patch.object(platform_plugin_service, "_resolve_agent_api_component", return_value=service), \
+                mock.patch.object(platform_plugin_service, "_read_agent_encryption_env", return_value=(None, None)), \
+                mock.patch.object(platform_plugin_service, "_upsert_agent_service_envs") as upsert, \
+                mock.patch("console.services.platform_plugin_service.app_manage_service.restart",
+                           return_value=(200, "success")) as restart:
+            result = platform_plugin_service.bootstrap_agent_credential_encryption_key(
+                tenant, app, "rainbond", [component], user)
+
+        self.assertEqual("synced", result["status"])
+        self.assertTrue(result["restart_requested"])
+        upsert.assert_called_once()
+        restart.assert_called_once_with(tenant, service, user, None)
+
     def test_install_agent_platform_plugin_bootstraps_service_mcp_credentials(self):
         market_plugins = [{
             "plugin_id": "rainbond-agent",
@@ -312,15 +399,19 @@ class PlatformPluginServiceTests(TestCase):
                 mock.patch("console.services.platform_plugin_service.market_app_service._create_rbdplugin_if_needed"), \
                 mock.patch.object(platform_plugin_service, "bootstrap_agent_service_mcp_credentials",
                                   return_value={"status": "synced"}) as bootstrap_mcp, \
+                mock.patch.object(platform_plugin_service, "bootstrap_agent_credential_encryption_key",
+                                  return_value={"status": "synced"}) as bootstrap_encryption, \
                 mock.patch.object(platform_plugin_service, "bootstrap_agent_kubernetes_credentials",
                                   return_value={"status": "synced"}) as bootstrap_kube:
             app_upgrade_cls.return_value.install.return_value = []
             app_upgrade_cls.return_value.new_app.components.return_value = [component]
             result = platform_plugin_service.install_platform_plugin("eid", "rainbond", "rainbond-agent", mock.Mock())
 
+        bootstrap_encryption.assert_called_once_with(tenant, app, "rainbond", [component], mock.ANY)
         bootstrap_mcp.assert_called_once_with(tenant, app, "rainbond", [component], mock.ANY)
         bootstrap_kube.assert_called_once()
         self.assertEqual({"status": "synced"}, result["service_mcp_credential_bootstrap"])
+        self.assertEqual({"status": "synced"}, result["credential_encryption_bootstrap"])
         self.assertEqual({"status": "synced"}, result["kubernetes_credential_bootstrap"])
 
     def test_install_platform_plugin_prefers_free_variant_even_if_enterprise_variant_exists(self):
@@ -676,6 +767,8 @@ class PlatformPluginServiceTests(TestCase):
                            return_value=mock.Mock()), \
                 mock.patch("console.services.platform_plugin_service.AppUpgrade") as app_upgrade_cls, \
                 mock.patch("console.services.platform_plugin_service.market_app_service._create_rbdplugin_if_needed"), \
+                mock.patch.object(platform_plugin_service, "bootstrap_agent_credential_encryption_key",
+                                  return_value={"status": "synced"}), \
                 mock.patch.object(platform_plugin_service, "bootstrap_agent_kubernetes_credentials",
                                   return_value={"status": "synced", "region_name": "rainbond"}) as bootstrap_agent:
             app_upgrade_cls.return_value.install.return_value = []

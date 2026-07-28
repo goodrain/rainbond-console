@@ -94,6 +94,7 @@ install_stub("console.repositories.group", group_repo=Obj(), tenant_service_grou
 install_stub("console.repositories.region_app", region_app_repo=Obj())
 install_stub("console.repositories.region_repo", region_repo=region_repo)
 install_stub("console.services.app", app_market_service=app_market_service)
+install_stub("console.services.app_actions", package=True, app_manage_service=Obj())
 install_stub("console.services.app_config", env_var_service=Obj())
 install_stub("console.services.enterprise_first_deploy_service", enterprise_first_deploy_service=first_deploy_service)
 install_stub("console.services.group_service", group_service=Obj())
@@ -155,6 +156,8 @@ class PlatformPluginFirstDeployTrackingTests(TestCase):
         app_upgrade.new_app = Obj(components=mock.Mock(return_value=[component_snapshot]))
 
         with mock.patch.object(platform_module, "AppUpgrade", return_value=app_upgrade), \
+                mock.patch.object(platform_plugin_service, "bootstrap_agent_credential_encryption_key",
+                                  return_value={"status": "synced"}) as bootstrap_encryption, \
                 mock.patch.object(platform_plugin_service, "bootstrap_agent_service_mcp_credentials",
                                   return_value={"status": "synced"}) as bootstrap_mcp, \
                 mock.patch.object(platform_plugin_service, "bootstrap_agent_kubernetes_credentials",
@@ -171,6 +174,7 @@ class PlatformPluginFirstDeployTrackingTests(TestCase):
         self.assertEqual("rainbond-agent", tracking_kwargs["app_context"]["plugin_id"])
         self.assertEqual("extension", tracking_kwargs["app_context"]["install_source"])
         bootstrap_mcp.assert_called_once_with(tenant, app, "rainbond", [component_snapshot], user)
+        bootstrap_encryption.assert_called_once_with(tenant, app, "rainbond", [component_snapshot], user)
         bootstrap_agent.assert_called_once_with("eid", "rainbond", user)
         first_deploy_service.safe_bind_events.assert_called_once_with(
             {"key": "first-deploy"},
