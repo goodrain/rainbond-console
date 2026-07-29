@@ -35,6 +35,7 @@ from console.services.app_config import domain_service, env_var_service, port_se
 from console.services.autoscaler_service import autoscaler_service, scaling_records_service
 from console.services.app_config.arch_service import arch_service
 from console.services.compose_service import compose_service
+from console.services.deployment_invocation import is_rainskills_invocation
 from console.services.enterprise_services import enterprise_services
 from console.services.gateway_api import gateway_api
 from console.services.group_service import group_service
@@ -76,6 +77,10 @@ class MCPQueryService(object):
     CONFIRM_SALT = "console.mcp.delete_app"
     CONFIRM_MAX_AGE_SECONDS = 300
     MAX_PAGE_SIZE = 200
+    RAINSKILLS_HIDDEN_TOOL_NAMES = frozenset({
+        "rainbond_upload_package_file",
+        "rainbond_create_component_from_local_package",
+    })
     DISPLAY_APP_NAME_PATTERN = r"^[a-zA-Z0-9_\.\-\u4e00-\u9fa5]+$"
     DISPLAY_APP_NAME_MAX_LENGTH = 128
     DISPLAY_APP_NAME_DESCRIPTION = (
@@ -323,6 +328,8 @@ class MCPQueryService(object):
                 self._tool_query_region_nodes(), self._tool_get_region_node_detail(),
                 self._tool_query_region_rbd_components()
             ] + tools
+        if is_rainskills_invocation():
+            tools = [tool for tool in tools if tool["name"] not in self.RAINSKILLS_HIDDEN_TOOL_NAMES]
         return tools
 
     def resolve_deployment_service_sources(self, user: Any, tool_name: str,
@@ -7460,7 +7467,11 @@ class MCPQueryService(object):
     def _tool_init_package_upload(self) -> dict:
         return {
             "name": "rainbond_init_package_upload",
-            "description": "Initialize a package upload event and return the upload endpoint before sending the package file.",
+            "description": (
+                "Initialize a package upload event. Use the returned upload_request contract to send the package "
+                "as multipart/form-data, then call rainbond_get_package_upload_status and "
+                "rainbond_create_component_from_package."
+            ),
             "inputSchema": {
                 "type": "object",
                 "properties": {

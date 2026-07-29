@@ -59,6 +59,14 @@ class PackageUploadToolService(object):
             "region_name": upload_record.region,
             "component_id": component_id or "",
             "upload_url": upload_url,
+            "upload_request": {
+                "method": "POST",
+                "url": upload_url,
+                "url_scope": "console_origin",
+                "content_type": "multipart/form-data",
+                "file_field": "packageTarFile",
+                "authorization": "none",
+            },
         }
 
     def upload_package(self, team_name: str, region_name: str, event_id: str, local_path: str, archive_name: str = "") -> Dict[str, Any]:
