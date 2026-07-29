@@ -1,0 +1,822 @@
+meta:
+  name: "MCP client package upload"
+  version: "1.0"
+  repos:
+    rainbond-console: /Users/goodrain/.config/superpowers/worktrees/rainbond-console/mcp-client-package-upload
+    rainskills: /Users/goodrain/.config/superpowers/worktrees/rainskills/mcp-client-package-upload
+  branch: "fix/mcp-client-package-upload"
+  created_at: "2026-07-29"
+  runtimes:
+    console_python: /Users/goodrain/.cache/codex-venvs/rainbond-console-py311/bin/python
+    rainskills_python: python3
+    node_bin: /Users/goodrain/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin
+
+environment_setup:
+  - repo: rainbond-console
+    run: "if test ! -d /Users/goodrain/.cache/codex-deps/rainbond-console-openapi-client/.git; then git clone --shared --no-checkout /Users/goodrain/Desktop/code/rainbond-console/src/openapi-client /Users/goodrain/.cache/codex-deps/rainbond-console-openapi-client; fi && git -C /Users/goodrain/.cache/codex-deps/rainbond-console-openapi-client checkout --detach cac995b2bb034758b031a77a62181518cd895384"
+    expect: "Isolated cache checkout at the gitlink commit; original submodule worktree remains untouched"
+  - repo: rainbond-console
+    run: "/Users/goodrain/.pyenv/versions/3.11.9/bin/python3.11 -m venv /Users/goodrain/.cache/codex-venvs/rainbond-console-py311 && /Users/goodrain/.cache/codex-venvs/rainbond-console-py311/bin/python -m pip install 'Cython<3' wheel && /Users/goodrain/.cache/codex-venvs/rainbond-console-py311/bin/python -m pip install --no-build-isolation gevent==22.10.2 && CPPFLAGS=-I/opt/homebrew/opt/openssl@3/include LDFLAGS=-L/opt/homebrew/opt/openssl@3/lib /Users/goodrain/.cache/codex-venvs/rainbond-console-py311/bin/python -m pip install --no-build-isolation cryptography==3.3 && /Users/goodrain/.cache/codex-venvs/rainbond-console-py311/bin/python -m pip install -r requirements.txt && /Users/goodrain/.cache/codex-venvs/rainbond-console-py311/bin/python -m pip install --force-reinstall cryptography==3.4.8 yapf==0.43.0 flake8==7.3.0 && /Users/goodrain/.cache/codex-venvs/rainbond-console-py311/bin/python -m pip install -e /Users/goodrain/.cache/codex-deps/rainbond-console-openapi-client"
+    expect: "Python 3.11 virtual environment with Console test, yapf, and flake8 dependencies installed outside the repository"
+
+constraints:
+  - "Never place package bytes, Base64 data, chunks, local file contents, JWTs, or other credentials in MCP JSON arguments or responses."
+  - "Keep the existing top-level upload_url and add upload_request as a backward-compatible response extension."
+  - "upload_request must declare POST, console_origin, multipart/form-data, packageTarFile, and authorization none."
+  - "Hide server-local path tools only from tools/list in RainSkills Codex and Claude Code invocation contexts."
+  - "Keep both server-local tool schemas and call_tool dispatch available for generic MCP and direct compatibility calls."
+  - "The client helper may upload only to an HTTP(S) URL with the exact origin configured by RAINBOND_URL."
+  - "The helper must not follow source symlinks or directory-entry symlinks and must never delete a user-owned source package."
+  - "Generated archives must remain inside the current workspace staging root and must exclude that staging root during traversal."
+  - "Do not modify Region APIs, database models, rainbond-ui, or plugin repositories."
+
+sprints:
+  - id: sprint-1
+    name: "Console MCP upload contract"
+    repo: rainbond-console
+    commits:
+      - id: commit-1
+        message: "fix: expose MCP client package upload contract"
+        tasks: [task-1.1, task-1.2, task-1.3]
+    tasks:
+      - id: task-1.1
+        name: "Lock the upload_request response contract"
+        status: pending
+        files:
+          modify:
+            - path: console/tests/package_upload_tool_service_test.py
+              lines: "93-122"
+            - path: console/services/package_upload_tool_service.py
+              lines: "34-62"
+        steps:
+          - action: write-test
+            description: "Extend the init_upload service test to require the existing upload_url and the complete client transport contract."
+            code: |
+              self.assertEqual(result["upload_url"], expected_upload_url)
+              self.assertEqual(
+                  result["upload_request"],
+                  {
+                      "method": "POST",
+                      "url": expected_upload_url,
+                      "url_scope": "console_origin",
+                      "content_type": "multipart/form-data",
+                      "file_field": "packageTarFile",
+                      "authorization": "none",
+                  },
+              )
+            run: "/Users/goodrain/.cache/codex-venvs/rainbond-console-py311/bin/python -m pytest console/tests/package_upload_tool_service_test.py -q"
+            expect: "FAIL because upload_request is absent"
+          - action: implement
+            description: "Build upload_url once and add the structured request contract without removing any current response key."
+            code: |
+              upload_url = import_service.get_upload_package_url(region_name, event_id)
+              return {
+                  "event_id": upload_record.event_id,
+                  "status": upload_record.status,
+                  "team_name": upload_record.team_name,
+                  "region_name": upload_record.region,
+                  "component_id": component_id or "",
+                  "upload_url": upload_url,
+                  "upload_request": {
+                      "method": "POST",
+                      "url": upload_url,
+                      "url_scope": "console_origin",
+                      "content_type": "multipart/form-data",
+                      "file_field": "packageTarFile",
+                      "authorization": "none",
+                  },
+              }
+            run: "/Users/goodrain/.cache/codex-venvs/rainbond-console-py311/bin/python -m pytest console/tests/package_upload_tool_service_test.py -q"
+            expect: "PASS"
+        acceptance:
+          - cmd: "cd /Users/goodrain/.config/superpowers/worktrees/rainbond-console/mcp-client-package-upload && /Users/goodrain/.cache/codex-venvs/rainbond-console-py311/bin/python -m pytest console/tests/package_upload_tool_service_test.py -q"
+            expect: "exit 0"
+        references:
+          - path: console/utils/realtime_proxy.py:179
+            note: "Existing multipart proxy consumes packageTarFile; do not duplicate binary transport in MCP."
+
+      - id: task-1.2
+        name: "Conditionally hide server-local tools from RainSkills discovery"
+        status: pending
+        files:
+          modify:
+            - path: console/tests/mcp_deployment_invocation_test.py
+              lines: "1-150"
+            - path: console/tests/mcp_query_service_test.py
+              lines: "1-245,6107-6160"
+            - path: console/services/mcp_query_service.py
+              lines: "44-55,75-120,266-330"
+        steps:
+          - action: write-test
+            description: "For both RainSkills clients assert the two server-local tools are absent while init/status/delete/create-by-event remain visible; assert generic lists still contain both tools."
+            code: |
+              hidden = {
+                  "rainbond_upload_package_file",
+                  "rainbond_create_component_from_local_package",
+              }
+              required = {
+                  "rainbond_init_package_upload",
+                  "rainbond_get_package_upload_status",
+                  "rainbond_delete_package_upload",
+                  "rainbond_create_component_from_package",
+              }
+              for client in ("codex", "claude_code"):
+                  with deployment_invocation_context("rainskills", client):
+                      names = {tool["name"] for tool in mcp_query_service.list_tools()}
+                  self.assertFalse(hidden & names)
+                  self.assertTrue(required <= names)
+              generic_names = {tool["name"] for tool in mcp_query_service.list_tools()}
+              self.assertTrue(hidden <= generic_names)
+            run: "/Users/goodrain/.cache/codex-venvs/rainbond-console-py311/bin/python -m pytest console/tests/mcp_deployment_invocation_test.py console/tests/mcp_query_service_test.py -q"
+            expect: "FAIL because RainSkills lists still expose the two server-local tools"
+          - action: write-test
+            description: "Call a legacy server-local tool name inside a RainSkills invocation context with collaborators mocked, proving discovery filtering does not disable direct dispatch."
+            code: |
+              with deployment_invocation_context("rainskills", "codex"):
+                  result = mcp_query_service.call_tool(
+                      user,
+                      "rainbond_upload_package_file",
+                      valid_arguments,
+                  )
+              self.assertEqual(result["event_id"], "evt-existing-client")
+            run: "/Users/goodrain/.cache/codex-venvs/rainbond-console-py311/bin/python -m pytest console/tests/mcp_query_service_test.py -q"
+            expect: "PASS before and after implementation; guards compatibility"
+          - action: implement
+            description: "Use the existing invocation ContextVar and filter the completed list only for RainSkills origins. Keep schema constructors and call_tool branches untouched."
+            code: |
+              from console.services.deployment_invocation import is_rainskills_invocation
+
+              class MCPQueryService(object):
+                  RAINSKILLS_HIDDEN_TOOL_NAMES = frozenset({
+                      "rainbond_upload_package_file",
+                      "rainbond_create_component_from_local_package",
+                  })
+
+              # At the end of list_tools, after permission filtering:
+              if is_rainskills_invocation():
+                  tools = [
+                      tool for tool in tools
+                      if tool["name"] not in self.RAINSKILLS_HIDDEN_TOOL_NAMES
+                  ]
+              return tools
+            run: "/Users/goodrain/.cache/codex-venvs/rainbond-console-py311/bin/python -m pytest console/tests/mcp_deployment_invocation_test.py console/tests/mcp_query_service_test.py -q"
+            expect: "PASS"
+        acceptance:
+          - cmd: "cd /Users/goodrain/.config/superpowers/worktrees/rainbond-console/mcp-client-package-upload && /Users/goodrain/.cache/codex-venvs/rainbond-console-py311/bin/python -m pytest console/tests/mcp_deployment_invocation_test.py console/tests/mcp_query_service_test.py -q"
+            expect: "exit 0"
+        references:
+          - path: console/services/deployment_invocation.py:1-60
+            note: "Reuse is_rainskills_invocation; do not add a second context mechanism."
+          - path: console/views/mcp_query.py:218-285
+            note: "Dedicated RainSkills routes already install the invocation context around JSON-RPC dispatch."
+
+      - id: task-1.3
+        name: "Document the client responsibility and register coverage"
+        status: pending
+        files:
+          modify:
+            - path: console/services/mcp_query_service.py
+              lines: "7467-7535"
+            - path: test-manifest.json
+              lines: "7723-7993"
+        steps:
+          - action: implement
+            description: "Update the init tool description so clients use upload_request, then status and create-by-event. Do not claim MCP reads the client path."
+            code: |
+              "创建软件包上传事件并返回客户端 multipart 上传契约。"
+              "客户端必须按 upload_request 将文件上传到 Console，"
+              "再查询上传状态并使用 event_id 创建组件。"
+          - action: implement
+            description: "Add one active RainSkills tool-visibility capability to test-manifest while preserving all generic list, schema, and direct-call capabilities."
+            code: |
+              {
+                "id": "console.package-upload.rainskills-tool-visibility",
+                "title": "Hide server-local package tools from RainSkills discovery",
+                "title_zh": "RainSkills 工具发现隐藏服务端本地软件包工具",
+                "interface_type": "workflow",
+                "interface": "console.services.mcp_query_service.list_tools[console.package-upload.rainskills-tool-visibility]",
+                "code_paths": [
+                  "console/services/mcp_query_service.py"
+                ],
+                "tests": [
+                  {
+                    "path": "console/tests/mcp_query_service_test.py",
+                    "selector": "MCPQueryServiceToolVisibilityTests.test_rainskills_hides_server_local_package_tools_only_from_discovery"
+                  }
+                ],
+                "test_type": "regression",
+                "status": "active"
+              }
+              # The test method must carry:
+              # capability_id: console.package-upload.rainskills-tool-visibility
+          - action: verify
+            description: "Run focused tests, JSON syntax validation, format, and the repository quality gate."
+            run: "PY=/Users/goodrain/.cache/codex-venvs/rainbond-console-py311/bin/python; PATH=/Users/goodrain/.cache/codex-venvs/rainbond-console-py311/bin:$PATH; $PY -m json.tool test-manifest.json >/dev/null && $PY -m pytest console/tests/package_upload_tool_service_test.py console/tests/mcp_deployment_invocation_test.py console/tests/mcp_query_service_test.py -q && make format && make check"
+            expect: "exit 0"
+        acceptance:
+          - cmd: "cd /Users/goodrain/.config/superpowers/worktrees/rainbond-console/mcp-client-package-upload && /Users/goodrain/.cache/codex-venvs/rainbond-console-py311/bin/python -m json.tool test-manifest.json >/dev/null"
+            expect: "exit 0"
+          - cmd: "cd /Users/goodrain/.config/superpowers/worktrees/rainbond-console/mcp-client-package-upload && PATH=/Users/goodrain/.cache/codex-venvs/rainbond-console-py311/bin:$PATH make check"
+            expect: "exit 0"
+
+  - id: sprint-2
+    name: "RainSkills client package transport"
+    repo: rainskills
+    commits:
+      - id: commit-2
+        message: "fix: upload local packages through Console"
+        tasks: [task-2.1, task-2.2, task-2.3]
+    tasks:
+      - id: task-2.1
+        name: "Build a dependency-free local package helper"
+        status: pending
+        files:
+          create:
+            - path: tests/package_upload_helper_test.py
+            - path: rainbond-fullstack-bootstrap/scripts/upload_local_package.py
+        steps:
+          - action: write-test
+            description: "Create the unittest subprocess harness and test prepare for an existing archive, a directory with spaces, archive-name sanitization, and staging exclusion."
+            code: |
+              class PackageUploadHelperTest(unittest.TestCase):
+                  def run_helper(self, *args, cwd=None, env=None):
+                      return subprocess.run(
+                          [sys.executable, str(HELPER), *args],
+                          cwd=cwd,
+                          env=env,
+                          text=True,
+                          capture_output=True,
+                      )
+
+                  def test_prepare_directory_writes_safe_zip_and_json(self):
+                      result = self.run_helper(
+                          "prepare", "--source", str(source),
+                          "--staging-root", str(staging),
+                          "--archive-name", "../release ZIP",
+                          cwd=workspace,
+                      )
+                      payload = json.loads(result.stdout)
+                      self.assertTrue(payload["generated"])
+                      self.assertEqual(payload["file_name"], "release ZIP.zip")
+                      self.assertNotIn(".rainbond/staging", zip_names(payload["archive_path"]))
+            run: "python3 tests/package_upload_helper_test.py"
+            expect: "FAIL because the helper does not exist"
+          - action: write-test
+            description: "Add prepare rejection tests for unsupported suffixes, empty directories, source symlinks, nested symlinks, staging outside cwd, and source equal to staging."
+            code: |
+              for source_factory, expected_error in (
+                  (unsupported_file, "supported package"),
+                  (empty_directory, "empty"),
+                  (source_symlink, "symbolic link"),
+                  (directory_with_symlink, "symbolic link"),
+              ):
+                  result = self.run_helper(
+                      "prepare", "--source", str(source_factory()),
+                      "--staging-root", str(staging), cwd=workspace,
+                  )
+                  self.assertNotEqual(result.returncode, 0)
+                  self.assertIn(expected_error, result.stderr)
+            run: "python3 tests/package_upload_helper_test.py"
+            expect: "FAIL because prepare safety behavior is absent"
+          - action: implement
+            description: "Add error, path-containment, supported-suffix, archive-name, and symlink-aware traversal helpers."
+            code: |
+              import argparse
+              import json
+              import os
+              import re
+              import subprocess
+              import sys
+              import zipfile
+              from pathlib import Path
+              from urllib.parse import urljoin, urlsplit, urlunsplit
+
+              SUPPORTED_SUFFIXES = (".zip", ".jar", ".war", ".tar", ".tar.gz")
+              FIELD_NAME_RE = re.compile(r"^[A-Za-z0-9_.-]+$")
+
+              class HelperError(Exception):
+                  pass
+
+              def resolve_argument_path(value):
+                  path = Path(value).expanduser()
+                  return path if path.is_absolute() else Path.cwd() / path
+
+              def require_staging_root(value):
+                  workspace = Path.cwd().resolve()
+                  raw = resolve_argument_path(value)
+                  if raw.is_symlink():
+                      raise HelperError("staging root must not be a symbolic link")
+                  resolved = raw.resolve(strict=False)
+                  try:
+                      relative = resolved.relative_to(workspace)
+                  except ValueError:
+                      raise HelperError("staging root must be inside the current workspace")
+                  if not relative.parts:
+                      raise HelperError("staging root must be below the current workspace")
+                  return resolved
+
+              def require_supported_suffix(name):
+                  if not name.lower().endswith(SUPPORTED_SUFFIXES):
+                      raise HelperError("source file must be a supported package: zip, jar, war, tar, or tar.gz")
+
+              def safe_archive_name(value):
+                  normalized = str(value or "").replace("\\", "/").rstrip("/")
+                  name = normalized.rsplit("/", 1)[-1] if normalized else ""
+                  if name in ("", ".", ".."):
+                      raise HelperError("archive name must contain a file name")
+                  if not name.lower().endswith(".zip"):
+                      name += ".zip"
+                  return name
+
+              def collect_regular_files(source, excluded_root):
+                  files = []
+                  for root, directory_names, file_names in os.walk(source, topdown=True, followlinks=False):
+                      root_path = Path(root)
+                      if root_path.resolve() == excluded_root:
+                          directory_names[:] = []
+                          continue
+                      kept_directories = []
+                      for name in sorted(directory_names):
+                          child = root_path / name
+                          if child.is_symlink():
+                              raise HelperError("source contains symbolic link: {}".format(child.relative_to(source)))
+                          if child.resolve(strict=False) != excluded_root:
+                              kept_directories.append(name)
+                      directory_names[:] = kept_directories
+                      for name in sorted(file_names):
+                          child = root_path / name
+                          if child.is_symlink():
+                              raise HelperError("source contains symbolic link: {}".format(child.relative_to(source)))
+                          if child.is_file():
+                              files.append(child)
+                  return files
+            run: "python3 tests/package_upload_helper_test.py"
+            expect: "Still FAIL because prepare CLI is not wired"
+          - action: implement
+            description: "Implement prepare with file reuse, directory zip creation, staging exclusion, compact JSON fields, and no third-party dependency."
+            code: |
+              def prepare_package(source_value, staging_value, archive_name):
+                  raw_source = resolve_argument_path(source_value)
+                  if raw_source.is_symlink():
+                      raise HelperError("source must not be a symbolic link")
+                  try:
+                      source = raw_source.resolve(strict=True)
+                  except FileNotFoundError:
+                      raise HelperError("source does not exist: {}".format(raw_source))
+                  staging = require_staging_root(staging_value)
+                  if source.is_file():
+                      require_supported_suffix(source.name)
+                      return {
+                          "archive_path": str(source), "file_name": source.name,
+                          "generated": False, "staging_root": str(staging),
+                      }
+                  if not source.is_dir():
+                      raise HelperError("source must be a package file or directory")
+                  if source == staging:
+                      raise HelperError("source directory and staging root must differ")
+                  files = collect_regular_files(source, staging)
+                  if not files:
+                      raise HelperError("source directory is empty")
+                  staging.mkdir(parents=True, exist_ok=True)
+                  archive = staging / safe_archive_name(archive_name or source.name)
+                  if archive.is_symlink():
+                      raise HelperError("generated archive must not be a symbolic link")
+                  with zipfile.ZipFile(str(archive), "w", compression=zipfile.ZIP_DEFLATED) as output:
+                      for file_path in files:
+                          output.write(str(file_path), file_path.relative_to(source).as_posix())
+                  return {
+                      "archive_path": str(archive), "file_name": archive.name,
+                      "generated": True, "staging_root": str(staging),
+                  }
+            run: "python3 tests/package_upload_helper_test.py"
+            expect: "Prepare tests PASS; upload and cleanup tests still FAIL"
+          - action: write-test
+            description: "Add fake-curl tests for same-origin relative/absolute URLs, multipart argv, and absence of authorization headers."
+            code: |
+              env = {
+                  **os.environ,
+                  "RAINBOND_URL": "https://console.example/base",
+                  "PATH": fake_bin + os.pathsep + os.environ["PATH"],
+                  "CURL_ARGV_LOG": str(curl_log),
+              }
+              result = self.run_helper(
+                  "upload", "--archive", str(package),
+                  "--upload-url", "/console/regions/r1/websocket/package_build/component/events/e1",
+                  "--url-scope", "console_origin", "--method", "POST",
+                  "--content-type", "multipart/form-data",
+                  "--file-field", "packageTarFile", "--authorization", "none",
+                  cwd=workspace, env=env,
+              )
+              self.assertEqual(result.returncode, 0, result.stderr)
+              argv = json.loads(curl_log.read_text())
+              self.assertTrue(any(value.startswith('packageTarFile=@"') for value in argv))
+              self.assertFalse(any("Authorization" in value for value in argv))
+            run: "python3 tests/package_upload_helper_test.py"
+            expect: "FAIL because upload is not implemented"
+          - action: write-test
+            description: "Add upload rejection tests for cross-origin, scheme downgrade, userinfo, malformed ports, wrong scope/method/content/auth, invalid form field, non-package archive, non-2xx, timeout, and missing curl."
+            code: |
+              invalid_contracts = (
+                  ("--upload-url", "https://other.example/upload", "same Console origin"),
+                  ("--url-scope", "arbitrary", "console_origin"),
+                  ("--method", "PUT", "POST"),
+                  ("--content-type", "application/json", "multipart/form-data"),
+                  ("--authorization", "bearer", "none"),
+                  ("--file-field", "bad;field", "file field"),
+              )
+              for flag, value, expected_error in invalid_contracts:
+                  args = valid_upload_args_with(flag, value)
+                  result = self.run_helper(*args, cwd=workspace, env=env)
+                  self.assertNotEqual(result.returncode, 0)
+                  self.assertIn(expected_error, result.stderr)
+            run: "python3 tests/package_upload_helper_test.py"
+            expect: "FAIL before upload validation is implemented"
+          - action: implement
+            description: "Implement normalized exact-origin URL checks, strict upload contract validation, and safe curl form encoding."
+            code: |
+              def normalized_origin(value, label):
+                  parsed = urlsplit(value)
+                  if parsed.scheme.lower() not in ("http", "https") or not parsed.netloc or not parsed.hostname:
+                      raise HelperError("{} must be an HTTP(S) URL".format(label))
+                  if parsed.username is not None or parsed.password is not None:
+                      raise HelperError("{} must not contain user information".format(label))
+                  try:
+                      port = parsed.port
+                  except ValueError as error:
+                      raise HelperError("{} has an invalid port: {}".format(label, error))
+                  effective_port = port or (443 if parsed.scheme.lower() == "https" else 80)
+                  return parsed.scheme.lower(), parsed.hostname.lower(), effective_port
+
+              def resolve_upload_url(base_value, upload_value):
+                  base_origin = normalized_origin(base_value, "RAINBOND_URL")
+                  resolved = urljoin(base_value.rstrip("/") + "/", upload_value)
+                  if normalized_origin(resolved, "upload URL") != base_origin:
+                      raise HelperError("upload URL must use the same Console origin as RAINBOND_URL")
+                  parsed = urlsplit(resolved)
+                  if parsed.fragment:
+                      raise HelperError("upload URL must not contain a fragment")
+                  return urlunsplit(parsed)
+
+              def validate_upload_contract(args):
+                  if args.url_scope != "console_origin":
+                      raise HelperError("url scope must be console_origin")
+                  if args.method.upper() != "POST":
+                      raise HelperError("upload method must be POST")
+                  if args.content_type.lower() != "multipart/form-data":
+                      raise HelperError("content type must be multipart/form-data")
+                  if args.authorization.lower() != "none":
+                      raise HelperError("upload authorization must be none")
+                  if not FIELD_NAME_RE.fullmatch(args.file_field):
+                      raise HelperError("file field contains unsupported characters")
+
+              def curl_file_form(field, archive):
+                  escaped = str(archive).replace("\\", "\\\\").replace('"', '\\"')
+                  return '{}=@"{}"'.format(field, escaped)
+            run: "python3 tests/package_upload_helper_test.py"
+            expect: "Still FAIL because curl execution is not wired"
+          - action: implement
+            description: "Implement streaming curl execution with bounded timeout, captured output, non-2xx handling, and no credentials."
+            code: |
+              def upload_package(args):
+                  validate_upload_contract(args)
+                  archive_arg = resolve_argument_path(args.archive)
+                  if archive_arg.is_symlink():
+                      raise HelperError("archive must not be a symbolic link")
+                  try:
+                      archive = archive_arg.resolve(strict=True)
+                  except FileNotFoundError:
+                      raise HelperError("archive does not exist: {}".format(archive_arg))
+                  if not archive.is_file():
+                      raise HelperError("archive must be a file")
+                  require_supported_suffix(archive.name)
+                  target = resolve_upload_url(os.environ.get("RAINBOND_URL", ""), args.upload_url)
+                  command = [
+                      "curl", "--fail-with-body", "--silent", "--show-error",
+                      "--max-time", str(args.timeout), "--request", "POST",
+                      "--form", curl_file_form(args.file_field, archive), target,
+                  ]
+                  try:
+                      result = subprocess.run(
+                          command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                          text=True, timeout=args.timeout + 5,
+                      )
+                  except FileNotFoundError:
+                      raise HelperError("curl executable was not found")
+                  except subprocess.TimeoutExpired:
+                      raise HelperError("package upload timed out")
+                  if result.returncode:
+                      detail = result.stderr.strip()[:512] or "no curl error details"
+                      raise HelperError("package upload failed (curl {}): {}".format(result.returncode, detail))
+                  return {"uploaded": True}
+            run: "python3 tests/package_upload_helper_test.py"
+            expect: "Upload tests PASS; cleanup tests still FAIL"
+          - action: write-test
+            description: "Test generated-only cleanup, idempotence, outside-root refusal, symlink refusal, original archive preservation, and removal of only an empty staging leaf."
+            code: |
+              result = self.run_helper(
+                  "cleanup", "--archive", str(generated),
+                  "--staging-root", str(staging), "--generated", "true",
+                  cwd=workspace,
+              )
+              self.assertEqual(result.returncode, 0, result.stderr)
+              self.assertFalse(generated.exists())
+
+              preserved = self.run_helper(
+                  "cleanup", "--archive", str(original),
+                  "--staging-root", str(staging), "--generated", "false",
+                  cwd=workspace,
+              )
+              self.assertEqual(preserved.returncode, 0)
+              self.assertTrue(original.exists())
+            run: "python3 tests/package_upload_helper_test.py"
+            expect: "FAIL before implementation"
+          - action: implement
+            description: "Implement containment-checked cleanup; generated=false is a no-op and generated=true can remove only a regular archive beneath staging."
+            code: |
+              def parse_generated(value):
+                  lowered = value.lower()
+                  if lowered not in ("true", "false"):
+                      raise HelperError("generated must be true or false")
+                  return lowered == "true"
+
+              def cleanup_package(archive_value, staging_value, generated_value):
+                  if not parse_generated(generated_value):
+                      return {"cleaned": False}
+                  staging = require_staging_root(staging_value)
+                  raw_archive = resolve_argument_path(archive_value)
+                  if raw_archive.is_symlink():
+                      raise HelperError("generated archive must not be a symbolic link")
+                  archive = raw_archive.resolve(strict=False)
+                  try:
+                      relative = archive.relative_to(staging)
+                  except ValueError:
+                      raise HelperError("generated archive must be inside staging root")
+                  if not relative.parts:
+                      raise HelperError("generated archive must not be the staging directory")
+                  if archive.exists():
+                      if not archive.is_file():
+                          raise HelperError("generated archive must be a regular file")
+                      archive.unlink()
+                  try:
+                      staging.rmdir()
+                  except OSError:
+                      pass
+                  return {"cleaned": True}
+            run: "python3 tests/package_upload_helper_test.py"
+            expect: "Still FAIL because CLI parsing is not wired"
+          - action: implement
+            description: "Wire prepare/upload/cleanup argparse subcommands, positive timeout validation, JSON stdout, and concise stderr/exit-code mapping."
+            code: |
+              def positive_int(value):
+                  parsed = int(value)
+                  if parsed <= 0:
+                      raise argparse.ArgumentTypeError("must be greater than zero")
+                  return parsed
+
+              def build_parser():
+                  parser = argparse.ArgumentParser(description="Prepare, upload, and clean Rainbond local packages")
+                  commands = parser.add_subparsers(dest="command", required=True)
+                  prepare = commands.add_parser("prepare")
+                  prepare.add_argument("--source", required=True)
+                  prepare.add_argument("--staging-root", required=True)
+                  prepare.add_argument("--archive-name", default="")
+                  upload = commands.add_parser("upload")
+                  upload.add_argument("--archive", required=True)
+                  upload.add_argument("--upload-url", required=True)
+                  upload.add_argument("--url-scope", required=True)
+                  upload.add_argument("--method", required=True)
+                  upload.add_argument("--content-type", required=True)
+                  upload.add_argument("--file-field", required=True)
+                  upload.add_argument("--authorization", required=True)
+                  upload.add_argument("--timeout", type=positive_int, default=1800)
+                  cleanup = commands.add_parser("cleanup")
+                  cleanup.add_argument("--archive", required=True)
+                  cleanup.add_argument("--staging-root", required=True)
+                  cleanup.add_argument("--generated", required=True)
+                  return parser
+
+              def main():
+                  args = build_parser().parse_args()
+                  try:
+                      if args.command == "prepare":
+                          payload = prepare_package(args.source, args.staging_root, args.archive_name)
+                      elif args.command == "upload":
+                          payload = upload_package(args)
+                      else:
+                          payload = cleanup_package(args.archive, args.staging_root, args.generated)
+                  except (HelperError, OSError, zipfile.BadZipFile) as error:
+                      print("package upload helper: {}".format(error), file=sys.stderr)
+                      return 2
+                  print(json.dumps(payload, separators=(",", ":"), sort_keys=True))
+                  return 0
+
+              if __name__ == "__main__":
+                  sys.exit(main())
+            run: "python3 tests/package_upload_helper_test.py"
+            expect: "PASS"
+          - action: refactor
+            description: "Keep each safety check separately named, preserve JSON field names, and remove any duplication without widening accepted URL or deletion scopes."
+            run: "python3 tests/package_upload_helper_test.py"
+            expect: "PASS"
+        acceptance:
+          - cmd: "cd /Users/goodrain/.config/superpowers/worktrees/rainskills/mcp-client-package-upload && python3 tests/package_upload_helper_test.py"
+            expect: "exit 0"
+
+      - id: task-2.2
+        name: "Route package-backed deployments through the client helper"
+        status: pending
+        files:
+          modify:
+            - path: rainbond-fullstack-bootstrap/modules/40-source-and-package-rules.md
+              lines: "218-245"
+            - path: rainbond-fullstack-bootstrap/modules/50-workflow-and-convergence.md
+              lines: "40-55"
+            - path: rainbond-fullstack-bootstrap/references/quick-reference.md
+              lines: "25-55"
+            - path: rainbond-app-assistant/SKILL.md
+              lines: "220-240"
+          create:
+            - path: tests/package_upload_workflow_contract_test.py
+            - path: rainbond-fullstack-bootstrap/evals/14-client-package-upload.prompt.md
+            - path: rainbond-fullstack-bootstrap/evals/14-client-package-upload.expected.yaml
+            - path: rainbond-fullstack-bootstrap/evals/14-client-package-upload.response.md
+        steps:
+          - action: write-test
+            description: "Add a deterministic contract test that reads shipped guidance, requires the six actions in order, and rejects positive recommendations of server-local path tools."
+            code: |
+              WORKFLOW = ROOT / "rainbond-fullstack-bootstrap/modules/40-source-and-package-rules.md"
+              ASSISTANT = ROOT / "rainbond-app-assistant/SKILL.md"
+              REQUIRED_SEQUENCE = (
+                  "upload_local_package.py prepare",
+                  "rainbond_init_package_upload",
+                  "upload_local_package.py upload",
+                  "upload_local_package.py cleanup",
+                  "rainbond_get_package_upload_status",
+                  "rainbond_create_component_from_package",
+              )
+
+              class PackageUploadWorkflowContractTest(unittest.TestCase):
+                  def test_package_workflow_uses_client_upload_sequence(self):
+                      text = WORKFLOW.read_text(encoding="utf-8")
+                      positions = [text.index(value) for value in REQUIRED_SEQUENCE]
+                      self.assertEqual(positions, sorted(positions))
+                      self.assertIn("Never pass `source.local_path` to an MCP tool", text)
+
+                  def test_assistant_write_gate_omits_server_local_package_tools(self):
+                      text = ASSISTANT.read_text(encoding="utf-8")
+                      self.assertNotIn("rainbond_upload_package_file", text)
+                      self.assertNotIn("rainbond_create_component_from_local_package", text)
+            run: "python3 tests/package_upload_workflow_contract_test.py"
+            expect: "FAIL because current guidance recommends server-local path tools and lacks the client sequence"
+          - action: implement
+            description: "Replace package guidance in the source rules and execution order with the exact client upload state machine. Explicitly prohibit passing source.local_path to MCP."
+            code: |
+              Mandatory client upload sequence:
+              1. `upload_local_package.py prepare` with source.local_path and workspace staging root.
+              2. `rainbond_init_package_upload`; retain event_id and every upload_request field.
+              3. `upload_local_package.py upload` with archive_path plus upload_request.
+              4. `upload_local_package.py cleanup` immediately after the HTTP attempt.
+              5. `rainbond_get_package_upload_status`; require uploaded_packages to be non-empty.
+              6. `rainbond_create_component_from_package` with event_id.
+
+              Never pass `source.local_path` to an MCP tool. On init failure run local
+              cleanup. On upload failure run local cleanup, then
+              `rainbond_delete_package_upload`. On empty status delete the remote event
+              and stop before component creation.
+            run: "python3 tests/package_upload_workflow_contract_test.py"
+            expect: "Still FAIL until all shipped guidance is consistent"
+          - action: implement
+            description: "Update quick reference and app-assistant MCP write gate so package writes select bootstrap but never recommend either server-local path tool."
+            code: |
+              - Package uploads read source.local_path only in the local helper.
+              - Initialize through rainbond_init_package_upload and create only through
+                rainbond_create_component_from_package after verified client upload.
+              - The server-local compatibility tools are not RainSkills execution options.
+            run: "python3 tests/package_upload_workflow_contract_test.py"
+            expect: "PASS"
+          - action: implement
+            description: "Add deterministic eval fixture 14 using supported assertion keys and a valid BootstrapResult response that narrates the client sequence without naming legacy tools."
+            code: |
+              case: client-package-upload
+              in_scope_components:
+                - api
+              assert:
+                prose_contains:
+                  - "upload_local_package.py prepare"
+                  - "rainbond_init_package_upload"
+                  - "upload_local_package.py upload"
+                  - "upload_local_package.py cleanup"
+                  - "rainbond_get_package_upload_status"
+                  - "rainbond_create_component_from_package"
+                prose_not_contains:
+                  - "rainbond_upload_package_file"
+                  - "rainbond_create_component_from_local_package"
+            run: "python3 rainbond-fullstack-bootstrap/scripts/run_bootstrap_evals.py"
+            expect: "PASS using assert.prose_contains and assert.prose_not_contains"
+          - action: verify
+            description: "Run the contract test and eval suite together; do not infer rule correctness from a static response fixture alone."
+            run: "python3 tests/package_upload_workflow_contract_test.py && python3 rainbond-fullstack-bootstrap/scripts/run_bootstrap_evals.py"
+            expect: "Both exit 0"
+        acceptance:
+          - cmd: "cd /Users/goodrain/.config/superpowers/worktrees/rainskills/mcp-client-package-upload && python3 tests/package_upload_workflow_contract_test.py && python3 rainbond-fullstack-bootstrap/scripts/run_bootstrap_evals.py"
+            expect: "exit 0"
+
+      - id: task-2.3
+        name: "Ship and continuously test the helper"
+        status: pending
+        files:
+          modify:
+            - path: package.json
+              lines: "43-50"
+            - path: tests/npm-package.test.js
+              lines: "57-123"
+        steps:
+          - action: write-test
+            description: "Assert the packed tarball and the npm-exec installed skill both contain upload_local_package.py."
+            code: |
+              const uploadHelper =
+                "rainbond-fullstack-bootstrap/scripts/upload_local_package.py";
+              assert(filePaths.has(uploadHelper), `${uploadHelper} is missing`);
+              assert(fs.existsSync(path.join(destination, uploadHelper)));
+            run: "node --test tests/npm-package.test.js"
+            expect: "PASS after helper exists and proves packaging wiring"
+          - action: implement
+            description: "Add test:package-upload for helper, workflow contract, and bootstrap evals, then place it in the default npm test chain."
+            code: |
+              "test": "npm run test:launcher && npm run test:package-upload && npm run test:package && npm run test:installer && npm run test:signal && npm run test:npx-pty",
+              "test:package-upload": "python3 tests/package_upload_helper_test.py && python3 tests/package_upload_workflow_contract_test.py && python3 rainbond-fullstack-bootstrap/scripts/run_bootstrap_evals.py"
+          - action: verify
+            description: "Run helper tests, skill evals, package tests, then all RainSkills quality gates with a supported Node runtime."
+            run: "export PATH=/Users/goodrain/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin:$PATH; python3 tests/package_upload_helper_test.py && python3 tests/package_upload_workflow_contract_test.py && python3 rainbond-fullstack-bootstrap/scripts/run_bootstrap_evals.py && node --test tests/npm-package.test.js && npm test"
+            expect: "exit 0"
+        acceptance:
+          - cmd: "cd /Users/goodrain/.config/superpowers/worktrees/rainskills/mcp-client-package-upload && PATH=/Users/goodrain/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin:$PATH npm test"
+            expect: "exit 0"
+
+  - id: sprint-3
+    name: "Cross-repository contract verification"
+    repo: cross-repo
+    commits: []
+    tasks:
+      - id: task-3.1
+        name: "Review Console and RainSkills transport compatibility"
+        status: pending
+        files:
+          rainbond-console:
+            inspect:
+              - path: console/services/package_upload_tool_service.py
+              - path: console/tests/package_upload_tool_service_test.py
+          rainskills:
+            inspect:
+              - path: rainbond-fullstack-bootstrap/scripts/upload_local_package.py
+              - path: tests/package_upload_helper_test.py
+        steps:
+          - action: skill-review
+            skill: check-api-compat
+            description: "Apply the check-api-compat skill to the provider/consumer diff. Compare method, URL scope, content type, form field, authorization mode, event ordering, and failure cleanup semantics with file-and-line evidence."
+            expect: "No unresolved provider/consumer contract mismatch"
+          - action: verify
+            description: "Run both sides' focused contract tests in one shell command after the compatibility review."
+            run: "cd /Users/goodrain/.config/superpowers/worktrees/rainbond-console/mcp-client-package-upload && /Users/goodrain/.cache/codex-venvs/rainbond-console-py311/bin/python -m pytest console/tests/package_upload_tool_service_test.py console/tests/mcp_deployment_invocation_test.py console/tests/mcp_query_service_test.py -q && cd /Users/goodrain/.config/superpowers/worktrees/rainskills/mcp-client-package-upload && python3 tests/package_upload_helper_test.py && python3 tests/package_upload_workflow_contract_test.py"
+            expect: "exit 0"
+
+      - id: task-3.2
+        name: "Exercise a package-backed deployment against a configured test Console"
+        status: pending
+        precondition: "A non-production Rainbond test Console is configured through the existing RainSkills MCP environment. Never print its JWT."
+        files:
+          rainskills:
+            inspect:
+              - path: rainbond-fullstack-bootstrap/scripts/upload_local_package.py
+              - path: rainbond-fullstack-bootstrap/modules/40-source-and-package-rules.md
+        steps:
+          - action: verify-live
+            description: "Create a temporary package file fixture under the current workspace; run helper prepare, MCP init, helper upload, helper cleanup, MCP status, and create-by-event with is_deploy=false. Assert status names the uploaded package and component creation returns a service_id."
+            expect: "Console/Region resolves the client upload by event_id without a server-local path error"
+          - action: verify-live
+            description: "Repeat prepare/init/upload/status using a temporary source directory so directory zip behavior reaches the same Console proxy; delete the remote upload event instead of creating a second component."
+            expect: "Directory package is visible in uploaded_packages and cleanup removes only the generated archive"
+          - action: verify-live
+            description: "Force one upload failure with an invalid event path in the test environment, then verify local generated cleanup and remote event deletion execute in the documented order."
+            expect: "No component is created and the original source remains"
+          - action: report
+            description: "If the precondition is unavailable, record live E2E as not run with the precise missing test-environment dependency; do not replace it with a passing unit-test claim."
+            expect: "Fresh live evidence or an explicit not-run limitation"
+
+      - id: task-3.3
+        name: "Verify commits, clean worktrees, and extract issues"
+        status: pending
+        files:
+          rainbond-console:
+            inspect:
+              - path: .claude/specs/mcp-client-package-upload.yaml
+          rainskills:
+            inspect:
+              - path: package.json
+        steps:
+          - action: verify
+            description: "Record unexpected implementation issues for developer confirmation, or explicitly state that none were found."
+            expect: "Issue summary ready before branch completion"
+        acceptance:
+          - cmd: "test -z \"$(git -C /Users/goodrain/.config/superpowers/worktrees/rainbond-console/mcp-client-package-upload status --porcelain)\" && test -z \"$(git -C /Users/goodrain/.config/superpowers/worktrees/rainskills/mcp-client-package-upload status --porcelain)\" && git -C /Users/goodrain/.config/superpowers/worktrees/rainbond-console/mcp-client-package-upload log --format=%s | rg -x 'fix: expose MCP client package upload contract' && git -C /Users/goodrain/.config/superpowers/worktrees/rainskills/mcp-client-package-upload log --format=%s | rg -x 'fix: upload local packages through Console'"
+            expect: "exit 0 and both implementation commit messages are present"
