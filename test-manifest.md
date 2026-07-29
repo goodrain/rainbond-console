@@ -442,7 +442,7 @@
 | console.realtime-proxy.http-forward | 实时代理 HTTP 转发 | active | regression | console.utils.realtime_proxy.proxy_http_request | console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_http_proxy_forwards_upload_request_to_region_websocket_service |
 | console.realtime-proxy.internal-target-override | 实时代理内部目标覆盖 | active | regression | console.utils.realtime_proxy.build_region_realtime_proxy_url | console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_region_proxy_target_prefers_internal_override_for_builtin_region |
 | console.realtime-proxy.multipart-folder-upload-forward | 转发文件夹上传中的重复 multipart 文件字段 | active | regression | console.utils.realtime_proxy.build_multipart_payload | console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_multipart_folder_upload_encodes_repeated_file_field |
-| console.realtime-proxy.multipart-upload-forward | 实时代理重建分片上传请求 | active | regression | console.utils.realtime_proxy.build_multipart_payload | console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_http_proxy_rebuilds_multipart_upload_for_app_import |
+| console.realtime-proxy.multipart-upload-forward | 实时代理流式转发离线应用上传请求 | active | regression | console.utils.realtime_proxy._should_forward_raw_multipart | console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_app_import_upload_forwards_raw_multipart_body |
 | console.realtime-proxy.non-terminal-no-user-idle-timeout | 非终端实时代理不触发用户空闲超时 | active | regression | console.utils.realtime_proxy.DockerConsoleActivityTracker | console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_non_docker_console_activity_tracker_never_user_idle_expires |
 | console.realtime-proxy.package-build-raw-multipart-forward | 组件构建包上传原始转发 multipart 请求 | active | regression | console.utils.realtime_proxy.proxy_http_request | console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_package_build_upload_forwards_raw_multipart_body |
 | console.realtime-proxy.region-target-url | 实时代理 Region 目标 URL | active | regression | console.utils.realtime_proxy.build_region_realtime_proxy_url | console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_region_proxy_target_keeps_region_websocket_host_for_http |
@@ -4952,15 +4952,15 @@
 - 代码路径: `console/utils/realtime_proxy.py`
 - 测试路径: `console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_multipart_folder_upload_encodes_repeated_file_field`
 
-### 实时代理重建分片上传请求
+### 实时代理流式转发离线应用上传请求
 
 - Capability ID: `console.realtime-proxy.multipart-upload-forward`
 - 状态: `active`
 - 测试类型: `regression`
 - 接口类型: `package_function`
-- 业务入口: `console.utils.realtime_proxy.build_multipart_payload`
+- 业务入口: `console.utils.realtime_proxy._should_forward_raw_multipart`
 - 代码路径: `console/utils/realtime_proxy.py`
-- 测试路径: `console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_http_proxy_rebuilds_multipart_upload_for_app_import`
+- 测试路径: `console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_app_import_upload_forwards_raw_multipart_body`
 
 ### 非终端实时代理不触发用户空闲超时
 

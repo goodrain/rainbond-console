@@ -58,6 +58,7 @@ from console.services.app_actions.app_log import AppWebSocketService  # noqa: E4
 from console.services.app_import_and_export_service import import_service  # noqa: E402
 from console.utils.realtime_proxy import (  # noqa: E402
     DockerConsoleActivityTracker,
+    LimitedRequestBody,
     WEBSOCKET_PROXY_READ_TIMEOUT_SECONDS,
     _backend_websocket_subprotocols,
     build_multipart_payload,
@@ -167,15 +168,19 @@ class RealtimeProxyUrlTests(SimpleTestCase):
         self.assertEqual(b"".join(response.streaming_content), b'{"ok":true}')
 
     # capability_id: console.realtime-proxy.multipart-upload-forward
-    def test_http_proxy_rebuilds_multipart_upload_for_app_import(self):
-        upload_file = SimpleUploadedFile(
-            "app.tar.gz",
-            b"app package content",
-            content_type="application/gzip",
+    def test_app_import_upload_forwards_raw_multipart_body(self):
+        boundary = "----RainbondBoundary"
+        body = (
+            b"------RainbondBoundary\r\n"
+            b'Content-Disposition: form-data; name="appTarFile"; filename="app.tar.gz"\r\n'
+            b"Content-Type: application/gzip\r\n\r\n"
+            b"app package content\r\n"
+            b"------RainbondBoundary--\r\n"
         )
         request = self.factory.post(
             "/console/regions/rainbond/websocket/app/upload/evt-1",
-            data={"appTarFile": upload_file},
+            data=body,
+            content_type="multipart/form-data; boundary={0}".format(boundary),
             HTTP_AUTHORIZATION="JWT token",
         )
         backend_response = mock.Mock()
@@ -192,14 +197,15 @@ class RealtimeProxyUrlTests(SimpleTestCase):
         _, kwargs = request_mock.call_args
         self.assertEqual(request_mock.call_args[0][1], "http://region.example.com:6060/app/upload/evt-1")
         self.assertEqual(kwargs["headers"]["Authorization"], "JWT token")
-        self.assertNotIn("Content-Type", kwargs["headers"])
-        self.assertNotIn("Content-Length", kwargs["headers"])
-        self.assertIn("appTarFile", kwargs["files"])
-        file_name, file_obj, content_type = kwargs["files"]["appTarFile"]
-        self.assertEqual(file_name, "app.tar.gz")
-        self.assertEqual(file_obj.read(), b"app package content")
-        self.assertEqual(content_type, "application/gzip")
-        self.assertEqual(kwargs["data"], {})
+        self.assertIn("multipart/form-data", kwargs["headers"]["Content-Type"])
+        self.assertIn("boundary=", kwargs["headers"]["Content-Type"])
+        self.assertEqual(kwargs["headers"]["Content-Length"], str(len(body)))
+        self.assertIsNone(kwargs["files"])
+        self.assertIsInstance(kwargs["data"], LimitedRequestBody)
+        self.assertIs(kwargs["data"].body_stream, request)
+        self.assertEqual(kwargs["data"].read(len(body) + 1), body)
+        self.assertEqual(kwargs["data"].read(1), b"")
+        self.assertIn(b'filename="app.tar.gz"', body)
         self.assertEqual(response.status_code, 200)
 
     # capability_id: console.realtime-proxy.multipart-folder-upload-forward

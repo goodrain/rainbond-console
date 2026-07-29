@@ -8261,17 +8261,17 @@
     },
     {
       "id": "console.realtime-proxy.multipart-upload-forward",
-      "title": "Realtime proxy rebuilds multipart upload",
-      "title_zh": "实时代理重建分片上传请求",
+      "title": "Realtime proxy streams app import multipart upload",
+      "title_zh": "实时代理流式转发离线应用上传请求",
       "interface_type": "package_function",
-      "interface": "console.utils.realtime_proxy.build_multipart_payload",
+      "interface": "console.utils.realtime_proxy._should_forward_raw_multipart",
       "code_paths": [
         "console/utils/realtime_proxy.py"
       ],
       "tests": [
         {
           "path": "console/tests/realtime_proxy_url_test.py",
-          "selector": "RealtimeProxyUrlTests.test_http_proxy_rebuilds_multipart_upload_for_app_import"
+          "selector": "RealtimeProxyUrlTests.test_app_import_upload_forwards_raw_multipart_body"
         }
       ],
       "test_type": "regression",
