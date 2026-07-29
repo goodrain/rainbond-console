@@ -30,15 +30,17 @@ class MarketInstallPreflightService(object):
             region: Any,
             app_template: dict,
             timeout_budget_ms: int = DEFAULT_TIMEOUT_BUDGET_MS,
-            mode: Optional[str] = None) -> Dict[str, Any]:
+            mode: Optional[str] = None,
+            check_images: bool = True) -> Dict[str, Any]:
         started = time.time()
         mode = mode or os.getenv("MARKET_INSTALL_PREFLIGHT_MODE", "block")
         requirements = self.parse_template_requirements(app_template)
         checks = [
             self._check_resource_capacity(tenant, region, requirements),
             self._check_architecture(region, requirements),
-            self._check_image_manifests(requirements, started, timeout_budget_ms),
         ]
+        if check_images:
+            checks.append(self._check_image_manifests(requirements, started, timeout_budget_ms))
         status = self._result_status(checks)
         should_block = status == self.STATUS_BLOCK and mode == "block"
         if status == self.STATUS_BLOCK and mode != "block":
@@ -94,11 +96,14 @@ class MarketInstallPreflightService(object):
                 "no_ready_nodes",
                 {"all_node": all_nodes, "node_ready": ready_nodes})
 
-        free_cpu = self._int_value(resources.get("cap_cpu")) - self._int_value(resources.get("req_cpu"))
+        total_cpu, used_cpu = self._cluster_cpu_millicores(resources.get("cap_cpu"), resources.get("req_cpu"))
+        free_cpu = total_cpu - used_cpu
         free_memory = self._int_value(resources.get("cap_mem")) - self._int_value(resources.get("req_mem"))
         required_cpu = self._int_value(requirements.get("cpu"))
         required_memory = self._int_value(requirements.get("memory"))
         details = {
+            "total_cpu": total_cpu,
+            "used_cpu": used_cpu,
             "free_cpu": free_cpu,
             "required_cpu": required_cpu,
             "free_memory": free_memory,
@@ -222,10 +227,24 @@ class MarketInstallPreflightService(object):
             memory = self._int_value(extend_method_map.get("init_memory") or extend_method_map.get("min_memory"))
         return memory
 
+    def _cluster_cpu_millicores(self, cap_cpu: Any, req_cpu: Any) -> Tuple[int, int]:
+        total_cpu = self._float_value(cap_cpu)
+        used_cpu = self._float_value(req_cpu)
+        if 0 < total_cpu <= 512:
+            return int(round(total_cpu * 1000)), int(round(used_cpu * 1000))
+        return int(round(total_cpu)), int(round(used_cpu))
+
     @staticmethod
     def _int_value(value: Any) -> int:
         try:
             return int(value or 0)
+        except (TypeError, ValueError):
+            return 0
+
+    @staticmethod
+    def _float_value(value: Any) -> float:
+        try:
+            return float(value or 0)
         except (TypeError, ValueError):
             return 0
 

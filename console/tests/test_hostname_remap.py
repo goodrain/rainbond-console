@@ -107,6 +107,47 @@ class ApplyHostnameRemapTests:
         assert "http://api:" not in result
         assert "http://web:" not in result
 
+    def test_mongodb_dsn_with_credentials(self):
+        remap = {"fastgpt-mongo": "fastgpt-mongo-3d13"}
+        result = NewComponents._apply_hostname_remap(
+            "mongodb://myusername:mypassword@fastgpt-mongo:27017/fastgpt?authSource=admin", remap)
+        assert result == "mongodb://myusername:mypassword@fastgpt-mongo-3d13:27017/fastgpt?authSource=admin"
+
+    def test_redis_url_with_credentials(self):
+        remap = {"fastgpt-redis": "fastgpt-redis-3d13"}
+        result = NewComponents._apply_hostname_remap(
+            "redis://default:mypassword@fastgpt-redis:6379", remap)
+        assert result == "redis://default:mypassword@fastgpt-redis-3d13:6379"
+
+    def test_postgres_dsn_with_credentials(self):
+        remap = {"fastgpt-aiproxy-pg": "fastgpt-aiproxy-pg-3d13"}
+        result = NewComponents._apply_hostname_remap(
+            "postgres://postgres:aiproxy@fastgpt-aiproxy-pg:5432/aiproxy", remap)
+        assert result == "postgres://postgres:aiproxy@fastgpt-aiproxy-pg-3d13:5432/aiproxy"
+
+    def test_dsn_with_credentials_and_path_no_port(self):
+        remap = {"mongo": "mongo-ab12"}
+        result = NewComponents._apply_hostname_remap(
+            "mongodb://user:pass@mongo/mydb", remap)
+        assert result == "mongodb://user:pass@mongo-ab12/mydb"
+
+    def test_dsn_with_credentials_no_port_no_path(self):
+        remap = {"rabbitmq": "rabbitmq-cd34"}
+        result = NewComponents._apply_hostname_remap(
+            "amqp://guest:secret@rabbitmq", remap)
+        assert result == "amqp://guest:secret@rabbitmq-cd34"
+
+    def test_credential_matching_service_name_left_alone(self):
+        # A password that merely equals a remapped service name must not be touched.
+        remap = {"registry": "registry-ef56"}
+        result = NewComponents._apply_hostname_remap(
+            "postgres://harboruser:registry@harbor-db:5432/registry", remap)
+        assert result == "postgres://harboruser:registry@harbor-db:5432/registry"
+
+    def test_email_like_value_left_alone(self):
+        remap = {"api": "api-1234"}
+        assert NewComponents._apply_hostname_remap("admin@api", remap) == "admin@api"
+
     def test_does_not_mutate_remap(self):
         remap = {"api": "api-1234"}
         original = dict(remap)

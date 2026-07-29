@@ -37,8 +37,15 @@ class EnterpriseFirstDeployService(object):
     DEPLOY_TYPE_SOURCE_CODE = "source_code"
     DEPLOY_TYPE_APP_MARKET = "app_market"
     DEPLOY_TYPE_IMAGE = "image"
+    DEPLOY_TYPE_DATABASE = "database"
+    DEPLOY_TYPE_VIRTUAL_MACHINE = "virtual_machine"
+    DEPLOY_TYPE_K8S_RESOURCE = "k8s_resource"
+    DEPLOY_TYPE_YAML = "yaml"
+    DEPLOY_TYPE_HELM = "helm"
+    DEPLOY_TYPE_DOCKER_COMPOSE = "docker_compose"
     REPORT_TYPE_FIRST_DEPLOY = "first_deploy"
     REPORT_TYPE_DEPLOY_ATTEMPT = "deploy_attempt"
+    FAILURE_STAGE_PREFLIGHT = "preflight"
     FAILURE_STAGE_SOURCE_CHECK = "source_check"
     FAILURE_STAGE_BUILD = "build"
     FAILURE_STAGE_RUNTIME = "runtime"
@@ -1251,6 +1258,10 @@ class EnterpriseFirstDeployService(object):
         return self.FAILURE_STAGE_UNKNOWN
 
     def _normalize_stage(self, stage: str) -> str:
+        if stage == self.FAILURE_STAGE_PREFLIGHT:
+            return self.FAILURE_STAGE_PREFLIGHT
+        if stage == self.FAILURE_STAGE_SOURCE_CHECK:
+            return self.FAILURE_STAGE_SOURCE_CHECK
         if stage == self.FAILURE_STAGE_RUNTIME:
             return self.FAILURE_STAGE_RUNTIME
         return self.FAILURE_STAGE_BUILD
@@ -1494,6 +1505,10 @@ class EnterpriseFirstDeployService(object):
             return "market"
         if deploy_type == EnterpriseFirstDeployService.DEPLOY_TYPE_IMAGE:
             return "image"
+        if deploy_type == EnterpriseFirstDeployService.DEPLOY_TYPE_DATABASE:
+            return "kubeblocks"
+        if deploy_type == EnterpriseFirstDeployService.DEPLOY_TYPE_VIRTUAL_MACHINE:
+            return "vm_run"
         return deploy_type or ""
 
     def _build_app_context(self, enterprise_id: str, app_context: dict, component_name: str = "") -> dict:
@@ -1631,6 +1646,177 @@ class EnterpriseFirstDeployService(object):
         if template_arch:
             context["template_arch"] = template_arch
         return context
+
+    @classmethod
+    def build_database_workload_context(cls, params: Optional[dict] = None) -> dict:
+        params = params or {}
+        context: Dict[str, Any] = {"source_type": "database"}
+        for key in ("database_type", "version", "cpu", "memory", "storage_size", "storage_class", "arch"):
+            value = params.get(key)
+            if value not in (None, ""):
+                context[key] = cls._public_text(value)
+        context["backup_repo_configured"] = bool(params.get("backup_repo"))
+        return context
+
+    @classmethod
+    def build_virtual_machine_workload_context(cls, params: Optional[dict] = None) -> dict:
+        params = params or {}
+        context: Dict[str, Any] = {"source_type": "virtual_machine"}
+        for key in ("arch", "image_name", "os_type", "os_name", "cpu", "memory", "disk_size", "boot_mode"):
+            value = params.get(key)
+            if value not in (None, ""):
+                context[key] = cls._public_text(value)
+        for key in ("asset_id", "vm_id"):
+            value = params.get(key)
+            if value not in (None, ""):
+                context[key] = value
+        return context
+
+    @classmethod
+    def build_k8s_resource_workload_context(cls, resources: Any = None) -> dict:
+        context: Dict[str, Any] = {"source_type": "k8s_resource"}
+        context.update(cls._summarize_k8s_resources(resources))
+        return context
+
+    @classmethod
+    def build_yaml_workload_context(cls, event_id: str = "", imported: Optional[dict] = None) -> dict:
+        context: Dict[str, Any] = {"source_type": "yaml"}
+        if event_id:
+            context["event_id"] = event_id
+        if imported:
+            summary = cls._summarize_k8s_resources(imported)
+            context.update(summary)
+            components = imported.get("component") or imported.get("components") or []
+            context["component_count"] = len(components) if isinstance(components, list) else 0
+        return context
+
+    @classmethod
+    def build_helm_workload_context(cls,
+                                    app_id: Any = "",
+                                    chart: str = "",
+                                    version: str = "",
+                                    repo_name: str = "",
+                                    resource: Optional[dict] = None,
+                                    overrides: Any = None) -> dict:
+        resource = resource or {}
+        context: Dict[str, Any] = {"source_type": "helm"}
+        if app_id:
+            context["app_id"] = app_id
+        chart = chart or resource.get("chart") or resource.get("chart_name") or ""
+        version = version or resource.get("version") or ""
+        repo_name = repo_name or resource.get("repo_name") or ""
+        if chart:
+            context["chart"] = cls._public_text(chart)
+        if version:
+            context["version"] = cls._public_text(version)
+        if repo_name:
+            context["repo_name"] = cls._public_text(repo_name)
+        if overrides is not None:
+            context["override_count"] = len(overrides) if isinstance(overrides, (list, tuple, dict)) else 1
+        elif "values" in resource or "overrides" in resource:
+            value = resource.get("values") if "values" in resource else resource.get("overrides")
+            context["override_count"] = len(value) if isinstance(value, (list, tuple, dict)) else 1
+        return context
+
+    @staticmethod
+    def build_docker_compose_workload_context(compose_id: str = "", check_uuid: str = "", compose_file_path: str = "") -> dict:
+        context = {"source_type": "docker-compose"}
+        if compose_id:
+            context["compose_id"] = compose_id
+        if check_uuid:
+            context["check_uuid"] = check_uuid
+        if compose_file_path:
+            context["compose_file_path"] = compose_file_path
+        return context
+
+    @staticmethod
+    def extract_deploy_event_context(services: Any) -> Tuple[list, list, list]:
+        event_ids = []
+        service_ids = []
+        service_aliases = []
+        for service in services or []:
+            event_id = getattr(service, "_last_deploy_event_id", "")
+            if event_id:
+                event_ids.append(event_id)
+            service_id = getattr(service, "service_id", "")
+            if service_id:
+                service_ids.append(service_id)
+            service_alias = getattr(service, "service_alias", "")
+            if service_alias:
+                service_aliases.append(service_alias)
+        return event_ids, service_ids, service_aliases
+
+    @staticmethod
+    def extract_deploy_failure_reasons(services: Any) -> list:
+        failure_reasons = []
+        for service in services or []:
+            result = getattr(service, "_last_deploy_result", None)
+            if not isinstance(result, dict):
+                continue
+            try:
+                code = int(result.get("code") or 0)
+            except (TypeError, ValueError):
+                code = 0
+            if code == 0 or code == 200:
+                continue
+            reason = result.get("msg") or result.get("message") or "deploy failed"
+            service_name = getattr(service, "service_cname", "") or getattr(service, "service_alias", "") or getattr(
+                service, "service_id", "")
+            if service_name:
+                failure_reasons.append("{}: {}".format(service_name, reason))
+            else:
+                failure_reasons.append(str(reason))
+        return failure_reasons
+
+    @classmethod
+    def _summarize_k8s_resources(cls, resources: Any) -> dict:
+        docs = cls._normalize_k8s_resource_docs(resources)
+        kinds = []
+        for item in docs:
+            kind = item.get("kind") if isinstance(item, dict) else ""
+            if not kind or str(kind).lower() == "secret":
+                continue
+            kind = cls._public_text(kind)
+            if kind not in kinds:
+                kinds.append(kind)
+        return {
+            "resource_count": len(docs),
+            "resource_kinds": kinds,
+        }
+
+    @staticmethod
+    def _normalize_k8s_resource_docs(resources: Any) -> list:
+        if not resources:
+            return []
+        if isinstance(resources, list):
+            return [item for item in resources if isinstance(item, dict)]
+        if isinstance(resources, dict):
+            k8s_resources = resources.get("k8s_resources")
+            if isinstance(k8s_resources, list):
+                return [item for item in k8s_resources if isinstance(item, dict)]
+            app_resource = resources.get("app_resource")
+            if isinstance(app_resource, list):
+                return [item for item in app_resource if isinstance(item, dict)]
+            return [resources]
+        if isinstance(resources, str):
+            try:
+                import yaml
+                parsed_docs = list(yaml.safe_load_all(resources))
+            except Exception:
+                return []
+            return [item for item in parsed_docs if isinstance(item, dict)]
+        return []
+
+    @staticmethod
+    def _public_text(value: Any, limit: int = 128) -> str:
+        text = str(value or "")
+        text = EnterpriseFirstDeployService.AUTH_TOKEN_RE.sub(r"\1 ***", text)
+        text = EnterpriseFirstDeployService.URL_CREDENTIAL_RE.sub(r"\1***:***@", text)
+        text = EnterpriseFirstDeployService.SENSITIVE_QUOTED_ASSIGNMENT_RE.sub(r"\1\2\3***\3", text)
+        text = EnterpriseFirstDeployService.SENSITIVE_BARE_ASSIGNMENT_RE.sub(r"\1\2***", text)
+        if len(text) > limit:
+            return text[:limit - 3] + "..."
+        return text
 
     @staticmethod
     def _hash_identifier(instance_id: str, value: Any) -> str:
@@ -2359,6 +2545,18 @@ class EnterpriseFirstDeployService(object):
             return self.DEPLOY_TYPE_SOURCE_CODE
         if service_source == "market":
             return self.DEPLOY_TYPE_APP_MARKET
+        if service_source == "docker_compose":
+            return self.DEPLOY_TYPE_DOCKER_COMPOSE
+        if service_source in ("kubeblocks", "kubeblocks_component", "database"):
+            return self.DEPLOY_TYPE_DATABASE
+        if service_source in ("vm_run", "virtual_machine"):
+            return self.DEPLOY_TYPE_VIRTUAL_MACHINE
+        if service_source == "k8s_resource":
+            return self.DEPLOY_TYPE_K8S_RESOURCE
+        if service_source == "yaml":
+            return self.DEPLOY_TYPE_YAML
+        if service_source == "helm":
+            return self.DEPLOY_TYPE_HELM
         return self.DEPLOY_TYPE_IMAGE
 
 

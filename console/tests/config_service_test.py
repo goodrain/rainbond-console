@@ -25,6 +25,19 @@ class DummyModel(object):
     objects = DummyQuerySet()
 
 
+class ConfigExistError(Exception):
+    pass
+
+
+class IntegrityError(Exception):
+    pass
+
+
+class DuplicateConfigManager(DummyQuerySet):
+    def create(self, **kwargs):
+        raise IntegrityError("duplicate config key")
+
+
 class CustomFieldQuerySet(object):
     def __init__(self, configs):
         self.configs = configs
@@ -75,12 +88,13 @@ class EnterpriseConfigServiceTests(TestCase):
             "console.enum.system_config",
             "goodrain_web.custom_config",
             "django.conf",
+            "django.db",
             "django.db.models",
         ):
             sys.modules.pop(module_name, None)
 
     def import_config_service_module(self):
-        install_stub("console.exception.exceptions", ConfigExistError=Exception)
+        install_stub("console.exception.exceptions", ConfigExistError=ConfigExistError)
         install_stub("console.models.main", ConsoleSysConfig=DummyModel, OAuthServices=DummyModel)
         install_stub(
             "console.repositories.oauth_repo",
@@ -110,6 +124,7 @@ class EnterpriseConfigServiceTests(TestCase):
             custom_config=types.SimpleNamespace(reload=lambda: None),
         )
         install_stub("django.conf", settings=types.SimpleNamespace())
+        install_stub("django.db", IntegrityError=IntegrityError)
         install_stub("django.db.models", Q=lambda *args, **kwargs: None)
         return importlib.import_module("console.services.config_service")
 
@@ -129,6 +144,14 @@ class EnterpriseConfigServiceTests(TestCase):
         service = config_service.EnterpriseConfigService("enterprise-id", "user-id")
 
         self.assertEqual(service.user_id, "user-id")
+
+    # capability_id: console.enterprise-config.concurrent-initialization
+    def test_add_config_translates_duplicate_key_race_to_config_exist_error(self):
+        config_service = self.import_config_service_module()
+        config_service.ConsoleSysConfig = types.SimpleNamespace(objects=DuplicateConfigManager())
+
+        with self.assertRaises(ConfigExistError):
+            config_service.ConfigService().add_config("GLOBAL_IMAGE_REGISTRY", None, "string")
 
     # capability_id: console.enterprise-config.custom-fields-disabled-bool
     def test_get_custom_fields_includes_disabled_bool_fields(self):

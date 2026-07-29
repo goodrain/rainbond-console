@@ -52,6 +52,12 @@ class RegionInvokeApiStub(object):
     def pod_detail(self, *args, **kwargs):
         raise NotImplementedError
 
+    def yaml_resource_import(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def import_upload_chart_resource(self, *args, **kwargs):
+        raise NotImplementedError
+
 
 regionapi_stub = ModuleType("www.apiclient.regionapi")
 regionapi_stub.RegionInvokeApi = RegionInvokeApiStub
@@ -187,6 +193,109 @@ class EnterpriseFirstDeployServiceTests(TestCase):
 
         self.assertEqual(payload["report_type"], self.service.REPORT_TYPE_FIRST_DEPLOY)
         self.assertTrue(payload["is_first_deploy"])
+
+    def test_get_deploy_type_classifies_extended_deploy_sources(self):
+        cases = {
+            "source_code": self.service.DEPLOY_TYPE_SOURCE_CODE,
+            "package_build": self.service.DEPLOY_TYPE_SOURCE_CODE,
+            "market": self.service.DEPLOY_TYPE_APP_MARKET,
+            "docker_image": self.service.DEPLOY_TYPE_IMAGE,
+            "docker_run": self.service.DEPLOY_TYPE_IMAGE,
+            "docker_compose": self.service.DEPLOY_TYPE_DOCKER_COMPOSE,
+            "kubeblocks": self.service.DEPLOY_TYPE_DATABASE,
+            "kubeblocks_component": self.service.DEPLOY_TYPE_DATABASE,
+            "vm_run": self.service.DEPLOY_TYPE_VIRTUAL_MACHINE,
+            "k8s_resource": self.service.DEPLOY_TYPE_K8S_RESOURCE,
+            "yaml": self.service.DEPLOY_TYPE_YAML,
+            "helm": self.service.DEPLOY_TYPE_HELM,
+        }
+
+        for service_source, expected_deploy_type in cases.items():
+            self.assertEqual(self.service.get_deploy_type(service_source), expected_deploy_type)
+
+    def test_preflight_failure_stage_is_preserved(self):
+        payload = {
+            "enterprise_id": "eid-1",
+            "tenant_name": "demo-team",
+            "region_name": "demo-region",
+            "status": self.service.STATUS_PENDING,
+        }
+
+        self.service._set_stage_failure(
+            payload,
+            self.service.FAILURE_STAGE_PREFLIGHT,
+            reason="仓库地址格式不正确",
+            failure_logs=[])
+
+        self.assertEqual(payload["failure_stage"], self.service.FAILURE_STAGE_PREFLIGHT)
+        self.assertEqual(payload["preflight_status"], self.service.STATUS_FAILURE)
+        self.assertEqual(payload["preflight_failure_reason"], "仓库地址格式不正确")
+
+    def test_workload_context_builders_do_not_include_sensitive_raw_values(self):
+        database_context = self.service.build_database_workload_context({
+            "database_type": "mysql",
+            "version": "8.0.30",
+            "cpu": "500m",
+            "memory": "512Mi",
+            "storage_size": "10Gi",
+            "backup_repo": "team-a-prod",
+            "password": "plain-secret",
+        })
+        helm_context = self.service.build_helm_workload_context(
+            app_id=12,
+            chart="bitnami/mysql",
+            version="8.0.30",
+            overrides=["mysql.auth.rootPassword=plain-secret"])
+        yaml_context = self.service.build_yaml_workload_context(
+            event_id="event-1",
+            imported={
+                "k8s_resources": [{
+                    "kind": "Secret"
+                }, {
+                    "kind": "Deployment"
+                }],
+                "component": [{
+                    "name": "api"
+                }],
+            })
+
+        self.assertEqual(database_context["source_type"], "database")
+        self.assertEqual(database_context["database_type"], "mysql")
+        self.assertEqual(database_context["backup_repo_configured"], True)
+        self.assertNotIn("password", str(database_context).lower())
+        self.assertEqual(helm_context["source_type"], "helm")
+        self.assertEqual(helm_context["override_count"], 1)
+        self.assertNotIn("plain-secret", str(helm_context))
+        self.assertEqual(yaml_context["source_type"], "yaml")
+        self.assertEqual(yaml_context["resource_count"], 2)
+        self.assertEqual(yaml_context["component_count"], 1)
+        self.assertNotIn("Secret", yaml_context["resource_kinds"])
+
+    def test_extract_deploy_failure_reasons_reads_batch_deploy_result(self):
+        services = [
+            Obj(service_alias="grapi", service_cname="api", _last_deploy_result={
+                "code": 500,
+                "msg": "builder failed",
+            }),
+            Obj(service_alias="grweb", service_cname="web", _last_deploy_result={
+                "code": 200,
+                "msg": "success",
+            }),
+        ]
+
+        reasons = self.service.extract_deploy_failure_reasons(services)
+
+        self.assertEqual(reasons, ["api: builder failed"])
+
+    def test_safe_begin_deploy_tracking_never_blocks_business_flow(self):
+        with mock.patch.object(self.service, "begin_deploy_tracking", side_effect=Exception("report server down")):
+            tracker = self.service.safe_begin_deploy_tracking(
+                enterprise_id="eid-1",
+                tenant_name="demo-team",
+                region_name="demo-region",
+                deploy_type=self.service.DEPLOY_TYPE_IMAGE)
+
+        self.assertIsNone(tracker)
 
     def test_begin_deploy_attempt_tracking_uses_recoverable_attempt_record_after_first_deploy_finished(self):
         repo = FirstDeployRepoStub({

@@ -11,6 +11,7 @@ from console.repositories.helm import helm_repo
 from console.repositories.market_app_repo import app_import_record_repo, rainbond_app_repo
 from console.repositories.region_app import region_app_repo
 from console.services.app_actions import app_manage_service
+from console.services.enterprise_first_deploy_service import enterprise_first_deploy_service
 from console.services.region_resource_processing import region_resource
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import RegionApp, Tenants
@@ -447,14 +448,51 @@ class HelmAppService(object):
         import_data["namespace"] = tenant.namespace
         region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
         app = RegionApp.objects.filter(app_id=app_id)
+        tracker = enterprise_first_deploy_service.safe_begin_deploy_tracking(
+            enterprise_id=getattr(tenant, "enterprise_id", ""),
+            tenant_name=getattr(tenant, "tenant_name", ""),
+            region_name=region_name,
+            deploy_type=enterprise_first_deploy_service.DEPLOY_TYPE_HELM,
+            operator=getattr(user, "nick_name", ""),
+            source_language="helm",
+            trigger="helm_upload_chart_import",
+            app_context={
+                "app_id": app_id,
+                "component_count": 0,
+            },
+            workload_context=enterprise_first_deploy_service.build_helm_workload_context(app_id=app_id, resource=data))
         import_data["app_id"] = region_app_id
         import_data["ar"] = data
-        _, body = region_api.import_upload_chart_resource(region_name, tenant.tenant_name, import_data)
-        ac = body["bean"]  # type: ignore[index]  # NOTE: region_api returns untyped dict
-        region_resource.create_k8s_resources(ac["k8s_resources"], app_id)
-        service_ids = region_resource.create_components(app[0], ac["component"], tenant, region_name, user.user_id)
-        app_manage_service.batch_action(region_name, tenant, user, "deploy", service_ids, None, None)
-        return body["bean"]  # type: ignore[index]  # NOTE: region_api returns untyped dict
+        try:
+            _, body = region_api.import_upload_chart_resource(region_name, tenant.tenant_name, import_data)
+            ac = body["bean"]  # type: ignore[index]  # NOTE: region_api returns untyped dict
+            region_resource.create_k8s_resources(ac["k8s_resources"], app_id)
+            service_ids = region_resource.create_components(app[0], ac["component"], tenant, region_name, user.user_id)
+            code, msg, services = app_manage_service.batch_action(region_name, tenant, user, "deploy", service_ids, None, None)
+            if code != 200:
+                enterprise_first_deploy_service.safe_mark_failure(
+                    tracker, reason=msg, failure_stage=enterprise_first_deploy_service.FAILURE_STAGE_BUILD)
+            else:
+                event_ids, tracked_service_ids, service_aliases = \
+                    enterprise_first_deploy_service.extract_deploy_event_context(services)
+                deploy_failure_reasons = enterprise_first_deploy_service.extract_deploy_failure_reasons(services)
+                if deploy_failure_reasons:
+                    enterprise_first_deploy_service.safe_mark_failure(
+                        tracker,
+                        reason="; ".join(deploy_failure_reasons),
+                        failure_stage=enterprise_first_deploy_service.FAILURE_STAGE_BUILD)
+                elif event_ids:
+                    enterprise_first_deploy_service.safe_bind_events(tracker,
+                                                                     event_ids,
+                                                                     service_ids=tracked_service_ids,
+                                                                     service_aliases=service_aliases)
+                else:
+                    enterprise_first_deploy_service.safe_mark_success(tracker)
+            return body["bean"]  # type: ignore[index]  # NOTE: region_api returns untyped dict
+        except Exception as exc:
+            enterprise_first_deploy_service.safe_mark_failure(
+                tracker, reason=str(exc), failure_stage=enterprise_first_deploy_service.FAILURE_STAGE_PREFLIGHT)
+            raise
 
 
 helm_app_service = HelmAppService()

@@ -647,7 +647,9 @@ class AppManageService(AppManageBase):
                     if service.arch not in chaos_arch:
                         raise AbortRequest(
                             "app arch does not match build node arch", "应用架构与构建节点架构不匹配", status_code=404, error_code=404)
-                    self.deploy(tenant, service, user, oauth_instance=oauth_instance)
+                    deploy_code, deploy_msg, event_id = self.deploy(tenant, service, user, oauth_instance=oauth_instance)
+                    setattr(service, "_last_deploy_event_id", event_id)
+                    setattr(service, "_last_deploy_result", {"code": deploy_code, "msg": deploy_msg})
                 elif action == "upgrade" and service.service_source != "third_party" and service.service_source != "vm_run":
                     self.upgrade(tenant, service, user, oauth_instance=oauth_instance)
                 code = 200
@@ -956,6 +958,9 @@ class AppManageService(AppManageBase):
             body["container_cpu"] = new_cpu
             if new_gpu is not None and type(new_gpu) == int:
                 body["container_gpu"] = new_gpu
+            else:
+                # container_gpu 为非空列，未传 GPU 时保持组件当前值，避免写入 NULL
+                new_gpu = service.container_gpu if service.container_gpu is not None else 0
             body["operator"] = str(user.nick_name)
             body["enterprise_id"] = tenant.enterprise_id
             try:

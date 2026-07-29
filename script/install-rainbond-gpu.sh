@@ -23,6 +23,17 @@ function rainbond_use_chinese_prompt() {
     esac
 }
 
+function is_truthy() {
+    case "$(echo "${1:-}" | tr '[:upper:]' '[:lower:]')" in
+        1|true|yes|on)
+            return 0
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
 # Define colorful stdout
 RED='\033[0;31m'
 GREEN='\033[32;1m'
@@ -521,6 +532,7 @@ function check_rainbond_container() {
         # Rainbond container is running, get EIP and exit
         local get_eip
         get_eip=$(get_container_eip)
+        rainbond_warn_ip_drift "$get_eip"
         if rainbond_use_chinese_prompt; then
           send_info "Rainbond 容器已在运行中.\n\t- 请在浏览器中输入 http://$get_eip:7070 访问 Rainbond."
         else
@@ -539,6 +551,7 @@ function check_rainbond_container() {
           sleep 3
           local get_eip
           get_eip=$(get_container_eip)
+          rainbond_warn_ip_drift "$get_eip"
           if rainbond_use_chinese_prompt; then
             send_info "Rainbond 容器启动成功.\n\t- 请在浏览器中输入 http://$get_eip:7070 访问 Rainbond."
           else
@@ -731,6 +744,324 @@ function setup_port_forward() {
   exit 0
 }
 
+########################################
+# EIP Helpers
+# Detect both the LAN IP of this host and the public IP a browser needs to
+# reach it, so the console can advertise an address that actually works.
+########################################
+
+RAINBOND_EIP_CONFIRM_TIMEOUT=${RAINBOND_EIP_CONFIRM_TIMEOUT:-30}
+RAINBOND_LAN_IP=""
+RAINBOND_PUBLIC_IP=""
+RAINBOND_ACCESS_LINES_ZH=""
+RAINBOND_ACCESS_LINES_EN=""
+
+function rainbond_is_usable_ipv4() {
+    local result=$1 old_ifs octet octet_value
+    if [ -z "$result" ]; then
+        return 1
+    fi
+
+    case "$result" in
+        *[!0-9.]* | .* | *. | *..*)
+            return 1
+            ;;
+    esac
+
+    old_ifs=$IFS
+    IFS=.
+    set -- $result
+    IFS=$old_ifs
+
+    [ "$#" -eq 4 ] || return 1
+    for octet in "$@"; do
+        case "$octet" in
+            '' | *[!0-9]*)
+                return 1
+                ;;
+        esac
+        octet_value=$((10#$octet))
+        [ "$octet_value" -le 255 ] || return 1
+    done
+
+    [ "$result" != "127.0.0.1" ] && [ "$result" != "0.0.0.0" ]
+}
+
+# Func for verify the result entered.
+function verify_eip() {
+    local result=$1
+    if rainbond_is_usable_ipv4 "$result"; then
+        export EIP="$result"
+        return 0
+    fi
+
+    if [ -z "$result" ]; then
+        echo -e "${YELLOW}Do not enter null values${NC}"
+    elif [ "$result" == "127.0.0.1" ]; then
+        if rainbond_use_chinese_prompt; then
+            echo -e "${YELLOW}不能使用回环地址 127.0.0.1${NC}"
+        else
+            echo -e "${YELLOW}Cannot use loopback address 127.0.0.1${NC}"
+        fi
+    elif [ "$result" == "0.0.0.0" ]; then
+        if rainbond_use_chinese_prompt; then
+            echo -e "${YELLOW}不能使用 0.0.0.0${NC}"
+        else
+            echo -e "${YELLOW}Cannot use 0.0.0.0${NC}"
+        fi
+    fi
+    return 1
+}
+
+function rainbond_is_private_ipv4() {
+    local ip_addr=$1
+    case "$ip_addr" in
+        10.* | 192.168.*)
+            return 0
+            ;;
+        172.*)
+            local second_octet
+            second_octet=$(printf '%s' "$ip_addr" | cut -d. -f2)
+            [ "$second_octet" -ge 16 ] 2>/dev/null && [ "$second_octet" -le 31 ] 2>/dev/null
+            return $?
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
+function rainbond_skip_ip_interface() {
+    case "${1:-}" in
+        lo | lo:* | docker* | br-* | veth* | flannel* | cni* | cali* | calico* | kube* | tunl*)
+            return 0
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
+function rainbond_candidate_host_ips() {
+    local line iface cidr ip_addr
+
+    if command -v ip >/dev/null 2>&1; then
+        ip -4 -o addr show scope global 2>/dev/null | while IFS= read -r line; do
+            set -- $line
+            iface=${2:-}
+            cidr=${4:-}
+            ip_addr=${cidr%%/*}
+            rainbond_skip_ip_interface "$iface" && continue
+            rainbond_is_usable_ipv4 "$ip_addr" && printf '%s\n' "$ip_addr"
+        done
+    elif command -v ifconfig >/dev/null 2>&1; then
+        ifconfig 2>/dev/null | grep -w inet | awk '{print $2}' | while IFS= read -r ip_addr; do
+            rainbond_is_usable_ipv4 "$ip_addr" && printf '%s\n' "$ip_addr"
+        done
+    else
+        return 0
+    fi
+}
+
+function rainbond_detect_host_eip() {
+    local first_ip="" private_ip="" ip_addr
+
+    while IFS= read -r ip_addr; do
+        [ -n "$ip_addr" ] || continue
+        if [ -z "$first_ip" ]; then
+            first_ip=$ip_addr
+        fi
+        if rainbond_is_private_ipv4 "$ip_addr"; then
+            private_ip=$ip_addr
+            break
+        fi
+    done <<EOF
+$(rainbond_candidate_host_ips)
+EOF
+
+    if [ -n "$private_ip" ]; then
+        export EIP="$private_ip"
+        return 0
+    fi
+    if [ -n "$first_ip" ]; then
+        export EIP="$first_ip"
+        return 0
+    fi
+    return 1
+}
+
+function rainbond_detect_host_eip_value() {
+    (rainbond_detect_host_eip >/dev/null 2>&1 && printf '%s' "${EIP:-}")
+}
+
+# Public IP detection is on by default; EIP_PROBE=false turns it off.
+function rainbond_public_ip_probe_enabled() {
+    case "$(echo "${EIP_PROBE:-true}" | tr '[:upper:]' '[:lower:]')" in
+        0 | false | no | off)
+            return 1
+            ;;
+        *)
+            return 0
+            ;;
+    esac
+}
+
+# Sources for the public IP, tried in order: cloud metadata first (link-local,
+# authoritative, no Internet access needed), then public echo services.
+# Every source runs with a short timeout, so a blocked network costs the
+# installer a few seconds instead of minutes.
+function rainbond_public_ip_sources() {
+    cat <<'EOF'
+metadata|http://100.100.100.200/latest/meta-data/eipv4
+metadata|http://metadata.tencentyun.com/latest/meta-data/public-ipv4
+metadata|http://169.254.169.254/latest/meta-data/public-ipv4
+echo|https://api.ip.sb/ip
+echo|http://ip.3322.net
+echo|https://ifconfig.me/ip
+EOF
+}
+
+# Outputs the public IPv4 of this host, or nothing when it cannot be determined.
+function rainbond_probe_public_ip() {
+    local kind url value
+
+    command -v curl >/dev/null 2>&1 || return 1
+
+    while IFS='|' read -r kind url; do
+        [ -n "$url" ] || continue
+        if [ "$kind" = "metadata" ]; then
+            value=$(curl -sf --noproxy '*' --connect-timeout 1 --max-time 2 "$url" 2>/dev/null | tr -d '[:space:]')
+        else
+            value=$(curl -sf --connect-timeout 2 --max-time 3 "$url" 2>/dev/null | tr -d '[:space:]')
+        fi
+        if rainbond_is_usable_ipv4 "$value" && ! rainbond_is_private_ipv4 "$value"; then
+            printf '%s\n' "$value"
+            return 0
+        fi
+    done <<EOF
+$(rainbond_public_ip_sources)
+EOF
+
+    return 1
+}
+
+# The installer is normally run through a pipe (curl ... | bash), so stdin is
+# not a terminal even when the user is watching; /dev/tty still reaches them.
+function rainbond_tty_available() {
+    if is_truthy "${RAINBOND_NON_INTERACTIVE:-}"; then
+        return 1
+    fi
+    [ -e /dev/tty ] || return 1
+    (exec 3</dev/tty) 2>/dev/null
+}
+
+function rainbond_confirm_public_eip() {
+    local public_ip=$1 lan_ip=$2 answer=""
+
+    if rainbond_use_chinese_prompt; then
+        echo -e "${YELLOW}检测到本机公网 IP: ${public_ip}，内网 IP: ${lan_ip}${NC}"
+        echo -e "${YELLOW}从外部浏览器访问 Rainbond 需要使用公网 IP${NC}"
+        printf '%b' "${YELLOW}是否使用公网 IP ${public_ip} 作为访问地址? [Y/n] (${RAINBOND_EIP_CONFIRM_TIMEOUT} 秒无输入默认使用公网 IP): ${NC}"
+    else
+        echo -e "${YELLOW}Detected public IP: ${public_ip}, LAN IP: ${lan_ip}${NC}"
+        echo -e "${YELLOW}Reaching Rainbond from an external browser requires the public IP${NC}"
+        printf '%b' "${YELLOW}Use public IP ${public_ip} as the access address? [Y/n] (defaults to the public IP after ${RAINBOND_EIP_CONFIRM_TIMEOUT}s): ${NC}"
+    fi
+
+    if ! read -r -t "${RAINBOND_EIP_CONFIRM_TIMEOUT}" answer </dev/tty; then
+        answer=""
+    fi
+    echo ""
+
+    case "$answer" in
+        n | N | no | No | NO)
+            return 1
+            ;;
+        *)
+            return 0
+            ;;
+    esac
+}
+
+# Warn when the address recorded in the running container matches none of this
+# host's current addresses: the console builds its default *.nip.io domains from
+# it, and they stop resolving once the server IP changes.
+function rainbond_warn_ip_drift() {
+    local recorded_eip=$1 lan_ip="" public_ip=""
+
+    rainbond_is_usable_ipv4 "$recorded_eip" || return 0
+
+    lan_ip=$(rainbond_detect_host_eip_value)
+    if [ "$recorded_eip" = "$lan_ip" ]; then
+        return 0
+    fi
+
+    if rainbond_public_ip_probe_enabled; then
+        public_ip=$(rainbond_probe_public_ip)
+    fi
+    if [ -n "$public_ip" ] && [ "$recorded_eip" = "$public_ip" ]; then
+        return 0
+    fi
+
+    if rainbond_use_chinese_prompt; then
+        send_warn "服务器访问 IP 可能已变更: 容器记录的是 ${recorded_eip}，当前本机内网 IP 是 ${lan_ip:-未知}${public_ip:+，公网 IP 是 ${public_ip}}"
+        send_warn "控制台默认域名(*.${recorded_eip}.nip.io)和网关地址仍指向旧 IP，更换访问 IP 请参考 https://www.rainbond.com/docs/support"
+    else
+        send_warn "The access IP may have changed: the container records ${recorded_eip}, this host currently has LAN IP ${lan_ip:-unknown}${public_ip:+ and public IP ${public_ip}}"
+        send_warn "Default console domains (*.${recorded_eip}.nip.io) and the gateway address still point to the old IP, see https://www.rainbond.com/docs/support"
+    fi
+}
+
+# Builds the access address block shown on the completion screen. The console
+# address always comes with its counterpart, so a user who ends up on the wrong
+# side of a NAT still sees the address that works for them.
+function rainbond_build_access_lines() {
+    local zh_lines en_lines
+
+    zh_lines="#     控制台地址: http://${EIP}:7070"
+    en_lines="#     Console URL: http://${EIP}:7070"
+
+    if [ -n "${RAINBOND_PUBLIC_IP}" ] && [ "${RAINBOND_PUBLIC_IP}" != "${EIP}" ]; then
+        zh_lines="${zh_lines}
+#     公网地址: http://${RAINBOND_PUBLIC_IP}:7070"
+        en_lines="${en_lines}
+#     Public URL: http://${RAINBOND_PUBLIC_IP}:7070"
+    fi
+
+    if [ -n "${RAINBOND_LAN_IP}" ] && [ "${RAINBOND_LAN_IP}" != "${EIP}" ]; then
+        zh_lines="${zh_lines}
+#     内网地址: http://${RAINBOND_LAN_IP}:7070"
+        en_lines="${en_lines}
+#     LAN URL: http://${RAINBOND_LAN_IP}:7070"
+    fi
+
+    if [ -z "${RAINBOND_PUBLIC_IP}" ] && rainbond_is_private_ipv4 "${EIP}"; then
+        zh_lines="${zh_lines}
+#     云服务器请用公网 IP: http://<公网IP>:7070"
+        en_lines="${en_lines}
+#     Cloud server, use public IP: http://<public-ip>:7070"
+    fi
+
+    RAINBOND_ACCESS_LINES_ZH=$zh_lines
+    RAINBOND_ACCESS_LINES_EN=$en_lines
+}
+
+# Shown before the install starts: a closed security group is the most common
+# reason the console is unreachable after a successful installation.
+function rainbond_print_access_ports_notice() {
+    if rainbond_use_chinese_prompt; then
+        send_warn "安装前请确认云服务器安全组/防火墙已放行以下端口，否则浏览器无法访问 http://${EIP}:7070"
+        echo -e "${YELLOW}    - 7070: 控制台访问端口${NC}"
+        echo -e "${YELLOW}    - 80/443: 应用 HTTP/HTTPS 访问端口${NC}"
+        echo -e "${YELLOW}    - 30000-30010: 应用对外端口${NC}"
+    else
+        send_warn "Before installing, make sure the following ports are open in your security group/firewall, otherwise http://${EIP}:7070 stays unreachable"
+        echo -e "${YELLOW}    - 7070: console port${NC}"
+        echo -e "${YELLOW}    - 80/443: application HTTP/HTTPS ports${NC}"
+        echo -e "${YELLOW}    - 30000-30010: application external ports${NC}"
+    fi
+}
+
 ################################################################################
 # SECTION 4: Main Installation Flow
 ################################################################################
@@ -869,7 +1200,7 @@ start_docker_service_linux() {
 
 # Function to check if OrbStack is installed
 check_orbstack_installed() {
-    command -v orb >/dev/null 2>&1 || [ -d "/Applications/OrbStack.app" ]
+    command -v orb >/dev/null 2>&1 || [ -d "/Applications/OrbStack.app" ] || [ -d "${HOME}/Applications/OrbStack.app" ]
 }
 
 # Function to check if OrbStack is running
@@ -882,6 +1213,299 @@ check_orbstack_running() {
     fi
 }
 
+orbstack_wait_seconds() {
+    local wait_seconds="${RAINBOND_ORBSTACK_WAIT_SECONDS:-120}"
+    case "$wait_seconds" in
+        ''|*[!0-9]*)
+            wait_seconds=120
+            ;;
+    esac
+    if [ "$wait_seconds" -lt 1 ]; then
+        wait_seconds=120
+    fi
+    echo "$wait_seconds"
+}
+
+install_orbstack_macos() {
+    if ! is_truthy "${RAINBOND_AUTO_INSTALL_ORBSTACK:-}"; then
+        return 1
+    fi
+
+    if install_orbstack_from_dmg_macos; then
+        return 0
+    fi
+
+    if rainbond_use_chinese_prompt; then
+        send_warn "OrbStack 官方安装包自动安装失败，正在尝试 Homebrew..."
+    else
+        send_warn "Official OrbStack installer failed, trying Homebrew..."
+    fi
+
+    install_orbstack_with_brew_macos
+}
+
+install_orbstack_with_brew_macos() {
+    if ! command -v brew >/dev/null 2>&1; then
+        if rainbond_use_chinese_prompt; then
+            send_warn "未检测到 Homebrew，无法继续通过 Homebrew 安装 OrbStack"
+        else
+            send_warn "Homebrew is not installed, cannot continue installing OrbStack with Homebrew"
+        fi
+        return 1
+    fi
+
+    local brew_log
+    brew_log=$(mktemp "${TMPDIR:-/tmp}/rainbond-brew-orbstack.XXXXXX")
+
+    if rainbond_use_chinese_prompt; then
+        send_info "正在通过 Homebrew 自动安装 OrbStack..."
+    else
+        send_info "Installing OrbStack with Homebrew..."
+    fi
+
+    if brew install --cask orbstack >"$brew_log" 2>&1; then
+        rm -f "$brew_log"
+        hash -r 2>/dev/null || true
+        return 0
+    fi
+
+    if grep -Eqi 'unknown or unsupported macOS version|MacOSVersion::Error' "$brew_log"; then
+        if rainbond_use_chinese_prompt; then
+            send_warn "当前 Homebrew 无法识别此 macOS 版本"
+        else
+            send_warn "Homebrew cannot run on this macOS version"
+        fi
+    else
+        if rainbond_use_chinese_prompt; then
+            send_warn "Homebrew 安装 OrbStack 失败"
+        else
+            send_warn "Homebrew failed to install OrbStack"
+        fi
+    fi
+    rm -f "$brew_log"
+    return 1
+}
+
+orbstack_download_arch() {
+    case "$(uname -m 2>/dev/null)" in
+        arm64|aarch64)
+            echo "arm64"
+            ;;
+        x86_64|amd64|i386)
+            echo "amd64"
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
+orbstack_install_dir() {
+    if [ -n "${RAINBOND_ORBSTACK_INSTALL_DIR:-}" ]; then
+        mkdir -p "$RAINBOND_ORBSTACK_INSTALL_DIR"
+        echo "$RAINBOND_ORBSTACK_INSTALL_DIR"
+        return
+    fi
+
+    if [ -w "/Applications" ]; then
+        echo "/Applications"
+        return
+    fi
+
+    mkdir -p "${HOME}/Applications"
+    echo "${HOME}/Applications"
+}
+
+install_orbstack_from_dmg_macos() {
+    local required_cmd
+    for required_cmd in curl hdiutil find; do
+        if ! command -v "$required_cmd" >/dev/null 2>&1; then
+            if rainbond_use_chinese_prompt; then
+                send_warn "无法通过官方安装包自动安装 OrbStack，缺少命令: ${required_cmd}"
+            else
+                send_warn "Cannot install OrbStack from the official installer, missing command: ${required_cmd}"
+            fi
+            return 1
+        fi
+    done
+
+    local download_arch
+    if ! download_arch=$(orbstack_download_arch); then
+        if rainbond_use_chinese_prompt; then
+            send_warn "无法通过官方安装包自动安装 OrbStack，不支持的 macOS 架构: $(uname -m 2>/dev/null)"
+        else
+            send_warn "Cannot install OrbStack from the official installer, unsupported macOS architecture: $(uname -m 2>/dev/null)"
+        fi
+        return 1
+    fi
+
+    local tmp_dir dmg_file mount_dir install_dir source_app target_app
+    tmp_dir=$(mktemp -d "${TMPDIR:-/tmp}/rainbond-orbstack.XXXXXX")
+    dmg_file="${tmp_dir}/OrbStack.dmg"
+    mount_dir="${tmp_dir}/mount"
+    install_dir=$(orbstack_install_dir)
+    target_app="${install_dir}/OrbStack.app"
+
+    local max_download_attempts="${RAINBOND_ORBSTACK_DOWNLOAD_RETRIES:-3}"
+    case "$max_download_attempts" in
+        ''|*[!0-9]*)
+            max_download_attempts=3
+            ;;
+    esac
+    if [ "$max_download_attempts" -lt 1 ]; then
+        max_download_attempts=3
+    fi
+
+    local download_max_time="${RAINBOND_ORBSTACK_DOWNLOAD_MAX_TIME:-1800}"
+    case "$download_max_time" in
+        ''|*[!0-9]*)
+            download_max_time=1800
+            ;;
+    esac
+    if [ "$download_max_time" -lt 60 ]; then
+        download_max_time=1800
+    fi
+
+    local download_attempt=1
+    local download_completed=false
+    while [ "$download_attempt" -le "$max_download_attempts" ]; do
+        if rainbond_use_chinese_prompt; then
+            send_info "正在下载 OrbStack 官方安装包..."
+        else
+            send_info "Downloading the official OrbStack installer..."
+        fi
+
+        if curl --fail --location --connect-timeout 30 --max-time "$download_max_time" -C - --progress-bar "https://orbstack.dev/download/stable/latest/${download_arch}" -o "$dmg_file"; then
+            download_completed=true
+            break
+        fi
+
+        if [ "$download_attempt" -lt "$max_download_attempts" ]; then
+            if rainbond_use_chinese_prompt; then
+                send_warn "OrbStack 安装包下载失败，正在续传重试 (${download_attempt}/${max_download_attempts})..."
+            else
+                send_warn "OrbStack installer download failed, retrying (${download_attempt}/${max_download_attempts})..."
+            fi
+            sleep 2
+        fi
+        download_attempt=$((download_attempt + 1))
+    done
+
+    if [ "$download_completed" != true ]; then
+        rm -rf "$tmp_dir"
+        if rainbond_use_chinese_prompt; then
+            send_warn "OrbStack 安装包下载失败"
+        else
+            send_warn "Failed to download OrbStack installer"
+        fi
+        return 1
+    fi
+
+    mkdir -p "$mount_dir"
+    if ! hdiutil attach "$dmg_file" -nobrowse -quiet -mountpoint "$mount_dir"; then
+        rm -rf "$tmp_dir"
+        if rainbond_use_chinese_prompt; then
+            send_warn "OrbStack 安装包挂载失败"
+        else
+            send_warn "Failed to mount OrbStack installer"
+        fi
+        return 1
+    fi
+
+    source_app=$(find "$mount_dir" -maxdepth 2 -name "OrbStack.app" -type d | head -n 1)
+    if [ -z "$source_app" ]; then
+        hdiutil detach "$mount_dir" -quiet >/dev/null 2>&1 || true
+        rm -rf "$tmp_dir"
+        if rainbond_use_chinese_prompt; then
+            send_warn "OrbStack 安装包中未找到 OrbStack.app"
+        else
+            send_warn "OrbStack.app was not found in the installer"
+        fi
+        return 1
+    fi
+
+    rm -rf "$target_app"
+    if command -v ditto >/dev/null 2>&1; then
+        if ! ditto "$source_app" "$target_app"; then
+            hdiutil detach "$mount_dir" -quiet >/dev/null 2>&1 || true
+            rm -rf "$tmp_dir"
+            if rainbond_use_chinese_prompt; then
+                send_warn "复制 OrbStack.app 失败"
+            else
+                send_warn "Failed to copy OrbStack.app"
+            fi
+            return 1
+        fi
+    else
+        if ! cp -R "$source_app" "$install_dir/"; then
+            hdiutil detach "$mount_dir" -quiet >/dev/null 2>&1 || true
+            rm -rf "$tmp_dir"
+            if rainbond_use_chinese_prompt; then
+                send_warn "复制 OrbStack.app 失败"
+            else
+                send_warn "Failed to copy OrbStack.app"
+            fi
+            return 1
+        fi
+    fi
+
+    hdiutil detach "$mount_dir" -quiet >/dev/null 2>&1 || true
+    rm -rf "$tmp_dir"
+
+    if rainbond_use_chinese_prompt; then
+        send_info "OrbStack 已安装到 ${target_app}"
+    else
+        send_info "OrbStack installed to ${target_app}"
+    fi
+    return 0
+}
+
+start_orbstack_macos() {
+    if rainbond_use_chinese_prompt; then
+        send_info "正在启动 OrbStack..."
+    else
+        send_info "Starting OrbStack..."
+    fi
+
+    if command -v orb >/dev/null 2>&1 && orb >/dev/null 2>&1; then
+        return 0
+    fi
+
+    if [ -d "/Applications/OrbStack.app" ] && command -v open >/dev/null 2>&1 && open -g "/Applications/OrbStack.app" >/dev/null 2>&1; then
+        return 0
+    fi
+
+    if [ -d "${HOME}/Applications/OrbStack.app" ] && command -v open >/dev/null 2>&1 && open -g "${HOME}/Applications/OrbStack.app" >/dev/null 2>&1; then
+        return 0
+    fi
+
+    if [ -n "${RAINBOND_ORBSTACK_INSTALL_DIR:-}" ] && [ -d "${RAINBOND_ORBSTACK_INSTALL_DIR}/OrbStack.app" ] && command -v open >/dev/null 2>&1 && open -g "${RAINBOND_ORBSTACK_INSTALL_DIR}/OrbStack.app" >/dev/null 2>&1; then
+        return 0
+    fi
+
+    if command -v open >/dev/null 2>&1 && open -ga OrbStack >/dev/null 2>&1; then
+        return 0
+    fi
+
+    return 1
+}
+
+wait_orbstack_docker_ready() {
+    local wait_seconds
+    wait_seconds=$(orbstack_wait_seconds)
+    local elapsed=0
+
+    while [ "$elapsed" -lt "$wait_seconds" ]; do
+        if docker info >/dev/null 2>&1; then
+            return 0
+        fi
+        sleep 2
+        elapsed=$((elapsed + 2))
+    done
+
+    return 1
+}
+
 # Function to handle OrbStack requirement on macOS
 handle_orbstack_macos() {
     if rainbond_use_chinese_prompt; then
@@ -891,21 +1515,25 @@ handle_orbstack_macos() {
     fi
 
     if ! check_orbstack_installed; then
-        if rainbond_use_chinese_prompt; then
-            send_error "macOS 上必须使用 OrbStack，请先安装 OrbStack 后重新执行脚本.\n\t下载地址: https://orbstack.dev/"
-        else
-            send_error "OrbStack is required on macOS. Please install OrbStack and re-run this script.\n\tDownload: https://orbstack.dev/"
+        if ! install_orbstack_macos; then
+            if rainbond_use_chinese_prompt; then
+                send_error "macOS 上必须使用 OrbStack，请先安装 OrbStack 后重新执行脚本.\n\t下载地址: https://orbstack.dev/\n\t如需脚本自动安装，请执行: RAINBOND_AUTO_INSTALL_ORBSTACK=true bash ./install.sh"
+            else
+                send_error "OrbStack is required on macOS. Please install OrbStack and re-run this script.\n\tDownload: https://orbstack.dev/\n\tTo let this script install it automatically, run: RAINBOND_AUTO_INSTALL_ORBSTACK=true bash ./install.sh"
+            fi
+            exit 1
         fi
-        exit 1
     fi
 
-    if ! check_orbstack_running; then
-        if rainbond_use_chinese_prompt; then
-            send_error "检测到 OrbStack 已安装但未运行，请先启动 OrbStack 后重新执行脚本."
-        else
-            send_error "OrbStack is installed but not running. Please start OrbStack and re-run this script."
+    if ! check_orbstack_running || ! docker info >/dev/null 2>&1; then
+        if ! start_orbstack_macos || ! wait_orbstack_docker_ready; then
+            if rainbond_use_chinese_prompt; then
+                send_error "OrbStack 启动后 Docker 仍不可用，请检查 OrbStack 授权和 Docker 兼容模式后重新执行脚本."
+            else
+                send_error "Docker is still unavailable after starting OrbStack. Please check OrbStack permissions and Docker compatibility, then re-run this script."
+            fi
+            exit 1
         fi
-        exit 1
     fi
 
     # Check if Docker is available through OrbStack
@@ -1115,31 +1743,66 @@ install_docker_linux() {
     
     # Download Docker binary with progress and resume capability
     if [ "$download_needed" = true ]; then
-        if rainbond_use_chinese_prompt; then
-            send_info "正在下载Docker二进制文件... $docker_url"
-        else
-            send_info "Downloading Docker binary... $docker_url"
+        local max_download_attempts="${RAINBOND_DOCKER_DOWNLOAD_RETRIES:-3}"
+        case "$max_download_attempts" in
+            ''|*[!0-9]*)
+                max_download_attempts=3
+                ;;
+        esac
+        if [ "$max_download_attempts" -lt 1 ]; then
+            max_download_attempts=3
         fi
-        
-        # Use curl with resume capability, timeout, and progress bar
-        if ! curl --connect-timeout 30 --max-time 600 -C - --progress-bar -L "$docker_url" -o "$docker_file"; then
+
+        local docker_tmp_file="${docker_file}.download"
+        local download_verified=false
+        local download_attempt=1
+
+        while [ "$download_attempt" -le "$max_download_attempts" ]; do
+            rm -f "$docker_tmp_file"
+
             if rainbond_use_chinese_prompt; then
-                send_error "Docker二进制文件下载失败，请检查网络连接"
+                send_info "正在下载Docker二进制文件... $docker_url"
             else
-                send_error "Failed to download Docker binary, please check network connection"
+                send_info "Downloading Docker binary... $docker_url"
             fi
-            rm -f "$docker_file"
-            exit 1
-        fi
-        
-        # Verify downloaded file
-        if ! tar -tzf "$docker_file" >/dev/null 2>&1; then
+
+            if curl --fail --connect-timeout 30 --max-time 600 --progress-bar -L "$docker_url" -o "$docker_tmp_file"; then
+                if tar -tzf "$docker_tmp_file" >/dev/null 2>&1; then
+                    mv "$docker_tmp_file" "$docker_file"
+                    download_verified=true
+                    break
+                fi
+
+                rm -f "$docker_tmp_file"
+                if [ "$download_attempt" -lt "$max_download_attempts" ]; then
+                    if rainbond_use_chinese_prompt; then
+                        send_warn "下载的Docker二进制文件损坏，正在重试 (${download_attempt}/${max_download_attempts})..."
+                    else
+                        send_warn "Downloaded Docker binary is corrupted, retrying (${download_attempt}/${max_download_attempts})..."
+                    fi
+                fi
+            else
+                rm -f "$docker_tmp_file"
+                if [ "$download_attempt" -lt "$max_download_attempts" ]; then
+                    if rainbond_use_chinese_prompt; then
+                        send_warn "Docker二进制文件下载失败，正在重试 (${download_attempt}/${max_download_attempts})..."
+                    else
+                        send_warn "Docker binary download failed, retrying (${download_attempt}/${max_download_attempts})..."
+                    fi
+                fi
+            fi
+
+            download_attempt=$((download_attempt + 1))
+            sleep 2
+        done
+
+        if [ "$download_verified" != true ]; then
             if rainbond_use_chinese_prompt; then
-                send_error "下载的文件损坏，请重新执行脚本"
+                send_error "Docker二进制文件多次下载或校验失败，请检查网络、代理或磁盘空间后重试"
             else
-                send_error "Downloaded file is corrupted, please re-run the script"
+                send_error "Docker binary download or verification failed after retries. Please check network, proxy, or disk space and try again"
             fi
-            rm -f "$docker_file"
+            rm -f "$docker_tmp_file" "$docker_file"
             exit 1
         fi
     fi
@@ -1286,127 +1949,17 @@ manage_docker
 
 ########################################
 # EIP Configure
-# Automatically detect the host IP used by Rainbond.
-# User customization via EIP is also supported.
+# Pick the address the console advertises to browsers:
+#   1. an explicit EIP always wins;
+#   2. otherwise the detected public IP is used - confirmed interactively when a
+#      terminal is reachable, adopted automatically when it is not;
+#   3. otherwise fall back to the LAN IP of this host.
+# Set EIP_PROBE=false to skip the public IP detection entirely.
 ########################################
 
-function rainbond_is_usable_ipv4() {
-    local result=$1
-    if [ -z "$result" ]; then
-        return 1
-    elif [[ $result =~ ^([0-9]{1,2}|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\.([0-9]{1,2}|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\.([0-9]{1,2}|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\.([0-9]{1,2}|1[0-9][0-9]|2[0-4][0-9]|25[0-5])$ ]]; then
-        [ "$result" != "127.0.0.1" ] && [ "$result" != "0.0.0.0" ]
-        return $?
-    fi
-    return 1
-}
-
-# Func for verify the result entered.
-function verify_eip() {
-    local result=$1
-    if rainbond_is_usable_ipv4 "$result"; then
-        export EIP="$result"
-        return 0
-    fi
-
-    if [ -z "$result" ]; then
-        echo -e "${YELLOW}Do not enter null values${NC}"
-    elif [ "$result" == "127.0.0.1" ]; then
-        if rainbond_use_chinese_prompt; then
-            echo -e "${YELLOW}不能使用回环地址 127.0.0.1${NC}"
-        else
-            echo -e "${YELLOW}Cannot use loopback address 127.0.0.1${NC}"
-        fi
-    elif [ "$result" == "0.0.0.0" ]; then
-        if rainbond_use_chinese_prompt; then
-            echo -e "${YELLOW}不能使用 0.0.0.0${NC}"
-        else
-            echo -e "${YELLOW}Cannot use 0.0.0.0${NC}"
-        fi
-    fi
-    return 1
-}
-
-function rainbond_is_private_ipv4() {
-    local ip_addr=$1
-    case "$ip_addr" in
-        10.* | 192.168.*)
-            return 0
-            ;;
-        172.*)
-            local second_octet
-            second_octet=$(printf '%s' "$ip_addr" | cut -d. -f2)
-            [ "$second_octet" -ge 16 ] 2>/dev/null && [ "$second_octet" -le 31 ] 2>/dev/null
-            return $?
-            ;;
-        *)
-            return 1
-            ;;
-    esac
-}
-
-function rainbond_skip_ip_interface() {
-    case "${1:-}" in
-        lo | lo:* | docker* | br-* | veth* | flannel* | cni* | cali* | calico* | kube* | tunl*)
-            return 0
-            ;;
-        *)
-            return 1
-            ;;
-    esac
-}
-
-function rainbond_candidate_host_ips() {
-    local line iface cidr ip_addr
-
-    if command -v ip >/dev/null 2>&1; then
-        ip -4 -o addr show scope global 2>/dev/null | while IFS= read -r line; do
-            set -- $line
-            iface=${2:-}
-            cidr=${4:-}
-            ip_addr=${cidr%%/*}
-            rainbond_skip_ip_interface "$iface" && continue
-            rainbond_is_usable_ipv4 "$ip_addr" && printf '%s\n' "$ip_addr"
-        done
-    elif command -v ifconfig >/dev/null 2>&1; then
-        ifconfig 2>/dev/null | grep -w inet | awk '{print $2}' | while IFS= read -r ip_addr; do
-            rainbond_is_usable_ipv4 "$ip_addr" && printf '%s\n' "$ip_addr"
-        done
-    else
-        return 0
-    fi
-}
-
-function rainbond_detect_host_eip() {
-    local first_ip="" private_ip="" ip_addr
-
-    while IFS= read -r ip_addr; do
-        [ -n "$ip_addr" ] || continue
-        if [ -z "$first_ip" ]; then
-            first_ip=$ip_addr
-        fi
-        if rainbond_is_private_ipv4 "$ip_addr"; then
-            private_ip=$ip_addr
-            break
-        fi
-    done <<EOF
-$(rainbond_candidate_host_ips)
-EOF
-
-    if [ -n "$private_ip" ]; then
-        export EIP="$private_ip"
-        return 0
-    fi
-    if [ -n "$first_ip" ]; then
-        export EIP="$first_ip"
-        return 0
-    fi
-    return 1
-}
-
-# Check if EIP is already set via environment variable
 if [ -n "$EIP" ]; then
     if verify_eip "$EIP"; then
+        RAINBOND_LAN_IP=$(rainbond_detect_host_eip_value)
         if rainbond_use_chinese_prompt; then
             send_info "使用环境变量指定的 IP 地址: $EIP"
         else
@@ -1420,22 +1973,46 @@ if [ -n "$EIP" ]; then
         fi
         exit 1
     fi
-else
-    if rainbond_detect_host_eip; then
-        if rainbond_use_chinese_prompt; then
-            send_info "自动检测到服务器 IP: $EIP"
-        else
-            send_info "Detected server IP automatically: $EIP"
-        fi
-    else
-        if rainbond_use_chinese_prompt; then
-            send_error "未能自动检测到可用服务器 IP，请使用 EIP=<服务器IP> 重新执行安装脚本"
-        else
-            send_error "Failed to detect an available server IP automatically. Please rerun the installer with EIP=<server-ip>"
-        fi
-        exit 1
+elif rainbond_detect_host_eip; then
+    RAINBOND_LAN_IP=$EIP
+
+    if rainbond_public_ip_probe_enabled; then
+        RAINBOND_PUBLIC_IP=$(rainbond_probe_public_ip)
     fi
+
+    if [ -n "$RAINBOND_PUBLIC_IP" ] && [ "$RAINBOND_PUBLIC_IP" != "$RAINBOND_LAN_IP" ]; then
+        if rainbond_tty_available; then
+            if rainbond_confirm_public_eip "$RAINBOND_PUBLIC_IP" "$RAINBOND_LAN_IP"; then
+                export EIP="$RAINBOND_PUBLIC_IP"
+            else
+                export EIP="$RAINBOND_LAN_IP"
+            fi
+        else
+            export EIP="$RAINBOND_PUBLIC_IP"
+            if rainbond_use_chinese_prompt; then
+                send_info "非交互环境，自动使用检测到的公网 IP，如需改用内网 IP 请以 EIP=${RAINBOND_LAN_IP} 重新执行安装脚本"
+            else
+                send_info "Non-interactive run, using the detected public IP; rerun with EIP=${RAINBOND_LAN_IP} to use the LAN IP instead"
+            fi
+        fi
+    fi
+
+    if rainbond_use_chinese_prompt; then
+        send_info "自动检测到服务器 IP: $EIP"
+    else
+        send_info "Detected server IP automatically: $EIP"
+    fi
+else
+    if rainbond_use_chinese_prompt; then
+        send_error "未能自动检测到可用服务器 IP，请使用 EIP=<服务器IP> 重新执行安装脚本"
+    else
+        send_error "Failed to detect an available server IP automatically. Please rerun the installer with EIP=<server-ip>"
+    fi
+    exit 1
 fi
+
+rainbond_build_access_lines
+rainbond_print_access_ports_notice
 
 ################## Main ################
 # Start install rainbond standalone
@@ -1676,8 +2253,7 @@ if rainbond_use_chinese_prompt; then
 # 架构: $ARCH_TYPE
 # 操作系统: $OS_TYPE
 # Rainbond 访问地址:
-#     当前检测地址: http://$EIP:7070
-#     云服务器请用公网 IP: http://<公网IP>:7070
+$RAINBOND_ACCESS_LINES_ZH
 #
 # ⚠️  重要提示:
 #     请确保以下端口已在防火墙/安全组中开放:
@@ -1699,8 +2275,7 @@ EOF
 # 架构: $ARCH_TYPE
 # 操作系统: $OS_TYPE
 # Rainbond 访问地址:
-#     当前检测地址: http://$EIP:7070
-#     云服务器请用公网 IP: http://<公网IP>:7070
+$RAINBOND_ACCESS_LINES_ZH
 #     ⚠️  请等待几分钟后访问
 #
 # ⚠️  重要提示:
@@ -1733,8 +2308,7 @@ else
 # Arch: $ARCH_TYPE
 # OS: $OS_TYPE
 # Rainbond Access URL:
-#     Detected URL: http://$EIP:7070
-#     Cloud server, use public IP: http://<public-ip>:7070
+$RAINBOND_ACCESS_LINES_EN
 #
 # ⚠️  Important:
 #     Please ensure the following ports are open
@@ -1757,8 +2331,7 @@ EOF
 # Arch: $ARCH_TYPE
 # OS: $OS_TYPE
 # Rainbond Access URL:
-#     Detected URL: http://$EIP:7070
-#     Cloud server, use public IP: http://<public-ip>:7070
+$RAINBOND_ACCESS_LINES_EN
 #     ⚠️  Please wait a few minutes before accessing
 #
 # ⚠️  Important:
