@@ -7764,6 +7764,24 @@
       "status": "active"
     },
     {
+      "id": "console.package-upload.rainskills-tool-visibility",
+      "title": "Hide server-local package tools from RainSkills discovery",
+      "title_zh": "RainSkills 工具发现隐藏服务端本地软件包工具",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.list_tools[console.package-upload.rainskills-tool-visibility]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceToolVisibilityTests.test_rainskills_hides_server_local_package_tools_only_from_discovery"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.package-upload.local-package",
       "title": "Package Upload Local Package",
       "title_zh": "Package Upload Local Package",
