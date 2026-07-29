@@ -6,6 +6,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
 from .utils import is_same_component
+from .hostname_remap import apply_hostname_remap, is_host_env_name
 from .enum import ActionType
 from .app_template import AppTemplate
 from console.services.market_app.component import Component
@@ -104,26 +105,11 @@ class NewComponents(object):
         equal a service name (e.g. Harbor's ``POSTGRESQL_DATABASE=registry``,
         which collides with the ``registry`` component) must NOT be rewritten.
         """
-        if not attr_name:
-            return False
-        return attr_name == "HOST" or attr_name.endswith("_HOST") or attr_name.endswith("_HOSTNAME")
+        return is_host_env_name(attr_name)
 
     @staticmethod
     def _apply_hostname_remap(value: str, remap: dict, is_host_env: bool = False) -> str:
-        if not value or not remap:
-            return value
-        for old, new in remap.items():
-            # Exact whole-value match is only safe for hostname-valued envs; a
-            # database name / username that merely equals a service name must be
-            # left alone. URL and host:port rewrites below are unambiguous.
-            if is_host_env and value == old:
-                value = new
-                continue
-            value = value.replace("://" + old + ":", "://" + new + ":")
-            value = value.replace("://" + old + "/", "://" + new + "/")
-            if value.startswith(old + ":") and "://" not in value:
-                value = new + value[len(old):]
-        return value
+        return apply_hostname_remap(value, remap, is_host_env)
 
     def _resolve_none_placeholder(self, raw_value: str) -> Optional[str]:
         if raw_value == "**None**":

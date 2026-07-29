@@ -99,6 +99,35 @@ class MarketInstallPreflightServiceTests(TestCase):
         self.assertIn("内存不足", resource_check["message"])
         self.assertTrue(result["should_block"])
 
+    def test_region_core_cpu_values_are_compared_as_millicores(self):
+        self.service._get_region_resources = mock.Mock(return_value={
+            "all_node": 2,
+            "node_ready": 2,
+            "cap_cpu": 64,
+            "req_cpu": 21.35,
+            "cap_mem": 257095,
+            "req_mem": 37253,
+        })
+        self.service._get_cluster_arches = mock.Mock(return_value=["amd64"])
+        self.service._probe_image_manifest = mock.Mock(return_value=("pass", "镜像版本存在", ""))
+        template = {
+            "arch": "amd64",
+            "apps": [{
+                "service_cname": "dify",
+                "share_image": "goodrain.me/dify:1.11.1",
+                "container_cpu": 2100,
+                "memory": 5120,
+            }],
+        }
+
+        result = self.service.run(self.tenant, self.region, template)
+
+        self.assertEqual("pass", result["status"])
+        resource_check = self._check(result, "resource_capacity")
+        self.assertEqual("pass", resource_check["status"])
+        self.assertEqual(42650, resource_check["details"]["free_cpu"])
+        self.assertEqual(2100, resource_check["details"]["required_cpu"])
+
     def test_blocks_when_template_arch_does_not_match_region(self):
         self.service._get_region_resources = mock.Mock(return_value={
             "all_node": 1,
@@ -138,6 +167,26 @@ class MarketInstallPreflightServiceTests(TestCase):
         image_check = self._check(result, "image_manifest")
         self.assertEqual("warning", image_check["status"])
         self.assertEqual("image_not_found", image_check["reason"])
+
+    def test_can_skip_image_manifest_check_for_trusted_templates(self):
+        self.service._get_region_resources = mock.Mock(return_value={
+            "all_node": 1,
+            "node_ready": 1,
+            "cap_cpu": 4000,
+            "req_cpu": 0,
+            "cap_mem": 8192,
+            "req_mem": 0,
+        })
+        self.service._get_cluster_arches = mock.Mock(return_value=["amd64"])
+        self.service._probe_image_manifest = mock.Mock(
+            return_value=("warning", "镜像仓库检测超时，无法确认镜像版本", "registry_probe_timeout"))
+
+        result = self.service.run(self.tenant, self.region, self.template, check_images=False)
+
+        self.assertEqual("pass", result["status"])
+        self.assertFalse(result["should_block"])
+        self.service._probe_image_manifest.assert_not_called()
+        self.assertNotIn("image_manifest", [item["name"] for item in result["checks"]])
 
     def test_registry_404_is_warning_not_block(self):
         with mock.patch("console.services.market_app_preflight_service.requests.head",

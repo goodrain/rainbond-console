@@ -24,10 +24,11 @@ class AppExtendService(object):
         memory_list = []
 
         node_list.append(min_node)
-        next_node = min_node + step_node
-        while next_node <= max_node:
-            node_list.append(next_node)
-            next_node += step_node
+        if step_node > 0:
+            next_node = min_node + step_node
+            while next_node <= max_node:
+                node_list.append(next_node)
+                next_node += step_node
 
         num = 1
         memory_list.append(str(min_memory))

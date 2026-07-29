@@ -300,6 +300,135 @@ class VirtualMachineServiceTests(TestCase):
         deleted, _ = vms.delete_vm_image("tenant-a", asset.ID)
         self.assertEqual(1, deleted)
 
+    # capability_id: console.vm-asset.reference-components
+    def test_get_vm_asset_includes_explicit_reference_components(self):
+        asset = VirtualMachineImage.objects.create(
+            tenant_id="tenant-a",
+            name="used-asset",
+            image_url="demo/used-asset"
+        )
+        service = self._create_vm_service("tenant-a", "service-a", asset.image_url)
+        service.service_alias = "vm-a"
+        service.service_cname = "生产虚拟机"
+        service.tenant_service_group_id = 17
+        service.save(update_fields=["service_alias", "service_cname", "tenant_service_group_id"])
+        ComponentK8sAttributes.objects.create(
+            tenant_id="tenant-a",
+            component_id=service.service_id,
+            name="vm_asset_id",
+            save_type="string",
+            attribute_value=str(asset.ID)
+        )
+
+        serialized = vms.get_vm_asset("tenant-a", asset.ID)
+
+        self.assertEqual(1, serialized["reference_count"])
+        self.assertEqual([
+            {
+                "service_id": "service-a",
+                "component_id": "service-a",
+                "service_alias": "vm-a",
+                "service_cname": "生产虚拟机",
+                "display_name": "生产虚拟机",
+                "group_id": 17,
+                "app_id": 17,
+                "region_name": "demo-region",
+            }
+        ], serialized["references"])
+
+    # capability_id: console.vm-asset.reference-components
+    def test_get_vm_asset_includes_legacy_image_reference_components(self):
+        asset = VirtualMachineImage.objects.create(
+            tenant_id="tenant-a",
+            name="legacy-asset",
+            image_url="demo/legacy-asset"
+        )
+        service = self._create_vm_service("tenant-a", "service-legacy", asset.image_url)
+        service.service_cname = ""
+        service.tenant_service_group_id = 23
+        service.save(update_fields=["service_cname", "tenant_service_group_id"])
+
+        serialized = vms.get_vm_asset("tenant-a", asset.ID)
+
+        self.assertEqual(1, serialized["reference_count"])
+        self.assertEqual([
+            {
+                "service_id": "service-legacy",
+                "component_id": "service-legacy",
+                "service_alias": "service-legacy",
+                "service_cname": "",
+                "display_name": "service-legacy",
+                "group_id": 23,
+                "app_id": 23,
+                "region_name": "demo-region",
+            }
+        ], serialized["references"])
+
+    # capability_id: console.vm-asset.delete-internal-registry-manifest
+    def test_delete_vm_image_deletes_unique_internal_registry_manifest(self):
+        asset = VirtualMachineImage.objects.create(
+            tenant_id="tenant-a",
+            name="uploaded-asset",
+            image_url="tenant-a:uploaded-asset",
+            source_type="upload",
+            source_uri="/grdata/package_build/temp/events/event-a"
+        )
+
+        with mock.patch(
+            "console.services.virtual_machine.region_api.delete_registry_image_manifest",
+            return_value=(None, {"bean": {"deleted": True}}),
+            create=True,
+        ) as delete_manifest:
+            deleted, _ = vms.delete_vm_image("tenant-a", asset.ID, "demo-region", "demo-team")
+
+        self.assertEqual(1, deleted)
+        self.assertFalse(VirtualMachineImage.objects.filter(tenant_id="tenant-a", ID=asset.ID).exists())
+        delete_manifest.assert_called_once_with("demo-region", "demo-team", "tenant-a:uploaded-asset")
+
+    # capability_id: console.vm-asset.delete-internal-registry-manifest
+    def test_delete_vm_image_skips_registry_manifest_when_image_url_is_shared(self):
+        asset = VirtualMachineImage.objects.create(
+            tenant_id="tenant-a",
+            name="shared-a",
+            image_url="tenant-a:shared-image",
+            source_type="upload"
+        )
+        VirtualMachineImage.objects.create(
+            tenant_id="tenant-a",
+            name="shared-b",
+            image_url="tenant-a:shared-image",
+            source_type="upload"
+        )
+
+        with mock.patch(
+            "console.services.virtual_machine.region_api.delete_registry_image_manifest",
+            return_value=(None, {"bean": {"deleted": True}}),
+            create=True,
+        ) as delete_manifest:
+            deleted, _ = vms.delete_vm_image("tenant-a", asset.ID, "demo-region", "demo-team")
+
+        self.assertEqual(1, deleted)
+        delete_manifest.assert_not_called()
+
+    # capability_id: console.vm-asset.delete-internal-registry-manifest
+    def test_delete_vm_image_skips_registry_manifest_for_external_registry_asset(self):
+        asset = VirtualMachineImage.objects.create(
+            tenant_id="tenant-a",
+            name="external-asset",
+            image_url="registry.example.com/team-a/vm-image:latest",
+            source_type="registry"
+        )
+
+        with mock.patch(
+            "console.services.virtual_machine.region_api.delete_registry_image_manifest",
+            return_value=(None, {"bean": {"deleted": True}}),
+            create=True,
+        ) as delete_manifest:
+            deleted, _ = vms.delete_vm_image("tenant-a", asset.ID, "demo-region", "demo-team")
+
+        self.assertEqual(1, deleted)
+        delete_manifest.assert_not_called()
+
     def test_list_vm_image_returns_asset_catalog_metadata(self):
         source = VirtualMachineImage.objects.create(
             tenant_id="tenant-a",
@@ -694,6 +823,22 @@ class VirtualMachineServiceTests(TestCase):
             },
             imports,
         )
+
+    def test_build_vm_root_disk_import_uses_internal_upload_image_as_registry_source(self):
+        asset = SimpleNamespace(
+            image_url="tenant-ns:uploaded-root",
+            source_uri="/grdata/package_build/temp/events/uploaded-root.qcow2",
+            format="qcow2",
+            extra_json="",
+        )
+
+        root_import = vms._build_vm_root_disk_import(asset=asset, image_name="uploaded-root")
+
+        self.assertEqual("disk", root_import["volume_name"])
+        self.assertEqual("registry", root_import["source_type"])
+        self.assertEqual("tenant-ns:uploaded-root", root_import["image_url"])
+        self.assertEqual("/grdata/package_build/temp/events/uploaded-root.qcow2", root_import["source_uri"])
+        self.assertEqual("qcow2", root_import["format"])
 
     def test_get_vm_profile_returns_asset_runtime_and_connections(self):
         asset = VirtualMachineImage.objects.create(

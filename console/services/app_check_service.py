@@ -4,8 +4,9 @@
 """
 import json
 import logging
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
+import yaml
 from console.constants import AppConstants
 from console.enum.component_enum import ComponentType
 from console.exception.bcode import ErrComponentPortExists
@@ -39,6 +40,7 @@ PYTHON_SYNCED_ENV_NAMES = (
     "BUILD_AUTO_PROCFILE",
     "START_COMMAND_SOURCE",
 )
+K8S_SEQUENCE_ATTRIBUTE_NAMES = {"cmd", "args"}
 
 
 def supports_cnb_build_strategy(language: str) -> bool:
@@ -388,7 +390,7 @@ class AppCheckService(object):
         logger.info("[compose-debug] service={0}, args={1}".format(service.service_cname, args))
         if args:
             service.cmd = " ".join(args)
-            self.__save_k8s_attribute(tenant, service, "args", json.dumps(args))
+            self.__save_k8s_attribute(tenant, service, "args", args, save_type="yaml")
         else:
             service.cmd = ""
         image = service_info.get("image", None)
@@ -535,17 +537,35 @@ class AppCheckService(object):
 
     def __save_k8s_command(self, tenant: Tenants, service: TenantServiceInfo, command: Any) -> None:
         """Save compose entrypoint as K8s command via ComponentK8sAttribute."""
-        self.__save_k8s_attribute(tenant, service, "cmd", json.dumps(command))
+        self.__save_k8s_attribute(tenant, service, "cmd", command, save_type="yaml")
 
-    def __save_k8s_attribute(self, tenant: Tenants, service: TenantServiceInfo, name: str, value: str,
+    def __serialize_k8s_sequence_attribute(self, value: Any) -> str:
+        if isinstance(value, str):
+            try:
+                parsed = json.loads(value)
+                if isinstance(parsed, list):
+                    value = parsed
+                else:
+                    value = [value]
+            except (TypeError, ValueError):
+                value = [value]
+        if not isinstance(value, list):
+            value = [value]
+        value = [str(item) for item in value]
+        return yaml.safe_dump(value, default_flow_style=False, allow_unicode=True)
+
+    def __save_k8s_attribute(self, tenant: Tenants, service: TenantServiceInfo, name: str, value: Any,
                              save_type: str = "json") -> None:
         """Save a K8s attribute to console DB only. Region sync happens later in create_region_service."""
+        if name in K8S_SEQUENCE_ATTRIBUTE_NAMES:
+            save_type = "yaml"
+            value = self.__serialize_k8s_sequence_attribute(value)
         logger.info("[compose-debug] __save_k8s_attribute called: service={0}, name={1}, value={2}".format(
             service.service_id, name, value))
         try:
             existing = k8s_attribute_repo.get_by_component_id_name(service.service_id, name)
             if existing.exists():
-                k8s_attribute_repo.update(service.service_id, name, attribute_value=value)
+                k8s_attribute_repo.update(service.service_id, name, save_type=save_type, attribute_value=value)
                 logger.info("[compose-debug] updated k8s attribute {0} for service {1}".format(name, service.service_id))
             else:
                 k8s_attribute_repo.create(

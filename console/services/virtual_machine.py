@@ -24,6 +24,9 @@ from www.models.main import (
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
 
+INTERNAL_VM_IMAGE_SOURCE_TYPES = ("upload", "url", "public", "clone")
+INTERNAL_REGISTRY_HOSTS = ("goodrain.me", "rbd-hub:5000")
+
 VM_RUNTIME_ATTR_SPECS = {
     "vm_os_name": "string",
     "vm_gpu_enabled": "string",
@@ -173,7 +176,56 @@ class VirtualMachineService(object):
             return 0, {}
         if self.get_vm_asset_reference_count(tenant_id, vm_image) > 0:
             raise ValueError("vm asset is still referenced")
+        self.delete_vm_image_manifest_if_needed(tenant_id, vm_image, region_name, tenant_name)
         return vm_repo.delete_vm_image_by_id(tenant_id, asset_id)
+
+    def delete_vm_image_manifest_if_needed(self, tenant_id: str, vm_image: VirtualMachineImage,
+                                           region_name: Optional[str] = None,
+                                           tenant_name: Optional[str] = None) -> bool:
+        if not self.should_delete_vm_image_manifest(tenant_id, vm_image, region_name, tenant_name):
+            return False
+        try:
+            region_api.delete_registry_image_manifest(region_name, tenant_name, vm_image.image_url)  # type: ignore[arg-type]
+            return True
+        except ServiceHandleException:
+            raise
+        except RegionApiBaseHttpClient.CallApiError as err:
+            body = err.body if isinstance(err.body, dict) else {}
+            raise ServiceHandleException(
+                msg="delete vm image manifest failed",
+                msg_show=body.get("msg_show") or body.get("msg") or "底层镜像删除失败，请稍后重试",
+                status_code=getattr(err, "status", 500) or 500,
+                error_code=body.get("code") or getattr(err, "status", 500),
+                bean=body.get("bean") if isinstance(body, dict) else None)
+
+    def should_delete_vm_image_manifest(self, tenant_id: str, vm_image: VirtualMachineImage,
+                                        region_name: Optional[str] = None,
+                                        tenant_name: Optional[str] = None) -> bool:
+        if not region_name or not tenant_name or not vm_image or not vm_image.image_url:
+            return False
+        if vm_repo.get_vm_image_count_by_image_url(tenant_id, vm_image.image_url) > 1:
+            return False
+        return self.is_internal_vm_registry_image(vm_image)
+
+    def is_internal_vm_registry_image(self, vm_image: VirtualMachineImage) -> bool:
+        image_url = str(getattr(vm_image, "image_url", "") or "").strip()
+        if not image_url or image_url.startswith(("http://", "https://", "/")):
+            return False
+        source_type = str(getattr(vm_image, "source_type", "") or "").strip().lower()
+        host = self.extract_registry_host(image_url)
+        if host and host not in INTERNAL_REGISTRY_HOSTS:
+            return False
+        if source_type in INTERNAL_VM_IMAGE_SOURCE_TYPES:
+            return True
+        source_uri = str(getattr(vm_image, "source_uri", "") or "").strip()
+        return source_uri.startswith(("http://", "https://", "/grdata/"))
+
+    def extract_registry_host(self, image_url: str) -> str:
+        image_name = image_url.rsplit(":", 1)[0] if ":" in image_url.rsplit("/", 1)[-1] else image_url
+        first_segment = image_name.split("/", 1)[0]
+        if first_segment == "localhost" or "." in first_segment or ":" in first_segment:
+            return first_segment.lower()
+        return ""
 
     def get_vm_current_pod_ip(self, tenant: Tenants, service: TenantServiceInfo) -> str:
         if getattr(service, "extend_method", "") != "vm" or not tenant:
@@ -472,6 +524,7 @@ class VirtualMachineService(object):
             extra.get("source_service_alias") or
             vm_image.name
         )
+        references = self.get_vm_asset_references(vm_image.tenant_id, vm_image)
         return {
             "id": vm_image.ID,
             "name": vm_image.name,
@@ -497,7 +550,8 @@ class VirtualMachineService(object):
             "disk_count": extra.get("disk_count", len(disks) if disks else 0),
             "source_service_id": extra.get("source_service_id", ""),
             "disks": disks,
-            "reference_count": self.get_vm_asset_reference_count(vm_image.tenant_id, vm_image),
+            "reference_count": len(references),
+            "references": references,
             "source_asset": {
                 "id": source_asset.ID,
                 "name": source_asset.name
@@ -578,24 +632,50 @@ class VirtualMachineService(object):
         return value
 
     def get_vm_asset_reference_count(self, tenant_id: str, vm_image: VirtualMachineImage) -> int:
+        return self.get_vm_asset_reference_services(tenant_id, vm_image).count()
+
+    def get_vm_asset_reference_services(self, tenant_id: str, vm_image: VirtualMachineImage) -> Any:
         # Incomplete VM rows are transient and should not block asset deletion or inflate catalog references.
         active_vm_services = TenantServiceInfo.objects.filter(
             tenant_id=tenant_id,
             extend_method="vm",
             create_status="complete")
         active_vm_service_ids = active_vm_services.values_list("service_id", flat=True)
-        attr_refs = ComponentK8sAttributes.objects.filter(
+        explicit_service_ids = ComponentK8sAttributes.objects.filter(
             tenant_id=tenant_id,
             component_id__in=active_vm_service_ids,
             name="vm_asset_id",
-            attribute_value=str(vm_image.ID)).count()
-        if attr_refs > 0:
-            return attr_refs
+            attribute_value=str(vm_image.ID)).values_list("component_id", flat=True)
+        if explicit_service_ids.exists():
+            return active_vm_services.filter(service_id__in=explicit_service_ids).order_by("service_alias")
         bound_service_ids = ComponentK8sAttributes.objects.filter(
             tenant_id=tenant_id,
             component_id__in=active_vm_service_ids,
             name="vm_asset_id").values_list("component_id", flat=True)
-        return active_vm_services.exclude(service_id__in=bound_service_ids).filter(image=vm_image.image_url).count()
+        return active_vm_services.exclude(service_id__in=bound_service_ids).filter(
+            image=vm_image.image_url).order_by("service_alias")
+
+    def get_vm_asset_references(self, tenant_id: str, vm_image: VirtualMachineImage) -> list:
+        return [
+            self.serialize_vm_asset_reference_service(service)
+            for service in self.get_vm_asset_reference_services(tenant_id, vm_image)
+        ]
+
+    def serialize_vm_asset_reference_service(self, service: TenantServiceInfo) -> dict:
+        group_id = getattr(service, "tenant_service_group_id", 0) or 0
+        service_alias = getattr(service, "service_alias", "") or ""
+        service_cname = getattr(service, "service_cname", "") or ""
+        service_id = getattr(service, "service_id", "") or ""
+        return {
+            "service_id": service_id,
+            "component_id": service_id,
+            "service_alias": service_alias,
+            "service_cname": service_cname,
+            "display_name": service_cname or service_alias or service_id,
+            "group_id": group_id,
+            "app_id": group_id,
+            "region_name": getattr(service, "service_region", "") or "",
+        }
 
     def _build_vm_runtime_attrs(self, runtime_config: dict) -> dict:
         attrs = {}
@@ -675,7 +755,8 @@ class VirtualMachineService(object):
         return str(inferred or "").strip().lower()
 
     def build_vm_create_disk_imports(self, asset: Any = None, template_payload: Optional[dict] = None,
-                                     image_name: str = "", image_url: str = "", source_uri: str = "") -> list:
+                                     image_name: str = "", image_url: str = "", source_uri: str = "",
+                                     boot_source_format: str = "") -> list:
         imports = []
         root_import = self._build_vm_root_disk_import(
             asset=asset,
@@ -683,6 +764,7 @@ class VirtualMachineService(object):
             image_name=image_name,
             image_url=image_url,
             source_uri=source_uri,
+            boot_source_format=boot_source_format,
         )
         if root_import:
             imports.append(root_import)
@@ -697,13 +779,13 @@ class VirtualMachineService(object):
             source_uri,
             bool(root_import),
             len(imports),
-            self.infer_vm_boot_source_format(
+            str(boot_source_format or self.infer_vm_boot_source_format(
                 asset=asset,
                 template_payload=template_payload,
                 image_name=image_name,
                 image_url=image_url,
                 source_uri=source_uri,
-            ),
+            ) or "").strip().lower(),
         )
         return imports
 
@@ -752,16 +834,16 @@ class VirtualMachineService(object):
         return "uefi"
 
     def _build_vm_root_disk_import(self, asset: Any = None, template_payload: Optional[dict] = None,
-                                   image_name: str = "", image_url: str = "",
-                                   source_uri: str = "") -> Optional[dict]:
-        boot_source_format = self.infer_vm_boot_source_format(
+                                   image_name: str = "", image_url: str = "", source_uri: str = "",
+                                   boot_source_format: str = "") -> Optional[dict]:
+        resolved_boot_source_format = str(boot_source_format or self.infer_vm_boot_source_format(
             asset=asset,
             template_payload=template_payload,
             image_name=image_name,
             image_url=image_url,
             source_uri=source_uri,
-        )
-        if boot_source_format == "iso":
+        ) or "").strip().lower()
+        if resolved_boot_source_format == "iso":
             return None
 
         root_disk = self._extract_root_disk_payload(asset=asset, template_payload=template_payload)
@@ -780,21 +862,33 @@ class VirtualMachineService(object):
                 "disk_name": root_disk.get("disk_name") or root_disk.get("disk_key") or "rootdisk",
                 "image_url": restore_url,
                 "source_uri": root_disk.get("source_uri") or "",
-                "format": root_disk.get("format") or "",
+                "format": root_disk.get("format") or resolved_boot_source_format or "",
                 "checksum": root_disk.get("checksum") or "",
                 "source_type": source_type,
             }
 
         restore_url = self._resolve_root_restore_url(asset=asset, image_url=image_url, source_uri=source_uri)
         if not self._is_http_source(restore_url):
-            return None
+            registry_image = self._resolve_root_registry_image(asset=asset, image_url=image_url)
+            if not registry_image or not resolved_boot_source_format:
+                return None
+            return {
+                "volume_name": "disk",
+                "disk_key": "rootdisk",
+                "disk_name": "rootdisk",
+                "image_url": registry_image,
+                "source_uri": self._resolve_root_source_uri(asset=asset, source_uri=source_uri, fallback=registry_image),
+                "format": resolved_boot_source_format or "",
+                "checksum": "",
+                "source_type": "registry",
+            }
         return {
             "volume_name": "disk",
             "disk_key": "rootdisk",
             "disk_name": "rootdisk",
             "image_url": restore_url,
             "source_uri": "",
-            "format": boot_source_format or "",
+            "format": resolved_boot_source_format or "",
             "checksum": "",
             "source_type": "http",
         }
@@ -842,6 +936,26 @@ class VirtualMachineService(object):
             if self._is_http_source(candidate):
                 return candidate
         return ""
+
+    def _resolve_root_registry_image(self, asset: Any = None, image_url: str = "") -> str:
+        candidates = []
+        if asset:
+            candidates.append(getattr(asset, "image_url", ""))
+        candidates.append(image_url)
+        for candidate in candidates:
+            value = str(candidate or "").strip()
+            if not value or self._is_http_source(value) or value.startswith("/grdata/"):
+                continue
+            return value
+        return ""
+
+    def _resolve_root_source_uri(self, asset: Any = None, source_uri: str = "", fallback: str = "") -> str:
+        if asset:
+            value = str(getattr(asset, "source_uri", "") or "").strip()
+            if value:
+                return value
+        value = str(source_uri or "").strip()
+        return value or fallback
 
     def _normalize_vm_boot_mode(self, value: Any) -> str:
         return str(value or "").strip().lower()

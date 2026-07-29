@@ -99,7 +99,8 @@ class SavePortHttpFailureVisibleTest(TestCase):
             ports,
             "KUBERNETES_NATIVE_SERVICE",
             [],
-            False,
+            port_k8s_service_names={},
+            sync_flag=False,
         )
 
     def setUpInstance(self):

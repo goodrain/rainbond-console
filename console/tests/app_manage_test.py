@@ -235,6 +235,37 @@ class AppManageStartErrorTests(TestCase):
         self.assertEqual("当前虚拟机不满足热更新条件，请停机后再修改规格。", msg)
 
 
+class AppManageBatchActionDeployEventTests(DjangoTestCase):
+
+    def test_batch_action_keeps_return_contract_and_records_deploy_event_on_service(self):
+        tenant = mock.Mock()
+        user = mock.Mock()
+        service = mock.Mock(
+            service_id="service-1",
+            service_alias="grsvc1",
+            service_cname="api",
+            service_source="source_code",
+            arch="amd64",
+            update_time=None,
+        )
+        service.save = mock.Mock()
+
+        with mock.patch.object(app_manage_module.service_repo, "get_services_by_service_ids", return_value=[service]), \
+                mock.patch.object(app_manage_module.region_api, "get_cluster_nodes_arch",
+                                  return_value=(200, {"list": ["amd64"]})), \
+                mock.patch.object(app_manage_module.AppManageService, "deploy",
+                                  return_value=(200, "success", "event-1")) as deploy:
+            code, msg, services = app_manage_module.AppManageService().batch_action(
+                "region-a", tenant, user, "deploy", ["service-1"], None, None)
+
+        self.assertEqual(code, 200)
+        self.assertEqual(msg, "success")
+        self.assertEqual(services, [service])
+        deploy.assert_called_once()
+        self.assertEqual(service._last_deploy_event_id, "event-1")
+        self.assertEqual(service._last_deploy_result, {"code": 200, "msg": "success"})
+
+
 class AppManageVMRestoreDeleteTests(DjangoTestCase):
 
     # capability_id: console.vm-template-import.delete-restoring-vm

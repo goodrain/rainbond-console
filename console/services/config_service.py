@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from django.conf import settings
+from django.db import IntegrityError
 from console.exception.exceptions import ConfigExistError
 from console.models.main import ConsoleSysConfig, OAuthServices
 from console.repositories.oauth_repo import oauth_user_repo
@@ -103,8 +104,8 @@ class ConfigService(object):
 
     def add_config(self, key: str, default_value: Any, type: str, enable: bool = True,
                    desc: str = "") -> ConsoleSysConfig:
-        if not ConsoleSysConfig.objects.filter(key=key).exists():
-            create_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        create_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        try:
             config = ConsoleSysConfig.objects.create(
                 key=key,
                 type=type,
@@ -113,10 +114,10 @@ class ConfigService(object):
                 create_time=create_time,
                 enable=enable,
                 enterprise_id=self.enterprise_id)
-            custom_settings.reload()
-            return config
-        else:
-            raise ConfigExistError("配置{}已存在".format(key))
+        except IntegrityError as exc:
+            raise ConfigExistError("配置{}已存在".format(key)) from exc
+        custom_settings.reload()
+        return config
 
     def get_config_by_key(self, key: str) -> Optional[ConsoleSysConfig]:
         try:

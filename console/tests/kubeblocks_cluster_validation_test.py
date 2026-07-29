@@ -129,7 +129,7 @@ class KubeBlocksCreateFlowTests(unittest.TestCase):
 
     # capability_id: console.kubeblocks.app-resource-statistics
     def test_create_cluster_resolves_region_app_id_for_resource_statistics(self):
-        tenant = SimpleNamespace(tenant_id="tenant-1", namespace="team-a-ns")
+        tenant = SimpleNamespace(tenant_id="tenant-1", namespace="team-a-ns", tenant_name="team-a", enterprise_id="eid-1")
         user = SimpleNamespace(nick_name="alice")
         service = SimpleNamespace(
             service_id="service-1",
@@ -198,10 +198,14 @@ class KubeBlocksCreateFlowTests(unittest.TestCase):
                 mock.patch.object(self.service, "_fetch_connection_info", return_value=connect_ctx) as fetch_info, \
                 mock.patch.object(self.service, "_add_database_env_vars") as add_database_env_vars, \
                 mock.patch.object(self.service, "_configure_service_ports") as configure_ports, \
-                mock.patch.object(self.service, "_deploy_component", return_value={"status": "ok"}), \
+                mock.patch.object(self.service, "_deploy_component", return_value=(200, "success", "event-db")), \
                 mock.patch.object(self.service, "_build_success_response", return_value={"service_id": "service-1"}), \
                 mock.patch.object(self.service, "_cleanup_on_failure"), \
-                mock.patch.object(kubeblocks_module.deploy_repo, "create_deploy_relation_by_service_id"):
+                mock.patch.object(kubeblocks_module.deploy_repo, "create_deploy_relation_by_service_id"), \
+                mock.patch.object(kubeblocks_module.enterprise_first_deploy_service,
+                                  "safe_begin_deploy_tracking", return_value={"key": "tracker"}) as begin_tracking, \
+                mock.patch.object(kubeblocks_module.enterprise_first_deploy_service,
+                                  "safe_bind_events") as bind_events:
             create_complete = self.service.create_complete_kubeblocks_component.__wrapped__
             success, result_data, error_msg = create_complete(
                 self.service,
@@ -224,6 +228,16 @@ class KubeBlocksCreateFlowTests(unittest.TestCase):
         configure_ports.assert_called_once()
         self.assertEqual(configure_ports.call_args[1]["connect_ctx"], fetch_info.return_value)
         self.assertEqual(configure_ports.call_args[1]["database_type"], "mysql")
+        begin_tracking.assert_called_once()
+        begin_kwargs = begin_tracking.call_args[1]
+        self.assertEqual(begin_kwargs["deploy_type"], "database")
+        self.assertEqual(begin_kwargs["trigger"], "kubeblocks_create")
+        self.assertEqual(begin_kwargs["workload_context"]["source_type"], "database")
+        bind_events.assert_called_once_with(
+            {"key": "tracker"},
+            ["event-db"],
+            service_ids=["service-1"],
+            service_aliases=["gr000001"])
 
     # capability_id: console.kubeblocks.create-credential-sync
     def test_add_database_env_vars_uses_database_user_and_password_names(self):

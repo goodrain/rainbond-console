@@ -24,6 +24,7 @@ from console.services.app_config.app_relation_service import \
     AppServiceRelationService
 from console.services.app_config.component_graph import component_graph_service
 from console.services.app_config.service_monitor import service_monitor_repo
+from console.services.plugin_build_arch import resolve_plugin_build_arch
 from django.db import transaction
 from django.db.models import Q
 from docker_image import reference
@@ -803,7 +804,7 @@ class PluginService(object):
         return plugin_repo.get_tenant_plugins(tenant.tenant_id, region)
 
     def build_plugin(self, region: str, plugin: TenantPlugin, plugin_version: Any, user: Any, tenant: Tenants,
-                     event_id: str, image_info: Any = None, arch: str = "amd64") -> Any:
+                     event_id: str, image_info: Any = None, arch: Any = None) -> Any:
 
         build_data: dict = dict()
 
@@ -821,7 +822,7 @@ class PluginService(object):
         build_data["tenant_id"] = tenant.tenant_id
         build_data["ImageInfo"] = image_info
         build_data["build_image"] = "{0}:{1}".format(plugin.image, plugin_version.image_tag)
-        build_data["arch"] = arch  # 添加架构字段
+        build_data["arch"] = resolve_plugin_build_arch(arch, region)
         origin = plugin.origin
         if origin == "local_market":
             plugin_from = "yb"

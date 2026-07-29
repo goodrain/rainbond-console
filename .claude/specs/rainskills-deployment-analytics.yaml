@@ -1,0 +1,395 @@
+meta:
+  name: "RainSkills deployment analytics"
+  version: "1.0"
+  repos:
+    rainbond-request-server: /Users/goodrain/Desktop/code/rainbond-request-server
+    rainbond-console: /Users/goodrain/Desktop/code/rainbond-console
+    rainskills: /Users/goodrain/Desktop/code/rainskills
+  branch: "feat/rainskills-deployment-analytics"
+  design_doc: /Users/goodrain/Desktop/code/rainbond-console/docs/plans/2026-07-23-rainskills-deployment-analytics-design.md
+  created_at: "2026-07-23"
+
+constraints:
+  - "Do not modify AddEnterpriseFirstDeploy, EnterpriseFirstDeploy, EnterpriseDeployDiagnostic, or deploy_statistics.go."
+  - "RainSkills tracking uses only RAINSKILLS_DEPLOY_* ConsoleSysConfig keys and /api/rainskills/deployments."
+  - "Telemetry failures must never change the MCP tool response or replay a Rainbond deployment."
+  - "The public telemetry endpoint is low-trust analytics input and must not drive billing, authorization, or product state."
+  - "Persist only typed fields; never persist MCP arguments, credentials, full context, or deployment logs."
+  - "Request-server derives phase_sequence from report_phase; final may never be downgraded by dispatch."
+  - "Console deterministically sorts/deduplicates IDs, sends at most 50, and records original counts/truncation."
+
+sprints:
+  - id: sprint-1
+    name: "Independent request-server storage"
+    repo: rainbond-request-server
+    commits:
+      - id: commit-1
+        message: "feat: store RainSkills deployment analytics"
+        tasks: [task-1.1, task-1.2, task-1.3]
+    tasks:
+      - id: task-1.1
+        name: "Add ordered idempotent RainSkills deployment store"
+        status: pending
+        files:
+          create:
+            - path: rainskills_deployment.go
+            - path: rainskills_deployment_test.go
+        steps:
+          - action: write-test
+            description: "Create SQLite tests for insert, same-attempt final update, duplicate final, and late dispatch."
+            code: |
+              func TestSaveRainSkillsDeploymentDoesNotDowngradeFinal(t *testing.T) {
+                  setupRainSkillsDeploymentTestDB(t)
+                  dispatch := validRainSkillsRequest()
+                  require.NoError(t, SaveRainSkillsDeployment(dispatch))
+                  final := dispatch
+                  final.ReportPhase, final.Status = "final", "failure"
+                  require.NoError(t, SaveRainSkillsDeployment(final))
+                  require.NoError(t, SaveRainSkillsDeployment(dispatch))
+                  var got RainSkillsDeployment
+                  require.NoError(t, db.Where("deploy_attempt_id = ?", dispatch.DeployAttemptID).First(&got).Error)
+                  assert.Equal(t, "final", got.ReportPhase)
+                  assert.Equal(t, "failure", got.Status)
+                  assert.Equal(t, uint8(2), got.PhaseSequence)
+              }
+            run: "go test ./... -run 'TestSaveRainSkillsDeployment' -v"
+            expect: "FAIL before implementation"
+          - action: implement
+            description: "Add model, strict request type, normalization, and transaction-safe phase ordering."
+            code: |
+              type RainSkillsDeployment struct {
+                  ID uint `gorm:"primary_key"`
+                  DeployAttemptID string `gorm:"type:varchar(64);unique_index;not null"`
+                  EID string `gorm:"type:varchar(64);index;not null"`
+                  DeployClient string `gorm:"type:varchar(32);not null"`
+                  ToolName string `gorm:"type:varchar(96);not null"`
+                  DeployType string `gorm:"type:varchar(32);not null"`
+                  DeployStage string `gorm:"type:varchar(32);not null"`
+                  Trigger string `gorm:"type:varchar(64);not null"`
+                  SourceLanguage string `gorm:"type:varchar(64)"`
+                  ResourceCreated bool
+                  AppID int
+                  ServiceIDsJSON string `gorm:"type:text"`
+                  EventIDsJSON string `gorm:"type:text"`
+                  ServiceCount int
+                  EventCount int
+                  ServiceIDsTruncated bool
+                  EventIDsTruncated bool
+                  ReportPhase string `gorm:"type:varchar(16);not null"`
+                  PhaseSequence uint8 `gorm:"not null"`
+                  Status string `gorm:"type:varchar(16);not null"`
+                  DeployResultAt time.Time `gorm:"index"`
+                  FailureStage string `gorm:"type:varchar(32)"`
+                  FailureCategory string `gorm:"type:varchar(64)"`
+                  FailureReason string `gorm:"type:varchar(1024)"`
+                  CreatedAt time.Time
+                  UpdatedAt time.Time
+              }
+
+              func (RainSkillsDeployment) TableName() string { return "rainskills_deployment" }
+
+              // In a transaction: update only where phase_sequence <= incoming;
+              // if no row exists create, and retry update after duplicate-key races.
+            run: "go test ./... -run 'TestSaveRainSkillsDeployment' -v"
+            expect: "PASS"
+        acceptance:
+          - cmd: "cd /Users/goodrain/Desktop/code/rainbond-request-server && go test ./... -run 'TestSaveRainSkillsDeployment' -v"
+            expect: "exit 0"
+        references:
+          - path: first_deploy.go:289-324
+            note: "Existing diagnostic upsert style; do not call or edit it."
+
+      - id: task-1.2
+        name: "Add bounded validated telemetry endpoint"
+        status: pending
+        files:
+          modify:
+            - path: rainskills_deployment.go
+            - path: rainskills_deployment_test.go
+            - path: router.go
+              lines: "20-35"
+        steps:
+          - action: write-test
+            description: "Test 64 KiB limit, required fields, enum/status combinations, server phase derivation, ID bounds, and 429 limits."
+            code: |
+              func TestAddRainSkillsDeploymentRejectsInvalidPhaseStatus(t *testing.T) {
+                  body := validRainSkillsRequest()
+                  body.ReportPhase, body.Status = "dispatch", "success"
+                  response := performRainSkillsRequest(t, body)
+                  assert.Equal(t, http.StatusBadRequest, response.Code)
+              }
+
+              func TestAddRainSkillsDeploymentAcceptsTruncatedLargeBatch(t *testing.T) {
+                  body := validRainSkillsRequest()
+                  body.ServiceIDs = fiftyStableIDs()
+                  body.ServiceCount, body.ServiceIDsTruncated = 75, true
+                  response := performRainSkillsRequest(t, body)
+                  assert.Equal(t, http.StatusOK, response.Code)
+              }
+            run: "go test ./... -run 'TestAddRainSkillsDeployment' -v"
+            expect: "FAIL before implementation"
+          - action: implement
+            description: "Decode through io.LimitReader/MaxBytesReader, validate typed DTO, derive sequence, apply configurable fixed-window global/EID limits, and route independently."
+            code: |
+              func AddRainSkillsDeployment(w http.ResponseWriter, r *http.Request) {
+                  if r.Method != http.MethodPost { http.Error(w, "method not allowed", 405); return }
+                  r.Body = http.MaxBytesReader(w, r.Body, 64<<10)
+                  var req RainSkillsDeploymentRequest
+                  decoder := json.NewDecoder(r.Body)
+                  if err := decoder.Decode(&req); err != nil { http.Error(w, "invalid request", 400); return }
+                  if err := req.Validate(); err != nil { http.Error(w, err.Error(), 400); return }
+                  req.PhaseSequence = phaseSequence(req.ReportPhase)
+                  if !rainSkillsLimiter.Allow(req.EID) { http.Error(w, "rate limit exceeded", 429); return }
+                  if err := SaveRainSkillsDeployment(req); err != nil { http.Error(w, "save failed", 500); return }
+                  writeJSON(w, http.StatusOK, map[string]interface{}{"ok": true})
+              }
+            run: "go test ./... -run 'TestAddRainSkillsDeployment' -v"
+            expect: "PASS"
+        acceptance:
+          - cmd: "cd /Users/goodrain/Desktop/code/rainbond-request-server && go test ./... -run 'TestAddRainSkillsDeployment' -v"
+            expect: "exit 0"
+
+      - id: task-1.3
+        name: "Migrate new table and prove legacy isolation"
+        status: pending
+        files:
+          modify:
+            - path: resource.go
+              lines: "230-252"
+            - path: rainskills_deployment_test.go
+            - path: deploy_statistics_test.go
+        steps:
+          - action: write-test
+            description: "Record old-table counts/report, call new endpoint, and assert both remain byte-for-byte/count unchanged."
+            code: |
+              before := getDeployStatisticsReportForTest(t)
+              oldFirst, oldAttempts := countLegacyRows(t)
+              performValidRainSkillsRequest(t)
+              assertLegacyCounts(t, oldFirst, oldAttempts)
+              assert.Equal(t, before, getDeployStatisticsReportForTest(t))
+          - action: implement
+            description: "Add only RainSkillsDeployment to the existing AutoMigrate list; do not edit old handlers/models/report."
+            code: |
+              &RainSkillsDeployment{},
+            run: "go test ./..."
+            expect: "PASS"
+        acceptance:
+          - cmd: "cd /Users/goodrain/Desktop/code/rainbond-request-server && go test ./... && go vet ./... && go build ./..."
+            expect: "exit 0"
+
+  - id: sprint-2
+    name: "Console route attribution and independent tracker"
+    repo: rainbond-console
+    commits:
+      - id: commit-2
+        message: "feat: add RainSkills MCP deployment routes"
+        tasks: [task-2.1]
+      - id: commit-3
+        message: "feat: report RainSkills deployment outcomes"
+        tasks: [task-2.2, task-2.3, task-2.4]
+    tasks:
+      - id: task-2.1
+        name: "Derive RainSkills client from dedicated MCP routes"
+        status: pending
+        files:
+          create:
+            - path: console/services/deployment_invocation.py
+          modify:
+            - path: console/views/mcp_query.py
+              lines: "218-285"
+            - path: console/urls/__init__.py
+              lines: "207-213"
+            - path: console/tests/mcp_query_view_test.py
+        steps:
+          - action: write-test
+            description: "Test Codex/Claude dedicated routes, generic route exclusion, and ContextVar reset after success/failure."
+            code: |
+              with deployment_invocation("rainskills", "codex"):
+                  self.assertTrue(current_invocation().is_rainskills)
+              self.assertFalse(current_invocation().is_rainskills)
+          - action: implement
+            description: "Add immutable invocation dataclass/context manager and fixed as_view kwargs for two routes."
+            code: |
+              _invocation = ContextVar("deployment_invocation", default=DeploymentInvocation("unknown", "unknown"))
+
+              @contextmanager
+              def deployment_invocation(origin, client):
+                  token = _invocation.set(DeploymentInvocation(origin, client))
+                  try: yield
+                  finally: _invocation.reset(token)
+            run: "./venv/bin/python -m pytest console/tests/mcp_query_view_test.py -q"
+            expect: "PASS"
+        acceptance:
+          - cmd: "cd /Users/goodrain/Desktop/code/rainbond-console && ./venv/bin/python -m pytest console/tests/mcp_query_view_test.py -q"
+            expect: "exit 0"
+
+      - id: task-2.2
+        name: "Persist and resume independent RainSkills trackers"
+        status: pending
+        files:
+          create:
+            - path: console/repositories/rainskills_deployment_repo.py
+            - path: console/services/rainskills_deployment_service.py
+            - path: console/tests/rainskills_deployment_service_test.py
+        steps:
+          - action: write-test
+            description: "Test independent key prefix, stable fallback EID, retry/resume, duplicate worker guard, 20-minute timeout, 7-day expiry, and cleanup after 2xx."
+            code: |
+              self.assertTrue(record.key.startswith("RAINSKILLS_DEPLOY_"))
+              self.assertFalse(record.key.startswith("FIRST_DEPLOY_"))
+              self.assertFalse(record.key.startswith("DEPLOY_DIAG_"))
+          - action: implement
+            description: "Implement repository and state machine without importing first_deploy_repo."
+            code: |
+              KEY_PREFIX = "RAINSKILLS_DEPLOY_"
+              DESC = "RainSkills deployment tracking"
+
+              # begin -> dispatch accepted -> poll -> final; delete only after 2xx,
+              # resume pending records on sweeper, and bound local retention to 7 days.
+            run: "./venv/bin/python -m pytest console/tests/rainskills_deployment_service_test.py -q"
+            expect: "PASS"
+        acceptance:
+          - cmd: "cd /Users/goodrain/Desktop/code/rainbond-console && ./venv/bin/python -m pytest console/tests/rainskills_deployment_service_test.py -q"
+            expect: "exit 0"
+
+      - id: task-2.3
+        name: "Classify deployment tools and normalize bounded results"
+        status: pending
+        files:
+          modify:
+            - path: console/services/rainskills_deployment_service.py
+            - path: console/services/mcp_query_service.py
+              lines: "1579-1724,2786-2923,3230-3521,3593-3639,3750-3898"
+            - path: console/services/market_app_service.py
+              lines: "121-215"
+            - path: console/services/upgrade_services.py
+              lines: "299-326"
+            - path: console/tests/rainskills_deployment_service_test.py
+            - path: console/tests/mcp_query_service_test.py
+        steps:
+          - action: write-test
+            description: "Table-test every design matrix row, legacy yes/no metadata, package/mixed mapping, standard event fields, accepted-only tools, and >50 deterministic truncation."
+            code: |
+              cases = [
+                  ("rainbond_create_component", {"is_deploy": True}, "initial", "image"),
+                  ("rainbond_build_component", {"is_deploy": True}, "continuous", "source_code"),
+                  ("rainbond_operate_app", {"action": "deploy"}, "continuous", "mixed"),
+              ]
+          - action: implement
+            description: "Use an explicit classifier map/predicates; expose event_ids/service_ids from market and upgrade paths while preserving all existing response fields."
+            code: |
+              DEPLOYMENT_TOOLS = {
+                  "rainbond_create_component": DeploymentSpec("initial", "image_create", "image", True),
+                  "rainbond_create_component_from_image": DeploymentSpec("initial", "image_create", "image", True),
+                  "rainbond_create_component_from_source": DeploymentSpec("initial", "source_create", "source_code", True),
+                  "rainbond_create_component_from_package": DeploymentSpec("initial", "package_create", "package", True),
+                  "rainbond_create_component_from_local_package": DeploymentSpec("initial", "package_create", "package", True),
+                  # market, snapshot, build, deploy, upgrade and rollback entries follow the design matrix.
+              }
+
+              def bounded_ids(values):
+                  unique = sorted(set(str(value) for value in values if value))
+                  return unique[:50], len(unique), len(unique) > 50
+            run: "./venv/bin/python -m pytest console/tests/rainskills_deployment_service_test.py console/tests/mcp_query_service_test.py -q"
+            expect: "PASS"
+        acceptance:
+          - cmd: "cd /Users/goodrain/Desktop/code/rainbond-console && ./venv/bin/python -m pytest console/tests/rainskills_deployment_service_test.py console/tests/mcp_query_service_test.py -q"
+            expect: "exit 0"
+
+      - id: task-2.4
+        name: "Wrap RainSkills MCP tool dispatch without changing business outcomes"
+        status: pending
+        files:
+          modify:
+            - path: console/views/mcp_query.py
+              lines: "250-285"
+            - path: console/tests/mcp_query_view_test.py
+            - path: console/tests/enterprise_first_deploy_service_test.py
+        steps:
+          - action: write-test
+            description: "Assert dedicated routes start/finalize independent tracker, generic route does not, telemetry exceptions are swallowed, legacy paths still run, and image-only path leaves FIRST_DEPLOY absent."
+            code: |
+              tracker = rainskills_deployment_service.safe_begin_tool_call(user, tool_name, arguments)
+              try:
+                  result = mcp_query_service.call_tool(user, tool_name, arguments)
+              except Exception as exc:
+                  rainskills_deployment_service.safe_mark_tool_failure(tracker, exc)
+                  raise
+              rainskills_deployment_service.safe_bind_tool_result(tracker, result)
+          - action: implement
+            description: "Install the wrapper only when current invocation is RainSkills; preserve the original return and exception exactly."
+            code: |
+              if current_invocation().is_rainskills:
+                  return self._dispatch_rainskills_tool(user, tool_name, arguments)
+              return mcp_query_service.call_tool(user, tool_name, arguments)
+            run: "./venv/bin/python -m pytest console/tests/mcp_query_view_test.py console/tests/enterprise_first_deploy_service_test.py -q"
+            expect: "PASS"
+        acceptance:
+          - cmd: "cd /Users/goodrain/Desktop/code/rainbond-console && ./venv/bin/python -m pytest console/tests/rainskills_deployment_service_test.py console/tests/mcp_query_view_test.py console/tests/enterprise_first_deploy_service_test.py -q && make check"
+            expect: "exit 0"
+
+  - id: sprint-3
+    name: "RainSkills client-specific installation"
+    repo: rainskills
+    commits:
+      - id: commit-4
+        message: "feat: register client-specific RainSkills MCP routes"
+        tasks: [task-3.1, task-3.2]
+    tasks:
+      - id: task-3.1
+        name: "Validate and register client-specific MCP URLs"
+        status: pending
+        files:
+          modify:
+            - path: install.sh
+              lines: "427-442,1068-1135,1427-1500"
+            - path: tests/install.sh.test
+        steps:
+          - action: write-test
+            description: "Expect Codex and Claude dedicated URLs for single/all installs; verify each initialize target and no config write on 404."
+            code: |
+              assert_contains "$tmpdir/logs/codex.log" "/console/mcp/rainskills/codex/query"
+              assert_contains "$tmpdir/logs/claude.log" "/console/mcp/rainskills/claude-code/query"
+          - action: implement
+            description: "Build per-client URLs, normalize all known suffixes, validate selected endpoints before invoking client config commands, and never fall back."
+            code: |
+              codex_mcp_url="${base_url}/console/mcp/rainskills/codex/query"
+              claude_mcp_url="${base_url}/console/mcp/rainskills/claude-code/query"
+            run: "bash -n install.sh && bash tests/install.sh.test"
+            expect: "PASS"
+        acceptance:
+          - cmd: "cd /Users/goodrain/Desktop/code/rainskills && bash -n install.sh && bash tests/install.sh.test"
+            expect: "exit 0"
+
+      - id: task-3.2
+        name: "Safely migrate script-managed generic MCP configuration"
+        status: pending
+        files:
+          modify:
+            - path: install.sh
+            - path: tests/install.sh.test
+            - path: README.md
+              lines: "95-125,295-315"
+        steps:
+          - action: write-test
+            description: "Refresh validates first, backs up exact generic config, migrates it, restores on failure, and leaves custom URLs untouched."
+            code: |
+              assert_contains "$tmpdir/home/.codex/config.toml" "/console/mcp/rainskills/codex/query"
+              [[ -f "$tmpdir/home/.codex/config.toml.rainskills-backup" ]] || fail "expected backup"
+          - action: implement
+            description: "Detect only exact script-managed generic URL, validate dedicated endpoint before backup/migration, and document refresh behavior."
+            code: |
+              # Exact old URL only; never rewrite arbitrary MCP servers or custom Rainbond URLs.
+            run: "bash -n install.sh && bash tests/install.sh.test"
+            expect: "PASS"
+        acceptance:
+          - cmd: "cd /Users/goodrain/Desktop/code/rainskills && bash -n install.sh && bash tests/install.sh.test"
+            expect: "exit 0"
+
+final_verification:
+  - cmd: "cd /Users/goodrain/Desktop/code/rainbond-request-server && go test ./... && go vet ./... && go build ./..."
+    expect: "exit 0"
+  - cmd: "cd /Users/goodrain/Desktop/code/rainbond-console && ./venv/bin/python -m pytest console/tests/rainskills_deployment_service_test.py console/tests/mcp_query_view_test.py console/tests/mcp_query_service_test.py console/tests/enterprise_first_deploy_service_test.py -q && make check"
+    expect: "exit 0"
+  - cmd: "cd /Users/goodrain/Desktop/code/rainskills && bash -n install.sh && bash tests/install.sh.test"
+    expect: "exit 0"

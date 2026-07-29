@@ -116,7 +116,7 @@ class MarketAppService(object):
         app_template, _ = self.get_app_template(app_model_key, install_from_cloud, market_name, region, tenant, user,
                                                 version)
         self._ensure_vm_template_allowed(tenant, region.region_name, app_template)
-        return market_install_preflight_service.run(tenant, region, app_template)
+        return market_install_preflight_service.run(tenant, region, app_template, check_images=False)
 
     def install_app(self,
                     tenant: Tenants,
@@ -128,7 +128,8 @@ class MarketAppService(object):
                     market_name: str,
                     install_from_cloud: bool,
                     is_deploy: bool = False,
-                    dry_run: bool = False) -> str:
+                    dry_run: bool = False,
+                    return_details: bool = False) -> Any:
         tracker = None
         app = group_repo.get_group_by_id(app_id)
         if dry_run:
@@ -143,7 +144,7 @@ class MarketAppService(object):
         app_template, market_app = self.get_app_template(app_model_key, install_from_cloud, market_name, region, tenant, user,
                                                          version)
         self._ensure_vm_template_allowed(tenant, region.region_name, app_template)
-        preflight = market_install_preflight_service.run(tenant, region, app_template)
+        preflight = market_install_preflight_service.run(tenant, region, app_template, check_images=False)
         if preflight.get("should_block"):
             raise AbortRequest(
                 "market app preflight blocked",
@@ -216,6 +217,12 @@ class MarketAppService(object):
         self._create_rbdplugin_if_needed(tenant, region, app_template, app.app_id)
         if not dry_run:
             self._track_market_app_installed(tenant, region.region_name, version, market_app, install_from_cloud)
+        if return_details:
+            return {
+                "app_name": market_app.app_name,
+                "event_ids": self._extract_event_ids(events),
+                "service_ids": component_service_ids,
+            }
         return market_app.app_name
 
     def get_app_template(self, app_model_key: str, install_from_cloud: bool, market_name: str, region: RegionConfig,
@@ -660,7 +667,8 @@ class MarketAppService(object):
         self.__create_component_monitor(tenant, ts, component_monitors)
         # component graphs
         component_graphs = app.get("component_graphs") if app.get("component_graphs") else []
-        component_graph_service.bulk_create(ts.service_id, component_graphs, ts.arch)  # type: ignore[arg-type]  # NOTE: component_graphs/arch opaque/Optional (latent)
+        # NOTE: component_graphs/arch opaque/Optional (latent).
+        component_graph_service.bulk_create(ts.service_id, component_graphs, ts.arch)  # type: ignore[arg-type]
         logger.debug("create component {0} take time {1}".format(ts.service_alias, datetime.datetime.now() - start))
         return ts
 
@@ -752,7 +760,8 @@ class MarketAppService(object):
     def __create_service_plugins(self, region: RegionConfig, tenant: Tenants, service_list: Any, app_plugin_map: dict,
                                  old_new_id_map: dict) -> None:
         try:
-            plugin_version_service.update_plugin_build_status(region, tenant)  # type: ignore[arg-type]  # NOTE: RegionConfig vs region-name str (latent, backlog)
+            # NOTE: RegionConfig vs region-name str (latent, backlog).
+            plugin_version_service.update_plugin_build_status(region, tenant)  # type: ignore[arg-type]
 
             for service in service_list:
                 plugins = app_plugin_map.get(service.service_id)
@@ -863,7 +872,8 @@ class MarketAppService(object):
         if status != 200:
             return status, msg
 
-        plugin_base_info.origin = 'local_market'  # type: ignore[union-attr]  # NOTE: plugin_base_info Optional after create_tenant_plugin (latent)
+        # NOTE: plugin_base_info Optional after create_tenant_plugin (latent).
+        plugin_base_info.origin = 'local_market'  # type: ignore[union-attr]
         plugin_base_info.origin_share_id = plugin_template.get("plugin_key")  # type: ignore[union-attr]
         plugin_base_info.save()  # type: ignore[union-attr]
 
@@ -884,7 +894,8 @@ class MarketAppService(object):
 
         share_config_groups = plugin_template.get('config_groups', [])
 
-        plugin_config_service.create_config_groups(plugin_base_info.plugin_id, build_version, share_config_groups)  # type: ignore[union-attr, arg-type]
+        plugin_config_service.create_config_groups(
+            plugin_base_info.plugin_id, build_version, share_config_groups)  # type: ignore[union-attr, arg-type]
 
         event_id = make_uuid()
         plugin_build_version.event_id = event_id
@@ -892,8 +903,9 @@ class MarketAppService(object):
 
         plugin_service.create_region_plugin(region_name, tenant, plugin_base_info, image_tag=image_tag)  # type: ignore[arg-type]
 
-        ret = plugin_service.build_plugin(region_name, plugin_base_info, plugin_build_version, user, tenant, event_id,  # type: ignore[arg-type]
-                                          plugin_template.get("plugin_image", None))
+        ret = plugin_service.build_plugin(
+            region_name, plugin_base_info, plugin_build_version, user, tenant, event_id,  # type: ignore[arg-type]
+            plugin_template.get("plugin_image", None))
         plugin_build_version.build_status = ret.get('bean').get('status')
         plugin_build_version.save()
         return 200, "success"

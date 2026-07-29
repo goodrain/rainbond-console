@@ -11,6 +11,7 @@ from console.repositories.app import service_repo
 from console.repositories.helm import helm_repo
 from console.repositories.helm_release_source import helm_release_source_repo
 from console.services.app_actions import ws_service
+from console.services.enterprise_first_deploy_service import enterprise_first_deploy_service
 from console.views.base import TenantHeaderView
 from www.utils.return_message import general_message
 from www.apiclient.regionapi import RegionInvokeApi
@@ -74,6 +75,19 @@ def get_request_operator(request: Any) -> Any:
         getattr(user, "username", ""),
         getattr(user, "user_id", ""),
     )
+
+
+def get_tracking_enterprise_id(view: Any, request: Any) -> str:
+    owners = [getattr(view, "tenant", None), getattr(view, "enterprise", None)]
+    try:
+        owners.append(getattr(request, "user", None))
+    except Exception:
+        pass
+    for owner in owners:
+        enterprise_id = getattr(owner, "enterprise_id", "") if owner is not None else ""
+        if enterprise_id and isinstance(enterprise_id, (str, int)):
+            return str(enterprise_id)
+    return ""
 
 
 def normalize_helm_values_yaml(*candidates: Any) -> str:
@@ -175,6 +189,74 @@ class NsResourceTypesView(TenantHeaderView):
 
 
 class NsResourcesView(TenantHeaderView):
+    @staticmethod
+    def _ns_resource_source(params: dict) -> str:
+        return str(params.get("source") or "").strip().lower()
+
+    def _tracking_enterprise_id(self, request: Request) -> str:
+        return get_tracking_enterprise_id(self, request)
+
+    def _build_ns_resource_tracker(self,
+                                   request: Request,
+                                   params: dict,
+                                   team_name: str,
+                                   region_name: str) -> Optional[dict]:
+        try:
+            source = self._ns_resource_source(params)
+            deploy_type = (
+                enterprise_first_deploy_service.DEPLOY_TYPE_YAML
+                if source == "yaml" else enterprise_first_deploy_service.DEPLOY_TYPE_K8S_RESOURCE)
+            source_language = "yaml" if deploy_type == enterprise_first_deploy_service.DEPLOY_TYPE_YAML else "k8s-resource"
+            trigger = (
+                "ns_resource_yaml_create"
+                if deploy_type == enterprise_first_deploy_service.DEPLOY_TYPE_YAML else "ns_resource_create")
+            workload_context = enterprise_first_deploy_service.build_k8s_resource_workload_context(
+                self._decode_request_body(request.body))
+            workload_context["source_type"] = (
+                "yaml" if deploy_type == enterprise_first_deploy_service.DEPLOY_TYPE_YAML else "k8s_resource")
+            logger.info(
+                "ns resource deploy diagnostic tracking begin: team=%s region=%s source=%s deploy_type=%s",
+                team_name,
+                region_name,
+                source,
+                deploy_type,
+            )
+            return enterprise_first_deploy_service.safe_begin_deploy_tracking(
+                enterprise_id=self._tracking_enterprise_id(request),
+                tenant_name=getattr(self.tenant, "tenant_name", "") or team_name,
+                region_name=region_name,
+                deploy_type=deploy_type,
+                operator=get_request_operator(request),
+                source_language=source_language,
+                trigger=trigger,
+                app_context={"component_count": 0},
+                workload_context=workload_context)
+        except Exception as exc:
+            logger.warning("begin ns resource deploy diagnostic tracking failed: %s", exc)
+            return None
+
+    @staticmethod
+    def _decode_request_body(body: Any) -> Any:
+        if isinstance(body, bytes):
+            return body.decode("utf-8", "ignore")
+        return body
+
+    @staticmethod
+    def _ns_resource_failure_reason(data: Any, status_code: int) -> str:
+        body = data or {}
+        bean = ((body.get("data") or {}).get("bean") or {}) if isinstance(body, dict) else {}
+        summary = bean.get("summary") or {}
+        if isinstance(summary, dict):
+            failure_count = summary.get("failure_count") or 0
+            partial_success = bool(summary.get("partial_success"))
+            if failure_count or partial_success:
+                return body.get("msg_show") or body.get("msg") or "K8S 资源部分创建失败"
+        if status_code < 200 or status_code >= 300:
+            if not isinstance(body, dict):
+                return "K8S 资源创建失败"
+            return body.get("msg_show") or body.get("msg") or "K8S 资源创建失败"
+        return ""
+
     def get(self, request: Request, team_name: str, region_name: str, *args: Any, **kwargs: Any) -> Response:
         params = {k: v for k, v in request.GET.items()}
         res, data = region_api.get_tenant_ns_resources(region_name, team_name, params=params)
@@ -183,9 +265,23 @@ class NsResourcesView(TenantHeaderView):
     def post(self, request: Request, team_name: str, region_name: str, *args: Any, **kwargs: Any) -> Response:
         params = {k: v for k, v in request.GET.items()}
         content_type = request.META.get("CONTENT_TYPE")
-        res, data = region_api.post_tenant_ns_resource(
-            region_name, team_name, request.body, params=params, content_type=content_type)
+        tracker = self._build_ns_resource_tracker(request, params, team_name, region_name)
+        try:
+            res, data = region_api.post_tenant_ns_resource(
+                region_name, team_name, request.body, params=params, content_type=content_type)
+        except Exception as exc:
+            enterprise_first_deploy_service.safe_mark_failure(
+                tracker, reason=str(exc), failure_stage=enterprise_first_deploy_service.FAILURE_STAGE_PREFLIGHT)
+            raise
         status_code = getattr(res, "status", 200)
+        failure_reason = self._ns_resource_failure_reason(data, status_code)
+        if failure_reason:
+            enterprise_first_deploy_service.safe_mark_failure(
+                tracker,
+                reason=failure_reason,
+                failure_stage=enterprise_first_deploy_service.FAILURE_STAGE_PREFLIGHT)
+        else:
+            enterprise_first_deploy_service.safe_mark_success(tracker)
         return Response(data, status=status_code)
 
 
@@ -215,6 +311,61 @@ class NsResourceDetailView(TenantHeaderView):
 
 
 class HelmReleasesView(TenantHeaderView):
+    def _build_helm_release_tracker(self,
+                                    request: Request,
+                                    raw_body: dict,
+                                    install_body: dict,
+                                    team_name: str,
+                                    region_name: str,
+                                    namespace: Optional[str]) -> Optional[dict]:
+        try:
+            values = raw_body.get("values") if "values" in raw_body else install_body.get("values")
+            workload_context = enterprise_first_deploy_service.build_helm_workload_context(
+                chart=first_non_empty(
+                    raw_body.get("chart_name"),
+                    raw_body.get("chart"),
+                    install_body.get("chart_name"),
+                    install_body.get("chart"),
+                ),
+                version=first_non_empty(
+                    raw_body.get("version"),
+                    raw_body.get("chart_version"),
+                    install_body.get("version"),
+                    install_body.get("chart_version"),
+                ),
+                repo_name=first_non_empty(raw_body.get("repo_name"), install_body.get("repo_name")),
+                resource=install_body,
+                overrides=values,
+            )
+            if not isinstance(workload_context, dict):
+                workload_context = {"source_type": "helm"}
+            source_type = first_non_empty(raw_body.get("source_type"), install_body.get("source_type"))
+            if source_type:
+                workload_context["helm_source_type"] = source_type
+            if namespace:
+                workload_context["namespace"] = namespace
+            logger.info(
+                "helm release deploy diagnostic tracking begin: team=%s region=%s namespace=%s source_type=%s chart=%s",
+                team_name,
+                region_name,
+                namespace,
+                source_type,
+                workload_context.get("chart", ""),
+            )
+            return enterprise_first_deploy_service.safe_begin_deploy_tracking(
+                enterprise_id=get_tracking_enterprise_id(self, request),
+                tenant_name=getattr(self.tenant, "tenant_name", "") or team_name,
+                region_name=region_name,
+                deploy_type=enterprise_first_deploy_service.DEPLOY_TYPE_HELM,
+                operator=get_request_operator(request),
+                source_language="helm",
+                trigger="helm_release_install",
+                app_context={"component_count": 0},
+                workload_context=workload_context)
+        except Exception as exc:
+            logger.warning("begin helm release deploy diagnostic tracking failed: %s", exc)
+            return None
+
     def get(self, request: Request, team_name: str, region_name: str, *args: Any, **kwargs: Any) -> Response:
         namespace = get_team_resource_namespace(self, team_name)
         res, data = region_api.get_tenant_helm_releases(region_name, team_name, namespace=namespace)
@@ -225,13 +376,20 @@ class HelmReleasesView(TenantHeaderView):
         namespace = get_team_resource_namespace(self, team_name)
         raw_body = dict(request.data or {})
         body = build_helm_install_body(raw_body, namespace=namespace)
-        res, data = region_api.install_tenant_helm_release(region_name, team_name, body)
+        tracker = self._build_helm_release_tracker(request, raw_body, body, team_name, region_name, namespace)
+        try:
+            res, data = region_api.install_tenant_helm_release(region_name, team_name, body)
+        except Exception as exc:
+            enterprise_first_deploy_service.safe_mark_failure(
+                tracker, reason=str(exc), failure_stage=enterprise_first_deploy_service.FAILURE_STAGE_PREFLIGHT)
+            raise
         try:
             persist_helm_release_source(
                 request, team_name, region_name, namespace,
                 raw_body, body, data.get("bean") or {})  # type: ignore[union-attr]
         except Exception as e:
             logger.exception("persist helm release source failed: %s", e)
+        enterprise_first_deploy_service.safe_mark_success(tracker)
         return Response(general_message(200, "success", "安装成功", bean=data.get("bean")))  # type: ignore[union-attr]
 
 

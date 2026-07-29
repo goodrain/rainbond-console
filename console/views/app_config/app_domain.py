@@ -33,7 +33,7 @@ from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import ServiceDomain
 from www.utils.crypt import make_uuid
 from www.utils.return_message import general_message
-from console.exception.main import AbortRequest
+from console.exception.main import AbortRequest, ServiceHandleException
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
@@ -1585,6 +1585,8 @@ class VirtualMachineAssetManageView(RegionTenantHeaderView):
         except ValueError:
             result = general_message(409, "vm asset is referenced", "虚拟机镜像资产仍被引用，无法删除")
             return Response(result, status=409)
+        except ServiceHandleException as err:
+            return err.response
         if deleted == 0:
             return Response(general_message(404, "vm asset not found", "虚拟机镜像资产不存在"), status=404)
         result = general_message(200, "success", "删除成功")

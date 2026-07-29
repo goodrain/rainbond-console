@@ -85,7 +85,11 @@ class SentryProxyViewTests(SimpleTestCase):
         )
         upstream_response = Obj(status_code=200, content=b"", headers={"Content-Type": "text/plain"})
 
-        with mock.patch.dict(os.environ, {"RAINBOND_SENTRY_PROXY_TARGET": "https://sentry.goodrain.com"}), mock.patch(
+        with mock.patch.dict(
+            os.environ,
+            {"RAINBOND_SENTRY_PROXY_TARGET": "https://sentry.goodrain.com"},
+            clear=True,
+        ), mock.patch(
             "console.views.sentry_proxy._send_upstream_request",
             return_value=upstream_response,
         ) as request_mock:
@@ -106,6 +110,31 @@ class SentryProxyViewTests(SimpleTestCase):
         self.assertNotIn("Authorization", kwargs["headers"])
         self.assertNotIn("Cookie", kwargs["headers"])
         self.assertNotIn("X-Csrftoken", kwargs["headers"])
+
+    def test_offline_post_returns_cors_no_content_without_upstream_work(self):
+        request = self.factory.post(
+            "/console/sentry/invalid-path",
+            data=b'{"event_id":"abc"}',
+            content_type="application/x-sentry-envelope",
+            HTTP_ORIGIN="https://rainbond.example.com",
+        )
+
+        upstream_response = Obj(status_code=200, content=b"", headers={})
+        with mock.patch.dict(os.environ, {"DISABLE_DEFAULT_APP_MARKET": "true"}, clear=True), mock.patch(
+            "console.views.sentry_proxy._build_target_url",
+            return_value="https://sentry.example.com/api/2/envelope/",
+        ) as target_mock, mock.patch(
+            "console.views.sentry_proxy._send_upstream_request",
+            return_value=upstream_response,
+        ) as request_mock:
+            response = self.view(request, path="invalid-path")
+
+        self.assertEqual(response.status_code, 204)
+        self.assertEqual(response["Access-Control-Allow-Origin"], "https://rainbond.example.com")
+        self.assertIn("POST", response["Access-Control-Allow-Methods"])
+        self.assertEqual(response["Access-Control-Allow-Headers"], "Content-Type")
+        target_mock.assert_not_called()
+        request_mock.assert_not_called()
 
     def test_options_returns_cors_preflight_without_upstream_call(self):
         request = self.factory.options(
