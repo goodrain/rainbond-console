@@ -51,7 +51,7 @@ from console.services.share_services import share_service
 from console.services.source_component_service import source_component_service
 from console.services.team_services import team_services
 from console.services.upgrade_services import upgrade_service
-from console.utils.source_build_state import build_compile_env_payload, read_compile_env_state
+from console.utils.source_build_state import build_compile_env_payload, is_java_maven_language, read_compile_env_state
 from console.utils.oauth.oauth_types import get_oauth_instance
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.crypt import make_uuid
@@ -4072,7 +4072,8 @@ class MCPQueryService(object):
         build_mode_note = None
         if service.create_status == "complete":
             service_info = data.get("service_info")
-            if not (service_info is not None and len(service_info) > 1 and service_info[0].get("language") == "Java-maven"):
+            if not (service_info is not None and len(service_info) > 1
+                    and is_java_maven_language(service_info[0].get("language"))):
                 app_check_service.update_service_check_info(team, service, data)
             check_brief_info = app_check_service.wrap_service_check_info(service, data)
         else:
