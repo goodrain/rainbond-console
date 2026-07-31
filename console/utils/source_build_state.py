@@ -45,6 +45,10 @@ def pick_preferred_language(languages):
     return parts[0]
 
 
+def is_java_maven_language(languages):
+    return pick_preferred_language(languages).lower() == "java-maven"
+
+
 def _clone_dict(value):
     if not isinstance(value, dict):
         return {}
