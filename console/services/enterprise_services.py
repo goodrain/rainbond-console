@@ -474,7 +474,9 @@ class EnterpriseServices(object):
                 "req_cpu": node["resource"]["req_cpu"],
                 "cap_cpu": node["resource"]["cap_cpu"],
                 "req_memory": node["resource"]["req_memory"] / 1000,
-                "cap_memory": node["resource"]["cap_memory"] / 1000
+                "cap_memory": node["resource"]["cap_memory"] / 1000,
+                "req_docker_partition": node["resource"]["req_container_disk"] / 1024 / 1024 / 1024,
+                "cap_docker_partition": node["resource"]["cap_container_disk"] / 1024 / 1024 / 1024
             })
             if node["roles"]:
                 all_node_roles += node["roles"]
