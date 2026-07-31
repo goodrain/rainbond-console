@@ -5197,6 +5197,24 @@
       "status": "active"
     },
     {
+      "id": "console.deploy-preflight.permission-scope",
+      "title": "Deploy preflight permission scope",
+      "title_zh": "部署预检权限范围",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.app_create.deploy_preflight.DeployPreflightView",
+      "code_paths": [
+        "console/views/app_create/deploy_preflight.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/deploy_preflight_service_test.py",
+          "selector": "DeployPreflightServiceTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.endpoint-address.reject-invalid-format",
       "title": "Reject malformed endpoint addresses that are neither IPs nor domains",
       "title_zh": "拒绝既不是 IP 也不是域名的非法端点地址",
@@ -6862,6 +6880,24 @@
       "status": "active"
     },
     {
+      "id": "console.market-app.vm-template-dynamic-pod-ip",
+      "title": "Create VM from template with dynamic pod IP",
+      "title_zh": "从应用模板创建虚拟机时使用动态 Pod IP",
+      "interface_type": "service_method",
+      "interface": "console.services.market_app.new_components.NewComponents._template_to_k8s_attributes",
+      "code_paths": [
+        "console/services/market_app/new_components.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/market_app_update_components_test.py",
+          "selector": "MarketAppNewComponentsVMK8sAttrsTests.test_template_to_k8s_attributes_drops_fixed_pod_ip_for_vm"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.market-client.auth-missing",
       "title": "Translate 401 market API errors into missing-token service errors",
       "title_zh": "将 401 应用市场错误转换为缺少 token 的服务异常",
@@ -7954,6 +7990,24 @@
       "status": "active"
     },
     {
+      "id": "console.package-upload.rainskills-tool-visibility",
+      "title": "Hide server-local package tools from RainSkills discovery",
+      "title_zh": "RainSkills 工具发现隐藏服务端本地软件包工具",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.list_tools[console.package-upload.rainskills-tool-visibility]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceToolVisibilityTests.test_rainskills_hides_server_local_package_tools_only_from_discovery"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.package-upload.status",
       "title": "Package Upload Status",
       "title_zh": "Package Upload Status",
@@ -8325,17 +8379,17 @@
     },
     {
       "id": "console.realtime-proxy.multipart-upload-forward",
-      "title": "Realtime proxy rebuilds multipart upload",
-      "title_zh": "实时代理重建分片上传请求",
+      "title": "Realtime proxy streams app import multipart upload",
+      "title_zh": "实时代理流式转发离线应用上传请求",
       "interface_type": "package_function",
-      "interface": "console.utils.realtime_proxy.build_multipart_payload",
+      "interface": "console.utils.realtime_proxy._should_forward_raw_multipart",
       "code_paths": [
         "console/utils/realtime_proxy.py"
       ],
       "tests": [
         {
           "path": "console/tests/realtime_proxy_url_test.py",
-          "selector": "RealtimeProxyUrlTests.test_http_proxy_rebuilds_multipart_upload_for_app_import"
+          "selector": "RealtimeProxyUrlTests.test_app_import_upload_forwards_raw_multipart_body"
         }
       ],
       "test_type": "regression",

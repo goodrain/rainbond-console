@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# capability_id: console.deploy-preflight.permission-scope
 import collections
 import os
 import sys
@@ -261,6 +262,43 @@ class DeployPreflightServiceTests(SimpleTestCase):
         run.assert_called_once_with(self.tenant, self.region, "image", {"docker_cmd": "nginx:latest"}, view.user)
         self.assertEqual(200, response.status_code)
         self.assertEqual(preflight, response.data["data"]["bean"])
+
+    def _initial_permission_context(self, request_data):
+        from console.utils import perms_route_config as perms
+        from console.views.app_create.deploy_preflight import DeployPreflightView
+        from console.views.base import RegionTenantHeaderView
+
+        request = Obj(data=request_data)
+        view = DeployPreflightView()
+        with mock.patch.object(RegionTenantHeaderView, "initial") as parent_initial:
+            view.initial(request, __message=perms.APP_OVERVIEW_CREATE["__message"])
+        return view, parent_initial.call_args.kwargs["__message"]["post"]["perms"]
+
+    def test_deploy_preflight_initial_uses_top_level_application_scope(self):
+        view, request_perms = self._initial_permission_context({
+            "group_id": 7,
+            "payload": {"group_id": 8},
+        })
+        self.assertEqual(7, view.perm_app_id)
+        self.assertEqual([300013], request_perms)
+
+    def test_deploy_preflight_initial_supports_nested_application_scope(self):
+        view, request_perms = self._initial_permission_context({"payload": {"group_id": 8}})
+        self.assertEqual(8, view.perm_app_id)
+        self.assertEqual([300013], request_perms)
+
+    def test_deploy_preflight_initial_uses_app_create_permission_without_group(self):
+        view, request_perms = self._initial_permission_context({"payload": {}})
+        self.assertEqual("", view.perm_app_id)
+        self.assertEqual([300001], request_perms)
+
+    def test_deploy_preflight_initial_does_not_downgrade_invalid_group_scope(self):
+        view, request_perms = self._initial_permission_context({
+            "group_id": "invalid",
+            "payload": {},
+        })
+        self.assertEqual(-1, view.perm_app_id)
+        self.assertEqual([300013], request_perms)
 
     def test_docker_run_create_view_blocks_when_preflight_blocks(self):
         from console.exception.main import AbortRequest

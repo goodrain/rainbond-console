@@ -112,12 +112,22 @@ class PackageUploadToolServiceTests(SimpleTestCase):
             region="rainbond",
             component_id=""
         )
-        mock_get_upload_url.return_value = "http://region-ws/package_build/component/events/evt-upload-1"
+        expected_upload_url = "http://region-ws/package_build/component/events/evt-upload-1"
+        mock_get_upload_url.return_value = expected_upload_url
 
         result = package_upload_tool_service.init_upload("demo-team", "rainbond", "")
 
         self.assertEqual(result["event_id"], "evt-upload-1")
-        self.assertEqual(result["upload_url"], "http://region-ws/package_build/component/events/evt-upload-1")
+        self.assertEqual(result["upload_url"], expected_upload_url)
+        self.assertEqual(
+            result["upload_request"], {
+                "method": "POST",
+                "url": expected_upload_url,
+                "url_scope": "console_origin",
+                "content_type": "multipart/form-data",
+                "file_field": "packageTarFile",
+                "authorization": "none",
+            })
         mock_create_record.assert_called_once()
 
     @patch("console.services.package_upload_tool_service.package_upload_tool_service.get_upload_status")
