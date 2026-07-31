@@ -109,6 +109,65 @@ class MarketAppUpdateComponentsCompatibilityTests(TestCase):
 
 
 class MarketAppNewComponentsVMK8sAttrsTests(TestCase):
+    # capability_id: console.market-app.vm-template-dynamic-pod-ip
+    def test_template_to_k8s_attributes_drops_fixed_pod_ip_for_vm(self):
+        creator = NewComponents.__new__(NewComponents)
+        component = type("FakeComponent", (), {
+            "tenant_id": "tenant-a",
+            "service_id": "service-a",
+            "service_key": "service-1",
+        })()
+        attributes = [
+            {
+                "name": "vm_fixed_ip_enabled",
+                "save_type": "string",
+                "attribute_value": "true",
+            },
+            {
+                "name": "vm_fixed_ip",
+                "save_type": "string",
+                "attribute_value": "10.42.124.101",
+            },
+            {
+                "name": "vm_boot_mode",
+                "save_type": "string",
+                "attribute_value": "bios",
+            },
+        ]
+
+        vm_templates = [
+            {"vm": {"boot_mode": "bios"}},
+            {"extend_method": "vm"},
+            {"service_source": "vm_run"},
+        ]
+
+        for component_tmpl in vm_templates:
+            with self.subTest(component_tmpl=component_tmpl):
+                attrs = creator._template_to_k8s_attributes(component, attributes, component_tmpl)
+                attr_map = {attr.name: attr.attribute_value for attr in attrs}
+
+                self.assertNotIn("vm_fixed_ip_enabled", attr_map)
+                self.assertNotIn("vm_fixed_ip", attr_map)
+                self.assertEqual("bios", attr_map["vm_boot_mode"])
+
+    def test_template_to_k8s_attributes_keeps_attributes_for_non_vm_component(self):
+        creator = NewComponents.__new__(NewComponents)
+        component = type("FakeComponent", (), {
+            "tenant_id": "tenant-a",
+            "service_id": "service-a",
+            "service_key": "service-1",
+        })()
+        component_tmpl = {"extend_method": "stateless_multiple"}
+        attributes = [{
+            "name": "vm_fixed_ip_enabled",
+            "save_type": "string",
+            "attribute_value": "true",
+        }]
+
+        attrs = creator._template_to_k8s_attributes(component, attributes, component_tmpl)
+
+        self.assertEqual(["vm_fixed_ip_enabled"], [attr.name for attr in attrs])
+
     # capability_id: console.market-app.vm-disk-imports-from-template
     def test_template_to_k8s_attributes_backfills_vm_runtime_attrs_from_vm_block(self):
         creator = NewComponents.__new__(NewComponents)

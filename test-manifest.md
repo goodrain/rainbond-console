@@ -275,6 +275,7 @@
 | console.dependency.invalid-container-port | Dependency Invalid Container Port | active | regression | console.services.app_config.app_relation_service.AppServiceRelationService | console/tests/app_relation_service_test.py::AppRelationServiceTests.test_add_service_dependency_rejects_unknown_dep_service_port |
 | console.deploy-diagnostics.source-check | 源码构建源检测失败诊断埋点 | active | regression | console.views.app_create.app_check.AppCheck.get | console/tests/app_check_view_test.py::AppCheckSourceDiagnosticTests.test_get_reports_source_check_failure_without_changing_response<br>console/tests/source_component_service_test.py::SourceComponentServiceTests.test_auto_create_component_raises_on_check_failure<br>console/tests/enterprise_first_deploy_service_test.py::EnterpriseFirstDeployServiceTests.test_report_source_check_failure_sends_pre_deploy_diagnostic |
 | console.deploy-diagnostics.v3 | 部署失败 v3 诊断埋点 | active | regression | console.services.enterprise_first_deploy_service.EnterpriseFirstDeployService | console/tests/enterprise_first_deploy_service_test.py<br>console/tests/app_build_first_deploy_test.py::AppBuildFirstDeployTrackingTests.test_app_build_tracks_source_image_and_package_deploy_types<br>console/tests/market_app_first_deploy_test.py::MarketAppFirstDeployTrackingTests.test_install_app_reports_first_deploy_tracking_for_market_install<br>console/tests/compose_check_first_deploy_test.py<br>console/tests/compose_build_first_deploy_test.py::ComposeBuildFirstDeployTrackingTests.test_compose_build_tracks_first_deploy_and_binds_all_component_events<br>console/tests/auto_create_first_deploy_tracking_test.py<br>console/tests/platform_plugin_first_deploy_test.py::PlatformPluginFirstDeployTrackingTests.test_install_platform_plugin_reports_first_deploy_tracking |
+| console.deploy-preflight.permission-scope | 部署预检权限范围 | active | regression | console.views.app_create.deploy_preflight.DeployPreflightView | console/tests/deploy_preflight_service_test.py::DeployPreflightServiceTests |
 | console.endpoint-address.reject-invalid-format | 拒绝既不是 IP 也不是域名的非法端点地址 | active | regression | console.utils.validation.validate_endpoint_address | console/tests/utils/validation_test.py::EndpointValidationTests.test_validate_endpoint_address_rejects_invalid_format |
 | console.endpoint-address.reject-special-ranges | 拒绝 unspecified 和 loopback 的端点地址 | active | regression | console.utils.validation.validate_endpoint_address | console/tests/utils/validation_test.py::EndpointValidationTests.test_validate_endpoint_address_rejects_special_ranges |
 | console.endpoint-list.normalize-scheme-port | 在多端点校验前规范化协议和端口 | active | regression | console.utils.validation.validate_endpoints_info | console/tests/utils/validation_test.py::EndpointValidationTests.test_validate_endpoints_info_normalizes_scheme_and_port |
@@ -362,6 +363,7 @@
 | console.market-app.upgrade-share-image-fallback | Market App Upgrade Share Image Fallback | active | regression | console.services.market_app.update_components | console/tests/market_app_update_components_test.py::MarketAppUpdateComponentsCompatibilityTests.test_create_update_components_falls_back_to_image_when_share_image_missing |
 | console.market-app.vm-disk-imports-from-template | 市场应用安装从 VM 模板生成磁盘导入配置 | active | regression | console.services.market_app.new_components.NewComponents._template_to_k8s_attributes | console/tests/market_app_update_components_test.py::MarketAppNewComponentsVMK8sAttrsTests.test_template_to_k8s_attributes_backfills_vm_runtime_attrs_from_vm_block |
 | console.market-app.vm-runtime-status-guard | 虚拟机平台异常时禁止安装虚拟机模板 | active | regression | console.services.market_app_service.MarketAppService.install_app | console/tests/market_app_service_test.py::MarketAppServiceVMGuardTests |
+| console.market-app.vm-template-dynamic-pod-ip | 从应用模板创建虚拟机时使用动态 Pod IP | active | regression | console.services.market_app.new_components.NewComponents._template_to_k8s_attributes | console/tests/market_app_update_components_test.py::MarketAppNewComponentsVMK8sAttrsTests.test_template_to_k8s_attributes_drops_fixed_pod_ip_for_vm |
 | console.market-client.auth-missing | 将 401 应用市场错误转换为缺少 token 的服务异常 | active | regression | console.utils.restful_client.apiException | console/tests/utils/restful_client_test.py::RestfulClientApiExceptionTests.test_api_exception_401 |
 | console.market-client.bad-request | 将通用 4xx 应用市场错误转换为参数错误响应 | active | regression | console.utils.restful_client.apiException | console/tests/utils/restful_client_test.py::RestfulClientApiExceptionTests.test_api_exception_generic_4xx |
 | console.market-client.default-host | 使用默认回退 host 创建应用市场客户端 | active | regression | console.utils.restful_client.get_market_client | console/tests/utils/restful_client_test.py::RestfulClientFactoryTests.test_get_market_client_uses_default_host |
@@ -422,6 +424,7 @@
 | console.package-upload.local-path-missing-details | _normalize_local_path 在路径缺失时抛出结构化详情 | active | regression | console.services.package_upload_tool_service.PackageUploadToolService._normalize_local_path | console/tests/package_upload_tool_service_test.py::PackageUploadToolServiceTests.test_normalize_local_path_raises_structured_details_when_path_missing |
 | console.package-upload.local-path-required-details | _normalize_local_path 在路径为空时抛出结构化详情 | active | regression | console.services.package_upload_tool_service.PackageUploadToolService._normalize_local_path | console/tests/package_upload_tool_service_test.py::PackageUploadToolServiceTests.test_normalize_local_path_raises_structured_details_when_path_empty |
 | console.package-upload.local-path-schema | Package Upload Local Path Schema | active | regression | console.services.mcp_query_service.call_tool[console.package-upload.local-path-schema] | console/tests/mcp_query_service_test.py::MCPQueryServiceToolVisibilityTests.test_upload_package_file_tool_schema_exposes_local_path_guidance |
+| console.package-upload.rainskills-tool-visibility | RainSkills 工具发现隐藏服务端本地软件包工具 | active | regression | console.services.mcp_query_service.list_tools[console.package-upload.rainskills-tool-visibility] | console/tests/mcp_query_service_test.py::MCPQueryServiceToolVisibilityTests.test_rainskills_hides_server_local_package_tools_only_from_discovery |
 | console.package-upload.status | Package Upload Status | active | regression | console.services.mcp_query_service.call_tool[console.package-upload.status] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_get_package_upload_status_delegates_to_upload_tool_service |
 | console.package-upload.status-flow | Package Upload Status Flow | active | regression | console.services.package_upload_tool_service | console/tests/package_upload_tool_service_test.py::PackageUploadToolServiceTests.test_get_upload_status_reads_packages_and_updates_record |
 | console.package-upload.upload-flow | Package Upload Upload Flow | active | regression | console.services.package_upload_tool_service | console/tests/package_upload_tool_service_test.py::PackageUploadToolServiceTests.test_upload_package_uploads_archive_and_returns_status |
@@ -3282,6 +3285,16 @@
 - 代码路径: `console/services/enterprise_first_deploy_service.py`, `console/repositories/first_deploy_repo.py`, `console/views/app_create/app_build.py`, `console/views/app_manage.py`, `console/services/market_app_service.py`, `console/services/platform_plugin_service.py`, `console/services/source_component_service.py`, `console/services/package_component_service.py`
 - 测试路径: `console/tests/enterprise_first_deploy_service_test.py`, `console/tests/app_build_first_deploy_test.py::AppBuildFirstDeployTrackingTests.test_app_build_tracks_source_image_and_package_deploy_types`, `console/tests/market_app_first_deploy_test.py::MarketAppFirstDeployTrackingTests.test_install_app_reports_first_deploy_tracking_for_market_install`, `console/tests/compose_check_first_deploy_test.py`, `console/tests/compose_build_first_deploy_test.py::ComposeBuildFirstDeployTrackingTests.test_compose_build_tracks_first_deploy_and_binds_all_component_events`, `console/tests/auto_create_first_deploy_tracking_test.py`, `console/tests/platform_plugin_first_deploy_test.py::PlatformPluginFirstDeployTrackingTests.test_install_platform_plugin_reports_first_deploy_tracking`
 
+### 部署预检权限范围
+
+- Capability ID: `console.deploy-preflight.permission-scope`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `view_endpoint`
+- 业务入口: `console.views.app_create.deploy_preflight.DeployPreflightView`
+- 代码路径: `console/views/app_create/deploy_preflight.py`
+- 测试路径: `console/tests/deploy_preflight_service_test.py::DeployPreflightServiceTests`
+
 ### 拒绝既不是 IP 也不是域名的非法端点地址
 
 - Capability ID: `console.endpoint-address.reject-invalid-format`
@@ -4152,6 +4165,16 @@
 - 代码路径: `console/services/market_app_service.py`, `console/services/app_version_service.py`
 - 测试路径: `console/tests/market_app_service_test.py::MarketAppServiceVMGuardTests`
 
+### 从应用模板创建虚拟机时使用动态 Pod IP
+
+- Capability ID: `console.market-app.vm-template-dynamic-pod-ip`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.market_app.new_components.NewComponents._template_to_k8s_attributes`
+- 代码路径: `console/services/market_app/new_components.py`
+- 测试路径: `console/tests/market_app_update_components_test.py::MarketAppNewComponentsVMK8sAttrsTests.test_template_to_k8s_attributes_drops_fixed_pod_ip_for_vm`
+
 ### 将 401 应用市场错误转换为缺少 token 的服务异常
 
 - Capability ID: `console.market-client.auth-missing`
@@ -4751,6 +4774,16 @@
 - 业务入口: `console.services.mcp_query_service.call_tool[console.package-upload.local-path-schema]`
 - 代码路径: `console/services/mcp_query_service.py`
 - 测试路径: `console/tests/mcp_query_service_test.py::MCPQueryServiceToolVisibilityTests.test_upload_package_file_tool_schema_exposes_local_path_guidance`
+
+### RainSkills 工具发现隐藏服务端本地软件包工具
+
+- Capability ID: `console.package-upload.rainskills-tool-visibility`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `workflow`
+- 业务入口: `console.services.mcp_query_service.list_tools[console.package-upload.rainskills-tool-visibility]`
+- 代码路径: `console/services/mcp_query_service.py`
+- 测试路径: `console/tests/mcp_query_service_test.py::MCPQueryServiceToolVisibilityTests.test_rainskills_hides_server_local_package_tools_only_from_discovery`
 
 ### Package Upload Status
 
