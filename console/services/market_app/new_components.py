@@ -44,6 +44,7 @@ from ...enum.app import GovernanceModeEnum
 
 logger = logging.getLogger("default")
 baseService = BaseTenantService()
+VM_FIXED_POD_IP_ATTRIBUTES = {"vm_fixed_ip_enabled", "vm_fixed_ip"}
 
 
 class NewComponents(object):
@@ -221,6 +222,14 @@ class NewComponents(object):
                 return True
         return False
 
+    @staticmethod
+    def _is_vm_template_component(template: Any) -> bool:
+        return bool(template and any((
+            template.get("vm"),
+            template.get("extend_method") == "vm",
+            template.get("service_source") == "vm_run",
+        )))
+
     def _template_to_component(self, tenant_id: str, template: Any) -> TenantServiceInfo:
         component = TenantServiceInfo()
         component.tenant_id = tenant_id
@@ -239,8 +248,7 @@ class NewComponents(object):
         component.deploy_version = template.get("deploy_version")
         arch = template.get("arch", "amd64")
         component.arch = arch if arch else "amd64"
-        is_vm_component = template.get("vm") or template.get("extend_method") == "vm" or template.get(
-            "service_source") == "vm_run"
+        is_vm_component = self._is_vm_template_component(template)
         component.service_type = "vm" if is_vm_component else "application"
         component.service_source = AppConstants.MARKET
         component.create_status = "complete"
@@ -692,7 +700,10 @@ class NewComponents(object):
                                     component_tmpl: Any) -> List[ComponentK8sAttributes]:
         new_attributes = []
         seen = set()
+        is_vm_component = self._is_vm_template_component(component_tmpl)
         for attribute in attributes or []:
+            if is_vm_component and attribute.get("name") in VM_FIXED_POD_IP_ATTRIBUTES:
+                continue
             attr = ComponentK8sAttributes(
                 tenant_id=component.tenant_id,
                 component_id=component.service_id,
