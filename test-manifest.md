@@ -301,6 +301,7 @@
 | console.enterprise.region-update | 更新企业集群 | active | regression | console.services.mcp_query_service.call_tool[rainbond_update_region] | console/tests/mcp_query_service_test.py::MCPQueryServiceRegionMutationTests.test_update_region_executes_directly_with_merged_full_payload |
 | console.file-manage.region-request-timeout | 文件管理区域请求使用选定容器与更长超时 | active | regression | www.apiclient.regionapi.RegionInvokeApi.get_files | console/tests/file_manage_service_test.py::test_region_api_get_files_uses_container_name_and_longer_timeout |
 | console.file-manage.selected-container-forwarding | 列出文件管理内容时透传用户选择的容器名 | active | regression | console.services.group_service.GroupService.get_file_and_dir | console/tests/file_manage_service_test.py::test_get_file_and_dir_forwards_selected_container_name |
+| console.gateway.certificate-delete-idempotent | Delete missing gateway certificate idempotently | active | regression | DELETE /console/teams/{tenant}/certificates/{certificate_id} | console/tests/app_domain_certificate_test.py::TenantCertificateDeleteTests::test_delete_missing_certificate_is_idempotent |
 | console.gateway.component-env-upsert-schema | Gateway Component Env Upsert Schema | active | regression | console.services.mcp_query_service.call_tool[console.gateway.component-env-upsert-schema] | console/tests/mcp_query_service_test.py::MCPQueryServiceToolVisibilityTests.test_manage_component_envs_schema_exposes_single_item_upsert_guidance |
 | console.gateway.create-app-invalid-display-name | create_app 对非法应用名返回结构化错误详情 | active | regression | console.services.mcp_query_service.call_tool[console.gateway.create-app-invalid-display-name] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_create_app_returns_structured_details_for_illegal_app_name |
 | console.gateway.create-app-k8s-name-schema | Gateway Create App K8s Name Schema | active | regression | console.services.mcp_query_service.call_tool[console.gateway.create-app-k8s-name-schema] | console/tests/mcp_query_service_test.py::MCPQueryServiceToolVisibilityTests.test_create_app_tool_schema_exposes_k8s_app_constraints |
@@ -3545,6 +3546,16 @@
 - 业务入口: `console.services.group_service.GroupService.get_file_and_dir`
 - 代码路径: `console/services/group_service.py`, `console/views/app_overview.py`
 - 测试路径: `console/tests/file_manage_service_test.py::test_get_file_and_dir_forwards_selected_container_name`
+
+### Delete missing gateway certificate idempotently
+
+- Capability ID: `console.gateway.certificate-delete-idempotent`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `view_endpoint`
+- 业务入口: `DELETE /console/teams/{tenant}/certificates/{certificate_id}`
+- 代码路径: `console/views/app_config/app_domain.py`
+- 测试路径: `console/tests/app_domain_certificate_test.py::TenantCertificateDeleteTests::test_delete_missing_certificate_is_idempotent`
 
 ### Gateway Component Env Upsert Schema
 
