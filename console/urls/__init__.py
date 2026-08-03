@@ -138,6 +138,8 @@ from console.views.proxy import ProxyPassView, ProxySSEView
 from console.views.realtime_proxy import RegionRealtimeProxyView
 from console.views.sentry_proxy import SentryProxyView
 from console.views.mcp_query import MCPQueryHTTPView, MCPQueryMessageView, MCPQuerySSEView
+from console.views.mcp_device_authorization import (MCPDeviceAuthorizeView, MCPDeviceCodeView, MCPDeviceInspectView,
+                                                     MCPDeviceTokenView)
 from console.views.public_areas import (AllServiceInfo, GroupServiceView, ServiceEventsView, ServiceGroupView,
                                         TeamAppSortViewView, TeamOverView, TeamServiceOverViewView, TenantServiceEnvsView,
                                         GroupOperatorManagedView, AccessTokenView, TeamArchView, TeamAppNamesView)
@@ -204,6 +206,10 @@ urlpatterns = [
     re_path(r'^regions/(?P<region_name>[\w\-]+)/websocket/(?P<proxy_path>.*)$', RegionRealtimeProxyView.as_view()),
     re_path(r'^v2/proxy-pass/(.*?)', ProxyPassView.as_view()),
     re_path(r'^sse/(.*?)', ProxySSEView.as_view()),
+    re_path(r'^mcp/device/code$', MCPDeviceCodeView.as_view()),
+    re_path(r'^mcp/device/token$', MCPDeviceTokenView.as_view()),
+    re_path(r'^mcp/device/inspect$', MCPDeviceInspectView.as_view()),
+    re_path(r'^mcp/device/authorize$', MCPDeviceAuthorizeView.as_view()),
     re_path(r'^mcp/query$', MCPQueryHTTPView.as_view()),
     re_path(r'^mcp/query/$', MCPQueryHTTPView.as_view()),
     re_path(r'^mcp/rainskills/codex/query$',
