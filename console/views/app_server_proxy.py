@@ -151,7 +151,10 @@ class AppServerProxyView(View):
             headers['X-Real-IP'] = remote_addr
 
         url = f"{self.target_base_url}/app-server/markets/{market_id}/apps/{app_key_id}/view"
-        threading.Thread(target=self.post_app_view, args=(url, headers), daemon=True).start()
+        try:
+            threading.Thread(target=self.post_app_view, args=(url, headers), daemon=True).start()
+        except Exception as e:
+            logger.warning("report app view not started url=%s error=%s", url, e)
 
     @staticmethod
     def parse_app_identity(response: Any) -> Optional[Tuple[str, str]]:

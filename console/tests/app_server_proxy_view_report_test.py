@@ -103,6 +103,12 @@ class AppServerProxyViewReportTests(TestCase):
 
         thread.assert_not_called()
 
+    def test_thread_start_failure_does_not_break_the_detail_response(self):
+        request = make_request("/app-server/marketui/apps/1723/detail")
+
+        with mock.patch("console.views.app_server_proxy.threading.Thread", side_effect=RuntimeError("no threads")):
+            self.view.report_app_view(request, make_response())
+
     def test_store_failure_is_swallowed(self):
         with mock.patch("console.views.app_server_proxy.requests.post", side_effect=Exception("boom")):
             self.view.post_app_view("https://hub.grapps.cn/app-server/markets/m1/apps/a1/view", {})
