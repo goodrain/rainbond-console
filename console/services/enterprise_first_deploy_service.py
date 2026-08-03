@@ -13,6 +13,7 @@ import requests
 
 from console.models.main import ConsoleSysConfig
 from console.repositories.first_deploy_repo import enterprise_first_deploy_repo
+from console.utils.offline import is_offline_mode
 from django.db import transaction
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import TenantEnterprise
@@ -132,7 +133,7 @@ class EnterpriseFirstDeployService(object):
         self._memory_payloads = {}  # type: Dict[str, dict]
         self._lock = threading.Lock()
         self.report_async = True
-        if os.getenv("DISABLE_FIRST_DEPLOY_SWEEPER") != "1":
+        if not is_offline_mode() and os.getenv("DISABLE_FIRST_DEPLOY_SWEEPER") != "1":
             sweeper = threading.Thread(target=self._resume_pending_trackers_loop)
             sweeper.daemon = True
             sweeper.start()
@@ -150,6 +151,8 @@ class EnterpriseFirstDeployService(object):
                        trigger: str = "",
                        app_context: Optional[dict] = None,
                        workload_context: Optional[dict] = None) -> Optional[dict]:
+        if is_offline_mode():
+            return None
         existing_record = enterprise_first_deploy_repo.get_by_enterprise_id(enterprise_id)
         if existing_record:
             existing = enterprise_first_deploy_repo.load_payload(existing_record)
@@ -215,6 +218,8 @@ class EnterpriseFirstDeployService(object):
                                       trigger: str = "",
                                       app_context: Optional[dict] = None,
                                       workload_context: Optional[dict] = None) -> Optional[dict]:
+        if is_offline_mode():
+            return None
         payload = self._build_payload(
             enterprise_id=enterprise_id,
             tenant_name=tenant_name,
@@ -258,6 +263,8 @@ class EnterpriseFirstDeployService(object):
                               trigger: str = "",
                               app_context: Optional[dict] = None,
                               workload_context: Optional[dict] = None) -> Optional[dict]:
+        if is_offline_mode():
+            return None
         existing_record = enterprise_first_deploy_repo.get_by_enterprise_id(enterprise_id)
         if existing_record:
             existing = enterprise_first_deploy_repo.load_payload(existing_record)
@@ -369,6 +376,8 @@ class EnterpriseFirstDeployService(object):
             app_context: Optional[dict] = None,
             source_context: Optional[dict] = None,
             async_report: bool = False) -> None:
+        if is_offline_mode():
+            return
         existing_record = enterprise_first_deploy_repo.get_by_enterprise_id(enterprise_id)
         if existing_record:
             existing = enterprise_first_deploy_repo.load_payload(existing_record)
@@ -1340,6 +1349,9 @@ class EnterpriseFirstDeployService(object):
                           key: str = "") -> None:
         if payload.get("status") not in self.FINAL_STATUSES or payload.get("reported"):
             return
+        if is_offline_mode():
+            self._finalize_report(record, payload, key=key)
+            return
         report_key = key or getattr(record, "key", "")
         if async_report and self.report_async and report_key:
             self._start_report_thread(report_key)
@@ -1347,15 +1359,18 @@ class EnterpriseFirstDeployService(object):
 
         report_payload = self._build_report_payload(payload)
         if self._post_report_payload(report_payload):
-            payload["reported"] = True
-            payload["reported_at"] = self._now()
-            if record:
-                if payload.get("report_type") == self.REPORT_TYPE_DEPLOY_ATTEMPT:
-                    enterprise_first_deploy_repo.delete_payload(record)
-                else:
-                    enterprise_first_deploy_repo.update_payload(record, payload)
-            elif key:
-                self._forget_memory_payload(key)
+            self._finalize_report(record, payload, key=key)
+
+    def _finalize_report(self, record: Optional[ConsoleSysConfig], payload: dict, key: str = "") -> None:
+        payload["reported"] = True
+        payload["reported_at"] = self._now()
+        if record:
+            if payload.get("report_type") == self.REPORT_TYPE_DEPLOY_ATTEMPT:
+                enterprise_first_deploy_repo.delete_payload(record)
+            else:
+                enterprise_first_deploy_repo.update_payload(record, payload)
+        elif key:
+            self._forget_memory_payload(key)
 
     def _build_report_payload(self, payload: dict) -> dict:
         report_payload = {
@@ -1402,6 +1417,8 @@ class EnterpriseFirstDeployService(object):
         return uuid.uuid5(uuid.NAMESPACE_URL, "rainbond-deploy-diagnostic:{}".format(seed)).hex
 
     def _post_report_payload(self, report_payload: dict) -> bool:
+        if is_offline_mode():
+            return True
         for _ in range(3):
             try:
                 response = requests.post(self.REPORT_URL, json=report_payload, timeout=5)

@@ -5123,6 +5123,53 @@
       "status": "active"
     },
     {
+      "id": "console.deploy-diagnostics.offline-mode",
+      "title": "Disable deployment diagnostics reporting in offline mode",
+      "title_zh": "离线模式禁用部署诊断上报",
+      "interface_type": "workflow",
+      "interface": "console.services.enterprise_first_deploy_service.EnterpriseFirstDeployService",
+      "code_paths": [
+        "console/services/enterprise_first_deploy_service.py",
+        "console/utils/offline.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/enterprise_first_deploy_service_test.py",
+          "selector": "EnterpriseFirstDeployServiceTests.test_offline_mode_does_not_start_report_sweeper"
+        },
+        {
+          "path": "console/tests/enterprise_first_deploy_service_test.py",
+          "selector": "EnterpriseFirstDeployServiceTests.test_online_mode_starts_report_sweeper"
+        },
+        {
+          "path": "console/tests/enterprise_first_deploy_service_test.py",
+          "selector": "EnterpriseFirstDeployServiceTests.test_offline_mode_skips_report_request"
+        },
+        {
+          "path": "console/tests/enterprise_first_deploy_service_test.py",
+          "selector": "EnterpriseFirstDeployServiceTests.test_offline_mode_does_not_create_deploy_tracking"
+        },
+        {
+          "path": "console/tests/enterprise_first_deploy_service_test.py",
+          "selector": "EnterpriseFirstDeployServiceTests.test_offline_mode_does_not_persist_source_check_failure"
+        },
+        {
+          "path": "console/tests/enterprise_first_deploy_service_test.py",
+          "selector": "EnterpriseFirstDeployServiceTests.test_offline_mode_marks_first_deploy_report_handled_without_thread"
+        },
+        {
+          "path": "console/tests/enterprise_first_deploy_service_test.py",
+          "selector": "EnterpriseFirstDeployServiceTests.test_offline_mode_removes_unreported_deploy_attempt"
+        },
+        {
+          "path": "console/tests/enterprise_first_deploy_service_test.py",
+          "selector": "EnterpriseFirstDeployServiceTests.test_offline_mode_forgets_unpersisted_report"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.deploy-diagnostics.source-check",
       "title": "Collect source check failure diagnostics",
       "title_zh": "源码构建源检测失败诊断埋点",
