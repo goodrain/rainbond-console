@@ -184,6 +184,10 @@ class MCPJSONWebTokenAuthentication(JSONWebTokenAuthentication):
                 return token.strip()
         return None
 
+    def validate_token_payload(self, payload: dict) -> None:
+        if not jwt_issuer.is_valid_mcp_token_payload(payload, allow_legacy=True):
+            raise AuthenticationInfoHasExpiredError("MCP token scope is invalid")
+
 
 class MCPJSONWebTokenAuthenticationSafe(MCPJSONWebTokenAuthentication):
     """
