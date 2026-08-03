@@ -133,6 +133,7 @@ def _should_forward_raw_multipart(proxy_path):
     normalized_path = normalize_proxy_path(proxy_path)
     return (
         normalized_path == "/v2/file-operate/upload"
+        or normalized_path.startswith("/app/upload/")
         or normalized_path.startswith("/package_build/component/events/")
     )
 

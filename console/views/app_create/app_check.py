@@ -15,6 +15,7 @@ from console.services.app_check_service import (app_check_service, resolve_lang_
 from console.services.enterprise_first_deploy_service import enterprise_first_deploy_service
 from console.services.source_build_state_service import source_build_state_service
 from console.utils.oauth.oauth_types import support_oauth_type
+from console.utils.source_build_state import is_java_maven_language
 from console.views.app_config.base import AppBaseView
 from console.utils.cache_decorators import never_cache
 from rest_framework.request import Request
@@ -92,7 +93,8 @@ class AppCheck(AppBaseView):
         # 如果已创建完成
         if self.service.create_status == "complete":
             service_info = data.get("service_info")
-            if service_info is not None and len(service_info) > 1 and service_info[0].get("language") == "Java-maven":
+            if service_info is not None and len(service_info) > 1 and is_java_maven_language(
+                    service_info[0].get("language")):
                 pass
             else:
                 app_check_service.update_service_check_info(self.tenant, self.service, data)

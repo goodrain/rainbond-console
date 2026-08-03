@@ -1,8 +1,8 @@
 from unittest import TestCase
 
-from console.utils.source_build_state import (build_compile_env_payload, normalize_detected_languages,
-                                              pick_preferred_language, read_compile_env_state,
-                                              restore_language_snapshot)
+from console.utils.source_build_state import (build_compile_env_payload, is_java_maven_language,
+                                              normalize_detected_languages, pick_preferred_language,
+                                              read_compile_env_state, restore_language_snapshot)
 
 
 class SourceBuildStateTests(TestCase):
@@ -16,6 +16,12 @@ class SourceBuildStateTests(TestCase):
     def test_pick_preferred_language_prefers_non_dockerfile_candidate(self):
         self.assertEqual(pick_preferred_language("dockerfile,Java-maven"), "Java-maven")
         self.assertEqual(pick_preferred_language("dockerfile"), "dockerfile")
+
+    def test_is_java_maven_language_supports_composite_detection(self):
+        self.assertTrue(is_java_maven_language("Java-maven"))
+        self.assertTrue(is_java_maven_language("dockerfile,Java-maven"))
+        self.assertFalse(is_java_maven_language("dockerfile"))
+        self.assertFalse(is_java_maven_language("dockerfile,Node.js"))
 
     def test_restore_language_snapshot_prefers_user_saved_and_backfills_detected_defaults(self):
         state = {

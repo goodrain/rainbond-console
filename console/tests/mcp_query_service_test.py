@@ -15,6 +15,7 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
 django.setup()
 
 from console.exception.main import ServiceHandleException
+from console.services.deployment_invocation import deployment_invocation_context
 from console.services.mcp_query_service import mcp_query_service
 from console.utils.source_build_state import build_compile_env_payload, read_compile_env_state
 
@@ -25,6 +26,31 @@ class Obj(object):
 
 
 class MCPQueryServiceToolVisibilityTests(SimpleTestCase):
+
+    # capability_id: console.package-upload.rainskills-tool-visibility
+    def test_rainskills_hides_server_local_package_tools_only_from_discovery(self):
+        hidden_tools = {
+            "rainbond_upload_package_file",
+            "rainbond_create_component_from_local_package",
+        }
+        generic_tools = {tool["name"]: tool for tool in mcp_query_service.list_tools()}
+
+        self.assertTrue(hidden_tools.issubset(generic_tools))
+        init_description = generic_tools["rainbond_init_package_upload"]["description"]
+        self.assertIn("upload_request", init_description)
+        self.assertIn("multipart", init_description)
+        self.assertIn("rainbond_get_package_upload_status", init_description)
+        self.assertIn("rainbond_create_component_from_package", init_description)
+
+        for client in ("codex", "claude_code"):
+            with deployment_invocation_context("rainskills", client):
+                rainskills_tool_names = {tool["name"] for tool in mcp_query_service.list_tools()}
+
+            self.assertTrue(hidden_tools.isdisjoint(rainskills_tool_names))
+            self.assertIn("rainbond_init_package_upload", rainskills_tool_names)
+            self.assertIn("rainbond_get_package_upload_status", rainskills_tool_names)
+            self.assertIn("rainbond_delete_package_upload", rainskills_tool_names)
+            self.assertIn("rainbond_create_component_from_package", rainskills_tool_names)
 
     # capability_id: console.tool-visibility.enterprise-admin
     def test_list_tools_for_enterprise_admin_includes_region_and_enterprise_tools(self):
@@ -6131,17 +6157,18 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
         mock_upload_package.return_value = {"event_id": "evt-upload-1", "uploaded_packages": ["demo.zip"], "uploaded": True}
 
-        result = mcp_query_service.call_tool(
-            self.user,
-            "rainbond_upload_package_file",
-            {
-                "team_name": "demo-team",
-                "region_name": "rainbond",
-                "event_id": "evt-upload-1",
-                "local_path": "/tmp/demo",
-                "archive_name": "demo-package",
-            },
-        )
+        with deployment_invocation_context("rainskills", "codex"):
+            result = mcp_query_service.call_tool(
+                self.user,
+                "rainbond_upload_package_file",
+                {
+                    "team_name": "demo-team",
+                    "region_name": "rainbond",
+                    "event_id": "evt-upload-1",
+                    "local_path": "/tmp/demo",
+                    "archive_name": "demo-package",
+                },
+            )
 
         self.assertTrue(result["uploaded"])
         mock_upload_package.assert_called_once_with("demo-team", "rainbond", "evt-upload-1", "/tmp/demo", "demo-package")
