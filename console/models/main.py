@@ -1381,3 +1381,52 @@ class GrayReleaseRecord(BaseModel):
     # 时间
     create_time = models.DateTimeField(auto_now_add=True, help_text="创建时间")
     update_time = models.DateTimeField(auto_now=True, help_text="更新时间")
+
+
+class MCPDeviceAuthorization(models.Model):
+    STATUS_PENDING = "pending"
+    STATUS_APPROVED = "approved"
+    STATUS_DENIED = "denied"
+    STATUS_CONSUMED = "consumed"
+    STATUS_EXPIRED = "expired"
+    STATUS_CHOICES = (
+        (STATUS_PENDING, "pending"),
+        (STATUS_APPROVED, "approved"),
+        (STATUS_DENIED, "denied"),
+        (STATUS_CONSUMED, "consumed"),
+        (STATUS_EXPIRED, "expired"),
+    )
+
+    device_code_hash = models.CharField(max_length=64, unique=True)
+    user_code_hash = models.CharField(max_length=64, unique=True)
+    client_id = models.CharField(max_length=64)
+    client_name = models.CharField(max_length=128)
+    scope = models.CharField(max_length=64, default="mcp")
+    status = models.CharField(max_length=16, choices=STATUS_CHOICES, default=STATUS_PENDING)
+    approving_user_id = models.IntegerField(null=True, blank=True)
+    enterprise_id = models.CharField(max_length=64, default="", blank=True)
+    polling_interval = models.PositiveSmallIntegerField(default=5)
+    failed_inspection_attempts = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField(db_index=True)
+    approved_at = models.DateTimeField(null=True, blank=True)
+    denied_at = models.DateTimeField(null=True, blank=True)
+    consumed_at = models.DateTimeField(null=True, blank=True)
+    last_polled_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = "mcp_device_authorization"
+        indexes = (
+            models.Index(fields=("status", "expires_at"), name="mcp_device_status_exp_idx"),
+        )
+
+
+class MCPDeviceAuthorizationRateLimit(models.Model):
+    bucket_hash = models.CharField(max_length=64, unique=True)
+    count = models.PositiveIntegerField(default=0)
+    window_started_at = models.DateTimeField()
+    expires_at = models.DateTimeField(db_index=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "mcp_device_authorization_rate_limit"
