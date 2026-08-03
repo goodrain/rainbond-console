@@ -28,6 +28,7 @@ class AppServerProxyViewReportTests(TestCase):
     def setUp(self):
         self.view = AppServerProxyView()
 
+    # capability_id: console.market.report-app-view
     def test_app_detail_request_reports_view_to_store(self):
         request = make_request("/app-server/marketui/apps/1723/detail",
                                meta={

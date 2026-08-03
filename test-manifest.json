@@ -3637,6 +3637,42 @@
       "status": "active"
     },
     {
+      "id": "console.component-type.change-log-direction",
+      "title": "Component type change records old type before and new type after",
+      "title_zh": "改组件类型的操作日志按变更前后正确记录",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.app_manage.ChangeServiceTypeView.put",
+      "code_paths": [
+        "console/views/app_manage.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/vm_manage_view_test.py",
+          "selector": "ChangeServiceTypeViewTests.test_operation_log_records_old_type_before_and_new_type_after"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.component-type.change-once",
+      "title": "Component type change is applied once",
+      "title_zh": "改组件类型只下发一次",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.app_manage.ChangeServiceTypeView.put",
+      "code_paths": [
+        "console/views/app_manage.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/vm_manage_view_test.py",
+          "selector": "ChangeServiceTypeViewTests.test_change_service_type_is_applied_once"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.component-type.daemonset",
       "title": "DaemonSet component type support",
       "title_zh": "DaemonSet 组件类型支持",
@@ -3845,6 +3881,29 @@
         {
           "path": "console/tests/mcp_query_service_test.py",
           "selector": "MCPQueryServiceApplicationToolTests.test_change_component_image_updates_service_fields"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.component.change-type",
+      "title": "Change component deploy type",
+      "title_zh": "修改组件部署类型",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[rainbond_change_component_type]",
+      "code_paths": [
+        "console/services/mcp_query_service.py",
+        "console/services/app_actions/app_manage.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_change_component_type_test.py",
+          "selector": "MCPQueryChangeComponentTypeTests.test_change_component_type_to_state_multiple"
+        },
+        {
+          "path": "console/tests/mcp_query_change_component_type_test.py",
+          "selector": "MCPQueryChangeComponentTypeTests.test_unsupported_component_type_is_rejected"
         }
       ],
       "test_type": "regression",
@@ -7126,6 +7185,28 @@
         {
           "path": "console/tests/mcp_query_service_test.py",
           "selector": "MCPQueryServiceApplicationToolTests.test_query_local_app_models_returns_paginated_templates"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.market.report-app-view",
+      "title": "Report in-console app view to the store",
+      "title_zh": "上报控制台内应用条目浏览量",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.app_server_proxy.AppServerProxyView.report_app_view",
+      "code_paths": [
+        "console/views/app_server_proxy.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_server_proxy_view_report_test.py",
+          "selector": "AppServerProxyViewReportTests.test_app_detail_request_reports_view_to_store"
+        },
+        {
+          "path": "console/tests/app_server_proxy_view_report_test.py",
+          "selector": "AppServerProxyViewReportTests.test_non_detail_request_does_not_report"
         }
       ],
       "test_type": "regression",
