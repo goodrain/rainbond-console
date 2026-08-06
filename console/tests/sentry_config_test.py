@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from unittest import mock
+
 from goodrain_web import sentry_config
 
 
@@ -75,13 +77,19 @@ def test_before_send_filters_sensitive_request_data():
         "message": "authorization=Bearer abc token=def name=app",
     }
 
-    sanitized = sentry_config.before_send(event, {})
+    with mock.patch("goodrain_web.sentry_config.is_external_telemetry_enabled", return_value=True):
+        sanitized = sentry_config.before_send(event, {})
 
     assert sanitized["request"] == {
         "method": "GET",
         "url": "/console/teams/:id/apps/:id/overview?[Filtered]",
     }
     assert sanitized["message"] == "authorization=[Filtered] token=[Filtered] name=app"
+
+
+def test_before_send_drops_events_when_platform_telemetry_is_disabled():
+    with mock.patch("goodrain_web.sentry_config.is_external_telemetry_enabled", return_value=False):
+        assert sentry_config.before_send({"message": "error"}, {}) is None
 
 
 def test_get_path_pattern_removes_dynamic_segments_and_query():

@@ -8,7 +8,9 @@ from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 
-from console.utils.offline import is_external_telemetry_disabled
+from console.services.telemetry_switch import (
+    get_external_telemetry_enabled as is_external_telemetry_enabled,
+)
 
 
 DEFAULT_POSTHOG_API_PROXY_TARGET = "https://posthog.goodrain.com"
@@ -143,7 +145,7 @@ class PostHogProxyView(View):
         return self._proxy(request, path)
 
     def _proxy(self, request: HttpRequest, path: str) -> HttpResponse:
-        if is_external_telemetry_disabled():
+        if not is_external_telemetry_enabled():
             return _add_cors_headers(HttpResponse(status=200), request)
 
         try:

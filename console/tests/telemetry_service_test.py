@@ -14,6 +14,10 @@ from console.services.telemetry import (
     hash_identifier,
     sanitize_properties,
 )
+from console.services.telemetry_switch import (
+    EXTERNAL_TELEMETRY_ENABLED_KEY,
+    invalidate_external_telemetry_cache,
+)
 
 
 class FakeTransport(object):
@@ -31,7 +35,30 @@ class FakeTransport(object):
         return type("Response", (), {"status_code": 200})()
 
 
+class ImmediateDispatcher(object):
+    def submit(self, callback):
+        return callback()
+
+
+class DeferredDispatcher(object):
+    def __init__(self):
+        self.callback = None
+
+    def submit(self, callback):
+        self.callback = callback
+        return True
+
+
 class RainbondTelemetryServiceTests(TestCase):
+    def setUp(self):
+        ConsoleSysConfig.objects.filter(
+            key=EXTERNAL_TELEMETRY_ENABLED_KEY,
+        ).delete()
+        invalidate_external_telemetry_cache()
+
+    def tearDown(self):
+        invalidate_external_telemetry_cache()
+
     def test_get_or_create_instance_id_is_stable_and_anonymous(self):
         service = RainbondTelemetryService(env={"RAINBOND_POSTHOG_ENABLED": "true"})
 
@@ -66,6 +93,7 @@ class RainbondTelemetryServiceTests(TestCase):
             },
             transport=transport,
             now=lambda: timezone.datetime(2026, 6, 14, 1, 2, 3, tzinfo=datetime.timezone.utc),
+            dispatcher=ImmediateDispatcher(),
         )
 
         sent = service.capture("rainbond_component_created", {
@@ -90,7 +118,11 @@ class RainbondTelemetryServiceTests(TestCase):
                 raise RuntimeError("network down")
 
         disabled = RainbondTelemetryService(env={"RAINBOND_TELEMETRY_DISABLED": "true"}, transport=BrokenTransport())
-        enabled = RainbondTelemetryService(env={"RAINBOND_POSTHOG_ENABLED": "true"}, transport=BrokenTransport())
+        enabled = RainbondTelemetryService(
+            env={"RAINBOND_POSTHOG_ENABLED": "true"},
+            transport=BrokenTransport(),
+            dispatcher=ImmediateDispatcher(),
+        )
 
         self.assertFalse(disabled.capture("rainbond_app_created", {}))
         self.assertFalse(enabled.capture("rainbond_app_created", {}))
@@ -105,12 +137,30 @@ class RainbondTelemetryServiceTests(TestCase):
         self.assertFalse(service.capture("rainbond_app_created", {}))
         self.assertEqual(transport.requests, [])
 
+    def test_capture_is_disabled_by_platform_setting_without_transport_request(self):
+        ConsoleSysConfig.objects.create(
+            key=EXTERNAL_TELEMETRY_ENABLED_KEY,
+            type="boolean",
+            value="",
+            enable=False,
+            enterprise_id="",
+        )
+        transport = FakeTransport()
+        service = RainbondTelemetryService(
+            env={"RAINBOND_POSTHOG_ENABLED": "true"},
+            transport=transport,
+        )
+
+        self.assertFalse(service.capture("rainbond_app_created", {}))
+        self.assertEqual(transport.requests, [])
+
     def test_track_registration_and_heartbeat_are_idempotent(self):
         transport = FakeTransport()
         service = RainbondTelemetryService(
             env={"RAINBOND_POSTHOG_ENABLED": "true"},
             transport=transport,
             now=lambda: timezone.datetime(2026, 6, 14, 1, 2, 3, tzinfo=datetime.timezone.utc),
+            dispatcher=ImmediateDispatcher(),
         )
 
         self.assertTrue(service.track_instance_registered())
@@ -122,6 +172,20 @@ class RainbondTelemetryServiceTests(TestCase):
         self.assertEqual(events, ["rainbond_instance_registered", "rainbond_instance_heartbeat"])
         self.assertTrue(ConsoleSysConfig.objects.filter(key=REGISTERED_KEY).exists())
         self.assertTrue(ConsoleSysConfig.objects.filter(key=HEARTBEAT_KEY_PREFIX + "20260614").exists())
+
+    def test_capture_queues_network_send_after_business_request(self):
+        transport = FakeTransport()
+        dispatcher = DeferredDispatcher()
+        service = RainbondTelemetryService(
+            env={"RAINBOND_POSTHOG_ENABLED": "true"},
+            transport=transport,
+            dispatcher=dispatcher,
+        )
+
+        self.assertTrue(service.capture("rainbond_component_created", {}))
+        self.assertEqual(transport.requests, [])
+        dispatcher.callback()
+        self.assertEqual(len(transport.requests), 1)
 
     def test_hash_identifier_is_instance_scoped(self):
         self.assertNotEqual(hash_identifier("instance-a", 1), hash_identifier("instance-b", 1))

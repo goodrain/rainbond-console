@@ -90,6 +90,9 @@ class SentryProxyViewTests(SimpleTestCase):
             {"RAINBOND_SENTRY_PROXY_TARGET": "https://sentry.goodrain.com"},
             clear=True,
         ), mock.patch(
+            "console.views.sentry_proxy.is_external_telemetry_enabled",
+            return_value=True,
+        ), mock.patch(
             "console.views.sentry_proxy._send_upstream_request",
             return_value=upstream_response,
         ) as request_mock:
@@ -149,6 +152,25 @@ class SentryProxyViewTests(SimpleTestCase):
             "console.views.sentry_proxy._send_upstream_request",
         ) as request_mock:
             response = self.view(request, path="invalid-path")
+
+        self.assertEqual(response.status_code, 204)
+        target_mock.assert_not_called()
+        request_mock.assert_not_called()
+
+    def test_platform_setting_disabled_returns_no_content_without_upstream_work(self):
+        request = self.factory.post(
+            "/console/sentry/api/2/envelope/",
+            data=b'{"event_id":"abc"}',
+            content_type="application/x-sentry-envelope",
+        )
+
+        with mock.patch.dict(os.environ, {}, clear=True), mock.patch(
+            "console.views.sentry_proxy.is_external_telemetry_enabled",
+            return_value=False,
+        ), mock.patch("console.views.sentry_proxy._build_target_url") as target_mock, mock.patch(
+            "console.views.sentry_proxy._send_upstream_request",
+        ) as request_mock:
+            response = self.view(request, path="api/2/envelope/")
 
         self.assertEqual(response.status_code, 204)
         target_mock.assert_not_called()
