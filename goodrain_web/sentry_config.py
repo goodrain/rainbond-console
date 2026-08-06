@@ -8,6 +8,9 @@ try:
 except ImportError:  # pragma: no cover - Python 2 compatibility guard
     from urlparse import urlparse
 
+from console.services.telemetry_switch import (
+    get_external_telemetry_enabled as is_external_telemetry_enabled,
+)
 from console.utils.offline import is_external_telemetry_disabled, is_offline_mode
 
 
@@ -310,6 +313,8 @@ def get_path_pattern(value):
 
 
 def before_send(event, hint):
+    if not is_external_telemetry_enabled():
+        return None
     event.pop("user", None)
     request = event.get("request")
     if request:
