@@ -136,6 +136,24 @@ class SentryProxyViewTests(SimpleTestCase):
         target_mock.assert_not_called()
         request_mock.assert_not_called()
 
+    def test_telemetry_disabled_returns_no_content_without_upstream_work(self):
+        request = self.factory.post(
+            "/console/sentry/invalid-path",
+            data=b'{"event_id":"abc"}',
+            content_type="application/x-sentry-envelope",
+        )
+
+        with mock.patch.dict(os.environ, {"RAINBOND_TELEMETRY_DISABLED": "true"}, clear=True), mock.patch(
+            "console.views.sentry_proxy._build_target_url",
+        ) as target_mock, mock.patch(
+            "console.views.sentry_proxy._send_upstream_request",
+        ) as request_mock:
+            response = self.view(request, path="invalid-path")
+
+        self.assertEqual(response.status_code, 204)
+        target_mock.assert_not_called()
+        request_mock.assert_not_called()
+
     def test_options_returns_cors_preflight_without_upstream_call(self):
         request = self.factory.options(
             "/console/sentry/api/2/envelope/",

@@ -147,3 +147,21 @@ class PostHogProxyViewTests(SimpleTestCase):
 
         self.assertEqual(response.status_code, 200)
         request_mock.assert_not_called()
+
+    def test_telemetry_disabled_returns_no_content_without_upstream_call(self):
+        request = self.factory.post(
+            "/console/posthog/e/",
+            data=b'{"event":"rainbond_ui_click"}',
+            content_type="application/json",
+        )
+
+        with mock.patch.dict(os.environ, {"RAINBOND_TELEMETRY_DISABLED": "true"}, clear=True), mock.patch(
+            "console.views.posthog_proxy._build_target_url",
+        ) as target_mock, mock.patch(
+            "console.views.posthog_proxy._send_upstream_request",
+        ) as request_mock:
+            response = self.view(request, path="e/")
+
+        self.assertEqual(response.status_code, 200)
+        target_mock.assert_not_called()
+        request_mock.assert_not_called()

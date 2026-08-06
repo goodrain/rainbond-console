@@ -9,7 +9,7 @@ import uuid
 from django.utils import timezone
 
 from console.models.main import ConsoleSysConfig
-from console.utils.offline import is_offline_mode
+from console.utils.offline import is_external_telemetry_disabled
 
 
 logger = logging.getLogger("default")
@@ -90,7 +90,7 @@ class RainbondTelemetryService(object):
             return NullTransport()
 
     def is_enabled(self):
-        if is_offline_mode(self.env) or str_to_bool(self.env.get("RAINBOND_TELEMETRY_DISABLED")):
+        if is_external_telemetry_disabled(self.env):
             return False
         if str_to_bool(self.env.get("RAINBOND_POSTHOG_DISABLED")) or str_to_bool(self.env.get("POSTHOG_DISABLED")):
             return False
