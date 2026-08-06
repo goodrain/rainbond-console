@@ -7,6 +7,7 @@ sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "rainskills_device_test_settings")
 
 import django  # noqa: E402
+from django.conf import settings  # noqa: E402
 from django.test import TestCase, override_settings  # noqa: E402
 from rest_framework.test import APIRequestFactory  # noqa: E402
 
@@ -25,7 +26,6 @@ from www.models.main import Users  # noqa: E402
 
 
 @override_settings(
-    RAINBOND_MCP_DEVICE_FLOW_ENABLED=True,
     RAINBOND_MCP_DEVICE_PUBLIC_ORIGIN="https://rainbond.example.com",
     RAINBOND_MCP_TOKEN_LIFETIME_DAYS=365,
 )
@@ -63,6 +63,9 @@ class MCPDeviceAuthorizationViewTests(TestCase):
         }
         headers.update(extra)
         return headers
+
+    def test_feature_is_enabled_by_default(self):
+        self.assertTrue(settings.RAINBOND_MCP_DEVICE_FLOW_ENABLED)
 
     def test_code_contract_and_cache_headers(self):
         response = self.post_form(MCPDeviceCodeView, "client_id=rainskills&scope=mcp&ignored=value")
