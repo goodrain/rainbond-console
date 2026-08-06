@@ -1,0 +1,96 @@
+meta:
+  name: external-telemetry-switch
+  version: "1.0"
+  repo: cross-repo
+  branch: v6.9.7-dev
+  design_doc: docs/plans/2026-08-06-external-telemetry-switch-design.md
+
+sprints:
+  - id: sprint-1
+    name: Console runtime telemetry control
+    commits:
+      - id: commit-1
+        message: "feat: add external telemetry platform switch"
+        tasks: [task-1.1, task-1.2]
+    tasks:
+      - id: task-1.1
+        name: Add global platform setting
+        status: pending
+        files:
+          create:
+            - path: console/services/telemetry_switch.py
+          modify:
+            - path: console/views/platform_settings.py
+              lines: "1-90"
+            - path: console/tests/platform_settings_test.py
+              lines: "1-110"
+        steps:
+          - action: write-test
+            description: Add failing GET and PUT tests for enable_external_telemetry default and update behavior.
+            run: "venv/bin/python3 -m pytest -q console/tests/platform_settings_test.py"
+            expect: FAIL
+          - action: implement
+            description: Store EXTERNAL_TELEMETRY_ENABLED in ConsoleSysConfig, default true, and invalidate cache after updates.
+            run: "venv/bin/python3 -m pytest -q console/tests/platform_settings_test.py"
+            expect: PASS
+        acceptance:
+          - cmd: "venv/bin/python3 -m pytest -q console/tests/platform_settings_test.py"
+            expect: PASS
+      - id: task-1.2
+        name: Apply switch to all Console telemetry exits
+        status: pending
+        files:
+          modify:
+            - path: goodrain_web/sentry_config.py
+              lines: "325-350"
+            - path: console/services/telemetry.py
+              lines: "70-210"
+            - path: console/views/sentry_proxy.py
+              lines: "165-180"
+            - path: console/views/posthog_proxy.py
+              lines: "135-150"
+            - path: console/tests/sentry_config_test.py
+            - path: console/tests/telemetry_service_test.py
+            - path: console/tests/sentry_proxy_test.py
+            - path: console/tests/posthog_proxy_test.py
+        steps:
+          - action: write-test
+            description: Add failing runtime-disable and non-blocking PostHog tests.
+            run: "venv/bin/python3 -m pytest -q console/tests/sentry_config_test.py console/tests/telemetry_service_test.py console/tests/sentry_proxy_test.py console/tests/posthog_proxy_test.py"
+            expect: FAIL
+          - action: implement
+            description: Drop Sentry events, stop proxies, and enqueue PostHog events without blocking business requests.
+            run: "venv/bin/python3 -m pytest -q console/tests/sentry_config_test.py console/tests/telemetry_service_test.py console/tests/sentry_proxy_test.py console/tests/posthog_proxy_test.py"
+            expect: PASS
+        acceptance:
+          - cmd: "venv/bin/python3 -m pytest -q console/tests/platform_settings_test.py console/tests/sentry_config_test.py console/tests/telemetry_service_test.py console/tests/sentry_proxy_test.py console/tests/posthog_proxy_test.py"
+            expect: PASS
+
+  - id: sprint-2
+    name: Rainbond UI platform setting
+    commits:
+      - id: commit-2
+        message: "feat: add external telemetry setting"
+        tasks: [task-2.1]
+    tasks:
+      - id: task-2.1
+        name: Add the platform management switch
+        status: pending
+        files:
+          modify:
+            - path: src/services/platformSettings.js
+              lines: "1-30"
+            - path: src/models/global.js
+              lines: "690-735"
+            - path: src/pages/EnterpriseSetting/infrastructure.js
+              lines: "1-650"
+            - path: src/locales/zh-CN/enterprise.js
+            - path: src/locales/en-US/enterprise.js
+        steps:
+          - action: implement
+            description: Pass enable_external_telemetry through the service and DVA model, render the default-on switch, and add i18n labels.
+            run: "yarn build"
+            expect: PASS
+        acceptance:
+          - cmd: "yarn build"
+            expect: PASS
