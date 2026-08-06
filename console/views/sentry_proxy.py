@@ -9,7 +9,7 @@ from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 
-from console.utils.offline import is_offline_mode
+from console.utils.offline import is_external_telemetry_disabled
 
 
 DEFAULT_SENTRY_PROXY_TARGET = "https://sentry.goodrain.com"
@@ -171,7 +171,7 @@ class SentryProxyView(View):
         return _add_cors_headers(HttpResponse(status=204), request)
 
     def post(self, request: Any, path: str = "") -> HttpResponse:
-        if is_offline_mode():
+        if is_external_telemetry_disabled():
             return _add_cors_headers(HttpResponse(status=204), request)
 
         try:
