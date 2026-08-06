@@ -90,6 +90,7 @@ from console.services.enterprise_first_deploy_service import EnterpriseFirstDepl
 
 # capability_id: console.deploy-diagnostics.v3
 # capability_id: console.deploy-diagnostics.source-check
+# capability_id: console.deploy-diagnostics.offline-mode
 
 
 class Obj(object):
@@ -165,6 +166,130 @@ class EnterpriseFirstDeployServiceTests(TestCase):
         self.service.COMPILE_FAILURE_LOG_WAIT_WINDOW = 10
         self.service.BUILD_FAILURE_LOG_RETRY_INTERVAL = 1
         self.service.report_async = False
+
+    def test_offline_mode_does_not_start_report_sweeper(self):
+        with mock.patch.dict(os.environ, {"DISABLE_DEFAULT_APP_MARKET": "true"}, clear=True), \
+                mock.patch("console.services.enterprise_first_deploy_service.threading.Thread") as mock_thread:
+            EnterpriseFirstDeployService()
+
+        mock_thread.assert_not_called()
+
+    def test_online_mode_starts_report_sweeper(self):
+        worker = mock.Mock()
+
+        with mock.patch.dict(os.environ, {}, clear=True), \
+                mock.patch("console.services.enterprise_first_deploy_service.threading.Thread",
+                           return_value=worker) as mock_thread:
+            service = EnterpriseFirstDeployService()
+
+        mock_thread.assert_called_once_with(target=service._resume_pending_trackers_loop)
+        self.assertTrue(worker.daemon)
+        worker.start.assert_called_once_with()
+
+    def test_offline_mode_skips_report_request(self):
+        with mock.patch.dict(os.environ, {"DISABLE_DEFAULT_APP_MARKET": "true"}, clear=True), \
+                mock.patch("console.services.enterprise_first_deploy_service.requests.post") as mock_post, \
+                mock.patch("console.services.enterprise_first_deploy_service.time.sleep") as mock_sleep:
+            result = self.service._post_report_payload({"eid": "eid-1"})
+
+        self.assertTrue(result)
+        mock_post.assert_not_called()
+        mock_sleep.assert_not_called()
+
+    def test_offline_mode_does_not_create_deploy_tracking(self):
+        repo = mock.Mock()
+        begin_methods = (
+            self.service.begin_tracking,
+            self.service.begin_deploy_attempt_tracking,
+            self.service.begin_deploy_tracking,
+        )
+
+        with mock.patch.dict(os.environ, {"DISABLE_DEFAULT_APP_MARKET": "true"}, clear=True), \
+                mock.patch("console.services.enterprise_first_deploy_service.enterprise_first_deploy_repo", repo):
+            for begin_tracking in begin_methods:
+                with self.subTest(begin_tracking=begin_tracking.__name__):
+                    tracker = begin_tracking(
+                        enterprise_id="eid-1",
+                        tenant_name="demo-team",
+                        region_name="demo-region",
+                        deploy_type=self.service.DEPLOY_TYPE_IMAGE)
+                    self.assertIsNone(tracker)
+
+        self.assertEqual(repo.mock_calls, [])
+
+    def test_offline_mode_does_not_persist_source_check_failure(self):
+        repo = mock.Mock()
+        repo.get_by_enterprise_id.return_value = None
+        repo.create_if_absent.return_value = (Obj(key="record-key"), True)
+
+        with mock.patch.dict(os.environ, {"DISABLE_DEFAULT_APP_MARKET": "true"}, clear=True), \
+                mock.patch("console.services.enterprise_first_deploy_service.enterprise_first_deploy_repo", repo), \
+                mock.patch("console.services.enterprise_first_deploy_service.TenantEnterprise.objects.filter"):
+            self.service.report_source_check_failure(
+                enterprise_id="eid-1",
+                tenant_name="demo-team",
+                region_name="demo-region",
+                reason="source repository unreachable")
+
+        self.assertEqual(repo.mock_calls, [])
+
+    def test_offline_mode_marks_first_deploy_report_handled_without_thread(self):
+        payload = {
+            "enterprise_id": "eid-1",
+            "report_type": self.service.REPORT_TYPE_FIRST_DEPLOY,
+            "status": self.service.STATUS_SUCCESS,
+            "reported": False,
+        }
+        repo = FirstDeployRepoStub(payload)
+        self.service.report_async = True
+
+        with mock.patch.dict(os.environ, {"DISABLE_DEFAULT_APP_MARKET": "true"}, clear=True), \
+                mock.patch("console.services.enterprise_first_deploy_service.enterprise_first_deploy_repo", repo), \
+                mock.patch.object(self.service, "_start_report_thread") as mock_start_report_thread, \
+                mock.patch("console.services.enterprise_first_deploy_service.requests.post") as mock_post:
+            self.service._report_if_needed(repo.record, payload, async_report=True)
+
+        self.assertTrue(repo.payload["reported"])
+        mock_start_report_thread.assert_not_called()
+        mock_post.assert_not_called()
+
+    def test_offline_mode_removes_unreported_deploy_attempt(self):
+        payload = {
+            "enterprise_id": "eid-1",
+            "report_type": self.service.REPORT_TYPE_DEPLOY_ATTEMPT,
+            "status": self.service.STATUS_FAILURE,
+            "reported": False,
+        }
+        repo = FirstDeployRepoStub({"status": self.service.STATUS_SUCCESS, "reported": True})
+        repo.attempt_payload = deepcopy(payload)
+        self.service.report_async = True
+
+        with mock.patch.dict(os.environ, {"DISABLE_DEFAULT_APP_MARKET": "true"}, clear=True), \
+                mock.patch("console.services.enterprise_first_deploy_service.enterprise_first_deploy_repo", repo), \
+                mock.patch.object(self.service, "_start_report_thread") as mock_start_report_thread, \
+                mock.patch("console.services.enterprise_first_deploy_service.requests.post") as mock_post:
+            self.service._report_if_needed(repo.attempt_record, payload, async_report=True, key=repo.attempt_record.key)
+
+        self.assertEqual(repo.deleted_records, [repo.attempt_record.key])
+        mock_start_report_thread.assert_not_called()
+        mock_post.assert_not_called()
+
+    def test_offline_mode_forgets_unpersisted_report(self):
+        payload = {
+            "enterprise_id": "eid-1",
+            "report_type": self.service.REPORT_TYPE_FIRST_DEPLOY,
+            "status": self.service.STATUS_SUCCESS,
+            "reported": False,
+        }
+        key = "memory-report-key"
+        self.service._save_memory_payload(key, payload)
+
+        with mock.patch.dict(os.environ, {"DISABLE_DEFAULT_APP_MARKET": "true"}, clear=True), \
+                mock.patch("console.services.enterprise_first_deploy_service.requests.post") as mock_post:
+            self.service._report_if_needed(None, payload, async_report=True, key=key)
+
+        self.assertIsNone(self.service._load_memory_payload(key))
+        mock_post.assert_not_called()
 
     def test_build_payload_seeds_service_ids_for_runtime_watch(self):
         enterprise = Obj(enterprise_alias="demo-enterprise", enterprise_name="demo-enterprise")
