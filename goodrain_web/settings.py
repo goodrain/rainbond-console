@@ -163,11 +163,11 @@ SIMPLE_JWT = {
     'AUTH_HEADER_TYPES': ('GRJWT', 'JWT'),
 }
 
-# Rainskills Device Flow is enabled only after the matching Rainbond UI route
-# has been deployed. MCP tokens are intentionally shorter lived than legacy
-# Console tokens and cannot be used on general Console APIs.
+# Rainskills Device Flow is enabled by default. Operators can explicitly set
+# the flag to false for emergency rollback. MCP tokens are intentionally shorter
+# lived than legacy Console tokens and cannot be used on general Console APIs.
 RAINBOND_MCP_TOKEN_LIFETIME_DAYS = int(os.getenv("RAINBOND_MCP_TOKEN_LIFETIME_DAYS", "365"))
-RAINBOND_MCP_DEVICE_FLOW_ENABLED = os.getenv("RAINBOND_MCP_DEVICE_FLOW_ENABLED", "false").lower() == "true"
+RAINBOND_MCP_DEVICE_FLOW_ENABLED = os.getenv("RAINBOND_MCP_DEVICE_FLOW_ENABLED", "true").lower() == "true"
 RAINBOND_MCP_DEVICE_PUBLIC_ORIGIN = os.getenv("RAINBOND_MCP_DEVICE_PUBLIC_ORIGIN", "").rstrip("/")
 RAINBOND_MCP_DEVICE_TRUSTED_PROXY_CIDRS = tuple(
     cidr.strip()
