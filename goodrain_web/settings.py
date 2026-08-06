@@ -163,6 +163,22 @@ SIMPLE_JWT = {
     'AUTH_HEADER_TYPES': ('GRJWT', 'JWT'),
 }
 
+# Rainskills Device Flow is enabled by default. Operators can explicitly set
+# the flag to false for emergency rollback. MCP tokens are intentionally shorter
+# lived than legacy Console tokens and cannot be used on general Console APIs.
+RAINBOND_MCP_TOKEN_LIFETIME_DAYS = int(os.getenv("RAINBOND_MCP_TOKEN_LIFETIME_DAYS", "365"))
+RAINBOND_MCP_DEVICE_FLOW_ENABLED = os.getenv("RAINBOND_MCP_DEVICE_FLOW_ENABLED", "true").lower() == "true"
+RAINBOND_MCP_DEVICE_PUBLIC_ORIGIN = os.getenv("RAINBOND_MCP_DEVICE_PUBLIC_ORIGIN", "").rstrip("/")
+RAINBOND_MCP_DEVICE_TRUSTED_PROXY_CIDRS = tuple(
+    cidr.strip()
+    for cidr in os.getenv("RAINBOND_MCP_DEVICE_TRUSTED_PROXY_CIDRS", "").split(",")
+    if cidr.strip()
+)
+RAINBOND_MCP_DEVICE_RATE_LIMIT_INSPECT = int(os.getenv("RAINBOND_MCP_DEVICE_RATE_LIMIT_INSPECT", "5"))
+RAINBOND_MCP_DEVICE_RATE_LIMIT_INSPECT_WINDOW_SECONDS = int(
+    os.getenv("RAINBOND_MCP_DEVICE_RATE_LIMIT_INSPECT_WINDOW_SECONDS", "600"))
+RAINBOND_MCP_DEVICE_GRANT_FAILURE_LIMIT = int(os.getenv("RAINBOND_MCP_DEVICE_GRANT_FAILURE_LIMIT", "5"))
+
 # 以下参数待去除
 LICENSE = ""
 
