@@ -128,6 +128,35 @@ class MarketInstallPreflightServiceTests(TestCase):
         self.assertEqual(42650, resource_check["details"]["free_cpu"])
         self.assertEqual(2100, resource_check["details"]["required_cpu"])
 
+    def test_large_region_core_cpu_values_are_compared_as_millicores(self):
+        self.service._get_region_resources = mock.Mock(return_value={
+            "all_node": 6,
+            "node_ready": 6,
+            "cap_cpu": 1022,
+            "req_cpu": 2,
+            "cap_mem": 4134763,
+            "req_mem": 2048,
+        })
+        self.service._get_cluster_arches = mock.Mock(return_value=["arm64", "amd64"])
+        template = {
+            "arch": "arm64",
+            "apps": [{
+                "service_cname": "logs",
+                "container_cpu": 1500,
+                "memory": 2048,
+            }],
+        }
+
+        result = self.service.run(self.tenant, self.region, template, check_images=False)
+
+        self.assertEqual("pass", result["status"])
+        resource_check = self._check(result, "resource_capacity")
+        self.assertEqual("pass", resource_check["status"])
+        self.assertEqual(1022000, resource_check["details"]["total_cpu"])
+        self.assertEqual(2000, resource_check["details"]["used_cpu"])
+        self.assertEqual(1020000, resource_check["details"]["free_cpu"])
+        self.assertEqual(1500, resource_check["details"]["required_cpu"])
+
     def test_blocks_when_template_arch_does_not_match_region(self):
         self.service._get_region_resources = mock.Mock(return_value={
             "all_node": 1,
