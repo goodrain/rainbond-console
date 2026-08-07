@@ -230,9 +230,7 @@ class MarketInstallPreflightService(object):
     def _cluster_cpu_millicores(self, cap_cpu: Any, req_cpu: Any) -> Tuple[int, int]:
         total_cpu = self._float_value(cap_cpu)
         used_cpu = self._float_value(req_cpu)
-        if 0 < total_cpu <= 512:
-            return int(round(total_cpu * 1000)), int(round(used_cpu * 1000))
-        return int(round(total_cpu)), int(round(used_cpu))
+        return int(round(total_cpu * 1000)), int(round(used_cpu * 1000))
 
     @staticmethod
     def _int_value(value: Any) -> int:
