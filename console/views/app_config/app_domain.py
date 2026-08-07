@@ -170,6 +170,9 @@ class TenantCertificateManageView(RegionTenantHeaderView):
         """
         certificate_id = kwargs.get("certificate_id", None)
         _, _, cert = domain_service.get_certificate_by_pk(certificate_id)  # type: ignore[arg-type]
+        if cert is None:
+            result = general_message(200, "success", "证书删除成功")
+            return Response(result, status=result["code"])
         old_information = json.dumps({
             "证书名称": cert["alias"],  # type: ignore[index]
             "证书类型": cert["certificate_type"],  # type: ignore[index]

@@ -89,3 +89,25 @@ class PlatformSettingsTests(TestCase):
             key="GLOBAL_IMAGE_REGISTRY",
             enable=False,
         )
+
+    def test_get_returns_external_telemetry_enabled_by_default(self):
+        request = self.factory.get("/console/enterprise/eid-1/platform-settings")
+
+        with mock.patch("console.views.platform_settings.TenantEnterprise.objects.get", return_value=self.enterprise), \
+                mock.patch("console.views.platform_settings.EnterpriseConfigService") as config_service_cls, \
+                mock.patch("console.views.platform_settings.get_external_telemetry_enabled", return_value=True):
+            config_service_cls.return_value.get_config_by_key.return_value = SimpleNamespace(enable=False)
+            response = PlatformSettingsView().get(request, eid="eid-1")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data["data"]["bean"]["enable_external_telemetry"])
+
+    def test_update_external_telemetry_status_without_other_settings(self):
+        request = SimpleNamespace(data={"enable_external_telemetry": False})
+
+        with mock.patch("console.views.platform_settings.TenantEnterprise.objects.get", return_value=self.enterprise), \
+                mock.patch("console.views.platform_settings.set_external_telemetry_enabled") as set_enabled:
+            response = PlatformSettingsUpdateView().put(request, eid="eid-1")
+
+        self.assertEqual(response.status_code, 200)
+        set_enabled.assert_called_once_with(False)

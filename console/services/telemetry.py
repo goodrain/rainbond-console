@@ -3,13 +3,15 @@ import datetime
 import hashlib
 import logging
 import os
+import queue
 import re
+import threading
 import uuid
 
 from django.utils import timezone
 
 from console.models.main import ConsoleSysConfig
-from console.utils.offline import is_offline_mode
+from console.services.telemetry_switch import get_external_telemetry_enabled
 
 
 logger = logging.getLogger("default")
@@ -21,6 +23,7 @@ REGISTERED_KEY = "RBD_TELEMETRY_REGISTERED"
 FIRST_APP_KEY = "RBD_TEL_FIRST_APP_CREATED"
 HEARTBEAT_KEY_PREFIX = "RBD_TEL_HB_"
 REQUEST_TIMEOUT = 2
+TELEMETRY_QUEUE_MAX_SIZE = 100
 
 SENSITIVE_KEY_RE = re.compile(
     r"(token|password|secret|authorization|cookie|key|dsn|email|phone|git|repo|repository|url|domain|image|"
@@ -75,11 +78,51 @@ class NullTransport(object):
         raise RuntimeError("telemetry transport unavailable")
 
 
+class AsyncTelemetryDispatcher(object):
+    """Queue telemetry work so business requests never wait for the network."""
+
+    def __init__(self, maxsize=TELEMETRY_QUEUE_MAX_SIZE):
+        self._queue = queue.Queue(maxsize=maxsize)
+        self._thread = None
+        self._thread_lock = threading.Lock()
+
+    def submit(self, callback):
+        try:
+            self._queue.put_nowait(callback)
+        except queue.Full:
+            logger.debug("posthog telemetry queue is full; dropping event")
+            return False
+        self._start_worker()
+        return True
+
+    def _start_worker(self):
+        with self._thread_lock:
+            if self._thread is not None and self._thread.is_alive():
+                return
+            self._thread = threading.Thread(target=self._drain)
+            self._thread.daemon = True
+            self._thread.start()
+
+    def _drain(self):
+        while True:
+            callback = self._queue.get()
+            try:
+                callback()
+            except Exception as exc:
+                logger.debug("posthog telemetry worker failed: %s", exc)
+            finally:
+                self._queue.task_done()
+
+
+_default_dispatcher = AsyncTelemetryDispatcher()
+
+
 class RainbondTelemetryService(object):
-    def __init__(self, env=None, transport=None, now=None):
-        self.env = env or os.environ
+    def __init__(self, env=None, transport=None, now=None, dispatcher=None):
+        self.env = os.environ if env is None else env
         self.transport = transport or self._load_default_transport()
         self.now = now or _utc_now
+        self.dispatcher = dispatcher or _default_dispatcher
 
     @staticmethod
     def _load_default_transport():
@@ -90,7 +133,7 @@ class RainbondTelemetryService(object):
             return NullTransport()
 
     def is_enabled(self):
-        if is_offline_mode(self.env) or str_to_bool(self.env.get("RAINBOND_TELEMETRY_DISABLED")):
+        if not get_external_telemetry_enabled(self.env):
             return False
         if str_to_bool(self.env.get("RAINBOND_POSTHOG_DISABLED")) or str_to_bool(self.env.get("POSTHOG_DISABLED")):
             return False
@@ -188,6 +231,17 @@ class RainbondTelemetryService(object):
 
     def capture(self, event_name, properties=None, distinct_id=None):
         if not event_name or not self.is_enabled():
+            return False
+        try:
+            return self.dispatcher.submit(
+                lambda: self._send_payload(event_name, properties, distinct_id)
+            )
+        except Exception as exc:
+            logger.debug("posthog telemetry capture failed: %s", exc)
+            return False
+
+    def _send_payload(self, event_name, properties=None, distinct_id=None):
+        if not self.is_enabled():
             return False
         try:
             self.transport.post(

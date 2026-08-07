@@ -5711,6 +5711,24 @@
       "status": "active"
     },
     {
+      "id": "console.gateway.certificate-delete-idempotent",
+      "title": "Delete missing gateway certificate idempotently",
+      "title_zh": "Delete missing gateway certificate idempotently",
+      "interface_type": "view_endpoint",
+      "interface": "DELETE /console/teams/{tenant}/certificates/{certificate_id}",
+      "code_paths": [
+        "console/views/app_config/app_domain.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_domain_certificate_test.py",
+          "selector": "TenantCertificateDeleteTests::test_delete_missing_certificate_is_idempotent"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.gateway.component-env-upsert-schema",
       "title": "Gateway Component Env Upsert Schema",
       "title_zh": "Gateway Component Env Upsert Schema",
