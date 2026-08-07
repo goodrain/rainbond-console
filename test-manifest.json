@@ -10310,6 +10310,33 @@
       "status": "active"
     },
     {
+      "id": "console.vm-run.new-asset-image-name-validation",
+      "title": "Validate new VM asset image names",
+      "title_zh": "校验新建虚拟机镜像资产名称",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.app_create.vm_run.VMRunCreateView.post",
+      "code_paths": [
+        "console/services/vm_boot_source.py",
+        "console/views/app_create/vm_run.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/vm_asset_instantiation_test.py",
+          "selector": "VMAssetInstantiationTests.test_vm_run_rejects_invalid_image_name_before_new_asset_or_component_creation"
+        },
+        {
+          "path": "console/tests/vm_asset_instantiation_test.py",
+          "selector": "VMAssetInstantiationTests.test_vm_run_rejects_non_string_image_name_and_import_sources"
+        },
+        {
+          "path": "console/tests/vm_asset_instantiation_test.py",
+          "selector": "VMAssetInstantiationTests.test_vm_runtime_image_name_validator_enforces_oci_tag_boundaries"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.vm-run.platform-runtime-guard",
       "title": "Reject VM create when VM platform is unhealthy",
       "title_zh": "虚拟机平台异常时禁止创建虚拟机组件",
