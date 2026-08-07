@@ -8,7 +8,10 @@ try:
 except ImportError:  # pragma: no cover - Python 2 compatibility guard
     from urlparse import urlparse
 
-from console.utils.offline import is_offline_mode
+from console.services.telemetry_switch import (
+    get_external_telemetry_enabled as is_external_telemetry_enabled,
+)
+from console.utils.offline import is_external_telemetry_disabled, is_offline_mode
 
 
 SENSITIVE_KEY_RE = re.compile(r"(token|password|secret|authorization|cookie|key|dsn)", re.I)
@@ -98,7 +101,7 @@ def get_env_value(env, *keys):
 
 def is_telemetry_disabled(env):
     return (
-        str_to_bool(env.get("RAINBOND_TELEMETRY_DISABLED"))
+        is_external_telemetry_disabled(env)
         or str_to_bool(env.get("RAINBOND_ERROR_REPORTING_DISABLED"))
     )
 
@@ -310,6 +313,8 @@ def get_path_pattern(value):
 
 
 def before_send(event, hint):
+    if not is_external_telemetry_enabled():
+        return None
     event.pop("user", None)
     request = event.get("request")
     if request:

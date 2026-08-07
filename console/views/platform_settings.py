@@ -5,6 +5,10 @@ from rest_framework.response import Response
 
 from console.exception.exceptions import ConfigExistError
 from console.services.config_service import EnterpriseConfigService
+from console.services.telemetry_switch import (
+    get_external_telemetry_enabled,
+    set_external_telemetry_enabled,
+)
 from console.views.base import EnterpriseAdminView, JWTAuthApiView
 from www.utils.return_message import general_message
 from www.models.main import TenantEnterprise
@@ -48,6 +52,7 @@ class PlatformSettingsView(JWTAuthApiView):
         data = {
             "enable_team_resource_view": enterprise.enable_team_resource_view,
             "enable_global_image_registry": global_image_registry_config.enable,
+            "enable_external_telemetry": get_external_telemetry_enabled(),
         }
         return Response(general_message(200, "success", "获取成功", bean=data))
 
@@ -60,9 +65,14 @@ class PlatformSettingsUpdateView(EnterpriseAdminView):
             return Response(general_message(404, "not found", "企业不存在"), status=404)
         has_team_resource_view = "enable_team_resource_view" in request.data
         has_global_image_registry = "enable_global_image_registry" in request.data
-        if not has_team_resource_view and not has_global_image_registry:
+        has_external_telemetry = "enable_external_telemetry" in request.data
+        if (
+                not has_team_resource_view
+                and not has_global_image_registry
+                and not has_external_telemetry
+        ):
             return Response(general_message(400, "bad request",
-                                            "缺少 enable_team_resource_view 或 enable_global_image_registry 参数"),
+                                            "缺少平台设置参数"),
                             status=400)
         if has_team_resource_view:
             enterprise.enable_team_resource_view = _parse_bool(request.data.get("enable_team_resource_view"))
@@ -71,4 +81,8 @@ class PlatformSettingsUpdateView(EnterpriseAdminView):
             config_service, _ = _get_or_create_global_image_registry_config(eid)
             config_service.update_config_enable_status(key=GLOBAL_IMAGE_REGISTRY_CONFIG_KEY,
                                                        enable=_parse_bool(request.data.get("enable_global_image_registry")))
+        if has_external_telemetry:
+            set_external_telemetry_enabled(
+                _parse_bool(request.data.get("enable_external_telemetry"))
+            )
         return Response(general_message(200, "success", "更新成功"))

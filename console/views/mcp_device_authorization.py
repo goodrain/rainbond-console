@@ -56,15 +56,14 @@ def _public_origin(request: Request) -> str:
 
 class DeviceResponseMixin(object):
 
-    def finalize_response(self, request: Request, response: Any, *args: Any, **kwargs: Any) -> Response:
-        response = super(DeviceResponseMixin, self).finalize_response(  # type: ignore[misc]
-            request, response, *args, **kwargs)
+    def finalize_response(self, request: Request, response: Response, *args: Any, **kwargs: Any) -> Response:
+        response = APIView.finalize_response(cast(APIView, self), request, response, *args, **kwargs)
         response["Cache-Control"] = "no-store"
         response["Pragma"] = "no-cache"
         return response
 
     def handle_exception(self, exc: Exception) -> Response:
-        response = exception_handler(exc, cast(APIView, self).get_exception_handler_context())
+        response = exception_handler(exc, APIView.get_exception_handler_context(cast(APIView, self)))
         if response is None:
             raise exc
         return response
@@ -78,7 +77,7 @@ class DeviceFeatureMixin(object):
             response["Cache-Control"] = "no-store"
             response["Pragma"] = "no-cache"
             return response
-        return super(DeviceFeatureMixin, self).dispatch(request, *args, **kwargs)  # type: ignore[misc]
+        return APIView.dispatch(cast(APIView, self), request, *args, **kwargs)
 
 
 class HeaderOnlyConsoleJWTAuthentication(JSONWebTokenAuthentication):
