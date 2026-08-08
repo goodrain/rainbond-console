@@ -910,13 +910,6 @@ class ChangeServiceTypeView(AppBaseView):
 
             if not is_support(extend_method):
                 raise AbortRequest(msg="do not support service type", msg_show="组件类型非法")
-            new_information = json.dumps({
-                "组件": self.service.service_cname,
-                "组件部署类型": app_manage_service.get_extend_method_name(self.service.extend_method)
-            },
-                                         ensure_ascii=False)
-            app_manage_service.change_service_type(
-                self.tenant, self.service, extend_method, self.user.nick_name)  # type: ignore[arg-type]
             old_information = json.dumps({
                 "组件": self.service.service_cname,
                 "组件部署类型": app_manage_service.get_extend_method_name(self.service.extend_method)
@@ -925,6 +918,11 @@ class ChangeServiceTypeView(AppBaseView):
             logger.debug("tenant: {0}, service:{1}, extend_method:{2}".format(self.tenant, self.service, extend_method))
             app_manage_service.change_service_type(
                 self.tenant, self.service, extend_method, self.user.nick_name)  # type: ignore[arg-type]
+            new_information = json.dumps({
+                "组件": self.service.service_cname,
+                "组件部署类型": app_manage_service.get_extend_method_name(self.service.extend_method)
+            },
+                                         ensure_ascii=False)
             result = general_message(200, "success", "操作成功")
             comment = operation_log_service.generate_component_comment(
                 operation=Operation.CHANGE,
