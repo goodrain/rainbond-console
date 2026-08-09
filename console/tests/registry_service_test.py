@@ -561,6 +561,85 @@ class RegistryNamespaceServiceTestCase(TestCase):
         self.assertEqual(ctx.exception.msg, "cloud registry credential unauthorized")
         self.assertEqual(ctx.exception.msg_show, "云厂商镜像仓库认证失败，请检查 Access Key、Access Secret 是否正确并确认已授予镜像仓库访问权限")
 
+    def test_get_docker_namespaces_follows_catalog_pagination(self):
+        first_page = mock.Mock(
+            status_code=200,
+            headers={"Link": '</v2/_catalog?n=2&last=datagrand%2Fredis>; rel="next"'},
+        )
+        first_page.json.return_value = {"repositories": ["cetc52/nginx", "datagrand/redis"]}
+        second_page = mock.Mock(status_code=200, headers={})
+        second_page.json.return_value = {"repositories": ["library-image", "rainbond/console"]}
+
+        with mock.patch.object(
+                team_services, "_registry_v2_get", side_effect=[first_page, second_page]) as registry_get:
+            namespaces = team_services.get_registry_namespaces(
+                domain="https://registry.example.com",
+                username="demo-user",
+                password="demo-password",
+                hub_type="Docker",
+            )
+
+        self.assertEqual(set(namespaces), {"cetc52", "datagrand", "library", "rainbond"})
+        registry_get.assert_has_calls([
+            mock.call("https://registry.example.com/v2/_catalog", "demo-user", "demo-password"),
+            mock.call(
+                "https://registry.example.com/v2/_catalog?n=2&last=datagrand%2Fredis",
+                "demo-user",
+                "demo-password",
+            ),
+        ])
+
+    def test_get_docker_images_follows_catalog_pagination(self):
+        first_page = mock.Mock(
+            status_code=200,
+            headers={"Link": '</v2/_catalog?n=1&last=cetc52%2Fnginx>; rel="next"'},
+        )
+        first_page.json.return_value = {"repositories": ["cetc52/nginx"]}
+        second_page = mock.Mock(status_code=200, headers={})
+        second_page.json.return_value = {"repositories": ["rainbond/console"]}
+        tags_response = mock.Mock(status_code=200, headers={})
+        tags_response.json.return_value = {"tags": []}
+
+        def registry_response(url, *args, **kwargs):
+            if url == "https://registry.example.com/v2/_catalog":
+                return first_page
+            if url == "https://registry.example.com/v2/_catalog?n=1&last=cetc52%2Fnginx":
+                return second_page
+            if url == "https://registry.example.com/v2/rainbond/console/tags/list":
+                return tags_response
+            self.fail("unexpected registry URL: {}".format(url))
+
+        with mock.patch.object(team_services, "_registry_v2_get", side_effect=registry_response):
+            data = team_services.get_registry_images(
+                domain="https://registry.example.com",
+                username="demo-user",
+                password="demo-password",
+                hub_type="Docker",
+                namespace="rainbond",
+            )
+
+        self.assertEqual([image["name"] for image in data["images"]], ["console"])
+        self.assertEqual(data["total"], 1)
+
+    def test_get_docker_namespaces_rejects_cross_origin_catalog_link(self):
+        response = mock.Mock(
+            status_code=200,
+            headers={"Link": '<https://untrusted.example/v2/_catalog?last=demo%2Fapp>; rel="next"'},
+        )
+        response.json.return_value = {"repositories": ["demo/app"]}
+
+        with mock.patch.object(team_services, "_registry_v2_get", return_value=response), \
+                self.assertRaises(ServiceHandleException) as ctx:
+            team_services.get_registry_namespaces(
+                domain="https://registry.example.com",
+                username="demo-user",
+                password="demo-password",
+                hub_type="Docker",
+            )
+
+        self.assertEqual(ctx.exception.status_code, 502)
+        self.assertEqual(ctx.exception.msg, "invalid registry catalog pagination link")
+
     def test_get_harbor_namespaces_fetches_all_pages(self):
         names = ["project-{}".format(i) for i in range(205)]
 
