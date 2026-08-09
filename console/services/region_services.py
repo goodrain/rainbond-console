@@ -644,6 +644,26 @@ class RegionService(object):
             region_info_list.append(self.conver_region_info(region, check_status, level))
         return region_info_list
 
+    @staticmethod
+    def _is_region_api_not_found(error: Exception) -> bool:
+        if isinstance(error, region_api.CallApiError):
+            return error.status == 404
+        if isinstance(error, ServiceHandleException):
+            return error.status_code == 404
+        return False
+
+    def _get_cluster_node_architectures(self, region_name: str) -> list:
+        try:
+            _, body = region_api.get_cluster_nodes_arch(region_name)
+            return body["list"]  # type: ignore[index]
+        except (region_api.CallApiError, ServiceHandleException) as e:
+            if not self._is_region_api_not_found(e):
+                raise
+
+        _, body = region_api.get_cluster_nodes(region_name)
+        nodes = body["list"]  # type: ignore[index]
+        return [node.get("architecture") for node in nodes if node.get("architecture")]
+
     def conver_region_info(self, region: RegionConfig, check_status: Any, level: str = "open") -> dict:
         # 转换集群数据，若需要附加状态则从集群API获取
         region_resource = self.__init_region_resource_data(region, level)
@@ -660,7 +680,7 @@ class RegionService(object):
                 else:
                     # NOTE: rbd_version var declared Optional[Dict]; reassigned to "" here.
                     rbd_version = ""  # type: ignore[assignment]
-                # NOTE: get_region_resources / get_cluster_nodes return Optional dict bodies;
+                # NOTE: get_region_resources / get_cluster_nodes_arch return Optional dict bodies;
                 # indexed unguarded below. Invariant on the status==200 success path.
                 if res.get("status") == 200:
                     region_resource["total_memory"] = body["bean"]["cap_mem"]  # type: ignore[index]
@@ -677,12 +697,11 @@ class RegionService(object):
                     region_resource["pods"] = body["bean"]["pods"]  # type: ignore[index]
                     region_resource["run_pod_number"] = body["bean"]["run_pod_number"]  # type: ignore[index]
                     region_resource["node_ready"] = body["bean"]["node_ready"]  # type: ignore[index]
-                    res, body = region_api.get_cluster_nodes(region.region_name)
-                    nodes = body["list"]  # type: ignore[index]
+                    node_arches = self._get_cluster_node_architectures(region.region_name)
                     arch_map = dict()
-                    if nodes:
-                        for node in nodes:
-                            arch_map[node.get("architecture")] = 1
+                    if node_arches:
+                        for node_arch in node_arches:
+                            arch_map[node_arch] = 1
                     region_resource["arch"] = arch_map.keys()
             except (region_api.CallApiError, ServiceHandleException) as e:
                 logger.exception(e)

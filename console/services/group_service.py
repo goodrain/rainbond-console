@@ -327,14 +327,29 @@ class GroupService(object):
         res['k8s_app'] = app.k8s_app  # type: ignore[union-attr]
         res['can_edit'] = True
         components = group_service_relation_repo.get_services_by_group(app_id)
-        services = service_repo.get_services_by_service_ids([component.service_id for component in components])
+        service_ids = [component.service_id for component in components]
+        services = service_repo.get_services_by_service_ids(service_ids)
         res['app_arch'] = {service.arch: "1" for service in services if service.arch}.keys()
-        running_components = region_api.get_dynamic_services_pods(region_name, tenant.tenant_name,
-                                                                  [component.service_id for component in components])
-        # NOTE: get_dynamic_services_pods may return None; accessed unguarded;
-        # potential latent None-bug.
-        if running_components.get("list") and len(running_components["list"]) > 0:  # type: ignore[union-attr, index]
-            res['can_edit'] = False
+        if service_ids:
+            try:
+                pod_nums = region_api.get_services_pod_nums(region_name, tenant.tenant_name, service_ids)
+            except Exception as e:
+                logger.warning("query component pod nums failed, fallback to pod details: %s", e)
+                pod_nums = None
+
+            has_running_component = False
+            if pod_nums is not None:
+                try:
+                    has_running_component = any(pod_num > 0 for pod_num in pod_nums.values())
+                except (AttributeError, TypeError):
+                    pod_nums = None
+
+            if pod_nums is None:
+                running_components = region_api.get_dynamic_services_pods(region_name, tenant.tenant_name, service_ids)
+                has_running_component = bool(running_components and running_components.get("list"))
+
+            if has_running_component:
+                res['can_edit'] = False
 
         try:
             principal = user_repo.get_user_by_username(app.username)  # type: ignore[union-attr, arg-type]

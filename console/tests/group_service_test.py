@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
 import sys
+from contextlib import ExitStack
 from types import ModuleType
 from unittest import TestCase, mock
 
@@ -15,6 +16,7 @@ django.setup()
 
 from console.services import group_service as group_service_module  # noqa: E402
 from console.services.group_service import group_service  # noqa: E402
+from www.apiclient.regionapi import RegionInvokeApi  # noqa: E402
 
 
 class Obj(object):
@@ -105,6 +107,147 @@ class GroupServiceAppStatusAggregationTests(TestCase):
         self.assertEqual(result[42]["status"], "CLOSED")
 
 
+class GroupServiceAppDetailPodCountTests(TestCase):
+
+    def _get_app_detail(self, component_ids, pod_nums, dynamic_pods=None):
+        app = Obj(
+            ID=42,
+            group_name="demo-app",
+            app_type="rainbond",
+            logo="",
+            k8s_app="demo-app",
+            username="owner",
+            to_dict=lambda: {},
+        )
+        tenant = Obj(tenant_id="tenant-id", tenant_name="tenant-name", namespace="tenant-ns")
+        region = Obj(region_name="rainbond")
+        components = [Obj(service_id=component_id) for component_id in component_ids]
+        services = [Obj(service_id=component_id, arch="amd64") for component_id in component_ids]
+        resource_query = mock.Mock()
+        resource_query.count.return_value = 0
+        principal = Obj(get_name=lambda: "Owner", email="owner@example.com")
+
+        with ExitStack() as stack:
+            stack.enter_context(mock.patch.object(group_service_module.group_repo, "get_group_by_pk", return_value=app))
+            stack.enter_context(mock.patch.object(group_service, "sync_app_services", return_value="region-app-id"))
+            stack.enter_context(
+                mock.patch.object(group_service_module.group_service_relation_repo,
+                                  "count_service_by_app_id",
+                                  return_value=len(component_ids)))
+            stack.enter_context(mock.patch.object(group_service_module.share_repo, "count_by_app_id", return_value=0))
+            stack.enter_context(
+                mock.patch.object(group_service_module.k8s_resources_repo, "list_by_app_id", return_value=resource_query))
+            stack.enter_context(mock.patch.object(group_service_module.region_api, "get_api_gateway", return_value={"list": []}))
+            stack.enter_context(
+                mock.patch.object(group_service_module.app_config_group_service, "count_by_app_id", return_value=0))
+            stack.enter_context(
+                mock.patch.object(
+                    group_service_module.group_service_relation_repo,
+                    "get_services_by_group",
+                    return_value=components))
+            stack.enter_context(
+                mock.patch.object(group_service_module.service_repo, "get_services_by_service_ids", return_value=services))
+            get_pod_nums = stack.enter_context(
+                mock.patch.object(
+                    group_service_module.region_api,
+                    "get_services_pod_nums",
+                    return_value=pod_nums))
+            get_dynamic_pods = stack.enter_context(
+                mock.patch.object(
+                    group_service_module.region_api,
+                    "get_dynamic_services_pods",
+                    return_value=dynamic_pods))
+            stack.enter_context(
+                mock.patch.object(group_service_module.user_repo, "get_user_by_username", return_value=principal))
+            stack.enter_context(
+                mock.patch.object(group_service_module.compose_repo, "get_group_compose_by_group_id", return_value=None))
+            result = group_service.get_app_detail(tenant, region, 42)
+
+        return result, get_pod_nums, get_dynamic_pods
+
+    def test_lightweight_pod_counts_disable_edit_without_loading_pod_details(self):
+        result, get_pod_nums, get_dynamic_pods = self._get_app_detail(
+            ["service-a", "service-b"], {
+                "service-a": 0,
+                "service-b": 2
+            })
+
+        self.assertFalse(result["can_edit"])
+        get_pod_nums.assert_called_once_with("rainbond", "tenant-name", ["service-a", "service-b"])
+        get_dynamic_pods.assert_not_called()
+
+    def test_lightweight_pod_counts_keep_edit_enabled_when_all_components_are_stopped(self):
+        result, get_pod_nums, get_dynamic_pods = self._get_app_detail(
+            ["service-a", "service-b"], {
+                "service-a": 0,
+                "service-b": 0
+            })
+
+        self.assertTrue(result["can_edit"])
+        get_pod_nums.assert_called_once()
+        get_dynamic_pods.assert_not_called()
+
+    def test_unavailable_lightweight_endpoint_falls_back_to_pod_details(self):
+        result, get_pod_nums, get_dynamic_pods = self._get_app_detail(
+            ["service-a"], None, {"list": [{"service_id": "service-a"}]})
+
+        self.assertFalse(result["can_edit"])
+        get_pod_nums.assert_called_once_with("rainbond", "tenant-name", ["service-a"])
+        get_dynamic_pods.assert_called_once_with("rainbond", "tenant-name", ["service-a"])
+
+    def test_empty_application_skips_both_pod_region_requests(self):
+        result, get_pod_nums, get_dynamic_pods = self._get_app_detail([], None)
+
+        self.assertTrue(result["can_edit"])
+        get_pod_nums.assert_not_called()
+        get_dynamic_pods.assert_not_called()
+
+
+class RegionApiPodCountTests(TestCase):
+
+    def test_get_services_pod_nums_uses_lightweight_endpoint_and_short_timeout(self):
+        client = RegionInvokeApi()
+        tenant_region = Obj(region_tenant_name="region-tenant")
+
+        with mock.patch.object(
+                client,
+                "_RegionInvokeApi__get_region_access_info",
+                return_value=("http://region.example", "token")), mock.patch.object(
+                    client,
+                    "_RegionInvokeApi__get_tenant_region_info",
+                    return_value=tenant_region), mock.patch.object(client, "_set_headers"), mock.patch.object(
+                        client,
+                        "_get",
+                        return_value=({"status": 200}, {"bean": {
+                            "service-a": 2
+                        }})) as request_get:
+            result = client.get_services_pod_nums("rainbond", "tenant-name", ["service-a"])
+
+        self.assertEqual(result, {"service-a": 2})
+        request_get.assert_called_once_with(
+            "http://region.example/v2/tenants/region-tenant/pod_nums?service_ids=service-a",
+            client.default_headers,
+            region="rainbond",
+            timeout=3,
+        )
+
+    def test_get_services_pod_nums_returns_none_when_endpoint_is_unavailable(self):
+        client = RegionInvokeApi()
+        tenant_region = Obj(region_tenant_name="region-tenant")
+
+        with mock.patch.object(
+                client,
+                "_RegionInvokeApi__get_region_access_info",
+                return_value=("http://region.example", "token")), mock.patch.object(
+                    client,
+                    "_RegionInvokeApi__get_tenant_region_info",
+                    return_value=tenant_region), mock.patch.object(client, "_set_headers"), mock.patch.object(
+                        client, "_get", return_value=({"status": 404}, {"msg": "not found"})):
+            result = client.get_services_pod_nums("rainbond", "tenant-name", ["service-a"])
+
+        self.assertIsNone(result)
+
+
 # capability_id: console.operator-managed.skip-kubeblocks-services
 class GroupServiceOperatorManagedTests(TestCase):
     def test_get_watch_managed_data_skips_services_backing_kubeblocks_components(self):
@@ -137,7 +280,7 @@ class GroupServiceOperatorManagedTests(TestCase):
                                               "port": "8080",
                                           },
                                       ]
-                }), \
+                                  }), \
                 mock.patch.object(group_service,
                                   "list_components",
                                   return_value=[kubeblocks_component]), \
