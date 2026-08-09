@@ -88,7 +88,7 @@ class RegionRepo(object):
             return None
 
     def get_region_by_region_names(self, region_names: List[str]) -> QuerySet:
-        return RegionConfig.objects.filter(region_name__in=region_names)
+        return RegionConfig.objects.filter(region_name__in=region_names).order_by("ID")
 
     def get_team_region_by_tenant_and_region(self, tenant_id: str, region: str) -> Optional[TenantRegionInfo]:
         tenant_regions = TenantRegionInfo.objects.filter(tenant_id=tenant_id, region_name=region)

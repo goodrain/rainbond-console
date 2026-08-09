@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import logging
-from typing import Any, List, Optional
+from typing import Any, Optional
 
 from console.exception.exceptions import TenantNotExistError
 from console.exception.main import ServiceHandleException
@@ -55,25 +55,18 @@ class TeamRepo(object):
         return tenant
 
     def get_tenants_by_user_id_and_eid(self, eid: str, user_id: str, name: Optional[str] = None) -> Any:
-        tenants = []
         enterprise = TenantEnterprise.objects.filter(enterprise_id=eid).first()
         if not enterprise:
             return enterprise
         tenant_ids = list(
             PermRelTenant.objects.filter(enterprise_id=enterprise.ID, user_id=user_id).values_list("tenant_id",
                                                                                                    flat=True).order_by("-ID"))
-        tenant_ids = sorted(set(tenant_ids), key=tenant_ids.index)
+        tenant_ids = list(dict.fromkeys(tenant_ids))
+        filters = {"ID__in": tenant_ids}
         if name:
-            for tenant_id in tenant_ids:
-                tn = Tenants.objects.filter(ID=tenant_id, tenant_alias__contains=name).first()
-                if tn:
-                    tenants.append(tn)
-        else:
-            for tenant_id in tenant_ids:
-                tn = Tenants.objects.filter(ID=tenant_id).first()
-                if tn:
-                    tenants.append(tn)
-        return tenants
+            filters["tenant_alias__contains"] = name
+        tenants_by_id = {tenant.ID: tenant for tenant in Tenants.objects.filter(**filters)}
+        return [tenants_by_id[tenant_id] for tenant_id in tenant_ids if tenant_id in tenants_by_id]
 
     @staticmethod
     def get_user_notjoin_teams(eid: str, user_id: str, name: Optional[str] = None) -> Any:
@@ -86,7 +79,7 @@ class TeamRepo(object):
         q = ~Q(ID__in=tenant_ids)
         if name:
             q &= Q(tenant_alias__contains=name)
-        return Tenants.objects.filter(q)
+        return Tenants.objects.filter(q, enterprise_id=eid)
 
     def get_user_perms_in_permtenant(self, user_id: str, tenant_id: str) -> Optional["QuerySet[PermRelTenant]"]:
         tenant_perms = PermRelTenant.objects.filter(user_id=user_id, tenant_id=tenant_id)

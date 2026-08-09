@@ -12,10 +12,8 @@ from urllib.parse import urlparse, quote
 import requests  # type: ignore[import-untyped]
 from django.db.models import QuerySet
 
-from console.exception.exceptions import UserNotExistError
 from console.exception.main import ServiceHandleException
-from console.models.main import TenantUserRole, RegionConfig
-from console.repositories.app import TenantServiceInfoRepository
+from console.models.main import RegionConfig, RoleInfo, TenantUserRole, UserRole
 from console.repositories.app_config import volume_repo
 from console.repositories.enterprise_repo import enterprise_repo
 from console.repositories.perm_repo import role_repo
@@ -32,7 +30,7 @@ from console.services.perm_services import (role_kind_services, user_kind_role_s
 from console.services.region_services import region_services
 from django.core.paginator import Paginator, EmptyPage
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Count, Q
 
 from console.services.storage_service import storage_service
 from www.apiclient.regionapi import RegionInvokeApi
@@ -420,52 +418,66 @@ class TeamService(object):
 
     def jg_teams(self, eid: str, teams: Any) -> Any:
         tenants: Dict[Any, Any] = dict()
+        teams = list(teams)
+        if not teams:
+            return tenants.values()
+
         creaters = [team.creater for team in teams]
         users = user_repo.get_by_user_ids(creaters)
         user_list = {user.user_id: user.get_name() for user in users}
         tenant_ids = [team.tenant_id for team in teams]
-        region_dict = dict()
+        team_database_ids = [team.ID for team in teams]
         tenant_IDs = {ten.ID: ten.tenant_id for ten in teams}
-        user_id_list = PermRelTenant.objects.filter().values("tenant_id", "user_id")
         user_id_dict: Dict[Any, int] = dict()
-        for user_id in user_id_list:
-            user_id_dict[tenant_IDs.get(user_id["tenant_id"])] = user_id_dict.get(tenant_IDs.get(user_id["tenant_id"]), 0) + 1
-        
-        # Pre-calculate storage usage for all teams
-        storage_dict = {}
+        permission_counts = PermRelTenant.objects.filter(
+            tenant_id__in=team_database_ids).values("tenant_id").annotate(user_number=Count("user_id"))
+        for relation in permission_counts:
+            tenant_id = tenant_IDs.get(relation["tenant_id"])
+            if tenant_id:
+                user_id_dict[tenant_id] = relation["user_number"]
+
+        storage_dict: Dict[str, int] = {}
         if not os.getenv("USE_SAAS"):
-            # Get all components for all teams
-            all_components = TenantServiceInfo.objects.filter()
-            service_ids = [comp.service_id for comp in all_components]
-            
-            # Get all volumes for these components
-            all_volumes = volume_repo.get_services_volumes(service_ids)
-            
-            # Calculate storage for each team
-            team_components: Dict[Any, List[Any]] = {}
-            for comp in all_components:
-                if comp.tenant_id not in team_components:
-                    team_components[comp.tenant_id] = []
-                team_components[comp.tenant_id].append(comp.service_id)
-            
-            for team_id in team_components:
-                use_disk = 0
-                team_service_ids = team_components[team_id]
-                for volume in all_volumes:
-                    if volume.service_id in team_service_ids and volume.volume_type != "config-file":
-                        volume.volume_capacity = 10 if volume.volume_capacity == 0 else volume.volume_capacity
-                        use_disk += volume.volume_capacity
-                storage_dict[team_id] = use_disk
+            components = TenantServiceInfo.objects.filter(tenant_id__in=tenant_ids)
+            service_tenants = {component.service_id: component.tenant_id for component in components}
+            volumes = volume_repo.get_services_volumes(list(service_tenants.keys()))
+            for volume in volumes:
+                tenant_id = service_tenants.get(volume.service_id)
+                if not tenant_id or volume.volume_type == "config-file":
+                    continue
+                capacity = 10 if volume.volume_capacity == 0 else volume.volume_capacity
+                storage_dict[tenant_id] = storage_dict.get(tenant_id, 0) + capacity
+
+        team_region_names: Dict[str, List[str]] = {tenant_id: [] for tenant_id in tenant_ids}
+        requested_region_names: List[str] = []
+        region_name_seen = set()
+        region_relations = TenantRegionInfo.objects.filter(
+            tenant_id__in=tenant_ids).values("tenant_id", "region_name")
+        for relation in region_relations:
+            tenant_id = relation["tenant_id"]
+            region_name = relation["region_name"]
+            team_region_names.setdefault(tenant_id, []).append(region_name)
+            if region_name not in region_name_seen:
+                region_name_seen.add(region_name)
+                requested_region_names.append(region_name)
+
+        region_infos = list(
+            region_repo.get_region_by_region_names(requested_region_names)) if requested_region_names else []
+        region_names = [region.region_name for region in region_infos]
+        region_info_by_name = {region.region_name: region for region in region_infos}
 
         for team in teams:
             region_info_map = []
-            region_name_list = team_repo.get_team_region_names(team.tenant_id)
-            if region_name_list:
-                region_infos = region_repo.get_region_by_region_names(region_name_list)
-                if region_infos:
-                    for region in region_infos:
-                        region_dict[region.region_name] = 1
-                        region_info_map.append({"region_name": region.region_name, "region_alias": region.region_alias, "region_id": region.region_id})
+            for region_name in region_names:
+                if region_name not in team_region_names.get(team.tenant_id, []):
+                    continue
+                region = region_info_by_name.get(region_name)
+                if region:
+                    region_info_map.append({
+                        "region_name": region.region_name,
+                        "region_alias": region.region_alias,
+                        "region_id": region.region_id,
+                    })
             tenant = team.to_dict()
             # 获取团队的集群信息
             tenant["region"] = region_info_map[0]["region_name"] if len(region_info_map) > 0 else ""
@@ -487,22 +499,25 @@ class TeamService(object):
             else:
                 tenant["storage_request"] = storage_dict.get(team.tenant_id, 0)
             tenants[team.tenant_id] = tenant
-        if region_dict:
+        if region_names:
             region_tenants: List[Any] = list()
-            for region_id in region_dict.keys():
-                region_tenants += self.get_region_tenant(eid, region_id, tenant_ids)
+            for region_name in region_names:
+                region_tenant_ids = [
+                    tenant_id for tenant_id in tenant_ids
+                    if region_name in team_region_names.get(tenant_id, [])
+                ]
+                region_tenants += self.get_region_tenant(eid, region_name, region_tenant_ids)
             for region_tenant in region_tenants:
                 tenant_id = region_tenant.get("UUID")
-                # NOTE: tenants.get(tenant_id) returns None if region reports a tenant_id absent
-                # from the local map; downstream .get()/[...] would fail -> latent None-bug.
-                running_apps = tenants.get(tenant_id).get("running_apps")  # type: ignore[union-attr]
-                tenants.get(tenant_id)["set_limit_memory"] = region_tenant.get("LimitMemory", 0)  # type: ignore[index]
-                tenants.get(tenant_id)["set_limit_cpu"] = region_tenant.get("LimitCPU", 0)  # type: ignore[index]
-                tenants.get(tenant_id)["set_limit_storage"] = region_tenant.get("LimitStorage", 0)  # type: ignore[index]
-                tenants.get(tenant_id)["running_apps"] = running_apps + region_tenant.get(  # type: ignore[index]
-                    "running_applications", 0)
-                tenants.get(tenant_id)["memory_request"] = region_tenant.get("memory_limit", 0)  # type: ignore[index]
-                tenants.get(tenant_id)["cpu_request"] = region_tenant.get("cpu_limit", 0)  # type: ignore[index]
+                tenant = tenants.get(tenant_id)
+                if not tenant:
+                    continue
+                tenant["set_limit_memory"] = region_tenant.get("LimitMemory", 0)
+                tenant["set_limit_cpu"] = region_tenant.get("LimitCPU", 0)
+                tenant["set_limit_storage"] = region_tenant.get("LimitStorage", 0)
+                tenant["running_apps"] += region_tenant.get("running_applications", 0)
+                tenant["memory_request"] = region_tenant.get("memory_limit", 0)
+                tenant["cpu_request"] = region_tenant.get("cpu_limit", 0)
         return tenants.values()
 
     def get_region_tenant(self, eid: str, region_id: str, tenant_ids: Any) -> Any:
@@ -527,10 +542,7 @@ class TeamService(object):
                 raw_tenants = []
         else:
             raw_tenants = tall
-        tenants = []
-        for tenant in raw_tenants:
-            tenants.append(self.team_with_region_info(tenant, user))
-        return tenants, total
+        return self.teams_with_region_info(list(raw_tenants), user), total
 
     def list_teams_v2(self, eid: str, query: Optional[str] = None, page: Optional[int] = None,
                       page_size: Optional[int] = None) -> Tuple[Any, int]:
@@ -563,47 +575,92 @@ class TeamService(object):
 
     def team_with_region_info(self, tenant: Tenants, request_user: Optional[Users] = None,
                               get_region: bool = True) -> dict:
-        try:
-            # NOTE: tenant.creater is int; get_user_by_user_id annotates user_id as str (sig mismatch).
-            user = user_repo.get_user_by_user_id(tenant.creater)  # type: ignore[arg-type]
-            owner_name = user.get_name()
-        except UserNotExistError:
-            owner_name = None
+        return self.teams_with_region_info([tenant], request_user, get_region=get_region)[0]
 
-        info = {
-            "team_name": tenant.tenant_name,
-            "team_alias": tenant.tenant_alias,
-            "team_id": tenant.tenant_id,
-            "create_time": tenant.create_time,
-            "enterprise_id": tenant.enterprise_id,
-            "owner": tenant.creater,
-            "owner_name": owner_name,
-            "logo": tenant.logo
+    def teams_with_region_info(self, tenants: Any, request_user: Optional[Users] = None,
+                               get_region: bool = True) -> list:
+        tenants = list(tenants)
+        if not tenants:
+            return []
+
+        tenant_ids = [tenant.tenant_id for tenant in tenants]
+        owner_ids = [tenant.creater for tenant in tenants]
+        owners = user_repo.get_by_user_ids(owner_ids)
+        owner_names = {owner.user_id: owner.get_name() for owner in owners}
+
+        roles_by_tenant: Dict[str, List[str]] = {tenant_id: [] for tenant_id in tenant_ids}
+        if request_user:
+            role_infos = list(RoleInfo.objects.filter(kind="team", kind_id__in=tenant_ids))
+            role_tenants = {str(role.ID): role.kind_id for role in role_infos}
+            role_names = {str(role.ID): role.name for role in role_infos}
+            role_ids = [role.ID for role in role_infos]
+            if role_ids:
+                user_roles = UserRole.objects.filter(
+                    role_id__in=role_ids, user_id=request_user.user_id).order_by("ID")
+                for user_role in user_roles:
+                    role_id = str(user_role.role_id)
+                    tenant_id = role_tenants.get(role_id)
+                    role_name = role_names.get(role_id)
+                    if tenant_id and role_name:
+                        roles_by_tenant[tenant_id].append(role_name)
+
+        regions_by_tenant: Dict[str, List[dict]] = {tenant_id: [] for tenant_id in tenant_ids}
+        if get_region:
+            region_relations = TenantRegionInfo.objects.filter(
+                tenant_id__in=tenant_ids).values("tenant_id", "region_name")
+            region_names_by_tenant: Dict[str, set] = {tenant_id: set() for tenant_id in tenant_ids}
+            region_names = []
+            region_name_seen = set()
+            for relation in region_relations:
+                tenant_id = relation["tenant_id"]
+                region_name = relation["region_name"]
+                region_names_by_tenant.setdefault(tenant_id, set()).add(region_name)
+                if region_name not in region_name_seen:
+                    region_name_seen.add(region_name)
+                    region_names.append(region_name)
+            region_infos = region_repo.get_region_by_region_names(region_names) if region_names else []
+            for region in region_infos:
+                region_info = {"region_name": region.region_name, "region_alias": region.region_alias}
+                for tenant_id, tenant_region_names in region_names_by_tenant.items():
+                    if region.region_name in tenant_region_names:
+                        regions_by_tenant[tenant_id].append(region_info.copy())
+
+        service_counts = {
+            row["tenant_id"]: row["total"]
+            for row in TenantServiceInfo.objects.filter(
+                tenant_id__in=tenant_ids).values("tenant_id").annotate(total=Count("ID"))
+        }
+        app_counts = {
+            row["tenant_id"]: row["total"]
+            for row in ServiceGroup.objects.filter(
+                tenant_id__in=tenant_ids).values("tenant_id").annotate(total=Count("ID"))
         }
 
-        if request_user:
-            user_role_list = user_kind_role_service.get_user_roles(kind="team", kind_id=tenant.tenant_id, user=request_user)
-            roles = [x["role_name"] for x in user_role_list["roles"]]
-            if tenant.creater == request_user.user_id:
-                roles.append("owner")
-            info["roles"] = roles
-
-        if get_region:
-            region_info_map = []
-            region_name_list = team_repo.get_team_region_names(tenant.tenant_id)
-            if region_name_list:
-                region_infos = region_repo.get_region_by_region_names(region_name_list)
-                if region_infos:
-                    for region in region_infos:
-                        region_info_map.append({"region_name": region.region_name, "region_alias": region.region_alias})
-            info["region"] = region_info_map[0]["region_name"] if len(region_info_map) > 0 else ""
-            info["region_list"] = region_info_map
-        service_reps = TenantServiceInfoRepository()
-        service_count = service_reps.get_tenant_services_count(tenant.tenant_id)
-        app_count = group_repo.get_tenant_groups_count(tenant.tenant_id)
-        info["app_count"] = app_count
-        info["service_count"] = service_count
-        return info
+        result = []
+        for tenant in tenants:
+            info = {
+                "team_name": tenant.tenant_name,
+                "team_alias": tenant.tenant_alias,
+                "team_id": tenant.tenant_id,
+                "create_time": tenant.create_time,
+                "enterprise_id": tenant.enterprise_id,
+                "owner": tenant.creater,
+                "owner_name": owner_names.get(tenant.creater),
+                "logo": tenant.logo,
+            }
+            if request_user:
+                roles = list(roles_by_tenant.get(tenant.tenant_id, []))
+                if tenant.creater == request_user.user_id:
+                    roles.append("owner")
+                info["roles"] = roles
+            if get_region:
+                region_list = regions_by_tenant.get(tenant.tenant_id, [])
+                info["region"] = region_list[0]["region_name"] if region_list else ""
+                info["region_list"] = region_list
+            info["app_count"] = app_counts.get(tenant.tenant_id, 0)
+            info["service_count"] = service_counts.get(tenant.tenant_id, 0)
+            result.append(info)
+        return result
 
     def get_teams_region_by_user_id(self, enterprise_id: str, user: Users, name: Optional[str] = None,
                                     get_region: bool = True, use_region: bool = False) -> list:
@@ -613,8 +670,8 @@ class TeamService(object):
         tenants = enterprise_repo.get_enterprise_user_teams(
             enterprise_id, user.user_id, name)  # type: ignore[arg-type]
         if tenants:
-            for tenant in tenants:
-                team = self.team_with_region_info(tenant, user, get_region=get_region)
+            tenant_list = list(tenants)
+            for team in self.teams_with_region_info(tenant_list, user, get_region=get_region):
                 if not team.get("region_list"):
                     teams_list_no_region.append(team)
                 else:
@@ -632,9 +689,7 @@ class TeamService(object):
         user_id = user.user_id if user else ""
         # NOTE: user_id is int|str; get_user_notjoin_teams annotates user_id as str (sig mismatch).
         nojoin_teams = team_repo.get_user_notjoin_teams(enterprise_id, user_id, name)  # type: ignore[arg-type]
-        for nojoin_team in nojoin_teams:
-            team = self.team_with_region_info(nojoin_team, get_region=False)
-            teams.append(team)
+        teams.extend(self.teams_with_region_info(nojoin_teams, get_region=False))
         return teams
 
     def check_and_get_user_team_by_name_and_region(self, user_id: str, tenant_name: str,

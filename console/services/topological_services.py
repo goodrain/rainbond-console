@@ -157,9 +157,14 @@ class TopologicalService(object):
             dynamic_services_info = region_api.get_dynamic_services_pods(region, team_name,
                                                                          [service.service_id for service in service_list])
             dynamic_services_list = dynamic_services_info["list"]  # type: ignore[index]  # NOTE: region_api returns Any, may be None on error
+            dynamic_services_list = dynamic_services_list or []
         except Exception as e:
             logger.exception(e)
             dynamic_services_list = []
+        dynamic_service_counts: Dict[str, int] = {}
+        for dynamic_service in dynamic_services_list:
+            service_id = dynamic_service["service_id"]
+            dynamic_service_counts[service_id] = dynamic_service_counts.get(service_id, 0) + 1
         region_app_id = region_app_repo.get_region_app_id(region, group_id)
         watch_managed_data = base_service.get_watch_managed(region, team_name, region_app_id)
         deployments = watch_managed_data.get("deployments", [])
@@ -195,12 +200,14 @@ class TopologicalService(object):
         service_dict = dict()
         for service in services:
             service_dict[service.get("name")] = service.get("relation", [])
+        component_ports = TenantServicesPort.objects.filter(service_id__in=all_service_id_list)
+        outer_port_map: Dict[str, bool] = {}
+        for component_port in component_ports:
+            outer_port_map[component_port.service_id] = (
+                outer_port_map.get(component_port.service_id, False) or component_port.is_outer_service)
         for service_info in service_list:
-            node_num = 0
             if dynamic_services_list:
-                for dynamic_service in dynamic_services_list:
-                    if dynamic_service["service_id"] == service_info.service_id:
-                        node_num += 1
+                node_num = dynamic_service_counts.get(service_info.service_id, 0)
             else:
                 node_num = service_info.min_node
             app = component_rels.get(service_info.service_id)
@@ -247,13 +254,7 @@ class TopologicalService(object):
             if json_data[service_info.service_id]["service_source"] == "third_party":
                 json_data[service_info.service_id]['cur_status'] = "third_party"
 
-            # 查询是否打开对外组件端口
-            port_list = TenantServicesPort.objects.filter(service_id=service_info.service_id)
-            # 判断组件是否有对外端口
-            outer_port_exist = False
-            if len(port_list) > 0:
-                outer_port_exist = reduce(lambda x, y: x or y, [t.is_outer_service for t in list(port_list)])
-            json_data[service_info.service_id]['is_internet'] = outer_port_exist
+            json_data[service_info.service_id]['is_internet'] = outer_port_map.get(service_info.service_id, False)
 
         for service_relation in service_relation_list:
             tmp_id = service_relation.service_id

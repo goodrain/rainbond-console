@@ -228,8 +228,7 @@ class EnterpriseOverview(JWTAuthApiView):
 
 class EnterpriseTeamNames(JWTAuthApiView):
     def get(self, request: Request, enterprise_id: str, *args: Any, **kwargs: Any) -> Response:
-        tenants = Tenants.objects.filter()
-        tenant_namespaces = [tenant.namespace for tenant in tenants]
+        tenant_namespaces = list(Tenants.objects.values_list("namespace", flat=True))
         data = {"tenant_names": tenant_namespaces}
         result = general_message(200, "success", None, bean=data)
         return Response(result, status=status.HTTP_200_OK)
