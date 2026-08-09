@@ -62,7 +62,7 @@ class TeamRepo(object):
             PermRelTenant.objects.filter(enterprise_id=enterprise.ID, user_id=user_id).values_list("tenant_id",
                                                                                                    flat=True).order_by("-ID"))
         tenant_ids = list(dict.fromkeys(tenant_ids))
-        filters = {"ID__in": tenant_ids}
+        filters: dict[str, Any] = {"ID__in": tenant_ids}
         if name:
             filters["tenant_alias__contains"] = name
         tenants_by_id = {tenant.ID: tenant for tenant in Tenants.objects.filter(**filters)}
