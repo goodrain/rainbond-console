@@ -2,6 +2,7 @@
 import collections
 import os
 import sys
+import threading
 from types import ModuleType, SimpleNamespace
 from unittest import TestCase, mock
 try:
@@ -620,6 +621,109 @@ class RegistryNamespaceServiceTestCase(TestCase):
 
         self.assertEqual([image["name"] for image in data["images"]], ["console"])
         self.assertEqual(data["total"], 1)
+
+    def test_get_docker_images_fetches_page_metadata_concurrently(self):
+        repositories = ["image-{}".format(index) for index in range(20)]
+        catalog_response = mock.Mock(status_code=200, headers={})
+        metadata_barrier = threading.Barrier(len(repositories))
+
+        def get_metadata(base_url, repo_name, username, password):
+            metadata_barrier.wait(timeout=2)
+            return {
+                "created_at": "created-{}".format(repo_name),
+                "updated_at": "updated-{}".format(repo_name),
+            }
+
+        with mock.patch.object(
+                team_services,
+                "_get_registry_v2_catalog",
+                return_value=(repositories, catalog_response)), \
+                mock.patch.object(
+                    team_services,
+                    "_get_registry_image_metadata",
+                    side_effect=get_metadata,
+                    create=True) as metadata_mock, \
+                mock.patch.object(team_services, "_registry_v2_get") as registry_get:
+            data = team_services.get_registry_images(
+                domain="https://registry.example.com",
+                username="demo-user",
+                password="demo-password",
+                hub_type="Docker",
+                namespace="library",
+                page=1,
+                page_size=len(repositories),
+            )
+
+        self.assertEqual(metadata_mock.call_count, len(repositories))
+        registry_get.assert_not_called()
+        self.assertEqual([image["name"] for image in data["images"]], repositories)
+        self.assertEqual(
+            [image["created_at"] for image in data["images"]],
+            ["created-{}".format(repository) for repository in repositories],
+        )
+
+    def test_registry_image_metadata_reuses_http_session(self):
+        session = mock.MagicMock()
+        session.__enter__.return_value = session
+        tags_response = mock.Mock(status_code=200)
+        tags_response.json.return_value = {"tags": ["latest"]}
+        tag_info = {"updated_at": "2026-08-09T12:00:00Z"}
+
+        with mock.patch("console.services.team_services.requests.Session", return_value=session) as session_factory, \
+                mock.patch.object(team_services, "_registry_v2_get", return_value=tags_response) as registry_get, \
+                mock.patch.object(team_services, "_get_registry_tag_info", return_value=tag_info) as get_tag_info:
+            metadata = team_services._get_registry_image_metadata(
+                "https://registry.example.com", "library/nginx", "user", "password")
+
+        session_factory.assert_called_once_with()
+        self.assertIs(registry_get.call_args.kwargs["session"], session)
+        self.assertIs(
+            registry_get.call_args.kwargs["bearer_token_cache"],
+            get_tag_info.call_args.kwargs["bearer_token_cache"],
+        )
+        self.assertEqual(metadata["updated_at"], tag_info["updated_at"])
+
+    def test_registry_v2_get_reuses_cached_bearer_token(self):
+        challenge = mock.Mock(
+            status_code=401,
+            headers={
+                "WWW-Authenticate": (
+                    'Bearer realm="https://registry.example.com/service/token",'
+                    'service="registry.example.com",'
+                    'scope="repository:library/nginx:pull"'
+                )
+            },
+        )
+        token_response = mock.Mock(status_code=200)
+        token_response.json.return_value = {"token": "registry-token"}
+        first_response = mock.Mock(status_code=200)
+        second_response = mock.Mock(status_code=200)
+        session = mock.Mock()
+        session.get.side_effect = [challenge, token_response, first_response, second_response]
+        bearer_token_cache = {}
+
+        first_result = team_services._registry_v2_get(
+            "https://registry.example.com/v2/library/nginx/tags/list",
+            "user",
+            "password",
+            session=session,
+            bearer_token_cache=bearer_token_cache,
+        )
+        second_result = team_services._registry_v2_get(
+            "https://registry.example.com/v2/library/nginx/manifests/latest",
+            "user",
+            "password",
+            session=session,
+            bearer_token_cache=bearer_token_cache,
+        )
+
+        self.assertIs(first_result, first_response)
+        self.assertIs(second_result, second_response)
+        self.assertEqual(session.get.call_count, 4)
+        self.assertEqual(
+            session.get.call_args_list[-1].kwargs["headers"]["Authorization"],
+            "Bearer registry-token",
+        )
 
     def test_get_docker_namespaces_rejects_cross_origin_catalog_link(self):
         response = mock.Mock(
