@@ -7,7 +7,7 @@ import random
 import re
 import string
 from typing import Any, Dict, List, NoReturn, Optional, Tuple
-from urllib.parse import urlparse, quote
+from urllib.parse import quote, urljoin, urlparse
 
 import requests  # type: ignore[import-untyped]
 from django.db.models import QuerySet
@@ -943,6 +943,67 @@ class TeamService(object):
             timeout=10,
         )
 
+    def _registry_url_origin(self, url: str) -> Tuple[str, str, Optional[int]]:
+        parsed_url = urlparse(url)
+        try:
+            port = parsed_url.port
+        except ValueError:
+            port = None
+        if port is None:
+            port = 443 if parsed_url.scheme.lower() == "https" else 80
+        return parsed_url.scheme.lower(), (parsed_url.hostname or "").lower(), port
+
+    def _registry_catalog_next_url(self, current_url: str, response: Any) -> Optional[str]:
+        link_header = response.headers.get("Link")
+        if not link_header:
+            return None
+
+        next_link = None
+        for link in requests.utils.parse_header_links(link_header):
+            if link.get("rel") == "next":
+                next_link = link.get("url")
+                break
+        if not next_link:
+            return None
+
+        next_url = urljoin(current_url, next_link)
+        parsed_next_url = urlparse(next_url)
+        if (parsed_next_url.username or parsed_next_url.password
+                or self._registry_url_origin(next_url) != self._registry_url_origin(current_url)):
+            raise ServiceHandleException(
+                msg="invalid registry catalog pagination link",
+                msg_show="镜像仓库返回了无效的分页地址",
+                status_code=502,
+            )
+        return next_url
+
+    def _get_registry_v2_catalog(self, base_url: str, username: str, password: str) -> Tuple[List[str], Any]:
+        current_url: Optional[str] = "{}/v2/_catalog".format(base_url)
+        repositories: List[str] = []
+        seen_repositories = set()
+        visited_urls = set()
+        response = None
+
+        while current_url:
+            if current_url in visited_urls:
+                raise ServiceHandleException(
+                    msg="invalid registry catalog pagination link",
+                    msg_show="镜像仓库返回了无效的分页地址",
+                    status_code=502,
+                )
+            visited_urls.add(current_url)
+
+            response = self._registry_v2_get(current_url, username, password)
+            if response.status_code != 200:
+                return repositories, response
+            for repository in response.json().get("repositories", []) or []:
+                if repository not in seen_repositories:
+                    seen_repositories.add(repository)
+                    repositories.append(repository)
+            current_url = self._registry_catalog_next_url(current_url, response)
+
+        return repositories, response
+
     def _registry_base_url(self, domain: str) -> str:
         parsed_url = urlparse(domain)
         if not parsed_url.scheme or not parsed_url.netloc:
@@ -1677,7 +1738,7 @@ class TeamService(object):
         return True
 
     def _get_registry_v2_namespaces(self, base_url: str, username: str, password: str) -> List[str]:
-        response = self._registry_v2_get("{}/v2/_catalog".format(base_url), username, password)
+        repositories, response = self._get_registry_v2_catalog(base_url, username, password)
         if response.status_code != 200:
             detail = self._registry_error_detail(response)
             logger.warning("failed to get registry namespaces %s, %s", base_url, detail)
@@ -1685,7 +1746,6 @@ class TeamService(object):
                 msg="failed to get registry namespaces, {}".format(detail),
                 msg_show="获取镜像仓库命名空间失败({})".format(detail),
                 status_code=response.status_code)
-        repositories = response.json().get("repositories", [])
         namespaces = set()
         for repo in repositories:
             if "/" in repo:
@@ -1696,7 +1756,7 @@ class TeamService(object):
 
     def _get_registry_v2_images(self, base_url: str, username: str, password: str, hub_type: str, namespace: str,
                                 page: int = 1, page_size: int = 10, search_key: Optional[str] = None) -> Dict[str, Any]:
-        response = self._registry_v2_get("{}/v2/_catalog".format(base_url), username, password)
+        repositories, response = self._get_registry_v2_catalog(base_url, username, password)
         if response.status_code != 200:
             detail = self._registry_error_detail(response)
             logger.warning("failed to get registry images %s, hub_type=%s, %s", base_url, hub_type, detail)
@@ -1704,7 +1764,6 @@ class TeamService(object):
                 msg="failed to get registry images, {}".format(detail),
                 msg_show="获取镜像列表失败({})".format(detail),
                 status_code=response.status_code)
-        repositories = response.json().get("repositories", [])
         if namespace == "library":
             filtered_repos = [repo for repo in repositories if "/" not in repo]
         else:
@@ -1859,9 +1918,8 @@ class TeamService(object):
                         return namespaces
                 else:
                     # 自建 Docker Registry API v2
-                    response = self._registry_v2_get("{}/v2/_catalog".format(base_url), username, password)
+                    repositories, response = self._get_registry_v2_catalog(base_url, username, password)
                     if response.status_code == 200:
-                        repositories = response.json().get("repositories", [])
                         # 提取命名空间（取第一个/之前的部分作为命名空间）
                         namespace_set = set()
                         for repo in repositories:
@@ -2009,9 +2067,8 @@ class TeamService(object):
                         }
                 else:
                     # 自建 Docker Registry API v2
-                    response = self._registry_v2_get("{}/v2/_catalog".format(base_url), username, password)
+                    repositories, response = self._get_registry_v2_catalog(base_url, username, password)
                     if response.status_code == 200:
-                        repositories = response.json().get("repositories", [])
                         # 过滤指定命名空间的镜像
                         if namespace == "library":
                             filtered_repos = [r for r in repositories if "/" not in r]
