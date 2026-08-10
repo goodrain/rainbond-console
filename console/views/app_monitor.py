@@ -208,7 +208,7 @@ class BatchAppMonitorQueryView(RegionTenantHeaderView):
         response_data = response_body["data"]["result"]  # type: ignore[index]
         throughput_data = throughput_body["data"]["result"]  # type: ignore[index]
 
-        throughput_by_key = {}
+        throughput_by_key: dict[str, list[Any]] = {}
         for throughput in throughput_data:
             metric = throughput["metric"]
             union_key = metric["client"] + "+" + metric["service_id"]

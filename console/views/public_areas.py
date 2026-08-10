@@ -34,7 +34,7 @@ region_api = RegionInvokeApi()
 logger = logging.getLogger('default')
 
 
-def _get_group_service_ids(team_id: str, region_name: str, group_ids: Any) -> dict:
+def _get_group_service_ids(team_id: str, region_name: str, group_ids: Any) -> dict[int, list[str]]:
     if not group_ids:
         return {}
     service_ids = list(TenantServiceInfo.objects.filter(
@@ -49,7 +49,7 @@ def _get_group_service_ids(team_id: str, region_name: str, group_ids: Any) -> di
         group_id__in=group_ids,
         service_id__in=service_ids,
     ).values("group_id", "service_id")
-    result = {}
+    result: dict[int, list[str]] = {}
     for relation in relations:
         result.setdefault(relation["group_id"], []).append(relation["service_id"])
     return result

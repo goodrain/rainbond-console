@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import base64
+from concurrent.futures import ThreadPoolExecutor
 import json
 import logging
 import os
@@ -46,6 +47,7 @@ region_api = RegionInvokeApi()
 class TeamService(object):
     USER_REGISTRY_SCOPE = "user"
     ENTERPRISE_REGISTRY_SCOPE = "enterprise"
+    REGISTRY_METADATA_MAX_WORKERS = 20
     SUPPORTED_REGISTRY_HUB_TYPES = (
         "Docker", "Harbor", "AliyunACR", "TencentTCR", "HuaweiSWR", "VolcanoCR")
     LEGACY_REGISTRY_HUB_TYPE_ALIASES = {
@@ -890,7 +892,8 @@ class TeamService(object):
         challenge = header[len("Bearer "):]
         return dict((key, value) for key, value in re.findall(r'(\w+)="([^"]*)"', challenge))
 
-    def _get_registry_bearer_token(self, challenge: Dict[str, str], username: str, password: str) -> Optional[str]:
+    def _get_registry_bearer_token(self, challenge: Dict[str, str], username: str, password: str,
+                                   session: Optional[Any] = None) -> Optional[str]:
         realm = challenge.get("realm")
         if not realm:
             return None
@@ -899,7 +902,8 @@ class TeamService(object):
             params["service"] = challenge["service"]
         if challenge.get("scope"):
             params["scope"] = challenge["scope"]
-        response = requests.get(
+        requester = session or requests
+        response = requester.get(
             realm,
             params=params,
             auth=(username, password),
@@ -916,11 +920,16 @@ class TeamService(object):
         data = response.json()
         return data.get("token") or data.get("access_token")
 
-    def _registry_v2_get(self, url: str, username: str, password: str, headers: Optional[Dict[str, str]] = None) -> Any:
+    def _registry_v2_get(self, url: str, username: str, password: str, headers: Optional[Dict[str, str]] = None,
+                         session: Optional[Any] = None,
+                         bearer_token_cache: Optional[Dict[str, str]] = None) -> Any:
         request_headers = self._registry_v2_headers(username, password)
         if headers:
             request_headers.update(headers)
-        response = requests.get(
+        if bearer_token_cache is not None and bearer_token_cache.get("token"):
+            request_headers["Authorization"] = "Bearer {}".format(bearer_token_cache["token"])
+        requester = session or requests
+        response = requester.get(
             url,
             headers=request_headers,
             verify=False,
@@ -931,12 +940,14 @@ class TeamService(object):
         challenge = self._parse_registry_bearer_challenge(response.headers.get("WWW-Authenticate"))
         if not challenge:
             return response
-        token = self._get_registry_bearer_token(challenge, username, password)
+        token = self._get_registry_bearer_token(challenge, username, password, session=session)
         if not token:
             return response
+        if bearer_token_cache is not None:
+            bearer_token_cache["token"] = token
         bearer_headers = dict(request_headers)
         bearer_headers["Authorization"] = "Bearer {}".format(token)
-        return requests.get(
+        return requester.get(
             url,
             headers=bearer_headers,
             verify=False,
@@ -1787,6 +1798,45 @@ class TeamService(object):
         } for repo in filtered_repos[start:end]]
         return {"images": images, "total": total, "page": page, "page_size": page_size}
 
+    def _get_registry_image_metadata(self, base_url: str, repo_name: str, username: str,
+                                     password: str) -> Dict[str, str]:
+        bearer_token_cache: Dict[str, str] = {}
+        with requests.Session() as session:
+            tags_url = "{}/v2/{}/tags/list".format(base_url, repo_name)
+            tags_response = self._registry_v2_get(
+                tags_url,
+                username,
+                password,
+                session=session,
+                bearer_token_cache=bearer_token_cache,
+            )
+            if tags_response.status_code == 200:
+                tags = tags_response.json().get("tags", []) or []
+                if tags:
+                    tag_info = self._get_registry_tag_info(
+                        base_url,
+                        repo_name,
+                        tags[0],
+                        username,
+                        password,
+                        session=session,
+                        bearer_token_cache=bearer_token_cache,
+                    )
+                    updated_at = tag_info["updated_at"]
+                    return {"created_at": updated_at, "updated_at": updated_at}
+        return {"created_at": "", "updated_at": ""}
+
+    def _get_registry_images_metadata(self, base_url: str, repo_names: List[str], username: str,
+                                      password: str) -> List[Dict[str, str]]:
+        if not repo_names:
+            return []
+        max_workers = min(self.REGISTRY_METADATA_MAX_WORKERS, len(repo_names))
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            return list(executor.map(
+                lambda repo_name: self._get_registry_image_metadata(base_url, repo_name, username, password),
+                repo_names,
+            ))
+
     def _registry_tag_info_to_payload(self, tag: str, tag_info: Dict[str, Any]) -> Dict[str, Any]:
         created_at = tag_info.get("created_at") or tag_info.get("updated_at") or ""
         updated_at = tag_info.get("updated_at") or created_at
@@ -2083,22 +2133,15 @@ class TeamService(object):
                         start = (page - 1) * page_size
                         end = start + page_size
                         paginated_repos = filtered_repos[start:end]
-                        
+                        repo_names = [
+                            repo if namespace == "library" else "{}/{}".format(namespace, repo)
+                            for repo in paginated_repos
+                        ]
+                        metadata = self._get_registry_images_metadata(
+                            base_url, repo_names, username, password)
+
                         images = []
-                        for repo in paginated_repos:
-                            # 获取仓库的标签列表
-                            tags_url = "{}/v2/{}/tags/list".format(base_url, repo if namespace == "library" else f"{namespace}/{repo}")
-                            tags_response = self._registry_v2_get(tags_url, username, password)
-                            updated_at = ""
-                            
-                            if tags_response.status_code == 200:
-                                tags = tags_response.json().get("tags", [])
-                                if tags:
-                                    # 获取最新标签的信息
-                                    repo_name = repo if namespace == "library" else f"{namespace}/{repo}"
-                                    tag_info = self._get_registry_tag_info(base_url, repo_name, tags[0], username, password)
-                                    updated_at = tag_info["updated_at"]
-                            
+                        for repo, repo_metadata in zip(paginated_repos, metadata):
                             images.append({
                                 "name": repo,
                                 "namespace": namespace,
@@ -2106,8 +2149,8 @@ class TeamService(object):
                                 "is_public": True,
                                 "pull_count": 0,
                                 "star_count": 0,
-                                "created_at": updated_at,
-                                "updated_at": updated_at,
+                                "created_at": repo_metadata["created_at"],
+                                "updated_at": repo_metadata["updated_at"],
                                 "status": "active",
                                 "registry_type": "Docker"
                             })
@@ -2321,7 +2364,8 @@ class TeamService(object):
                 status_code=500)
 
     def _get_registry_tag_info(self, base_url: str, repo_name: str, tag_name: str,
-                               username: str, password: str) -> dict:
+                               username: str, password: str, session: Optional[Any] = None,
+                               bearer_token_cache: Optional[Dict[str, str]] = None) -> dict:
         """获取 Docker Registry 标签的详细信息
         
         Args:
@@ -2340,7 +2384,9 @@ class TeamService(object):
                 manifest_url,
                 username,
                 password,
-                {"Accept": ", ".join(self.REGISTRY_MANIFEST_ACCEPT_TYPES)}
+                {"Accept": ", ".join(self.REGISTRY_MANIFEST_ACCEPT_TYPES)},
+                session=session,
+                bearer_token_cache=bearer_token_cache,
             )
             
             if manifest_response.status_code == 200:
@@ -2363,7 +2409,13 @@ class TeamService(object):
 
                 if config_digest:
                     config_url = "{}/v2/{}/blobs/{}".format(base_url, repo_name, config_digest)
-                    config_response = self._registry_v2_get(config_url, username, password)
+                    config_response = self._registry_v2_get(
+                        config_url,
+                        username,
+                        password,
+                        session=session,
+                        bearer_token_cache=bearer_token_cache,
+                    )
                     if config_response.status_code == 200:
                         config = config_response.json()
                         return {
