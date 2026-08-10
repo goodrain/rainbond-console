@@ -2,6 +2,7 @@
 import collections
 import json
 import os
+import socket
 import sys
 from types import ModuleType
 from unittest import TestCase, mock
@@ -27,6 +28,69 @@ from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient  # noqa: E
 
 
 class RegionApiBaseHttpClientTestCase(TestCase):
+    def test_timed_client_request_records_success(self):
+        client = RegionApiBaseHttpClient()
+        transport = mock.Mock()
+        transport.request.return_value = mock.Mock(status=200)
+        url = "https://rbd-api-api:8443/v2/cluster/nodes?label=worker"
+
+        with mock.patch("www.apiclient.regionapibaseclient.time.monotonic", side_effect=[10.0, 10.25]), \
+                mock.patch("www.apiclient.regionapibaseclient.record_region_call") as record_region_call:
+            response = client._timed_client_request(transport, url, "GET", headers={})
+
+        self.assertEqual(response.status, 200)
+        transport.request.assert_called_once_with(url=url, method="GET", headers={})
+        record_region_call.assert_called_once_with("GET", url, 200, 250.0)
+
+    def test_timed_client_request_records_error_without_swallowing_it(self):
+        client = RegionApiBaseHttpClient()
+        transport = mock.Mock()
+        transport.request.side_effect = socket.timeout("boom")
+        url = "https://rbd-api-api:8443/v2/cluster/nodes"
+
+        with mock.patch("www.apiclient.regionapibaseclient.time.monotonic", side_effect=[10.0, 10.1]), \
+                mock.patch("www.apiclient.regionapibaseclient.record_region_call") as record_region_call, \
+                self.assertRaises(socket.timeout):
+            client._timed_client_request(transport, url, "GET", headers={})
+
+        record_region_call.assert_called_once_with("GET", url, "error", 100.0)
+
+    def test_create_client_suppresses_insecure_request_warning_when_ssl_verification_is_disabled(self):
+        client = RegionApiBaseHttpClient()
+        configuration = mock.Mock(
+            verify_ssl=False,
+            ssl_ca_cert=None,
+            cert_file=None,
+            key_file=None,
+            assert_hostname=None,
+            connection_pool_maxsize=4,
+            proxy=None,
+        )
+
+        with mock.patch("www.apiclient.regionapibaseclient.urllib3.disable_warnings") as disable_warnings, \
+                mock.patch("www.apiclient.regionapibaseclient.urllib3.PoolManager"):
+            client.create_client(configuration)
+
+        disable_warnings.assert_called_once_with(urllib3.exceptions.InsecureRequestWarning)
+
+    def test_create_client_keeps_tls_warnings_when_ssl_verification_is_enabled(self):
+        client = RegionApiBaseHttpClient()
+        configuration = mock.Mock(
+            verify_ssl=True,
+            ssl_ca_cert=None,
+            cert_file=None,
+            key_file=None,
+            assert_hostname=None,
+            connection_pool_maxsize=4,
+            proxy=None,
+        )
+
+        with mock.patch("www.apiclient.regionapibaseclient.urllib3.disable_warnings") as disable_warnings, \
+                mock.patch("www.apiclient.regionapibaseclient.urllib3.PoolManager"):
+            client.create_client(configuration)
+
+        disable_warnings.assert_not_called()
+
     # capability_id: console.region-api.helm-resource-conflict-msg
     def test_check_status_translates_helm_ownership_conflict_to_actionable_msg_show(self):
         client = RegionApiBaseHttpClient()
