@@ -234,6 +234,54 @@ class AppManageStartErrorTests(TestCase):
         self.assertEqual(409, code)
         self.assertEqual("当前虚拟机不满足热更新条件，请停机后再修改规格。", msg)
 
+    def test_vertical_upgrade_allows_memory_above_64g(self):
+        tenant = mock.Mock(creater="creator", enterprise_id="eid", tenant_name="demo-team")
+        user = mock.Mock(nick_name="tester")
+        service = mock.Mock(
+            min_memory=4096,
+            service_region="demo-region",
+            service_alias="demo-service",
+            create_status="complete",
+            container_gpu=0,
+        )
+
+        with mock.patch.object(app_manage_module, "check_account_quota", return_value=True), \
+                mock.patch.object(app_manage_module.region_api, "vertical_upgrade") as vertical_upgrade:
+            code, msg = app_manage_module.AppManageService().vertical_upgrade(
+                tenant,
+                service,
+                user,
+                131072,
+                oauth_instance=None,
+                new_cpu=8000,
+            )
+
+        self.assertEqual(200, code)
+        self.assertEqual("操作成功", msg)
+        self.assertEqual(131072, service.min_memory)
+        service.save.assert_called_once()
+        body = vertical_upgrade.call_args[0][3]
+        self.assertEqual(131072, body["container_memory"])
+
+    def test_vertical_upgrade_rejects_negative_memory_without_obsolete_upper_bound_message(self):
+        tenant = mock.Mock()
+        service = mock.Mock()
+        user = mock.Mock()
+
+        with mock.patch.object(app_manage_module.region_api, "vertical_upgrade") as vertical_upgrade:
+            code, msg = app_manage_module.AppManageService().vertical_upgrade(
+                tenant,
+                service,
+                user,
+                -1,
+                oauth_instance=None,
+            )
+
+        self.assertEqual(400, code)
+        self.assertEqual("内存不能小于0M", msg)
+        service.save.assert_not_called()
+        vertical_upgrade.assert_not_called()
+
 
 class AppManageBatchActionDeployEventTests(DjangoTestCase):
 
