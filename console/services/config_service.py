@@ -34,8 +34,12 @@ class ConfigService(object):
     def initialization_or_get_config(self) -> Dict[str, Any]:
         self.init_base_config_value()
         rst_datas: Dict[str, Any] = {}
+        config_keys = list(dict.fromkeys(self.base_cfg_keys + self.cfg_keys))
+        configs_by_key = {
+            config.key: config for config in ConsoleSysConfig.objects.filter(key__in=config_keys)
+        }
         for key in self.base_cfg_keys:
-            tar_key = self.get_config_by_key(key)
+            tar_key = configs_by_key.get(key)
             if not tar_key:
                 enable = self.base_cfg_keys_value[key]["enable"]
                 value = self.base_cfg_keys_value[key]["value"]
@@ -44,6 +48,7 @@ class ConfigService(object):
                 if isinstance(value, (dict, list)):
                     config_type = "json"
                 rst_key = self.add_config(key=key, default_value=value, type=config_type, enable=enable, desc=desc)
+                configs_by_key[key] = rst_key
 
                 value = rst_key.value
                 enable = rst_key.enable
@@ -59,7 +64,7 @@ class ConfigService(object):
                 rst_datas[key.lower()] = {"enable": tar_key.enable, "value": self.base_cfg_keys_value[key]["value"]}
 
         for key in self.cfg_keys:
-            tar_key = self.get_config_by_key(key)
+            tar_key = configs_by_key.get(key)
             if not tar_key:
                 enable = self.cfg_keys_value[key]["enable"]
                 value = self.cfg_keys_value[key]["value"]
@@ -68,6 +73,7 @@ class ConfigService(object):
                 if isinstance(value, (dict, list)):
                     config_type = "json"
                 rst_key = self.add_config(key=key, default_value=value, type=config_type, enable=enable, desc=desc)
+                configs_by_key[key] = rst_key
 
                 value = rst_key.value
                 enable = rst_key.enable

@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 import logging
+import threading
+import time
 from typing import Any, Dict, List, Optional
 
 from django.db import transaction
@@ -17,12 +19,33 @@ logger = logging.getLogger('default')
 
 
 class PermsRepo(object):
-    @transaction.atomic
+    permission_settings_check_interval = 60
+
+    def __init__(self) -> None:
+        self._permission_settings_lock = threading.Lock()
+        self._permission_settings_checked_at = 0.0
+
     def initialize_permission_settings(self) -> None:
         """判断有没有初始化权限数据，没有则初始化"""
+        now = time.monotonic()
+        if (self._permission_settings_checked_at and
+                now - self._permission_settings_checked_at < self.permission_settings_check_interval):
+            return
+        with self._permission_settings_lock:
+            now = time.monotonic()
+            if (self._permission_settings_checked_at and
+                    now - self._permission_settings_checked_at < self.permission_settings_check_interval):
+                return
+            self._sync_permission_settings()
+            self._permission_settings_checked_at = now
+
+    @transaction.atomic
+    def _sync_permission_settings(self) -> None:
         all_perms_list = get_perms_metadata()
         has_perms = PermsInfo.objects.all()
         has_perms_list = list(has_perms.values_list("name", "desc", "code", "group", "kind"))
+        all_perms_list.sort(key=lambda perm: perm[2])
+        has_perms_list.sort(key=lambda perm: perm[2])
         if all_perms_list != has_perms_list:
             has_perms.delete()
             perms_list = []

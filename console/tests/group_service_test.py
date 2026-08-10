@@ -203,6 +203,174 @@ class GroupServiceAppDetailPodCountTests(TestCase):
         get_dynamic_pods.assert_not_called()
 
 
+class GroupServiceAppResourcePerformanceTests(TestCase):
+
+    def test_get_app_resource_batches_component_status_and_cross_app_dependencies(self):
+        tenant = Obj(tenant_id="tenant-id", tenant_name="tenant-name", enterprise_id="enterprise-id")
+        services = [
+            Obj(service_id="service-a", service_alias="alias-a", service_cname="A", service_region="rainbond",
+                create_status="complete"),
+            Obj(service_id="service-b", service_alias="alias-b", service_cname="B", service_region="rainbond",
+                create_status="complete"),
+            Obj(service_id="service-c", service_alias="alias-c", service_cname="C", service_region="rainbond",
+                create_status="creating"),
+        ]
+        dependencies = [
+            Obj(service_id="external-service", dep_service_id="service-a"),
+            Obj(service_id="service-b", dep_service_id="service-a"),
+        ]
+        group_relations = [
+            Obj(service_id="service-a", group_id=1),
+            Obj(service_id="service-b", group_id=1),
+            Obj(service_id="service-c", group_id=1),
+            Obj(service_id="external-service", group_id=2),
+        ]
+        status_list = [
+            {"service_id": "service-a", "status": "running"},
+            {"service_id": "service-b", "status": "closed"},
+        ]
+
+        with ExitStack() as stack:
+            stack.enter_context(mock.patch.object(group_service_module.team_repo,
+                                                  "get_team_by_team_id",
+                                                  return_value=tenant))
+            stack.enter_context(mock.patch.object(group_service_module.group_service_relation_repo,
+                                                  "list_serivce_ids_by_app_id",
+                                                  return_value=[service.service_id for service in services]))
+            stack.enter_context(mock.patch.object(group_service_module.service_repo,
+                                                  "get_services_by_service_ids",
+                                                  return_value=services))
+            stack.enter_context(mock.patch.object(group_service, "get_service_volume_by_ids", return_value={}))
+            get_dependencies = stack.enter_context(
+                mock.patch.object(
+                    group_service_module.dep_relation_repo,
+                    "get_dependencies_by_dep_ids",
+                    return_value=dependencies,
+                    create=True,
+                ))
+            group_filter = stack.enter_context(
+                mock.patch.object(
+                    group_service_module.ServiceGroupRelation.objects,
+                    "filter",
+                    return_value=group_relations,
+                ))
+            batch_status = stack.enter_context(
+                mock.patch.object(
+                    group_service_module.region_api,
+                    "service_status",
+                    return_value={"list": status_list},
+                ))
+            single_status = stack.enter_context(
+                mock.patch.object(
+                    group_service_module.region_api,
+                    "check_service_status",
+                    side_effect=[
+                        {"bean": {"cur_status": "running"}},
+                        {"bean": {"cur_status": "closed"}},
+                    ],
+                ))
+            stack.enter_context(mock.patch.object(group_service_module.k8s_resources_repo,
+                                                  "list_by_app_id",
+                                                  return_value=[]))
+            stack.enter_context(mock.patch.object(group_service_module.domain_repo,
+                                                  "get_domains_by_service_ids",
+                                                  return_value=[]))
+            stack.enter_context(mock.patch.object(group_service_module.app_config_group_repo,
+                                                  "list",
+                                                  return_value=[]))
+            stack.enter_context(mock.patch.object(group_service_module.share_repo,
+                                                  "get_app_share_records_by_groupid",
+                                                  return_value=[]))
+
+            result = group_service.get_app_resource("tenant-id", "rainbond", "1")
+
+        self.assertEqual(
+            result["services_info"],
+            [
+                {"service_name": "A", "volume": [], "is_related": True, "status": "running"},
+                {"service_name": "B", "volume": [], "is_related": False, "status": "closed"},
+                {"service_name": "C", "volume": [], "is_related": False, "status": False},
+            ],
+        )
+        batch_status.assert_called_once_with(
+            "rainbond",
+            "tenant-name",
+            {"service_ids": ["service-a", "service-b"], "enterprise_id": "enterprise-id"},
+        )
+        single_status.assert_not_called()
+        get_dependencies.assert_called_once_with(
+            "tenant-id", ["service-a", "service-b", "service-c"])
+        group_filter.assert_called_once_with(
+            tenant_id="tenant-id",
+            service_id__in={"service-a", "service-b", "service-c", "external-service"},
+        )
+
+    def test_app_resource_status_skips_region_when_no_component_is_complete(self):
+        tenant = Obj(tenant_name="tenant-name", enterprise_id="enterprise-id")
+        services = [Obj(service_id="service-a", create_status="creating")]
+
+        with mock.patch.object(group_service_module.region_api, "service_status") as batch_status:
+            result = group_service._get_app_resource_service_statuses(tenant, "rainbond", services)
+
+        self.assertEqual(result, {"service-a": False})
+        batch_status.assert_not_called()
+
+    def test_app_resource_status_keeps_kubeblocks_on_the_single_component_path(self):
+        tenant = Obj(tenant_name="tenant-name", enterprise_id="enterprise-id")
+        services = [
+            Obj(service_id="service-a", create_status="complete", extend_method="stateless_multiple"),
+            Obj(service_id="service-db", create_status="complete", extend_method="kubeblocks_component"),
+        ]
+
+        with mock.patch.object(group_service_module.region_api,
+                               "service_status",
+                               return_value={"list": [{"service_id": "service-a", "status": "running"}]}) as batch_status, \
+                mock.patch.object(group_service, "service_status", return_value="") as single_status:
+            result = group_service._get_app_resource_service_statuses(tenant, "rainbond", services)
+
+        self.assertEqual(result, {"service-a": "running", "service-db": ""})
+        batch_status.assert_called_once_with(
+            "rainbond",
+            "tenant-name",
+            {"service_ids": ["service-a"], "enterprise_id": "enterprise-id"},
+        )
+        single_status.assert_called_once_with(tenant, services[1])
+
+    def test_cross_app_dependency_flags_skip_group_query_when_no_component_is_referenced(self):
+        with mock.patch.object(group_service_module.dep_relation_repo,
+                               "get_dependencies_by_dep_ids",
+                               return_value=[]) as get_dependencies, mock.patch.object(
+                                   group_service_module.ServiceGroupRelation.objects, "filter") as group_filter:
+            result = group_service._get_cross_app_dependency_flags(
+                "tenant-id", ["service-a", "service-b"])
+
+        self.assertEqual(result, {"service-a": False, "service-b": False})
+        get_dependencies.assert_called_once_with("tenant-id", ["service-a", "service-b"])
+        group_filter.assert_not_called()
+
+    def test_app_resource_status_keeps_404_fallback_for_missing_region_component(self):
+        tenant = Obj(tenant_name="tenant-name", enterprise_id="enterprise-id")
+        services = [Obj(service_id="service-a", create_status="complete")]
+        error = group_service_module.region_api.CallApiError(
+            "region", "http://region/services_status", "POST", Obj(status=404), {})
+
+        with mock.patch.object(group_service_module.region_api, "service_status", side_effect=error):
+            result = group_service._get_app_resource_service_statuses(tenant, "rainbond", services)
+
+        self.assertEqual(result, {"service-a": False})
+
+    def test_app_resource_status_keeps_empty_status_fallback_for_non_404_region_errors(self):
+        tenant = Obj(tenant_name="tenant-name", enterprise_id="enterprise-id")
+        services = [Obj(service_id="service-a", create_status="complete")]
+        error = group_service_module.region_api.CallApiError(
+            "region", "http://region/services_status", "POST", Obj(status=500), {})
+
+        with mock.patch.object(group_service_module.region_api, "service_status", side_effect=error):
+            result = group_service._get_app_resource_service_statuses(tenant, "rainbond", services)
+
+        self.assertEqual(result, {"service-a": ""})
+
+
 class RegionApiPodCountTests(TestCase):
 
     def test_get_services_pod_nums_uses_lightweight_endpoint_and_short_timeout(self):
