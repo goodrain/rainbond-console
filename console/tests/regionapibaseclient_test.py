@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import collections
+import io
 import json
 import os
 import socket
@@ -265,6 +266,90 @@ class RegionApiBaseHttpClientTestCase(TestCase):
         self.assertIsInstance(kwargs["timeout"], urllib3.Timeout)
         self.assertIsNone(kwargs["timeout"].connect_timeout)
         self.assertIsNone(kwargs["timeout"].read_timeout)
+
+    def test_plugin_proxy_streams_request_without_buffering_django_body(self):
+        client = RegionApiBaseHttpClient()
+        payload = b"x" * (3 * 1024 * 1024)
+        request_stream = io.BytesIO(payload)
+
+        class StreamingUploadRequest(object):
+            method = "POST"
+            META = {
+                "CONTENT_TYPE": "application/octet-stream",
+                "CONTENT_LENGTH": str(len(payload)),
+            }
+            _request = request_stream
+
+            @property
+            def body(self):
+                raise AssertionError("proxy must not buffer the Django request body")
+
+        region = mock.Mock(url="http://region-api")
+        proxy_client = mock.Mock()
+        proxy_client.request.return_value = mock.Mock(
+            data=b"ok",
+            status=200,
+            headers={},
+            url="http://region-api/v2/platform/backend/plugins/rainbond-ai-engine/api/v1/ai-engine/media",
+        )
+
+        with mock.patch("www.apiclient.regionapibaseclient.region_repo.get_region_by_region_name", return_value=region), \
+                mock.patch.object(client, "get_client", return_value=proxy_client):
+            client.proxy(
+                StreamingUploadRequest(),
+                "/v2/platform/backend/plugins/rainbond-ai-engine/api/v1/ai-engine/media",
+                "rainbond",
+            )
+
+        _, kwargs = proxy_client.request.call_args
+        self.assertIs(kwargs["body"], request_stream)
+        self.assertEqual(kwargs["headers"]["CONTENT-LENGTH"], str(len(payload)))
+
+    def test_stream_proxy_streams_request_without_buffering_django_body(self):
+        client = RegionApiBaseHttpClient()
+        payload = b"video-data"
+        request_stream = io.BytesIO(payload)
+
+        class StreamingUploadRequest(object):
+            method = "POST"
+            META = {
+                "CONTENT_TYPE": "application/octet-stream",
+                "CONTENT_LENGTH": str(len(payload)),
+            }
+            _request = request_stream
+
+            @property
+            def body(self):
+                raise AssertionError("stream proxy must not buffer the Django request body")
+
+        region = mock.Mock(url="http://region-api")
+
+        class MockStreamingResponse(object):
+            status = 200
+            headers = {"Content-Type": "application/json"}
+            url = "http://region-api/v2/platform/backend/plugins/rainbond-ai-engine/api/v1/ai-engine/media"
+
+            def stream(self, _chunk_size, decode_content=False):
+                yield b"{}"
+
+            def release_conn(self):
+                return None
+
+        proxy_client = mock.Mock()
+        proxy_client.request.return_value = MockStreamingResponse()
+
+        with mock.patch("www.apiclient.regionapibaseclient.region_repo.get_region_by_region_name", return_value=region), \
+                mock.patch.object(client, "get_client", return_value=proxy_client):
+            response = client.stream_proxy(
+                StreamingUploadRequest(),
+                "/v2/platform/backend/plugins/rainbond-ai-engine/api/v1/ai-engine/media",
+                "rainbond",
+            )
+            b"".join(response.streaming_content)
+
+        _, kwargs = proxy_client.request.call_args
+        self.assertIs(kwargs["body"], request_stream)
+        self.assertEqual(kwargs["headers"]["CONTENT-LENGTH"], str(len(payload)))
 
     def test_plugin_proxy_preserves_event_stream_responses(self):
         client = RegionApiBaseHttpClient()

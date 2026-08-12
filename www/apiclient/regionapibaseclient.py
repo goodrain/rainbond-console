@@ -450,11 +450,12 @@ class RegionApiBaseHttpClient(object):
         """
         requests_args = (requests_args or {}).copy()
         headers = self.get_headers(request.META)
+        uses_request_stream = 'body' not in requests_args
 
         if 'headers' not in requests_args:
             requests_args['headers'] = {}
-        if 'body' not in requests_args:
-            requests_args['body'] = request.body
+        if uses_request_stream:
+            requests_args['body'] = self._get_request_stream(request)
         if 'fields' not in requests_args:
             requests_args['fields'] = QueryDict('', mutable=True)
         if 'preload_content' not in requests_args:
@@ -464,11 +465,12 @@ class RegionApiBaseHttpClient(object):
         # specified values for the requests library.
         headers.update(requests_args['headers'])
 
-        # If there's a content-length header from Django, it's probably in all-caps
-        # and requests might not notice it, so just remove it.
-        for key in list(headers.keys()):
-            if key.lower() == 'content-length':
-                del headers[key]
+        # The incoming content length remains valid while forwarding the original
+        # request stream. An explicitly replaced body may have a different length.
+        if not uses_request_stream:
+            for key in list(headers.keys()):
+                if key.lower() == 'content-length':
+                    del headers[key]
 
         requests_args['headers'] = headers
 
@@ -559,11 +561,6 @@ class RegionApiBaseHttpClient(object):
         buffers the whole body and uses a fixed 20s timeout, which breaks streaming.
         """
         headers = self.get_headers(request.META)
-        # Django usually upper-cases content-length; drop it and let the length be
-        # recomputed by the upstream / streaming response.
-        for key in list(headers.keys()):
-            if key.lower() == 'content-length':
-                del headers[key]
 
         region = region_repo.get_region_by_region_name(region_name)
         if not region:
@@ -574,7 +571,7 @@ class RegionApiBaseHttpClient(object):
             client,
             method=request.method,
             url="{}{}".format(region.url, url),
-            body=request.body,
+            body=self._get_request_stream(request),
             headers=headers,
             preload_content=False,
             timeout=urllib3.Timeout(connect=30, read=60 * 60),
@@ -620,6 +617,11 @@ class RegionApiBaseHttpClient(object):
         # stream view).
         proxy_response['Content-Encoding'] = 'identity'
         return proxy_response
+
+    @staticmethod
+    def _get_request_stream(request):
+        """Return the unbuffered Django request used by urllib3 as a file body."""
+        return getattr(request, '_request', request)
 
     def get_headers(self, environ):
         """
