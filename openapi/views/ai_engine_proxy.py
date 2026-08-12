@@ -14,7 +14,12 @@ logger = logging.getLogger("default")
 
 
 def build_openai_error_response(message: Any, status_code: int) -> Response:
-    error_type = "authentication_error" if status_code == 401 else "invalid_request_error"
+    if status_code == 401:
+        error_type = "authentication_error"
+    elif status_code >= 500:
+        error_type = "server_error"
+    else:
+        error_type = "invalid_request_error"
     return Response(
         {
             "error": {
