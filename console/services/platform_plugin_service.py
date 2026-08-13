@@ -23,6 +23,7 @@ from console.services.enterprise_first_deploy_service import enterprise_first_de
 from console.services.group_service import group_service
 from console.services.license import license_service
 from console.services.market_app.app_upgrade import AppUpgrade
+from console.services.market_app_preflight_service import market_install_preflight_service
 from console.services.market_app_service import market_app_service
 from console.services.region_services import region_services
 from console.services.team_services import team_services
@@ -672,6 +673,17 @@ class PlatformPluginService(object):
         app_template = json.loads(app_version.app_template)
         app_template["update_time"] = app_version.update_time
         app_template["arch"] = app_version.arch
+
+        preflight = market_install_preflight_service.run(
+            tenant, region, app_template, check_images=False)
+        if preflight.get("should_block"):
+            raise ServiceHandleException(
+                msg="platform plugin preflight blocked",
+                msg_show=preflight.get("summary") or "当前环境不满足平台插件安装条件",
+                status_code=412,
+                error_code=10412,
+                bean=preflight,
+            )
 
         # 7. Create component group and install
         component_group = market_app_service._create_tenant_service_group(

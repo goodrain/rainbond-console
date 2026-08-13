@@ -19,7 +19,9 @@ from console.enum.component_enum import ComponentType
 from console.exception.bcode import (ErrAppConfigGroupExists, ErrK8sServiceNameExists)
 from console.exception.main import (AbortRequest, ErrVolumePath, MarketAppLost, RbdAppNotFound, ServiceHandleException)
 from console.models.main import (AppMarket, AppUpgradeRecord, RainbondCenterApp, RainbondCenterAppVersion, RegionConfig)
-from console.repositories.app import (app_market_repo, app_tag_repo, service_source_repo)
+from console.repositories.app import (PLATFORM_PLUGIN_DEFAULT_URL, PLATFORM_PLUGIN_MARKET_DOMAIN,
+                                      PLATFORM_PLUGIN_MARKET_NAME, app_market_repo, app_tag_repo,
+                                      service_source_repo)
 from console.repositories.app_config import (env_var_repo, extend_repo, port_repo, volume_repo, dep_relation_repo)
 from console.repositories.app_version_repo import app_version_template_relation_repo
 from console.repositories.base import BaseConnection
@@ -40,6 +42,7 @@ from console.services.app_config.service_monitor import service_monitor_repo
 from console.services.app_config_group import app_config_group_service
 from console.services.enterprise_first_deploy_service import enterprise_first_deploy_service
 from console.services.group_service import group_service
+from console.services.license import license_service
 from console.services.market_app.app_upgrade import AppUpgrade
 from console.services.market_app.utils import apply_hostname_remap, collect_install_hostname_remap, resolve_none_placeholders
 from console.services.market_app_preflight_service import market_install_preflight_service
@@ -230,6 +233,9 @@ class MarketAppService(object):
         if install_from_cloud:
             _, market = app_market_service.get_app_market(
                 tenant.enterprise_id, market_name, raise_exception=True)  # type: ignore[arg-type]
+            if market_name == PLATFORM_PLUGIN_MARKET_NAME:
+                market = self._resolve_platform_plugin_install_market(
+                    market, tenant.enterprise_id, region.region_name, app_model_key)
             market_app, app_version = app_market_service.cloud_app_model_to_db_model(
                 market, app_model_key, version, for_install=True)
         else:
@@ -247,6 +253,39 @@ class MarketAppService(object):
         app_template["update_time"] = app_version.update_time
         app_template["arch"] = app_version.arch
         return app_template, market_app
+
+    @staticmethod
+    def _resolve_platform_plugin_install_market(default_market: AppMarket, enterprise_id: str,
+                                                region_name: str, app_model_key: str) -> AppMarket:
+        try:
+            body = license_service.get_license_status(enterprise_id, region_name)
+        except Exception:
+            logger.warning(
+                "failed to get platform plugin license status enterprise_id=%s region_name=%s",
+                enterprise_id,
+                region_name,
+            )
+            return default_market
+
+        if not isinstance(body, dict):
+            return default_market
+        bean = body.get("bean")
+        if not isinstance(bean, dict) or bean.get("valid") is not True:
+            return default_market
+        plugin_mapping = bean.get("plugin_mapping")
+        if not isinstance(plugin_mapping, dict) or app_model_key not in plugin_mapping.values():
+            return default_market
+
+        access_key = bean.get("access_key")
+        if not isinstance(access_key, str) or not access_key.strip():
+            raise ServiceHandleException(msg="no access_key in license", msg_show="授权信息中缺少 access_key")
+        return AppMarket(
+            name=PLATFORM_PLUGIN_MARKET_NAME,
+            url=PLATFORM_PLUGIN_DEFAULT_URL,
+            domain=PLATFORM_PLUGIN_MARKET_DOMAIN,
+            access_key=access_key,
+            enterprise_id=enterprise_id,
+        )
 
     def _create_rbdplugin_if_needed(self, tenant: Tenants, region: RegionConfig, app_template: dict,
                                     app_id: Optional[str] = None) -> None:
