@@ -13,6 +13,8 @@ data
 www/static/www/weavescope-src
 www/migrations
 console/migrations
+!console/schema_migrations/migrations
+!console/schema_migrations/migrations/*.py
 logs/
 static/
 test/

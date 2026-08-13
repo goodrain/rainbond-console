@@ -737,6 +737,9 @@ class ServiceGroupRelation(BaseModel):
 
     class Meta:
         db_table = 'service_group_relation'
+        indexes = [
+            models.Index(fields=['group_id', 'service_id'], name='service_group_rel_grp_svc_idx'),
+        ]
 
     service_id = models.CharField(max_length=32, help_text="组件id")
     group_id = models.IntegerField()
