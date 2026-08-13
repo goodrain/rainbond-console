@@ -295,6 +295,32 @@ class PlatformPluginServiceTests(TestCase):
         call_args = cloud_model.call_args[0]
         self.assertEqual("arm-app-key", call_args[1])
 
+    def test_install_platform_plugin_rejects_missing_region_before_creating_team_or_app(self):
+        market_plugins = [{
+            "plugin_id": "rainbond-agent",
+            "plugin_name": "AI助手",
+            "app_level": "free",
+            "appKeyID": "agent-app-key",
+            "latest_version": "1.0.0",
+            "arch": "amd64",
+        }]
+
+        with mock.patch.object(platform_plugin_service, "_get_license_bean", return_value={}), \
+                mock.patch.object(platform_plugin_service, "_get_market_platform_plugins",
+                                  return_value=(mock.Mock(), market_plugins)), \
+                mock.patch.object(platform_plugin_service, "_get_region_arches", return_value={"amd64"}), \
+                mock.patch.object(platform_plugin_service, "_ensure_plugin_team") as ensure_team, \
+                mock.patch.object(platform_plugin_service, "_ensure_plugin_app") as ensure_app, \
+                mock.patch("console.services.platform_plugin_service.region_repo."
+                           "get_enterprise_region_by_region_name", return_value=None):
+            with self.assertRaises(ServiceHandleException) as context:
+                platform_plugin_service.install_platform_plugin(
+                    "eid", "missing-region", "rainbond-agent", mock.Mock())
+
+        self.assertEqual("集群不存在", context.exception.msg_show)
+        ensure_team.assert_not_called()
+        ensure_app.assert_not_called()
+
     def test_install_platform_plugin_blocks_before_component_mutation_when_preflight_fails(self):
         preflight = {
             "status": "blocked",
@@ -330,7 +356,7 @@ class PlatformPluginServiceTests(TestCase):
                 }])), \
                 mock.patch.object(platform_plugin_service, "_get_region_arches", return_value={"arm64"}), \
                 mock.patch.object(platform_plugin_service, "_ensure_plugin_team", return_value=tenant), \
-                mock.patch.object(platform_plugin_service, "_ensure_plugin_app", return_value=app), \
+                mock.patch.object(platform_plugin_service, "_ensure_plugin_app", return_value=app) as ensure_app, \
                 mock.patch("console.services.platform_plugin_service.region_repo.get_enterprise_region_by_region_name",
                            return_value=region), \
                 mock.patch("console.services.platform_plugin_service.app_market_service.cloud_app_model_to_db_model",
@@ -357,6 +383,7 @@ class PlatformPluginServiceTests(TestCase):
         self.assertEqual("platform plugin preflight blocked", context.exception.msg)
         self.assertEqual("集群可用内存不足", context.exception.msg_show)
         self.assertIs(preflight, context.exception.bean)
+        ensure_app.assert_not_called()
         create_component_group.assert_not_called()
         app_upgrade_cls.assert_not_called()
         begin_tracking.assert_not_called()
@@ -392,7 +419,7 @@ class PlatformPluginServiceTests(TestCase):
                 }])), \
                 mock.patch.object(platform_plugin_service, "_get_region_arches", return_value={"amd64"}), \
                 mock.patch.object(platform_plugin_service, "_ensure_plugin_team", return_value=tenant), \
-                mock.patch.object(platform_plugin_service, "_ensure_plugin_app", return_value=app), \
+                mock.patch.object(platform_plugin_service, "_ensure_plugin_app", return_value=app) as ensure_app, \
                 mock.patch("console.services.platform_plugin_service.region_repo.get_enterprise_region_by_region_name",
                            return_value=region), \
                 mock.patch("console.services.platform_plugin_service.app_market_service.cloud_app_model_to_db_model",
@@ -410,6 +437,8 @@ class PlatformPluginServiceTests(TestCase):
                 "eid", "rainbond", "rainbond-agent", mock.Mock())
 
         preflight_service.run.assert_called_once_with(tenant, region, app_template, check_images=False)
+        ensure_app.assert_called_once_with(
+            tenant, "rainbond", "AI助手", "eid", "rainbond-agent")
         create_component_group.assert_called_once()
         app_upgrade_cls.assert_called_once()
         app_upgrade.install.assert_called_once_with()

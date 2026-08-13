@@ -655,16 +655,14 @@ class PlatformPluginService(object):
                 raise ServiceHandleException(msg="no versions found", msg_show="应用市场中未找到该插件的版本")
             latest_version = versions_data.versions[0].app_version
 
-        # 4. Find or create the "rbd-plugins" team
-        tenant = self._ensure_plugin_team(enterprise_id, region_name, user)
-
-        # 5. Find or create app group for this plugin
         region = region_repo.get_enterprise_region_by_region_name(enterprise_id, region_name)
         if not region:
             raise ServiceHandleException(msg="region not found", msg_show="集群不存在")
-        app = self._ensure_plugin_app(tenant, region_name, plugin_name, enterprise_id, plugin_id)
 
-        # 6. Get app template from market
+        # 4. Find or create the "rbd-plugins" team
+        tenant = self._ensure_plugin_team(enterprise_id, region_name, user)
+
+        # 5. Get app template from market
         market_app, app_version = app_market_service.cloud_app_model_to_db_model(
             market, app_key, latest_version, for_install=True)
         if not app_version:
@@ -684,6 +682,9 @@ class PlatformPluginService(object):
                 error_code=10412,
                 bean=preflight,
             )
+
+        # 6. Find or create app group for this plugin
+        app = self._ensure_plugin_app(tenant, region_name, plugin_name, enterprise_id, plugin_id)
 
         # 7. Create component group and install
         component_group = market_app_service._create_tenant_service_group(
