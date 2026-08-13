@@ -3,7 +3,7 @@
 # This script is used to install Rainbond standalone on Linux and MacOS
 
 # Basic environment variables
-RAINBOND_VERSION=${VERSION:-'v6.9.4-release'}
+RAINBOND_VERSION=${VERSION:-'v6.9.7-release'}
 IMGHUB_MIRROR=${IMGHUB_MIRROR:-'registry.cn-hangzhou.aliyuncs.com/goodrain'}
 ENABLE_GPU=${ENABLE_GPU:-auto}
 DOCKER_MIN_VERSION="20.0.0"
@@ -831,6 +831,7 @@ function check_iptables_command_linux() {
 }
 
 MIN_MEMORY_KB=$((4 * 1024 * 1024))
+MIN_DISK_AVAILABLE_KB=$((10 * 1024 * 1024))
 
 function check_memory_requirement_linux() {
   local memory_kb
@@ -860,6 +861,29 @@ function check_memory_requirement_linux() {
     send_info "内存检测通过，当前: ${memory_gb}GB"
   else
     send_info "Memory check passed, current: ${memory_gb}GB"
+  fi
+
+  return 0
+}
+
+function check_disk_requirement() {
+  local available_space=$1
+  local available_gb=$((available_space / 1024 / 1024))
+  local minimum_gb=$((MIN_DISK_AVAILABLE_KB / 1024 / 1024))
+
+  if [ "${available_space}" -lt "${MIN_DISK_AVAILABLE_KB}" ] 2>/dev/null; then
+    if rainbond_use_chinese_prompt; then
+      send_error "磁盘空间不足，当前可用: ${available_gb}GB, 请至少保留${minimum_gb}GB空间后重试"
+    else
+      send_error "Disk space is insufficient, available: ${available_gb}GB, please reserve at least ${minimum_gb}GB space and try again"
+    fi
+    return 1
+  fi
+
+  if rainbond_use_chinese_prompt; then
+    send_info "磁盘空间检测通过，可用空间: ${available_gb}GB"
+  else
+    send_info "Disk space check passed, available space: ${available_gb}GB"
   fi
 
   return 0
@@ -1037,22 +1061,8 @@ function check_base_env() {
   available_space=$(echo "$available_space" | tr -d 'K' | tr -d 'M' | tr -d 'G' | sed 's/[^0-9]//g')
   available_space=${available_space:-0}
   
-  # Check if at least 10GB available (10485760 KB)
-  if [ "$available_space" -lt 10485760 ] 2>/dev/null; then
-    local available_gb=$((available_space / 1024 / 1024))
-    if rainbond_use_chinese_prompt; then
-      send_error "磁盘空间不足，当前可用: ${available_gb}GB, 请至少保留10GB空间后重试"
-    else
-      send_error "Disk space is insufficient, available: ${available_gb}GB, please reserve at least 10GB space and try again"
-    fi
+  if ! check_disk_requirement "${available_space}"; then
     exit 1
-  else
-    local available_gb=$((available_space / 1024 / 1024))
-    if rainbond_use_chinese_prompt; then
-      send_info "磁盘空间检测通过，可用空间: ${available_gb}GB"
-    else
-      send_info "Disk space check passed, available space: ${available_gb}GB"
-    fi
   fi
 
   if rainbond_use_chinese_prompt; then
