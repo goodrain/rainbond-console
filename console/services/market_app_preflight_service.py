@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import os
 import time
+from math import isfinite
+from numbers import Real
 from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import quote
 
@@ -61,8 +63,9 @@ class MarketInstallPreflightService(object):
         memory = 0
         images = []
         for app in apps:
-            cpu += self._int_value(app.get("container_cpu") or app.get("cpu"))
-            memory += self._component_memory(app)
+            replicas = self._component_replicas(app)
+            cpu += self._component_cpu(app) * replicas
+            memory += self._component_memory(app) * replicas
             for image in (app.get("share_image"), app.get("image")):
                 image = (image or "").strip()
                 if image and image not in images:
@@ -86,9 +89,22 @@ class MarketInstallPreflightService(object):
                 "集群资源检测不可用，无法确认资源是否满足安装要求",
                 self.REASON_REGION_CAPABILITY_MISSING,
                 {"error": str(exc)})
-        ready_nodes = self._int_value(resources.get("node_ready"))
-        all_nodes = self._int_value(resources.get("all_node"))
-        if ready_nodes <= 0:
+        resource_fields = ("all_node", "node_ready", "cap_cpu", "req_cpu", "cap_mem", "req_mem")
+        resources_malformed = not isinstance(resources, dict)
+        if not resources_malformed:
+            resources_malformed = any(not self._is_numeric(resources.get(field)) or resources[field] < 0
+                                      for field in resource_fields)
+        if not resources_malformed:
+            resources_malformed = resources["node_ready"] > resources["all_node"]
+        if resources_malformed:
+            return self._check(
+                "resource_capacity",
+                self.STATUS_WARNING,
+                "集群资源检测不可用，无法确认资源是否满足安装要求",
+                self.REASON_REGION_CAPABILITY_MISSING)
+        ready_nodes = resources["node_ready"]
+        all_nodes = resources["all_node"]
+        if ready_nodes == 0:
             return self._check(
                 "resource_capacity",
                 self.STATUS_BLOCK,
@@ -98,7 +114,7 @@ class MarketInstallPreflightService(object):
 
         total_cpu, used_cpu = self._cluster_cpu_millicores(resources.get("cap_cpu"), resources.get("req_cpu"))
         free_cpu = total_cpu - used_cpu
-        free_memory = self._int_value(resources.get("cap_mem")) - self._int_value(resources.get("req_mem"))
+        free_memory = resources["cap_mem"] - resources["req_mem"]
         required_cpu = self._int_value(requirements.get("cpu"))
         required_memory = self._int_value(requirements.get("memory"))
         details = {
@@ -110,6 +126,8 @@ class MarketInstallPreflightService(object):
             "required_memory": required_memory,
             "all_node": all_nodes,
             "node_ready": ready_nodes,
+            "missing_cpu": max(required_cpu - free_cpu, 0),
+            "missing_memory": max(required_memory - free_memory, 0),
         }
         messages = []
         if required_cpu > 0 and free_cpu < required_cpu:
@@ -131,11 +149,18 @@ class MarketInstallPreflightService(object):
                 "集群架构检测不可用，无法确认架构是否匹配",
                 self.REASON_REGION_CAPABILITY_MISSING,
                 {"error": str(exc), "template_arch": template_arch})
+        if not isinstance(arches, list) or not arches or any(not isinstance(arch, str) or not arch for arch in arches):
+            return self._check(
+                "architecture",
+                self.STATUS_WARNING,
+                "集群架构检测不可用，无法确认架构是否匹配",
+                self.REASON_REGION_CAPABILITY_MISSING,
+                {"template_arch": template_arch})
         details = {
             "template_arch": template_arch,
             "cluster_arches": arches,
         }
-        if template_arch not in arches and len(arches) < 2:
+        if template_arch not in arches:
             return self._check("architecture", self.STATUS_BLOCK, "应用架构与集群节点架构不匹配", "arch_mismatch", details)
         return self._check("architecture", self.STATUS_PASS, "应用架构与集群匹配", "", details)
 
@@ -168,7 +193,10 @@ class MarketInstallPreflightService(object):
 
     def _get_cluster_arches(self, region: Any) -> List[str]:
         _, body = region_api.get_cluster_nodes_arch(region.region_name)
-        return list(set((body or {}).get("list") or []))
+        arches = (body or {}).get("list")
+        if not isinstance(arches, list):
+            return arches
+        return list(set(arches))
 
     def _probe_image_manifest(self, image: str, timeout_seconds: float) -> Tuple[str, str, str]:
         parsed = self._parse_image(image)
@@ -221,11 +249,31 @@ class MarketInstallPreflightService(object):
         return float(timeout_budget_ms - elapsed_ms) / 1000
 
     def _component_memory(self, app: dict) -> int:
-        memory = self._int_value(app.get("memory"))
         extend_method_map = app.get("extend_method_map") or {}
-        if not memory:
-            memory = self._int_value(extend_method_map.get("init_memory") or extend_method_map.get("min_memory"))
-        return memory
+        memory = extend_method_map.get("init_memory")
+        if memory is None:
+            memory = app.get("memory")
+        if memory is None:
+            memory = extend_method_map.get("min_memory")
+        if memory is None:
+            memory = 512
+        return self._int_value(memory)
+
+    def _component_cpu(self, app: dict) -> int:
+        extend_method_map = app.get("extend_method_map") or {}
+        cpu = extend_method_map.get("container_cpu")
+        if cpu is None:
+            cpu = app.get("cpu")
+        if cpu is None:
+            cpu = 250
+        return self._int_value(cpu)
+
+    def _component_replicas(self, app: dict) -> int:
+        extend_method_map = app.get("extend_method_map") or {}
+        replicas = extend_method_map.get("min_node")
+        if replicas is None:
+            replicas = 1
+        return self._int_value(replicas)
 
     def _cluster_cpu_millicores(self, cap_cpu: Any, req_cpu: Any) -> Tuple[int, int]:
         total_cpu = self._float_value(cap_cpu)
@@ -236,15 +284,24 @@ class MarketInstallPreflightService(object):
     def _int_value(value: Any) -> int:
         try:
             return int(value or 0)
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, OverflowError):
             return 0
 
     @staticmethod
     def _float_value(value: Any) -> float:
         try:
             return float(value or 0)
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, OverflowError):
             return 0
+
+    @staticmethod
+    def _is_numeric(value: Any) -> bool:
+        if not isinstance(value, Real) or isinstance(value, bool):
+            return False
+        try:
+            return isfinite(value)
+        except (TypeError, ValueError, OverflowError):
+            return False
 
     def _result_status(self, checks: List[Dict[str, Any]]) -> str:
         if any(item["status"] == self.STATUS_BLOCK for item in checks):

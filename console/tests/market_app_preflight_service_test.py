@@ -66,7 +66,7 @@ class MarketInstallPreflightServiceTests(TestCase):
                 {
                     "service_cname": "mysql",
                     "share_image": "goodrain.me/default-mysql:20260704195926",
-                    "container_cpu": 500,
+                    "cpu": 500,
                     "memory": 1024,
                 },
                 {
@@ -115,7 +115,7 @@ class MarketInstallPreflightServiceTests(TestCase):
             "apps": [{
                 "service_cname": "dify",
                 "share_image": "goodrain.me/dify:1.11.1",
-                "container_cpu": 2100,
+                "cpu": 2100,
                 "memory": 5120,
             }],
         }
@@ -127,6 +127,398 @@ class MarketInstallPreflightServiceTests(TestCase):
         self.assertEqual("pass", resource_check["status"])
         self.assertEqual(42650, resource_check["details"]["free_cpu"])
         self.assertEqual(2100, resource_check["details"]["required_cpu"])
+
+    def test_blocks_when_market_template_cpu_is_in_extend_method_map(self):
+        self.service._get_region_resources = mock.Mock(return_value={
+            "all_node": 1,
+            "node_ready": 1,
+            "cap_cpu": 1,
+            "req_cpu": 0.8,
+            "cap_mem": 8192,
+            "req_mem": 0,
+        })
+        self.service._get_cluster_arches = mock.Mock(return_value=["amd64"])
+        template = {
+            "arch": "amd64",
+            "apps": [{
+                "service_cname": "web",
+                "extend_method_map": {
+                    "container_cpu": 500,
+                    "init_memory": 512,
+                },
+            }],
+        }
+
+        result = self.service.run(self.tenant, self.region, template, check_images=False)
+
+        self.assertEqual(500, result["requirements"]["cpu"])
+        self.assertEqual("block", result["status"])
+        self.assertTrue(result["should_block"])
+        resource_check = self._check(result, "resource_capacity")
+        self.assertEqual("block", resource_check["status"])
+        self.assertIn("CPU不足", resource_check["message"])
+        self.assertEqual(300, resource_check["details"]["missing_cpu"])
+
+    def test_top_level_cpu_matches_market_install_precedence(self):
+        requirements = self.service.parse_template_requirements({
+            "apps": [{
+                "container_cpu": 0,
+                "cpu": 500,
+            }],
+        })
+
+        self.assertEqual(500, requirements["cpu"])
+
+    def test_explicit_extend_method_map_zero_cpu_matches_market_install_precedence(self):
+        requirements = self.service.parse_template_requirements({
+            "apps": [{
+                "container_cpu": 750,
+                "cpu": 500,
+                "extend_method_map": {
+                    "container_cpu": 0,
+                },
+            }],
+        })
+
+        self.assertEqual(0, requirements["cpu"])
+
+    def test_extend_method_map_cpu_precedes_top_level_cpu(self):
+        requirements = self.service.parse_template_requirements({
+            "apps": [{
+                "cpu": 500,
+                "extend_method_map": {
+                    "container_cpu": 750,
+                },
+            }],
+        })
+
+        self.assertEqual(750, requirements["cpu"])
+
+    def test_missing_cpu_defaults_to_250_millicores(self):
+        requirements = self.service.parse_template_requirements({
+            "apps": [{}],
+        })
+
+        self.assertEqual(250, requirements["cpu"])
+
+    def test_top_level_container_cpu_is_ignored(self):
+        requirements = self.service.parse_template_requirements({
+            "apps": [{
+                "container_cpu": 750,
+            }],
+        })
+
+        self.assertEqual(250, requirements["cpu"])
+
+    def test_extend_method_map_init_memory_precedes_other_memory_values(self):
+        requirements = self.service.parse_template_requirements({
+            "apps": [{
+                "memory": 1024,
+                "extend_method_map": {
+                    "init_memory": 768,
+                    "min_memory": 256,
+                },
+            }],
+        })
+
+        self.assertEqual(768, requirements["memory"])
+
+    def test_top_level_memory_precedes_extend_method_map_min_memory(self):
+        requirements = self.service.parse_template_requirements({
+            "apps": [{
+                "memory": 1024,
+                "extend_method_map": {
+                    "min_memory": 256,
+                },
+            }],
+        })
+
+        self.assertEqual(1024, requirements["memory"])
+
+    def test_extend_method_map_min_memory_is_used_when_other_memory_values_are_missing(self):
+        requirements = self.service.parse_template_requirements({
+            "apps": [{
+                "extend_method_map": {
+                    "min_memory": 256,
+                },
+            }],
+        })
+
+        self.assertEqual(256, requirements["memory"])
+
+    def test_missing_memory_defaults_to_512_mebibytes(self):
+        requirements = self.service.parse_template_requirements({
+            "apps": [{}],
+        })
+
+        self.assertEqual(512, requirements["memory"])
+
+    def test_explicit_zero_memory_values_preserve_precedence(self):
+        init_memory = self.service.parse_template_requirements({
+            "apps": [{
+                "memory": 1024,
+                "extend_method_map": {
+                    "init_memory": 0,
+                    "min_memory": 256,
+                },
+            }],
+        })
+        top_level_memory = self.service.parse_template_requirements({
+            "apps": [{
+                "memory": 0,
+                "extend_method_map": {
+                    "min_memory": 256,
+                },
+            }],
+        })
+
+        self.assertEqual(0, init_memory["memory"])
+        self.assertEqual(0, top_level_memory["memory"])
+
+    def test_component_resources_are_multiplied_by_min_node(self):
+        requirements = self.service.parse_template_requirements({
+            "apps": [{
+                "cpu": 500,
+                "memory": 1024,
+                "extend_method_map": {
+                    "min_node": 3,
+                },
+            }],
+        })
+
+        self.assertEqual(1500, requirements["cpu"])
+        self.assertEqual(3072, requirements["memory"])
+
+    def test_missing_min_node_defaults_to_one_replica(self):
+        requirements = self.service.parse_template_requirements({
+            "apps": [{
+                "cpu": 500,
+                "memory": 1024,
+            }],
+        })
+
+        self.assertEqual(500, requirements["cpu"])
+        self.assertEqual(1024, requirements["memory"])
+
+    def test_explicit_zero_min_node_requires_no_resources(self):
+        requirements = self.service.parse_template_requirements({
+            "apps": [{
+                "cpu": 500,
+                "memory": 1024,
+                "extend_method_map": {
+                    "min_node": 0,
+                },
+            }],
+        })
+
+        self.assertEqual(0, requirements["cpu"])
+        self.assertEqual(0, requirements["memory"])
+
+    def test_shortage_details_include_missing_cpu_and_memory(self):
+        self.service._get_region_resources = mock.Mock(return_value={
+            "all_node": 1,
+            "node_ready": 1,
+            "cap_cpu": 1,
+            "req_cpu": 0.8,
+            "cap_mem": 1024,
+            "req_mem": 900,
+        })
+        self.service._get_cluster_arches = mock.Mock(return_value=["amd64"])
+        template = {
+            "apps": [{
+                "cpu": 500,
+                "memory": 512,
+            }],
+        }
+
+        result = self.service.run(self.tenant, self.region, template, check_images=False)
+
+        details = self._check(result, "resource_capacity")["details"]
+        self.assertEqual(300, details["missing_cpu"])
+        self.assertEqual(388, details["missing_memory"])
+
+    def test_missing_resource_bean_warns_without_blocking(self):
+        self.service._get_region_resources = mock.Mock(return_value=None)
+        self.service._get_cluster_arches = mock.Mock(return_value=["amd64"])
+
+        result = self.service.run(self.tenant, self.region, self.template, check_images=False)
+
+        self._assert_region_capability_warning(result, "resource_capacity")
+
+    def test_malformed_resource_bean_warns_without_blocking(self):
+        self.service._get_region_resources = mock.Mock(return_value=[])
+        self.service._get_cluster_arches = mock.Mock(return_value=["amd64"])
+
+        result = self.service.run(self.tenant, self.region, self.template, check_images=False)
+
+        self._assert_region_capability_warning(result, "resource_capacity")
+
+    def test_missing_resource_field_warns_without_blocking(self):
+        self.service._get_region_resources = mock.Mock(return_value={
+            "all_node": 1,
+            "node_ready": 1,
+            "cap_cpu": 4,
+            "req_cpu": 0,
+            "cap_mem": 8192,
+        })
+        self.service._get_cluster_arches = mock.Mock(return_value=["amd64"])
+
+        result = self.service.run(self.tenant, self.region, self.template, check_images=False)
+
+        self._assert_region_capability_warning(result, "resource_capacity")
+
+    def test_none_resource_field_warns_without_blocking(self):
+        self.service._get_region_resources = mock.Mock(return_value={
+            "all_node": 1,
+            "node_ready": None,
+            "cap_cpu": 4,
+            "req_cpu": 0,
+            "cap_mem": 8192,
+            "req_mem": 0,
+        })
+        self.service._get_cluster_arches = mock.Mock(return_value=["amd64"])
+
+        result = self.service.run(self.tenant, self.region, self.template, check_images=False)
+
+        self._assert_region_capability_warning(result, "resource_capacity")
+
+    def test_boolean_resource_field_warns_without_blocking(self):
+        self.service._get_region_resources = mock.Mock(return_value={
+            "all_node": 1,
+            "node_ready": True,
+            "cap_cpu": 4,
+            "req_cpu": 0,
+            "cap_mem": 8192,
+            "req_mem": 0,
+        })
+        self.service._get_cluster_arches = mock.Mock(return_value=["amd64"])
+
+        result = self.service.run(self.tenant, self.region, self.template, check_images=False)
+
+        self._assert_region_capability_warning(result, "resource_capacity")
+
+    def test_non_numeric_resource_field_warns_without_blocking(self):
+        self.service._get_region_resources = mock.Mock(return_value={
+            "all_node": 1,
+            "node_ready": 1,
+            "cap_cpu": "4",
+            "req_cpu": 0,
+            "cap_mem": 8192,
+            "req_mem": 0,
+        })
+        self.service._get_cluster_arches = mock.Mock(return_value=["amd64"])
+
+        result = self.service.run(self.tenant, self.region, self.template, check_images=False)
+
+        self._assert_region_capability_warning(result, "resource_capacity")
+
+    def test_negative_resource_field_warns_without_blocking(self):
+        self.service._get_region_resources = mock.Mock(return_value={
+            "all_node": 1,
+            "node_ready": 1,
+            "cap_cpu": 4,
+            "req_cpu": 0,
+            "cap_mem": -1,
+            "req_mem": 0,
+        })
+        self.service._get_cluster_arches = mock.Mock(return_value=["amd64"])
+
+        result = self.service.run(self.tenant, self.region, self.template, check_images=False)
+
+        self._assert_region_capability_warning(result, "resource_capacity")
+
+    def test_negative_node_field_warns_without_blocking(self):
+        self.service._get_region_resources = mock.Mock(return_value={
+            "all_node": -1,
+            "node_ready": 0,
+            "cap_cpu": 4,
+            "req_cpu": 0,
+            "cap_mem": 8192,
+            "req_mem": 0,
+        })
+        self.service._get_cluster_arches = mock.Mock(return_value=["amd64"])
+
+        result = self.service.run(self.tenant, self.region, self.template, check_images=False)
+
+        self._assert_region_capability_warning(result, "resource_capacity")
+
+    def test_ready_nodes_greater_than_all_nodes_warns_without_blocking(self):
+        self.service._get_region_resources = mock.Mock(return_value={
+            "all_node": 1.5,
+            "node_ready": 2.5,
+            "cap_cpu": 4,
+            "req_cpu": 0,
+            "cap_mem": 8192,
+            "req_mem": 0,
+        })
+        self.service._get_cluster_arches = mock.Mock(return_value=["amd64"])
+
+        result = self.service.run(self.tenant, self.region, self.template, check_images=False)
+
+        self._assert_region_capability_warning(result, "resource_capacity")
+
+    def test_oversized_integer_resource_field_warns_without_raising(self):
+        self.service._get_region_resources = mock.Mock(return_value={
+            "all_node": 1,
+            "node_ready": 1,
+            "cap_cpu": 10**1000,
+            "req_cpu": 0,
+            "cap_mem": 8192,
+            "req_mem": 0,
+        })
+        self.service._get_cluster_arches = mock.Mock(return_value=["amd64"])
+
+        result = self.service.run(self.tenant, self.region, self.template, check_images=False)
+
+        self._assert_region_capability_warning(result, "resource_capacity")
+
+    def test_valid_float_resource_fields_are_preserved(self):
+        self.service._get_region_resources = mock.Mock(return_value={
+            "all_node": 1.5,
+            "node_ready": 0.5,
+            "cap_cpu": 4.25,
+            "req_cpu": 0.75,
+            "cap_mem": 8192.5,
+            "req_mem": 0.5,
+        })
+        self.service._get_cluster_arches = mock.Mock(return_value=["amd64"])
+
+        result = self.service.run(self.tenant, self.region, self.template, check_images=False)
+
+        resource_check = self._check(result, "resource_capacity")
+        self.assertEqual("pass", resource_check["status"])
+        self.assertEqual(1.5, resource_check["details"]["all_node"])
+        self.assertEqual(0.5, resource_check["details"]["node_ready"])
+        self.assertEqual(8192.0, resource_check["details"]["free_memory"])
+
+    def test_infinite_template_resource_values_do_not_raise(self):
+        requirements = self.service.parse_template_requirements({
+            "apps": [{
+                "cpu": float("inf"),
+                "memory": float("inf"),
+            }],
+        })
+
+        self.assertEqual(0, requirements["cpu"])
+        self.assertEqual(0, requirements["memory"])
+
+    def test_explicit_zero_ready_nodes_blocks_when_resource_response_is_valid(self):
+        self.service._get_region_resources = mock.Mock(return_value={
+            "all_node": 1,
+            "node_ready": 0,
+            "cap_cpu": 4,
+            "req_cpu": 0,
+            "cap_mem": 8192,
+            "req_mem": 0,
+        })
+        self.service._get_cluster_arches = mock.Mock(return_value=["amd64"])
+
+        result = self.service.run(self.tenant, self.region, self.template, check_images=False)
+
+        resource_check = self._check(result, "resource_capacity")
+        self.assertEqual("block", resource_check["status"])
+        self.assertEqual("no_ready_nodes", resource_check["reason"])
+        self.assertTrue(result["should_block"])
 
     def test_large_region_core_cpu_values_are_compared_as_millicores(self):
         self.service._get_region_resources = mock.Mock(return_value={
@@ -142,7 +534,7 @@ class MarketInstallPreflightServiceTests(TestCase):
             "arch": "arm64",
             "apps": [{
                 "service_cname": "logs",
-                "container_cpu": 1500,
+                "cpu": 1500,
                 "memory": 2048,
             }],
         }
@@ -175,6 +567,109 @@ class MarketInstallPreflightServiceTests(TestCase):
         arch_check = self._check(result, "architecture")
         self.assertEqual("block", arch_check["status"])
         self.assertIn("架构不匹配", arch_check["message"])
+
+    def test_blocks_when_template_arch_does_not_match_any_region_architecture(self):
+        self.service._get_region_resources = mock.Mock(return_value={
+            "all_node": 1,
+            "node_ready": 1,
+            "cap_cpu": 4,
+            "req_cpu": 0,
+            "cap_mem": 8192,
+            "req_mem": 0,
+        })
+        self.service._get_cluster_arches = mock.Mock(return_value=["arm64", "s390x"])
+
+        result = self.service.run(self.tenant, self.region, self.template, check_images=False)
+
+        arch_check = self._check(result, "architecture")
+        self.assertEqual("block", arch_check["status"])
+        self.assertEqual("arch_mismatch", arch_check["reason"])
+
+    def test_empty_cluster_architecture_list_warns_without_blocking(self):
+        self.service._get_region_resources = mock.Mock(return_value={
+            "all_node": 1,
+            "node_ready": 1,
+            "cap_cpu": 4,
+            "req_cpu": 0,
+            "cap_mem": 8192,
+            "req_mem": 0,
+        })
+        self.service._get_cluster_arches = mock.Mock(return_value=[])
+
+        result = self.service.run(self.tenant, self.region, self.template, check_images=False)
+
+        self._assert_region_capability_warning(result, "architecture")
+
+    def test_malformed_cluster_architecture_list_warns_without_blocking(self):
+        self.service._get_region_resources = mock.Mock(return_value={
+            "all_node": 1,
+            "node_ready": 1,
+            "cap_cpu": 4,
+            "req_cpu": 0,
+            "cap_mem": 8192,
+            "req_mem": 0,
+        })
+        self.service._get_cluster_arches = mock.Mock(return_value={"arch": "amd64"})
+
+        result = self.service.run(self.tenant, self.region, self.template, check_images=False)
+
+        self._assert_region_capability_warning(result, "architecture")
+
+    def test_cluster_architecture_list_with_malformed_item_warns_without_blocking(self):
+        self.service._get_region_resources = mock.Mock(return_value={
+            "all_node": 1,
+            "node_ready": 1,
+            "cap_cpu": 4,
+            "req_cpu": 0,
+            "cap_mem": 8192,
+            "req_mem": 0,
+        })
+        self.service._get_cluster_arches = mock.Mock(return_value=["amd64", None])
+
+        result = self.service.run(self.tenant, self.region, self.template, check_images=False)
+
+        self._assert_region_capability_warning(result, "architecture")
+
+    def test_string_region_architecture_payload_warns_without_blocking(self):
+        self.service._get_region_resources = mock.Mock(return_value={
+            "all_node": 1,
+            "node_ready": 1,
+            "cap_cpu": 4,
+            "req_cpu": 0,
+            "cap_mem": 8192,
+            "req_mem": 0,
+        })
+        with mock.patch(
+                "console.services.market_app_preflight_service.region_api.get_cluster_nodes_arch",
+                return_value=(None, {"list": "amd64"})):
+            result = self.service.run(self.tenant, self.region, self.template, check_images=False)
+
+        self._assert_region_capability_warning(result, "architecture")
+
+    def test_dict_region_architecture_payload_warns_without_blocking(self):
+        self.service._get_region_resources = mock.Mock(return_value={
+            "all_node": 1,
+            "node_ready": 1,
+            "cap_cpu": 4,
+            "req_cpu": 0,
+            "cap_mem": 8192,
+            "req_mem": 0,
+        })
+        with mock.patch(
+                "console.services.market_app_preflight_service.region_api.get_cluster_nodes_arch",
+                return_value=(None, {"list": {"amd64": True}})):
+            result = self.service.run(self.tenant, self.region, self.template, check_images=False)
+
+        self._assert_region_capability_warning(result, "architecture")
+
+    def test_valid_region_architecture_payload_is_deduplicated(self):
+        with mock.patch(
+                "console.services.market_app_preflight_service.region_api.get_cluster_nodes_arch",
+                return_value=(None, {"list": ["amd64", "arm64", "amd64"]})):
+            arches = self.service._get_cluster_arches(self.region)
+
+        self.assertCountEqual(["amd64", "arm64"], arches)
+        self.assertEqual(2, len(arches))
 
     def test_warns_when_market_image_tag_cannot_be_confirmed(self):
         self.service._get_region_resources = mock.Mock(return_value={
@@ -280,3 +775,9 @@ class MarketInstallPreflightServiceTests(TestCase):
             if item["name"] == name:
                 return item
         raise AssertionError("missing check {}".format(name))
+
+    def _assert_region_capability_warning(self, result, check_name):
+        check = self._check(result, check_name)
+        self.assertEqual("warning", check["status"])
+        self.assertEqual("region_capability_missing", check["reason"])
+        self.assertFalse(result["should_block"])
