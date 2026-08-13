@@ -1,6 +1,7 @@
 # capability_id: rainbond-console.vm-run.disk-asset-create
 # capability_id: rainbond-console.vm-run.vm-export-multi-disk-create
 # capability_id: console.vm-run.platform-runtime-guard
+# capability_id: console.vm-run.new-asset-image-name-validation
 import collections
 import json
 import os
@@ -65,11 +66,102 @@ from rest_framework.test import APIRequestFactory  # noqa: E402
 
 from console.exception.main import ServiceHandleException  # noqa: E402
 from console.models.main import ComponentK8sAttributes  # noqa: E402
+from console.services.vm_boot_source import is_valid_vm_runtime_image_name  # noqa: E402
 from console.views.app_create.vm_run import VMRunCreateView  # noqa: E402
 from www.models.main import VirtualMachineImage  # noqa: E402
 
 
 class VMAssetInstantiationTests(TestCase):
+    def test_vm_runtime_image_name_validator_enforces_oci_tag_boundaries(self):
+        self.assertTrue(is_valid_vm_runtime_image_name("a" * 128))
+        for image_name in (".image", "-image", "a" * 129, [], {}, 1, True):
+            with self.subTest(image_name=image_name):
+                self.assertFalse(is_valid_vm_runtime_image_name(image_name))
+
+    def test_vm_run_rejects_non_string_image_name_and_import_sources(self):
+        factory = APIRequestFactory()
+        view = VMRunCreateView()
+        view.tenant = SimpleNamespace(
+            tenant_id="tenant-a", tenant_name="demo-team", namespace="tenant-ns", enterprise_id="eid")
+        view.response_region = "demo-region"
+        view.user = SimpleNamespace(pk=1, nick_name="tester")
+        invalid_requests = [
+            {"image_name": value, "vm_url": "https://example.com/windows.qcow2"}
+            for value in ([], {}, 1, True)
+        ]
+        invalid_requests.extend(
+            {"image_name": "windows", field: value}
+            for field in ("event_id", "vm_url")
+            for value in (None, [], {}, 0, False)
+        )
+
+        for invalid_data in invalid_requests:
+            with self.subTest(invalid_data=invalid_data):
+                request = view.initialize_request(factory.post(
+                    "/console/teams/demo-team/apps/create/vm",
+                    {
+                        "group_id": 7,
+                        "service_cname": "db-server-vm",
+                        "k8s_component_name": "db-server-vm",
+                        "format": "qcow2",
+                        **invalid_data,
+                    },
+                    format="json"
+                ))
+
+                with mock.patch(
+                        "console.views.app_create.vm_run.app_service.is_k8s_component_name_duplicate",
+                        return_value=False), \
+                        mock.patch(
+                        "console.views.app_create.vm_run.vms.ensure_vm_platform_running",
+                        return_value=None), \
+                        mock.patch(
+                        "console.views.app_create.vm_run.vms.create_vm_image_asset") as create_asset, \
+                        mock.patch(
+                        "console.views.app_create.vm_run.app_service.create_vm_run_app") as create_component:
+                    response = view.post(request)
+
+                self.assertEqual(400, response.status_code)
+                create_asset.assert_not_called()
+                create_component.assert_not_called()
+
+    def test_vm_run_rejects_invalid_image_name_before_new_asset_or_component_creation(self):
+        factory = APIRequestFactory()
+        view = VMRunCreateView()
+        view.tenant = SimpleNamespace(
+            tenant_id="tenant-a", tenant_name="demo-team", namespace="tenant-ns", enterprise_id="eid")
+        view.response_region = "demo-region"
+        view.user = SimpleNamespace(pk=1, nick_name="tester")
+
+        for source_data in (
+                {"source_type": "url", "vm_url": "https://example.com/windows.qcow2"},
+                {"event_id": "upload-event-id"}):
+            request = view.initialize_request(factory.post(
+                "/console/teams/demo-team/apps/create/vm",
+                {
+                    "group_id": 7,
+                    "service_cname": "db-server-vm",
+                    "k8s_component_name": "db-server-vm",
+                    "image_name": "DBServer(TongYong)",
+                    "format": "qcow2",
+                    **source_data,
+                },
+                format="json"
+            ))
+
+            with mock.patch(
+                    "console.views.app_create.vm_run.app_service.is_k8s_component_name_duplicate",
+                    return_value=False), \
+                    mock.patch(
+                    "console.views.app_create.vm_run.vms.create_vm_image_asset") as create_asset, \
+                    mock.patch(
+                    "console.views.app_create.vm_run.app_service.create_vm_run_app") as create_component:
+                response = view.post(request)
+
+            self.assertEqual(400, response.status_code)
+            create_asset.assert_not_called()
+            create_component.assert_not_called()
+
     def test_vm_run_create_rejects_when_vm_plugin_not_running(self):
         factory = APIRequestFactory()
         view = VMRunCreateView()
