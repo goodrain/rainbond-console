@@ -125,6 +125,11 @@ class TenantServiceInfoRepository(object):
             return services[0]
         return None
 
+    def get_services_by_tenant_and_aliases(self, tenant_id: str,
+                                           service_aliases: Any) -> List[TenantServiceInfo]:
+        return list(TenantServiceInfo.objects.filter(
+            tenant_id=tenant_id, service_alias__in=service_aliases))
+
     def get_service_by_tenant_and_k8s_component_name(self, tenant_id: str, k8s_component_names: Any) -> Any:
         services = TenantServiceInfo.objects.filter(tenant_id=tenant_id, k8s_component_name__in=k8s_component_names)
         if services:

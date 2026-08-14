@@ -5,6 +5,7 @@ const path = require('path');
 const CleanWebpackPlugin = require('clean-webpack-plugin');
 const ExtractTextPlugin = require('extract-text-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+const UglifyJsPlugin = require('uglifyjs-webpack-plugin');
 
 const GLOBALS = {
   'process.env': {NODE_ENV: '"production"'}
@@ -44,8 +45,16 @@ module.exports = {
   plugins: [
     new CleanWebpackPlugin(['build']),
     new webpack.DefinePlugin(GLOBALS),
-    new webpack.optimize.CommonsChunkPlugin({ name: 'vendors', filename: 'vendors.js' }),
+    new webpack.optimize.CommonsChunkPlugin({ name: 'vendors', filename: 'vendors-[chunkhash].js' }),
     new webpack.optimize.OccurrenceOrderPlugin(true),
+    new UglifyJsPlugin({
+      uglifyOptions: {
+        compress: { warnings: false },
+        output: { comments: false }
+      },
+      sourceMap: false,
+      parallel: true
+    }),
     new webpack.IgnorePlugin(/^\.\/locale$/, /moment$/),
     new webpack.IgnorePlugin(/.*\.map$/, /xterm\/lib\/addons/),
     new ExtractTextPlugin('style-[name]-[chunkhash].css'),
@@ -104,6 +113,7 @@ module.exports = {
           }, {
             loader: 'sass-loader',
             options: {
+              implementation: require('sass'),
               minimize: true,
               includePaths: [
                 path.resolve(__dirname, './node_modules/font-awesome'),

@@ -2,11 +2,16 @@ import React from 'react';
 import { connect } from 'react-redux';
 import find from 'lodash/find';
 import map from 'lodash/map';
-import { CircularProgress } from 'weaveworks-ui-components';
 
 import { getImagesForService } from '../../actions/app-actions';
 
 const topologyWhitelist = ['services', 'deployments'];
+
+const CircularProgress = ({ size = 30 }) => (
+  <div className="weave-circular-progress-wrapper" style={{ width: size, height: size }}>
+    <div className="weave-circular-progress"><div /></div>
+  </div>
+);
 
 function getNewImages(images, currentId) {
   // Assume that the current image is always in the list of all available images.

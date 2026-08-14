@@ -280,6 +280,19 @@ USE_TZ = False
 
 STATIC_URL = '/static/'
 STATIC_ROOT = 'static/'
+STORAGES = {
+    'default': {
+        'BACKEND': 'django.core.files.storage.FileSystemStorage',
+    },
+    'staticfiles': {
+        'BACKEND': 'whitenoise.storage.CompressedStaticFilesStorage',
+    },
+}
+
+# Topology bundles use content hashes in their filenames. Cache these immutable
+# assets aggressively while leaving index.html and other unhashed files on the
+# normal short WhiteNoise cache policy.
+WHITENOISE_IMMUTABLE_FILE_TEST = r'/weavescope-topolog/(?:app|vendors|style-app)-[0-9a-f]{20}\.\w+$'
 
 # Keep legacy implicit primary key type after Django 3.2 upgrade
 DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'

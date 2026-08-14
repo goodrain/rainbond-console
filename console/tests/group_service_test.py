@@ -469,3 +469,75 @@ class GroupServiceOperatorManagedTests(TestCase):
                 ]
             },
         )
+
+    def test_get_watch_managed_data_loads_existing_component_names_once(self):
+        tenant = Obj(tenant_name="demo-team", namespace="demo-ns")
+        existing_component = Obj(
+            extend_method="",
+            service_source="third_party",
+            k8s_component_name="existing-svc",
+        )
+        discovered_services = [{
+            "name": "existing",
+            "ip": "None",
+            "port": "8080",
+        }, {
+            "name": "new-api",
+            "ip": "None",
+            "port": "9090",
+        }]
+
+        with mock.patch.object(group_service_module.region_app_repo,
+                               "get_region_app_id",
+                               return_value="region-app-1"), \
+                mock.patch.object(group_service_module.base_service,
+                                  "get_watch_managed",
+                                  return_value={"services": discovered_services}), \
+                mock.patch.object(group_service,
+                                  "list_components",
+                                  return_value=[existing_component]) as list_components:
+            data = group_service.get_watch_managed_data(tenant, "demo-region", 42)
+
+        list_components.assert_called_once_with(42)
+        self.assertEqual([service["name"] for service in data["service"]],
+                         ["new-api-svc"])
+
+
+class BaseServiceOperatorManagedCacheTests(TestCase):
+
+    def test_get_watch_managed_reuses_snapshot_during_same_page_load(self):
+        from console.services.service_services import BaseService
+
+        service = BaseService()
+        service._watch_managed_cache.clear()
+        response = {"bean": {"deployments": [{"name": "demo"}]}}
+
+        with mock.patch("console.services.service_services.region_api.watch_operator_managed",
+                        return_value=response) as watch:
+            first = service.get_watch_managed("rainbond", "demo-team", "app-1")
+            second = service.get_watch_managed("rainbond", "demo-team", "app-1")
+
+        self.assertEqual(first, response["bean"])
+        self.assertEqual(second, response["bean"])
+        watch.assert_called_once_with("rainbond", "demo-team", "app-1")
+
+    def test_get_watch_managed_cache_stays_bounded(self):
+        from console.services.service_services import BaseService
+
+        service = BaseService()
+        original_limit = BaseService._watch_managed_cache_max_entries
+        service._watch_managed_cache.clear()
+        BaseService._watch_managed_cache_max_entries = 2
+
+        try:
+            with mock.patch(
+                    "console.services.service_services.region_api.watch_operator_managed",
+                    return_value={"bean": {}}):
+                for app_id in ("app-1", "app-2", "app-3"):
+                    service.get_watch_managed("rainbond", "demo-team", app_id)
+            cache_size = len(service._watch_managed_cache)
+        finally:
+            BaseService._watch_managed_cache_max_entries = original_limit
+            service._watch_managed_cache.clear()
+
+        self.assertLessEqual(cache_size, 2)

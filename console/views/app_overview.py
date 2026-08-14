@@ -564,19 +564,19 @@ class AppGroupVisitView(RegionTenantHeaderView):
             if not team:
                 result = general_message(400, "not tenant", "团队不存在")
                 return Response(result)
-            service_list = serviceAlias.split('-')
-            for service_alias in service_list:
-                bean = dict()
-                service = service_repo.get_service_by_service_alias(service_alias)
-                access_type, data = port_service.get_access_info(team, service)  # type: ignore[arg-type]
-                bean["access_type"] = access_type
-                bean["access_info"] = data
-                service_access_list.append(bean)
+            service_aliases = serviceAlias.split('-')
+            services = service_repo.get_services_by_tenant_and_aliases(
+                team.tenant_id, service_aliases)
+            services_by_alias = {service.service_alias: service for service in services}
+            accesses = port_service.list_access_infos(team, services)
+            for service_alias in service_aliases:
+                service = services_by_alias.get(service_alias)
+                if service:
+                    service_access_list.append(accesses[service.service_id])
             result = general_message(200, "success", "操作成功", list=service_access_list)
         except Exception as e:
             logger.exception(e)
-            # NOTE: py2-era Exception.message; absent in py3 (backlog, behavior preserved).
-            result = error_message(e.message)  # type: ignore[attr-defined]
+            result = error_message(str(e))
         return Response(result, status=result["code"])
 
 

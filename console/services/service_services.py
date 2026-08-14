@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import json
 import logging
+import threading
+import time
 from typing import Any, Dict, List, Optional
 from urllib.parse import urlsplit, urlunsplit
 
@@ -42,6 +44,31 @@ def strip_url_userinfo(url: Optional[str]) -> str:
 
 
 class BaseService(object):
+    _watch_managed_cache: Dict[Any, Any] = {}
+    _watch_managed_cache_lock = threading.Lock()
+    _watch_managed_locks = tuple(threading.Lock() for _ in range(32))
+    _watch_managed_cache_ttl = 5.0
+    _watch_managed_cache_max_entries = 1024
+
+    @classmethod
+    def _cache_watch_managed(cls, cache_key: Any, managed_data: Any) -> None:
+        now = time.monotonic()
+        expires_before = now - cls._watch_managed_cache_ttl
+        with cls._watch_managed_cache_lock:
+            if len(cls._watch_managed_cache) >= cls._watch_managed_cache_max_entries:
+                expired_keys = [
+                    key for key, cached in cls._watch_managed_cache.items()
+                    if cached[0] <= expires_before
+                ]
+                for key in expired_keys:
+                    cls._watch_managed_cache.pop(key, None)
+            if len(cls._watch_managed_cache) >= cls._watch_managed_cache_max_entries:
+                oldest_key = min(
+                    cls._watch_managed_cache,
+                    key=lambda key: cls._watch_managed_cache[key][0])
+                cls._watch_managed_cache.pop(oldest_key, None)
+            cls._watch_managed_cache[cache_key] = (now, managed_data)
+
     def _get_cnb_version_policy(self, tenant: Tenants, service: TenantServiceInfo) -> dict:
         definition = get_cnb_policy_definition(service.language)
         if not definition:
@@ -229,13 +256,31 @@ class BaseService(object):
             return status_list
 
     def get_watch_managed(self, region_name: str, tenant_name: str, region_app_id: str) -> Any:
-        try:
-            body = region_api.watch_operator_managed(region_name, tenant_name, region_app_id)
-            # NOTE: watch_operator_managed may return None; a None .get raises and is caught below (returns {}).
-            return body.get("bean")  # type: ignore[union-attr]
-        except Exception as e:
-            logger.exception(e)
-            return {}
+        cache_key = (region_name, tenant_name, region_app_id)
+        now = time.monotonic()
+        with self._watch_managed_cache_lock:
+            cached = self._watch_managed_cache.get(cache_key)
+            if cached and now - cached[0] < self._watch_managed_cache_ttl:
+                return cached[1]
+        cache_key_lock = self._watch_managed_locks[
+            hash(cache_key) % len(self._watch_managed_locks)]
+
+        with cache_key_lock:
+            with self._watch_managed_cache_lock:
+                cached = self._watch_managed_cache.get(cache_key)
+                if cached and time.monotonic() - cached[0] < self._watch_managed_cache_ttl:
+                    return cached[1]
+            try:
+                body = region_api.watch_operator_managed(region_name, tenant_name, region_app_id)
+                managed_data = body.get("bean") if body else None
+                managed_data = managed_data or {}
+                self._cache_watch_managed(cache_key, managed_data)
+                return managed_data
+            except Exception as e:
+                logger.exception(e)
+                managed_data = {}
+                self._cache_watch_managed(cache_key, managed_data)
+                return managed_data
 
     def get_apps_deploy_versions(self, region: str, tenant_name: str, service_ids: Any) -> list:
         data = {"service_ids": service_ids}

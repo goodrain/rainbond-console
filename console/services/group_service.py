@@ -1127,24 +1127,29 @@ class GroupService(object):
         return body["list"]  # type: ignore[index]
 
     def get_watch_managed_data(self, tenant: Tenants, region_name: str, app_id: str) -> dict:
-        from console.services.app import app_service
         # 如果 app_id 为空，返回空数据
         if not app_id:
             return {"service": [], "config_map": [], "secret": []}
         region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
         watch_managed_data = base_service.get_watch_managed(region_name, tenant.tenant_name, region_app_id)
+        components = list(self.list_components(app_id))
         kubeblocks_service_names = {
             getattr(component, "k8s_component_name", "")
-            for component in self.list_components(app_id)
+            for component in components
             if is_kubeblocks(getattr(component, "extend_method", ""))
             or getattr(component, "service_source", "") == "kubeblocks"
+        }
+        existing_component_names = {
+            getattr(component, "k8s_component_name", "")
+            for component in components
+            if getattr(component, "k8s_component_name", "")
         }
         services = list()
         if watch_managed_data:
             for service in watch_managed_data.get("services", []):
                 if service.get("name") in kubeblocks_service_names:
                     continue
-                if app_service.is_k8s_component_name_duplicate(app_id, service.get("name") + "-svc"):
+                if service.get("name") + "-svc" in existing_component_names:
                     continue
                 if service.get("ip") != "None":
                     services.append({

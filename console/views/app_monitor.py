@@ -173,6 +173,9 @@ class BatchAppMonitorQueryView(RegionTenantHeaderView):
         prefix = "?query="
         services = group_service.get_group_services(group_id)
 
+        if not services:
+            return Response(general_message(200, "success", "成功", list=[]), status=200)
+
         service_id_list = []
         id_service_map = {}
         id_name_map = {}
@@ -200,13 +203,13 @@ class BatchAppMonitorQueryView(RegionTenantHeaderView):
                 all_ips.append(no_dot_ip)
 
         response_time, throughput_rate = self.get_query_statements(service_id_list, all_ips)
-        res, response_body = region_api.get_query_data(self.response_region, self.tenant.tenant_name, prefix + response_time)
+        res, response_body = region_api.get_query_data(
+            self.response_region, self.tenant.tenant_name, prefix + response_time, timeout=3)
 
         res, throughput_body = region_api.get_query_data(self.response_region, self.tenant.tenant_name,
-                                                         prefix + throughput_rate)
-        # NOTE: region API results may be None; indexing them is a latent risk (backlog).
-        response_data = response_body["data"]["result"]  # type: ignore[index]
-        throughput_data = throughput_body["data"]["result"]  # type: ignore[index]
+                                                         prefix + throughput_rate, timeout=3)
+        response_data = ((response_body or {}).get("data") or {}).get("result") or []
+        throughput_data = ((throughput_body or {}).get("data") or {}).get("result") or []
 
         throughput_by_key: dict[str, list[Any]] = {}
         for throughput in throughput_data:

@@ -50,6 +50,7 @@ from console.repositories import service_repo as service_repo_module  # noqa: E4
 from console.services import storage_service as storage_service_module  # noqa: E402
 from console.services import topological_services as topological_service_module  # noqa: E402
 from console.views import app_monitor as app_monitor_module  # noqa: E402
+from console.views import app_overview as app_overview_module  # noqa: E402
 
 
 class AttrDict(dict):
@@ -67,18 +68,6 @@ class MetricResult(dict):
     def __getitem__(self, key):
         if key == "metric":
             self.metric_accesses += 1
-        return super().__getitem__(key)
-
-
-class DynamicService(dict):
-
-    def __init__(self, service_id):
-        super().__init__(service_id=service_id)
-        self.service_id_accesses = 0
-
-    def __getitem__(self, key):
-        if key == "service_id":
-            self.service_id_accesses += 1
         return super().__getitem__(key)
 
 
@@ -134,7 +123,7 @@ class ServiceRepoPerformanceTests(TestCase):
 
 class TopologicalServicePerformanceTests(TestCase):
 
-    def _call_topology_with_dynamic_services(self, dynamic_services):
+    def _call_topology_with_pod_nums(self, pod_nums):
         app = SimpleNamespace(ID=1, app_id=1, app_type="rainbond", group_name="app")
         relation = SimpleNamespace(service_id="service-a", group_id=1)
         service = SimpleNamespace(
@@ -167,8 +156,8 @@ class TopologicalServicePerformanceTests(TestCase):
             stack.enter_context(
                 mock.patch.object(
                     topological_service_module.region_api,
-                    "get_dynamic_services_pods",
-                    return_value={"list": dynamic_services}))
+                    "get_services_pod_nums",
+                    return_value=pod_nums))
             stack.enter_context(
                 mock.patch.object(
                     topological_service_module.region_app_repo,
@@ -179,8 +168,8 @@ class TopologicalServicePerformanceTests(TestCase):
             return topological_service_module.topological_service.get_group_topological_graph(
                 "1", "rainbond", "team-name", "enterprise-id")
 
-    def test_topology_null_dynamic_service_list_falls_back_to_configured_replicas(self):
-        result = self._call_topology_with_dynamic_services(None)
+    def test_topology_null_pod_counts_falls_back_to_configured_replicas(self):
+        result = self._call_topology_with_pod_nums(None)
 
         self.assertEqual(result["json_data"]["service-a"]["node_num"], 2)
 
@@ -204,11 +193,7 @@ class TopologicalServicePerformanceTests(TestCase):
                 create_status="complete",
             ) for service_id in ("service-a", "service-b", "service-c")
         ]
-        dynamic_services = [
-            DynamicService("service-a"),
-            DynamicService("service-a"),
-            DynamicService("service-b")
-        ]
+        pod_nums = {"service-a": 2, "service-b": 1, "service-c": 0}
         ports = [
             SimpleNamespace(service_id="service-a", is_outer_service=False),
             SimpleNamespace(service_id="service-a", is_outer_service=True),
@@ -237,11 +222,11 @@ class TopologicalServicePerformanceTests(TestCase):
                 mock.patch.object(topological_service_module.region_api, "service_status", return_value={"list": []}))
             stack.enter_context(
                 mock.patch.object(topological_service_module.base_service, "_process_kubeblocks_status", return_value=[]))
-            stack.enter_context(
+            pod_count_call = stack.enter_context(
                 mock.patch.object(
                     topological_service_module.region_api,
-                    "get_dynamic_services_pods",
-                    return_value={"list": dynamic_services}))
+                    "get_services_pod_nums",
+                    return_value=pod_nums))
             stack.enter_context(
                 mock.patch.object(
                     topological_service_module.region_app_repo,
@@ -261,8 +246,8 @@ class TopologicalServicePerformanceTests(TestCase):
         self.assertEqual(result["json_data"]["service-a"]["node_num"], 2)
         self.assertEqual(result["json_data"]["service-b"]["node_num"], 1)
         self.assertEqual(result["json_data"]["service-c"]["node_num"], 0)
-        self.assertEqual(
-            [item.service_id_accesses for item in dynamic_services], [1, 1, 1])
+        pod_count_call.assert_called_once_with(
+            "rainbond", "team-name", ["service-a", "service-b", "service-c"])
 
     def test_internet_topology_still_detects_outer_http_ports(self):
         relation_query = mock.MagicMock()
@@ -389,6 +374,7 @@ class BatchAppMonitorPerformanceTests(TestCase):
         view.response_region = "rainbond"
         view.tenant = SimpleNamespace(tenant_name="team-name",
                                       enterprise_id="enterprise-id")
+        query_data = mock.MagicMock(side_effect=query_responses)
 
         with mock.patch.object(app_monitor_module.group_service,
                                "get_group_services",
@@ -403,7 +389,7 @@ class BatchAppMonitorPerformanceTests(TestCase):
                                    }), mock.patch.object(
                                        app_monitor_module.region_api,
                                        "get_query_data",
-                                       side_effect=query_responses):
+                                       query_data):
             response = view.get(SimpleNamespace(), group_id="1")
 
         self.assertEqual(
@@ -431,3 +417,58 @@ class BatchAppMonitorPerformanceTests(TestCase):
         )
         self.assertEqual([item.metric_accesses for item in throughput_results],
                          [1, 1])
+        self.assertEqual(query_data.call_count, 2)
+        self.assertTrue(all(call.kwargs.get("timeout") == 3
+                            for call in query_data.call_args_list))
+
+    def test_batch_monitor_skips_region_calls_for_empty_app(self):
+        view = app_monitor_module.BatchAppMonitorQueryView()
+        view.response_region = "rainbond"
+        view.tenant = SimpleNamespace(tenant_name="team-name",
+                                      enterprise_id="enterprise-id")
+
+        with mock.patch.object(app_monitor_module.group_service,
+                               "get_group_services",
+                               return_value=[]), mock.patch.object(
+                                   app_monitor_module.region_api,
+                                   "get_services_pods") as get_pods, mock.patch.object(
+                                       app_monitor_module.region_api,
+                                       "get_query_data") as query_data:
+            response = view.get(SimpleNamespace(), group_id="1")
+
+        self.assertEqual(response.data["data"]["list"], [])
+        get_pods.assert_not_called()
+        query_data.assert_not_called()
+
+
+class AppGroupVisitPerformanceTests(TestCase):
+
+    def test_group_visit_loads_components_and_access_info_in_batches(self):
+        team = SimpleNamespace(tenant_id="tenant-id")
+        services = [
+            SimpleNamespace(service_id="service-b", service_alias="gr654321"),
+            SimpleNamespace(service_id="service-a", service_alias="gr123456"),
+        ]
+        request = SimpleNamespace(GET={"service_alias": "gr123456-gr654321"})
+        accesses = {
+            "service-a": {"access_type": "http", "access_info": ["a"]},
+            "service-b": {"access_type": "tcp", "access_info": ["b"]},
+        }
+
+        with mock.patch.object(app_overview_module.team_services,
+                               "get_tenant_by_tenant_name",
+                               return_value=team), mock.patch.object(
+                                   app_overview_module.service_repo,
+                                   "get_services_by_tenant_and_aliases",
+                                   return_value=services) as list_services, mock.patch.object(
+                                       app_overview_module.port_service,
+                                       "list_access_infos",
+                                       return_value=accesses) as list_accesses:
+            response = app_overview_module.AppGroupVisitView().get(
+                request, team_name="demo-team")
+
+        list_services.assert_called_once_with(
+            "tenant-id", ["gr123456", "gr654321"])
+        list_accesses.assert_called_once_with(team, services)
+        self.assertEqual(response.data["data"]["list"],
+                         [accesses["service-a"], accesses["service-b"]])

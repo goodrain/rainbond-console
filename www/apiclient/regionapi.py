@@ -1439,13 +1439,13 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._delete(url, self.default_headers, region=region)
         return body
 
-    def get_query_data(self, region: str, tenant_name: str,
-                       params: str) -> Tuple[Any, Optional[Dict[str, Any]]]:
+    def get_query_data(self, region: str, tenant_name: str, params: str,
+                       timeout: int = 10) -> Tuple[Any, Optional[Dict[str, Any]]]:
         """获取监控数据"""
         url, token = self.__get_region_access_info(tenant_name, region)
         url = url + "/api/v1/query" + params
         self._set_headers(token)
-        res, body = self._get(url, self.default_headers, region=region, timeout=10, retries=1)
+        res, body = self._get(url, self.default_headers, region=region, timeout=timeout, retries=1)
         return res, body
 
     def get_query_range_data(self, region: str, tenant_name: str,
