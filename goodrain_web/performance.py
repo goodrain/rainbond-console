@@ -33,10 +33,14 @@ def _start_performance_context():
 
 def _slow_request_threshold_ms():
     try:
-        return max(0.0, float(os.environ.get("CONSOLE_SLOW_REQUEST_THRESHOLD_MS",
-                                             DEFAULT_SLOW_REQUEST_THRESHOLD_MS)))
+        return max(0.0, float(os.environ.get("CONSOLE_SLOW_REQUEST_THRESHOLD_MS", DEFAULT_SLOW_REQUEST_THRESHOLD_MS)))
     except (TypeError, ValueError):
         return DEFAULT_SLOW_REQUEST_THRESHOLD_MS
+
+
+def _performance_logging_enabled():
+    value = os.environ.get("CONSOLE_PERFORMANCE_LOG_ENABLED", "")
+    return value.strip().lower() in ("1", "true", "yes", "on")
 
 
 def _safe_url_path(url):
@@ -83,7 +87,7 @@ class PerformanceTimingMiddleware(object):
         finally:
             try:
                 total_ms = round((time.monotonic() - started) * 1000, 3)
-                if status >= 500 or total_ms >= _slow_request_threshold_ms():
+                if _performance_logging_enabled() and (status >= 500 or total_ms >= _slow_request_threshold_ms()):
                     payload = {
                         "event": "console_request_timing",
                         "request_id": context["request_id"],
