@@ -1,0 +1,92 @@
+meta:
+  name: local-snapshot-offline-upgrade
+  version: "1.0"
+  repo: /Users/zhangqihang/MyWork/workrc/rainbond-console
+  branch: v6.9.8-dev
+  design_doc: docs/plans/2026-08-14-local-snapshot-offline-upgrade-design.md
+
+sprints:
+  - id: sprint-1
+    name: Preserve local snapshot updates when cloud market is disabled
+    commits:
+      - id: commit-1
+        message: "fix: detect local snapshot upgrades in offline mode"
+        tasks: [task-1.1, task-1.2]
+    tasks:
+      - id: task-1.1
+        name: Add regression coverage and register the capability
+        status: completed
+        files:
+          modify:
+            - path: console/tests/market_app_service_test.py
+              lines: "after MarketAppServiceTelemetryTests"
+            - path: test-manifest.json
+              lines: "capabilities"
+        steps:
+          - action: write-test
+            description: Add a managed regression test for one local snapshot source at 1.0.2 with a local 1.0.3 version while is_cloud_market_disabled returns true. Mock component groups, source records, local app/version repository queries, and upgrade-record lookup; assert one item, can_upgrade true, and upgrade_versions contains 1.0.3.
+            code: |
+              # capability_id: console.market-app.local-snapshot-offline-upgrade
+              class MarketAppServiceOfflineUpgradeTests(SimpleTestCase):
+                  def test_offline_mode_detects_local_snapshot_upgrade(self):
+                      # Arrange one local service source and two local versions.
+                      # Patch is_cloud_market_disabled=True.
+                      # Assert result[0]["current_version"] == "1.0.2",
+                      # result[0]["can_upgrade"] is True, and "1.0.3" is returned.
+                      pass
+          - action: run-test
+            description: Execute the focused regression test before changing production code.
+            run: pytest console/tests/market_app_service_test.py -q -k local_snapshot_offline_upgrade
+            expect: FAIL because get_market_apps_in_app returns [] before inspecting local sources.
+          - action: register-capability
+            description: Register the new managed regression capability and regenerate the readable manifest.
+            run: >-
+              python3 scripts/manage_test_manifest.py add
+              console.market-app.local-snapshot-offline-upgrade
+              --title "Detect local snapshot upgrades in offline mode"
+              --title-zh "离线模式检测本地快照升级"
+              --interface-type service_method
+              --interface console.services.market_app_service.MarketAppService.get_market_apps_in_app
+              --code-path console/services/market_app_service.py
+              --test console/tests/market_app_service_test.py::MarketAppServiceOfflineUpgradeTests
+              --test-type regression
+              --status active
+            expect: Capability exists in test-manifest.json and test-manifest.md is refreshed when tracked.
+        acceptance:
+          - cmd: python3 scripts/validate_test_manifest.py --repo-root . --manifest test-manifest.json
+            expect: test manifest validation passed
+
+      - id: task-1.2
+        name: Limit offline guards to cloud sources
+        status: completed
+        files:
+          modify:
+            - path: console/services/market_app_service.py
+              lines: "1575-1817"
+        steps:
+          - action: implement
+            description: Remove global cloud-market-disable returns from local-capable upgrade entry points. In yield_app_info skip only source records whose is_install_from_cloud() is true when cloud market access is disabled. In __get_upgradeable_versions return [] only when install_from_cloud is true and cloud market is disabled. Preserve existing local repository queries and semantic version comparison.
+            code: |
+              # get_market_apps_in_app: do not return [] just because cloud market is disabled.
+              # yield_app_info: after install_from_cloud is resolved:
+              if install_from_cloud and is_cloud_market_disabled():
+                  continue
+
+              # __get_upgradeable_versions:
+              if install_from_cloud and is_cloud_market_disabled():
+                  return []
+          - action: run-test
+            description: Re-run the regression test after the minimal production fix.
+            run: pytest console/tests/market_app_service_test.py -q -k local_snapshot_offline_upgrade
+            expect: PASS
+          - action: review-spec
+            description: Confirm local versions remain queryable only through the local repository and cloud sources remain skipped while offline.
+          - action: review-quality
+            description: Confirm source-aware conditions are explicit, no external cloud call can occur in offline mode, and no unrelated flow changes.
+        acceptance:
+          - cmd: pytest console/tests/market_app_service_test.py -q
+            expect: PASS
+          - cmd: python3 scripts/validate_test_manifest.py --repo-root . --manifest test-manifest.json
+            expect: test manifest validation passed
+          - cmd: make check
+            expect: PASS
