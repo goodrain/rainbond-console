@@ -18,6 +18,7 @@ from console.repositories.rainskills_deployment_repo import (  # noqa: E402
 from console.repositories import rainskills_deployment_repo as repo_module  # noqa: E402
 from console.services.rainskills_deployment_service import (  # noqa: E402
     RainSkillsDeploymentService, )
+import console.services.rainskills_deployment_service as deployment_service_module  # noqa: E402
 
 UTC = datetime.timezone.utc
 NOW = datetime.datetime(2026, 7, 24, 9, 30, tzinfo=UTC)
@@ -300,6 +301,27 @@ class RainSkillsDeploymentRepositoryTests(TestCase):
 
 
 class RainSkillsDeploymentServiceTests(TestCase):
+
+    def test_polling_worker_releases_database_connections_between_polls(self):
+        repo = FakeRepo()
+        region = FakeRegion([
+            {"list": [{"event_id": "event-1", "status": "pending"}]},
+            {"list": [{"event_id": "event-1", "status": "success"}]},
+        ])
+        transport = FakeTransport([204])
+        service = make_service(repo=repo, region=region, transport=transport)
+        tracker = begin(service)
+        service.bind_events(tracker, ["event-1"], [])
+
+        with mock.patch.object(deployment_service_module,
+                               "close_old_connections") as close_old, \
+                mock.patch.object(deployment_service_module.connections,
+                                  "close_all") as close_all:
+            service._worker_entry(tracker["key"])
+
+        self.assertGreaterEqual(close_old.call_count, 2)
+        self.assertGreaterEqual(close_all.call_count, 2)
+        self.assertNotIn(tracker["key"], repo.records)
 
     def test_report_url_is_always_the_canonical_request_server(self):
         with mock.patch.dict(

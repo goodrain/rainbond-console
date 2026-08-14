@@ -9,6 +9,7 @@ import uuid
 from typing import Any, Callable, Dict, Iterable, NamedTuple, Optional, Set, Tuple
 
 import requests
+from django.db import close_old_connections, connections
 
 from console.repositories.rainskills_deployment_repo import rainskills_deployment_repo
 from www.apiclient.regionapi import RegionInvokeApi
@@ -438,12 +439,14 @@ class RainSkillsDeploymentService(object):
         try:
             self._poll_by_key(key)
         finally:
+            connections.close_all()
             with self._lock:
                 self._running_keys.discard(key)
 
     def _poll_by_key(self, key: str) -> None:
         dispatch_attempted = False
         while True:
+            close_old_connections()
             record = self.repo.get_by_key(key)
             payload = self.repo.load_payload(record)
             if not record or not payload:
@@ -483,9 +486,11 @@ class RainSkillsDeploymentService(object):
             except Exception as exc:
                 logger.warning("poll RainSkills deployment events failed: %s",
                                exc)
+                connections.close_all()
                 self.sleep(self.POLL_INTERVAL_SECONDS)
                 continue
             if status == "pending":
+                connections.close_all()
                 self.sleep(self.POLL_INTERVAL_SECONDS)
                 continue
             self._set_final(record, payload, status, **failure)
@@ -609,6 +614,8 @@ class RainSkillsDeploymentService(object):
                 self.sweep_once()
             except Exception as exc:
                 logger.warning("RainSkills deployment sweeper failed: %s", exc)
+            finally:
+                connections.close_all()
 
     def _post_report_payload(self, payload: dict) -> bool:
         report_payload = self._build_report_payload(payload)
