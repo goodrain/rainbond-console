@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import collections
+import json
 import os
 import sys
 import typing
@@ -193,6 +194,25 @@ class MarketInstallPreflightServiceTests(TestCase):
         })
 
         self.assertEqual(2250, requirements["cpu"])
+
+    def test_market_version_resource_summary_precedes_component_estimate(self):
+        requirements = self.service.parse_template_requirements({
+            "_market_resource_requirements": {
+                "cpu": 1800,
+                "memory": 7168,
+            },
+            "apps": [{
+                "cpu": 0,
+                "memory": 512,
+                "extend_method_map": {
+                    "container_cpu": 0,
+                    "init_memory": 512,
+                },
+            }],
+        })
+
+        self.assertEqual(1800, requirements["cpu"])
+        self.assertEqual(7168, requirements["memory"])
 
     def test_extend_method_map_cpu_precedes_top_level_cpu(self):
         requirements = self.service.parse_template_requirements({
@@ -793,3 +813,45 @@ class MarketInstallPreflightServiceTests(TestCase):
         self.assertEqual("warning", check["status"])
         self.assertEqual("region_capability_missing", check["reason"])
         self.assertFalse(result["should_block"])
+
+
+class MarketAppVersionResourceTests(TestCase):
+    def test_cloud_conversion_preserves_selected_version_resource_summary(self):
+        from console.services.app import app_market_service
+
+        market = Obj(name="goodrain")
+        app = Obj(
+            app_key_id="dify",
+            name="Dify",
+            dev_status="release",
+            desc="",
+            introduction="",
+            logo="",
+            create_time="2026-08-14T00:00:00Z",
+            update_time="2026-08-14T00:00:00Z",
+            versions=[
+                Obj(app_version="1.14.0", cpu=2000, memory=6144),
+                Obj(app_version="1.15.0", cpu=2250, memory=7168),
+            ],
+        )
+        version = Obj(
+            template=json.dumps({"apps": []}),
+            version="1.15.0",
+            version_alias="",
+            rainbond_version="6.0.0",
+            description="",
+            update_time="2026-08-14T00:00:00Z",
+            arch="amd64",
+            template_type="RAM",
+        )
+
+        with mock.patch("console.services.app.app_store.get_app", return_value=app), \
+                mock.patch("console.services.app.app_store.get_app_version", return_value=version):
+            _, converted_version = app_market_service.cloud_app_model_to_db_model(
+                market, "dify", "1.15.0", for_install=True)
+
+        converted_template = json.loads(converted_version.app_template)
+        self.assertEqual({
+            "cpu": 2250,
+            "memory": 7168,
+        }, converted_template["_market_resource_requirements"])

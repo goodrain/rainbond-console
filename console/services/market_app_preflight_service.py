@@ -70,6 +70,11 @@ class MarketInstallPreflightService(object):
                 image = (image or "").strip()
                 if image and image not in images:
                     images.append(image)
+        market_resources = app_template.get("_market_resource_requirements") or {}
+        if market_resources.get("cpu") is not None:
+            cpu = self._int_value(market_resources.get("cpu"))
+        if market_resources.get("memory") is not None:
+            memory = self._int_value(market_resources.get("memory"))
         template_arch = app_template.get("arch") or "amd64"
         return {
             "component_count": len(apps),
