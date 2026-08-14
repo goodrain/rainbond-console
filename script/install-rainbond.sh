@@ -3,9 +3,15 @@
 # This script is used to install Rainbond standalone on Linux and MacOS
 
 # Basic environment variables
-RAINBOND_VERSION=${VERSION:-'v6.9.4-release'}
+RAINBOND_VERSION=${VERSION:-'v6.9.7-release'}
 IMGHUB_MIRROR=${IMGHUB_MIRROR:-'registry.cn-hangzhou.aliyuncs.com/goodrain'}
 ENABLE_GPU=${ENABLE_GPU:-auto}
+DOCKER_MIN_VERSION="20.0.0"
+DOCKER_RECOMMENDED_VERSION="28.3.1"
+DOCKER_INSTALL_SHA256_AMD64="ac80f9cdec0a465ad180236127a6a23fc7dc88d2f006c74615bad55ddb515739"
+DOCKER_INSTALL_SHA256_ARM64="056e8d5d764866add932396441a063e67abb51c3ce11e258a9fa5062e52c6e89"
+DOCKER_UPGRADE_BINARIES="docker dockerd containerd containerd-shim-runc-v2 ctr runc docker-init docker-proxy"
+DOCKER_UPGRADE_REQUIRED_EXISTING_BINARIES="docker dockerd containerd ctr runc docker-init docker-proxy"
 
 # Define colorful stdout
 RED='\033[0;31m'
@@ -825,6 +831,7 @@ function check_iptables_command_linux() {
 }
 
 MIN_MEMORY_KB=$((4 * 1024 * 1024))
+MIN_DISK_AVAILABLE_KB=$((10 * 1024 * 1024))
 
 function check_memory_requirement_linux() {
   local memory_kb
@@ -854,6 +861,29 @@ function check_memory_requirement_linux() {
     send_info "内存检测通过，当前: ${memory_gb}GB"
   else
     send_info "Memory check passed, current: ${memory_gb}GB"
+  fi
+
+  return 0
+}
+
+function check_disk_requirement() {
+  local available_space=$1
+  local available_gb=$((available_space / 1024 / 1024))
+  local minimum_gb=$((MIN_DISK_AVAILABLE_KB / 1024 / 1024))
+
+  if [ "${available_space}" -lt "${MIN_DISK_AVAILABLE_KB}" ] 2>/dev/null; then
+    if rainbond_use_chinese_prompt; then
+      send_error "磁盘空间不足，当前可用: ${available_gb}GB, 请至少保留${minimum_gb}GB空间后重试"
+    else
+      send_error "Disk space is insufficient, available: ${available_gb}GB, please reserve at least ${minimum_gb}GB space and try again"
+    fi
+    return 1
+  fi
+
+  if rainbond_use_chinese_prompt; then
+    send_info "磁盘空间检测通过，可用空间: ${available_gb}GB"
+  else
+    send_info "Disk space check passed, available space: ${available_gb}GB"
   fi
 
   return 0
@@ -1031,22 +1061,8 @@ function check_base_env() {
   available_space=$(echo "$available_space" | tr -d 'K' | tr -d 'M' | tr -d 'G' | sed 's/[^0-9]//g')
   available_space=${available_space:-0}
   
-  # Check if at least 10GB available (10485760 KB)
-  if [ "$available_space" -lt 10485760 ] 2>/dev/null; then
-    local available_gb=$((available_space / 1024 / 1024))
-    if rainbond_use_chinese_prompt; then
-      send_error "磁盘空间不足，当前可用: ${available_gb}GB, 请至少保留10GB空间后重试"
-    else
-      send_error "Disk space is insufficient, available: ${available_gb}GB, please reserve at least 10GB space and try again"
-    fi
+  if ! check_disk_requirement "${available_space}"; then
     exit 1
-  else
-    local available_gb=$((available_space / 1024 / 1024))
-    if rainbond_use_chinese_prompt; then
-      send_info "磁盘空间检测通过，可用空间: ${available_gb}GB"
-    else
-      send_info "Disk space check passed, available space: ${available_gb}GB"
-    fi
   fi
 
   if rainbond_use_chinese_prompt; then
@@ -2294,25 +2310,324 @@ EOF
     systemctl daemon-reload
 }
 
+restore_docker_binaries() {
+    local backup_dir=$1
+    local docker_bin_dir=$2
+    local binary
+
+    if [ -d "${backup_dir}/binaries" ]; then
+        for binary in "${backup_dir}/binaries"/*; do
+            [ -f "$binary" ] || continue
+            cp -p "$binary" "${docker_bin_dir}/$(basename "$binary")" || return 1
+        done
+    fi
+
+    if [ -f "${backup_dir}/introduced-binaries" ]; then
+        while IFS= read -r binary; do
+            [ -n "$binary" ] || continue
+            rm -f "${docker_bin_dir}/${binary}" || return 1
+        done <"${backup_dir}/introduced-binaries"
+    fi
+}
+
+docker_upgrade_restore_before_start() {
+    local backup_dir=$1
+    local docker_bin_dir=$2
+    local running_containers=$3
+    local reason=$4
+
+    restore_docker_binaries "$backup_dir" "$docker_bin_dir" || true
+    start_docker_after_upgrade || true
+    restore_previously_running_containers "$running_containers" || true
+    if rainbond_use_chinese_prompt; then
+        send_error "${reason}；已尝试恢复升级前 Docker，备份目录: ${backup_dir}"
+    else
+        send_error "${reason}; the previous Docker installation was restored where possible. Backup: ${backup_dir}"
+    fi
+}
+
+start_docker_after_upgrade() {
+    systemctl start containerd >/dev/null 2>&1 && \
+        systemctl start docker.socket >/dev/null 2>&1 && \
+        systemctl start docker >/dev/null 2>&1
+}
+
+stop_docker_for_upgrade() {
+    systemctl stop docker.socket >/dev/null 2>&1 || return 1
+    systemctl stop docker >/dev/null 2>&1 || return 1
+    systemctl stop containerd >/dev/null 2>&1 || return 1
+
+    ! systemctl is-active --quiet docker.socket >/dev/null 2>&1 && \
+        ! systemctl is-active --quiet docker >/dev/null 2>&1 && \
+        ! systemctl is-active --quiet containerd >/dev/null 2>&1
+}
+
+restore_previously_running_containers() {
+    local container_id failed=false
+    while IFS= read -r container_id; do
+        [ -n "$container_id" ] || continue
+        if [ "$(docker inspect --format '{{.State.Running}}' "$container_id" 2>/dev/null || true)" = "true" ]; then
+            continue
+        fi
+        if ! docker start "$container_id" >/dev/null 2>&1 || \
+           [ "$(docker inspect --format '{{.State.Running}}' "$container_id" 2>/dev/null || true)" != "true" ]; then
+            failed=true
+        fi
+    done <<EOF
+${1:-}
+EOF
+    [ "$failed" = false ]
+}
+
+rollback_docker_upgrade() {
+    local backup_dir=$1
+    local docker_bin_dir=$2
+    local running_containers=$3
+    local original_version=$4
+    local reason_zh=$5
+    local reason_en=$6
+
+    if ! stop_docker_for_upgrade; then
+        if rainbond_use_chinese_prompt; then
+            send_error "${reason_zh}；新版 Docker 无法完全停止，为避免产生混合二进制版本，脚本未覆盖任何文件。请根据备份目录人工恢复: ${backup_dir}"
+        else
+            send_error "${reason_en}; the new Docker runtime could not be stopped completely. No files were overwritten during rollback to avoid mixed binary versions. Recover manually from: ${backup_dir}"
+        fi
+        return 1
+    fi
+    if ! restore_docker_binaries "$backup_dir" "$docker_bin_dir"; then
+        if rainbond_use_chinese_prompt; then
+            send_error "${reason_zh}；恢复旧 Docker 二进制失败，请根据备份目录人工恢复: ${backup_dir}"
+        else
+            send_error "${reason_en}; restoring the previous Docker binaries failed. Recover manually from: ${backup_dir}"
+        fi
+        return 1
+    fi
+
+    if start_docker_after_upgrade && [ "$(get_docker_version)" = "$original_version" ] && \
+        restore_previously_running_containers "$running_containers"; then
+        if rainbond_use_chinese_prompt; then
+            send_error "${reason_zh}；已恢复升级前 Docker ${original_version}。跨版本启动可能已写入运行时元数据，请继续检查原有服务；备份目录: ${backup_dir}"
+        else
+            send_error "${reason_en}; Docker ${original_version} was restored. The attempted cross-version start may have written runtime metadata, so verify existing services. Backup: ${backup_dir}"
+        fi
+    else
+        if rainbond_use_chinese_prompt; then
+            send_error "${reason_zh}；自动恢复升级前 Docker 失败，请立即根据备份目录人工恢复: ${backup_dir}"
+        else
+            send_error "${reason_en}; automatic restoration of the previous Docker failed. Recover it manually from: ${backup_dir}"
+        fi
+    fi
+}
+
+upgrade_docker_from_bundle() {
+    local bundle_dir=$1
+    local backup_root docker_bin_dir backup_dir binary source target temp_target
+    local running_containers docker_root storage_driver installed_version original_version
+    backup_root="${RAINBOND_DOCKER_UPGRADE_BACKUP_ROOT:-/var/lib/rainbond}"
+    if [ -n "${RAINBOND_DOCKER_BIN_DIR:-}" ]; then
+        docker_bin_dir="$RAINBOND_DOCKER_BIN_DIR"
+    else
+        docker_bin_dir=$(dirname "$(command -v dockerd 2>/dev/null || printf '/usr/bin/dockerd')")
+    fi
+    backup_dir="${backup_root}/docker-upgrade-backup-$(date +%Y%m%d%H%M%S)-$$"
+    if ! running_containers=$(docker ps -q 2>/dev/null) || \
+       ! docker_root=$(docker info --format '{{.DockerRootDir}}' 2>/dev/null) || \
+       ! storage_driver=$(docker info --format '{{.Driver}}' 2>/dev/null); then
+        if rainbond_use_chinese_prompt; then
+            send_error "停止 Docker 前无法读取完整运行状态，未执行升级"
+        else
+            send_error "The complete Docker runtime state could not be read before stopping the daemon; no upgrade was performed"
+        fi
+        return 1
+    fi
+    original_version=$(get_docker_version)
+    if [ -z "$docker_root" ] || [ -z "$storage_driver" ] || [ -z "$original_version" ]; then
+        if rainbond_use_chinese_prompt; then
+            send_error "Docker 数据目录、存储驱动或版本为空，未执行升级"
+        else
+            send_error "Docker root directory, storage driver, or version is empty; no upgrade was performed"
+        fi
+        return 1
+    fi
+
+    if [ ! -d "$bundle_dir" ] || [ ! -d "$docker_bin_dir" ]; then
+        return 1
+    fi
+
+    mkdir -p "$backup_dir/binaries" "$backup_dir/config" || return 1
+    chmod 700 "$backup_dir" || return 1
+
+    for binary in $DOCKER_UPGRADE_BINARIES; do
+        source="${bundle_dir}/${binary}"
+        [ -f "$source" ] && [ ! -L "$source" ] || return 1
+        target="${docker_bin_dir}/${binary}"
+        if [ -f "$target" ]; then
+            cp -p "$target" "${backup_dir}/binaries/${binary}" || return 1
+        else
+            printf '%s\n' "$binary" >>"${backup_dir}/introduced-binaries"
+        fi
+    done
+
+    if [ -d /etc/docker ]; then
+        cp -a /etc/docker "${backup_dir}/config/docker" || return 1
+    fi
+    systemctl cat docker >"${backup_dir}/config/docker.service.effective" 2>/dev/null || true
+    systemctl cat docker.socket >"${backup_dir}/config/docker.socket.effective" 2>/dev/null || true
+    systemctl cat containerd >"${backup_dir}/config/containerd.service.effective" 2>/dev/null || true
+    printf 'docker_version=%s\ndocker_root=%s\nstorage_driver=%s\nrunning_containers=%s\n' \
+        "$original_version" "$docker_root" "$storage_driver" "$running_containers" >"${backup_dir}/upgrade-state"
+
+    if rainbond_use_chinese_prompt; then
+        send_info "Docker 升级备份已保存到 ${backup_dir}"
+    else
+        send_info "Docker upgrade backup saved to ${backup_dir}"
+    fi
+
+    if [ -f /etc/docker/daemon.json ] && ! "$bundle_dir/dockerd" --validate --config-file /etc/docker/daemon.json >/dev/null 2>&1; then
+        if rainbond_use_chinese_prompt; then
+            send_error "现有 /etc/docker/daemon.json 无法通过 Docker ${DOCKER_RECOMMENDED_VERSION} 配置校验，未执行升级"
+        else
+            send_error "The existing /etc/docker/daemon.json is not valid for Docker ${DOCKER_RECOMMENDED_VERSION}; no upgrade was performed"
+        fi
+        return 1
+    fi
+
+    if ! stop_docker_for_upgrade; then
+        start_docker_after_upgrade || true
+        restore_previously_running_containers "$running_containers" || true
+        if rainbond_use_chinese_prompt; then
+            send_error "无法完全停止 Docker、docker.socket 或 containerd，未执行升级"
+        else
+            send_error "Docker, docker.socket, or containerd could not be stopped completely; no upgrade was performed"
+        fi
+        return 1
+    fi
+
+    for binary in $DOCKER_UPGRADE_BINARIES; do
+        source="${bundle_dir}/${binary}"
+        target="${docker_bin_dir}/${binary}"
+        temp_target="${target}.rainbond-upgrade.$$"
+        if ! cp "$source" "$temp_target" || ! chmod 0755 "$temp_target" || ! mv -f "$temp_target" "$target"; then
+            rm -f "$temp_target"
+            if rainbond_use_chinese_prompt; then
+                docker_upgrade_restore_before_start "$backup_dir" "$docker_bin_dir" "$running_containers" "Docker 二进制替换失败"
+            else
+                docker_upgrade_restore_before_start "$backup_dir" "$docker_bin_dir" "$running_containers" "Failed to replace Docker binaries"
+            fi
+            return 1
+        fi
+    done
+
+    if ! start_docker_after_upgrade || ! docker info >/dev/null 2>&1; then
+        rollback_docker_upgrade "$backup_dir" "$docker_bin_dir" "$running_containers" "$original_version" \
+            "Docker ${DOCKER_RECOMMENDED_VERSION} 启动失败" \
+            "Docker ${DOCKER_RECOMMENDED_VERSION} failed to start"
+        return 1
+    fi
+
+    installed_version=$(get_docker_version)
+    if [ "$installed_version" != "$DOCKER_RECOMMENDED_VERSION" ]; then
+        rollback_docker_upgrade "$backup_dir" "$docker_bin_dir" "$running_containers" "$original_version" \
+            "Docker 升级后版本校验失败，当前版本: ${installed_version:-unknown}" \
+            "Docker version verification failed after upgrade; current version: ${installed_version:-unknown}"
+        return 1
+    fi
+
+    if [ "$(docker info --format '{{.DockerRootDir}}' 2>/dev/null || true)" != "$docker_root" ] || \
+       [ "$(docker info --format '{{.Driver}}' 2>/dev/null || true)" != "$storage_driver" ]; then
+        rollback_docker_upgrade "$backup_dir" "$docker_bin_dir" "$running_containers" "$original_version" \
+            "Docker 升级后数据目录或存储驱动发生变化" \
+            "Docker root directory or storage driver changed after upgrade"
+        return 1
+    fi
+
+    if [ -n "$running_containers" ]; then
+        restore_previously_running_containers "$running_containers" || {
+            rollback_docker_upgrade "$backup_dir" "$docker_bin_dir" "$running_containers" "$original_version" \
+                "部分原有容器无法恢复运行" \
+                "Some previously running containers could not be restarted"
+            return 1
+        }
+    fi
+
+    if rainbond_use_chinese_prompt; then
+        send_info "Docker 已成功升级到 $(get_docker_version)"
+    else
+        send_info "Docker was successfully upgraded to $(get_docker_version)"
+    fi
+    return 0
+}
+
+docker_archive_checksum() {
+    if command -v sha256sum >/dev/null 2>&1; then
+        sha256sum "$1" | awk '{print $1}'
+    elif command -v shasum >/dev/null 2>&1; then
+        shasum -a 256 "$1" | awk '{print $1}'
+    else
+        return 1
+    fi
+}
+
+verify_docker_upgrade_archive() {
+    local docker_file=$1
+    local expected_sha=$2
+    local actual_sha entries expected_entries
+
+    actual_sha=$(docker_archive_checksum "$docker_file" 2>/dev/null || true)
+    [ -n "$actual_sha" ] && [ "$actual_sha" = "$expected_sha" ] || return 1
+
+    if ! tar -tvzf "$docker_file" 2>/dev/null | awk '$1 !~ /^[-d]/ { exit 1 }'; then
+        return 1
+    fi
+    entries=$(tar -tzf "$docker_file" 2>/dev/null | LC_ALL=C sort) || return 1
+    expected_entries=$(printf '%s\n' \
+        docker/ \
+        docker/containerd \
+        docker/containerd-shim-runc-v2 \
+        docker/ctr \
+        docker/docker \
+        docker/docker-init \
+        docker/docker-proxy \
+        docker/dockerd \
+        docker/runc | LC_ALL=C sort)
+    [ "$entries" = "$expected_entries" ]
+}
+
 # Function to install Docker on Linux using binary installation
 install_docker_linux() {
-    if rainbond_use_chinese_prompt; then
+    local install_mode="${1:-fresh}"
+
+    if [ "$install_mode" = "upgrade" ]; then
+        if rainbond_use_chinese_prompt; then
+            send_info "开始将静态二进制 Docker 原地升级到 ${DOCKER_RECOMMENDED_VERSION}..."
+        else
+            send_info "Starting in-place static Docker upgrade to ${DOCKER_RECOMMENDED_VERSION}..."
+        fi
+    elif rainbond_use_chinese_prompt; then
         send_info "未检测到 Docker 环境，开始二进制安装..."
     else
         send_info "Docker not detected, starting binary installation..."
     fi
     
     # Determine Docker binary URL based on architecture
-    local docker_url
-    local docker_version="28.3.1"
+    local docker_url docker_expected_sha
     if [ "$ARCH_TYPE" = "amd64" ]; then
-        docker_url="https://mirrors.tuna.tsinghua.edu.cn/docker-ce/linux/static/stable/x86_64/docker-${docker_version}.tgz"
+        docker_url="https://mirrors.tuna.tsinghua.edu.cn/docker-ce/linux/static/stable/x86_64/docker-${DOCKER_RECOMMENDED_VERSION}.tgz"
+        docker_expected_sha="$DOCKER_INSTALL_SHA256_AMD64"
     elif [ "$ARCH_TYPE" = "arm64" ]; then
-        docker_url="https://mirrors.tuna.tsinghua.edu.cn/docker-ce/linux/static/stable/aarch64/docker-${docker_version}.tgz"
+        docker_url="https://mirrors.tuna.tsinghua.edu.cn/docker-ce/linux/static/stable/aarch64/docker-${DOCKER_RECOMMENDED_VERSION}.tgz"
+        docker_expected_sha="$DOCKER_INSTALL_SHA256_ARM64"
     fi
     
     # Check if Docker binary already exists and is complete
     local docker_file="/tmp/docker.tgz"
+    local docker_work_dir=""
+    if [ "$install_mode" = "upgrade" ]; then
+        docker_work_dir=$(mktemp -d /tmp/rainbond-docker-upgrade.XXXXXX) || return 1
+        chmod 700 "$docker_work_dir" || return 1
+        docker_file="${docker_work_dir}/docker.tgz"
+    fi
     local download_needed=true
     
     if [ -f "$docker_file" ]; then
@@ -2376,7 +2691,8 @@ install_docker_linux() {
             fi
 
             if curl --fail --connect-timeout 30 --max-time 600 --progress-bar -L "$docker_url" -o "$docker_tmp_file"; then
-                if tar -tzf "$docker_tmp_file" >/dev/null 2>&1; then
+                if { [ "$install_mode" = "upgrade" ] && verify_docker_upgrade_archive "$docker_tmp_file" "$docker_expected_sha"; } || \
+                   { [ "$install_mode" != "upgrade" ] && tar -tzf "$docker_tmp_file" >/dev/null 2>&1; }; then
                     mv "$docker_tmp_file" "$docker_file"
                     download_verified=true
                     break
@@ -2412,11 +2728,30 @@ install_docker_linux() {
                 send_error "Docker binary download or verification failed after retries. Please check network, proxy, or disk space and try again"
             fi
             rm -f "$docker_tmp_file" "$docker_file"
+            if [ "$install_mode" = "upgrade" ]; then
+                rm -rf "$docker_work_dir"
+                return 1
+            fi
             exit 1
         fi
     fi
 
-    # Extract Docker binary
+    if [ "$install_mode" = "upgrade" ]; then
+        local docker_extract_dir="${docker_work_dir}/extract"
+        mkdir -p "$docker_extract_dir" || return 1
+        if ! tar -xzf "$docker_file" -C "$docker_extract_dir"; then
+            rm -rf "$docker_work_dir"
+            return 1
+        fi
+        if ! upgrade_docker_from_bundle "$docker_extract_dir/docker"; then
+            rm -rf "$docker_work_dir"
+            return 1
+        fi
+        rm -rf "$docker_work_dir"
+        return 0
+    fi
+
+    # Extract Docker binary for a fresh installation.
     if ! tar -xzf "$docker_file" -C /tmp; then
         if rainbond_use_chinese_prompt; then
             send_error "Docker二进制文件解压失败"
@@ -2506,18 +2841,649 @@ handle_docker_install_macos() {
 }
 
 
-# Function to get Docker version
+# Function to get the Docker daemon version. The CLI and daemon can differ, so
+# checking `docker --version` is not sufficient for installation compatibility.
 get_docker_version() {
-    local docker_version_full=$(docker --version 2>/dev/null || echo "Docker version 0.0.0")
-    echo "$docker_version_full" | sed 's/[^0-9]*\([0-9][0-9]*\).*/\1/' || echo "0"
+    docker version --format '{{.Server.Version}}' 2>/dev/null | head -n 1
 }
 
-# Function to validate Docker version (must be >= 20.x)
+docker_version_number() {
+    local version="${1%%-*}"
+    local major=0 minor=0 patch=0
+    IFS=. read -r major minor patch <<EOF
+$version
+EOF
+    major=${major:-0}
+    minor=${minor:-0}
+    patch=${patch:-0}
+    major=${major%%[^0-9]*}
+    minor=${minor%%[^0-9]*}
+    patch=${patch%%[^0-9]*}
+    major=$((10#${major:-0}))
+    minor=$((10#${minor:-0}))
+    patch=$((10#${patch:-0}))
+    printf '%d%03d%03d\n' "$major" "$minor" "$patch"
+}
+
+docker_version_is_supported() {
+    local current_version=$1
+    local release_version
+    release_version=$(printf '%s' "$current_version" | sed -n 's/^\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\).*$/\1/p')
+    [ -n "$release_version" ] || return 1
+    case "$current_version" in
+        *-rc* | *-beta* | *-alpha*)
+            return 1
+            ;;
+    esac
+    [ "$(docker_version_number "$release_version")" -ge "$(docker_version_number "$DOCKER_MIN_VERSION")" ]
+}
+
+docker_upgrade_reject() {
+    if rainbond_use_chinese_prompt; then
+        send_error "$1"
+    else
+        send_error "$2"
+    fi
+    return 1
+}
+
+docker_package_owner_dpkg() {
+    local binary=$1 owner ownership
+    command -v dpkg-query >/dev/null 2>&1 || return 1
+    ownership=$(dpkg-query -S "$binary" 2>/dev/null) || return 1
+    owner=$(printf '%s\n' "$ownership" | awk -F ': ' -v binary="$binary" '$2 == binary { print $1; exit }')
+    owner=${owner%%:*}
+    case "$owner" in
+        '' | [!A-Za-z0-9]* | *[!A-Za-z0-9.+-]*)
+            return 2
+            ;;
+    esac
+    printf '%s\n' "$owner"
+}
+
+docker_package_owner_rpm() {
+    local binary=$1 owner
+    command -v rpm >/dev/null 2>&1 || return 1
+    owner=$(rpm -qf --queryformat '%{NAME}\n' "$binary" 2>/dev/null) || return 1
+    owner=$(printf '%s\n' "$owner" | head -n 1)
+    case "$owner" in
+        '' | [!A-Za-z0-9]* | *[!A-Za-z0-9.+-]*)
+            return 2
+            ;;
+    esac
+    printf '%s\n' "$owner"
+}
+
+docker_binary_is_package_managed() {
+    local binary=$1
+    if command -v dpkg-query >/dev/null 2>&1 && dpkg-query -S "$binary" >/dev/null 2>&1; then
+        return 0
+    fi
+    if command -v rpm >/dev/null 2>&1 && rpm -qf "$binary" >/dev/null 2>&1; then
+        return 0
+    fi
+    return 1
+}
+
+detect_docker_install_source() {
+    local dockerd_path package package_status
+    DOCKER_UPGRADE_SOURCE="unknown"
+    DOCKER_UPGRADE_PACKAGE=""
+    DOCKER_UPGRADE_DOCKERD_PATH=""
+
+    dockerd_path=$(command -v dockerd 2>/dev/null || true)
+    [ -n "$dockerd_path" ] || return 1
+    dockerd_path=$(readlink -f "$dockerd_path" 2>/dev/null || true)
+    [ -n "$dockerd_path" ] || return 1
+    DOCKER_UPGRADE_DOCKERD_PATH=$dockerd_path
+
+    package=$(docker_package_owner_dpkg "$dockerd_path")
+    package_status=$?
+    if [ "$package_status" -eq 0 ]; then
+        DOCKER_UPGRADE_SOURCE="apt"
+        DOCKER_UPGRADE_PACKAGE=$package
+        return 0
+    elif [ "$package_status" -eq 2 ]; then
+        return 1
+    fi
+    package=$(docker_package_owner_rpm "$dockerd_path")
+    package_status=$?
+    if [ "$package_status" -eq 0 ]; then
+        if command -v dnf >/dev/null 2>&1; then
+            DOCKER_UPGRADE_SOURCE="dnf"
+        elif command -v yum >/dev/null 2>&1; then
+            DOCKER_UPGRADE_SOURCE="yum"
+        else
+            return 1
+        fi
+        DOCKER_UPGRADE_PACKAGE=$package
+        return 0
+    elif [ "$package_status" -eq 2 ]; then
+        return 1
+    fi
+
+    if [ -f "$dockerd_path" ] && [ ! -L "$dockerd_path" ]; then
+        DOCKER_UPGRADE_SOURCE="static"
+        return 0
+    fi
+    return 1
+}
+
+systemd_exec_start_path() {
+    local unit=$1
+    local exec_start path
+    exec_start=$(systemctl show "$unit" --property=ExecStart --value 2>/dev/null || true)
+    path=$(printf '%s\n' "$exec_start" | sed -n 's/.*[[:space:]{]path=\([^ ;}]*\).*/\1/p')
+    if [ -z "$path" ]; then
+        path=$(printf '%s\n' "$exec_start" | awk '{print $1}')
+    fi
+    readlink -f "$path" 2>/dev/null || true
+}
+
+docker_upgrade_common_preflight_linux() {
+    local storage_driver swarm_state security_options endpoint shared_service namespaces
+
+    if [ -n "${DOCKER_CONTEXT:-}" ] && [ "$DOCKER_CONTEXT" != "default" ]; then
+        docker_upgrade_reject \
+            "检测到非默认 DOCKER_CONTEXT=${DOCKER_CONTEXT}，安装脚本不会自动升级本机 Docker" \
+            "A non-default DOCKER_CONTEXT=${DOCKER_CONTEXT} is active; the installer will not upgrade the local Docker daemon"
+        return 1
+    fi
+    if [ -n "${DOCKER_HOST:-}" ]; then
+        endpoint=$DOCKER_HOST
+    else
+        endpoint=$(docker context inspect --format '{{.Endpoints.docker.Host}}' 2>/dev/null | head -n 1 || true)
+    fi
+    case "$endpoint" in
+        unix:///var/run/docker.sock | unix:///run/docker.sock)
+            ;;
+        *)
+            docker_upgrade_reject \
+                "当前 Docker endpoint 为 ${endpoint:-unknown}，安装脚本只允许升级本机 Docker" \
+                "The current Docker endpoint is ${endpoint:-unknown}; the installer only upgrades the local Docker daemon"
+            return 1
+            ;;
+    esac
+
+    storage_driver=$(docker info --format '{{.Driver}}' 2>/dev/null || true)
+    if [ "$storage_driver" != "overlay2" ]; then
+        docker_upgrade_reject \
+            "当前 Docker 存储驱动为 ${storage_driver:-unknown}，安装脚本仅支持自动升级 overlay2 环境" \
+            "The current Docker storage driver is ${storage_driver:-unknown}; automatic upgrade is only supported for overlay2"
+        return 1
+    fi
+
+    swarm_state=$(docker info --format '{{.Swarm.LocalNodeState}}' 2>/dev/null || true)
+    case "$swarm_state" in
+        '' | inactive)
+            ;;
+        *)
+            docker_upgrade_reject \
+                "检测到 Docker Swarm 状态为 ${swarm_state}，为避免影响现有集群，安装脚本不会自动升级 Docker" \
+                "Docker Swarm is ${swarm_state}; the installer will not upgrade Docker because it may disrupt the existing cluster"
+            return 1
+            ;;
+    esac
+
+    security_options=$(docker info --format '{{json .SecurityOptions}}' 2>/dev/null || true)
+    if printf '%s' "$security_options" | grep -qi rootless; then
+        docker_upgrade_reject \
+            "检测到 rootless Docker，安装脚本不支持自动升级该运行模式" \
+            "Rootless Docker was detected; automatic upgrade is not supported for this runtime mode"
+        return 1
+    fi
+
+    if command -v ctr >/dev/null 2>&1 && namespaces=$(ctr namespaces list -q 2>/dev/null); then
+        namespaces=$(printf '%s\n' "$namespaces" | sed '/^moby$/d; /^$/d' | head -n 1 || true)
+        if [ -n "$namespaces" ]; then
+            docker_upgrade_reject \
+                "检测到 containerd 命名空间 ${namespaces}，可能被其他服务共享，安装脚本不会自动升级 Docker" \
+                "containerd namespace ${namespaces} may be shared by another service; the installer will not upgrade Docker"
+            return 1
+        fi
+    elif [ "${DOCKER_UPGRADE_SOURCE:-}" != "static" ]; then
+        if rainbond_use_chinese_prompt; then
+            send_warn "无法通过 ctr 枚举 containerd 命名空间；将由原包管理器处理依赖，但仍会检查已知容器编排服务"
+        else
+            send_warn "containerd namespaces could not be enumerated with ctr; dependency handling is delegated to the original package manager while known orchestrator services are still checked"
+        fi
+    fi
+
+    if [ -z "$(command -v docker 2>/dev/null || true)" ] || [ -z "${DOCKER_UPGRADE_DOCKERD_PATH:-}" ]; then
+        docker_upgrade_reject \
+            "无法定位 Docker CLI 或 dockerd，安装脚本不会自动覆盖该环境" \
+            "Docker CLI or dockerd could not be located; the installer will not overwrite this environment"
+        return 1
+    fi
+
+    for shared_service in kubelet k3s rke2-server rke2-agent nomad; do
+        if systemctl is-active --quiet "$shared_service" >/dev/null 2>&1; then
+            docker_upgrade_reject \
+                "检测到 ${shared_service} 服务正在运行，可能依赖现有容器运行时，安装脚本不会自动升级 Docker" \
+                "The ${shared_service} service is running and may depend on the current container runtime; the installer will not upgrade Docker"
+            return 1
+        fi
+    done
+
+    return 0
+}
+
+docker_package_upgrade_preflight_linux() {
+    local docker_exec
+    if ! command -v systemctl >/dev/null 2>&1 || ! systemctl is-active --quiet docker >/dev/null 2>&1; then
+        docker_upgrade_reject \
+            "无法确认当前 Docker 由本机 docker.service 管理，安装脚本不会自动调用包管理器升级" \
+            "The installer could not confirm that the current Docker daemon is managed by the local docker.service and will not invoke the package manager"
+        return 1
+    fi
+    docker_exec=$(systemd_exec_start_path docker)
+    if [ "$docker_exec" != "${DOCKER_UPGRADE_DOCKERD_PATH:-}" ]; then
+        docker_upgrade_reject \
+            "docker.service 的 ExecStart 与当前软件包中的 dockerd 不一致，安装脚本不会自动升级该环境" \
+            "docker.service ExecStart does not match the package-owned dockerd; the installer will not upgrade this environment"
+        return 1
+    fi
+    return 0
+}
+
+docker_package_upgrade_candidates() {
+    local package_manager=$1 daemon_package=$2
+    case "$package_manager" in
+        apt | dnf | yum)
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+    case "$daemon_package" in
+        '' | [!A-Za-z0-9]* | *[!A-Za-z0-9.+-]*)
+            return 1
+            ;;
+    esac
+    printf '%s\n' "$daemon_package"
+}
+
+wait_for_docker_after_package_upgrade() {
+    local attempt=1
+    while [ "$attempt" -le 30 ]; do
+        if docker info >/dev/null 2>&1; then
+            return 0
+        fi
+        sleep 1
+        attempt=$((attempt + 1))
+    done
+    return 1
+}
+
+restart_docker_after_package_upgrade() {
+    systemctl restart docker >/dev/null 2>&1 || return 1
+    wait_for_docker_after_package_upgrade
+}
+
+upgrade_docker_with_package_manager() {
+    local package_manager=$1 daemon_package=$2 packages
+    local running_containers docker_root storage_driver original_version installed_version
+    local -a package_list
+
+    if ! running_containers=$(docker ps -q 2>/dev/null) || \
+       ! docker_root=$(docker info --format '{{.DockerRootDir}}' 2>/dev/null) || \
+       ! storage_driver=$(docker info --format '{{.Driver}}' 2>/dev/null); then
+        docker_upgrade_reject \
+            "升级前无法读取完整 Docker 运行状态，未调用包管理器" \
+            "The complete Docker runtime state could not be read before upgrade; the package manager was not invoked"
+        return 1
+    fi
+    original_version=$(get_docker_version)
+    if [ -z "$docker_root" ] || [ -z "$storage_driver" ] || [ -z "$original_version" ]; then
+        docker_upgrade_reject \
+            "Docker 数据目录、存储驱动或版本为空，未调用包管理器" \
+            "Docker root directory, storage driver, or version is empty; the package manager was not invoked"
+        return 1
+    fi
+    if ! packages=$(docker_package_upgrade_candidates "$package_manager" "$daemon_package"); then
+        docker_upgrade_reject \
+            "无法确定需要升级的已安装 Docker 软件包，未执行升级" \
+            "The installed Docker package set could not be determined; no upgrade was performed"
+        return 1
+    fi
+    read -r -a package_list <<<"$packages"
+
+    if rainbond_use_chinese_prompt; then
+        send_info "将使用原 ${package_manager} 软件源升级已安装软件包: ${packages}"
+    else
+        send_info "Upgrading installed packages from the original ${package_manager} repository: ${packages}"
+    fi
+
+    case "$package_manager" in
+        apt)
+            if ! apt-get update || ! DEBIAN_FRONTEND=noninteractive apt-get install -y --only-upgrade "${package_list[@]}"; then
+                systemctl start docker >/dev/null 2>&1 || true
+                restore_previously_running_containers "$running_containers" || true
+                docker_upgrade_reject \
+                    "Docker 包管理器升级失败；软件包可能已部分变更，脚本不会自动降级，请检查 apt 输出和现有服务" \
+                    "The Docker package-manager upgrade failed; packages may have changed partially and will not be downgraded automatically. Check the apt output and existing services"
+                return 1
+            fi
+            ;;
+        dnf)
+            if ! dnf upgrade -y "${package_list[@]}"; then
+                systemctl start docker >/dev/null 2>&1 || true
+                restore_previously_running_containers "$running_containers" || true
+                docker_upgrade_reject \
+                    "Docker 包管理器升级失败；软件包可能已部分变更，脚本不会自动降级，请检查 dnf 输出和现有服务" \
+                    "The Docker package-manager upgrade failed; packages may have changed partially and will not be downgraded automatically. Check the dnf output and existing services"
+                return 1
+            fi
+            ;;
+        yum)
+            if ! yum upgrade -y "${package_list[@]}"; then
+                systemctl start docker >/dev/null 2>&1 || true
+                restore_previously_running_containers "$running_containers" || true
+                docker_upgrade_reject \
+                    "Docker 包管理器升级失败；软件包可能已部分变更，脚本不会自动降级，请检查 yum 输出和现有服务" \
+                    "The Docker package-manager upgrade failed; packages may have changed partially and will not be downgraded automatically. Check the yum output and existing services"
+                return 1
+            fi
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+
+    if ! restart_docker_after_package_upgrade; then
+        systemctl start docker >/dev/null 2>&1 || true
+        restore_previously_running_containers "$running_containers" || true
+        docker_upgrade_reject \
+            "包升级后 Docker 服务未恢复，请检查服务状态；脚本不会自动降级软件包" \
+            "Docker did not recover after the package upgrade. Check the service status; packages will not be downgraded automatically"
+        return 1
+    fi
+
+    installed_version=$(get_docker_version)
+    if [ -z "$installed_version" ] || ! docker_version_is_supported "$installed_version"; then
+        restore_previously_running_containers "$running_containers" || true
+        docker_upgrade_reject \
+            "Docker 包升级后版本校验失败，当前版本: ${installed_version:-unknown}，要求最低版本: ${DOCKER_MIN_VERSION}" \
+            "Docker version verification failed after the package upgrade; current version: ${installed_version:-unknown}, minimum: ${DOCKER_MIN_VERSION}"
+        return 1
+    fi
+    if [ "$(docker info --format '{{.DockerRootDir}}' 2>/dev/null || true)" != "$docker_root" ] || \
+       [ "$(docker info --format '{{.Driver}}' 2>/dev/null || true)" != "$storage_driver" ]; then
+        restore_previously_running_containers "$running_containers" || true
+        docker_upgrade_reject \
+            "Docker 包升级后数据目录或存储驱动发生变化，请立即检查原有服务" \
+            "Docker root directory or storage driver changed after the package upgrade; inspect existing services immediately"
+        return 1
+    fi
+    if ! restore_previously_running_containers "$running_containers"; then
+        docker_upgrade_reject \
+            "Docker 已升级，但部分升级前运行的容器无法恢复，请立即检查原有服务" \
+            "Docker was upgraded, but some previously running containers could not be restored; inspect existing services immediately"
+        return 1
+    fi
+
+    if rainbond_use_chinese_prompt; then
+        send_info "Docker 已通过 ${package_manager} 从 ${original_version} 升级到 ${installed_version}"
+    else
+        send_info "Docker was upgraded through ${package_manager} from ${original_version} to ${installed_version}"
+    fi
+    return 0
+}
+
+docker_static_upgrade_preflight_linux() {
+    local docker_path dockerd_path binary binary_path binary_dir namespaces docker_exec containerd_exec
+
+    docker_path=$(command -v docker 2>/dev/null || true)
+    dockerd_path=${DOCKER_UPGRADE_DOCKERD_PATH:-}
+    docker_path=$(readlink -f "$docker_path" 2>/dev/null || true)
+    binary_dir=$(dirname "$dockerd_path")
+    for binary in $DOCKER_UPGRADE_BINARIES; do
+        binary_path=$(command -v "$binary" 2>/dev/null || true)
+        if [ -z "$binary_path" ]; then
+            case " $DOCKER_UPGRADE_REQUIRED_EXISTING_BINARIES " in
+                *" $binary "*)
+                    docker_upgrade_reject \
+                        "Docker 二进制 ${binary} 缺失，仅支持标准静态二进制安装" \
+                        "Docker binary ${binary} is missing; only standard static binary installations are supported"
+                    return 1
+                    ;;
+            esac
+            continue
+        fi
+        if [ -L "$binary_path" ]; then
+            docker_upgrade_reject \
+                "Docker 二进制 ${binary} 为符号链接，仅支持标准静态二进制安装" \
+                "Docker binary ${binary} is a symbolic link; only standard static binary installations are supported"
+            return 1
+        fi
+        binary_path=$(readlink -f "$binary_path" 2>/dev/null || true)
+        if [ -z "$binary_path" ] || [ "$(dirname "$binary_path")" != "$binary_dir" ] || \
+           docker_binary_is_package_managed "$binary_path"; then
+            docker_upgrade_reject \
+                "Docker 二进制布局不是脚本可安全覆盖的纯静态安装，可能混用了包管理器文件，请人工升级 Docker" \
+                "The Docker binary layout is not a safely replaceable pure static installation and may contain package-managed files; upgrade Docker manually"
+            return 1
+        fi
+    done
+
+    if ! namespaces=$(ctr namespaces list -q 2>/dev/null); then
+        docker_upgrade_reject \
+            "无法确认 containerd 是否被其他服务共享，安装脚本不会自动升级 Docker" \
+            "The installer could not determine whether containerd is shared by another service and will not upgrade Docker"
+        return 1
+    fi
+    namespaces=$(printf '%s\n' "$namespaces" | sed '/^moby$/d; /^$/d' | head -n 1 || true)
+    if [ -n "$namespaces" ]; then
+        docker_upgrade_reject \
+            "检测到 containerd 命名空间 ${namespaces}，可能被其他服务共享，安装脚本不会自动升级 Docker" \
+            "containerd namespace ${namespaces} may be shared by another service; the installer will not upgrade Docker"
+        return 1
+    fi
+
+    if ! systemctl cat docker >/dev/null 2>&1 || ! systemctl cat docker.socket >/dev/null 2>&1 || \
+       ! systemctl cat containerd >/dev/null 2>&1; then
+        docker_upgrade_reject \
+            "未检测到标准的 docker.service、docker.socket 和 containerd.service，无法安全执行自动升级" \
+            "Standard docker.service, docker.socket, and containerd.service units were not found; automatic upgrade cannot be performed safely"
+        return 1
+    fi
+
+    docker_exec=$(systemd_exec_start_path docker)
+    containerd_exec=$(systemd_exec_start_path containerd)
+    if [ "$docker_exec" != "$dockerd_path" ] || [ "$containerd_exec" != "${binary_dir}/containerd" ]; then
+        docker_upgrade_reject \
+            "systemd 启动路径与当前 Docker 二进制不一致，安装脚本不会自动覆盖该环境" \
+            "The systemd ExecStart paths do not match the current Docker binaries; the installer will not overwrite this environment"
+        return 1
+    fi
+
+    return 0
+}
+
+confirm_docker_upgrade_linux() {
+    local current_version=$1
+    local upgrade_source=$2 package_name=${3:-}
+    local running_count running_names answer upgrade_plan_zh upgrade_plan_en prompt_target_zh prompt_target_en
+    running_count=$(docker ps -q 2>/dev/null | sed '/^$/d' | wc -l | tr -d ' ')
+    running_names=$(docker ps --format '{{.Names}}' 2>/dev/null | sed '/^$/d' || true)
+
+    case "$upgrade_source" in
+        apt | dnf | yum)
+            upgrade_plan_zh="沿用现有 ${upgrade_source} 软件包 ${package_name} 和原软件源升级；升级后 Docker Server 必须不低于 ${DOCKER_MIN_VERSION}"
+            upgrade_plan_en="Upgrade the existing ${package_name} package from its original ${upgrade_source} repository; the resulting Docker Server must meet minimum ${DOCKER_MIN_VERSION}"
+            prompt_target_zh="使用原 ${upgrade_source} 软件源升级 Docker"
+            prompt_target_en="upgrade Docker from the original ${upgrade_source} repository"
+            ;;
+        static)
+            upgrade_plan_zh="当前为静态二进制安装，将升级到脚本推荐版本 ${DOCKER_RECOMMENDED_VERSION}"
+            upgrade_plan_en="This is a static binary installation and will be upgraded to the installer-recommended version ${DOCKER_RECOMMENDED_VERSION}"
+            prompt_target_zh="将 Docker 升级到 ${DOCKER_RECOMMENDED_VERSION}"
+            prompt_target_en="upgrade Docker to ${DOCKER_RECOMMENDED_VERSION}"
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+
+    if rainbond_use_chinese_prompt; then
+        send_warn "检测到 Docker Server 版本 ${current_version}，低于 Rainbond 最低要求 ${DOCKER_MIN_VERSION}"
+        send_info "$upgrade_plan_zh"
+        send_warn "升级需要重启 Docker，当前 ${running_count:-0} 个运行中的容器会短暂中断；脚本会尝试恢复这些容器，但跨版本升级不能保证所有现有服务完全兼容"
+        if [ "$upgrade_source" != "static" ]; then
+            send_warn "包管理器升级可能同时更新 Docker 依赖；失败后脚本不会自动降级软件包"
+        fi
+        if [ -n "$running_names" ]; then
+            printf '%s\n' "$running_names" | sed 's/^/  - /'
+        fi
+    else
+        send_warn "Docker Server ${current_version} is below Rainbond's minimum requirement ${DOCKER_MIN_VERSION}"
+        send_info "$upgrade_plan_en"
+        send_warn "Upgrading restarts Docker and briefly interrupts ${running_count:-0} running container(s). The installer will try to restore them, but cross-version compatibility cannot be guaranteed"
+        if [ "$upgrade_source" != "static" ]; then
+            send_warn "The package manager may also update Docker dependencies; packages will not be downgraded automatically if the upgrade fails"
+        fi
+        if [ -n "$running_names" ]; then
+            printf '%s\n' "$running_names" | sed 's/^/  - /'
+        fi
+    fi
+
+    case "${RAINBOND_DOCKER_UPGRADE:-ask}" in
+        auto)
+            return 0
+            ;;
+        never)
+            return 1
+            ;;
+        ask | '')
+            ;;
+        *)
+            if rainbond_use_chinese_prompt; then
+                send_error "RAINBOND_DOCKER_UPGRADE 值无效，支持 ask、auto 或 never"
+            else
+                send_error "Invalid RAINBOND_DOCKER_UPGRADE value; supported values are ask, auto, or never"
+            fi
+            return 1
+            ;;
+    esac
+
+    if ! rainbond_tty_available; then
+        if rainbond_use_chinese_prompt; then
+            send_error "当前环境无法交互确认。请在终端中重新执行，或确认风险后设置 RAINBOND_DOCKER_UPGRADE=auto"
+        else
+            send_error "Interactive confirmation is unavailable. Re-run in a terminal, or set RAINBOND_DOCKER_UPGRADE=auto after accepting the risk"
+        fi
+        return 1
+    fi
+
+    if rainbond_use_chinese_prompt; then
+        printf '%b' "${YELLOW}是否${prompt_target_zh}并继续安装 Rainbond？[y/N]: ${NC}"
+    else
+        printf '%b' "${YELLOW}Proceed to ${prompt_target_en} and continue installing Rainbond? [y/N]: ${NC}"
+    fi
+    read -r answer </dev/tty
+    case "$answer" in
+        y | Y | yes | YES | Yes)
+            return 0
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
+ensure_docker_version_linux() {
+    local current_version upgrade_source package_name
+    current_version=$(get_docker_version)
+    if [ -z "$current_version" ]; then
+        if rainbond_use_chinese_prompt; then
+            send_error "无法读取 Docker Server 版本"
+        else
+            send_error "Unable to read the Docker Server version"
+        fi
+        return 1
+    fi
+
+    if docker_version_is_supported "$current_version"; then
+        return 0
+    fi
+
+    if ! detect_docker_install_source; then
+        if rainbond_use_chinese_prompt; then
+            send_error "无法识别当前 Docker 的安装来源，脚本不会强制替换。请使用原安装方式将 Docker Server 升级到 ${DOCKER_MIN_VERSION} 或更高版本"
+        else
+            send_error "The Docker installation source could not be identified and will not be force-replaced. Upgrade Docker Server to ${DOCKER_MIN_VERSION} or newer using its original installation method"
+        fi
+        return 1
+    fi
+    upgrade_source=$DOCKER_UPGRADE_SOURCE
+    package_name=$DOCKER_UPGRADE_PACKAGE
+
+    if ! confirm_docker_upgrade_linux "$current_version" "$upgrade_source" "$package_name"; then
+        if rainbond_use_chinese_prompt; then
+            send_error "Docker 版本升级已取消，Rainbond 安装停止"
+        else
+            send_error "Docker upgrade was declined; Rainbond installation has stopped"
+        fi
+        return 1
+    fi
+    if ! docker_upgrade_common_preflight_linux; then
+        if rainbond_use_chinese_prompt; then
+            send_error "当前环境不满足安全自动升级条件，请先按提示人工升级 Docker，Rainbond 安装停止"
+        else
+            send_error "This host does not meet the safe automatic-upgrade requirements. Upgrade Docker manually as indicated; Rainbond installation has stopped"
+        fi
+        return 1
+    fi
+    case "$upgrade_source" in
+        apt | dnf | yum)
+            if ! docker_package_upgrade_preflight_linux; then
+                if rainbond_use_chinese_prompt; then
+                    send_error "当前包管理器 Docker 环境不满足安全自动升级条件，请按提示人工升级 Docker，Rainbond 安装停止"
+                else
+                    send_error "This package-managed Docker installation does not meet the safe automatic-upgrade requirements. Upgrade Docker manually as indicated; Rainbond installation has stopped"
+                fi
+                return 1
+            fi
+            if ! upgrade_docker_with_package_manager "$upgrade_source" "$package_name"; then
+                return 1
+            fi
+            ;;
+        static)
+            if ! docker_static_upgrade_preflight_linux; then
+                if rainbond_use_chinese_prompt; then
+                    send_error "当前静态二进制环境不满足安全自动升级条件，请按提示人工升级 Docker，Rainbond 安装停止"
+                else
+                    send_error "This static binary installation does not meet the safe automatic-upgrade requirements. Upgrade Docker manually as indicated; Rainbond installation has stopped"
+                fi
+                return 1
+            fi
+            if ! install_docker_linux upgrade; then
+                return 1
+            fi
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+
+    current_version=$(get_docker_version)
+    if [ -z "$current_version" ] || ! docker_version_is_supported "$current_version"; then
+        if rainbond_use_chinese_prompt; then
+            send_error "Docker 升级后版本校验失败，当前版本: ${current_version:-unknown}"
+        else
+            send_error "Docker version verification failed after upgrade; current version: ${current_version:-unknown}"
+        fi
+        return 1
+    fi
+    return 0
+}
+
+# Preserve the existing macOS behavior: validate the CLI major version only.
 validate_docker_version() {
-    local docker_version=$(get_docker_version)
-    local min_version=20
-    
-    if [ "$docker_version" -lt $min_version ]; then
+    local docker_version_full docker_version min_version=20
+    docker_version_full=$(docker --version 2>/dev/null || echo "Docker version 0.0.0")
+    docker_version=$(echo "$docker_version_full" | sed 's/[^0-9]*\([0-9][0-9]*\).*/\1/' || echo "0")
+    if [ "$docker_version" -lt "$min_version" ]; then
         if rainbond_use_chinese_prompt; then
             send_error "Docker 版本过低，当前版本: $docker_version.x, 要求最低版本: $min_version.x\n\t- 请更新 Docker 版本: https://docs.docker.com/engine/install/"
         else
@@ -2614,14 +3580,18 @@ manage_docker() {
             if ! start_docker_service_linux; then
                 exit 1
             fi
-            validate_docker_version
+            if ! ensure_docker_version_linux; then
+                exit 1
+            fi
         else
             # Docker not installed
             install_docker_linux
         fi
     else
-        # Docker is running, validate version
-        validate_docker_version
+        # Docker is running, validate or upgrade the daemon version
+        if ! ensure_docker_version_linux; then
+            exit 1
+        fi
     fi
 }
 

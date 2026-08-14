@@ -380,6 +380,78 @@ class ShareServiceQueryResourceLimitTestCase(TestCase):
         self.assertEqual(600, extend_method_map["container_cpu"])
 
 
+# capability_id: console.service-share.cnb-publish-command
+class ShareServiceCNBPublishCommandTestCase(TestCase):
+    @staticmethod
+    def _query_component(service):
+        team = mock.Mock(tenant_id=1)
+        with mock.patch.object(share_services_module.share_repo, "get_service_list_by_group_id",
+                               return_value=[service]), \
+                mock.patch.object(share_service_instance, "get_team_service_deploy_version",
+                                  return_value={service.service_id: "202608140001"}), \
+                mock.patch.object(share_service_instance, "get_service_ports_by_ids", return_value={}), \
+                mock.patch.object(share_service_instance, "get_service_dependencys_by_ids", return_value={}), \
+                mock.patch.object(share_service_instance, "get_service_env_by_ids", return_value={}), \
+                mock.patch.object(share_service_instance, "get_service_volume_by_ids", return_value={}), \
+                mock.patch.object(share_service_instance, "get_dep_mnts_by_ids", return_value={}), \
+                mock.patch.object(share_service_instance, "get_service_probes", return_value={}), \
+                mock.patch.object(share_service_instance, "list_service_monitors", return_value={}), \
+                mock.patch.object(share_service_instance, "list_component_graphs", return_value={}), \
+                mock.patch.object(share_service_instance, "list_component_k8s_attributes", return_value={}), \
+                mock.patch.object(share_service_instance, "list_component_labels", return_value={}), \
+                mock.patch.object(share_services_module.share_repo, "get_plugins_relation_by_service_ids",
+                                  return_value=[]):
+            return share_service_instance.query_share_service_info(team, 30)[0]
+
+    @staticmethod
+    def _service(**overrides):
+        data = {
+            "service_id": "svc-web",
+            "tenant_id": 1,
+            "service_cname": "web",
+            "service_key": "svc-web",
+            "category": "app_publish",
+            "language": "Node.js",
+            "build_strategy": "cnb",
+            "extend_method": "stateless_multiple",
+            "version": "latest",
+            "min_memory": 512,
+            "service_type": "application",
+            "service_source": "source_code",
+            "k8s_component_name": "web",
+            "deploy_version": "202608140001",
+            "image": "registry.example.com/web:latest",
+            "git_url": "https://example.com/web.git",
+            "arch": "amd64",
+            "service_alias": "grweb",
+            "service_name": "web",
+            "service_region": "demo-region",
+            "creater": 7,
+            "cmd": "start web",
+            "min_node": 1,
+            "min_cpu": 100,
+            "component_id": "component-web",
+        }
+        data.update(overrides)
+        return mock.Mock(**data)
+
+    def test_query_share_service_info_clears_cmd_for_cnb_source_component(self):
+        component = self._query_component(self._service())
+
+        self.assertEqual("", component["cmd"])
+
+    def test_query_share_service_info_keeps_cmd_for_slug_source_component(self):
+        component = self._query_component(self._service(build_strategy="slug"))
+
+        self.assertEqual("start web", component["cmd"])
+
+    def test_query_share_service_info_keeps_cmd_for_image_component(self):
+        component = self._query_component(self._service(
+            service_source="docker_image", build_strategy="cnb", cmd="python app.py"))
+
+        self.assertEqual("python app.py", component["cmd"])
+
+
 # capability_id: console.service-share.stopped-component-publish
 # capability_id: console.service-share.vm-shutdown-guard
 class ShareServiceCheckServiceSourceTestCase(TestCase):

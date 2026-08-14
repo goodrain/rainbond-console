@@ -27,6 +27,7 @@ from console.services.compose_service import compose_service
 from console.services.group_service import group_service
 from console.services.market_app_service import market_app_service
 from console.services.operation_log import operation_log_service, Operation
+from console.services.platform_first_app_service import platform_first_app_service
 from console.services.plugin import app_plugin_service
 from console.services.plugin_service import rbd_plugin_service
 from console.services.team_services import team_services
@@ -398,6 +399,7 @@ class AppStatusView(AppBaseView):
                 self.service.service_region, self.service.service_id)
             if kubeblocks_status:
                 status_map = kubeblocks_status
+        platform_first_app_service.safe_mark_if_running(status_map)
         bean.update(status_map)
         result = general_message(200, "success", "查询成功", bean=bean)
         return Response(result, status=result["code"])

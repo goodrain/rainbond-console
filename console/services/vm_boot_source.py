@@ -1,4 +1,14 @@
+import re
+from typing import Any
+
 from www.models.main import Tenants
+
+
+VM_IMAGE_NAME_PATTERN = re.compile(r"^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$")
+
+
+def is_valid_vm_runtime_image_name(image_name: Any) -> bool:
+    return isinstance(image_name, str) and bool(VM_IMAGE_NAME_PATTERN.fullmatch(image_name))
 
 
 def resolve_vm_boot_source(tenant: Tenants, image_name: str, image_url: str, source_uri: str = "") -> dict:

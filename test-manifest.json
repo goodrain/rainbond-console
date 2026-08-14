@@ -3,6 +3,26 @@
   "repo": "rainbond-console",
   "capabilities": [
     {
+      "id": "console.app-create.available-resources",
+      "title": "Get available cluster resources for component configuration",
+      "title_zh": "获取组件配置可用集群资源",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.app_create.available_resources.AvailableResourcesView.get",
+      "code_paths": [
+        "console/services/available_resources_service.py",
+        "console/views/app_create/available_resources.py",
+        "console/urls/__init__.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/available_resources_test.py",
+          "selector": "AvailableResourcesServiceTests,AvailableResourcesViewTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.app-backup.create",
       "title": "Create application backup",
       "title_zh": "创建应用备份",
@@ -5244,24 +5264,6 @@
       "status": "active"
     },
     {
-      "id": "console.deploy-preflight.permission-scope",
-      "title": "Deploy preflight permission scope",
-      "title_zh": "部署预检权限范围",
-      "interface_type": "view_endpoint",
-      "interface": "console.views.app_create.deploy_preflight.DeployPreflightView",
-      "code_paths": [
-        "console/views/app_create/deploy_preflight.py"
-      ],
-      "tests": [
-        {
-          "path": "console/tests/deploy_preflight_service_test.py",
-          "selector": "DeployPreflightServiceTests"
-        }
-      ],
-      "test_type": "regression",
-      "status": "active"
-    },
-    {
       "id": "console.endpoint-address.reject-invalid-format",
       "title": "Reject malformed endpoint addresses that are neither IPs nor domains",
       "title_zh": "拒绝既不是 IP 也不是域名的非法端点地址",
@@ -6847,6 +6849,24 @@
         {
           "path": "console/tests/app_import_and_export_service_test.py",
           "selector": "AppImportServiceMetadataTestCase.test_save_enterprise_import_info_preserves_explicit_unlimited_resources"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.market-app.local-snapshot-offline-upgrade",
+      "title": "Detect local snapshot upgrades in offline mode",
+      "title_zh": "离线模式检测本地快照升级",
+      "interface_type": "service_method",
+      "interface": "console.services.market_app_service.MarketAppService.get_market_apps_in_app",
+      "code_paths": [
+        "console/services/market_app_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/market_app_service_test.py",
+          "selector": "MarketAppServiceOfflineUpgradeTests"
         }
       ],
       "test_type": "regression",
@@ -9291,6 +9311,24 @@
       "status": "active"
     },
     {
+      "id": "console.service-share.cnb-publish-command",
+      "title": "Clear CNB source commands from shared component templates",
+      "title_zh": "发布组件模板时清理 CNB 源码启动命令",
+      "interface_type": "service_method",
+      "interface": "console.services.share_services.ShareService.query_share_service_info",
+      "code_paths": [
+        "console/services/share_services.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/service_share_test.py",
+          "selector": "ShareServiceCNBPublishCommandTestCase"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.service-share.create-record",
       "title": "Create service share record",
       "title_zh": "创建组件共享记录",
@@ -10351,6 +10389,33 @@
         {
           "path": "console/tests/vm_live_migration_storage_test.py",
           "selector": "VMLiveMigrationStorageTests.test_update_check_app_uses_selected_storage_type_for_new_vm_root_disk"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.vm-run.new-asset-image-name-validation",
+      "title": "Validate new VM asset image names",
+      "title_zh": "校验新建虚拟机镜像资产名称",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.app_create.vm_run.VMRunCreateView.post",
+      "code_paths": [
+        "console/services/vm_boot_source.py",
+        "console/views/app_create/vm_run.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/vm_asset_instantiation_test.py",
+          "selector": "VMAssetInstantiationTests.test_vm_run_rejects_invalid_image_name_before_new_asset_or_component_creation"
+        },
+        {
+          "path": "console/tests/vm_asset_instantiation_test.py",
+          "selector": "VMAssetInstantiationTests.test_vm_run_rejects_non_string_image_name_and_import_sources"
+        },
+        {
+          "path": "console/tests/vm_asset_instantiation_test.py",
+          "selector": "VMAssetInstantiationTests.test_vm_runtime_image_name_validator_enforces_oci_tag_boundaries"
         }
       ],
       "test_type": "regression",

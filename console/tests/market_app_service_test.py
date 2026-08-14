@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import collections
+import datetime
 import os
 import sys
 import importlib
@@ -243,6 +244,246 @@ class MarketAppServiceTelemetryTests(SimpleTestCase):
             app_model_version="1.2.3",
             market_type="cloud",
         )
+
+
+class MarketAppServicePlatformPluginPreflightTests(SimpleTestCase):
+    def setUp(self):
+        self.tenant = Obj(tenant_id="tenant-1", tenant_name="team-a", enterprise_id="eid-1")
+        self.region = Obj(region_name="region-a")
+        self.user = Obj(enterprise_id="eid-1", nick_name="tester")
+        self.default_market = Obj(
+            name="__platform_plugin__",
+            url="https://default-market.example.com",
+            domain="enterprise",
+            access_key="default-market-access-key",
+            enterprise_id="eid-1",
+        )
+        self.market_app = Obj(app_id="commercial-app-key", app_name="Commercial Plugin", source="market")
+        self.app_version = Obj(
+            app_template=json.dumps({"apps": []}),
+            update_time="2026-08-13T00:00:00Z",
+            arch="arm64",
+        )
+        self.preflight = {
+            "status": "pass",
+            "should_block": False,
+            "summary": "ok",
+            "checks": [],
+        }
+
+    def _preflight(self, app_model_key, market_name="__platform_plugin__"):
+        from console.services.market_app_service import market_app_service
+
+        return market_app_service.preflight_install_app(
+            self.tenant,
+            self.region,
+            self.user,
+            0,
+            app_model_key,
+            "2.3.4",
+            market_name,
+            True,
+        )
+
+    def test_authorized_commercial_plugin_uses_target_region_license_market(self):
+        from console.repositories.app import (
+            PLATFORM_PLUGIN_DEFAULT_URL,
+            PLATFORM_PLUGIN_MARKET_DOMAIN,
+            PLATFORM_PLUGIN_MARKET_NAME,
+        )
+
+        with patch("console.services.market_app_service.app_market_service.get_app_market",
+                   return_value=(None, self.default_market)) as get_market, \
+                patch("console.services.license.license_service.get_license_status", return_value={
+                    "bean": {
+                        "valid": True,
+                        "plugin_mapping": {"rainbond-pipeline-ARM64": "commercial-app-key"},
+                        "access_key": "licensed-market-access-key",
+                    }
+                }) as get_license_status, \
+                patch("console.services.market_app_service.app_market_service.cloud_app_model_to_db_model",
+                      return_value=(self.market_app, self.app_version)) as cloud_conversion, \
+                patch("console.services.market_app_service.market_install_preflight_service.run",
+                      return_value=self.preflight), \
+                patch("console.services.market_app_service.vms.ensure_vm_platform_running"):
+            result = self._preflight("commercial-app-key")
+
+        get_market.assert_called_once_with("eid-1", PLATFORM_PLUGIN_MARKET_NAME, raise_exception=True)
+        get_license_status.assert_called_once_with("eid-1", "region-a")
+        market, app_key, version = cloud_conversion.call_args[0][:3]
+        self.assertIsNot(market, self.default_market)
+        self.assertEqual(PLATFORM_PLUGIN_MARKET_NAME, market.name)
+        self.assertEqual(PLATFORM_PLUGIN_DEFAULT_URL, market.url)
+        self.assertEqual(PLATFORM_PLUGIN_MARKET_DOMAIN, market.domain)
+        self.assertEqual("licensed-market-access-key", market.access_key)
+        self.assertEqual("eid-1", market.enterprise_id)
+        self.assertEqual("commercial-app-key", app_key)
+        self.assertEqual("2.3.4", version)
+        self.assertTrue(cloud_conversion.call_args[1]["for_install"])
+        self.assertEqual(self.preflight, result)
+        self.assertNotIn("licensed-market-access-key", repr(result))
+
+    def test_free_plugin_preserves_exact_synthetic_market_when_license_maps_other_plugins(self):
+        with patch("console.services.market_app_service.app_market_service.get_app_market",
+                   return_value=(None, self.default_market)), \
+                patch("console.services.license.license_service.get_license_status", return_value={
+                    "bean": {
+                        "valid": True,
+                        "plugin_mapping": {"rainbond-pipeline": "other-commercial-app-key"},
+                        "access_key": "licensed-market-access-key",
+                    }
+                }), \
+                patch("console.services.market_app_service.app_market_service.cloud_app_model_to_db_model",
+                      return_value=(self.market_app, self.app_version)) as cloud_conversion, \
+                patch("console.services.market_app_service.market_install_preflight_service.run",
+                      return_value=self.preflight), \
+                patch("console.services.market_app_service.vms.ensure_vm_platform_running"):
+            result = self._preflight("free-app-key")
+
+        self.assertIs(self.default_market, cloud_conversion.call_args[0][0])
+        self.assertEqual("default-market-access-key", cloud_conversion.call_args[0][0].access_key)
+        self.assertEqual("free-app-key", cloud_conversion.call_args[0][1])
+        self.assertEqual(self.preflight, result)
+
+    def test_authorized_commercial_plugin_without_access_key_fails_before_market_fetch(self):
+        from console.exception.main import ServiceHandleException
+
+        with patch("console.services.market_app_service.app_market_service.get_app_market",
+                   return_value=(None, self.default_market)), \
+                patch("console.services.license.license_service.get_license_status", return_value={
+                    "bean": {
+                        "valid": True,
+                        "plugin_mapping": {"rainbond-pipeline": "commercial-app-key"},
+                        "access_key": "",
+                    }
+                }), \
+                patch("console.services.market_app_service.app_market_service.cloud_app_model_to_db_model",
+                      return_value=(self.market_app, self.app_version)) as cloud_conversion:
+            with self.assertRaises(ServiceHandleException) as context:
+                self._preflight("commercial-app-key")
+
+        self.assertIn("access_key", context.exception.msg)
+        cloud_conversion.assert_not_called()
+
+    def test_license_failure_does_not_break_free_plugin_preflight(self):
+        with patch("console.services.market_app_service.app_market_service.get_app_market",
+                   return_value=(None, self.default_market)), \
+                patch("console.services.license.license_service.get_license_status",
+                      side_effect=RuntimeError("license service unavailable")), \
+                patch("console.services.market_app_service.app_market_service.cloud_app_model_to_db_model",
+                      return_value=(self.market_app, self.app_version)) as cloud_conversion, \
+                patch("console.services.market_app_service.market_install_preflight_service.run",
+                      return_value=self.preflight), \
+                patch("console.services.market_app_service.vms.ensure_vm_platform_running"):
+            result = self._preflight("free-app-key")
+
+        self.assertIs(self.default_market, cloud_conversion.call_args[0][0])
+        self.assertEqual(self.preflight, result)
+
+    def test_malformed_license_response_does_not_break_free_plugin_preflight(self):
+        with patch("console.services.market_app_service.app_market_service.get_app_market",
+                   return_value=(None, self.default_market)), \
+                patch("console.services.license.license_service.get_license_status",
+                      return_value={"bean": ["unexpected"]}), \
+                patch("console.services.market_app_service.app_market_service.cloud_app_model_to_db_model",
+                      return_value=(self.market_app, self.app_version)) as cloud_conversion, \
+                patch("console.services.market_app_service.market_install_preflight_service.run",
+                      return_value=self.preflight), \
+                patch("console.services.market_app_service.vms.ensure_vm_platform_running"):
+            result = self._preflight("free-app-key")
+
+        self.assertIs(self.default_market, cloud_conversion.call_args[0][0])
+        self.assertEqual(self.preflight, result)
+
+    def test_non_boolean_license_valid_field_preserves_default_market(self):
+        with patch("console.services.market_app_service.app_market_service.get_app_market",
+                   return_value=(None, self.default_market)), \
+                patch("console.services.license.license_service.get_license_status", return_value={
+                    "bean": {
+                        "valid": "false",
+                        "plugin_mapping": {"rainbond-pipeline": "commercial-app-key"},
+                        "access_key": "licensed-market-access-key",
+                    }
+                }), \
+                patch("console.services.market_app_service.app_market_service.cloud_app_model_to_db_model",
+                      return_value=(self.market_app, self.app_version)) as cloud_conversion, \
+                patch("console.services.market_app_service.market_install_preflight_service.run",
+                      return_value=self.preflight), \
+                patch("console.services.market_app_service.vms.ensure_vm_platform_running"):
+            result = self._preflight("commercial-app-key")
+
+        self.assertIs(self.default_market, cloud_conversion.call_args[0][0])
+        self.assertEqual("default-market-access-key", cloud_conversion.call_args[0][0].access_key)
+        self.assertEqual(self.preflight, result)
+
+    def test_non_platform_market_does_not_query_license(self):
+        non_platform_market = Obj(name="goodrain", access_key="default-market-access-key")
+        with patch("console.services.market_app_service.app_market_service.get_app_market",
+                   return_value=(None, non_platform_market)), \
+                patch("console.services.license.license_service.get_license_status") as get_license_status, \
+                patch("console.services.market_app_service.app_market_service.cloud_app_model_to_db_model",
+                      return_value=(self.market_app, self.app_version)) as cloud_conversion, \
+                patch("console.services.market_app_service.market_install_preflight_service.run",
+                      return_value=self.preflight), \
+                patch("console.services.market_app_service.vms.ensure_vm_platform_running"):
+            result = self._preflight("app-key", market_name="goodrain")
+
+        get_license_status.assert_not_called()
+        self.assertIs(non_platform_market, cloud_conversion.call_args[0][0])
+        self.assertEqual(self.preflight, result)
+# capability_id: console.market-app.local-snapshot-offline-upgrade
+class MarketAppServiceOfflineUpgradeTests(SimpleTestCase):
+    def test_local_snapshot_offline_upgrade_is_detected(self):
+        from console.services.market_app_service import market_app_service
+
+        installed_at = datetime.datetime(2026, 8, 14, 9, 0, 0)
+        tenant = Obj(tenant_id="tenant-1", enterprise_id="enterprise-1")
+        application = Obj(ID=23)
+        component_group = Obj(ID=7, group_version="1.0.2")
+        component = Obj(service_id="service-1", tenant_service_group_id=7)
+        component_source = Obj(
+            service_id="service-1",
+            group_key="snapshot-template-1",
+            version="1.0.2",
+            get_market_name=lambda: None,
+            is_install_from_cloud=lambda: False,
+            get_template_update_time=lambda: installed_at,
+        )
+        local_app = Obj(
+            app_id="snapshot-template-1",
+            app_name="Snapshot App",
+            create_user=1,
+            create_team="team-1",
+            pic="",
+            source="local",
+            describe="local snapshot",
+            is_official=False,
+            details="",
+        )
+        local_upgrade_version = Obj(version="1.0.3", update_time=installed_at)
+        not_upgrade_record = Obj(ID=1, status="")
+        component_groups = mock.MagicMock()
+        component_groups.values_list.return_value = [7]
+        component_groups.__iter__.return_value = iter([component_group])
+
+        with patch("console.services.market_app_service.is_cloud_market_disabled", return_value=True), \
+                patch("console.services.market_app_service.tenant_service_group_repo.get_group_by_app_id",
+                      return_value=component_groups), \
+                patch("console.services.market_app_service.group_service.get_component_and_resource_by_group_ids",
+                      return_value=([component], [component_source])), \
+                patch.object(market_app_service, "_get_gray_release_info_from_db", return_value={}), \
+                patch("console.services.market_app_service.rainbond_app_repo.get_rainbond_app_and_version",
+                      return_value=(local_app, None)), \
+                patch("console.services.market_app_service.rainbond_app_repo.get_rainbond_app_versions",
+                      return_value=[local_upgrade_version]), \
+                patch("console.services.market_app_service.upgrade_service.get_app_not_upgrade_record",
+                      return_value=not_upgrade_record):
+            result = market_app_service.get_market_apps_in_app("rainbond", tenant, application)
+
+        self.assertEqual(1, len(result))
+        self.assertEqual("1.0.2", result[0]["current_version"])
+        self.assertTrue(result[0]["can_upgrade"])
+        self.assertIn("1.0.3", result[0]["upgrade_versions"])
 
 
 class MarketAppServiceResourceLimitTests(UnitTestCase):
