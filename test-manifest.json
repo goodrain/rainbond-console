@@ -9291,6 +9291,24 @@
       "status": "active"
     },
     {
+      "id": "console.service-share.cnb-publish-command",
+      "title": "Clear CNB source commands from shared component templates",
+      "title_zh": "发布组件模板时清理 CNB 源码启动命令",
+      "interface_type": "service_method",
+      "interface": "console.services.share_services.ShareService.query_share_service_info",
+      "code_paths": [
+        "console/services/share_services.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/service_share_test.py",
+          "selector": "ShareServiceCNBPublishCommandTestCase"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.service-share.create-record",
       "title": "Create service share record",
       "title_zh": "创建组件共享记录",

@@ -8,10 +8,11 @@ import os
 import re
 import time
 import requests
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 from django.db.models import QuerySet
 from console.appstore.appstore import app_store
+from console.constants import AppConstants
 from console.enum.app import GovernanceModeEnum
 from console.enum.component_enum import is_singleton, is_kubeblocks
 from console.exception.main import (AbortRequest, RbdAppNotFound, ServiceHandleException)
@@ -333,7 +334,9 @@ class ShareService(object):
                 data['service_name'] = service.service_name
                 data['service_region'] = service.service_region
                 data['creater'] = service.creater
-                data["cmd"] = service.cmd
+                is_cnb_source = (service.service_source == AppConstants.SOURCE_CODE
+                                 and (getattr(service, "build_strategy", "") or "").strip().lower() == "cnb")
+                data["cmd"] = "" if is_cnb_source else service.cmd
                 data['probes'] = [probe.to_dict() for probe in probe_map.get(service.service_id, [])]
                 e_m = dict()
                 e_m['min_memory'] = 0 if service.min_memory == 0 else 64
