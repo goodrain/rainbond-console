@@ -39,14 +39,22 @@ let socket;
 let reconnectTimer = 0;
 let currentUrl = null;
 let currentOptions = null;
-const topologyTimer = 0;
+let topologyTimer = 0;
+let monitorTimer = 0;
 let apiDetailsTimer = 0;
 let controlErrorTimer = 0;
 let createWebsocketAt = 0;
 let firstMessageOnWebsocketAt = 0;
 let continuePolling = true;
 let newData = null;
-const tiem = 0;
+let topologyRequestInFlight = false;
+let topologyRefreshPending = false;
+let monitorRequestInFlight = false;
+let latestTopologyRequest = null;
+let latestMonitorDispatch = null;
+
+const topologyPollingInterval = 10000;
+const monitorPollingInterval = 15000;
 
 function getNodeDetail(nodeMap) {
   if (!nodeMap || typeof nodeMap.last !== 'function') {
@@ -449,10 +457,41 @@ export function getNodesDelta(topologyUrl, options, dispatch) {
     config.getNodes && dispatch(receiveNodesDelta(config.getNodes()));
     return false;
   }
-    // tiem++
+  latestTopologyRequest = { topologyUrl, options, dispatch };
+  if (topologyRequestInFlight) {
+    topologyRefreshPending = true;
+    return false;
+  }
+
+  clearTimeout(topologyTimer);
+  if (typeof document !== 'undefined' && document.hidden) {
+    topologyTimer = setTimeout(() => {
+      const request = latestTopologyRequest;
+      if (request && continuePolling) {
+        getNodesDelta(request.topologyUrl, request.options, request.dispatch);
+      }
+    }, topologyPollingInterval);
+    return false;
+  }
+
   const windowParent = window.parent;
   const url = (windowParent && windowParent.iframeGetNodeUrl && windowParent.iframeGetNodeUrl()) || '';
   // const url = 'https://goodrain.goodrain.com/console/teams/64q1jlfb/regions/rainbond/topological?group_id=644';
+  topologyRequestInFlight = true;
+  const finishTopologyRequest = () => {
+    topologyRequestInFlight = false;
+    if (!continuePolling) {
+      return;
+    }
+    const request = latestTopologyRequest;
+    const delay = topologyRefreshPending ? 0 : topologyPollingInterval;
+    topologyRefreshPending = false;
+    topologyTimer = setTimeout(() => {
+      if (request) {
+        getNodesDelta(request.topologyUrl, request.options, request.dispatch);
+      }
+    }, delay);
+  };
   doRequest({
     url,
     success: (res) => {
@@ -465,15 +504,11 @@ export function getNodesDelta(topologyUrl, options, dispatch) {
         });
         dispatch(receiveNodesDelta(scopeData));
       }
-      setTimeout(() => {
-        getNodesDelta(topologyUrl, options, dispatch);
-      }, 5000);
+      finishTopologyRequest();
     },
     error: () => {
       dispatch(receiveError(url));
-      setTimeout(() => {
-        getNodesDelta(topologyUrl, options, dispatch);
-      }, 5000);
+      finishTopologyRequest();
     }
   });
 
@@ -493,16 +528,40 @@ export function getNodesDelta(topologyUrl, options, dispatch) {
 }
 
 export function getNodeMonitorData(dispatch) {
+  latestMonitorDispatch = dispatch;
+  if (monitorRequestInFlight) {
+    return;
+  }
+  clearTimeout(monitorTimer);
+  if (typeof document !== 'undefined' && document.hidden) {
+    monitorTimer = setTimeout(() => {
+      if (latestMonitorDispatch && continuePolling) {
+        getNodeMonitorData(latestMonitorDispatch);
+      }
+    }, monitorPollingInterval);
+    return;
+  }
+
   const windowParent = window.parent;
   const getDataFn = windowParent.iframeGetMonitor;
   if (getDataFn) {
+    monitorRequestInFlight = true;
+    const finishMonitorRequest = () => {
+      monitorRequestInFlight = false;
+      if (continuePolling) {
+        monitorTimer = setTimeout(() => {
+          if (latestMonitorDispatch) {
+            getNodeMonitorData(latestMonitorDispatch);
+          }
+        }, monitorPollingInterval);
+      }
+    };
     getDataFn((data) => {
       dispatch(receiveNodesMonitor(data.list));
-      setTimeout(() => {
-        getNodeMonitorData(dispatch);
-      }, 10000);
+      finishMonitorRequest();
     }, (err) => {
       console.log(err);
+      finishMonitorRequest();
     });
   }
 }
@@ -980,7 +1039,9 @@ export function getPipeStatus(pipeId, dispatch) {
 export function stopPolling() {
   clearTimeout(apiDetailsTimer);
   clearTimeout(topologyTimer);
+  clearTimeout(monitorTimer);
   continuePolling = false;
+  topologyRefreshPending = false;
 }
 
 export function teardownWebsockets() {

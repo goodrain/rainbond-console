@@ -1,4 +1,4 @@
-FROM node:6.9.0
+FROM node:16
 RUN npm install -g yarn
 WORKDIR /home/weave
 COPY package.json yarn.lock /home/weave/

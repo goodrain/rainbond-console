@@ -152,19 +152,13 @@ class TopologicalService(object):
             ]
             app_statuses[app_id] = self.get_app_status(component_statuses)
 
-        # 拼接组件状态
+        # 拓扑只需要组件实例数量，避免拉取并传输完整 Pod 明细。
         try:
-            dynamic_services_info = region_api.get_dynamic_services_pods(region, team_name,
-                                                                         [service.service_id for service in service_list])
-            dynamic_services_list = dynamic_services_info["list"]  # type: ignore[index]  # NOTE: region_api returns Any, may be None on error
-            dynamic_services_list = dynamic_services_list or []
+            dynamic_service_counts = region_api.get_services_pod_nums(
+                region, team_name, [service.service_id for service in service_list])
         except Exception as e:
             logger.exception(e)
-            dynamic_services_list = []
-        dynamic_service_counts: Dict[str, int] = {}
-        for dynamic_service in dynamic_services_list:
-            service_id = dynamic_service["service_id"]
-            dynamic_service_counts[service_id] = dynamic_service_counts.get(service_id, 0) + 1
+            dynamic_service_counts = None
         region_app_id = region_app_repo.get_region_app_id(region, group_id)
         watch_managed_data = base_service.get_watch_managed(region, team_name, region_app_id)
         deployments = watch_managed_data.get("deployments", [])
@@ -206,10 +200,8 @@ class TopologicalService(object):
             outer_port_map[component_port.service_id] = (
                 outer_port_map.get(component_port.service_id, False) or component_port.is_outer_service)
         for service_info in service_list:
-            if dynamic_services_list:
-                node_num = dynamic_service_counts.get(service_info.service_id, 0)
-            else:
-                node_num = service_info.min_node
+            node_num = (dynamic_service_counts.get(service_info.service_id, service_info.min_node)
+                        if dynamic_service_counts is not None else service_info.min_node)
             app = component_rels.get(service_info.service_id)
             app_id = app.ID if app else 0  # type: ignore[union-attr]  # NOTE: component_rels values may be dict({}) fallback when app not found
             json_data[service_info.service_id] = {

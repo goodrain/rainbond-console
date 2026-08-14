@@ -360,6 +360,12 @@ export function clickNode(nodeId, label, origin, serviceAlias, serviceCname) {
       window.parent && window.parent.clickNode && window.parent.clickNode(nodeId,serviceAlias);
     }
     updateRoute(getState);
+    const handledByParent = window.parent && window.parent !== window &&
+      ((isDeselecting && window.parent.clickBackground) ||
+       (!isDeselecting && window.parent.clickNode));
+    if (handledByParent) {
+      return;
+    }
     getNodeDetails(
       state.get('topologyUrlsById'),
       state.get('currentTopologyId'),
