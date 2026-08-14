@@ -208,30 +208,35 @@ class BatchAppMonitorQueryView(RegionTenantHeaderView):
         response_data = response_body["data"]["result"]  # type: ignore[index]
         throughput_data = throughput_body["data"]["result"]  # type: ignore[index]
 
+        throughput_by_key: dict[str, list[Any]] = {}
+        for throughput in throughput_data:
+            metric = throughput["metric"]
+            union_key = metric["client"] + "+" + metric["service_id"]
+            throughput_by_key.setdefault(union_key, []).append(throughput)
+
         for r in response_data:
-            res_union_key = r["metric"]["client"] + "+" + r["metric"]["service_id"]
-            for t in throughput_data:
-                thr_union_key = t["metric"]["client"] + "+" + t["metric"]["service_id"]
-                if res_union_key == thr_union_key:
-                    result_bean: dict = {"is_web": False}
-                    source = res_union_key.split("+")[0]
-                    target = res_union_key.split("+")[1]
-                    source_service = ip_service_map.get(source, None)
-                    target_service = id_service_map.get(target, None)
+            metric = r["metric"]
+            res_union_key = metric["client"] + "+" + metric["service_id"]
+            for t in throughput_by_key.get(res_union_key, []):
+                result_bean: dict = {"is_web": False}
+                source = res_union_key.split("+")[0]
+                target = res_union_key.split("+")[1]
+                source_service = ip_service_map.get(source, None)
+                target_service = id_service_map.get(target, None)
 
-                    if source_service and target_service:
+                if source_service and target_service:
+                    result_bean["target"] = target_service.service_id
+                    result_bean["source"] = source_service.service_id
+                elif target_service and not source_service:
+                    if source == "public":
+                        result_bean["is_web"] = True
                         result_bean["target"] = target_service.service_id
-                        result_bean["source"] = source_service.service_id
-                    elif target_service and not source_service:
-                        if source == "public":
-                            result_bean["is_web"] = True
-                            result_bean["target"] = target_service.service_id
-                            result_bean["source"] = None
-                    else:
-                        continue
+                        result_bean["source"] = None
+                else:
+                    continue
 
-                    result_bean["data"] = {"response_time": float(r["value"][1]), "throughput_rate": float(t["value"][1])}
-                    result_list.append(result_bean)
+                result_bean["data"] = {"response_time": float(r["value"][1]), "throughput_rate": float(t["value"][1])}
+                result_list.append(result_bean)
 
         result = general_message(200, "success", "成功", list=result_list)
 

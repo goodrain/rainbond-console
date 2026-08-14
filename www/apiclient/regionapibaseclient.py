@@ -9,6 +9,7 @@ import os
 import re
 import socket
 import ssl
+import time
 from typing import Any, Optional, Tuple, Union
 
 import certifi
@@ -20,6 +21,7 @@ from console.exception.main import ServiceHandleException, ErrClusterLackOfMemor
 from console.repositories.region_repo import region_repo
 from django.conf import settings
 from django.http import HttpResponse, QueryDict, StreamingHttpResponse
+from goodrain_web.performance import record_region_call
 from urllib3.exceptions import MaxRetryError
 
 logger = logging.getLogger('default')
@@ -255,6 +257,17 @@ class RegionApiBaseHttpClient(object):
             connect, red = 5.0, 30.0
         return connect, red
 
+    def _timed_client_request(self, client, url, method, **kwargs):
+        started = time.monotonic()
+        status = "error"
+        try:
+            response = client.request(url=url, method=method, **kwargs)
+            status = response.status
+            return response
+        finally:
+            elapsed_ms = round((time.monotonic() - started) * 1000, 3)
+            record_region_call(method, url, status, elapsed_ms)
+
     def _request(self, url, method, headers=None, body=None, *args, **kwargs):
         region_name = kwargs.get("region")
         retries = kwargs.get("retries", 2)
@@ -277,7 +290,8 @@ class RegionApiBaseHttpClient(object):
                 msg="create region api client failure", msg_show="创建集群通信客户端错误，请检查集群配置", error_code=10411)
         try:
             if preload_content is False:
-                response = client.request(
+                response = self._timed_client_request(
+                    client,
                     url=url,
                     method=method,
                     headers=headers,
@@ -286,14 +300,16 @@ class RegionApiBaseHttpClient(object):
                 )
                 return response, None
             if body is None:
-                response = client.request(
+                response = self._timed_client_request(
+                    client,
                     url=url,
                     method=method,
                     headers=headers,
                     timeout=urllib3.Timeout(connect=d_connect, read=timeout),
                     retries=retries)
             else:
-                response = client.request(
+                response = self._timed_client_request(
+                    client,
                     url=url,
                     method=method,
                     headers=headers,
@@ -341,6 +357,7 @@ class RegionApiBaseHttpClient(object):
             cert_reqs = ssl.CERT_REQUIRED
         else:
             cert_reqs = ssl.CERT_NONE
+            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
         # ca_certs
         if configuration.ssl_ca_cert:
@@ -433,11 +450,12 @@ class RegionApiBaseHttpClient(object):
         """
         requests_args = (requests_args or {}).copy()
         headers = self.get_headers(request.META)
+        uses_request_stream = 'body' not in requests_args
 
         if 'headers' not in requests_args:
             requests_args['headers'] = {}
-        if 'body' not in requests_args:
-            requests_args['body'] = request.body
+        if uses_request_stream:
+            requests_args['body'] = self._get_request_stream(request)
         if 'fields' not in requests_args:
             requests_args['fields'] = QueryDict('', mutable=True)
         if 'preload_content' not in requests_args:
@@ -447,11 +465,12 @@ class RegionApiBaseHttpClient(object):
         # specified values for the requests library.
         headers.update(requests_args['headers'])
 
-        # If there's a content-length header from Django, it's probably in all-caps
-        # and requests might not notice it, so just remove it.
-        for key in list(headers.keys()):
-            if key.lower() == 'content-length':
-                del headers[key]
+        # The incoming content length remains valid while forwarding the original
+        # request stream. An explicitly replaced body may have a different length.
+        if not uses_request_stream:
+            for key in list(headers.keys()):
+                if key.lower() == 'content-length':
+                    del headers[key]
 
         requests_args['headers'] = headers
 
@@ -462,7 +481,8 @@ class RegionApiBaseHttpClient(object):
         requests_args['headers'] = self._apply_region_token_headers(headers, region)
 
         client = self.get_client(region_config=region)
-        response = client.request(
+        response = self._timed_client_request(
+            client,
             method=request.method,
             timeout=urllib3.Timeout(connect=None, read=None),
             url="{}{}".format(region.url, url),
@@ -541,21 +561,17 @@ class RegionApiBaseHttpClient(object):
         buffers the whole body and uses a fixed 20s timeout, which breaks streaming.
         """
         headers = self.get_headers(request.META)
-        # Django usually upper-cases content-length; drop it and let the length be
-        # recomputed by the upstream / streaming response.
-        for key in list(headers.keys()):
-            if key.lower() == 'content-length':
-                del headers[key]
 
         region = region_repo.get_region_by_region_name(region_name)
         if not region:
             raise ServiceHandleException("region {0} not found".format(region_name), error_code=10412)
         headers = self._apply_region_token_headers(headers, region)
         client = self.get_client(region_config=region)
-        response = client.request(
+        response = self._timed_client_request(
+            client,
             method=request.method,
             url="{}{}".format(region.url, url),
-            body=request.body,
+            body=self._get_request_stream(request),
             headers=headers,
             preload_content=False,
             timeout=urllib3.Timeout(connect=30, read=60 * 60),
@@ -601,6 +617,11 @@ class RegionApiBaseHttpClient(object):
         # stream view).
         proxy_response['Content-Encoding'] = 'identity'
         return proxy_response
+
+    @staticmethod
+    def _get_request_stream(request):
+        """Return the unbuffered Django request used by urllib3 as a file body."""
+        return getattr(request, '_request', request)
 
     def get_headers(self, environ):
         """

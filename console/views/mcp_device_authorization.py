@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
+from typing import Any, Optional, cast
 from urllib.parse import quote, urlparse
 
 from django.conf import settings
-from django.http import HttpResponse
+from django.http import HttpRequest, HttpResponse
 from rest_framework import exceptions
 from rest_framework.authentication import get_authorization_header
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView, exception_handler
 
@@ -19,7 +21,8 @@ from www.utils.return_message import general_message
 DEVICE_GRANT_TYPE = "urn:ietf:params:oauth:grant-type:device_code"
 
 
-def _oauth_error(error, description=None, status=400, retry_after=None):
+def _oauth_error(error: str, description: Optional[str] = None, status: int = 400,
+                 retry_after: Optional[int] = None) -> Response:
     payload = {"error": error}
     if description:
         payload["error_description"] = description
@@ -29,7 +32,7 @@ def _oauth_error(error, description=None, status=400, retry_after=None):
     return response
 
 
-def _single_form_value(request, key, required=True):
+def _single_form_value(request: Request, key: str, required: bool = True) -> str:
     if request.content_type != "application/x-www-form-urlencoded":
         raise device_auth.DeviceAuthorizationError("invalid_request")
     values = request.data.getlist(key) if hasattr(request.data, "getlist") else []
@@ -41,7 +44,7 @@ def _single_form_value(request, key, required=True):
     return value
 
 
-def _public_origin(request):
+def _public_origin(request: Request) -> str:
     configured = getattr(settings, "RAINBOND_MCP_DEVICE_PUBLIC_ORIGIN", "").rstrip("/")
     if configured:
         parsed = urlparse(configured)
@@ -53,14 +56,14 @@ def _public_origin(request):
 
 class DeviceResponseMixin(object):
 
-    def finalize_response(self, request, response, *args, **kwargs):
-        response = super(DeviceResponseMixin, self).finalize_response(request, response, *args, **kwargs)
+    def finalize_response(self, request: Request, response: Response, *args: Any, **kwargs: Any) -> Response:
+        response = APIView.finalize_response(cast(APIView, self), request, response, *args, **kwargs)
         response["Cache-Control"] = "no-store"
         response["Pragma"] = "no-cache"
         return response
 
-    def handle_exception(self, exc):
-        response = exception_handler(exc, self.get_exception_handler_context())
+    def handle_exception(self, exc: Exception) -> Response:
+        response = exception_handler(exc, APIView.get_exception_handler_context(cast(APIView, self)))
         if response is None:
             raise exc
         return response
@@ -68,28 +71,28 @@ class DeviceResponseMixin(object):
 
 class DeviceFeatureMixin(object):
 
-    def dispatch(self, request, *args, **kwargs):
+    def dispatch(self, request: HttpRequest, *args: Any, **kwargs: Any) -> Any:
         if not getattr(settings, "RAINBOND_MCP_DEVICE_FLOW_ENABLED", False):
             response = HttpResponse("Not Found", status=404, content_type="text/plain; charset=utf-8")
             response["Cache-Control"] = "no-store"
             response["Pragma"] = "no-cache"
             return response
-        return super(DeviceFeatureMixin, self).dispatch(request, *args, **kwargs)
+        return APIView.dispatch(cast(APIView, self), request, *args, **kwargs)
 
 
 class HeaderOnlyConsoleJWTAuthentication(JSONWebTokenAuthentication):
 
-    def authenticate(self, request):
+    def authenticate(self, request: Request) -> Any:
         if not get_authorization_header(request):
             raise exceptions.AuthenticationFailed("authorization header is required")
         return super(HeaderOnlyConsoleJWTAuthentication, self).authenticate(request)
 
-    def get_jwt_value(self, request):
+    def get_jwt_value(self, request: Request) -> Any:
         if not get_authorization_header(request):
             return None
         return super(HeaderOnlyConsoleJWTAuthentication, self).get_jwt_value(request)
 
-    def authenticate_header(self, request):
+    def authenticate_header(self, request: Request) -> str:
         return "GRJWT"
 
 
@@ -97,7 +100,7 @@ class BrowserDeviceView(DeviceResponseMixin, DeviceFeatureMixin, APIView):
     authentication_classes = (HeaderOnlyConsoleJWTAuthentication, )
     permission_classes = (IsAuthenticated, )
 
-    def initial(self, request, *args, **kwargs):
+    def initial(self, request: Request, *args: Any, **kwargs: Any) -> None:
         super(BrowserDeviceView, self).initial(request, *args, **kwargs)
         origin = request.META.get("HTTP_ORIGIN")
         if origin:
@@ -110,7 +113,7 @@ class MCPDeviceCodeView(DeviceFeatureMixin, DeviceResponseMixin, APIView):
     authentication_classes = ()
     permission_classes = (AllowAny, )
 
-    def post(self, request):
+    def post(self, request: Request) -> Response:
         try:
             client_id = _single_form_value(request, "client_id")
             scope = _single_form_value(request, "scope")
@@ -139,7 +142,7 @@ class MCPDeviceTokenView(DeviceFeatureMixin, DeviceResponseMixin, APIView):
     authentication_classes = ()
     permission_classes = (AllowAny, )
 
-    def post(self, request):
+    def post(self, request: Request) -> Response:
         try:
             grant_type = _single_form_value(request, "grant_type")
             client_id = _single_form_value(request, "client_id")
@@ -170,7 +173,7 @@ class MCPDeviceTokenView(DeviceFeatureMixin, DeviceResponseMixin, APIView):
 
 class MCPDeviceInspectView(BrowserDeviceView):
 
-    def post(self, request):
+    def post(self, request: Request) -> Response:
         user_code = request.data.get("user_code") if isinstance(request.data, dict) else None
         try:
             inspected = device_auth.inspect_user_code(
@@ -194,7 +197,7 @@ class MCPDeviceInspectView(BrowserDeviceView):
 
 class MCPDeviceAuthorizeView(BrowserDeviceView):
 
-    def post(self, request):
+    def post(self, request: Request) -> Response:
         data = request.data if isinstance(request.data, dict) else {}
         try:
             decided = device_auth.decide_user_code(

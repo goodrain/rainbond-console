@@ -945,8 +945,8 @@ class AppManageService(AppManageBase):
                          new_cpu: Optional[int] = None) -> Tuple[int, str]:
         """组件垂直升级"""
         new_memory = int(new_memory)
-        if new_memory > 65536 or new_memory < 0:
-            return 400, "内存范围在0M到64G之间"
+        if new_memory < 0:
+            return 400, "内存不能小于0M"
         if new_memory > service.min_memory and not check_account_quota(tenant.creater, service.service_region, self.ResourceOperationVerticalUpgrade):
             raise ServiceHandleException(error_code=20002, msg="not enough quota")
         if service.create_status == "complete":

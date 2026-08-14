@@ -71,7 +71,8 @@ class ConfigRUDView(AlowAnyApiView):
     def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         code = 200
         user = request.user
-        status = perms_repo.initialize_permission_settings()
+        perms_repo.initialize_permission_settings()
+        status = None
         data = platform_config_service.initialization_or_get_config
         if data.get("enterprise_id", None) is None:
             data["enterprise_id"] = os.getenv('ENTERPRISE_ID', '')

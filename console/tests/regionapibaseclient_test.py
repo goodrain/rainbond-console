@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 import collections
+import io
 import json
 import os
+import socket
 import sys
 from types import ModuleType
 from unittest import TestCase, mock
@@ -27,6 +29,69 @@ from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient  # noqa: E
 
 
 class RegionApiBaseHttpClientTestCase(TestCase):
+    def test_timed_client_request_records_success(self):
+        client = RegionApiBaseHttpClient()
+        transport = mock.Mock()
+        transport.request.return_value = mock.Mock(status=200)
+        url = "https://rbd-api-api:8443/v2/cluster/nodes?label=worker"
+
+        with mock.patch("www.apiclient.regionapibaseclient.time.monotonic", side_effect=[10.0, 10.25]), \
+                mock.patch("www.apiclient.regionapibaseclient.record_region_call") as record_region_call:
+            response = client._timed_client_request(transport, url, "GET", headers={})
+
+        self.assertEqual(response.status, 200)
+        transport.request.assert_called_once_with(url=url, method="GET", headers={})
+        record_region_call.assert_called_once_with("GET", url, 200, 250.0)
+
+    def test_timed_client_request_records_error_without_swallowing_it(self):
+        client = RegionApiBaseHttpClient()
+        transport = mock.Mock()
+        transport.request.side_effect = socket.timeout("boom")
+        url = "https://rbd-api-api:8443/v2/cluster/nodes"
+
+        with mock.patch("www.apiclient.regionapibaseclient.time.monotonic", side_effect=[10.0, 10.1]), \
+                mock.patch("www.apiclient.regionapibaseclient.record_region_call") as record_region_call, \
+                self.assertRaises(socket.timeout):
+            client._timed_client_request(transport, url, "GET", headers={})
+
+        record_region_call.assert_called_once_with("GET", url, "error", 100.0)
+
+    def test_create_client_suppresses_insecure_request_warning_when_ssl_verification_is_disabled(self):
+        client = RegionApiBaseHttpClient()
+        configuration = mock.Mock(
+            verify_ssl=False,
+            ssl_ca_cert=None,
+            cert_file=None,
+            key_file=None,
+            assert_hostname=None,
+            connection_pool_maxsize=4,
+            proxy=None,
+        )
+
+        with mock.patch("www.apiclient.regionapibaseclient.urllib3.disable_warnings") as disable_warnings, \
+                mock.patch("www.apiclient.regionapibaseclient.urllib3.PoolManager"):
+            client.create_client(configuration)
+
+        disable_warnings.assert_called_once_with(urllib3.exceptions.InsecureRequestWarning)
+
+    def test_create_client_keeps_tls_warnings_when_ssl_verification_is_enabled(self):
+        client = RegionApiBaseHttpClient()
+        configuration = mock.Mock(
+            verify_ssl=True,
+            ssl_ca_cert=None,
+            cert_file=None,
+            key_file=None,
+            assert_hostname=None,
+            connection_pool_maxsize=4,
+            proxy=None,
+        )
+
+        with mock.patch("www.apiclient.regionapibaseclient.urllib3.disable_warnings") as disable_warnings, \
+                mock.patch("www.apiclient.regionapibaseclient.urllib3.PoolManager"):
+            client.create_client(configuration)
+
+        disable_warnings.assert_not_called()
+
     # capability_id: console.region-api.helm-resource-conflict-msg
     def test_check_status_translates_helm_ownership_conflict_to_actionable_msg_show(self):
         client = RegionApiBaseHttpClient()
@@ -201,6 +266,90 @@ class RegionApiBaseHttpClientTestCase(TestCase):
         self.assertIsInstance(kwargs["timeout"], urllib3.Timeout)
         self.assertIsNone(kwargs["timeout"].connect_timeout)
         self.assertIsNone(kwargs["timeout"].read_timeout)
+
+    def test_plugin_proxy_streams_request_without_buffering_django_body(self):
+        client = RegionApiBaseHttpClient()
+        payload = b"x" * (3 * 1024 * 1024)
+        request_stream = io.BytesIO(payload)
+
+        class StreamingUploadRequest(object):
+            method = "POST"
+            META = {
+                "CONTENT_TYPE": "application/octet-stream",
+                "CONTENT_LENGTH": str(len(payload)),
+            }
+            _request = request_stream
+
+            @property
+            def body(self):
+                raise AssertionError("proxy must not buffer the Django request body")
+
+        region = mock.Mock(url="http://region-api")
+        proxy_client = mock.Mock()
+        proxy_client.request.return_value = mock.Mock(
+            data=b"ok",
+            status=200,
+            headers={},
+            url="http://region-api/v2/platform/backend/plugins/rainbond-ai-engine/api/v1/ai-engine/media",
+        )
+
+        with mock.patch("www.apiclient.regionapibaseclient.region_repo.get_region_by_region_name", return_value=region), \
+                mock.patch.object(client, "get_client", return_value=proxy_client):
+            client.proxy(
+                StreamingUploadRequest(),
+                "/v2/platform/backend/plugins/rainbond-ai-engine/api/v1/ai-engine/media",
+                "rainbond",
+            )
+
+        _, kwargs = proxy_client.request.call_args
+        self.assertIs(kwargs["body"], request_stream)
+        self.assertEqual(kwargs["headers"]["CONTENT-LENGTH"], str(len(payload)))
+
+    def test_stream_proxy_streams_request_without_buffering_django_body(self):
+        client = RegionApiBaseHttpClient()
+        payload = b"video-data"
+        request_stream = io.BytesIO(payload)
+
+        class StreamingUploadRequest(object):
+            method = "POST"
+            META = {
+                "CONTENT_TYPE": "application/octet-stream",
+                "CONTENT_LENGTH": str(len(payload)),
+            }
+            _request = request_stream
+
+            @property
+            def body(self):
+                raise AssertionError("stream proxy must not buffer the Django request body")
+
+        region = mock.Mock(url="http://region-api")
+
+        class MockStreamingResponse(object):
+            status = 200
+            headers = {"Content-Type": "application/json"}
+            url = "http://region-api/v2/platform/backend/plugins/rainbond-ai-engine/api/v1/ai-engine/media"
+
+            def stream(self, _chunk_size, decode_content=False):
+                yield b"{}"
+
+            def release_conn(self):
+                return None
+
+        proxy_client = mock.Mock()
+        proxy_client.request.return_value = MockStreamingResponse()
+
+        with mock.patch("www.apiclient.regionapibaseclient.region_repo.get_region_by_region_name", return_value=region), \
+                mock.patch.object(client, "get_client", return_value=proxy_client):
+            response = client.stream_proxy(
+                StreamingUploadRequest(),
+                "/v2/platform/backend/plugins/rainbond-ai-engine/api/v1/ai-engine/media",
+                "rainbond",
+            )
+            b"".join(response.streaming_content)
+
+        _, kwargs = proxy_client.request.call_args
+        self.assertIs(kwargs["body"], request_stream)
+        self.assertEqual(kwargs["headers"]["CONTENT-LENGTH"], str(len(payload)))
 
     def test_plugin_proxy_preserves_event_stream_responses(self):
         client = RegionApiBaseHttpClient()

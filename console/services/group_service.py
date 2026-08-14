@@ -327,14 +327,29 @@ class GroupService(object):
         res['k8s_app'] = app.k8s_app  # type: ignore[union-attr]
         res['can_edit'] = True
         components = group_service_relation_repo.get_services_by_group(app_id)
-        services = service_repo.get_services_by_service_ids([component.service_id for component in components])
+        service_ids = [component.service_id for component in components]
+        services = service_repo.get_services_by_service_ids(service_ids)
         res['app_arch'] = {service.arch: "1" for service in services if service.arch}.keys()
-        running_components = region_api.get_dynamic_services_pods(region_name, tenant.tenant_name,
-                                                                  [component.service_id for component in components])
-        # NOTE: get_dynamic_services_pods may return None; accessed unguarded;
-        # potential latent None-bug.
-        if running_components.get("list") and len(running_components["list"]) > 0:  # type: ignore[union-attr, index]
-            res['can_edit'] = False
+        if service_ids:
+            try:
+                pod_nums = region_api.get_services_pod_nums(region_name, tenant.tenant_name, service_ids)
+            except Exception as e:
+                logger.warning("query component pod nums failed, fallback to pod details: %s", e)
+                pod_nums = None
+
+            has_running_component = False
+            if pod_nums is not None:
+                try:
+                    has_running_component = any(pod_num > 0 for pod_num in pod_nums.values())
+                except (AttributeError, TypeError):
+                    pod_nums = None
+
+            if pod_nums is None:
+                running_components = region_api.get_dynamic_services_pods(region_name, tenant.tenant_name, service_ids)
+                has_running_component = bool(running_components and running_components.get("list"))
+
+            if has_running_component:
+                res['can_edit'] = False
 
         try:
             principal = user_repo.get_user_by_username(app.username)  # type: ignore[union-attr, arg-type]
@@ -403,27 +418,80 @@ class GroupService(object):
                 return False
         return status
 
+    def _get_app_resource_service_statuses(self, tenant: Tenants, region_name: str,
+                                           services: Any) -> Dict[str, Any]:
+        statuses = {
+            service.service_id: "" if service.create_status == "complete" else False for service in services
+        }
+        complete_services = [service for service in services if service.create_status == "complete"]
+        kubeblocks_services = [
+            service for service in complete_services if is_kubeblocks(getattr(service, "extend_method", ""))
+        ]
+        batch_service_ids = [
+            service.service_id for service in complete_services
+            if not is_kubeblocks(getattr(service, "extend_method", ""))
+        ]
+        for service in kubeblocks_services:
+            # KubeBlocks has a dedicated single-component status path. Keep it
+            # unchanged while batching ordinary and VM component statuses.
+            statuses[service.service_id] = self.service_status(tenant, service)
+        if not batch_service_ids:
+            return statuses
+        try:
+            body = region_api.service_status(region_name, tenant.tenant_name, {
+                "service_ids": batch_service_ids,
+                "enterprise_id": tenant.enterprise_id
+            })
+            status_list = body["list"]  # type: ignore[index]
+        except region_api.CallApiError as e:
+            if int(e.status) == 404:
+                for service_id in batch_service_ids:
+                    statuses[service_id] = False
+            return statuses
+        for status_info in status_list:
+            service_id = status_info.get("service_id")
+            if service_id in statuses:
+                statuses[service_id] = status_info.get("status", "")
+        return statuses
+
+    def _get_cross_app_dependency_flags(self, tenant_id: str, service_ids: List[str]) -> Dict[str, bool]:
+        flags = {service_id: False for service_id in service_ids}
+        dependencies = dep_relation_repo.get_dependencies_by_dep_ids(tenant_id, service_ids)
+        if not dependencies:
+            return flags
+        related_service_ids = set(service_ids)
+        related_service_ids.update(dependency.service_id for dependency in dependencies)
+        group_relations = ServiceGroupRelation.objects.filter(
+            tenant_id=tenant_id, service_id__in=related_service_ids)
+        group_by_service_id = {relation.service_id: relation.group_id for relation in group_relations}
+        for dependency in dependencies:
+            dependency_group_id = group_by_service_id.get(dependency.dep_service_id)
+            source_group_id = group_by_service_id.get(dependency.service_id)
+            if dependency_group_id is not None and source_group_id is not None and dependency_group_id != source_group_id:
+                flags[dependency.dep_service_id] = True
+        return flags
+
     def get_app_resource(self, tenant_id: str, region_name: str, app_id: str) -> dict:
         # app all service info
         res: Dict[str, Any] = {}
         services_info = []
         tenant = team_repo.get_team_by_team_id(tenant_id)
-        service_ids = group_service_relation_repo.list_serivce_ids_by_app_id(tenant_id, region_name, app_id)
+        service_ids = list(group_service_relation_repo.list_serivce_ids_by_app_id(tenant_id, region_name, app_id))
         services = service_repo.get_services_by_service_ids(service_ids)
         if len(services) > 0:
             service_volume_map = self.get_service_volume_by_ids(service_ids)
+            service_status_map = self._get_app_resource_service_statuses(tenant, region_name, services)
+            service_related_map = self._get_cross_app_dependency_flags(tenant.tenant_id, service_ids)
             for service in services:
                 service_volumes = []
                 volumes = service_volume_map.get(service.service_id, None)
                 if volumes:
                     service_volumes = [volume.volume_name for volume in volumes]
-                is_related = self.is_service_related_by_other_app_service(tenant, service)
-                status = self.service_status(tenant, service)
                 service_info = {
                     "service_name": service.service_cname,
                     "volume": service_volumes,
-                    "is_related": is_related,
-                    "status": status
+                    "is_related": service_related_map.get(service.service_id, False),
+                    "status": service_status_map.get(service.service_id, False)
                 }
                 services_info.append(service_info)
         res["services_info"] = services_info

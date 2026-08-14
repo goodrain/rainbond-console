@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import json
 import logging
 import time
 from typing import Any, List, Optional
@@ -98,7 +99,36 @@ class AIEngineProxyService(object):
         from www.apiclient.regionapi import RegionInvokeApi
 
         region_api = RegionInvokeApi()
-        return region_api.proxy(request, self.build_region_proxy_path(proxy_path, query_string), region_name)
+        region_proxy_path = self.build_region_proxy_path(
+            proxy_path, query_string)
+        if str(getattr(request, "method", "")).upper() == "POST":
+            response = region_api.proxy(request,
+                                        region_proxy_path,
+                                        region_name,
+                                        requests_args={"retries": False})
+        else:
+            response = region_api.proxy(request, region_proxy_path,
+                                        region_name)
+        if self._is_plugin_transport_error(response):
+            raise ServiceHandleException("upstream ai-engine proxy failed",
+                                         status_code=502)
+        return response
+
+    def _is_plugin_transport_error(self, response: Any) -> bool:
+        if getattr(response, "status_code", None) != 502:
+            return False
+        try:
+            payload = json.loads(response.content.decode("utf-8"))
+        except (AttributeError, TypeError, ValueError, UnicodeDecodeError):
+            return False
+        if not isinstance(payload, dict):
+            return False
+        return all((
+            payload.get("code") == 502,
+            payload.get("plugin") == "rainbond-ai-engine",
+            str(payload.get("msg",
+                            "")).startswith("plugin backend unavailable:"),
+        ))
 
     def _get_cached_region(self, team_name: str) -> Optional[str]:
         cache_item = self._region_cache.get(team_name)

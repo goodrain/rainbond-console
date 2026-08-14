@@ -23,7 +23,7 @@ from goodrain_web.tools import JuncheePaginator
 from rest_framework.request import Request
 from rest_framework.response import Response
 from www.apiclient.regionapi import RegionInvokeApi
-from www.models.main import RegionApp
+from www.models.main import RegionApp, ServiceGroupRelation, TenantServiceInfo
 from www.utils.return_message import general_message
 from www.utils.status_translate import get_status_info_map
 
@@ -32,6 +32,27 @@ event_service = AppEventService()
 region_api = RegionInvokeApi()
 
 logger = logging.getLogger('default')
+
+
+def _get_group_service_ids(team_id: str, region_name: str, group_ids: Any) -> dict[int, list[str]]:
+    if not group_ids:
+        return {}
+    service_ids = list(TenantServiceInfo.objects.filter(
+        tenant_id=team_id,
+        service_region=region_name,
+    ).values_list("service_id", flat=True))
+    if not service_ids:
+        return {}
+    relations = ServiceGroupRelation.objects.filter(
+        tenant_id=team_id,
+        region_name=region_name,
+        group_id__in=group_ids,
+        service_id__in=service_ids,
+    ).values("group_id", "service_id")
+    result: dict[int, list[str]] = {}
+    for relation in relations:
+        result.setdefault(relation["group_id"], []).append(relation["service_id"])
+    return result
 
 
 class AllServiceInfo(RegionTenantHeaderView):
@@ -108,20 +129,17 @@ class TeamOverView(RegionTenantHeaderView):
                 app_ids = [group.ID for group in groups]
                 region_apps = region_app_repo.list_by_app_ids(region.region_name, app_ids)
                 app_id_rels = {rapp.app_id: rapp.region_app_id for rapp in region_apps}
+                missing_app_ids = [group.ID for group in groups if not app_id_rels.get(group.ID)]
+                group_service_ids = _get_group_service_ids(
+                    self.team.tenant_id, region.region_name, missing_app_ids)
                 for group in groups:
                     if app_id_rels.get(group.ID):
                         region_app_ids.append(app_id_rels[group.ID])
                         continue
                     create_app_body: dict = dict()
-                    # NOTE: group.ID is int AutoField; service signature takes str (systemic int-as-str, backlog).
-                    group_services = base_service.get_group_services_list(self.team.tenant_id, region.region_name,
-                                                                          group.ID)  # type: ignore[arg-type]
-                    service_ids = []
-                    if group_services:
-                        service_ids = [service["service_id"] for service in group_services]
                     create_app_body["app_name"] = group.group_name
                     create_app_body["console_app_id"] = group.ID
-                    create_app_body["service_ids"] = service_ids
+                    create_app_body["service_ids"] = group_service_ids.get(group.ID, [])
                     if group.k8s_app:
                         create_app_body["k8s_app"] = group.k8s_app
                     batch_create_app_body.append(create_app_body)
@@ -142,18 +160,19 @@ class TeamOverView(RegionTenantHeaderView):
                     logger.exception(e)
 
             running_app_num = 0
-            try:
-                resp = region_api.list_app_statuses_by_app_ids(self.tenant_name, self.response_region,
-                                                               {"app_ids": region_app_ids})
-                # NOTE: region_api result may be None; legacy assumes dict (backlog).
-                app_statuses = resp.get("list", [])  # type: ignore[union-attr]
-                if app_statuses is None:
-                    app_statuses = []
-                for app_status in app_statuses:
-                    if app_status.get("status") == "RUNNING":
-                        running_app_num += 1
-            except Exception as e:
-                logger.exception(e)
+            if region_app_ids:
+                try:
+                    resp = region_api.list_app_statuses_by_app_ids(self.tenant_name, self.response_region,
+                                                                   {"app_ids": region_app_ids})
+                    # NOTE: region_api result may be None; legacy assumes dict (backlog).
+                    app_statuses = resp.get("list", [])  # type: ignore[union-attr]
+                    if app_statuses is None:
+                        app_statuses = []
+                    for app_status in app_statuses:
+                        if app_status.get("status") == "RUNNING":
+                            running_app_num += 1
+                except Exception as e:
+                    logger.exception(e)
             team_app_num = len(groups)
             overview_detail["team_app_num"] = team_app_num
             overview_detail["team_service_num"] = team_service_num
