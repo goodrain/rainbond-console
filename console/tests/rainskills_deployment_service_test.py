@@ -308,7 +308,7 @@ class RainSkillsDeploymentServiceTests(TestCase):
             {"list": [{"event_id": "event-1", "status": "pending"}]},
             {"list": [{"event_id": "event-1", "status": "success"}]},
         ])
-        transport = FakeTransport([204])
+        transport = FakeTransport([204, 204])
         service = make_service(repo=repo, region=region, transport=transport)
         tracker = begin(service)
         service.bind_events(tracker, ["event-1"], [])
