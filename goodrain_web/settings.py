@@ -201,7 +201,7 @@ AUTHENTICATION_BACKENDS = ('console.services.auth.backends.ModelBackend', 'conso
 LOGIN_URL = '/login'
 INSTALLED_APPS = ('django.contrib.auth', 'django.contrib.contenttypes', 'django.contrib.sessions', 'django.contrib.messages',
                   'django.contrib.staticfiles', 'rest_framework', 'rest_framework.authtoken',
-                  'www', 'corsheaders', 'console', 'console.cloud', 'console.schema_migrations')
+                  'www', 'corsheaders', 'console', 'console.cloud')
 # Application definition
 if IS_OPEN_API:
     INSTALLED_APPS = (
@@ -216,7 +216,6 @@ if IS_OPEN_API:
         'www',
         'corsheaders',
         'console',
-        'console.schema_migrations',
         'openapi',
     )
     OAUTH2_PROVIDER = {

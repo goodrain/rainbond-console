@@ -10,8 +10,6 @@ logs/
 /.project
 /.pydevproject
 migrations/
-!console/schema_migrations/migrations/
-!console/schema_migrations/migrations/*.py
 dist/
 build/
 node_modules
