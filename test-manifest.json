@@ -6855,6 +6855,24 @@
       "status": "active"
     },
     {
+      "id": "console.market-app.local-snapshot-offline-upgrade",
+      "title": "Detect local snapshot upgrades in offline mode",
+      "title_zh": "离线模式检测本地快照升级",
+      "interface_type": "service_method",
+      "interface": "console.services.market_app_service.MarketAppService.get_market_apps_in_app",
+      "code_paths": [
+        "console/services/market_app_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/market_app_service_test.py",
+          "selector": "MarketAppServiceOfflineUpgradeTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.market-app.restore-preserves-volume-capacity-on-storage-fallback",
       "title": "Market restore preserves volume capacity when storage type falls back",
       "title_zh": "市场恢复在存储类型回退时保留卷容量",
@@ -9287,6 +9305,24 @@
         {
           "path": "console/tests/rke2_cluster_errors_test.py",
           "selector": "ClusterRKEErrorTests.test_install_rainbond_returns_sanitized_subprocess_error"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.service-share.cnb-publish-command",
+      "title": "Clear CNB source commands from shared component templates",
+      "title_zh": "发布组件模板时清理 CNB 源码启动命令",
+      "interface_type": "service_method",
+      "interface": "console.services.share_services.ShareService.query_share_service_info",
+      "code_paths": [
+        "console/services/share_services.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/service_share_test.py",
+          "selector": "ShareServiceCNBPublishCommandTestCase"
         }
       ],
       "test_type": "regression",

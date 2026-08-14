@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import collections
+import datetime
 import os
 import sys
 import importlib
@@ -430,6 +431,59 @@ class MarketAppServicePlatformPluginPreflightTests(SimpleTestCase):
         get_license_status.assert_not_called()
         self.assertIs(non_platform_market, cloud_conversion.call_args[0][0])
         self.assertEqual(self.preflight, result)
+# capability_id: console.market-app.local-snapshot-offline-upgrade
+class MarketAppServiceOfflineUpgradeTests(SimpleTestCase):
+    def test_local_snapshot_offline_upgrade_is_detected(self):
+        from console.services.market_app_service import market_app_service
+
+        installed_at = datetime.datetime(2026, 8, 14, 9, 0, 0)
+        tenant = Obj(tenant_id="tenant-1", enterprise_id="enterprise-1")
+        application = Obj(ID=23)
+        component_group = Obj(ID=7, group_version="1.0.2")
+        component = Obj(service_id="service-1", tenant_service_group_id=7)
+        component_source = Obj(
+            service_id="service-1",
+            group_key="snapshot-template-1",
+            version="1.0.2",
+            get_market_name=lambda: None,
+            is_install_from_cloud=lambda: False,
+            get_template_update_time=lambda: installed_at,
+        )
+        local_app = Obj(
+            app_id="snapshot-template-1",
+            app_name="Snapshot App",
+            create_user=1,
+            create_team="team-1",
+            pic="",
+            source="local",
+            describe="local snapshot",
+            is_official=False,
+            details="",
+        )
+        local_upgrade_version = Obj(version="1.0.3", update_time=installed_at)
+        not_upgrade_record = Obj(ID=1, status="")
+        component_groups = mock.MagicMock()
+        component_groups.values_list.return_value = [7]
+        component_groups.__iter__.return_value = iter([component_group])
+
+        with patch("console.services.market_app_service.is_cloud_market_disabled", return_value=True), \
+                patch("console.services.market_app_service.tenant_service_group_repo.get_group_by_app_id",
+                      return_value=component_groups), \
+                patch("console.services.market_app_service.group_service.get_component_and_resource_by_group_ids",
+                      return_value=([component], [component_source])), \
+                patch.object(market_app_service, "_get_gray_release_info_from_db", return_value={}), \
+                patch("console.services.market_app_service.rainbond_app_repo.get_rainbond_app_and_version",
+                      return_value=(local_app, None)), \
+                patch("console.services.market_app_service.rainbond_app_repo.get_rainbond_app_versions",
+                      return_value=[local_upgrade_version]), \
+                patch("console.services.market_app_service.upgrade_service.get_app_not_upgrade_record",
+                      return_value=not_upgrade_record):
+            result = market_app_service.get_market_apps_in_app("rainbond", tenant, application)
+
+        self.assertEqual(1, len(result))
+        self.assertEqual("1.0.2", result[0]["current_version"])
+        self.assertTrue(result[0]["can_upgrade"])
+        self.assertIn("1.0.3", result[0]["upgrade_versions"])
 
 
 class MarketAppServiceResourceLimitTests(UnitTestCase):
