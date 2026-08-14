@@ -21,7 +21,7 @@ class AvailableResourcesService(object):
         if not hasattr(response, "get") or response.get("status") != 200:
             raise self._detection_failure()
         bean = body.get("bean") if isinstance(body, dict) else None
-        if not self._is_valid_resource_bean(bean):
+        if not isinstance(bean, dict) or not self._is_valid_resource_bean(bean):
             raise self._detection_failure()
 
         try:
@@ -50,7 +50,7 @@ class AvailableResourcesService(object):
         if not isinstance(value, Real) or isinstance(value, bool):
             return False
         try:
-            return isfinite(value) and value >= 0
+            return isfinite(value) and value >= 0  # type: ignore[operator]
         except (TypeError, ValueError, OverflowError):
             return False
 

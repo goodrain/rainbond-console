@@ -196,7 +196,7 @@ class MarketInstallPreflightService(object):
         _, body = region_api.get_region_resources(tenant.enterprise_id, region=region.region_name)
         return (body or {}).get("bean") or {}
 
-    def _get_cluster_arches(self, region: Any) -> List[str]:
+    def _get_cluster_arches(self, region: Any) -> Any:
         _, body = region_api.get_cluster_nodes_arch(region.region_name)
         arches = (body or {}).get("list")
         if not isinstance(arches, list):

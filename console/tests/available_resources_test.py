@@ -50,6 +50,7 @@ sys.modules.setdefault("rest_framework_simplejwt.tokens", simplejwt_tokens)
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
 
 import django  # noqa: E402
+from django.test import RequestFactory  # noqa: E402
 
 django.setup()
 
@@ -191,7 +192,7 @@ class AvailableResourcesViewTests(TestCase):
         with mock.patch(
                 "console.views.app_create.available_resources.available_resources_service.get_available_resources",
                 return_value=resources) as get_available_resources:
-            response = view.get(Obj())
+            response = view.get(RequestFactory().get("/console/apps/available_resources"))
 
         get_available_resources.assert_called_once_with(view.tenant, view.region)
         self.assertEqual(200, response.status_code)

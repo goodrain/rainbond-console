@@ -7,7 +7,7 @@ import json
 import logging
 import re
 import time
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, cast
 
 # enum
 import requests
@@ -235,7 +235,7 @@ class MarketAppService(object):
                 tenant.enterprise_id, market_name, raise_exception=True)  # type: ignore[arg-type]
             if market_name == PLATFORM_PLUGIN_MARKET_NAME:
                 market = self._resolve_platform_plugin_install_market(
-                    market, tenant.enterprise_id, region.region_name, app_model_key)
+                    market, cast(str, tenant.enterprise_id), region.region_name, app_model_key)
             market_app, app_version = app_market_service.cloud_app_model_to_db_model(
                 market, app_model_key, version, for_install=True)
         else:
