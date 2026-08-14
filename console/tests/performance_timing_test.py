@@ -4,8 +4,7 @@ import os
 from types import SimpleNamespace
 from unittest import TestCase, mock
 
-from goodrain_web.performance import (PerformanceTimingMiddleware, get_performance_context,
-                                      record_region_call)
+from goodrain_web.performance import (PerformanceTimingMiddleware, get_performance_context, record_region_call)
 
 
 class FakeResponse(dict):
@@ -31,7 +30,10 @@ class PerformanceTimingMiddlewareTestCase(TestCase):
             META={"QUERY_STRING": "check_status=yes&token=secret"},
         )
 
-        with mock.patch.dict(os.environ, {"CONSOLE_SLOW_REQUEST_THRESHOLD_MS": "500"}), \
+        with mock.patch.dict(os.environ, {
+                "CONSOLE_PERFORMANCE_LOG_ENABLED": "true",
+                "CONSOLE_SLOW_REQUEST_THRESHOLD_MS": "500",
+        }), \
                 mock.patch("goodrain_web.performance.time.monotonic", side_effect=[10.0, 11.25]), \
                 mock.patch("goodrain_web.performance.logger.info") as log_info:
             response = PerformanceTimingMiddleware(get_response)(request)
@@ -52,7 +54,10 @@ class PerformanceTimingMiddlewareTestCase(TestCase):
     def test_fast_request_does_not_write_performance_log(self):
         request = SimpleNamespace(method="GET", path="/console/teams", META={})
 
-        with mock.patch.dict(os.environ, {"CONSOLE_SLOW_REQUEST_THRESHOLD_MS": "500"}), \
+        with mock.patch.dict(os.environ, {
+                "CONSOLE_PERFORMANCE_LOG_ENABLED": "true",
+                "CONSOLE_SLOW_REQUEST_THRESHOLD_MS": "500",
+        }), \
                 mock.patch("goodrain_web.performance.time.monotonic", side_effect=[10.0, 10.1]), \
                 mock.patch("goodrain_web.performance.logger.info") as log_info:
             response = PerformanceTimingMiddleware(lambda _request: FakeResponse())(request)
@@ -67,7 +72,10 @@ class PerformanceTimingMiddlewareTestCase(TestCase):
 
         request = SimpleNamespace(method="GET", path="/console/teams", META={})
 
-        with mock.patch.dict(os.environ, {"CONSOLE_SLOW_REQUEST_THRESHOLD_MS": "500"}), \
+        with mock.patch.dict(os.environ, {
+                "CONSOLE_PERFORMANCE_LOG_ENABLED": "true",
+                "CONSOLE_SLOW_REQUEST_THRESHOLD_MS": "500",
+        }), \
                 mock.patch("goodrain_web.performance.time.monotonic", side_effect=[10.0, 10.1]), \
                 mock.patch("goodrain_web.performance.logger.info") as log_info, \
                 self.assertRaises(RuntimeError):
@@ -80,10 +88,25 @@ class PerformanceTimingMiddlewareTestCase(TestCase):
     def test_logging_failure_does_not_break_request(self):
         request = SimpleNamespace(method="GET", path="/console/teams", META={})
 
-        with mock.patch.dict(os.environ, {"CONSOLE_SLOW_REQUEST_THRESHOLD_MS": "0"}), \
+        with mock.patch.dict(os.environ, {
+                "CONSOLE_PERFORMANCE_LOG_ENABLED": "true",
+                "CONSOLE_SLOW_REQUEST_THRESHOLD_MS": "0",
+        }), \
                 mock.patch("goodrain_web.performance.time.monotonic", side_effect=[10.0, 10.1]), \
                 mock.patch("goodrain_web.performance.logger.info", side_effect=RuntimeError("log unavailable")):
             response = PerformanceTimingMiddleware(lambda _request: FakeResponse())(request)
 
         self.assertEqual(response.status_code, 200)
+        self.assertIsNone(get_performance_context())
+
+    def test_performance_log_is_disabled_by_default(self):
+        request = SimpleNamespace(method="GET", path="/console/teams", META={})
+
+        with mock.patch.dict(os.environ, {"CONSOLE_SLOW_REQUEST_THRESHOLD_MS": "0"}, clear=True), \
+                mock.patch("goodrain_web.performance.time.monotonic", side_effect=[10.0, 10.1]), \
+                mock.patch("goodrain_web.performance.logger.info") as log_info:
+            response = PerformanceTimingMiddleware(lambda _request: FakeResponse())(request)
+
+        log_info.assert_not_called()
+        self.assertIn("X-Request-ID", response)
         self.assertIsNone(get_performance_context())
