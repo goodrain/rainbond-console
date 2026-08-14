@@ -169,7 +169,7 @@ class MarketInstallPreflightServiceTests(TestCase):
 
         self.assertEqual(500, requirements["cpu"])
 
-    def test_explicit_extend_method_map_zero_cpu_matches_market_install_precedence(self):
+    def test_explicit_zero_cpu_uses_default_preflight_estimate(self):
         requirements = self.service.parse_template_requirements({
             "apps": [{
                 "container_cpu": 750,
@@ -180,7 +180,19 @@ class MarketInstallPreflightServiceTests(TestCase):
             }],
         })
 
-        self.assertEqual(0, requirements["cpu"])
+        self.assertEqual(250, requirements["cpu"])
+
+    def test_market_app_with_unlimited_cpu_estimates_each_component(self):
+        requirements = self.service.parse_template_requirements({
+            "apps": [{
+                "cpu": 0,
+                "extend_method_map": {
+                    "container_cpu": 0,
+                },
+            } for _ in range(9)],
+        })
+
+        self.assertEqual(2250, requirements["cpu"])
 
     def test_extend_method_map_cpu_precedes_top_level_cpu(self):
         requirements = self.service.parse_template_requirements({

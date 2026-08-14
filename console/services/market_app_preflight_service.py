@@ -265,7 +265,12 @@ class MarketInstallPreflightService(object):
         if cpu is None:
             cpu = app.get("cpu")
         if cpu is None:
-            cpu = 250
+            return 250
+        try:
+            if float(cpu) == 0:
+                return 250
+        except (TypeError, ValueError, OverflowError):
+            pass
         return self._int_value(cpu)
 
     def _component_replicas(self, app: dict) -> int:
