@@ -15,10 +15,12 @@ from console.views.app_config.base import AppBaseView
 from console.views.base import RegionTenantHeaderView
 from console.utils.cache_decorators import never_cache
 from rest_framework.response import Response
+from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import TenantServiceInfo
 from www.utils.return_message import error_message, general_message
 
 logger = logging.getLogger("default")
+region_api = RegionInvokeApi()
 
 
 class AppEventView(AppBaseView):
@@ -115,6 +117,14 @@ class AppEventLogView(AppBaseView):
         log_list = event_service.get_service_event_log(self.tenant, self.service, level, event_id)
         result = general_message(200, "success", "查询成功", list=log_list)
         return Response(result, status=result["code"])
+
+
+class AppEventLogStreamView(AppBaseView):
+    @never_cache
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Any:
+        event_id = kwargs["eventId"]
+        path = "/v2/events/{0}/stream".format(event_id)
+        return region_api.sse_proxy(self.service.service_region, path)
 
 
 class AppLogView(AppBaseView):

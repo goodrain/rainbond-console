@@ -49,8 +49,8 @@ from console.views.app_create.source_outer import (ThirdPartyAppPodsView, ThirdP
                                                    ThirdPartyServiceCreateView, ThirdPartyUpdateSecretKeyView)
 from console.views.app_create.vm_run import VMRunCreateView
 from console.views.app_create.kubeblocks_create import KubeBlocksComponentCreateView
-from console.views.app_event import (AppEventLogView, AppEventsLogView, AppEventsView, AppEventView, AppHistoryLogView,
-                                     AppLogInstanceView, AppLogView)
+from console.views.app_event import (AppEventLogStreamView, AppEventLogView, AppEventsLogView, AppEventsView, AppEventView,
+                                     AppHistoryLogView, AppLogInstanceView, AppLogView)
 from console.views.app_manage import (AgainDelete, BatchActionView, BatchDelete, ChangeServiceNameView, ChangeServiceTypeView,
                                       ChangeServiceUpgradeView, DeleteAppView, DeployAppView, HorizontalExtendAppView,
                                       MarketServiceUpgradeView, ReStartAppView, RollBackAppView, StartAppView, StopAppView,
@@ -749,6 +749,8 @@ urlpatterns = [
         perms.APP_OVERVIEW_PERMS),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/event_log$', AppEventLogView.as_view(),
         perms.APP_OVERVIEW_PERMS),
+    re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/events/(?P<eventId>[\w\-]+)/stream$',
+        AppEventLogStreamView.as_view(), perms.APP_OVERVIEW_PERMS),
     # 某个组件的日志
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/log$', AppLogView.as_view()),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/log_instance$', AppLogInstanceView.as_view()),
