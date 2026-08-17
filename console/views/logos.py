@@ -15,6 +15,7 @@ from console.models.main import ConsoleSysConfig
 from console.repositories.perm_repo import perms_repo
 from console.repositories.team_repo import team_repo
 from console.services.config_service import (EnterpriseConfigService, platform_config_service)
+from console.services.platform_first_app_service import platform_first_app_service
 from console.services.perm_services import role_kind_services
 from console.services.perm_services import user_kind_role_service
 from console.views.base import AlowAnyApiView
@@ -70,7 +71,8 @@ class ConfigRUDView(AlowAnyApiView):
     def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         code = 200
         user = request.user
-        status = perms_repo.initialize_permission_settings()
+        perms_repo.initialize_permission_settings()
+        status = None
         data = platform_config_service.initialization_or_get_config
         if data.get("enterprise_id", None) is None:
             data["enterprise_id"] = os.getenv('ENTERPRISE_ID', '')
@@ -84,6 +86,7 @@ class ConfigRUDView(AlowAnyApiView):
             ent_config = EnterpriseConfigService(data["enterprise_id"], user.user_id).initialization_or_get_config
             # 更新企业配置（包括自定义字段）
             data.update(ent_config)
+        data["first_app_deployed"] = platform_first_app_service.is_deployed()
         data["is_disable_logout"] = os.getenv('IS_DISABLE_LOGOUT', False)
         data["is_offline"] = os.getenv('IS_OFFLINE', False)
         data["sso_enable"] = os.getenv("SSO_ENABLE", False)

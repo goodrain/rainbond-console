@@ -86,13 +86,15 @@ class ServiceRepo(object):
             status_cache[status["service_id"]] = status["status"]
             statuscn_cache[status["service_id"]] = status["status_cn"]
         result = []
-        component_ports = port_repo.list_by_service_ids(team_id, [component.get("service_id") for component in group_services_list])
+        component_ports = port_repo.list_by_service_ids(
+            team_id, [component.get("service_id") for component in group_services_list])
         component_port_map = {component_port.service_id: component_port.k8s_service_name for component_port in component_ports}
+        component_source_map = dict(
+            TenantServiceInfo.objects.filter(service_id__in=service_ids).values_list("service_id", "service_source"))
         for service in group_services_list:
             service["k8s_service_name"] = component_port_map.get(service["service_id"])
-            service_obj = TenantServiceInfo.objects.filter(service_id=service["service_id"]).first()
-            if service_obj:
-                service["service_source"] = service_obj.service_source
+            if service["service_id"] in component_source_map:
+                service["service_source"] = component_source_map[service["service_id"]]
             service["status_cn"] = statuscn_cache.get(service["service_id"], "未知")
             status = status_cache.get(service["service_id"], "unknow")
 

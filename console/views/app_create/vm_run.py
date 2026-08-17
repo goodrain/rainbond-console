@@ -14,6 +14,7 @@ from console.repositories.virtual_machine import vm_repo
 from console.services.app import app_service
 from console.services.enterprise_first_deploy_service import enterprise_first_deploy_service
 from console.services.virtual_machine import vms
+from console.services.vm_boot_source import is_valid_vm_runtime_image_name
 from console.views.base import RegionTenantHeaderView
 from www.utils.return_message import general_message
 from console.services.group_service import group_service
@@ -95,6 +96,20 @@ class VMRunCreateView(RegionTenantHeaderView):
         gpu_count = request.data.get("gpu_count", 1 if gpu_enabled else 0)
         usb_enabled = request.data.get("usb_enabled", False)
         usb_resources = request.data.get("usb_resources", [])
+        if not isinstance(image_name, str):
+            return Response(
+                general_message(
+                    400,
+                    "invalid vm image name",
+                    "虚拟机镜像名称必须为字符串，长度为 1-128 个字符，首字符必须为字母、数字或下划线"),
+                status=400)
+        if not isinstance(event_id, str) or not isinstance(vm_url, str):
+            return Response(
+                general_message(400, "invalid vm import source", "event_id 和 vm_url 必须为字符串"),
+                status=400)
+        event_id = event_id.strip()
+        vm_url = vm_url.strip()
+        has_import_source = bool(event_id or vm_url)
         runtime_config = {
             "gpu_enabled": gpu_enabled,
             "gpu_resources": gpu_resources,
@@ -105,6 +120,14 @@ class VMRunCreateView(RegionTenantHeaderView):
         asset_created = False
         restore_plan = None
         public_vm_meta = PUBLIC_VM_IMAGES.get(image_name)
+        if has_import_source and not is_valid_vm_runtime_image_name(image_name):
+            return Response(
+                general_message(
+                    400,
+                    "invalid vm image name",
+                    "虚拟机镜像名称长度为 1-128 个字符，首字符必须为字母、数字或下划线，"
+                    "其余字符仅支持字母、数字、下划线、点和连字符"),
+                status=400)
         tracker = enterprise_first_deploy_service.safe_begin_deploy_tracking(
             enterprise_id=getattr(self.tenant, "enterprise_id", ""),
             tenant_name=getattr(self.tenant, "tenant_name", ""),
@@ -135,7 +158,7 @@ class VMRunCreateView(RegionTenantHeaderView):
             asset = None
             guest_os_name = ""
             boot_source_format = source_format or ""
-            if event_id != "" or vm_url != "":
+            if has_import_source:
                 asset = vm_repo.get_vm_image_instance_by_tenant_id_and_name(self.tenant.tenant_id, image_name)
                 if asset:
                     if image_name in PUBLIC_VM_IMAGE_NAMES:
@@ -214,7 +237,7 @@ class VMRunCreateView(RegionTenantHeaderView):
                         reason="虚拟机镜像不存在",
                         failure_stage=enterprise_first_deploy_service.FAILURE_STAGE_PREFLIGHT)
                     return Response(general_message(404, "vm image not found", "虚拟机镜像不存在"), status=404)
-                if not (event_id or vm_url):
+                if not has_import_source:
                     boot_source = vms.resolve_vm_boot_source(
                         self.tenant,
                         image_name,

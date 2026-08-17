@@ -1,4 +1,6 @@
 import collections
+import importlib
+import json
 import os
 import sys
 from contextlib import nullcontext
@@ -518,6 +520,210 @@ class PlatformPluginServiceTests(TestCase):
         bootstrap_agent.assert_not_called()
         call_args = cloud_model.call_args[0]
         self.assertEqual("arm-app-key", call_args[1])
+
+    def test_install_platform_plugin_rejects_missing_region_before_creating_team_or_app(self):
+        market_plugins = [{
+            "plugin_id": "rainbond-agent",
+            "plugin_name": "AI助手",
+            "app_level": "free",
+            "appKeyID": "agent-app-key",
+            "latest_version": "1.0.0",
+            "arch": "amd64",
+        }]
+
+        with mock.patch.object(platform_plugin_service, "_get_license_bean", return_value={}), \
+                mock.patch.object(platform_plugin_service, "_get_market_platform_plugins",
+                                  return_value=(mock.Mock(), market_plugins)), \
+                mock.patch.object(platform_plugin_service, "_get_region_arches", return_value={"amd64"}), \
+                mock.patch.object(platform_plugin_service, "_ensure_plugin_team") as ensure_team, \
+                mock.patch.object(platform_plugin_service, "_ensure_plugin_app") as ensure_app, \
+                mock.patch("console.services.platform_plugin_service.region_repo."
+                           "get_enterprise_region_by_region_name", return_value=None):
+            with self.assertRaises(ServiceHandleException) as context:
+                platform_plugin_service.install_platform_plugin(
+                    "eid", "missing-region", "rainbond-agent", mock.Mock())
+
+        self.assertEqual("集群不存在", context.exception.msg_show)
+        ensure_team.assert_not_called()
+        ensure_app.assert_not_called()
+
+    def test_install_platform_plugin_blocks_before_component_mutation_when_preflight_fails(self):
+        preflight = {
+            "status": "blocked",
+            "should_block": True,
+            "summary": "集群可用内存不足",
+            "checks": [{
+                "name": "resources",
+                "status": "blocked",
+                "required": {"memory_mb": 1024},
+                "available": {"memory_mb": 512},
+            }],
+        }
+        tenant = mock.Mock(tenant_id="team-1", tenant_name="rbd-plugins")
+        region = mock.Mock(region_name="rainbond")
+        app = mock.Mock(ID=1)
+        market_app = mock.Mock(app_id="app-id", app_name="AI助手")
+        app_version = mock.Mock(
+            app_template=json.dumps({"apps": [{"memory": 1024}]}),
+            update_time="2026-08-13T00:00:00Z",
+            arch="arm64",
+        )
+        preflight_service = mock.Mock()
+        preflight_service.run.return_value = preflight
+
+        with mock.patch.object(platform_plugin_service, "_get_license_bean", return_value={}), \
+                mock.patch.object(platform_plugin_service, "_get_market_platform_plugins", return_value=(mock.Mock(), [{
+                    "plugin_id": "rainbond-agent",
+                    "plugin_name": "AI助手",
+                    "app_level": "free",
+                    "appKeyID": "agent-app-key",
+                    "latest_version": "1.0.0",
+                    "arch": "arm64",
+                }])), \
+                mock.patch.object(platform_plugin_service, "_get_region_arches", return_value={"arm64"}), \
+                mock.patch.object(platform_plugin_service, "_ensure_plugin_team", return_value=tenant), \
+                mock.patch.object(platform_plugin_service, "_ensure_plugin_app", return_value=app) as ensure_app, \
+                mock.patch("console.services.platform_plugin_service.region_repo.get_enterprise_region_by_region_name",
+                           return_value=region), \
+                mock.patch("console.services.platform_plugin_service.app_market_service.cloud_app_model_to_db_model",
+                           return_value=(market_app, app_version)), \
+                mock.patch("console.services.platform_plugin_service.market_install_preflight_service",
+                           preflight_service, create=True), \
+                mock.patch("console.services.platform_plugin_service.market_app_service._create_tenant_service_group") \
+                as create_component_group, \
+                mock.patch("console.services.platform_plugin_service.AppUpgrade") as app_upgrade_cls, \
+                mock.patch("console.services.platform_plugin_service.enterprise_first_deploy_service."
+                           "safe_begin_deploy_tracking") as begin_tracking:
+            with self.assertRaises(ServiceHandleException) as context:
+                platform_plugin_service.install_platform_plugin(
+                    "eid", "rainbond", "rainbond-agent", mock.Mock())
+
+        expected_template = {
+            "apps": [{"memory": 1024}],
+            "update_time": "2026-08-13T00:00:00Z",
+            "arch": "arm64",
+        }
+        preflight_service.run.assert_called_once_with(tenant, region, expected_template, check_images=False)
+        self.assertEqual(412, context.exception.status_code)
+        self.assertEqual(10412, context.exception.error_code)
+        self.assertEqual("platform plugin preflight blocked", context.exception.msg)
+        self.assertEqual("集群可用内存不足", context.exception.msg_show)
+        self.assertIs(preflight, context.exception.bean)
+        ensure_app.assert_not_called()
+        create_component_group.assert_not_called()
+        app_upgrade_cls.assert_not_called()
+        begin_tracking.assert_not_called()
+
+    def test_install_platform_plugin_continues_once_when_preflight_only_warns(self):
+        preflight = {
+            "status": "warning",
+            "should_block": False,
+            "summary": "资源接口暂不可用",
+            "checks": [{"name": "resources", "status": "warning"}],
+        }
+        tenant = mock.Mock(tenant_id="team-1", tenant_name="rbd-plugins")
+        region = mock.Mock(region_name="rainbond")
+        app = mock.Mock(ID=1)
+        market_app = mock.Mock(app_id="app-id", app_name="AI助手")
+        app_template = {"apps": [], "update_time": "update-time", "arch": "amd64"}
+        app_version = mock.Mock(app_template=json.dumps({"apps": []}), update_time="update-time", arch="amd64")
+        component_group = mock.Mock()
+        preflight_service = mock.Mock()
+        preflight_service.run.return_value = preflight
+        app_upgrade = mock.Mock()
+        app_upgrade.install.return_value = []
+        app_upgrade.new_app.components.return_value = []
+
+        with mock.patch.object(platform_plugin_service, "_get_license_bean", return_value={}), \
+                mock.patch.object(platform_plugin_service, "_get_market_platform_plugins", return_value=(mock.Mock(), [{
+                    "plugin_id": "rainbond-agent",
+                    "plugin_name": "AI助手",
+                    "app_level": "free",
+                    "appKeyID": "agent-app-key",
+                    "latest_version": "1.0.0",
+                    "arch": "amd64",
+                }])), \
+                mock.patch.object(platform_plugin_service, "_get_region_arches", return_value={"amd64"}), \
+                mock.patch.object(platform_plugin_service, "_ensure_plugin_team", return_value=tenant), \
+                mock.patch.object(platform_plugin_service, "_ensure_plugin_app", return_value=app) as ensure_app, \
+                mock.patch("console.services.platform_plugin_service.region_repo.get_enterprise_region_by_region_name",
+                           return_value=region), \
+                mock.patch("console.services.platform_plugin_service.app_market_service.cloud_app_model_to_db_model",
+                           return_value=(market_app, app_version)), \
+                mock.patch("console.services.platform_plugin_service.market_install_preflight_service",
+                           preflight_service, create=True), \
+                mock.patch("console.services.platform_plugin_service.market_app_service._create_tenant_service_group",
+                           return_value=component_group) as create_component_group, \
+                mock.patch("console.services.platform_plugin_service.AppUpgrade", return_value=app_upgrade) \
+                as app_upgrade_cls, \
+                mock.patch("console.services.platform_plugin_service.market_app_service._create_rbdplugin_if_needed"), \
+                mock.patch("console.services.platform_plugin_service.market_app_service._extract_event_ids",
+                           return_value=[]):
+            platform_plugin_service.install_platform_plugin(
+                "eid", "rainbond", "rainbond-agent", mock.Mock())
+
+        preflight_service.run.assert_called_once_with(tenant, region, app_template, check_images=False)
+        ensure_app.assert_called_once_with(
+            tenant, "rainbond", "AI助手", "eid", "rainbond-agent")
+        create_component_group.assert_called_once()
+        app_upgrade_cls.assert_called_once()
+        app_upgrade.install.assert_called_once_with()
+
+
+class PlatformPluginInstallViewTests(TestCase):
+
+    def test_post_preserves_structured_service_exception_response(self):
+        preflight = {
+            "status": "blocked",
+            "should_block": True,
+            "summary": "集群资源不足",
+            "checks": [{"name": "resources", "status": "blocked"}],
+        }
+        error = ServiceHandleException(
+            msg="platform plugin preflight blocked",
+            msg_show="集群资源不足",
+            status_code=412,
+            error_code=10412,
+            bean=preflight,
+        )
+        base_module = ModuleType("console.views.base")
+        base_module.JWTAuthApiView = object
+        exception_module = ModuleType("console.exception.main")
+        exception_module.ServiceHandleException = ServiceHandleException
+        module_name = "console.views.platform_plugin"
+        missing = object()
+        previous_module = sys.modules.get(module_name, missing)
+        try:
+            with mock.patch.dict(sys.modules, {
+                    "console.views.base": base_module,
+                    "console.exception.main": exception_module,
+            }):
+                sys.modules.pop(module_name, None)
+                platform_plugin_view = importlib.import_module(module_name)
+                self.assertIs(platform_plugin_view, sys.modules[module_name])
+
+                view = platform_plugin_view.PlatformPluginInstallView()
+                view.user = mock.Mock()
+                with mock.patch.object(
+                        platform_plugin_view.platform_plugin_service,
+                        "install_platform_plugin",
+                        side_effect=error):
+                    response = view.post(mock.Mock(), "eid", "rainbond", "rainbond-agent")
+        finally:
+            sys.modules.pop(module_name, None)
+            if previous_module is not missing:
+                sys.modules[module_name] = previous_module
+
+        if previous_module is missing:
+            self.assertNotIn(module_name, sys.modules)
+        else:
+            self.assertIs(previous_module, sys.modules[module_name])
+
+        self.assertEqual(412, response.status_code)
+        self.assertEqual(10412, response.data["code"])
+        self.assertEqual("platform plugin preflight blocked", response.data["msg"])
+        self.assertEqual("集群资源不足", response.data["msg_show"])
+        self.assertIs(preflight, response.data["data"]["bean"])
 
     # capability_id: console.platform-plugin.vm-runtime-status-guard
     def test_ensure_vm_plugin_running_accepts_running_status(self):

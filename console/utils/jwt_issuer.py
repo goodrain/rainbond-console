@@ -7,7 +7,8 @@ underlying JWT library can be swapped without touching call sites.
 Compatibility contract (relied on by external projects and e2e tests):
 - HS256 signed with Django SECRET_KEY
 - payload contains user_id / username / email / exp
-- long-lived tokens (~10 years), no revocation on logout
+- general Console tokens remain long-lived (~10 years), with no logout revocation
+- MCP tokens are separately scoped and default to a one-year lifetime
 """
 import datetime
 
@@ -20,7 +21,22 @@ JWT_AUTH_COOKIE = "token"
 JWT_AUTH_HEADER_PREFIX = "GRJWT"
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRATION_DELTA = datetime.timedelta(days=3650)  # ~10 years, effectively permanent
+MCP_TOKEN_DEFAULT_LIFETIME_DAYS = 365
+MCP_TOKEN_USE = "mcp"
+MCP_TOKEN_SCOPE = "mcp"
+MCP_TOKEN_AUDIENCE = "rainbond-mcp"
 GROUP_MCP_TOKEN_PURPOSE = "agent_group_mcp"
+
+
+def get_mcp_token_lifetime():
+    lifetime_days = int(getattr(
+        settings,
+        "RAINBOND_MCP_TOKEN_LIFETIME_DAYS",
+        MCP_TOKEN_DEFAULT_LIFETIME_DAYS,
+    ))
+    if lifetime_days < 1:
+        raise ValueError("RAINBOND_MCP_TOKEN_LIFETIME_DAYS must be at least 1")
+    return datetime.timedelta(days=lifetime_days)
 
 
 class ConsoleAccessToken(AccessToken):
@@ -36,9 +52,51 @@ class ConsoleAccessToken(AccessToken):
         return token
 
 
+class MCPAccessToken(ConsoleAccessToken):
+    """One-year access token accepted only by Rainbond MCP endpoints."""
+
+    lifetime = datetime.timedelta(days=MCP_TOKEN_DEFAULT_LIFETIME_DAYS)
+
+    @classmethod
+    def for_user(cls, user):
+        token = super(MCPAccessToken, cls).for_user(user)
+        token.set_exp(lifetime=get_mcp_token_lifetime())
+        token["token_use"] = MCP_TOKEN_USE
+        token["scope"] = MCP_TOKEN_SCOPE
+        token["aud"] = MCP_TOKEN_AUDIENCE
+        token["enterprise_id"] = user.enterprise_id or ""
+        return token
+
+
 def issue_jwt(user):
     """Issue a signed JWT string for the given user."""
     return str(ConsoleAccessToken.for_user(user))
+
+
+def issue_mcp_jwt(user):
+    """Issue a signed token whose use is restricted to Rainbond MCP."""
+    return str(MCPAccessToken.for_user(user))
+
+
+def is_mcp_token_payload(payload):
+    """Return whether any claim marks this payload as an MCP token."""
+    return (
+        payload.get("token_use") == MCP_TOKEN_USE
+        or payload.get("scope") == MCP_TOKEN_SCOPE
+        or payload.get("aud") == MCP_TOKEN_AUDIENCE
+    )
+
+
+def is_valid_mcp_token_payload(payload, allow_legacy=False):
+    """Validate an MCP-scoped payload, optionally accepting old unscoped JWTs."""
+    has_scope_claim = any(key in payload for key in ("token_use", "scope", "aud"))
+    if allow_legacy and not has_scope_claim:
+        return True
+    return (
+        payload.get("token_use") == MCP_TOKEN_USE
+        and payload.get("scope") == MCP_TOKEN_SCOPE
+        and payload.get("aud") == MCP_TOKEN_AUDIENCE
+    )
 
 
 def issue_short_lived_jwt(user, lifetime_seconds=300):

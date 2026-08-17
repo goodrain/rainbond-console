@@ -2,6 +2,7 @@
 import collections
 import os
 import sys
+import threading
 from types import ModuleType, SimpleNamespace
 from unittest import TestCase, mock
 try:
@@ -560,6 +561,188 @@ class RegistryNamespaceServiceTestCase(TestCase):
         self.assertEqual(ctx.exception.status_code, 401)
         self.assertEqual(ctx.exception.msg, "cloud registry credential unauthorized")
         self.assertEqual(ctx.exception.msg_show, "云厂商镜像仓库认证失败，请检查 Access Key、Access Secret 是否正确并确认已授予镜像仓库访问权限")
+
+    def test_get_docker_namespaces_follows_catalog_pagination(self):
+        first_page = mock.Mock(
+            status_code=200,
+            headers={"Link": '</v2/_catalog?n=2&last=datagrand%2Fredis>; rel="next"'},
+        )
+        first_page.json.return_value = {"repositories": ["cetc52/nginx", "datagrand/redis"]}
+        second_page = mock.Mock(status_code=200, headers={})
+        second_page.json.return_value = {"repositories": ["library-image", "rainbond/console"]}
+
+        with mock.patch.object(
+                team_services, "_registry_v2_get", side_effect=[first_page, second_page]) as registry_get:
+            namespaces = team_services.get_registry_namespaces(
+                domain="https://registry.example.com",
+                username="demo-user",
+                password="demo-password",
+                hub_type="Docker",
+            )
+
+        self.assertEqual(set(namespaces), {"cetc52", "datagrand", "library", "rainbond"})
+        registry_get.assert_has_calls([
+            mock.call("https://registry.example.com/v2/_catalog", "demo-user", "demo-password"),
+            mock.call(
+                "https://registry.example.com/v2/_catalog?n=2&last=datagrand%2Fredis",
+                "demo-user",
+                "demo-password",
+            ),
+        ])
+
+    def test_get_docker_images_follows_catalog_pagination(self):
+        first_page = mock.Mock(
+            status_code=200,
+            headers={"Link": '</v2/_catalog?n=1&last=cetc52%2Fnginx>; rel="next"'},
+        )
+        first_page.json.return_value = {"repositories": ["cetc52/nginx"]}
+        second_page = mock.Mock(status_code=200, headers={})
+        second_page.json.return_value = {"repositories": ["rainbond/console"]}
+        tags_response = mock.Mock(status_code=200, headers={})
+        tags_response.json.return_value = {"tags": []}
+
+        def registry_response(url, *args, **kwargs):
+            if url == "https://registry.example.com/v2/_catalog":
+                return first_page
+            if url == "https://registry.example.com/v2/_catalog?n=1&last=cetc52%2Fnginx":
+                return second_page
+            if url == "https://registry.example.com/v2/rainbond/console/tags/list":
+                return tags_response
+            self.fail("unexpected registry URL: {}".format(url))
+
+        with mock.patch.object(team_services, "_registry_v2_get", side_effect=registry_response):
+            data = team_services.get_registry_images(
+                domain="https://registry.example.com",
+                username="demo-user",
+                password="demo-password",
+                hub_type="Docker",
+                namespace="rainbond",
+            )
+
+        self.assertEqual([image["name"] for image in data["images"]], ["console"])
+        self.assertEqual(data["total"], 1)
+
+    def test_get_docker_images_fetches_page_metadata_concurrently(self):
+        repositories = ["image-{}".format(index) for index in range(20)]
+        catalog_response = mock.Mock(status_code=200, headers={})
+        metadata_barrier = threading.Barrier(len(repositories))
+
+        def get_metadata(base_url, repo_name, username, password):
+            metadata_barrier.wait(timeout=2)
+            return {
+                "created_at": "created-{}".format(repo_name),
+                "updated_at": "updated-{}".format(repo_name),
+            }
+
+        with mock.patch.object(
+                team_services,
+                "_get_registry_v2_catalog",
+                return_value=(repositories, catalog_response)), \
+                mock.patch.object(
+                    team_services,
+                    "_get_registry_image_metadata",
+                    side_effect=get_metadata,
+                    create=True) as metadata_mock, \
+                mock.patch.object(team_services, "_registry_v2_get") as registry_get:
+            data = team_services.get_registry_images(
+                domain="https://registry.example.com",
+                username="demo-user",
+                password="demo-password",
+                hub_type="Docker",
+                namespace="library",
+                page=1,
+                page_size=len(repositories),
+            )
+
+        self.assertEqual(metadata_mock.call_count, len(repositories))
+        registry_get.assert_not_called()
+        self.assertEqual([image["name"] for image in data["images"]], repositories)
+        self.assertEqual(
+            [image["created_at"] for image in data["images"]],
+            ["created-{}".format(repository) for repository in repositories],
+        )
+
+    def test_registry_image_metadata_reuses_http_session(self):
+        session = mock.MagicMock()
+        session.__enter__.return_value = session
+        tags_response = mock.Mock(status_code=200)
+        tags_response.json.return_value = {"tags": ["latest"]}
+        tag_info = {"updated_at": "2026-08-09T12:00:00Z"}
+
+        with mock.patch("console.services.team_services.requests.Session", return_value=session) as session_factory, \
+                mock.patch.object(team_services, "_registry_v2_get", return_value=tags_response) as registry_get, \
+                mock.patch.object(team_services, "_get_registry_tag_info", return_value=tag_info) as get_tag_info:
+            metadata = team_services._get_registry_image_metadata(
+                "https://registry.example.com", "library/nginx", "user", "password")
+
+        session_factory.assert_called_once_with()
+        self.assertIs(registry_get.call_args.kwargs["session"], session)
+        self.assertIs(
+            registry_get.call_args.kwargs["bearer_token_cache"],
+            get_tag_info.call_args.kwargs["bearer_token_cache"],
+        )
+        self.assertEqual(metadata["updated_at"], tag_info["updated_at"])
+
+    def test_registry_v2_get_reuses_cached_bearer_token(self):
+        challenge = mock.Mock(
+            status_code=401,
+            headers={
+                "WWW-Authenticate": (
+                    'Bearer realm="https://registry.example.com/service/token",'
+                    'service="registry.example.com",'
+                    'scope="repository:library/nginx:pull"'
+                )
+            },
+        )
+        token_response = mock.Mock(status_code=200)
+        token_response.json.return_value = {"token": "registry-token"}
+        first_response = mock.Mock(status_code=200)
+        second_response = mock.Mock(status_code=200)
+        session = mock.Mock()
+        session.get.side_effect = [challenge, token_response, first_response, second_response]
+        bearer_token_cache = {}
+
+        first_result = team_services._registry_v2_get(
+            "https://registry.example.com/v2/library/nginx/tags/list",
+            "user",
+            "password",
+            session=session,
+            bearer_token_cache=bearer_token_cache,
+        )
+        second_result = team_services._registry_v2_get(
+            "https://registry.example.com/v2/library/nginx/manifests/latest",
+            "user",
+            "password",
+            session=session,
+            bearer_token_cache=bearer_token_cache,
+        )
+
+        self.assertIs(first_result, first_response)
+        self.assertIs(second_result, second_response)
+        self.assertEqual(session.get.call_count, 4)
+        self.assertEqual(
+            session.get.call_args_list[-1].kwargs["headers"]["Authorization"],
+            "Bearer registry-token",
+        )
+
+    def test_get_docker_namespaces_rejects_cross_origin_catalog_link(self):
+        response = mock.Mock(
+            status_code=200,
+            headers={"Link": '<https://untrusted.example/v2/_catalog?last=demo%2Fapp>; rel="next"'},
+        )
+        response.json.return_value = {"repositories": ["demo/app"]}
+
+        with mock.patch.object(team_services, "_registry_v2_get", return_value=response), \
+                self.assertRaises(ServiceHandleException) as ctx:
+            team_services.get_registry_namespaces(
+                domain="https://registry.example.com",
+                username="demo-user",
+                password="demo-password",
+                hub_type="Docker",
+            )
+
+        self.assertEqual(ctx.exception.status_code, 502)
+        self.assertEqual(ctx.exception.msg, "invalid registry catalog pagination link")
 
     def test_get_harbor_namespaces_fetches_all_pages(self):
         names = ["project-{}".format(i) for i in range(205)]

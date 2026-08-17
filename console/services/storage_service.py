@@ -16,6 +16,12 @@ class StorageService(object):
         初始化存储服务，使用 Prometheus API
         """
         self.prometheus_url = os.environ.get("PROMETHEUS_URL", "http://rbd-monitor:9999")
+        try:
+            self.prometheus_timeout = float(os.environ.get("PROMETHEUS_REQUEST_TIMEOUT", "3"))
+            if self.prometheus_timeout <= 0:
+                self.prometheus_timeout = 3.0
+        except (TypeError, ValueError):
+            self.prometheus_timeout = 3.0
 
     def get_storage_usage_by_service_id(self, service_id: str) -> Any:
         try:
@@ -23,7 +29,8 @@ class StorageService(object):
                 return 0.0
             total_used_bytes: float = 0
             query = f'rainbond_storage_usage_bytes{{service_id="{service_id}"}}'
-            response = requests.get(f"{self.prometheus_url}/api/v1/query", params={"query": query})
+            response = requests.get(
+                f"{self.prometheus_url}/api/v1/query", params={"query": query}, timeout=self.prometheus_timeout)
             result = response.json()
             if result['status'] == 'success' and result['data']['result']:
                 total_used_bytes += float(result['data']['result'][0]['value'][1])
@@ -38,7 +45,8 @@ class StorageService(object):
                 return 0.0
             total_used_bytes: float = 0
             query = f'sum(rainbond_storage_usage_bytes{{tenant_id="{tenant_id}"}}) by (tenant_id)'
-            response = requests.get(f"{self.prometheus_url}/api/v1/query", params={"query": query})
+            response = requests.get(
+                f"{self.prometheus_url}/api/v1/query", params={"query": query}, timeout=self.prometheus_timeout)
             result = response.json()
             if result['status'] == 'success' and result['data']['result']:
                 total_used_bytes += float(result['data']['result'][0]['value'][1])
@@ -54,7 +62,8 @@ class StorageService(object):
             total_used_bytes: float = 0
             region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
             query = f'sum(rainbond_storage_usage_bytes{{app_id="{region_app_id}"}}) by (app_id)'
-            response = requests.get(f"{self.prometheus_url}/api/v1/query", params={"query": query})
+            response = requests.get(
+                f"{self.prometheus_url}/api/v1/query", params={"query": query}, timeout=self.prometheus_timeout)
             result = response.json()
             if result['status'] == 'success' and result['data']['result']:
                 total_used_bytes += float(result['data']['result'][0]['value'][1])

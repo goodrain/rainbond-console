@@ -9,7 +9,7 @@ from console.exception.bcode import ErrK8sServiceNameExists, ErrQualifiedName, E
 from console.exception.exceptions import (NoEnableRegionError, TenantExistError, UserNotExistError)
 from console.exception.main import ServiceHandleException, AbortRequest
 from console.models.main import UserMessage
-from console.repositories.app import service_repo
+from console.repositories.service_repo import service_repo
 from console.repositories.apply_repo import apply_repo
 from console.repositories.enterprise_repo import (enterprise_repo, enterprise_user_perm_repo)
 from console.repositories.message_repo import msg_repo
@@ -1158,15 +1158,18 @@ class TeamSortServiceQueryView(RegionTenantHeaderView):
             value.append(v1)
             value.append(traffic_num)
             service_traffic_list.append(service_dict)
-        for service_traffic in service_traffic_list[::-1]:
-            service_obj = service_repo.get_service_by_service_id(service_traffic["metric"]["service"])
-            if service_obj:
-                service_traffic["metric"]["service_cname"] = service_obj.service_cname
-                service_traffic["metric"]["service_alias"] = service_obj.service_alias
+        services = service_repo.list_by_component_ids(service_id_list) if service_id_list else []
+        service_map = {service.service_id: service for service in services}
+        existing_service_traffic_list = []
+        for service_traffic in service_traffic_list:
+            service_obj = service_map.get(service_traffic["metric"]["service"])
             if not service_obj:
-                service_traffic_list.remove(service_traffic)
+                continue
+            service_traffic["metric"]["service_cname"] = service_obj.service_cname
+            service_traffic["metric"]["service_alias"] = service_obj.service_alias
+            existing_service_traffic_list.append(service_traffic)
         # 排序取前十
-        service_list = sorted(service_traffic_list, key=lambda x: x["value"][1], reverse=True)[0:10]
+        service_list = sorted(existing_service_traffic_list, key=lambda x: x["value"][1], reverse=True)[0:10]
 
         result = general_message(200, "success", "查询成功", list=service_list)
         return Response(result, status=result["code"])
@@ -1196,8 +1199,7 @@ class TeamsPermissionCreateApp(JWTAuthApiView):
         teams = list()
         tenants = enterprise_repo.get_enterprise_user_teams(enterprise_id, self.user.user_id)  # type: ignore[arg-type]
         if tenants:
-            for tenant in tenants:
-                teams.append(team_services.team_with_region_info(tenant, self.user))
+            teams = team_services.teams_with_region_info(tenants, self.user)
         result = general_message(200, "success", "查询成功", list=teams)
         return Response(result, status=result["code"])
 

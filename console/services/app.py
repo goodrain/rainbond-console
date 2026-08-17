@@ -1669,9 +1669,23 @@ class AppMarketService(object):
             update_time=app.update_time)
         rainbond_app.market_name = market.name  # type: ignore[attr-defined]
         if app_template:
+            serialized_template = app_template.template
+            for version_info in (getattr(app, "versions", None) or []):
+                if getattr(version_info, "app_version", None) != app_template.version:
+                    continue
+                cpu = getattr(version_info, "cpu", None)
+                memory = getattr(version_info, "memory", None)
+                if cpu is not None or memory is not None:
+                    template = json.loads(serialized_template)
+                    template["_market_resource_requirements"] = {
+                        "cpu": cpu,
+                        "memory": memory,
+                    }
+                    serialized_template = json.dumps(template)
+                break
             rainbond_app_version = RainbondCenterAppVersion(
                 app_id=app.app_key_id,
-                app_template=app_template.template,
+                app_template=serialized_template,
                 version=app_template.version,
                 version_alias=app_template.version_alias,
                 template_version=app_template.rainbond_version,

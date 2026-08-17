@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from unittest import mock
+
 from goodrain_web import sentry_config
 
 
@@ -75,13 +77,19 @@ def test_before_send_filters_sensitive_request_data():
         "message": "authorization=Bearer abc token=def name=app",
     }
 
-    sanitized = sentry_config.before_send(event, {})
+    with mock.patch("goodrain_web.sentry_config.is_external_telemetry_enabled", return_value=True):
+        sanitized = sentry_config.before_send(event, {})
 
     assert sanitized["request"] == {
         "method": "GET",
         "url": "/console/teams/:id/apps/:id/overview?[Filtered]",
     }
     assert sanitized["message"] == "authorization=[Filtered] token=[Filtered] name=app"
+
+
+def test_before_send_drops_events_when_platform_telemetry_is_disabled():
+    with mock.patch("goodrain_web.sentry_config.is_external_telemetry_enabled", return_value=False):
+        assert sentry_config.before_send({"message": "error"}, {}) is None
 
 
 def test_get_path_pattern_removes_dynamic_segments_and_query():
@@ -125,7 +133,7 @@ def test_frontend_dsn_takes_precedence_over_shared_dsn():
     assert config["dsn"] == "https://browser.example.invalid/2"
 
 
-def test_offline_mode_disables_frontend_sentry_but_not_console_sentry():
+def test_offline_mode_disables_frontend_and_console_sentry():
     env = {
         "DISABLE_DEFAULT_APP_MARKET": "true",
         "RAINBOND_ERROR_REPORTING_DSN": "https://example.invalid/1",
@@ -136,7 +144,7 @@ def test_offline_mode_disables_frontend_sentry_but_not_console_sentry():
 
     assert frontend_config["enabled"] is False
     assert frontend_config["dsn"] == ""
-    assert console_config["enabled"] is True
+    assert console_config["enabled"] is False
     assert console_config["dsn"] == "https://example.invalid/1"
 
 

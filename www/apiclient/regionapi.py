@@ -453,6 +453,20 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region, timeout=15)
         return body
 
+    def get_services_pod_nums(self, region: str, tenant_name: str,
+                              service_ids: List[str]) -> Optional[Dict[str, int]]:
+        if not service_ids:
+            return {}
+        url, token = self.__get_region_access_info(tenant_name, region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/pod_nums?service_ids={}".format(
+            ",".join(service_ids))
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region, timeout=3)
+        if res.get("status") == 200 and isinstance(body, dict) and isinstance(body.get("bean"), dict):
+            return body["bean"]
+        return None
+
     def pod_detail(self, region: str, tenant_name: str, service_alias: str,
                    pod_name: str) -> Optional[Dict[str, Any]]:
         """获取组件pod信息"""

@@ -1,11 +1,15 @@
 # -*- coding: utf-8 -*-
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
+
+from django.db.models import Q
 
 from console.models.main import LoginEvent as LoginEventModel
 from www.utils.crypt import make_uuid
 
 logger = logging.getLogger("default")
+
+ACTIVE_UPDATE_INTERVAL = timedelta(seconds=60)
 
 
 class LoginEvent(object):
@@ -50,11 +54,33 @@ class LoginEvent(object):
             return
         # finish the event
         self.login_event.logout_time = datetime.now()
-        self.active()
+        self.active(force=True)
 
-    def active(self):
-        if self.login_event:
-            self.login_event.last_active_time = datetime.now()
-            delta = self.login_event.last_active_time - self.login_event.login_time
-            self.login_event.duration = delta.seconds
-            self.login_event.save()
+    def active(self, force=False):
+        if not self.login_event:
+            return
+
+        active_time = datetime.now()
+        last_active_time = self.login_event.last_active_time
+        if not force and last_active_time and active_time - last_active_time < ACTIVE_UPDATE_INTERVAL:
+            return
+
+        duration = 0
+        if self.login_event.login_time:
+            duration = (active_time - self.login_event.login_time).seconds
+
+        candidates = LoginEventModel.objects.filter(pk=self.login_event.pk)
+        if not force:
+            update_before = active_time - ACTIVE_UPDATE_INTERVAL
+            candidates = candidates.filter(Q(last_active_time__isnull=True) | Q(last_active_time__lte=update_before))
+
+        update_fields = {
+            "last_active_time": active_time,
+            "duration": duration,
+        }
+        if force:
+            update_fields["logout_time"] = self.login_event.logout_time
+
+        if candidates.update(**update_fields):
+            self.login_event.last_active_time = active_time
+            self.login_event.duration = duration

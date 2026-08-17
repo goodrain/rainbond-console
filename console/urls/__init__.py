@@ -45,7 +45,7 @@ from console.views.app_create.app_check import (AppCheck, AppCheckUpdate, GetChe
 from console.views.app_create.docker_compose import (ComposeCheckUpdate, ComposeCheckView, ComposeContentView,
                                                      ComposeDeleteView, ComposeServicesView, DockerComposeCreateView,
                                                      GetComposeCheckUUID)
-from console.views.app_create.deploy_preflight import DeployPreflightView
+from console.views.app_create.available_resources import AvailableResourcesView
 from console.views.app_create.docker_run import DockerRunCreateView
 from console.views.app_create.image_repositories import TenantImageRepositories, TenantImageTags
 from console.views.app_create.multi_app import (MultiAppCheckView, MultiAppCreateView)
@@ -145,6 +145,8 @@ from console.views.proxy import ProxyPassView, ProxySSEView
 from console.views.realtime_proxy import RegionRealtimeProxyView
 from console.views.sentry_proxy import SentryProxyView
 from console.views.mcp_query import MCPQueryHTTPView, MCPQueryMessageView, MCPQuerySSEView
+from console.views.mcp_device_authorization import (MCPDeviceAuthorizeView, MCPDeviceCodeView, MCPDeviceInspectView,
+                                                     MCPDeviceTokenView)
 from console.views.public_areas import (AllServiceInfo, GroupServiceView, ServiceEventsView, ServiceGroupView,
                                         TeamAppSortViewView, TeamOverView, TeamServiceOverViewView, TenantServiceEnvsView,
                                         GroupOperatorManagedView, AccessTokenView, TeamArchView, TeamAppNamesView)
@@ -211,12 +213,18 @@ urlpatterns = [
     re_path(r'^regions/(?P<region_name>[\w\-]+)/websocket/(?P<proxy_path>.*)$', RegionRealtimeProxyView.as_view()),
     re_path(r'^v2/proxy-pass/(.*?)', ProxyPassView.as_view()),
     re_path(r'^sse/(.*?)', ProxySSEView.as_view()),
+    re_path(r'^mcp/device/code$', MCPDeviceCodeView.as_view()),
+    re_path(r'^mcp/device/token$', MCPDeviceTokenView.as_view()),
+    re_path(r'^mcp/device/inspect$', MCPDeviceInspectView.as_view()),
+    re_path(r'^mcp/device/authorize$', MCPDeviceAuthorizeView.as_view()),
     re_path(r'^mcp/query$', MCPQueryHTTPView.as_view()),
     re_path(r'^mcp/query/$', MCPQueryHTTPView.as_view()),
     re_path(r'^mcp/rainskills/codex/query$',
             MCPQueryHTTPView.as_view(deploy_origin="rainskills", deploy_client="codex")),
     re_path(r'^mcp/rainskills/claude-code/query$',
             MCPQueryHTTPView.as_view(deploy_origin="rainskills", deploy_client="claude_code")),
+    re_path(r'^mcp/rainskills/api/query$',
+            MCPQueryHTTPView.as_view(deploy_origin="rainskills", deploy_client="api")),
     re_path(r'^mcp/query/sse$', MCPQuerySSEView.as_view()),
     re_path(r'^mcp/query/sse/$', MCPQuerySSEView.as_view()),
     re_path(r'^mcp/query/message$', MCPQueryMessageView.as_view()),
@@ -514,9 +522,10 @@ urlpatterns = [
         TarImageLoadResultView.as_view(), perms.APP_OVERVIEW_CREATE),
     # 本地文件创建组件
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/package_build$', PackageCreateView.as_view(), perms.APP_OVERVIEW_CREATE),
-    # 部署前快速检测
-    re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/deploy_preflight$', DeployPreflightView.as_view(),
-        perms.APP_OVERVIEW_CREATE),
+    # 查询集群可用资源
+    re_path(
+        r'^teams/(?P<tenantName>[\w\-]+)/apps/available_resources$', AvailableResourcesView.as_view(),
+        perms.APP_CREATE_PERMS),
     # 源码创建
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/source_code$', SourceCodeCreateView.as_view(), perms.APP_OVERVIEW_CREATE),
     # 第三方组件创建

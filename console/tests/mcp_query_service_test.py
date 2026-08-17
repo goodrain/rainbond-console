@@ -28,7 +28,7 @@ class Obj(object):
 class MCPQueryServiceToolVisibilityTests(SimpleTestCase):
 
     # capability_id: console.package-upload.rainskills-tool-visibility
-    def test_rainskills_hides_server_local_package_tools_only_from_discovery(self):
+    def test_rainskills_hides_server_local_package_tools_from_discovery(self):
         hidden_tools = {
             "rainbond_upload_package_file",
             "rainbond_create_component_from_local_package",
@@ -51,6 +51,42 @@ class MCPQueryServiceToolVisibilityTests(SimpleTestCase):
             self.assertIn("rainbond_get_package_upload_status", rainskills_tool_names)
             self.assertIn("rainbond_delete_package_upload", rainskills_tool_names)
             self.assertIn("rainbond_create_component_from_package", rainskills_tool_names)
+
+    # capability_id: console.package-upload.rainskills-tool-visibility
+    def test_rainskills_cannot_call_server_local_package_tools_directly(self):
+        handlers = {
+            "rainbond_upload_package_file": "upload_package_file",
+            "rainbond_create_component_from_local_package": "create_component_from_local_package",
+        }
+
+        for client in ("codex", "claude_code", "api"):
+            for tool_name, handler_name in handlers.items():
+                with self.subTest(client=client, tool_name=tool_name):
+                    with patch.object(mcp_query_service, handler_name) as handler:
+                        with deployment_invocation_context("rainskills", client):
+                            with self.assertRaises(ServiceHandleException) as ctx:
+                                mcp_query_service.call_tool(Obj(), tool_name, {})
+
+                    self.assertEqual(ctx.exception.status_code, 404)
+                    self.assertEqual(ctx.exception.msg, "tool not found")
+                    self.assertEqual(ctx.exception.msg_show, "工具不存在")
+                    handler.assert_not_called()
+
+    # capability_id: console.package-upload.rainskills-tool-visibility
+    def test_generic_mcp_can_call_server_local_package_tools(self):
+        handlers = {
+            "rainbond_upload_package_file": "upload_package_file",
+            "rainbond_create_component_from_local_package": "create_component_from_local_package",
+        }
+
+        for tool_name, handler_name in handlers.items():
+            with self.subTest(tool_name=tool_name):
+                user = Obj()
+                with patch.object(mcp_query_service, handler_name, return_value={"tool": tool_name}) as handler:
+                    result = mcp_query_service.call_tool(user, tool_name, {"value": 1})
+
+                self.assertEqual(result, {"tool": tool_name})
+                handler.assert_called_once_with(user, {"value": 1})
 
     # capability_id: console.tool-visibility.enterprise-admin
     def test_list_tools_for_enterprise_admin_includes_region_and_enterprise_tools(self):
@@ -553,6 +589,10 @@ class MCPQueryServiceToolVisibilityTests(SimpleTestCase):
         self.assertEqual(result["total"], 1)
         self.assertEqual(result["items"][0]["region_name"], "rainbond")
         self.assertEqual(result["items"][0]["region_alias"], "Rainbond Region")
+        for sensitive_field in (
+                "url", "token", "wsurl", "httpdomain", "tcpdomain", "scope",
+                "ssl_ca_cert", "cert_file", "key_file"):
+            self.assertNotIn(sensitive_field, result["items"][0])
 
     @patch("console.services.mcp_query_service.region_services.get_enterprise_regions")
     # capability_id: console.enterprise.region-list-authz
@@ -615,7 +655,10 @@ class MCPQueryServiceToolVisibilityTests(SimpleTestCase):
         self.assertEqual(result["region_id"], "r1")
         self.assertEqual(result["region_name"], "rainbond")
         self.assertEqual(result["region_alias"], "Rainbond Region")
-        self.assertEqual(result["url"], "https://region.example.com")
+        for sensitive_field in (
+                "url", "token", "wsurl", "httpdomain", "tcpdomain", "scope",
+                "ssl_ca_cert", "cert_file", "key_file"):
+            self.assertNotIn(sensitive_field, result)
 
     @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
     # capability_id: console.enterprise.region-detail-by-name
@@ -6157,18 +6200,17 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
         mock_upload_package.return_value = {"event_id": "evt-upload-1", "uploaded_packages": ["demo.zip"], "uploaded": True}
 
-        with deployment_invocation_context("rainskills", "codex"):
-            result = mcp_query_service.call_tool(
-                self.user,
-                "rainbond_upload_package_file",
-                {
-                    "team_name": "demo-team",
-                    "region_name": "rainbond",
-                    "event_id": "evt-upload-1",
-                    "local_path": "/tmp/demo",
-                    "archive_name": "demo-package",
-                },
-            )
+        result = mcp_query_service.call_tool(
+            self.user,
+            "rainbond_upload_package_file",
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "event_id": "evt-upload-1",
+                "local_path": "/tmp/demo",
+                "archive_name": "demo-package",
+            },
+        )
 
         self.assertTrue(result["uploaded"])
         mock_upload_package.assert_called_once_with("demo-team", "rainbond", "evt-upload-1", "/tmp/demo", "demo-package")

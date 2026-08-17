@@ -7,7 +7,7 @@ import json
 import logging
 import re
 import time
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, cast
 
 # enum
 import requests
@@ -19,7 +19,9 @@ from console.enum.component_enum import ComponentType
 from console.exception.bcode import (ErrAppConfigGroupExists, ErrK8sServiceNameExists)
 from console.exception.main import (AbortRequest, ErrVolumePath, MarketAppLost, RbdAppNotFound, ServiceHandleException)
 from console.models.main import (AppMarket, AppUpgradeRecord, RainbondCenterApp, RainbondCenterAppVersion, RegionConfig)
-from console.repositories.app import (app_market_repo, app_tag_repo, service_source_repo)
+from console.repositories.app import (PLATFORM_PLUGIN_DEFAULT_URL, PLATFORM_PLUGIN_MARKET_DOMAIN,
+                                      PLATFORM_PLUGIN_MARKET_NAME, app_market_repo, app_tag_repo,
+                                      service_source_repo)
 from console.repositories.app_config import (env_var_repo, extend_repo, port_repo, volume_repo, dep_relation_repo)
 from console.repositories.app_version_repo import app_version_template_relation_repo
 from console.repositories.base import BaseConnection
@@ -40,6 +42,7 @@ from console.services.app_config.service_monitor import service_monitor_repo
 from console.services.app_config_group import app_config_group_service
 from console.services.enterprise_first_deploy_service import enterprise_first_deploy_service
 from console.services.group_service import group_service
+from console.services.license import license_service
 from console.services.market_app.app_upgrade import AppUpgrade
 from console.services.market_app.utils import apply_hostname_remap, collect_install_hostname_remap, resolve_none_placeholders
 from console.services.market_app_preflight_service import market_install_preflight_service
@@ -230,6 +233,9 @@ class MarketAppService(object):
         if install_from_cloud:
             _, market = app_market_service.get_app_market(
                 tenant.enterprise_id, market_name, raise_exception=True)  # type: ignore[arg-type]
+            if market_name == PLATFORM_PLUGIN_MARKET_NAME:
+                market = self._resolve_platform_plugin_install_market(
+                    market, cast(str, tenant.enterprise_id), region.region_name, app_model_key)
             market_app, app_version = app_market_service.cloud_app_model_to_db_model(
                 market, app_model_key, version, for_install=True)
         else:
@@ -247,6 +253,39 @@ class MarketAppService(object):
         app_template["update_time"] = app_version.update_time
         app_template["arch"] = app_version.arch
         return app_template, market_app
+
+    @staticmethod
+    def _resolve_platform_plugin_install_market(default_market: AppMarket, enterprise_id: str,
+                                                region_name: str, app_model_key: str) -> AppMarket:
+        try:
+            body = license_service.get_license_status(enterprise_id, region_name)
+        except Exception:
+            logger.warning(
+                "failed to get platform plugin license status enterprise_id=%s region_name=%s",
+                enterprise_id,
+                region_name,
+            )
+            return default_market
+
+        if not isinstance(body, dict):
+            return default_market
+        bean = body.get("bean")
+        if not isinstance(bean, dict) or bean.get("valid") is not True:
+            return default_market
+        plugin_mapping = bean.get("plugin_mapping")
+        if not isinstance(plugin_mapping, dict) or app_model_key not in plugin_mapping.values():
+            return default_market
+
+        access_key = bean.get("access_key")
+        if not isinstance(access_key, str) or not access_key.strip():
+            raise ServiceHandleException(msg="no access_key in license", msg_show="授权信息中缺少 access_key")
+        return AppMarket(
+            name=PLATFORM_PLUGIN_MARKET_NAME,
+            url=PLATFORM_PLUGIN_DEFAULT_URL,
+            domain=PLATFORM_PLUGIN_MARKET_DOMAIN,
+            access_key=access_key,
+            enterprise_id=enterprise_id,
+        )
 
     def _create_rbdplugin_if_needed(self, tenant: Tenants, region: RegionConfig, app_template: dict,
                                     app_id: Optional[str] = None) -> None:
@@ -1573,8 +1612,6 @@ class MarketAppService(object):
             scope="goodrain", source="market")
 
     def list_upgradeable_versions(self, tenant: Tenants, service: TenantServiceInfo) -> Optional[list]:
-        if is_cloud_market_disabled():
-            return []
         component_source = service_source_repo.get_service_source(service.tenant_id, service.service_id)
         if component_source:
             market_name = component_source.get_market_name()
@@ -1641,8 +1678,6 @@ class MarketAppService(object):
         return len(apps)
 
     def get_market_apps_in_app(self, region_name: Any, tenant: Tenants, application: ServiceGroup) -> list:
-        if is_cloud_market_disabled():
-            return []
         component_groups = tenant_service_group_repo.get_group_by_app_id(application.ID)  # type: ignore[arg-type]
         group_ids = component_groups.values_list('ID', flat=True)
         # NOTE: model .ID is int AutoField used as a str identifier across the codebase.
@@ -1689,6 +1724,8 @@ class MarketAppService(object):
             market_name = component_source.get_market_name()
             market = None
             install_from_cloud = component_source.is_install_from_cloud()
+            if install_from_cloud and is_cloud_market_disabled():
+                continue
             if install_from_cloud and market_name:
                 market = app_market_repo.get_app_market_by_name(
                     tenant.enterprise_id, market_name, raise_exception=True)  # type: ignore[arg-type]
@@ -1744,7 +1781,7 @@ class MarketAppService(object):
                                    install_from_cloud: bool = False,
                                    market: Optional[AppMarket] = None) -> Optional[list]:
         # Simply determine if there is a version that can be upgraded, not attribute changes.
-        if is_cloud_market_disabled():
+        if install_from_cloud and is_cloud_market_disabled():
             return []
         versions = []
         if install_from_cloud and market:
@@ -1797,8 +1834,6 @@ class MarketAppService(object):
 
     def get_models_upgradeable_version(self, enterprise_id: str, app_model_key: str, app_id: str,
                                        upgrade_group_id: str) -> Optional[list]:
-        if is_cloud_market_disabled():
-            return []
         current_version, current_version_update_time, install_from_cloud, market = self.get_current_version(
             enterprise_id, app_model_key, app_id, upgrade_group_id)
         return self.__get_upgradeable_versions(enterprise_id, app_model_key, current_version, current_version_update_time,
@@ -1806,15 +1841,18 @@ class MarketAppService(object):
 
     def list_app_upgradeable_versions(self, enterprise_id: str,
                                       record: AppUpgradeRecord) -> Optional[list]:
-        if is_cloud_market_disabled():
-            return []
         component_group = tenant_service_group_repo.get_component_group(record.upgrade_group_id)  # type: ignore[arg-type]
         component_group = ComponentGroup(enterprise_id, component_group, record.old_version)
         app_template_source = component_group.app_template_source()
-        market = app_market_repo.get_app_market_by_name(enterprise_id, app_template_source.get_market_name())
+        install_from_cloud = component_group.is_install_from_cloud()
+        market = None
+        if install_from_cloud:
+            market_name = app_template_source.get_market_name()
+            if market_name:
+                market = app_market_repo.get_app_market_by_name(enterprise_id, market_name)
         return self.__get_upgradeable_versions(enterprise_id, component_group.app_model_key, component_group.version,
                                                app_template_source.get_template_update_time(),
-                                               component_group.is_install_from_cloud(), market)
+                                               install_from_cloud, market)
 
     def delete_rainbond_app_all_info_by_id(self, enterprise_id: str, app_id: str) -> None:
         sid = transaction.savepoint()

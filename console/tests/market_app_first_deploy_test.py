@@ -104,6 +104,9 @@ install_stub(
     RegionConfig=object)
 install_stub(
     "console.repositories.app",
+    PLATFORM_PLUGIN_DEFAULT_URL="https://hub.grapps.cn",
+    PLATFORM_PLUGIN_MARKET_DOMAIN="enterprise",
+    PLATFORM_PLUGIN_MARKET_NAME="__platform_plugin__",
     app_market_repo=Obj(),
     app_tag_repo=Obj(),
     service_source_repo=Obj())
@@ -139,6 +142,7 @@ install_stub("console.services.app_config.service_monitor", service_monitor_repo
 install_stub("console.services.app_config_group", app_config_group_service=Obj())
 install_stub("console.services.enterprise_first_deploy_service", enterprise_first_deploy_service=first_deploy_service)
 install_stub("console.services.group_service", group_service=Obj())
+install_stub("console.services.license", license_service=Obj())
 install_stub("console.services.market_app", package=True)
 install_stub("console.services.market_app.app_upgrade", AppUpgrade=object)
 install_stub("console.services.market_app.component_group", ComponentGroup=object)
@@ -159,7 +163,9 @@ install_stub("console.services.upgrade_services", upgrade_service=Obj())
 install_stub("console.services.virtual_machine", vms=Obj(ensure_vm_platform_running=lambda *args, **kwargs: None))
 install_stub("console.utils.offline", is_cloud_market_disabled=lambda: False)
 install_stub("console.utils.version", compare_version=lambda *args, **kwargs: 0, sorted_versions=lambda versions: versions)
-install_stub("www.apiclient.regionapi", RegionInvokeApi=lambda: Obj(get_cluster_nodes_arch=lambda *args: (None, {"list": ["amd64"]})))
+install_stub(
+    "www.apiclient.regionapi",
+    RegionInvokeApi=lambda: Obj(get_cluster_nodes_arch=lambda *args: (None, {"list": ["amd64"]})))
 install_stub(
     "www.models.main",
     TenantEnterprise=object,

@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import importlib.util
 import json
 import os
 import sys
@@ -7,6 +8,8 @@ from unittest import TestCase, mock
 
 sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
+
+stub_modules = {}
 
 
 class Obj(object):
@@ -71,13 +74,19 @@ def install_stub(module_name, package=False, **attrs):
         module.__path__ = []
     for key, value in attrs.items():
         setattr(module, key, value)
-    sys.modules[module_name] = module
+    stub_modules[module_name] = module
     return module
 
 
 first_deploy_service = FirstDeployServiceStub()
 app_market_service = Obj()
 market_app_service = Obj()
+market_install_preflight_service = Obj(run=mock.Mock(return_value={
+    "status": "pass",
+    "should_block": False,
+    "summary": "ok",
+    "checks": [],
+}))
 region_repo = Obj()
 
 install_stub("console.appstore", package=True)
@@ -109,8 +118,28 @@ install_stub("console.utils.offline", is_cloud_market_disabled=lambda: False)
 install_stub("www.apiclient.regionapi", RegionInvokeApi=RegionInvokeApi)
 install_stub("www.models.main", ServiceGroup=object, TenantServiceInfo=object, Tenants=object)
 
-from console.services.platform_plugin_service import platform_plugin_service  # noqa: E402
-import console.services.platform_plugin_service as platform_module  # noqa: E402
+install_stub(
+    "console.services.market_app_preflight_service",
+    market_install_preflight_service=market_install_preflight_service)
+
+_isolated_module_name = "_platform_plugin_service_first_deploy_test"
+_missing_module = object()
+_module_names = list(stub_modules) + [_isolated_module_name]
+_previous_modules = {name: sys.modules.get(name, _missing_module) for name in _module_names}
+_platform_service_path = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..", "services", "platform_plugin_service.py"))
+_platform_spec = importlib.util.spec_from_file_location(_isolated_module_name, _platform_service_path)
+platform_module = importlib.util.module_from_spec(_platform_spec)
+with mock.patch.dict(sys.modules, stub_modules):
+    sys.modules[_isolated_module_name] = platform_module
+    _platform_spec.loader.exec_module(platform_module)
+
+platform_plugin_service = platform_module.platform_plugin_service
+for _module_name, _previous_module in _previous_modules.items():
+    if _previous_module is _missing_module:
+        assert _module_name not in sys.modules
+    else:
+        assert sys.modules[_module_name] is _previous_module
 
 
 class PlatformPluginFirstDeployTrackingTests(TestCase):
@@ -164,6 +193,8 @@ class PlatformPluginFirstDeployTrackingTests(TestCase):
                                   return_value={"status": "synced", "region_name": "rainbond"}) as bootstrap_agent:
             platform_plugin_service.install_platform_plugin("eid", "rainbond", "rainbond-agent", user)
 
+        market_install_preflight_service.run.assert_called_once_with(
+            tenant, region, dict(app_template, update_time=""), check_images=False)
         first_deploy_service.safe_begin_deploy_tracking.assert_called_once()
         tracking_kwargs = first_deploy_service.safe_begin_deploy_tracking.call_args[1]
         self.assertEqual("eid", tracking_kwargs["enterprise_id"])

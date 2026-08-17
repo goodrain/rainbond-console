@@ -185,6 +185,10 @@ class MCPJSONWebTokenAuthentication(JSONWebTokenAuthentication):
                 return token.strip()
         return None
 
+    def validate_token_payload(self, payload: dict) -> None:
+        if not jwt_issuer.is_valid_mcp_token_payload(payload, allow_legacy=True):
+            raise AuthenticationInfoHasExpiredError("MCP token scope is invalid")
+
     def authenticate(self, request: Any) -> Any:
         setattr(request, "_allow_group_mcp_token", True)
         result = super(MCPJSONWebTokenAuthentication, self).authenticate(request)
@@ -366,6 +370,8 @@ class MCPQueryRPCMixin(object):
     def _call_tool(self, user: Any, tool_name: str, arguments: dict) -> Any:
         if not is_rainskills_invocation():
             return mcp_query_service.call_tool(user, tool_name, arguments)
+
+        mcp_query_service.assert_tool_visible(tool_name)
 
         service_sources = None
         if tool_name in ("rainbond_build_component", "rainbond_operate_app"):

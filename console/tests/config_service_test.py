@@ -63,6 +63,34 @@ class CustomFieldManager(object):
         return CustomFieldQuerySet(configs)
 
 
+class ExistingConfigManager(object):
+    def __init__(self, configs):
+        self.configs = {config.key: config for config in configs}
+        self.filter_calls = []
+        self.get_calls = []
+
+    def filter(self, **kwargs):
+        self.filter_calls.append(kwargs)
+        keys = kwargs.get("key__in", [])
+        return [self.configs[key] for key in keys if key in self.configs]
+
+    def get(self, **kwargs):
+        self.get_calls.append(kwargs)
+        return self.configs[kwargs["key"]]
+
+
+class CreatingConfigManager(ExistingConfigManager):
+    def __init__(self):
+        super(CreatingConfigManager, self).__init__([])
+        self.create_calls = []
+
+    def create(self, **kwargs):
+        self.create_calls.append(kwargs)
+        config = types.SimpleNamespace(**kwargs)
+        self.configs[config.key] = config
+        return config
+
+
 class ConfigKey(object):
     def __init__(self, name):
         self.name = name
@@ -177,3 +205,65 @@ class EnterpriseConfigServiceTests(TestCase):
                 "enable": False,
             }],
         )
+
+    def test_initialization_loads_existing_config_keys_in_one_query(self):
+        config_service = self.import_config_service_module()
+        manager = ExistingConfigManager([
+            types.SimpleNamespace(key="BASE_KEY", type="string", value="database-base", enable=False),
+            types.SimpleNamespace(key="CONFIG_KEY", type="string", value="database-config", enable=True),
+        ])
+        config_service.ConsoleSysConfig = types.SimpleNamespace(objects=manager)
+        service = config_service.ConfigService()
+        service.base_cfg_keys = ["BASE_KEY"]
+        service.base_cfg_keys_value = {
+            "BASE_KEY": {
+                "value": "default-base",
+                "desc": "base",
+                "enable": True,
+            }
+        }
+        service.cfg_keys = ["CONFIG_KEY"]
+        service.cfg_keys_value = {
+            "CONFIG_KEY": {
+                "value": "default-config",
+                "desc": "config",
+                "enable": False,
+            }
+        }
+        service.get_custom_fields = lambda: []
+
+        result = service.initialization_or_get_config
+
+        self.assertEqual(result["base_key"], {"enable": False, "value": "default-base"})
+        self.assertEqual(result["config_key"], {"enable": True, "value": "database-config"})
+        self.assertEqual(manager.filter_calls, [{"key__in": ["BASE_KEY", "CONFIG_KEY"]}])
+        self.assertEqual(manager.get_calls, [])
+
+    def test_initialization_keeps_creating_missing_config_keys(self):
+        config_service = self.import_config_service_module()
+        manager = CreatingConfigManager()
+        config_service.ConsoleSysConfig = types.SimpleNamespace(objects=manager)
+        service = config_service.ConfigService()
+        service.base_cfg_keys = ["BASE_KEY"]
+        service.base_cfg_keys_value = {
+            "BASE_KEY": {
+                "value": "default-base",
+                "desc": "base",
+                "enable": True,
+            }
+        }
+        service.cfg_keys = ["CONFIG_KEY"]
+        service.cfg_keys_value = {
+            "CONFIG_KEY": {
+                "value": "default-config",
+                "desc": "config",
+                "enable": False,
+            }
+        }
+        service.get_custom_fields = lambda: []
+
+        result = service.initialization_or_get_config
+
+        self.assertEqual(result["base_key"], {"enable": True, "value": "default-base"})
+        self.assertEqual(result["config_key"], {"enable": False, "value": "default-config"})
+        self.assertEqual([call["key"] for call in manager.create_calls], ["BASE_KEY", "CONFIG_KEY"])

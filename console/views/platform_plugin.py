@@ -34,8 +34,7 @@ class PlatformPluginInstallView(JWTAuthApiView):
             result = general_message(200, "success", "安装成功", bean=data)
             return Response(result, status=200)
         except ServiceHandleException as e:
-            result = general_message(e.status_code, e.msg, e.msg_show)
-            return Response(result, status=e.status_code)
+            return e.response
         except Exception as e:
             logger.exception("install platform plugin error")
             result = general_message(500, "error", str(e))
