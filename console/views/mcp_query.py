@@ -371,6 +371,8 @@ class MCPQueryRPCMixin(object):
         if not is_rainskills_invocation():
             return mcp_query_service.call_tool(user, tool_name, arguments)
 
+        mcp_query_service.assert_tool_visible(tool_name)
+
         service_sources = None
         if tool_name in ("rainbond_build_component", "rainbond_operate_app"):
             try:

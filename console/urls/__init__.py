@@ -223,6 +223,8 @@ urlpatterns = [
             MCPQueryHTTPView.as_view(deploy_origin="rainskills", deploy_client="codex")),
     re_path(r'^mcp/rainskills/claude-code/query$',
             MCPQueryHTTPView.as_view(deploy_origin="rainskills", deploy_client="claude_code")),
+    re_path(r'^mcp/rainskills/api/query$',
+            MCPQueryHTTPView.as_view(deploy_origin="rainskills", deploy_client="api")),
     re_path(r'^mcp/query/sse$', MCPQuerySSEView.as_view()),
     re_path(r'^mcp/query/sse/$', MCPQuerySSEView.as_view()),
     re_path(r'^mcp/query/message$', MCPQueryMessageView.as_view()),

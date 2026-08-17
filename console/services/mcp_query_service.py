@@ -371,6 +371,8 @@ class MCPQueryService(object):
     def call_tool(self, user: Any, name: str, arguments: Optional[dict] = None) -> Any:
         arguments = arguments or {}
 
+        self.assert_tool_visible(name)
+
         if name == "rainbond_get_current_user":
             return self.get_current_user(user)
         if name == "rainbond_get_app_detail":
@@ -597,6 +599,10 @@ class MCPQueryService(object):
             return self.delete_app(user, arguments)
 
         raise ServiceHandleException(msg="tool not found", msg_show="工具不存在", status_code=404)
+
+    def assert_tool_visible(self, name: str) -> None:
+        if is_rainskills_invocation() and name in self.RAINSKILLS_HIDDEN_TOOL_NAMES:
+            raise ServiceHandleException(msg="tool not found", msg_show="工具不存在", status_code=404)
 
     def get_current_user(self, user: Any) -> dict:
         return {
@@ -5694,6 +5700,13 @@ class MCPQueryService(object):
         }
 
     def _serialize_region(self, region: Any) -> dict:
+        """Return the safe Region overview shared by all RainSkills read tools.
+
+        Region records contain connection credentials and certificate material.  A
+        tool response becomes model context, so only expose fields needed for an
+        operational overview here.  Connection configuration must stay in the
+        Console's dedicated administrative paths.
+        """
         return {
             "region_id": self._value(region, "region_id"),
             "enterprise_id": self._value(region, "enterprise_id"),
@@ -5701,15 +5714,6 @@ class MCPQueryService(object):
             "region_name": self._value(region, "region_name"),
             "region_alias": self._value(region, "region_alias"),
             "region_type": self._value(region, "region_type", []),
-            "url": self._value(region, "url"),
-            "token": self._value(region, "token"),
-            "wsurl": self._value(region, "wsurl"),
-            "httpdomain": self._value(region, "httpdomain"),
-            "tcpdomain": self._value(region, "tcpdomain"),
-            "scope": self._value(region, "scope"),
-            "ssl_ca_cert": self._value(region, "ssl_ca_cert"),
-            "cert_file": self._value(region, "cert_file"),
-            "key_file": self._value(region, "key_file"),
             "status": self._value(region, "status"),
             "desc": self._value(region, "desc"),
             "provider": self._value(region, "provider"),
