@@ -70,12 +70,7 @@ jobs:
 
       - name: Install openapi-client
         if: steps.base.outputs.py_changed == 'true'
-        run: |
-          curl -fsSL https://gitee.com/zhangsetsail/appstore-sdk-python/repository/archive/python3.tar.gz -o /tmp/openapi-client.tar.gz
-          mkdir -p /tmp/openapi-client
-          tar xzf /tmp/openapi-client.tar.gz -C /tmp/openapi-client --strip-components=1
-          pip install /tmp/openapi-client
-          rm -rf /tmp/openapi-client /tmp/openapi-client.tar.gz
+        run: bash scripts/install_openapi_client.sh
 
       - name: Run tests with coverage
         if: steps.base.outputs.py_changed == 'true'

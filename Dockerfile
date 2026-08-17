@@ -31,11 +31,7 @@ ENV PATH="/app/ui/py_venv/bin:$PATH"
 RUN python -m venv --copies /app/ui/py_venv && \
     python -m pip install --no-cache-dir --upgrade pip 'setuptools<70' && \
     pip install --no-cache-dir -r requirements.txt $PYTHONPROXY && \
-    curl -fsSL https://gitee.com/zhangsetsail/appstore-sdk-python/repository/archive/python3.tar.gz -o /tmp/openapi-client.tar.gz && \
-    mkdir -p /tmp/openapi-client && \
-    tar xzf /tmp/openapi-client.tar.gz -C /tmp/openapi-client --strip-components=1 && \
-    pip install --no-cache-dir /tmp/openapi-client $PYTHONPROXY && \
-    rm -rf /tmp/openapi-client /tmp/openapi-client.tar.gz && \
+    bash scripts/install_openapi_client.sh --no-cache-dir $PYTHONPROXY && \
     python manage.py collectstatic --noinput --ignore weavescope-src --ignore drf-yasg --ignore rest_framework && \
     find /app/ui/py_venv/lib/python3.11/site-packages -depth -type d \( -name __pycache__ -o -name tests \) -exec rm -rf {} + && \
     find /app/ui/py_venv -name '*.pyc' -delete

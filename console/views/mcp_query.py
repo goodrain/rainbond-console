@@ -1,11 +1,12 @@
 # -*- coding: utf8 -*-
+import copy
 import json
 import logging
 import time
 import uuid
 from queue import Empty, Queue
 from threading import Lock
-from typing import Any, Optional
+from typing import Any, Dict, Optional
 
 from django.core import signing
 from django.http import HttpResponse, StreamingHttpResponse
@@ -187,6 +188,51 @@ class MCPJSONWebTokenAuthentication(JSONWebTokenAuthentication):
     def validate_token_payload(self, payload: dict) -> None:
         if not jwt_issuer.is_valid_mcp_token_payload(payload, allow_legacy=True):
             raise AuthenticationInfoHasExpiredError("MCP token scope is invalid")
+
+    def authenticate(self, request: Any) -> Any:
+        setattr(request, "_allow_group_mcp_token", True)
+        result = super(MCPJSONWebTokenAuthentication, self).authenticate(request)
+        if not result:
+            return result
+        user, raw_token = result
+        payload = jwt_issuer.decode_jwt(raw_token)
+        if payload.get("token_purpose") != jwt_issuer.GROUP_MCP_TOKEN_PURPOSE:
+            return result
+        context = self._group_context(payload, user)
+        delegated_user = copy.copy(user)
+        delegated_user.is_enterprise_admin = True
+        delegated_user.agent_group_mcp_context = context
+        return delegated_user, raw_token
+
+    @staticmethod
+    def _group_context(payload: Dict[str, Any], user: Any) -> Dict[str, Any]:
+        required = (
+            "enterprise_id", "operator_user_id", "delegated_by_user_id",
+            "group_policy_id", "member_grant_id", "policy_revision",
+        )
+        if any(payload.get(key) in (None, "") for key in required):
+            raise exceptions.AuthenticationFailed("群委托凭据缺少必要范围")
+        if str(getattr(user, "user_id", "")) != str(payload.get("operator_user_id")):
+            raise exceptions.AuthenticationFailed("群委托操作人不匹配")
+        if str(getattr(user, "enterprise_id", "")) != str(payload.get("enterprise_id")):
+            raise exceptions.AuthenticationFailed("群委托企业不匹配")
+        revision_value = payload.get("policy_revision")
+        if revision_value is None:
+            raise exceptions.AuthenticationFailed("群委托版本无效")
+        try:
+            revision = int(revision_value)
+        except (TypeError, ValueError):
+            raise exceptions.AuthenticationFailed("群委托版本无效")
+        if revision <= 0:
+            raise exceptions.AuthenticationFailed("群委托版本无效")
+        return {
+            "enterprise_id": str(payload["enterprise_id"]),
+            "operator_user_id": str(payload["operator_user_id"]),
+            "delegated_by_user_id": str(payload["delegated_by_user_id"]),
+            "group_policy_id": str(payload["group_policy_id"]),
+            "member_grant_id": str(payload["member_grant_id"]),
+            "policy_revision": revision,
+        }
 
 
 class MCPJSONWebTokenAuthenticationSafe(MCPJSONWebTokenAuthentication):

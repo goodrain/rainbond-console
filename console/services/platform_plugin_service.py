@@ -2,6 +2,7 @@
 import json
 import logging
 import os
+import secrets
 import threading
 import time
 from typing import Any, Dict, List, Optional, Set, Tuple
@@ -18,7 +19,9 @@ from console.repositories.app import (
 from console.repositories.group import group_repo, tenant_service_group_repo
 from console.repositories.region_app import region_app_repo
 from console.repositories.region_repo import region_repo
+from console.services.app_config import env_var_service
 from console.services.app import app_market_service
+from console.services.app_actions import app_manage_service
 from console.services.enterprise_first_deploy_service import enterprise_first_deploy_service
 from console.services.group_service import group_service
 from console.services.license import license_service
@@ -27,9 +30,10 @@ from console.services.market_app_preflight_service import market_install_preflig
 from console.services.market_app_service import market_app_service
 from console.services.region_services import region_services
 from console.services.team_services import team_services
+from console.utils import jwt_issuer
 from console.utils.offline import is_cloud_market_disabled
 from www.apiclient.regionapi import RegionInvokeApi
-from www.models.main import ServiceGroup, Tenants
+from www.models.main import ServiceGroup, TenantServiceInfo, Tenants
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
@@ -41,6 +45,12 @@ MARKET_DOMAIN = PLATFORM_PLUGIN_MARKET_DOMAIN
 PLUGIN_TEAM_NAME = "rbd-plugins"
 PLUGIN_TEAM_ALIAS = "平台插件"
 VM_PLATFORM_PLUGIN_ID = "rainbond-vm"
+AGENT_PLATFORM_PLUGIN_ID = "rainbond-agent"
+AGENT_OPS_CREDENTIAL_PROFILE = "ops"
+AGENT_SERVICE_ENV_AUTHORIZATION = "COPILOT_SERVICE_AUTHORIZATION"
+AGENT_SERVICE_ENV_COOKIE = "COPILOT_SERVICE_COOKIE"
+AGENT_CREDENTIAL_ENCRYPTION_ENV = "COPILOT_CREDENTIAL_ENCRYPTION_KEY"
+AGENT_LEGACY_KUBE_ENCRYPTION_ENV = "COPILOT_KUBE_CREDENTIAL_KEY"
 VM_PLATFORM_RUNTIME_GUARD_MSG = "虚拟机功能未正常运行，不允许执行虚拟机相关操作"
 MARKET_PLUGIN_CACHE_TTL_SECONDS = 60
 REGION_ARCH_CACHE_TTL_SECONDS = 60
@@ -658,7 +668,6 @@ class PlatformPluginService(object):
         region = region_repo.get_enterprise_region_by_region_name(enterprise_id, region_name)
         if not region:
             raise ServiceHandleException(msg="region not found", msg_show="集群不存在")
-
         # 4. Find or create the "rbd-plugins" team
         tenant = self._ensure_plugin_team(enterprise_id, region_name, user)
 
@@ -685,6 +694,8 @@ class PlatformPluginService(object):
 
         # 6. Find or create app group for this plugin
         app = self._ensure_plugin_app(tenant, region_name, plugin_name, enterprise_id, plugin_id)
+        if app is None:
+            raise ServiceHandleException(msg="plugin app not found", msg_show="插件应用创建失败")
 
         # 7. Create component group and install
         component_group = market_app_service._create_tenant_service_group(
@@ -738,14 +749,365 @@ class PlatformPluginService(object):
 
         # 8. Create RBDPlugin CR if template has platform_plugin info
         market_app_service._create_rbdplugin_if_needed(tenant, region, app_template, app.ID)  # type: ignore[union-attr, arg-type]  # NOTE: app is Optional[ServiceGroup]; _create_rbdplugin_if_needed expects str|None but app.ID is int (pre-existing int/str mismatch at call site)
+        credential_bootstrap = None
+        service_mcp_bootstrap = None
+        credential_encryption_bootstrap = None
+        if plugin_id == AGENT_PLATFORM_PLUGIN_ID:
+            credential_encryption_bootstrap = self.bootstrap_agent_credential_encryption_key(
+                tenant, app, region_name, new_components, user)
+            service_mcp_bootstrap = self.bootstrap_agent_service_mcp_credentials(
+                tenant, app, region_name, new_components, user)
+            if credential_encryption_bootstrap.get("status") in ("synced", "already_configured"):
+                credential_bootstrap = self.bootstrap_agent_kubernetes_credentials(
+                    enterprise_id, region_name, user)
 
-        return {
+        result = {
             "plugin_id": plugin_id,
             "plugin_name": plugin_name,
             "version": latest_version,
             "team_name": tenant.tenant_name,
             "app_id": app.ID,  # type: ignore[union-attr]  # NOTE: app is Optional[ServiceGroup]; see above
         }
+        if service_mcp_bootstrap:
+            result["service_mcp_credential_bootstrap"] = service_mcp_bootstrap
+        if credential_encryption_bootstrap:
+            result["credential_encryption_bootstrap"] = credential_encryption_bootstrap
+        if credential_bootstrap:
+            result["kubernetes_credential_bootstrap"] = credential_bootstrap
+        return result
+
+    def bootstrap_agent_service_mcp_credentials(self, tenant: Tenants, app: ServiceGroup, region_name: str,
+                                                components: Any, user: Any) -> Dict[str, Any]:
+        """Inject service-state Rainbond MCP credentials into rainbond-agent api.
+
+        The token is generated by console and written to the component as
+        runtime env vars. It is never returned to the caller.
+        """
+        try:
+            service = self._resolve_agent_api_component(tenant, app, region_name, components)
+            if not service:
+                raise ServiceHandleException(
+                    msg="rainbond-agent api component not found",
+                    msg_show="未找到 AI 助手 API 组件",
+                    status_code=404,
+                )
+            token = jwt_issuer.issue_agent_service_jwt(user)
+            credentials = {
+                AGENT_SERVICE_ENV_AUTHORIZATION: "{} {}".format(jwt_issuer.JWT_AUTH_HEADER_PREFIX, token),
+                AGENT_SERVICE_ENV_COOKIE: "{}={}".format(jwt_issuer.JWT_AUTH_COOKIE, token),
+            }
+            self._upsert_agent_service_envs(tenant, service, credentials, user)
+            service_alias = getattr(service, "service_alias", "") or ""
+            logger.info(
+                "rainbond-agent service mcp credentials injected region_name=%s service_alias=%s",
+                region_name, service_alias,
+            )
+            return {"status": "synced", "service_alias": service_alias}
+        except ServiceHandleException as e:
+            logger.warning(
+                "rainbond-agent service mcp credential injection deferred region_name=%s reason=%s",
+                region_name, e.msg,
+            )
+            return {"status": "deferred", "region_name": region_name, "message": e.msg_show or e.msg}
+        except Exception as e:
+            logger.warning(
+                "rainbond-agent service mcp credential injection deferred region_name=%s error_type=%s",
+                region_name, e.__class__.__name__,
+            )
+            return {
+                "status": "deferred",
+                "region_name": region_name,
+                "message": "服务态 MCP 凭据自动注入失败，请稍后重新安装或更新 AI 助手插件",
+            }
+
+    def _resolve_agent_api_component(self, tenant: Tenants, app: ServiceGroup, region_name: str,
+                                     components: Any) -> Optional[TenantServiceInfo]:
+        component_list = []
+        for item in components or []:
+            component = getattr(item, "component", item)
+            if component:
+                component_list.append(component)
+
+        service = self._pick_agent_api_component(component_list)
+        if service:
+            return service
+
+        app_id = getattr(app, "ID", None)
+        if not isinstance(app_id, int):
+            return None
+        query = TenantServiceInfo.objects.filter(
+            tenant_id=tenant.tenant_id,
+            service_region=region_name,
+            tenant_service_group_id=app_id,
+        )
+        return self._pick_agent_api_component(list(query))
+
+    @staticmethod
+    def _pick_agent_api_component(components: List[Any]) -> Optional[TenantServiceInfo]:
+        if not components:
+            return None
+        for component in components:
+            names = [
+                getattr(component, "service_cname", "") or "",
+                getattr(component, "service_name", "") or "",
+                getattr(component, "service_alias", "") or "",
+                getattr(component, "k8s_component_name", "") or "",
+            ]
+            normalized = [str(name).strip().lower() for name in names if name]
+            if "api" in normalized:
+                return component
+            if any(name.endswith("-api") or name.endswith("_api") for name in normalized):
+                return component
+        if len(components) == 1:
+            return components[0]
+        return None
+
+    def _upsert_agent_service_envs(self, tenant: Tenants, service: TenantServiceInfo,
+                                   values: Dict[str, str], user: Any) -> None:
+        user_name = ""
+        if hasattr(user, "get_username"):
+            user_name = user.get_username()
+        if not user_name:
+            user_name = getattr(user, "nick_name", "") or ""
+
+        for attr_name, attr_value in values.items():
+            name = attr_name
+            existing = env_var_service.get_env_by_attr_name(tenant, service, attr_name)
+            if existing:
+                code, msg, _ = env_var_service.update_env_by_env_id(
+                    tenant, service, str(existing.ID), name, attr_value, user_name)
+            else:
+                code, msg, _ = env_var_service.add_service_env_var(
+                    tenant=tenant,
+                    service=service,
+                    container_port=0,
+                    name=name,
+                    attr_name=attr_name,
+                    attr_value=attr_value,
+                    is_change=attr_name != AGENT_CREDENTIAL_ENCRYPTION_ENV,
+                    scope="inner",
+                    user_name=user_name,
+                )
+            if code != 200:
+                raise ServiceHandleException(
+                    msg="failed to upsert rainbond-agent service env {}".format(attr_name),
+                    msg_show=msg,
+                    status_code=code,
+                )
+
+    def _resolve_installed_agent_context(self, enterprise_id: str,
+                                         region_name: str) -> Tuple[Tenants, ServiceGroup, TenantServiceInfo]:
+        installed = self._get_installed_plugins(enterprise_id, region_name)
+        agent_plugin = installed.get(AGENT_PLATFORM_PLUGIN_ID) or {}
+        region_app_id_value = agent_plugin.get("region_app_id")
+        region_app_id = region_app_id_value if isinstance(region_app_id_value, str) else ""
+        app_id = self._get_region_app_id_map(region_name, installed).get(region_app_id)
+        tenant = Tenants.objects.filter(namespace=PLUGIN_TEAM_NAME, enterprise_id=enterprise_id).first()
+        if not tenant or not app_id:
+            raise ServiceHandleException(
+                msg="agent_api_component_not_found",
+                msg_show="未找到当前企业和集群的 AI 助手 API 组件",
+                status_code=404,
+            )
+        app = ServiceGroup.objects.filter(
+            ID=app_id,
+            tenant_id=tenant.tenant_id,
+            region_name=region_name,
+        ).first()
+        if not app:
+            raise ServiceHandleException(
+                msg="agent_api_component_not_found",
+                msg_show="未找到当前企业和集群的 AI 助手应用",
+                status_code=404,
+            )
+        service = self._resolve_agent_api_component(tenant, app, region_name, [])
+        if not service:
+            raise ServiceHandleException(
+                msg="agent_api_component_not_found",
+                msg_show="未找到当前企业和集群的 AI 助手 API 组件",
+                status_code=404,
+            )
+        return tenant, app, service
+
+    @staticmethod
+    def _read_agent_encryption_env(tenant: Tenants, service: TenantServiceInfo) -> Tuple[Optional[Any], Optional[str]]:
+        shared = env_var_service.get_env_by_attr_name(tenant, service, AGENT_CREDENTIAL_ENCRYPTION_ENV)
+        if shared and str(getattr(shared, "attr_value", "") or "").strip():
+            return shared, "shared"
+        legacy = env_var_service.get_env_by_attr_name(tenant, service, AGENT_LEGACY_KUBE_ENCRYPTION_ENV)
+        if legacy and str(getattr(legacy, "attr_value", "") or "").strip():
+            return legacy, "legacy"
+        return None, None
+
+    def get_agent_credential_encryption_key_status(self, enterprise_id: str,
+                                                   region_name: str) -> Dict[str, Any]:
+        tenant, _, service = self._resolve_installed_agent_context(enterprise_id, region_name)
+        _, key_source = self._read_agent_encryption_env(tenant, service)
+        return {
+            "status": "configured" if key_source else "missing",
+            "configured": bool(key_source),
+            "key_source": key_source,
+            "service_alias": getattr(service, "service_alias", "") or "",
+        }
+
+    def ensure_agent_credential_encryption_key(self, enterprise_id: str, region_name: str,
+                                               user: Any, agent_status: Dict[str, Any]) -> Dict[str, Any]:
+        from django.db import transaction
+
+        status = str(agent_status.get("status") or "")
+        if status == "recovery_required":
+            raise ServiceHandleException(
+                msg="credential_key_recovery_required",
+                msg_show="检测到历史密文无法解密，请恢复原加密密钥",
+                status_code=412,
+            )
+        if status not in ("missing", "ready", "legacy_ready"):
+            raise ServiceHandleException(
+                msg="agent_encryption_status_unavailable",
+                msg_show="无法确认 AI 助手加密状态，请稍后重试",
+                status_code=503,
+            )
+
+        tenant, _, service = self._resolve_installed_agent_context(enterprise_id, region_name)
+        generated = False
+        restart_requested = False
+        key_source = None
+        with transaction.atomic():
+            locked_service = TenantServiceInfo.objects.select_for_update().get(pk=service.ID)
+            _, key_source = self._read_agent_encryption_env(tenant, locked_service)
+            if not key_source:
+                if status != "missing":
+                    raise ServiceHandleException(
+                        msg="credential_key_generation_conflict",
+                        msg_show="加密密钥状态已变化，请刷新后重试",
+                        status_code=409,
+                    )
+                generated_key = secrets.token_hex(32)
+                self._upsert_agent_service_envs(
+                    tenant,
+                    locked_service,
+                    {AGENT_CREDENTIAL_ENCRYPTION_ENV: generated_key},
+                    user,
+                )
+                generated = True
+                key_source = "shared"
+                restart_requested = True
+            elif status == "missing":
+                # Console has persisted the key but the running Agent has not loaded it yet.
+                restart_requested = True
+
+        if restart_requested:
+            code, msg = app_manage_service.restart(tenant, locked_service, user, None)
+            if code != 200:
+                raise ServiceHandleException(
+                    msg="agent_restart_failed",
+                    msg_show=msg or "加密密钥已保存，但 AI 助手 API 重启失败",
+                    status_code=503,
+                )
+
+        service_alias = getattr(locked_service, "service_alias", "") or ""
+        result = {
+            "status": "generated" if generated else "already_configured",
+            "generated": generated,
+            "restart_requested": restart_requested,
+            "service_alias": service_alias,
+        }
+        if not generated:
+            result["key_source"] = key_source
+        return result
+
+    def bootstrap_agent_credential_encryption_key(self, tenant: Tenants, app: ServiceGroup,
+                                                  region_name: str, components: Any,
+                                                  user: Any) -> Dict[str, Any]:
+        try:
+            service = self._resolve_agent_api_component(tenant, app, region_name, components)
+            if not service:
+                raise ServiceHandleException(
+                    msg="agent_api_component_not_found",
+                    msg_show="未找到 AI 助手 API 组件",
+                    status_code=404,
+                )
+            _, key_source = self._read_agent_encryption_env(tenant, service)
+            if key_source:
+                return {
+                    "status": "already_configured",
+                    "key_source": key_source,
+                    "service_alias": getattr(service, "service_alias", "") or "",
+                }
+            self._upsert_agent_service_envs(
+                tenant,
+                service,
+                {AGENT_CREDENTIAL_ENCRYPTION_ENV: secrets.token_hex(32)},
+                user,
+            )
+            code, msg = app_manage_service.restart(tenant, service, user, None)
+            if code != 200:
+                raise ServiceHandleException(
+                    msg="agent_restart_failed",
+                    msg_show=msg or "加密密钥已保存，但 AI 助手 API 重启失败",
+                    status_code=503,
+                )
+            return {
+                "status": "synced",
+                "service_alias": getattr(service, "service_alias", "") or "",
+                "restart_requested": True,
+            }
+        except Exception as e:
+            logger.warning(
+                "rainbond-agent credential encryption bootstrap deferred region_name=%s error_type=%s",
+                region_name,
+                e.__class__.__name__,
+            )
+            return {
+                "status": "deferred",
+                "region_name": region_name,
+                "message": "凭据加密密钥自动初始化失败，请在 Kubernetes 多集群凭据页重试",
+            }
+
+    def bootstrap_agent_kubernetes_credentials(self, enterprise_id: str, region_name: str, user: Any) -> Dict[str, Any]:
+        """Generate region kubeconfig and store it in the rainbond-agent backend.
+
+        The generated kubeconfig is never logged or returned. Installation should
+        not fail only because the freshly deployed agent backend is still starting;
+        administrators can re-run credential sync from the plugin page.
+        """
+        try:
+            bootstrap_payload = {
+                "region_name": region_name,
+                "context_id": region_name,
+                "credential_profile": AGENT_OPS_CREDENTIAL_PROFILE,
+                "service_account": AGENT_PLATFORM_PLUGIN_ID,
+            }
+            _, body = region_api.bootstrap_agent_kubeconfig(enterprise_id, region_name, bootstrap_payload)
+            bean = body.get("bean") if isinstance(body, dict) else body
+            if not isinstance(bean, dict) or not bean.get("kubeconfig"):
+                raise ServiceHandleException(
+                    msg="invalid kubeconfig response",
+                    msg_show="目标集群未返回有效 kubeconfig",
+                )
+
+            agent_payload = {
+                "enterprise_id": enterprise_id,
+                "region_name": bean.get("region_name") or region_name,
+                "region_alias": bean.get("region_name") or region_name,
+                "kubeconfig": bean.get("kubeconfig"),
+                "credential_profile": bean.get("credential_profile") or bootstrap_payload["credential_profile"],
+                "service_account": bean.get("service_account") or bootstrap_payload["service_account"],
+                "context_id": bean.get("context_id") or bootstrap_payload["context_id"],
+            }
+            region_api.bootstrap_agent_plugin_credential(
+                enterprise_id, region_name, agent_payload, user)
+            logger.info(
+                "rainbond-agent kubernetes credential bootstrap succeeded enterprise_id=%s region_name=%s",
+                enterprise_id, region_name,
+            )
+            return {"status": "synced", "region_name": region_name}
+        except Exception as e:
+            logger.warning(
+                "rainbond-agent kubernetes credential bootstrap deferred enterprise_id=%s region_name=%s error=%s",
+                enterprise_id, region_name, e,
+            )
+            return {"status": "deferred", "region_name": region_name, "message": str(e)}
 
     def _ensure_plugin_team(self, enterprise_id: str, region_name: str, user: Any) -> Tenants:
         """Find or create the rbd-plugins team and ensure it's initialized on the region."""
