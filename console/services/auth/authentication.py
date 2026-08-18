@@ -94,3 +94,37 @@ class AgentRuntimeAuthentication(authentication.BaseAuthentication):
         if legacy_token and token == legacy_token:
             return True
         return TenantEnterprise.objects.filter(enterprise_id=token).exists()
+
+
+class EnterpriseBoundAgentRuntimeAuthentication(AgentRuntimeAuthentication):
+    """Authenticate an Agent call and bind it to exactly one enterprise.
+
+    Unlike the legacy Agent runtime authentication, the global internal token is
+    intentionally not accepted because audit events and Skill source contain
+    enterprise-scoped operational data.
+    """
+
+    def authenticate(self, request: Any) -> Optional[Tuple[Users, None]]:
+        token = str(request.META.get('HTTP_X_INTERNAL_TOKEN') or '').strip()
+        if not token:
+            return None
+        if not self._is_cluster_internal(request):
+            logger.warning("EnterpriseBoundAgentRuntimeAuth: rejected non-cluster-internal request")
+            raise exceptions.AuthenticationFailed(
+                'enterprise audit endpoint is reachable from inside the cluster only')
+
+        enterprise = TenantEnterprise.objects.filter(enterprise_id=token).first()
+        if enterprise is None:
+            logger.warning("EnterpriseBoundAgentRuntimeAuth: rejected token without enterprise binding")
+            raise exceptions.AuthenticationFailed('enterprise-bound token required')
+
+        user = Users.objects.filter(sys_admin=True).first()
+        if not user:
+            logger.error("EnterpriseBoundAgentRuntimeAuth: No superuser found!")
+            raise exceptions.AuthenticationFailed('No superuser found for internal authentication')
+
+        request.audit_enterprise_id = enterprise.enterprise_id
+        return user, None
+
+    def authenticate_header(self, request: Any) -> str:
+        return 'X-Internal-Token'

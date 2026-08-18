@@ -10,6 +10,9 @@ logs/
 /.project
 /.pydevproject
 migrations/
+!console/migrations/
+console/migrations/*
+!console/migrations/0009_rainskills_operation_audit.py
 dist/
 build/
 node_modules
