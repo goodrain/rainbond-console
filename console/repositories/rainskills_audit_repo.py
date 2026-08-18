@@ -94,8 +94,8 @@ class RainSkillsAuditRepository(object):
     def binding_matches(operation: RainSkillsOperation, tool_name: str,
                         arguments_digest: str, skill_id: Optional[str],
                         skill_digest: Optional[str]) -> bool:
-        stored_skill_digest = (
-            operation.skill_snapshot.content_sha256 if operation.skill_snapshot_id else None)
+        snapshot = operation.skill_snapshot
+        stored_skill_digest = snapshot.content_sha256 if snapshot is not None else None
         return (
             operation.tool_name == tool_name
             and operation.arguments_digest == arguments_digest
