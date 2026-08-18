@@ -76,6 +76,9 @@ class MCPDeploymentInvocationTests(SimpleTestCase):
     def setUp(self):
         self.factory = APIRequestFactory()
         self.user = SimpleNamespace(user_id=1, is_authenticated=True, nick_name="tester")
+        audit_begin = patch("console.views.mcp_query.rainskills_audit_service.begin", return_value=None)
+        audit_begin.start()
+        self.addCleanup(audit_begin.stop)
 
     def _request(self, arguments=None, tool_name="rainbond_test_tool"):
         request = self.factory.post(

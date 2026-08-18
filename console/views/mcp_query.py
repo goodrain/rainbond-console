@@ -21,6 +21,8 @@ from console.services.deployment_invocation import (
 from console.services.user_services import user_services
 from console.services.mcp_query_service import mcp_query_service
 from console.services.rainskills_deployment_service import rainskills_deployment_service
+from console.services.rainskills_audit_service import rainskills_audit_service
+from console.services.rainskills_tool_audit_policy import classify_tool
 from console.views.base import JSONWebTokenAuthentication, InternalTokenAuthentication
 from console.exception.exceptions import AuthenticationInfoHasExpiredError
 from django.utils.encoding import smart_str
@@ -307,6 +309,7 @@ class MCPQueryRPCMixin(object):
         if method == "tools/call":
             tool_name = params.get("name")
             arguments = params.get("arguments") or {}
+            request_meta = params.get("_meta", {})
             if not isinstance(tool_name, str) or not tool_name:
                 return self._jsonrpc_error(request_id, -32602, "tools/call requires string param 'name'")
             if not isinstance(arguments, dict):
@@ -326,7 +329,7 @@ class MCPQueryRPCMixin(object):
                 })
 
             try:
-                data = self._call_tool(user, tool_name, arguments)
+                data = self._call_tool(user, tool_name, arguments, request_meta=request_meta)
                 return self._jsonrpc_result(request_id, {
                     "isError": False,
                     "content": [{"type": "text", "text": json.dumps(data, ensure_ascii=False, default=str)}],
@@ -367,11 +370,16 @@ class MCPQueryRPCMixin(object):
 
         return self._jsonrpc_error(request_id, -32601, "Method not found: {}".format(method))
 
-    def _call_tool(self, user: Any, tool_name: str, arguments: dict) -> Any:
+    def _call_tool(self, user: Any, tool_name: str, arguments: dict,
+                   request_meta: Any = None) -> Any:
         if not is_rainskills_invocation():
             return mcp_query_service.call_tool(user, tool_name, arguments)
 
         mcp_query_service.assert_tool_visible(tool_name)
+        if classify_tool(tool_name).operation_class == "read":
+            return mcp_query_service.call_tool(user, tool_name, arguments)
+        audit_context = rainskills_audit_service.begin(
+            user, tool_name, arguments, {} if request_meta is None else request_meta)
 
         service_sources = None
         if tool_name in ("rainbond_build_component", "rainbond_operate_app"):
@@ -414,6 +422,7 @@ class MCPQueryRPCMixin(object):
         try:
             result = mcp_query_service.call_tool(user, tool_name, arguments)
         except Exception as exc:
+            rainskills_audit_service.finalize_failure(audit_context, exc)
             reason = getattr(exc, "msg_show", None) or str(exc)
             if tracker is not None:
                 try:
@@ -436,6 +445,7 @@ class MCPQueryRPCMixin(object):
                 logger.warning(
                     "bind RainSkills deployment result failed: tool=%s error=%s",
                     tool_name, exc)
+        rainskills_audit_service.finalize_success(audit_context, result)
         return result
 
     @staticmethod

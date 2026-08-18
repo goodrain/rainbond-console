@@ -145,6 +145,10 @@ from console.views.proxy import ProxyPassView, ProxySSEView
 from console.views.realtime_proxy import RegionRealtimeProxyView
 from console.views.sentry_proxy import SentryProxyView
 from console.views.mcp_query import MCPQueryHTTPView, MCPQueryMessageView, MCPQuerySSEView
+from console.views.internal_rainskills_audit import (
+    InternalRainSkillsAuditEventsView,
+    InternalRainSkillsSkillSnapshotView,
+)
 from console.views.mcp_device_authorization import (MCPDeviceAuthorizeView, MCPDeviceCodeView, MCPDeviceInspectView,
                                                      MCPDeviceTokenView)
 from console.views.public_areas import (AllServiceInfo, GroupServiceView, ServiceEventsView, ServiceGroupView,
@@ -237,6 +241,11 @@ urlpatterns = [
     re_path(r'^internal/agent-mcp-credentials/delegated$', AgentMCPDelegatedCredentialsView.as_view()),
     re_path(r'^internal/agent-mcp-credentials/group-delegated$', AgentMCPGroupDelegatedCredentialsView.as_view()),
     re_path(r'^internal/agent-feishu/identity$', AgentFeishuRuntimeIdentityView.as_view()),
+    re_path(r'^internal/agent-rainskills-audit/events$', InternalRainSkillsAuditEventsView.as_view()),
+    re_path(
+        r'^internal/agent-rainskills-audit/skill-snapshots/(?P<content_sha256>[a-f0-9]{64})$',
+        InternalRainSkillsSkillSnapshotView.as_view(),
+    ),
 
     # record error logs
     re_path(r'^errlog$', ErrLogView.as_view()),
