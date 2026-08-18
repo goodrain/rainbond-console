@@ -5144,21 +5144,18 @@
       "status": "active"
     },
     {
-      "id": "console.database.dm-image-driver-bundle",
-      "title": "Build Dameng console image from a private named context",
-      "title_zh": "使用私有命名上下文构建达梦控制台镜像",
+      "id": "console.database.dm-driver-bundle-preparation",
+      "title": "Prepare a private Dameng Python driver bundle",
+      "title_zh": "准备私有达梦 Python 驱动包",
       "interface_type": "workflow",
-      "interface": "Dockerfile.dm",
+      "interface": "scripts/prepare_dameng_python_driver.sh",
       "code_paths": [
-        "Dockerfile",
-        "Dockerfile.dm",
-        "scripts/prepare_dameng_python_driver.sh",
-        ".gitignore",
-        ".dockerignore"
+        "scripts/prepare_dameng_python_driver.sh"
       ],
       "tests": [
         {
-          "path": "console/tests/dameng_driver_bundle_test.py"
+          "path": "console/tests/dameng_driver_bundle_test.py",
+          "selector": "DamengDriverBundleScriptTest"
         }
       ],
       "test_type": "regression",
@@ -5180,6 +5177,25 @@
         }
       ],
       "test_type": "unit",
+      "status": "active"
+    },
+    {
+      "id": "console.database.dm-standard-image",
+      "title": "Build the standard console image with Dameng drivers",
+      "title_zh": "标准控制台镜像内置达梦驱动",
+      "interface_type": "workflow",
+      "interface": "standard Console Dockerfile build stages",
+      "code_paths": [
+        "Dockerfile",
+        ".dockerignore"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/dameng_driver_bundle_test.py",
+          "selector": "DamengDockerfileStructureTest"
+        }
+      ],
+      "test_type": "regression",
       "status": "active"
     },
     {

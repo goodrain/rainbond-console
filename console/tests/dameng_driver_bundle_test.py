@@ -14,7 +14,7 @@ DM_DOCKERFILE = os.path.join(PROJECT_ROOT, "Dockerfile.dm")
 DOCKERIGNORE = os.path.join(PROJECT_ROOT, ".dockerignore")
 
 
-# capability_id: console.database.dm-image-driver-bundle
+# capability_id: console.database.dm-driver-bundle-preparation
 class DamengDriverBundleScriptTest(unittest.TestCase):
     def setUp(self):
         self.tempdir = tempfile.mkdtemp(prefix="rainbond-dameng-driver-")
@@ -30,6 +30,7 @@ class DamengDriverBundleScriptTest(unittest.TestCase):
             "drivers/python/dmPython/setup.py",
             "drivers/python/dmDjango/dmDjango3.0/setup.py",
             "bin/libdmdpi.so",
+            "include/DPI.h",
         ):
             path = os.path.join(self.source_root, relative_path)
             parent = os.path.dirname(path)
@@ -51,6 +52,7 @@ class DamengDriverBundleScriptTest(unittest.TestCase):
 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertTrue(os.path.isfile(os.path.join(self.output_root, "bin", "libdmdpi.so")))
+        self.assertTrue(os.path.isfile(os.path.join(self.output_root, "include", "DPI.h")))
         self.assertTrue(
             os.path.isfile(os.path.join(self.output_root, "drivers", "python", "dmPython", "setup.py"))
         )
@@ -62,6 +64,15 @@ class DamengDriverBundleScriptTest(unittest.TestCase):
 
     def test_rejects_missing_dameng_runtime_library(self):
         os.remove(os.path.join(self.source_root, "bin", "libdmdpi.so"))
+
+        result = self._run_prepare()
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("missing required source", result.stderr)
+        self.assertFalse(os.path.exists(self.output_root))
+
+    def test_rejects_missing_dameng_include_directory(self):
+        shutil.rmtree(os.path.join(self.source_root, "include"))
 
         result = self._run_prepare()
 
@@ -94,31 +105,32 @@ class DamengDriverBundleScriptTest(unittest.TestCase):
         self.assertTrue(os.path.isfile(sentinel_path))
 
 
-# capability_id: console.database.dm-image-driver-bundle
+# capability_id: console.database.dm-standard-image
 class DamengDockerfileStructureTest(unittest.TestCase):
     def _read_file(self, path):
         with open(path) as source_file:
             return source_file.read()
 
-    def test_dameng_build_uses_a_named_private_context(self):
-        dm_dockerfile = self._read_file(DM_DOCKERFILE)
+    def test_standard_build_uses_the_named_dameng_context(self):
+        dockerfile = self._read_file(NORMAL_DOCKERFILE)
 
-        self.assertIn("COPY --from=dameng bin/libdmdpi.so /opt/dameng/bin/libdmdpi.so", dm_dockerfile)
+        self.assertIn("COPY --from=dameng python/bin/libdmdpi.so /opt/dameng/bin/libdmdpi.so", dockerfile)
+        self.assertIn("COPY --from=dameng python/include/ /opt/dameng/include/", dockerfile)
         self.assertIn(
-            "COPY --from=dameng drivers/python/dmPython/ /opt/dameng/drivers/python/dmPython/", dm_dockerfile
+            "COPY --from=dameng python/drivers/python/dmPython/ /opt/dameng/drivers/python/dmPython/", dockerfile
         )
         self.assertIn(
-            "COPY --from=dameng drivers/python/dmDjango/dmDjango3.0/ "
+            "COPY --from=dameng python/drivers/python/dmDjango/dmDjango3.0/ "
             "/opt/dameng/drivers/python/dmDjango/dmDjango3.0/",
-            dm_dockerfile,
+            dockerfile,
         )
-        self.assertIn("ENV DM_HOME=/opt/dameng", dm_dockerfile)
-        self.assertIn("ENV PATH=${DM_HOME}/bin:/app/ui/py_venv/bin:${PATH}", dm_dockerfile)
-        self.assertIn("pip install --no-cache-dir /opt/dameng/drivers/python/dmPython", dm_dockerfile)
-        self.assertIn("pip install --no-cache-dir /opt/dameng/drivers/python/dmDjango/dmDjango3.0", dm_dockerfile)
-        self.assertIn("rm -rf /opt/dameng/drivers", dm_dockerfile)
+        self.assertIn("ENV DM_HOME=/opt/dameng", dockerfile)
+        self.assertIn("ENV PATH=${DM_HOME}/bin:/app/ui/py_venv/bin:${PATH}", dockerfile)
+        self.assertIn("pip install --no-cache-dir /opt/dameng/drivers/python/dmPython", dockerfile)
+        self.assertIn("pip install --no-cache-dir /opt/dameng/drivers/python/dmDjango/dmDjango3.0", dockerfile)
+        self.assertIn("rm -rf /opt/dameng/drivers /opt/dameng/include", dockerfile)
 
-        final_stage = dm_dockerfile.split("FROM ${PYTHON_SLIM_BASE}", 1)[1]
+        final_stage = dockerfile.split("FROM ${PYTHON_SLIM_BASE}", 1)[1]
         dameng_copy_lines = [
             line.strip()
             for line in final_stage.splitlines()
@@ -130,10 +142,15 @@ class DamengDockerfileStructureTest(unittest.TestCase):
         )
         self.assertNotIn("COPY --from=dameng", final_stage)
         self.assertNotIn("drivers/python", final_stage)
+        self.assertNotIn("/opt/dameng/include", final_stage)
+        self.assertIn("libaio1", final_stage)
+        self.assertIn("/etc/ld.so.conf.d/dameng.conf", final_stage)
+        self.assertIn("ldconfig", final_stage)
 
-    def test_normal_build_has_no_private_dameng_context(self):
+    def test_standard_build_preserves_mysql_support_and_removes_the_special_dockerfile(self):
         normal_dockerfile = self._read_file(NORMAL_DOCKERFILE)
         dockerignore = self._read_file(DOCKERIGNORE)
 
-        self.assertNotIn("dameng", normal_dockerfile.lower())
+        self.assertIn("mariadb-client sqlite3 libmariadb3", normal_dockerfile)
         self.assertIn("third_party/dameng/", dockerignore)
+        self.assertFalse(os.path.exists(DM_DOCKERFILE))

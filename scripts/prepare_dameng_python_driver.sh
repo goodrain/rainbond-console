@@ -27,6 +27,7 @@ project_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)
 output_root=${2:-"${project_root}/third_party/dameng"}
 
 required_directories=(
+    "${source_root}/include"
     "${source_root}/drivers/python/dmPython"
     "${source_root}/drivers/python/dmDjango/dmDjango3.0"
 )
@@ -55,8 +56,10 @@ staging_root=$(mktemp -d "${output_parent}/.dameng-driver.XXXXXX")
 trap 'rm -rf "${staging_root}"' EXIT
 
 mkdir -p "${staging_root}/bin" \
+    "${staging_root}/include" \
     "${staging_root}/drivers/python/dmPython" \
     "${staging_root}/drivers/python/dmDjango/dmDjango3.0"
+cp -R "${source_root}/include/." "${staging_root}/include/"
 cp -R "${source_root}/drivers/python/dmPython/." "${staging_root}/drivers/python/dmPython/"
 cp -R "${source_root}/drivers/python/dmDjango/dmDjango3.0/." \
     "${staging_root}/drivers/python/dmDjango/dmDjango3.0/"
