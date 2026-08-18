@@ -48,6 +48,7 @@
 | console.app-config-group.list | 查询应用配置组列表 | active | regression | console.services.app_config_group.AppConfigGroupService.list_config_groups | console/tests/app_config_group_service_test.py::AppConfigGroupServiceWorkflowTests.test_list_config_groups_returns_items_and_total |
 | console.app-config-group.update | 更新应用配置组 | active | regression | console.services.app_config_group.AppConfigGroupService.update_config_group | console/tests/app_config_group_service_test.py::AppConfigGroupServiceWorkflowTests.test_update_config_group_updates_remote_and_local_records |
 | console.app-config.volume-service-module-export | 应用配置存储服务模块导出 | active | regression | console.services.app_config.volume_service.volume_service | console/tests/app_config_volume_service_import_test.py::AppConfigVolumeServiceImportTests.test_volume_service_module_exports_package_singleton |
+| console.app-create.available-resources | 获取组件配置可用集群资源 | active | regression | console.views.app_create.available_resources.AvailableResourcesView.get | console/tests/available_resources_test.py::AvailableResourcesServiceTests,AvailableResourcesViewTests |
 | console.app-creator.full-permissions | App creator full permissions | active | regression | console.services.perm_services.UserKindPermService.get_user_perms | console/tests/perm_services_test.py |
 | console.app-export.query-status | 查询应用导出状态 | active | regression | console.services.app_import_and_export_service.AppExportService.get_export_status | console/tests/app_import_and_export_service_test.py::AppExportServiceMetadataTestCase.test_get_export_status_updates_exporting_record_and_wraps_download_url |
 | console.app-import.abandon | 放弃应用导入 | active | regression | console.views.center_pool.app_import.CenterAppImportView.delete | console/tests/app_import_and_export_service_test.py::CenterAppImportViewWorkflowTestCase.test_delete_abandons_import |
@@ -273,11 +274,13 @@
 | console.component.storage-update-volume-capacity | Component Storage Update Volume Capacity | active | regression | console.services.mcp_query_service.call_tool[rainbond_manage_component_storage] | console/tests/mcp_query_storage_ops_test.py::ManageComponentStorageTests.test_update_volume_allows_capacity_change_without_path_change |
 | console.component.summary | 查看组件概览 | active | regression | console.services.mcp_query_service.call_tool[rainbond_get_component_summary] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_get_component_summary_returns_aggregated_info |
 | console.component.volume-delete-blocks-shared-mount | 被共享挂载时阻止删除组件存储卷 | active | regression | console.services.app_config.volume_service.AppVolumeService.delete_service_volume_by_id | console/tests/app_config_volume_delete_test.py::AppVolumeDeleteTests.test_delete_service_volume_rejects_shared_mount_even_when_forced |
+| console.database.backend-neutral-readiness | 使用 Django 数据库状态检查启动就绪性 | active | unit | entrypoint.sh database readiness workflow | console/tests/database_state_test.py::DatabaseStateTests |
+| console.database.dm-image-driver-bundle | 使用私有命名上下文构建达梦控制台镜像 | active | regression | Dockerfile.dm | console/tests/dameng_driver_bundle_test.py |
+| console.database.dm-settings-selection | 根据 DB_TYPE 选择 dmDjango 数据库设置 | active | unit | goodrain_web.settings.DATABASES | console/tests/database_settings_test.py::DatabaseSettingsTests |
 | console.dependency.invalid-container-port | Dependency Invalid Container Port | active | regression | console.services.app_config.app_relation_service.AppServiceRelationService | console/tests/app_relation_service_test.py::AppRelationServiceTests.test_add_service_dependency_rejects_unknown_dep_service_port |
 | console.deploy-diagnostics.offline-mode | 离线模式禁用部署诊断上报 | active | regression | console.services.enterprise_first_deploy_service.EnterpriseFirstDeployService | console/tests/enterprise_first_deploy_service_test.py::EnterpriseFirstDeployServiceTests.test_offline_mode_does_not_start_report_sweeper<br>console/tests/enterprise_first_deploy_service_test.py::EnterpriseFirstDeployServiceTests.test_online_mode_starts_report_sweeper<br>console/tests/enterprise_first_deploy_service_test.py::EnterpriseFirstDeployServiceTests.test_offline_mode_skips_report_request<br>console/tests/enterprise_first_deploy_service_test.py::EnterpriseFirstDeployServiceTests.test_offline_mode_does_not_create_deploy_tracking<br>console/tests/enterprise_first_deploy_service_test.py::EnterpriseFirstDeployServiceTests.test_offline_mode_does_not_persist_source_check_failure<br>console/tests/enterprise_first_deploy_service_test.py::EnterpriseFirstDeployServiceTests.test_offline_mode_marks_first_deploy_report_handled_without_thread<br>console/tests/enterprise_first_deploy_service_test.py::EnterpriseFirstDeployServiceTests.test_offline_mode_removes_unreported_deploy_attempt<br>console/tests/enterprise_first_deploy_service_test.py::EnterpriseFirstDeployServiceTests.test_offline_mode_forgets_unpersisted_report |
 | console.deploy-diagnostics.source-check | 源码构建源检测失败诊断埋点 | active | regression | console.views.app_create.app_check.AppCheck.get | console/tests/app_check_view_test.py::AppCheckSourceDiagnosticTests.test_get_reports_source_check_failure_without_changing_response<br>console/tests/source_component_service_test.py::SourceComponentServiceTests.test_auto_create_component_raises_on_check_failure<br>console/tests/enterprise_first_deploy_service_test.py::EnterpriseFirstDeployServiceTests.test_report_source_check_failure_sends_pre_deploy_diagnostic |
 | console.deploy-diagnostics.v3 | 部署失败 v3 诊断埋点 | active | regression | console.services.enterprise_first_deploy_service.EnterpriseFirstDeployService | console/tests/enterprise_first_deploy_service_test.py<br>console/tests/app_build_first_deploy_test.py::AppBuildFirstDeployTrackingTests.test_app_build_tracks_source_image_and_package_deploy_types<br>console/tests/market_app_first_deploy_test.py::MarketAppFirstDeployTrackingTests.test_install_app_reports_first_deploy_tracking_for_market_install<br>console/tests/compose_check_first_deploy_test.py<br>console/tests/compose_build_first_deploy_test.py::ComposeBuildFirstDeployTrackingTests.test_compose_build_tracks_first_deploy_and_binds_all_component_events<br>console/tests/auto_create_first_deploy_tracking_test.py<br>console/tests/platform_plugin_first_deploy_test.py::PlatformPluginFirstDeployTrackingTests.test_install_platform_plugin_reports_first_deploy_tracking |
-| console.deploy-preflight.permission-scope | 部署预检权限范围 | active | regression | console.views.app_create.deploy_preflight.DeployPreflightView | console/tests/deploy_preflight_service_test.py::DeployPreflightServiceTests |
 | console.endpoint-address.reject-invalid-format | 拒绝既不是 IP 也不是域名的非法端点地址 | active | regression | console.utils.validation.validate_endpoint_address | console/tests/utils/validation_test.py::EndpointValidationTests.test_validate_endpoint_address_rejects_invalid_format |
 | console.endpoint-address.reject-special-ranges | 拒绝 unspecified 和 loopback 的端点地址 | active | regression | console.utils.validation.validate_endpoint_address | console/tests/utils/validation_test.py::EndpointValidationTests.test_validate_endpoint_address_rejects_special_ranges |
 | console.endpoint-list.normalize-scheme-port | 在多端点校验前规范化协议和端口 | active | regression | console.utils.validation.validate_endpoints_info | console/tests/utils/validation_test.py::EndpointValidationTests.test_validate_endpoints_info_normalizes_scheme_and_port |
@@ -361,6 +364,7 @@
 | console.market-app.create-template-scope-name | 按发布范围和团队检查应用市场模板重名 | active | regression | console.services.market_app_service.MarketAppService.create_rainbond_app | console/tests/market_app_service_test.py::MarketAppServiceCreateRainbondAppTests |
 | console.market-app.install-default-storage-class | 应用市场安装使用平台默认存储类 | active | regression | console.services.market_app.new_components.NewComponents._template_to_volumes | console/tests/market_app_storage_test.py::MarketAppDefaultStorageClassTests.test_resolve_market_default_volume_type_prefers_configured_storage_class<br>console/tests/market_app_storage_test.py::MarketAppDefaultStorageClassTests.test_template_to_volumes_uses_configured_default_storage_class |
 | console.market-app.install-unlimited-resources | 市场发布和安装保留不限制资源 | active | regression | console.services.share_services.ShareService.query_share_service_info / console.services.market_app.new_components.NewComponents._template_to_component / console.services.market_app_service.MarketAppService.__init_component_from_market_app / console.services.app_import_and_export_service.AppImportService.__normalize_import_component_template | console/tests/service_share_test.py::ShareServiceQueryResourceLimitTestCase.test_query_share_service_info_preserves_unlimited_resource_limits<br>console/tests/market_app_update_components_test.py::MarketAppNewComponentsResourceLimitTests.test_template_to_component_preserves_explicit_unlimited_cpu_and_memory<br>console/tests/market_app_service_test.py::MarketAppServiceResourceLimitTests.test_init_component_from_market_app_preserves_explicit_unlimited_cpu_and_memory<br>console/tests/app_import_and_export_service_test.py::AppImportServiceMetadataTestCase.test_save_enterprise_import_info_preserves_explicit_unlimited_resources |
+| console.market-app.local-snapshot-offline-upgrade | 离线模式检测本地快照升级 | active | regression | console.services.market_app_service.MarketAppService.get_market_apps_in_app | console/tests/market_app_service_test.py::MarketAppServiceOfflineUpgradeTests |
 | console.market-app.restore-preserves-volume-capacity-on-storage-fallback | 市场恢复在存储类型回退时保留卷容量 | active | regression | console.services.market_app.new_components.NewComponents._template_to_volumes | console/tests/market_app_storage_test.py::MarketAppDefaultStorageClassTests.test_template_to_volumes_preserves_capacity_when_storage_type_changes |
 | console.market-app.restore-volume-capacity-helper | resolve_market_restore_volume_settings 在存储类型变化时保留容量 | active | regression | console.services.app_config.volume_service.AppVolumeService.resolve_market_restore_volume_settings | console/tests/market_app_storage_test.py::MarketAppDefaultStorageClassTests.test_resolve_market_restore_volume_settings_preserves_capacity_when_storage_type_changes |
 | console.market-app.upgrade-share-image-fallback | Market App Upgrade Share Image Fallback | active | regression | console.services.market_app.update_components | console/tests/market_app_update_components_test.py::MarketAppUpdateComponentsCompatibilityTests.test_create_update_components_falls_back_to_image_when_share_image_missing |
@@ -461,6 +465,7 @@
 | console.region-api.helm-resource-conflict-msg | 将 Helm 资源归属冲突转换为可操作错误提示 | active | regression | www.apiclient.regionapibaseclient.RegionApiBaseHttpClient._check_status | console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_check_status_translates_helm_ownership_conflict_to_actionable_msg_show |
 | console.region-api.proxy-error-pass-through | 对非 Helm 冲突保留原始上游错误信息 | active | regression | www.apiclient.regionapibaseclient.RegionApiBaseHttpClient._check_status | console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_check_status_keeps_original_message_for_non_helm_conflicts |
 | console.region-api.vm-snapshot-feature-gate-msg | _check_status 将虚拟机快照功能门禁错误翻译为可操作提示 | active | regression | www.apiclient.regionapibaseclient.RegionApiBaseHttpClient._check_status | console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_check_status_translates_snapshot_feature_gate_error_to_actionable_msg_show |
+| console.region.default-initialization | 默认数据中心初始化支持跨数据库后端 | active | regression | scripts.init_default_region.initialize_default_region | console/tests/default_region_init_test.py::DefaultRegionInitializerTest |
 | console.region.update-region-config | 依据配置项是否存在选择更新或新增数据中心配置 | active | regression | console.services.region_services.RegionService.update_region_config | console/tests/region_config_update_test.py::UpdateRegionConfigTest.test_update_when_config_exists_passes_dict_value<br>console/tests/region_config_update_test.py::UpdateRegionConfigTest.test_add_when_config_missing_passes_json_string_and_desc |
 | console.request-args.bool-coercion | 将请求中的布尔参数从字符串或布尔值安全转换 | active | regression | console.utils.reqparse.bool_argument | console/tests/utils/reqparse_test.py::BoolArgumentTestCase |
 | console.request-args.bool-default-false | 缺失布尔查询参数时返回 false 默认值 | active | regression | console.utils.reqparse.parse_argument | console/tests/utils/reqparse_test.py::ParseArgumentTestCase.test_parse_argument_return_default_false_bool |
@@ -494,6 +499,7 @@
 | console.rke2.cluster-install-structured-helm-error | Rainbond 安装失败时返回结构化错误且不进入集成中状态 | active | regression | console.views.rke2.ClusterRKEInstallRB.post | console/tests/rke2_cluster_errors_test.py::ClusterRKEErrorTests.test_cluster_install_returns_structured_helm_error_without_saving_integrating |
 | console.rke2.cluster-missing-metadata-404 | 请求的 RKE 集群元数据缺失时返回 404 | active | regression | console.views.rke2.ClusterRKE.get | console/tests/rke2_cluster_errors_test.py::ClusterRKEErrorTests.test_cluster_get_returns_structured_404_when_cluster_metadata_missing |
 | console.rke2.helm-subprocess-error-sanitized | 清洗 Rainbond 安装中的 Helm 子进程失败信息 | active | regression | console.utils.k8s_cli.K8sClient.install_rainbond | console/tests/rke2_cluster_errors_test.py::ClusterRKEErrorTests.test_install_rainbond_returns_sanitized_subprocess_error |
+| console.service-share.cnb-publish-command | 发布组件模板时清理 CNB 源码启动命令 | active | regression | console.services.share_services.ShareService.query_share_service_info | console/tests/service_share_test.py::ShareServiceCNBPublishCommandTestCase |
 | console.service-share.create-record | 创建组件共享记录 | active | regression | console.views.service_share.ServiceShareRecordView.post | console/tests/service_share_test.py::ServiceShareRecordViewTestCase |
 | console.service-share.create-snapshot-record | 创建基于快照的服务分享记录 | active | regression | console.views.service_share.ServiceShareRecordView.post | console/tests/service_share_test.py::ServiceShareRecordViewTestCase.test_post_snapshot_mode_uses_hidden_template_app_id |
 | console.service-share.error-response | 服务分享异常时返回错误响应 | active | regression | console.views.service_share.ServiceShareRecordView.post | console/tests/service_share_test.py::ServiceShareRecordViewTestCase.test_post_returns_500_response_for_unexpected_exception |
@@ -551,6 +557,7 @@
 | console.vm-overview.vnc-url-plugin-fallback | 在缺少查询参数时从插件回填虚拟机概览 VNC 地址 | active | regression | console.views.app_overview.AppDetailView.get | console/tests/vm_detail_view_test.py::AppVMDetailViewTests.test_get_builds_vm_vnc_url_from_plugin_fallback_when_query_param_missing |
 | console.vm-profile.template-root-disk-fallback | VM profile falls back to template root disk metadata | active | regression | console.services.virtual_machine.VirtualMachineService.get_vm_profile | console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_get_vm_profile_falls_back_to_template_root_disk_metadata_when_asset_missing |
 | console.vm-root-disk-selected-storage-type | update_check_app 为新建虚拟机根盘使用所选存储类型 | active | regression | console.services.app.AppService.update_check_app | console/tests/vm_live_migration_storage_test.py::VMLiveMigrationStorageTests.test_update_check_app_uses_selected_storage_type_for_new_vm_root_disk |
+| console.vm-run.new-asset-image-name-validation | 校验新建虚拟机镜像资产名称 | active | regression | console.views.app_create.vm_run.VMRunCreateView.post | console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_vm_run_rejects_invalid_image_name_before_new_asset_or_component_creation<br>console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_vm_run_rejects_non_string_image_name_and_import_sources<br>console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_vm_runtime_image_name_validator_enforces_oci_tag_boundaries |
 | console.vm-run.platform-runtime-guard | 虚拟机平台异常时禁止创建虚拟机组件 | active | regression | console.views.app_create.vm_run.VMRunCreateView.post | console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_vm_run_create_rejects_when_vm_plugin_not_running |
 | console.vm-storage-any-access-mode | 允许虚拟机使用任意访问模式的存储 | active | regression | console.services.app_config.volume_service.AppVolumeService.build_vm_live_migration_volume_settings | console/tests/vm_live_migration_storage_test.py::VMLiveMigrationStorageTests |
 | console.vm-template-import.delete-abnormal-vm | delete 允许异常状态虚拟机跳过运行中校验 | active | regression | console.services.app_actions.app_manage.AppManageService.delete | console/tests/app_manage_test.py::AppManageVMRestoreDeleteTests.test_delete_allows_abnormal_vm_to_skip_running_guard |
@@ -1017,6 +1024,16 @@
 - 业务入口: `console.services.app_config.volume_service.volume_service`
 - 代码路径: `console/services/app_config/volume_service.py`, `console/services/app_config/__init__.py`
 - 测试路径: `console/tests/app_config_volume_service_import_test.py::AppConfigVolumeServiceImportTests.test_volume_service_module_exports_package_singleton`
+
+### 获取组件配置可用集群资源
+
+- Capability ID: `console.app-create.available-resources`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `view_endpoint`
+- 业务入口: `console.views.app_create.available_resources.AvailableResourcesView.get`
+- 代码路径: `console/services/available_resources_service.py`, `console/views/app_create/available_resources.py`, `console/urls/__init__.py`
+- 测试路径: `console/tests/available_resources_test.py::AvailableResourcesServiceTests,AvailableResourcesViewTests`
 
 ### App creator full permissions
 
@@ -3268,6 +3285,36 @@
 - 代码路径: `console/services/app_config/volume_service.py`
 - 测试路径: `console/tests/app_config_volume_delete_test.py::AppVolumeDeleteTests.test_delete_service_volume_rejects_shared_mount_even_when_forced`
 
+### 使用 Django 数据库状态检查启动就绪性
+
+- Capability ID: `console.database.backend-neutral-readiness`
+- 状态: `active`
+- 测试类型: `unit`
+- 接口类型: `workflow`
+- 业务入口: `entrypoint.sh database readiness workflow`
+- 代码路径: `entrypoint.sh`, `scripts/database_state.py`
+- 测试路径: `console/tests/database_state_test.py::DatabaseStateTests`
+
+### 使用私有命名上下文构建达梦控制台镜像
+
+- Capability ID: `console.database.dm-image-driver-bundle`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `workflow`
+- 业务入口: `Dockerfile.dm`
+- 代码路径: `Dockerfile`, `Dockerfile.dm`, `scripts/prepare_dameng_python_driver.sh`, `.gitignore`, `.dockerignore`
+- 测试路径: `console/tests/dameng_driver_bundle_test.py`
+
+### 根据 DB_TYPE 选择 dmDjango 数据库设置
+
+- Capability ID: `console.database.dm-settings-selection`
+- 状态: `active`
+- 测试类型: `unit`
+- 接口类型: `other`
+- 业务入口: `goodrain_web.settings.DATABASES`
+- 代码路径: `goodrain_web/settings.py`
+- 测试路径: `console/tests/database_settings_test.py::DatabaseSettingsTests`
+
 ### Dependency Invalid Container Port
 
 - Capability ID: `console.dependency.invalid-container-port`
@@ -3307,16 +3354,6 @@
 - 业务入口: `console.services.enterprise_first_deploy_service.EnterpriseFirstDeployService`
 - 代码路径: `console/services/enterprise_first_deploy_service.py`, `console/repositories/first_deploy_repo.py`, `console/views/app_create/app_build.py`, `console/views/app_manage.py`, `console/services/market_app_service.py`, `console/services/platform_plugin_service.py`, `console/services/source_component_service.py`, `console/services/package_component_service.py`
 - 测试路径: `console/tests/enterprise_first_deploy_service_test.py`, `console/tests/app_build_first_deploy_test.py::AppBuildFirstDeployTrackingTests.test_app_build_tracks_source_image_and_package_deploy_types`, `console/tests/market_app_first_deploy_test.py::MarketAppFirstDeployTrackingTests.test_install_app_reports_first_deploy_tracking_for_market_install`, `console/tests/compose_check_first_deploy_test.py`, `console/tests/compose_build_first_deploy_test.py::ComposeBuildFirstDeployTrackingTests.test_compose_build_tracks_first_deploy_and_binds_all_component_events`, `console/tests/auto_create_first_deploy_tracking_test.py`, `console/tests/platform_plugin_first_deploy_test.py::PlatformPluginFirstDeployTrackingTests.test_install_platform_plugin_reports_first_deploy_tracking`
-
-### 部署预检权限范围
-
-- Capability ID: `console.deploy-preflight.permission-scope`
-- 状态: `active`
-- 测试类型: `regression`
-- 接口类型: `view_endpoint`
-- 业务入口: `console.views.app_create.deploy_preflight.DeployPreflightView`
-- 代码路径: `console/views/app_create/deploy_preflight.py`
-- 测试路径: `console/tests/deploy_preflight_service_test.py::DeployPreflightServiceTests`
 
 ### 拒绝既不是 IP 也不是域名的非法端点地址
 
@@ -4147,6 +4184,16 @@
 - 业务入口: `console.services.share_services.ShareService.query_share_service_info / console.services.market_app.new_components.NewComponents._template_to_component / console.services.market_app_service.MarketAppService.__init_component_from_market_app / console.services.app_import_and_export_service.AppImportService.__normalize_import_component_template`
 - 代码路径: `console/services/share_services.py`, `console/services/market_app/new_components.py`, `console/services/market_app_service.py`, `console/services/app_import_and_export_service.py`
 - 测试路径: `console/tests/service_share_test.py::ShareServiceQueryResourceLimitTestCase.test_query_share_service_info_preserves_unlimited_resource_limits`, `console/tests/market_app_update_components_test.py::MarketAppNewComponentsResourceLimitTests.test_template_to_component_preserves_explicit_unlimited_cpu_and_memory`, `console/tests/market_app_service_test.py::MarketAppServiceResourceLimitTests.test_init_component_from_market_app_preserves_explicit_unlimited_cpu_and_memory`, `console/tests/app_import_and_export_service_test.py::AppImportServiceMetadataTestCase.test_save_enterprise_import_info_preserves_explicit_unlimited_resources`
+
+### 离线模式检测本地快照升级
+
+- Capability ID: `console.market-app.local-snapshot-offline-upgrade`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.market_app_service.MarketAppService.get_market_apps_in_app`
+- 代码路径: `console/services/market_app_service.py`
+- 测试路径: `console/tests/market_app_service_test.py::MarketAppServiceOfflineUpgradeTests`
 
 ### 市场恢复在存储类型回退时保留卷容量
 
@@ -5148,6 +5195,16 @@
 - 代码路径: `www/apiclient/regionapibaseclient.py`
 - 测试路径: `console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_check_status_translates_snapshot_feature_gate_error_to_actionable_msg_show`
 
+### 默认数据中心初始化支持跨数据库后端
+
+- Capability ID: `console.region.default-initialization`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `workflow`
+- 业务入口: `scripts.init_default_region.initialize_default_region`
+- 代码路径: `scripts/init_default_region.py`, `entrypoint.sh`
+- 测试路径: `console/tests/default_region_init_test.py::DefaultRegionInitializerTest`
+
 ### 依据配置项是否存在选择更新或新增数据中心配置
 
 - Capability ID: `console.region.update-region-config`
@@ -5477,6 +5534,16 @@
 - 业务入口: `console.utils.k8s_cli.K8sClient.install_rainbond`
 - 代码路径: `console/utils/k8s_cli.py`
 - 测试路径: `console/tests/rke2_cluster_errors_test.py::ClusterRKEErrorTests.test_install_rainbond_returns_sanitized_subprocess_error`
+
+### 发布组件模板时清理 CNB 源码启动命令
+
+- Capability ID: `console.service-share.cnb-publish-command`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.share_services.ShareService.query_share_service_info`
+- 代码路径: `console/services/share_services.py`
+- 测试路径: `console/tests/service_share_test.py::ShareServiceCNBPublishCommandTestCase`
 
 ### 创建组件共享记录
 
@@ -6047,6 +6114,16 @@
 - 业务入口: `console.services.app.AppService.update_check_app`
 - 代码路径: `console/services/app.py`
 - 测试路径: `console/tests/vm_live_migration_storage_test.py::VMLiveMigrationStorageTests.test_update_check_app_uses_selected_storage_type_for_new_vm_root_disk`
+
+### 校验新建虚拟机镜像资产名称
+
+- Capability ID: `console.vm-run.new-asset-image-name-validation`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `view_endpoint`
+- 业务入口: `console.views.app_create.vm_run.VMRunCreateView.post`
+- 代码路径: `console/services/vm_boot_source.py`, `console/views/app_create/vm_run.py`
+- 测试路径: `console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_vm_run_rejects_invalid_image_name_before_new_asset_or_component_creation`, `console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_vm_run_rejects_non_string_image_name_and_import_sources`, `console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_vm_runtime_image_name_validator_enforces_oci_tag_boundaries`
 
 ### 虚拟机平台异常时禁止创建虚拟机组件
 

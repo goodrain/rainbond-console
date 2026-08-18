@@ -3,26 +3,6 @@
   "repo": "rainbond-console",
   "capabilities": [
     {
-      "id": "console.app-create.available-resources",
-      "title": "Get available cluster resources for component configuration",
-      "title_zh": "获取组件配置可用集群资源",
-      "interface_type": "view_endpoint",
-      "interface": "console.views.app_create.available_resources.AvailableResourcesView.get",
-      "code_paths": [
-        "console/services/available_resources_service.py",
-        "console/views/app_create/available_resources.py",
-        "console/urls/__init__.py"
-      ],
-      "tests": [
-        {
-          "path": "console/tests/available_resources_test.py",
-          "selector": "AvailableResourcesServiceTests,AvailableResourcesViewTests"
-        }
-      ],
-      "test_type": "regression",
-      "status": "active"
-    },
-    {
       "id": "console.app-backup.create",
       "title": "Create application backup",
       "title_zh": "创建应用备份",
@@ -823,6 +803,26 @@
         {
           "path": "console/tests/app_config_volume_service_import_test.py",
           "selector": "AppConfigVolumeServiceImportTests.test_volume_service_module_exports_package_singleton"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.app-create.available-resources",
+      "title": "Get available cluster resources for component configuration",
+      "title_zh": "获取组件配置可用集群资源",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.app_create.available_resources.AvailableResourcesView.get",
+      "code_paths": [
+        "console/services/available_resources_service.py",
+        "console/views/app_create/available_resources.py",
+        "console/urls/__init__.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/available_resources_test.py",
+          "selector": "AvailableResourcesServiceTests,AvailableResourcesViewTests"
         }
       ],
       "test_type": "regression",
@@ -5125,6 +5125,64 @@
       "status": "active"
     },
     {
+      "id": "console.database.backend-neutral-readiness",
+      "title": "Use Django database state checks for startup readiness",
+      "title_zh": "使用 Django 数据库状态检查启动就绪性",
+      "interface_type": "workflow",
+      "interface": "entrypoint.sh database readiness workflow",
+      "code_paths": [
+        "entrypoint.sh",
+        "scripts/database_state.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/database_state_test.py",
+          "selector": "DatabaseStateTests"
+        }
+      ],
+      "test_type": "unit",
+      "status": "active"
+    },
+    {
+      "id": "console.database.dm-image-driver-bundle",
+      "title": "Build Dameng console image from a private named context",
+      "title_zh": "使用私有命名上下文构建达梦控制台镜像",
+      "interface_type": "workflow",
+      "interface": "Dockerfile.dm",
+      "code_paths": [
+        "Dockerfile",
+        "Dockerfile.dm",
+        "scripts/prepare_dameng_python_driver.sh",
+        ".gitignore",
+        ".dockerignore"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/dameng_driver_bundle_test.py"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.database.dm-settings-selection",
+      "title": "Select dmDjango settings from DB_TYPE",
+      "title_zh": "根据 DB_TYPE 选择 dmDjango 数据库设置",
+      "interface_type": "other",
+      "interface": "goodrain_web.settings.DATABASES",
+      "code_paths": [
+        "goodrain_web/settings.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/database_settings_test.py",
+          "selector": "DatabaseSettingsTests"
+        }
+      ],
+      "test_type": "unit",
+      "status": "active"
+    },
+    {
       "id": "console.dependency.invalid-container-port",
       "title": "Dependency Invalid Container Port",
       "title_zh": "Dependency Invalid Container Port",
@@ -8693,6 +8751,25 @@
         {
           "path": "console/tests/regionapibaseclient_test.py",
           "selector": "RegionApiBaseHttpClientTestCase.test_check_status_translates_snapshot_feature_gate_error_to_actionable_msg_show"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.region.default-initialization",
+      "title": "Default region initialization works across database backends",
+      "title_zh": "默认数据中心初始化支持跨数据库后端",
+      "interface_type": "workflow",
+      "interface": "scripts.init_default_region.initialize_default_region",
+      "code_paths": [
+        "scripts/init_default_region.py",
+        "entrypoint.sh"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/default_region_init_test.py",
+          "selector": "DefaultRegionInitializerTest"
         }
       ],
       "test_type": "regression",

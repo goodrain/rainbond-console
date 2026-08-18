@@ -6,35 +6,24 @@ YELLOW='\033[33;1m'
 NC='\033[0m' # No Color
 
 function database_empty() {
-  # Check if database is empty
-  if [ "${DB_TYPE}" == "mysql" ]; then
-    tables=$(mysql -h"${MYSQL_HOST:-127.0.0.1}" -P"${MYSQL_PORT:-3306}" -u"${MYSQL_USER}" -p"${MYSQL_PASS}" -D"${MYSQL_DB}" -e "SHOW TABLES;" 2>/dev/null | wc -l)
-    if [ "$tables" -le 1 ]; then
-      return 0 # Database is empty
-    fi
-    return 1 # Database is not empty
-  else
-    tables=$(sqlite3 /app/data/db.sqlite3 "SELECT count(*) FROM sqlite_master WHERE type='table';")
-    if [ "$tables" -eq 0 ]; then
-      return 0 # Database is empty
-    fi
-    return 1 # Database is not empty
-  fi
+  python scripts/database_state.py empty
+}
+
+function wait_for_database() {
+  while ! python scripts/database_state.py ready; do
+    echo -e "${RED}ERROR: Database not ready, will waiting${NC}"
+    sleep 3
+  done
 }
 
 function init_database() {
   # Wait for database to be ready
-  if [ "${DB_TYPE}" == "mysql" ]; then
-    while true; do
-      if mysql -h"${MYSQL_HOST:-127.0.0.1}" -P"${MYSQL_PORT:-3306}" -u"${MYSQL_USER}" -p"${MYSQL_PASS}" -e "use ${MYSQL_DB};" >/dev/null; then
-        break
-      else
-        echo -e "${RED}ERROR: Database not ready, will waiting${NC}"
-        sleep 3
-      fi
-    done
-  else
-    sqlite3 /app/data/db.sqlite3 "PRAGMA journal_mode = WAL;"
+  wait_for_database
+  if [ "${DB_TYPE:-sqlite3}" == "sqlite3" ]; then
+    if ! python scripts/database_state.py sqlite-wal; then
+      echo -e "${RED}ERROR: failed to enable SQLite WAL mode${NC}"
+      exit 1
+    fi
   fi
 
   # Initialize database schema
@@ -61,15 +50,9 @@ function init_database() {
 function init_region() {
   init_database
   # Initialize default region data
-  if [ "${DB_TYPE}" == "mysql" ]; then
-    if ! (python default_region.py 2> /dev/null); then
-      echo -e "${RED}ERROR: failed to default_region${NC}"
-      exit 1
-    fi
-  else
-    if ! (python default_region_sqlite.py 2> /dev/null); then
-      echo -e "${YELLOW}WARN: failed to default_region${NC}"
-    fi
+  if ! python scripts/init_default_region.py; then
+    echo -e "${RED}ERROR: failed to initialize default region${NC}"
+    exit 1
   fi
 }
 

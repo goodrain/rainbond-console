@@ -31,3 +31,6 @@ htmlcov/
 .coverage
 node_modules/
 *.tar.gz
+
+# Private Dameng artifacts are provided only through Dockerfile.dm's named context.
+third_party/dameng/

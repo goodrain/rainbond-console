@@ -20,6 +20,9 @@ temp
 local_tool.sh
 data/
 
+# Official Dameng driver bundle used only by ENABLE_DM image builds.
+third_party/dameng/
+
 # pipenv
 Pipfile
 Pipfile.lock

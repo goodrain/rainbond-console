@@ -121,6 +121,17 @@ if DATABASE_TYPE == 'mysql':
             }
         }
     }
+elif DATABASE_TYPE == 'dm':
+    DATABASES = {
+        'default': {
+            'ENGINE': 'dmDjango',
+            'NAME': os.environ.get('DB_NAME') or os.environ.get('MYSQL_DB') or 'console',
+            'USER': os.environ.get('DB_USER') or os.environ.get('MYSQL_USER') or 'root',
+            'PASSWORD': os.environ.get('DB_PASSWORD') or os.environ.get('MYSQL_PASS') or '',
+            'HOST': os.environ.get('DB_HOST') or os.environ.get('MYSQL_HOST') or '127.0.0.1',
+            'PORT': os.environ.get('DB_PORT') or os.environ.get('MYSQL_PORT') or '5236',
+        }
+    }
 
 APP_SERVICE_API = {'url': os.environ.get('APP_CLOUD_API', 'http://api.goodrain.com:80'), 'apitype': 'app service'}
 
