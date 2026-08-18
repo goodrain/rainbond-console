@@ -29,8 +29,10 @@ class DamengDriverBundleScriptTest(unittest.TestCase):
         for relative_path in (
             "drivers/python/dmPython/setup.py",
             "drivers/python/dmDjango/dmDjango3.0/setup.py",
-            "bin/libdmdpi.so",
-            "include/DPI.h",
+            "drivers/dpi/libdmdpi.so",
+            "drivers/dpi/dependencies/libcrypto.so",
+            "drivers/dpi/include/DPI.h",
+            "include/not-required.h",
         ):
             path = os.path.join(self.source_root, relative_path)
             parent = os.path.dirname(path)
@@ -51,8 +53,10 @@ class DamengDriverBundleScriptTest(unittest.TestCase):
         result = self._run_prepare()
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertTrue(os.path.isfile(os.path.join(self.output_root, "bin", "libdmdpi.so")))
-        self.assertTrue(os.path.isfile(os.path.join(self.output_root, "include", "DPI.h")))
+        self.assertTrue(os.path.isfile(os.path.join(self.output_root, "dpi", "libdmdpi.so")))
+        self.assertTrue(os.path.isfile(os.path.join(self.output_root, "dpi", "dependencies", "libcrypto.so")))
+        self.assertTrue(os.path.isfile(os.path.join(self.output_root, "dpi", "include", "DPI.h")))
+        self.assertFalse(os.path.exists(os.path.join(self.output_root, "include")))
         self.assertTrue(
             os.path.isfile(os.path.join(self.output_root, "drivers", "python", "dmPython", "setup.py"))
         )
@@ -63,7 +67,7 @@ class DamengDriverBundleScriptTest(unittest.TestCase):
         )
 
     def test_rejects_missing_dameng_runtime_library(self):
-        os.remove(os.path.join(self.source_root, "bin", "libdmdpi.so"))
+        os.remove(os.path.join(self.source_root, "drivers", "dpi", "libdmdpi.so"))
 
         result = self._run_prepare()
 
@@ -72,7 +76,7 @@ class DamengDriverBundleScriptTest(unittest.TestCase):
         self.assertFalse(os.path.exists(self.output_root))
 
     def test_rejects_missing_dameng_include_directory(self):
-        shutil.rmtree(os.path.join(self.source_root, "include"))
+        shutil.rmtree(os.path.join(self.source_root, "drivers", "dpi", "include"))
 
         result = self._run_prepare()
 
@@ -114,8 +118,7 @@ class DamengDockerfileStructureTest(unittest.TestCase):
     def test_standard_build_uses_the_named_dameng_context(self):
         dockerfile = self._read_file(NORMAL_DOCKERFILE)
 
-        self.assertIn("COPY --from=dameng python/bin/libdmdpi.so /opt/dameng/bin/libdmdpi.so", dockerfile)
-        self.assertIn("COPY --from=dameng python/include/ /opt/dameng/include/", dockerfile)
+        self.assertIn("COPY --from=dameng python/dpi/ /opt/dameng/dpi/", dockerfile)
         self.assertIn(
             "COPY --from=dameng python/drivers/python/dmPython/ /opt/dameng/drivers/python/dmPython/", dockerfile
         )
@@ -125,10 +128,10 @@ class DamengDockerfileStructureTest(unittest.TestCase):
             dockerfile,
         )
         self.assertIn("ENV DM_HOME=/opt/dameng", dockerfile)
-        self.assertIn("ENV PATH=${DM_HOME}/bin:/app/ui/py_venv/bin:${PATH}", dockerfile)
+        self.assertIn("ENV PATH=${DM_HOME}/dpi:/app/ui/py_venv/bin:${PATH}", dockerfile)
         self.assertIn("pip install --no-cache-dir /opt/dameng/drivers/python/dmPython", dockerfile)
         self.assertIn("pip install --no-cache-dir /opt/dameng/drivers/python/dmDjango/dmDjango3.0", dockerfile)
-        self.assertIn("rm -rf /opt/dameng/drivers /opt/dameng/include", dockerfile)
+        self.assertIn("rm -rf /opt/dameng/drivers /opt/dameng/dpi/include", dockerfile)
 
         final_stage = dockerfile.split("FROM ${PYTHON_SLIM_BASE}", 1)[1]
         dameng_copy_lines = [
@@ -138,11 +141,11 @@ class DamengDockerfileStructureTest(unittest.TestCase):
         ]
         self.assertEqual(
             dameng_copy_lines,
-            ["COPY --from=build-console /opt/dameng/bin/libdmdpi.so /opt/dameng/bin/libdmdpi.so"],
+            ["COPY --from=build-console /opt/dameng/dpi/ /opt/dameng/dpi/"],
         )
         self.assertNotIn("COPY --from=dameng", final_stage)
         self.assertNotIn("drivers/python", final_stage)
-        self.assertNotIn("/opt/dameng/include", final_stage)
+        self.assertNotIn("/opt/dameng/dpi/include", final_stage)
         self.assertIn("libaio1", final_stage)
         self.assertIn("/etc/ld.so.conf.d/dameng.conf", final_stage)
         self.assertIn("ldconfig", final_stage)

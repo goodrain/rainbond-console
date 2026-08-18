@@ -6,9 +6,9 @@ usage() {
     cat <<'EOF'
 Usage: scripts/prepare_dameng_python_driver.sh <dmdbms-root> [output-directory]
 
-Copies the officially supplied dmPython, dmDjango and libdmdpi.so files from a
-Dameng installation into an ignored Docker build context. The destination must
-not exist, so an existing private driver bundle is never overwritten.
+Copies the officially supplied dmPython, dmDjango and DPI files from a Dameng
+installation into an ignored Docker build context. The destination must not
+exist, so an existing private driver bundle is never overwritten.
 EOF
 }
 
@@ -27,7 +27,8 @@ project_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)
 output_root=${2:-"${project_root}/third_party/dameng"}
 
 required_directories=(
-    "${source_root}/include"
+    "${source_root}/drivers/dpi/dependencies"
+    "${source_root}/drivers/dpi/include"
     "${source_root}/drivers/python/dmPython"
     "${source_root}/drivers/python/dmDjango/dmDjango3.0"
 )
@@ -39,7 +40,7 @@ for required_directory in "${required_directories[@]}"; do
     fi
 done
 
-runtime_library="${source_root}/bin/libdmdpi.so"
+runtime_library="${source_root}/drivers/dpi/libdmdpi.so"
 if [ ! -f "${runtime_library}" ]; then
     echo "missing required source: ${runtime_library}" >&2
     exit 1
@@ -55,15 +56,16 @@ mkdir -p "${output_parent}"
 staging_root=$(mktemp -d "${output_parent}/.dameng-driver.XXXXXX")
 trap 'rm -rf "${staging_root}"' EXIT
 
-mkdir -p "${staging_root}/bin" \
-    "${staging_root}/include" \
+mkdir -p "${staging_root}/dpi/dependencies" \
+    "${staging_root}/dpi/include" \
     "${staging_root}/drivers/python/dmPython" \
     "${staging_root}/drivers/python/dmDjango/dmDjango3.0"
-cp -R "${source_root}/include/." "${staging_root}/include/"
+cp -R "${source_root}/drivers/dpi/dependencies/." "${staging_root}/dpi/dependencies/"
+cp -R "${source_root}/drivers/dpi/include/." "${staging_root}/dpi/include/"
 cp -R "${source_root}/drivers/python/dmPython/." "${staging_root}/drivers/python/dmPython/"
 cp -R "${source_root}/drivers/python/dmDjango/dmDjango3.0/." \
     "${staging_root}/drivers/python/dmDjango/dmDjango3.0/"
-cp "${runtime_library}" "${staging_root}/bin/libdmdpi.so"
+cp "${runtime_library}" "${staging_root}/dpi/libdmdpi.so"
 
 mv "${staging_root}" "${output_root}"
 trap - EXIT

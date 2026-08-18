@@ -27,20 +27,19 @@ ARG TARGETARCH
 ARG VERSION
 
 COPY --from=ui /app/ui /app/ui
-COPY --from=dameng python/bin/libdmdpi.so /opt/dameng/bin/libdmdpi.so
-COPY --from=dameng python/include/ /opt/dameng/include/
+COPY --from=dameng python/dpi/ /opt/dameng/dpi/
 COPY --from=dameng python/drivers/python/dmPython/ /opt/dameng/drivers/python/dmPython/
 COPY --from=dameng python/drivers/python/dmDjango/dmDjango3.0/ /opt/dameng/drivers/python/dmDjango/dmDjango3.0/
 WORKDIR /app/ui
 ENV DM_HOME=/opt/dameng
-ENV PATH=${DM_HOME}/bin:/app/ui/py_venv/bin:${PATH}
+ENV PATH=${DM_HOME}/dpi:/app/ui/py_venv/bin:${PATH}
 
 RUN python -m venv --copies /app/ui/py_venv && \
     python -m pip install --no-cache-dir --upgrade pip 'setuptools<70' && \
     pip install --no-cache-dir -r requirements.txt $PYTHONPROXY && \
     pip install --no-cache-dir /opt/dameng/drivers/python/dmPython $PYTHONPROXY && \
     pip install --no-cache-dir /opt/dameng/drivers/python/dmDjango/dmDjango3.0 $PYTHONPROXY && \
-    rm -rf /opt/dameng/drivers /opt/dameng/include && \
+    rm -rf /opt/dameng/drivers /opt/dameng/dpi/include && \
     curl -fsSL https://gitee.com/zhangsetsail/appstore-sdk-python/repository/archive/python3.tar.gz -o /tmp/openapi-client.tar.gz && \
     mkdir -p /tmp/openapi-client && \
     tar xzf /tmp/openapi-client.tar.gz -C /tmp/openapi-client --strip-components=1 && \
@@ -75,7 +74,7 @@ ARG RAINBOND_POSTHOG_ASSET_PROXY_TARGET=https://posthog.goodrain.com
 
 COPY --from=build-console /app/ui /app/ui
 COPY --from=build-console /tmp/helm /usr/local/bin/helm
-COPY --from=build-console /opt/dameng/bin/libdmdpi.so /opt/dameng/bin/libdmdpi.so
+COPY --from=build-console /opt/dameng/dpi/ /opt/dameng/dpi/
 WORKDIR /app/ui
 
 RUN ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
@@ -83,13 +82,13 @@ RUN ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
 	apt-get update && apt-get --no-install-recommends install -y \
 	curl mariadb-client sqlite3 libmariadb3 libaio1 \
 	libjpeg62-turbo libfreetype6 libpng16-16 zlib1g liblcms2-2 libwebp7 libtiff6 libopenjp2-7 libxcb1 && \
-	printf '%s\n' /opt/dameng/bin >/etc/ld.so.conf.d/dameng.conf && \
+	printf '%s\n%s\n' /opt/dameng/dpi /opt/dameng/dpi/dependencies >/etc/ld.so.conf.d/dameng.conf && \
 	ldconfig && \
 	mkdir -p /app/logs /app/data && \
 	rm -rf /var/lib/apt/lists/*
 
 ENV DM_HOME=/opt/dameng
-ENV PATH=${DM_HOME}/bin:/app/ui/py_venv/bin:${PATH}
+ENV PATH=${DM_HOME}/dpi:/app/ui/py_venv/bin:${PATH}
 ENV PORT=7070
 ENV IS_OPEN_API=true
 ENV RELEASE_DESC=${RELEASE_DESC}
