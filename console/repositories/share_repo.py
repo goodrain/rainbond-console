@@ -82,9 +82,9 @@ class ShareRepo(object):
                 GROUP BY app_id, version) A
             LEFT JOIN rainbond_center_app_version B
             ON A.app_id=B.app_id AND A.version=B.version AND A.upgrade_time=B.upgrade_time
-            WHERE A.app_id = "{app_id}"
-            """.format(app_id=app_id)
-        result = conn.query(sql)
+            WHERE A.app_id = %s
+            """
+        result = conn.query(sql, [app_id])
         return result
 
     def create_tenant_service(self, **kwargs: Any) -> TenantServiceInfo:
@@ -191,9 +191,9 @@ class ShareRepo(object):
                 tenant_info b
             WHERE
                 a.team_name = b.tenant_name
-                AND b.enterprise_id = "{eid}"
-                LIMIT 1""".format(eid=eid)
-        result = conn.query(sql)
+                AND b.enterprise_id = %s
+                LIMIT 1"""
+        result = conn.query(sql, [eid])
         return True if len(result) > 0 else False
 
 

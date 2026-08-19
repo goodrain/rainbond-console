@@ -102,9 +102,9 @@ class AppPluginRelationRepo(object):
                 c.tenant_id = b.tenant_id
                 AND a.service_id = c.service_id
                 AND c.service_source <> "market"
-                AND b.enterprise_id = "{eid}"
-                LIMIT 1""".format(eid=eid)
-        result = conn.query(sql)
+                AND b.enterprise_id = %s
+                LIMIT 1"""
+        result = conn.query(sql, [eid])
         return True if len(result) > 0 else False
 
 

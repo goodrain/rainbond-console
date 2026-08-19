@@ -7,6 +7,7 @@ from console.exception.exceptions import UserFavoriteNotExistError, UserNotExist
 from console.exception.bcode import ErrUserNotFound
 from console.models.main import UserFavorite
 from console.repositories.base import BaseConnection
+from console.utils.database import database_type, pagination_clause
 from www.models.main import Users
 
 
@@ -107,10 +108,9 @@ class UserRepo(object):
                 tenant_info c
             WHERE a.user_id = b.user_id
             AND b.tenant_id = c.ID
-            AND a.user_id = {user_id}
-            AND c.tenant_id = '{tenant_id}'""".format(
-            tenant_id=tenant_id, user_id=user_id)
-        result = conn.query(sql)
+            AND a.user_id = %s
+            AND c.tenant_id = %s"""
+        result = conn.query(sql, [user_id, tenant_id])
         if len(result) == 0:
             raise UserNotExistError("用户{0}不存在于团队{1}中".format(user_id, tenant_id))
         return result[0]
@@ -122,18 +122,20 @@ class UserRepo(object):
         """
         conn = BaseConnection()
 
+        args = [tenant_id]
         limit = ""
         if page is not None and size is not None:
             page = page if page > 0 else 1
-            page = (page - 1) * size
-            limit = "Limit {page}, {size}".format(page=page, size=size)
+            limit, page_args = pagination_clause(database_type(), (page - 1) * size, size)
+            args.extend(page_args)
         where = """WHERE a.user_id = b.user_id
             AND b.tenant_id = c.ID
-            AND c.tenant_id = '{tenant_id}'""".format(tenant_id=tenant_id)
+            AND c.tenant_id = %s"""
         if query:
-            where += """ AND ( a.nick_name LIKE "%{query}%"
-            OR a.phone LIKE "%{query}%"
-            OR a.email LIKE "%{query}%" )""".format(query=query)
+            where += """ AND ( a.nick_name LIKE %s
+            OR a.phone LIKE %s
+            OR a.email LIKE %s )"""
+            args[1:1] = ["%" + query + "%"] * 3
         sql = """
             SELECT DISTINCT
                 a.user_id,
@@ -150,20 +152,22 @@ class UserRepo(object):
             {where}
             {limit}""".format(
             where=where, limit=limit)
-        result = conn.query(sql)
+        result = conn.query(sql, args)
         return result
 
     def count_users_by_tenant_id(self, tenant_id: str, query: str = "") -> Any:
         """
         Support search by username, email, phone number
         """
+        args = [tenant_id]
         where = """WHERE a.user_id = b.user_id
             AND b.tenant_id = c.ID
-            AND c.tenant_id = '{tenant_id}'""".format(tenant_id=tenant_id)
+            AND c.tenant_id = %s"""
         if query:
-            where += """ AND ( a.nick_name LIKE "%{query}%"
-            OR a.phone LIKE "%{query}%"
-            OR a.email LIKE "%{query}%" )""".format(query=query)
+            where += """ AND ( a.nick_name LIKE %s
+            OR a.phone LIKE %s
+            OR a.email LIKE %s )"""
+            args.extend(["%" + query + "%"] * 3)
 
         sql = """
             SELECT
@@ -180,7 +184,7 @@ class UserRepo(object):
                 ) as userid""".format(where=where)
 
         conn = BaseConnection()
-        result = conn.query(sql)
+        result = conn.query(sql, args)
         return result[0].get("total")
 
     def get_user_favorite(self, user_id: Any) -> QuerySet:

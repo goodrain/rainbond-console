@@ -11,6 +11,7 @@ from console.repositories.service_repo import service_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
 from console.repositories.user_role_repo import (UserRoleNotFoundException, user_role_repo)
+from console.utils.database import database_type, pagination_clause
 from django.db.models import Q, QuerySet
 from www.models.main import (PermRelTenant, ServiceGroup, ServiceGroupRelation, TenantEnterprise, TenantRegionInfo, Tenants,
                              Users, Menus)
@@ -200,14 +201,15 @@ class TenantEnterpriseRepo(object):
 
     def list_appstore_infos(self, query: str = "", page: Optional[int] = None,
                             page_size: Optional[int] = None) -> Any:
+        args = []
         limit = ""
         if page is not None and page_size is not None:
             page = page if page > 0 else 1
-            page = (page - 1) * page_size
-            limit = "Limit {page}, {size}".format(page=page, size=page_size)
+            limit, args = pagination_clause(database_type(), (page - 1) * page_size, page_size)
         where = ""
         if query:
-            where = "WHERE a.enterprise_alias LIKE '%{query}%' OR a.enterprise_name LIKE '%{query}%'".format(query=query)
+            where = "WHERE a.enterprise_alias LIKE %s OR a.enterprise_name LIKE %s"
+            args[0:0] = ["%" + query + "%"] * 2
         sql = """
         SELECT
             a.enterprise_id,
@@ -223,13 +225,15 @@ class TenantEnterpriseRepo(object):
             where=where, limit=limit)
 
         conn = BaseConnection()
-        result = conn.query(sql)
+        result = conn.query(sql, args)
         return result
 
     def count_appstore_infos(self, query: str = "") -> Any:
+        args = []
         where = ""
         if query:
-            where = "WHERE a.enterprise_alias LIKE '%{query}%' OR a.enterprise_name LIKE '%{query}%'".format(query=query)
+            where = "WHERE a.enterprise_alias LIKE %s OR a.enterprise_name LIKE %s"
+            args = ["%" + query + "%"] * 2
         sql = """
         SELECT
             count(*) as total
@@ -240,7 +244,7 @@ class TenantEnterpriseRepo(object):
         """.format(where=where)
 
         conn = BaseConnection()
-        result = conn.query(sql)
+        result = conn.query(sql, args)
         return result[0]["total"]
 
     def get_enterprise_user_request_join(self, enterprise_id: str, user_id: str) -> "QuerySet[Applicants]":

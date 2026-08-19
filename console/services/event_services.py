@@ -9,6 +9,7 @@ from console.repositories.app import service_repo
 from console.repositories.event_repo import event_repo
 from console.repositories.team_repo import team_repo
 from console.services.app_actions.app_log import AppEventService
+from console.utils.database import database_type, pagination_clause
 from goodrain_web.tools import JuncheePaginator
 from www.apiclient.regionapi import RegionInvokeApi
 from www.db.base import BaseConnection
@@ -25,19 +26,19 @@ class ServiceEventDynamic(object):
         dsn = BaseConnection()
         start = (int(page) - 1) * int(page_size)
         end = page_size
+        limit, limit_args = pagination_clause(database_type(), start, end)
 
         query_sql = """
         select e.start_time, e.event_id, s.service_alias, s.service_cname
         from service_event e
                  JOIN tenant_service s on e.service_id = s.service_id
-        WHERE e.tenant_id = "{team_id}"
-          and s.service_region = "{region_name}"
+        WHERE e.tenant_id = %s
+          and s.service_region = %s
         ORDER BY start_time DESC
-        LIMIT {start},{end}
-        """.format(
-            team_id=team.tenant_id, region_name=region, start=start, end=end)
+        {limit}
+        """.format(limit=limit)
 
-        events = dsn.query(query_sql)
+        events = dsn.query(query_sql, [team.tenant_id, region] + limit_args)
         events_ids = []
         event_id_service_info_map = dict()
         for e in events:

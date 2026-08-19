@@ -276,6 +276,9 @@
 | console.component.volume-delete-blocks-shared-mount | 被共享挂载时阻止删除组件存储卷 | active | regression | console.services.app_config.volume_service.AppVolumeService.delete_service_volume_by_id | console/tests/app_config_volume_delete_test.py::AppVolumeDeleteTests.test_delete_service_volume_rejects_shared_mount_even_when_forced |
 | console.database.backend-neutral-readiness | 使用 Django 数据库状态检查启动就绪性 | active | unit | entrypoint.sh database readiness workflow | console/tests/database_state_test.py::DatabaseStateTests |
 | console.database.dm-driver-bundle-preparation | 准备私有达梦 Python 驱动包 | active | regression | scripts/prepare_dameng_python_driver.sh | console/tests/dameng_driver_bundle_test.py::DamengDriverBundleScriptTest |
+| console.database.dm-query-capabilities | 安全生成达梦查询能力 SQL | active | regression | console.utils.database | console/tests/database_capabilities_test.py::DatabaseCapabilitiesTests |
+| console.database.dm-raw-sql-audit | 审计达梦场景下的 MySQL 专属原生 SQL | active | regression | Console raw SQL database capability boundary | console/tests/dameng_query_audit_test.py::DamengQueryAuditTests |
+| console.database.dm-result-column-normalization | 规范化达梦查询结果列名 | active | regression | console.repositories.base.BaseConnection._dict_fetch_all and www.db.base.BaseConnection._dict_fetch_all | console/tests/database_connection_test.py::DatabaseConnectionTests |
 | console.database.dm-settings-selection | 根据 DB_TYPE 选择 dmDjango 数据库设置和模式 | active | unit | goodrain_web.settings.DATABASES | console/tests/database_settings_test.py::DatabaseSettingsTests |
 | console.database.dm-standard-image | 标准控制台镜像内置达梦驱动 | active | regression | standard Console Dockerfile build stages | console/tests/dameng_driver_bundle_test.py::DamengDockerfileStructureTest |
 | console.dependency.invalid-container-port | Dependency Invalid Container Port | active | regression | console.services.app_config.app_relation_service.AppServiceRelationService | console/tests/app_relation_service_test.py::AppRelationServiceTests.test_add_service_dependency_rejects_unknown_dep_service_port |
@@ -3305,6 +3308,36 @@
 - 业务入口: `scripts/prepare_dameng_python_driver.sh`
 - 代码路径: `scripts/prepare_dameng_python_driver.sh`
 - 测试路径: `console/tests/dameng_driver_bundle_test.py::DamengDriverBundleScriptTest`
+
+### 安全生成达梦查询能力 SQL
+
+- Capability ID: `console.database.dm-query-capabilities`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `package_function`
+- 业务入口: `console.utils.database`
+- 代码路径: `console/utils/database.py`, `console/repositories/app.py`, `console/repositories/enterprise_repo.py`, `console/repositories/user_repo.py`, `console/services/app_config/domain_service.py`, `console/views/app_config/app_domain.py`, `console/views/app_config/app_env.py`
+- 测试路径: `console/tests/database_capabilities_test.py::DatabaseCapabilitiesTests`
+
+### 审计达梦场景下的 MySQL 专属原生 SQL
+
+- Capability ID: `console.database.dm-raw-sql-audit`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `workflow`
+- 业务入口: `Console raw SQL database capability boundary`
+- 代码路径: `console/repositories/app.py`, `console/repositories/app_config.py`, `console/repositories/enterprise_repo.py`, `console/repositories/plugin/plugin.py`, `console/repositories/service_repo.py`, `console/repositories/share_repo.py`, `console/repositories/team_repo.py`, `console/repositories/tenant_region_repo.py`, `console/repositories/user_role_repo.py`, `console/repositories/user_repo.py`, `console/services/app_config/domain_service.py`, `console/services/app_config/plugin_service.py`, `console/services/service_services.py`, `console/services/plugin/app_plugin.py`, `console/services/market_app_service.py`, `console/views/app_config/app_domain.py`, `console/views/app_config/app_env.py`, `console/views/public_areas.py`, `console/utils/database.py`, `www/db/service_group_repository.py`, `www/services/plugin.py`
+- 测试路径: `console/tests/dameng_query_audit_test.py::DamengQueryAuditTests`
+
+### 规范化达梦查询结果列名
+
+- Capability ID: `console.database.dm-result-column-normalization`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `dao_method`
+- 业务入口: `console.repositories.base.BaseConnection._dict_fetch_all and www.db.base.BaseConnection._dict_fetch_all`
+- 代码路径: `console/repositories/base.py`, `www/db/base.py`, `console/utils/database.py`
+- 测试路径: `console/tests/database_connection_test.py::DatabaseConnectionTests`
 
 ### 根据 DB_TYPE 选择 dmDjango 数据库设置和模式
 

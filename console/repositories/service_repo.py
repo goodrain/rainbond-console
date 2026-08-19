@@ -26,11 +26,11 @@ class ServiceRepo(object):
                 tenant_info b
             WHERE
                 a.tenant_id = b.tenant_id
-                AND b.enterprise_id = "{eid}"
+                AND b.enterprise_id = %s
                 AND a.service_source = "source_code"
                 AND a.create_status = "complete"
-                LIMIT 1""".format(eid=eid)
-        result = conn.query(sql)
+                LIMIT 1"""
+        result = conn.query(sql, [eid])
         return True if len(result) > 0 else False
 
     def check_image_svc_by_eid(self, eid: str) -> bool:
@@ -43,11 +43,11 @@ class ServiceRepo(object):
                 tenant_info b
             WHERE
                 a.tenant_id = b.tenant_id
-                AND b.enterprise_id = "{eid}"
+                AND b.enterprise_id = %s
                 AND a.create_status="complete"
                 AND a.service_source IN ( "docker_image", "docker_compose", "docker_run" )
-                LIMIT 1""".format(eid=eid)
-        result = conn.query(sql)
+                LIMIT 1"""
+        result = conn.query(sql, [eid])
         return True if len(result) > 0 else False
 
     def check_db_from_market_by_eid(self, eid: str) -> bool:
@@ -60,11 +60,11 @@ class ServiceRepo(object):
                 tenant_info b
             WHERE
                 a.tenant_id = b.tenant_id
-                AND b.enterprise_id = "{eid}"
+                AND b.enterprise_id = %s
                 AND a.service_source = "market"
                 AND ( a.image LIKE "%mysql%" OR a.image LIKE "%postgres%" OR a.image LIKE "%mariadb%" )
-                LIMIT 1""".format(eid=eid)
-        result = conn.query(sql)
+                LIMIT 1"""
+        result = conn.query(sql, [eid])
         return True if len(result) > 0 else False
 
     def list_svc_by_tenant(self, tenant: Any) -> QuerySet:

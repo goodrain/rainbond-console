@@ -22,6 +22,7 @@ from console.services.region_services import region_services
 from console.services.team_services import team_services
 from console.services.virtual_machine import vms
 from console.utils.reqparse import parse_item
+from console.utils.database import database_type, pagination_clause
 from console.views.app_config.base import AppBaseView
 from console.views.base import RegionTenantHeaderView
 from django.db import connection
@@ -1033,73 +1034,32 @@ class DomainQueryView(RegionTenantHeaderView):
         search_conditions = request.GET.get("search_conditions", None)
         tenant = team_services.get_tenant_by_tenant_name(tenantName)
         region = region_repo.get_region_by_region_name(self.response_region)
-        # 查询分页排序
+        filters = ["sd.tenant_id=%s", "sd.region_id=%s"]
+        args = [tenant.tenant_id, region.region_id]  # type: ignore[union-attr]
+        joins = """
+            from service_domain sd
+            left join service_group_relation sgr on sd.service_id = sgr.service_id
+            left join service_group sg on sgr.group_id = sg.id
+        """
         if search_conditions:
-            # 获取总数
-            cursor = connection.cursor()
-            cursor.execute("select count(sd.domain_name) \
-                from service_domain sd \
-                    left join service_group_relation sgr on sd.service_id = sgr.service_id \
-                    left join service_group sg on sgr.group_id = sg.id  \
-                where sd.tenant_id='{0}' and sd.region_id='{1}' \
-                    and (sd.domain_name like '%{2}%' \
-                        or sd.service_alias like '%{2}%' \
-                        or sg.group_name like '%{2}%');".format(
-                tenant.tenant_id, region.region_id, search_conditions))  # type: ignore[union-attr]
-            domain_count = cursor.fetchall()
+            filters.append("(sd.domain_name like %s or sd.service_alias like %s or sg.group_name like %s)")
+            args.extend(["%" + search_conditions + "%"] * 3)
+        where = " where " + " and ".join(filters)
+        cursor = connection.cursor()
+        cursor.execute("select count(sd.domain_name)" + joins + where, args)
+        total = cursor.fetchall()[0][0]
 
-            total = domain_count[0][0]
-            start = (page - 1) * page_size
-            remaining_num = total - (page - 1) * page_size
-            end = page_size
-            if remaining_num < page_size:
-                end = remaining_num
-            if remaining_num <= 0:
-                tenant_tuples = []
-            else:
-                cursor = connection.cursor()
-                cursor.execute("select sd.domain_name, sd.type, sd.is_senior, sd.certificate_id, sd.service_alias, \
-                        sd.protocol, sd.service_name, sd.container_port, sd.http_rule_id, sd.service_id, \
-                        sd.domain_path, sd.domain_cookie, sd.domain_heander, sd.the_weight, \
-                        sd.is_outer_service, sd.path_rewrite, sd.rewrites \
-                    from service_domain sd \
-                        left join service_group_relation sgr on sd.service_id = sgr.service_id \
-                        left join service_group sg on sgr.group_id = sg.id \
-                    where sd.tenant_id='{0}' \
-                        and sd.region_id='{1}' \
-                        and (sd.domain_name like '%{2}%' \
-                            or sd.service_alias like '%{2}%' \
-                            or sg.group_name like '%{2}%') \
-                    order by type desc LIMIT {3},{4};".format(
-                        tenant.tenant_id, region.region_id, search_conditions, start,  # type: ignore[union-attr]
-                        end))
-                tenant_tuples = cursor.fetchall()
-        else:
-            # 获取总数
-            cursor = connection.cursor()
-            cursor.execute("select count(1) from service_domain where tenant_id='{0}' and region_id='{1}';".format(
-                tenant.tenant_id, region.region_id))  # type: ignore[union-attr]
-            domain_count = cursor.fetchall()
-
-            total = domain_count[0][0]
-            start = (page - 1) * page_size
-            remaining_num = total - (page - 1) * page_size
-            end = page_size
-            if remaining_num <= page_size:
-                end = remaining_num
-            if remaining_num < 0:
-                tenant_tuples = []
-            else:
-                cursor = connection.cursor()
-
-                cursor.execute("""select domain_name, type, is_senior, certificate_id, service_alias, protocol,
-                    service_name, container_port, http_rule_id, service_id, domain_path, domain_cookie,
-                    domain_heander, the_weight, is_outer_service, path_rewrite,
-                    rewrites from service_domain where tenant_id='{0}'
-                    and region_id='{1}' order by type desc LIMIT {2},{3};""".format(
-                        tenant.tenant_id, region.region_id, start,  # type: ignore[union-attr]
-                        end))
-                tenant_tuples = cursor.fetchall()
+        start = max(page - 1, 0) * max(page_size, 1)
+        limit, limit_args = pagination_clause(database_type(), start, max(page_size, 1))
+        cursor = connection.cursor()
+        cursor.execute(
+            "select sd.domain_name, sd.type, sd.is_senior, sd.certificate_id, sd.service_alias, "
+            "sd.protocol, sd.service_name, sd.container_port, sd.http_rule_id, sd.service_id, "
+            "sd.domain_path, sd.domain_cookie, sd.domain_heander, sd.the_weight, sd.is_outer_service, "
+            "sd.path_rewrite, sd.rewrites" + joins + where + " order by sd.type desc" + limit,
+            args + limit_args,
+        )
+        tenant_tuples = cursor.fetchall()
         # 拼接展示数据
         domain_list = list()
         for tenant_tuple in tenant_tuples:
@@ -1156,67 +1116,31 @@ class ServiceTcpDomainQueryView(RegionTenantHeaderView):
         tenant = team_services.get_tenant_by_tenant_name(tenantName)
         region = region_repo.get_region_by_region_name(self.response_region)
         try:
-            # 查询分页排序
+            filters = ["std.tenant_id=%s", "std.region_id=%s"]
+            args = [tenant.tenant_id, region.region_id]  # type: ignore[union-attr]
+            joins = """
+                from service_tcp_domain std
+                left join service_group_relation sgr on std.service_id = sgr.service_id
+                left join service_group sg on sgr.group_id = sg.id
+            """
             if search_conditions:
-                # 获取总数
-                cursor = connection.cursor()
-                cursor.execute("select count(1) from service_tcp_domain std \
-                        left join service_group_relation sgr on std.service_id = sgr.service_id \
-                        left join service_group sg on sgr.group_id = sg.id  \
-                    where std.tenant_id='{0}' and std.region_id='{1}' \
-                        and (std.end_point like '%{2}%' \
-                            or std.service_alias like '%{2}%' \
-                            or sg.group_name like '%{2}%');".format(
-                    tenant.tenant_id, region.region_id, search_conditions))  # type: ignore[union-attr]
-                domain_count = cursor.fetchall()
+                filters.append("(std.end_point like %s or std.service_alias like %s or sg.group_name like %s)")
+                args.extend(["%" + search_conditions + "%"] * 3)
+            where = " where " + " and ".join(filters)
+            cursor = connection.cursor()
+            cursor.execute("select count(1)" + joins + where, args)
+            total = cursor.fetchall()[0][0]
 
-                total = domain_count[0][0]
-                start = (page - 1) * page_size
-                remaining_num = total - (page - 1) * page_size
-                end = page_size
-                if remaining_num < page_size:
-                    end = remaining_num
-
-                cursor = connection.cursor()
-                cursor.execute("select std.end_point, std.type, std.protocol, std.service_name, std.service_alias, \
-                        std.container_port, std.tcp_rule_id, std.service_id, std.is_outer_service \
-                    from service_tcp_domain std \
-                        left join service_group_relation sgr on std.service_id = sgr.service_id \
-                        left join service_group sg on sgr.group_id = sg.id  \
-                    where std.tenant_id='{0}' and std.region_id='{1}' \
-                        and (std.end_point like '%{2}%' \
-                            or std.service_alias like '%{2}%' \
-                            or sg.group_name like '%{2}%') \
-                    order by type desc LIMIT {3},{4};".format(
-                        tenant.tenant_id, region.region_id, search_conditions, start,  # type: ignore[union-attr]
-                        end))
-                tenant_tuples = cursor.fetchall()
-            else:
-                # 获取总数
-                cursor = connection.cursor()
-                cursor.execute("select count(1) from service_tcp_domain where tenant_id='{0}' and region_id='{1}';".format(
-                    tenant.tenant_id, region.region_id))  # type: ignore[union-attr]
-                domain_count = cursor.fetchall()
-
-                total = domain_count[0][0]
-                start = (page - 1) * page_size
-                remaining_num = total - (page - 1) * page_size
-                end = page_size
-                if remaining_num < page_size:
-                    end = remaining_num
-
-                cursor = connection.cursor()
-                cursor.execute("""
-                        select end_point, type,
-                        protocol, service_name,
-                        service_alias, container_port,
-                        tcp_rule_id, service_id,
-                        is_outer_service
-                        from service_tcp_domain
-                        where tenant_id='{0}' and region_id='{1}' order by type desc
-                        LIMIT {2},{3};
-                    """.format(tenant.tenant_id, region.region_id, start, end))  # type: ignore[union-attr]
-                tenant_tuples = cursor.fetchall()
+            start = max(page - 1, 0) * max(page_size, 1)
+            limit, limit_args = pagination_clause(database_type(), start, max(page_size, 1))
+            cursor = connection.cursor()
+            cursor.execute(
+                "select std.end_point, std.type, std.protocol, std.service_name, std.service_alias, "
+                "std.container_port, std.tcp_rule_id, std.service_id, std.is_outer_service" + joins + where
+                + " order by std.type desc" + limit,
+                args + limit_args,
+            )
+            tenant_tuples = cursor.fetchall()
         except Exception as e:
             logger.exception(e)
             result = general_message(405, "faild", "查询数据库失败")

@@ -5162,6 +5162,88 @@
       "status": "active"
     },
     {
+      "id": "console.database.dm-query-capabilities",
+      "title": "Render Dameng query capabilities safely",
+      "title_zh": "安全生成达梦查询能力 SQL",
+      "interface_type": "package_function",
+      "interface": "console.utils.database",
+      "code_paths": [
+        "console/utils/database.py",
+        "console/repositories/app.py",
+        "console/repositories/enterprise_repo.py",
+        "console/repositories/user_repo.py",
+        "console/services/app_config/domain_service.py",
+        "console/views/app_config/app_domain.py",
+        "console/views/app_config/app_env.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/database_capabilities_test.py",
+          "selector": "DatabaseCapabilitiesTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.database.dm-raw-sql-audit",
+      "title": "Audit MySQL-only raw SQL for Dameng",
+      "title_zh": "审计达梦场景下的 MySQL 专属原生 SQL",
+      "interface_type": "workflow",
+      "interface": "Console raw SQL database capability boundary",
+      "code_paths": [
+        "console/repositories/app.py",
+        "console/repositories/app_config.py",
+        "console/repositories/enterprise_repo.py",
+        "console/repositories/plugin/plugin.py",
+        "console/repositories/service_repo.py",
+        "console/repositories/share_repo.py",
+        "console/repositories/team_repo.py",
+        "console/repositories/tenant_region_repo.py",
+        "console/repositories/user_role_repo.py",
+        "console/repositories/user_repo.py",
+        "console/services/app_config/domain_service.py",
+        "console/services/app_config/plugin_service.py",
+        "console/services/service_services.py",
+        "console/services/plugin/app_plugin.py",
+        "console/services/market_app_service.py",
+        "console/views/app_config/app_domain.py",
+        "console/views/app_config/app_env.py",
+        "console/views/public_areas.py",
+        "console/utils/database.py",
+        "www/db/service_group_repository.py",
+        "www/services/plugin.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/dameng_query_audit_test.py",
+          "selector": "DamengQueryAuditTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.database.dm-result-column-normalization",
+      "title": "Normalize Dameng result column labels",
+      "title_zh": "规范化达梦查询结果列名",
+      "interface_type": "dao_method",
+      "interface": "console.repositories.base.BaseConnection._dict_fetch_all and www.db.base.BaseConnection._dict_fetch_all",
+      "code_paths": [
+        "console/repositories/base.py",
+        "www/db/base.py",
+        "console/utils/database.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/database_connection_test.py",
+          "selector": "DatabaseConnectionTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.database.dm-settings-selection",
       "title": "Select dmDjango settings and schema from DB_TYPE",
       "title_zh": "根据 DB_TYPE 选择 dmDjango 数据库设置和模式",

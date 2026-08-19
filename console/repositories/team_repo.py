@@ -6,6 +6,7 @@ from console.exception.exceptions import TenantNotExistError
 from console.exception.main import ServiceHandleException
 from console.models.main import RegionConfig, TeamGitlabInfo, TeamRegistryAuth
 from console.repositories.base import BaseConnection
+from console.utils.database import database_type, pagination_clause
 from django.db.models import Q, QuerySet
 from www.models.main import (PermRelTenant, TenantEnterprise, TenantRegionInfo, Tenants, Users, TeamInvitation)
 from www.utils.crypt import make_tenant_id
@@ -88,22 +89,20 @@ class TeamRepo(object):
         return tenant_perms
 
     def get_not_join_users(self, enterprise: TenantEnterprise, tenant: Tenants, query: str) -> Any:
-        where = """(SELECT DISTINCT user_id FROM tenant_perms WHERE tenant_id="{}" AND enterprise_id={})""".format(
-            tenant.ID, enterprise.ID)
-
         sql = """
             SELECT user_id, nick_name, enterprise_id, email
             FROM user_info
-            WHERE user_id NOT IN {where}
-            AND enterprise_id="{enterprise_id}"
-        """.format(
-            where=where, enterprise_id=enterprise.enterprise_id)
+            WHERE user_id NOT IN (
+                SELECT DISTINCT user_id FROM tenant_perms WHERE tenant_id=%s AND enterprise_id=%s
+            )
+            AND enterprise_id=%s
+        """
+        args = [tenant.ID, enterprise.ID, enterprise.enterprise_id]
         if query:
-            sql += """
-            AND nick_name like "%{query}%"
-            """.format(query=query)
+            sql += "AND nick_name like %s"
+            args.append("%" + query + "%")
         conn = BaseConnection()
-        result = conn.query(sql)
+        result = conn.query(sql, args)
 
         return result
 
@@ -224,12 +223,15 @@ class TeamRepo(object):
 
     def list_teams_v2(self, query: str = "", page: Optional[int] = None, page_size: Optional[int] = None) -> Any:
         where = "WHERE t.creater = u.user_id"
+        args = []
         if query:
-            where += " AND t.tenant_alias LIKE '%{query}%'".format(query=query)
+            where += " AND t.tenant_alias LIKE %s"
+            args.append("%" + query + "%")
         limit = ""
         if page is not None and page_size is not None:
             page = (page - 1) * page_size
-            limit = "LIMIT {page}, {page_size}".format(page=page, page_size=page_size)
+            limit, limit_args = pagination_clause(database_type(), page, page_size)
+            args.extend(limit_args)
         sql = """
         SELECT
             t.tenant_name,
@@ -255,24 +257,26 @@ class TeamRepo(object):
         """.format(
             where=where, limit=limit)
         conn = BaseConnection()
-        result = conn.query(sql)
+        result = conn.query(sql, args)
         return result
 
     def list_by_user_id(self, eid: str, user_id: str, query: str = "", page: Optional[int] = None,
                         page_size: Optional[int] = None) -> Any:
+        args = [user_id, eid]
         limit = ""
         if page is not None and page_size is not None:
             page = page if page > 0 else 1
             page = (page - 1) * page_size
-            limit = "Limit {page}, {size}".format(page=page, size=page_size)
+            limit, limit_args = pagination_clause(database_type(), page, page_size)
+            args.extend(limit_args)
         where = """WHERE a.ID = b.tenant_id
                 AND c.user_id = b.user_id
-                AND b.user_id = {user_id}
-                AND a.enterprise_id = '{eid}'
-                """.format(
-            user_id=user_id, eid=eid)
+                AND b.user_id = %s
+                AND a.enterprise_id = %s
+                """
         if query:
-            where += """AND ( a.tenant_alias LIKE "%{query}%" OR c.nick_name LIKE "%{query}%" )""".format(query=query)
+            where += """AND ( a.tenant_alias LIKE %s OR c.nick_name LIKE %s )"""
+            args.extend(["%" + query + "%", "%" + query + "%"])
         sql = """
             SELECT DISTINCT
                 a.ID,
@@ -289,21 +293,22 @@ class TeamRepo(object):
                 user_info c
             {where}
             {limit}
-            """.format(
+        """.format(
             where=where, limit=limit)
         conn = BaseConnection()
-        result = conn.query(sql)
+        result = conn.query(sql, args)
         return result
 
     def count_by_user_id(self, eid: str, user_id: str, query: str = "") -> Any:
+        args = [user_id, eid]
         where = """WHERE a.ID = b.tenant_id
                 AND c.user_id = b.user_id
-                AND b.user_id = {user_id}
-                AND a.enterprise_id = '{eid}'
-                """.format(
-            user_id=user_id, eid=eid)
+                AND b.user_id = %s
+                AND a.enterprise_id = %s
+                """
         if query:
-            where += """AND a.tenant_alias LIKE "%{query}%" """.format(query=query)
+            where += """AND a.tenant_alias LIKE %s """
+            args.append("%" + query + "%")
         sql = """
         SELECT
             count( * ) AS total
@@ -318,7 +323,7 @@ class TeamRepo(object):
             {where}
             ) as tmp""".format(where=where)
         conn = BaseConnection()
-        result = conn.query(sql)
+        result = conn.query(sql, args)
         return result[0].get("total")
 
     def get_team_regions(self, team_id: str) -> "QuerySet[RegionConfig]":

@@ -67,11 +67,11 @@ class PluginService(object):
         query_sql = """SELECT * from plugin_build_version  WHERE
                           id in (
                                    SELECT max(id) from plugin_build_version WHERE
-                                    tenant_id="{0}" and region="{1}" GROUP BY plugin_id
+                                    tenant_id=%s and region=%s GROUP BY plugin_id
                                 ) and
-                                  plugin_build_version.tenant_id="{2}";""".format(tenant.tenant_id, region, tenant.tenant_id)
+                                  plugin_build_version.tenant_id=%s;"""
 
-        data = self.dsn.query(query_sql)
+        data = self.dsn.query(query_sql, [tenant.tenant_id, region, tenant.tenant_id])
         for d in data:
             plugin = TenantPlugin.objects.get(plugin_id=d.plugin_id)
             record_map = {}

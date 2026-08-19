@@ -14,10 +14,10 @@ class TenantRegionRepo(object):
             region_info a
             LEFT JOIN tenant_region b ON a.region_name = b.region_name
         WHERE
-            b.tenant_id = "{tenant_id}"
-        """.format(tenant_id=tenant_id)
+            b.tenant_id = %s
+        """
         conn = BaseConnection()
-        result = conn.query(sql)
+        result = conn.query(sql, [tenant_id])
         return result[0]["total"]
 
     def get_by_tenant_id_and_region_name(self, tenant_id: str, region_name: str) -> TenantRegionInfo:

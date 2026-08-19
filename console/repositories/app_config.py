@@ -5,10 +5,10 @@
 import datetime
 import json
 import logging
-import os
 from typing import Any, List, Optional, Tuple
 
 from console.exception.main import AbortRequest
+from console.utils.database import database_type
 from console.utils.shortcuts import get_object_or_404
 from django.db.models import Q, QuerySet
 from www.db.base import BaseConnection
@@ -447,13 +447,13 @@ class TenantServiceRelationRepository(object):
                 tenant_service d
             WHERE
                 b.tenant_id = c.tenant_id
-                AND c.enterprise_id = "{eid}"
+                AND c.enterprise_id = %s
                 AND a.service_id = d.service_id
                 AND a.dep_service_id = b.service_id
                 AND ( b.image LIKE "%mysql%" OR b.image LIKE "%postgres%" OR b.image LIKE "%mariadb%" )
                 AND (b.service_source <> "market" OR d.service_source <> "market")
-                limit 1""".format(eid=eid)
-        result = conn.query(sql)
+                limit 1"""
+        result = conn.query(sql, [eid])
         if len(result) > 0:
             return True
         sql2 = """
@@ -468,7 +468,7 @@ class TenantServiceRelationRepository(object):
                 service_source f
             WHERE
                 b.tenant_id = c.tenant_id
-                AND c.enterprise_id = "{eid}"
+                AND c.enterprise_id = %s
                 AND a.service_id = d.service_id
                 AND a.dep_service_id = b.service_id
                 AND ( b.image LIKE "%mysql%" OR b.image LIKE "%postgres%" OR b.image LIKE "%mariadb%" )
@@ -476,8 +476,8 @@ class TenantServiceRelationRepository(object):
                 AND e.service_id = b.service_id
                 AND f.service_id = d.service_id
                 AND e.group_key <> f.group_key
-                LIMIT 1""".format(eid=eid)
-        result2 = conn.query(sql2)
+                LIMIT 1"""
+        result2 = conn.query(sql2, [eid])
         return True if len(result2) > 0 else False
 
     @staticmethod
@@ -505,8 +505,6 @@ class TenantServiceMntRelationRepository(object):
     def get_service_mnts_filter_volume_type(self, tenant_id: str, service_id: str,
                                             volume_types: Any = None) -> List[TenantServiceMountRelation]:
         conn = BaseConnection()
-        query = "mnt.tenant_id = '%s' and mnt.service_id = '%s'" % (tenant_id, service_id)
-
         sql = """
         select mnt.mnt_name,
             mnt.mnt_dir,
@@ -518,9 +516,9 @@ class TenantServiceMntRelationRepository(object):
         from tenant_service_mnt_relation as mnt
                  inner join tenant_service_volume as volume
                             on mnt.dep_service_id = volume.service_id and mnt.mnt_name = volume.volume_name
-        where {};
-        """.format(query)
-        result = conn.query(sql)
+        where mnt.tenant_id = %s and mnt.service_id = %s;
+        """
+        result = conn.query(sql, [tenant_id, service_id])
         dep_mnts = []
         for real_dep_mnt in result:
             if volume_types and len(volume_types) == 1 and volume_types[0] == "config-file":
@@ -772,7 +770,7 @@ class ServiceDomainRepository(object):
         """
         conn = BaseConnection()
         team_name_query = "'%' || b.tenant_name || '%'"
-        if os.environ.get('DB_TYPE') == 'mysql':
+        if database_type() == 'mysql':
             team_name_query = "concat('%',b.tenant_name,'%')"
         sql = """
             SELECT
@@ -782,7 +780,7 @@ class ServiceDomainRepository(object):
                 tenant_info b
             WHERE
                 a.tenant_id = b.tenant_id
-                AND b.enterprise_id = "{eid}"
+                AND b.enterprise_id = %s
                 AND (
                     a.certificate_id <> 0
                     OR ( a.domain_path <> "/" AND a.domain_path <> "" )
@@ -793,9 +791,8 @@ class ServiceDomainRepository(object):
                     OR a.rewrites <> ""
                     OR a.domain_name NOT LIKE {team_name}
                 )
-                LIMIT 1""".format(
-            eid=eid, team_name=team_name_query)
-        result = conn.query(sql)
+                LIMIT 1""".format(team_name=team_name_query)
+        result = conn.query(sql, [eid])
         return True if len(result) > 0 else False
 
     def list_service_domains_by_cert_id(self, certificate_id: str) -> QuerySet:

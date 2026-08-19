@@ -12,6 +12,7 @@ from console.models.main import (AppMarket, RainbondCenterAppTag, RainbondCenter
                                  ServiceRelationRecycleBin, ServiceSourceInfo)
 from console.repositories.base import BaseConnection
 from console.repositories.team_repo import team_repo
+from console.utils.database import database_type, in_clause, list_aggregate, pagination_clause
 from django.db import transaction
 from django.db.models import QuerySet
 from docker_image import reference
@@ -31,7 +32,7 @@ PLATFORM_PLUGIN_DEFAULT_URL = "https://hub.grapps.cn"
 
 class TenantServiceInfoRepository(object):
     def list_by_svc_share_uuids(self, group_id: str, dep_uuids: Any) -> Any:
-        uuids = "'{}'".format("','".join(str(uuid) for uuid in dep_uuids))
+        uuids, args = in_clause(dep_uuids)
         conn = BaseConnection()
         sql = """
             SELECT
@@ -46,12 +47,11 @@ class TenantServiceInfoRepository(object):
             WHERE
                 a.tenant_id = b.team_id
                 AND a.service_id = b.service_id
-                AND b.service_share_uuid IN ( {uuids} )
+                AND b.service_share_uuid IN {uuids}
                 AND a.service_id = c.service_id
-                AND c.group_id = {group_id}
-            """.format(
-            group_id=group_id, uuids=uuids)
-        result = conn.query(sql)
+                AND c.group_id = %s
+            """.format(uuids=uuids)
+        result = conn.query(sql, args + [group_id])
         return result
 
     def list_by_ids(self, service_ids: Any) -> "QuerySet[TenantServiceInfo]":
@@ -66,17 +66,17 @@ class TenantServiceInfoRepository(object):
         return service_map
 
     def get_services_in_multi_apps_with_app_info(self, group_ids: Any) -> Any:
-        ids = "{0}".format(",".join(str(group_id) for group_id in group_ids))
+        ids, args = in_clause(group_ids)
         sql = """
         select svc.*, sg.id as group_id, sg.group_name, sg.region_name, sg.is_default, sg.note
         from tenant_service svc
             left join service_group_relation sgr on svc.service_id = sgr.service_id
             left join service_group sg on sg.id = sgr.group_id
-        where sg.id in ({ids});
+        where sg.id in {ids};
         """.format(ids=ids)
 
         conn = BaseConnection()
-        return conn.query(sql)
+        return conn.query(sql, args)
 
     def get_service_by_tenant_and_id(self, tenant_id: str, service_id: str) -> Optional[TenantServiceInfo]:
         services = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_id=service_id)
@@ -178,59 +178,62 @@ class TenantServiceInfoRepository(object):
         TenantServiceInfo(**service_base).save()
 
     def get_app_list(self, tenant_ids: Any, name: str, page: int, page_size: int) -> Any:
-        where = 'WHERE A.tenant_id in ({}) '.format(','.join(['"' + x + '"' for x in tenant_ids]))
+        tenant_clause, args = in_clause(tenant_ids)
+        where = 'WHERE A.tenant_id IN {0} '.format(tenant_clause)
         if name:
-            where += 'AND (A.group_name LIKE "{}%" OR C.service_cname LIKE "{}%") '.format(name, name)
-        limit = "LIMIT {page}, {page_size}".format(page=page - 1, page_size=page_size)
+            where += 'AND (A.group_name LIKE %s OR C.service_cname LIKE %s) '
+            args.extend([name + '%', name + '%'])
+        limit, limit_args = pagination_clause(database_type(), page - 1, page_size)
+        args.extend(limit_args)
+        service_json = """CONCAT('{"service_cname":"', C.service_cname, '"'), ',',
+                CONCAT('"service_id":"', C.service_id, '"'), ',',
+                CONCAT('"service_key":"', C.service_key, '"'), ',',
+                CONCAT('"service_alias":"', C.service_alias, '"}')"""
+        service_list = list_aggregate(service_json, database_type(), order_by='C.service_id')
         conn = BaseConnection()
         sql = """
         SELECT
             A.ID,
             A.group_name,
             A.tenant_id,
-            CONCAT('[',
-                GROUP_CONCAT(
-                CONCAT('{"service_cname":"',C.service_cname,'"'),',',
-                CONCAT('"service_id":"',C.service_id,'"'),',',
-                CONCAT('"service_key":"',C.service_key,'"'),',',
-                CONCAT('"service_alias":"',C.service_alias),'"}')
-            ,']') AS service_list
+            CONCAT('[', {service_list}, ']') AS service_list
         FROM service_group A
         LEFT JOIN service_group_relation B
         ON A.ID = B.group_id AND A.tenant_id = B.tenant_id
         LEFT JOIN tenant_service C
         ON B.service_id = C.service_id AND B.tenant_id = C.tenant_id
-        """
+        """.format(service_list=service_list)
         sql += where + "GROUP BY A.ID "
         sql += limit
-        result = conn.query(sql)
+        result = conn.query(sql, args)
         return result
 
     def get_app_count(self, tenant_ids: Any, name: str) -> Any:
-        where = 'WHERE A.tenant_id in ({}) '.format(','.join(['"' + x + '"' for x in tenant_ids]))
+        tenant_clause, args = in_clause(tenant_ids)
+        where = 'WHERE A.tenant_id IN {0} '.format(tenant_clause)
         if name:
-            where += ' AND (A.group_name LIKE "{}%" OR C.service_cname LIKE "{}%")'.format(name, name)
+            where += ' AND (A.group_name LIKE %s OR C.service_cname LIKE %s)'
+            args.extend([name + '%', name + '%'])
+        service_json = """CONCAT('{"service_cname":"', C.service_cname, '"'), ',',
+                CONCAT('"service_id":"', C.service_id, '"'), ',',
+                CONCAT('"service_key":"', C.service_key, '"'), ',',
+                CONCAT('"service_alias":"', C.service_alias, '"}')"""
+        service_list = list_aggregate(service_json, database_type(), order_by='C.service_id')
         conn = BaseConnection()
         sql = """
         SELECT
             A.ID,
             A.group_name,
             A.tenant_id,
-            CONCAT('[',
-            GROUP_CONCAT(
-                CONCAT('{"service_cname":"',C.service_cname,'"'),',',
-                CONCAT('"service_id":"',C.service_id,'"'),',',
-                CONCAT('"service_key":"',C.service_key,'"'),',',
-                CONCAT('"service_alias":"',C.service_alias),'"}')
-            ,']') AS service_list
+            CONCAT('[', {service_list}, ']') AS service_list
         FROM service_group A
         LEFT JOIN service_group_relation B
         ON A.ID = B.group_id AND A.tenant_id = B.tenant_id
         LEFT JOIN tenant_service C
         ON B.service_id = C.service_id AND B.tenant_id = C.tenant_id
-        """
+        """.format(service_list=service_list)
         sql += where + "GROUP BY A.ID "
-        result = conn.query(sql)
+        result = conn.query(sql, args)
         return result
 
     def get_services_by_team_and_region(self, team_id: str, region_name: str) -> "QuerySet[TenantServiceInfo]":
@@ -499,7 +502,7 @@ class AppTagRepository(object):
     def get_multi_apps_tags(self, eid: str, app_ids: Any) -> Any:
         if not app_ids:
             return None
-        app_ids = ",".join("'{0}'".format(app_id) for app_id in app_ids)
+        app_ids, args = in_clause(app_ids)
 
         sql = """
         select
@@ -510,12 +513,12 @@ class AppTagRepository(object):
             atr.enterprise_id = tag.enterprise_id
             and atr.tag_id = tag.ID
         where
-            atr.enterprise_id = '{eid}'
-            and atr.app_id in ({app_ids});
+            atr.enterprise_id = %s
+            and atr.app_id in {app_ids};
         """.format(
-            eid=eid, app_ids=app_ids)
+            app_ids=app_ids)
         conn = BaseConnection()
-        apps = conn.query(sql)
+        apps = conn.query(sql, [eid] + args)
         return apps
 
     def get_app_with_tags(self, eid: str, app_id: str) -> Any:
@@ -528,12 +531,11 @@ class AppTagRepository(object):
                     atr.enterprise_id = tag.enterprise_id
                     and atr.tag_id = tag.ID
                 where
-                    atr.enterprise_id = '{eid}'
-                    and atr.app_id = '{app_id}';
-                """.format(
-            eid=eid, app_id=app_id)
+                    atr.enterprise_id = %s
+                    and atr.app_id = %s;
+                """
         conn = BaseConnection()
-        apps = conn.query(sql)
+        apps = conn.query(sql, [eid, app_id])
         return apps
 
     def get_tag_name(self, enterprise_id: str, tag_id: str) -> RainbondCenterAppTag:

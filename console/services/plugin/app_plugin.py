@@ -116,7 +116,7 @@ class AppPluginService(object):
                                   category: str) -> Tuple[Any, Any]:
         """获取组件已开通和未开通的插件"""
 
-        QUERY_INSTALLED_SQL = """
+        query_installed_plugin = """
         SELECT
             tp.plugin_id AS plugin_id,
             tp.DESC AS "desc",
@@ -134,11 +134,12 @@ class AppPluginService(object):
             JOIN tenant_plugin tp ON tp.plugin_id = tsp.plugin_id
             AND tp.tenant_id = pbv.tenant_id
         WHERE
-            tsp.service_id = "{0}"
-            AND tp.region = "{1}"
-            AND tp.tenant_id = "{2}" """.format(service_id, region, tenant_id)
+            tsp.service_id = %s
+            AND tp.region = %s
+            AND tp.tenant_id = %s """
+        installed_args = [service_id, region, tenant_id]
 
-        QUERI_UNINSTALLED_SQL = """
+        query_uninstalled_plugin = """
             SELECT
                 tp.plugin_id AS plugin_id,
                 tp.DESC AS "desc",
@@ -150,29 +151,29 @@ class AppPluginService(object):
                 JOIN plugin_build_version AS pbv ON tp.plugin_id = pbv.plugin_id
                 AND tp.tenant_id = pbv.tenant_id
             WHERE
-                pbv.plugin_id NOT IN ( SELECT plugin_id FROM tenant_service_plugin_relation WHERE service_id = "{0}" )
-                AND tp.tenant_id = "{1}"
-                AND tp.region = "{2}"
-                AND pbv.build_status = "{3}"
-        """.format(service_id, tenant_id, region, "build_success")
+                pbv.plugin_id NOT IN ( SELECT plugin_id FROM tenant_service_plugin_relation WHERE service_id = %s )
+                AND tp.tenant_id = %s
+                AND tp.region = %s
+                AND pbv.build_status = %s
+        """
+        uninstalled_args = [service_id, tenant_id, region, "build_success"]
 
         if category == "analysis":
-            query_installed_plugin = """{0} AND tp.category="{1}" """.format(QUERY_INSTALLED_SQL, "analyst-plugin:perf")
-
-            query_uninstalled_plugin = """{0} AND tp.category="{1}" """.format(QUERI_UNINSTALLED_SQL, "analyst-plugin:perf")
+            query_installed_plugin += " AND tp.category=%s"
+            query_uninstalled_plugin += " AND tp.category=%s"
+            installed_args.append("analyst-plugin:perf")
+            uninstalled_args.append("analyst-plugin:perf")
 
         elif category == "net_manage":
-            query_installed_plugin = """{0} AND tp.category in {1} """.format(
-                QUERY_INSTALLED_SQL, '("net-plugin:down","net-plugin:up","net-plugin:in-and-out")')
-            query_uninstalled_plugin = """ {0} AND tp.category in {1} """.format(
-                QUERI_UNINSTALLED_SQL, '("net-plugin:down","net-plugin:up","net-plugin:in-and-out")')
-        else:
-            query_installed_plugin = QUERY_INSTALLED_SQL
-            query_uninstalled_plugin = QUERI_UNINSTALLED_SQL
+            category_args = ["net-plugin:down", "net-plugin:up", "net-plugin:in-and-out"]
+            query_installed_plugin += " AND tp.category in (%s, %s, %s)"
+            query_uninstalled_plugin += " AND tp.category in (%s, %s, %s)"
+            installed_args.extend(category_args)
+            uninstalled_args.extend(category_args)
 
         dsn = BaseConnection()
-        installed_plugins = dsn.query(query_installed_plugin)
-        uninstalled_plugins = dsn.query(query_uninstalled_plugin)
+        installed_plugins = dsn.query(query_installed_plugin, installed_args)
+        uninstalled_plugins = dsn.query(query_uninstalled_plugin, uninstalled_args)
         return installed_plugins, uninstalled_plugins
 
     def get_service_plugin_relation(self, service_id: str, plugin_id: str) -> Optional[TenantServicePluginRelation]:

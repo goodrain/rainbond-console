@@ -34,10 +34,10 @@ class ServiceGroupRepository(object):
         WHERE
             a.tenant_id = b.tenant_id
             AND a.is_default = 0
-            AND b.enterprise_id = "{eid}"
+            AND b.enterprise_id = %s
         LIMIT 1;
-        """.format(eid=eid)
-        result = conn.query(sql)
+        """
+        result = conn.query(sql, [eid])
         return True if len(result) > 0 else False
 
 

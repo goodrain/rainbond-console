@@ -12,6 +12,7 @@ from console.models.main import PermsInfo
 from console.models.main import RoleInfo
 from console.models.main import RolePerms
 from console.models.main import UserRole
+from console.utils.database import cast_integer, cast_text, database_type
 from console.utils.perms import get_perms_metadata
 from www.models.main import PermRelTenant, Users
 
@@ -248,16 +249,20 @@ class OptimizedRolePermRepo(object):
         from django.db import connection
 
         with connection.cursor() as cursor:
+            db_type = database_type()
             cursor.execute("""
                 SELECT DISTINCT rp.perm_code
                 FROM role_perms rp
-                INNER JOIN user_role ur ON rp.role_id = CAST(ur.role_id AS SIGNED)
-                INNER JOIN role_info ri ON ur.role_id = CAST(ri.ID AS CHAR)
+                INNER JOIN user_role ur ON rp.role_id = {role_id}
+                INNER JOIN role_info ri ON ur.role_id = {role_info_id}
                 WHERE ri.kind = %s
                   AND ri.kind_id = %s
                   AND ur.user_id = %s
                   AND rp.app_id = %s
-            """, ['team', tenant_id, str(user_id), app_id])
+            """.format(
+                role_id=cast_integer("ur.role_id", db_type),
+                role_info_id=cast_text("ri.ID", db_type),
+            ), ['team', tenant_id, str(user_id), app_id])
 
             results = cursor.fetchall()
             return [row[0] for row in results]
@@ -285,7 +290,7 @@ class OptimizedRolePermRepo(object):
 
         with connection.cursor() as cursor:
             # 根据数据库类型使用不同的 SQL
-            if connection.vendor == 'mysql':
+            if database_type() == 'mysql':
                 sql = """
                     SELECT DISTINCT rp.perm_code, rp.app_id
                     FROM role_perms rp
@@ -295,7 +300,17 @@ class OptimizedRolePermRepo(object):
                       AND ri.kind_id = %s
                       AND ur.user_id = %s
                 """
-            else:  # SQLite 或其他数据库
+            elif database_type() == 'dm':
+                sql = """
+                    SELECT DISTINCT rp.perm_code, rp.app_id
+                    FROM role_perms rp
+                    INNER JOIN user_role ur ON rp.role_id = CAST(ur.role_id AS INTEGER)
+                    INNER JOIN role_info ri ON ur.role_id = CAST(ri.ID AS VARCHAR(255))
+                    WHERE ri.kind = %s
+                      AND ri.kind_id = %s
+                      AND ur.user_id = %s
+                """
+            else:  # SQLite
                 sql = """
                     SELECT DISTINCT rp.perm_code, rp.app_id
                     FROM role_perms rp

@@ -55,6 +55,7 @@ from console.services.telemetry import telemetry_service
 from console.services.upgrade_services import upgrade_service
 from console.services.virtual_machine import vms
 from console.utils.offline import is_cloud_market_disabled
+from console.utils.database import database_type, list_aggregate, pagination_clause
 from console.utils.version import compare_version, sorted_versions
 from django.core.paginator import Paginator
 from django.db import transaction
@@ -1437,35 +1438,39 @@ class MarketAppService(object):
     def get_visiable_apps_v2(self, tenant: Tenants, scope: str, app_name: str, dev_status: str, page: int,
                              page_size: int) -> Any:
         limit = ""
-        where = 'WHERE A.is_complete=1 AND A.enterprise_id in ("public", "{}")'.format(tenant.enterprise_id)
+        args = [1, "public", tenant.enterprise_id]
+        where = 'WHERE A.is_complete = %s AND A.enterprise_id IN (%s, %s)'
         if scope:
             if scope == "team":
-                where += ' AND A.share_team="{}"'.format(tenant.tenant_name)
+                where += ' AND A.share_team = %s'
+                args.append(tenant.tenant_name)
             else:
-                where += ' AND A.scope="{}"'.format(scope)
+                where += ' AND A.scope = %s'
+                args.append(scope)
         else:
-            where += ' AND ((A.share_team="{}") OR (A.scope in ("goodrain", "enterprise")))'.format(tenant.tenant_name)
+            where += ' AND ((A.share_team = %s) OR (A.scope IN (%s, %s)))'
+            args.extend([tenant.tenant_name, "goodrain", "enterprise"])
         if app_name:
-            where += ' AND A.group_name like "{}%"'.format(app_name)
+            where += ' AND A.group_name LIKE %s'
+            args.append(app_name + "%")
         if dev_status:
-            where += ' AND A.dev_status="{}"'.format(dev_status)
+            where += ' AND A.dev_status = %s'
+            args.append(dev_status)
         if page is not None and page_size is not None:
-            page = (page - 1) * page_size
-            limit = "LIMIT {page}, {page_size}".format(page=page, page_size=page_size)
+            limit, limit_args = pagination_clause(database_type(), (page - 1) * page_size, page_size)
+            args.extend(limit_args)
+        tags = list_aggregate("CONCAT('{\"tag_id\":\"', C.ID, '\"'), ',', CONCAT('\"name\":\"', C.name, '\"}')",
+                              database_type(), order_by="C.ID")
         sql = """
                 SELECT
                     A.*,
-                    CONCAT('[',
-                        GROUP_CONCAT(
-                        CONCAT('{"tag_id":"',C.ID,'"'),',',
-                        CONCAT('"name":"',C.name),'"}')
-                    ,']') as tags
+                    CONCAT('[', {tags}, ']') as tags
                 FROM rainbond_center_app A
                 LEFT JOIN rainbond_center_app_tag_relation B
                 ON A.group_key = B.group_key and A.enterprise_id = B.enterprise_id
                 LEFT JOIN rainbond_center_app_tag C
                 ON B.tag_id = C.ID
-                """
+                """.format(tags=tags)
         sql1 = """
                 GROUP BY
                     A.group_key, A.version
@@ -1476,7 +1481,7 @@ class MarketAppService(object):
         sql += sql1
         sql += limit
         conn = BaseConnection()
-        result = conn.query(sql)
+        result = conn.query(sql, args)
         return result
 
     def get_current_team_shared_apps(self, enterprise_id: str, current_team_name: str) -> QuerySet:

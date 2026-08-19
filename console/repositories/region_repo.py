@@ -6,6 +6,7 @@ from console.models.main import RegionConfig
 from console.repositories.base import BaseConnection
 from console.repositories.init_cluster import rke_cluster
 from console.repositories.team_repo import team_repo
+from console.utils.database import database_type, pagination_clause
 from django.db.models import Q, QuerySet
 from www.models.main import TenantRegionInfo
 
@@ -129,19 +130,22 @@ class RegionRepo(object):
     # not list tenant region if region is not exist
     def list_by_tenant_id(self, tenant_id: str, query: str = "", page: Optional[int] = None,
                           page_size: Optional[int] = None) -> Any:
+        args = [tenant_id]
         limit = ""
         if page is not None and page_size is not None:
             page = page if page > 0 else 1
             page = (page - 1) * page_size
-            limit = "LIMIT {page}, {page_size}".format(page=page, page_size=page_size)
+            limit, limit_args = pagination_clause(database_type(), page, page_size)
+            args.extend(limit_args)
         where = """
         WHERE
             ti.tenant_id = tr.tenant_id
             AND ri.region_name = tr.region_name
-            AND ti.tenant_id = "{tenant_id}"
-        """.format(tenant_id=tenant_id)
+            AND ti.tenant_id = %s
+        """
         if query:
-            where += "AND (ri.region_name like '%{query}% OR ri.region_alias like '%{query}%)'".format(query=query)
+            where += "AND (ri.region_name LIKE %s OR ri.region_alias LIKE %s)"
+            args.extend(["%" + query + "%", "%" + query + "%"])
         sql = """
         SELECT
             ri.*, ti.tenant_name
@@ -154,17 +158,19 @@ class RegionRepo(object):
         """.format(
             where=where, limit=limit)
         conn = BaseConnection()
-        return conn.query(sql)
+        return conn.query(sql, args)
 
     def count_by_tenant_id(self, tenant_id: str, query: str = "") -> Any:
+        args = [tenant_id]
         where = """
         WHERE
             ti.tenant_id = tr.tenant_id
             AND ri.region_name = tr.region_name
-            AND ti.tenant_id = "{tenant_id}"
-        """.format(tenant_id=tenant_id)
+            AND ti.tenant_id = %s
+        """
         if query:
-            where += "AND (ri.region_name like '%{query}% OR ri.region_alias like '%{query}%)'".format(query=query)
+            where += "AND (ri.region_name LIKE %s OR ri.region_alias LIKE %s)"
+            args.extend(["%" + query + "%", "%" + query + "%"])
         sql = """
         SELECT
             count(*) as total
@@ -175,7 +181,7 @@ class RegionRepo(object):
         {where}
         """.format(where=where)
         conn = BaseConnection()
-        result = conn.query(sql)
+        result = conn.query(sql, args)
         return result[0]["total"]
 
     def del_by_enterprise_region_id(self, enterprise_id: str, region_id: str) -> RegionConfig:

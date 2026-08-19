@@ -605,9 +605,9 @@ class TenantServiceEnvsView(RegionTenantHeaderView):
             cursor = connection.cursor()
             cursor.execute("""
                 select attr_name from tenant_service_env_var
-                where tenant_id='{0}' and attr_name like '%{1}%'
+                where tenant_id=%s and attr_name like %s
                 order by attr_name;
-                """.format(self.team.tenant_id, attr_name))
+                """, [self.team.tenant_id, "%" + attr_name + "%"])
             service_envs = cursor.fetchall()
             if len(service_envs) > 0:
                 for service_env in service_envs:
@@ -622,9 +622,9 @@ class TenantServiceEnvsView(RegionTenantHeaderView):
             cursor = connection.cursor()
             cursor.execute("""
                 select attr_value from tenant_service_env_var
-                where tenant_id='{0}' and attr_value like '%{1}%'
+                where tenant_id=%s and attr_value like %s
                 order by attr_value;
-                """.format(self.team.tenant_id, attr_value))
+                """, [self.team.tenant_id, "%" + attr_value + "%"])
             service_envs = cursor.fetchall()
             if len(service_envs) > 0:
                 for service_env in service_envs:

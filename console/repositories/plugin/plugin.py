@@ -7,6 +7,7 @@ from typing import Any, List, Optional
 
 from django.db.models import QuerySet
 
+from console.utils.database import in_clause
 from www.db.base import BaseConnection
 from www.models.plugin import (PluginBuildVersion, PluginConfigGroup, PluginConfigItems, TenantPlugin)
 
@@ -69,17 +70,13 @@ class TenantPluginRepository(object):
     def get_plugins_by_service_ids(self, service_ids: Any) -> Any:
         if not service_ids:
             return []
-        ids = ""
-        for sid in service_ids:
-            ids += "\"{0}\",".format(sid)
-        if len(ids) > 1:
-            ids = ids[:-1]
+        ids, args = in_clause(service_ids)
         dsn = BaseConnection()
         query_sql = '''
             select t.*,p.build_version from tenant_plugin t,plugin_build_version p,tenant_service_plugin_relation r \
-            where r.service_id in({service_ids}) and t.plugin_id=r.plugin_id and p.build_version=r.build_version
+            where r.service_id in {service_ids} and t.plugin_id=r.plugin_id and p.build_version=r.build_version
             '''.format(service_ids=ids)
-        plugins = dsn.query(query_sql)
+        plugins = dsn.query(query_sql, args)
         return plugins
 
     def create_plugin(self, **plugin_args: Any) -> TenantPlugin:

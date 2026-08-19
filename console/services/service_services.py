@@ -17,6 +17,7 @@ from console.utils.cnb_build import (build_cnb_version_policy, get_cnb_policy_de
                                      normalize_golang_cnb_env_dict_for_response,
                                      normalize_dotnet_cnb_env_dict_for_response)
 from console.utils.oauth.oauth_types import support_oauth_type
+from console.utils.database import database_type, list_aggregate
 from www.apiclient.regionapi import RegionInvokeApi
 from www.db.base import BaseConnection
 
@@ -82,13 +83,12 @@ class BaseService(object):
                 LEFT JOIN region_info i ON t.service_region = i.region_name
 
             WHERE
-                t.tenant_id = "{team_id}"
-                AND t.service_region = "{region_name}"
+                t.tenant_id = %s
+                AND t.service_region = %s
             ORDER BY
                 t.update_time DESC;
-        '''.format(
-            team_id=team_id, region_name=region_name)
-        services = dsn.query(query_sql)
+        '''
+        services = dsn.query(query_sql, [team_id, region_name])
         return services
 
     def get_group_services_list(self, team_id: str, region_name: str, group_id: str, query: str = "") -> Any:
@@ -110,15 +110,14 @@ class BaseService(object):
                 LEFT JOIN service_group_relation r ON t.service_id = r.service_id
                 LEFT JOIN service_group g ON r.group_id = g.ID
             WHERE
-                t.tenant_id = "{team_id}"
-                AND t.service_region = "{region_name}"
-                AND r.group_id = "{group_id}"
-                AND t.service_cname like "%{service_cname}%"
+                t.tenant_id = %s
+                AND t.service_region = %s
+                AND r.group_id = %s
+                AND t.service_cname like %s
             ORDER BY
                 t.update_time DESC;
-        '''.format(
-            team_id=team_id, region_name=region_name, group_id=group_id, service_cname=query)
-        services = dsn.query(query_sql)
+        '''
+        services = dsn.query(query_sql, [team_id, region_name, group_id, "%" + query + "%"])
         return services
 
     def get_no_group_services_list(self, team_id: str, region_name: str) -> Any:
@@ -140,14 +139,13 @@ class BaseService(object):
                 LEFT JOIN service_group_relation r ON t.service_id = r.service_id
                 LEFT JOIN service_group g ON r.group_id = g.ID
             WHERE
-                t.tenant_id = "{team_id}"
-                AND t.service_region = "{region_name}"
+                t.tenant_id = %s
+                AND t.service_region = %s
                 AND r.group_id IS NULL
             ORDER BY
                 t.update_time DESC;
-        '''.format(
-            team_id=team_id, region_name=region_name)
-        services = dsn.query(query_sql)
+        '''
+        services = dsn.query(query_sql, [team_id, region_name])
         return services
 
     def get_fuzzy_services_list(self, team_id: str, region_name: str, query_key: str, fields: str, order: str) -> Any:
@@ -174,14 +172,13 @@ class BaseService(object):
                 LEFT JOIN service_group_relation r ON t.service_id = r.service_id
                 LEFT JOIN service_group g ON r.group_id = g.ID
             WHERE
-                t.tenant_id = "{team_id}"
-                AND t.service_region = "{region_name}"
-                AND t.service_cname LIKE "%{query_key}%"
+                t.tenant_id = %s
+                AND t.service_region = %s
+                AND t.service_cname LIKE %s
             ORDER BY
-                t.{fields} {order};
-        '''.format(
-            team_id=team_id, region_name=region_name, query_key=query_key, fields=fields, order=order)
-        services = dsn.query(query_sql)
+            t.{fields} {order};
+        '''.format(fields=fields, order=order)
+        services = dsn.query(query_sql, [team_id, region_name, "%" + query_key + "%"])
         return services
 
     def status_multi_service(self, region: str, tenant_name: str, service_ids: Any, enterprise_id: str) -> list:
@@ -258,18 +255,19 @@ class BaseService(object):
 
     def get_enterprise_group_services(self, enterprise_id: str) -> Any:
         where = 'WHERE group_id IN (SELECT ID FROM service_group WHERE tenant_id IN (SELECT tenant_id FROM ' \
-                'tenant_info WHERE enterprise_id="{enterprise_id}")) '.format(enterprise_id=enterprise_id)
+                'tenant_info WHERE enterprise_id = %s)) '
         group_by = "GROUP BY group_id"
+        service_ids = list_aggregate("CONCAT('\"', service_id, '\"')", database_type(), order_by="service_id")
         sql = """
             SELECT
                 group_id,
-                CONCAT('[', GROUP_CONCAT(CONCAT('"', service_id, '"')), ']') as service_ids
+                CONCAT('[', {service_ids}, ']') as service_ids
             FROM service_group_relation
-        """
+        """.format(service_ids=service_ids)
         sql += where
         sql += group_by
         conn = BaseConnection()
-        result = conn.query(sql)
+        result = conn.query(sql, [enterprise_id])
         return result
 
     def get_build_infos(self, tenant: Tenants, service_ids: Any) -> dict:
