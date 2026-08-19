@@ -79,6 +79,7 @@ class InternalRainSkillsAuditViewTests(TestCase):
         self.assertEqual(len(response.data["data"]), 1)
         event = response.data["data"][0]["event"]
         self.assertEqual(event["operation"]["enterprise_id"], "enterprise-1")
+        self.assertEqual(event["operation"]["input_json"], {"app_name": "demo"})
         self.assertNotIn("content", event["skill"])
         self.assertFalse(response.data["meta"]["has_more"])
 

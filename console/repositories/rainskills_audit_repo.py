@@ -182,6 +182,7 @@ class RainSkillsAuditRepository(object):
                 "scope": operation.scope,
                 "arguments_digest": operation.arguments_digest,
                 "target_context": operation.target_context,
+                "input_json": operation.input_json,
                 "confirmation_type": operation.confirmation_type,
                 "status": operation.status,
                 "output_summary": operation.output_summary,
