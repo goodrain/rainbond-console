@@ -12,6 +12,7 @@ from console.services.rainskills_audit_service import (
     _target_context,
     rainskills_audit_service,
 )
+from console.services.rainskills_tool_audit_policy import classify_tool
 
 
 class RainSkillsAuditServiceSafetyTests(SimpleTestCase):
@@ -45,9 +46,12 @@ class RainSkillsAuditServiceSafetyTests(SimpleTestCase):
             self.assertNotIn(secret, summary)
 
     @patch("console.services.rainskills_audit_service.team_repo.get_team_by_team_name")
+    @patch("console.services.rainskills_audit_service.group_service_relation_repo.list_serivce_ids_by_app_id")
     @patch("console.services.rainskills_audit_service.service_repo.get_service_by_tenant_and_id")
-    def test_component_target_context_resolves_navigation_alias(self, get_service, get_team):
+    def test_component_target_context_resolves_navigation_alias(
+            self, get_service, list_app_service_ids, get_team):
         get_team.return_value = SimpleNamespace(tenant_id="tenant-id-1")
+        list_app_service_ids.return_value = ["8fdb8ad75494e14320a0ba0120e02326"]
         get_service.return_value = SimpleNamespace(
             service_alias="gr-api",
             service_cname="api",
@@ -66,6 +70,87 @@ class RainSkillsAuditServiceSafetyTests(SimpleTestCase):
         self.assertEqual(context["service_id"], "8fdb8ad75494e14320a0ba0120e02326")
         self.assertEqual(context["service_alias"], "gr-api")
         self.assertEqual(context["service_cname"], "api")
+
+    @patch("console.services.rainskills_audit_service.team_repo.get_team_by_team_name")
+    @patch("console.services.rainskills_audit_service.group_service_relation_repo.list_serivce_ids_by_app_id")
+    @patch("console.services.rainskills_audit_service.service_repo.get_services_by_service_ids")
+    def test_component_target_context_resolves_multiple_targets_in_input_order(
+            self, get_services, list_app_service_ids, get_team):
+        get_team.return_value = SimpleNamespace(tenant_id="tenant-id-1")
+        list_app_service_ids.return_value = ["service-1", "service-2"]
+        get_services.return_value = [
+            SimpleNamespace(
+                tenant_id="tenant-id-1", service_id="service-2",
+                service_alias="gr-two", service_cname="two"),
+            SimpleNamespace(
+                tenant_id="tenant-id-1", service_id="service-1",
+                service_alias="gr-one", service_cname="one"),
+        ]
+
+        arguments = {
+            "team_name": "demo-team",
+            "region_name": "rainbond",
+            "app_id": 12,
+            "action": "restart",
+            "service_ids": ["service-1", "service-2"],
+        }
+        context = _target_context(
+            arguments, classify_tool("rainbond_operate_app", arguments),
+            "rainbond_operate_app")
+
+        self.assertEqual(context["service_ids"], ["service-1", "service-2"])
+        self.assertEqual(context["operation_descriptor"], {
+            "schema": "rainskills.audit-operation.v1",
+            "effect": "write",
+            "action": "restart",
+            "resource_type": "component_runtime",
+            "scope": "app",
+            "target_mode": "multiple",
+            "targets": [
+                {"type": "component", "id": "service-1", "navigation_id": "gr-one", "name": "one"},
+                {"type": "component", "id": "service-2", "navigation_id": "gr-two", "name": "two"},
+            ],
+        })
+
+    def test_whole_app_operation_has_all_target_descriptor(self):
+        arguments = {
+            "team_name": "demo-team",
+            "region_name": "rainbond",
+            "app_id": 12,
+            "action": "start",
+        }
+        context = _target_context(
+            arguments, classify_tool("rainbond_operate_app", arguments),
+            "rainbond_operate_app")
+
+        self.assertEqual(context["operation_descriptor"]["scope"], "app")
+        self.assertEqual(context["operation_descriptor"]["target_mode"], "all")
+        self.assertEqual(context["operation_descriptor"]["targets"], [])
+
+    @patch("console.services.rainskills_audit_service.team_repo.get_team_by_team_name")
+    @patch("console.services.rainskills_audit_service.group_service_relation_repo.list_serivce_ids_by_app_id")
+    @patch("console.services.rainskills_audit_service.service_repo.get_services_by_service_ids")
+    def test_component_names_are_not_projected_across_app_boundaries(
+            self, get_services, list_app_service_ids, get_team):
+        get_team.return_value = SimpleNamespace(
+            tenant_id="tenant-id-1", enterprise_id="enterprise-1")
+        list_app_service_ids.return_value = ["service-in-app"]
+        get_services.return_value = [SimpleNamespace(
+            tenant_id="tenant-id-1", service_id="service-other-app",
+            service_alias="gr-secret", service_cname="secret-component")]
+        arguments = {
+            "team_name": "demo-team", "region_name": "rainbond", "app_id": 12,
+            "action": "restart", "service_ids": ["service-other-app"],
+        }
+
+        context = _target_context(
+            arguments, classify_tool("rainbond_operate_app", arguments),
+            "rainbond_operate_app", "enterprise-1")
+
+        self.assertEqual(context["operation_descriptor"]["targets"], [
+            {"type": "component", "id": "service-other-app"},
+        ])
+        self.assertNotIn("secret-component", str(context))
 
     @patch("console.services.rainskills_audit_service.get_deployment_invocation")
     @patch("console.services.rainskills_audit_service.rainskills_audit_repo")
@@ -89,6 +174,18 @@ class RainSkillsAuditServiceSafetyTests(SimpleTestCase):
         self.assertEqual(values["confirmation_type"], "legacy_compat")
         self.assertEqual(values["input_json"]["token"], "[REDACTED]")
         self.assertEqual(values["tool_name"], "rainbond_create_app")
+
+    @patch("console.services.rainskills_audit_service.rainskills_audit_repo")
+    def test_read_variant_of_mixed_tool_bypasses_persistence(self, repo):
+        context = rainskills_audit_service.begin(
+            self.user,
+            "rainbond_manage_component_envs",
+            {"operation": "summary", "service_id": "service-1"},
+            {},
+        )
+
+        self.assertIsNone(context)
+        repo.begin_operation.assert_not_called()
 
     @override_settings(RAINSKILLS_AUDIT_STRICT=True)
     def test_strict_mode_rejects_write_without_confirmation_metadata(self):

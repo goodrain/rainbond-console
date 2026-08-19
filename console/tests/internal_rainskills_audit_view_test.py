@@ -83,6 +83,31 @@ class InternalRainSkillsAuditViewTests(TestCase):
         self.assertNotIn("content", event["skill"])
         self.assertFalse(response.data["meta"]["has_more"])
 
+    def test_event_exports_optional_operation_descriptor_without_changing_schema(self):
+        operation = self.snapshot.operations.get()
+        operation.target_context = {
+            "app_id": 7,
+            "operation_descriptor": {
+                "schema": "rainskills.audit-operation.v1",
+                "effect": "write",
+                "action": "restart",
+                "resource_type": "component_runtime",
+                "scope": "app",
+                "target_mode": "all",
+                "targets": [],
+            },
+        }
+        operation.save(update_fields=("target_context", "updated_at"))
+        rainskills_audit_repo._create_event(operation, "operation_succeeded")
+
+        response = InternalRainSkillsAuditEventsView.as_view()(self._get(
+            "/console/internal/agent-rainskills-audit/events?after_cursor=1&limit=100"))
+
+        event = response.data["data"][0]["event"]
+        self.assertEqual(event["schema"], "rainskills.operation.v1")
+        self.assertEqual(
+            event["operation"]["operation_descriptor"]["target_mode"], "all")
+
     def test_global_token_and_proxied_request_are_rejected(self):
         view = InternalRainSkillsAuditEventsView.as_view()
 

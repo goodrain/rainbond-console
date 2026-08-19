@@ -5,17 +5,18 @@ import logging
 import re
 import uuid
 from dataclasses import dataclass
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from django.conf import settings
 
 from console.exception.main import ServiceHandleException
 from console.repositories.app import service_repo
+from console.repositories.group import group_service_relation_repo
 from console.repositories.rainskills_audit_repo import rainskills_audit_repo
 from console.repositories.team_repo import team_repo
 from console.services.deployment_invocation import get_deployment_invocation
 from console.services.rainskills_audit_contract import extract_operation_meta, validate_operation_meta
-from console.services.rainskills_tool_audit_policy import classify_tool
+from console.services.rainskills_tool_audit_policy import ToolAuditSpec, classify_tool
 
 logger = logging.getLogger("default")
 
@@ -36,10 +37,12 @@ _TARGET_ARGUMENT_FIELDS = frozenset({
     "record_id",
     "snapshot_id",
     "action",
+    "operation",
 })
 _MAX_INPUT_JSON_BYTES = 32 * 1024
 _MAX_VALUE_TEXT_LENGTH = 512
 _MAX_SUMMARY_LENGTH = 4096
+_MAX_TARGETS = 100
 
 
 def _audit_metric(name: str, value: int = 1, **labels: Any) -> None:
@@ -83,35 +86,113 @@ def _safe_input(arguments: Dict[str, Any], digest: str) -> Dict[str, Any]:
     return {"truncated": True, "arguments_digest": digest}
 
 
-def _target_context(arguments: Dict[str, Any]) -> Dict[str, Any]:
+def _service_ids(arguments: Dict[str, Any]) -> List[str]:
+    raw_ids = arguments.get("service_ids")
+    if isinstance(raw_ids, list):
+        candidates = raw_ids
+    else:
+        candidates = [arguments.get("service_id")]
+    result = []
+    for value in candidates:
+        if not isinstance(value, str) or not value or value in result:
+            continue
+        result.append(value[:_MAX_VALUE_TEXT_LENGTH])
+        if len(result) >= _MAX_TARGETS:
+            break
+    return result
+
+
+def _component_target(service_id: str, service: Any = None) -> Dict[str, str]:
+    target = {"type": "component", "id": service_id}
+    if service is None:
+        return target
+    service_alias = getattr(service, "service_alias", None)
+    service_cname = getattr(service, "service_cname", None)
+    if isinstance(service_alias, str) and service_alias:
+        target["navigation_id"] = service_alias[:_MAX_VALUE_TEXT_LENGTH]
+    if isinstance(service_cname, str) and service_cname:
+        target["name"] = service_cname[:_MAX_VALUE_TEXT_LENGTH]
+    return target
+
+
+def _resolve_component_targets(arguments: Dict[str, Any], context: Dict[str, Any],
+                               enterprise_id: str = "") -> List[Dict[str, str]]:
+    service_ids = _service_ids(arguments)
+    if not service_ids:
+        return []
+    team_name = context.get("team_name")
+    if not isinstance(team_name, str):
+        return [_component_target(service_id) for service_id in service_ids]
+    try:
+        team = team_repo.get_team_by_team_name(team_name)
+        if team is None:
+            return [_component_target(service_id) for service_id in service_ids]
+        team_enterprise_id = str(getattr(team, "enterprise_id", "") or "")
+        if enterprise_id and team_enterprise_id and team_enterprise_id != enterprise_id:
+            return [_component_target(service_id) for service_id in service_ids]
+        app_id = context.get("app_id")
+        region_name = context.get("region_name")
+        allowed_service_ids = None
+        if app_id is not None and isinstance(region_name, str):
+            allowed_service_ids = set(group_service_relation_repo.list_serivce_ids_by_app_id(
+                team.tenant_id, region_name, app_id))
+        if isinstance(arguments.get("service_ids"), list):
+            services = service_repo.get_services_by_service_ids(service_ids) or []
+            service_map = {
+                service.service_id: service
+                for service in services
+                if getattr(service, "tenant_id", None) == team.tenant_id
+                and (allowed_service_ids is None or service.service_id in allowed_service_ids)
+            }
+        else:
+            service = service_repo.get_service_by_tenant_and_id(team.tenant_id, service_ids[0])
+            allowed = allowed_service_ids is None or service_ids[0] in allowed_service_ids
+            service_map = {service_ids[0]: service} if service is not None and allowed else {}
+    except Exception:
+        logger.warning("RainSkills audit component target resolution failed", exc_info=True)
+        return [_component_target(service_id) for service_id in service_ids]
+    return [_component_target(service_id, service_map.get(service_id)) for service_id in service_ids]
+
+
+def _operation_descriptor(tool_name: str, policy: ToolAuditSpec,
+                          targets: List[Dict[str, str]]) -> Dict[str, Any]:
+    resource_type = policy.resource_type or policy.scope
+    action = policy.action or (
+        tool_name[len("rainbond_"):] if tool_name.startswith("rainbond_") else tool_name)
+    target_mode = policy.target_mode
+    if target_mode == "none":
+        target_mode = "single" if len(targets) == 1 else "multiple" if len(targets) > 1 else "none"
+    return {
+        "schema": "rainskills.audit-operation.v1",
+        "effect": policy.operation_class,
+        "action": action,
+        "resource_type": resource_type,
+        "scope": policy.scope,
+        "target_mode": target_mode,
+        "targets": targets,
+    }
+
+
+def _target_context(arguments: Dict[str, Any], policy: Optional[ToolAuditSpec] = None,
+                    tool_name: str = "", enterprise_id: str = "") -> Dict[str, Any]:
     context = {
         key: _redact(arguments[key], key)
         for key in _TARGET_ARGUMENT_FIELDS
         if key in arguments and isinstance(arguments[key], (str, int))
     }
-    team_name = context.get("team_name")
-    service_id = context.get("service_id")
-    if not isinstance(team_name, str) or not isinstance(service_id, str):
-        return context
-    try:
-        team = team_repo.get_team_by_team_name(team_name)
-        if team is None:
-            return context
-        service = service_repo.get_service_by_tenant_and_id(team.tenant_id, service_id)
-    except Exception:
-        logger.warning(
-            "RainSkills audit component alias resolution failed",
-            exc_info=True,
-        )
-        return context
-    if service is None:
-        return context
-    service_alias = getattr(service, "service_alias", None)
-    service_cname = getattr(service, "service_cname", None)
-    if isinstance(service_alias, str) and service_alias:
-        context["service_alias"] = _redact(service_alias, "service_alias")
-    if isinstance(service_cname, str) and service_cname:
-        context["service_cname"] = _redact(service_cname, "service_cname")
+    service_ids = _service_ids(arguments)
+    if isinstance(arguments.get("service_ids"), list):
+        context["service_ids"] = service_ids
+    targets = _resolve_component_targets(arguments, context, enterprise_id)
+    if len(targets) == 1:
+        target = targets[0]
+        context["service_id"] = target["id"]
+        if target.get("navigation_id"):
+            context["service_alias"] = target["navigation_id"]
+        if target.get("name"):
+            context["service_cname"] = target["name"]
+    if policy is not None:
+        context["operation_descriptor"] = _operation_descriptor(tool_name, policy, targets)
     return context
 
 
@@ -137,7 +218,7 @@ class RainSkillsAuditService(object):
 
     def begin(self, user: Any, tool_name: str, arguments: Dict[str, Any],
               request_meta: Any) -> Optional[RainSkillsAuditContext]:
-        policy = classify_tool(tool_name)
+        policy = classify_tool(tool_name, arguments)
         if policy.operation_class == "read":
             return None
 
@@ -195,7 +276,8 @@ class RainSkillsAuditService(object):
                 scope=policy.scope,
                 arguments_digest=digest,
                 input_json=_safe_input(arguments, digest),
-                target_context=_target_context(arguments),
+                target_context=_target_context(
+                    arguments, policy, tool_name, enterprise_id),
                 confirmation_type=confirmation_type,
             )
             if not owner:

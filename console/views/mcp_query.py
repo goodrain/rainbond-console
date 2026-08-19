@@ -376,7 +376,7 @@ class MCPQueryRPCMixin(object):
             return mcp_query_service.call_tool(user, tool_name, arguments)
 
         mcp_query_service.assert_tool_visible(tool_name)
-        if classify_tool(tool_name).operation_class == "read":
+        if classify_tool(tool_name, arguments).operation_class == "read":
             return mcp_query_service.call_tool(user, tool_name, arguments)
         audit_context = rainskills_audit_service.begin(
             user, tool_name, arguments, {} if request_meta is None else request_meta)
