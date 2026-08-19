@@ -9,6 +9,7 @@ from console.services.rainskills_audit_service import (
     RainSkillsAuditContext,
     _safe_input,
     _safe_summary,
+    _target_context,
     rainskills_audit_service,
 )
 
@@ -42,6 +43,29 @@ class RainSkillsAuditServiceSafetyTests(SimpleTestCase):
             "password=one api_key=two cookie=three kubeconfig=four certificate=five")
         for secret in ("one", "two", "three", "four", "five"):
             self.assertNotIn(secret, summary)
+
+    @patch("console.services.rainskills_audit_service.team_repo.get_team_by_team_name")
+    @patch("console.services.rainskills_audit_service.service_repo.get_service_by_tenant_and_id")
+    def test_component_target_context_resolves_navigation_alias(self, get_service, get_team):
+        get_team.return_value = SimpleNamespace(tenant_id="tenant-id-1")
+        get_service.return_value = SimpleNamespace(
+            service_alias="gr-api",
+            service_cname="api",
+        )
+
+        context = _target_context({
+            "team_name": "demo-team",
+            "region_name": "rainbond",
+            "app_id": 12,
+            "service_id": "8fdb8ad75494e14320a0ba0120e02326",
+        })
+
+        get_team.assert_called_once_with("demo-team")
+        get_service.assert_called_once_with(
+            "tenant-id-1", "8fdb8ad75494e14320a0ba0120e02326")
+        self.assertEqual(context["service_id"], "8fdb8ad75494e14320a0ba0120e02326")
+        self.assertEqual(context["service_alias"], "gr-api")
+        self.assertEqual(context["service_cname"], "api")
 
     @patch("console.services.rainskills_audit_service.get_deployment_invocation")
     @patch("console.services.rainskills_audit_service.rainskills_audit_repo")
