@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta, timezone as datetime_timezone
 from typing import Any, Dict, List, Optional, Tuple
 
 from django.db import IntegrityError, transaction
@@ -11,6 +11,18 @@ from console.models.main import (
     RainSkillsOperationEvent,
     RainSkillsSkillSnapshot,
 )
+
+
+ASIA_SHANGHAI_TIMEZONE = datetime_timezone(timedelta(hours=8))
+
+
+def _asia_shanghai_isoformat(value: datetime) -> str:
+    """Serialize Console-local datetimes as unambiguous RFC 3339 timestamps."""
+    if timezone.is_naive(value):
+        value = value.replace(tzinfo=ASIA_SHANGHAI_TIMEZONE)
+    else:
+        value = value.astimezone(ASIA_SHANGHAI_TIMEZONE)
+    return value.isoformat()
 
 
 class RainSkillsAuditRepository(object):
@@ -169,7 +181,7 @@ class RainSkillsAuditRepository(object):
             "schema": "rainskills.operation.v1",
             "event_id": event_id,
             "event_type": event_type,
-            "occurred_at": occurred_at.isoformat(),
+            "occurred_at": _asia_shanghai_isoformat(occurred_at),
             "operation": {
                 "operation_id": operation.operation_id,
                 "enterprise_id": operation.enterprise_id,
@@ -192,8 +204,11 @@ class RainSkillsAuditRepository(object):
                 "output_summary": operation.output_summary,
                 "error_code": operation.error_code,
                 "error_message": operation.error_message,
-                "started_at": operation.started_at.isoformat(),
-                "finished_at": operation.finished_at.isoformat() if operation.finished_at else None,
+                "started_at": _asia_shanghai_isoformat(operation.started_at),
+                "finished_at": (
+                    _asia_shanghai_isoformat(operation.finished_at)
+                    if operation.finished_at else None
+                ),
             },
             "skill": skill,
         }

@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import hashlib
 import uuid
+from datetime import datetime
+from unittest.mock import patch
 
 from django.test import TestCase
 
@@ -92,3 +94,25 @@ class RainSkillsAuditRepositoryTests(TestCase):
         )
         self.assertIsNone(rainskills_audit_repo.get_snapshot(
             "enterprise-2", self.skill["id"], "cli", self.skill["content_sha256"]))
+
+    def test_events_publish_asia_shanghai_rfc3339_timestamps(self):
+        local_time = datetime(2026, 8, 19, 17, 55, 0)
+        with patch(
+                "console.repositories.rainskills_audit_repo.timezone.now",
+                return_value=local_time):
+            operation, _ = self._begin()
+            rainskills_audit_repo.finalize_operation(operation, status="succeeded")
+
+        events = rainskills_audit_repo.list_events("enterprise-1", after_cursor=0, limit=100)
+        started_payload = events[0].payload
+        finished_payload = events[1].payload
+
+        self.assertEqual(started_payload["occurred_at"], "2026-08-19T17:55:00+08:00")
+        self.assertEqual(
+            started_payload["operation"]["started_at"],
+            "2026-08-19T17:55:00+08:00",
+        )
+        self.assertEqual(
+            finished_payload["operation"]["finished_at"],
+            "2026-08-19T17:55:00+08:00",
+        )
