@@ -41,6 +41,7 @@ class DatabaseSettingsTests(unittest.TestCase):
         self.assertEqual(database["PASSWORD"], "$TEST_DB_PASSWORD")
         self.assertEqual(database["HOST"], "dm.example.invalid")
         self.assertEqual(database["PORT"], "5236")
+        self.assertEqual(database["OPTIONS"], {"schema": "CONSOLE_DM"})
 
     def test_dm_falls_back_to_legacy_mysql_environment(self):
         environment = {
@@ -61,6 +62,7 @@ class DatabaseSettingsTests(unittest.TestCase):
         self.assertEqual(database["PASSWORD"], "$LEGACY_DB_PASSWORD")
         self.assertEqual(database["HOST"], "legacy.example.invalid")
         self.assertEqual(database["PORT"], "3306")
+        self.assertEqual(database["OPTIONS"], {"schema": "LEGACY_CONSOLE"})
 
     def test_mysql_configuration_remains_unchanged(self):
         environment = {

@@ -276,7 +276,7 @@
 | console.component.volume-delete-blocks-shared-mount | 被共享挂载时阻止删除组件存储卷 | active | regression | console.services.app_config.volume_service.AppVolumeService.delete_service_volume_by_id | console/tests/app_config_volume_delete_test.py::AppVolumeDeleteTests.test_delete_service_volume_rejects_shared_mount_even_when_forced |
 | console.database.backend-neutral-readiness | 使用 Django 数据库状态检查启动就绪性 | active | unit | entrypoint.sh database readiness workflow | console/tests/database_state_test.py::DatabaseStateTests |
 | console.database.dm-driver-bundle-preparation | 准备私有达梦 Python 驱动包 | active | regression | scripts/prepare_dameng_python_driver.sh | console/tests/dameng_driver_bundle_test.py::DamengDriverBundleScriptTest |
-| console.database.dm-settings-selection | 根据 DB_TYPE 选择 dmDjango 数据库设置 | active | unit | goodrain_web.settings.DATABASES | console/tests/database_settings_test.py::DatabaseSettingsTests |
+| console.database.dm-settings-selection | 根据 DB_TYPE 选择 dmDjango 数据库设置和模式 | active | unit | goodrain_web.settings.DATABASES | console/tests/database_settings_test.py::DatabaseSettingsTests |
 | console.database.dm-standard-image | 标准控制台镜像内置达梦驱动 | active | regression | standard Console Dockerfile build stages | console/tests/dameng_driver_bundle_test.py::DamengDockerfileStructureTest |
 | console.dependency.invalid-container-port | Dependency Invalid Container Port | active | regression | console.services.app_config.app_relation_service.AppServiceRelationService | console/tests/app_relation_service_test.py::AppRelationServiceTests.test_add_service_dependency_rejects_unknown_dep_service_port |
 | console.deploy-diagnostics.offline-mode | 离线模式禁用部署诊断上报 | active | regression | console.services.enterprise_first_deploy_service.EnterpriseFirstDeployService | console/tests/enterprise_first_deploy_service_test.py::EnterpriseFirstDeployServiceTests.test_offline_mode_does_not_start_report_sweeper<br>console/tests/enterprise_first_deploy_service_test.py::EnterpriseFirstDeployServiceTests.test_online_mode_starts_report_sweeper<br>console/tests/enterprise_first_deploy_service_test.py::EnterpriseFirstDeployServiceTests.test_offline_mode_skips_report_request<br>console/tests/enterprise_first_deploy_service_test.py::EnterpriseFirstDeployServiceTests.test_offline_mode_does_not_create_deploy_tracking<br>console/tests/enterprise_first_deploy_service_test.py::EnterpriseFirstDeployServiceTests.test_offline_mode_does_not_persist_source_check_failure<br>console/tests/enterprise_first_deploy_service_test.py::EnterpriseFirstDeployServiceTests.test_offline_mode_marks_first_deploy_report_handled_without_thread<br>console/tests/enterprise_first_deploy_service_test.py::EnterpriseFirstDeployServiceTests.test_offline_mode_removes_unreported_deploy_attempt<br>console/tests/enterprise_first_deploy_service_test.py::EnterpriseFirstDeployServiceTests.test_offline_mode_forgets_unpersisted_report |
@@ -3306,7 +3306,7 @@
 - 代码路径: `scripts/prepare_dameng_python_driver.sh`
 - 测试路径: `console/tests/dameng_driver_bundle_test.py::DamengDriverBundleScriptTest`
 
-### 根据 DB_TYPE 选择 dmDjango 数据库设置
+### 根据 DB_TYPE 选择 dmDjango 数据库设置和模式
 
 - Capability ID: `console.database.dm-settings-selection`
 - 状态: `active`

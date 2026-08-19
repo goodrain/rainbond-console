@@ -122,14 +122,20 @@ if DATABASE_TYPE == 'mysql':
         }
     }
 elif DATABASE_TYPE == 'dm':
+    dm_database_name = os.environ.get('DB_NAME') or os.environ.get('MYSQL_DB') or 'console'
     DATABASES = {
         'default': {
             'ENGINE': 'dmDjango',
-            'NAME': os.environ.get('DB_NAME') or os.environ.get('MYSQL_DB') or 'console',
+            'NAME': dm_database_name,
             'USER': os.environ.get('DB_USER') or os.environ.get('MYSQL_USER') or 'root',
             'PASSWORD': os.environ.get('DB_PASSWORD') or os.environ.get('MYSQL_PASS') or '',
             'HOST': os.environ.get('DB_HOST') or os.environ.get('MYSQL_HOST') or '127.0.0.1',
             'PORT': os.environ.get('DB_PORT') or os.environ.get('MYSQL_PORT') or '5236',
+            # dmDjango uses OPTIONS.schema, not NAME, to set the current DM
+            # schema. Normalizing keeps legacy MySQL-style names usable.
+            'OPTIONS': {
+                'schema': dm_database_name.upper(),
+            },
         }
     }
 

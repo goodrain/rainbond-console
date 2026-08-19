@@ -5163,8 +5163,8 @@
     },
     {
       "id": "console.database.dm-settings-selection",
-      "title": "Select dmDjango settings from DB_TYPE",
-      "title_zh": "根据 DB_TYPE 选择 dmDjango 数据库设置",
+      "title": "Select dmDjango settings and schema from DB_TYPE",
+      "title_zh": "根据 DB_TYPE 选择 dmDjango 数据库设置和模式",
       "interface_type": "other",
       "interface": "goodrain_web.settings.DATABASES",
       "code_paths": [
