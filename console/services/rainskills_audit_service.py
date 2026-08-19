@@ -10,7 +10,9 @@ from typing import Any, Dict, Optional
 from django.conf import settings
 
 from console.exception.main import ServiceHandleException
+from console.repositories.app import service_repo
 from console.repositories.rainskills_audit_repo import rainskills_audit_repo
+from console.repositories.team_repo import team_repo
 from console.services.deployment_invocation import get_deployment_invocation
 from console.services.rainskills_audit_contract import extract_operation_meta, validate_operation_meta
 from console.services.rainskills_tool_audit_policy import classify_tool
@@ -82,11 +84,35 @@ def _safe_input(arguments: Dict[str, Any], digest: str) -> Dict[str, Any]:
 
 
 def _target_context(arguments: Dict[str, Any]) -> Dict[str, Any]:
-    return {
+    context = {
         key: _redact(arguments[key], key)
         for key in _TARGET_ARGUMENT_FIELDS
         if key in arguments and isinstance(arguments[key], (str, int))
     }
+    team_name = context.get("team_name")
+    service_id = context.get("service_id")
+    if not isinstance(team_name, str) or not isinstance(service_id, str):
+        return context
+    try:
+        team = team_repo.get_team_by_team_name(team_name)
+        if team is None:
+            return context
+        service = service_repo.get_service_by_tenant_and_id(team.tenant_id, service_id)
+    except Exception:
+        logger.warning(
+            "RainSkills audit component alias resolution failed",
+            exc_info=True,
+        )
+        return context
+    if service is None:
+        return context
+    service_alias = getattr(service, "service_alias", None)
+    service_cname = getattr(service, "service_cname", None)
+    if isinstance(service_alias, str) and service_alias:
+        context["service_alias"] = _redact(service_alias, "service_alias")
+    if isinstance(service_cname, str) and service_cname:
+        context["service_cname"] = _redact(service_cname, "service_cname")
+    return context
 
 
 def _safe_summary(value: Any) -> str:
