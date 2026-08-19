@@ -88,7 +88,11 @@ def is_mcp_token_payload(payload):
 
 def is_valid_mcp_token_payload(payload, allow_legacy=False):
     """Validate an MCP-scoped payload, optionally accepting old unscoped JWTs."""
-    has_scope_claim = any(key in payload for key in ("token_use", "scope", "aud"))
+    has_scope_claim = (
+        "token_use" in payload
+        or "scope" in payload
+        or payload.get("aud") == MCP_TOKEN_AUDIENCE
+    )
     if allow_legacy and not has_scope_claim:
         return True
     return (
