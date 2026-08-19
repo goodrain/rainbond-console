@@ -137,7 +137,7 @@ def _resolve_component_targets(arguments: Dict[str, Any], context: Dict[str, Any
             allowed_service_ids = set(group_service_relation_repo.list_serivce_ids_by_app_id(
                 team.tenant_id, region_name, app_id))
         if isinstance(arguments.get("service_ids"), list):
-            services = service_repo.get_services_by_service_ids(service_ids) or []
+            services = service_repo.get_services_by_service_ids(service_ids)
             service_map = {
                 service.service_id: service
                 for service in services
