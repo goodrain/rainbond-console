@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-from dataclasses import dataclass
-from typing import Dict, FrozenSet
+from dataclasses import dataclass, replace
+from typing import Any, Dict, FrozenSet, Mapping, Optional
 
 
 @dataclass(frozen=True)
@@ -8,10 +8,17 @@ class ToolAuditSpec:
     operation_class: str
     risk: str
     scope: str
+    resource_type: str = ""
+    action: str = ""
+    target_mode: str = "none"
 
 
-def _write(risk: str, scope: str) -> ToolAuditSpec:
-    return ToolAuditSpec("write", risk, scope)
+def _write(risk: str, scope: str, resource_type: str = "") -> ToolAuditSpec:
+    return ToolAuditSpec("write", risk, scope, resource_type=resource_type)
+
+
+def _read(scope: str, resource_type: str) -> ToolAuditSpec:
+    return ToolAuditSpec("read", "none", scope, resource_type=resource_type)
 
 
 # This policy is authoritative for the Console audit gate. Keep the explicit
@@ -47,8 +54,11 @@ MUTABLE_TOOL_POLICY: Dict[str, ToolAuditSpec] = {
     "rainbond_delete_region": _write("high", "enterprise"),
     "rainbond_deploy_app_upgrade_record": _write("medium", "app"),
     "rainbond_execute_app_upgrade_record": _write("medium", "app"),
+    "rainbond_exec": _write("high", "component", "component_exec"),
     "rainbond_giveup_app_share": _write("low", "app"),
     "rainbond_horizontal_scale_component": _write("medium", "component"),
+    "rainbond_get_component_check_result": _write("low", "component", "component_source"),
+    "rainbond_get_yaml_app_check_result": _write("low", "app", "app_components"),
     "rainbond_init_package_upload": _write("low", "component"),
     "rainbond_install_app_by_market": _write("medium", "app"),
     "rainbond_install_app_model": _write("medium", "app"),
@@ -59,7 +69,7 @@ MUTABLE_TOOL_POLICY: Dict[str, ToolAuditSpec] = {
     "rainbond_manage_component_ports": _write("medium", "component"),
     "rainbond_manage_component_probe": _write("medium", "component"),
     "rainbond_manage_component_storage": _write("medium", "component"),
-    "rainbond_operate_app": _write("medium", "component"),
+    "rainbond_operate_app": _write("medium", "component", "component_runtime"),
     "rainbond_publish_snapshot_to_store": _write("medium", "app"),
     "rainbond_rewrite_snapshot_images": _write("medium", "app"),
     "rainbond_rollback_app_upgrade_record": _write("medium", "app"),
@@ -74,7 +84,6 @@ MUTABLE_TOOL_POLICY: Dict[str, ToolAuditSpec] = {
 
 READ_ONLY_TOOL_NAMES: FrozenSet[str] = frozenset({
     "rainbond_analyze_env_conflicts",
-    "rainbond_exec",
     "rainbond_get_app_detail",
     "rainbond_get_app_health_overview",
     "rainbond_get_app_last_upgrade_record",
@@ -92,7 +101,6 @@ READ_ONLY_TOOL_NAMES: FrozenSet[str] = frozenset({
     "rainbond_get_app_version_snapshot_detail",
     "rainbond_get_component_build_logs",
     "rainbond_get_component_build_source",
-    "rainbond_get_component_check_result",
     "rainbond_get_component_detail",
     "rainbond_get_component_events",
     "rainbond_get_component_logs",
@@ -107,7 +115,6 @@ READ_ONLY_TOOL_NAMES: FrozenSet[str] = frozenset({
     "rainbond_get_region_detail",
     "rainbond_get_region_node_detail",
     "rainbond_get_team_apps",
-    "rainbond_get_yaml_app_check_result",
     "rainbond_list_app_share_events",
     "rainbond_list_app_share_records",
     "rainbond_list_app_version_rollback_records",
@@ -130,7 +137,58 @@ READ_ONLY_TOOL_NAMES: FrozenSet[str] = frozenset({
 })
 
 
-def classify_tool(tool_name: str) -> ToolAuditSpec:
+_MIXED_TOOL_READ_OPERATIONS: Dict[str, FrozenSet[str]] = {
+    "rainbond_manage_component_envs": frozenset({"summary", "list", "view"}),
+    "rainbond_manage_component_connection_envs": frozenset({"summary", "list", "view"}),
+    "rainbond_manage_component_ports": frozenset({"summary", "list", "view"}),
+    "rainbond_manage_component_storage": frozenset({
+        "summary", "list", "view", "list_unmounted", "list_available_mounts"
+    }),
+    "rainbond_manage_component_autoscaler": frozenset({
+        "summary", "list", "view", "get_rule", "detail", "records", "history", "logs"
+    }),
+    "rainbond_manage_component_probe": frozenset({"summary", "list", "view", "get", "detail"}),
+    "rainbond_manage_component_dependency": frozenset({"summary", "list", "view"}),
+}
+
+_MIXED_TOOL_RESOURCES = {
+    "rainbond_manage_component_envs": "component_env",
+    "rainbond_manage_component_connection_envs": "component_connection_env",
+    "rainbond_manage_component_ports": "component_port",
+    "rainbond_manage_component_storage": "component_storage",
+    "rainbond_manage_component_autoscaler": "component_autoscaler",
+    "rainbond_manage_component_probe": "component_probe",
+    "rainbond_manage_component_dependency": "component_dependency",
+}
+
+
+def _operation(arguments: Optional[Mapping[str, Any]]) -> str:
+    if not arguments:
+        return ""
+    value = arguments.get("operation") or arguments.get("action")
+    return value.strip().lower() if isinstance(value, str) else ""
+
+
+def classify_tool(tool_name: str,
+                  arguments: Optional[Mapping[str, Any]] = None) -> ToolAuditSpec:
+    action = _operation(arguments)
+    if tool_name in _MIXED_TOOL_READ_OPERATIONS:
+        resource_type = _MIXED_TOOL_RESOURCES[tool_name]
+        if action in _MIXED_TOOL_READ_OPERATIONS[tool_name]:
+            return replace(_read("component", resource_type), action=action)
+        return replace(
+            MUTABLE_TOOL_POLICY[tool_name],
+            resource_type=resource_type,
+            action=action,
+        )
     if tool_name in READ_ONLY_TOOL_NAMES:
         return ToolAuditSpec("read", "none", "enterprise")
-    return MUTABLE_TOOL_POLICY.get(tool_name, _write("medium", "enterprise"))
+    policy = MUTABLE_TOOL_POLICY.get(tool_name, _write("medium", "enterprise"))
+    if tool_name == "rainbond_operate_app":
+        service_ids = arguments.get("service_ids") if arguments else None
+        ids = [item for item in service_ids
+               if isinstance(item, str) and item] if isinstance(service_ids, list) else []
+        target_mode = "single" if len(ids) == 1 else "multiple" if len(ids) > 1 else "all"
+        scope = "component" if target_mode == "single" else "app"
+        return replace(policy, scope=scope, action=action, target_mode=target_mode)
+    return replace(policy, action=action)

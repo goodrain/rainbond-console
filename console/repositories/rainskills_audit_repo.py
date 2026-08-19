@@ -182,6 +182,10 @@ class RainSkillsAuditRepository(object):
                 "scope": operation.scope,
                 "arguments_digest": operation.arguments_digest,
                 "target_context": operation.target_context,
+                "operation_descriptor": (
+                    operation.target_context.get("operation_descriptor")
+                    if isinstance(operation.target_context, dict) else None
+                ),
                 "input_json": operation.input_json,
                 "confirmation_type": operation.confirmation_type,
                 "status": operation.status,

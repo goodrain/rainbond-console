@@ -102,6 +102,20 @@ class MCPQueryRainSkillsAuditTests(SimpleTestCase):
         self.assertFalse(response.data["result"]["isError"])
         begin.assert_not_called()
 
+    def test_read_variant_of_mixed_tool_bypasses_audit_gate_before_begin(self):
+        arguments = {
+            "team_name": "team-a", "region_name": "region-a", "app_id": 7,
+            "service_id": "service-1", "operation": "summary",
+        }
+        view = MCPQueryHTTPView.as_view(deploy_origin="rainskills", deploy_client="api")
+        with patch("console.views.mcp_query.rainskills_audit_service.begin") as begin:
+            with patch("console.views.mcp_query.mcp_query_service.call_tool", return_value={"items": []}):
+                response = view(self._request(
+                    tool_name="rainbond_manage_component_envs", arguments=arguments))
+
+        self.assertFalse(response.data["result"]["isError"])
+        begin.assert_not_called()
+
     def test_legacy_mutable_call_is_still_audited_in_compatibility_mode(self):
         context = SimpleNamespace(operation=SimpleNamespace(pk=1))
         view = MCPQueryHTTPView.as_view(deploy_origin="rainskills", deploy_client="api")
