@@ -3,26 +3,6 @@
   "repo": "rainbond-console",
   "capabilities": [
     {
-      "id": "console.app-create.available-resources",
-      "title": "Get available cluster resources for component configuration",
-      "title_zh": "获取组件配置可用集群资源",
-      "interface_type": "view_endpoint",
-      "interface": "console.views.app_create.available_resources.AvailableResourcesView.get",
-      "code_paths": [
-        "console/services/available_resources_service.py",
-        "console/views/app_create/available_resources.py",
-        "console/urls/__init__.py"
-      ],
-      "tests": [
-        {
-          "path": "console/tests/available_resources_test.py",
-          "selector": "AvailableResourcesServiceTests,AvailableResourcesViewTests"
-        }
-      ],
-      "test_type": "regression",
-      "status": "active"
-    },
-    {
       "id": "console.app-backup.create",
       "title": "Create application backup",
       "title_zh": "创建应用备份",
@@ -823,6 +803,26 @@
         {
           "path": "console/tests/app_config_volume_service_import_test.py",
           "selector": "AppConfigVolumeServiceImportTests.test_volume_service_module_exports_package_singleton"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.app-create.available-resources",
+      "title": "Get available cluster resources for component configuration",
+      "title_zh": "获取组件配置可用集群资源",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.app_create.available_resources.AvailableResourcesView.get",
+      "code_paths": [
+        "console/services/available_resources_service.py",
+        "console/views/app_create/available_resources.py",
+        "console/urls/__init__.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/available_resources_test.py",
+          "selector": "AvailableResourcesServiceTests,AvailableResourcesViewTests"
         }
       ],
       "test_type": "regression",
