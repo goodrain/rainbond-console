@@ -7,7 +7,7 @@ import logging
 from typing import Any, List, Optional, Tuple
 
 from console.enum.component_enum import is_state
-from console.exception.main import ErrDepVolumeNotFound
+from console.exception.main import ErrDepVolumeNotFound, ServiceHandleException
 from console.repositories.app import service_repo
 from console.repositories.app_config import mnt_repo, volume_repo
 from console.repositories.group import group_repo, group_service_relation_repo
@@ -193,19 +193,38 @@ class AppMntService(object):
 
     def batch_mnt_serivce_volume(self, tenant: Tenants, service: TenantServiceInfo, dep_vol_data: Any,
                                  user_name: str = '') -> None:
-        local_path = []
         tenant_service_volumes = volume_service.get_service_volumes(tenant=tenant, service=service)
         local_path = [l_path["volume_path"] for l_path in tenant_service_volumes]
         for dep_vol in dep_vol_data:
             volume_service.check_volume_path(service, dep_vol["path"], local_path=local_path)
+
+        resolved_mounts = []
         for dep_vol in dep_vol_data:
             dep_vol_id = dep_vol['id']
-            source_path = dep_vol['path'].strip()
             dep_volume = volume_repo.get_service_volume_by_pk(dep_vol_id)
-            try:
+            if not dep_volume:
+                raise ServiceHandleException(
+                    msg="dependent volume not found",
+                    msg_show="挂载的存储或配置文件不存在",
+                    status_code=404,
+                )
+            resolved_mounts.append((dep_vol['path'].strip(), dep_volume))
+
+        created_mounts = []
+        try:
+            for source_path, dep_volume in resolved_mounts:
                 self.add_service_mnt_relation(tenant, service, source_path, dep_volume, user_name)
-            except Exception as e:
-                logger.exception(e)
+                created_mounts.append(dep_volume)
+        except Exception:
+            for dep_volume in reversed(created_mounts):
+                try:
+                    code, msg = self.delete_service_mnt_relation(
+                        tenant, service, str(dep_volume.ID), user_name)
+                    if code != 200:
+                        logger.error("failed to roll back batch mount relation %s: %s", dep_volume.ID, msg)
+                except Exception as rollback_error:
+                    logger.exception("failed to roll back batch mount relation %s: %s", dep_volume.ID, rollback_error)
+            raise
 
     def create_service_volume(self, tenant: Tenants, service: TenantServiceInfo, dep_vol: dict) -> Any:
         """
@@ -229,6 +248,7 @@ class AppMntService(object):
         # NOTE: service relaxed to Any; caller market_app_service.__create_dep_mnt passes Optional from dict.get.
         if not dep_volume:
             return
+        region_mnt_created = False
         if service.create_status == "complete":
             if dep_volume.volume_type != "config-file":
                 data = {
@@ -252,10 +272,26 @@ class AppMntService(object):
             data["operator"] = user_name
             res, body = region_api.add_service_dep_volumes(service.service_region, tenant.tenant_name, service.service_alias,
                                                            data)
+            region_mnt_created = True
             logger.debug("add service mnt info res: {0}, body:{1}".format(res, body))
 
-        mnt_relation = mnt_repo.add_service_mnt_relation(tenant.tenant_id, service.service_id, dep_volume.service_id,
-                                                         dep_volume.volume_name, source_path)
+        try:
+            mnt_relation = mnt_repo.add_service_mnt_relation(tenant.tenant_id, service.service_id, dep_volume.service_id,
+                                                             dep_volume.volume_name, source_path)
+        except Exception:
+            if region_mnt_created:
+                rollback_data = {
+                    "depend_service_id": dep_volume.service_id,
+                    "volume_name": dep_volume.volume_name,
+                    "enterprise_id": tenant.enterprise_id,
+                    "operator": user_name
+                }
+                try:
+                    region_api.delete_service_dep_volumes(service.service_region, tenant.tenant_name, service.service_alias,
+                                                          rollback_data)
+                except Exception as rollback_error:
+                    logger.exception("failed to roll back region mount relation: %s", rollback_error)
+            raise
         logger.debug("mnt service {0} to service {1} on dir {2}".format(mnt_relation.service_id, mnt_relation.dep_service_id,
                                                                         mnt_relation.mnt_dir))
 
@@ -270,7 +306,7 @@ class AppMntService(object):
                 data = {
                     "depend_service_id": dep_volume.service_id,  # type: ignore[union-attr]
                     "volume_name": dep_volume.volume_name,  # type: ignore[union-attr]
-                    "enterprise_id": tenant.tenant_name,
+                    "enterprise_id": tenant.enterprise_id,
                     "operator": user_name
                 }
                 res, body = region_api.delete_service_dep_volumes(service.service_region, tenant.tenant_name,
@@ -285,6 +321,8 @@ class AppMntService(object):
                 logger.debug('service mnt relation not in region then delete rel directly in console')
                 mnt_repo.delete_mnt_relation(service.service_id, dep_volume.service_id,  # type: ignore[union-attr]
                                              dep_volume.volume_name)  # type: ignore[union-attr]
+            else:
+                raise
         return 200, "success"
 
     def get_volume_dependent(self, tenant: Tenants, service: TenantServiceInfo) -> Optional[List[dict]]:

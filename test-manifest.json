@@ -4938,6 +4938,65 @@
       "status": "active"
     },
     {
+      "id": "console.component.shared-config-mount-consistency",
+      "title": "Keep shared configuration mounts consistent",
+      "title_zh": "保持共享配置文件挂载状态一致",
+      "interface_type": "workflow",
+      "interface": "console.views.app_config.app_mnt.AppMntView",
+      "code_paths": [
+        "console/views/app_config/app_mnt.py",
+        "console/services/app_config/mnt_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_mnt_consistency_test.py",
+          "selector": "AppMntViewConsistencyTests::test_get_passes_mounted_pagination_to_service"
+        },
+        {
+          "path": "console/tests/app_mnt_consistency_test.py",
+          "selector": "AppMntServiceConsistencyTests::test_batch_mount_stops_and_propagates_first_failure"
+        },
+        {
+          "path": "console/tests/app_mnt_consistency_test.py",
+          "selector": "AppMntServiceConsistencyTests::test_batch_mount_rejects_missing_source_before_creating_any_relation"
+        },
+        {
+          "path": "console/tests/app_mnt_consistency_test.py",
+          "selector": "AppMntServiceConsistencyTests::test_batch_mount_rolls_back_first_relation_when_second_mount_fails"
+        },
+        {
+          "path": "console/tests/app_mnt_consistency_test.py",
+          "selector": "AppMntServiceConsistencyTests::test_batch_mount_logs_rollback_failure_and_preserves_original_error"
+        },
+        {
+          "path": "console/tests/app_mnt_consistency_test.py",
+          "selector": "AppMntServiceConsistencyTests::test_batch_mount_logs_region_rollback_error_without_masking_mount_error"
+        },
+        {
+          "path": "console/tests/app_mnt_consistency_test.py",
+          "selector": "AppMntServiceConsistencyTests::test_add_mount_compensates_region_when_console_persistence_fails"
+        },
+        {
+          "path": "console/tests/app_mnt_consistency_test.py",
+          "selector": "AppMntServiceConsistencyTests::test_existing_config_mount_relation_remains_visible"
+        },
+        {
+          "path": "console/tests/app_mnt_consistency_test.py",
+          "selector": "AppMntServiceConsistencyTests::test_existing_config_mount_relation_can_be_cancelled"
+        },
+        {
+          "path": "console/tests/app_mnt_consistency_test.py",
+          "selector": "AppMntServiceConsistencyTests::test_cancel_mount_propagates_non_404_region_error"
+        },
+        {
+          "path": "console/tests/app_mnt_consistency_test.py",
+          "selector": "AppMntServiceConsistencyTests::test_cancel_mount_cleans_console_relation_when_region_returns_404"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.component.storage-create-mount",
       "title": "Create component shared storage mount",
       "title_zh": "创建组件共享存储挂载",
