@@ -14,6 +14,8 @@ RAW_SQL_FILES = (
 )
 
 BOUND_QUERY_FILES = (
+    "console/syncservice/create_default_group.py",
+    "console/syncservice/sync_manage.py",
     "console/repositories/app.py",
     "console/repositories/app_config.py",
     "console/repositories/enterprise_repo.py",
@@ -30,6 +32,8 @@ BOUND_QUERY_FILES = (
     "console/views/app_config/app_domain.py",
     "console/views/app_config/app_env.py",
     "console/views/public_areas.py",
+    "openapi/views/enterprise_view.py",
+    "openapi/v2/views/enterprise_view.py",
     "www/db/service_group_repository.py",
     "www/services/plugin.py",
 )

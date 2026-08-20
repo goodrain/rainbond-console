@@ -116,8 +116,8 @@ class TenantServiceInfoRepository(object):
                                           service_group_ids: Any) -> "QuerySet[TenantServiceInfo]":
         return TenantServiceInfo.objects.filter(service_id__in=component_ids, tenant_service_group_id__in=service_group_ids)
 
-    def get_services_by_raw_sql(self, raw_sql: str) -> Any:
-        return TenantServiceInfo.objects.raw(raw_sql)
+    def get_services_by_raw_sql(self, raw_sql: str, params: Optional[List[Any]] = None) -> Any:
+        return TenantServiceInfo.objects.raw(raw_sql, params=params)
 
     def get_service_by_tenant_and_alias(self, tenant_id: str, service_alias: str) -> Optional[TenantServiceInfo]:
         services = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_alias=service_alias)

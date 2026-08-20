@@ -5192,6 +5192,8 @@
       "interface_type": "workflow",
       "interface": "Console raw SQL database capability boundary",
       "code_paths": [
+        "console/syncservice/create_default_group.py",
+        "console/syncservice/sync_manage.py",
         "console/repositories/app.py",
         "console/repositories/app_config.py",
         "console/repositories/enterprise_repo.py",
@@ -5211,6 +5213,8 @@
         "console/views/app_config/app_env.py",
         "console/views/public_areas.py",
         "console/utils/database.py",
+        "openapi/views/enterprise_view.py",
+        "openapi/v2/views/enterprise_view.py",
         "www/db/service_group_repository.py",
         "www/services/plugin.py"
       ],
