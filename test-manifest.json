@@ -1862,6 +1862,25 @@
       "status": "active"
     },
     {
+      "id": "console.app-upgrade.local-offline-detail",
+      "title": "Show local application upgrade details in offline mode",
+      "title_zh": "离线模式展示本地应用升级详情",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.app_upgrade.AppUpgradeInfoView.get",
+      "code_paths": [
+        "console/views/app_upgrade.py",
+        "console/services/upgrade_services.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_upgrade_offline_test.py",
+          "selector": "AppUpgradeOfflineTests::test_offline_upgrade_info_view_calculates_local_details"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.app-upgrade.openapi-upgrade-group-id",
       "title": "OpenAPI upgrade passes upgrade_group_id to record creation",
       "title_zh": "OpenAPI 升级向记录创建传递 upgrade_group_id",
@@ -1928,6 +1947,37 @@
         {
           "path": "console/tests/mcp_query_service_test.py",
           "selector": "MCPQueryServiceApplicationToolTests.test_query_app_upgrade_records_returns_paginated_items"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.app-upgrade.remote-offline-market-guard",
+      "title": "Block remote application market access in offline upgrade flows",
+      "title_zh": "离线升级流程阻断远程应用市场访问",
+      "interface_type": "service_method",
+      "interface": "console.services.upgrade_services.UpgradeService.get_property_changes",
+      "code_paths": [
+        "console/services/upgrade_services.py",
+        "console/services/market_app_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_upgrade_offline_test.py",
+          "selector": "AppUpgradeOfflineTests::test_remote_upgrade_details_skip_market_lookup_when_offline"
+        },
+        {
+          "path": "console/tests/market_app_service_test.py",
+          "selector": "MarketAppServiceOfflineUpgradeTests::test_remote_component_versions_skip_market_lookup_when_offline"
+        },
+        {
+          "path": "console/tests/market_app_service_test.py",
+          "selector": "MarketAppServiceOfflineUpgradeTests::test_remote_model_versions_skip_market_lookup_when_offline"
+        },
+        {
+          "path": "console/tests/market_app_service_test.py",
+          "selector": "MarketAppServiceOfflineUpgradeTests::test_remote_record_versions_skip_market_lookup_when_offline"
         }
       ],
       "test_type": "regression",
@@ -6866,7 +6916,11 @@
       "tests": [
         {
           "path": "console/tests/market_app_service_test.py",
-          "selector": "MarketAppServiceOfflineUpgradeTests"
+          "selector": "MarketAppServiceOfflineUpgradeTests::test_local_snapshot_offline_upgrade_is_detected"
+        },
+        {
+          "path": "console/tests/market_app_service_test.py",
+          "selector": "MarketAppServiceOfflineUpgradeTests::test_local_snapshot_versions_still_use_local_repository_when_offline"
         }
       ],
       "test_type": "regression",

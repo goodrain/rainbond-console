@@ -104,10 +104,12 @@
 | console.app-upgrade.execute-record | App Upgrade Execute Record | active | regression | console.services.mcp_query_service.call_tool[console.app-upgrade.execute-record] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_execute_app_upgrade_record_calls_upgrade_service |
 | console.app-upgrade.info | 查询应用升级信息 | active | regression | console.services.mcp_query_service.call_tool[rainbond_get_app_upgrade_info] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_get_app_upgrade_info_returns_upgrade_items |
 | console.app-upgrade.last-record | App Upgrade Last Record | active | regression | console.services.mcp_query_service.call_tool[console.app-upgrade.last-record] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_get_app_last_upgrade_record_returns_snapshot_metadata |
+| console.app-upgrade.local-offline-detail | 离线模式展示本地应用升级详情 | active | regression | console.views.app_upgrade.AppUpgradeInfoView.get | console/tests/app_upgrade_offline_test.py::AppUpgradeOfflineTests::test_offline_upgrade_info_view_calculates_local_details |
 | console.app-upgrade.openapi-upgrade-group-id | OpenAPI 升级向记录创建传递 upgrade_group_id | active | regression | console.services.upgrade_services.UpgradeService.openapi_upgrade_app_models | console/tests/upgrade_services_test.py::OpenapiUpgradeGroupIdTests |
 | console.app-upgrade.record | App Upgrade Record | active | regression | console.services.mcp_query_service.call_tool[console.app-upgrade.record] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_get_app_upgrade_record_returns_record_detail |
 | console.app-upgrade.record-status-summary | 应用升级记录状态汇总 | active | regression | console.services.upgrade_services.UpgradeService._update_app_record_status | console/tests/upgrade_services_test.py::UpgradeServiceRecordStatusTests |
 | console.app-upgrade.records | App Upgrade Records | active | regression | console.services.mcp_query_service.call_tool[console.app-upgrade.records] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_query_app_upgrade_records_returns_paginated_items |
+| console.app-upgrade.remote-offline-market-guard | 离线升级流程阻断远程应用市场访问 | active | regression | console.services.upgrade_services.UpgradeService.get_property_changes | console/tests/app_upgrade_offline_test.py::AppUpgradeOfflineTests::test_remote_upgrade_details_skip_market_lookup_when_offline<br>console/tests/market_app_service_test.py::MarketAppServiceOfflineUpgradeTests::test_remote_component_versions_skip_market_lookup_when_offline<br>console/tests/market_app_service_test.py::MarketAppServiceOfflineUpgradeTests::test_remote_model_versions_skip_market_lookup_when_offline<br>console/tests/market_app_service_test.py::MarketAppServiceOfflineUpgradeTests::test_remote_record_versions_skip_market_lookup_when_offline |
 | console.app-upgrade.rollback | App Upgrade Rollback | active | regression | console.services.mcp_query_service.call_tool[console.app-upgrade.rollback] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_rollback_app_upgrade_record_calls_restore |
 | console.app-upgrade.rollback-records | App Upgrade Rollback Records | active | regression | console.services.mcp_query_service.call_tool[console.app-upgrade.rollback-records] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_get_app_rollback_records_returns_items |
 | console.app-version.component-diff-details | 生成应用版本组件差异明细 | active | regression | console.services.app_version_service._build_component_diff_details | console/tests/app_version_test.py::AppVersionServiceComponentDiffDetailTestCase.test_build_component_diff_details_tracks_added_removed_and_field_updates<br>console/tests/app_version_test.py::AppVersionServiceComponentDiffDetailTestCase.test_build_component_diff_details_tracks_connect_envs_and_other_changes |
@@ -361,6 +363,7 @@
 | console.market-app.create-template-scope-name | 按发布范围和团队检查应用市场模板重名 | active | regression | console.services.market_app_service.MarketAppService.create_rainbond_app | console/tests/market_app_service_test.py::MarketAppServiceCreateRainbondAppTests |
 | console.market-app.install-default-storage-class | 应用市场安装使用平台默认存储类 | active | regression | console.services.market_app.new_components.NewComponents._template_to_volumes | console/tests/market_app_storage_test.py::MarketAppDefaultStorageClassTests.test_resolve_market_default_volume_type_prefers_configured_storage_class<br>console/tests/market_app_storage_test.py::MarketAppDefaultStorageClassTests.test_template_to_volumes_uses_configured_default_storage_class |
 | console.market-app.install-unlimited-resources | 市场发布和安装保留不限制资源 | active | regression | console.services.share_services.ShareService.query_share_service_info / console.services.market_app.new_components.NewComponents._template_to_component / console.services.market_app_service.MarketAppService.__init_component_from_market_app / console.services.app_import_and_export_service.AppImportService.__normalize_import_component_template | console/tests/service_share_test.py::ShareServiceQueryResourceLimitTestCase.test_query_share_service_info_preserves_unlimited_resource_limits<br>console/tests/market_app_update_components_test.py::MarketAppNewComponentsResourceLimitTests.test_template_to_component_preserves_explicit_unlimited_cpu_and_memory<br>console/tests/market_app_service_test.py::MarketAppServiceResourceLimitTests.test_init_component_from_market_app_preserves_explicit_unlimited_cpu_and_memory<br>console/tests/app_import_and_export_service_test.py::AppImportServiceMetadataTestCase.test_save_enterprise_import_info_preserves_explicit_unlimited_resources |
+| console.market-app.local-snapshot-offline-upgrade | 离线模式检测本地快照升级 | active | regression | console.services.market_app_service.MarketAppService.get_market_apps_in_app | console/tests/market_app_service_test.py::MarketAppServiceOfflineUpgradeTests::test_local_snapshot_offline_upgrade_is_detected<br>console/tests/market_app_service_test.py::MarketAppServiceOfflineUpgradeTests::test_local_snapshot_versions_still_use_local_repository_when_offline |
 | console.market-app.restore-preserves-volume-capacity-on-storage-fallback | 市场恢复在存储类型回退时保留卷容量 | active | regression | console.services.market_app.new_components.NewComponents._template_to_volumes | console/tests/market_app_storage_test.py::MarketAppDefaultStorageClassTests.test_template_to_volumes_preserves_capacity_when_storage_type_changes |
 | console.market-app.restore-volume-capacity-helper | resolve_market_restore_volume_settings 在存储类型变化时保留容量 | active | regression | console.services.app_config.volume_service.AppVolumeService.resolve_market_restore_volume_settings | console/tests/market_app_storage_test.py::MarketAppDefaultStorageClassTests.test_resolve_market_restore_volume_settings_preserves_capacity_when_storage_type_changes |
 | console.market-app.upgrade-share-image-fallback | Market App Upgrade Share Image Fallback | active | regression | console.services.market_app.update_components | console/tests/market_app_update_components_test.py::MarketAppUpdateComponentsCompatibilityTests.test_create_update_components_falls_back_to_image_when_share_image_missing |
@@ -1580,6 +1583,16 @@
 - 代码路径: `console/services/mcp_query_service.py`
 - 测试路径: `console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_get_app_last_upgrade_record_returns_snapshot_metadata`
 
+### 离线模式展示本地应用升级详情
+
+- Capability ID: `console.app-upgrade.local-offline-detail`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `view_endpoint`
+- 业务入口: `console.views.app_upgrade.AppUpgradeInfoView.get`
+- 代码路径: `console/views/app_upgrade.py`, `console/services/upgrade_services.py`
+- 测试路径: `console/tests/app_upgrade_offline_test.py::AppUpgradeOfflineTests::test_offline_upgrade_info_view_calculates_local_details`
+
 ### OpenAPI 升级向记录创建传递 upgrade_group_id
 
 - Capability ID: `console.app-upgrade.openapi-upgrade-group-id`
@@ -1619,6 +1632,16 @@
 - 业务入口: `console.services.mcp_query_service.call_tool[console.app-upgrade.records]`
 - 代码路径: `console/services/mcp_query_service.py`
 - 测试路径: `console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_query_app_upgrade_records_returns_paginated_items`
+
+### 离线升级流程阻断远程应用市场访问
+
+- Capability ID: `console.app-upgrade.remote-offline-market-guard`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.upgrade_services.UpgradeService.get_property_changes`
+- 代码路径: `console/services/upgrade_services.py`, `console/services/market_app_service.py`
+- 测试路径: `console/tests/app_upgrade_offline_test.py::AppUpgradeOfflineTests::test_remote_upgrade_details_skip_market_lookup_when_offline`, `console/tests/market_app_service_test.py::MarketAppServiceOfflineUpgradeTests::test_remote_component_versions_skip_market_lookup_when_offline`, `console/tests/market_app_service_test.py::MarketAppServiceOfflineUpgradeTests::test_remote_model_versions_skip_market_lookup_when_offline`, `console/tests/market_app_service_test.py::MarketAppServiceOfflineUpgradeTests::test_remote_record_versions_skip_market_lookup_when_offline`
 
 ### App Upgrade Rollback
 
@@ -4149,6 +4172,16 @@
 - 业务入口: `console.services.share_services.ShareService.query_share_service_info / console.services.market_app.new_components.NewComponents._template_to_component / console.services.market_app_service.MarketAppService.__init_component_from_market_app / console.services.app_import_and_export_service.AppImportService.__normalize_import_component_template`
 - 代码路径: `console/services/share_services.py`, `console/services/market_app/new_components.py`, `console/services/market_app_service.py`, `console/services/app_import_and_export_service.py`
 - 测试路径: `console/tests/service_share_test.py::ShareServiceQueryResourceLimitTestCase.test_query_share_service_info_preserves_unlimited_resource_limits`, `console/tests/market_app_update_components_test.py::MarketAppNewComponentsResourceLimitTests.test_template_to_component_preserves_explicit_unlimited_cpu_and_memory`, `console/tests/market_app_service_test.py::MarketAppServiceResourceLimitTests.test_init_component_from_market_app_preserves_explicit_unlimited_cpu_and_memory`, `console/tests/app_import_and_export_service_test.py::AppImportServiceMetadataTestCase.test_save_enterprise_import_info_preserves_explicit_unlimited_resources`
+
+### 离线模式检测本地快照升级
+
+- Capability ID: `console.market-app.local-snapshot-offline-upgrade`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.market_app_service.MarketAppService.get_market_apps_in_app`
+- 代码路径: `console/services/market_app_service.py`
+- 测试路径: `console/tests/market_app_service_test.py::MarketAppServiceOfflineUpgradeTests::test_local_snapshot_offline_upgrade_is_detected`, `console/tests/market_app_service_test.py::MarketAppServiceOfflineUpgradeTests::test_local_snapshot_versions_still_use_local_repository_when_offline`
 
 ### 市场恢复在存储类型回退时保留卷容量
 
