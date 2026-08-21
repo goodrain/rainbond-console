@@ -63,6 +63,15 @@ class RBDPluginSyncService(object):
                 safe_context={"field": "namespace"},
             )
         namespace = namespace.strip()
+        enterprise_id = getattr(tenant, "enterprise_id", "")
+        if not isinstance(enterprise_id, str) or not enterprise_id.strip():
+            self._fail(
+                "validate_template",
+                app_id,
+                plugin_id,
+                safe_context={"field": "enterprise_id"},
+            )
+        enterprise_id = enterprise_id.strip()
 
         service_ids = self._resolve_app_service_ids(tenant, region, app_id, plugin_id)
         components = self._resolve_app_components(tenant, region, app_id, plugin_id, service_ids)
@@ -129,7 +138,7 @@ class RBDPluginSyncService(object):
             "app_id": region_app_id,
         }
         try:
-            region_api.create_rbdplugin(tenant.enterprise_id, region.region_name, plugin_data)
+            region_api.create_rbdplugin(enterprise_id, region.region_name, plugin_data)
         except Exception as error:
             safe_context = {
                 "region_name": region.region_name,
@@ -347,6 +356,8 @@ class RBDPluginSyncService(object):
         if template_component:
             for port in self._template_port_mappings(template_component):
                 value = port.get("container_port", port.get("port")) if isinstance(port, dict) else None
+                if isinstance(value, bool) or not isinstance(value, (str, int)):
+                    continue
                 try:
                     declared_ports.add(int(value))
                 except (TypeError, ValueError):

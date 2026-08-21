@@ -346,6 +346,23 @@ class RBDPluginSyncServiceTests(TestCase):
         self.assertNotIn("apps", context.exception.bean)
         region_apply.assert_not_called()
 
+    def test_missing_enterprise_id_fails_before_region_request(self):
+        tenant = Obj(
+            tenant_id="team-1",
+            enterprise_id=None,
+            namespace="rbd-plugins",
+        )
+        patches = self._patch_desired_state()
+
+        with patches[0] as relation_filter, patches[1], patches[2], patches[3], patches[4], patches[5] as region_apply:
+            relation_filter.return_value.values_list.return_value = ["svc-ui", "svc-api"]
+            with self.assertRaises(ServiceHandleException) as context:
+                self.service.reconcile(tenant, self.region, self.template, 23)
+
+        self.assertEqual("rbd_plugin_sync_failed", context.exception.msg)
+        self.assertEqual("validate_template", context.exception.bean["phase"])
+        region_apply.assert_not_called()
+
     def test_region_failure_is_wrapped_without_exposing_exception_text(self):
         patches = self._patch_desired_state()
 
