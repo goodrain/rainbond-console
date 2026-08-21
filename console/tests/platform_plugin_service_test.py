@@ -12,6 +12,17 @@ for attr in ("Mapping", "MutableMapping", "Sequence", "Iterable", "Iterator"):
         setattr(collections, attr, getattr(collections.abc, attr))
 
 sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
+if "openapi_client" not in sys.modules:
+    openapi_client_module = ModuleType("openapi_client")
+    openapi_client_module.ApiClient = object
+    openapi_client_module.MarketOpenapiApi = object
+    configuration_module = ModuleType("openapi_client.configuration")
+    configuration_module.Configuration = type("Configuration", (), {})
+    rest_module = ModuleType("openapi_client.rest")
+    rest_module.ApiException = type("ApiException", (Exception,), {})
+    sys.modules["openapi_client"] = openapi_client_module
+    sys.modules["openapi_client.configuration"] = configuration_module
+    sys.modules["openapi_client.rest"] = rest_module
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
 
 import django  # noqa: E402
@@ -230,7 +241,7 @@ class PlatformPluginServiceTests(TestCase):
     def test_bootstrap_agent_service_mcp_credentials_injects_api_envs_without_returning_secret(self):
         tenant = mock.Mock(tenant_id="team-1", tenant_name="rbd-plugins")
         app = mock.Mock(ID=23)
-        service = mock.Mock(service_alias="rainbond-agent-api", service_cname="api")
+        service = mock.Mock(service_id="agent-api", service_alias="rainbond-agent-api", service_cname="api")
         component = mock.Mock(component=service)
         user = mock.Mock(nick_name="admin")
         user.get_username.return_value = "admin"
@@ -243,12 +254,15 @@ class PlatformPluginServiceTests(TestCase):
 
         with mock.patch("console.services.platform_plugin_service.jwt_issuer.issue_agent_service_jwt",
                         return_value="jwt-token") as issue_jwt, \
+                mock.patch("console.services.platform_plugin_service.ServiceGroupRelation.objects.filter") \
+                as relation_filter, \
                 mock.patch("console.services.platform_plugin_service.env_var_service.get_env_by_attr_name",
                            side_effect=get_env_by_attr_name), \
                 mock.patch("console.services.platform_plugin_service.env_var_service.add_service_env_var",
                            return_value=(200, "success", mock.Mock())) as add_env, \
                 mock.patch("console.services.platform_plugin_service.env_var_service.update_env_by_env_id",
                            return_value=(200, "success", existing_cookie_env)) as update_env:
+            relation_filter.return_value.values_list.return_value = ["agent-api"]
             result = platform_plugin_service.bootstrap_agent_service_mcp_credentials(
                 tenant, app, "rainbond", [component], user)
 
@@ -272,6 +286,96 @@ class PlatformPluginServiceTests(TestCase):
 
         self.assertEqual("deferred", result["status"])
         self.assertIn("未找到 AI 助手 API 组件", result["message"])
+
+    def test_resolve_agent_api_component_uses_application_membership_not_market_group_id(self):
+        tenant = mock.Mock(tenant_id="team-1")
+        app = mock.Mock(ID=23)
+        api = mock.Mock(
+            service_id="agent-api",
+            service_cname="api",
+            service_name="AI助手 API",
+            service_alias="rainbond-agent-api",
+            k8s_component_name="api",
+            tenant_service_group_id=81,
+        )
+
+        with mock.patch("console.services.platform_plugin_service.ServiceGroupRelation.objects.filter") \
+                as relation_filter, \
+                mock.patch("console.services.platform_plugin_service.TenantServiceInfo.objects.filter",
+                           return_value=[api]) as service_filter:
+            relation_filter.return_value.values_list.return_value = ["agent-ui", "agent-api"]
+            result = platform_plugin_service._resolve_agent_api_component(
+                tenant, app, "rainbond", [])
+
+        self.assertIs(api, result)
+        relation_filter.assert_called_once_with(
+            tenant_id="team-1", region_name="rainbond", group_id=23)
+        service_filter.assert_called_once_with(
+            tenant_id="team-1",
+            service_region="rainbond",
+            service_id__in=["agent-ui", "agent-api"],
+        )
+
+    def test_resolve_agent_api_component_excludes_matching_component_from_other_app(self):
+        tenant = mock.Mock(tenant_id="team-1")
+        app = mock.Mock(ID=23)
+        other_app_api = mock.Mock(service_id="other-api", service_cname="api")
+        current_app_ui = mock.Mock(
+            service_id="agent-ui",
+            service_cname="ui",
+            service_name="AI助手 UI",
+            service_alias="rainbond-agent-ui",
+            k8s_component_name="ui",
+        )
+
+        with mock.patch("console.services.platform_plugin_service.ServiceGroupRelation.objects.filter") \
+                as relation_filter, \
+                mock.patch("console.services.platform_plugin_service.TenantServiceInfo.objects.filter",
+                           return_value=[current_app_ui]) as service_filter:
+            relation_filter.return_value.values_list.return_value = ["agent-ui"]
+            result = platform_plugin_service._resolve_agent_api_component(
+                tenant, app, "rainbond", [])
+
+        self.assertIs(current_app_ui, result)
+        service_filter.assert_called_once_with(
+            tenant_id="team-1",
+            service_region="rainbond",
+            service_id__in=["agent-ui"],
+        )
+        self.assertNotIn(other_app_api.service_id, service_filter.call_args.kwargs["service_id__in"])
+
+    def test_resolve_agent_api_component_rejects_cross_app_api_from_input_components(self):
+        tenant = mock.Mock(tenant_id="team-1")
+        app = mock.Mock(ID=23)
+        other_app_api = mock.Mock(
+            service_id="other-api",
+            service_cname="api",
+            service_name="Other API",
+            service_alias="other-api",
+            k8s_component_name="api",
+        )
+        current_app_ui = mock.Mock(
+            service_id="agent-ui",
+            service_cname="ui",
+            service_name="AI助手 UI",
+            service_alias="rainbond-agent-ui",
+            k8s_component_name="ui",
+        )
+
+        with mock.patch("console.services.platform_plugin_service.ServiceGroupRelation.objects.filter") \
+                as relation_filter, \
+                mock.patch("console.services.platform_plugin_service.TenantServiceInfo.objects.filter",
+                           return_value=[current_app_ui]) as service_filter:
+            relation_filter.return_value.values_list.return_value = ["agent-ui"]
+            result = platform_plugin_service._resolve_agent_api_component(
+                tenant, app, "rainbond", [other_app_api])
+
+        self.assertIs(current_app_ui, result)
+        service_filter.assert_called_once_with(
+            tenant_id="team-1",
+            service_region="rainbond",
+            service_id__in=["agent-ui"],
+        )
 
     def test_ensure_agent_credential_encryption_key_generates_once_and_restarts(self):
         tenant = mock.Mock(tenant_id="team-1", enterprise_id="eid")
@@ -398,7 +502,8 @@ class PlatformPluginServiceTests(TestCase):
                 mock.patch("console.services.platform_plugin_service.market_app_service._create_tenant_service_group",
                            return_value=mock.Mock()), \
                 mock.patch("console.services.platform_plugin_service.AppUpgrade") as app_upgrade_cls, \
-                mock.patch("console.services.platform_plugin_service.market_app_service._create_rbdplugin_if_needed"), \
+                mock.patch("console.services.platform_plugin_service.market_app_service._create_rbdplugin_if_needed") \
+                as reconcile_plugin, \
                 mock.patch.object(platform_plugin_service, "bootstrap_agent_service_mcp_credentials",
                                   return_value={"status": "synced"}) as bootstrap_mcp, \
                 mock.patch.object(platform_plugin_service, "bootstrap_agent_credential_encryption_key",
@@ -412,6 +517,10 @@ class PlatformPluginServiceTests(TestCase):
         bootstrap_encryption.assert_called_once_with(tenant, app, "rainbond", [component], mock.ANY)
         bootstrap_mcp.assert_called_once_with(tenant, app, "rainbond", [component], mock.ANY)
         bootstrap_kube.assert_called_once()
+        reconcile_plugin.assert_called_once_with(tenant, region_info, {
+            "update_time": "",
+            "arch": "amd64",
+        }, 23)
         self.assertEqual({"status": "synced"}, result["service_mcp_credential_bootstrap"])
         self.assertEqual({"status": "synced"}, result["credential_encryption_bootstrap"])
         self.assertEqual({"status": "synced"}, result["kubernetes_credential_bootstrap"])

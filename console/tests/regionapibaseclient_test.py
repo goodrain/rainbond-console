@@ -267,6 +267,79 @@ class RegionApiBaseHttpClientTestCase(TestCase):
         self.assertIsNone(kwargs["timeout"].connect_timeout)
         self.assertIsNone(kwargs["timeout"].read_timeout)
 
+    def test_plugin_proxy_accepts_explicit_finite_timeout(self):
+        client = RegionApiBaseHttpClient()
+        request = mock.Mock(method="GET", META={})
+        region = mock.Mock(url="http://region-api")
+        proxy_client = mock.Mock()
+        proxy_client.request.return_value = mock.Mock(
+            data=b"ok",
+            status=200,
+            headers={"Content-Type": "application/javascript"},
+            url="http://region-api/v2/platform/static/plugins/rainbond-agent",
+        )
+        timeout = urllib3.Timeout(connect=5.0, read=30.0)
+
+        with mock.patch("www.apiclient.regionapibaseclient.region_repo.get_region_by_region_name", return_value=region), \
+                mock.patch.object(client, "get_client", return_value=proxy_client):
+            client.proxy(
+                request,
+                "/v2/platform/static/plugins/rainbond-agent",
+                "rainbond",
+                timeout=timeout,
+            )
+
+        _, kwargs = proxy_client.request.call_args
+        self.assertIs(kwargs["timeout"], timeout)
+        self.assertEqual(kwargs["timeout"].connect_timeout, 5.0)
+        self.assertEqual(kwargs["timeout"].read_timeout, 30.0)
+
+    def test_plugin_proxy_header_allowlist_strips_browser_credentials(self):
+        client = RegionApiBaseHttpClient()
+        request = mock.Mock()
+        request.method = "GET"
+        request.META = {
+            "HTTP_ACCEPT": "application/javascript",
+            "HTTP_IF_NONE_MATCH": '"plugin-etag"',
+            "HTTP_IF_MODIFIED_SINCE": "Wed, 21 Oct 2015 07:28:00 GMT",
+            "HTTP_COOKIE": "token=browser-cookie",
+            "HTTP_AUTHORIZATION": "GRJWT browser-token",
+            "HTTP_X_ORIGINAL_AUTHORIZATION": "GRJWT original-token",
+            "HTTP_X_UNRELATED_HEADER": "must-not-forward",
+        }
+        region = mock.Mock(url="http://region-api", token="region-token")
+        proxy_client = mock.Mock()
+        proxy_client.request.return_value = mock.Mock(
+            data=b"ok",
+            status=200,
+            headers={"Content-Type": "application/javascript"},
+            url="http://region-api/v2/platform/static/plugins/rainbond-agent",
+        )
+
+        with mock.patch("www.apiclient.regionapibaseclient.region_repo.get_region_by_region_name", return_value=region), \
+                mock.patch.object(client, "get_client", return_value=proxy_client):
+            client.proxy(
+                request,
+                "/v2/platform/static/plugins/rainbond-agent",
+                "rainbond",
+                header_allowlist=frozenset([
+                    "accept",
+                    "if-none-match",
+                    "if-modified-since",
+                ]),
+            )
+
+        _, kwargs = proxy_client.request.call_args
+        headers = kwargs["headers"]
+        normalized_header_names = set(key.lower() for key in headers)
+        self.assertEqual(headers["ACCEPT"], "application/javascript")
+        self.assertEqual(headers["IF-NONE-MATCH"], '"plugin-etag"')
+        self.assertEqual(headers["IF-MODIFIED-SINCE"], "Wed, 21 Oct 2015 07:28:00 GMT")
+        self.assertEqual(headers["Authorization"], "region-token")
+        self.assertNotIn("cookie", normalized_header_names)
+        self.assertNotIn("x-original-authorization", normalized_header_names)
+        self.assertNotIn("x-unrelated-header", normalized_header_names)
+
     def test_plugin_proxy_streams_request_without_buffering_django_body(self):
         client = RegionApiBaseHttpClient()
         payload = b"x" * (3 * 1024 * 1024)

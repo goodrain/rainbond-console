@@ -33,7 +33,7 @@ from console.services.team_services import team_services
 from console.utils import jwt_issuer
 from console.utils.offline import is_cloud_market_disabled
 from www.apiclient.regionapi import RegionInvokeApi
-from www.models.main import ServiceGroup, TenantServiceInfo, Tenants
+from www.models.main import ServiceGroup, ServiceGroupRelation, TenantServiceInfo, Tenants
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
@@ -748,7 +748,8 @@ class PlatformPluginService(object):
             service_aliases=component_service_aliases)
 
         # 8. Create RBDPlugin CR if template has platform_plugin info
-        market_app_service._create_rbdplugin_if_needed(tenant, region, app_template, app.ID)  # type: ignore[union-attr, arg-type]  # NOTE: app is Optional[ServiceGroup]; _create_rbdplugin_if_needed expects str|None but app.ID is int (pre-existing int/str mismatch at call site)
+        market_app_service._create_rbdplugin_if_needed(
+            tenant, region, app_template, app.ID)  # type: ignore[union-attr]  # app is present after _ensure_plugin_app
         credential_bootstrap = None
         service_mcp_bootstrap = None
         credential_encryption_bootstrap = None
@@ -822,23 +823,31 @@ class PlatformPluginService(object):
 
     def _resolve_agent_api_component(self, tenant: Tenants, app: ServiceGroup, region_name: str,
                                      components: Any) -> Optional[TenantServiceInfo]:
+        app_id = getattr(app, "ID", None)
+        if not isinstance(app_id, int):
+            return None
+        service_ids = list(ServiceGroupRelation.objects.filter(
+            tenant_id=tenant.tenant_id,
+            region_name=region_name,
+            group_id=app_id,
+        ).values_list("service_id", flat=True))
+        if not service_ids:
+            return None
+        allowed_service_ids = set(service_ids)
         component_list = []
         for item in components or []:
             component = getattr(item, "component", item)
-            if component:
+            if component and getattr(component, "service_id", None) in allowed_service_ids:
                 component_list.append(component)
 
         service = self._pick_agent_api_component(component_list)
         if service:
             return service
 
-        app_id = getattr(app, "ID", None)
-        if not isinstance(app_id, int):
-            return None
         query = TenantServiceInfo.objects.filter(
             tenant_id=tenant.tenant_id,
             service_region=region_name,
-            tenant_service_group_id=app_id,
+            service_id__in=service_ids,
         )
         return self._pick_agent_api_component(list(query))
 

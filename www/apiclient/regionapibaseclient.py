@@ -440,13 +440,18 @@ class RegionApiBaseHttpClient(object):
         res, body = self._check_status(url, 'DELETE', response, content)
         return res, body
 
-    def proxy(self, request, url, region_name, requests_args=None):
+    def proxy(self, request, url, region_name, requests_args=None, timeout=None, header_allowlist=None):
         """
         Forward as close to an exact copy of the request as possible along to the
         given url.  Respond with as close to an exact copy of the resulting
         response as possible.
         If there are any additional arguments you wish to send to requests, put
         them in the requests_args dictionary.
+
+        A caller may provide a finite urllib3 timeout and a case-insensitive
+        request-header allowlist for endpoints that must not inherit browser
+        credentials. Existing callers retain the unlimited timeout and full
+        request-header forwarding behavior.
         """
         requests_args = (requests_args or {}).copy()
         headers = self.get_headers(request.META)
@@ -464,6 +469,10 @@ class RegionApiBaseHttpClient(object):
         # Overwrite any headers and params from the incoming request with explicitly
         # specified values for the requests library.
         headers.update(requests_args['headers'])
+
+        if header_allowlist is not None:
+            allowed_headers = set(str(header).lower() for header in header_allowlist)
+            headers = dict((key, value) for key, value in headers.items() if key.lower() in allowed_headers)
 
         # The incoming content length remains valid while forwarding the original
         # request stream. An explicitly replaced body may have a different length.
@@ -484,7 +493,7 @@ class RegionApiBaseHttpClient(object):
         response = self._timed_client_request(
             client,
             method=request.method,
-            timeout=urllib3.Timeout(connect=None, read=None),
+            timeout=timeout if timeout is not None else urllib3.Timeout(connect=None, read=None),
             url="{}{}".format(region.url, url),
             **requests_args
         )
