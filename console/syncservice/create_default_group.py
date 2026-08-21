@@ -7,9 +7,8 @@ import logging
 from console.services.team_services import team_services
 from www.models.main import ServiceGroup
 from www.models.main import ServiceGroupRelation
-from console.repositories.app import service_repo
+from www.models.main import TenantServiceInfo
 from console.repositories.group import group_repo
-from console.utils.database import database_type, pagination_clause
 
 logger = logging.getLogger("default")
 
@@ -51,10 +50,7 @@ class SyncTenantServiceManager(object):
             self.add_service_to_default_app(group.ID, service)
 
     def get_limited_services(self, start_index, number_of_services):
-        limit, limit_args = pagination_clause(database_type(), start_index, number_of_services)
-        query_sql = "select * from tenant_service WHERE ID > 0" + limit
-        services = service_repo.get_services_by_raw_sql(query_sql, limit_args)
-        return services
+        return TenantServiceInfo.objects.filter(ID__gt=0).order_by("ID")[start_index:start_index + number_of_services]
 
     def is_service_ungrouped(self, service):
         """查询组件是否在关系表中"""

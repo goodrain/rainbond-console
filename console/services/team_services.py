@@ -135,7 +135,7 @@ class TeamService(object):
         # NOTE: Tenants.ID is the int PK; repo annotates tenant_ID as str (signature mismatch).
         users = team_repo.get_tenant_users_by_tenant_ID(team.ID)  # type: ignore[arg-type]
         if users and name:
-            users = users.filter(Q(nick_name__contains=name) | Q(real_name__contains=name))
+            users = users.filter(Q(nick_name__icontains=name) | Q(real_name__icontains=name))
         return users
 
     def get_tenant_users_by_tenant_name(self, tenant_name: str) -> Any:
@@ -549,7 +549,7 @@ class TeamService(object):
     def list_teams_v2(self, eid: str, query: Optional[str] = None, page: Optional[int] = None,
                       page_size: Optional[int] = None) -> Tuple[Any, int]:
         if query:
-            total = Tenants.objects.filter(tenant_alias__contains=query).count()
+            total = Tenants.objects.filter(tenant_alias__icontains=query).count()
         else:
             total = Tenants.objects.count()
         # NOTE: query may be None; repo annotates query as str (handles falsy at runtime).

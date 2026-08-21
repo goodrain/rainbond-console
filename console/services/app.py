@@ -830,7 +830,7 @@ class AppService(object):
     def get_app_list(self, tenant_id: str, region: str, dep_app_name: str) -> QuerySet:
         q = Q(tenant_id=tenant_id, service_region=region)
         if dep_app_name:
-            q &= Q(service_cname__contains=dep_app_name)
+            q &= Q(service_cname__icontains=dep_app_name)
 
         return TenantServiceInfo.objects.filter(q)
 

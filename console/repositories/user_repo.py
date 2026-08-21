@@ -1,14 +1,13 @@
 # -*- coding: utf-8 -*-
 from typing import Any, List, Optional
 
+from addict import Dict
 from django.db.models import Q, QuerySet
 
 from console.exception.exceptions import UserFavoriteNotExistError, UserNotExistError
 from console.exception.bcode import ErrUserNotFound
 from console.models.main import UserFavorite
-from console.repositories.base import BaseConnection
-from console.utils.database import database_type, pagination_clause
-from www.models.main import Users
+from www.models.main import PermRelTenant, Tenants, Users
 
 
 class UserRepo(object):
@@ -86,106 +85,65 @@ class UserRepo(object):
         """
         Support search by username, email, phone number
         """
-        return Users.objects.filter(Q(nick_name__contains=item)
-                                    | Q(email__contains=item)
-                                    | Q(phone__contains=item)).all().order_by("-create_time")
+        return Users.objects.filter(Q(nick_name__icontains=item)
+                                    | Q(email__icontains=item)
+                                    | Q(phone__icontains=item)).all().order_by("-create_time")
 
     def get_by_tenant_id(self, tenant_id: str, user_id: str) -> dict:
-        conn = BaseConnection()
-
-        sql = """
-            SELECT DISTINCT
-                a.user_id,
-                a.email,
-                a.nick_name,
-                a.phone,
-                a.is_active,
-                a.enterprise_id,
-                b.identity
-            FROM
-                user_info a,
-                tenant_perms b,
-                tenant_info c
-            WHERE a.user_id = b.user_id
-            AND b.tenant_id = c.ID
-            AND a.user_id = %s
-            AND c.tenant_id = %s"""
-        result = conn.query(sql, [user_id, tenant_id])
-        if len(result) == 0:
+        rows = self._tenant_user_rows(tenant_id, user_id=user_id)
+        if not rows:
             raise UserNotExistError("用户{0}不存在于团队{1}中".format(user_id, tenant_id))
-        return result[0]
+        return rows[0]
 
     def list_users_by_tenant_id(self, tenant_id: str, query: str = "", page: Optional[int] = None,
                                 size: Optional[int] = None) -> Any:
         """
         Support search by username, email, phone number
         """
-        conn = BaseConnection()
-
-        args = [tenant_id]
-        limit = ""
+        rows = self._tenant_user_rows(tenant_id, query=query)
         if page is not None and size is not None:
-            page = page if page > 0 else 1
-            limit, page_args = pagination_clause(database_type(), (page - 1) * size, size)
-            args.extend(page_args)
-        where = """WHERE a.user_id = b.user_id
-            AND b.tenant_id = c.ID
-            AND c.tenant_id = %s"""
-        if query:
-            where += """ AND ( a.nick_name LIKE %s
-            OR a.phone LIKE %s
-            OR a.email LIKE %s )"""
-            args[1:1] = ["%" + query + "%"] * 3
-        sql = """
-            SELECT DISTINCT
-                a.user_id,
-                a.email,
-                a.nick_name,
-                a.phone,
-                a.is_active,
-                a.enterprise_id,
-                b.identity
-            FROM
-                user_info a,
-                tenant_perms b,
-                tenant_info c
-            {where}
-            {limit}""".format(
-            where=where, limit=limit)
-        result = conn.query(sql, args)
-        return result
+            start = max(int(page) - 1, 0) * int(size)
+            rows = rows[start:start + int(size)]
+        return rows
 
     def count_users_by_tenant_id(self, tenant_id: str, query: str = "") -> Any:
         """
         Support search by username, email, phone number
         """
-        args = [tenant_id]
-        where = """WHERE a.user_id = b.user_id
-            AND b.tenant_id = c.ID
-            AND c.tenant_id = %s"""
+        return len({row.user_id for row in self._tenant_user_rows(tenant_id, query=query)})
+
+    @staticmethod
+    def _tenant_user_rows(tenant_id: str, query: str = "", user_id: Optional[str] = None) -> List[Dict]:
+        tenant = Tenants.objects.filter(tenant_id=tenant_id).only("ID").first()
+        if tenant is None:
+            return []
+        permissions = PermRelTenant.objects.filter(tenant_id=tenant.ID)
+        if user_id is not None:
+            permissions = permissions.filter(user_id=user_id)
+        permission_rows = list(permissions.values_list("user_id", "identity"))
+        user_ids = [permission_user_id for permission_user_id, _ in permission_rows]
+        users = Users.objects.filter(user_id__in=user_ids)
         if query:
-            where += """ AND ( a.nick_name LIKE %s
-            OR a.phone LIKE %s
-            OR a.email LIKE %s )"""
-            args.extend(["%" + query + "%"] * 3)
-
-        sql = """
-            SELECT
-                count(*) as total
-            FROM
-                (
-                SELECT DISTINCT
-                    a.user_id AS user_id
-                FROM
-                    user_info a,
-                    tenant_perms b,
-                    tenant_info c
-                {where}
-                ) as userid""".format(where=where)
-
-        conn = BaseConnection()
-        result = conn.query(sql, args)
-        return result[0].get("total")
+            users = users.filter(Q(nick_name__icontains=query) | Q(phone__icontains=query) | Q(email__icontains=query))
+        user_map = {user.user_id: user for user in users}
+        rows = []
+        seen = set()
+        for permission_user_id, identity in permission_rows:
+            user = user_map.get(permission_user_id)
+            key = (permission_user_id, identity)
+            if user is None or key in seen:
+                continue
+            seen.add(key)
+            rows.append(Dict({
+                "user_id": user.user_id,
+                "email": user.email,
+                "nick_name": user.nick_name,
+                "phone": user.phone,
+                "is_active": user.is_active,
+                "enterprise_id": user.enterprise_id,
+                "identity": identity,
+            }))
+        return rows
 
     def get_user_favorite(self, user_id: Any) -> QuerySet:
         # user_id arrives as str from some callers and as the int model field from others

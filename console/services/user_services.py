@@ -308,10 +308,10 @@ class UserService(object):
         users = user_repo.get_enterprise_users(eid)
         if name:
             users = users.filter(
-                Q(nick_name__contains=name)
-                | Q(real_name__contains=name)
-                | Q(phone__contains=name)
-                | Q(email__contains=name))
+                Q(nick_name__icontains=name)
+                | Q(real_name__icontains=name)
+                | Q(phone__icontains=name)
+                | Q(email__icontains=name))
         total = users.count()
         return users[(page - 1) * page_size:page * page_size], total
 

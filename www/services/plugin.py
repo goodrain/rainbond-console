@@ -1,8 +1,6 @@
 # -*- coding: utf8 -*-
 
 from www.apiclient.regionapi import RegionInvokeApi
-from www.db.base import BaseConnection
-
 from www.models.main import TenantServiceRelation, \
     TenantServiceInfo, TenantServicesPort, Users
 from www.models.plugin import TenantPlugin, PluginBuildVersion, PluginConfigGroup
@@ -54,8 +52,6 @@ region_api = RegionInvokeApi()
 
 
 class PluginService(object):
-    dsn = BaseConnection()
-
     def get_newest_plugin_version_info(self, region, tenant):
         """
         获取所有插件的最新构建信息
@@ -64,14 +60,12 @@ class PluginService(object):
         :return: 插件信息
         """
         result = []
-        query_sql = """SELECT * from plugin_build_version  WHERE
-                          id in (
-                                   SELECT max(id) from plugin_build_version WHERE
-                                    tenant_id=%s and region=%s GROUP BY plugin_id
-                                ) and
-                                  plugin_build_version.tenant_id=%s;"""
-
-        data = self.dsn.query(query_sql, [tenant.tenant_id, region, tenant.tenant_id])
+        versions = PluginBuildVersion.objects.filter(
+            tenant_id=tenant.tenant_id, region=region).order_by("plugin_id", "-ID")
+        newest_by_plugin = {}
+        for version in versions:
+            newest_by_plugin.setdefault(version.plugin_id, version)
+        data = newest_by_plugin.values()
         for d in data:
             plugin = TenantPlugin.objects.get(plugin_id=d.plugin_id)
             record_map = {}

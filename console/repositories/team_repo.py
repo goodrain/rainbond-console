@@ -2,13 +2,13 @@
 import logging
 from typing import Any, Optional
 
+from addict import Dict
 from console.exception.exceptions import TenantNotExistError
 from console.exception.main import ServiceHandleException
 from console.models.main import RegionConfig, TeamGitlabInfo, TeamRegistryAuth
-from console.repositories.base import BaseConnection
-from console.utils.database import database_type, pagination_clause
-from django.db.models import Q, QuerySet
-from www.models.main import (PermRelTenant, TenantEnterprise, TenantRegionInfo, Tenants, Users, TeamInvitation)
+from django.db.models import Count, Q, QuerySet
+from www.models.main import (PermRelTenant, TeamInvitation, TenantEnterprise, TenantRegionInfo, Tenants,
+                             TenantServiceInfo, Users)
 from www.utils.crypt import make_tenant_id
 
 logger = logging.getLogger("default")
@@ -42,7 +42,7 @@ class TeamRepo(object):
         tenant_ids = PermRelTenant.objects.filter(user_id=user_id).values_list("tenant_id", flat=True)
         filters = Q(ID__in=tenant_ids)
         if name:
-            filters &= Q(tenant_alias__contains=name)
+            filters &= Q(tenant_alias__icontains=name)
 
         tenants = Tenants.objects.filter(filters).order_by("-create_time")
         if team_name:
@@ -65,7 +65,7 @@ class TeamRepo(object):
         tenant_ids = list(dict.fromkeys(tenant_ids))
         filters: dict[str, Any] = {"ID__in": tenant_ids}
         if name:
-            filters["tenant_alias__contains"] = name
+            filters["tenant_alias__icontains"] = name
         tenants_by_id = {tenant.ID: tenant for tenant in Tenants.objects.filter(**filters)}
         return [tenants_by_id[tenant_id] for tenant_id in tenant_ids if tenant_id in tenants_by_id]
 
@@ -79,7 +79,7 @@ class TeamRepo(object):
                                                                                                    flat=True).order_by("-ID"))
         q = ~Q(ID__in=tenant_ids)
         if name:
-            q &= Q(tenant_alias__contains=name)
+            q &= Q(tenant_alias__icontains=name)
         return Tenants.objects.filter(q, enterprise_id=eid)
 
     def get_user_perms_in_permtenant(self, user_id: str, tenant_id: str) -> Optional["QuerySet[PermRelTenant]"]:
@@ -89,22 +89,12 @@ class TeamRepo(object):
         return tenant_perms
 
     def get_not_join_users(self, enterprise: TenantEnterprise, tenant: Tenants, query: str) -> Any:
-        sql = """
-            SELECT user_id, nick_name, enterprise_id, email
-            FROM user_info
-            WHERE user_id NOT IN (
-                SELECT DISTINCT user_id FROM tenant_perms WHERE tenant_id=%s AND enterprise_id=%s
-            )
-            AND enterprise_id=%s
-        """
-        args = [tenant.ID, enterprise.ID, enterprise.enterprise_id]
+        joined_user_ids = PermRelTenant.objects.filter(
+            tenant_id=tenant.ID, enterprise_id=enterprise.ID).values_list("user_id", flat=True)
+        users = Users.objects.filter(enterprise_id=enterprise.enterprise_id).exclude(user_id__in=joined_user_ids)
         if query:
-            sql += "AND nick_name like %s"
-            args.append("%" + query + "%")
-        conn = BaseConnection()
-        result = conn.query(sql, args)
-
-        return result
+            users = users.filter(nick_name__icontains=query)
+        return list(users.values("user_id", "nick_name", "enterprise_id", "email"))
 
     # 返回该团队下的所有管理员
     def get_tenant_admin_by_tenant_id(self, tenant: Tenants) -> "QuerySet[Users]":
@@ -179,12 +169,12 @@ class TeamRepo(object):
         if user_id:
             q &= Q(creater=user_id)
         if query:
-            q &= Q(tenant_alias__contains=query)
+            q &= Q(tenant_alias__icontains=query)
         return Tenants.objects.filter(q).order_by("-create_time")
 
     def get_fuzzy_tenants_by_tenant_alias_and_enterprise_id(self, enterprise_id: str,
                                                             tenant_alias: str) -> "QuerySet[Tenants]":
-        return Tenants.objects.filter(enterprise_id=enterprise_id, tenant_alias__contains=tenant_alias)
+        return Tenants.objects.filter(enterprise_id=enterprise_id, tenant_alias__icontains=tenant_alias)
 
     def create_tenant(self, **params: Any) -> Tenants:
         if not params.get("tenant_id"):
@@ -222,109 +212,69 @@ class TeamRepo(object):
         return Tenants.objects.filter(tenant_id=tenant_id).update(**data)
 
     def list_teams_v2(self, query: str = "", page: Optional[int] = None, page_size: Optional[int] = None) -> Any:
-        where = "WHERE t.creater = u.user_id"
-        args = []
+        tenants = Tenants.objects.all()
         if query:
-            where += " AND t.tenant_alias LIKE %s"
-            args.append("%" + query + "%")
-        limit = ""
+            tenants = tenants.filter(tenant_alias__icontains=query)
+        tenant_rows = list(tenants)
+        tenant_ids = [tenant.tenant_id for tenant in tenant_rows]
+        creator_ids = [tenant.creater for tenant in tenant_rows]
+        creator_names = dict(Users.objects.filter(user_id__in=creator_ids).values_list("user_id", "nick_name"))
+        tenant_rows = [tenant for tenant in tenant_rows if tenant.creater in creator_names]
+        service_counts = {
+            row["tenant_id"]: row["service_num"]
+            for row in TenantServiceInfo.objects.filter(tenant_id__in=tenant_ids).values("tenant_id").annotate(
+                service_num=Count("ID"))
+        }
+        result = [
+            Dict({
+                "tenant_name": tenant.tenant_name,
+                "tenant_alias": tenant.tenant_alias,
+                "region": getattr(tenant, "region", ""),
+                "limit_memory": tenant.limit_memory,
+                "enterprise_id": tenant.enterprise_id,
+                "tenant_id": tenant.tenant_id,
+                "create_time": tenant.create_time,
+                "is_active": tenant.is_active,
+                "creater": creator_names.get(tenant.creater),
+                "service_num": service_counts.get(tenant.tenant_id, 0),
+            }) for tenant in tenant_rows
+        ]
+        result.sort(key=lambda item: item.service_num, reverse=True)
         if page is not None and page_size is not None:
-            page = (page - 1) * page_size
-            limit, limit_args = pagination_clause(database_type(), page, page_size)
-            args.extend(limit_args)
-        sql = """
-        SELECT
-            t.tenant_name,
-            t.tenant_alias,
-            t.region,
-            t.limit_memory,
-            t.enterprise_id,
-            t.tenant_id,
-            t.create_time,
-            t.is_active,
-            u.nick_name AS creater,
-            count( s.ID ) AS service_num
-        FROM
-            tenant_info t
-            LEFT JOIN tenant_service s ON t.tenant_id = s.tenant_id,
-            user_info u
-        {where}
-        GROUP BY
-            tenant_id
-        ORDER BY
-            service_num DESC
-        {limit}
-        """.format(
-            where=where, limit=limit)
-        conn = BaseConnection()
-        result = conn.query(sql, args)
+            start = max(page - 1, 0) * page_size
+            result = result[start:start + page_size]
         return result
 
     def list_by_user_id(self, eid: str, user_id: str, query: str = "", page: Optional[int] = None,
                         page_size: Optional[int] = None) -> Any:
-        args = [user_id, eid]
-        limit = ""
+        tenant_ids = PermRelTenant.objects.filter(user_id=user_id).values_list("tenant_id", flat=True)
+        tenants = Tenants.objects.filter(ID__in=tenant_ids, enterprise_id=eid)
+        user = Users.objects.filter(user_id=user_id).first()
+        if query and (not user or not user.nick_name or query.casefold() not in user.nick_name.casefold()):
+            tenants = tenants.filter(tenant_alias__icontains=query)
+        result = [
+            Dict({
+                "ID": tenant.ID,
+                "tenant_id": tenant.tenant_id,
+                "tenant_name": tenant.tenant_name,
+                "tenant_alias": tenant.tenant_alias,
+                "is_active": tenant.is_active,
+                "enterprise_id": tenant.enterprise_id,
+                "create_time": tenant.create_time,
+                "creater": user.nick_name if user else None,
+            }) for tenant in tenants.distinct()
+        ]
         if page is not None and page_size is not None:
-            page = page if page > 0 else 1
-            page = (page - 1) * page_size
-            limit, limit_args = pagination_clause(database_type(), page, page_size)
-            args.extend(limit_args)
-        where = """WHERE a.ID = b.tenant_id
-                AND c.user_id = b.user_id
-                AND b.user_id = %s
-                AND a.enterprise_id = %s
-                """
-        if query:
-            where += """AND ( a.tenant_alias LIKE %s OR c.nick_name LIKE %s )"""
-            args.extend(["%" + query + "%", "%" + query + "%"])
-        sql = """
-            SELECT DISTINCT
-                a.ID,
-                a.tenant_id,
-                a.tenant_name,
-                a.tenant_alias,
-                a.is_active,
-                a.enterprise_id,
-                a.create_time,
-                c.nick_name as creater
-            FROM
-                tenant_info a,
-                tenant_perms b,
-                user_info c
-            {where}
-            {limit}
-        """.format(
-            where=where, limit=limit)
-        conn = BaseConnection()
-        result = conn.query(sql, args)
+            start = max(page - 1, 0) * page_size
+            result = result[start:start + page_size]
         return result
 
     def count_by_user_id(self, eid: str, user_id: str, query: str = "") -> Any:
-        args = [user_id, eid]
-        where = """WHERE a.ID = b.tenant_id
-                AND c.user_id = b.user_id
-                AND b.user_id = %s
-                AND a.enterprise_id = %s
-                """
+        tenant_ids = PermRelTenant.objects.filter(user_id=user_id).values_list("tenant_id", flat=True)
+        tenants = Tenants.objects.filter(ID__in=tenant_ids, enterprise_id=eid)
         if query:
-            where += """AND a.tenant_alias LIKE %s """
-            args.append("%" + query + "%")
-        sql = """
-        SELECT
-            count( * ) AS total
-        FROM
-            (
-            SELECT DISTINCT
-                a.tenant_id AS tenant_id
-            FROM
-                tenant_info a,
-                tenant_perms b,
-                user_info c
-            {where}
-            ) as tmp""".format(where=where)
-        conn = BaseConnection()
-        result = conn.query(sql, args)
-        return result[0].get("total")
+            tenants = tenants.filter(tenant_alias__icontains=query)
+        return tenants.values("tenant_id").distinct().count()
 
     def get_team_regions(self, team_id: str) -> "QuerySet[RegionConfig]":
         region_names = TenantRegionInfo.objects.filter(tenant_id=team_id).values_list("region_name", flat=True)

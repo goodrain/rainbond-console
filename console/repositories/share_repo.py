@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 from typing import Any, List, Optional, Tuple
 
-from django.db.models import Q, QuerySet
-from console.models.main import ServiceShareRecord, RainbondCenterPlugin
+from addict import Dict
+from django.db.models import QuerySet
+from console.models.main import RainbondCenterAppVersion, RainbondCenterPlugin, ServiceShareRecord
 from www.models.main import ServiceGroupRelation, TenantServiceInfo, TenantServicesPort, TenantServiceRelation, \
-    TenantServiceEnvVar, TenantServiceVolume, ServiceProbe
+    TenantServiceEnvVar, TenantServiceVolume, ServiceProbe, Tenants
 from www.models.plugin import ServicePluginConfigVar, TenantServicePluginRelation, TenantServicePluginAttr
-from www.db.base import BaseConnection
 from django.core.paginator import Paginator
 
 
@@ -73,19 +73,19 @@ class ShareRepo(object):
                 is_success=True).order_by("-create_time").first()
 
     def get_last_app_versions_by_app_id(self, app_id: str) -> Any:
-        conn = BaseConnection()
-        sql = """
-            SELECT B.version, B.version_alias, B.dev_status, B.app_version_info as `describe`
-            FROM (SELECT app_id, version, max(upgrade_time) as upgrade_time
-                FROM rainbond_center_app_version
-                WHERE is_complete=1
-                GROUP BY app_id, version) A
-            LEFT JOIN rainbond_center_app_version B
-            ON A.app_id=B.app_id AND A.version=B.version AND A.upgrade_time=B.upgrade_time
-            WHERE A.app_id = %s
-            """
-        result = conn.query(sql, [app_id])
-        return result
+        versions = RainbondCenterAppVersion.objects.filter(
+            app_id=app_id, is_complete=True).order_by("version", "-upgrade_time", "-ID")
+        latest_by_version = {}
+        for version in versions:
+            latest_by_version.setdefault(version.version, version)
+        return [
+            Dict({
+                "version": version.version,
+                "version_alias": version.version_alias,
+                "dev_status": version.dev_status,
+                "describe": version.app_version_info,
+            }) for version in latest_by_version.values()
+        ]
 
     def create_tenant_service(self, **kwargs: Any) -> TenantServiceInfo:
         tenant_service = TenantServiceInfo(**kwargs)
@@ -182,19 +182,8 @@ class ShareRepo(object):
         """
         check if an app has been shared
         """
-        conn = BaseConnection()
-        sql = """
-            SELECT
-                a.team_name
-            FROM
-                service_share_record a,
-                tenant_info b
-            WHERE
-                a.team_name = b.tenant_name
-                AND b.enterprise_id = %s
-                LIMIT 1"""
-        result = conn.query(sql, [eid])
-        return True if len(result) > 0 else False
+        team_names = Tenants.objects.filter(enterprise_id=eid).values_list("tenant_name", flat=True)
+        return ServiceShareRecord.objects.filter(team_name__in=team_names).exists()
 
 
 share_repo = ShareRepo()

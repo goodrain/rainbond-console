@@ -16,9 +16,7 @@ from console.services.region_services import region_services
 from console.services.service_overview import service_overview
 from console.services.global_resource_processing import Global_resource_processing
 from console.services.region_services import region_services
-from console.utils.database import database_type, pagination_clause
 from console.utils.timeutil import time_to_str
-from django.db import connection
 from drf_yasg.utils import swagger_auto_schema
 from openapi.serializer.config_serializers import (
     EnterpriseConfigSeralizer, EnterpriseOverviewSeralizer, VisualMonitorSeralizer, AppRankOverviewSeralizer,
@@ -110,22 +108,16 @@ class EntUserInfoView(BaseOpenAPIView):
         admins_num = EnterpriseUserPerm.objects.filter(enterprise_id=enterprise_id).count()
         admin_list = []
         start = (page - 1) * 10
-        remaining_num = admins_num - start
+        remaining_num = admins_num - (page - 1) * 10
         end = 10
         if remaining_num < page_size:
             end = remaining_num
 
-        admin_tuples = []
-        if end > 0:
-            limit, limit_args = pagination_clause(database_type(), start, end)
-            cursor = connection.cursor()
-            cursor.execute(
-                "select user_id from enterprise_user_perm where enterprise_id = %s order by user_id desc" + limit,
-                [enterprise_id] + limit_args,
-            )
-            admin_tuples = cursor.fetchall()
-        for admin in admin_tuples:
-            user = user_repo.get_by_user_id(user_id=admin[0])
+        admin_ids = EnterpriseUserPerm.objects.filter(enterprise_id=enterprise_id).order_by(
+            "-user_id").values_list("user_id", flat=True)
+        admin_ids = admin_ids[start:start + max(end, 0)]
+        for admin_id in admin_ids:
+            user = user_repo.get_by_user_id(user_id=admin_id)
             bean: dict = dict()
             if user:
                 bean["nick_name"] = user.nick_name

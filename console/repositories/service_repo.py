@@ -2,14 +2,11 @@
 import logging
 from typing import Any, List, Optional
 
-from django.db.models import QuerySet
+from django.db.models import Q, QuerySet
 
 from console.repositories.app_config import port_repo
-from console.repositories.base import BaseConnection
 from console.services.service_services import base_service
-from www.models.main import ServiceEvent
-from www.models.main import TenantServiceInfo
-from www.models.main import ServiceGroupRelation
+from www.models.main import ServiceEvent, ServiceGroupRelation, TenantServiceInfo, Tenants
 from www.utils.status_translate import get_status_info_map
 
 logger = logging.getLogger("default")
@@ -17,55 +14,21 @@ logger = logging.getLogger("default")
 
 class ServiceRepo(object):
     def check_sourcecode_svc_by_eid(self, eid: str) -> bool:
-        conn = BaseConnection()
-        sql = """
-            SELECT
-                service_alias
-            FROM
-                tenant_service a,
-                tenant_info b
-            WHERE
-                a.tenant_id = b.tenant_id
-                AND b.enterprise_id = %s
-                AND a.service_source = "source_code"
-                AND a.create_status = "complete"
-                LIMIT 1"""
-        result = conn.query(sql, [eid])
-        return True if len(result) > 0 else False
+        tenant_ids = Tenants.objects.filter(enterprise_id=eid).values_list("tenant_id", flat=True)
+        return TenantServiceInfo.objects.filter(
+            tenant_id__in=tenant_ids, service_source="source_code", create_status="complete").exists()
 
     def check_image_svc_by_eid(self, eid: str) -> bool:
-        conn = BaseConnection()
-        sql = """
-            SELECT
-                service_alias
-            FROM
-                tenant_service a,
-                tenant_info b
-            WHERE
-                a.tenant_id = b.tenant_id
-                AND b.enterprise_id = %s
-                AND a.create_status="complete"
-                AND a.service_source IN ( "docker_image", "docker_compose", "docker_run" )
-                LIMIT 1"""
-        result = conn.query(sql, [eid])
-        return True if len(result) > 0 else False
+        tenant_ids = Tenants.objects.filter(enterprise_id=eid).values_list("tenant_id", flat=True)
+        return TenantServiceInfo.objects.filter(
+            tenant_id__in=tenant_ids, create_status="complete",
+            service_source__in=("docker_image", "docker_compose", "docker_run")).exists()
 
     def check_db_from_market_by_eid(self, eid: str) -> bool:
-        conn = BaseConnection()
-        sql = """
-            SELECT
-                service_alias
-            FROM
-                tenant_service a,
-                tenant_info b
-            WHERE
-                a.tenant_id = b.tenant_id
-                AND b.enterprise_id = %s
-                AND a.service_source = "market"
-                AND ( a.image LIKE "%mysql%" OR a.image LIKE "%postgres%" OR a.image LIKE "%mariadb%" )
-                LIMIT 1"""
-        result = conn.query(sql, [eid])
-        return True if len(result) > 0 else False
+        tenant_ids = Tenants.objects.filter(enterprise_id=eid).values_list("tenant_id", flat=True)
+        database_image = Q(image__icontains="mysql") | Q(image__icontains="postgres") | Q(image__icontains="mariadb")
+        return TenantServiceInfo.objects.filter(
+            database_image, tenant_id__in=tenant_ids, service_source="market").exists()
 
     def list_svc_by_tenant(self, tenant: Any) -> QuerySet:
         return TenantServiceInfo.objects.filter(tenant_id=tenant.tenant_id)

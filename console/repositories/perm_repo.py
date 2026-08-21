@@ -12,7 +12,6 @@ from console.models.main import PermsInfo
 from console.models.main import RoleInfo
 from console.models.main import RolePerms
 from console.models.main import UserRole
-from console.utils.database import cast_integer, cast_text, database_type
 from console.utils.perms import get_perms_metadata
 from www.models.main import PermRelTenant, Users
 
@@ -246,26 +245,10 @@ class OptimizedRolePermRepo(object):
         Returns:
             list: 权限代码列表
         """
-        from django.db import connection
-
-        with connection.cursor() as cursor:
-            db_type = database_type()
-            cursor.execute("""
-                SELECT DISTINCT rp.perm_code
-                FROM role_perms rp
-                INNER JOIN user_role ur ON rp.role_id = {role_id}
-                INNER JOIN role_info ri ON ur.role_id = {role_info_id}
-                WHERE ri.kind = %s
-                  AND ri.kind_id = %s
-                  AND ur.user_id = %s
-                  AND rp.app_id = %s
-            """.format(
-                role_id=cast_integer("ur.role_id", db_type),
-                role_info_id=cast_text("ri.ID", db_type),
-            ), ['team', tenant_id, str(user_id), app_id])
-
-            results = cursor.fetchall()
-            return [row[0] for row in results]
+        role_ids = self._get_user_team_role_ids(user_id, tenant_id)
+        return list(
+            RolePerms.objects.filter(role_id__in=role_ids, app_id=app_id).values_list(
+                "perm_code", flat=True).distinct())
 
     def get_user_team_all_perms(self, user_id: str, tenant_id: str) -> Dict[str, Any]:
         """
@@ -281,57 +264,29 @@ class OptimizedRolePermRepo(object):
                 'app_perms': {app_id: [权限代码列表]}
             }
         """
-        from django.db import connection
-
         result: Dict[str, Any] = {
             'global_perms': [],
             'app_perms': {}
         }
 
-        with connection.cursor() as cursor:
-            # 根据数据库类型使用不同的 SQL
-            if database_type() == 'mysql':
-                sql = """
-                    SELECT DISTINCT rp.perm_code, rp.app_id
-                    FROM role_perms rp
-                    INNER JOIN user_role ur ON rp.role_id = CAST(ur.role_id AS SIGNED)
-                    INNER JOIN role_info ri ON ur.role_id = CAST(ri.ID AS CHAR) COLLATE utf8mb4_unicode_ci
-                    WHERE ri.kind = %s COLLATE utf8mb4_unicode_ci
-                      AND ri.kind_id = %s
-                      AND ur.user_id = %s
-                """
-            elif database_type() == 'dm':
-                sql = """
-                    SELECT DISTINCT rp.perm_code, rp.app_id
-                    FROM role_perms rp
-                    INNER JOIN user_role ur ON rp.role_id = CAST(ur.role_id AS INTEGER)
-                    INNER JOIN role_info ri ON ur.role_id = CAST(ri.ID AS VARCHAR(255))
-                    WHERE ri.kind = %s
-                      AND ri.kind_id = %s
-                      AND ur.user_id = %s
-                """
-            else:  # SQLite
-                sql = """
-                    SELECT DISTINCT rp.perm_code, rp.app_id
-                    FROM role_perms rp
-                    INNER JOIN user_role ur ON rp.role_id = CAST(ur.role_id AS INTEGER)
-                    INNER JOIN role_info ri ON ur.role_id = CAST(ri.ID AS TEXT)
-                    WHERE ri.kind = %s
-                      AND ri.kind_id = %s
-                      AND ur.user_id = %s
-                """
-
-            cursor.execute(sql, ['team', tenant_id, str(user_id)])
-
-            for perm_code, app_id in cursor.fetchall():
-                if app_id == -1:
-                    result['global_perms'].append(perm_code)
-                else:
-                    if app_id not in result['app_perms']:
-                        result['app_perms'][app_id] = []
-                    result['app_perms'][app_id].append(perm_code)
+        role_ids = self._get_user_team_role_ids(user_id, tenant_id)
+        permissions = RolePerms.objects.filter(role_id__in=role_ids).values_list(
+            "perm_code", "app_id").distinct()
+        for perm_code, app_id in permissions:
+            if app_id == -1:
+                result['global_perms'].append(perm_code)
+            else:
+                result['app_perms'].setdefault(app_id, []).append(perm_code)
 
         return result
+
+    @staticmethod
+    def _get_user_team_role_ids(user_id: str, tenant_id: str) -> List[int]:
+        stored_role_ids = UserRole.objects.filter(user_id=str(user_id)).values_list("role_id", flat=True)
+        numeric_role_ids = [int(role_id) for role_id in stored_role_ids if str(role_id).isdigit()]
+        return list(
+            RoleInfo.objects.filter(
+                ID__in=numeric_role_ids, kind="team", kind_id=tenant_id).values_list("ID", flat=True))
 
 
 perms_repo = PermsRepo()

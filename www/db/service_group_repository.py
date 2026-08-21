@@ -4,8 +4,7 @@
 
 import logging
 
-from www.db.base import BaseConnection
-from www.models.main import ServiceGroup, ServiceGroupRelation
+from www.models.main import ServiceGroup, ServiceGroupRelation, Tenants
 
 logger = logging.getLogger("default")
 
@@ -24,21 +23,8 @@ class ServiceGroupRepository(object):
             return None
 
     def check_non_default_group_by_eid(self, eid):
-        conn = BaseConnection()
-        sql = """
-        SELECT
-            group_name
-        FROM
-            service_group a,
-            tenant_info b
-        WHERE
-            a.tenant_id = b.tenant_id
-            AND a.is_default = 0
-            AND b.enterprise_id = %s
-        LIMIT 1;
-        """
-        result = conn.query(sql, [eid])
-        return True if len(result) > 0 else False
+        tenant_ids = Tenants.objects.filter(enterprise_id=eid).values_list("tenant_id", flat=True)
+        return ServiceGroup.objects.filter(tenant_id__in=tenant_ids, is_default=False).exists()
 
 
 svc_grop_repo = ServiceGroupRepository()

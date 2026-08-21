@@ -2,19 +2,18 @@
 import logging
 from typing import Any, List, Optional, Tuple
 
+from addict import Dict
 from console.enum.enterprise_enum import EnterpriseRolesEnum
 from console.exception.exceptions import (ExterpriseNotExistError, UserNotExistError)
 from console.models.main import (Applicants, EnterpriseUserPerm, RainbondCenterApp)
-from console.repositories.base import BaseConnection
 from console.repositories.group import group_repo, group_service_relation_repo
 from console.repositories.service_repo import service_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
 from console.repositories.user_role_repo import (UserRoleNotFoundException, user_role_repo)
-from console.utils.database import database_type, pagination_clause
 from django.db.models import Q, QuerySet
-from www.models.main import (PermRelTenant, ServiceGroup, ServiceGroupRelation, TenantEnterprise, TenantRegionInfo, Tenants,
-                             Users, Menus)
+from www.models.main import (Menus, PermRelTenant, ServiceGroup, ServiceGroupRelation, TenantEnterprise,
+                             TenantEnterpriseToken, TenantRegionInfo, Tenants, Users)
 
 logger = logging.getLogger("default")
 
@@ -109,7 +108,7 @@ class TenantEnterpriseRepo(object):
     def get_enterprise_teams(self, enterprise_id: str, name: Optional[str] = None) -> "QuerySet[Tenants]":
         if name:
             return Tenants.objects.filter(
-                enterprise_id=enterprise_id, is_active=True, tenant_alias__contains=name).order_by("-create_time")
+                enterprise_id=enterprise_id, is_active=True, tenant_alias__icontains=name).order_by("-create_time")
         else:
             return Tenants.objects.filter(enterprise_id=enterprise_id, is_active=True).order_by("-create_time")
 
@@ -192,8 +191,8 @@ class TenantEnterpriseRepo(object):
 
     def list_all(self, query: str) -> "QuerySet[TenantEnterprise]":
         if query:
-            return TenantEnterprise.objects.filter(Q(enterprise_name__contains=query)
-                                                   | Q(enterprise_alias__contains=query)).all().order_by("-create_time")
+            return TenantEnterprise.objects.filter(Q(enterprise_name__icontains=query)
+                                                   | Q(enterprise_alias__icontains=query)).all().order_by("-create_time")
         return TenantEnterprise.objects.all().order_by("-create_time")
 
     def update(self, eid: str, **data: Any) -> None:
@@ -201,51 +200,30 @@ class TenantEnterpriseRepo(object):
 
     def list_appstore_infos(self, query: str = "", page: Optional[int] = None,
                             page_size: Optional[int] = None) -> Any:
-        args = []
-        limit = ""
-        if page is not None and page_size is not None:
-            page = page if page > 0 else 1
-            limit, args = pagination_clause(database_type(), (page - 1) * page_size, page_size)
-        where = ""
+        enterprises = TenantEnterprise.objects.all()
         if query:
-            where = "WHERE a.enterprise_alias LIKE %s OR a.enterprise_name LIKE %s"
-            args[0:0] = ["%" + query + "%"] * 2
-        sql = """
-        SELECT
-            a.enterprise_id,
-            a.enterprise_name,
-            a.enterprise_alias,
-            b.access_url
-        FROM
-            tenant_enterprise a
-            JOIN tenant_enterprise_token b ON a.id = b.enterprise_id
-        {where}
-        {limit}
-        """.format(
-            where=where, limit=limit)
-
-        conn = BaseConnection()
-        result = conn.query(sql, args)
-        return result
+            enterprises = enterprises.filter(Q(enterprise_alias__icontains=query) | Q(enterprise_name__icontains=query))
+        enterprise_map = {enterprise.ID: enterprise for enterprise in enterprises}
+        tokens = TenantEnterpriseToken.objects.filter(enterprise_id__in=enterprise_map)
+        rows = [
+            Dict({
+                "enterprise_id": enterprise_map[token.enterprise_id].enterprise_id,
+                "enterprise_name": enterprise_map[token.enterprise_id].enterprise_name,
+                "enterprise_alias": enterprise_map[token.enterprise_id].enterprise_alias,
+                "access_url": token.access_url,
+            }) for token in tokens
+        ]
+        if page is not None and page_size is not None:
+            start = max(int(page) - 1, 0) * int(page_size)
+            rows = rows[start:start + int(page_size)]
+        return rows
 
     def count_appstore_infos(self, query: str = "") -> Any:
-        args = []
-        where = ""
+        enterprises = TenantEnterprise.objects.all()
         if query:
-            where = "WHERE a.enterprise_alias LIKE %s OR a.enterprise_name LIKE %s"
-            args = ["%" + query + "%"] * 2
-        sql = """
-        SELECT
-            count(*) as total
-        FROM
-            tenant_enterprise a
-            JOIN tenant_enterprise_token b ON a.id = b.enterprise_id
-        {where}
-        """.format(where=where)
-
-        conn = BaseConnection()
-        result = conn.query(sql, args)
-        return result[0]["total"]
+            enterprises = enterprises.filter(Q(enterprise_alias__icontains=query) | Q(enterprise_name__icontains=query))
+        return TenantEnterpriseToken.objects.filter(
+            enterprise_id__in=enterprises.values_list("ID", flat=True)).count()
 
     def get_enterprise_user_request_join(self, enterprise_id: str, user_id: str) -> "QuerySet[Applicants]":
         team_ids = self.get_enterprise_teams(enterprise_id).values_list("tenant_id", flat=True)

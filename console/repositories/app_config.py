@@ -8,7 +8,7 @@ import logging
 from typing import Any, List, Optional, Tuple
 
 from console.exception.main import AbortRequest
-from console.utils.database import database_type
+from console.models.main import ServiceSourceInfo
 from console.utils.shortcuts import get_object_or_404
 from django.db.models import Q, QuerySet
 from www.db.base import BaseConnection
@@ -436,49 +436,26 @@ class TenantServiceRelationRepository(object):
         """
         check if there is a database installed from the market that is dependent on
         """
-        conn = BaseConnection()
-        sql = """
-            SELECT
-                a.service_id, a.dep_service_id
-            FROM
-                tenant_service_relation a,
-                tenant_service b,
-                tenant_info c,
-                tenant_service d
-            WHERE
-                b.tenant_id = c.tenant_id
-                AND c.enterprise_id = %s
-                AND a.service_id = d.service_id
-                AND a.dep_service_id = b.service_id
-                AND ( b.image LIKE "%mysql%" OR b.image LIKE "%postgres%" OR b.image LIKE "%mariadb%" )
-                AND (b.service_source <> "market" OR d.service_source <> "market")
-                limit 1"""
-        result = conn.query(sql, [eid])
-        if len(result) > 0:
-            return True
-        sql2 = """
-            SELECT
-                a.dep_service_id
-            FROM
-                tenant_service_relation a,
-                tenant_service b,
-                tenant_info c,
-                tenant_service d,
-                service_source e,
-                service_source f
-            WHERE
-                b.tenant_id = c.tenant_id
-                AND c.enterprise_id = %s
-                AND a.service_id = d.service_id
-                AND a.dep_service_id = b.service_id
-                AND ( b.image LIKE "%mysql%" OR b.image LIKE "%postgres%" OR b.image LIKE "%mariadb%" )
-                AND ( b.service_source = "market" AND d.service_source = "market" )
-                AND e.service_id = b.service_id
-                AND f.service_id = d.service_id
-                AND e.group_key <> f.group_key
-                LIMIT 1"""
-        result2 = conn.query(sql2, [eid])
-        return True if len(result2) > 0 else False
+        tenant_ids = Tenants.objects.filter(enterprise_id=eid).values_list("tenant_id", flat=True)
+        services = TenantServiceInfo.objects.filter(tenant_id__in=tenant_ids)
+        service_map = {service.service_id: service for service in services}
+        database_image = Q(image__icontains="mysql") | Q(image__icontains="postgres") | Q(image__icontains="mariadb")
+        database_ids = services.filter(database_image).values_list("service_id", flat=True)
+        relations = TenantServiceRelation.objects.filter(
+            service_id__in=service_map, dep_service_id__in=database_ids)
+        source_group_map = dict(
+            ServiceSourceInfo.objects.filter(service_id__in=service_map).values_list("service_id", "group_key"))
+        for relation in relations:
+            dependency = service_map.get(relation.dep_service_id)
+            service = service_map.get(relation.service_id)
+            if dependency is None or service is None:
+                continue
+            if dependency.service_source != "market" or service.service_source != "market":
+                return True
+            if (dependency.service_id in source_group_map and service.service_id in source_group_map and
+                    source_group_map[dependency.service_id] != source_group_map[service.service_id]):
+                return True
+        return False
 
     @staticmethod
     def list_by_component_ids(tenant_id: str, component_ids: Any) -> QuerySet:
@@ -578,6 +555,7 @@ class TenantServiceMntRelationRepository(object):
         TenantServiceMountRelation.objects.filter(service_id__in=component_ids).delete()
         self.bulk_create(volume_deps)
 
+
 class ServiceDomainRepository(object):
     def get_service_domain_by_container_port(self, service_id: str, container_port: int) -> QuerySet:
         return ServiceDomain.objects.filter(service_id=service_id, container_port=container_port)
@@ -617,9 +595,9 @@ class ServiceDomainRepository(object):
     def get_domain_by_domain_name_or_service_alias_or_group_name(self,
                                                                  search_conditions: str) -> QuerySet:
         domains = ServiceDomain.objects.filter(
-            Q(domain_name__contains=search_conditions)
-            | Q(service_alias__contains=search_conditions)
-            | Q(group_name__contains=search_conditions)).order_by("-type")
+            Q(domain_name__icontains=search_conditions)
+            | Q(service_alias__icontains=search_conditions)
+            | Q(group_name__icontains=search_conditions)).order_by("-type")
         return domains
 
     def get_all_domain(self) -> QuerySet:
@@ -697,7 +675,7 @@ class ServiceDomainRepository(object):
             )
         else:
             cert = ServiceDomainCertificate.objects.filter(tenant_id=tenant_id)
-        
+
         nums = cert.count()  # 证书数量
         part_cert = cert[start:end + 1]
         return part_cert, nums
@@ -768,32 +746,16 @@ class ServiceDomainRepository(object):
         """
         check if there is a custom gateway rule
         """
-        conn = BaseConnection()
-        team_name_query = "'%' || b.tenant_name || '%'"
-        if database_type() == 'mysql':
-            team_name_query = "concat('%',b.tenant_name,'%')"
-        sql = """
-            SELECT
-                *
-            FROM
-                service_domain a,
-                tenant_info b
-            WHERE
-                a.tenant_id = b.tenant_id
-                AND b.enterprise_id = %s
-                AND (
-                    a.certificate_id <> 0
-                    OR ( a.domain_path <> "/" AND a.domain_path <> "" )
-                    OR a.domain_cookie <> ""
-                    OR a.domain_heander <> ""
-                    OR a.the_weight <> 100
-                    OR a.path_rewrite <> 0
-                    OR a.rewrites <> ""
-                    OR a.domain_name NOT LIKE {team_name}
-                )
-                LIMIT 1""".format(team_name=team_name_query)
-        result = conn.query(sql, [eid])
-        return True if len(result) > 0 else False
+        tenants = Tenants.objects.filter(enterprise_id=eid)
+        tenant_names = dict(tenants.values_list("tenant_id", "tenant_name"))
+        domains = ServiceDomain.objects.filter(tenant_id__in=tenant_names)
+        for domain in domains:
+            tenant_name = tenant_names.get(domain.tenant_id, "")
+            if (domain.certificate_id != 0 or domain.domain_path not in ("/", "") or domain.domain_cookie or
+                    domain.domain_heander or domain.the_weight != 100 or domain.path_rewrite or domain.rewrites or
+                    tenant_name not in domain.domain_name):
+                return True
+        return False
 
     def list_service_domains_by_cert_id(self, certificate_id: str) -> QuerySet:
         return ServiceDomain.objects.filter(certificate_id=certificate_id)

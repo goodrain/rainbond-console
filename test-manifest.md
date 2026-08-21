@@ -274,13 +274,17 @@
 | console.component.storage-update-volume-capacity | Component Storage Update Volume Capacity | active | regression | console.services.mcp_query_service.call_tool[rainbond_manage_component_storage] | console/tests/mcp_query_storage_ops_test.py::ManageComponentStorageTests.test_update_volume_allows_capacity_change_without_path_change |
 | console.component.summary | 查看组件概览 | active | regression | console.services.mcp_query_service.call_tool[rainbond_get_component_summary] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_get_component_summary_returns_aggregated_info |
 | console.component.volume-delete-blocks-shared-mount | 被共享挂载时阻止删除组件存储卷 | active | regression | console.services.app_config.volume_service.AppVolumeService.delete_service_volume_by_id | console/tests/app_config_volume_delete_test.py::AppVolumeDeleteTests.test_delete_service_volume_rejects_shared_mount_even_when_forced |
+| console.database.application-side-aggregation | 可移植应用层查询组合 | active | regression | console repository and service aggregation | console/tests/database_aggregation_portability_test.py::DatabaseAggregationPortabilityTest |
 | console.database.backend-neutral-readiness | 使用 Django 数据库状态检查启动就绪性 | active | unit | entrypoint.sh database readiness workflow | console/tests/database_state_test.py::DatabaseStateTests |
 | console.database.dm-driver-bundle-preparation | 准备私有达梦 Python 驱动包 | active | regression | scripts/prepare_dameng_python_driver.sh | console/tests/dameng_driver_bundle_test.py::DamengDriverBundleScriptTest |
-| console.database.dm-query-capabilities | 安全生成达梦查询能力 SQL | active | regression | console.utils.database | console/tests/database_capabilities_test.py::DatabaseCapabilitiesTests |
-| console.database.dm-raw-sql-audit | 审计达梦场景下的 MySQL 专属原生 SQL | active | regression | Console raw SQL database capability boundary | console/tests/dameng_query_audit_test.py::DamengQueryAuditTests |
-| console.database.dm-result-column-normalization | 规范化达梦查询结果列名 | active | regression | console.repositories.base.BaseConnection._dict_fetch_all and www.db.base.BaseConnection._dict_fetch_all | console/tests/database_connection_test.py::DatabaseConnectionTests |
+| console.database.dm-query-capabilities | 安全生成达梦查询能力 SQL | retired | regression | console.utils.database | console/tests/database_capabilities_test.py::DatabaseCapabilitiesTests |
+| console.database.dm-raw-sql-audit | 审计达梦场景下的 MySQL 专属原生 SQL | retired | regression | Console raw SQL database capability boundary | console/tests/dameng_query_audit_test.py::DamengQueryAuditTests |
+| console.database.dm-result-column-normalization | 规范化达梦查询结果列名 | retired | regression | console.repositories.base.BaseConnection._dict_fetch_all and www.db.base.BaseConnection._dict_fetch_all | console/tests/database_connection_test.py::DatabaseConnectionTests |
 | console.database.dm-settings-selection | 根据 DB_TYPE 选择 dmDjango 数据库设置和模式 | active | unit | goodrain_web.settings.DATABASES | console/tests/database_settings_test.py::DatabaseSettingsTests |
 | console.database.dm-standard-image | 标准控制台镜像内置达梦驱动 | active | regression | standard Console Dockerfile build stages | console/tests/dameng_driver_bundle_test.py::DamengDockerfileStructureTest |
+| console.database.normalized-cursor-columns | 原生查询结果列名标准化 | active | regression | console.repositories.base.BaseConnection._dict_fetch_all | console/tests/base_connection_portability_test.py::BaseConnectionPortabilityTest |
+| console.database.orm-pagination | 组件环境变量 ORM 分页 | active | regression | console.views.app_config.app_env.AppEnvView.get | console/tests/app_env_view_test.py::AppEnvViewPaginationTestCase |
+| console.database.portable-runtime-sql | Console 运行时 SQL 可移植性 | active | regression | console, www, and openapi runtime database queries | console/tests/database_sql_portability_test.py::DatabaseSQLPortabilityTest |
 | console.dependency.invalid-container-port | Dependency Invalid Container Port | active | regression | console.services.app_config.app_relation_service.AppServiceRelationService | console/tests/app_relation_service_test.py::AppRelationServiceTests.test_add_service_dependency_rejects_unknown_dep_service_port |
 | console.deploy-diagnostics.offline-mode | 离线模式禁用部署诊断上报 | active | regression | console.services.enterprise_first_deploy_service.EnterpriseFirstDeployService | console/tests/enterprise_first_deploy_service_test.py::EnterpriseFirstDeployServiceTests.test_offline_mode_does_not_start_report_sweeper<br>console/tests/enterprise_first_deploy_service_test.py::EnterpriseFirstDeployServiceTests.test_online_mode_starts_report_sweeper<br>console/tests/enterprise_first_deploy_service_test.py::EnterpriseFirstDeployServiceTests.test_offline_mode_skips_report_request<br>console/tests/enterprise_first_deploy_service_test.py::EnterpriseFirstDeployServiceTests.test_offline_mode_does_not_create_deploy_tracking<br>console/tests/enterprise_first_deploy_service_test.py::EnterpriseFirstDeployServiceTests.test_offline_mode_does_not_persist_source_check_failure<br>console/tests/enterprise_first_deploy_service_test.py::EnterpriseFirstDeployServiceTests.test_offline_mode_marks_first_deploy_report_handled_without_thread<br>console/tests/enterprise_first_deploy_service_test.py::EnterpriseFirstDeployServiceTests.test_offline_mode_removes_unreported_deploy_attempt<br>console/tests/enterprise_first_deploy_service_test.py::EnterpriseFirstDeployServiceTests.test_offline_mode_forgets_unpersisted_report |
 | console.deploy-diagnostics.source-check | 源码构建源检测失败诊断埋点 | active | regression | console.views.app_create.app_check.AppCheck.get | console/tests/app_check_view_test.py::AppCheckSourceDiagnosticTests.test_get_reports_source_check_failure_without_changing_response<br>console/tests/source_component_service_test.py::SourceComponentServiceTests.test_auto_create_component_raises_on_check_failure<br>console/tests/enterprise_first_deploy_service_test.py::EnterpriseFirstDeployServiceTests.test_report_source_check_failure_sends_pre_deploy_diagnostic |
@@ -3289,6 +3293,16 @@
 - 代码路径: `console/services/app_config/volume_service.py`
 - 测试路径: `console/tests/app_config_volume_delete_test.py::AppVolumeDeleteTests.test_delete_service_volume_rejects_shared_mount_even_when_forced`
 
+### 可移植应用层查询组合
+
+- Capability ID: `console.database.application-side-aggregation`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `other`
+- 业务入口: `console repository and service aggregation`
+- 代码路径: `console/repositories/app.py`, `console/repositories/perm_repo.py`, `console/repositories/plugin/listing.py`, `console/repositories/team_repo.py`, `console/repositories/user_repo.py`, `console/repositories/user_role_repo.py`, `console/services/app_config/domain_service.py`, `console/services/service_services.py`
+- 测试路径: `console/tests/database_aggregation_portability_test.py::DatabaseAggregationPortabilityTest`
+
 ### 使用 Django 数据库状态检查启动就绪性
 
 - Capability ID: `console.database.backend-neutral-readiness`
@@ -3312,7 +3326,7 @@
 ### 安全生成达梦查询能力 SQL
 
 - Capability ID: `console.database.dm-query-capabilities`
-- 状态: `active`
+- 状态: `retired`
 - 测试类型: `regression`
 - 接口类型: `package_function`
 - 业务入口: `console.utils.database`
@@ -3322,7 +3336,7 @@
 ### 审计达梦场景下的 MySQL 专属原生 SQL
 
 - Capability ID: `console.database.dm-raw-sql-audit`
-- 状态: `active`
+- 状态: `retired`
 - 测试类型: `regression`
 - 接口类型: `workflow`
 - 业务入口: `Console raw SQL database capability boundary`
@@ -3332,7 +3346,7 @@
 ### 规范化达梦查询结果列名
 
 - Capability ID: `console.database.dm-result-column-normalization`
-- 状态: `active`
+- 状态: `retired`
 - 测试类型: `regression`
 - 接口类型: `dao_method`
 - 业务入口: `console.repositories.base.BaseConnection._dict_fetch_all and www.db.base.BaseConnection._dict_fetch_all`
@@ -3358,6 +3372,36 @@
 - 业务入口: `standard Console Dockerfile build stages`
 - 代码路径: `Dockerfile`, `.dockerignore`
 - 测试路径: `console/tests/dameng_driver_bundle_test.py::DamengDockerfileStructureTest`
+
+### 原生查询结果列名标准化
+
+- Capability ID: `console.database.normalized-cursor-columns`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `package_function`
+- 业务入口: `console.repositories.base.BaseConnection._dict_fetch_all`
+- 代码路径: `console/repositories/base.py`, `www/db/base.py`
+- 测试路径: `console/tests/base_connection_portability_test.py::BaseConnectionPortabilityTest`
+
+### 组件环境变量 ORM 分页
+
+- Capability ID: `console.database.orm-pagination`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `view_endpoint`
+- 业务入口: `console.views.app_config.app_env.AppEnvView.get`
+- 代码路径: `console/views/app_config/app_env.py`
+- 测试路径: `console/tests/app_env_view_test.py::AppEnvViewPaginationTestCase`
+
+### Console 运行时 SQL 可移植性
+
+- Capability ID: `console.database.portable-runtime-sql`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `other`
+- 业务入口: `console, www, and openapi runtime database queries`
+- 代码路径: `console`, `www`, `openapi`
+- 测试路径: `console/tests/database_sql_portability_test.py::DatabaseSQLPortabilityTest`
 
 ### Dependency Invalid Container Port
 

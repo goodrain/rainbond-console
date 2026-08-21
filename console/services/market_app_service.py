@@ -55,7 +55,6 @@ from console.services.telemetry import telemetry_service
 from console.services.upgrade_services import upgrade_service
 from console.services.virtual_machine import vms
 from console.utils.offline import is_cloud_market_disabled
-from console.utils.database import database_type, list_aggregate, pagination_clause
 from console.utils.version import compare_version, sorted_versions
 from django.core.paginator import Paginator
 from django.db import transaction
@@ -1437,52 +1436,54 @@ class MarketAppService(object):
 
     def get_visiable_apps_v2(self, tenant: Tenants, scope: str, app_name: str, dev_status: str, page: int,
                              page_size: int) -> Any:
-        limit = ""
+        conditions = ["A.is_complete = %s", "A.enterprise_id IN (%s, %s)"]
         args = [1, "public", tenant.enterprise_id]
-        where = 'WHERE A.is_complete = %s AND A.enterprise_id IN (%s, %s)'
         if scope:
             if scope == "team":
-                where += ' AND A.share_team = %s'
+                conditions.append("A.share_team = %s")
                 args.append(tenant.tenant_name)
             else:
-                where += ' AND A.scope = %s'
+                conditions.append("A.scope = %s")
                 args.append(scope)
         else:
-            where += ' AND ((A.share_team = %s) OR (A.scope IN (%s, %s)))'
+            conditions.append("(A.share_team = %s OR A.scope IN (%s, %s))")
             args.extend([tenant.tenant_name, "goodrain", "enterprise"])
         if app_name:
-            where += ' AND A.group_name LIKE %s'
-            args.append(app_name + "%")
+            conditions.append("UPPER(A.group_name) LIKE UPPER(%s)")
+            args.append("{}%".format(app_name))
         if dev_status:
-            where += ' AND A.dev_status = %s'
+            conditions.append("A.dev_status = %s")
             args.append(dev_status)
-        if page is not None and page_size is not None:
-            limit, limit_args = pagination_clause(database_type(), (page - 1) * page_size, page_size)
-            args.extend(limit_args)
-        tags = list_aggregate("CONCAT('{\"tag_id\":\"', C.ID, '\"'), ',', CONCAT('\"name\":\"', C.name, '\"}')",
-                              database_type(), order_by="C.ID")
-        sql = """
-                SELECT
-                    A.*,
-                    CONCAT('[', {tags}, ']') as tags
-                FROM rainbond_center_app A
-                LEFT JOIN rainbond_center_app_tag_relation B
-                ON A.group_key = B.group_key and A.enterprise_id = B.enterprise_id
-                LEFT JOIN rainbond_center_app_tag C
-                ON B.tag_id = C.ID
-                """.format(tags=tags)
-        sql1 = """
-                GROUP BY
-                    A.group_key, A.version
-                ORDER BY
-                    A.create_time DESC
-                """
-        sql += where
-        sql += sql1
-        sql += limit
+
+        sql = "SELECT DISTINCT A.* FROM rainbond_center_app A WHERE {} ORDER BY A.create_time DESC".format(
+            " AND ".join(conditions))
         conn = BaseConnection()
-        result = conn.query(sql, args)
-        return result
+        if page is not None and page_size is not None:
+            sql = conn.paginate(sql, (int(page) - 1) * int(page_size), int(page_size))
+        apps = conn.query(sql, args)
+        group_keys = [app.get("group_key") for app in apps if app.get("group_key")]
+        if not group_keys:
+            for app in apps:
+                app.tags = json.dumps([])
+            return apps
+
+        placeholders = ",".join(["%s"] * len(group_keys))
+        tag_sql = """
+            SELECT B.enterprise_id, B.group_key, C.ID AS tag_id, C.name AS tag_name
+            FROM rainbond_center_app_tag_relation B
+            INNER JOIN rainbond_center_app_tag C ON B.tag_id = C.ID
+            WHERE B.group_key IN ({}) AND B.enterprise_id IN (%s, %s)
+            ORDER BY B.group_key, C.ID
+        """.format(placeholders)
+        tag_rows = conn.query(tag_sql, group_keys + ["public", tenant.enterprise_id])
+        tags_by_app = {}
+        for row in tag_rows:
+            tags_by_app.setdefault((row.enterprise_id, row.group_key), []).append({
+                "tag_id": str(row.tag_id), "name": row.tag_name
+            })
+        for app in apps:
+            app.tags = json.dumps(tags_by_app.get((app.get("enterprise_id"), app.get("group_key")), []))
+        return apps
 
     def get_current_team_shared_apps(self, enterprise_id: str, current_team_name: str) -> QuerySet:
         return rainbond_app_repo.get_current_enter_visable_apps(  # type: ignore[attr-defined]

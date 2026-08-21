@@ -15,9 +15,9 @@ from console.exception.bcode import (ErrInternalGraphsNotFound, ErrPluginIsUsed,
 from console.exception.main import ServiceHandleException
 from console.repositories.app import service_repo
 from console.repositories.app_config import port_repo
-from console.repositories.base import BaseConnection
 from console.repositories.plugin import (app_plugin_attr_repo, app_plugin_relation_repo, config_group_repo, config_item_repo,
                                          plugin_repo, plugin_version_repo, service_plugin_config_repo)
+from console.repositories.plugin.listing import list_plugins_for_service
 from console.services.app import app_service
 from console.services.app_config import port_service
 from console.services.app_config.app_relation_service import \
@@ -34,7 +34,7 @@ from goodrain_web.tools import JuncheePaginator
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import Tenants
 from www.models.plugin import (PluginConfigGroup, PluginConfigItems, ServicePluginConfigVar, TenantPlugin,
-                                TenantServicePluginRelation)
+                               TenantServicePluginRelation)
 from www.utils.crypt import make_uuid
 
 from .plugin_config_service import PluginConfigService
@@ -115,66 +115,8 @@ class AppPluginService(object):
     def get_plugins_by_service_id(self, region: str, tenant_id: str, service_id: str,
                                   category: str) -> Tuple[Any, Any]:
         """获取组件已开通和未开通的插件"""
-
-        query_installed_plugin = """
-        SELECT
-            tp.plugin_id AS plugin_id,
-            tp.DESC AS "desc",
-            tp.plugin_alias AS plugin_alias,
-            tp.category AS category,
-            tp.origin_share_id AS origin_share_id,
-            pbv.build_version AS build_version,
-            tsp.min_memory AS min_memory,
-            tsp.plugin_status AS plugin_status,
-            tsp.min_cpu As min_cpu
-        FROM
-            tenant_service_plugin_relation tsp
-            LEFT JOIN plugin_build_version pbv ON tsp.plugin_id = pbv.plugin_id
-            AND tsp.build_version = pbv.build_version
-            JOIN tenant_plugin tp ON tp.plugin_id = tsp.plugin_id
-            AND tp.tenant_id = pbv.tenant_id
-        WHERE
-            tsp.service_id = %s
-            AND tp.region = %s
-            AND tp.tenant_id = %s """
-        installed_args = [service_id, region, tenant_id]
-
-        query_uninstalled_plugin = """
-            SELECT
-                tp.plugin_id AS plugin_id,
-                tp.DESC AS "desc",
-                tp.plugin_alias AS plugin_alias,
-                tp.category AS category,
-                pbv.build_version AS build_version
-            FROM
-                tenant_plugin AS tp
-                JOIN plugin_build_version AS pbv ON tp.plugin_id = pbv.plugin_id
-                AND tp.tenant_id = pbv.tenant_id
-            WHERE
-                pbv.plugin_id NOT IN ( SELECT plugin_id FROM tenant_service_plugin_relation WHERE service_id = %s )
-                AND tp.tenant_id = %s
-                AND tp.region = %s
-                AND pbv.build_status = %s
-        """
-        uninstalled_args = [service_id, tenant_id, region, "build_success"]
-
-        if category == "analysis":
-            query_installed_plugin += " AND tp.category=%s"
-            query_uninstalled_plugin += " AND tp.category=%s"
-            installed_args.append("analyst-plugin:perf")
-            uninstalled_args.append("analyst-plugin:perf")
-
-        elif category == "net_manage":
-            category_args = ["net-plugin:down", "net-plugin:up", "net-plugin:in-and-out"]
-            query_installed_plugin += " AND tp.category in (%s, %s, %s)"
-            query_uninstalled_plugin += " AND tp.category in (%s, %s, %s)"
-            installed_args.extend(category_args)
-            uninstalled_args.extend(category_args)
-
-        dsn = BaseConnection()
-        installed_plugins = dsn.query(query_installed_plugin, installed_args)
-        uninstalled_plugins = dsn.query(query_uninstalled_plugin, uninstalled_args)
-        return installed_plugins, uninstalled_plugins
+        return list_plugins_for_service(
+            region, tenant_id, service_id, category, include_runtime_resources=True)
 
     def get_service_plugin_relation(self, service_id: str, plugin_id: str) -> Optional[TenantServicePluginRelation]:
         relations = app_plugin_relation_repo.get_relation_by_service_and_plugin(service_id, plugin_id)

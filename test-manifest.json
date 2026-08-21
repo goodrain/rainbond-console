@@ -5125,6 +5125,31 @@
       "status": "active"
     },
     {
+      "id": "console.database.application-side-aggregation",
+      "title": "Portable application-side query composition",
+      "title_zh": "可移植应用层查询组合",
+      "interface_type": "other",
+      "interface": "console repository and service aggregation",
+      "code_paths": [
+        "console/repositories/app.py",
+        "console/repositories/perm_repo.py",
+        "console/repositories/plugin/listing.py",
+        "console/repositories/team_repo.py",
+        "console/repositories/user_repo.py",
+        "console/repositories/user_role_repo.py",
+        "console/services/app_config/domain_service.py",
+        "console/services/service_services.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/database_aggregation_portability_test.py",
+          "selector": "DatabaseAggregationPortabilityTest"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.database.backend-neutral-readiness",
       "title": "Use Django database state checks for startup readiness",
       "title_zh": "使用 Django 数据库状态检查启动就绪性",
@@ -5183,7 +5208,7 @@
         }
       ],
       "test_type": "regression",
-      "status": "active"
+      "status": "retired"
     },
     {
       "id": "console.database.dm-raw-sql-audit",
@@ -5225,7 +5250,7 @@
         }
       ],
       "test_type": "regression",
-      "status": "active"
+      "status": "retired"
     },
     {
       "id": "console.database.dm-result-column-normalization",
@@ -5245,7 +5270,7 @@
         }
       ],
       "test_type": "regression",
-      "status": "active"
+      "status": "retired"
     },
     {
       "id": "console.database.dm-settings-selection",
@@ -5279,6 +5304,63 @@
         {
           "path": "console/tests/dameng_driver_bundle_test.py",
           "selector": "DamengDockerfileStructureTest"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.database.normalized-cursor-columns",
+      "title": "Normalized raw-query cursor columns",
+      "title_zh": "原生查询结果列名标准化",
+      "interface_type": "package_function",
+      "interface": "console.repositories.base.BaseConnection._dict_fetch_all",
+      "code_paths": [
+        "console/repositories/base.py",
+        "www/db/base.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/base_connection_portability_test.py",
+          "selector": "BaseConnectionPortabilityTest"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.database.orm-pagination",
+      "title": "ORM pagination for component environment variables",
+      "title_zh": "组件环境变量 ORM 分页",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.app_config.app_env.AppEnvView.get",
+      "code_paths": [
+        "console/views/app_config/app_env.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_env_view_test.py",
+          "selector": "AppEnvViewPaginationTestCase"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.database.portable-runtime-sql",
+      "title": "Portable Console runtime SQL",
+      "title_zh": "Console 运行时 SQL 可移植性",
+      "interface_type": "other",
+      "interface": "console, www, and openapi runtime database queries",
+      "code_paths": [
+        "console",
+        "www",
+        "openapi"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/database_sql_portability_test.py",
+          "selector": "DatabaseSQLPortabilityTest"
         }
       ],
       "test_type": "regression",

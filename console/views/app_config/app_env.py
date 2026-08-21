@@ -26,14 +26,13 @@ from console.utils.cnb_build import (CNB_BUILD_ENV_NAMES, compose_build_env_resp
                                      normalize_dotnet_cnb_env_dict_for_save)
 from console.utils.reqparse import parse_item
 from console.utils.response import MessageResponse
-from console.utils.database import database_type, pagination_clause
 from console.views.app_config.base import AppBaseView
-from django.db import connection
 from django.forms.models import model_to_dict
 from console.utils.cache_decorators import never_cache
 from rest_framework.request import Request
 from rest_framework.response import Response
 from www.utils.return_message import general_message
+from www.models.main import TenantServiceEnvVar
 from console.exception.main import AbortRequest
 
 logger = logging.getLogger("default")
@@ -80,42 +79,27 @@ class AppEnvView(AppBaseView):
             return Response(general_message(400, "param error", "参数异常"), status=400)
         if env_type not in ("inner", "outer"):
             return Response(general_message(400, "param error", "参数异常"), status=400)
-        where = ["tenant_id=%s", "service_id=%s", "scope=%s"]
-        args = [self.service.tenant_id, self.service.service_id, env_type]
+        envs = TenantServiceEnvVar.objects.filter(
+            tenant_id=self.service.tenant_id, service_id=self.service.service_id, scope=env_type)
         if env_name:
-            where.append("attr_name like %s")
-            args.append("%" + env_name + "%")
-        where_sql = " and ".join(where)
+            envs = envs.filter(attr_name__icontains=env_name)
+        envs = envs.order_by("attr_name")
 
-        cursor = connection.cursor()
-        cursor.execute("select count(*) from tenant_service_env_var where " + where_sql, args)
-        total = cursor.fetchall()[0][0]
-        start, end = self._get_page_limit(total, page, page_size)
-        env_tuples = []
-        if end > 0:
-            limit, limit_args = pagination_clause(database_type(), start, end)
-            cursor = connection.cursor()
-            cursor.execute(
-                "select ID, tenant_id, service_id, container_port, name, attr_name, attr_value, is_change, "
-                "scope, create_time from tenant_service_env_var where " + where_sql + " order by attr_name" + limit,
-                args + limit_args,
-            )
-            env_tuples = cursor.fetchall()
-
-        env_list = []
-        for env_tuple in env_tuples:
-            env_list.append({
-                "ID": env_tuple[0],
-                "tenant_id": env_tuple[1],
-                "service_id": env_tuple[2],
-                "container_port": env_tuple[3],
-                "name": env_tuple[4],
-                "attr_name": env_tuple[5],
-                "attr_value": env_tuple[6],
-                "is_change": env_tuple[7],
-                "scope": env_tuple[8],
-                "create_time": env_tuple[9],
-            })
+        total = envs.count()
+        start, size = self._get_page_limit(total, page, page_size)
+        page_envs = envs[start:start + size] if size > 0 else []
+        env_list = [{
+            "ID": env.ID,
+            "tenant_id": env.tenant_id,
+            "service_id": env.service_id,
+            "container_port": env.container_port,
+            "name": env.name,
+            "attr_name": env.attr_name,
+            "attr_value": env.attr_value,
+            "is_change": env.is_change,
+            "scope": env.scope,
+            "create_time": env.create_time
+        } for env in page_envs]
         bean = {"total": total}
 
         result = general_message(200, "success", "查询成功", bean=bean, list=env_list)

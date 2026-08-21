@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 import json
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 from urllib.parse import urlsplit, urlunsplit
 
-from www.models.main import TenantServiceInfo, Tenants
+from www.models.main import ServiceGroup, ServiceGroupRelation, TenantServiceInfo, Tenants
 
 from console.exception.main import RbdAppNotFound, ServiceHandleException
 from console.repositories.app import service_source_repo, service_repo
@@ -17,7 +17,6 @@ from console.utils.cnb_build import (build_cnb_version_policy, get_cnb_policy_de
                                      normalize_golang_cnb_env_dict_for_response,
                                      normalize_dotnet_cnb_env_dict_for_response)
 from console.utils.oauth.oauth_types import support_oauth_type
-from console.utils.database import database_type, list_aggregate
 from www.apiclient.regionapi import RegionInvokeApi
 from www.db.base import BaseConnection
 
@@ -53,7 +52,8 @@ class BaseService(object):
         records: list = []
         try:
             response = region_lang_version.show_long_version(
-                tenant.enterprise_id, service.service_region, definition["lang_key"], "cnb")  # type: ignore[arg-type]  # NOTE: Optional region_name (latent)
+                tenant.enterprise_id, service.service_region, definition["lang_key"],
+                "cnb")  # type: ignore[arg-type]  # NOTE: Optional region_name (latent)
             records = response.get("list", []) if isinstance(response, dict) else []
         except Exception as err:
             logger.debug("load enterprise cnb version policy failed: %s", err)
@@ -113,11 +113,11 @@ class BaseService(object):
                 t.tenant_id = %s
                 AND t.service_region = %s
                 AND r.group_id = %s
-                AND t.service_cname like %s
+                AND UPPER(t.service_cname) LIKE UPPER(%s)
             ORDER BY
                 t.update_time DESC;
         '''
-        services = dsn.query(query_sql, [team_id, region_name, group_id, "%" + query + "%"])
+        services = dsn.query(query_sql, [team_id, region_name, group_id, "%{}%".format(query)])
         return services
 
     def get_no_group_services_list(self, team_id: str, region_name: str) -> Any:
@@ -154,6 +154,7 @@ class BaseService(object):
         if order != "desc" and order != "asc":
             order = "desc"
         dsn = BaseConnection()
+        order_column = "t.update_time" if fields == "update_time" else "t.ID"
         query_sql = '''
             SELECT
                 t.create_status,
@@ -174,11 +175,10 @@ class BaseService(object):
             WHERE
                 t.tenant_id = %s
                 AND t.service_region = %s
-                AND t.service_cname LIKE %s
+                AND UPPER(t.service_cname) LIKE UPPER(%s)
             ORDER BY
-            t.{fields} {order};
-        '''.format(fields=fields, order=order)
-        services = dsn.query(query_sql, [team_id, region_name, "%" + query_key + "%"])
+                ''' + order_column + " " + order + ";"
+        services = dsn.query(query_sql, [team_id, region_name, "%{}%".format(query_key)])
         return services
 
     def status_multi_service(self, region: str, tenant_name: str, service_ids: Any, enterprise_id: str) -> list:
@@ -186,27 +186,27 @@ class BaseService(object):
             body = region_api.service_status(region, tenant_name, {"service_ids": service_ids, "enterprise_id": enterprise_id})
             # NOTE: service_status may return None; a None index raises and is caught below (returns []).
             status_list = body["list"]  # type: ignore[index]
-            
+
             # 处理 KubeBlocks 组件状态和资源替换
             status_list = self._process_kubeblocks_status(status_list, service_ids, region)
-            
+
             return status_list
         except Exception as e:
             logger.exception(e)
             return []
-    
+
     def _process_kubeblocks_status(self, status_list: list, service_ids: Any, region: str) -> list:
         """处理 KubeBlocks 组件状态和资源信息替换"""
         try:
             from console.enum.component_enum import is_kubeblocks
             from console.services.kubeblocks_service import kubeblocks_service
-            
+
             services = service_repo.get_services_by_service_ids(service_ids)
             kubeblocks_services = [s for s in services if is_kubeblocks(s.extend_method)]
-            
+
             if not kubeblocks_services:
                 return status_list
-                
+
             kb_status_map = kubeblocks_service.get_kubeblocks_components_info(
                 region, [s.service_id for s in kubeblocks_services])
             # 替换状态列表中的 KubeBlocks 组件信息
@@ -219,7 +219,7 @@ class BaseService(object):
                         "status_cn": kb_info.get("status_cn", "获取状态失败"),
                         "used_mem": kb_info.get("used_mem", 0)
                     }
-            
+
             return status_list
         except Exception as e:
             logger.exception(f"处理 KubeBlocks 状态失败: {str(e)}")
@@ -254,21 +254,16 @@ class BaseService(object):
             return None
 
     def get_enterprise_group_services(self, enterprise_id: str) -> Any:
-        where = 'WHERE group_id IN (SELECT ID FROM service_group WHERE tenant_id IN (SELECT tenant_id FROM ' \
-                'tenant_info WHERE enterprise_id = %s)) '
-        group_by = "GROUP BY group_id"
-        service_ids = list_aggregate("CONCAT('\"', service_id, '\"')", database_type(), order_by="service_id")
-        sql = """
-            SELECT
-                group_id,
-                CONCAT('[', {service_ids}, ']') as service_ids
-            FROM service_group_relation
-        """.format(service_ids=service_ids)
-        sql += where
-        sql += group_by
-        conn = BaseConnection()
-        result = conn.query(sql, [enterprise_id])
-        return result
+        tenant_ids = Tenants.objects.filter(enterprise_id=enterprise_id).values_list("tenant_id", flat=True)
+        group_ids = ServiceGroup.objects.filter(tenant_id__in=tenant_ids).values_list("ID", flat=True)
+        relations = ServiceGroupRelation.objects.filter(group_id__in=group_ids).order_by("group_id", "ID").values_list(
+            "group_id", "service_id")
+
+        grouped = {}
+        for group_id, service_id in relations:
+            grouped.setdefault(group_id, []).append(service_id)
+        return [{"group_id": group_id, "service_ids": json.dumps(service_ids)}
+                for group_id, service_ids in grouped.items()]
 
     def get_build_infos(self, tenant: Tenants, service_ids: Any) -> dict:
         from console.repositories.service_repo import service_repo

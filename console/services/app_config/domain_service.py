@@ -20,12 +20,13 @@ from console.services.gateway_api import gateway_api
 from console.services.group_service import group_service
 from console.services.region_services import region_services
 from console.utils.certutil import analyze_cert, cert_is_effective
-from console.utils.database import database_type, pagination_clause
 from console.utils.shortcuts import get_object_or_404
-from django.db import connection, transaction
+from django.db import transaction
+from django.db.models import Q, QuerySet
 from django.forms.models import model_to_dict
 from www.apiclient.regionapi import RegionInvokeApi
-from www.models.main import (ServiceDomain, ServiceDomainCertificate, TenantServiceInfo)
+from www.models.main import (ServiceDomain, ServiceDomainCertificate, ServiceGroup, ServiceGroupRelation,
+                             ServiceTcpDomain, TenantServiceInfo)
 from www.utils.crypt import make_uuid
 
 region_api = RegionInvokeApi()
@@ -694,72 +695,88 @@ class DomainService(object):
     # 获取应用下策略列表
     def get_app_service_domain_list(self, region: RegionConfig, tenant: Any, app_id: str, search_conditions: Any, page: int,
                                     page_size: int) -> Tuple[Any, Any]:
-        columns = """
-            sd.domain_name, sd.type, sd.is_senior, sd.certificate_id, sd.service_alias,
-            sd.protocol, sd.service_name, sd.container_port, sd.http_rule_id, sd.service_id,
-            sd.domain_path, sd.domain_cookie, sd.domain_heander, sd.the_weight,
-            sd.is_outer_service, sd.path_rewrite, sd.rewrites
-        """
-        joins = """
-            from service_domain sd
-            left join service_group_relation sgr on sd.service_id = sgr.service_id
-            left join service_group sg on sgr.group_id = sg.id
-        """
-        filters = ["sd.tenant_id=%s", "sd.region_id=%s", "sgr.group_id=%s"]
-        args = [tenant.tenant_id, region.region_id, app_id]
+        service_ids = ServiceGroupRelation.objects.filter(group_id=app_id).values_list("service_id", flat=True)
+        domains = ServiceDomain.objects.filter(
+            tenant_id=tenant.tenant_id, region_id=region.region_id, service_id__in=service_ids)
+        domains = self._filter_group_resources(domains, app_id, search_conditions, "domain_name")
+        total = domains.count()
+        rows = domains.order_by("-type").values_list(*self._http_domain_fields())
         if search_conditions:
-            if isinstance(search_conditions, bytes):
-                search_conditions = search_conditions.decode('utf-8')
-            filters.append("(sd.domain_name like %s or sd.service_alias like %s or sg.group_name like %s)")
-            args.extend(["%" + search_conditions + "%"] * 3)
-            start = (page - 1) * page_size
-        where = " where " + " and ".join(filters)
-        cursor = connection.cursor()
-        cursor.execute("select count(sd.domain_name)" + joins + where, args)
-        total = cursor.fetchall()[0][0]
-
-        query = "select " + columns + joins + where + " order by type desc"
-        query_args = args[:]
-        if search_conditions:
-            limit, limit_args = pagination_clause(database_type(), start, page_size)
-            query += limit
-            query_args.extend(limit_args)
-        cursor = connection.cursor()
-        cursor.execute(query, query_args)
-        tenant_tuples = cursor.fetchall()
-
-        return tenant_tuples, total
+            rows = self._paginate(rows, page, page_size)
+        return list(rows), total
 
     # 获取应用下tcp&udp策略列表
     def get_app_service_tcp_domain_list(self, region: RegionConfig, tenant: Any, app_id: str, search_conditions: Any,
                                         page: int, page_size: int) -> Tuple[Any, Any]:
-        columns = """
-            std.end_point, std.type, std.protocol, std.service_name, std.service_alias,
-            std.container_port, std.tcp_rule_id, std.service_id, std.is_outer_service
-        """
-        joins = """
-            from service_tcp_domain std
-            left join service_group_relation sgr on std.service_id = sgr.service_id
-            left join service_group sg on sgr.group_id = sg.id
-        """
-        filters = ["std.tenant_id=%s", "std.region_id=%s", "sgr.group_id=%s"]
-        args = [tenant.tenant_id, region.region_id, app_id]
-        if search_conditions:
-            if isinstance(search_conditions, bytes):
-                search_conditions = search_conditions.decode('utf-8')
-            filters.append("(std.end_point like %s or std.service_alias like %s or sg.group_name like %s)")
-            args.extend(["%" + search_conditions + "%"] * 3)
-        where = " where " + " and ".join(filters)
-        cursor = connection.cursor()
-        cursor.execute("select count(1)" + joins + where, args)
-        total = cursor.fetchall()[0][0]
+        service_ids = ServiceGroupRelation.objects.filter(group_id=app_id).values_list("service_id", flat=True)
+        domains = ServiceTcpDomain.objects.filter(
+            tenant_id=tenant.tenant_id, region_id=region.region_id, service_id__in=service_ids)
+        domains = self._filter_group_resources(domains, app_id, search_conditions, "end_point")
+        total = domains.count()
+        rows = domains.order_by("-type").values_list(*self._tcp_domain_fields())
+        return list(self._paginate(rows, page, page_size)), total
 
+    def get_team_service_domain_list(self, region: RegionConfig, tenant: Any, search_conditions: Any, page: int,
+                                     page_size: int) -> Tuple[Any, Any]:
+        domains = ServiceDomain.objects.filter(tenant_id=tenant.tenant_id, region_id=region.region_id)
+        domains = self._filter_team_resources(domains, tenant.tenant_id, region.region_name, search_conditions,
+                                              "domain_name")
+        total = domains.count()
+        rows = domains.order_by("-type").values_list(*self._http_domain_fields())
+        return list(self._paginate(rows, page, page_size)), total
+
+    def get_team_service_tcp_domain_list(self, region: RegionConfig, tenant: Any, search_conditions: Any, page: int,
+                                         page_size: int) -> Tuple[Any, Any]:
+        domains = ServiceTcpDomain.objects.filter(tenant_id=tenant.tenant_id, region_id=region.region_id)
+        domains = self._filter_team_resources(domains, tenant.tenant_id, region.region_name, search_conditions,
+                                              "end_point")
+        total = domains.count()
+        rows = domains.order_by("-type").values_list(*self._tcp_domain_fields())
+        return list(self._paginate(rows, page, page_size)), total
+
+    @staticmethod
+    def _filter_group_resources(resources: QuerySet, app_id: str, search: Any, primary_field: str) -> QuerySet:
+        if not search:
+            return resources
+        if isinstance(search, bytes):
+            search = search.decode("utf-8")
+        group_matches = ServiceGroup.objects.filter(ID=app_id, group_name__icontains=search).exists()
+        if group_matches:
+            return resources
+        return resources.filter(Q(**{"{}__icontains".format(primary_field): search}) |
+                                Q(service_alias__icontains=search))
+
+    @staticmethod
+    def _filter_team_resources(resources: QuerySet, tenant_id: str, region_name: str, search: Any,
+                               primary_field: str) -> QuerySet:
+        if not search:
+            return resources
+        if isinstance(search, bytes):
+            search = search.decode("utf-8")
+        matching_groups = ServiceGroup.objects.filter(
+            tenant_id=tenant_id, region_name=region_name, group_name__icontains=search).values_list("ID", flat=True)
+        matching_services = ServiceGroupRelation.objects.filter(group_id__in=matching_groups).values_list(
+            "service_id", flat=True)
+        return resources.filter(Q(**{"{}__icontains".format(primary_field): search}) |
+                                Q(service_alias__icontains=search) | Q(service_id__in=matching_services))
+
+    @staticmethod
+    def _paginate(queryset: QuerySet, page: int, page_size: int) -> QuerySet:
+        page = max(int(page), 1)
+        page_size = max(int(page_size), 1)
         start = (page - 1) * page_size
-        limit, limit_args = pagination_clause(database_type(), start, page_size)
-        cursor = connection.cursor()
-        cursor.execute("select " + columns + joins + where + " order by type desc" + limit, args + limit_args)
-        tenant_tuples = cursor.fetchall()
-        return tenant_tuples, total
+        return queryset[start:start + page_size]
+
+    @staticmethod
+    def _http_domain_fields() -> Tuple[str, ...]:
+        return ("domain_name", "type", "is_senior", "certificate_id", "service_alias", "protocol", "service_name",
+                "container_port", "http_rule_id", "service_id", "domain_path", "domain_cookie", "domain_heander",
+                "the_weight", "is_outer_service", "path_rewrite", "rewrites")
+
+    @staticmethod
+    def _tcp_domain_fields() -> Tuple[str, ...]:
+        return ("end_point", "type", "protocol", "service_name", "service_alias", "container_port", "tcp_rule_id",
+                "service_id", "is_outer_service")
 
     def check_domain_exist(self, service_id: str, container_port: int, domain_name: str, protocol: str,
                            domain_path: Any, rule_extensions: Any) -> bool:

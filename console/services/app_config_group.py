@@ -129,7 +129,7 @@ class AppConfigGroupService(object):
         cgroup_info: List[Dict[str, Any]] = []
         config_groups: QuerySet = app_config_group_repo.list(region_name, app_id)
         if query:
-            config_groups = config_groups.filter(config_group_name__contains=query)
+            config_groups = config_groups.filter(config_group_name__icontains=query)
         p = Paginator(config_groups, page_size)
         total = p.count
         for cgroup in p.page(page):

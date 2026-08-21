@@ -7,14 +7,14 @@ import logging
 import os
 from typing import Any, List, Optional, Tuple
 
+from addict import Dict
 from console.exception.main import ServiceHandleException
 from console.models.main import (AppMarket, RainbondCenterAppTag, RainbondCenterAppTagsRelation, ServiceRecycleBin,
                                  ServiceRelationRecycleBin, ServiceSourceInfo)
 from console.repositories.base import BaseConnection
 from console.repositories.team_repo import team_repo
-from console.utils.database import database_type, in_clause, list_aggregate, pagination_clause
 from django.db import transaction
-from django.db.models import QuerySet
+from django.db.models import Q, QuerySet
 from docker_image import reference
 from www.models.main import (ServiceGroup, ServiceGroupRelation, ServiceWebhooks, TenantServiceInfo, TenantServiceInfoDelete)
 
@@ -32,7 +32,10 @@ PLATFORM_PLUGIN_DEFAULT_URL = "https://hub.grapps.cn"
 
 class TenantServiceInfoRepository(object):
     def list_by_svc_share_uuids(self, group_id: str, dep_uuids: Any) -> Any:
-        uuids, args = in_clause(dep_uuids)
+        dep_uuids = [str(uuid) for uuid in dep_uuids]
+        if not dep_uuids:
+            return []
+        placeholders = ",".join(["%s"] * len(dep_uuids))
         conn = BaseConnection()
         sql = """
             SELECT
@@ -47,11 +50,11 @@ class TenantServiceInfoRepository(object):
             WHERE
                 a.tenant_id = b.team_id
                 AND a.service_id = b.service_id
-                AND b.service_share_uuid IN {uuids}
+                AND b.service_share_uuid IN (""" + placeholders + """)
                 AND a.service_id = c.service_id
                 AND c.group_id = %s
-            """.format(uuids=uuids)
-        result = conn.query(sql, args + [group_id])
+            """
+        result = conn.query(sql, dep_uuids + [group_id])
         return result
 
     def list_by_ids(self, service_ids: Any) -> "QuerySet[TenantServiceInfo]":
@@ -66,17 +69,19 @@ class TenantServiceInfoRepository(object):
         return service_map
 
     def get_services_in_multi_apps_with_app_info(self, group_ids: Any) -> Any:
-        ids, args = in_clause(group_ids)
+        group_ids = list(group_ids)
+        if not group_ids:
+            return []
+        placeholders = ",".join(["%s"] * len(group_ids))
         sql = """
         select svc.*, sg.id as group_id, sg.group_name, sg.region_name, sg.is_default, sg.note
         from tenant_service svc
             left join service_group_relation sgr on svc.service_id = sgr.service_id
             left join service_group sg on sg.id = sgr.group_id
-        where sg.id in {ids};
-        """.format(ids=ids)
+        where sg.id in (""" + placeholders + ");"
 
         conn = BaseConnection()
-        return conn.query(sql, args)
+        return conn.query(sql, group_ids)
 
     def get_service_by_tenant_and_id(self, tenant_id: str, service_id: str) -> Optional[TenantServiceInfo]:
         services = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_id=service_id)
@@ -116,8 +121,8 @@ class TenantServiceInfoRepository(object):
                                           service_group_ids: Any) -> "QuerySet[TenantServiceInfo]":
         return TenantServiceInfo.objects.filter(service_id__in=component_ids, tenant_service_group_id__in=service_group_ids)
 
-    def get_services_by_raw_sql(self, raw_sql: str, params: Optional[List[Any]] = None) -> Any:
-        return TenantServiceInfo.objects.raw(raw_sql, params=params)
+    def get_services_by_raw_sql(self, raw_sql: str) -> Any:
+        return TenantServiceInfo.objects.raw(raw_sql)
 
     def get_service_by_tenant_and_alias(self, tenant_id: str, service_alias: str) -> Optional[TenantServiceInfo]:
         services = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_alias=service_alias)
@@ -178,62 +183,63 @@ class TenantServiceInfoRepository(object):
         TenantServiceInfo(**service_base).save()
 
     def get_app_list(self, tenant_ids: Any, name: str, page: int, page_size: int) -> Any:
-        tenant_clause, args = in_clause(tenant_ids)
-        where = 'WHERE A.tenant_id IN {0} '.format(tenant_clause)
-        if name:
-            where += 'AND (A.group_name LIKE %s OR C.service_cname LIKE %s) '
-            args.extend([name + '%', name + '%'])
-        limit, limit_args = pagination_clause(database_type(), page - 1, page_size)
-        args.extend(limit_args)
-        service_json = """CONCAT('{"service_cname":"', C.service_cname, '"'), ',',
-                CONCAT('"service_id":"', C.service_id, '"'), ',',
-                CONCAT('"service_key":"', C.service_key, '"'), ',',
-                CONCAT('"service_alias":"', C.service_alias, '"}')"""
-        service_list = list_aggregate(service_json, database_type(), order_by='C.service_id')
-        conn = BaseConnection()
-        sql = """
-        SELECT
-            A.ID,
-            A.group_name,
-            A.tenant_id,
-            CONCAT('[', {service_list}, ']') AS service_list
-        FROM service_group A
-        LEFT JOIN service_group_relation B
-        ON A.ID = B.group_id AND A.tenant_id = B.tenant_id
-        LEFT JOIN tenant_service C
-        ON B.service_id = C.service_id AND B.tenant_id = C.tenant_id
-        """.format(service_list=service_list)
-        sql += where + "GROUP BY A.ID "
-        sql += limit
-        result = conn.query(sql, args)
-        return result
+        tenant_ids = self._normalize_tenant_ids(tenant_ids)
+        groups = self._filtered_app_groups(tenant_ids, name)
+        offset = max(int(page) - 1, 0)
+        page_size = max(int(page_size), 0)
+        return self._serialize_app_groups(list(groups[offset:offset + page_size]))
 
     def get_app_count(self, tenant_ids: Any, name: str) -> Any:
-        tenant_clause, args = in_clause(tenant_ids)
-        where = 'WHERE A.tenant_id IN {0} '.format(tenant_clause)
+        tenant_ids = self._normalize_tenant_ids(tenant_ids)
+        return list(self._filtered_app_groups(tenant_ids, name).values_list("ID", flat=True))
+
+    @staticmethod
+    def _normalize_tenant_ids(tenant_ids: Any) -> List[str]:
+        if isinstance(tenant_ids, str):
+            return [tenant_ids]
+        return list(tenant_ids or [])
+
+    @staticmethod
+    def _filtered_app_groups(tenant_ids: List[str], name: str) -> QuerySet:
+        groups = ServiceGroup.objects.filter(tenant_id__in=tenant_ids)
         if name:
-            where += ' AND (A.group_name LIKE %s OR C.service_cname LIKE %s)'
-            args.extend([name + '%', name + '%'])
-        service_json = """CONCAT('{"service_cname":"', C.service_cname, '"'), ',',
-                CONCAT('"service_id":"', C.service_id, '"'), ',',
-                CONCAT('"service_key":"', C.service_key, '"'), ',',
-                CONCAT('"service_alias":"', C.service_alias, '"}')"""
-        service_list = list_aggregate(service_json, database_type(), order_by='C.service_id')
-        conn = BaseConnection()
-        sql = """
-        SELECT
-            A.ID,
-            A.group_name,
-            A.tenant_id,
-            CONCAT('[', {service_list}, ']') AS service_list
-        FROM service_group A
-        LEFT JOIN service_group_relation B
-        ON A.ID = B.group_id AND A.tenant_id = B.tenant_id
-        LEFT JOIN tenant_service C
-        ON B.service_id = C.service_id AND B.tenant_id = C.tenant_id
-        """.format(service_list=service_list)
-        sql += where + "GROUP BY A.ID "
-        result = conn.query(sql, args)
+            service_ids = TenantServiceInfo.objects.filter(
+                tenant_id__in=tenant_ids, service_cname__istartswith=name).values_list("service_id", flat=True)
+            matching_group_ids = ServiceGroupRelation.objects.filter(
+                tenant_id__in=tenant_ids, service_id__in=service_ids).values_list("group_id", flat=True)
+            groups = groups.filter(Q(group_name__istartswith=name) | Q(ID__in=matching_group_ids))
+        return groups.order_by("ID")
+
+    @staticmethod
+    def _serialize_app_groups(groups: List[ServiceGroup]) -> List[Dict]:
+        if not groups:
+            return []
+        group_ids = [group.ID for group in groups]
+        relations = ServiceGroupRelation.objects.filter(group_id__in=group_ids).order_by("ID")
+        service_ids_by_group = {}
+        service_ids = []
+        for relation in relations:
+            service_ids_by_group.setdefault(relation.group_id, []).append(relation.service_id)
+            service_ids.append(relation.service_id)
+
+        services = TenantServiceInfo.objects.filter(service_id__in=service_ids)
+        service_map = {service.service_id: service for service in services}
+        result = []
+        for group in groups:
+            service_list = []
+            for service_id in service_ids_by_group.get(group.ID, []):
+                service = service_map.get(service_id)
+                if service is None:
+                    continue
+                service_list.append({
+                    "service_cname": service.service_cname,
+                    "service_id": service.service_id,
+                    "service_key": service.service_key,
+                    "service_alias": service.service_alias
+                })
+            result.append(
+                Dict(ID=group.ID, group_name=group.group_name, tenant_id=group.tenant_id,
+                     service_list=json.dumps(service_list)))
         return result
 
     def get_services_by_team_and_region(self, team_id: str, region_name: str) -> "QuerySet[TenantServiceInfo]":
@@ -502,7 +508,8 @@ class AppTagRepository(object):
     def get_multi_apps_tags(self, eid: str, app_ids: Any) -> Any:
         if not app_ids:
             return None
-        app_ids, args = in_clause(app_ids)
+        app_ids = list(app_ids)
+        placeholders = ",".join(["%s"] * len(app_ids))
 
         sql = """
         select
@@ -514,11 +521,9 @@ class AppTagRepository(object):
             and atr.tag_id = tag.ID
         where
             atr.enterprise_id = %s
-            and atr.app_id in {app_ids};
-        """.format(
-            app_ids=app_ids)
+            and atr.app_id in (""" + placeholders + ");"
         conn = BaseConnection()
-        apps = conn.query(sql, [eid] + args)
+        apps = conn.query(sql, [eid] + app_ids)
         return apps
 
     def get_app_with_tags(self, eid: str, app_id: str) -> Any:

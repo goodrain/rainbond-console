@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
 from typing import Any, List, Optional
 
+from addict import Dict
 from console.exception.main import RegionNotFound
 from console.models.main import RegionConfig
-from console.repositories.base import BaseConnection
 from console.repositories.init_cluster import rke_cluster
 from console.repositories.team_repo import team_repo
-from console.utils.database import database_type, pagination_clause
 from django.db.models import Q, QuerySet
 from www.models.main import TenantRegionInfo
 
@@ -130,59 +129,29 @@ class RegionRepo(object):
     # not list tenant region if region is not exist
     def list_by_tenant_id(self, tenant_id: str, query: str = "", page: Optional[int] = None,
                           page_size: Optional[int] = None) -> Any:
-        args = [tenant_id]
-        limit = ""
+        regions = self._regions_for_tenant(tenant_id, query)
         if page is not None and page_size is not None:
             page = page if page > 0 else 1
-            page = (page - 1) * page_size
-            limit, limit_args = pagination_clause(database_type(), page, page_size)
-            args.extend(limit_args)
-        where = """
-        WHERE
-            ti.tenant_id = tr.tenant_id
-            AND ri.region_name = tr.region_name
-            AND ti.tenant_id = %s
-        """
-        if query:
-            where += "AND (ri.region_name LIKE %s OR ri.region_alias LIKE %s)"
-            args.extend(["%" + query + "%", "%" + query + "%"])
-        sql = """
-        SELECT
-            ri.*, ti.tenant_name
-        FROM
-            region_info ri,
-            tenant_info ti,
-            tenant_region tr
-        {where}
-        {limit}
-        """.format(
-            where=where, limit=limit)
-        conn = BaseConnection()
-        return conn.query(sql, args)
+            start = (page - 1) * page_size
+            regions = regions[start:start + page_size]
+        tenant = team_repo.get_team_by_team_id(tenant_id)
+        result = []
+        for region in regions:
+            item = Dict(region.to_dict())
+            item.tenant_name = tenant.tenant_name
+            result.append(item)
+        return result
 
     def count_by_tenant_id(self, tenant_id: str, query: str = "") -> Any:
-        args = [tenant_id]
-        where = """
-        WHERE
-            ti.tenant_id = tr.tenant_id
-            AND ri.region_name = tr.region_name
-            AND ti.tenant_id = %s
-        """
+        return self._regions_for_tenant(tenant_id, query).count()
+
+    @staticmethod
+    def _regions_for_tenant(tenant_id: str, query: str = "") -> QuerySet:
+        region_names = TenantRegionInfo.objects.filter(tenant_id=tenant_id).values_list("region_name", flat=True)
+        regions = RegionConfig.objects.filter(region_name__in=region_names)
         if query:
-            where += "AND (ri.region_name LIKE %s OR ri.region_alias LIKE %s)"
-            args.extend(["%" + query + "%", "%" + query + "%"])
-        sql = """
-        SELECT
-            count(*) as total
-        FROM
-            region_info ri,
-            tenant_info ti,
-            tenant_region tr
-        {where}
-        """.format(where=where)
-        conn = BaseConnection()
-        result = conn.query(sql, args)
-        return result[0]["total"]
+            regions = regions.filter(Q(region_name__icontains=query) | Q(region_alias__icontains=query))
+        return regions
 
     def del_by_enterprise_region_id(self, enterprise_id: str, region_id: str) -> RegionConfig:
         region = RegionConfig.objects.get(region_id=region_id, enterprise_id=enterprise_id)

@@ -9,11 +9,9 @@ from console.repositories.app import service_repo
 from console.repositories.event_repo import event_repo
 from console.repositories.team_repo import team_repo
 from console.services.app_actions.app_log import AppEventService
-from console.utils.database import database_type, pagination_clause
 from goodrain_web.tools import JuncheePaginator
 from www.apiclient.regionapi import RegionInvokeApi
-from www.db.base import BaseConnection
-from www.models.main import ServiceEvent, Tenants
+from www.models.main import ServiceEvent, TenantServiceInfo, Tenants
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
@@ -23,35 +21,28 @@ e_s = AppEventService()
 class ServiceEventDynamic(object):
     def get_team_current_region_service_events(
             self, region: str, team: Tenants, page: int, page_size: int) -> QuerySet:
-        dsn = BaseConnection()
         start = (int(page) - 1) * int(page_size)
-        end = page_size
-        limit, limit_args = pagination_clause(database_type(), start, end)
-
-        query_sql = """
-        select e.start_time, e.event_id, s.service_alias, s.service_cname
-        from service_event e
-                 JOIN tenant_service s on e.service_id = s.service_id
-        WHERE e.tenant_id = %s
-          and s.service_region = %s
-        ORDER BY start_time DESC
-        {limit}
-        """.format(limit=limit)
-
-        events = dsn.query(query_sql, [team.tenant_id, region] + limit_args)
-        events_ids = []
-        event_id_service_info_map = dict()
-        for e in events:
-            events_ids.append(e.event_id)
-            event_id_service_info_map[e.event_id] = {"service_alias": e.service_alias, "service_cname": e.service_cname}
-
-        events = ServiceEvent.objects.filter(event_id__in=events_ids).order_by("-ID")
+        service_rows = TenantServiceInfo.objects.filter(
+            tenant_id=team.tenant_id, service_region=region).values_list(
+                "service_id", "service_alias", "service_cname")
+        service_info = {
+            service_id: {
+                "service_alias": service_alias,
+                "service_cname": service_cname
+            }
+            for service_id, service_alias, service_cname in service_rows
+        }
+        event_ids = list(
+            ServiceEvent.objects.filter(
+                tenant_id=team.tenant_id, service_id__in=list(service_info)).order_by("-start_time").values_list(
+                    "event_id", flat=True)[start:start + int(page_size)])
+        events = ServiceEvent.objects.filter(event_id__in=event_ids).order_by("-ID")
         try:
             self.__sync_region_service_event_status(region, team.tenant_name, events, False)
         except Exception as e:
             logger.exception("synchorized services events error !", e)
         for event in events:
-            bean = event_id_service_info_map.get(event.event_id, None)
+            bean = service_info.get(event.service_id)
             if bean:
                 event.service_alias = bean["service_alias"]  # type: ignore[attr-defined]  # NOTE: dynamic attr set at runtime
                 event.service_cname = bean["service_cname"]  # type: ignore[attr-defined]  # NOTE: dynamic attr set at runtime

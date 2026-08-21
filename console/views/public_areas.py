@@ -17,13 +17,12 @@ from console.services.team_services import team_services
 from console.services.user_accesstoken_services import user_access_services
 from console.views.base import RegionTenantHeaderView, JWTAuthApiView
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
-from django.db import connection
 from console.utils.cache_decorators import never_cache
 from goodrain_web.tools import JuncheePaginator
 from rest_framework.request import Request
 from rest_framework.response import Response
 from www.apiclient.regionapi import RegionInvokeApi
-from www.models.main import RegionApp, ServiceGroupRelation, TenantServiceInfo
+from www.models.main import RegionApp, ServiceGroupRelation, TenantServiceEnvVar, TenantServiceInfo
 from www.utils.return_message import general_message
 from www.utils.status_translate import get_status_info_map
 
@@ -601,35 +600,17 @@ class TenantServiceEnvsView(RegionTenantHeaderView):
             return Response(result)
         # 查询变量名
         if attr_name:
-            attr_name_list = []
-            cursor = connection.cursor()
-            cursor.execute("""
-                select attr_name from tenant_service_env_var
-                where tenant_id=%s and attr_name like %s
-                order by attr_name;
-                """, [self.team.tenant_id, "%" + attr_name + "%"])
-            service_envs = cursor.fetchall()
-            if len(service_envs) > 0:
-                for service_env in service_envs:
-                    if service_env[0] not in attr_name_list:
-                        attr_name_list.append(service_env[0])
+            attr_name_list = list(TenantServiceEnvVar.objects.filter(
+                tenant_id=self.team.tenant_id, attr_name__icontains=attr_name).order_by("attr_name").values_list(
+                    "attr_name", flat=True).distinct())
             result = general_message(200, "success", "查询成功", list=attr_name_list)
             return Response(result)
 
         # 查询变量值
         if attr_value:
-            attr_value_list = []
-            cursor = connection.cursor()
-            cursor.execute("""
-                select attr_value from tenant_service_env_var
-                where tenant_id=%s and attr_value like %s
-                order by attr_value;
-                """, [self.team.tenant_id, "%" + attr_value + "%"])
-            service_envs = cursor.fetchall()
-            if len(service_envs) > 0:
-                for service_env in service_envs:
-                    if service_env[0] not in attr_value_list:
-                        attr_value_list.append(service_env[0])
+            attr_value_list = list(TenantServiceEnvVar.objects.filter(
+                tenant_id=self.team.tenant_id, attr_value__icontains=attr_value).order_by("attr_value").values_list(
+                    "attr_value", flat=True).distinct())
             result = general_message(200, "success", "查询成功", list=attr_value_list)
             return Response(result)
 

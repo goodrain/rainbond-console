@@ -2,11 +2,11 @@
 """
   Created on 18/3/7.
 """
-from console.repositories.app import service_repo
 import logging
+from addict import Dict
 from console.constants import AppConstants
 from console.repositories.team_repo import team_gitlab_repo
-from console.utils.database import database_type, pagination_clause
+from www.models.main import TenantServiceInfo
 
 logger = logging.getLogger("default")
 
@@ -75,16 +75,13 @@ class SyncTenantServiceManager(object):
         service.save()
 
     def get_limited_services(self, start_index, number_of_services):
-        limit, limit_args = pagination_clause(database_type(), start_index, number_of_services)
-        query_sql = "select * from tenant_service WHERE ID > 31182" + limit
-        services = service_repo.get_services_by_raw_sql(query_sql, limit_args)
-        return services
+        return TenantServiceInfo.objects.filter(ID__gt=31182).order_by("ID")[start_index:start_index + number_of_services]
 
     def get_services_counts(self):
-        query_count_sql = """select count(1) as num from tenant_service"""
-        count = service_repo.get_services_by_raw_sql(query_count_sql)
-        logger.debug(count)
-        return count
+        count = TenantServiceInfo.objects.count()
+        result = [Dict(num=count)]
+        logger.debug(result)
+        return result
 
 
 syncManager = SyncTenantServiceManager()

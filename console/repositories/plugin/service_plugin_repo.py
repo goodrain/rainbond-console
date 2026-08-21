@@ -6,7 +6,7 @@ from typing import Any, List, Optional
 
 from django.db.models import QuerySet
 
-from www.db.base import BaseConnection
+from www.models.main import TenantServiceInfo, Tenants
 from www.models.plugin import ServicePluginConfigVar
 from www.models.plugin import TenantServicePluginAttr
 from www.models.plugin import TenantServicePluginRelation
@@ -90,22 +90,10 @@ class AppPluginRelationRepo(object):
         """
         check if an app has been shared
         """
-        conn = BaseConnection()
-        sql = """
-            SELECT
-                a.plugin_id
-            FROM
-                tenant_service_plugin_relation a,
-                tenant_service c,
-                tenant_info b
-            WHERE
-                c.tenant_id = b.tenant_id
-                AND a.service_id = c.service_id
-                AND c.service_source <> "market"
-                AND b.enterprise_id = %s
-                LIMIT 1"""
-        result = conn.query(sql, [eid])
-        return True if len(result) > 0 else False
+        tenant_ids = Tenants.objects.filter(enterprise_id=eid).values_list("tenant_id", flat=True)
+        service_ids = TenantServiceInfo.objects.filter(
+            tenant_id__in=tenant_ids).exclude(service_source="market").values_list("service_id", flat=True)
+        return TenantServicePluginRelation.objects.filter(service_id__in=service_ids).exists()  # type: ignore[attr-defined]
 
 
 class ServicePluginAttrRepository(object):

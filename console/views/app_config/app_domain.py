@@ -22,10 +22,8 @@ from console.services.region_services import region_services
 from console.services.team_services import team_services
 from console.services.virtual_machine import vms
 from console.utils.reqparse import parse_item
-from console.utils.database import database_type, pagination_clause
 from console.views.app_config.base import AppBaseView
 from console.views.base import RegionTenantHeaderView
-from django.db import connection
 from console.utils.cache_decorators import never_cache
 from rest_framework import status
 from rest_framework.request import Request
@@ -1034,32 +1032,8 @@ class DomainQueryView(RegionTenantHeaderView):
         search_conditions = request.GET.get("search_conditions", None)
         tenant = team_services.get_tenant_by_tenant_name(tenantName)
         region = region_repo.get_region_by_region_name(self.response_region)
-        filters = ["sd.tenant_id=%s", "sd.region_id=%s"]
-        args = [tenant.tenant_id, region.region_id]  # type: ignore[union-attr]
-        joins = """
-            from service_domain sd
-            left join service_group_relation sgr on sd.service_id = sgr.service_id
-            left join service_group sg on sgr.group_id = sg.id
-        """
-        if search_conditions:
-            filters.append("(sd.domain_name like %s or sd.service_alias like %s or sg.group_name like %s)")
-            args.extend(["%" + search_conditions + "%"] * 3)
-        where = " where " + " and ".join(filters)
-        cursor = connection.cursor()
-        cursor.execute("select count(sd.domain_name)" + joins + where, args)
-        total = cursor.fetchall()[0][0]
-
-        start = max(page - 1, 0) * max(page_size, 1)
-        limit, limit_args = pagination_clause(database_type(), start, max(page_size, 1))
-        cursor = connection.cursor()
-        cursor.execute(
-            "select sd.domain_name, sd.type, sd.is_senior, sd.certificate_id, sd.service_alias, "
-            "sd.protocol, sd.service_name, sd.container_port, sd.http_rule_id, sd.service_id, "
-            "sd.domain_path, sd.domain_cookie, sd.domain_heander, sd.the_weight, sd.is_outer_service, "
-            "sd.path_rewrite, sd.rewrites" + joins + where + " order by sd.type desc" + limit,
-            args + limit_args,
-        )
-        tenant_tuples = cursor.fetchall()
+        tenant_tuples, total = domain_service.get_team_service_domain_list(
+            region, tenant, search_conditions, page, page_size)  # type: ignore[arg-type]
         # 拼接展示数据
         domain_list = list()
         for tenant_tuple in tenant_tuples:
@@ -1116,31 +1090,8 @@ class ServiceTcpDomainQueryView(RegionTenantHeaderView):
         tenant = team_services.get_tenant_by_tenant_name(tenantName)
         region = region_repo.get_region_by_region_name(self.response_region)
         try:
-            filters = ["std.tenant_id=%s", "std.region_id=%s"]
-            args = [tenant.tenant_id, region.region_id]  # type: ignore[union-attr]
-            joins = """
-                from service_tcp_domain std
-                left join service_group_relation sgr on std.service_id = sgr.service_id
-                left join service_group sg on sgr.group_id = sg.id
-            """
-            if search_conditions:
-                filters.append("(std.end_point like %s or std.service_alias like %s or sg.group_name like %s)")
-                args.extend(["%" + search_conditions + "%"] * 3)
-            where = " where " + " and ".join(filters)
-            cursor = connection.cursor()
-            cursor.execute("select count(1)" + joins + where, args)
-            total = cursor.fetchall()[0][0]
-
-            start = max(page - 1, 0) * max(page_size, 1)
-            limit, limit_args = pagination_clause(database_type(), start, max(page_size, 1))
-            cursor = connection.cursor()
-            cursor.execute(
-                "select std.end_point, std.type, std.protocol, std.service_name, std.service_alias, "
-                "std.container_port, std.tcp_rule_id, std.service_id, std.is_outer_service" + joins + where
-                + " order by std.type desc" + limit,
-                args + limit_args,
-            )
-            tenant_tuples = cursor.fetchall()
+            tenant_tuples, total = domain_service.get_team_service_tcp_domain_list(
+                region, tenant, search_conditions, page, page_size)  # type: ignore[arg-type]
         except Exception as e:
             logger.exception(e)
             result = general_message(405, "faild", "查询数据库失败")
