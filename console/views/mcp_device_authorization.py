@@ -100,14 +100,6 @@ class BrowserDeviceView(DeviceResponseMixin, DeviceFeatureMixin, APIView):
     authentication_classes = (HeaderOnlyConsoleJWTAuthentication, )
     permission_classes = (IsAuthenticated, )
 
-    def initial(self, request: Request, *args: Any, **kwargs: Any) -> None:
-        super(BrowserDeviceView, self).initial(request, *args, **kwargs)
-        origin = request.META.get("HTTP_ORIGIN")
-        if origin:
-            expected_origin = _public_origin(request)
-            if origin.rstrip("/") != expected_origin.rstrip("/"):
-                raise exceptions.PermissionDenied("cross-origin device authorization is not allowed")
-
 
 class MCPDeviceCodeView(DeviceFeatureMixin, DeviceResponseMixin, APIView):
     authentication_classes = ()

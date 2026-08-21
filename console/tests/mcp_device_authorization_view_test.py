@@ -153,7 +153,7 @@ class MCPDeviceAuthorizationViewTests(TestCase):
         self.assertEqual(repeated.status_code, 400)
         self.assertEqual(repeated.data["error"], "invalid_grant")
 
-    def test_browser_endpoints_reject_cookie_only_and_cross_origin_requests(self):
+    def test_browser_endpoints_reject_cookie_only_but_allow_any_origin_with_header_jwt(self):
         created = self.create_code()
         cookie_request = self.factory.post(
             "/console/mcp/device/inspect", data={"user_code": created["user_code"]}, format="json")
@@ -169,7 +169,7 @@ class MCPDeviceAuthorizationViewTests(TestCase):
         origin_response = MCPDeviceInspectView.as_view()(origin_request)
 
         self.assertEqual(cookie_response.status_code, 401)
-        self.assertEqual(origin_response.status_code, 403)
+        self.assertEqual(origin_response.status_code, 200)
 
     def test_deactivated_approver_is_denied_before_token_issuance(self):
         created = self.create_code()
