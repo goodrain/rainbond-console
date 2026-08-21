@@ -116,7 +116,13 @@ install_stub("console.services.team_services", team_services=Obj())
 install_stub("console.utils.jwt_issuer", issue_jwt=mock.Mock())
 install_stub("console.utils.offline", is_cloud_market_disabled=lambda: False)
 install_stub("www.apiclient.regionapi", RegionInvokeApi=RegionInvokeApi)
-install_stub("www.models.main", ServiceGroup=object, TenantServiceInfo=object, Tenants=object)
+install_stub(
+    "www.models.main",
+    ServiceGroup=object,
+    ServiceGroupRelation=object,
+    TenantServiceInfo=object,
+    Tenants=object,
+)
 
 install_stub(
     "console.services.market_app_preflight_service",
