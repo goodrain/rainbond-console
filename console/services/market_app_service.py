@@ -1541,6 +1541,8 @@ class MarketAppService(object):
             market_name = component_source.get_market_name()
             market = None
             install_from_cloud = component_source.is_install_from_cloud()
+            if install_from_cloud and is_cloud_market_disabled():
+                return []
             if install_from_cloud and market_name:
                 market = app_market_repo.get_app_market_by_name(
                     tenant.enterprise_id, market_name, raise_exception=True)  # type: ignore[arg-type]
@@ -1752,7 +1754,7 @@ class MarketAppService(object):
                     component_source = source
             market_name = component_source.get_market_name()
             install_from_cloud = component_source.is_install_from_cloud()
-            if install_from_cloud and market_name:
+            if install_from_cloud and market_name and not is_cloud_market_disabled():
                 market = app_market_repo.get_app_market_by_name(enterprise_id, market_name, raise_exception=True)
         return current_version, component_source.get_template_update_time(), install_from_cloud, market
 
@@ -1769,6 +1771,8 @@ class MarketAppService(object):
         component_group = ComponentGroup(enterprise_id, component_group, record.old_version)
         app_template_source = component_group.app_template_source()
         install_from_cloud = component_group.is_install_from_cloud()
+        if install_from_cloud and is_cloud_market_disabled():
+            return []
         market = None
         if install_from_cloud:
             market_name = app_template_source.get_market_name()

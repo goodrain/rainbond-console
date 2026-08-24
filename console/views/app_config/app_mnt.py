@@ -63,8 +63,8 @@ class AppMntView(AppBaseView):
             dep_app_group = ""
         config_name = request.GET.get("config_name", "")
         query_type = request.GET.get("type", "mnt")
-        page = request.GET.get("page", 1)
-        page_size = request.GET.get("page_size", 10)
+        page = parse_argument(request, 'page', value_type=int, default=1)
+        page_size = parse_argument(request, 'page_size', value_type=int, default=10)
         volume_types = parse_argument(request, 'volume_types', value_type=list)
         is_config = parse_argument(request, 'is_config', value_type=bool, default=False)
 
@@ -72,14 +72,16 @@ class AppMntView(AppBaseView):
             is_config = True
 
         if query_type == "mnt":
-            mnt_list, total = mnt_service.get_service_mnt_details(self.tenant, self.service, volume_types)
+            mnt_list, total = mnt_service.get_service_mnt_details(self.tenant,
+                                                                  self.service,
+                                                                  volume_types,
+                                                                  page=page,
+                                                                  page_size=page_size)
         elif query_type == "unmnt":
             services = app_service.get_app_list(self.tenant.tenant_id, self.service.service_region, dep_app_name)
             services_ids = [s.service_id for s in services]
-            # NOTE: page/page_size from GET are str|int (backlog)
-            mnt_list, total = mnt_service.get_service_unmount_volume_list(
-                self.tenant, self.service, services_ids, page,  # type: ignore[arg-type]
-                page_size, is_config, dep_app_group, config_name)  # type: ignore[arg-type]
+            mnt_list, total = mnt_service.get_service_unmount_volume_list(self.tenant, self.service, services_ids, page,
+                                                                          page_size, is_config, dep_app_group, config_name)
         else:
             return Response(general_message(400, "param error", "参数错误"), status=400)
         result = general_message(200, "success", "查询成功", list=mnt_list, total=total)
