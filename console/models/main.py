@@ -1309,6 +1309,92 @@ class OperationLog(BaseModel):
     information_type = models.CharField(max_length=32, help_text=u"增删改三种类型")
 
 
+class RainSkillsSkillSnapshot(models.Model):
+    id = models.BigAutoField(primary_key=True)
+    enterprise_id = models.CharField(max_length=64)
+    skill_id = models.CharField(max_length=128)
+    profile = models.CharField(max_length=16)
+    package_version = models.CharField(max_length=64)
+    source_revision = models.CharField(max_length=128, null=True, blank=True)
+    content_sha256 = models.CharField(max_length=64)
+    bundle_sha256 = models.CharField(max_length=64, null=True, blank=True)
+    content_text = models.TextField()
+    provenance = models.CharField(max_length=32, default="client_manifest_verified")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "rainskills_skill_snapshot"
+        constraints = (
+            models.UniqueConstraint(
+                fields=("enterprise_id", "skill_id", "profile", "content_sha256"),
+                name="uk_rs_snapshot_enterprise_skill_digest",
+            ),
+        )
+
+
+class RainSkillsOperation(models.Model):
+    id = models.BigAutoField(primary_key=True)
+    operation_id = models.CharField(max_length=64)
+    enterprise_id = models.CharField(max_length=64)
+    user_id = models.CharField(max_length=64)
+    username = models.CharField(max_length=128, null=True, blank=True)
+    deploy_client = models.CharField(max_length=32)
+    skill_snapshot = models.ForeignKey(
+        RainSkillsSkillSnapshot,
+        db_column="skill_snapshot_id",
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="operations",
+    )
+    skill_id = models.CharField(max_length=128, null=True, blank=True)
+    root_skill_id = models.CharField(max_length=128, null=True, blank=True)
+    tool_name = models.CharField(max_length=128)
+    operation_class = models.CharField(max_length=16)
+    risk = models.CharField(max_length=16)
+    scope = models.CharField(max_length=16)
+    arguments_digest = models.CharField(max_length=64)
+    input_json = models.JSONField(null=True, blank=True)
+    target_context = models.JSONField(null=True, blank=True)
+    confirmation_type = models.CharField(max_length=32)
+    status = models.CharField(max_length=32, default="executing")
+    output_summary = models.TextField(null=True, blank=True)
+    error_code = models.CharField(max_length=64, null=True, blank=True)
+    error_message = models.TextField(null=True, blank=True)
+    started_at = models.DateTimeField()
+    finished_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "rainskills_operation"
+        constraints = (
+            models.UniqueConstraint(
+                fields=("enterprise_id", "operation_id"),
+                name="uk_rs_operation_enterprise_id",
+            ),
+        )
+        indexes = (
+            models.Index(fields=("enterprise_id", "status", "started_at"), name="rs_op_status_started_idx"),
+        )
+
+
+class RainSkillsOperationEvent(models.Model):
+    id = models.BigAutoField(primary_key=True)
+    event_id = models.CharField(max_length=128, unique=True)
+    enterprise_id = models.CharField(max_length=64)
+    operation_id = models.CharField(max_length=64)
+    event_type = models.CharField(max_length=64)
+    payload = models.JSONField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "rainskills_operation_event"
+        indexes = (
+            models.Index(fields=("enterprise_id", "id"), name="rs_event_enterprise_idx"),
+        )
+
+
 class LoginEvent(BaseModel):
     class Meta:
         db_table = 'login_events'

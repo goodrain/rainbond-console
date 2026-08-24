@@ -22,14 +22,13 @@ from console.models.main import (AppMarket, AppUpgradeRecord, RainbondCenterApp,
 from console.repositories.app import (PLATFORM_PLUGIN_DEFAULT_URL, PLATFORM_PLUGIN_MARKET_DOMAIN,
                                       PLATFORM_PLUGIN_MARKET_NAME, app_market_repo, app_tag_repo,
                                       service_source_repo)
-from console.repositories.app_config import (env_var_repo, extend_repo, port_repo, volume_repo, dep_relation_repo)
+from console.repositories.app_config import (env_var_repo, extend_repo, port_repo, volume_repo)
 from console.repositories.app_version_repo import app_version_template_relation_repo
 from console.repositories.base import BaseConnection
 from console.repositories.group import group_repo, tenant_service_group_repo
 from console.repositories.market_app_repo import (app_import_record_repo, rainbond_app_repo)
 from console.repositories.plugin import plugin_repo
 from console.repositories.plugin.plugin import plugin_version_repo
-from console.repositories.region_app import region_app_repo
 from console.repositories.service_repo import service_repo
 from console.repositories.team_repo import team_repo
 from console.services.app import app_market_service, app_service
@@ -46,6 +45,7 @@ from console.services.license import license_service
 from console.services.market_app.app_upgrade import AppUpgrade
 from console.services.market_app.utils import apply_hostname_remap, collect_install_hostname_remap, resolve_none_placeholders
 from console.services.market_app_preflight_service import market_install_preflight_service
+from console.services.rbd_plugin_sync_service import rbd_plugin_sync_service
 # market app
 from console.services.market_app.component_group import ComponentGroup
 from console.services.plugin import (app_plugin_service, plugin_config_service, plugin_service, plugin_version_service)
@@ -64,7 +64,7 @@ from django.db.models.query import QuerySet
 from www.apiclient.regionapi import RegionInvokeApi
 # model
 from www.models.main import (TenantEnterprise, TenantEnterpriseToken, TenantServiceEnvVar, TenantServiceInfo,
-                             TenantServicesPort, Users, ServiceGroup, Tenants, ServiceGroupRelation)
+                             TenantServicesPort, Users, ServiceGroup, Tenants)
 from www.models.plugin import ServicePluginConfigVar
 from www.tenantservice.baseservice import BaseTenantService
 from www.utils.crypt import make_uuid
@@ -216,9 +216,8 @@ class MarketAppService(object):
             service_ids=component_service_ids,
             service_alias=component_service_alias,
             service_aliases=component_service_aliases)
-        # If the app template contains platform_plugin info, create RBDPlugin CR
-        self._create_rbdplugin_if_needed(tenant, region, app_template, app.app_id)
         if not dry_run:
+            self._create_rbdplugin_if_needed(tenant, region, app_template, app.app_id)
             self._track_market_app_installed(tenant, region.region_name, version, market_app, install_from_cloud)
         if return_details:
             return {
@@ -288,84 +287,9 @@ class MarketAppService(object):
         )
 
     def _create_rbdplugin_if_needed(self, tenant: Tenants, region: RegionConfig, app_template: dict,
-                                    app_id: Optional[str] = None) -> None:
-        """If app_template contains platform_plugin info, create RBDPlugin CR via region API"""
-        platform_plugin = app_template.get("platform_plugin")
-        if not platform_plugin or not platform_plugin.get("is_platform_plugin"):
-            return
-        try:
-            frontend_component_name = platform_plugin.get("frontend_component", "")
-            namespace = tenant.namespace
-            frontend_service = ""
-            backend_service = ""
-
-            # Get service_ids belonging to this app to avoid cross-app name collision
-            app_service_ids = ServiceGroupRelation.objects.filter(  # type: ignore[misc]
-                group_id=app_id, tenant_id=tenant.tenant_id
-            ).values_list("service_id", flat=True)
-
-            # Find frontend component by service_cname within this app
-            if frontend_component_name:
-                frontend_cpt = TenantServiceInfo.objects.filter(
-                    tenant_id=tenant.tenant_id, service_cname=frontend_component_name,
-                    service_id__in=app_service_ids
-                ).first()
-                if frontend_cpt:
-                    frontend_ports = port_repo.get_service_ports(tenant.tenant_id, frontend_cpt.service_id)
-                    if frontend_ports:
-                        fp = frontend_ports[0]
-                        frontend_service = "{}.{}.svc.cluster.local:{}".format(
-                            fp.k8s_service_name, namespace, fp.container_port)
-                        # Append entry_path to frontend_service so the full URL is stored
-                        entry_path = platform_plugin.get("entry_path", "")
-                        if entry_path:
-                            frontend_service = frontend_service.rstrip("/") + "/" + entry_path.lstrip("/")
-
-                    # Find backend: prefer the frontend component's declared dependency.
-                    deps = dep_relation_repo.get_service_dependencies(tenant.tenant_id, frontend_cpt.service_id)
-                    if deps:
-                        backend_cpt_id = deps[0].dep_service_id
-                        backend_ports = port_repo.get_service_ports(tenant.tenant_id, backend_cpt_id)
-                        if backend_ports:
-                            bp = backend_ports[0]
-                            backend_service = "{}.{}.svc.cluster.local:{}".format(
-                                bp.k8s_service_name, namespace, bp.container_port)
-                    # Fallback for single-component plugins (frontend and backend are the
-                    # same component, so there is no dependency edge): use the frontend
-                    # component's own service address as the backend service.
-                    if not backend_service and frontend_ports:
-                        fp = frontend_ports[0]
-                        backend_service = "{}.{}.svc.cluster.local:{}".format(
-                            fp.k8s_service_name, namespace, fp.container_port)
-
-            # Resolve region_app_id from app_id
-            region_app_id = ""
-            if app_id:
-                try:
-                    region_app_id = region_app_repo.get_region_app_id(region.region_name, app_id)
-                except Exception:
-                    logger.warning("Failed to get region_app_id for app_id: %s", app_id)
-
-            plugin_data = {
-                "plugin_id": platform_plugin.get("plugin_id", ""),
-                "plugin_name": platform_plugin.get("plugin_name", ""),
-                "plugin_type": platform_plugin.get("plugin_type", ""),
-                "frontend_component": frontend_component_name,
-                "entry_path": platform_plugin.get("entry_path", ""),
-                "plugin_views": share_service.normalize_platform_plugin_positions(
-                    platform_plugin.get("inject_position", [])
-                ),
-                "menu_title": platform_plugin.get("menu_title", ""),
-                "route_path": platform_plugin.get("route_path", ""),
-                "namespace": namespace,
-                "frontend_service": frontend_service,
-                "backend_service": backend_service,
-                "app_id": region_app_id,
-            }
-            region_api.create_rbdplugin(tenant.enterprise_id, region.region_name, plugin_data)  # type: ignore[arg-type]
-            logger.info("Created RBDPlugin CR for plugin: %s", plugin_data.get("plugin_id"))
-        except Exception as e:
-            logger.warning("Failed to create RBDPlugin CR: %s", e)
+                                    app_id: Any = None) -> None:
+        """Compatibility delegate for callers that still use the legacy helper."""
+        rbd_plugin_sync_service.reconcile(tenant, region, app_template, app_id)
 
     def install_app_by_cmd(self, tenant: Tenants, region: RegionConfig, user: Users, app_id: str, app_model_key: str,
                            version: str, market_domain: str, market_id: str) -> Optional[str]:

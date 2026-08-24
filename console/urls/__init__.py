@@ -9,7 +9,14 @@ from console.views import app_version
 from console.views.adaptor import Appstore, Appstores, AppstoreCharts, AppstoreChart, HelmRegionInstall
 from console.views.api_gateway import AppApiGatewayView, AppApiGatewayConvertView
 from console.views.agent_access import AgentAccessView
-from console.views.agent_llm_config import AgentLLMConfigView, AgentLLMRuntimeConfigView
+from console.views.agent_kubernetes import AgentKubernetesBootstrapView, AgentKubernetesEncryptionKeyView
+from console.views.agent_llm_config import (AgentLLMConfigView, AgentLLMRuntimeConfigView,
+                                            AgentFeishuRuntimeIdentityView,
+                                            AgentMCPDelegatedCredentialsView,
+                                            AgentMCPGroupDelegatedCredentialsView,
+                                            AgentMCPRuntimeCredentialsView,
+                                            AgentMCPServiceCredentialsView)
+from console.views.agent_feishu_identity import AgentFeishuEligibleUsersView
 from console.views.rainskills_access import RainSkillsAccessView
 from console.views.app_autoscaler import (AppAutoscalerView, AppScalingRecords, ListAppAutoscalerView)
 from console.views.app_config.app_dependency import (AppDependencyManageView, AppDependencyView, AppNotDependencyView,
@@ -139,6 +146,10 @@ from console.views.proxy import ProxyPassView, ProxySSEView
 from console.views.realtime_proxy import RegionRealtimeProxyView
 from console.views.sentry_proxy import SentryProxyView
 from console.views.mcp_query import MCPQueryHTTPView, MCPQueryMessageView, MCPQuerySSEView
+from console.views.internal_rainskills_audit import (
+    InternalRainSkillsAuditEventsView,
+    InternalRainSkillsSkillSnapshotView,
+)
 from console.views.mcp_device_authorization import (MCPDeviceAuthorizeView, MCPDeviceCodeView, MCPDeviceInspectView,
                                                      MCPDeviceTokenView)
 from console.views.public_areas import (AllServiceInfo, GroupServiceView, ServiceEventsView, ServiceGroupView,
@@ -217,6 +228,8 @@ urlpatterns = [
             MCPQueryHTTPView.as_view(deploy_origin="rainskills", deploy_client="codex")),
     re_path(r'^mcp/rainskills/claude-code/query$',
             MCPQueryHTTPView.as_view(deploy_origin="rainskills", deploy_client="claude_code")),
+    re_path(r'^mcp/rainskills/api/query$',
+            MCPQueryHTTPView.as_view(deploy_origin="rainskills", deploy_client="api")),
     re_path(r'^mcp/query/sse$', MCPQuerySSEView.as_view()),
     re_path(r'^mcp/query/sse/$', MCPQuerySSEView.as_view()),
     re_path(r'^mcp/query/message$', MCPQueryMessageView.as_view()),
@@ -225,6 +238,16 @@ urlpatterns = [
     re_path(r'^rainskills/access$', RainSkillsAccessView.as_view()),
     re_path(r'^enterprise/(?P<eid>[^/]+)/agent-llm-config$', AgentLLMConfigView.as_view()),
     re_path(r'^internal/agent-llm-config/runtime$', AgentLLMRuntimeConfigView.as_view()),
+    re_path(r'^internal/agent-mcp-credentials/runtime$', AgentMCPRuntimeCredentialsView.as_view()),
+    re_path(r'^internal/agent-mcp-credentials/service$', AgentMCPServiceCredentialsView.as_view()),
+    re_path(r'^internal/agent-mcp-credentials/delegated$', AgentMCPDelegatedCredentialsView.as_view()),
+    re_path(r'^internal/agent-mcp-credentials/group-delegated$', AgentMCPGroupDelegatedCredentialsView.as_view()),
+    re_path(r'^internal/agent-feishu/identity$', AgentFeishuRuntimeIdentityView.as_view()),
+    re_path(r'^internal/agent-rainskills-audit/events$', InternalRainSkillsAuditEventsView.as_view()),
+    re_path(
+        r'^internal/agent-rainskills-audit/skill-snapshots/(?P<content_sha256>[a-f0-9]{64})$',
+        InternalRainSkillsSkillSnapshotView.as_view(),
+    ),
 
     # record error logs
     re_path(r'^errlog$', ErrLogView.as_view()),
@@ -994,6 +1017,7 @@ urlpatterns = [
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/overview/team$', EnterpriseTeamOverView.as_view()),
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/monitor$', EnterpriseMonitor.as_view()),
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/users$', EnterPriseUsersCLView.as_view()),
+    re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/agent/feishu/eligible-users$', AgentFeishuEligibleUsersView.as_view()),
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/user/(?P<user_id>[\d\-]+)$', EnterPriseUsersUDView.as_view()),
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/user/(?P<user_id>[\d\-]+)/teams$', EnterpriseUserTeams.as_view()),
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/myteams$', EnterpriseMyTeams.as_view()),
@@ -1030,6 +1054,10 @@ urlpatterns = [
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/plugins$', RainbondPluginLView.as_view()),
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/platform-plugins$', PlatformPluginLView.as_view()),
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/platform-plugins/(?P<plugin_id>[\w\-]+)/install$', PlatformPluginInstallView.as_view()),
+    re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/agent-kubernetes/bootstrap$',
+        AgentKubernetesBootstrapView.as_view()),
+    re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/agent-kubernetes/encryption-key$',
+        AgentKubernetesEncryptionKeyView.as_view()),
     re_path(r'^regions/(?P<region_name>[\w\-]+)/plugins/(?P<plugin_name>[\w\-]+)/status$', RainbondPluginStatusView.as_view()),
     re_path(r'^regions/(?P<region_name>[\w\-]+)/static/plugins/(?P<plugin_name>[\w\-]+)$', RainbondPluginStaticView.as_view()),
     # 完整代理路由 - 用于代理完整的 Web 应用（Grafana 等），保留所有 HTTP 响应头

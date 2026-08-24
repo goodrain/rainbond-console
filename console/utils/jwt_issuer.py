@@ -25,6 +25,7 @@ MCP_TOKEN_DEFAULT_LIFETIME_DAYS = 365
 MCP_TOKEN_USE = "mcp"
 MCP_TOKEN_SCOPE = "mcp"
 MCP_TOKEN_AUDIENCE = "rainbond-mcp"
+GROUP_MCP_TOKEN_PURPOSE = "agent_group_mcp"
 
 
 def get_mcp_token_lifetime():
@@ -100,6 +101,41 @@ def is_valid_mcp_token_payload(payload, allow_legacy=False):
         and payload.get("scope") == MCP_TOKEN_SCOPE
         and payload.get("aud") == MCP_TOKEN_AUDIENCE
     )
+
+
+def issue_short_lived_jwt(user, lifetime_seconds=300):
+    """Issue a user JWT for internal delegation without creating a long-lived credential."""
+    lifetime_seconds = max(60, min(int(lifetime_seconds), 3600))
+    token = ConsoleAccessToken.for_user(user)
+    token.set_exp(lifetime=datetime.timedelta(seconds=lifetime_seconds))
+    return str(token)
+
+
+def issue_agent_service_jwt(user, enterprise_id=None, lifetime_seconds=None):
+    """Issue a purpose-bound JWT for rainbond-agent service calls."""
+    token = ConsoleAccessToken.for_user(user)
+    if lifetime_seconds is not None:
+        lifetime_seconds = max(60, min(int(lifetime_seconds), 3600))
+        token.set_exp(lifetime=datetime.timedelta(seconds=lifetime_seconds))
+    token["token_purpose"] = "agent_service"
+    token["enterprise_id"] = str(enterprise_id or getattr(user, "enterprise_id", "") or "")
+    return str(token)
+
+
+def issue_group_mcp_jwt(user, enterprise_id, delegated_by_user_id, group_policy_id,
+                        member_grant_id, policy_revision, lifetime_seconds=300):
+    """Issue a purpose-bound token accepted only by the Console MCP endpoints."""
+    lifetime_seconds = max(60, min(int(lifetime_seconds), 600))
+    token = ConsoleAccessToken.for_user(user)
+    token.set_exp(lifetime=datetime.timedelta(seconds=lifetime_seconds))
+    token["token_purpose"] = GROUP_MCP_TOKEN_PURPOSE
+    token["enterprise_id"] = str(enterprise_id)
+    token["operator_user_id"] = str(user.user_id)
+    token["delegated_by_user_id"] = str(delegated_by_user_id)
+    token["group_policy_id"] = str(group_policy_id)
+    token["member_grant_id"] = str(member_grant_id)
+    token["policy_revision"] = int(policy_revision)
+    return str(token)
 
 
 def decode_jwt(raw_token):

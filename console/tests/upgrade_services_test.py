@@ -43,6 +43,7 @@ import django  # noqa: E402
 django.setup()
 
 from console.models.main import AppUpgradeRecordType, UpgradeStatus  # noqa: E402
+from console.exception.main import ServiceHandleException  # noqa: E402
 from console.services import upgrade_services as upgrade_services_module  # noqa: E402
 from console.services.upgrade_services import UpgradeService  # noqa: E402
 
@@ -161,3 +162,196 @@ class OpenapiUpgradeGroupIdTests(TestCase):
         })
 
         self.assertEqual(2878, mock_get_or_create.call_args[1]["upgrade_group_id"])
+
+
+class RBDPluginLifecycleReconciliationTests(TestCase):
+    def setUp(self):
+        self.service = UpgradeService()
+        self.tenant = MagicMock(tenant_id="tenant-1", enterprise_id="enterprise-1")
+        self.region = MagicMock(region_name="rainbond")
+        self.user = MagicMock(enterprise_id="enterprise-1")
+        self.app = MagicMock(ID=23)
+        self.component_group = MagicMock(group_key="agent-model", group_alias="AI助手")
+        self.source = MagicMock()
+        self.source.is_install_from_cloud.return_value = True
+        self.source.get_market_name.return_value = "platform-plugin"
+        self.target_template = {"platform_plugin": {"plugin_id": "rainbond-agent"}}
+
+    def test_full_upgrade_reconciles_target_template_after_primary_success(self):
+        record = MagicMock(group_id=23, group_key="agent-model", upgrade_group_id=81)
+        record.can_upgrade.return_value = True
+        upgraded_record = MagicMock(ID=99)
+        app_upgrade = MagicMock()
+        app_upgrade.upgrade.return_value = upgraded_record
+
+        with patch.object(upgrade_services_module.tenant_service_group_repo, "get_component_group",
+                          return_value=self.component_group), \
+                patch.object(self.service, "_app_template_source", return_value=self.source), \
+                patch.object(self.service, "_app_template", return_value=self.target_template), \
+                patch.object(upgrade_services_module, "AppUpgrade", return_value=app_upgrade), \
+                patch.object(self.service, "serialized_upgrade_record", return_value={"ID": 99}), \
+                patch.object(upgrade_services_module.rbd_plugin_sync_service, "reconcile") as reconcile:
+            result = self.service.upgrade(
+                self.tenant, self.region, self.user, self.app, "2.0.0", record)
+
+        self.assertEqual(({"ID": 99}, "AI助手"), result)
+        app_upgrade.upgrade.assert_called_once_with()
+        reconcile.assert_called_once_with(
+            tenant=self.tenant,
+            region=self.region,
+            app_template=self.target_template,
+            app_id=23,
+        )
+
+    def test_full_upgrade_failure_does_not_reconcile(self):
+        record = MagicMock(group_id=23, group_key="agent-model", upgrade_group_id=81)
+        record.can_upgrade.return_value = True
+        app_upgrade = MagicMock()
+        app_upgrade.upgrade.side_effect = RuntimeError("upgrade failed")
+
+        with patch.object(upgrade_services_module.tenant_service_group_repo, "get_component_group",
+                          return_value=self.component_group), \
+                patch.object(self.service, "_app_template_source", return_value=self.source), \
+                patch.object(self.service, "_app_template", return_value=self.target_template), \
+                patch.object(upgrade_services_module, "AppUpgrade", return_value=app_upgrade), \
+                patch.object(upgrade_services_module.rbd_plugin_sync_service, "reconcile") as reconcile:
+            with self.assertRaises(RuntimeError):
+                self.service.upgrade(
+                    self.tenant, self.region, self.user, self.app, "2.0.0", record)
+
+        reconcile.assert_not_called()
+
+    def test_full_upgrade_sync_failure_reports_committed_record_id(self):
+        record = MagicMock(group_id=23, group_key="agent-model", upgrade_group_id=81)
+        record.can_upgrade.return_value = True
+        upgraded_record = MagicMock(ID=99)
+        app_upgrade = MagicMock()
+        app_upgrade.upgrade.return_value = upgraded_record
+        sync_error = ServiceHandleException(
+            msg="rbd_plugin_sync_failed",
+            msg_show="插件注册同步失败",
+            status_code=502,
+            bean={"phase": "apply_region_rbdplugin"},
+        )
+
+        with patch.object(upgrade_services_module.tenant_service_group_repo, "get_component_group",
+                          return_value=self.component_group), \
+                patch.object(self.service, "_app_template_source", return_value=self.source), \
+                patch.object(self.service, "_app_template", return_value=self.target_template), \
+                patch.object(upgrade_services_module, "AppUpgrade", return_value=app_upgrade), \
+                patch.object(upgrade_services_module.rbd_plugin_sync_service, "reconcile",
+                             side_effect=sync_error):
+            with self.assertRaises(ServiceHandleException) as context:
+                self.service.upgrade(
+                    self.tenant, self.region, self.user, self.app, "2.0.0", record)
+
+        self.assertIs(sync_error, context.exception)
+        self.assertTrue(context.exception.bean["operation_committed"])
+        self.assertEqual(99, context.exception.bean["upgrade_record_id"])
+
+    def test_component_upgrade_reconciles_complete_target_template(self):
+        component = MagicMock(
+            upgrade_group_id=81,
+            tenant_id="tenant-1",
+            component_id="svc-ui",
+            service_key="ui-key",
+        )
+        app_upgrade = MagicMock()
+
+        with patch.object(upgrade_services_module.tenant_service_group_repo, "get_component_group",
+                          return_value=self.component_group), \
+                patch.object(upgrade_services_module.service_source_repo, "get_service_source",
+                             return_value=self.source), \
+                patch.object(self.service, "_app_template", return_value=self.target_template), \
+                patch.object(upgrade_services_module, "AppUpgrade", return_value=app_upgrade), \
+                patch.object(upgrade_services_module.rbd_plugin_sync_service, "reconcile") as reconcile:
+            self.service.upgrade_component(
+                self.tenant, self.region, self.user, self.app, component, "2.0.0")
+
+        app_upgrade.upgrade.assert_called_once_with()
+        reconcile.assert_called_once_with(
+            tenant=self.tenant,
+            region=self.region,
+            app_template=self.target_template,
+            app_id=23,
+        )
+
+    def test_component_upgrade_failure_does_not_reconcile(self):
+        component = MagicMock(
+            upgrade_group_id=81,
+            tenant_id="tenant-1",
+            component_id="svc-ui",
+            service_key="ui-key",
+        )
+        app_upgrade = MagicMock()
+        app_upgrade.upgrade.side_effect = RuntimeError("component upgrade failed")
+
+        with patch.object(upgrade_services_module.tenant_service_group_repo, "get_component_group",
+                          return_value=self.component_group), \
+                patch.object(upgrade_services_module.service_source_repo, "get_service_source",
+                             return_value=self.source), \
+                patch.object(self.service, "_app_template", return_value=self.target_template), \
+                patch.object(upgrade_services_module, "AppUpgrade", return_value=app_upgrade), \
+                patch.object(upgrade_services_module.rbd_plugin_sync_service, "reconcile") as reconcile:
+            with self.assertRaises(RuntimeError):
+                self.service.upgrade_component(
+                    self.tenant, self.region, self.user, self.app, component, "2.0.0")
+
+        reconcile.assert_not_called()
+
+    def test_restore_loads_old_version_template_and_reconciles_after_success(self):
+        record = MagicMock(
+            group_id=23,
+            group_key="agent-model",
+            upgrade_group_id=81,
+            old_version="1.0.0",
+        )
+        record.can_rollback.return_value = True
+        restored_record = MagicMock(ID=100)
+        restored_group = MagicMock(group_alias="AI助手")
+        app_restore = MagicMock()
+        app_restore.restore.return_value = (restored_record, restored_group)
+
+        with patch.object(upgrade_services_module.tenant_service_group_repo, "get_component_group",
+                          return_value=self.component_group), \
+                patch.object(self.service, "_app_template_source", return_value=self.source) as template_source, \
+                patch.object(self.service, "_app_template", return_value=self.target_template) as load_template, \
+                patch.object(upgrade_services_module, "AppRestore", return_value=app_restore), \
+                patch.object(self.service, "serialized_upgrade_record", return_value={"ID": 100}), \
+                patch.object(upgrade_services_module.rbd_plugin_sync_service, "reconcile") as reconcile:
+            result = self.service.restore(
+                self.tenant, self.region, self.user, self.app, record)
+
+        template_source.assert_called_once_with(23, "agent-model", 81)
+        load_template.assert_called_once_with("enterprise-1", "agent-model", "1.0.0", self.source)
+        app_restore.restore.assert_called_once_with()
+        reconcile.assert_called_once_with(
+            tenant=self.tenant,
+            region=self.region,
+            app_template=self.target_template,
+            app_id=23,
+        )
+        self.assertEqual(({"ID": 100}, "AI助手"), result)
+
+    def test_restore_failure_does_not_reconcile(self):
+        record = MagicMock(
+            group_id=23,
+            group_key="agent-model",
+            upgrade_group_id=81,
+            old_version="1.0.0",
+        )
+        record.can_rollback.return_value = True
+        app_restore = MagicMock()
+        app_restore.restore.side_effect = RuntimeError("restore failed")
+
+        with patch.object(upgrade_services_module.tenant_service_group_repo, "get_component_group",
+                          return_value=self.component_group), \
+                patch.object(self.service, "_app_template_source", return_value=self.source), \
+                patch.object(self.service, "_app_template", return_value=self.target_template), \
+                patch.object(upgrade_services_module, "AppRestore", return_value=app_restore), \
+                patch.object(upgrade_services_module.rbd_plugin_sync_service, "reconcile") as reconcile:
+            with self.assertRaises(RuntimeError):
+                self.service.restore(
+                    self.tenant, self.region, self.user, self.app, record)
+
+        reconcile.assert_not_called()

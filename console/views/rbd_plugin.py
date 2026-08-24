@@ -3,6 +3,7 @@ import json
 import logging
 from typing import Any, Dict, Optional, Set
 
+import urllib3
 from django.db.models import Q
 from django.http import HttpResponse
 from rest_framework.request import Request
@@ -41,6 +42,18 @@ UNKNOWN_ID_VALUES = set([
     "unknown_team",
     "unknown_component",
 ])
+PLUGIN_STATIC_HEADER_ALLOWLIST = frozenset([
+    "accept",
+    "cache-control",
+    "if-match",
+    "if-modified-since",
+    "if-none-match",
+    "if-range",
+    "if-unmodified-since",
+    "range",
+])
+PLUGIN_STATIC_CONNECT_TIMEOUT_SECONDS = 5.0
+PLUGIN_STATIC_READ_TIMEOUT_SECONDS = 30.0
 
 
 def _backend_plugin_path(plugin_name: str, file_path: str, query_string: str) -> str:
@@ -238,8 +251,16 @@ class RainbondPluginLView(JWTAuthApiView):
 class RainbondPluginStaticView(AlowAnyApiView):
     def get(self, request: Request, region_name: str, plugin_name: str, *args: Any, **kwargs: Any) -> HttpResponse:
         path = "/v2/platform/static/plugins/" + plugin_name
-        resp = region_api.get_proxy(region_name, path, check_status=False)
-        return HttpResponse(resp, content_type="application/javascript")
+        return region_api.proxy(
+            request,
+            path,
+            region_name,
+            timeout=urllib3.Timeout(
+                connect=PLUGIN_STATIC_CONNECT_TIMEOUT_SECONDS,
+                read=PLUGIN_STATIC_READ_TIMEOUT_SECONDS,
+            ),
+            header_allowlist=PLUGIN_STATIC_HEADER_ALLOWLIST,
+        )
 
 
 class RainbondPluginBackendView(JWTAuthApiView):

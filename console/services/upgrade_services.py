@@ -34,6 +34,7 @@ from console.services.market_app.app_restore import AppRestore
 # market app
 from console.services.market_app.app_upgrade import AppUpgrade
 from console.services.market_app.component_group import ComponentGroup
+from console.services.rbd_plugin_sync_service import rbd_plugin_sync_service
 from console.utils.offline import is_cloud_market_disabled
 from django.core.paginator import Paginator
 from django.db import transaction
@@ -105,6 +106,7 @@ class UpgradeService(object):
             component_keys,
             is_deploy=True)
         record = app_upgrade.upgrade()
+        self._reconcile_rbd_plugin(tenant, region, app_template, app.ID, record)
         app_template_name = component_group.group_alias
         return self.serialized_upgrade_record(record), app_template_name
 
@@ -138,7 +140,8 @@ class UpgradeService(object):
             component_keys=[component.service_key],
             is_deploy=True,
             is_upgrade_one=True)
-        app_upgrade.upgrade()
+        record = app_upgrade.upgrade()
+        self._reconcile_rbd_plugin(tenant, region, app_template, app.ID, record)
 
     def restore(self,
                 tenant: Tenants,
@@ -153,9 +156,37 @@ class UpgradeService(object):
         # param (runtime-safe).
         component_group = tenant_service_group_repo.get_component_group(
             record.upgrade_group_id)  # type: ignore[arg-type]
+        app_template_source = self._app_template_source(
+            record.group_id, record.group_key, record.upgrade_group_id)  # type: ignore[arg-type]
+        app_template = self._app_template(
+            user.enterprise_id,
+            record.group_key,
+            record.old_version,
+            app_template_source,
+        )
         app_restore = AppRestore(tenant, region, user, app, component_group, record)
         record, component_group = app_restore.restore()
+        self._reconcile_rbd_plugin(tenant, region, app_template, app.ID, record)
         return self.serialized_upgrade_record(record), component_group.group_alias  # type: ignore[arg-type]
+
+    @staticmethod
+    def _reconcile_rbd_plugin(tenant: Tenants, region: RegionConfig, app_template: dict,
+                              app_id: Any, upgrade_record: Any = None) -> None:
+        try:
+            rbd_plugin_sync_service.reconcile(
+                tenant=tenant,
+                region=region,
+                app_template=app_template,
+                app_id=app_id,
+            )
+        except ServiceHandleException as error:
+            bean = dict(error.bean) if isinstance(error.bean, dict) else {}
+            bean["operation_committed"] = True
+            upgrade_record_id = getattr(upgrade_record, "ID", None)
+            if upgrade_record_id:
+                bean["upgrade_record_id"] = upgrade_record_id
+            error.bean = bean
+            raise
 
     @staticmethod
     def _app_template_source(app_id: str, app_model_key: str, upgrade_group_id: str) -> Any:

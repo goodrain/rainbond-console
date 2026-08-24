@@ -26,6 +26,7 @@ from console.services.deployment_invocation import (  # noqa: E402
     is_rainskills_invocation,
 )
 from console.services.rainskills_deployment_service import DeploymentSpec  # noqa: E402
+from console.services.mcp_query_service import mcp_query_service  # noqa: E402
 from console.views.mcp_query import MCPQueryHTTPView  # noqa: E402
 
 
@@ -75,6 +76,9 @@ class MCPDeploymentInvocationTests(SimpleTestCase):
     def setUp(self):
         self.factory = APIRequestFactory()
         self.user = SimpleNamespace(user_id=1, is_authenticated=True, nick_name="tester")
+        audit_begin = patch("console.views.mcp_query.rainskills_audit_service.begin", return_value=None)
+        audit_begin.start()
+        self.addCleanup(audit_begin.stop)
 
     def _request(self, arguments=None, tool_name="rainbond_test_tool"):
         request = self.factory.post(
@@ -178,6 +182,7 @@ class MCPDeploymentInvocationTests(SimpleTestCase):
         cases = (
             ("/console/mcp/rainskills/codex/query", "codex"),
             ("/console/mcp/rainskills/claude-code/query", "claude_code"),
+            ("/console/mcp/rainskills/api/query", "api"),
         )
 
         for path, client in cases:
@@ -185,6 +190,38 @@ class MCPDeploymentInvocationTests(SimpleTestCase):
                 match = resolve(path)
                 self.assertIs(match.func.view_class, MCPQueryHTTPView)
                 self.assertEqual(match.func.view_initkwargs, {"deploy_origin": "rainskills", "deploy_client": client})
+
+                observed = []
+
+                def call_tool(user, tool_name, arguments):
+                    observed.append(get_deployment_invocation())
+                    return {"ok": True}
+
+                with patch("console.views.mcp_query.mcp_query_service.call_tool", side_effect=call_tool):
+                    response = match.func(self._request())
+
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(observed, [DeploymentInvocation(origin="rainskills", client=client)])
+
+    def test_rainskills_api_hidden_tool_is_rejected_before_tracking_or_execution(self):
+        view = MCPQueryHTTPView.as_view(deploy_origin="rainskills", deploy_client="api")
+
+        with patch(
+                "console.views.mcp_query.rainskills_deployment_service.classify_tool_call",
+                return_value=DeploymentSpec("initial", "source_create", "source_code", True, True)):
+            with patch("console.views.mcp_query.rainskills_deployment_service.safe_begin_tracking") as begin:
+                with patch.object(mcp_query_service, "create_component_from_local_package") as handler:
+                    response = view(self._request(
+                        tool_name="rainbond_create_component_from_local_package",
+                        arguments={"team_name": "team-a", "region_name": "region-a", "app_id": 7},
+                    ))
+
+        self.assertEqual(response.status_code, 200)
+        result = response.data["result"]
+        self.assertTrue(result["isError"])
+        self.assertEqual(result["structuredContent"]["status_code"], 404)
+        begin.assert_not_called()
+        handler.assert_not_called()
 
     def test_rainskills_deployment_starts_and_binds_independent_tracker(self):
         spec = DeploymentSpec("initial", "source_create", "source_code", True, True)

@@ -193,7 +193,7 @@ class MarketAppServiceTelemetryTests(SimpleTestCase):
                 patch.object(market_app_service, "_create_tenant_service_group", return_value=Obj()), \
                 patch("console.services.market_app_service.AppUpgrade", return_value=app_upgrade), \
                 patch("console.services.market_app_service.enterprise_first_deploy_service.safe_bind_events"), \
-                patch.object(market_app_service, "_create_rbdplugin_if_needed"), \
+                patch.object(market_app_service, "_create_rbdplugin_if_needed") as reconcile_plugin, \
                 patch("console.services.market_app_service.telemetry_service", create=True) as telemetry:
             app_name = market_app_service.install_app(
                 tenant, region, user, 7, "model-1", "1.2.3", "localApplication", False, is_deploy=False)
@@ -205,6 +205,117 @@ class MarketAppServiceTelemetryTests(SimpleTestCase):
             app_model_version="1.2.3",
             market_type="local",
         )
+        reconcile_plugin.assert_called_once_with(tenant, region, app_template, "app-7")
+
+    def test_install_app_dry_run_does_not_reconcile_rbdplugin(self):
+        from console.services.market_app_service import market_app_service
+
+        tenant = Obj(tenant_id="tenant-1", tenant_name="team-a", enterprise_id="eid-1")
+        region = Obj(region_name="region-a")
+        user = Obj(enterprise_id="eid-1", nick_name="tester")
+        app = Obj(ID=7, tenant_id="tenant-1", governance_mode="KUBERNETES_NATIVE_SERVICE", app_id="app-7")
+        market_app = Obj(app_id="model-1", app_name="Demo App", source="")
+        app_template = {
+            "apps": [],
+            "arch": "amd64",
+            "platform_plugin": {"is_platform_plugin": True, "plugin_id": "rainbond-agent"},
+        }
+        app_upgrade = mock.Mock()
+        app_upgrade.new_app.components.return_value = []
+
+        with patch("console.services.market_app_service.group_repo.get_group_by_id", return_value=app), \
+                patch("console.services.market_app_service.ServiceGroup.objects.first", return_value=app), \
+                patch("console.services.market_app_service.Tenants.objects.get", return_value=tenant), \
+                patch.object(market_app_service, "get_app_template", return_value=(app_template, market_app)), \
+                patch("console.services.market_app_service.market_install_preflight_service.run",
+                      return_value={"status": "pass", "should_block": False, "summary": "ok", "checks": []}), \
+                patch.object(market_app_service, "_create_tenant_service_group", return_value=Obj()), \
+                patch("console.services.market_app_service.AppUpgrade", return_value=app_upgrade), \
+                patch("console.services.market_app_service.enterprise_first_deploy_service.safe_bind_events"), \
+                patch.object(market_app_service, "_create_rbdplugin_if_needed") as reconcile_plugin:
+            result = market_app_service.install_app(
+                tenant, region, user, 7, "model-1", "1.2.3", "localApplication", False,
+                is_deploy=False, dry_run=True)
+
+        self.assertEqual("Demo App", result)
+        app_upgrade.preinstall.assert_called_once_with()
+        app_upgrade.install.assert_not_called()
+        reconcile_plugin.assert_not_called()
+
+    def test_legacy_rbdplugin_helper_propagates_sync_failure(self):
+        from console.exception.main import ServiceHandleException
+        from console.services.market_app_service import market_app_service
+
+        error = ServiceHandleException(
+            msg="rbd_plugin_sync_failed",
+            msg_show="插件注册同步失败",
+            status_code=502,
+        )
+        with patch("console.services.market_app_service.rbd_plugin_sync_service.reconcile",
+                   side_effect=error):
+            with self.assertRaises(ServiceHandleException) as context:
+                market_app_service._create_rbdplugin_if_needed(
+                    Obj(), Obj(), {"platform_plugin": {"is_platform_plugin": True}}, 23)
+
+        self.assertIs(error, context.exception)
+
+    def test_command_install_delegates_rbdplugin_reconciliation_after_install(self):
+        from console.services.market_app_service import market_app_service
+
+        tenant = Obj(tenant_id="tenant-1", tenant_name="team-a", enterprise_id="eid-1")
+        region = Obj(region_name="region-a")
+        user = Obj(enterprise_id="eid-1")
+        app = Obj(app_id=7)
+        app_template = {
+            "group_key": "agent-model",
+            "group_name": "AI助手",
+            "arch": "amd64",
+            "platform_plugin": {"is_platform_plugin": True, "plugin_id": "rainbond-agent"},
+        }
+        share_app = Obj(app_id="agent-model", arch="amd64")
+        app_upgrade = mock.Mock()
+
+        with patch("console.services.market_app_service.group_repo.get_group_by_id", return_value=app), \
+                patch.object(market_app_service, "get_app_template_cmd", return_value=app_template), \
+                patch("console.services.market_app_service.share_service.get_app_by_key", return_value=share_app), \
+                patch("console.services.market_app_service.share_service.update_or_create_rainbond_center_app_version"), \
+                patch("console.services.market_app_service.region_api.get_cluster_nodes_arch",
+                      return_value=(None, {"list": ["amd64"]})), \
+                patch.object(market_app_service, "_create_tenant_service_group", return_value=Obj()), \
+                patch("console.services.market_app_service.AppUpgrade", return_value=app_upgrade), \
+                patch.object(market_app_service, "_create_rbdplugin_if_needed") as reconcile_plugin:
+            result = market_app_service.install_app_by_cmd(
+                tenant, region, user, "7", "agent-model", "1.0.0", "https://market", "market-1")
+
+        app_upgrade.install.assert_called_once_with()
+        reconcile_plugin.assert_called_once_with(tenant, region, app_template, 7)
+        self.assertEqual("AI助手", result)
+
+    def test_plugin_install_delegates_rbdplugin_reconciliation_after_install(self):
+        from console.services.market_app_service import market_app_service
+
+        tenant = Obj(tenant_id="tenant-1", tenant_name="team-a", enterprise_id="eid-1")
+        region = Obj(region_name="region-a")
+        user = Obj(enterprise_id="eid-1")
+        app = Obj(app_id=7)
+        market_app = Obj(app_id="agent-model", app_name="AI助手")
+        app_template = {
+            "platform_plugin": {"is_platform_plugin": True, "plugin_id": "rainbond-agent"},
+        }
+        app_upgrade = mock.Mock()
+
+        with patch("console.services.market_app_service.group_repo.get_or_create_default_group", return_value=app), \
+                patch.object(market_app_service, "get_app_template", return_value=(app_template, market_app)), \
+                patch.object(market_app_service, "_create_tenant_service_group", return_value=Obj()), \
+                patch("console.services.market_app_service.AppUpgrade", return_value=app_upgrade), \
+                patch.object(market_app_service, "_create_rbdplugin_if_needed") as reconcile_plugin:
+            result = market_app_service.install_plugin_app(
+                tenant, region, user, "agent-model", "1.0.0", "market-1", True,
+                "tenant-1", "region-a")
+
+        app_upgrade.install_plugins.assert_called_once_with()
+        reconcile_plugin.assert_called_once_with(tenant, region, app_template, 7)
+        self.assertEqual("AI助手", result)
 
     def test_install_service_tracks_market_install_after_successful_service_install(self):
         from console.services.market_app_service import market_app_service

@@ -1,11 +1,12 @@
 # -*- coding: utf8 -*-
+import copy
 import json
 import logging
 import time
 import uuid
 from queue import Empty, Queue
 from threading import Lock
-from typing import Any, Optional
+from typing import Any, Dict, Optional
 
 from django.core import signing
 from django.http import HttpResponse, StreamingHttpResponse
@@ -20,6 +21,8 @@ from console.services.deployment_invocation import (
 from console.services.user_services import user_services
 from console.services.mcp_query_service import mcp_query_service
 from console.services.rainskills_deployment_service import rainskills_deployment_service
+from console.services.rainskills_audit_service import rainskills_audit_service
+from console.services.rainskills_tool_audit_policy import classify_tool
 from console.views.base import JSONWebTokenAuthentication, InternalTokenAuthentication
 from console.exception.exceptions import AuthenticationInfoHasExpiredError
 from django.utils.encoding import smart_str
@@ -188,6 +191,51 @@ class MCPJSONWebTokenAuthentication(JSONWebTokenAuthentication):
         if not jwt_issuer.is_valid_mcp_token_payload(payload, allow_legacy=True):
             raise AuthenticationInfoHasExpiredError("MCP token scope is invalid")
 
+    def authenticate(self, request: Any) -> Any:
+        setattr(request, "_allow_group_mcp_token", True)
+        result = super(MCPJSONWebTokenAuthentication, self).authenticate(request)
+        if not result:
+            return result
+        user, raw_token = result
+        payload = jwt_issuer.decode_jwt(raw_token)
+        if payload.get("token_purpose") != jwt_issuer.GROUP_MCP_TOKEN_PURPOSE:
+            return result
+        context = self._group_context(payload, user)
+        delegated_user = copy.copy(user)
+        delegated_user.is_enterprise_admin = True
+        delegated_user.agent_group_mcp_context = context
+        return delegated_user, raw_token
+
+    @staticmethod
+    def _group_context(payload: Dict[str, Any], user: Any) -> Dict[str, Any]:
+        required = (
+            "enterprise_id", "operator_user_id", "delegated_by_user_id",
+            "group_policy_id", "member_grant_id", "policy_revision",
+        )
+        if any(payload.get(key) in (None, "") for key in required):
+            raise exceptions.AuthenticationFailed("群委托凭据缺少必要范围")
+        if str(getattr(user, "user_id", "")) != str(payload.get("operator_user_id")):
+            raise exceptions.AuthenticationFailed("群委托操作人不匹配")
+        if str(getattr(user, "enterprise_id", "")) != str(payload.get("enterprise_id")):
+            raise exceptions.AuthenticationFailed("群委托企业不匹配")
+        revision_value = payload.get("policy_revision")
+        if revision_value is None:
+            raise exceptions.AuthenticationFailed("群委托版本无效")
+        try:
+            revision = int(revision_value)
+        except (TypeError, ValueError):
+            raise exceptions.AuthenticationFailed("群委托版本无效")
+        if revision <= 0:
+            raise exceptions.AuthenticationFailed("群委托版本无效")
+        return {
+            "enterprise_id": str(payload["enterprise_id"]),
+            "operator_user_id": str(payload["operator_user_id"]),
+            "delegated_by_user_id": str(payload["delegated_by_user_id"]),
+            "group_policy_id": str(payload["group_policy_id"]),
+            "member_grant_id": str(payload["member_grant_id"]),
+            "policy_revision": revision,
+        }
+
 
 class MCPJSONWebTokenAuthenticationSafe(MCPJSONWebTokenAuthentication):
     """
@@ -261,6 +309,7 @@ class MCPQueryRPCMixin(object):
         if method == "tools/call":
             tool_name = params.get("name")
             arguments = params.get("arguments") or {}
+            request_meta = params.get("_meta", {})
             if not isinstance(tool_name, str) or not tool_name:
                 return self._jsonrpc_error(request_id, -32602, "tools/call requires string param 'name'")
             if not isinstance(arguments, dict):
@@ -280,7 +329,7 @@ class MCPQueryRPCMixin(object):
                 })
 
             try:
-                data = self._call_tool(user, tool_name, arguments)
+                data = self._call_tool(user, tool_name, arguments, request_meta=request_meta)
                 return self._jsonrpc_result(request_id, {
                     "isError": False,
                     "content": [{"type": "text", "text": json.dumps(data, ensure_ascii=False, default=str)}],
@@ -321,9 +370,16 @@ class MCPQueryRPCMixin(object):
 
         return self._jsonrpc_error(request_id, -32601, "Method not found: {}".format(method))
 
-    def _call_tool(self, user: Any, tool_name: str, arguments: dict) -> Any:
+    def _call_tool(self, user: Any, tool_name: str, arguments: dict,
+                   request_meta: Any = None) -> Any:
         if not is_rainskills_invocation():
             return mcp_query_service.call_tool(user, tool_name, arguments)
+
+        mcp_query_service.assert_tool_visible(tool_name)
+        if classify_tool(tool_name, arguments).operation_class == "read":
+            return mcp_query_service.call_tool(user, tool_name, arguments)
+        audit_context = rainskills_audit_service.begin(
+            user, tool_name, arguments, {} if request_meta is None else request_meta)
 
         service_sources = None
         if tool_name in ("rainbond_build_component", "rainbond_operate_app"):
@@ -366,6 +422,7 @@ class MCPQueryRPCMixin(object):
         try:
             result = mcp_query_service.call_tool(user, tool_name, arguments)
         except Exception as exc:
+            rainskills_audit_service.finalize_failure(audit_context, exc)
             reason = getattr(exc, "msg_show", None) or str(exc)
             if tracker is not None:
                 try:
@@ -388,6 +445,7 @@ class MCPQueryRPCMixin(object):
                 logger.warning(
                     "bind RainSkills deployment result failed: tool=%s error=%s",
                     tool_name, exc)
+        rainskills_audit_service.finalize_success(audit_context, result)
         return result
 
     @staticmethod
