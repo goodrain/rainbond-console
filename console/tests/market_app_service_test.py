@@ -542,8 +542,14 @@ class MarketAppServicePlatformPluginPreflightTests(SimpleTestCase):
         get_license_status.assert_not_called()
         self.assertIs(non_platform_market, cloud_conversion.call_args[0][0])
         self.assertEqual(self.preflight, result)
-# capability_id: console.market-app.local-snapshot-offline-upgrade
+
+
 class MarketAppServiceOfflineUpgradeTests(SimpleTestCase):
+    class SourceCollection(list):
+        def filter(self, *args, **kwargs):
+            return self
+
+    # capability_id: console.market-app.local-snapshot-offline-upgrade
     def test_local_snapshot_offline_upgrade_is_detected(self):
         from console.services.market_app_service import market_app_service
 
@@ -595,6 +601,105 @@ class MarketAppServiceOfflineUpgradeTests(SimpleTestCase):
         self.assertEqual("1.0.2", result[0]["current_version"])
         self.assertTrue(result[0]["can_upgrade"])
         self.assertIn("1.0.3", result[0]["upgrade_versions"])
+
+    # capability_id: console.market-app.local-snapshot-offline-upgrade
+    def test_local_snapshot_versions_still_use_local_repository_when_offline(self):
+        from console.services.market_app_service import market_app_service
+
+        installed_at = datetime.datetime(2026, 8, 14, 9, 0, 0)
+        tenant = Obj(enterprise_id="enterprise-1")
+        service = Obj(tenant_id="tenant-1", service_id="service-1")
+        component_source = Obj(
+            group_key="snapshot-template-1",
+            version="1.0.2",
+            get_market_name=lambda: None,
+            is_install_from_cloud=lambda: False,
+            get_template_update_time=lambda: installed_at,
+        )
+        local_upgrade_version = Obj(version="1.0.3", update_time=installed_at)
+
+        with patch("console.services.market_app_service.is_cloud_market_disabled", return_value=True), \
+                patch("console.services.market_app_service.service_source_repo.get_service_source",
+                      return_value=component_source), \
+                patch("console.services.market_app_service.rainbond_app_repo.get_rainbond_app_versions",
+                      return_value=[local_upgrade_version]) as get_local_versions, \
+                patch("console.services.market_app_service.app_market_repo.get_app_market_by_name") as get_market:
+            result = market_app_service.list_upgradeable_versions(tenant, service)
+
+        self.assertEqual(["1.0.3"], result)
+        get_local_versions.assert_called_once_with("snapshot-template-1")
+        get_market.assert_not_called()
+
+    # capability_id: console.app-upgrade.remote-offline-market-guard
+    def test_remote_component_versions_skip_market_lookup_when_offline(self):
+        from console.services.market_app_service import market_app_service
+
+        tenant = Obj(enterprise_id="enterprise-1")
+        service = Obj(tenant_id="tenant-1", service_id="service-1")
+        component_source = Obj(
+            group_key="cloud-template-1",
+            version="1.0.2",
+            get_market_name=lambda: "goodrain",
+            is_install_from_cloud=lambda: True,
+            get_template_update_time=lambda: None,
+        )
+
+        with patch("console.services.market_app_service.is_cloud_market_disabled", return_value=True), \
+                patch("console.services.market_app_service.service_source_repo.get_service_source",
+                      return_value=component_source), \
+                patch("console.services.market_app_service.app_market_repo.get_app_market_by_name") as get_market:
+            result = market_app_service.list_upgradeable_versions(tenant, service)
+
+        self.assertEqual([], result)
+        get_market.assert_not_called()
+
+    # capability_id: console.app-upgrade.remote-offline-market-guard
+    def test_remote_model_versions_skip_market_lookup_when_offline(self):
+        from console.services.market_app_service import market_app_service
+
+        component_source = Obj(
+            group_key="cloud-template-1",
+            version="1.0.2",
+            get_market_name=lambda: "goodrain",
+            is_install_from_cloud=lambda: True,
+            get_template_update_time=lambda: None,
+        )
+        sources = self.SourceCollection([component_source])
+
+        with patch("console.services.market_app_service.is_cloud_market_disabled", return_value=True), \
+                patch("console.services.market_app_service.group_service.get_component_and_resource_by_group_ids",
+                      return_value=([], sources)), \
+                patch("console.services.market_app_service.app_market_repo.get_app_market_by_name") as get_market:
+            result = market_app_service.get_models_upgradeable_version(
+                "enterprise-1", "cloud-template-1", "app-1", "7")
+
+        self.assertEqual([], result)
+        get_market.assert_not_called()
+
+    # capability_id: console.app-upgrade.remote-offline-market-guard
+    def test_remote_record_versions_skip_market_lookup_when_offline(self):
+        from console.services.market_app_service import market_app_service
+
+        source = Obj(
+            get_market_name=lambda: "goodrain",
+            get_template_update_time=lambda: None,
+        )
+        component_group = Obj(
+            app_model_key="cloud-template-1",
+            version="1.0.2",
+            app_template_source=lambda: source,
+            is_install_from_cloud=lambda: True,
+        )
+        record = Obj(upgrade_group_id=7, old_version="1.0.2")
+
+        with patch("console.services.market_app_service.is_cloud_market_disabled", return_value=True), \
+                patch("console.services.market_app_service.tenant_service_group_repo.get_component_group"), \
+                patch("console.services.market_app_service.ComponentGroup", return_value=component_group), \
+                patch("console.services.market_app_service.app_market_repo.get_app_market_by_name") as get_market:
+            result = market_app_service.list_app_upgradeable_versions("enterprise-1", record)
+
+        self.assertEqual([], result)
+        get_market.assert_not_called()
 
 
 class MarketAppServiceResourceLimitTests(UnitTestCase):

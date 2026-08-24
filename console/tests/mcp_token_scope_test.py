@@ -51,21 +51,33 @@ class MCPTokenScopeTests(SimpleTestCase):
         self.assertTrue(jwt_issuer.is_valid_mcp_token_payload(scoped))
         self.assertTrue(jwt_issuer.is_valid_mcp_token_payload(legacy, allow_legacy=True))
 
+    def test_mcp_payload_validator_treats_external_audience_as_legacy(self):
+        portal = {
+            "user_id": 42,
+            "username": "portal-user",
+            "aud": "rainbond-portal",
+        }
+
+        self.assertTrue(jwt_issuer.is_valid_mcp_token_payload(portal, allow_legacy=True))
+        self.assertFalse(jwt_issuer.is_valid_mcp_token_payload({
+            "aud": "rainbond-mcp",
+        }, allow_legacy=True))
+
     def test_mcp_payload_validator_rejects_partial_or_wrong_scope(self):
         self.assertFalse(jwt_issuer.is_valid_mcp_token_payload({
             "token_use": "mcp",
             "scope": "mcp",
-        }))
+        }, allow_legacy=True))
         self.assertFalse(jwt_issuer.is_valid_mcp_token_payload({
             "token_use": "mcp",
             "scope": "console",
             "aud": "rainbond-mcp",
-        }))
+        }, allow_legacy=True))
         self.assertFalse(jwt_issuer.is_valid_mcp_token_payload({
             "token_use": "console",
             "scope": "mcp",
             "aud": "rainbond-mcp",
-        }))
+        }, allow_legacy=True))
 
     @override_settings(RAINBOND_MCP_TOKEN_LIFETIME_DAYS=0)
     def test_mcp_token_lifetime_rejects_non_positive_configuration(self):

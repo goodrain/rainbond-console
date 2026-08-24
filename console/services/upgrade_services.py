@@ -35,6 +35,7 @@ from console.services.market_app.app_restore import AppRestore
 from console.services.market_app.app_upgrade import AppUpgrade
 from console.services.market_app.component_group import ComponentGroup
 from console.services.rbd_plugin_sync_service import rbd_plugin_sync_service
+from console.utils.offline import is_cloud_market_disabled
 from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Q
@@ -227,6 +228,8 @@ class UpgradeService(object):
         component_group = tenant_service_group_repo.get_component_group(upgrade_group_id)
 
         app_template_source = self._app_template_source(app.app_id, component_group.group_key, upgrade_group_id)
+        if app_template_source.is_install_from_cloud() and is_cloud_market_disabled():
+            return {"upgrade_info": {}}, []
         app_template = self._app_template(user.enterprise_id, component_group.group_key, version, app_template_source)
 
         app_upgrade = AppUpgrade(user.enterprise_id, tenant, region, user, app, version, component_group, app_template,

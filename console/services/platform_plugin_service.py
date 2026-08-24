@@ -670,7 +670,6 @@ class PlatformPluginService(object):
             raise ServiceHandleException(msg="region not found", msg_show="集群不存在")
         # 4. Find or create the "rbd-plugins" team
         tenant = self._ensure_plugin_team(enterprise_id, region_name, user)
-
         # 5. Get app template from market
         market_app, app_version = app_market_service.cloud_app_model_to_db_model(
             market, app_key, latest_version, for_install=True)
