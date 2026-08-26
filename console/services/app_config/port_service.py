@@ -940,13 +940,13 @@ class AppPortService(object):
                     # NOTE: svc may be None (get_service_port_by_port returns Optional); invariant here.
                     k8s_name = svc.k8s_service_name  # type: ignore[union-attr]
                     for nodeport in body.get("list", []):  # type: ignore[union-attr]
-                        delete_path = f"/v2/proxy-pass/gateway/{tenant.tenant_name}/routes/tcp/{k8s_name}-{nodeport}"
-                        try:
-                            region_api.delete_proxy(region.region_name, delete_path)
-                        except Exception as e:
-                            logger.exception(f"Failed to delete route {delete_path}: {e}")
+                        delete_path = (f"/v2/proxy-pass/gateway/{tenant.tenant_name}/routes/tcp/"
+                                       f"{k8s_name}-{nodeport}?service_id={service.service_id}")
+                        region_api.delete_proxy(region.region_name, delete_path)
             except Exception as e:
-                logger.exception(f"Failed to get routes from API Gateway: {e}")
+                logger.exception(f"Failed to release TCP routes: {e}")
+                raise
+            tcp_domain.delete_by_component_port(service.service_id, deal_port.container_port)
         self.__sync_outer_port_to_region(tenant, service, deal_port, "close", user_name)
         if service.create_status == "complete":
             from console.services.plugin import app_plugin_service
