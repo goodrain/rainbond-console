@@ -497,8 +497,15 @@ class GroupService(object):
         res["services_info"] = services_info
         # k8s source
         app_k8s_resources = k8s_resources_repo.list_by_app_id(app_id)
-
-        res['k8s_resources'] = [{"name": resource.name, "type": resource.kind} for resource in app_k8s_resources]
+        # Keep the resource summary used by the application deletion dialog in
+        # sync with the lifecycle labels returned by K8s resource management.
+        # Import here because this legacy service is also used by resource
+        # management code and must not introduce an import cycle at module load.
+        from console.services.k8s_resource import ComponentK8sResourceService
+        res['k8s_resources'] = [
+            ComponentK8sResourceService._serialize_app_delete_resource(resource)
+            for resource in app_k8s_resources
+        ]
         # domains
         domains = domain_repo.get_domains_by_service_ids(service_ids)
         res['domains'] = [domain.domain_name for domain in domains]
@@ -827,8 +834,16 @@ class GroupService(object):
         """ get service source by group key"""
         return service_source_repo.get_service_sources_by_group_key(group_key)
 
+    def ensure_app_delete_allowed(self, enterprise_id: Optional[str], tenant: Tenants, region_name: str,
+                                  app: ServiceGroup) -> None:
+        # Delay this import to preserve the existing service dependency direction.
+        from console.services.k8s_resource import k8s_resource_service
+        k8s_resource_service.ensure_app_delete_allowed(enterprise_id, tenant.tenant_name, str(app.app_id), region_name)
+
     @transaction.atomic
-    def delete_app(self, tenant: Tenants, region_name: str, app: ServiceGroup) -> None:
+    def delete_app(self, tenant: Tenants, region_name: str, app: ServiceGroup,
+                   enterprise_id: Optional[str] = None) -> None:
+        self.ensure_app_delete_allowed(enterprise_id, tenant, region_name, app)
         if app.app_type == AppType.helm.name:
             self._delete_helm_app(tenant, region_name, app)
             return

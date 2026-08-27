@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 # capability_id: console.k8s-resource.delete-lifecycle
+# capability_id: console.k8s-resource.app-deletion-guard
 import collections
 import importlib
 import os
@@ -76,8 +77,12 @@ class K8sResourceDeleteLifecycleTests(SimpleTestCase):
         from console.services.k8s_resource import ComponentK8sResourceService
 
         service = ComponentK8sResourceService()
-        failed = Obj(ID=11, name="failed", kind="ConfigMap", region_resource_id=41, delete_status=1)
-        completed = Obj(ID=12, name="completed", kind="Secret", region_resource_id=42, delete_status=1)
+        failed = Obj(
+            ID=11, name="failed", kind="ConfigMap", content="apiVersion: v1\nkind: ConfigMap",
+            state=1, region_resource_id=41, delete_status=1)
+        completed = Obj(
+            ID=12, name="completed", kind="Secret", content="apiVersion: v1\nkind: Secret",
+            state=1, region_resource_id=42, delete_status=1)
         region_status = {
             "resource_id": 41,
             "name": "failed",
@@ -101,7 +106,9 @@ class K8sResourceDeleteLifecycleTests(SimpleTestCase):
         from console.services.k8s_resource import ComponentK8sResourceService
 
         service = ComponentK8sResourceService()
-        resource = Obj(ID=11, name="demo", kind="ConfigMap", region_resource_id=41, delete_status=1)
+        resource = Obj(
+            ID=11, name="demo", kind="ConfigMap", content="apiVersion: v1\nkind: ConfigMap",
+            state=1, region_resource_id=41, delete_status=1)
 
         with mock.patch.object(service, "get_app_id_and_namespace", return_value=("demo-ns", "region-app")), \
                 mock.patch("console.services.k8s_resource.k8s_resources_repo.list_deleting_by_app_id",
@@ -233,3 +240,139 @@ class K8sResourceDeleteLifecycleTests(SimpleTestCase):
             "delete_generation",
             "region_resource_id",
         }.issubset(field_names))
+
+
+class K8sResourceAppDeletionGuardTests(SimpleTestCase):
+    def test_app_resource_returns_k8s_resource_lifecycle_for_delete_dialog(self):
+        from console.services import group_service as group_service_module
+        from console.services.group_service import group_service
+
+        tenant = Obj(tenant_id="tenant-id", tenant_name="team-a", enterprise_id="enterprise-1")
+        resource = Obj(
+            ID=11,
+            name="apecloud-mysql",
+            kind="Addon",
+            delete_status=2,
+            delete_error="no matches for kind Addon",
+        )
+
+        with mock.patch.object(group_service_module.team_repo, "get_team_by_team_id", return_value=tenant), \
+                mock.patch.object(group_service_module.group_service_relation_repo,
+                                  "list_serivce_ids_by_app_id", return_value=[]), \
+                mock.patch.object(group_service_module.service_repo, "get_services_by_service_ids", return_value=[]), \
+                mock.patch.object(group_service_module.k8s_resources_repo, "list_by_app_id", return_value=[resource]), \
+                mock.patch.object(group_service_module.domain_repo, "get_domains_by_service_ids", return_value=[]), \
+                mock.patch.object(group_service_module.app_config_group_repo, "list", return_value=[]), \
+                mock.patch.object(group_service_module.share_repo, "get_app_share_records_by_groupid", return_value=[]):
+            result = group_service.get_app_resource("tenant-id", "region-a", "console-app")
+
+        self.assertEqual(
+            [{
+                "ID": 11,
+                "name": "apecloud-mysql",
+                "type": "Addon",
+                "delete_status": "DELETE_FAILED",
+                "delete_error": "no matches for kind Addon",
+            }],
+            result["k8s_resources"],
+        )
+
+    def test_app_deletion_guard_blocks_remaining_resource_with_lifecycle_details(self):
+        from console.exception.main import ServiceHandleException
+        from console.services.k8s_resource import ComponentK8sResourceService
+
+        service = ComponentK8sResourceService()
+        resource = Obj(
+            ID=11,
+            name="apecloud-mysql",
+            kind="Addon",
+            delete_status=2,
+            delete_error="no matches for kind Addon",
+        )
+
+        with mock.patch("console.services.k8s_resource.k8s_resources_repo.list_by_app_id", return_value=[resource]), \
+                mock.patch.object(service, "reconcile_delete_statuses") as reconcile:
+            with self.assertRaises(ServiceHandleException) as raised:
+                service.ensure_app_delete_allowed("enterprise-1", "team-a", "console-app", "region-a")
+
+        self.assertEqual(409, raised.exception.status_code)
+        self.assertEqual(
+            {
+                "k8s_resources": [{
+                    "ID": 11,
+                    "name": "apecloud-mysql",
+                    "type": "Addon",
+                    "delete_status": "DELETE_FAILED",
+                    "delete_error": "no matches for kind Addon",
+                }]
+            },
+            raised.exception.bean,
+        )
+        reconcile.assert_not_called()
+
+    def test_app_deletion_guard_reconciles_deleting_resources_before_allowing_deletion(self):
+        from console.services.k8s_resource import ComponentK8sResourceService
+
+        service = ComponentK8sResourceService()
+        deleting = Obj(ID=11, name="pending", kind="ConfigMap", delete_status=1, delete_error="")
+
+        with mock.patch("console.services.k8s_resource.k8s_resources_repo.list_by_app_id",
+                        side_effect=[[deleting], []]), \
+                mock.patch.object(service, "reconcile_delete_statuses") as reconcile:
+            service.ensure_app_delete_allowed("enterprise-1", "team-a", "console-app", "region-a")
+
+        reconcile.assert_called_once_with("enterprise-1", "team-a", "console-app", "region-a", strict=True)
+
+    def test_app_deletion_guard_without_enterprise_blocks_local_deleting_resource(self):
+        from console.exception.main import ServiceHandleException
+        from console.services.k8s_resource import ComponentK8sResourceService
+
+        service = ComponentK8sResourceService()
+        deleting = Obj(ID=11, name="pending", kind="ConfigMap", delete_status=1, delete_error="")
+
+        with mock.patch("console.services.k8s_resource.k8s_resources_repo.list_by_app_id", return_value=[deleting]), \
+                mock.patch.object(service, "reconcile_delete_statuses") as reconcile:
+            with self.assertRaises(ServiceHandleException) as raised:
+                service.ensure_app_delete_allowed(None, "team-a", "console-app", "region-a")
+
+        self.assertEqual(409, raised.exception.status_code)
+        reconcile.assert_not_called()
+
+    def test_app_deletion_guard_rejects_region_status_lookup_failure(self):
+        from console.exception.main import ServiceHandleException
+        from console.services.k8s_resource import ComponentK8sResourceService
+
+        service = ComponentK8sResourceService()
+        deleting = Obj(
+            ID=11,
+            name="pending",
+            kind="ConfigMap",
+            content="apiVersion: v1\nkind: ConfigMap",
+            state=1,
+            region_resource_id=41,
+            delete_status=1,
+        )
+
+        with mock.patch("console.services.k8s_resource.k8s_resources_repo.list_by_app_id", return_value=[deleting]), \
+                mock.patch("console.services.k8s_resource.k8s_resources_repo.list_deleting_by_app_id",
+                           return_value=[deleting]), \
+                mock.patch.object(service, "get_app_id_and_namespace", return_value=("demo-ns", "region-app")), \
+                mock.patch("console.services.k8s_resource.region_api.get_app_resource_delete_status",
+                           side_effect=RuntimeError("region unavailable")):
+            with self.assertRaises(ServiceHandleException) as raised:
+                service.ensure_app_delete_allowed("enterprise-1", "team-a", "console-app", "region-a")
+
+        self.assertEqual(503, raised.exception.status_code)
+
+    def test_group_service_checks_k8s_resources_before_deleting_application(self):
+        from console.services.group_service import group_service
+
+        tenant = Obj(tenant_name="team-a")
+        app = Obj(app_id="console-app", app_type="rainbond")
+
+        with mock.patch.object(group_service, "ensure_app_delete_allowed") as ensure_allowed, \
+                mock.patch.object(group_service, "_delete_rainbond_app") as delete_rainbond_app:
+            group_service.delete_app.__wrapped__(group_service, tenant, "region-a", app, "enterprise-1")
+
+        ensure_allowed.assert_called_once_with("enterprise-1", tenant, "region-a", app)
+        delete_rainbond_app.assert_called_once_with(tenant, "region-a", app)

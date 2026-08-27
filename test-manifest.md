@@ -352,6 +352,7 @@
 | console.k8s-attribute.cmd-args-yaml | 将 cmd 和 args Kubernetes 属性规范化为 YAML 数组 | active | regression | console.services.k8s_attribute.ComponentK8sAttributeService.create_k8s_attribute | console/tests/k8s_attribute_service_test.py::ComponentK8sAttributeServiceTests |
 | console.k8s-attribute.upsert-region-sync | Console 与 region 组件 K8s 属性幂等同步 | active | regression | console.services.k8s_attribute.ComponentK8sAttributeService | console/tests/k8s_attribute_service_test.py |
 | console.k8s-namespace.normalize-user-prefix | 将用户名规范化为合法的 Kubernetes 命名空间名 | active | regression | console.utils.validation.normalize_name_for_k8s_namespace | console/tests/utils/validation_test.py::NamespaceNormalizationTests.test_normalize_name_for_k8s_namespace |
+| console.k8s-resource.app-deletion-guard | Kubernetes 资源未清理时阻止删除应用 | active | regression | console.services.group_service.GroupService.delete_app | console/tests/k8s_resource_delete_test.py::K8sResourceAppDeletionGuardTests |
 | console.k8s-resource.delete-lifecycle | 跟踪 Kubernetes 资源删除生命周期 | active | regression | console.services.k8s_resource.ComponentK8sResourceService.delete_k8s_resource | console/tests/k8s_resource_delete_test.py::K8sResourceDeleteLifecycleTests |
 | console.kubeblocks.app-resource-statistics | KubeBlocks 集群请求携带 app id 以支持资源统计 | active | regression | console.services.kubeblocks_service.KubeBlocksService._build_cluster_request | console/tests/kubeblocks_cluster_validation_test.py::KubeBlocksCreateFlowTests.test_build_cluster_request_includes_app_id_for_resource_statistics |
 | console.kubeblocks.backup-repo.ready-guard | 使用 KubeBlocks 备份仓库前校验就绪状态 | active | regression | console.services.kubeblocks_service.KubeBlocksService.ensure_backup_repo_ready_for_use | console/tests/kubeblocks_backup_repo_test.py::KubeBlocksBackupRepoServiceTests.test_ensure_backup_repo_ready_for_use_rejects_prechecking_repo<br>console/tests/kubeblocks_backup_repo_test.py::KubeBlocksBackupRepoServiceTests.test_ensure_backup_repo_ready_for_use_accepts_ready_repo<br>console/tests/kubeblocks_backup_repo_test.py::KubeBlocksBackupRepoServiceTests.test_ensure_backup_repo_ready_for_use_rejects_missing_live_repo<br>console/tests/kubeblocks_cluster_validation_test.py::KubeBlocksCreateFlowTests.test_create_cluster_returns_backup_repo_not_ready_message |
@@ -4068,6 +4069,16 @@
 - 业务入口: `console.utils.validation.normalize_name_for_k8s_namespace`
 - 代码路径: `console/utils/validation.py`
 - 测试路径: `console/tests/utils/validation_test.py::NamespaceNormalizationTests.test_normalize_name_for_k8s_namespace`
+
+### Kubernetes 资源未清理时阻止删除应用
+
+- Capability ID: `console.k8s-resource.app-deletion-guard`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `workflow`
+- 业务入口: `console.services.group_service.GroupService.delete_app`
+- 代码路径: `console/services/k8s_resource.py`, `console/services/group_service.py`, `console/views/group.py`, `console/services/mcp_query_service.py`
+- 测试路径: `console/tests/k8s_resource_delete_test.py::K8sResourceAppDeletionGuardTests`
 
 ### 跟踪 Kubernetes 资源删除生命周期
 

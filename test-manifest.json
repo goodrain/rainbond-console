@@ -6705,6 +6705,27 @@
       "status": "active"
     },
     {
+      "id": "console.k8s-resource.app-deletion-guard",
+      "title": "Block application deletion until Kubernetes resources are removed",
+      "title_zh": "Kubernetes 资源未清理时阻止删除应用",
+      "interface_type": "workflow",
+      "interface": "console.services.group_service.GroupService.delete_app",
+      "code_paths": [
+        "console/services/k8s_resource.py",
+        "console/services/group_service.py",
+        "console/views/group.py",
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/k8s_resource_delete_test.py",
+          "selector": "K8sResourceAppDeletionGuardTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.k8s-resource.delete-lifecycle",
       "title": "Track Kubernetes resource deletion lifecycle",
       "title_zh": "跟踪 Kubernetes 资源删除生命周期",

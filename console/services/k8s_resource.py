@@ -1,6 +1,6 @@
 # -*- coding: utf8 -*-
 import logging
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from django.db import transaction
 from django.db.models import QuerySet
@@ -119,7 +119,31 @@ class ComponentK8sResourceService(object):
         self._record_delete_acceptance(resources, statuses)
         return statuses
 
-    def reconcile_delete_statuses(self, enterprise_id: str, tenant_name: str, app_id: str, region_name: str) -> None:
+    def ensure_app_delete_allowed(self, enterprise_id: Optional[str], tenant_name: str, app_id: str,
+                                  region_name: str) -> None:
+        """Reject application deletion until Console and Region agree its resources are gone."""
+        resources = list(k8s_resources_repo.list_by_app_id(app_id))
+        deleting_resources = [
+            resource for resource in resources
+            if getattr(resource, "delete_status", K8S_RESOURCE_DELETE_STATUS_ACTIVE) == K8S_RESOURCE_DELETE_STATUS_DELETING
+        ]
+        if deleting_resources and enterprise_id:
+            # A delete request is not complete until Region no longer returns the
+            # durable resource record. Strict mode turns an unavailable Region
+            # into a retryable failure instead of risking an orphaned resource.
+            self.reconcile_delete_statuses(enterprise_id, tenant_name, app_id, region_name, strict=True)
+            resources = list(k8s_resources_repo.list_by_app_id(app_id))
+
+        if resources:
+            raise ServiceHandleException(
+                "k8s resources must be deleted before application deletion",
+                "应用仍有关联的 Kubernetes 资源，请先在资源列表中删除并确认清理完成",
+                status_code=409,
+                bean={"k8s_resources": [self._serialize_app_delete_resource(resource) for resource in resources]},
+            )
+
+    def reconcile_delete_statuses(self, enterprise_id: str, tenant_name: str, app_id: str, region_name: str,
+                                  strict: bool = False) -> None:
         resources = list(k8s_resources_repo.list_deleting_by_app_id(app_id))
         if not resources:
             return
@@ -131,10 +155,16 @@ class ComponentK8sResourceService(object):
         try:
             _, body = region_api.get_app_resource_delete_status(enterprise_id, region_name, data)
             statuses = self._region_status_list(body)
-        except Exception:
+        except Exception as exc:
             # The Console record is a durable user-visible indication that cleanup
             # is still pending. A temporary Region outage must never make it vanish.
             logger.exception("reconcile k8s resource deletion status for app %s failed", app_id)
+            if strict:
+                raise ServiceHandleException(
+                    "Region k8s resource deletion status is unavailable",
+                    "暂时无法确认 Kubernetes 资源是否已删除，请稍后重试",
+                    status_code=503,
+                ) from exc
             return
         self._record_delete_reconciliation(resources, statuses)
 
@@ -162,6 +192,21 @@ class ComponentK8sResourceService(object):
             delete_status = K8S_RESOURCE_DELETE_STATUS_FAILED
         result["delete_status"] = DELETE_STATUS_DISPLAY.get(delete_status, "DELETE_FAILED")
         return result
+
+    @staticmethod
+    def _serialize_app_delete_resource(resource: K8sResource) -> Dict[str, Any]:
+        delete_status = getattr(resource, "delete_status", K8S_RESOURCE_DELETE_STATUS_ACTIVE)
+        try:
+            delete_status = int(delete_status)
+        except (TypeError, ValueError):
+            delete_status = K8S_RESOURCE_DELETE_STATUS_FAILED
+        return {
+            "ID": resource.ID,
+            "name": resource.name,
+            "type": resource.kind,
+            "delete_status": DELETE_STATUS_DISPLAY.get(delete_status, "DELETE_FAILED"),
+            "delete_error": getattr(resource, "delete_error", "") or "",
+        }
 
     @staticmethod
     def _region_delete_statuses(body: Any) -> List[Dict[str, Any]]:
