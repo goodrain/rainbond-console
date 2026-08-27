@@ -1245,17 +1245,9 @@ class RKEClusterNode(BaseModel):
     is_server = models.BooleanField(help_text="是否是 server 节点")
 
 
-K8S_RESOURCE_DELETE_STATUS_ACTIVE = 0
-K8S_RESOURCE_DELETE_STATUS_DELETING = 1
-K8S_RESOURCE_DELETE_STATUS_FAILED = 2
-
-
 class K8sResource(BaseModel):
     class Meta:
         db_table = "k8s_resources"
-        indexes = [
-            models.Index(fields=["app_id", "delete_status"], name="k8s_res_app_delete_idx"),
-        ]
 
     create_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text="创建时间")
     update_time = models.DateTimeField(auto_now_add=True, blank=True, null=True, help_text="更新时间")
@@ -1265,15 +1257,6 @@ class K8sResource(BaseModel):
     content = models.TextField(max_length="k8s_resource yaml")
     error_overview = models.TextField(help_text="k8s_resources create status")
     state = models.IntegerField(help_text="whether it was created successfully")
-    # Deletion is an independent asynchronous lifecycle. Keep state reserved for
-    # the original create/update result used by publishing and snapshots.
-    delete_status = models.IntegerField(default=K8S_RESOURCE_DELETE_STATUS_ACTIVE)
-    delete_error = models.TextField(default="", blank=True)
-    delete_started_at = models.DateTimeField(null=True, blank=True)
-    delete_generation = models.BigIntegerField(default=0)
-    # Region owns the physical Kubernetes object and its durable delete task.
-    # Old records are nullable and are resolved once by the legacy name/kind path.
-    region_resource_id = models.BigIntegerField(null=True, blank=True)
 
 
 class ComponentK8sAttributes(BaseModel):

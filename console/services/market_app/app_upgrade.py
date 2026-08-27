@@ -32,7 +32,7 @@ from console.repositories.k8s_resources import k8s_resources_repo
 from console.exception.main import ServiceHandleException, ErrTenantLackOfMemory
 from console.exception.bcode import ErrAppUpgradeDeployFailed
 # model
-from console.models.main import AppUpgradeRecord, K8S_RESOURCE_DELETE_STATUS_ACTIVE, K8sResource
+from console.models.main import AppUpgradeRecord, K8sResource
 from console.models.main import UpgradeStatus
 from console.models.main import ServiceUpgradeRecord
 from console.models.main import AppUpgradeSnapshot
@@ -971,15 +971,6 @@ class AppUpgrade(MarketApp):
     def _k8s_resources(self) -> List[K8sResource]:
         # only add
         k8s_resources = list(k8s_resources_repo.list_by_app_id(self.app_id))
-        pending_resources = [
-            resource for resource in k8s_resources
-            if getattr(resource, "delete_status", K8S_RESOURCE_DELETE_STATUS_ACTIVE) != K8S_RESOURCE_DELETE_STATUS_ACTIVE
-        ]
-        if pending_resources:
-            raise ServiceHandleException(
-                "k8s resource cleanup is pending",
-                "Kubernetes 资源正在删除或删除失败，请先完成清理后再安装或升级",
-                status_code=409)
         k8s_resource_names = [r.name + r.kind for r in k8s_resources]
         finall_k8s_resources: List[K8sResource] = list()
         tmpl_k8s: List[Any] = self.app_template.get("k8s_resources") or []

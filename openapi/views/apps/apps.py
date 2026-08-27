@@ -31,6 +31,7 @@ from console.services.app_config_group import app_config_group_service
 from console.services.app_import_and_export_service import import_service
 from console.services.compose_service import compose_service
 from console.services.group_service import group_service
+from console.services.k8s_resource import k8s_resource_service
 from console.services.app import app_market_service
 from console.services.market_app_service import market_app_service
 from console.services.plugin import app_plugin_service
@@ -192,8 +193,6 @@ class AppInfoView(TeamAppAPIView):
     )
     def delete(self, req: Request, app_id: str, *args: Any, **kwargs: Any) -> Response:
         msg_list = []
-        group_service.ensure_app_delete_allowed(
-            self.user.enterprise_id, self.team, self.region_name, self.app)  # type: ignore[arg-type]
         try:
             force = int(req.GET.get("force", 0))
         except ValueError:
@@ -227,7 +226,7 @@ class AppInfoView(TeamAppAPIView):
                             app_manage_service.delete_again(self.user, self.team, service, is_force=True)
                 if code_status != 200:
                     raise ServiceHandleException(msg=msg_list, msg_show="请求错误")
-        group_service.delete_app(self.team, self.region_name, self.app, self.user.enterprise_id)  # type: ignore[arg-type]
+        group_service.delete_app(self.team, self.region_name, self.app)
         return Response(None, status=200)
 
 
@@ -1307,17 +1306,21 @@ class DeleteApp(TeamAPIView):
         """
         删除应用及所有资源
         """
-        app = group_service.get_app_by_id(self.team, self.region_name, app_id)
-        group_service.ensure_app_delete_allowed(
-            self.user.enterprise_id, self.team, self.region_name, app)  # type: ignore[arg-type]
         # delete services
         group_service.batch_delete_app_services(self.user, self.team.tenant_id, self.region_name, app_id)
+        # delete k8s resource
+        k8s_resources = k8s_resource_service.list_by_app_id(str(app_id))
+        resource_ids = [k8s_resource.ID for k8s_resource in k8s_resources]
+        k8s_resource_service.batch_delete_k8s_resource(
+            self.user.enterprise_id, self.team.tenant_name, str(app_id),  # type: ignore[arg-type]
+            self.region_name, resource_ids)
         # delete configs
         app_config_group_service.batch_delete_config_group(self.region_name, self.team.tenant_name, app_id)
         # delete records
         group_service.delete_app_share_records(self.team.tenant_name, app_id)
         # delete app
-        group_service.delete_app(self.team, self.region_name, app, self.user.enterprise_id)  # type: ignore[arg-type]
+        app = group_service.get_app_by_id(self.team, self.region_name, app_id)
+        group_service.delete_app(self.team, self.region_name, app)  # type: ignore[arg-type]
         result = general_message(200, "success", "删除成功")
         return Response(result, status=result["code"])
 

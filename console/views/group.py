@@ -208,7 +208,7 @@ class TenantGroupOperationView(ApplicationView):
         old_information = group_service.json_app(
             app_name=self.app.app_name, k8s_app=old_app.k8s_app,
             logo=old_app.logo, note=old_app.note)  # type: ignore[arg-type]
-        group_service.delete_app(self.tenant, self.region_name, self.app, self.user.enterprise_id)  # type: ignore[arg-type]
+        group_service.delete_app(self.tenant, self.region_name, self.app)
         result = general_message(200, "success", "删除成功")
         operation_log_service.create_app_log(
             self, "删除了应用 {app}".format(app=self.app.group_name), format_app=False, old_information=old_information)
@@ -248,22 +248,24 @@ class TenantGroupHandleView(ApplicationView):
         """
         删除应用及所有资源
         """
-        # This guard must be before component/config deletion. K8s resource
-        # deletion is asynchronous and is deliberately a user-visible action.
-        group_service.ensure_app_delete_allowed(
-            self.user.enterprise_id, self.tenant, self.region_name, self.app)  # type: ignore[arg-type]
         # delete services
         services = group_service.batch_delete_app_services(self.user, self.tenant.tenant_id, self.region_name, app_id)
         # delete kubeblocks cluster
         service_ids = [service.service_id for service in services]
         # delete kubeblocks cluster if service is kubeblocks cluster
         kubeblocks_service.delete_kubeblocks_cluster(service_ids, self.region_name)
+        # delete k8s resource
+        k8s_resources = k8s_resource_service.list_by_app_id(str(app_id))
+        resource_ids = [k8s_resource.ID for k8s_resource in k8s_resources]
+        k8s_resource_service.batch_delete_k8s_resource(self.user.enterprise_id,  # type: ignore[arg-type]
+                                                       self.tenant.tenant_name, str(app_id), self.region_name,
+                                                       resource_ids)
         # delete configs
         app_config_group_service.batch_delete_config_group(self.region_name, self.tenant.tenant_name, app_id)
         # delete records
         group_service.delete_app_share_records(self.tenant.tenant_name, app_id)
         # delete app
-        group_service.delete_app(self.tenant, self.region_name, self.app, self.user.enterprise_id)  # type: ignore[arg-type]
+        group_service.delete_app(self.tenant, self.region_name, self.app)
         component_names = []
         comment = ""
         old_information = list()

@@ -13,7 +13,6 @@ migrations/
 !console/migrations/
 console/migrations/*
 !console/migrations/0009_rainskills_operation_audit.py
-!console/migrations/0010_k8sresource_delete_status.py
 dist/
 build/
 node_modules

@@ -6705,48 +6705,6 @@
       "status": "active"
     },
     {
-      "id": "console.k8s-resource.app-deletion-guard",
-      "title": "Block application deletion until Kubernetes resources are removed",
-      "title_zh": "Kubernetes 资源未清理时阻止删除应用",
-      "interface_type": "workflow",
-      "interface": "console.services.group_service.GroupService.delete_app",
-      "code_paths": [
-        "console/services/k8s_resource.py",
-        "console/services/group_service.py",
-        "console/views/group.py",
-        "console/services/mcp_query_service.py"
-      ],
-      "tests": [
-        {
-          "path": "console/tests/k8s_resource_delete_test.py",
-          "selector": "K8sResourceAppDeletionGuardTests"
-        }
-      ],
-      "test_type": "regression",
-      "status": "active"
-    },
-    {
-      "id": "console.k8s-resource.delete-lifecycle",
-      "title": "Track Kubernetes resource deletion lifecycle",
-      "title_zh": "跟踪 Kubernetes 资源删除生命周期",
-      "interface_type": "workflow",
-      "interface": "console.services.k8s_resource.ComponentK8sResourceService.delete_k8s_resource",
-      "code_paths": [
-        "console/services/k8s_resource.py",
-        "console/repositories/k8s_resources.py",
-        "www/apiclient/regionapi.py",
-        "console/services/market_app/market_app.py"
-      ],
-      "tests": [
-        {
-          "path": "console/tests/k8s_resource_delete_test.py",
-          "selector": "K8sResourceDeleteLifecycleTests"
-        }
-      ],
-      "test_type": "regression",
-      "status": "active"
-    },
-    {
       "id": "console.kubeblocks.app-resource-statistics",
       "title": "Include app id in KubeBlocks cluster request for resource statistics",
       "title_zh": "KubeBlocks 集群请求携带 app id 以支持资源统计",
