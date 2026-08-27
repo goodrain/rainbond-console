@@ -371,6 +371,7 @@
 | console.market-app.restore-preserves-volume-capacity-on-storage-fallback | 市场恢复在存储类型回退时保留卷容量 | active | regression | console.services.market_app.new_components.NewComponents._template_to_volumes | console/tests/market_app_storage_test.py::MarketAppDefaultStorageClassTests.test_template_to_volumes_preserves_capacity_when_storage_type_changes |
 | console.market-app.restore-volume-capacity-helper | resolve_market_restore_volume_settings 在存储类型变化时保留容量 | active | regression | console.services.app_config.volume_service.AppVolumeService.resolve_market_restore_volume_settings | console/tests/market_app_storage_test.py::MarketAppDefaultStorageClassTests.test_resolve_market_restore_volume_settings_preserves_capacity_when_storage_type_changes |
 | console.market-app.upgrade-share-image-fallback | Market App Upgrade Share Image Fallback | active | regression | console.services.market_app.update_components | console/tests/market_app_update_components_test.py::MarketAppUpdateComponentsCompatibilityTests.test_create_update_components_falls_back_to_image_when_share_image_missing |
+| console.market-app.version-order-desc | 应用市场版本按新到旧排序 | active | regression | console.services.market_app_service.MarketAppService._patch_rainbond_app_versions | console/tests/market_app_service_test.py::MarketAppVersionOrderingTests |
 | console.market-app.vm-disk-imports-from-template | 市场应用安装从 VM 模板生成磁盘导入配置 | active | regression | console.services.market_app.new_components.NewComponents._template_to_k8s_attributes | console/tests/market_app_update_components_test.py::MarketAppNewComponentsVMK8sAttrsTests.test_template_to_k8s_attributes_backfills_vm_runtime_attrs_from_vm_block |
 | console.market-app.vm-runtime-status-guard | 虚拟机平台异常时禁止安装虚拟机模板 | active | regression | console.services.market_app_service.MarketAppService.install_app | console/tests/market_app_service_test.py::MarketAppServiceVMGuardTests |
 | console.market-app.vm-template-dynamic-pod-ip | 从应用模板创建虚拟机时使用动态 Pod IP | active | regression | console.services.market_app.new_components.NewComponents._template_to_k8s_attributes | console/tests/market_app_update_components_test.py::MarketAppNewComponentsVMK8sAttrsTests.test_template_to_k8s_attributes_drops_fixed_pod_ip_for_vm |
@@ -4256,6 +4257,16 @@
 - 业务入口: `console.services.market_app.update_components`
 - 代码路径: `console/services/market_app/update_components.py`
 - 测试路径: `console/tests/market_app_update_components_test.py::MarketAppUpdateComponentsCompatibilityTests.test_create_update_components_falls_back_to_image_when_share_image_missing`
+
+### 应用市场版本按新到旧排序
+
+- Capability ID: `console.market-app.version-order-desc`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.market_app_service.MarketAppService._patch_rainbond_app_versions`
+- 代码路径: `console/services/market_app_service.py`
+- 测试路径: `console/tests/market_app_service_test.py::MarketAppVersionOrderingTests`
 
 ### 市场应用安装从 VM 模板生成磁盘导入配置
 

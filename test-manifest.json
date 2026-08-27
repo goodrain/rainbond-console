@@ -7107,6 +7107,24 @@
       "status": "active"
     },
     {
+      "id": "console.market-app.version-order-desc",
+      "title": "Sort marketplace versions newest first",
+      "title_zh": "应用市场版本按新到旧排序",
+      "interface_type": "service_method",
+      "interface": "console.services.market_app_service.MarketAppService._patch_rainbond_app_versions",
+      "code_paths": [
+        "console/services/market_app_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/market_app_service_test.py",
+          "selector": "MarketAppVersionOrderingTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.market-app.vm-disk-imports-from-template",
       "title": "Market App VM Disk Imports From Template",
       "title_zh": "市场应用安装从 VM 模板生成磁盘导入配置",
