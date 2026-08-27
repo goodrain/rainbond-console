@@ -6937,6 +6937,24 @@
       "status": "active"
     },
     {
+      "id": "console.market-app.delete-version-endpoint",
+      "title": "Delete a marketplace application version",
+      "title_zh": "删除应用市场应用版本",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.center_pool.apps.AppVersionUDView.delete",
+      "code_paths": [
+        "console/views/center_pool/apps.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/market_app_service_test.py",
+          "selector": "CenterPoolAppVersionViewTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.market-app.install-default-storage-class",
       "title": "Use platform default storage class for marketplace installs",
       "title_zh": "应用市场安装使用平台默认存储类",

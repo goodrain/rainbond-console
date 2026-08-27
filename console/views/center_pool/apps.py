@@ -497,8 +497,7 @@ class AppVersionUDView(JWTAuthApiView):
         return Response(result, status=result.get("code", 200))
 
     def delete(self, request: Request, enterprise_id: str, app_id: str, version: str, *args: Any, **kwargs: Any) -> Response:
-        # NOTE: get_rainbond_app_by_app_id takes 1 arg; called with 2 (latent bug)
-        app = rainbond_app_repo.get_rainbond_app_by_app_id(enterprise_id, app_id)  # type: ignore[call-arg]
+        app = rainbond_app_repo.get_rainbond_app_by_app_id(app_id)
         result = general_message(200, "success", "删除成功")
         market_app_service.delete_rainbond_app_version(enterprise_id, app_id, version)
         comment = operation_log_service.generate_generic_comment(

@@ -98,6 +98,31 @@ class MarketAppServiceTelemetryTests(SimpleTestCase):
         self.assertEqual(200, response.status_code)
         self.assertEqual(preflight, response.data["data"]["bean"])
 
+
+# capability_id: console.market-app.delete-version-endpoint
+class CenterPoolAppVersionViewTests(SimpleTestCase):
+    def test_delete_version_looks_up_app_by_app_id_before_deleting(self):
+        from console.views.center_pool.apps import AppVersionUDView
+
+        view = AppVersionUDView()
+        view.user = Obj(user_id="user-1", enterprise_id="enterprise-1")
+        app = Obj(app_name="Demo App")
+
+        with patch(
+                "console.views.center_pool.apps.rainbond_app_repo.get_rainbond_app_by_app_id",
+                return_value=app) as get_app, \
+                patch("console.views.center_pool.apps.market_app_service.delete_rainbond_app_version") as delete_version, \
+                patch("console.views.center_pool.apps.operation_log_service.generate_generic_comment",
+                      return_value="delete version") as generate_comment, \
+                patch("console.views.center_pool.apps.operation_log_service.create_component_library_log") as create_log:
+            response = view.delete(Obj(), "enterprise-1", "app-1", "1.0.0")
+
+        self.assertEqual(200, response.status_code)
+        get_app.assert_called_once_with("app-1")
+        delete_version.assert_called_once_with("enterprise-1", "app-1", "1.0.0")
+        generate_comment.assert_called_once()
+        create_log.assert_called_once_with(user=view.user, comment="delete version", enterprise_id="enterprise-1")
+
     def test_preflight_install_app_returns_structured_result(self):
         from console.services.market_app_service import market_app_service
 
