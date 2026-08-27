@@ -4513,20 +4513,13 @@ class MCPQueryService(object):
         page, page_size = self._parse_pagination(arguments)
         query = arguments.get("query")
 
-        teams, total = team_services.get_enterprise_teams(
-            enterprise_id=enterprise_id,
-            query=query,
-            page=page,
-            page_size=page_size,
-            user=user,
+        teams = team_services.get_teams_region_by_user_id(
+            enterprise_id,
+            user,
+            query,
+            get_region=True,
         )
-
-        return {
-            "items": teams,
-            "total": total,
-            "page": page,
-            "page_size": page_size,
-        }
+        return self._paginate_data(teams, page, page_size)
 
     def query_apps(self, user: Any, arguments: dict) -> dict:
         enterprise_id = self._require_string(arguments, "enterprise_id")
@@ -8562,11 +8555,10 @@ class MCPQueryService(object):
             "enterprise_id": self._value(region, "enterprise_id"),
         }
 
-
     def _tool_query_teams(self) -> dict:
         return {
             "name": "rainbond_query_teams",
-            "description": "Query teams under the specified enterprise.",
+            "description": "Query teams joined by the current authenticated user under the specified enterprise.",
             "inputSchema": {
                 "type": "object",
                 "properties": {

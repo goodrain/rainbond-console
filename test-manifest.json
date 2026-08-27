@@ -9945,6 +9945,24 @@
       "status": "active"
     },
     {
+      "id": "console.team-query.current-user-membership",
+      "title": "List only teams joined by the current user",
+      "title_zh": "仅列出当前用户已加入的团队",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[rainbond_query_teams]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceTeamQueryTests.test_query_teams_only_lists_teams_joined_by_current_user"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.team.create-invalid-namespace",
       "title": "Reject team creation with an invalid namespace name",
       "title_zh": "创建团队时拒绝非法命名空间",

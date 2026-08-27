@@ -25,6 +25,36 @@ class Obj(object):
         self.__dict__.update(kwargs)
 
 
+class MCPQueryServiceTeamQueryTests(SimpleTestCase):
+
+    # capability_id: console.team-query.current-user-membership
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_teams")
+    @patch("console.services.mcp_query_service.team_services.get_teams_region_by_user_id")
+    def test_query_teams_only_lists_teams_joined_by_current_user(self, joined_teams_mock, enterprise_teams_mock):
+        user = Obj(user_id=2, enterprise_id="eid-1", is_enterprise_admin=False)
+        joined_teams_mock.return_value = [
+            {"team_id": "team-1", "team_name": "joined-one"},
+            {"team_id": "team-2", "team_name": "joined-two"},
+            {"team_id": "team-3", "team_name": "joined-three"},
+        ]
+
+        result = mcp_query_service.call_tool(user, "rainbond_query_teams", {
+            "enterprise_id": "eid-1",
+            "query": "joined",
+            "page": 2,
+            "page_size": 2,
+        })
+
+        self.assertEqual(result, {
+            "items": [{"team_id": "team-3", "team_name": "joined-three"}],
+            "total": 3,
+            "page": 2,
+            "page_size": 2,
+        })
+        joined_teams_mock.assert_called_once_with("eid-1", user, "joined", get_region=True)
+        enterprise_teams_mock.assert_not_called()
+
+
 class MCPQueryServiceToolVisibilityTests(SimpleTestCase):
 
     # capability_id: console.package-upload.rainskills-tool-visibility
