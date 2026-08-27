@@ -7016,6 +7016,24 @@
       "status": "active"
     },
     {
+      "id": "console.market-app.manual-build-preserves-port-alias",
+      "title": "Preserve marketplace port aliases during manual builds",
+      "title_zh": "手动构建保留应用市场端口别名",
+      "interface_type": "workflow",
+      "interface": "console.services.app_actions.app_deploy.AppDeployService.deploy / MarketService.update_port_data",
+      "code_paths": [
+        "console/services/app_actions/app_deploy.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_deploy_test.py",
+          "selector": "MarketServiceBuildBoundaryRegressionTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.market-app.restore-preserves-volume-capacity-on-storage-fallback",
       "title": "Market restore preserves volume capacity when storage type falls back",
       "title_zh": "市场恢复在存储类型回退时保留卷容量",

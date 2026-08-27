@@ -80,6 +80,14 @@ class AppDeployService(object):
 
         self.impl.pre_action()
 
+    @staticmethod
+    def _should_sync_market_properties(service: TenantServiceInfo, version: Optional[str]) -> bool:
+        """Only reconcile market template properties for an explicit version upgrade."""
+        if service.service_source != "market" or not version:
+            return False
+        service_source = service_source_repo.get_service_source(service.tenant_id, service.service_id)
+        return service_source is None or service_source.version != version
+
     def get_async_action(self) -> int:
         return self.impl.get_async_action()
 
@@ -114,7 +122,11 @@ class AppDeployService(object):
         """
         if not check_account_quota(tenant.creater, service.service_region, app_manage_service.ResourceOperationDeploy):
             raise ServiceHandleException(msg="not enough quota", error_code=20002)
-        self.pre_deploy_action(tenant, service, version)
+        # AppDeployService is a module-level singleton. Reset the implementation for
+        # every request so a previous market upgrade cannot affect a normal build.
+        self.impl = OtherService()
+        if self._should_sync_market_properties(service, version):
+            self.pre_deploy_action(tenant, service, version)
 
         return self.execute(tenant, service, user, version, committer_name, oauth_instance=oauth_instance)
 
@@ -613,26 +625,32 @@ class MarketService(object):
         }
         return result
 
-    def _create_envs_4_ports(self, port: dict) -> List[dict]:
+    def _create_envs_4_ports(self, port: dict, use_legacy_default_alias: bool = False) -> List[dict]:
         container_port = int(port["container_port"])
-        port_alias = self.service.service_alias.upper()
+        port_alias = port.get("port_alias")
+        if use_legacy_default_alias or not port_alias:
+            port_alias = self.service.service_alias.upper() + str(port["container_port"])
         host_env = {
             "name": "连接地址",
-            "attr_name": port_alias + str(port["container_port"]) + "_HOST",
+            "attr_name": port_alias + "_HOST",
             "attr_value": "127.0.0.1",
             "is_change": False,
         }
         port_env = {
             "name": "端口",
-            "attr_name": port_alias + str(port["container_port"]) + "_PORT",
+            "attr_name": port_alias + "_PORT",
             "attr_value": container_port,
             "is_change": False,
         }
         return [host_env, port_env]
 
-    def update_port_data(self, port: dict) -> None:
+    def update_port_data(self, port: dict, existing_port: Any = None) -> None:
         container_port = int(port["container_port"])
-        port_alias = self.service.service_alias.upper()
+        port_alias = port.get("port_alias")
+        if not port_alias and existing_port:
+            port_alias = existing_port.port_alias
+        if not port_alias:
+            port_alias = self.service.service_alias.upper()
         k8s_service_name = port.get("k8s_service_name", self.service.service_alias)
         if k8s_service_name:
             filter_port = port_repo.get_by_k8s_service_name(self.tenant.tenant_id, k8s_service_name)
@@ -652,14 +670,17 @@ class MarketService(object):
         add = ports.get("add", [])
         envs: TypingDict[str, list] = {"add": []}
         for port in add:
+            use_legacy_default_alias = not port.get("port_alias")
             self.update_port_data(port)
             port_repo.add_service_port(**port)
             if not port["is_inner_service"]:
                 continue
-            envs["add"].extend(self._create_envs_4_ports(port))
+            envs["add"].extend(self._create_envs_4_ports(port, use_legacy_default_alias))
         upd = ports.get("upd", [])
         for port in upd:
-            self.update_port_data(port)
+            existing_port = port_repo.get_service_port_by_port(
+                self.tenant.tenant_id, self.service.service_id, int(port["container_port"]))
+            self.update_port_data(port, existing_port)
             port_repo.update(**port)
         if not envs["add"]:
             return
@@ -674,13 +695,16 @@ class MarketService(object):
         add = ports.get("add", [])
         envs: TypingDict[str, list] = {"add": []}
         for port in add:
+            use_legacy_default_alias = not port.get("port_alias")
             self.update_port_data(port)
             if not port["is_inner_service"]:
                 continue
-            envs["add"].extend(self._create_envs_4_ports(port))
+            envs["add"].extend(self._create_envs_4_ports(port, use_legacy_default_alias))
         upd = ports.get("upd", [])
         for port in upd:
-            self.update_port_data(port)
+            existing_port = port_repo.get_service_port_by_port(
+                self.tenant.tenant_id, self.service.service_id, int(port["container_port"]))
+            self.update_port_data(port, existing_port)
         add_body = {"port": add, "enterprise_id": self.tenant.enterprise_id}
         region_api.add_service_port(self.service.service_region, self.tenant.tenant_name, self.service.service_alias, add_body)
         upd_body = {"port": upd, "enterprise_id": self.tenant.enterprise_id}
