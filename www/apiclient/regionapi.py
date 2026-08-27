@@ -2799,6 +2799,16 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._delete(url, self.default_headers, body=json.dumps(data), region=region_info.region_name, timeout=20)
         return res, body
 
+    def get_app_resource_delete_status(self, enterprise_id: str, region: str,
+                                       data: dict) -> Tuple[Any, Optional[Dict[str, Any]]]:
+        region_info = self.get_enterprise_region_info(enterprise_id, region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url += "/v2/cluster/k8s-resource-delete-status"
+        res, body = self._post(url, self.default_headers, body=json.dumps(data), region=region_info.region_name, timeout=10)
+        return res, body
+
     def sync_k8s_resources(self, tenant_name: str, region_name: str, data: dict) -> Tuple[Any, Optional[Dict[str, Any]]]:
         url, token = self.__get_region_access_info(tenant_name, region_name)
         url = url + "/v2/cluster/sync-k8s-resources"

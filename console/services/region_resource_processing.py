@@ -110,7 +110,8 @@ class RegionResource(object):
                     kind=k8s_resource["kind"],
                     content=k8s_resource["content"],
                     state=k8s_resource["state"],
-                    error_overview=k8s_resource["error_overview"]))
+                    error_overview=k8s_resource["error_overview"],
+                    region_resource_id=k8s_resource.get("resource_id") or k8s_resource.get("ID")))
         k8s_resources_repo.bulk_create(app_k8s_resource_list)
 
     def create_components(self, application: Any, components: Any, tenant: Any,

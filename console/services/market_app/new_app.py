@@ -32,7 +32,8 @@ from console.repositories.k8s_attribute import k8s_attribute_repo
 from console.repositories.k8s_resources import k8s_resources_repo
 # model
 from www.models.main import ServiceGroup
-from console.models.main import K8sResource
+from console.exception.main import ServiceHandleException
+from console.models.main import K8S_RESOURCE_DELETE_STATUS_ACTIVE, K8sResource
 # utils
 from www.apiclient.regionapi import RegionInvokeApi
 
@@ -281,7 +282,14 @@ class NewApp(object):
         old_resources = k8s_resources_repo.list_by_app_id(self.app_id)
         old_resources_map = {r.name + r.kind: r for r in old_resources}
         for rs in self.k8s_resources:
-            if old_resources_map.get(rs.name + rs.kind):
+            old_resource = old_resources_map.get(rs.name + rs.kind)
+            if old_resource:
+                delete_status = getattr(old_resource, "delete_status", K8S_RESOURCE_DELETE_STATUS_ACTIVE)
+                if delete_status != K8S_RESOURCE_DELETE_STATUS_ACTIVE:
+                    raise ServiceHandleException(
+                        "k8s resource cleanup is pending",
+                        "Kubernetes 资源正在删除或删除失败，请先完成清理后再安装或升级",
+                        status_code=409)
                 continue
             resources.append(
                 K8sResource(
@@ -291,6 +299,7 @@ class NewApp(object):
                     content=rs.content,
                     state=rs.state,
                     error_overview=rs.error_overview,
+                    region_resource_id=getattr(rs, "region_resource_id", None),
                 ))
         k8s_resources_repo.bulk_create(resources)
 

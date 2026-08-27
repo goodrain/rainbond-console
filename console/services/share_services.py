@@ -31,6 +31,7 @@ from console.repositories.app_config import domain_repo, configuration_repo, por
 from console.repositories.label_repo import service_label_repo
 from console.repositories.label_repo import label_repo
 from console.repositories.k8s_attribute import k8s_attribute_repo
+from console.models.main import K8S_RESOURCE_DELETE_STATUS_ACTIVE
 from console.repositories.k8s_resources import k8s_resources_repo
 from console.services.app import app_market_service
 from console.services.app_config import component_service_monitor
@@ -74,7 +75,17 @@ class ShareService(object):
         service_list = share_repo.get_service_list_by_group_id(team=team, group_id=group_id)
         # 过滤掉 kubeblocks 类型的组件
         service_list = [s for s in service_list if not is_kubeblocks(s.extend_method)]
-        k8s_resources_list = k8s_resources_repo.list_by_app_id(group_id)
+        k8s_resources_list = list(k8s_resources_repo.list_by_app_id(group_id))
+        if any(
+                getattr(resource, "delete_status", K8S_RESOURCE_DELETE_STATUS_ACTIVE) != K8S_RESOURCE_DELETE_STATUS_ACTIVE
+                for resource in k8s_resources_list):
+            return {
+                "code": 400,
+                "success": False,
+                "msg_show": "Kubernetes 资源正在删除或删除失败，请先完成清理后再发布。",
+                "list": list(),
+                "bean": dict(),
+            }
         data = {"code": 400, "success": False, "msg_show": "当前应用内无组件和k8s资源", "list": list(), "bean": dict()}
         if k8s_resources_list:
             data = {"code": 200, "success": True, "msg_show": "应用可以发布。", "list": list(), "bean": dict()}

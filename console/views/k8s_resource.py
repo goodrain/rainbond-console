@@ -34,13 +34,14 @@ class AppK8ResourceView(ApplicationView):
         resource_id = request.data.get("id")
         k8s_resource_service.delete_k8s_resource(self.enterprise.enterprise_id, self.tenant_name, str(self.app_id),
                                                  self.region_name, name, resource_id)  # type: ignore[arg-type]
-        return Response(general_message(200, "success", "删除成功"))
+        return Response(general_message(200, "success", "删除请求已提交"))
 
 
 class AppK8sResourceListView(ApplicationView):
     def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
-        k8s_resource = k8s_resource_service.list_by_app_id(self.app_id)
-        k8s_dict = k8s_resource.values()
+        k8s_resource_service.reconcile_delete_statuses(
+            self.enterprise.enterprise_id, self.tenant_name, str(self.app_id), self.region_name)
+        k8s_dict = k8s_resource_service.list_for_display(self.app_id)
         return Response(general_message(200, "success", "查询成功", list=k8s_dict))
 
     def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
@@ -72,4 +73,4 @@ class AppK8sResourceListView(ApplicationView):
         resource_ids = request.data.get("ids")
         k8s_resource_service.batch_delete_k8s_resource(self.enterprise.enterprise_id, self.tenant_name, str(self.app_id),
                                                        self.region_name, resource_ids)
-        return Response(general_message(200, "success", "删除成功"))
+        return Response(general_message(200, "success", "删除请求已提交"))

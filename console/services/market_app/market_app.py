@@ -2,7 +2,7 @@
 import datetime
 import json
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from django.db import transaction
 
@@ -26,7 +26,8 @@ from console.constants import PluginMetaType
 from console.constants import PluginInjection
 # model
 from www.models.main import ServiceDomain
-from console.models.main import RegionConfig
+from console.exception.main import ServiceHandleException
+from console.models.main import K8S_RESOURCE_DELETE_STATUS_ACTIVE, RegionConfig
 # www
 from www.apiclient.regionapi import RegionInvokeApi
 from console.repositories.region_app import region_app_repo
@@ -390,6 +391,11 @@ class MarketApp(object):
         region_app_id = region_app_repo.get_region_app_id(self.region_name, self.app.app_id)  # type: ignore[attr-defined]
         # NOTE: self.app is defined in subclasses (AppUpgrade, AppRestore) but not in MarketApp base
         for k8s_resource in app.k8s_resources:
+            if getattr(k8s_resource, "delete_status", K8S_RESOURCE_DELETE_STATUS_ACTIVE) != K8S_RESOURCE_DELETE_STATUS_ACTIVE:
+                raise ServiceHandleException(
+                    "k8s resource cleanup is pending",
+                    "Kubernetes 资源正在删除或删除失败，请先完成清理后再安装或升级",
+                    status_code=409)
             resource = {
                 "name": k8s_resource.name,
                 "app_id": region_app_id,
@@ -411,6 +417,8 @@ class MarketApp(object):
                 k8s_resource.content = resource_statuses[resource_key]["content"]
                 k8s_resource.state = resource_statuses[resource_key]["state"]
                 k8s_resource.error_overview = resource_statuses[resource_key]["error_overview"]
+                k8s_resource.region_resource_id = resource_statuses[resource_key].get(
+                    "resource_id") or resource_statuses[resource_key].get("ID")
         if isinstance(app, NewApp):
             self.new_app.k8s_resources = app.k8s_resources
 
