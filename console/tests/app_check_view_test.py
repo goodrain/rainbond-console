@@ -90,11 +90,11 @@ class AppCheckSourceDiagnosticTests(TestCase):
         with mock.patch("console.views.app_create.app_check.app_check_service.get_service_check_info",
                         return_value=(200, "success", data)), \
                 mock.patch("console.views.app_create.app_check.app_check_service.wrap_service_check_info",
-                           return_value={"check_status": "failure", "error_infos": data["error_infos"], "service_info": []}), \
-                mock.patch(
+                           return_value={"check_status": "failure", "error_infos": data["error_infos"], "service_info": []}):
+            with mock.patch(
                     "console.views.app_create.app_check.enterprise_first_deploy_service.safe_report_source_check_failure"
-                ) as mock_report:
-            response = view.get(request)
+            ) as mock_report:
+                response = view.get(request)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["data"]["bean"]["check_status"], "failure")
@@ -103,3 +103,68 @@ class AppCheckSourceDiagnosticTests(TestCase):
         self.assertEqual(kwargs["reason"], "获取代码超时 请确认源码仓库能否正常访问")
         self.assertEqual(kwargs["source_context"]["git_url"], "https://git.example.com/demo.git")
         self.assertEqual(kwargs["source_context"]["check_uuid"], "check-1")
+
+
+class AppCheckMultiModuleLanguageTests(TestCase):
+    def get_multi_module_check(self, language, check_status="success", build_strategy="slug"):
+        view = AppCheck()
+        save = mock.Mock()
+        view.tenant = Obj(tenant_name="demo-team", enterprise_id="eid-1")
+        view.service = Obj(
+            service_region="rainbond",
+            service_id="svc-1",
+            service_alias="grsource",
+            service_cname="源码组件",
+            service_source="source_code",
+            code_from="git",
+            git_url="https://git.example.com/demo.git",
+            code_version="master",
+            server_type="git",
+            create_status="checking",
+            language="",
+            build_strategy=build_strategy,
+            save=save,
+        )
+        view.app = Obj(ID=12, group_name="demo-app")
+        data = {
+            "check_status": check_status,
+            "service_info": [
+                {"language": language, "service_name": "service-a"},
+                {"language": language, "service_name": "service-b"},
+            ],
+        }
+        request = RequestFactory().get("/console/check", {"check_uuid": "check-1"})
+
+        with mock.patch("console.views.app_create.app_check.app_check_service.get_service_check_info",
+                        return_value=(200, "success", data)), \
+                mock.patch("console.views.app_create.app_check.app_check_service.wrap_service_check_info",
+                           return_value=data), \
+                mock.patch("console.views.app_create.app_check.app_check_service.save_service_check_info") as mock_save_info:
+            response = view.get(request)
+
+        return view.service, response, save, mock_save_info
+
+    def test_get_persists_only_language_for_successful_java_maven_multi_module_check(self):
+        service, response, save, mock_save_info = self.get_multi_module_check("Java-maven")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(service.language, "Java-maven")
+        self.assertEqual(service.build_strategy, "slug")
+        save.assert_called_once_with(update_fields=["language"])
+        mock_save_info.assert_not_called()
+
+    def test_get_does_not_persist_language_for_other_multi_module_projects(self):
+        service, response, save, mock_save_info = self.get_multi_module_check("Python")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(service.language, "")
+        save.assert_not_called()
+        mock_save_info.assert_not_called()
+
+    def test_get_does_not_persist_java_language_before_check_succeeds(self):
+        service, response, save, mock_save_info = self.get_multi_module_check("Java-maven", check_status="checking")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(service.language, "")
+        save.assert_not_called()
+        mock_save_info.assert_not_called()
