@@ -127,7 +127,7 @@ from console.views.oauth import (EnterpriseOauthService, OauthConfig, OAuthGitCo
 from console.views.operation_log import OperationLogView, TeamOperationLogView, AppOperationLogView
 from console.views.perms import (PermsInfoLView, TeamRolePermsRUDView, TeamRolesLCView, TeamRolesPermsLView, TeamRolesRUDView,
                                  TeamUserPermsLView, TeamUserRolesRUDView, TeamUsersRolesLView)
-from console.views.plugin.plugin_config import (ConfigPluginManageView, ConfigPreviewView)
+from console.views.plugin.plugin_config import (ConfigPluginManageView, ConfigPreviewView, PluginVolumeOptionsView)
 from console.views.plugin.plugin_create import (DefaultPluginCreateView, PluginCreateView)
 from console.views.plugin.plugin_info import (AllPluginBaseInfoView, AllPluginVersionInfoView, PluginBaseInfoView,
                                               PluginEventLogView, PluginUsedServiceView, PluginVersionInfoView)
@@ -853,6 +853,9 @@ urlpatterns = [
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/plugins/default$', DefaultPluginCreateView.as_view(), perms.TEAM_PLUGIN_MANAGE),
     # 获取租户下所有插件基础信息
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/plugins/all$', AllPluginBaseInfoView.as_view(), perms.TEAM_PLUGIN_MANAGE),
+    # 获取当前数据中心可用的存储类型
+    re_path(r'^teams/(?P<tenantName>[\w\-]+)/plugins/volume-opts$', PluginVolumeOptionsView.as_view(),
+            perms.TEAM_PLUGIN_MANAGE),
     # 查询某个插件的基础信息
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/plugins/(?P<plugin_id>[\w\-]+)$', PluginBaseInfoView.as_view(),
         perms.TEAM_PLUGIN_MANAGE),
