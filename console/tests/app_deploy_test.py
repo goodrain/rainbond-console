@@ -3,6 +3,7 @@ import collections
 import json
 import os
 import sys
+import threading
 from types import ModuleType
 from unittest import TestCase, mock
 
@@ -100,7 +101,16 @@ class MarketServiceBuildBoundaryRegressionTests(TestCase):
 
         self.assertEqual((200, "success", "event-1"), result)
         pre_deploy_action.assert_not_called()
-        execute.assert_called_once_with(tenant, service, user, "1.0.0", None, oauth_instance=None)
+        execute.assert_called_once_with(
+            tenant,
+            service,
+            user,
+            "1.0.0",
+            None,
+            oauth_instance=None,
+            impl=mock.ANY,
+        )
+        self.assertIsInstance(execute.call_args[1]["impl"], app_deploy_module.OtherService)
 
     def test_explicit_new_market_version_runs_property_sync(self):
         tenant = mock.Mock(creater="creator", tenant_id="tenant-1")
@@ -108,17 +118,33 @@ class MarketServiceBuildBoundaryRegressionTests(TestCase):
         user = mock.Mock()
         service_source = mock.Mock(version="1.0.0")
         deploy_service = app_deploy_module.AppDeployService()
+        market_impl = mock.Mock()
 
         with mock.patch.object(app_deploy_module, "check_account_quota", return_value=True), \
                 mock.patch.object(
                     app_deploy_module.service_source_repo,
                     "get_service_source",
                     return_value=service_source), \
-                mock.patch.object(deploy_service, "pre_deploy_action") as pre_deploy_action, \
-                mock.patch.object(deploy_service, "execute", return_value=(200, "success", "event-1")):
+                mock.patch.object(
+                    deploy_service,
+                    "pre_deploy_action",
+                    return_value=market_impl) as pre_deploy_action, \
+                mock.patch.object(
+                    deploy_service,
+                    "execute",
+                    return_value=(200, "success", "event-1")) as execute:
             deploy_service.deploy(tenant, service, user, version="1.1.0")
 
         pre_deploy_action.assert_called_once_with(tenant, service, "1.1.0")
+        execute.assert_called_once_with(
+            tenant,
+            service,
+            user,
+            "1.1.0",
+            None,
+            oauth_instance=None,
+            impl=market_impl,
+        )
 
     def test_template_port_alias_is_preserved_during_market_property_sync(self):
         market_service = self._market_service()
@@ -166,3 +192,77 @@ class MarketServiceBuildBoundaryRegressionTests(TestCase):
         envs = market_service._create_envs_4_ports(port)
 
         self.assertEqual(["GRABCD8080_HOST", "GRABCD8080_PORT"], [env["attr_name"] for env in envs])
+
+
+class AppDeployConcurrencyTestCase(TestCase):
+    def test_concurrent_market_upgrade_and_ordinary_build_keep_their_own_actions(self):
+        deploy_service = app_deploy_module.AppDeployService()
+        market_tenant = mock.Mock(creater="market-creator")
+        ordinary_tenant = mock.Mock(creater="ordinary-creator")
+        market_service = mock.Mock(service_id="market-service", service_source="market")
+        ordinary_service = mock.Mock(service_id="ordinary-service", service_source="source_code")
+        user = mock.Mock()
+
+        market_pre_action_started = threading.Event()
+        release_market_pre_action = threading.Event()
+        fake_market_strategy = mock.Mock()
+
+        def wait_while_ordinary_build_runs():
+            market_pre_action_started.set()
+            release_market_pre_action.wait(2)
+
+        fake_market_strategy.pre_action.side_effect = wait_while_ordinary_build_runs
+        fake_market_strategy.get_async_action.return_value = app_deploy_module.AsyncAction.UPDATE.value
+
+        results = {}
+        errors = []
+
+        def run_deploy(result_key, tenant, service, version):
+            try:
+                results[result_key] = deploy_service.deploy(tenant, service, user, version)
+            except BaseException as exc:  # pragma: no cover - surfaced by the assertion below
+                errors.append(exc)
+
+        with mock.patch.object(app_deploy_module, "check_account_quota", return_value=True), \
+                mock.patch.object(
+                    deploy_service,
+                    "_should_sync_market_properties",
+                    side_effect=lambda service, version: service is market_service), \
+                mock.patch.object(
+                    app_deploy_module,
+                    "MarketService",
+                    return_value=fake_market_strategy), \
+                mock.patch.object(
+                    app_deploy_module.app_manage_service,
+                    "deploy",
+                    side_effect=lambda tenant, service, user, oauth_instance=None:
+                    (200, "success", "build-{}".format(service.service_id))) as deploy, \
+                mock.patch.object(
+                    app_deploy_module.app_manage_service,
+                    "upgrade",
+                    side_effect=lambda tenant, service, user, committer_name, oauth_instance=None:
+                    (200, "success", "update-{}".format(service.service_id))) as upgrade:
+            market_thread = threading.Thread(
+                target=run_deploy,
+                args=("market", market_tenant, market_service, "2.0.0"),
+            )
+            market_thread.start()
+            self.assertTrue(market_pre_action_started.wait(1))
+
+            ordinary_thread = threading.Thread(
+                target=run_deploy,
+                args=("ordinary", ordinary_tenant, ordinary_service, None),
+            )
+            ordinary_thread.start()
+            ordinary_thread.join(2)
+            self.assertFalse(ordinary_thread.is_alive())
+
+            release_market_pre_action.set()
+            market_thread.join(2)
+            self.assertFalse(market_thread.is_alive())
+
+        self.assertEqual([], errors)
+        self.assertEqual((200, "success", "build-ordinary-service"), results["ordinary"])
+        self.assertEqual((200, "success", "update-market-service"), results["market"])
+        deploy.assert_called_once_with(ordinary_tenant, ordinary_service, user, oauth_instance=None)
+        upgrade.assert_called_once_with(market_tenant, market_service, user, None, oauth_instance=None)

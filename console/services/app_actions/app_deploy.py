@@ -72,13 +72,15 @@ class AppDeployService(object):
     def set_impl(self, impl: Any) -> None:
         self.impl = impl
 
-    def pre_deploy_action(self, tenant: Tenants, service: TenantServiceInfo, version: Optional[str] = None) -> None:
+    def pre_deploy_action(self, tenant: Tenants, service: TenantServiceInfo, version: Optional[str] = None) -> Any:
         """perform pre-deployment actions"""
+        impl: Any = OtherService()
         if service.service_source == "market":
             # TODO: set app template init MarketService
-            self.impl = MarketService(tenant, service, version)
+            impl = MarketService(tenant, service, version)
 
-        self.impl.pre_action()
+        impl.pre_action()
+        return impl
 
     @staticmethod
     def _should_sync_market_properties(service: TenantServiceInfo, version: Optional[str]) -> bool:
@@ -98,8 +100,9 @@ class AppDeployService(object):
                 is_upgrade: Any,
                 version: Optional[str],
                 committer_name: Optional[str] = None,
-                oauth_instance: Any = None) -> Tuple[Any, Any, Any]:
-        async_action = self.get_async_action()
+                oauth_instance: Any = None,
+                impl: Any = None) -> Tuple[Any, Any, Any]:
+        async_action = impl.get_async_action() if impl is not None else self.get_async_action()
         logger.info("service id: {}; async action is '{}'".format(service.service_id, async_action))
         if async_action == AsyncAction.BUILD.value:
             code, msg, event_id = app_manage_service.deploy(tenant, service, user, oauth_instance=oauth_instance)
@@ -122,13 +125,12 @@ class AppDeployService(object):
         """
         if not check_account_quota(tenant.creater, service.service_region, app_manage_service.ResourceOperationDeploy):
             raise ServiceHandleException(msg="not enough quota", error_code=20002)
-        # AppDeployService is a module-level singleton. Reset the implementation for
-        # every request so a previous market upgrade cannot affect a normal build.
-        self.impl = OtherService()
+        impl: Any = OtherService()
         if self._should_sync_market_properties(service, version):
-            self.pre_deploy_action(tenant, service, version)
+            impl = self.pre_deploy_action(tenant, service, version)
 
-        return self.execute(tenant, service, user, version, committer_name, oauth_instance=oauth_instance)
+        return self.execute(
+            tenant, service, user, version, committer_name, oauth_instance=oauth_instance, impl=impl)
 
 
 class OtherService(object):
