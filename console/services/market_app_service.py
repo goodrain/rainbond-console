@@ -1356,7 +1356,7 @@ class MarketAppService(object):
             release_ver_nums.extend(not_release_ver_nums)
             for ver_num in release_ver_nums:
                 versions.append(app_with_versions[app.app_id][ver_num])
-            app.versions_info = list(reversed(versions))
+            app.versions_info = versions
 
     def get_visiable_apps_v2(self, tenant: Tenants, scope: str, app_name: str, dev_status: str, page: int,
                              page_size: int) -> Any:

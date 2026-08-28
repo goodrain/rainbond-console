@@ -87,6 +87,25 @@ class AppCheckService(object):
             "min_cpu": self.DETECTED_DEFAULT_CPU_MILLI,
         }
 
+    @staticmethod
+    def _uses_java_cnb_build_envs(service: TenantServiceInfo) -> bool:
+        if str(getattr(service, "build_strategy", "") or "").strip().lower() != "cnb":
+            return False
+        policy = cnb_build_utils.get_cnb_policy_definition(service.language)
+        return bool(policy and policy.get("policy_key") == "java")
+
+    @staticmethod
+    def _normalize_java_cnb_envs_for_save(service: TenantServiceInfo, envs: Optional[list]) -> Optional[list]:
+        if not envs or not AppCheckService._uses_java_cnb_build_envs(service):
+            return envs
+
+        env_dict = {env["name"]: env.get("value", "") for env in envs if env.get("name")}
+        normalized_env_dict = cnb_build_utils.normalize_java_cnb_env_dict_for_save(env_dict, service.language,
+                                                                                   service.build_strategy)
+        if normalized_env_dict == env_dict:
+            return envs
+        return [{"name": name, "value": value} for name, value in normalized_env_dict.items()]
+
     def __get_service_region_type(self, service_source: str) -> Optional[str]:  # type: ignore[return]
         # NOTE: implicit None fall-through for unknown service_source (e.g. MARKET,
         # DOCKER_COMPOSE). Return is Optional; downstream stores it into body dict.
@@ -398,7 +417,7 @@ class AppCheckService(object):
             service_image = image["name"] + ":" + image["tag"]
             service.image = service_image
             service.version = image["tag"]
-        envs = service_info.get("envs", None)
+        envs = self._normalize_java_cnb_envs_for_save(service, service_info.get("envs", None))
         ports = service_info.get("ports", None)
         volumes = service_info.get("volumes", None)
         service_runtime_os = service_info.get("os", "linux")
@@ -446,6 +465,7 @@ class AppCheckService(object):
 
     def __save_env(self, tenant: Tenants, service: TenantServiceInfo, envs: Optional[list]) -> None:
         if envs:
+            uses_java_cnb_build_envs = self._uses_java_cnb_build_envs(service)
             # 删除原有env
             env_var_service.delete_service_env(tenant, service)
             # 删除原有的build类型环境变量
@@ -454,10 +474,13 @@ class AppCheckService(object):
                                    'SERVICE_EXTEND_METHOD', 'SLUG_URL', 'DEPEND_SERVICE', 'REVERSE_DEPEND_SERVICE', 'POD_ORDER',
                                    'PATH', 'POD_NET_IP')
             for env in envs:
+                is_java_cnb_build_env = False
+                if uses_java_cnb_build_envs:
+                    is_java_cnb_build_env = env["name"] in cnb_build_utils.JAVA_CNB_BP_KEYS
                 if env["name"] in SENSITIVE_ENV_NAMES:
                     continue
                 # BUILD_开头的env保存为build类型的环境变量
-                elif env["name"].startswith("BUILD_"):
+                elif env["name"].startswith("BUILD_") or is_java_cnb_build_env:
                     code, msg, data = env_var_service.add_service_build_env_var(tenant, service, 0, env["name"], env["name"],
                                                                                 env["value"], True)
                     if code != 200:

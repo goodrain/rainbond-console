@@ -276,6 +276,7 @@
 | console.component.storage-update-volume | 按当前路径更新组件存储卷 | active | regression | console.services.mcp_query_service.call_tool[rainbond_manage_component_storage#update_volume] | console/tests/mcp_query_storage_ops_test.py::ManageComponentStorageTests.test_update_volume_can_resolve_target_by_current_volume_path |
 | console.component.storage-update-volume-capacity | Component Storage Update Volume Capacity | active | regression | console.services.mcp_query_service.call_tool[rainbond_manage_component_storage] | console/tests/mcp_query_storage_ops_test.py::ManageComponentStorageTests.test_update_volume_allows_capacity_change_without_path_change |
 | console.component.summary | 查看组件概览 | active | regression | console.services.mcp_query_service.call_tool[rainbond_get_component_summary] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_get_component_summary_returns_aggregated_info |
+| console.component.tcp-port-close-release | 数据中心路由释放后清理 TCP 端口映射 | active | regression | console.services.app_config.port_service.AppPortService.manage_port | console/tests/port_service_delete_test.py::PortServiceDeleteTests::test_close_tcp_port_releases_all_region_routes_before_local_mapping<br>console/tests/port_service_delete_test.py::PortServiceDeleteTests::test_close_tcp_port_with_no_region_routes_deletes_stale_local_mapping<br>console/tests/port_service_delete_test.py::PortServiceDeleteTests::test_close_tcp_port_preserves_local_mapping_when_region_query_fails<br>console/tests/port_service_delete_test.py::PortServiceDeleteTests::test_close_tcp_port_preserves_local_mapping_when_region_delete_fails |
 | console.component.volume-delete-blocks-shared-mount | 被共享挂载时阻止删除组件存储卷 | active | regression | console.services.app_config.volume_service.AppVolumeService.delete_service_volume_by_id | console/tests/app_config_volume_delete_test.py::AppVolumeDeleteTests.test_delete_service_volume_rejects_shared_mount_even_when_forced |
 | console.dependency.invalid-container-port | Dependency Invalid Container Port | active | regression | console.services.app_config.app_relation_service.AppServiceRelationService | console/tests/app_relation_service_test.py::AppRelationServiceTests.test_add_service_dependency_rejects_unknown_dep_service_port |
 | console.deploy-diagnostics.offline-mode | 离线模式禁用部署诊断上报 | active | regression | console.services.enterprise_first_deploy_service.EnterpriseFirstDeployService | console/tests/enterprise_first_deploy_service_test.py::EnterpriseFirstDeployServiceTests.test_offline_mode_does_not_start_report_sweeper<br>console/tests/enterprise_first_deploy_service_test.py::EnterpriseFirstDeployServiceTests.test_online_mode_starts_report_sweeper<br>console/tests/enterprise_first_deploy_service_test.py::EnterpriseFirstDeployServiceTests.test_offline_mode_skips_report_request<br>console/tests/enterprise_first_deploy_service_test.py::EnterpriseFirstDeployServiceTests.test_offline_mode_does_not_create_deploy_tracking<br>console/tests/enterprise_first_deploy_service_test.py::EnterpriseFirstDeployServiceTests.test_offline_mode_does_not_persist_source_check_failure<br>console/tests/enterprise_first_deploy_service_test.py::EnterpriseFirstDeployServiceTests.test_offline_mode_marks_first_deploy_report_handled_without_thread<br>console/tests/enterprise_first_deploy_service_test.py::EnterpriseFirstDeployServiceTests.test_offline_mode_removes_unreported_deploy_attempt<br>console/tests/enterprise_first_deploy_service_test.py::EnterpriseFirstDeployServiceTests.test_offline_mode_forgets_unpersisted_report |
@@ -362,12 +363,15 @@
 | console.lang-version.proxy-upload | 代理旧版语言包上传接口 | active | regression | console.views.enterprise.UploadLongVersion.post | console/tests/lang_version_proxy_test.py::UploadLongVersionProxyViewTests |
 | console.logging.default-no-debug-noise | 默认控制台日志过滤调试噪音 | active | regression | goodrain_web.settings.LOGGING | console/tests/logging_config_test.py::LoggingConfigTests.test_default_logger_level_defaults_to_info<br>console/tests/logging_config_test.py::LoggingConfigTests.test_ip_formatter_uses_record_level_name |
 | console.market-app.create-template-scope-name | 按发布范围和团队检查应用市场模板重名 | active | regression | console.services.market_app_service.MarketAppService.create_rainbond_app | console/tests/market_app_service_test.py::MarketAppServiceCreateRainbondAppTests |
+| console.market-app.delete-version-endpoint | 删除应用市场应用版本 | active | regression | console.views.center_pool.apps.AppVersionUDView.delete | console/tests/market_app_service_test.py::CenterPoolAppVersionViewTests |
 | console.market-app.install-default-storage-class | 应用市场安装使用平台默认存储类 | active | regression | console.services.market_app.new_components.NewComponents._template_to_volumes | console/tests/market_app_storage_test.py::MarketAppDefaultStorageClassTests.test_resolve_market_default_volume_type_prefers_configured_storage_class<br>console/tests/market_app_storage_test.py::MarketAppDefaultStorageClassTests.test_template_to_volumes_uses_configured_default_storage_class |
 | console.market-app.install-unlimited-resources | 市场发布和安装保留不限制资源 | active | regression | console.services.share_services.ShareService.query_share_service_info / console.services.market_app.new_components.NewComponents._template_to_component / console.services.market_app_service.MarketAppService.__init_component_from_market_app / console.services.app_import_and_export_service.AppImportService.__normalize_import_component_template | console/tests/service_share_test.py::ShareServiceQueryResourceLimitTestCase.test_query_share_service_info_preserves_unlimited_resource_limits<br>console/tests/market_app_update_components_test.py::MarketAppNewComponentsResourceLimitTests.test_template_to_component_preserves_explicit_unlimited_cpu_and_memory<br>console/tests/market_app_service_test.py::MarketAppServiceResourceLimitTests.test_init_component_from_market_app_preserves_explicit_unlimited_cpu_and_memory<br>console/tests/app_import_and_export_service_test.py::AppImportServiceMetadataTestCase.test_save_enterprise_import_info_preserves_explicit_unlimited_resources |
 | console.market-app.local-snapshot-offline-upgrade | 离线模式检测本地快照升级 | active | regression | console.services.market_app_service.MarketAppService.get_market_apps_in_app | console/tests/market_app_service_test.py::MarketAppServiceOfflineUpgradeTests::test_local_snapshot_offline_upgrade_is_detected<br>console/tests/market_app_service_test.py::MarketAppServiceOfflineUpgradeTests::test_local_snapshot_versions_still_use_local_repository_when_offline |
+| console.market-app.manual-build-preserves-port-alias | 手动构建保留应用市场端口别名 | active | regression | console.services.app_actions.app_deploy.AppDeployService.deploy / MarketService.update_port_data | console/tests/app_deploy_test.py::MarketServiceBuildBoundaryRegressionTests |
 | console.market-app.restore-preserves-volume-capacity-on-storage-fallback | 市场恢复在存储类型回退时保留卷容量 | active | regression | console.services.market_app.new_components.NewComponents._template_to_volumes | console/tests/market_app_storage_test.py::MarketAppDefaultStorageClassTests.test_template_to_volumes_preserves_capacity_when_storage_type_changes |
 | console.market-app.restore-volume-capacity-helper | resolve_market_restore_volume_settings 在存储类型变化时保留容量 | active | regression | console.services.app_config.volume_service.AppVolumeService.resolve_market_restore_volume_settings | console/tests/market_app_storage_test.py::MarketAppDefaultStorageClassTests.test_resolve_market_restore_volume_settings_preserves_capacity_when_storage_type_changes |
 | console.market-app.upgrade-share-image-fallback | Market App Upgrade Share Image Fallback | active | regression | console.services.market_app.update_components | console/tests/market_app_update_components_test.py::MarketAppUpdateComponentsCompatibilityTests.test_create_update_components_falls_back_to_image_when_share_image_missing |
+| console.market-app.version-order-desc | 应用市场版本按新到旧排序 | active | regression | console.services.market_app_service.MarketAppService._patch_rainbond_app_versions | console/tests/market_app_service_test.py::MarketAppVersionOrderingTests |
 | console.market-app.vm-disk-imports-from-template | 市场应用安装从 VM 模板生成磁盘导入配置 | active | regression | console.services.market_app.new_components.NewComponents._template_to_k8s_attributes | console/tests/market_app_update_components_test.py::MarketAppNewComponentsVMK8sAttrsTests.test_template_to_k8s_attributes_backfills_vm_runtime_attrs_from_vm_block |
 | console.market-app.vm-runtime-status-guard | 虚拟机平台异常时禁止安装虚拟机模板 | active | regression | console.services.market_app_service.MarketAppService.install_app | console/tests/market_app_service_test.py::MarketAppServiceVMGuardTests |
 | console.market-app.vm-template-dynamic-pod-ip | 从应用模板创建虚拟机时使用动态 Pod IP | active | regression | console.services.market_app.new_components.NewComponents._template_to_k8s_attributes | console/tests/market_app_update_components_test.py::MarketAppNewComponentsVMK8sAttrsTests.test_template_to_k8s_attributes_drops_fixed_pod_ip_for_vm |
@@ -3304,6 +3308,16 @@
 - 代码路径: `console/services/mcp_query_service.py`
 - 测试路径: `console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_get_component_summary_returns_aggregated_info`
 
+### 数据中心路由释放后清理 TCP 端口映射
+
+- Capability ID: `console.component.tcp-port-close-release`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.app_config.port_service.AppPortService.manage_port`
+- 代码路径: `console/services/app_config/port_service.py`
+- 测试路径: `console/tests/port_service_delete_test.py::PortServiceDeleteTests::test_close_tcp_port_releases_all_region_routes_before_local_mapping`, `console/tests/port_service_delete_test.py::PortServiceDeleteTests::test_close_tcp_port_with_no_region_routes_deletes_stale_local_mapping`, `console/tests/port_service_delete_test.py::PortServiceDeleteTests::test_close_tcp_port_preserves_local_mapping_when_region_query_fails`, `console/tests/port_service_delete_test.py::PortServiceDeleteTests::test_close_tcp_port_preserves_local_mapping_when_region_delete_fails`
+
 ### 被共享挂载时阻止删除组件存储卷
 
 - Capability ID: `console.component.volume-delete-blocks-shared-mount`
@@ -4164,6 +4178,16 @@
 - 代码路径: `console/services/market_app_service.py`
 - 测试路径: `console/tests/market_app_service_test.py::MarketAppServiceCreateRainbondAppTests`
 
+### 删除应用市场应用版本
+
+- Capability ID: `console.market-app.delete-version-endpoint`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `view_endpoint`
+- 业务入口: `console.views.center_pool.apps.AppVersionUDView.delete`
+- 代码路径: `console/views/center_pool/apps.py`
+- 测试路径: `console/tests/market_app_service_test.py::CenterPoolAppVersionViewTests`
+
 ### 应用市场安装使用平台默认存储类
 
 - Capability ID: `console.market-app.install-default-storage-class`
@@ -4194,6 +4218,16 @@
 - 代码路径: `console/services/market_app_service.py`
 - 测试路径: `console/tests/market_app_service_test.py::MarketAppServiceOfflineUpgradeTests::test_local_snapshot_offline_upgrade_is_detected`, `console/tests/market_app_service_test.py::MarketAppServiceOfflineUpgradeTests::test_local_snapshot_versions_still_use_local_repository_when_offline`
 
+### 手动构建保留应用市场端口别名
+
+- Capability ID: `console.market-app.manual-build-preserves-port-alias`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `workflow`
+- 业务入口: `console.services.app_actions.app_deploy.AppDeployService.deploy / MarketService.update_port_data`
+- 代码路径: `console/services/app_actions/app_deploy.py`
+- 测试路径: `console/tests/app_deploy_test.py::MarketServiceBuildBoundaryRegressionTests`
+
 ### 市场恢复在存储类型回退时保留卷容量
 
 - Capability ID: `console.market-app.restore-preserves-volume-capacity-on-storage-fallback`
@@ -4223,6 +4257,16 @@
 - 业务入口: `console.services.market_app.update_components`
 - 代码路径: `console/services/market_app/update_components.py`
 - 测试路径: `console/tests/market_app_update_components_test.py::MarketAppUpdateComponentsCompatibilityTests.test_create_update_components_falls_back_to_image_when_share_image_missing`
+
+### 应用市场版本按新到旧排序
+
+- Capability ID: `console.market-app.version-order-desc`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.market_app_service.MarketAppService._patch_rainbond_app_versions`
+- 代码路径: `console/services/market_app_service.py`
+- 测试路径: `console/tests/market_app_service_test.py::MarketAppVersionOrderingTests`
 
 ### 市场应用安装从 VM 模板生成磁盘导入配置
 

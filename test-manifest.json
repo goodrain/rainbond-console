@@ -5216,6 +5216,36 @@
       "status": "active"
     },
     {
+      "id": "console.component.tcp-port-close-release",
+      "title": "Release TCP port mappings after Region routes",
+      "title_zh": "数据中心路由释放后清理 TCP 端口映射",
+      "interface_type": "service_method",
+      "interface": "console.services.app_config.port_service.AppPortService.manage_port",
+      "code_paths": [
+        "console/services/app_config/port_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/port_service_delete_test.py",
+          "selector": "PortServiceDeleteTests::test_close_tcp_port_releases_all_region_routes_before_local_mapping"
+        },
+        {
+          "path": "console/tests/port_service_delete_test.py",
+          "selector": "PortServiceDeleteTests::test_close_tcp_port_with_no_region_routes_deletes_stale_local_mapping"
+        },
+        {
+          "path": "console/tests/port_service_delete_test.py",
+          "selector": "PortServiceDeleteTests::test_close_tcp_port_preserves_local_mapping_when_region_query_fails"
+        },
+        {
+          "path": "console/tests/port_service_delete_test.py",
+          "selector": "PortServiceDeleteTests::test_close_tcp_port_preserves_local_mapping_when_region_delete_fails"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.component.volume-delete-blocks-shared-mount",
       "title": "Block deleting shared mounted component volumes",
       "title_zh": "被共享挂载时阻止删除组件存储卷",
@@ -6907,6 +6937,24 @@
       "status": "active"
     },
     {
+      "id": "console.market-app.delete-version-endpoint",
+      "title": "Delete a marketplace application version",
+      "title_zh": "删除应用市场应用版本",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.center_pool.apps.AppVersionUDView.delete",
+      "code_paths": [
+        "console/views/center_pool/apps.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/market_app_service_test.py",
+          "selector": "CenterPoolAppVersionViewTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.market-app.install-default-storage-class",
       "title": "Use platform default storage class for marketplace installs",
       "title_zh": "应用市场安装使用平台默认存储类",
@@ -6986,6 +7034,24 @@
       "status": "active"
     },
     {
+      "id": "console.market-app.manual-build-preserves-port-alias",
+      "title": "Preserve marketplace port aliases during manual builds",
+      "title_zh": "手动构建保留应用市场端口别名",
+      "interface_type": "workflow",
+      "interface": "console.services.app_actions.app_deploy.AppDeployService.deploy / MarketService.update_port_data",
+      "code_paths": [
+        "console/services/app_actions/app_deploy.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_deploy_test.py",
+          "selector": "MarketServiceBuildBoundaryRegressionTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.market-app.restore-preserves-volume-capacity-on-storage-fallback",
       "title": "Market restore preserves volume capacity when storage type falls back",
       "title_zh": "市场恢复在存储类型回退时保留卷容量",
@@ -7035,6 +7101,24 @@
         {
           "path": "console/tests/market_app_update_components_test.py",
           "selector": "MarketAppUpdateComponentsCompatibilityTests.test_create_update_components_falls_back_to_image_when_share_image_missing"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.market-app.version-order-desc",
+      "title": "Sort marketplace versions newest first",
+      "title_zh": "应用市场版本按新到旧排序",
+      "interface_type": "service_method",
+      "interface": "console.services.market_app_service.MarketAppService._patch_rainbond_app_versions",
+      "code_paths": [
+        "console/services/market_app_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/market_app_service_test.py",
+          "selector": "MarketAppVersionOrderingTests"
         }
       ],
       "test_type": "regression",

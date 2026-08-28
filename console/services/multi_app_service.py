@@ -4,6 +4,7 @@ from typing import Any, List, Tuple
 
 from django.db import transaction
 
+from console.exception.bcode import ErrK8sComponentNameExists
 from console.exception.main import AbortRequest
 from console.services.app_check_service import app_check_service
 from console.services.app_actions import app_manage_service
@@ -88,6 +89,9 @@ class MultiAppService(object):
                 return 400, rst, None
 
         for service_info in service_infos:
+            k8s_component_name = service_info.get("k8s_component_name", "")
+            if k8s_component_name and app_service.is_k8s_component_name_duplicate(group_id, k8s_component_name):
+                raise ErrK8sComponentNameExists
             code, msg_show, new_service = app_service \
                 .create_source_code_app(region_name, tenant, user,
                                         service.code_from,  # type: ignore[arg-type]
@@ -98,6 +102,7 @@ class MultiAppService(object):
                                         service.server_type,
                                         oauth_service_id=service.oauth_service_id,  # type: ignore[arg-type]
                                         git_full_name=service.git_full_name,
+                                        k8s_component_name=k8s_component_name,
                                         arch=service_info.get("arch", "amd64"))
             if code != 200:
                 raise AbortRequest("Multiple services; Service alias: {}; error creating service".format(service.service_alias),

@@ -67,25 +67,24 @@ class AppCheckServiceBuildStrategyTests(TestCase):
         self.service_helper = AppCheckService()
         self.tenant = DummyTenant()
 
-    def patch_side_effects(self):
+    def patch_side_effects(self, patch_save_env=True):
         stack = ExitStack()
-        stack.enter_context(patch.multiple(
-            self.service_helper,
-            _AppCheckService__save_compile_env=lambda *args, **kwargs: None,
-            _AppCheckService__save_env=lambda *args, **kwargs: None,
-            _AppCheckService__save_port=lambda *args, **kwargs: None,
-            _AppCheckService__save_volume=lambda *args, **kwargs: None,
-            sync_cnb_build_envs=lambda *args, **kwargs: None,
-        ))
-        stack.enter_context(patch.object(
-            app_check_service_module,
-            "source_build_state_service",
-            Mock(
-                build_snapshot=Mock(return_value={}),
-                save_detected_defaults=Mock(),
-                save_user_snapshot=Mock(),
-            )
-        ))
+        service_patches = {
+            "_AppCheckService__save_compile_env": lambda *args, **kwargs: None,
+            "_AppCheckService__save_port": lambda *args, **kwargs: None,
+            "_AppCheckService__save_volume": lambda *args, **kwargs: None,
+            "sync_cnb_build_envs": lambda *args, **kwargs: None,
+        }
+        if patch_save_env:
+            service_patches["_AppCheckService__save_env"] = lambda *args, **kwargs: None
+        stack.enter_context(patch.multiple(self.service_helper, **service_patches))
+        stack.enter_context(
+            patch.object(app_check_service_module, "source_build_state_service",
+                         Mock(
+                             build_snapshot=Mock(return_value={}),
+                             save_detected_defaults=Mock(),
+                             save_user_snapshot=Mock(),
+                         )))
         return stack
 
     def test_save_service_info_defaults_supported_language_to_cnb(self):
@@ -134,6 +133,105 @@ class AppCheckServiceBuildStrategyTests(TestCase):
             })
 
         self.assertEqual(service.build_strategy, "slug")
+
+    @patch.object(app_check_service_module, "env_var_service")
+    def test_save_service_info_normalizes_multi_module_java_cnb_envs(self, env_var_service):
+        service = DummyService(build_strategy="cnb")
+        env_var_service.add_service_build_env_var.return_value = (200, "success", Mock())
+        env_var_service.add_service_env_var.return_value = (200, "success", Mock())
+
+        with self.patch_side_effects(patch_save_env=False):
+            self.service_helper.save_service_info(
+                self.tenant, service, {
+                    "language":
+                    "Java-maven",
+                    "memory":
+                    256,
+                    "envs": [
+                        {
+                            "name": "BUILD_MAVEN_CUSTOM_GOALS",
+                            "value": "clean package -pl service-a -am"
+                        },
+                        {
+                            "name": "BUILD_MAVEN_CUSTOM_OPTS",
+                            "value": "-DskipTests"
+                        },
+                        {
+                            "name": "BUILD_MAVEN_BUILT_MODULE",
+                            "value": "service-a"
+                        },
+                        {
+                            "name": "BUILD_MAVEN_BUILT_ARTIFACT",
+                            "value": "service-a/target/app.jar"
+                        },
+                        {
+                            "name": "SPRING_PROFILES_ACTIVE",
+                            "value": "prod"
+                        },
+                    ],
+                })
+
+        saved_build_envs = {call.args[4]: call.args[5] for call in env_var_service.add_service_build_env_var.call_args_list}
+        self.assertEqual(
+            saved_build_envs, {
+                "BP_MAVEN_BUILD_ARGUMENTS": "clean package -pl service-a -am",
+                "BP_MAVEN_ADDITIONAL_BUILD_ARGUMENTS": "-DskipTests",
+                "BP_MAVEN_BUILT_MODULE": "service-a",
+                "BP_MAVEN_BUILT_ARTIFACT": "service-a/target/app.jar",
+            })
+        env_var_service.add_service_env_var.assert_called_once_with(self.tenant, service, 0, "SPRING_PROFILES_ACTIVE",
+                                                                    "SPRING_PROFILES_ACTIVE", "prod", True, "inner")
+
+    @patch.object(app_check_service_module, "env_var_service")
+    def test_save_env_treats_java_cnb_bp_keys_as_build_envs(self, env_var_service):
+        service = DummyService(build_strategy="cnb")
+        service.language = "Java-maven"
+        env_var_service.add_service_build_env_var.return_value = (200, "success", Mock())
+        env_var_service.add_service_env_var.return_value = (200, "success", Mock())
+        envs = [{
+            "name": name,
+            "value": "value-{0}".format(index)
+        } for index, name in enumerate(app_check_service_module.cnb_build_utils.JAVA_CNB_BP_KEYS)]
+        envs.append({"name": "SPRING_PROFILES_ACTIVE", "value": "prod"})
+
+        self.service_helper._AppCheckService__save_env(self.tenant, service, envs)
+
+        saved_build_env_names = {call.args[4] for call in env_var_service.add_service_build_env_var.call_args_list}
+        self.assertEqual(saved_build_env_names, set(app_check_service_module.cnb_build_utils.JAVA_CNB_BP_KEYS))
+        env_var_service.add_service_env_var.assert_called_once_with(self.tenant, service, 0, "SPRING_PROFILES_ACTIVE",
+                                                                    "SPRING_PROFILES_ACTIVE", "prod", True, "inner")
+
+    @patch.object(app_check_service_module, "env_var_service")
+    def test_save_env_keeps_java_bp_key_as_runtime_env_for_java_slug(self, env_var_service):
+        service = DummyService(build_strategy="slug")
+        service.language = "Java-maven"
+        env_var_service.add_service_build_env_var.return_value = (200, "success", Mock())
+        env_var_service.add_service_env_var.return_value = (200, "success", Mock())
+
+        self.service_helper._AppCheckService__save_env(self.tenant, service, [{
+            "name": "BP_MAVEN_BUILT_MODULE",
+            "value": "service-a"
+        }])
+
+        env_var_service.add_service_build_env_var.assert_not_called()
+        env_var_service.add_service_env_var.assert_called_once_with(self.tenant, service, 0, "BP_MAVEN_BUILT_MODULE",
+                                                                    "BP_MAVEN_BUILT_MODULE", "service-a", True, "inner")
+
+    @patch.object(app_check_service_module, "env_var_service")
+    def test_save_env_keeps_java_bp_key_as_runtime_env_for_python_cnb(self, env_var_service):
+        service = DummyService(build_strategy="cnb")
+        service.language = "Python"
+        env_var_service.add_service_build_env_var.return_value = (200, "success", Mock())
+        env_var_service.add_service_env_var.return_value = (200, "success", Mock())
+
+        self.service_helper._AppCheckService__save_env(self.tenant, service, [{
+            "name": "BP_MAVEN_BUILT_MODULE",
+            "value": "service-a"
+        }])
+
+        env_var_service.add_service_build_env_var.assert_not_called()
+        env_var_service.add_service_env_var.assert_called_once_with(self.tenant, service, 0, "BP_MAVEN_BUILT_MODULE",
+                                                                    "BP_MAVEN_BUILT_MODULE", "service-a", True, "inner")
 
     def test_supports_cnb_build_strategy_falls_back_when_helper_symbol_is_missing(self):
         with patch.object(app_check_service_module.cnb_build_utils, "supports_cnb_build_strategy", None):

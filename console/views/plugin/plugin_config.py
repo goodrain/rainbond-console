@@ -12,11 +12,26 @@ from rest_framework.response import Response
 from console.services.operation_log import operation_log_service, Operation
 from console.services.plugin import plugin_config_service
 from console.utils.realtime_proxy import build_console_realtime_proxy_url
+from console.views.base import RegionTenantHeaderView
 from console.views.plugin.base import PluginBaseView
+from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.return_message import general_message
 from console.constants import PluginMetaType
 
 logger = logging.getLogger("default")
+region_api = RegionInvokeApi()
+
+
+class PluginVolumeOptionsView(RegionTenantHeaderView):
+    @never_cache
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
+        body = region_api.get_volume_options(self.response_region, self.tenant.tenant_name)
+        if isinstance(body, dict):
+            volume_options = body.get("list")
+        else:
+            volume_options = getattr(body, "list", None)
+        result = general_message(200, "success", "查询成功", list=volume_options or [])
+        return Response(result, status=result["code"])
 
 
 class ConfigPluginManageView(PluginBaseView):

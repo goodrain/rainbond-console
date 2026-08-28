@@ -3,7 +3,7 @@ import sys
 import types
 from pathlib import Path
 from unittest import TestCase
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, call
 
 
 def install_stub(module_name, **attrs):
@@ -111,7 +111,7 @@ class PortServiceDeleteTests(TestCase):
         module.domain_service = MagicMock()
 
     def configure_manage_port_dependencies(self, module, port):
-        region = types.SimpleNamespace(region_id="region-1", httpdomain="apps.example.com")
+        region = types.SimpleNamespace(region_id="region-1", region_name="region-1", httpdomain="apps.example.com")
         app = types.SimpleNamespace(
             app_id=7,
             governance_mode="KUBERNETES_NATIVE_SERVICE",
@@ -125,6 +125,31 @@ class PortServiceDeleteTests(TestCase):
         module.env_var_service.add_service_env_var.return_value = (200, "success", None)
         module.env_var_service.delete_env_by_container_port.return_value = None
         return app
+
+    def configure_tcp_close_dependencies(self, module, routes):
+        tenant = types.SimpleNamespace(tenant_id="tenant-1", tenant_name="default", enterprise_id="enterprise-1")
+        service = types.SimpleNamespace(
+            service_id="component-1",
+            tenant_id="tenant-1",
+            service_region="region-1",
+            service_alias="gr2dc0bf",
+            service_cname="nginx",
+            service_key="nginx",
+            create_status="complete",
+        )
+        port = types.SimpleNamespace(
+            container_port=8080,
+            protocol="tcp",
+            port_alias="tcp",
+            is_inner_service=True,
+            is_outer_service=True,
+            k8s_service_name="gr2dc0bf",
+            save=MagicMock(),
+        )
+        app = self.configure_manage_port_dependencies(module, port)
+        module.tcp_domain.get_service_tcp_domains_by_service_id_and_port.return_value = []
+        module.region_api.api_gateway_get_proxy.return_value = {"list": routes}
+        return tenant, service, port, app
 
     # capability_id: console.component.port-toggle-events
     def test_open_outer_port_synchronizes_region_component_event(self):
@@ -242,6 +267,79 @@ class PortServiceDeleteTests(TestCase):
             80,
             {"operation": "close", "enterprise_id": "enterprise-1", "operator": "alice"},
         )
+
+    # capability_id: console.component.tcp-port-close-release
+    def test_close_tcp_port_releases_all_region_routes_before_local_mapping(self):
+        module = self.import_port_service_module()
+        tenant, service, _, app = self.configure_tcp_close_dependencies(module, [31000, 31001])
+        operations = []
+        module.region_api.delete_proxy.side_effect = lambda *args: operations.append("region-delete")
+        module.tcp_domain.delete_by_component_port.side_effect = lambda *args: operations.append("local-delete")
+        module.region_api.manage_outer_port.side_effect = lambda *args: operations.append("sync")
+        plugin_service = sys.modules["console.services.plugin"].app_plugin_service
+        plugin_service.update_config_if_have_entrance_plugin.side_effect = lambda *args: operations.append("plugin")
+
+        result = module.AppPortService().manage_port(
+            tenant, service, "region-1", 8080, "close_outer", "tcp", "SVC8080", user_name="alice", app=app)
+
+        self.assertEqual(result[:2], (200, "操作成功"))
+        region = module.region_repo.get_region_by_region_name.return_value
+        module.region_api.api_gateway_get_proxy.assert_called_once_with(
+            region,
+            "tenant-1",
+            "/api-gateway/v1/default/routes/tcp/domains?service_alias=gr2dc0bf&port=8080",
+            7,
+        )
+        route_base = "/v2/proxy-pass/gateway/default/routes/tcp/gr2dc0bf-"
+        module.region_api.delete_proxy.assert_has_calls([
+            call("region-1", route_base + "31000?service_id=component-1"),
+            call("region-1", route_base + "31001?service_id=component-1"),
+        ])
+        self.assertEqual(module.region_api.delete_proxy.call_count, 2)
+        module.tcp_domain.delete_by_component_port.assert_called_once_with("component-1", 8080)
+        self.assertEqual(operations, ["region-delete", "region-delete", "local-delete", "sync", "plugin"])
+
+    # capability_id: console.component.tcp-port-close-release
+    def test_close_tcp_port_with_no_region_routes_deletes_stale_local_mapping(self):
+        module = self.import_port_service_module()
+        tenant, service, _, app = self.configure_tcp_close_dependencies(module, [])
+
+        result = module.AppPortService().manage_port(
+            tenant, service, "region-1", 8080, "close_outer", "tcp", "SVC8080", user_name="alice", app=app)
+
+        self.assertEqual(result[:2], (200, "操作成功"))
+        module.region_api.delete_proxy.assert_not_called()
+        module.tcp_domain.delete_by_component_port.assert_called_once_with("component-1", 8080)
+
+    # capability_id: console.component.tcp-port-close-release
+    def test_close_tcp_port_preserves_local_mapping_when_region_query_fails(self):
+        module = self.import_port_service_module()
+        tenant, service, _, app = self.configure_tcp_close_dependencies(module, [])
+        module.region_api.api_gateway_get_proxy.side_effect = RuntimeError("query failed")
+
+        with self.assertRaisesRegex(RuntimeError, "query failed"):
+            module.AppPortService().manage_port(
+                tenant, service, "region-1", 8080, "close_outer", "tcp", "SVC8080", user_name="alice", app=app)
+
+        module.region_api.delete_proxy.assert_not_called()
+        module.tcp_domain.delete_by_component_port.assert_not_called()
+        module.region_api.manage_outer_port.assert_not_called()
+        sys.modules["console.services.plugin"].app_plugin_service.update_config_if_have_entrance_plugin.assert_not_called()
+
+    # capability_id: console.component.tcp-port-close-release
+    def test_close_tcp_port_preserves_local_mapping_when_region_delete_fails(self):
+        module = self.import_port_service_module()
+        tenant, service, _, app = self.configure_tcp_close_dependencies(module, [31000, 31001])
+        module.region_api.delete_proxy.side_effect = [None, RuntimeError("delete failed")]
+
+        with self.assertRaisesRegex(RuntimeError, "delete failed"):
+            module.AppPortService().manage_port(
+                tenant, service, "region-1", 8080, "close_outer", "tcp", "SVC8080", user_name="alice", app=app)
+
+        self.assertEqual(module.region_api.delete_proxy.call_count, 2)
+        module.tcp_domain.delete_by_component_port.assert_not_called()
+        module.region_api.manage_outer_port.assert_not_called()
+        sys.modules["console.services.plugin"].app_plugin_service.update_config_if_have_entrance_plugin.assert_not_called()
 
     def test_delete_closed_port_ignores_inactive_custom_http_domains(self):
         module = self.import_port_service_module()
