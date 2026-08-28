@@ -15,7 +15,7 @@ from console.services.app_check_service import (app_check_service, resolve_lang_
 from console.services.enterprise_first_deploy_service import enterprise_first_deploy_service
 from console.services.source_build_state_service import source_build_state_service
 from console.utils.oauth.oauth_types import support_oauth_type
-from console.utils.source_build_state import is_java_maven_language
+from console.utils.source_build_state import is_java_maven_language, pick_preferred_language
 from console.views.app_config.base import AppBaseView
 from console.utils.cache_decorators import never_cache
 from rest_framework.request import Request
@@ -106,6 +106,12 @@ class AppCheck(AppBaseView):
             # No need to save env, ports and other information for multiple services here.
             logger.debug("start save check info ! {0}".format(self.service.create_status))
             app_check_service.save_service_check_info(self.tenant, self.app.ID, self.service, data)
+        elif data.get("check_status") == "success" and service_info_list and is_java_maven_language(
+                service_info_list[0].get("language")):
+            detected_language = pick_preferred_language(service_info_list[0].get("language"))
+            if self.service.language != detected_language:
+                self.service.language = detected_language
+                self.service.save(update_fields=["language"])
         check_brief_info = app_check_service.wrap_service_check_info(self.service, data)
         code_from = self.service.code_from
         if code_from in list(support_oauth_type.keys()):
