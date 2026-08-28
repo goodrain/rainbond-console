@@ -24,10 +24,12 @@ class PlatformResourceAdminView(EnterpriseAdminView):
             raise NoPermissionsError
 
         eid = kwargs.get("eid")
-        if eid != self.user.enterprise_id:
+        if not isinstance(eid, str) or eid != self.user.enterprise_id:
             raise NoPermissionsError
 
         region = kwargs.get("region")
+        if not isinstance(region, str):
+            raise NoPermissionsError
         if not region_repo.get_enterprise_region_by_region_name(eid, region):
             raise NoPermissionsError
 

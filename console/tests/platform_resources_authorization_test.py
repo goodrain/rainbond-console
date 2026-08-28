@@ -84,6 +84,7 @@ class PlatformResourcesAuthorizationTests(SimpleTestCase):
                   method,
                   is_admin,
                   eid="eid",
+                  region="region",
                   region_binding=mock.sentinel.region_binding,
                   include_name=False):
         request = self._request(method)
@@ -108,7 +109,9 @@ class PlatformResourcesAuthorizationTests(SimpleTestCase):
             region_api.put_cluster_resource.return_value = (200, {"bean": {}})
             console_config.objects.filter.return_value.first.return_value = None
 
-            kwargs = {"eid": eid, "region": "region"}
+            kwargs = {"eid": eid}
+            if region is not None:
+                kwargs["region"] = region
             if include_name:
                 kwargs["name"] = "resource-name"
             response = view_class.as_view()(request, **kwargs)
@@ -152,6 +155,18 @@ class PlatformResourcesAuthorizationTests(SimpleTestCase):
         self.assertEqual(response.status_code, 403)
         self.assertEqual(region_api.mock_calls, [])
         region_lookup.assert_called_once_with("eid", "region")
+
+    def test_admin_cannot_access_without_a_region_scope(self):
+        response, region_api, region_lookup = self._dispatch(
+            PlatformResourceTypesView,
+            "get",
+            is_admin=True,
+            region=None,
+        )
+
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(region_api.mock_calls, [])
+        region_lookup.assert_not_called()
 
     def test_admin_can_access_a_region_bound_to_the_enterprise(self):
         response, region_api, region_lookup = self._dispatch(
