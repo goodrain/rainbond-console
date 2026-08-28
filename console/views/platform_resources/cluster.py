@@ -5,7 +5,9 @@ from typing import Any, Optional
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from console.exception.main import NoPermissionsError
 from console.models.main import ConsoleSysConfig
+from console.repositories.region_repo import region_repo
 from console.views.base import EnterpriseAdminView
 from www.utils.return_message import general_message
 from www.apiclient.regionapi import RegionInvokeApi
@@ -15,13 +17,30 @@ region_api = RegionInvokeApi()
 _STORAGE_CONFIG_KEY = "default_storage_class_{region}"
 
 
-class PlatformResourceTypesView(EnterpriseAdminView):
+class PlatformResourceAdminView(EnterpriseAdminView):
+    def initial(self, request: Request, *args: Any, **kwargs: Any) -> None:
+        super(PlatformResourceAdminView, self).initial(request, *args, **kwargs)
+        if not self.is_enterprise_admin:
+            raise NoPermissionsError
+
+        eid = kwargs.get("eid")
+        if not isinstance(eid, str) or eid != self.user.enterprise_id:
+            raise NoPermissionsError
+
+        region = kwargs.get("region")
+        if not isinstance(region, str):
+            raise NoPermissionsError
+        if not region_repo.get_enterprise_region_by_region_name(eid, region):
+            raise NoPermissionsError
+
+
+class PlatformResourceTypesView(PlatformResourceAdminView):
     def get(self, request: Request, eid: str, region: str, *args: Any, **kwargs: Any) -> Response:
         res, data = region_api.get_cluster_resource(region, "platform-resources/types")
         return Response(general_message(200, "success", "OK", bean=data.get("bean")))  # type: ignore[union-attr]
 
 
-class PlatformResourcesView(EnterpriseAdminView):
+class PlatformResourcesView(PlatformResourceAdminView):
     def get(self, request: Request, eid: str, region: str, *args: Any, **kwargs: Any) -> Response:
         params = {k: v for k, v in request.GET.items()}
         res, data = region_api.get_cluster_resource(region, "platform-resources", params=params)
@@ -33,7 +52,7 @@ class PlatformResourcesView(EnterpriseAdminView):
         return Response(general_message(200, "success", "OK", bean=data.get("bean")))  # type: ignore[union-attr]
 
 
-class PlatformResourceDetailView(EnterpriseAdminView):
+class PlatformResourceDetailView(PlatformResourceAdminView):
     def get(self, request: Request, eid: str, region: str, name: str, *args: Any, **kwargs: Any) -> Response:
         params = {k: v for k, v in request.GET.items()}
         res, data = region_api.get_cluster_resource(region, "platform-resources/{}".format(name), params=params)
@@ -50,7 +69,7 @@ class PlatformResourceDetailView(EnterpriseAdminView):
         return Response(general_message(200, "success", "删除成功"))
 
 
-class StorageClassesView(EnterpriseAdminView):
+class StorageClassesView(PlatformResourceAdminView):
     def get(self, request: Request, eid: str, region: str, *args: Any, **kwargs: Any) -> Response:
         res, data = region_api.get_cluster_resource(region, "storageclasses")
         return Response(general_message(200, "success", "OK", bean=data.get("bean")))  # type: ignore[union-attr]
@@ -60,13 +79,13 @@ class StorageClassesView(EnterpriseAdminView):
         return Response(general_message(200, "success", "OK", bean=data.get("bean")))  # type: ignore[union-attr]
 
 
-class StorageClassDetailView(EnterpriseAdminView):
+class StorageClassDetailView(PlatformResourceAdminView):
     def delete(self, request: Request, eid: str, region: str, name: str, *args: Any, **kwargs: Any) -> Response:
         region_api.delete_cluster_resource(region, "storageclasses/{}".format(name))
         return Response(general_message(200, "success", "删除成功"))
 
 
-class PersistentVolumesView(EnterpriseAdminView):
+class PersistentVolumesView(PlatformResourceAdminView):
     def get(self, request: Request, eid: str, region: str, *args: Any, **kwargs: Any) -> Response:
         res, data = region_api.get_cluster_resource(region, "persistentvolumes")
         return Response(general_message(200, "success", "OK", bean=data.get("bean")))  # type: ignore[union-attr]
@@ -76,13 +95,13 @@ class PersistentVolumesView(EnterpriseAdminView):
         return Response(general_message(200, "success", "OK", bean=data.get("bean")))  # type: ignore[union-attr]
 
 
-class PersistentVolumeDetailView(EnterpriseAdminView):
+class PersistentVolumeDetailView(PlatformResourceAdminView):
     def delete(self, request: Request, eid: str, region: str, name: str, *args: Any, **kwargs: Any) -> Response:
         region_api.delete_cluster_resource(region, "persistentvolumes/{}".format(name))
         return Response(general_message(200, "success", "删除成功"))
 
 
-class StorageConfigView(EnterpriseAdminView):
+class StorageConfigView(PlatformResourceAdminView):
     """
     GET  — 返回当前集群的应用市场默认存储类配置，附带该 StorageClass 的 K8s 详情
     PUT  — 更新默认存储类，持久化到 ConsoleSysConfig
