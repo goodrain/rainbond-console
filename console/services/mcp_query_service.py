@@ -13,6 +13,7 @@ from django.core import signing
 from django.core.exceptions import ObjectDoesNotExist
 
 from console.constants import AppConstants, PluginCategoryConstants
+from console.enum.component_enum import ComponentType, is_support
 from console.models.main import PluginShareRecordEvent, ServiceShareRecordEvent
 from console.exception.exceptions import ExterpriseNotExistError, TenantNotExistError
 from console.exception.main import ServiceHandleException
@@ -287,7 +288,8 @@ class MCPQueryService(object):
             self._tool_manage_component_storage(),
             self._tool_manage_component_autoscaler(), self._tool_manage_component_probe(),
             self._tool_manage_component_dependency(), self._tool_horizontal_scale_component(),
-            self._tool_vertical_scale_component(), self._tool_close_apps(), self._tool_get_team_apps(),
+            self._tool_vertical_scale_component(), self._tool_change_component_type(), self._tool_close_apps(),
+            self._tool_get_team_apps(),
             self._tool_get_app_version_overview(), self._tool_list_app_version_snapshots(),
             self._tool_get_app_version_snapshot_detail(), self._tool_create_app_version_snapshot(),
             self._tool_delete_app_version_snapshot(), self._tool_rewrite_snapshot_images(),
@@ -441,6 +443,8 @@ class MCPQueryService(object):
             return self.horizontal_scale_component(user, arguments)
         if name == "rainbond_vertical_scale_component":
             return self.vertical_scale_component(user, arguments)
+        if name == "rainbond_change_component_type":
+            return self.change_component_type(user, arguments)
         if name == "rainbond_close_apps":
             return self.close_apps(user, arguments)
         if name == "rainbond_get_team_apps":
@@ -2667,6 +2671,26 @@ class MCPQueryService(object):
             "new_memory": new_memory,
             "new_gpu": new_gpu,
             "new_cpu": new_cpu,
+        }
+
+    def change_component_type(self, user: Any, arguments: dict) -> dict:
+        team, app, service = self._get_team_app_service_context(
+            user,
+            self._require_string(arguments, "team_name"),
+            self._require_string(arguments, "region_name"),
+            self._require_int(arguments, "app_id"),
+            self._require_string(arguments, "service_id"),
+        )
+        extend_method = self._require_string(arguments, "extend_method")
+        if not is_support(extend_method):
+            raise ServiceHandleException(msg="do not support service type", msg_show="组件类型非法", status_code=400)
+        old_extend_method = service.extend_method
+        app_manage_service.change_service_type(team, service, extend_method, user.nick_name)
+        return {
+            "changed": True,
+            "service_id": service.service_id,
+            "old_extend_method": old_extend_method,
+            "extend_method": extend_method,
         }
 
     def close_apps(self, user: Any, arguments: dict) -> dict:
@@ -8330,6 +8354,34 @@ class MCPQueryService(object):
                     "new_cpu": {"type": "integer", "minimum": 0}
                 },
                 "required": ["team_name", "region_name", "app_id", "service_id", "new_memory"]
+            }
+        }
+
+    def _tool_change_component_type(self) -> dict:
+        return {
+            "name": "rainbond_change_component_type",
+            "description": ("Change a component's deploy type (extend_method). Use state_singleton or state_multiple for "
+                            "components that need a stable per-pod network identity, such as ElasticSearch, ZooKeeper, "
+                            "Kafka, Nacos or MinIO clusters: stateful components get a headless Service so each member "
+                            "resolves to its own pod IP."),
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "team_name": {"type": "string"},
+                    "region_name": {"type": "string"},
+                    "app_id": {"type": "integer", "minimum": 1},
+                    "service_id": {"type": "string"},
+                    "extend_method": {
+                        "type": "string",
+                        "enum": [
+                            ComponentType.stateless_singleton.value, ComponentType.stateless_multiple.value,
+                            ComponentType.state_singleton.value, ComponentType.state_multiple.value,
+                            ComponentType.job.value, ComponentType.cronjob.value, ComponentType.daemonset.value,
+                            ComponentType.kubeblocks.value
+                        ]
+                    }
+                },
+                "required": ["team_name", "region_name", "app_id", "service_id", "extend_method"]
             }
         }
 

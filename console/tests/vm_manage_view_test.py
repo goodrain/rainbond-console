@@ -52,7 +52,60 @@ django.setup()
 from django.test import TestCase  # noqa: E402
 from rest_framework.test import APIRequestFactory  # noqa: E402
 
-from console.views.app_manage import PauseAppView, StartAppView, UNPauseAppView  # noqa: E402
+from console.views.app_manage import ChangeServiceTypeView, PauseAppView, StartAppView, UNPauseAppView  # noqa: E402
+
+
+class ChangeServiceTypeViewTests(TestCase):
+    """改类型曾经把 change_service_type 调了两次(等于向 region 下发两次),
+    并且操作日志里的 old/new_information 是反的 —— 变更前的类型被记成"变更后"。
+    """
+    def setUp(self):
+        self.factory = APIRequestFactory()
+
+    def build_view(self):
+        view = ChangeServiceTypeView()
+        view.tenant = SimpleNamespace(tenant_name="demo-team")
+        view.service = SimpleNamespace(
+            service_alias="nacos",
+            service_region="demo-region",
+            service_cname="nacos",
+            extend_method="stateless_multiple",
+        )
+        view.user = SimpleNamespace(nick_name="tester", enterprise_id="eid")
+        view.app = SimpleNamespace(ID=1)
+        return view
+
+    # capability_id: console.component-type.change-once
+    def test_change_service_type_is_applied_once(self):
+        view = self.build_view()
+        request = view.initialize_request(
+            self.factory.put(
+                "/console/teams/demo-team/apps/nacos/service-type", {"extend_method": "state_multiple"}, format="json"))
+
+        with mock.patch("console.views.app_manage.app_manage_service.change_service_type") as change_service_type, \
+                mock.patch("console.views.app_manage.operation_log_service"):
+            response = view.put(request)
+
+        self.assertEqual(200, response.status_code)
+        change_service_type.assert_called_once()
+
+    # capability_id: console.component-type.change-log-direction
+    def test_operation_log_records_old_type_before_and_new_type_after(self):
+        view = self.build_view()
+        request = view.initialize_request(
+            self.factory.put(
+                "/console/teams/demo-team/apps/nacos/service-type", {"extend_method": "state_multiple"}, format="json"))
+
+        def apply_change(tenant, service, extend_method, user_name):
+            service.extend_method = extend_method
+
+        with mock.patch("console.views.app_manage.app_manage_service.change_service_type", side_effect=apply_change), \
+                mock.patch("console.views.app_manage.operation_log_service") as operation_log:
+            view.put(request)
+
+        kwargs = operation_log.create_component_log.call_args.kwargs
+        self.assertIn("无状态多实例", kwargs["old_information"])
+        self.assertIn("有状态多实例", kwargs["new_information"])
 
 
 class VMManageViewTests(TestCase):
