@@ -60,15 +60,23 @@ class FakeValuesQuerySet(list):
 class GatewayMonitoringPluginProxyTests(TestCase):
     def test_gateway_monitoring_app_top_path_detection(self):
         self.assertTrue(rbd_plugin._is_gateway_monitoring_app_top_path(
-            "rainbond-gateway-monitoring",
+            "rainbond-observability",
+            "api/v1/platform/apps/top-throughput",
+        ))
+        self.assertTrue(rbd_plugin._is_gateway_monitoring_app_top_path(
+            "rainbond-observability-AMD64",
+            "api/v1/platform/apps/top-errors",
+        ))
+        self.assertTrue(rbd_plugin._is_gateway_monitoring_app_top_path(
+            "rainbond-observability-ARM64",
             "api/v1/platform/apps/top-latency",
         ))
         self.assertTrue(rbd_plugin._is_gateway_monitoring_app_top_path(
-            "rainbond-gateway-monitoring",
+            "rainbond-observability",
             "api/v1/teams/rbd-prd/apps/top-throughput",
         ))
         self.assertFalse(rbd_plugin._is_gateway_monitoring_app_top_path(
-            "rainbond-gateway-monitoring",
+            "rainbond-observability",
             "api/v1/apps/3/components/summary",
         ))
         self.assertFalse(rbd_plugin._is_gateway_monitoring_app_top_path(
@@ -150,6 +158,12 @@ class GatewayMonitoringPluginProxyTests(TestCase):
                     "request_count": 280,
                 },
             ],
+            "meta": {
+                "window": "5m",
+                "partial": False,
+                "stale": False,
+            },
+            "warnings": ["upstream-warning"],
         }
 
         rbd_plugin._enrich_gateway_monitoring_app_items(payload, "rainbond")
@@ -160,3 +174,5 @@ class GatewayMonitoringPluginProxyTests(TestCase):
         self.assertEqual(payload["data"][0]["team_id"], "team-id-1")
         self.assertEqual(payload["data"][0]["team_name"], "rbd-prd")
         self.assertEqual(payload["data"][0]["team_alias"], "生产团队")
+        self.assertEqual(payload["meta"]["window"], "5m")
+        self.assertEqual(payload["warnings"], ["upstream-warning"])
