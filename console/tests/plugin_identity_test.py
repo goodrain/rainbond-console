@@ -9,9 +9,6 @@ class GatewayMonitoringPluginIdentityTests(TestCase):
             "rainbond-observability",
             "rainbond-observability-AMD64",
             "rainbond-observability-ARM64",
-            "rainbond-gateway-monitoring",
-            "rainbond-gateway-monitoring-AMD64",
-            "rainbond-gateway-monitoring-ARM64",
         )
 
         for plugin_name in supported:

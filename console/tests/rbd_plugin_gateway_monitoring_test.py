@@ -60,10 +60,6 @@ class FakeValuesQuerySet(list):
 class GatewayMonitoringPluginProxyTests(TestCase):
     def test_gateway_monitoring_app_top_path_detection(self):
         self.assertTrue(rbd_plugin._is_gateway_monitoring_app_top_path(
-            "rainbond-gateway-monitoring",
-            "api/v1/platform/apps/top-latency",
-        ))
-        self.assertTrue(rbd_plugin._is_gateway_monitoring_app_top_path(
             "rainbond-observability",
             "api/v1/platform/apps/top-throughput",
         ))
@@ -72,15 +68,15 @@ class GatewayMonitoringPluginProxyTests(TestCase):
             "api/v1/platform/apps/top-errors",
         ))
         self.assertTrue(rbd_plugin._is_gateway_monitoring_app_top_path(
-            "rainbond-gateway-monitoring-ARM64",
+            "rainbond-observability-ARM64",
             "api/v1/platform/apps/top-latency",
         ))
         self.assertTrue(rbd_plugin._is_gateway_monitoring_app_top_path(
-            "rainbond-gateway-monitoring",
+            "rainbond-observability",
             "api/v1/teams/rbd-prd/apps/top-throughput",
         ))
         self.assertFalse(rbd_plugin._is_gateway_monitoring_app_top_path(
-            "rainbond-gateway-monitoring",
+            "rainbond-observability",
             "api/v1/apps/3/components/summary",
         ))
         self.assertFalse(rbd_plugin._is_gateway_monitoring_app_top_path(

@@ -3,7 +3,6 @@ from typing import Any
 
 GATEWAY_MONITORING_PLUGIN_BASE_IDS = frozenset([
     "rainbond-observability",
-    "rainbond-gateway-monitoring",
 ])
 
 PLUGIN_ARCH_SUFFIXES = ("-AMD64", "-ARM64")
