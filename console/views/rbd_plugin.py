@@ -29,6 +29,7 @@ GATEWAY_MONITORING_APP_TOP_PATHS = set([
     "api/v1/platform/apps/top-errors",
     "api/v1/platform/apps/top-latency",
     "api/v1/platform/apps/top-throughput",
+    "api/v1/platform/apps/rankings",
 ])
 GATEWAY_MONITORING_APP_TOP_ACTIONS = set([
     "top-errors",
@@ -102,13 +103,22 @@ def _is_gateway_monitoring_app_top_path(plugin_name: str, file_path: str) -> boo
 
 def _enrich_gateway_monitoring_app_items(payload: Any, region_name: str) -> Any:
     data = payload.get("data") if isinstance(payload, dict) else None
-    if not isinstance(data, list) or not data:
+    item_lists = []
+    if isinstance(data, list):
+        item_lists.append(data)
+    elif isinstance(data, dict):
+        for ranking in ("errors", "latency", "throughput"):
+            ranking_items = data.get(ranking)
+            if isinstance(ranking_items, list):
+                item_lists.append(ranking_items)
+    items = [item for item_list in item_lists for item in item_list]
+    if not items:
         return payload
 
     region_app_ids: Set[str] = set()
     namespace_values: Set[str] = set()
     app_ids: Set[int] = set()
-    for item in data:
+    for item in items:
         if not isinstance(item, dict):
             continue
         region_app_id = _normalize_text(item.get("region_app_id"))
@@ -168,7 +178,7 @@ def _enrich_gateway_monitoring_app_items(payload: Any, region_name: str) -> Any:
             if tenant_id:
                 tenants_by_id[tenant_id] = tenant_row
 
-    for item in data:
+    for item in items:
         if not isinstance(item, dict):
             continue
 
