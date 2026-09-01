@@ -73,6 +73,10 @@ class GatewayMonitoringPluginProxyTests(TestCase):
         ))
         self.assertTrue(rbd_plugin._is_gateway_monitoring_app_top_path(
             "rainbond-observability",
+            "api/v1/platform/apps/rankings",
+        ))
+        self.assertTrue(rbd_plugin._is_gateway_monitoring_app_top_path(
+            "rainbond-observability",
             "api/v1/teams/rbd-prd/apps/top-throughput",
         ))
         self.assertFalse(rbd_plugin._is_gateway_monitoring_app_top_path(
@@ -176,3 +180,64 @@ class GatewayMonitoringPluginProxyTests(TestCase):
         self.assertEqual(payload["data"][0]["team_alias"], "生产团队")
         self.assertEqual(payload["meta"]["window"], "5m")
         self.assertEqual(payload["warnings"], ["upstream-warning"])
+
+    @mock.patch("console.views.rbd_plugin.Tenants.objects.filter")
+    @mock.patch("console.views.rbd_plugin.ServiceGroup.objects.filter")
+    @mock.patch("console.views.rbd_plugin.RegionApp.objects.filter")
+    def test_enriches_consolidated_rankings_with_one_database_lookup(
+            self,
+            region_app_filter,
+            service_group_filter,
+            tenant_filter,
+    ):
+        region_app_filter.return_value = FakeValuesQuerySet([
+            {
+                "region_app_id": "4e436720361e4c069df20026db5273a7",
+                "app_id": 3123,
+            },
+        ])
+        service_group_filter.return_value = FakeValuesQuerySet([
+            {
+                "ID": 3123,
+                "tenant_id": "team-id-1",
+                "group_name": "应用商店",
+                "region_name": "rainbond",
+            },
+        ])
+        tenant_filter.return_value = FakeValuesQuerySet([
+            {
+                "tenant_id": "team-id-1",
+                "tenant_name": "rbd-prd",
+                "tenant_alias": "生产团队",
+                "namespace": "rbd-prd",
+            },
+        ])
+        item = {
+            "app_id": "3123",
+            "namespace": "rbd-prd",
+            "region_app_id": "4e436720361e4c069df20026db5273a7",
+            "name": "3123",
+            "request_count": 3139,
+        }
+        payload = {
+            "data": {
+                "errors": [dict(item)],
+                "latency": [dict(item)],
+                "throughput": [dict(item)],
+            },
+            "meta": {"window": "5m", "partial": False, "stale": False},
+            "warnings": [],
+        }
+
+        rbd_plugin._enrich_gateway_monitoring_app_items(payload, "rainbond")
+
+        for ranking in ("errors", "latency", "throughput"):
+            enriched = payload["data"][ranking][0]
+            self.assertEqual(enriched["app_id"], "3123")
+            self.assertEqual(enriched["name"], "应用商店")
+            self.assertEqual(enriched["app_name"], "应用商店")
+            self.assertEqual(enriched["team_alias"], "生产团队")
+        region_app_filter.assert_called_once()
+        service_group_filter.assert_called_once()
+        tenant_filter.assert_called_once()
+        self.assertEqual(payload["meta"]["window"], "5m")
