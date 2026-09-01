@@ -17,6 +17,7 @@ from console.views.base import (
 from console.login.jwt_authentication import JSONWebTokenAuthentication
 from console.services.plugin_service import rbd_plugin_service
 from console.services.auth.authentication import InternalTokenAuthentication
+from console.utils.plugin_identity import is_gateway_monitoring_plugin
 from www.utils.return_message import general_message
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import RegionApp, ServiceGroup, Tenants
@@ -24,7 +25,6 @@ from www.models.main import RegionApp, ServiceGroup, Tenants
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
 
-GATEWAY_MONITORING_PLUGIN = "rainbond-gateway-monitoring"
 GATEWAY_MONITORING_APP_TOP_PATHS = set([
     "api/v1/platform/apps/top-errors",
     "api/v1/platform/apps/top-latency",
@@ -84,7 +84,7 @@ def _to_int(value: Any) -> Optional[int]:
 
 
 def _is_gateway_monitoring_app_top_path(plugin_name: str, file_path: str) -> bool:
-    if plugin_name != GATEWAY_MONITORING_PLUGIN:
+    if not is_gateway_monitoring_plugin(plugin_name):
         return False
     normalized = (file_path or "").strip("/")
     if normalized in GATEWAY_MONITORING_APP_TOP_PATHS:
