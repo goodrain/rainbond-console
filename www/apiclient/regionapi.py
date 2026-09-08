@@ -2787,7 +2787,19 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             raise ServiceHandleException("region not found")
         url = region_info.url
         url += "/v2/cluster/k8s-resource"
-        res, body = self._delete(url, self.default_headers, body=json.dumps(data), region=region_info.region_name, timeout=10)
+        res, body = self._delete(
+            url, self.default_headers, body=json.dumps(data), region=region_info.region_name, timeout=90)
+        return res, body
+
+    def preview_delete_app_resources(self, enterprise_id: str, region: str,
+                                     data: dict) -> Tuple[Any, Optional[Dict[str, Any]]]:
+        region_info = self.get_enterprise_region_info(enterprise_id, region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url += "/v2/cluster/k8s-resource-deletions/preview"
+        res, body = self._post(
+            url, self.default_headers, body=json.dumps(data), region=region_info.region_name, timeout=30)
         return res, body
 
     def batch_delete_app_resources(self, enterprise_id: str, region: str, data: dict) -> Tuple[Any, Optional[Dict[str, Any]]]:
@@ -2796,7 +2808,19 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             raise ServiceHandleException("region not found")
         url = region_info.url
         url += "/v2/cluster/batch-k8s-resource"
-        res, body = self._delete(url, self.default_headers, body=json.dumps(data), region=region_info.region_name, timeout=20)
+        res, body = self._delete(
+            url, self.default_headers, body=json.dumps(data), region=region_info.region_name, timeout=90)
+        return res, body
+
+    def reconcile_app_resources(self, enterprise_id: str, region: str,
+                                data: dict) -> Tuple[Any, Optional[Dict[str, Any]]]:
+        region_info = self.get_enterprise_region_info(enterprise_id, region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url += "/v2/cluster/k8s-resource-reconciliations"
+        res, body = self._post(
+            url, self.default_headers, body=json.dumps(data), region=region_info.region_name, timeout=30)
         return res, body
 
     def sync_k8s_resources(self, tenant_name: str, region_name: str, data: dict) -> Tuple[Any, Optional[Dict[str, Any]]]:

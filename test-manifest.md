@@ -352,6 +352,8 @@
 | console.k8s-attribute.cmd-args-yaml | 将 cmd 和 args Kubernetes 属性规范化为 YAML 数组 | active | regression | console.services.k8s_attribute.ComponentK8sAttributeService.create_k8s_attribute | console/tests/k8s_attribute_service_test.py::ComponentK8sAttributeServiceTests |
 | console.k8s-attribute.upsert-region-sync | Console 与 region 组件 K8s 属性幂等同步 | active | regression | console.services.k8s_attribute.ComponentK8sAttributeService | console/tests/k8s_attribute_service_test.py |
 | console.k8s-namespace.normalize-user-prefix | 将用户名规范化为合法的 Kubernetes 命名空间名 | active | regression | console.utils.validation.normalize_name_for_k8s_namespace | console/tests/utils/validation_test.py::NamespaceNormalizationTests.test_normalize_name_for_k8s_namespace |
+| console.k8s-resource.crd-cascade-delete | CRD cascade deletion synchronizes Console metadata | active | regression | console.services.k8s_resource.ComponentK8sResourceService.batch_delete_k8s_resource | console/tests/k8s_resource_service_test.py::K8sResourceDeletionServiceTest |
+| console.k8s-resource.reconcile-endpoint | Application Kubernetes resource reconcile endpoint | active | regression | POST /console/teams/{team}/groups/{app}/k8s-resources/reconcile | console/tests/k8s_resource_service_test.py::K8sResourceViewTest |
 | console.kubeblocks.app-resource-statistics | KubeBlocks 集群请求携带 app id 以支持资源统计 | active | regression | console.services.kubeblocks_service.KubeBlocksService._build_cluster_request | console/tests/kubeblocks_cluster_validation_test.py::KubeBlocksCreateFlowTests.test_build_cluster_request_includes_app_id_for_resource_statistics |
 | console.kubeblocks.backup-repo.ready-guard | 使用 KubeBlocks 备份仓库前校验就绪状态 | active | regression | console.services.kubeblocks_service.KubeBlocksService.ensure_backup_repo_ready_for_use | console/tests/kubeblocks_backup_repo_test.py::KubeBlocksBackupRepoServiceTests.test_ensure_backup_repo_ready_for_use_rejects_prechecking_repo<br>console/tests/kubeblocks_backup_repo_test.py::KubeBlocksBackupRepoServiceTests.test_ensure_backup_repo_ready_for_use_accepts_ready_repo<br>console/tests/kubeblocks_backup_repo_test.py::KubeBlocksBackupRepoServiceTests.test_ensure_backup_repo_ready_for_use_rejects_missing_live_repo<br>console/tests/kubeblocks_cluster_validation_test.py::KubeBlocksCreateFlowTests.test_create_cluster_returns_backup_repo_not_ready_message |
 | console.kubeblocks.backup-repo.team-create | 创建团队 KubeBlocks 备份仓库 | active | regression | console.services.kubeblocks_service.KubeBlocksService.create_backup_repo | console/tests/kubeblocks_backup_repo_test.py::KubeBlocksBackupRepoServiceTests.test_create_backup_repo_prefixes_namespace_and_does_not_store_secret_values<br>console/tests/kubeblocks_backup_repo_test.py::KubeBlocksBackupRepoServiceTests.test_create_backup_repo_defaults_to_prechecking_when_region_phase_is_empty<br>console/tests/kubeblocks_backup_repo_test.py::KubeBlocksBackupRepoServiceTests.test_create_backup_repo_rejects_existing_region_repo_name_even_if_deleted |
@@ -4067,6 +4069,26 @@
 - 业务入口: `console.utils.validation.normalize_name_for_k8s_namespace`
 - 代码路径: `console/utils/validation.py`
 - 测试路径: `console/tests/utils/validation_test.py::NamespaceNormalizationTests.test_normalize_name_for_k8s_namespace`
+
+### CRD cascade deletion synchronizes Console metadata
+
+- Capability ID: `console.k8s-resource.crd-cascade-delete`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.k8s_resource.ComponentK8sResourceService.batch_delete_k8s_resource`
+- 代码路径: `console/services/k8s_resource.py`
+- 测试路径: `console/tests/k8s_resource_service_test.py::K8sResourceDeletionServiceTest`
+
+### Application Kubernetes resource reconcile endpoint
+
+- Capability ID: `console.k8s-resource.reconcile-endpoint`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `view_endpoint`
+- 业务入口: `POST /console/teams/{team}/groups/{app}/k8s-resources/reconcile`
+- 代码路径: `console/views/k8s_resource.py`, `console/urls/__init__.py`
+- 测试路径: `console/tests/k8s_resource_service_test.py::K8sResourceViewTest`
 
 ### KubeBlocks 集群请求携带 app id 以支持资源统计
 

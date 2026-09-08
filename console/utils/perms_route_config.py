@@ -504,6 +504,20 @@ APP_RESOURCE_PERMS = {
         }
     }
 }
+APP_RESOURCE_DELETE_PREVIEW_PERMS = {
+    "__message": {
+        "post": {
+            "perms": [340004]
+        }
+    }
+}
+APP_RESOURCE_RECONCILE_PERMS = {
+    "__message": {
+        "post": {
+            "perms": [340001]
+        }
+    }
+}
 APP_CONFIG_GROUP = {
     "__message": {
         "get": {

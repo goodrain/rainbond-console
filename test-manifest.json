@@ -6705,6 +6705,43 @@
       "status": "active"
     },
     {
+      "id": "console.k8s-resource.crd-cascade-delete",
+      "title": "CRD cascade deletion synchronizes Console metadata",
+      "title_zh": "CRD cascade deletion synchronizes Console metadata",
+      "interface_type": "service_method",
+      "interface": "console.services.k8s_resource.ComponentK8sResourceService.batch_delete_k8s_resource",
+      "code_paths": [
+        "console/services/k8s_resource.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/k8s_resource_service_test.py",
+          "selector": "K8sResourceDeletionServiceTest"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.k8s-resource.reconcile-endpoint",
+      "title": "Application Kubernetes resource reconcile endpoint",
+      "title_zh": "Application Kubernetes resource reconcile endpoint",
+      "interface_type": "view_endpoint",
+      "interface": "POST /console/teams/{team}/groups/{app}/k8s-resources/reconcile",
+      "code_paths": [
+        "console/views/k8s_resource.py",
+        "console/urls/__init__.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/k8s_resource_service_test.py",
+          "selector": "K8sResourceViewTest"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.kubeblocks.app-resource-statistics",
       "title": "Include app id in KubeBlocks cluster request for resource statistics",
       "title_zh": "KubeBlocks 集群请求携带 app id 以支持资源统计",
