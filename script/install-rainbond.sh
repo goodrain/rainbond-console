@@ -2997,6 +2997,10 @@ systemd_exec_start_path() {
     local unit=$1
     local exec_start path
     exec_start=$(systemctl show "$unit" --property=ExecStart --value 2>/dev/null || true)
+    if [ -z "$exec_start" ]; then
+        exec_start=$(systemctl show "$unit" --property=ExecStart 2>/dev/null || true)
+        exec_start=${exec_start#ExecStart=}
+    fi
     path=$(printf '%s\n' "$exec_start" | sed -n 's/.*[[:space:]{]path=\([^ ;}]*\).*/\1/p')
     if [ -z "$path" ]; then
         path=$(printf '%s\n' "$exec_start" | awk '{print $1}')
@@ -3099,8 +3103,8 @@ docker_package_upgrade_preflight_linux() {
     docker_exec=$(systemd_exec_start_path docker)
     if [ "$docker_exec" != "${DOCKER_UPGRADE_DOCKERD_PATH:-}" ]; then
         docker_upgrade_reject \
-            "docker.service 的 ExecStart 与当前软件包中的 dockerd 不一致，安装脚本不会自动升级该环境" \
-            "docker.service ExecStart does not match the package-owned dockerd; the installer will not upgrade this environment"
+            "docker.service 的 ExecStart (${docker_exec:-unknown}) 与当前软件包中的 dockerd (${DOCKER_UPGRADE_DOCKERD_PATH:-unknown}) 不一致，安装脚本不会自动升级该环境" \
+            "docker.service ExecStart (${docker_exec:-unknown}) does not match the package-owned dockerd (${DOCKER_UPGRADE_DOCKERD_PATH:-unknown}); the installer will not upgrade this environment"
         return 1
     fi
     return 0
