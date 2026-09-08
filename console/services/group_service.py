@@ -535,7 +535,12 @@ class GroupService(object):
         from console.services.app_actions import app_manage_service
         # Batch Delete Components
         for service in services:
-            app_manage_service.batch_delete(user, tenant, service, is_force=True, is_del_app=True)
+            code, msg = app_manage_service.batch_delete(user, tenant, service, is_force=True, is_del_app=True)
+            if code != 200:
+                raise ServiceHandleException(
+                    status_code=code,
+                    msg="delete component {} failed: {}".format(service.service_id, msg),
+                    msg_show="组件 {} 删除失败：{}".format(service.service_cname, msg))
         return services
 
     def delete_app_share_records(self, team_name: str, app_id: str) -> None:
@@ -827,6 +832,34 @@ class GroupService(object):
         """ get service source by group key"""
         return service_source_repo.get_service_sources_by_group_key(group_key)
 
+    def delete_app_with_resources(self, user: Users, tenant: Tenants, region_name: str,
+                                  app: ServiceGroup) -> Any:
+        """Delete an application after deleting all resources attached to it."""
+        # Delay imports to avoid the existing circular service dependencies.
+        from console.services.k8s_resource import k8s_resource_service
+        from console.services.kubeblocks_service import kubeblocks_service
+
+        app_id = app.app_id
+        services = self.batch_delete_app_services(user, tenant.tenant_id, region_name, app_id)
+
+        service_ids = [service.service_id for service in services]
+        kubeblocks_service.delete_kubeblocks_cluster(service_ids, region_name)
+
+        k8s_resources = list(k8s_resource_service.list_by_app_id(str(app_id)))
+        resource_ids = [resource.ID for resource in k8s_resources]
+        if resource_ids:
+            k8s_resource_service.batch_delete_k8s_resource(
+                user.enterprise_id,  # type: ignore[arg-type]
+                tenant.tenant_name,
+                str(app_id),
+                region_name,
+                resource_ids)
+
+        app_config_group_service.batch_delete_config_group(region_name, tenant.tenant_name, app_id)
+        self.delete_app_share_records(tenant.tenant_name, app_id)
+        self.delete_app(tenant, region_name, app)
+        return services
+
     @transaction.atomic
     def delete_app(self, tenant: Tenants, region_name: str, app: ServiceGroup) -> None:
         if app.app_type == AppType.helm.name:
@@ -848,6 +881,11 @@ class GroupService(object):
         self._delete_app(tenant.tenant_name, region_name, app.app_id)
 
     def _delete_rainbond_app(self, tenant: Tenants, region_name: str, app: ServiceGroup) -> None:
+        if group_service_relation_repo.get_service_by_group(app.app_id):
+            raise AbortRequest(msg="the app still has components", msg_show="当前应用内存在组件，无法删除")
+        if k8s_resources_repo.list_by_app_id(str(app.app_id)):
+            raise AbortRequest(
+                msg="the app still has kubernetes resources", msg_show="当前应用内存在Kubernetes资源，无法删除")
         self._delete_app(tenant.tenant_name, region_name, app.app_id)
 
     @staticmethod

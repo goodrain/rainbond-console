@@ -8,9 +8,7 @@ from console.exception.main import ServiceHandleException
 from console.repositories.group import group_repo
 from console.repositories.user_repo import user_repo
 from console.services.app_actions import app_manage_service
-from console.services.app_config_group import app_config_group_service
 from console.services.group_service import group_service
-from console.services.k8s_resource import k8s_resource_service
 from console.services.user_services import user_services
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
@@ -280,22 +278,5 @@ class UserTenantDelete(BaseOpenAPIView):
         for tenant in tenants:
             apps = group_repo.get_groups_by_tenant_id(tenant.tenant_id)
             for app in apps:
-                app_id = app.app_id
-                group_service.batch_delete_app_services(user, tenant.tenant_id, app.region_name, app_id)
-                # delete k8s resource
-                k8s_resources = k8s_resource_service.list_by_app_id(str(app_id))
-                resource_ids = [k8s_resource.ID for k8s_resource in k8s_resources]
-                # NOTE: enterprise_id typed str|None by stubs; runtime always str.
-                k8s_resource_service.batch_delete_k8s_resource(
-                    user.enterprise_id, tenant.tenant_name, str(app_id),  # type: ignore[arg-type]
-                    app.region_name, resource_ids)
-                # delete configs
-                app_config_group_service.batch_delete_config_group(app.region_name, tenant.tenant_name, app_id)
-                # delete records
-                group_service.delete_app_share_records(tenant.tenant_name, app_id)
-                # delete app
-                app_to_delete = group_service.get_app_by_id(tenant, app.region_name, app_id)
-                if not app_to_delete:
-                    continue
-                group_service.delete_app(tenant, app_to_delete.region_name, app_to_delete)
+                group_service.delete_app_with_resources(user, tenant, app.region_name, app)
         return Response({"bean": "delete success"}, status=200)

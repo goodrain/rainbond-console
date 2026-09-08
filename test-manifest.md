@@ -159,8 +159,10 @@
 | console.app.create-k8s-name-autogen | 创建应用时自动生成 k8s_app 名称 | active | regression | console.services.mcp_query_service.call_tool[console.app.create-k8s-name-autogen] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_create_app_generates_k8s_app_when_empty<br>console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_create_app_generates_k8s_app_for_non_ascii_app_name<br>console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_create_app_normalizes_mixed_case_app_name<br>console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_create_app_appends_suffix_when_generated_name_taken_in_console<br>console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_create_app_retries_with_suffix_on_region_side_duplicate<br>console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_create_app_does_not_retry_explicit_k8s_app_on_duplicate |
 | console.app.create-k8s-name-duplicate | App Create K8s Name Duplicate | active | regression | console.services.mcp_query_service.call_tool[console.app.create-k8s-name-duplicate] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_create_app_exposes_structured_k8s_app_duplicate_error |
 | console.app.delete | 删除应用及隐藏快照模板 | active | regression | console.services.group_service._delete_app | console/tests/group_service_test.py::GroupServiceDeleteAppTestCase |
+| console.app.delete-component-failure-guard | Preserve applications when component deletion fails | active | regression | console.services.group_service.batch_delete_app_services | console/tests/group_service_test.py::GroupServiceDeleteComponentFailureGuardTestCase |
 | console.app.delete-confirmation-guard | 阻止无效的应用删除确认 | active | regression | console.services.mcp_query_service.call_tool[rainbond_delete_app] | console/tests/mcp_query_service_test.py::MCPQueryServiceDeleteAppTests.test_delete_app_rejects_invalid_confirmation_token |
 | console.app.delete-with-confirmation | 确认后删除应用 | active | regression | console.services.mcp_query_service.call_tool[rainbond_delete_app] | console/tests/mcp_query_service_test.py::MCPQueryServiceDeleteAppTests.test_delete_app_requires_confirmation_then_delete |
+| console.app.delete-with-resources | Delete applications with attached resources | active | regression | console.services.group_service.delete_app_with_resources | console/tests/group_service_test.py::GroupServiceDeleteAppWithResourcesTestCase |
 | console.app.detail | 查看应用详情 | active | regression | console.services.mcp_query_service.call_tool[rainbond_get_app_detail] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_get_app_detail_returns_status_and_counts |
 | console.app.export-metadata | 生成应用导出元数据 | active | regression | console.services.app_import_and_export_service.AppExportService._AppExportService__get_app_metata | console/tests/app_import_and_export_service_test.py::AppExportServiceMetadataTestCase |
 | console.app.get-yaml-check-result | 查看 YAML 应用校验结果 | active | regression | console.services.mcp_query_service.call_tool[rainbond_get_yaml_app_check_result] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_get_yaml_app_check_result_returns_services |
@@ -532,6 +534,7 @@
 | console.source-component.normalize-git-url | 为 Git 地址追加一次子目录参数 | active | regression | console.services.source_component_service.normalize_git_url | console/tests/source_component_service_test.py::SourceComponentServiceTests.test_normalize_git_url_appends_subdirectory_once |
 | console.source-component.prefer-dockerfile | Source Component Prefer Dockerfile | active | regression | console.services.source_component_service | console/tests/source_component_service_test.py::SourceComponentServiceTests.test_auto_create_component_prefers_dockerfile_when_requested |
 | console.source-component.prefer-dockerfile-from-dockerfiles-flag | Source Component Prefer Dockerfile From Dockerfiles Flag | active | regression | console.services.source_component_service | console/tests/source_component_service_test.py::SourceComponentServiceTests.test_auto_create_component_prefers_dockerfile_when_dockerfiles_exist |
+| console.team-query.current-user-membership | 仅列出当前用户已加入的团队 | active | regression | console.services.mcp_query_service.call_tool[rainbond_query_teams] | console/tests/mcp_query_service_test.py::MCPQueryServiceTeamQueryTests.test_query_teams_only_lists_teams_joined_by_current_user |
 | console.team.create-invalid-namespace | 创建团队时拒绝非法命名空间 | active | regression | console.views.team.AddTeamView.post | console/tests/add_team_namespace_validation_test.py::AddTeamInvalidNamespaceTest.test_invalid_namespace_raises_qualified_name_error_not_typeerror |
 | console.test-manifest.ignore-worktrees | 测试清单校验忽略嵌套 worktree 测试 | active | regression | scripts.validate_test_manifest.collect_marked_tests | scripts/validate_test_manifest_test.py::ValidateTestManifestTests |
 | console.timeutil.current-date-str | 返回默认格式的当前日期字符串 | active | regression | console.utils.timeutil.current_time_to_str | console/tests/utils/timeutil_test.py::TimeUtilTests.test_current_time_to_str |
@@ -2140,6 +2143,16 @@
 - 代码路径: `console/services/group_service.py`, `console/services/app_version_service.py`
 - 测试路径: `console/tests/group_service_test.py::GroupServiceDeleteAppTestCase`
 
+### Preserve applications when component deletion fails
+
+- Capability ID: `console.app.delete-component-failure-guard`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.group_service.batch_delete_app_services`
+- 代码路径: `console/services/group_service.py`
+- 测试路径: `console/tests/group_service_test.py::GroupServiceDeleteComponentFailureGuardTestCase`
+
 ### 阻止无效的应用删除确认
 
 - Capability ID: `console.app.delete-confirmation-guard`
@@ -2159,6 +2172,16 @@
 - 业务入口: `console.services.mcp_query_service.call_tool[rainbond_delete_app]`
 - 代码路径: `console/services/mcp_query_service.py`, `console/services/group_service.py`
 - 测试路径: `console/tests/mcp_query_service_test.py::MCPQueryServiceDeleteAppTests.test_delete_app_requires_confirmation_then_delete`
+
+### Delete applications with attached resources
+
+- Capability ID: `console.app.delete-with-resources`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.group_service.delete_app_with_resources`
+- 代码路径: `console/services/group_service.py`
+- 测试路径: `console/tests/group_service_test.py::GroupServiceDeleteAppWithResourcesTestCase`
 
 ### 查看应用详情
 
@@ -5869,6 +5892,16 @@
 - 业务入口: `console.services.source_component_service`
 - 代码路径: `console/services/source_component_service.py`
 - 测试路径: `console/tests/source_component_service_test.py::SourceComponentServiceTests.test_auto_create_component_prefers_dockerfile_when_dockerfiles_exist`
+
+### 仅列出当前用户已加入的团队
+
+- Capability ID: `console.team-query.current-user-membership`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `workflow`
+- 业务入口: `console.services.mcp_query_service.call_tool[rainbond_query_teams]`
+- 代码路径: `console/services/mcp_query_service.py`
+- 测试路径: `console/tests/mcp_query_service_test.py::MCPQueryServiceTeamQueryTests.test_query_teams_only_lists_teams_joined_by_current_user`
 
 ### 创建团队时拒绝非法命名空间
 

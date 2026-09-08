@@ -2930,6 +2930,24 @@
       "status": "active"
     },
     {
+      "id": "console.app.delete-component-failure-guard",
+      "title": "Preserve applications when component deletion fails",
+      "title_zh": "Preserve applications when component deletion fails",
+      "interface_type": "service_method",
+      "interface": "console.services.group_service.batch_delete_app_services",
+      "code_paths": [
+        "console/services/group_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/group_service_test.py",
+          "selector": "GroupServiceDeleteComponentFailureGuardTestCase"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.app.delete-confirmation-guard",
       "title": "Reject invalid application deletion confirmation token",
       "title_zh": "阻止无效的应用删除确认",
@@ -2961,6 +2979,24 @@
         {
           "path": "console/tests/mcp_query_service_test.py",
           "selector": "MCPQueryServiceDeleteAppTests.test_delete_app_requires_confirmation_then_delete"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.app.delete-with-resources",
+      "title": "Delete applications with attached resources",
+      "title_zh": "Delete applications with attached resources",
+      "interface_type": "service_method",
+      "interface": "console.services.group_service.delete_app_with_resources",
+      "code_paths": [
+        "console/services/group_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/group_service_test.py",
+          "selector": "GroupServiceDeleteAppWithResourcesTestCase"
         }
       ],
       "test_type": "regression",
