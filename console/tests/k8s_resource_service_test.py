@@ -73,7 +73,10 @@ class K8sResourceDeletionServiceTest(TestCase):
         self.assertEqual(payload["k8s_resources"][0]["client_id"], "11")
 
     def test_non_admin_cannot_confirm_cross_application_cascade(self):
-        impact = {"requires_cascade": True}
+        impact = {
+            "requires_cascade": True,
+            "crds": [{"name": "widgets.example.com"}],
+        }
         with mock.patch.object(self.service,
                                "preview_delete_k8s_resources",
                                return_value=impact), \
@@ -94,6 +97,8 @@ class K8sResourceDeletionServiceTest(TestCase):
                                                        is_enterprise_admin=False)
 
         self.assertEqual(raised.exception.status_code, 403)
+        self.assertIn("widgets.example.com", raised.exception.msg_show)
+        self.assertEqual(raised.exception.bean, impact)
         delete_region.assert_not_called()
 
     def test_successful_cascade_deletes_selected_and_cross_app_metadata(self):

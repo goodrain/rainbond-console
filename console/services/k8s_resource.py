@@ -102,6 +102,25 @@ class ComponentK8sResourceService(object):
             crd.pop("affected_region_app_ids", None)
         return impact
 
+    @staticmethod
+    def validate_crd_cascade(impact: Any, cascade_crd: bool, is_enterprise_admin: bool) -> None:
+        if not impact.get("requires_cascade"):
+            return
+        crd_names = [crd.get("name") for crd in impact.get("crds", []) if crd.get("name")]
+        crd_text = "、".join(crd_names) or "相关 CRD"
+        if not is_enterprise_admin:
+            raise ServiceHandleException(
+                msg="CRD deletion affects other applications or unowned resources",
+                msg_show="CRD {} 被其他应用或未归属资源使用，仅企业管理员可以级联删除".format(crd_text),
+                status_code=403,
+                bean=impact)
+        if not cascade_crd:
+            raise ServiceHandleException(
+                msg="explicit CRD cascade confirmation is required",
+                msg_show="删除 CRD {} 会影响其他应用，请明确确认级联删除".format(crd_text),
+                status_code=409,
+                bean=impact)
+
     @transaction.atomic
     def batch_delete_k8s_resource(self,
                                   enterprise_id: str,
@@ -114,19 +133,7 @@ class ComponentK8sResourceService(object):
         resources = self._get_owned_resources(app_id, resource_ids)
         namespace, region_app_id = self.get_app_id_and_namespace(app_id, tenant_name, region_name)
         impact = self.preview_delete_k8s_resources(enterprise_id, tenant_name, app_id, region_name, resource_ids)
-        if cascade_crd and not is_enterprise_admin:
-            raise ServiceHandleException(msg="enterprise administrator is required for CRD cascade deletion",
-                                         msg_show="仅企业管理员可以确认 CRD 跨应用级联删除",
-                                         status_code=403)
-        if impact.get("requires_cascade") and not is_enterprise_admin:
-            raise ServiceHandleException(msg="CRD deletion affects other applications or unowned resources",
-                                         msg_show="该 CRD 被其他应用或未归属资源使用，仅企业管理员可以级联删除",
-                                         status_code=403)
-        if impact.get("requires_cascade") and not cascade_crd:
-            raise ServiceHandleException(msg="explicit CRD cascade confirmation is required",
-                                         msg_show="删除会影响其他应用，请明确确认级联删除",
-                                         status_code=409,
-                                         bean=impact)
+        self.validate_crd_cascade(impact, cascade_crd, is_enterprise_admin)
 
         data = self._build_region_resources_payload(region_app_id, namespace, resources)
         data["cascade_crd"] = cascade_crd

@@ -246,7 +246,13 @@ class TenantGroupHandleView(ApplicationView):
         """
         删除应用及所有资源
         """
-        services = group_service.delete_app_with_resources(self.user, self.tenant, self.region_name, self.app)
+        services = group_service.delete_app_with_resources(
+            self.user,
+            self.tenant,
+            self.region_name,
+            self.app,
+            cascade_crd=bool(request.data.get("cascade_crd", False)),
+            is_enterprise_admin=self.is_enterprise_admin)
         component_names = []
         comment = ""
         old_information = list()

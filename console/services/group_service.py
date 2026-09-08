@@ -496,9 +496,19 @@ class GroupService(object):
                 services_info.append(service_info)
         res["services_info"] = services_info
         # k8s source
-        app_k8s_resources = k8s_resources_repo.list_by_app_id(app_id)
+        app_k8s_resources = list(k8s_resources_repo.list_by_app_id(app_id))
 
         res['k8s_resources'] = [{"name": resource.name, "type": resource.kind} for resource in app_k8s_resources]
+        try:
+            res['crd_deletion_impact'] = self._preview_app_k8s_deletion(
+                tenant, region_name, str(app_id), app_k8s_resources)
+        except ServiceHandleException as e:
+            res['crd_deletion_impact'] = {
+                "inspection_error": e.msg_show,
+                "has_crd": False,
+                "requires_cascade": False,
+                "crds": []
+            }
         # domains
         domains = domain_repo.get_domains_by_service_ids(service_ids)
         res['domains'] = [domain.domain_name for domain in domains]
@@ -832,28 +842,49 @@ class GroupService(object):
         """ get service source by group key"""
         return service_source_repo.get_service_sources_by_group_key(group_key)
 
-    def delete_app_with_resources(self, user: Users, tenant: Tenants, region_name: str,
-                                  app: ServiceGroup) -> Any:
+    @staticmethod
+    def _preview_app_k8s_deletion(tenant: Tenants, region_name: str, app_id: str,
+                                  k8s_resources: Any) -> dict:
+        if not k8s_resources:
+            return {"has_crd": False, "requires_cascade": False, "crds": []}
+        from console.services.k8s_resource import k8s_resource_service
+        return k8s_resource_service.preview_delete_k8s_resources(
+            tenant.enterprise_id,  # type: ignore[arg-type]
+            tenant.tenant_name,
+            app_id,
+            region_name, [resource.ID for resource in k8s_resources])
+
+    def delete_app_with_resources(self,
+                                  user: Users,
+                                  tenant: Tenants,
+                                  region_name: str,
+                                  app: ServiceGroup,
+                                  cascade_crd: bool = False,
+                                  is_enterprise_admin: bool = False) -> Any:
         """Delete an application after deleting all resources attached to it."""
         # Delay imports to avoid the existing circular service dependencies.
         from console.services.k8s_resource import k8s_resource_service
         from console.services.kubeblocks_service import kubeblocks_service
 
         app_id = app.app_id
-        services = self.batch_delete_app_services(user, tenant.tenant_id, region_name, app_id)
-
-        service_ids = [service.service_id for service in services]
-        kubeblocks_service.delete_kubeblocks_cluster(service_ids, region_name)
-
         k8s_resources = list(k8s_resource_service.list_by_app_id(str(app_id)))
         resource_ids = [resource.ID for resource in k8s_resources]
         if resource_ids:
+            impact = self._preview_app_k8s_deletion(tenant, region_name, str(app_id), k8s_resources)
+            k8s_resource_service.validate_crd_cascade(impact, cascade_crd, is_enterprise_admin)
             k8s_resource_service.batch_delete_k8s_resource(
                 user.enterprise_id,  # type: ignore[arg-type]
                 tenant.tenant_name,
                 str(app_id),
                 region_name,
-                resource_ids)
+                resource_ids,
+                cascade_crd=cascade_crd,
+                is_enterprise_admin=is_enterprise_admin)
+
+        services = self.batch_delete_app_services(user, tenant.tenant_id, region_name, app_id)
+
+        service_ids = [service.service_id for service in services]
+        kubeblocks_service.delete_kubeblocks_cluster(service_ids, region_name)
 
         app_config_group_service.batch_delete_config_group(region_name, tenant.tenant_name, app_id)
         self.delete_app_share_records(tenant.tenant_name, app_id)

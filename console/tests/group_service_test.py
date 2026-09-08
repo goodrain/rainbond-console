@@ -7,6 +7,19 @@ from unittest import TestCase, mock
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "src", "openapi-client")))
 sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
+openapi_client_module = ModuleType("openapi_client")
+openapi_client_module.MarketOpenapiApi = type("MarketOpenapiApi", (), {})
+openapi_client_module.ApiClient = type("ApiClient", (), {"__init__": lambda self, configuration=None: None})
+sys.modules.setdefault("openapi_client", openapi_client_module)
+openapi_client_configuration = ModuleType("openapi_client.configuration")
+openapi_client_configuration.Configuration = type("Configuration", (), {"__init__": lambda self: None})
+sys.modules.setdefault("openapi_client.configuration", openapi_client_configuration)
+openapi_client_rest = ModuleType("openapi_client.rest")
+openapi_client_rest.ApiException = type("ApiException", (Exception, ), {})
+sys.modules.setdefault("openapi_client.rest", openapi_client_rest)
+market_openapi_api = ModuleType("openapi_client.api.market_openapi_api")
+market_openapi_api.MarketOpenapiApi = type("MarketOpenapiApi", (), {})
+sys.modules.setdefault("openapi_client.api.market_openapi_api", market_openapi_api)
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
 
@@ -119,30 +132,122 @@ class GroupServiceDeleteAppWithResourcesTestCase(TestCase):
     def test_delete_app_with_resources_deletes_all_attached_resources(self):
         services = [Obj(service_id="svc-1"), Obj(service_id="svc-2")]
         k8s_resources = [Obj(ID=7), Obj(ID=8)]
+        impact = {
+            "requires_cascade": True,
+            "crds": [{"name": "widgets.example.com"}],
+        }
+        call_order = []
 
         with mock.patch.object(group_service, "batch_delete_app_services",
-                               return_value=services) as batch_delete_mock, \
+                               side_effect=lambda *args: call_order.append("components") or services) as batch_delete_mock, \
                 mock.patch("console.services.kubeblocks_service.kubeblocks_service.delete_kubeblocks_cluster"
                            ) as delete_kubeblocks_mock, \
                 mock.patch("console.services.k8s_resource.k8s_resource_service.list_by_app_id",
                            return_value=k8s_resources) as list_k8s_mock, \
-                mock.patch("console.services.k8s_resource.k8s_resource_service.batch_delete_k8s_resource"
-                           ) as delete_k8s_mock, \
+                mock.patch.object(group_service,
+                                  "_preview_app_k8s_deletion",
+                                  create=True,
+                                  side_effect=lambda *args: call_order.append("preview") or impact) as preview_mock, \
+                mock.patch("console.services.k8s_resource.k8s_resource_service.batch_delete_k8s_resource",
+                           side_effect=lambda *args, **kwargs: call_order.append("k8s")) as delete_k8s_mock, \
                 mock.patch.object(group_service_module.app_config_group_service,
                                   "batch_delete_config_group") as delete_config_group_mock, \
                 mock.patch.object(group_service, "delete_app_share_records") as delete_share_mock, \
                 mock.patch.object(group_service, "delete_app") as delete_app_mock:
             result = group_service.delete_app_with_resources(
-                self.user, self.tenant, "demo-region", self.app)
+                self.user,
+                self.tenant,
+                "demo-region",
+                self.app,
+                cascade_crd=True,
+                is_enterprise_admin=True)
 
         self.assertEqual(result, services)
+        preview_mock.assert_called_once_with(self.tenant, "demo-region", "42", k8s_resources)
+        self.assertEqual(call_order, ["preview", "k8s", "components"])
         batch_delete_mock.assert_called_once_with(self.user, "team-1", "demo-region", 42)
         delete_kubeblocks_mock.assert_called_once_with(["svc-1", "svc-2"], "demo-region")
         list_k8s_mock.assert_called_once_with("42")
-        delete_k8s_mock.assert_called_once_with("eid-1", "demo-team", "42", "demo-region", [7, 8])
+        delete_k8s_mock.assert_called_once_with(
+            "eid-1",
+            "demo-team",
+            "42",
+            "demo-region", [7, 8],
+            cascade_crd=True,
+            is_enterprise_admin=True)
         delete_config_group_mock.assert_called_once_with("demo-region", "demo-team", 42)
         delete_share_mock.assert_called_once_with("demo-team", 42)
         delete_app_mock.assert_called_once_with(self.tenant, "demo-region", self.app)
+
+    def test_delete_app_with_resources_stops_before_mutation_without_cascade_confirmation(self):
+        impact = {
+            "requires_cascade": True,
+            "crds": [{"name": "widgets.example.com"}],
+        }
+        with mock.patch("console.services.k8s_resource.k8s_resource_service.list_by_app_id",
+                        return_value=[Obj(ID=7)]), \
+                mock.patch.object(group_service,
+                                  "_preview_app_k8s_deletion",
+                                  create=True,
+                                  return_value=impact), \
+                mock.patch.object(group_service, "batch_delete_app_services") as delete_components, \
+                mock.patch("console.services.k8s_resource.k8s_resource_service.batch_delete_k8s_resource"
+                           ) as delete_k8s:
+            with self.assertRaises(ServiceHandleException) as raised:
+                group_service.delete_app_with_resources(
+                    self.user,
+                    self.tenant,
+                    "demo-region",
+                    self.app,
+                    cascade_crd=False,
+                    is_enterprise_admin=True)
+
+        self.assertEqual(raised.exception.status_code, 409)
+        self.assertIn("widgets.example.com", raised.exception.msg_show)
+        delete_components.assert_not_called()
+        delete_k8s.assert_not_called()
+
+    def test_preview_app_k8s_deletion_returns_concrete_crd_impact(self):
+        resources = [Obj(ID=7)]
+        impact = {
+            "requires_cascade": True,
+            "crds": [{"name": "widgets.example.com"}],
+        }
+        with mock.patch("console.services.k8s_resource.k8s_resource_service.preview_delete_k8s_resources",
+                        return_value=impact) as preview:
+            result = group_service._preview_app_k8s_deletion(
+                self.tenant, "demo-region", "42", resources)
+
+        self.assertEqual(result, impact)
+        preview.assert_called_once_with(
+            "eid-1", "demo-team", "42", "demo-region", [7])
+
+    def test_group_handle_delete_passes_authenticated_admin_state(self):
+        from console.views import group as group_view_module
+
+        view = group_view_module.TenantGroupHandleView()
+        view.user = self.user
+        view.tenant = self.tenant
+        view.region_name = "demo-region"
+        view.app = self.app
+        view.team_name = "demo-team"
+        view.is_enterprise_admin = True
+        request = Obj(data={"cascade_crd": True})
+
+        with mock.patch.object(group_view_module.group_service,
+                               "delete_app_with_resources",
+                               return_value=[]) as delete_app, \
+                mock.patch.object(group_view_module.operation_log_service, "create_app_log"):
+            response = view.delete(request, "42")
+
+        self.assertEqual(response.status_code, 200)
+        delete_app.assert_called_once_with(
+            self.user,
+            self.tenant,
+            "demo-region",
+            self.app,
+            cascade_crd=True,
+            is_enterprise_admin=True)
 
     def test_delete_app_with_resources_skips_empty_k8s_resource_batch(self):
         with mock.patch.object(group_service, "batch_delete_app_services", return_value=[]), \
@@ -166,6 +271,9 @@ class GroupServiceDeleteAppWithResourcesTestCase(TestCase):
                 mock.patch("console.services.kubeblocks_service.kubeblocks_service.delete_kubeblocks_cluster"), \
                 mock.patch("console.services.k8s_resource.k8s_resource_service.list_by_app_id",
                            return_value=[Obj(ID=7)]), \
+                mock.patch.object(group_service,
+                                  "_preview_app_k8s_deletion",
+                                  return_value={"requires_cascade": False, "crds": []}), \
                 mock.patch("console.services.k8s_resource.k8s_resource_service.batch_delete_k8s_resource",
                            side_effect=error), \
                 mock.patch.object(group_service_module.app_config_group_service,
@@ -184,7 +292,8 @@ class GroupServiceDeleteAppWithResourcesTestCase(TestCase):
         error = ServiceHandleException(
             msg="component deletion failed", msg_show="组件删除失败", status_code=507)
 
-        with mock.patch.object(group_service, "batch_delete_app_services", side_effect=error), \
+        with mock.patch("console.services.k8s_resource.k8s_resource_service.list_by_app_id", return_value=[]), \
+                mock.patch.object(group_service, "batch_delete_app_services", side_effect=error), \
                 mock.patch.object(group_service, "delete_app") as delete_app_mock:
             with self.assertRaises(ServiceHandleException) as context:
                 group_service.delete_app_with_resources(self.user, self.tenant, "demo-region", self.app)
