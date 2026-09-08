@@ -2925,6 +2925,30 @@ docker_binary_is_package_managed() {
     return 1
 }
 
+docker_endpoint_for_upgrade() {
+    local endpoint
+
+    if [ -n "${DOCKER_HOST:-}" ]; then
+        printf '%s\n' "$DOCKER_HOST"
+        return 0
+    fi
+
+    endpoint=$(docker context inspect --format '{{.Endpoints.docker.Host}}' 2>/dev/null | head -n 1 || true)
+    if [ -n "$endpoint" ]; then
+        printf '%s\n' "$endpoint"
+        return 0
+    fi
+
+    # Docker releases before the context command always use the local Unix
+    # socket when DOCKER_HOST is unset. Keep modern context failures fail-safe.
+    if ! docker help context >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
+        printf '%s\n' 'unix:///var/run/docker.sock'
+        return 0
+    fi
+
+    return 1
+}
+
 detect_docker_install_source() {
     local dockerd_path package package_status
     DOCKER_UPGRADE_SOURCE="unknown"
@@ -2989,11 +3013,7 @@ docker_upgrade_common_preflight_linux() {
             "A non-default DOCKER_CONTEXT=${DOCKER_CONTEXT} is active; the installer will not upgrade the local Docker daemon"
         return 1
     fi
-    if [ -n "${DOCKER_HOST:-}" ]; then
-        endpoint=$DOCKER_HOST
-    else
-        endpoint=$(docker context inspect --format '{{.Endpoints.docker.Host}}' 2>/dev/null | head -n 1 || true)
-    fi
+    endpoint=$(docker_endpoint_for_upgrade || true)
     case "$endpoint" in
         unix:///var/run/docker.sock | unix:///run/docker.sock)
             ;;
@@ -3120,8 +3140,32 @@ restart_docker_after_package_upgrade() {
     wait_for_docker_after_package_upgrade
 }
 
+docker_redact_package_manager_log() {
+    sed -E 's#(https?://)[^/@[:space:]]+:[^/@[:space:]]+@#\1[REDACTED]@#g' | awk '
+    {
+        line = $0
+        lower = tolower(line)
+        sensitive = "(password|passwd|passphrase|token|secret|credential|authorization|proxy_password|proxy_user|api_key|access_key|client_secret)[[:space:]]*[:=][[:space:]]*[^[:space:]]+"
+        bearer = "bearer[[:space:]]+[^[:space:]]+"
+        while (match(lower, sensitive) || match(lower, bearer)) {
+            line = substr(line, 1, RSTART - 1) "[REDACTED]" substr(line, RSTART + RLENGTH)
+            lower = tolower(line)
+        }
+        print line
+    }'
+}
+
+docker_package_manager_log_summary() {
+    local log_file=$1
+    [ -s "$log_file" ] || return 0
+    tail -n 50 "$log_file" 2>/dev/null | \
+        docker_redact_package_manager_log | \
+        tail -c 4096 | \
+        tr '\r\n' '  '
+}
+
 upgrade_docker_with_package_manager() {
-    local package_manager=$1 daemon_package=$2 packages
+    local package_manager=$1 daemon_package=$2 packages upgrade_log upgrade_status=0 failure_summary
     local running_containers docker_root storage_driver original_version installed_version
     local -a package_list
 
@@ -3154,41 +3198,48 @@ upgrade_docker_with_package_manager() {
         send_info "Upgrading installed packages from the original ${package_manager} repository: ${packages}"
     fi
 
+    upgrade_log=$(mktemp /tmp/rainbond-docker-package-upgrade.XXXXXX) || {
+        docker_upgrade_reject \
+            "无法创建 Docker 包管理器升级日志，未执行升级" \
+            "The Docker package-manager log could not be created; no upgrade was performed"
+        return 1
+    }
+    chmod 0600 "$upgrade_log" || {
+        rm -f "$upgrade_log"
+        docker_upgrade_reject \
+            "无法保护 Docker 包管理器升级日志，未执行升级" \
+            "The Docker package-manager log could not be secured; no upgrade was performed"
+        return 1
+    }
+
     case "$package_manager" in
         apt)
-            if ! apt-get update || ! DEBIAN_FRONTEND=noninteractive apt-get install -y --only-upgrade "${package_list[@]}"; then
-                systemctl start docker >/dev/null 2>&1 || true
-                restore_previously_running_containers "$running_containers" || true
-                docker_upgrade_reject \
-                    "Docker 包管理器升级失败；软件包可能已部分变更，脚本不会自动降级，请检查 apt 输出和现有服务" \
-                    "The Docker package-manager upgrade failed; packages may have changed partially and will not be downgraded automatically. Check the apt output and existing services"
-                return 1
-            fi
+            { apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --only-upgrade "${package_list[@]}"; } \
+                > >(tee "$upgrade_log") 2>&1 || upgrade_status=$?
             ;;
         dnf)
-            if ! dnf upgrade -y "${package_list[@]}"; then
-                systemctl start docker >/dev/null 2>&1 || true
-                restore_previously_running_containers "$running_containers" || true
-                docker_upgrade_reject \
-                    "Docker 包管理器升级失败；软件包可能已部分变更，脚本不会自动降级，请检查 dnf 输出和现有服务" \
-                    "The Docker package-manager upgrade failed; packages may have changed partially and will not be downgraded automatically. Check the dnf output and existing services"
-                return 1
-            fi
+            dnf upgrade -y "${package_list[@]}" > >(tee "$upgrade_log") 2>&1 || upgrade_status=$?
             ;;
         yum)
-            if ! yum upgrade -y "${package_list[@]}"; then
-                systemctl start docker >/dev/null 2>&1 || true
-                restore_previously_running_containers "$running_containers" || true
-                docker_upgrade_reject \
-                    "Docker 包管理器升级失败；软件包可能已部分变更，脚本不会自动降级，请检查 yum 输出和现有服务" \
-                    "The Docker package-manager upgrade failed; packages may have changed partially and will not be downgraded automatically. Check the yum output and existing services"
-                return 1
-            fi
+            yum upgrade -y "${package_list[@]}" > >(tee "$upgrade_log") 2>&1 || upgrade_status=$?
             ;;
         *)
+            rm -f "$upgrade_log"
             return 1
             ;;
     esac
+
+    if [ "$upgrade_status" -ne 0 ]; then
+        failure_summary=$(docker_package_manager_log_summary "$upgrade_log")
+        rm -f "$upgrade_log"
+        systemctl start docker >/dev/null 2>&1 || true
+        restore_previously_running_containers "$running_containers" || true
+        docker_upgrade_reject \
+            "Docker 包管理器 ${package_manager} 升级失败（退出码 ${upgrade_status}）；软件包可能已部分变更，脚本不会自动降级。脱敏诊断摘要: ${failure_summary:-无可用输出}" \
+            "The Docker package-manager upgrade failed for ${package_manager} (exit ${upgrade_status}); packages may have changed partially and will not be downgraded automatically. Redacted diagnostic excerpt: ${failure_summary:-no output available}"
+        return 1
+    fi
+    rm -f "$upgrade_log"
 
     if ! restart_docker_after_package_upgrade; then
         systemctl start docker >/dev/null 2>&1 || true
