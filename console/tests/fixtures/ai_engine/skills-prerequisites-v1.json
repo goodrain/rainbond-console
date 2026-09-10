@@ -1,0 +1,175 @@
+{
+  "schema": "rainbond.ai-engine.skills-prerequisites.v1",
+  "rest_endpoints": {
+    "deployment": "/api/v1/ai-engine/instances/{instance_id}/deployment",
+    "events": "/api/v1/ai-engine/instances/{instance_id}/events",
+    "logs": "/api/v1/ai-engine/instances/{instance_id}/logs",
+    "details": "/api/v1/ai-engine/instances/{instance_id}/details",
+    "gpu_devices": "/api/v1/ai-engine/gpu/devices",
+    "gpu_timeseries": "/api/v1/ai-engine/gpu/devices/{device_id}/timeseries",
+    "gpu_bindings": "/api/v1/ai-engine/gpu/instances/bindings",
+    "gpu_usage": "/api/v1/ai-engine/gpu/instances/usage"
+  },
+  "mcp_tools": {
+    "deployment": "rainbond_get_ai_engine_instance_deployment",
+    "events": "rainbond_list_ai_engine_instance_events",
+    "logs": "rainbond_get_ai_engine_instance_logs",
+    "gpu_devices": "rainbond_list_ai_engine_gpu_devices",
+    "gpu_timeseries": "rainbond_get_ai_engine_gpu_device_timeseries",
+    "gpu_bindings": "rainbond_list_ai_engine_gpu_instance_bindings",
+    "gpu_usage": "rainbond_list_ai_engine_gpu_instance_usage"
+  },
+  "deployment": {
+    "stage_names": [
+      "request_validation",
+      "model_resolution",
+      "resource_preflight",
+      "runtime_resolution",
+      "instance_record",
+      "namespace_pvc",
+      "network_policy",
+      "deployment_submit",
+      "service_submit",
+      "pod_scheduling",
+      "image_pull",
+      "volume_mount",
+      "container_start",
+      "model_precheck",
+      "runtime_initialization",
+      "health_probe",
+      "model_registration",
+      "terminal"
+    ],
+    "stage_statuses": [
+      "pending",
+      "running",
+      "success",
+      "failed",
+      "skipped",
+      "unavailable"
+    ],
+    "stage_sources": [
+      "validation",
+      "database",
+      "kubernetes",
+      "runtime"
+    ],
+    "response_fields": [
+      "available",
+      "unavailable_reason",
+      "current_stage",
+      "terminal",
+      "stages",
+      "failure",
+      "poll_after_seconds"
+    ],
+    "unavailable_reasons": [
+      "deployment_history_unavailable"
+    ],
+    "terminal_instance_statuses": [
+      "Running",
+      "Failed",
+      "Stopped"
+    ]
+  },
+  "gpu": {
+    "providers": [
+      "standard_nvidia",
+      "hami"
+    ],
+    "allocation_modes": [
+      "standard_whole_gpu",
+      "hami_shared_auto",
+      "hami_whole_gpu_fallback"
+    ],
+    "request_units": [
+      "physical_gpu",
+      "hami_vgpu"
+    ],
+    "response_fields": [
+      "provider",
+      "allocation_mode",
+      "request_unit",
+      "memory_mib_per_gpu",
+      "physical_memory_mib_per_gpu",
+      "available_memory_mib_per_gpu",
+      "available_vgpu_capacity",
+      "share_available",
+      "available",
+      "unavailable_reason",
+      "used_memory_bytes",
+      "binding_source",
+      "binding_scope",
+      "source"
+    ],
+    "usage_sources": [
+      "real",
+      "unavailable"
+    ],
+    "usage_unavailable_reasons": [
+      "gpu_usage_unavailable"
+    ]
+  },
+  "logs": {
+    "request_fields": [
+      "tail_lines",
+      "previous",
+      "since_seconds"
+    ],
+    "response_fields": [
+      "available",
+      "reason",
+      "log_source",
+      "logs",
+      "tail_lines",
+      "truncated"
+    ],
+    "sources": [
+      "current",
+      "previous"
+    ]
+  },
+  "events": {
+    "request_fields": [
+      "instance_id",
+      "limit",
+      "since_seconds"
+    ],
+    "response_fields": [
+      "resource_type",
+      "reason",
+      "safe_message",
+      "severity",
+      "count",
+      "first_seen",
+      "last_seen",
+      "source",
+      "truncated"
+    ],
+    "forbidden_inputs": [
+      "namespace",
+      "pod_name",
+      "selector",
+      "label_selector",
+      "field_selector"
+    ]
+  },
+  "details": {
+    "fields": [
+      "status",
+      "deployment_available",
+      "desired_replicas",
+      "ready_replicas",
+      "available_replicas",
+      "deployment_condition_reason",
+      "pod_scheduled",
+      "containers_ready",
+      "last_probe_type",
+      "last_probe_status",
+      "last_probe_error_code",
+      "serving_probe_status",
+      "served_model_registered",
+      "observed_at"
+    ]
+  }
+}

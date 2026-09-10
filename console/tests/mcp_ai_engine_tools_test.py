@@ -203,9 +203,11 @@ class MCPAIEngineToolContractTests(SimpleTestCase):
             handler.assert_called_once_with(self.admin, {})
 
     def test_console_catalog_matches_ai_engine_prerequisite_contract(self):
-        ai_engine_root = Path(
-            os.environ.get("RAINBOND_AI_ENGINE_ROOT") or Path(__file__).resolve().parents[3] / "rainbond-ai-engine")
-        contract_path = ai_engine_root / "contracts/skills-prerequisites-v1.json"
+        ai_engine_root = os.environ.get("RAINBOND_AI_ENGINE_ROOT")
+        if ai_engine_root:
+            contract_path = Path(ai_engine_root) / "contracts/skills-prerequisites-v1.json"
+        else:
+            contract_path = Path(__file__).resolve().parent / "fixtures/ai_engine/skills-prerequisites-v1.json"
         contract = json.loads(contract_path.read_text(encoding="utf-8"))
 
         self.assertEqual(contract["schema"], ai_engine_service.UPSTREAM_CONTRACT_SCHEMA)
