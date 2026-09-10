@@ -411,7 +411,12 @@ class AppVolumeManageView(AppBaseView):
         if volume_capacity in ("", None):
             volume_capacity = None
         else:
-            volume_capacity = int(volume_capacity)  # type: ignore[arg-type] # NOTE: volume_capacity is Any|None (backlog)
+            capacity_text = str(volume_capacity).strip()
+            if not re.fullmatch(r"[1-9][0-9]*", capacity_text):
+                return Response(general_message(400, "invalid volume capacity", "存储容量必须为正整数"), status=400)
+            volume_capacity = int(capacity_text)
+            if volume_capacity < volume.volume_capacity:
+                return Response(general_message(400, "volume shrink is not supported", "存储容量只支持扩容，不能缩容"), status=400)
         target_volume_capacity = volume.volume_capacity if volume_capacity is None else volume_capacity
         if self.service.extend_method == "vm" and volume.volume_type != "config-file":
             new_volume_path = volume_service.resolve_vm_volume_path(
@@ -461,7 +466,14 @@ class AppVolumeManageView(AppBaseView):
             res, body = region_api.upgrade_service_volumes(self.service.service_region, self.tenant.tenant_name,
                                                            self.service.service_alias, data)
             if res.status != 200:
-                return Response(general_message(405, "update failed", "修改失败"), status=405)
+                region_status = res.status if 400 <= res.status < 600 else 502
+                region_message = "update failed"
+                region_message_show = "修改失败"
+                if body and hasattr(body, "get"):
+                    region_message = body.get("msg") or region_message
+                    region_message_show = body.get("msg_show") or body.get("msg") or region_message_show
+                return Response(
+                    general_message(region_status, region_message, region_message_show), status=region_status)
 
         # 更新数据库
         volume.volume_path = new_volume_path  # type: ignore[assignment] # NOTE: new_volume_path is Any|None (backlog)

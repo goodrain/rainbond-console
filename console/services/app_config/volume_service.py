@@ -29,6 +29,15 @@ volume_bound = "bound"
 volume_not_bound = "not_bound"
 volume_ready = "READY"
 
+volume_expansion_runtime_fields = (
+    "allow_expansion",
+    "actual_capacity",
+    "requested_capacity",
+    "expansion_status",
+    "expansion_message",
+    "pvc_count",
+)
+
 
 class AppVolumeService(object):
     VM_DEVICE_PATHS = ("/disk", "/lun", "/cdrom")
@@ -270,13 +279,17 @@ class AppVolumeService(object):
             tenant.enterprise_id)  # type: ignore[arg-type]
         # NOTE: region_api body is an addict.Dict at runtime (.list); typed as plain dict, guarded by truthiness
         if body and body.list:  # type: ignore[attr-defined]
-            status = {v["volume_name"]: v["status"] for v in body.list}  # type: ignore[attr-defined]
+            runtime_by_name = {v["volume_name"]: v for v in body.list}  # type: ignore[attr-defined]
             for volume in volumes:
                 vo = volume.to_dict()
-                vo_status = status.get(vo["volume_name"], None)
+                runtime = runtime_by_name.get(vo["volume_name"], {})
+                vo_status = runtime.get("status")
                 vo["status"] = volume_not_bound
                 if vo_status and vo_status == volume_ready:
                     vo["status"] = volume_bound
+                for field in volume_expansion_runtime_fields:
+                    if field in runtime:
+                        vo[field] = runtime[field]
                 vos.append(vo)
         else:
             for volume in volumes:
@@ -292,37 +305,7 @@ class AppVolumeService(object):
             volumes = volume_repo.get_service_volumes_about_config_file(service.service_id)
         else:
             volumes = volume_repo.get_service_volumes(service.service_id)
-        vos = []
-        res = None
-        body = None
-        if service.create_status != "complete":
-            for volume in volumes:
-                vo = volume.to_dict()
-                vo["status"] = volume_not_bound
-                vos.append(vo)
-            return vos
-        # NOTE: tenant.enterprise_id is Optional[str] on the model; region_api expects str (caller passes a real id)
-        res, body = region_api.get_service_volumes(service.service_region, tenant.tenant_name, service.service_alias,
-                                                   tenant.enterprise_id)  # type: ignore[arg-type]
-        # NOTE: region_api body is an addict.Dict at runtime (.list); typed as plain dict, guarded by truthiness
-        if body and body.list:  # type: ignore[attr-defined]
-            status = {}
-            for volume in body.list:  # type: ignore[attr-defined]
-                status[volume["volume_name"]] = volume["status"]
-
-            for volume in volumes:
-                vo = volume.to_dict()
-                vo_status = status.get(vo["volume_name"], None)
-                vo["status"] = volume_not_bound
-                if vo_status and vo_status == volume_ready:
-                    vo["status"] = volume_bound
-                vos.append(vo)
-        else:
-            for volume in volumes:
-                vo = volume.to_dict()
-                vo["status"] = volume_not_bound
-                vos.append(vo)
-        return vos
+        return self._attach_volume_runtime_status(tenant, service, volumes)
 
     def check_volume_name(self, service: TenantServiceInfo, volume_name: str) -> str:
         r = re.compile('(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$')

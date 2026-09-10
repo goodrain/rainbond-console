@@ -5300,6 +5300,42 @@
       "status": "active"
     },
     {
+      "id": "console.component.volume-expansion-runtime",
+      "title": "Propagate PVC volume expansion runtime fields",
+      "title_zh": "Propagate PVC volume expansion runtime fields",
+      "interface_type": "service_method",
+      "interface": "console.services.app_config.volume_service.AppVolumeService.get_service_volumes",
+      "code_paths": [
+        "console/services/app_config/volume_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_volume_service_expansion_test.py",
+          "selector": "AppVolumeServiceExpansionTestCase::test_attach_volume_runtime_status_merges_expansion_fields"
+        }
+      ],
+      "test_type": "unit",
+      "status": "active"
+    },
+    {
+      "id": "console.component.volume-expansion-update",
+      "title": "Validate and forward component volume expansion",
+      "title_zh": "Validate and forward component volume expansion",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.app_config.app_volume.AppVolumeManageView.put",
+      "code_paths": [
+        "console/views/app_config/app_volume.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_volume_view_test.py",
+          "selector": "AppVolumeManageViewTestCase::test_put_rejects_volume_capacity_shrink"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.dependency.invalid-container-port",
       "title": "Dependency Invalid Container Port",
       "title_zh": "Dependency Invalid Container Port",
