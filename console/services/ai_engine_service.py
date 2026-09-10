@@ -430,7 +430,8 @@ class AIEngineProxyService(object):
         data = self._call(context, "GET", self.API_PREFIX + "/model-catalog", query=query)
         data = data if isinstance(data, dict) else {}
         items = [self._without_keys(self._sanitize_output(item), ("readme", )) for item in (data.get("models") or [])]
-        total = data.get("total") if isinstance(data.get("total"), int) else len(items)
+        total = data.get("total")
+        total = total if isinstance(total, int) else len(items)
         return {
             "items": items,
             "page": page,
@@ -974,7 +975,8 @@ class AIEngineProxyService(object):
         series = {}
         truncated = False
         for name in ("utilization_rate", "memory_utilization_rate", "temperature_celsius"):
-            points = source.get(name) if isinstance(source.get(name), list) else []
+            points = source.get(name)
+            points = points if isinstance(points, list) else []
             safe_points = []
             for point in points:
                 if not isinstance(point, dict):

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from console.exception.main import ServiceHandleException
 
@@ -88,9 +88,9 @@ class MCPAIEngineTools(object):
         }
 
     def _schema(self,
-                properties: Dict[str, Any] = None,
-                required: List[str] = None,
-                one_of: List[dict] = None) -> Dict[str, Any]:
+                properties: Optional[Dict[str, Any]] = None,
+                required: Optional[List[str]] = None,
+                one_of: Optional[List[dict]] = None) -> Dict[str, Any]:
         merged = self._context_properties()
         merged.update(properties or {})
         schema = {
