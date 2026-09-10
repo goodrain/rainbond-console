@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
+import ast
 import logging
+import re
 from typing import Any, Dict, List, Optional
 
 from console.exception.main import ServiceHandleException
@@ -19,6 +21,185 @@ region_api = RegionInvokeApi()
 
 
 class PackageComponentService(object):
+    PACKAGE_EVENT_ID_PATTERN = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
+
+    @staticmethod
+    def _package_git_url(service_id: str, event_id: str) -> str:
+        return "/grdata/package_build/components/{0}/events/{1}".format(service_id, event_id)
+
+    @staticmethod
+    def get_package_event_id(git_url: str) -> str:
+        normalized = (git_url or "").rstrip("/")
+        return normalized.rsplit("/", 1)[-1] if normalized else ""
+
+    @staticmethod
+    def _record_packages(upload_record: Any) -> List[Any]:
+        source_dir = getattr(upload_record, "source_dir", []) or []
+        if isinstance(source_dir, list):
+            return source_dir
+        if not isinstance(source_dir, str):
+            return []
+        try:
+            parsed = ast.literal_eval(source_dir)
+        except (SyntaxError, ValueError):
+            return []
+        return parsed if isinstance(parsed, list) else []
+
+    def replace_component(self,
+                          team: Tenants,
+                          app: ServiceGroup,
+                          service: Any,
+                          user: Any,
+                          event_id: str,
+                          expected_current_event_id: str = "",
+                          is_deploy: bool = True) -> Dict[str, Any]:
+        if (getattr(service, "service_source", "") != "package_build" or getattr(service, "server_type", "") != "pkg"):
+            raise ServiceHandleException(
+                msg="component is not package based",
+                msg_show="目标组件不是软件包构建组件",
+                status_code=400,
+            )
+        if getattr(service, "create_status", "") not in ("checked", "complete"):
+            raise ServiceHandleException(
+                msg="component is not ready for package replacement",
+                msg_show="组件未完成创建，禁止替换软件包",
+                status_code=400,
+            )
+        if not self.PACKAGE_EVENT_ID_PATTERN.match(event_id or ""):
+            raise ServiceHandleException(
+                msg="invalid package upload event",
+                msg_show="软件包上传事件ID无效",
+                status_code=400,
+            )
+
+        old_git_url = getattr(service, "git_url", "") or ""
+        old_code_version = getattr(service, "code_version", "") or ""
+        old_event_id = self.get_package_event_id(old_git_url)
+        if expected_current_event_id and expected_current_event_id != old_event_id:
+            raise ServiceHandleException(
+                msg="package source changed concurrently",
+                msg_show="组件软件包构建源已变化，请重新查询后再更新",
+                status_code=409,
+            )
+
+        upload_record = package_upload_service.get_upload_record(team.tenant_name, app.region_name, event_id)
+        if not upload_record:
+            raise ServiceHandleException(
+                msg="upload record not found",
+                msg_show="未找到软件包上传记录",
+                status_code=404,
+            )
+        upload_component_id = getattr(upload_record, "component_id", "") or ""
+        if upload_component_id and upload_component_id != service.service_id:
+            raise ServiceHandleException(
+                msg="upload belongs to another component",
+                msg_show="软件包上传事件已关联到其他组件",
+                status_code=409,
+            )
+
+        if event_id == old_event_id:
+            return {
+                "service_id": service.service_id,
+                "service_alias": getattr(service, "service_alias", ""),
+                "app_id": app.ID,
+                "upload_event_id": event_id,
+                "previous_upload_event_id": old_event_id,
+                "uploaded_packages": self._record_packages(upload_record),
+                "event_id": None,
+                "replaced": False,
+                "build_triggered": False,
+                "is_deploy": bool(is_deploy),
+                "next_action": "rainbond_build_component" if is_deploy else None,
+            }
+
+        packages = self._get_uploaded_packages(app.region_name, team.tenant_name, event_id)
+        if not packages:
+            raise ServiceHandleException(
+                msg="package not uploaded",
+                msg_show="软件包未上传完成",
+                status_code=400,
+            )
+
+        new_git_url = self._package_git_url(service.service_id, event_id)
+        pkg_create_time = str(getattr(upload_record, "create_time", "") or "")
+        updated = console_app_service.change_package_upload_info(
+            service.service_id,
+            event_id,
+            pkg_create_time,
+            tenant_id=team.tenant_id,
+            expected_git_url=old_git_url,
+        )
+        if updated != 1:
+            raise ServiceHandleException(
+                msg="package source changed concurrently",
+                msg_show="组件软件包构建源已变化，请重新查询后再更新",
+                status_code=409,
+            )
+
+        upload_updated = package_upload_service.update_upload_record(
+            team.tenant_name,
+            event_id,
+            status="finished",
+            component_id=service.service_id,
+            source_dir=packages,
+        )
+        if upload_updated != 1:
+            console_app_service.restore_package_upload_info(service.service_id, team.tenant_id, new_git_url, old_git_url,
+                                                            old_code_version)
+            raise ServiceHandleException(
+                msg="update upload record failed",
+                msg_show="更新软件包上传记录失败",
+                status_code=409,
+            )
+
+        service.git_url = new_git_url
+        service.code_version = pkg_create_time
+        build_event_id = None
+        if is_deploy:
+            try:
+                code, msg, build_event_id = app_manage_service.deploy(team, service, user)
+                if code != 200:
+                    raise ServiceHandleException(msg="package build failed", msg_show=msg, status_code=code)
+            except Exception:
+                restored = console_app_service.restore_package_upload_info(
+                    service.service_id,
+                    team.tenant_id,
+                    new_git_url,
+                    old_git_url,
+                    old_code_version,
+                )
+                if restored != 1:
+                    logger.error("restore package source failed after build dispatch error: service_id=%s", service.service_id)
+                package_upload_service.update_upload_record(
+                    team.tenant_name,
+                    event_id,
+                    status="unfinished",
+                    component_id=service.service_id,
+                    source_dir=packages,
+                )
+                service.git_url = old_git_url
+                service.code_version = old_code_version
+                raise
+            try:
+                deploy_repo.create_deploy_relation_by_service_id(service_id=service.service_id)
+            except Exception as exc:
+                logger.warning("create deploy relation after package replacement failed: service_id=%s error=%s",
+                               service.service_id, exc)
+
+        return {
+            "service_id": service.service_id,
+            "service_alias": getattr(service, "service_alias", ""),
+            "app_id": app.ID,
+            "upload_event_id": event_id,
+            "previous_upload_event_id": old_event_id,
+            "uploaded_packages": packages,
+            "event_id": build_event_id,
+            "replaced": True,
+            "build_triggered": bool(is_deploy),
+            "is_deploy": bool(is_deploy),
+            "next_action": "rainbond_wait_for_build_completion" if build_event_id else None,
+        }
+
     def auto_create_component(
             self,
             team: Tenants,

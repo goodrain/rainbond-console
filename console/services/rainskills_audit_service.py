@@ -36,6 +36,10 @@ _TARGET_ARGUMENT_FIELDS = frozenset({
     "service_cname",
     "record_id",
     "snapshot_id",
+    "plugin_id",
+    "model_key",
+    "instance_id",
+    "job_name",
     "action",
     "operation",
 })
@@ -66,6 +70,15 @@ def arguments_digest(arguments: Dict[str, Any]) -> str:
 
 
 def _redact(value: Any, key: str = "") -> Any:
+    if key.lower() in ("extra_argv", "resolved_argv") and isinstance(value, list):
+        names = []
+        for item in value:
+            if not isinstance(item, str) or not item.startswith("--"):
+                continue
+            name = item.split("=", 1)[0]
+            if name not in names:
+                names.append(name[:_MAX_VALUE_TEXT_LENGTH])
+        return names
     if key and _SENSITIVE_KEY_PATTERN.search(key):
         return "[REDACTED]"
     if isinstance(value, dict):

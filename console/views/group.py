@@ -2,7 +2,6 @@
 """
   Created by leon on 18/1/5.
 """
-import json
 import logging
 from typing import Any
 
@@ -12,19 +11,17 @@ from console.exception.bcode import ErrQualifiedName
 from console.repositories.app import service_repo
 from console.repositories.group import group_service_relation_repo, group_repo
 from console.repositories.region_app import region_app_repo
-from console.services.app_config_group import app_config_group_service
 from console.services.helm_app import helm_app_service
 from console.services.app_actions import app_manage_service
 from console.services.group_service import group_service
 from console.services.application import application_service
+from console.services.application_delete_service import application_delete_service
 from console.services.market_app_service import market_app_service
 from console.services.k8s_resource import k8s_resource_service
 from console.services.operation_log import operation_log_service, Operation
-from console.services.kubeblocks_service import kubeblocks_service
 from console.utils.reqparse import parse_item
 from console.utils.validation import is_qualified_name
-from console.views.base import (ApplicationView, RegionTenantHeaderCloudEnterpriseCenterView, RegionTenantHeaderView,
-                                ApplicationViewCloudEnterpriseCenterView)
+from console.views.base import ApplicationView, RegionTenantHeaderView, ApplicationViewCloudEnterpriseCenterView
 from rest_framework.request import Request
 from rest_framework.response import Response
 from urllib3.exceptions import MaxRetryError
@@ -248,44 +245,7 @@ class TenantGroupHandleView(ApplicationView):
         """
         删除应用及所有资源
         """
-        # delete services
-        services = group_service.batch_delete_app_services(self.user, self.tenant.tenant_id, self.region_name, app_id)
-        # delete kubeblocks cluster
-        service_ids = [service.service_id for service in services]
-        # delete kubeblocks cluster if service is kubeblocks cluster
-        kubeblocks_service.delete_kubeblocks_cluster(service_ids, self.region_name)
-        # delete k8s resource
-        k8s_resources = k8s_resource_service.list_by_app_id(str(app_id))
-        resource_ids = [k8s_resource.ID for k8s_resource in k8s_resources]
-        k8s_resource_service.batch_delete_k8s_resource(self.user.enterprise_id,  # type: ignore[arg-type]
-                                                       self.tenant.tenant_name, str(app_id), self.region_name,
-                                                       resource_ids)
-        # delete configs
-        app_config_group_service.batch_delete_config_group(self.region_name, self.tenant.tenant_name, app_id)
-        # delete records
-        group_service.delete_app_share_records(self.tenant.tenant_name, app_id)
-        # delete app
-        group_service.delete_app(self.tenant, self.region_name, self.app)
-        component_names = []
-        comment = ""
-        old_information = list()
-        if services:
-            app = self.app
-            if app:
-                app_name = operation_log_service.process_app_name(app.app_name, self.region_name, self.team_name,
-                                                                  app.app_id)
-                for svc in services:
-                    component_names.append(svc.service_cname)
-                    old_information.append({"组件名": svc.service_cname, "操作": "删除"})
-                if len(component_names) > 2:
-                    component_names_text = ",".join(component_names[0:2]) + "等"
-                else:
-                    component_names_text = ",".join(component_names)
-                comment = "删除了应用 {app}, 以及应用下的组件 {component_names}".format(
-                    app=app_name, component_names=component_names_text)
-
-        old_information = json.dumps(old_information, ensure_ascii=False)
-        operation_log_service.create_app_log(ctx=self, comment=comment, format_app=False, old_information=old_information)
+        application_delete_service.delete_app(self.user, self.tenant, self.region_name, self.app, log_context=self)
 
         result = general_message(200, "success", "删除成功")
         return Response(result, status=result["code"])

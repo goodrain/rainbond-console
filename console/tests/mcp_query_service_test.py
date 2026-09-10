@@ -70,7 +70,7 @@ class MCPQueryServiceToolVisibilityTests(SimpleTestCase):
         self.assertIn("upload_request", init_description)
         self.assertIn("multipart", init_description)
         self.assertIn("rainbond_get_package_upload_status", init_description)
-        self.assertIn("rainbond_create_component_from_package", init_description)
+        self.assertIn("rainbond_replace_component_package", init_description)
 
         for client in ("codex", "claude_code"):
             with deployment_invocation_context("rainskills", client):
@@ -81,6 +81,7 @@ class MCPQueryServiceToolVisibilityTests(SimpleTestCase):
             self.assertIn("rainbond_get_package_upload_status", rainskills_tool_names)
             self.assertIn("rainbond_delete_package_upload", rainskills_tool_names)
             self.assertIn("rainbond_create_component_from_package", rainskills_tool_names)
+            self.assertIn("rainbond_replace_component_package", rainskills_tool_names)
 
     # capability_id: console.package-upload.rainskills-tool-visibility
     def test_rainskills_cannot_call_server_local_package_tools_directly(self):
@@ -3705,6 +3706,30 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         self.assertNotIn("docker_cmd", result["build_source"])
         self.assertEqual(sorted(result["build_source"]["arch_options"]), ["amd64", "arm64"])
 
+    # capability_id: console.package-component.current-event-source
+    @patch("console.services.mcp_query_service.base_service.get_build_infos")
+    @patch("console.services.mcp_query_service.region_api.get_cluster_nodes_arch")
+    def test_get_component_build_source_exposes_current_package_event(self, mock_get_arch, mock_get_build_infos):
+        service = Obj(
+            service_id="svc-pkg-1",
+            service_source="package_build",
+            git_url="/grdata/package_build/components/svc-pkg-1/events/evt-current",
+            arch="amd64",
+        )
+        team = Obj(tenant_id="team-1")
+        app = Obj(region_name="rainbond")
+        mock_get_build_infos.return_value = {
+            "svc-pkg-1": {
+                "service_source": "package_build",
+                "git_url": service.git_url,
+            }
+        }
+        mock_get_arch.return_value = (None, {"list": ["amd64"]})
+
+        result = mcp_query_service._get_component_build_source_snapshot(team, app, service)
+
+        self.assertEqual(result["package_event_id"], "evt-current")
+
     @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
     @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
     @patch("console.services.mcp_query_service.group_service.get_app_by_id")
@@ -6205,6 +6230,59 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
 
     @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
     @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.group_service.get_app_by_id")
+    @patch("console.services.mcp_query_service.service_repo.get_service_by_service_id")
+    @patch("console.services.mcp_query_service.group_service_relation_repo.get_services_by_group")
+    @patch("console.services.mcp_query_service.package_component_service.replace_component")
+    # capability_id: console.package-component.replace-tool
+    def test_replace_component_package_calls_package_service(
+        self,
+        mock_replace_component,
+        mock_relations,
+        mock_get_service,
+        mock_get_app,
+        mock_get_region,
+        mock_get_team,
+    ):
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
+        mock_get_app.return_value = self.app
+        mock_get_service.return_value = self.service
+        mock_relations.return_value = [Obj(service_id=self.service.service_id)]
+        mock_replace_component.return_value = {
+            "service_id": self.service.service_id,
+            "upload_event_id": "evt-upload-2",
+            "event_id": "evt-build-2",
+            "replaced": True,
+        }
+
+        result = mcp_query_service.call_tool(
+            self.user,
+            "rainbond_replace_component_package",
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "app_id": 12,
+                "service_id": self.service.service_id,
+                "event_id": "evt-upload-2",
+                "expected_current_event_id": "evt-old",
+                "is_deploy": True,
+            },
+        )
+
+        self.assertTrue(result["replaced"])
+        mock_replace_component.assert_called_once_with(
+            team=self.team,
+            app=self.app,
+            service=self.service,
+            user=self.user,
+            event_id="evt-upload-2",
+            expected_current_event_id="evt-old",
+            is_deploy=True,
+        )
+
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
     @patch("console.services.mcp_query_service.package_upload_tool_service.init_upload")
     # capability_id: console.package-upload.init
     def test_init_package_upload_delegates_to_upload_tool_service(self, mock_init_upload, mock_get_region, mock_get_team):
@@ -6818,7 +6896,7 @@ class MCPQueryServiceDeleteAppTests(SimpleTestCase):
             creater=1002,
         )
 
-    @patch("console.services.mcp_query_service.group_service.delete_app")
+    @patch("console.services.mcp_query_service.application_delete_service.delete_app")
     @patch("console.services.mcp_query_service.group_service_relation_repo.count_service_by_app_id")
     @patch("console.services.mcp_query_service.team_repo.get_user_tenant_by_name")
     @patch("console.services.mcp_query_service.enterprise_user_perm_repo.is_admin")
@@ -6864,7 +6942,7 @@ class MCPQueryServiceDeleteAppTests(SimpleTestCase):
 
         self.assertFalse(confirm_result.get("requires_confirmation"))
         self.assertTrue(confirm_result.get("deleted"))
-        mock_delete_app.assert_called_once_with(self.tenant, self.app.region_name, self.app)
+        mock_delete_app.assert_called_once_with(self.user, self.tenant, self.app.region_name, self.app)
 
     @patch("console.services.mcp_query_service.group_service_relation_repo.count_service_by_app_id")
     @patch("console.services.mcp_query_service.team_repo.get_user_tenant_by_name")

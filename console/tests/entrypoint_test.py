@@ -14,6 +14,15 @@ class EntrypointGunicornTest(unittest.TestCase):
         self.assertRegex(self.gunicorn_command, re.compile(r"--workers=\$\{WORKERS:-4\}"))
         self.assertNotIn("--reload", self.gunicorn_command)
 
+    def test_database_startup_plans_repairs_before_applying_and_migrating(self):
+        plan = "if ! python manage.py repair_legacy_schema --apps authtoken,www,console --plan; then"
+        repair = "if ! python manage.py repair_legacy_schema --apps authtoken,www,console; then"
+        migrate = "if ! python manage.py migrate --fake-initial --noinput; then"
+
+        self.assertIn(plan, self.source)
+        self.assertLess(self.source.index(plan), self.source.index(repair))
+        self.assertLess(self.source.index(repair), self.source.index(migrate))
+
 
 if __name__ == "__main__":
     unittest.main()

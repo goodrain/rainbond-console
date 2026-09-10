@@ -30,6 +30,7 @@ from console.repositories.upgrade_repo import upgrade_repo
 from console.services.app import app_service as console_app_service, app_market_service
 from console.services.app_actions import app_manage_service, event_service, log_service
 from console.services.app_check_service import app_check_service
+from console.services.application_delete_service import application_delete_service
 from console.services.app_version_service import app_version_service
 from console.services.app_config import domain_service, env_var_service, port_service, volume_service, mnt_service, probe_service, dependency_service
 from console.services.autoscaler_service import autoscaler_service, scaling_records_service
@@ -42,7 +43,9 @@ from console.services.group_service import group_service
 from console.services.groupcopy_service import groupapp_copy_service
 from console.services.helm_app_yaml import helm_app_service
 from console.services.market_app_service import market_app_service
+from console.services.mcp_ai_engine_tools import mcp_ai_engine_tools
 from console.services.mcp_failure_classifier import classify_failure
+from console.services.mcp_platform_plugin_tools import mcp_platform_plugin_tools
 from console.services.package_component_service import package_component_service
 from console.services.package_upload_tool_service import package_upload_tool_service
 from console.services.plugin import app_plugin_service
@@ -311,6 +314,7 @@ class MCPQueryService(object):
             self._tool_query_cloud_markets(), self._tool_query_local_app_models(), self._tool_query_cloud_app_models(),
             self._tool_query_app_model_versions(), self._tool_install_app_model(),
             self._tool_create_component_from_source(), self._tool_create_component_from_package(),
+            self._tool_replace_component_package(),
             self._tool_init_package_upload(), self._tool_upload_package_file(),
             self._tool_get_package_upload_status(), self._tool_delete_package_upload(),
             self._tool_create_component_from_local_package(),
@@ -328,6 +332,8 @@ class MCPQueryService(object):
                 self._tool_query_region_nodes(), self._tool_get_region_node_detail(),
                 self._tool_query_region_rbd_components()
             ] + tools
+        tools.extend(mcp_platform_plugin_tools.list_tools(user))
+        tools.extend(mcp_ai_engine_tools.list_tools(user))
         if is_rainskills_invocation():
             tools = [tool for tool in tools if tool["name"] not in self.RAINSKILLS_HIDDEN_TOOL_NAMES]
         return tools
@@ -372,6 +378,11 @@ class MCPQueryService(object):
         arguments = arguments or {}
 
         self.assert_tool_visible(name)
+
+        if mcp_platform_plugin_tools.handles(name):
+            return mcp_platform_plugin_tools.call_tool(user, name, arguments)
+        if mcp_ai_engine_tools.handles(name):
+            return mcp_ai_engine_tools.call_tool(user, name, arguments)
 
         if name == "rainbond_get_current_user":
             return self.get_current_user(user)
@@ -539,6 +550,8 @@ class MCPQueryService(object):
             return self.create_component_from_source(user, arguments)
         if name == "rainbond_create_component_from_package":
             return self.create_component_from_package(user, arguments)
+        if name == "rainbond_replace_component_package":
+            return self.replace_component_package(user, arguments)
         if name == "rainbond_init_package_upload":
             return self.init_package_upload(user, arguments)
         if name == "rainbond_upload_package_file":
@@ -1476,6 +1489,9 @@ class MCPQueryService(object):
         bean["has_password"] = has_password
         bean.setdefault("service_source", getattr(service, "service_source", ""))
         bean.setdefault("arch", getattr(service, "arch", ""))
+        if bean["service_source"] == AppConstants.PACKAGE_BUILD:
+            package_git_url = bean.get("git_url") or getattr(service, "git_url", "") or ""
+            bean["package_event_id"] = package_component_service.get_package_event_id(package_git_url)
         try:
             _, body = region_api.get_cluster_nodes_arch(app.region_name)
             bean["arch_options"] = list(set((body or {}).get("list") or []))
@@ -3975,6 +3991,24 @@ class MCPQueryService(object):
             is_deploy=bool(arguments.get("is_deploy", True)),
         )
 
+    def replace_component_package(self, user: Any, arguments: dict) -> Any:
+        team, app, service = self._get_team_app_service_context(
+            user,
+            self._require_string(arguments, "team_name"),
+            self._require_string(arguments, "region_name"),
+            self._require_int(arguments, "app_id"),
+            self._require_string(arguments, "service_id"),
+        )
+        return package_component_service.replace_component(
+            team=team,
+            app=app,
+            service=service,
+            user=user,
+            event_id=self._require_string(arguments, "event_id"),
+            expected_current_event_id=arguments.get("expected_current_event_id", "") or "",
+            is_deploy=bool(arguments.get("is_deploy", True)),
+        )
+
     def init_package_upload(self, user: Any, arguments: dict) -> Any:
         team_name = self._require_string(arguments, "team_name")
         region_name = self._require_string(arguments, "region_name")
@@ -4644,7 +4678,7 @@ class MCPQueryService(object):
         if int(token_payload.get("app_id", 0)) != app_id:
             raise ServiceHandleException(msg="token app mismatch", msg_show="确认令牌与目标应用不匹配", status_code=400)
 
-        group_service.delete_app(tenant, app.region_name, app)
+        application_delete_service.delete_app(user, tenant, app.region_name, app)
 
         return {
             "requires_confirmation": False,
@@ -7641,13 +7675,46 @@ class MCPQueryService(object):
             }
         }
 
+    def _tool_replace_component_package(self) -> dict:
+        return {
+            "name": "rainbond_replace_component_package",
+            "description": (
+                "Replace the uploaded package build source of an existing package-based component, preserve its "
+                "service_id and runtime configuration, and optionally trigger a build and rolling upgrade. "
+                "Use the returned build event_id with rainbond_wait_for_build_completion."
+            ),
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "team_name": {"type": "string"},
+                    "region_name": {"type": "string"},
+                    "app_id": {"type": "integer", "minimum": 1},
+                    "service_id": {"type": "string"},
+                    "event_id": {
+                        "type": "string",
+                        "description": "新软件包上传事件 ID。"
+                    },
+                    "expected_current_event_id": {
+                        "type": "string",
+                        "description": "可选。更新前查询到的当前软件包事件 ID，用于阻止并发覆盖。"
+                    },
+                    "is_deploy": {
+                        "type": "boolean",
+                        "description": "是否在替换构建源后立即触发构建和滚动升级，默认 true。"
+                    }
+                },
+                "required": ["team_name", "region_name", "app_id", "service_id", "event_id"]
+            }
+        }
+
     def _tool_init_package_upload(self) -> dict:
         return {
             "name": "rainbond_init_package_upload",
             "description": (
                 "Initialize a package upload event. Use the returned upload_request contract to send the package "
-                "as multipart/form-data, then call rainbond_get_package_upload_status and "
-                "rainbond_create_component_from_package."
+                "as multipart/form-data, then call rainbond_get_package_upload_status. For a missing component call "
+                "rainbond_create_component_from_package; for an existing package component call "
+                "rainbond_replace_component_package with the same service_id."
             ),
             "inputSchema": {
                 "type": "object",

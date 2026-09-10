@@ -62,6 +62,7 @@ MUTABLE_TOOL_POLICY: Dict[str, ToolAuditSpec] = {
     "rainbond_init_package_upload": _write("low", "component"),
     "rainbond_install_app_by_market": _write("medium", "app"),
     "rainbond_install_app_model": _write("medium", "app"),
+    "rainbond_install_platform_plugin": _write("medium", "enterprise", "platform_plugin"),
     "rainbond_manage_component_autoscaler": _write("medium", "component"),
     "rainbond_manage_component_connection_envs": _write("medium", "component"),
     "rainbond_manage_component_dependency": _write("medium", "component"),
@@ -71,6 +72,7 @@ MUTABLE_TOOL_POLICY: Dict[str, ToolAuditSpec] = {
     "rainbond_manage_component_storage": _write("medium", "component"),
     "rainbond_operate_app": _write("medium", "component", "component_runtime"),
     "rainbond_publish_snapshot_to_store": _write("medium", "app"),
+    "rainbond_replace_component_package": _write("medium", "component"),
     "rainbond_rewrite_snapshot_images": _write("medium", "app"),
     "rainbond_rollback_app_upgrade_record": _write("medium", "app"),
     "rainbond_rollback_app_version_snapshot": _write("medium", "app"),
@@ -80,6 +82,34 @@ MUTABLE_TOOL_POLICY: Dict[str, ToolAuditSpec] = {
     "rainbond_update_region": _write("medium", "enterprise"),
     "rainbond_upgrade_app": _write("medium", "app"),
     "rainbond_vertical_scale_component": _write("medium", "component"),
+    "rainbond_create_ai_engine_model_download": _write("medium", "team", "ai_engine_model"),
+    "rainbond_delete_ai_engine_team_model": _write("high", "team", "ai_engine_model"),
+    "rainbond_create_ai_engine_instance": _write("medium", "team", "ai_engine_instance"),
+    "rainbond_update_ai_engine_instance_state": _write("medium", "team", "ai_engine_instance_runtime"),
+    "rainbond_delete_ai_engine_instance": _write("high", "team", "ai_engine_instance"),
+}
+
+READ_ONLY_TOOL_POLICY: Dict[str, ToolAuditSpec] = {
+    "rainbond_list_platform_plugins": _read("enterprise", "platform_plugin"),
+    "rainbond_get_ai_engine_capabilities": _read("team", "ai_engine"),
+    "rainbond_get_ai_engine_resource_capacity": _read("team", "ai_engine_resource"),
+    "rainbond_search_ai_engine_model_catalog": _read("team", "ai_engine_model"),
+    "rainbond_get_ai_engine_model_catalog_detail": _read("team", "ai_engine_model"),
+    "rainbond_list_ai_engine_model_recommendations": _read("team", "ai_engine_model"),
+    "rainbond_list_ai_engine_team_models": _read("team", "ai_engine_model"),
+    "rainbond_get_ai_engine_team_model": _read("team", "ai_engine_model"),
+    "rainbond_get_ai_engine_model_download": _read("team", "ai_engine_model"),
+    "rainbond_get_ai_engine_model_download_logs": _read("team", "ai_engine_model"),
+    "rainbond_list_ai_engine_instances": _read("team", "ai_engine_instance"),
+    "rainbond_get_ai_engine_instance": _read("team", "ai_engine_instance"),
+    "rainbond_get_ai_engine_instance_deployment": _read("team", "ai_engine_instance"),
+    "rainbond_list_ai_engine_instance_events": _read("team", "ai_engine_instance"),
+    "rainbond_get_ai_engine_instance_logs": _read("team", "ai_engine_instance"),
+    "rainbond_get_ai_engine_monitoring_overview": _read("team", "ai_engine_monitoring"),
+    "rainbond_list_ai_engine_gpu_devices": _read("team", "ai_engine_gpu"),
+    "rainbond_get_ai_engine_gpu_device_timeseries": _read("team", "ai_engine_gpu"),
+    "rainbond_list_ai_engine_gpu_instance_bindings": _read("team", "ai_engine_gpu"),
+    "rainbond_list_ai_engine_gpu_instance_usage": _read("team", "ai_engine_gpu"),
 }
 
 READ_ONLY_TOOL_NAMES: FrozenSet[str] = frozenset({
@@ -134,8 +164,7 @@ READ_ONLY_TOOL_NAMES: FrozenSet[str] = frozenset({
     "rainbond_query_regions",
     "rainbond_query_teams",
     "rainbond_wait_for_build_completion",
-})
-
+}) | frozenset(READ_ONLY_TOOL_POLICY)
 
 _MIXED_TOOL_READ_OPERATIONS: Dict[str, FrozenSet[str]] = {
     "rainbond_manage_component_envs": frozenset({"summary", "list", "view"}),
@@ -181,6 +210,8 @@ def classify_tool(tool_name: str,
             resource_type=resource_type,
             action=action,
         )
+    if tool_name in READ_ONLY_TOOL_POLICY:
+        return READ_ONLY_TOOL_POLICY[tool_name]
     if tool_name in READ_ONLY_TOOL_NAMES:
         return ToolAuditSpec("read", "none", "enterprise")
     policy = MUTABLE_TOOL_POLICY.get(tool_name, _write("medium", "enterprise"))
