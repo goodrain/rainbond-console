@@ -59,6 +59,7 @@ class AppsPorConsoletView(RegionTenantHeaderView):
                 if not port.is_inner_service:
                     continue
                 port_dict["port"] = port.container_port
+                port_dict["protocol"] = port.protocol
                 port_dict["service_name"] = port.k8s_service_name
                 port_dict["namespace"] = self.team.namespace
                 for component in component_list:

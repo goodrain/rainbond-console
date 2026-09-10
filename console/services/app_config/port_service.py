@@ -6,6 +6,7 @@ import datetime
 import json
 import logging
 import re
+from urllib.parse import quote
 from typing import Any, Dict, List, Optional, Tuple
 
 import validators
@@ -14,6 +15,7 @@ from django.db import transaction
 from django.db.models import QuerySet
 
 from console.constants import ServicePortConstants
+from console.utils.port_exposure import COMPONENT_PROTOCOLS, get_bindings, supports
 from console.enum.app import GovernanceModeEnum
 from console.exception.bcode import (ErrComponentPortExists, ErrK8sServiceNameExists)
 from console.exception.main import (AbortRequest, CheckThirdpartEndpointFailed, ServiceHandleException)
@@ -48,6 +50,36 @@ logger = logging.getLogger("default")
 
 
 class AppPortService(object):
+    @staticmethod
+    def get_external_bindings(tenant, service, region, port, app_id=None):
+        return get_bindings(region_api, region, tenant, service, port, app_id)
+
+    @transaction.atomic
+    def sync_external_bindings(self, tenant, service, region, port):
+        """Persist a successful gateway write for recovery and export consumers."""
+        from www.models.main import ServiceTcpDomain
+        port = TenantServicesPort.objects.select_for_update().get(pk=port.pk)
+        bindings = self.get_external_bindings(tenant, service, region, port)
+        endpoints = []
+        for rule in bindings["bind_tcp_domains"]:
+            endpoint = rule["end_point"]
+            endpoints.append(endpoint)
+            mapping, created = ServiceTcpDomain.objects.get_or_create(
+                service_id=service.service_id, container_port=port.container_port, end_point=endpoint,
+                defaults={"tcp_rule_id": make_uuid(region.region_id + service.service_id + endpoint),
+                          "region_id": region.region_id, "tenant_id": tenant.tenant_id,
+                          "service_name": service.service_alias, "service_alias": service.service_cname,
+                          "protocol": rule["protocol"], "is_outer_service": True, "rule_extensions": ""})
+            if not created:
+                mapping.protocol = rule["protocol"]
+                mapping.is_outer_service = True
+                mapping.save(update_fields=["protocol", "is_outer_service"])
+        ServiceTcpDomain.objects.filter(service_id=service.service_id, container_port=port.container_port).exclude(
+            end_point__in=endpoints).delete()
+        port.is_outer_service = bindings["is_outer_service"]
+        port.save(update_fields=["is_outer_service"])
+        return bindings
+
     def json_service_port(self, service_port: TenantServicesPort) -> str:
         service_port_dict: Dict[str, Any] = dict()
         service_port_dict["端口号"] = service_port.container_port
@@ -231,6 +263,9 @@ class AppPortService(object):
 
         container_port = int(container_port)
         self.check_port(service, container_port)
+        protocol = (protocol or "").lower()
+        if protocol not in COMPONENT_PROTOCOLS:
+            raise AbortRequest("unsupported protocol", msg_show="不支持的端口协议", status_code=400)
 
         if not port_alias:
             port_alias = service.service_alias.upper() + str(container_port)
@@ -597,7 +632,10 @@ class AppPortService(object):
         elif action == "open_inner":
             code, msg = self.__open_inner(tenant, service, deal_port, user_name)
         elif action == "close_inner":
-            if deal_port.is_outer_service:
+            exposed = deal_port.is_outer_service
+            if service.create_status == "complete":
+                exposed = self.get_external_bindings(tenant, service, region, deal_port)["is_outer_service"]
+            if exposed:
                 raise ServiceHandleException(msg="inner port is not open", msg_show="对外服务开启中，需先关闭对外服务", status_code=404)
             code, msg = self.__close_inner(tenant, service, deal_port, user_name)
         elif action == "change_protocol":
@@ -683,7 +721,7 @@ class AppPortService(object):
             if service_tcp_domains:
                 for service_tcp_domain in service_tcp_domains:
                     # 改变tcpdomain表中状态
-                    service_tcp_domain.protocol = svc.protocol  # type: ignore[union-attr]
+                    service_tcp_domain.protocol = service_tcp_domain.protocol or svc.protocol  # type: ignore[union-attr]
                     service_tcp_domain.is_outer_service = True
                     service_tcp_domain.save()
                     # NOTE: app may be None (Optional default); app_id is int but
@@ -691,7 +729,7 @@ class AppPortService(object):
                     region_api.api_gateway_bind_tcp_domain(
                         region=service.service_region,
                         tenant_name=tenant.tenant_name,
-                        k8s_service_name=service.service_alias,
+                        k8s_service_name=svc.k8s_service_name or service.service_alias,
                         container_port=svc.container_port,  # type: ignore[union-attr]
                         app_id=app.app_id,  # type: ignore[union-attr,arg-type]
                         ingressPort=int(service_tcp_domain.end_point.split(':')[1]),
@@ -703,7 +741,7 @@ class AppPortService(object):
                 data = region_api.api_gateway_bind_tcp_domain(
                     region=service.service_region,
                     tenant_name=tenant.tenant_name,
-                    k8s_service_name=service.service_alias,
+                    k8s_service_name=svc.k8s_service_name or service.service_alias,
                     container_port=svc.container_port,  # type: ignore[union-attr]
                     app_id=app.app_id,  # type: ignore[union-attr,arg-type]
                     ingressPort=None,
@@ -795,7 +833,7 @@ class AppPortService(object):
             if service_tcp_domains:
                 for service_tcp_domain in service_tcp_domains:
                     # 改变tcpdomain表中状态
-                    service_tcp_domain.protocol = svc.protocol  # type: ignore[union-attr]
+                    service_tcp_domain.protocol = service_tcp_domain.protocol or svc.protocol  # type: ignore[union-attr]
                     service_tcp_domain.is_outer_service = True
                     service_tcp_domain.save()
                     # NOTE: app may be None (Optional default); app_id is int but
@@ -803,7 +841,7 @@ class AppPortService(object):
                     region_api.api_gateway_bind_tcp_domain(
                         region=service.service_region,
                         tenant_name=tenant.tenant_name,
-                        k8s_service_name=service.service_alias,
+                        k8s_service_name=svc.k8s_service_name or service.service_alias,
                         container_port=svc.container_port,  # type: ignore[union-attr]
                         app_id=app.app_id,  # type: ignore[union-attr,arg-type]
                         ingressPort=int(service_tcp_domain.end_point.split(':')[1]),
@@ -815,7 +853,7 @@ class AppPortService(object):
                 data = region_api.api_gateway_bind_tcp_domain(
                     region=service.service_region,
                     tenant_name=tenant.tenant_name,
-                    k8s_service_name=service.service_alias,
+                    k8s_service_name=svc.k8s_service_name or service.service_alias,
                     container_port=svc.container_port,  # type: ignore[union-attr]
                     app_id=app.app_id,  # type: ignore[union-attr,arg-type]
                     ingressPort=None,
@@ -894,59 +932,31 @@ class AppPortService(object):
 
     def __close_outer(self, tenant: Tenants, service: TenantServiceInfo, region: RegionConfig,
                       deal_port: TenantServicesPort, user_name: str = '') -> Tuple[int, str]:
-        deal_port.is_outer_service = False
         app = group_repo.get_by_service_id(tenant.tenant_id, service.service_id)
+        bindings = self.get_external_bindings(tenant, service, region, deal_port, app.app_id)
+        failures = []
+        if bindings["bind_domains"]:
+            path = ("/api-gateway/v1/" + tenant.tenant_name + "/routes/http/port?act=close&service_alias=" +
+                    service.service_alias + "&port=" + str(deal_port.container_port))
+            try:
+                region_api.api_gateway_get_proxy(region, tenant.tenant_id, path, app.app_id)
+            except Exception as exc:
+                failures.append(exc)
+        for rule in bindings["bind_tcp_domains"]:
+            path = ("/v2/proxy-pass/gateway/" + tenant.tenant_name + "/routes/tcp/" +
+                    quote(rule["service_name"], safe="") + "?service_id=" + service.service_id)
+            try:
+                region_api.delete_proxy(region.region_name, path)
+            except Exception as exc:
+                failures.append(exc)
+        if failures:
+            raise failures[0]
+        for domain in domain_repo.get_service_domain_by_container_port(service.service_id, deal_port.container_port):
+            domain.is_outer_service = False
+            domain.save()
+        tcp_domain.delete_by_component_port(service.service_id, deal_port.container_port)
+        deal_port.is_outer_service = False
         deal_port.save()
-        # 改变httpdomain表中端口状态
-        if deal_port.protocol == "http":
-            service_domains = domain_repo.get_service_domain_by_container_port(service.service_id,
-                                                                               deal_port.container_port)
-            if service_domains:
-                for service_domain in service_domains:
-                    service_domain.is_outer_service = False
-                    service_domain.save()
-
-            # 从 API Gateway 获取所有 HTTP 路由并删除
-            path = ("/api-gateway/v1/" + tenant.tenant_name + "/routes/http/domains?service_alias=" +
-                    service.service_alias + "&port=" + str(deal_port.container_port))
-            try:
-                body = region_api.api_gateway_get_proxy(region, tenant.tenant_id, path, app.app_id)
-                # NOTE: body may be None (api_gateway_get_proxy returns Optional[dict]); deref unguarded.
-                # 删除所有 HTTP 路由
-                if body.get("list", []):  # type: ignore[union-attr]
-                    # 调用关闭端口的 API
-                    close_path = "/api-gateway/v1/" + tenant.tenant_name + "/routes/http/port?act=close&service_alias=" + service.service_alias + "&port=" + str(deal_port.container_port)
-                    region_api.api_gateway_get_proxy(region, tenant.tenant_id, close_path, app.app_id)
-            except Exception as e:
-                logger.exception(f"Failed to close HTTP routes: {e}")
-        else:
-            service_tcp_domains = tcp_domain.get_service_tcp_domains_by_service_id_and_port(
-                service.service_id, deal_port.container_port)
-            # 改变tcpdomain表中状态
-            if service_tcp_domains:
-                for service_tcp_domain in service_tcp_domains:
-                    service_tcp_domain.is_outer_service = False
-                    service_tcp_domain.save()
-
-            # 从 API Gateway 获取所有实际的路由
-            svc = port_repo.get_service_port_by_port(tenant.tenant_id, service.service_id, deal_port.container_port)
-            path = ("/api-gateway/v1/" + tenant.tenant_name + "/routes/tcp/domains?service_alias=" +
-                    service.service_alias + "&port=" + str(deal_port.container_port))
-            try:
-                body = region_api.api_gateway_get_proxy(region, tenant.tenant_id, path, app.app_id)
-                # NOTE: body may be None (api_gateway_get_proxy returns Optional[dict]); deref unguarded.
-                # 删除所有路由
-                if body.get("list", []):  # type: ignore[union-attr]
-                    # NOTE: svc may be None (get_service_port_by_port returns Optional); invariant here.
-                    k8s_name = svc.k8s_service_name  # type: ignore[union-attr]
-                    for nodeport in body.get("list", []):  # type: ignore[union-attr]
-                        delete_path = (f"/v2/proxy-pass/gateway/{tenant.tenant_name}/routes/tcp/"
-                                       f"{k8s_name}-{nodeport}?service_id={service.service_id}")
-                        region_api.delete_proxy(region.region_name, delete_path)
-            except Exception as e:
-                logger.exception(f"Failed to release TCP routes: {e}")
-                raise
-            tcp_domain.delete_by_component_port(service.service_id, deal_port.container_port)
         self.__sync_outer_port_to_region(tenant, service, deal_port, "close", user_name)
         if service.create_status == "complete":
             from console.services.plugin import app_plugin_service
@@ -1016,12 +1026,19 @@ class AppPortService(object):
 
     def __change_protocol(self, tenant: Tenants, service: TenantServiceInfo, deal_port: TenantServicesPort,
                           protocol: str, user_name: str = '') -> Tuple[int, str]:
+        protocol = (protocol or "").lower()
+        if protocol not in COMPONENT_PROTOCOLS:
+            return 400, "不支持的端口协议"
         if deal_port.protocol == protocol:
             return 200, "协议未发生变化"
+        if service.create_status == "complete":
+            region = region_repo.get_region_by_region_name(service.service_region)
+            bindings = self.get_external_bindings(tenant, service, region, deal_port)
+            conflicts = [str(rule["nodePort"]) for rule in bindings["bind_tcp_domains"]
+                         if not supports(protocol, rule["protocol"])]
+            if conflicts or (bindings["bind_domains"] and protocol != "http"):
+                return 400, "请先移除不兼容的外部规则：" + (", ".join(conflicts) or "HTTP 域名")
         deal_port.protocol = protocol
-        if protocol != "http":
-            if deal_port.is_outer_service:
-                return 400, "请关闭外部访问"
 
         if service.create_status == "complete":
             body = deal_port.to_dict()

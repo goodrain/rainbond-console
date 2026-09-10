@@ -35,6 +35,7 @@ COMPONENT_PORT_PROTOCOL = (
     ("http", ("http")),
     ("tcp", ("tcp")),
     ("udp", ("udp")),
+    ("tcp+udp", ("tcp+udp")),
     ("mysql", ("msyql")),
     ("grpc", ("grpc")),
 )
