@@ -247,21 +247,30 @@ esac
   write_stub "${bin_dir}" apt-get '
 printf "apt-get %s\n" "$*" >>"${STUB_LOG}"
 if [ "${1:-}" = "install" ]; then
-  [ "${TEST_PACKAGE_FAILURE}" != "true" ] || exit 1
+  if [ "${TEST_PACKAGE_FAILURE}" = "true" ]; then
+    printf "Could not resolve package repository via proxy=https://example-user:SENSITIVE_PROXY_PASSWORD@example.invalid token=SENSITIVE_PACKAGE_TOKEN\n" >&2
+    exit 1
+  fi
   printf "%s\n" "${TEST_UPGRADED_VERSION}" >"${TEST_INSTALLED_VERSION_FILE}"
 fi
 '
   write_stub "${bin_dir}" dnf '
 printf "dnf %s\n" "$*" >>"${STUB_LOG}"
 if [ "${1:-}" = "upgrade" ]; then
-  [ "${TEST_PACKAGE_FAILURE}" != "true" ] || exit 1
+  if [ "${TEST_PACKAGE_FAILURE}" = "true" ]; then
+    printf "Could not resolve package repository via proxy=https://example-user:SENSITIVE_PROXY_PASSWORD@example.invalid token=SENSITIVE_PACKAGE_TOKEN\n" >&2
+    exit 1
+  fi
   printf "%s\n" "${TEST_UPGRADED_VERSION}" >"${TEST_INSTALLED_VERSION_FILE}"
 fi
 '
   write_stub "${bin_dir}" yum '
 printf "yum %s\n" "$*" >>"${STUB_LOG}"
 if [ "${1:-}" = "upgrade" ]; then
-  [ "${TEST_PACKAGE_FAILURE}" != "true" ] || exit 1
+  if [ "${TEST_PACKAGE_FAILURE}" = "true" ]; then
+    printf "Could not resolve package repository via proxy=https://example-user:SENSITIVE_PROXY_PASSWORD@example.invalid token=SENSITIVE_PACKAGE_TOKEN\n" >&2
+    exit 1
+  fi
   printf "%s\n" "${TEST_UPGRADED_VERSION}" >"${TEST_INSTALLED_VERSION_FILE}"
 fi
 '
@@ -326,7 +335,7 @@ run_version_case() {
   local upgrade_mode=$2
   local driver=${3:-overlay2}
   local swarm_state=${4:-inactive}
-  local endpoint=${5:-unix:///var/run/docker.sock}
+  local endpoint=${5-unix:///var/run/docker.sock}
   local ctr_namespaces=${6:-moby}
   local unit_layout=${7:-standard}
   local security_options=${8:-[]}
@@ -339,6 +348,8 @@ run_version_case() {
   local upgrade_failure=${15:-false}
   local package_owner_output=${16:-}
   local mixed_package_binary=${17:-none}
+  local docker_context_supported=${18:-true}
+  local systemctl_value_supported=${19:-true}
   local tmp_dir bin_dir functions_file output_file
   tmp_dir=$(mktemp -d)
   bin_dir="${tmp_dir}/bin"
@@ -352,7 +363,14 @@ case "${1:-}" in
     printf "%s\n" "${TEST_DOCKER_SERVER_VERSION}"
     ;;
   context)
+    [ "${TEST_DOCKER_CONTEXT_SUPPORTED}" = "true" ] || exit 1
     printf "%s\n" "${TEST_DOCKER_ENDPOINT}"
+    ;;
+  help)
+    if [ "${2:-}" = "context" ]; then
+      [ "${TEST_DOCKER_CONTEXT_SUPPORTED}" = "true" ]
+      exit $?
+    fi
     ;;
   info)
     case "$*" in
@@ -378,18 +396,25 @@ case "${1:-}" in
     exit $?
     ;;
   show)
+    if [ "${TEST_SYSTEMCTL_VALUE_SUPPORTED}" != "true" ] && [[ "$*" == *"--value"* ]]; then
+      exit 1
+    fi
+    exec_start_prefix=""
+    if [[ "$*" != *"--value"* ]]; then
+      exec_start_prefix="ExecStart="
+    fi
     if [ "${TEST_UNIT_LAYOUT}" = "wrapper" ]; then
       if [ "$2" = "docker" ]; then
-        printf "{ path=/opt/wrapper ; argv[]=/opt/wrapper %s/dockerd -H fd:// ; }\n" "${TEST_BIN_DIR}"
+        printf "%s{ path=/opt/wrapper ; argv[]=/opt/wrapper %s/dockerd -H fd:// ; }\n" "${exec_start_prefix}" "${TEST_BIN_DIR}"
       else
-        printf "{ path=/opt/wrapper ; argv[]=/opt/wrapper %s/containerd ; }\n" "${TEST_BIN_DIR}"
+        printf "%s{ path=/opt/wrapper ; argv[]=/opt/wrapper %s/containerd ; }\n" "${exec_start_prefix}" "${TEST_BIN_DIR}"
       fi
     elif [ "${TEST_UNIT_LAYOUT}" = "custom" ]; then
-      printf "{ path=/opt/custom/%s ; argv[]=/opt/custom/%s ; }\n" "$2" "$2"
+      printf "%s{ path=/opt/custom/%s ; argv[]=/opt/custom/%s ; }\n" "${exec_start_prefix}" "$2" "$2"
     elif [ "$2" = "docker" ]; then
-      printf "{ path=%s/dockerd ; argv[]=%s/dockerd -H fd:// ; }\n" "${TEST_BIN_DIR}" "${TEST_BIN_DIR}"
+      printf "%s{ path=%s/dockerd ; argv[]=%s/dockerd -H fd:// ; }\n" "${exec_start_prefix}" "${TEST_BIN_DIR}" "${TEST_BIN_DIR}"
     else
-      printf "{ path=%s/containerd ; argv[]=%s/containerd ; }\n" "${TEST_BIN_DIR}" "${TEST_BIN_DIR}"
+      printf "%s{ path=%s/containerd ; argv[]=%s/containerd ; }\n" "${exec_start_prefix}" "${TEST_BIN_DIR}" "${TEST_BIN_DIR}"
     fi
     ;;
   is-active)
@@ -458,6 +483,8 @@ esac
   TEST_DOCKER_DRIVER="${driver}" \
   TEST_DOCKER_SWARM_STATE="${swarm_state}" \
   TEST_DOCKER_ENDPOINT="${endpoint}" \
+  TEST_DOCKER_CONTEXT_SUPPORTED="${docker_context_supported}" \
+  TEST_SYSTEMCTL_VALUE_SUPPORTED="${systemctl_value_supported}" \
   TEST_CTR_NAMESPACES="${ctr_namespaces}" \
   TEST_UNIT_LAYOUT="${unit_layout}" \
   TEST_DOCKER_SECURITY_OPTIONS="${security_options}" \
@@ -580,6 +607,21 @@ assert_contains "${remote_output}" "case_status=1"
 assert_contains "${remote_output}" "endpoint"
 assert_not_contains "${remote_output}" "STATIC_UPGRADE"
 
+legacy_context_output=$(run_version_case "18.09.0" auto overlay2 inactive unix:///var/run/docker.sock moby standard '[]' none none none docker.io '' 28.3.1 false '' none false)
+assert_contains "${legacy_context_output}" "case_status=0"
+assert_contains "${legacy_context_output}" "STATIC_UPGRADE target=28.3.1 mode=upgrade"
+assert_not_contains "${legacy_context_output}" "endpoint is unknown"
+
+legacy_systemctl_output=$(run_version_case "18.09.9" auto overlay2 inactive unix:///var/run/docker.sock moby standard '[]' none none dnf docker-ce '' 26.1.4 false '' none false false)
+assert_contains "${legacy_systemctl_output}" "case_status=0"
+assert_contains "${legacy_systemctl_output}" "PACKAGE_UPGRADE manager=dnf package=docker-ce"
+assert_not_contains "${legacy_systemctl_output}" "ExecStart does not match"
+
+broken_modern_context_output=$(run_version_case "19.03.15" auto overlay2 inactive '' moby standard '[]' none none none docker.io '' 28.3.1 false '' none true)
+assert_contains "${broken_modern_context_output}" "case_status=1"
+assert_contains "${broken_modern_context_output}" "endpoint is unknown"
+assert_not_contains "${broken_modern_context_output}" "STATIC_UPGRADE"
+
 shared_containerd_output=$(run_version_case "19.03.15" auto overlay2 inactive unix:///var/run/docker.sock k8s.io)
 assert_contains "${shared_containerd_output}" "case_status=1"
 assert_contains "${shared_containerd_output}" "k8s.io"
@@ -686,6 +728,13 @@ assert_contains "${package_command_failure_output}" "installed_version=19.03.15"
 assert_contains "${package_command_failure_output}" "package-manager upgrade failed"
 assert_contains "${package_command_failure_output}" "docker inspect --format {{.State.Running}} container-1"
 assert_contains "${package_command_failure_output}" "docker inspect --format {{.State.Running}} container-2"
+
+dnf_failure_output=$(run_package_upgrade_case dnf 26.1.4 true)
+dnf_remote_error=$(grep '^ERROR:' <<<"${dnf_failure_output}" || true)
+assert_contains "${dnf_remote_error}" "Could not resolve package repository"
+assert_contains "${dnf_remote_error}" "[REDACTED]"
+assert_not_contains "${dnf_remote_error}" "SENSITIVE_PROXY_PASSWORD"
+assert_not_contains "${dnf_remote_error}" "SENSITIVE_PACKAGE_TOKEN"
 
 package_still_old_output=$(run_package_upgrade_case apt 19.03.15)
 assert_line "${package_still_old_output}" "status=1"
