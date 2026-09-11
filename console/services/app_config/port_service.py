@@ -1138,35 +1138,22 @@ class AppPortService(object):
             if not svc_ports.get(svc.service_id):
                 accesses[svc.service_id] = {"access_type": ServicePortConstants.NO_PORT, "access_info": []}
                 continue
-            if svc_ports[svc.service_id]["http_outer_port"]:
-                access_urls = self.__list_component_access_urls(domain_all, svc)
-                port_and_urls = self.__list_stream_outer_urls(region_all, tcp_domain_all, svc)
-                accesses[svc.service_id] = {"access_type": ServicePortConstants.HTTP_PORT, "access_info": []}
-                for p in svc_ports[svc.service_id]["http_outer_port"]:
+            http_ports = svc_ports[svc.service_id]["http_outer_port"]
+            stream_ports = svc_ports[svc.service_id]["stream_outer_port"]
+            if http_ports or stream_ports:
+                http_urls = self.__list_component_access_urls(domain_all, svc) if http_ports else {}
+                stream_urls = self.__list_stream_outer_urls(region_all, tcp_domain_all, svc)
+                access_type = ServicePortConstants.NOT_HTTP_OUTER if stream_ports else ServicePortConstants.HTTP_PORT
+                access_info = []
+                for p in http_ports + stream_ports:
                     port_dict = p.to_dict()
                     port_dict["service_cname"] = svc.service_cname
-                    if access_urls.get(p.container_port):
-                        port_dict["access_urls"] = access_urls[p.container_port]
-                        accesses[svc.service_id]["access_info"].append(port_dict)
-                        continue
-                    # NOTE: __list_stream_outer_urls returns None when region is missing; deref unguarded.
-                    if port_and_urls.get(p.container_port):  # type: ignore[union-attr]
-                        port_dict["access_urls"] = port_and_urls[p.container_port]  # type: ignore[index]
-                        accesses[svc.service_id]["access_type"] = ServicePortConstants.NOT_HTTP_OUTER
-                        accesses[svc.service_id]["access_info"].append(port_dict)
-                continue
-
-            if svc_ports[svc.service_id]["stream_outer_port"]:
-                port_and_urls = self.__list_stream_outer_urls(region_all, tcp_domain_all, svc)
-                accesses[svc.service_id] = {"access_type": ServicePortConstants.NOT_HTTP_OUTER, "access_info": []}
-                for p in svc_ports[svc.service_id]["stream_outer_port"]:
-                    port_dict = p.to_dict()
-                    # NOTE: __list_stream_outer_urls returns None when region is missing; deref unguarded.
-                    port_dict["access_urls"] = (
-                        port_and_urls[p.container_port]  # type: ignore[index]
-                        if port_and_urls.get(p.container_port) else [])  # type: ignore[union-attr]
-                    port_dict["service_cname"] = svc.service_cname
-                    accesses[svc.service_id]["access_info"].append(port_dict)
+                    port_dict["access_urls"] = list(dict.fromkeys(
+                        http_urls.get(p.container_port, []) + stream_urls.get(p.container_port, [])))
+                    if stream_urls.get(p.container_port):
+                        access_type = ServicePortConstants.NOT_HTTP_OUTER
+                    access_info.append(port_dict)
+                accesses[svc.service_id] = {"access_type": access_type, "access_info": access_info}
                 continue
 
             accesses[svc.service_id] = {"access_type": ServicePortConstants.NO_PORT, "access_info": []}
@@ -1209,34 +1196,21 @@ class AppPortService(object):
 
     def __handle_port_info(self, tenant: Tenants, service: TenantServiceInfo, unopened_port: Any, http_outer_port: Any,
                            http_inner_port: Any, stream_outer_port: Any, stream_inner_port: Any) -> Any:
-        # 有http对外访问端口
-        if http_outer_port:
-            access_type = ServicePortConstants.HTTP_PORT
-            port_info_list = []
-            for p in http_outer_port:
-                port_dict = p.to_dict()
-                access_urls = self.__get_port_access_url(tenant, service, p.container_port)
-                if not access_urls:
-                    port_and_url = self.__get_stream_outer_url(tenant, service, p)
-                    if port_and_url:
-                        access_type = ServicePortConstants.NOT_HTTP_OUTER
-                        access_urls = [port_and_url]
-                port_dict["access_urls"] = access_urls
-                port_dict["service_cname"] = service.service_cname
-                port_info_list.append(port_dict)
-            return access_type, port_info_list
-        # 非http对外端口
-        if stream_outer_port:
-            access_type = ServicePortConstants.NOT_HTTP_OUTER
-            port_info_list = []
-            for p in stream_outer_port:
-                port_and_url = self.__get_stream_outer_url(tenant, service, p)
-                associate_info = self.get_port_associated_env(tenant, service, p.container_port)
-                port_dict = p.to_dict()
-                port_dict["access_urls"] = [port_and_url] if port_and_url else []
-                port_dict["connect_info"] = associate_info
-                port_dict["service_cname"] = service.service_cname
-                port_info_list.append(port_dict)
+        access_type = ServicePortConstants.HTTP_PORT
+        port_info_list = []
+        # 汇总所有对外端口，HTTP 端口也可以同时绑定四层映射。
+        for p in http_outer_port + stream_outer_port:
+            port_dict = p.to_dict()
+            access_urls = self.__get_port_access_url(tenant, service, p.container_port) if p in http_outer_port else []
+            stream_urls = self.__get_stream_outer_urls(tenant, service, p)
+            if stream_urls or p in stream_outer_port:
+                access_type = ServicePortConstants.NOT_HTTP_OUTER
+            port_dict["access_urls"] = list(dict.fromkeys(access_urls + stream_urls))
+            port_dict["service_cname"] = service.service_cname
+            if p in stream_outer_port:
+                port_dict["connect_info"] = self.get_port_associated_env(tenant, service, p.container_port)
+            port_info_list.append(port_dict)
+        if http_outer_port or stream_outer_port:
             return access_type, port_info_list
         # 非http对内端口
         if stream_inner_port:
@@ -1266,34 +1240,30 @@ class AppPortService(object):
             access_type = ServicePortConstants.NO_PORT
             return access_type, []
 
-    def __get_stream_outer_url(self, tenant: Tenants, service: TenantServiceInfo,
-                               port: TenantServicesPort) -> Optional[str]:
+    def __get_stream_outer_urls(self, tenant: Tenants, service: TenantServiceInfo,
+                                port: TenantServicesPort) -> List[str]:
         region = region_repo.get_region_by_region_name(service.service_region)
-        if region:
-            service_tcp_domain = tcp_domain.get_service_tcpdomain(tenant.tenant_id, region.region_id, service.service_id,
-                                                                  port.container_port)
-
-            if service_tcp_domain:
-                if "0.0.0.0" in service_tcp_domain.end_point:
-                    return service_tcp_domain.end_point.replace("0.0.0.0", region.tcpdomain)
-                return service_tcp_domain.end_point
-            else:
-                return None
-        return None
+        if not region:
+            return []
+        domains = tcp_domain.get_service_tcp_domains_by_service_id_and_port(service.service_id, port.container_port).filter(
+            tenant_id=tenant.tenant_id, region_id=region.region_id, is_outer_service=True)
+        return list(dict.fromkeys(domain.end_point.replace("0.0.0.0", region.tcpdomain) for domain in domains))
 
     def __list_stream_outer_urls(self, region_all: Any, tcp_domain_all: Any,
-                                 component: Any) -> Optional[Dict[Any, Any]]:
+                                 component: Any) -> Dict[Any, Any]:
         region = region_all.filter(region_name=component.service_region)
         if not region:
-            return None
+            return {}
         region = region[0]
         port_domain: Dict[Any, Any] = {}
-        service_tcp_domains = tcp_domain_all.filter(service_id=component.service_id)
+        service_tcp_domains = tcp_domain_all.filter(
+            service_id=component.service_id, tenant_id=component.tenant_id,
+            region_id=region.region_id, is_outer_service=True)
         for domain in service_tcp_domains:
-            if "0.0.0.0" in domain.end_point:
-                port_domain[domain.container_port] = [domain.end_point.replace("0.0.0.0", region.tcpdomain)]
-                continue
-            port_domain[domain.container_port] = [domain.end_point]
+            url = domain.end_point.replace("0.0.0.0", region.tcpdomain)
+            urls = port_domain.setdefault(domain.container_port, [])
+            if url not in urls:
+                urls.append(url)
         return port_domain
 
     def get_port_associated_env(self, tenant: Tenants, service: TenantServiceInfo, port: int) -> List[Dict[str, Any]]:
