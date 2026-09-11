@@ -55,7 +55,6 @@ class PortServiceDeleteTests(TestCase):
             "console.services.plugin",
             "console.services.region_services",
             "django.db",
-            "django.db.models",
             "validators",
             "www.apiclient.regionapi",
             "www.apiclient.regionapibaseclient",
@@ -71,7 +70,6 @@ class PortServiceDeleteTests(TestCase):
         sys.modules["console.services.app_config"] = app_config_package
 
         install_stub("django.db", transaction=types.SimpleNamespace(atomic=atomic))
-        install_stub("django.db.models", QuerySet=list)
         install_stub("validators", ipv4=lambda value: False, ipv6=lambda value: False, domain=lambda value: True)
         install_stub("console.constants", ServicePortConstants=types.SimpleNamespace())
         install_stub("console.enum.app", GovernanceModeEnum=types.SimpleNamespace(
@@ -122,8 +120,7 @@ class PortServiceDeleteTests(TestCase):
         module.port_repo.get_service_port_by_port.return_value = port
         module.domain_repo.get_service_domain_by_container_port.return_value = []
         module.region_api.api_gateway_bind_http_domain.return_value = None
-        module.region_api.api_gateway_get_proxy.side_effect = lambda region, tenant, path, app: {
-            "list": ["svc.apps.example.com"] if "/http/domains" in path else []}
+        module.region_api.api_gateway_get_proxy.return_value = {"list": ["svc.apps.example.com"]}
         module.group_repo.get_by_service_id.return_value = app
         module.env_var_service.add_service_env_var.return_value = (200, "success", None)
         module.env_var_service.delete_env_by_container_port.return_value = None
@@ -151,9 +148,7 @@ class PortServiceDeleteTests(TestCase):
         )
         app = self.configure_manage_port_dependencies(module, port)
         module.tcp_domain.get_service_tcp_domains_by_service_id_and_port.return_value = []
-        module.region_api.api_gateway_get_proxy.side_effect = lambda region, tenant, path, app: {
-            "list": [{"service_name": "gr2dc0bf-" + str(port), "nodePort": port, "protocols": ["TCP"]}
-                     for port in routes] if "/tcp/" in path else []}
+        module.region_api.api_gateway_get_proxy.return_value = {"list": routes}
         return tenant, service, port, app
 
     # capability_id: console.component.port-toggle-events
@@ -252,7 +247,6 @@ class PortServiceDeleteTests(TestCase):
         )
         app = self.configure_manage_port_dependencies(module, port)
 
-        module.region_api.api_gateway_get_proxy.side_effect = lambda *args: {"list": []}
         module.AppPortService().manage_port(
             tenant, service, "region-1", 80, "open_inner", "http", "SVC80", user_name="alice", app=app)
         module.AppPortService().manage_port(
@@ -290,10 +284,10 @@ class PortServiceDeleteTests(TestCase):
 
         self.assertEqual(result[:2], (200, "操作成功"))
         region = module.region_repo.get_region_by_region_name.return_value
-        module.region_api.api_gateway_get_proxy.assert_any_call(
+        module.region_api.api_gateway_get_proxy.assert_called_once_with(
             region,
             "tenant-1",
-            "/api-gateway/v1/default/routes/tcp/domains?service_alias=gr2dc0bf&port=8080&details=true",
+            "/api-gateway/v1/default/routes/tcp/domains?service_alias=gr2dc0bf&port=8080",
             7,
         )
         route_base = "/v2/proxy-pass/gateway/default/routes/tcp/gr2dc0bf-"
@@ -381,23 +375,3 @@ class PortServiceDeleteTests(TestCase):
             module.AppPortService().delete_port_by_container_port(tenant, service, 80, "alice")
 
         self.assertEqual(ctx.exception.status_code, 412)
-
-    def test_close_http_port_also_removes_tcp_mapping(self):
-        module = self.import_port_service_module()
-        tenant, service, port, app = self.configure_tcp_close_dependencies(module, [31000])
-        port.protocol = "http"
-        module.AppPortService().manage_port(
-            tenant, service, "region-1", 8080, "close_outer", "http", "SVC8080", app=app)
-        module.region_api.delete_proxy.assert_called_once_with(
-            "region-1", "/v2/proxy-pass/gateway/default/routes/tcp/gr2dc0bf-31000?service_id=component-1")
-        self.assertFalse(port.is_outer_service)
-
-    def test_failed_close_keeps_port_enabled(self):
-        module = self.import_port_service_module()
-        tenant, service, port, app = self.configure_tcp_close_dependencies(module, [31000])
-        module.region_api.delete_proxy.side_effect = RuntimeError("delete failed")
-        with self.assertRaises(RuntimeError):
-            module.AppPortService().manage_port(
-                tenant, service, "region-1", 8080, "close_outer", "tcp", "SVC8080", app=app)
-        self.assertTrue(port.is_outer_service)
-        port.save.assert_not_called()

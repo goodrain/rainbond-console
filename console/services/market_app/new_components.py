@@ -383,7 +383,7 @@ class NewComponents(object):
                 except AbortRequest:
                     k8s_service_name = component.service_alias + "-" + str(component_port)
             port_protocol = port.get("protocol", "tcp")
-            if port_protocol not in ["tcp", "udp", "tcp+udp", "http"]:
+            if port_protocol not in ["tcp", "udp", "http"]:
                 port_protocol = "tcp"
             t_port = TenantServicesPort(
                 tenant_id=component.tenant_id,

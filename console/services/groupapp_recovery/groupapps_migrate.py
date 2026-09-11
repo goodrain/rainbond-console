@@ -655,7 +655,6 @@ class GroupappsMigrateService(object):
                             data["ip"] = "0.0.0.0"
                             data["port"] = int(port_str)  # type: ignore[assignment]  # NOTE: same as above
                             data["tcp_rule_id"] = tcp_rule_id
-                            data["protocol"] = protocol
                             try:
                                 # 给数据中心传送数据添加策略
                                 region_api.bindTcpDomain(service.service_region, tenant.tenant_name, data)

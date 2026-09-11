@@ -7,7 +7,7 @@ from typing import Any
 
 from console.exception.main import AbortRequest
 from console.repositories.app_config import port_repo
-from console.services.app_config import port_service
+from console.services.app_config import domain_service, port_service
 from console.services.operation_log import operation_log_service, Operation
 from console.utils.reqparse import parse_item
 from console.views.app_config.base import AppBaseView
@@ -68,7 +68,57 @@ class AppPortView(AppBaseView):
             if outer_service:
                 outer_url = "{0}:{1}".format(variables["outer_service"]["domain"], variables["outer_service"]["port"])
             port_info["outer_url"] = outer_url
-            port_info.update(port_service.get_external_bindings(self.tenant, self.service, self.region, port))
+            port_info["bind_domains"] = []
+            if port.protocol == "http":
+                path = ("/api-gateway/v1/" + self.tenant_name + "/routes/http/domains?service_alias=" +
+                        self.service.service_alias + "&port=" + str(port.container_port))
+                body = region_api.api_gateway_get_proxy(self.region, self.tenant.tenant_id, path, None)
+                # NOTE: regionapi may return None (backlog)
+                if body.get("list", []):  # type: ignore[union-attr]
+                    port_info["bind_domains"] = [{
+                        "protocol": "http",
+                        "domain_type": "www",
+                        "ID": -1,
+                        "domain_name": host,
+                        "container_port": port.container_port
+                    } for host in body.get("list", [])]  # type: ignore[union-attr]
+                    port_info["is_outer_service"] = len(port_info["bind_domains"]) > 0
+                    port_info["is_outer_service"] = True
+                    port.is_outer_service = True
+                else:
+                    port.is_outer_service = False
+                    port_info["is_outer_service"] = False
+            else:
+                # 从底层 API Gateway 获取 TCP/UDP 真实域名绑定
+                path = ("/api-gateway/v1/" + self.tenant_name + "/routes/tcp/domains?service_alias=" +
+                        self.service.service_alias + "&port=" + str(port.container_port))
+                body = region_api.api_gateway_get_proxy(self.region, self.tenant.tenant_id, path, None)
+                if body.get("list", []):  # type: ignore[union-attr]
+                    outer = False
+                    tcp_domain_list = []
+                    # list 是 nodeport 列表（整数）
+                    for nodeport in body.get("list", []):  # type: ignore[union-attr]
+                        # 拼接成 0.0.0.0:nodeport 格式
+                        tcp_domain_dict = {
+                            "protocol": port.protocol,
+                            "domain_name": "0.0.0.0:{}".format(nodeport),
+                            "container_port": port.container_port,
+                            "service_id": self.service.service_id,
+                            "service_name": self.service.service_alias,
+                            "service_alias": self.service.service_alias,
+                            "is_outer_service": True,
+                            "end_point": "0.0.0.0:{}".format(nodeport)
+                        }
+                        outer = True
+                        tcp_domain_list.append(tcp_domain_dict)
+                    port_info["bind_tcp_domains"] = tcp_domain_list
+                    port_info["is_outer_service"] = outer
+                    port.is_outer_service = outer
+                else:
+                    port_info["bind_tcp_domains"] = []
+                    port_info["is_outer_service"] = False
+                    port.is_outer_service = False
+            port.save()
             port_list.append(port_info)
         result = general_message(200, "success", "查询成功", list=port_list)
         return Response(result, status=result["code"])
