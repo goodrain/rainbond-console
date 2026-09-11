@@ -403,6 +403,7 @@ class AppVolumeManageView(AppBaseView):
         new_volume_path = request.data.get("new_volume_path", None)
         new_file_content = request.data.get("new_file_content", None)
         volume_capacity = request.data.get("volume_capacity", None)
+        capacity_submitted = volume_capacity not in ("", None)
         if not volume_id:
             return Response(general_message(400, "volume_id is null", "未指定需要编辑的配置文件存储"), status=400)
         volume = volume_repo.get_service_volume_by_pk(volume_id)
@@ -433,7 +434,8 @@ class AppVolumeManageView(AppBaseView):
                 return Response(general_message(400, "no change", "没有变化，不需要修改"), status=400)
             file_content = service_config.file_content
         else:
-            if new_volume_path == volume.volume_path and target_volume_capacity == volume.volume_capacity:
+            volume_unchanged = new_volume_path == volume.volume_path and target_volume_capacity == volume.volume_capacity
+            if volume_unchanged and not capacity_submitted:
                 return Response(general_message(400, "no change", "没有变化，不需要修改"), status=400)
 
         new_information = volume_service.json_service_volume(

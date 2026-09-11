@@ -5300,6 +5300,24 @@
       "status": "active"
     },
     {
+      "id": "console.component.volume-expansion-reconciles-drift",
+      "title": "Forward stored capacity to reconcile PVC drift",
+      "title_zh": "Forward stored capacity to reconcile PVC drift",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.app_config.app_volume.AppVolumeManageView.put",
+      "code_paths": [
+        "console/views/app_config/app_volume.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_volume_view_test.py",
+          "selector": "AppVolumeManageViewTestCase::test_put_forwards_same_capacity_for_pvc_reconciliation"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.component.volume-expansion-runtime",
       "title": "Propagate PVC volume expansion runtime fields",
       "title_zh": "Propagate PVC volume expansion runtime fields",

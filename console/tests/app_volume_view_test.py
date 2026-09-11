@@ -96,6 +96,42 @@ class AppVolumeManageViewTestCase(TestCase):
         volume.save.assert_called_once_with()
         self.assertEqual(mock_region.call_args[0][3]["volume_capacity"], 20)
 
+    # capability_id: console.component.volume-expansion-reconciles-drift
+    def test_put_forwards_same_capacity_for_pvc_reconciliation(self):
+        request = self.factory.put(
+            "/console/teams/demo-team/apps/demo-service/volumes/1",
+            {"new_volume_path": "/data", "volume_capacity": 20},
+            format="json",
+        )
+        request.data = {"new_volume_path": "/data", "volume_capacity": 20}
+        volume = mock.Mock(
+            volume_name="data",
+            volume_path="/data",
+            volume_type="share-file",
+            volume_capacity=20,
+            mode=None,
+        )
+
+        with mock.patch("console.views.app_config.app_volume.volume_repo.get_service_volume_by_pk", return_value=volume):
+            with mock.patch("console.views.app_config.app_volume.volume_repo.get_service_config_file", return_value=None):
+                with mock.patch(
+                    "console.views.app_config.app_volume.volume_service.json_service_volume", return_value="{}"
+                ):
+                    with mock.patch(
+                        "console.views.app_config.app_volume.region_api.upgrade_service_volumes",
+                        return_value=(mock.Mock(status=200), {}),
+                    ) as mock_region:
+                        with mock.patch(
+                            "console.views.app_config.app_volume.operation_log_service.generate_component_comment",
+                            return_value="comment",
+                        ):
+                            with mock.patch("console.views.app_config.app_volume.operation_log_service.create_component_log"):
+                                response = self.view.put(request, volume_id="1")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(mock_region.call_args[0][3]["volume_capacity"], 20)
+        volume.save.assert_called_once_with()
+
     # capability_id: console.component.volume-expansion-update
     def test_put_rejects_volume_capacity_shrink(self):
         request = self.factory.put(
