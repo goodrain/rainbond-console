@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import json
 import os
 import sys
 from types import ModuleType
@@ -71,6 +72,130 @@ class K8sResourceDeletionServiceTest(TestCase):
         payload = preview.call_args[0][2]
         self.assertEqual(payload["app_id"], "region-app-a")
         self.assertEqual(payload["k8s_resources"][0]["client_id"], "11")
+
+    def test_preview_normalizes_empty_go_arrays_for_resource_and_application(self):
+        from console.services.group_service import group_service
+
+        config_map = Obj(ID=11,
+                         name="settings",
+                         kind="ConfigMap",
+                         state=1,
+                         content="apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: settings\n")
+        tenant = Obj(enterprise_id="eid", tenant_name="team")
+        for payload in ('{"bean":{"has_crd":false,"requires_cascade":false,"crds":null}}',
+                        '{"bean":{"has_crd":false,"requires_cascade":false}}',
+                        '{"bean":{"has_crd":false,"requires_cascade":false,"crds":[]}}'):
+            for caller in ("resource", "application"):
+                with self.subTest(payload=payload, caller=caller), \
+                        mock.patch.object(self.service, "_get_owned_resources", return_value=[config_map]), \
+                        mock.patch.object(self.service, "get_app_id_and_namespace", return_value=("team-a", "region-app-a")), \
+                        mock.patch.object(resource_module, "k8s_resource_service", self.service), \
+                        mock.patch.object(resource_module.region_api, "preview_delete_app_resources",
+                                          return_value=(Obj(status=200), json.loads(payload))):
+                    if caller == "application":
+                        result = group_service._preview_app_k8s_deletion(tenant, "region-a", "42", [config_map])
+                    else:
+                        result = self.service.preview_delete_k8s_resources("eid", "team", "42", "region-a", [11])
+                    self.assertEqual(result["crds"], [])
+                    self.assertFalse(result["requires_cascade"])
+
+    def test_empty_crd_names_do_not_bypass_cascade_permissions(self):
+        for payload in ('{"requires_cascade":true,"crds":null}', '{"requires_cascade":true}',
+                        '{"requires_cascade":true,"crds":[]}'):
+            for admin, cascade, status in ((False, True, 403), (True, False, 409)):
+                impact = json.loads(payload)
+                with self.subTest(payload=payload, admin=admin, cascade=cascade), \
+                        mock.patch.object(self.service, "_get_owned_resources", return_value=[self.resource]), \
+                        mock.patch.object(self.service, "get_app_id_and_namespace", return_value=("team-a", "region-app-a")), \
+                        mock.patch.object(self.service, "preview_delete_k8s_resources", return_value=impact), \
+                        mock.patch.object(resource_module.region_api, "batch_delete_app_resources") as delete_region, \
+                        mock.patch.object(resource_module.k8s_resources_repo, "delete_by_ids") as delete_rows:
+                    with self.assertRaises(ServiceHandleException) as raised:
+                        self.service.batch_delete_k8s_resource("eid",
+                                                               "team",
+                                                               "42",
+                                                               "region-a", [11],
+                                                               cascade_crd=cascade,
+                                                               is_enterprise_admin=admin)
+                    self.assertEqual(raised.exception.status_code, status)
+                    delete_region.assert_not_called()
+                    delete_rows.assert_not_called()
+
+    def test_batch_delete_normalizes_empty_go_arrays_without_inventing_confirmed_ids(self):
+        cases = [
+            ('{"bean":{"status":"completed","deleted_client_ids":null,"cascaded_crds":null}}', []),
+            ('{"bean":{"status":"completed"}}', []),
+            ('{"bean":{"status":"completed","deleted_client_ids":[],"cascaded_crds":[]}}', []),
+            ('{"bean":{"status":"completed","deleted_client_ids":["11"],"cascaded_crds":null}}', [11]),
+        ]
+        for payload, expected_ids in cases:
+            with self.subTest(payload=payload), \
+                    mock.patch.object(self.service, "_get_owned_resources", return_value=[self.resource]), \
+                    mock.patch.object(self.service, "get_app_id_and_namespace", return_value=("team-a", "region-app-a")), \
+                    mock.patch.object(self.service, "preview_delete_k8s_resources", return_value={"requires_cascade": False}), \
+                    mock.patch.object(resource_module.region_api, "batch_delete_app_resources",
+                                      return_value=(Obj(status=200), json.loads(payload))), \
+                    mock.patch.object(resource_module.k8s_resources_repo, "delete_by_ids") as delete_rows, \
+                    mock.patch.object(self.service, "_delete_cascaded_cr_metadata") as delete_cascaded:
+                result = self.service.batch_delete_k8s_resource("eid", "team", "42", "region-a", [11])
+                self.assertEqual(result["deleted_client_ids"], [str(item) for item in expected_ids])
+                self.assertEqual(result["cascaded_crds"], [])
+                if expected_ids:
+                    delete_rows.assert_called_once_with(expected_ids)
+                else:
+                    delete_rows.assert_not_called()
+                delete_cascaded.assert_called_once_with("region-a", [])
+
+    def test_incomplete_or_failed_region_delete_preserves_metadata(self):
+        error = ServiceHandleException(msg="region unavailable", status_code=503)
+        for scenario in ("incomplete", "region error"):
+            with self.subTest(scenario=scenario), \
+                    mock.patch.object(self.service, "_get_owned_resources", return_value=[self.resource]), \
+                    mock.patch.object(self.service, "get_app_id_and_namespace", return_value=("team-a", "region-app-a")), \
+                    mock.patch.object(self.service, "preview_delete_k8s_resources", return_value={"requires_cascade": False}), \
+                    mock.patch.object(resource_module.region_api, "batch_delete_app_resources",
+                                      side_effect=error if scenario == "region error" else None,
+                                      return_value=(Obj(status=200), json.loads(
+                                          '{"bean":{"status":"pending","deleted_client_ids":null,"cascaded_crds":null}}'))), \
+                    mock.patch.object(resource_module.k8s_resources_repo, "delete_by_ids") as delete_rows, \
+                    mock.patch.object(self.service, "_delete_cascaded_cr_metadata") as delete_cascaded:
+                with self.assertRaises(ServiceHandleException) as raised:
+                    self.service.batch_delete_k8s_resource("eid", "team", "42", "region-a", [11])
+                if scenario == "region error":
+                    self.assertIs(raised.exception, error)
+                else:
+                    self.assertEqual(raised.exception.status_code, 502)
+                delete_rows.assert_not_called()
+                delete_cascaded.assert_not_called()
+
+    def test_reconcile_normalizes_empty_go_arrays_and_preserves_unknown_resources(self):
+        cases = (
+            ('{"bean":{"missing_client_ids":null,"unknown":null}}', [], []),
+            ('{"bean":{}}', [], []),
+            ('{"bean":{"missing_client_ids":[],"unknown":[]}}', [], []),
+            ('{"bean":{"missing_client_ids":["11"],"unknown":null}}', [11], []),
+            ('{"bean":{"missing_client_ids":null,"unknown":[{"client_id":"11","error":"forbidden"}]}}', [], [{
+                "client_id":
+                "11",
+                "error":
+                "forbidden"
+            }]),
+        )
+        for payload, expected_ids, unknown in cases:
+            with self.subTest(payload=payload), \
+                    mock.patch.object(resource_module.k8s_resources_repo, "list_available_resources",
+                                      return_value=[self.resource]), \
+                    mock.patch.object(self.service, "get_app_id_and_namespace", return_value=("team-a", "region-app-a")), \
+                    mock.patch.object(resource_module.region_api, "reconcile_app_resources",
+                                      return_value=(Obj(status=200), json.loads(payload))), \
+                    mock.patch.object(resource_module.k8s_resources_repo, "delete_by_ids") as delete_rows:
+                result = self.service.reconcile_k8s_resources("eid", "team", "42", "region-a")
+                self.assertEqual(result["missing_client_ids"], [str(item) for item in expected_ids])
+                self.assertEqual(result["unknown"], unknown)
+                if expected_ids:
+                    delete_rows.assert_called_once_with(expected_ids)
+                else:
+                    delete_rows.assert_not_called()
 
     def test_non_admin_cannot_confirm_cross_application_cascade(self):
         impact = {

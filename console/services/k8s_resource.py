@@ -42,7 +42,8 @@ class ComponentK8sResourceService(object):
             "kind": resources.kind
         }
         res, body = region_api.get_app_resource(enterprise_id, region_name, data)
-        k8s_resources_repo.update(app_id, name, resources.kind, content=body["bean"]["content"])  # type: ignore[index]  # NOTE: region_api returns Optional[dict]; runtime always non-None on success
+        # NOTE: region_api types body as Optional[dict], but it is non-None on success.
+        k8s_resources_repo.update(app_id, name, resources.kind, content=body["bean"]["content"])  # type: ignore[index]
         return body["bean"]  # type: ignore[index]  # NOTE: same as above
 
     @transaction.atomic
@@ -51,7 +52,8 @@ class ComponentK8sResourceService(object):
         namespace, region_app_id = self.get_app_id_and_namespace(app_id, tenant_name, region_name)
         data = {"app_id": region_app_id, "resource_yaml": resource_yaml, "namespace": namespace}
         res, body = region_api.create_app_resource(enterprise_id, region_name, data)
-        region_resource.create_k8s_resources(body["list"], app_id)  # type: ignore[index]  # NOTE: region_api returns Optional[dict]; runtime always non-None on success
+        # NOTE: region_api types body as Optional[dict], but it is non-None on success.
+        region_resource.create_k8s_resources(body["list"], app_id)  # type: ignore[index]
 
     @transaction.atomic
     def update_k8s_resource(self, enterprise_id: str, tenant_name: str, app_id: str, resource_yaml: str,
@@ -67,7 +69,8 @@ class ComponentK8sResourceService(object):
         }
         res, body = region_api.update_app_resource(enterprise_id, region_name, data)
         data = {
-            "content": body["bean"]["content"],  # type: ignore[index]  # NOTE: region_api returns Optional[dict]; runtime always non-None on success
+            # NOTE: region_api types body as Optional[dict], but it is non-None on success.
+            "content": body["bean"]["content"],  # type: ignore[index]
             "error_overview": body["bean"]["error_overview"],  # type: ignore[index]  # NOTE: same as above
             "state": body["bean"]["state"]  # type: ignore[index]  # NOTE: same as above
         }
@@ -98,7 +101,8 @@ class ComponentK8sResourceService(object):
         data = self._build_region_resources_payload(region_app_id, namespace, resources)
         _, body = region_api.preview_delete_app_resources(enterprise_id, region_name, data)
         impact = (body or {}).get("bean") or {}
-        for crd in impact.get("crds", []):
+        impact["crds"] = impact.get("crds") or []
+        for crd in impact["crds"]:
             crd.pop("affected_region_app_ids", None)
         return impact
 
@@ -106,7 +110,7 @@ class ComponentK8sResourceService(object):
     def validate_crd_cascade(impact: Any, cascade_crd: bool, is_enterprise_admin: bool) -> None:
         if not impact.get("requires_cascade"):
             return
-        crd_names = [crd.get("name") for crd in impact.get("crds", []) if crd.get("name")]
+        crd_names = [crd.get("name") for crd in (impact.get("crds") or []) if crd.get("name")]
         crd_text = "、".join(crd_names) or "相关 CRD"
         if not is_enterprise_admin:
             raise ServiceHandleException(
@@ -145,11 +149,13 @@ class ComponentK8sResourceService(object):
                                          status_code=502,
                                          bean=result)
 
-        deleted_client_ids = set(str(item) for item in result.get("deleted_client_ids", []))
+        result["deleted_client_ids"] = result.get("deleted_client_ids") or []
+        result["cascaded_crds"] = result.get("cascaded_crds") or []
+        deleted_client_ids = set(str(item) for item in result["deleted_client_ids"])
         selected_ids = [resource.ID for resource in resources if str(resource.ID) in deleted_client_ids]
         if selected_ids:
             k8s_resources_repo.delete_by_ids(selected_ids)
-        self._delete_cascaded_cr_metadata(region_name, result.get("cascaded_crds", []))
+        self._delete_cascaded_cr_metadata(region_name, result["cascaded_crds"])
         return result
 
     @transaction.atomic
@@ -161,8 +167,10 @@ class ComponentK8sResourceService(object):
         data = self._build_region_resources_payload(region_app_id, namespace, resources)
         _, body = region_api.reconcile_app_resources(enterprise_id, region_name, data)
         result = (body or {}).get("bean") or {}
+        result["missing_client_ids"] = result.get("missing_client_ids") or []
+        result["unknown"] = result.get("unknown") or []
         known_ids = set(str(resource.ID) for resource in resources)
-        missing_ids = [int(item) for item in result.get("missing_client_ids", []) if str(item) in known_ids]
+        missing_ids = [int(item) for item in result["missing_client_ids"] if str(item) in known_ids]
         if missing_ids:
             k8s_resources_repo.delete_by_ids(missing_ids)
         return result
