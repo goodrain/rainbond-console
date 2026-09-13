@@ -291,6 +291,31 @@ class PlatformPluginService(object):
             logger.warning("Failed to list region plugins: %s", e)
         return installed_plugins
 
+    def _get_installed_plugins_strict(self, enterprise_id: str, region_name: str) -> Dict[str, Any]:
+        try:
+            _, body = region_api.list_plugins(enterprise_id, region_name, False)
+            if not isinstance(body, dict) or not isinstance(body.get("list"), list):
+                raise ServiceHandleException(
+                    msg="platform plugin state unavailable",
+                    msg_show="无法确认平台插件安装状态，请稍后重试",
+                    status_code=503,
+                    error_code="platform_plugin_state_unavailable",
+                )
+            return {
+                plugin.get("name", ""): plugin
+                for plugin in body["list"] if isinstance(plugin, dict) and plugin.get("name")
+            }
+        except ServiceHandleException:
+            raise
+        except Exception:
+            logger.warning("Failed to strictly list region plugins", exc_info=True)
+            raise ServiceHandleException(
+                msg="platform plugin state unavailable",
+                msg_show="无法确认平台插件安装状态，请稍后重试",
+                status_code=503,
+                error_code="platform_plugin_state_unavailable",
+            )
+
     def get_vm_plugin_status(self, enterprise_id: str, region_name: str) -> str:
         installed_plugins = self._get_installed_plugins(enterprise_id, region_name)
         vm_plugin = installed_plugins.get(VM_PLATFORM_PLUGIN_ID) or {}
@@ -456,7 +481,7 @@ class PlatformPluginService(object):
                 plugin_info["can_upgrade"] = plugin_info["upgradeable"]
         return plugin_info
 
-    def list_platform_plugins(self, enterprise_id: str, region_name: str) -> List[Dict[str, Any]]:
+    def list_platform_plugins(self, enterprise_id: str, region_name: str, strict: bool = False) -> List[Dict[str, Any]]:
         """
         List platform plugins from app store.
 
@@ -472,17 +497,45 @@ class PlatformPluginService(object):
                 enterprise_id,
                 region_name,
             )
+            if strict:
+                raise ServiceHandleException(
+                    msg="platform plugin market unavailable",
+                    msg_show="平台插件市场当前不可用",
+                    status_code=503,
+                    error_code="platform_plugin_market_unavailable",
+                )
             return []
         bean = self._get_license_bean(enterprise_id, region_name)
         plugin_mapping = bean.get("plugin_mapping", {}) or {}
         has_valid_license = bool(bean.get("valid"))
-        installed_plugins = self._get_installed_plugins(enterprise_id, region_name)
+        installed_plugins = (self._get_installed_plugins_strict(enterprise_id, region_name)
+                             if strict else self._get_installed_plugins(enterprise_id, region_name))
         region_app_id_map = self._get_region_app_id_map(region_name, installed_plugins)
+        if strict:
+            unmapped = [
+                plugin_id for plugin_id, plugin in installed_plugins.items()
+                if not plugin.get("region_app_id") or plugin.get("region_app_id") not in region_app_id_map
+            ]
+            if unmapped:
+                raise ServiceHandleException(
+                    msg="platform plugin state unavailable",
+                    msg_show="无法确认已安装平台插件的应用信息，请稍后重试",
+                    status_code=503,
+                    error_code="platform_plugin_state_unavailable",
+                    details={"plugins": sorted(unmapped)},
+                )
         region_arches = self._get_region_arches(region_name)
         try:
             _, market_plugins = self._get_market_platform_plugins_cached(enterprise_id)
         except Exception as e:
             logger.warning("Failed to get market platform plugins: %s", e)
+            if strict:
+                raise ServiceHandleException(
+                    msg="platform plugin market unavailable",
+                    msg_show="无法获取平台插件目录，请稍后重试",
+                    status_code=503,
+                    error_code="platform_plugin_market_unavailable",
+                )
             market_plugins = []
 
         logger.debug(
@@ -558,6 +611,30 @@ class PlatformPluginService(object):
             )
             result.append(plugin_info)
 
+        if strict:
+            listed_plugin_ids = {item.get("plugin_id") for item in result}
+            for plugin_id, installed_plugin in installed_plugins.items():
+                if plugin_id in listed_plugin_ids:
+                    continue
+                region_app_id = installed_plugin.get("region_app_id", "")
+                result.append({
+                    "plugin_id": plugin_id,
+                    "plugin_name": installed_plugin.get("plugin_name") or plugin_id,
+                    "name": installed_plugin.get("name") or plugin_id,
+                    "installed": True,
+                    "status": installed_plugin.get("status", ""),
+                    "installed_version": installed_plugin.get("version", ""),
+                    "latest_version": installed_plugin.get("version", ""),
+                    "upgradeable": False,
+                    "can_upgrade": False,
+                    "team_name": installed_plugin.get("team_name", ""),
+                    "app_id": region_app_id_map[region_app_id],
+                    "plugin_type": installed_plugin.get("plugin_type", ""),
+                    "plugin_views": installed_plugin.get("plugin_views", []),
+                    "catalog_available": False,
+                })
+            result.sort(key=lambda item: item.get("plugin_id", ""))
+
         logger.debug(
             "platform plugin list result summary enterprise_id=%s region_name=%s result_count=%s result_plugins=%s",
             enterprise_id,
@@ -566,6 +643,9 @@ class PlatformPluginService(object):
             [item.get("plugin_id", "") for item in result],
         )
         return result
+
+    def list_platform_plugins_strict(self, enterprise_id: str, region_name: str) -> List[Dict[str, Any]]:
+        return self.list_platform_plugins(enterprise_id, region_name, strict=True)
 
     def install_platform_plugin(self, enterprise_id: str, region_name: str, plugin_id: str, user: Any) -> Dict[str, Any]:
         """

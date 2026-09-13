@@ -331,12 +331,30 @@ class AppService(object):
         )
         return ts
 
-    def change_package_upload_info(self, service_id: str, event_id: str, pkg_create_time: str) -> int:
+    def change_package_upload_info(self,
+                                   service_id: str,
+                                   event_id: str,
+                                   pkg_create_time: str,
+                                   tenant_id: Optional[str] = None,
+                                   expected_git_url: Optional[str] = None) -> int:
         data = {
             "git_url": "/grdata/package_build/components/" + service_id + "/events/" + event_id,
             "code_version": pkg_create_time
         }
-        return TenantServiceInfo.objects.filter(service_id=service_id).update(**data)
+        queryset = TenantServiceInfo.objects.filter(service_id=service_id)
+        if tenant_id is not None:
+            queryset = queryset.filter(tenant_id=tenant_id)
+        if expected_git_url is not None:
+            queryset = queryset.filter(git_url=expected_git_url)
+        return queryset.update(**data)
+
+    def restore_package_upload_info(self, service_id: str, tenant_id: str, expected_git_url: str, git_url: str,
+                                    code_version: str) -> int:
+        return TenantServiceInfo.objects.filter(
+            service_id=service_id,
+            tenant_id=tenant_id,
+            git_url=expected_git_url,
+        ).update(git_url=git_url, code_version=code_version)
 
     def __init_docker_image_app(self, region: str) -> TenantServiceInfo:
         """

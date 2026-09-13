@@ -17,6 +17,7 @@ from console.views.base import (
 from console.login.jwt_authentication import JSONWebTokenAuthentication
 from console.services.plugin_service import rbd_plugin_service
 from console.services.auth.authentication import InternalTokenAuthentication
+from console.utils.plugin_identity import is_gateway_monitoring_plugin
 from www.utils.return_message import general_message
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import RegionApp, ServiceGroup, Tenants
@@ -24,11 +25,11 @@ from www.models.main import RegionApp, ServiceGroup, Tenants
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
 
-GATEWAY_MONITORING_PLUGIN = "rainbond-gateway-monitoring"
 GATEWAY_MONITORING_APP_TOP_PATHS = set([
     "api/v1/platform/apps/top-errors",
     "api/v1/platform/apps/top-latency",
     "api/v1/platform/apps/top-throughput",
+    "api/v1/platform/apps/rankings",
 ])
 GATEWAY_MONITORING_APP_TOP_ACTIONS = set([
     "top-errors",
@@ -84,7 +85,7 @@ def _to_int(value: Any) -> Optional[int]:
 
 
 def _is_gateway_monitoring_app_top_path(plugin_name: str, file_path: str) -> bool:
-    if plugin_name != GATEWAY_MONITORING_PLUGIN:
+    if not is_gateway_monitoring_plugin(plugin_name):
         return False
     normalized = (file_path or "").strip("/")
     if normalized in GATEWAY_MONITORING_APP_TOP_PATHS:
@@ -102,13 +103,22 @@ def _is_gateway_monitoring_app_top_path(plugin_name: str, file_path: str) -> boo
 
 def _enrich_gateway_monitoring_app_items(payload: Any, region_name: str) -> Any:
     data = payload.get("data") if isinstance(payload, dict) else None
-    if not isinstance(data, list) or not data:
+    item_lists = []
+    if isinstance(data, list):
+        item_lists.append(data)
+    elif isinstance(data, dict):
+        for ranking in ("errors", "latency", "throughput"):
+            ranking_items = data.get(ranking)
+            if isinstance(ranking_items, list):
+                item_lists.append(ranking_items)
+    items = [item for item_list in item_lists for item in item_list]
+    if not items:
         return payload
 
     region_app_ids: Set[str] = set()
     namespace_values: Set[str] = set()
     app_ids: Set[int] = set()
-    for item in data:
+    for item in items:
         if not isinstance(item, dict):
             continue
         region_app_id = _normalize_text(item.get("region_app_id"))
@@ -168,7 +178,7 @@ def _enrich_gateway_monitoring_app_items(payload: Any, region_name: str) -> Any:
             if tenant_id:
                 tenants_by_id[tenant_id] = tenant_row
 
-    for item in data:
+    for item in items:
         if not isinstance(item, dict):
             continue
 

@@ -234,10 +234,7 @@ class GroupServiceDeleteAppWithResourcesTestCase(TestCase):
         view.is_enterprise_admin = True
         request = Obj(data={"cascade_crd": True})
 
-        with mock.patch.object(group_view_module.group_service,
-                               "delete_app_with_resources",
-                               return_value=[]) as delete_app, \
-                mock.patch.object(group_view_module.operation_log_service, "create_app_log"):
+        with mock.patch.object(group_view_module.application_delete_service, "delete_app") as delete_app:
             response = view.delete(request, "42")
 
         self.assertEqual(response.status_code, 200)
@@ -246,6 +243,7 @@ class GroupServiceDeleteAppWithResourcesTestCase(TestCase):
             self.tenant,
             "demo-region",
             self.app,
+            log_context=view,
             cascade_crd=True,
             is_enterprise_admin=True)
 

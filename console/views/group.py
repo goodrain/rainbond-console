@@ -2,7 +2,6 @@
 """
   Created by leon on 18/1/5.
 """
-import json
 import logging
 from typing import Any
 
@@ -16,13 +15,13 @@ from console.services.helm_app import helm_app_service
 from console.services.app_actions import app_manage_service
 from console.services.group_service import group_service
 from console.services.application import application_service
+from console.services.application_delete_service import application_delete_service
 from console.services.market_app_service import market_app_service
 from console.services.k8s_resource import k8s_resource_service
 from console.services.operation_log import operation_log_service, Operation
 from console.utils.reqparse import parse_item
 from console.utils.validation import is_qualified_name
-from console.views.base import (ApplicationView, RegionTenantHeaderCloudEnterpriseCenterView, RegionTenantHeaderView,
-                                ApplicationViewCloudEnterpriseCenterView)
+from console.views.base import ApplicationView, RegionTenantHeaderView, ApplicationViewCloudEnterpriseCenterView
 from rest_framework.request import Request
 from rest_framework.response import Response
 from urllib3.exceptions import MaxRetryError
@@ -246,33 +245,14 @@ class TenantGroupHandleView(ApplicationView):
         """
         删除应用及所有资源
         """
-        services = group_service.delete_app_with_resources(
+        application_delete_service.delete_app(
             self.user,
             self.tenant,
             self.region_name,
             self.app,
+            log_context=self,
             cascade_crd=bool(request.data.get("cascade_crd", False)),
             is_enterprise_admin=self.is_enterprise_admin)
-        component_names = []
-        comment = ""
-        old_information = list()
-        if services:
-            app = self.app
-            if app:
-                app_name = operation_log_service.process_app_name(app.app_name, self.region_name, self.team_name,
-                                                                  app.app_id)
-                for svc in services:
-                    component_names.append(svc.service_cname)
-                    old_information.append({"组件名": svc.service_cname, "操作": "删除"})
-                if len(component_names) > 2:
-                    component_names_text = ",".join(component_names[0:2]) + "等"
-                else:
-                    component_names_text = ",".join(component_names)
-                comment = "删除了应用 {app}, 以及应用下的组件 {component_names}".format(
-                    app=app_name, component_names=component_names_text)
-
-        old_information = json.dumps(old_information, ensure_ascii=False)
-        operation_log_service.create_app_log(ctx=self, comment=comment, format_app=False, old_information=old_information)
 
         result = general_message(200, "success", "删除成功")
         return Response(result, status=result["code"])

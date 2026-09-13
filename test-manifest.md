@@ -161,6 +161,7 @@
 | console.app.delete | 删除应用及隐藏快照模板 | active | regression | console.services.group_service._delete_app | console/tests/group_service_test.py::GroupServiceDeleteAppTestCase |
 | console.app.delete-component-failure-guard | Preserve applications when component deletion fails | active | regression | console.services.group_service.batch_delete_app_services | console/tests/group_service_test.py::GroupServiceDeleteComponentFailureGuardTestCase |
 | console.app.delete-confirmation-guard | 阻止无效的应用删除确认 | active | regression | console.services.mcp_query_service.call_tool[rainbond_delete_app] | console/tests/mcp_query_service_test.py::MCPQueryServiceDeleteAppTests.test_delete_app_rejects_invalid_confirmation_token |
+| console.app.delete-shared-orchestration | 共享完整应用删除编排 | active | regression | console.services.application_delete_service.ApplicationDeleteService.delete_app | console/tests/mcp_app_delete_parity_test.py::ApplicationDeleteServiceTests |
 | console.app.delete-with-confirmation | 确认后删除应用 | active | regression | console.services.mcp_query_service.call_tool[rainbond_delete_app] | console/tests/mcp_query_service_test.py::MCPQueryServiceDeleteAppTests.test_delete_app_requires_confirmation_then_delete |
 | console.app.delete-with-resources | Delete applications with attached resources | active | regression | console.services.group_service.delete_app_with_resources | console/tests/group_service_test.py::GroupServiceDeleteAppWithResourcesTestCase |
 | console.app.detail | 查看应用详情 | active | regression | console.services.mcp_query_service.call_tool[rainbond_get_app_detail] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_get_app_detail_returns_status_and_counts |
@@ -395,6 +396,10 @@
 | console.market.cloud-markets | Market Cloud Markets | active | regression | console.services.mcp_query_service.call_tool[console.market.cloud-markets] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_query_cloud_markets_returns_market_list |
 | console.market.install-app-model-cloud | Market Install App Model Cloud | active | regression | console.services.mcp_query_service.call_tool[console.market.install-app-model-cloud] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_install_app_model_for_cloud_calls_market_app_service |
 | console.market.local-app-models | Market Local App Models | active | regression | console.services.mcp_query_service.call_tool[console.market.local-app-models] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_query_local_app_models_returns_paginated_templates |
+| console.mcp.ai-engine-region-client | AI Engine 安全 Region 客户端 | active | unit | www.apiclient.regionapi.RegionInvokeApi.request_plugin_backend | console/tests/ai_engine_region_client_test.py::AIEngineRegionClientTests |
+| console.mcp.ai-engine-security | AI Engine MCP 安全边界 | active | regression | console.services.ai_engine_service.AIEngineProxyService | console/tests/mcp_ai_engine_security_test.py::AIEngineSecurityAndResponseTests |
+| console.mcp.ai-engine-service | AI Engine MCP 代理服务 | active | unit | console.services.ai_engine_service.AIEngineProxyService | console/tests/mcp_ai_engine_service_test.py::AIEngineProxyServiceTests |
+| console.mcp.ai-engine-tool-catalog | AI Engine MCP 工具目录契约 | active | unit | console.services.mcp_ai_engine_tools.MCPAIEngineTools | console/tests/mcp_ai_engine_tools_test.py::MCPAIEngineToolContractTests |
 | console.mcp.app-health-overview | MCP 应用健康总览工具 | active | unit | console.services.mcp_query_service.call_tool[console.mcp.app-health-overview] | console/tests/mcp_query_health_overview_test.py |
 | console.mcp.env-conflicts | MCP 环境变量多源冲突检测工具 | active | unit | console.services.mcp_query_service.call_tool[console.mcp.env-conflicts] | console/tests/mcp_query_env_conflicts_test.py |
 | console.mcp.http-delete-session | 通过 HTTP 关闭 MCP 会话 | active | regression | console.views.mcp_query.MCPQueryHTTPView.delete | console/tests/mcp_query_view_test.py::MCPQuerySSEViewTests.test_http_delete_accepts_valid_session_token |
@@ -407,6 +412,7 @@
 | console.mcp.operation-event-ids | MCP operate_app/upgrade_app 返回操作事件 ID | active | unit | console.services.mcp_query_service.call_tool[console.mcp.operation-event-ids] | console/tests/mcp_query_operation_event_ids_test.py |
 | console.mcp.operation-failure-classifier | MCP 操作失败分类器 | active | unit | console.services.mcp_failure_classifier.classify_failure | console/tests/mcp_failure_classifier_test.py |
 | console.mcp.operation-failure-context | MCP 操作失败上下文工具 | active | unit | console.services.mcp_query_service.call_tool[console.mcp.operation-failure-context] | console/tests/mcp_query_failure_context_test.py |
+| console.mcp.platform-plugin-tools | 平台插件 MCP 工具 | active | unit | console.services.mcp_platform_plugin_tools.MCPPlatformPluginTools | console/tests/mcp_platform_plugin_tools_test.py::MCPPlatformPluginToolContractTests |
 | console.mcp.post-message | 向 SSE 会话投递 MCP 消息 | active | regression | console.views.mcp_query.MCPQueryMessageView.post | console/tests/mcp_query_view_test.py::MCPQuerySSEViewTests.test_post_message_enqueues_initialize_response_on_sse_stream |
 | console.mcp.serialize-nested-sdk-models | MCP 响应中递归序列化嵌套 SDK 模型 | active | regression | console.services.mcp_query_service.MCPQueryService._serialize_model_item | console/tests/mcp_query_service_test.py::MCPQueryServiceSerializeModelItemTests.test_serialize_model_item_recurses_into_dict_values<br>console/tests/mcp_query_service_test.py::MCPQueryServiceSerializeModelItemTests.test_serialize_model_item_handles_object_with_nested_sdk_attribute |
 | console.mcp.structured-tool-error | Mcp Structured Tool Error | active | regression | console.views.mcp_query.MCPQueryHTTPView | console/tests/mcp_query_view_test.py::MCPQuerySSEViewTests.test_http_tool_error_includes_structured_validation_details |
@@ -424,9 +430,17 @@
 | console.operator-managed.skip-kubeblocks-services | Skip KubeBlocks services during operator-managed component import | active | regression | console.services.group_service.GroupService.get_watch_managed_data | console/tests/group_service_test.py::GroupServiceOperatorManagedTests |
 | console.package-component.auto-create-flow | 执行制品包组件自动创建全流程 | active | regression | console.services.package_component_service.auto_create_component | console/tests/package_component_service_test.py::PackageComponentServiceTests.test_auto_create_component_runs_full_package_flow |
 | console.package-component.check-request-failure | 制品包组件检测请求失败时拦截创建 | active | regression | console.services.package_component_service.auto_create_component | console/tests/package_component_service_test.py::PackageComponentServiceTests.test_auto_create_component_rejects_check_request_failure |
+| console.package-component.current-event-source | Expose the current package event in build source metadata | active | regression | MCPQueryService.get_component_build_source | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests::test_get_component_build_source_exposes_current_package_event |
 | console.package-component.deploy-failure | 制品包组件部署失败时拦截创建 | active | regression | console.services.package_component_service.auto_create_component | console/tests/package_component_service_test.py::PackageComponentServiceTests.test_auto_create_component_rejects_deploy_failure |
 | console.package-component.duplicate-name-guard | 制品包组件创建时拦截重复英文名 | active | regression | console.services.package_component_service.auto_create_component | console/tests/package_component_service_test.py::PackageComponentServiceTests.test_auto_create_component_rejects_duplicate_k8s_component_name |
 | console.package-component.multi-service-guard | 单组件流程中拦截多组件制品包检测结果 | active | regression | console.services.package_component_service.auto_create_component | console/tests/package_component_service_test.py::PackageComponentServiceTests.test_auto_create_component_rejects_multi_service_package |
+| console.package-component.replace-concurrency-guard | Prevent concurrent package source replacement | active | regression | PackageComponentService.replace_component | console/tests/package_component_service_test.py::PackageComponentServiceTests::test_replace_component_rejects_stale_expected_event |
+| console.package-component.replace-existing-flow | Replace an existing package component in place | active | integration | PackageComponentService.replace_component | console/tests/package_component_service_test.py::PackageComponentServiceTests::test_replace_component_reuses_service_id_and_triggers_build |
+| console.package-component.replace-idempotent | Return a no-op for an already current package event | active | regression | PackageComponentService.replace_component | console/tests/package_component_service_test.py::PackageComponentServiceTests::test_replace_component_is_idempotent_for_current_event |
+| console.package-component.replace-source-guard | Reject package replacement for non-package components | active | unit | PackageComponentService.replace_component | console/tests/package_component_service_test.py::PackageComponentServiceTests::test_replace_component_rejects_non_package_component |
+| console.package-component.replace-sync-failure-rollback | Restore package source after synchronous build dispatch failure | active | regression | PackageComponentService.replace_component | console/tests/package_component_service_test.py::PackageComponentServiceTests::test_replace_component_restores_source_when_build_dispatch_fails |
+| console.package-component.replace-tool | Expose package replacement through the MCP tool contract | active | integration | MCPQueryService.replace_component_package | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests::test_replace_component_package_calls_package_service |
+| console.package-component.replace-upload-owner-guard | Reject package uploads bound to another component | active | unit | PackageComponentService.replace_component | console/tests/package_component_service_test.py::PackageComponentServiceTests::test_replace_component_rejects_upload_bound_to_another_component |
 | console.package-component.require-upload-record | 创建制品包组件前必须存在上传记录 | active | regression | console.services.package_component_service.auto_create_component | console/tests/package_component_service_test.py::PackageComponentServiceTests.test_auto_create_component_requires_existing_upload_record |
 | console.package-component.upload-missing | 制品包列表为空时拦截组件创建 | active | regression | console.services.package_component_service.auto_create_component | console/tests/package_component_service_test.py::PackageComponentServiceTests.test_auto_create_component_requires_uploaded_package_list |
 | console.package-upload.archive-reuse | Package Upload Archive Reuse | active | regression | console.services.package_upload_tool_service | console/tests/package_upload_tool_service_test.py::PackageUploadToolServiceTests.test_prepare_upload_archive_reuses_supported_package_file |
@@ -454,6 +468,8 @@
 | console.pod.detail | Pod Detail | active | regression | console.services.mcp_query_service.call_tool[console.pod.detail] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_get_pod_detail_returns_runtime_diagnostics |
 | console.pod.detail-kubeblocks | Pod Detail Kubeblocks | active | regression | console.services.mcp_query_service.call_tool[console.pod.detail-kubeblocks] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_get_pod_detail_uses_kubeblocks_endpoint_for_kubeblocks_component |
 | console.port-inner.env-sync-idempotent | Treat duplicate region env create as idempotent during inner port enable | active | regression | console.services.app_config.env_service.AppEnvVarService.add_service_env_var | console/tests/env_service_region_idempotency_test.py::EnvServiceRegionIdempotencyTests.test_add_service_env_var_updates_region_when_env_already_exists<br>console/tests/env_service_region_idempotency_test.py::EnvServiceRegionIdempotencyTests.test_add_service_env_var_retries_add_when_region_update_reports_record_not_found<br>console/tests/env_service_region_idempotency_test.py::EnvServiceRegionIdempotencyTests.test_add_service_env_var_treats_second_add_conflict_as_success |
+| console.rainskills-audit-migration-repair | Rainskills 审计迁移修复 | active | unit | python manage.py repair_legacy_schema --apps console [--plan] | console/tests/legacy_schema_repair_test.py::RepairInitialMigrationTests |
+| console.rainskills-audit-strict-startup | Rainskills 严格审计启动门禁 | active | regression | entrypoint repair plan and strict MCP write audit | console/tests/entrypoint_test.py::EntrypointGunicornTest.test_database_startup_plans_repairs_before_applying_and_migrating<br>console/tests/rainskills_audit_service_test.py::RainSkillsAuditServiceSafetyTests.test_confirmation_metadata_is_required_by_default<br>console/tests/mcp_query_rainskills_audit_test.py::MCPQueryRainSkillsAuditTests.test_strict_mode_blocks_legacy_mutation_before_tool_execution |
 | console.random.default-version | 生成默认随机版本标识 | active | regression | console.utils.randomutil.make_default_version | console/tests/utils/randomutil_test.py::RandomUtilTests.test_make_default_version |
 | console.realtime-proxy.docker-console-subprotocol | Docker 控制台后端使用 webtty 子协议 | active | regression | console.utils.realtime_proxy._backend_websocket_subprotocols | console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_docker_console_backend_uses_webtty_subprotocol |
 | console.realtime-proxy.docker-console-user-activity | Docker 控制台活动跟踪在用户输入时刷新 | active | regression | console.utils.realtime_proxy.DockerConsoleActivityTracker | console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_docker_console_activity_tracker_refreshes_on_user_input |
@@ -2165,6 +2181,16 @@
 - 业务入口: `console.services.mcp_query_service.call_tool[rainbond_delete_app]`
 - 代码路径: `console/services/mcp_query_service.py`
 - 测试路径: `console/tests/mcp_query_service_test.py::MCPQueryServiceDeleteAppTests.test_delete_app_rejects_invalid_confirmation_token`
+
+### 共享完整应用删除编排
+
+- Capability ID: `console.app.delete-shared-orchestration`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `workflow`
+- 业务入口: `console.services.application_delete_service.ApplicationDeleteService.delete_app`
+- 代码路径: `console/services/application_delete_service.py`, `console/views/group.py`, `console/services/mcp_query_service.py`
+- 测试路径: `console/tests/mcp_app_delete_parity_test.py::ApplicationDeleteServiceTests`
 
 ### 确认后删除应用
 
@@ -4506,6 +4532,46 @@
 - 代码路径: `console/services/mcp_query_service.py`
 - 测试路径: `console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_query_local_app_models_returns_paginated_templates`
 
+### AI Engine 安全 Region 客户端
+
+- Capability ID: `console.mcp.ai-engine-region-client`
+- 状态: `active`
+- 测试类型: `unit`
+- 接口类型: `service_method`
+- 业务入口: `www.apiclient.regionapi.RegionInvokeApi.request_plugin_backend`
+- 代码路径: `www/apiclient/regionapi.py`
+- 测试路径: `console/tests/ai_engine_region_client_test.py::AIEngineRegionClientTests`
+
+### AI Engine MCP 安全边界
+
+- Capability ID: `console.mcp.ai-engine-security`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.ai_engine_service.AIEngineProxyService`
+- 代码路径: `console/services/ai_engine_service.py`, `console/services/rainskills_audit_service.py`
+- 测试路径: `console/tests/mcp_ai_engine_security_test.py::AIEngineSecurityAndResponseTests`
+
+### AI Engine MCP 代理服务
+
+- Capability ID: `console.mcp.ai-engine-service`
+- 状态: `active`
+- 测试类型: `unit`
+- 接口类型: `service_method`
+- 业务入口: `console.services.ai_engine_service.AIEngineProxyService`
+- 代码路径: `console/services/ai_engine_service.py`
+- 测试路径: `console/tests/mcp_ai_engine_service_test.py::AIEngineProxyServiceTests`
+
+### AI Engine MCP 工具目录契约
+
+- Capability ID: `console.mcp.ai-engine-tool-catalog`
+- 状态: `active`
+- 测试类型: `unit`
+- 接口类型: `service_method`
+- 业务入口: `console.services.mcp_ai_engine_tools.MCPAIEngineTools`
+- 代码路径: `console/services/mcp_ai_engine_tools.py`, `console/services/mcp_query_service.py`, `console/services/rainskills_tool_audit_policy.py`
+- 测试路径: `console/tests/mcp_ai_engine_tools_test.py::MCPAIEngineToolContractTests`
+
 ### MCP 应用健康总览工具
 
 - Capability ID: `console.mcp.app-health-overview`
@@ -4625,6 +4691,16 @@
 - 业务入口: `console.services.mcp_query_service.call_tool[console.mcp.operation-failure-context]`
 - 代码路径: `console/services/mcp_query_service.py`
 - 测试路径: `console/tests/mcp_query_failure_context_test.py`
+
+### 平台插件 MCP 工具
+
+- Capability ID: `console.mcp.platform-plugin-tools`
+- 状态: `active`
+- 测试类型: `unit`
+- 接口类型: `service_method`
+- 业务入口: `console.services.mcp_platform_plugin_tools.MCPPlatformPluginTools`
+- 代码路径: `console/services/mcp_platform_plugin_tools.py`, `console/services/platform_plugin_service.py`
+- 测试路径: `console/tests/mcp_platform_plugin_tools_test.py::MCPPlatformPluginToolContractTests`
 
 ### 向 SSE 会话投递 MCP 消息
 
@@ -4796,6 +4872,16 @@
 - 代码路径: `console/services/package_component_service.py`
 - 测试路径: `console/tests/package_component_service_test.py::PackageComponentServiceTests.test_auto_create_component_rejects_check_request_failure`
 
+### Expose the current package event in build source metadata
+
+- Capability ID: `console.package-component.current-event-source`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `MCPQueryService.get_component_build_source`
+- 代码路径: `console/services/mcp_query_service.py`
+- 测试路径: `console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests::test_get_component_build_source_exposes_current_package_event`
+
 ### 制品包组件部署失败时拦截创建
 
 - Capability ID: `console.package-component.deploy-failure`
@@ -4825,6 +4911,76 @@
 - 业务入口: `console.services.package_component_service.auto_create_component`
 - 代码路径: `console/services/package_component_service.py`
 - 测试路径: `console/tests/package_component_service_test.py::PackageComponentServiceTests.test_auto_create_component_rejects_multi_service_package`
+
+### Prevent concurrent package source replacement
+
+- Capability ID: `console.package-component.replace-concurrency-guard`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `PackageComponentService.replace_component`
+- 代码路径: `console/services/package_component_service.py`
+- 测试路径: `console/tests/package_component_service_test.py::PackageComponentServiceTests::test_replace_component_rejects_stale_expected_event`
+
+### Replace an existing package component in place
+
+- Capability ID: `console.package-component.replace-existing-flow`
+- 状态: `active`
+- 测试类型: `integration`
+- 接口类型: `service_method`
+- 业务入口: `PackageComponentService.replace_component`
+- 代码路径: `console/services/package_component_service.py`
+- 测试路径: `console/tests/package_component_service_test.py::PackageComponentServiceTests::test_replace_component_reuses_service_id_and_triggers_build`
+
+### Return a no-op for an already current package event
+
+- Capability ID: `console.package-component.replace-idempotent`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `PackageComponentService.replace_component`
+- 代码路径: `console/services/package_component_service.py`
+- 测试路径: `console/tests/package_component_service_test.py::PackageComponentServiceTests::test_replace_component_is_idempotent_for_current_event`
+
+### Reject package replacement for non-package components
+
+- Capability ID: `console.package-component.replace-source-guard`
+- 状态: `active`
+- 测试类型: `unit`
+- 接口类型: `service_method`
+- 业务入口: `PackageComponentService.replace_component`
+- 代码路径: `console/services/package_component_service.py`
+- 测试路径: `console/tests/package_component_service_test.py::PackageComponentServiceTests::test_replace_component_rejects_non_package_component`
+
+### Restore package source after synchronous build dispatch failure
+
+- Capability ID: `console.package-component.replace-sync-failure-rollback`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `PackageComponentService.replace_component`
+- 代码路径: `console/services/package_component_service.py`
+- 测试路径: `console/tests/package_component_service_test.py::PackageComponentServiceTests::test_replace_component_restores_source_when_build_dispatch_fails`
+
+### Expose package replacement through the MCP tool contract
+
+- Capability ID: `console.package-component.replace-tool`
+- 状态: `active`
+- 测试类型: `integration`
+- 接口类型: `service_method`
+- 业务入口: `MCPQueryService.replace_component_package`
+- 代码路径: `console/services/mcp_query_service.py`
+- 测试路径: `console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests::test_replace_component_package_calls_package_service`
+
+### Reject package uploads bound to another component
+
+- Capability ID: `console.package-component.replace-upload-owner-guard`
+- 状态: `active`
+- 测试类型: `unit`
+- 接口类型: `service_method`
+- 业务入口: `PackageComponentService.replace_component`
+- 代码路径: `console/services/package_component_service.py`
+- 测试路径: `console/tests/package_component_service_test.py::PackageComponentServiceTests::test_replace_component_rejects_upload_bound_to_another_component`
 
 ### 创建制品包组件前必须存在上传记录
 
@@ -5095,6 +5251,26 @@
 - 业务入口: `console.services.app_config.env_service.AppEnvVarService.add_service_env_var`
 - 代码路径: `console/services/app_config/env_service.py`
 - 测试路径: `console/tests/env_service_region_idempotency_test.py::EnvServiceRegionIdempotencyTests.test_add_service_env_var_updates_region_when_env_already_exists`, `console/tests/env_service_region_idempotency_test.py::EnvServiceRegionIdempotencyTests.test_add_service_env_var_retries_add_when_region_update_reports_record_not_found`, `console/tests/env_service_region_idempotency_test.py::EnvServiceRegionIdempotencyTests.test_add_service_env_var_treats_second_add_conflict_as_success`
+
+### Rainskills 审计迁移修复
+
+- Capability ID: `console.rainskills-audit-migration-repair`
+- 状态: `active`
+- 测试类型: `unit`
+- 接口类型: `workflow`
+- 业务入口: `python manage.py repair_legacy_schema --apps console [--plan]`
+- 代码路径: `console/management/commands/repair_legacy_schema.py`, `console/models/main.py`
+- 测试路径: `console/tests/legacy_schema_repair_test.py::RepairInitialMigrationTests`
+
+### Rainskills 严格审计启动门禁
+
+- Capability ID: `console.rainskills-audit-strict-startup`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `workflow`
+- 业务入口: `entrypoint repair plan and strict MCP write audit`
+- 代码路径: `entrypoint.sh`, `goodrain_web/settings.py`, `console/management/commands/repair_legacy_schema.py`, `console/services/rainskills_audit_service.py`
+- 测试路径: `console/tests/entrypoint_test.py::EntrypointGunicornTest.test_database_startup_plans_repairs_before_applying_and_migrating`, `console/tests/rainskills_audit_service_test.py::RainSkillsAuditServiceSafetyTests.test_confirmation_metadata_is_required_by_default`, `console/tests/mcp_query_rainskills_audit_test.py::MCPQueryRainSkillsAuditTests.test_strict_mode_blocks_legacy_mutation_before_tool_execution`
 
 ### 生成默认随机版本标识
 

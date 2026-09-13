@@ -2966,6 +2966,26 @@
       "status": "active"
     },
     {
+      "id": "console.app.delete-shared-orchestration",
+      "title": "Shared complete application deletion",
+      "title_zh": "共享完整应用删除编排",
+      "interface_type": "workflow",
+      "interface": "console.services.application_delete_service.ApplicationDeleteService.delete_app",
+      "code_paths": [
+        "console/services/application_delete_service.py",
+        "console/views/group.py",
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_app_delete_parity_test.py",
+          "selector": "ApplicationDeleteServiceTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.app.delete-with-confirmation",
       "title": "Delete application with confirmation",
       "title_zh": "确认后删除应用",
@@ -7541,6 +7561,81 @@
       "status": "active"
     },
     {
+      "id": "console.mcp.ai-engine-region-client",
+      "title": "Safe AI Engine Region client",
+      "title_zh": "AI Engine 安全 Region 客户端",
+      "interface_type": "service_method",
+      "interface": "www.apiclient.regionapi.RegionInvokeApi.request_plugin_backend",
+      "code_paths": [
+        "www/apiclient/regionapi.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/ai_engine_region_client_test.py",
+          "selector": "AIEngineRegionClientTests"
+        }
+      ],
+      "test_type": "unit",
+      "status": "active"
+    },
+    {
+      "id": "console.mcp.ai-engine-security",
+      "title": "AI Engine MCP security boundary",
+      "title_zh": "AI Engine MCP 安全边界",
+      "interface_type": "service_method",
+      "interface": "console.services.ai_engine_service.AIEngineProxyService",
+      "code_paths": [
+        "console/services/ai_engine_service.py",
+        "console/services/rainskills_audit_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_ai_engine_security_test.py",
+          "selector": "AIEngineSecurityAndResponseTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.mcp.ai-engine-service",
+      "title": "AI Engine MCP proxy service",
+      "title_zh": "AI Engine MCP 代理服务",
+      "interface_type": "service_method",
+      "interface": "console.services.ai_engine_service.AIEngineProxyService",
+      "code_paths": [
+        "console/services/ai_engine_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_ai_engine_service_test.py",
+          "selector": "AIEngineProxyServiceTests"
+        }
+      ],
+      "test_type": "unit",
+      "status": "active"
+    },
+    {
+      "id": "console.mcp.ai-engine-tool-catalog",
+      "title": "AI Engine MCP tool catalog",
+      "title_zh": "AI Engine MCP 工具目录契约",
+      "interface_type": "service_method",
+      "interface": "console.services.mcp_ai_engine_tools.MCPAIEngineTools",
+      "code_paths": [
+        "console/services/mcp_ai_engine_tools.py",
+        "console/services/mcp_query_service.py",
+        "console/services/rainskills_tool_audit_policy.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_ai_engine_tools_test.py",
+          "selector": "MCPAIEngineToolContractTests"
+        }
+      ],
+      "test_type": "unit",
+      "status": "active"
+    },
+    {
       "id": "console.mcp.app-health-overview",
       "title": "MCP get_app_health_overview tool",
       "title_zh": "MCP 应用健康总览工具",
@@ -7751,6 +7846,25 @@
       "tests": [
         {
           "path": "console/tests/mcp_query_failure_context_test.py"
+        }
+      ],
+      "test_type": "unit",
+      "status": "active"
+    },
+    {
+      "id": "console.mcp.platform-plugin-tools",
+      "title": "Platform plugin MCP tools",
+      "title_zh": "平台插件 MCP 工具",
+      "interface_type": "service_method",
+      "interface": "console.services.mcp_platform_plugin_tools.MCPPlatformPluginTools",
+      "code_paths": [
+        "console/services/mcp_platform_plugin_tools.py",
+        "console/services/platform_plugin_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_platform_plugin_tools_test.py",
+          "selector": "MCPPlatformPluginToolContractTests"
         }
       ],
       "test_type": "unit",
@@ -8075,6 +8189,24 @@
       "status": "active"
     },
     {
+      "id": "console.package-component.current-event-source",
+      "title": "Expose the current package event in build source metadata",
+      "title_zh": "Expose the current package event in build source metadata",
+      "interface_type": "service_method",
+      "interface": "MCPQueryService.get_component_build_source",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests::test_get_component_build_source_exposes_current_package_event"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.package-component.deploy-failure",
       "title": "Reject package component creation when deploy fails",
       "title_zh": "制品包组件部署失败时拦截创建",
@@ -8126,6 +8258,132 @@
         }
       ],
       "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.package-component.replace-concurrency-guard",
+      "title": "Prevent concurrent package source replacement",
+      "title_zh": "Prevent concurrent package source replacement",
+      "interface_type": "service_method",
+      "interface": "PackageComponentService.replace_component",
+      "code_paths": [
+        "console/services/package_component_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/package_component_service_test.py",
+          "selector": "PackageComponentServiceTests::test_replace_component_rejects_stale_expected_event"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.package-component.replace-existing-flow",
+      "title": "Replace an existing package component in place",
+      "title_zh": "Replace an existing package component in place",
+      "interface_type": "service_method",
+      "interface": "PackageComponentService.replace_component",
+      "code_paths": [
+        "console/services/package_component_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/package_component_service_test.py",
+          "selector": "PackageComponentServiceTests::test_replace_component_reuses_service_id_and_triggers_build"
+        }
+      ],
+      "test_type": "integration",
+      "status": "active"
+    },
+    {
+      "id": "console.package-component.replace-idempotent",
+      "title": "Return a no-op for an already current package event",
+      "title_zh": "Return a no-op for an already current package event",
+      "interface_type": "service_method",
+      "interface": "PackageComponentService.replace_component",
+      "code_paths": [
+        "console/services/package_component_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/package_component_service_test.py",
+          "selector": "PackageComponentServiceTests::test_replace_component_is_idempotent_for_current_event"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.package-component.replace-source-guard",
+      "title": "Reject package replacement for non-package components",
+      "title_zh": "Reject package replacement for non-package components",
+      "interface_type": "service_method",
+      "interface": "PackageComponentService.replace_component",
+      "code_paths": [
+        "console/services/package_component_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/package_component_service_test.py",
+          "selector": "PackageComponentServiceTests::test_replace_component_rejects_non_package_component"
+        }
+      ],
+      "test_type": "unit",
+      "status": "active"
+    },
+    {
+      "id": "console.package-component.replace-sync-failure-rollback",
+      "title": "Restore package source after synchronous build dispatch failure",
+      "title_zh": "Restore package source after synchronous build dispatch failure",
+      "interface_type": "service_method",
+      "interface": "PackageComponentService.replace_component",
+      "code_paths": [
+        "console/services/package_component_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/package_component_service_test.py",
+          "selector": "PackageComponentServiceTests::test_replace_component_restores_source_when_build_dispatch_fails"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.package-component.replace-tool",
+      "title": "Expose package replacement through the MCP tool contract",
+      "title_zh": "Expose package replacement through the MCP tool contract",
+      "interface_type": "service_method",
+      "interface": "MCPQueryService.replace_component_package",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests::test_replace_component_package_calls_package_service"
+        }
+      ],
+      "test_type": "integration",
+      "status": "active"
+    },
+    {
+      "id": "console.package-component.replace-upload-owner-guard",
+      "title": "Reject package uploads bound to another component",
+      "title_zh": "Reject package uploads bound to another component",
+      "interface_type": "service_method",
+      "interface": "PackageComponentService.replace_component",
+      "code_paths": [
+        "console/services/package_component_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/package_component_service_test.py",
+          "selector": "PackageComponentServiceTests::test_replace_component_rejects_upload_bound_to_another_component"
+        }
+      ],
+      "test_type": "unit",
       "status": "active"
     },
     {
@@ -8619,6 +8877,54 @@
         {
           "path": "console/tests/env_service_region_idempotency_test.py",
           "selector": "EnvServiceRegionIdempotencyTests.test_add_service_env_var_treats_second_add_conflict_as_success"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.rainskills-audit-migration-repair",
+      "title": "Rainskills audit migration repair",
+      "title_zh": "Rainskills 审计迁移修复",
+      "interface_type": "workflow",
+      "interface": "python manage.py repair_legacy_schema --apps console [--plan]",
+      "code_paths": [
+        "console/management/commands/repair_legacy_schema.py",
+        "console/models/main.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/legacy_schema_repair_test.py",
+          "selector": "RepairInitialMigrationTests"
+        }
+      ],
+      "test_type": "unit",
+      "status": "active"
+    },
+    {
+      "id": "console.rainskills-audit-strict-startup",
+      "title": "Rainskills strict audit startup gate",
+      "title_zh": "Rainskills 严格审计启动门禁",
+      "interface_type": "workflow",
+      "interface": "entrypoint repair plan and strict MCP write audit",
+      "code_paths": [
+        "entrypoint.sh",
+        "goodrain_web/settings.py",
+        "console/management/commands/repair_legacy_schema.py",
+        "console/services/rainskills_audit_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/entrypoint_test.py",
+          "selector": "EntrypointGunicornTest.test_database_startup_plans_repairs_before_applying_and_migrating"
+        },
+        {
+          "path": "console/tests/rainskills_audit_service_test.py",
+          "selector": "RainSkillsAuditServiceSafetyTests.test_confirmation_metadata_is_required_by_default"
+        },
+        {
+          "path": "console/tests/mcp_query_rainskills_audit_test.py",
+          "selector": "MCPQueryRainSkillsAuditTests.test_strict_mode_blocks_legacy_mutation_before_tool_execution"
         }
       ],
       "test_type": "regression",

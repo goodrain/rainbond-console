@@ -116,6 +116,7 @@ class MCPQueryRainSkillsAuditTests(SimpleTestCase):
         self.assertFalse(response.data["result"]["isError"])
         begin.assert_not_called()
 
+    @override_settings(RAINSKILLS_AUDIT_STRICT=False)
     def test_legacy_mutable_call_is_still_audited_in_compatibility_mode(self):
         context = SimpleNamespace(operation=SimpleNamespace(pk=1))
         view = MCPQueryHTTPView.as_view(deploy_origin="rainskills", deploy_client="api")

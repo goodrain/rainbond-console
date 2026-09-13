@@ -25,6 +25,238 @@ class Obj(object):
 # capability_id: console.component.create-from-package
 class PackageComponentServiceTests(SimpleTestCase):
 
+    # capability_id: console.package-component.replace-existing-flow
+    @patch("console.services.package_component_service.deploy_repo.create_deploy_relation_by_service_id")
+    @patch("console.services.package_component_service.app_manage_service.deploy")
+    @patch("console.services.package_component_service.package_upload_service.update_upload_record")
+    @patch("console.services.package_component_service.console_app_service.change_package_upload_info")
+    @patch("console.services.package_component_service.package_upload_service.get_upload_record")
+    @patch("console.services.package_component_service.PackageComponentService._get_uploaded_packages")
+    def test_replace_component_reuses_service_id_and_triggers_build(
+        self,
+        mock_get_uploaded_packages,
+        mock_get_upload_record,
+        mock_change_package_info,
+        mock_update_upload_record,
+        mock_deploy,
+        mock_create_deploy_relation,
+    ):
+        from console.services.package_component_service import package_component_service
+
+        user = Obj(user_id=1, pk=1, nick_name="admin")
+        team = Obj(tenant_id="team-1", tenant_name="demo-team", enterprise_id="eid-1")
+        app = Obj(ID=12, region_name="rainbond", group_name="demo-app")
+        service = Obj(
+            service_id="svc-pkg-1",
+            service_alias="alias-pkg-1",
+            service_cname="demo-war",
+            service_region="rainbond",
+            service_source="package_build",
+            server_type="pkg",
+            create_status="complete",
+            git_url="/grdata/package_build/components/svc-pkg-1/events/evt-old",
+            code_version="2026-03-20 16:00:00",
+        )
+        mock_get_upload_record.return_value = Obj(create_time="2026-03-21 16:00:00",
+                                                  component_id="svc-pkg-1",
+                                                  status="unfinished")
+        mock_get_uploaded_packages.return_value = ["demo-v2.war"]
+        mock_change_package_info.return_value = 1
+        mock_update_upload_record.return_value = 1
+        mock_deploy.return_value = (200, "success", "evt-build-2")
+
+        result = package_component_service.replace_component(
+            team=team,
+            app=app,
+            service=service,
+            user=user,
+            event_id="evt-upload-2",
+            expected_current_event_id="evt-old",
+            is_deploy=True,
+        )
+
+        self.assertEqual(result["service_id"], "svc-pkg-1")
+        self.assertEqual(result["previous_upload_event_id"], "evt-old")
+        self.assertEqual(result["upload_event_id"], "evt-upload-2")
+        self.assertEqual(result["event_id"], "evt-build-2")
+        self.assertTrue(result["replaced"])
+        self.assertTrue(result["build_triggered"])
+        mock_change_package_info.assert_called_once_with(
+            "svc-pkg-1",
+            "evt-upload-2",
+            "2026-03-21 16:00:00",
+            tenant_id="team-1",
+            expected_git_url="/grdata/package_build/components/svc-pkg-1/events/evt-old",
+        )
+        mock_update_upload_record.assert_called_once_with(
+            "demo-team",
+            "evt-upload-2",
+            status="finished",
+            component_id="svc-pkg-1",
+            source_dir=["demo-v2.war"],
+        )
+        mock_deploy.assert_called_once_with(team, service, user)
+        mock_create_deploy_relation.assert_called_once_with(service_id="svc-pkg-1")
+
+    # capability_id: console.package-component.replace-source-guard
+    def test_replace_component_rejects_non_package_component(self):
+        from console.services.package_component_service import package_component_service
+
+        with self.assertRaises(ServiceHandleException) as context:
+            package_component_service.replace_component(
+                team=Obj(tenant_id="team-1", tenant_name="demo-team"),
+                app=Obj(ID=12, region_name="rainbond"),
+                service=Obj(service_id="svc-1", service_source="source_code", server_type="git"),
+                user=Obj(nick_name="admin"),
+                event_id="evt-upload-2",
+            )
+
+        self.assertEqual(context.exception.status_code, 400)
+        self.assertEqual(context.exception.msg, "component is not package based")
+
+    # capability_id: console.package-component.replace-upload-owner-guard
+    @patch("console.services.package_component_service.package_upload_service.get_upload_record")
+    def test_replace_component_rejects_upload_bound_to_another_component(self, mock_get_upload_record):
+        from console.services.package_component_service import package_component_service
+
+        mock_get_upload_record.return_value = Obj(create_time="2026-03-21 16:00:00",
+                                                  component_id="svc-other",
+                                                  status="finished")
+
+        with self.assertRaises(ServiceHandleException) as context:
+            package_component_service.replace_component(
+                team=Obj(tenant_id="team-1", tenant_name="demo-team"),
+                app=Obj(ID=12, region_name="rainbond"),
+                service=Obj(
+                    service_id="svc-pkg-1",
+                    service_source="package_build",
+                    server_type="pkg",
+                    create_status="complete",
+                    git_url="/grdata/package_build/components/svc-pkg-1/events/evt-old",
+                ),
+                user=Obj(nick_name="admin"),
+                event_id="evt-upload-2",
+            )
+
+        self.assertEqual(context.exception.status_code, 409)
+        self.assertEqual(context.exception.msg, "upload belongs to another component")
+
+    # capability_id: console.package-component.replace-concurrency-guard
+    def test_replace_component_rejects_stale_expected_event(self):
+        from console.services.package_component_service import package_component_service
+
+        with self.assertRaises(ServiceHandleException) as context:
+            package_component_service.replace_component(
+                team=Obj(tenant_id="team-1", tenant_name="demo-team"),
+                app=Obj(ID=12, region_name="rainbond"),
+                service=Obj(
+                    service_id="svc-pkg-1",
+                    service_source="package_build",
+                    server_type="pkg",
+                    create_status="complete",
+                    git_url="/grdata/package_build/components/svc-pkg-1/events/evt-current",
+                ),
+                user=Obj(nick_name="admin"),
+                event_id="evt-upload-2",
+                expected_current_event_id="evt-old",
+            )
+
+        self.assertEqual(context.exception.status_code, 409)
+        self.assertEqual(context.exception.msg, "package source changed concurrently")
+
+    # capability_id: console.package-component.replace-idempotent
+    @patch("console.services.package_component_service.PackageComponentService._get_uploaded_packages")
+    @patch("console.services.package_component_service.package_upload_service.get_upload_record")
+    def test_replace_component_is_idempotent_for_current_event(self, mock_get_upload_record, mock_get_uploaded_packages):
+        from console.services.package_component_service import package_component_service
+
+        service = Obj(
+            service_id="svc-pkg-1",
+            service_alias="alias-pkg-1",
+            service_source="package_build",
+            server_type="pkg",
+            create_status="complete",
+            git_url="/grdata/package_build/components/svc-pkg-1/events/evt-current",
+        )
+        mock_get_upload_record.return_value = Obj(
+            create_time="new-version",
+            component_id="svc-pkg-1",
+            status="finished",
+            source_dir="['demo-v2.zip']",
+        )
+
+        result = package_component_service.replace_component(
+            team=Obj(tenant_id="team-1", tenant_name="demo-team"),
+            app=Obj(ID=12, region_name="rainbond"),
+            service=service,
+            user=Obj(nick_name="admin"),
+            event_id="evt-current",
+            expected_current_event_id="evt-current",
+            is_deploy=True,
+        )
+
+        self.assertFalse(result["replaced"])
+        self.assertFalse(result["build_triggered"])
+        self.assertEqual(result["uploaded_packages"], ["demo-v2.zip"])
+        self.assertEqual(result["next_action"], "rainbond_build_component")
+        mock_get_uploaded_packages.assert_not_called()
+
+    # capability_id: console.package-component.replace-sync-failure-rollback
+    @patch("console.services.package_component_service.console_app_service.restore_package_upload_info")
+    @patch("console.services.package_component_service.app_manage_service.deploy")
+    @patch("console.services.package_component_service.package_upload_service.update_upload_record")
+    @patch("console.services.package_component_service.console_app_service.change_package_upload_info")
+    @patch("console.services.package_component_service.package_upload_service.get_upload_record")
+    @patch("console.services.package_component_service.PackageComponentService._get_uploaded_packages")
+    def test_replace_component_restores_source_when_build_dispatch_fails(
+        self,
+        mock_get_uploaded_packages,
+        mock_get_upload_record,
+        mock_change_package_info,
+        mock_update_upload_record,
+        mock_deploy,
+        mock_restore_package_info,
+    ):
+        from console.services.package_component_service import package_component_service
+
+        team = Obj(tenant_id="team-1", tenant_name="demo-team")
+        app = Obj(ID=12, region_name="rainbond")
+        service = Obj(
+            service_id="svc-pkg-1",
+            service_source="package_build",
+            server_type="pkg",
+            create_status="complete",
+            git_url="/grdata/package_build/components/svc-pkg-1/events/evt-old",
+            code_version="old-version",
+        )
+        mock_get_upload_record.return_value = Obj(create_time="new-version", component_id="", status="unfinished")
+        mock_get_uploaded_packages.return_value = ["demo-v2.zip"]
+        mock_change_package_info.return_value = 1
+        mock_update_upload_record.return_value = 1
+        mock_deploy.return_value = (507, "构建异常", "")
+        mock_restore_package_info.return_value = 1
+
+        with self.assertRaises(ServiceHandleException) as context:
+            package_component_service.replace_component(
+                team=team,
+                app=app,
+                service=service,
+                user=Obj(nick_name="admin"),
+                event_id="evt-upload-2",
+                is_deploy=True,
+            )
+
+        self.assertEqual(context.exception.status_code, 507)
+        self.assertEqual(service.git_url, "/grdata/package_build/components/svc-pkg-1/events/evt-old")
+        self.assertEqual(service.code_version, "old-version")
+        mock_restore_package_info.assert_called_once_with(
+            "svc-pkg-1",
+            "team-1",
+            "/grdata/package_build/components/svc-pkg-1/events/evt-upload-2",
+            "/grdata/package_build/components/svc-pkg-1/events/evt-old",
+            "old-version",
+        )
+
     # capability_id: console.package-component.auto-create-flow
     @patch("console.services.package_component_service.deploy_repo.create_deploy_relation_by_service_id")
     @patch("console.services.package_component_service.app_manage_service.deploy")
