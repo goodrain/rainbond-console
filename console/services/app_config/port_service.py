@@ -881,13 +881,13 @@ class AppPortService(object):
 
         return 200, "success"
 
-    def close_thirdpart_outer(self, tenant: Tenants, service: TenantServiceInfo, region: Any,
+    def close_thirdpart_outer(self, tenant: Tenants, service: TenantServiceInfo, region: str,
                               deal_port: TenantServicesPort) -> None:
+        region_config = region_repo.get_region_by_region_name(region)
+        if not region_config:
+            raise ServiceHandleException(msg="region not found", msg_show="数据中心不存在", status_code=404)
         try:
-            # NOTE: callers pass service.service_region (str) here, but __close_outer
-            # derefs region.region_name / region_app — potential latent bug (region
-            # should be a RegionConfig). Behavior unchanged.
-            self.__close_outer(tenant, service, region, deal_port)
+            self.__close_outer(tenant, service, region_config, deal_port)
         except region_api.CallApiError as e:
             logger.exception(e)
             raise ServiceHandleException(msg="close outer port failed", msg_show="关闭对外服务失败")

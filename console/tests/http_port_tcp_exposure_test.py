@@ -115,6 +115,57 @@ class HTTPPortTCPExposureTests(unittest.TestCase):
         self.assertFalse(self.port.is_outer_service)
         self.api.manage_outer_port.assert_called_once()
 
+    def test_close_third_party_port_resolves_region_name(self):
+        self.service.service_region = "region-name"
+        self.port.is_outer_service = True
+        self.api.CallApiError = service_module.RegionApiBaseHttpClient.CallApiError
+        region_lookup = self.patch(service_module.region_repo, "get_region_by_region_name", return_value=self.region)
+
+        def gateway_response(region, tenant_id, path, app_id):
+            self.assertEqual(region.region_name, self.region.region_name)
+            return self.gateway_response(region, tenant_id, path, app_id)
+
+        self.api.api_gateway_get_proxy.side_effect = gateway_response
+        service_module.AppPortService().close_thirdpart_outer(self.tenant, self.service, self.service.service_region,
+                                                              self.port)
+
+        region_lookup.assert_called_once_with(self.service.service_region)
+        self.api.delete_proxy.assert_called_once_with(
+            self.region.region_name, "/v2/proxy-pass/gateway/team/routes/tcp/original-name-30000?service_id=component")
+        self.api.manage_outer_port.assert_called_once()
+        self.assertFalse(self.port.is_outer_service)
+
+    def test_close_third_party_port_rejects_missing_region(self):
+        self.port.is_outer_service = True
+        self.api.CallApiError = service_module.RegionApiBaseHttpClient.CallApiError
+        region_lookup = self.patch(service_module.region_repo, "get_region_by_region_name", return_value=None)
+
+        with self.assertRaises(service_module.ServiceHandleException) as context:
+            service_module.AppPortService().close_thirdpart_outer(self.tenant, self.service,
+                                                                  self.service.service_region, self.port)
+
+        self.assertEqual(context.exception.status_code, 404)
+        region_lookup.assert_called_once_with(self.service.service_region)
+        self.api.api_gateway_get_proxy.assert_not_called()
+        self.api.delete_proxy.assert_not_called()
+        self.api.manage_outer_port.assert_not_called()
+        self.port.save.assert_not_called()
+        self.assertTrue(self.port.is_outer_service)
+
+    def test_close_third_party_port_preserves_gateway_failure(self):
+        self.port.is_outer_service = True
+        self.api.CallApiError = service_module.RegionApiBaseHttpClient.CallApiError
+        self.patch(service_module.region_repo, "get_region_by_region_name", return_value=self.region)
+        self.api.api_gateway_get_proxy.side_effect = RuntimeError("gateway unavailable")
+
+        with self.assertRaisesRegex(RuntimeError, "gateway unavailable"):
+            service_module.AppPortService().close_thirdpart_outer(self.tenant, self.service,
+                                                                  self.service.service_region, self.port)
+
+        self.api.manage_outer_port.assert_not_called()
+        self.port.save.assert_not_called()
+        self.assertTrue(self.port.is_outer_service)
+
     def test_failed_delete_keeps_port_open_and_saved_mappings(self):
         self.port.is_outer_service = True
         self.api.delete_proxy.side_effect = RuntimeError("delete failed")
