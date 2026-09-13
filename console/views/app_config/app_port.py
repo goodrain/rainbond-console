@@ -73,52 +73,34 @@ class AppPortView(AppBaseView):
                 path = ("/api-gateway/v1/" + self.tenant_name + "/routes/http/domains?service_alias=" +
                         self.service.service_alias + "&port=" + str(port.container_port))
                 body = region_api.api_gateway_get_proxy(self.region, self.tenant.tenant_id, path, None)
-                # NOTE: regionapi may return None (backlog)
-                if body.get("list", []):  # type: ignore[union-attr]
-                    port_info["bind_domains"] = [{
-                        "protocol": "http",
-                        "domain_type": "www",
-                        "ID": -1,
-                        "domain_name": host,
-                        "container_port": port.container_port
-                    } for host in body.get("list", [])]  # type: ignore[union-attr]
-                    port_info["is_outer_service"] = len(port_info["bind_domains"]) > 0
-                    port_info["is_outer_service"] = True
-                    port.is_outer_service = True
-                else:
-                    port.is_outer_service = False
-                    port_info["is_outer_service"] = False
-            else:
-                # 从底层 API Gateway 获取 TCP/UDP 真实域名绑定
-                path = ("/api-gateway/v1/" + self.tenant_name + "/routes/tcp/domains?service_alias=" +
-                        self.service.service_alias + "&port=" + str(port.container_port))
-                body = region_api.api_gateway_get_proxy(self.region, self.tenant.tenant_id, path, None)
-                if body.get("list", []):  # type: ignore[union-attr]
-                    outer = False
-                    tcp_domain_list = []
-                    # list 是 nodeport 列表（整数）
-                    for nodeport in body.get("list", []):  # type: ignore[union-attr]
-                        # 拼接成 0.0.0.0:nodeport 格式
-                        tcp_domain_dict = {
-                            "protocol": port.protocol,
-                            "domain_name": "0.0.0.0:{}".format(nodeport),
-                            "container_port": port.container_port,
-                            "service_id": self.service.service_id,
-                            "service_name": self.service.service_alias,
-                            "service_alias": self.service.service_alias,
-                            "is_outer_service": True,
-                            "end_point": "0.0.0.0:{}".format(nodeport)
-                        }
-                        outer = True
-                        tcp_domain_list.append(tcp_domain_dict)
-                    port_info["bind_tcp_domains"] = tcp_domain_list
-                    port_info["is_outer_service"] = outer
-                    port.is_outer_service = outer
-                else:
-                    port_info["bind_tcp_domains"] = []
-                    port_info["is_outer_service"] = False
-                    port.is_outer_service = False
-            port.save()
+                if not isinstance(body, dict) or not isinstance(body.get("list"), list):
+                    raise AbortRequest("HTTP routes unavailable", "获取端口访问策略失败", 503)
+                port_info["bind_domains"] = [{
+                    "protocol": "http", "domain_type": "www", "ID": -1,
+                    "domain_name": host, "container_port": port.container_port
+                } for host in body["list"]]
+
+            path = ("/api-gateway/v1/" + self.tenant_name + "/routes/tcp/domains?service_alias=" +
+                    self.service.service_alias + "&port=" + str(port.container_port) + "&details=true")
+            body = region_api.api_gateway_get_proxy(self.region, self.tenant.tenant_id, path, None)
+            if not isinstance(body, dict) or not isinstance(body.get("list"), list):
+                raise AbortRequest("TCP routes unavailable", "获取端口访问策略失败", 503)
+            port_info["bind_tcp_domains"] = []
+            for rule in body["list"]:
+                if not isinstance(rule, dict) or not rule.get("nodePort"):
+                    raise AbortRequest("invalid TCP route", "端口访问策略数据不完整", 503)
+                endpoint = "0.0.0.0:{}".format(rule["nodePort"])
+                port_info["bind_tcp_domains"].append({
+                    "protocol": str(rule.get("protocol") or "tcp").lower(),
+                    "domain_name": endpoint, "end_point": endpoint,
+                    "container_port": port.container_port, "service_id": self.service.service_id,
+                    "service_name": self.service.service_alias, "service_alias": self.service.service_alias,
+                    "is_outer_service": True,
+                })
+            port_info["is_outer_service"] = bool(port_info["bind_domains"] or port_info["bind_tcp_domains"])
+            if port.is_outer_service != port_info["is_outer_service"]:
+                port.is_outer_service = port_info["is_outer_service"]
+                port.save(update_fields=["is_outer_service"])
             port_list.append(port_info)
         result = general_message(200, "success", "查询成功", list=port_list)
         return Response(result, status=result["code"])

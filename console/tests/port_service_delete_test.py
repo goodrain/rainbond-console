@@ -120,7 +120,8 @@ class PortServiceDeleteTests(TestCase):
         module.port_repo.get_service_port_by_port.return_value = port
         module.domain_repo.get_service_domain_by_container_port.return_value = []
         module.region_api.api_gateway_bind_http_domain.return_value = None
-        module.region_api.api_gateway_get_proxy.return_value = {"list": ["svc.apps.example.com"]}
+        module.region_api.api_gateway_get_proxy.side_effect = lambda region, tenant, path, app: {
+            "list": ["svc.apps.example.com"] if "/http/domains?" in path else []}
         module.group_repo.get_by_service_id.return_value = app
         module.env_var_service.add_service_env_var.return_value = (200, "success", None)
         module.env_var_service.delete_env_by_container_port.return_value = None
@@ -148,7 +149,9 @@ class PortServiceDeleteTests(TestCase):
         )
         app = self.configure_manage_port_dependencies(module, port)
         module.tcp_domain.get_service_tcp_domains_by_service_id_and_port.return_value = []
-        module.region_api.api_gateway_get_proxy.return_value = {"list": routes}
+        module.region_api.api_gateway_get_proxy.side_effect = lambda region, tenant, path, app: {
+            "list": [{"service_name": "gr2dc0bf-" + str(port), "nodePort": port, "protocol": "TCP"}
+                     for port in routes] if "/tcp/domains?" in path else []}
         return tenant, service, port, app
 
     # capability_id: console.component.port-toggle-events
@@ -287,7 +290,7 @@ class PortServiceDeleteTests(TestCase):
         module.region_api.api_gateway_get_proxy.assert_called_once_with(
             region,
             "tenant-1",
-            "/api-gateway/v1/default/routes/tcp/domains?service_alias=gr2dc0bf&port=8080",
+            "/api-gateway/v1/default/routes/tcp/domains?service_alias=gr2dc0bf&port=8080&details=true",
             7,
         )
         route_base = "/v2/proxy-pass/gateway/default/routes/tcp/gr2dc0bf-"
@@ -297,7 +300,7 @@ class PortServiceDeleteTests(TestCase):
         ])
         self.assertEqual(module.region_api.delete_proxy.call_count, 2)
         module.tcp_domain.delete_by_component_port.assert_called_once_with("component-1", 8080)
-        self.assertEqual(operations, ["region-delete", "region-delete", "local-delete", "sync", "plugin"])
+        self.assertEqual(operations, ["region-delete", "region-delete", "sync", "local-delete", "plugin"])
 
     # capability_id: console.component.tcp-port-close-release
     def test_close_tcp_port_with_no_region_routes_deletes_stale_local_mapping(self):
