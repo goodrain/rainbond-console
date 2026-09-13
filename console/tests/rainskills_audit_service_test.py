@@ -2,6 +2,7 @@
 from types import SimpleNamespace
 from unittest.mock import patch
 
+from django.conf import settings
 from django.test import SimpleTestCase, override_settings
 
 from console.exception.main import ServiceHandleException
@@ -44,6 +45,45 @@ class RainSkillsAuditServiceSafetyTests(SimpleTestCase):
             "password=one api_key=two cookie=three kubeconfig=four certificate=five")
         for secret in ("one", "two", "three", "four", "five"):
             self.assertNotIn(secret, summary)
+
+    def test_ai_engine_argv_audit_records_only_normalized_argument_names(self):
+        safe_input = _safe_input(
+            {
+                "extra_argv": [
+                    "--future-token",
+                    "secret-value",
+                    "--api-key=another-secret",
+                    "--enable-prefix-caching",
+                    "positional-secret",
+                ],
+            }, "a" * 64)
+
+        self.assertEqual(
+            ["--future-token", "--api-key", "--enable-prefix-caching"],
+            safe_input["extra_argv"],
+        )
+        self.assertNotIn("secret-value", str(safe_input))
+        self.assertNotIn("another-secret", str(safe_input))
+        self.assertNotIn("positional-secret", str(safe_input))
+
+    def test_ai_engine_resource_identifiers_are_kept_in_audit_target_context(self):
+        arguments = {
+            "team_name": "team-a",
+            "region_name": "rainbond",
+            "plugin_id": "rainbond-ai-engine",
+            "model_key": "model-key-1",
+            "instance_id": "instance-1",
+        }
+
+        context = _target_context(
+            arguments,
+            classify_tool("rainbond_delete_ai_engine_instance", arguments),
+            "rainbond_delete_ai_engine_instance",
+        )
+
+        self.assertEqual("rainbond-ai-engine", context["plugin_id"])
+        self.assertEqual("model-key-1", context["model_key"])
+        self.assertEqual("instance-1", context["instance_id"])
 
     @patch("console.services.rainskills_audit_service.team_repo.get_team_by_team_name")
     @patch("console.services.rainskills_audit_service.group_service_relation_repo.list_serivce_ids_by_app_id")
@@ -152,6 +192,21 @@ class RainSkillsAuditServiceSafetyTests(SimpleTestCase):
         ])
         self.assertNotIn("secret-component", str(context))
 
+    def test_confirmation_metadata_is_required_by_default(self):
+        self.assertTrue(settings.RAINSKILLS_AUDIT_STRICT)
+
+        with self.assertRaises(ServiceHandleException) as raised:
+            rainskills_audit_service.begin(
+                self.user,
+                "rainbond_create_app",
+                {"app_name": "demo"},
+                {},
+            )
+
+        self.assertEqual(428, raised.exception.status_code)
+        self.assertEqual("operation_confirmation_required", raised.exception.error_code)
+
+    @override_settings(RAINSKILLS_AUDIT_STRICT=False)
     @patch("console.services.rainskills_audit_service.get_deployment_invocation")
     @patch("console.services.rainskills_audit_service.rainskills_audit_repo")
     def test_legacy_write_begins_durable_audit_with_server_owned_context(self, repo, invocation):
@@ -210,6 +265,7 @@ class RainSkillsAuditServiceSafetyTests(SimpleTestCase):
         rainskills_audit_service.finalize_success(None, {"user_id": 7})
         rainskills_audit_service.finalize_failure(None, RuntimeError("unused"))
 
+    @override_settings(RAINSKILLS_AUDIT_STRICT=False)
     @patch("console.services.rainskills_audit_service.rainskills_audit_repo")
     def test_started_persistence_failure_is_fail_closed(self, repo):
         repo.get_operation.side_effect = RuntimeError("database unavailable")
@@ -225,6 +281,7 @@ class RainSkillsAuditServiceSafetyTests(SimpleTestCase):
         self.assertEqual(raised.exception.status_code, 503)
         self.assertEqual(raised.exception.error_code, "audit_unavailable")
 
+    @override_settings(RAINSKILLS_AUDIT_STRICT=False)
     @patch("console.services.rainskills_audit_service.rainskills_audit_repo")
     def test_existing_operation_is_not_replayed(self, repo):
         repo.get_operation.return_value = SimpleNamespace(pk=1)

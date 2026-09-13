@@ -47,6 +47,8 @@ class RainSkillsDeploymentService(object):
             "initial", "package_create", "package", True, True),
         "rainbond_create_component_from_local_package": DeploymentSpec(
             "initial", "package_create", "package", True, True),
+        "rainbond_replace_component_package": DeploymentSpec(
+            "continuous", "package_replace", "package", False, False),
         "rainbond_install_app_model": DeploymentSpec(
             "initial", "market_install", "app_market", True, True),
         "rainbond_install_app_by_market": DeploymentSpec(

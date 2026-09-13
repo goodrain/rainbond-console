@@ -36,7 +36,13 @@ def get_create_model_operations(migration):
     return [operation for operation in migration.operations if isinstance(operation, migrations.CreateModel)]
 
 
-def repair_initial_migration(connection, recorder, app_label, migration, project_state):
+def repair_initial_migration(connection,
+                             recorder,
+                             app_label,
+                             migration,
+                             project_state,
+                             record_migration=True,
+                             dry_run=False):
     create_model_operations = get_create_model_operations(migration)
     if not create_model_operations:
         return RepairResult(app_label, migration.name, [], [], False)
@@ -54,34 +60,48 @@ def repair_initial_migration(connection, recorder, app_label, migration, project
 
     skipped_tables = []
     created_tables = []
-    with connection.schema_editor() as schema_editor:
-        for model, table_name in zip(target_models, target_tables):
-            if table_name in existing_tables:
-                skipped_tables.append(table_name)
-                continue
-            schema_editor.create_model(model)
-            existing_tables.add(table_name)
-            created_tables.append(table_name)
+    missing_models = []
+    for model, table_name in zip(target_models, target_tables):
+        if table_name in existing_tables:
+            skipped_tables.append(table_name)
+            continue
+        missing_models.append((model, table_name))
+        created_tables.append(table_name)
 
-    recorder.record_applied(app_label, migration.name)
-    return RepairResult(app_label, migration.name, skipped_tables, created_tables, True)
+    if not dry_run and missing_models:
+        with connection.schema_editor() as schema_editor:
+            for model, table_name in missing_models:
+                schema_editor.create_model(model)
+                existing_tables.add(table_name)
+
+    recorded = bool(record_migration and not dry_run)
+    if recorded:
+        recorder.record_applied(app_label, migration.name)
+    return RepairResult(app_label, migration.name, skipped_tables, created_tables, recorded)
 
 
-def repair_legacy_schema(connection, app_labels):
+def repair_legacy_schema(connection, app_labels, dry_run=False):
     loader = MigrationLoader(connection, ignore_no_migrations=True)
     recorder = MigrationRecorder(connection)
-    recorder.ensure_schema()
+    if not dry_run:
+        recorder.ensure_schema()
     applied_migrations = recorder.applied_migrations()
     results = []
 
     for key in get_initial_migration_keys(loader, app_labels):
         app_label, migration_name = key
-        if key in applied_migrations:
-            continue
         migration = loader.disk_migrations[key]
         project_state = loader.project_state(key, at_end=True)
-        result = repair_initial_migration(connection, recorder, app_label, migration, project_state)
-        if result.recorded:
+        result = repair_initial_migration(
+            connection,
+            recorder,
+            app_label,
+            migration,
+            project_state,
+            record_migration=key not in applied_migrations,
+            dry_run=dry_run,
+        )
+        if result.recorded or result.created_tables:
             results.append(result)
 
     return results
@@ -102,6 +122,11 @@ class Command(BaseCommand):
             default=DEFAULT_DB_ALIAS,
             help="Database alias to inspect and repair.",
         )
+        parser.add_argument(
+            "--plan",
+            action="store_true",
+            help="Report missing initial-migration tables without changing the database.",
+        )
 
     def handle(self, *args, **options):
         database = options["database"]
@@ -112,16 +137,19 @@ class Command(BaseCommand):
         if not app_labels:
             raise CommandError("At least one app label is required")
 
-        results = repair_legacy_schema(connections[database], app_labels)
+        plan = bool(options["plan"])
+        results = repair_legacy_schema(connections[database], app_labels, dry_run=plan)
         if not results:
             self.stdout.write("No legacy initial migrations needed repair")
             return
 
         for result in results:
             self.stdout.write(
-                "Repaired {0}.{1}: skipped existing tables [{2}], created missing tables [{3}]".format(
+                "{0} {1}.{2}: skipped existing tables [{3}], {4} missing tables [{5}]".format(
+                    "Planned" if plan else "Repaired",
                     result.app_label,
                     result.migration_name,
                     ", ".join(result.skipped_tables) or "-",
+                    "would create" if plan else "created",
                     ", ".join(result.created_tables) or "-",
                 ))

@@ -167,6 +167,7 @@ SIMPLE_JWT = {
 # the flag to false for emergency rollback. MCP tokens are intentionally shorter
 # lived than legacy Console tokens and cannot be used on general Console APIs.
 RAINBOND_MCP_TOKEN_LIFETIME_DAYS = int(os.getenv("RAINBOND_MCP_TOKEN_LIFETIME_DAYS", "365"))
+RAINSKILLS_AUDIT_STRICT = os.getenv("RAINSKILLS_AUDIT_STRICT", "true").lower() == "true"
 RAINBOND_MCP_DEVICE_FLOW_ENABLED = os.getenv("RAINBOND_MCP_DEVICE_FLOW_ENABLED", "true").lower() == "true"
 RAINBOND_MCP_DEVICE_PUBLIC_ORIGIN = os.getenv("RAINBOND_MCP_DEVICE_PUBLIC_ORIGIN", "").rstrip("/")
 RAINBOND_MCP_DEVICE_TRUSTED_PROXY_CIDRS = tuple(

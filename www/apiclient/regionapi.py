@@ -2,8 +2,9 @@
 import json
 import logging
 import os
+import re
 from typing import Any, Dict, List, Optional, Tuple
-from urllib.parse import quote, urlencode
+from urllib.parse import quote, unquote, urlencode
 
 import httplib2
 import urllib3
@@ -29,6 +30,14 @@ logger = logging.getLogger('default')
 
 
 class RegionInvokeApi(RegionApiBaseHttpClient):
+    PLUGIN_BACKEND_METHODS = frozenset(("GET", "POST", "PUT", "DELETE"))
+    PLUGIN_BACKEND_HEADERS = {
+        "x-ai-team-name": "X-AI-Team-Name",
+        "x-ai-region-name": "X-AI-Region-Name",
+        "x-ai-team-namespace": "X-AI-Team-Namespace",
+    }
+    PLUGIN_NAME_PATTERN = re.compile(r"^[a-z0-9](?:[-a-z0-9]*[a-z0-9])?$")
+
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         RegionApiBaseHttpClient.__init__(self, *args, **kwargs)
         self.default_headers: Dict[str, Any] = {'Connection': 'keep-alive', 'Content-Type': 'application/json'}
@@ -43,6 +52,88 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         proxy = httplib2.ProxyInfo(proxy_type, proxy_info['host'], proxy_info['port'])
         client = httplib2.Http(proxy_info=proxy, timeout=25)
         return client
+
+    def request_plugin_backend(self,
+                               enterprise_id: str,
+                               region_name: str,
+                               plugin_name: str,
+                               method: str,
+                               path: str,
+                               query: Optional[Dict[str, Any]] = None,
+                               body: Optional[Any] = None,
+                               headers: Optional[Dict[str, Any]] = None,
+                               timeout: Optional[float] = None) -> Tuple[int, Any]:
+        """Call a Region plugin backend without accepting an arbitrary URL.
+
+        The caller supplies only a validated relative Region path. Authentication
+        is always derived from the server-side Region configuration.
+        """
+        method = str(method or "").upper()
+        if method not in self.PLUGIN_BACKEND_METHODS:
+            raise ServiceHandleException(
+                msg="unsupported plugin backend method",
+                msg_show="不支持的插件后端请求方法",
+                status_code=400,
+            )
+        if not isinstance(plugin_name, str) or not self.PLUGIN_NAME_PATTERN.match(plugin_name):
+            raise ServiceHandleException(
+                msg="invalid plugin name",
+                msg_show="插件名称无效",
+                status_code=400,
+            )
+        if not isinstance(path, str) or not path.startswith("/") or path.startswith("//"):
+            raise ServiceHandleException(
+                msg="invalid plugin backend path",
+                msg_show="插件后端路径无效",
+                status_code=400,
+            )
+        decoded_path = unquote(path)
+        path_segments = decoded_path.split("/")
+        if "://" in decoded_path or ".." in path_segments or "?" in path or "#" in path or "\\" in path:
+            raise ServiceHandleException(
+                msg="invalid plugin backend path",
+                msg_show="插件后端路径无效",
+                status_code=400,
+            )
+
+        safe_headers = {
+            "Connection": "keep-alive",
+            "Content-Type": "application/json",
+        }
+        for name, value in (headers or {}).items():
+            canonical_name = self.PLUGIN_BACKEND_HEADERS.get(str(name).lower())
+            if not canonical_name:
+                raise ServiceHandleException(
+                    msg="unsupported plugin backend header",
+                    msg_show="包含不允许的插件后端请求头",
+                    status_code=400,
+                )
+            if not isinstance(value, str) or "\r" in value or "\n" in value:
+                raise ServiceHandleException(
+                    msg="invalid plugin backend header",
+                    msg_show="插件后端请求头无效",
+                    status_code=400,
+                )
+            safe_headers[canonical_name] = value
+
+        region_url, token = self.__get_region_access_info_by_enterprise_id(enterprise_id, region_name)
+        if settings.MODULES["RegionToken"]:
+            safe_headers["Authorization"] = token or ""
+        url = "{}/v2/platform/backend/plugins/{}{}".format(region_url.rstrip("/"), quote(plugin_name, safe=""), path)
+        safe_query = {key: value for key, value in (query or {}).items() if value is not None}
+        if safe_query:
+            url = "{}?{}".format(url, urlencode(safe_query, doseq=True))
+
+        request_kwargs = {
+            "headers": safe_headers,
+            "region": region_name,
+            "connect_timeout": 5,
+            "timeout": timeout if timeout is not None else 30,
+        }
+        if body is not None:
+            request_kwargs["body"] = json.dumps(body, ensure_ascii=False)
+        status, content = self._request(url, method, **request_kwargs)
+        return int(status), self._jsondecode(content) if content else None
 
     def _set_headers(self, token: Optional[str], **kwargs: Any) -> None:
         if settings.MODULES["RegionToken"]:
