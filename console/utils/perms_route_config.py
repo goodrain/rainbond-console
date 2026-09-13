@@ -518,6 +518,18 @@ APP_RESOURCE_RECONCILE_PERMS = {
         }
     }
 }
+APP_RESOURCE_LEGACY_DELETE_PREVIEW_PERMS = {
+    "__message": {
+        **APP_RESOURCE_PERMS["__message"],
+        **APP_RESOURCE_DELETE_PREVIEW_PERMS["__message"]
+    }
+}
+APP_RESOURCE_LEGACY_RECONCILE_PERMS = {
+    "__message": {
+        **APP_RESOURCE_PERMS["__message"],
+        **APP_RESOURCE_RECONCILE_PERMS["__message"]
+    }
+}
 APP_CONFIG_GROUP = {
     "__message": {
         "get": {

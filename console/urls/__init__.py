@@ -114,8 +114,9 @@ from console.views.helm_app import HelmAppView, HelmRepo, HelmCenterApp, HelmCha
 from console.views.jwt_token_view import JWTTokenView
 from console.views.license import LicenseLView, LicenseClusterIDView, LicenseActivateView, LicenseStatusView
 from console.views.k8s_attribute import ComponentK8sAttributeView, ComponentK8sAttributeListView
-from console.views.k8s_resource import (AppK8ResourceView, AppK8sResourceDeletionImpactView, AppK8sResourceListView,
-                                        AppK8sResourceReconcileView)
+from console.views.k8s_resource import (
+    AppK8ResourceView, AppK8sResourceDeletionImpactView, AppK8sResourceListView, AppK8sResourceReconcileView,
+    LegacyAppK8sResourceDeletionImpactView, LegacyAppK8sResourceReconcileView)
 from console.views.log_proxy import LogProxyView
 from console.views.login_event import LoginEventView
 from console.views.logos import ConfigRUDView, InitPerms, PhpConfigView, ConfigOSSView, UserSourceView
@@ -493,13 +494,21 @@ urlpatterns = [
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/k8s-resources$', AppK8sResourceListView.as_view(),
         perms.APP_RESOURCE_PERMS),
     re_path(
-        r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/k8s-resources/deletion-impact$',
+        r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/k8s-resources/actions/deletion-impact$',
         AppK8sResourceDeletionImpactView.as_view(),
         perms.APP_RESOURCE_DELETE_PREVIEW_PERMS),
     re_path(
-        r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/k8s-resources/reconcile$',
+        r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/k8s-resources/actions/reconcile$',
         AppK8sResourceReconcileView.as_view(),
         perms.APP_RESOURCE_RECONCILE_PERMS),
+    re_path(
+        r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/k8s-resources/(?P<name>deletion-impact)$',
+        LegacyAppK8sResourceDeletionImpactView.as_view(),
+        perms.APP_RESOURCE_LEGACY_DELETE_PREVIEW_PERMS),
+    re_path(
+        r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/k8s-resources/(?P<name>reconcile)$',
+        LegacyAppK8sResourceReconcileView.as_view(),
+        perms.APP_RESOURCE_LEGACY_RECONCILE_PERMS),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/k8s-resources/(?P<name>[\w\-\.]+)$',
         AppK8ResourceView.as_view(), perms.APP_RESOURCE_PERMS),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/status', ApplicationStatusView.as_view(),

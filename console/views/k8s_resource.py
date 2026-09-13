@@ -59,6 +59,14 @@ class AppK8sResourceReconcileView(ApplicationView):
         return Response(general_message(200, "success", "同步成功", bean=result))
 
 
+class LegacyAppK8sResourceDeletionImpactView(AppK8sResourceDeletionImpactView, AppK8ResourceView):
+    """Keep legacy POST preview requests alongside operations on the named resource."""
+
+
+class LegacyAppK8sResourceReconcileView(AppK8sResourceReconcileView, AppK8ResourceView):
+    """Keep legacy POST reconciliation alongside operations on the named resource."""
+
+
 class AppK8sResourceListView(ApplicationView):
     def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         k8s_resource = k8s_resource_service.list_by_app_id(self.app_id)
