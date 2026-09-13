@@ -881,73 +881,63 @@ class AppPortService(object):
 
         return 200, "success"
 
-    def close_thirdpart_outer(self, tenant: Tenants, service: TenantServiceInfo, region: Any,
+    def close_thirdpart_outer(self, tenant: Tenants, service: TenantServiceInfo, region: str,
                               deal_port: TenantServicesPort) -> None:
+        region_config = region_repo.get_region_by_region_name(region)
+        if not region_config:
+            raise ServiceHandleException(msg="region not found", msg_show="数据中心不存在", status_code=404)
         try:
-            # NOTE: callers pass service.service_region (str) here, but __close_outer
-            # derefs region.region_name / region_app — potential latent bug (region
-            # should be a RegionConfig). Behavior unchanged.
-            self.__close_outer(tenant, service, region, deal_port)
+            self.__close_outer(tenant, service, region_config, deal_port)
         except region_api.CallApiError as e:
             logger.exception(e)
             raise ServiceHandleException(msg="close outer port failed", msg_show="关闭对外服务失败")
 
     def __close_outer(self, tenant: Tenants, service: TenantServiceInfo, region: RegionConfig,
                       deal_port: TenantServicesPort, user_name: str = '') -> Tuple[int, str]:
-        deal_port.is_outer_service = False
         app = group_repo.get_by_service_id(tenant.tenant_id, service.service_id)
-        deal_port.save()
-        # 改变httpdomain表中端口状态
+        http_domains = []
         if deal_port.protocol == "http":
-            service_domains = domain_repo.get_service_domain_by_container_port(service.service_id,
-                                                                               deal_port.container_port)
-            if service_domains:
-                for service_domain in service_domains:
-                    service_domain.is_outer_service = False
-                    service_domain.save()
-
-            # 从 API Gateway 获取所有 HTTP 路由并删除
             path = ("/api-gateway/v1/" + tenant.tenant_name + "/routes/http/domains?service_alias=" +
                     service.service_alias + "&port=" + str(deal_port.container_port))
-            try:
-                body = region_api.api_gateway_get_proxy(region, tenant.tenant_id, path, app.app_id)
-                # NOTE: body may be None (api_gateway_get_proxy returns Optional[dict]); deref unguarded.
-                # 删除所有 HTTP 路由
-                if body.get("list", []):  # type: ignore[union-attr]
-                    # 调用关闭端口的 API
-                    close_path = "/api-gateway/v1/" + tenant.tenant_name + "/routes/http/port?act=close&service_alias=" + service.service_alias + "&port=" + str(deal_port.container_port)
-                    region_api.api_gateway_get_proxy(region, tenant.tenant_id, close_path, app.app_id)
-            except Exception as e:
-                logger.exception(f"Failed to close HTTP routes: {e}")
-        else:
-            service_tcp_domains = tcp_domain.get_service_tcp_domains_by_service_id_and_port(
-                service.service_id, deal_port.container_port)
-            # 改变tcpdomain表中状态
-            if service_tcp_domains:
-                for service_tcp_domain in service_tcp_domains:
-                    service_tcp_domain.is_outer_service = False
-                    service_tcp_domain.save()
+            body = region_api.api_gateway_get_proxy(region, tenant.tenant_id, path, app.app_id)
+            if not isinstance(body, dict) or not isinstance(body.get("list"), list):
+                raise ServiceHandleException(msg="HTTP routes unavailable", msg_show="获取端口访问策略失败", status_code=503)
+            http_domains = body["list"]
+        path = ("/api-gateway/v1/" + tenant.tenant_name + "/routes/tcp/domains?service_alias=" +
+                service.service_alias + "&port=" + str(deal_port.container_port) + "&details=true")
+        body = region_api.api_gateway_get_proxy(region, tenant.tenant_id, path, app.app_id)
+        if not isinstance(body, dict) or not isinstance(body.get("list"), list):
+            raise ServiceHandleException(msg="TCP routes unavailable", msg_show="获取端口访问策略失败", status_code=503)
+        for rule in body["list"]:
+            if not isinstance(rule, dict) or not rule.get("service_name"):
+                raise ServiceHandleException(msg="invalid TCP route", msg_show="端口访问策略数据不完整", status_code=503)
 
-            # 从 API Gateway 获取所有实际的路由
-            svc = port_repo.get_service_port_by_port(tenant.tenant_id, service.service_id, deal_port.container_port)
-            path = ("/api-gateway/v1/" + tenant.tenant_name + "/routes/tcp/domains?service_alias=" +
+        errors = []
+        if http_domains:
+            path = ("/api-gateway/v1/" + tenant.tenant_name + "/routes/http/port?act=close&service_alias=" +
                     service.service_alias + "&port=" + str(deal_port.container_port))
             try:
-                body = region_api.api_gateway_get_proxy(region, tenant.tenant_id, path, app.app_id)
-                # NOTE: body may be None (api_gateway_get_proxy returns Optional[dict]); deref unguarded.
-                # 删除所有路由
-                if body.get("list", []):  # type: ignore[union-attr]
-                    # NOTE: svc may be None (get_service_port_by_port returns Optional); invariant here.
-                    k8s_name = svc.k8s_service_name  # type: ignore[union-attr]
-                    for nodeport in body.get("list", []):  # type: ignore[union-attr]
-                        delete_path = (f"/v2/proxy-pass/gateway/{tenant.tenant_name}/routes/tcp/"
-                                       f"{k8s_name}-{nodeport}?service_id={service.service_id}")
-                        region_api.delete_proxy(region.region_name, delete_path)
-            except Exception as e:
-                logger.exception(f"Failed to release TCP routes: {e}")
-                raise
-            tcp_domain.delete_by_component_port(service.service_id, deal_port.container_port)
+                result = region_api.api_gateway_get_proxy(region, tenant.tenant_id, path, app.app_id)
+                if not isinstance(result, dict):
+                    raise ServiceHandleException(msg="close HTTP routes failed", msg_show="关闭HTTP访问失败", status_code=503)
+            except Exception as exc:
+                errors.append(exc)
+        for rule in body["list"]:
+            path = ("/v2/proxy-pass/gateway/" + tenant.tenant_name + "/routes/tcp/" +
+                    rule["service_name"] + "?service_id=" + service.service_id)
+            try:
+                region_api.delete_proxy(region.region_name, path)
+            except Exception as exc:
+                errors.append(exc)
+        if errors:
+            raise errors[0]
         self.__sync_outer_port_to_region(tenant, service, deal_port, "close", user_name)
+        for domain in domain_repo.get_service_domain_by_container_port(service.service_id, deal_port.container_port):
+            domain.is_outer_service = False
+            domain.save(update_fields=["is_outer_service"])
+        tcp_domain.delete_by_component_port(service.service_id, deal_port.container_port)
+        deal_port.is_outer_service = False
+        deal_port.save(update_fields=["is_outer_service"])
         if service.create_status == "complete":
             from console.services.plugin import app_plugin_service
             app_plugin_service.update_config_if_have_entrance_plugin(tenant, service)
