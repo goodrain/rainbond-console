@@ -32,11 +32,23 @@ class AppK8sResourceRepo(object):
     def delete_by_id(self, id: str) -> Tuple[int, Dict[str, int]]:
         return K8sResource.objects.filter(ID=id).delete()
 
+    def delete_by_ids(self, ids: Any) -> Tuple[int, Dict[str, int]]:
+        return K8sResource.objects.filter(ID__in=ids).delete()
+
     def list_by_app_id(self, app_id: str) -> QuerySet:
         return K8sResource.objects.filter(app_id=app_id)
 
     def list_by_ids(self, ids: Any) -> QuerySet:
         return K8sResource.objects.filter(ID__in=ids)
+
+    def list_by_app_id_and_ids(self, app_id: str, ids: Any) -> QuerySet:
+        return K8sResource.objects.filter(app_id=app_id, ID__in=ids)
+
+    def list_by_app_ids_and_kind(self, app_ids: Any, kind: str) -> QuerySet:
+        return K8sResource.objects.filter(app_id__in=app_ids, kind=kind)
+
+    def get_by_app_id_and_id(self, app_id: str, id: str) -> K8sResource:
+        return K8sResource.objects.get(app_id=app_id, ID=id)
 
     def get_by_app_id_kind_name(self, app_id: str, kind: str, name: str) -> K8sResource:
         return K8sResource.objects.get(app_id=app_id, kind=kind, name=name)

@@ -37,6 +37,10 @@ class RegionAppRepository(object):
         return RegionApp.objects.filter(region_name=region_name, app_id__in=app_ids)
 
     @staticmethod
+    def list_by_region(region_name: str) -> QuerySet:
+        return RegionApp.objects.filter(region_name=region_name)
+
+    @staticmethod
     def get_region_app(region_name: str, app_id: str) -> Optional[RegionApp]:
         region_app = RegionApp.objects.filter(region_name=region_name, app_id=app_id).first()
         return region_app

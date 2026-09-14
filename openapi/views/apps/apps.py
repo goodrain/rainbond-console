@@ -27,11 +27,9 @@ from console.services.app_actions import app_manage_service, event_service
 from console.services.app_check_service import app_check_service
 from console.services.app_config import (dependency_service, port_service, domain_service, volume_service)
 from console.services.app_config.env_service import AppEnvVarService
-from console.services.app_config_group import app_config_group_service
 from console.services.app_import_and_export_service import import_service
 from console.services.compose_service import compose_service
 from console.services.group_service import group_service
-from console.services.k8s_resource import k8s_resource_service
 from console.services.app import app_market_service
 from console.services.market_app_service import market_app_service
 from console.services.plugin import app_plugin_service
@@ -1306,21 +1304,8 @@ class DeleteApp(TeamAPIView):
         """
         删除应用及所有资源
         """
-        # delete services
-        group_service.batch_delete_app_services(self.user, self.team.tenant_id, self.region_name, app_id)
-        # delete k8s resource
-        k8s_resources = k8s_resource_service.list_by_app_id(str(app_id))
-        resource_ids = [k8s_resource.ID for k8s_resource in k8s_resources]
-        k8s_resource_service.batch_delete_k8s_resource(
-            self.user.enterprise_id, self.team.tenant_name, str(app_id),  # type: ignore[arg-type]
-            self.region_name, resource_ids)
-        # delete configs
-        app_config_group_service.batch_delete_config_group(self.region_name, self.team.tenant_name, app_id)
-        # delete records
-        group_service.delete_app_share_records(self.team.tenant_name, app_id)
-        # delete app
         app = group_service.get_app_by_id(self.team, self.region_name, app_id)
-        group_service.delete_app(self.team, self.region_name, app)  # type: ignore[arg-type]
+        group_service.delete_app_with_resources(self.user, self.team, self.region_name, app)  # type: ignore[arg-type]
         result = general_message(200, "success", "删除成功")
         return Response(result, status=result["code"])
 

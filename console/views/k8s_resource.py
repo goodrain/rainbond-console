@@ -32,9 +32,39 @@ class AppK8ResourceView(ApplicationView):
 
     def delete(self, request: Request, name: str, *args: Any, **kwargs: Any) -> Response:
         resource_id = request.data.get("id")
-        k8s_resource_service.delete_k8s_resource(self.enterprise.enterprise_id, self.tenant_name, str(self.app_id),
-                                                 self.region_name, name, resource_id)  # type: ignore[arg-type]
-        return Response(general_message(200, "success", "删除成功"))
+        result = k8s_resource_service.delete_k8s_resource(
+            self.enterprise.enterprise_id,
+            self.tenant_name,
+            str(self.app_id),
+            self.region_name,
+            name,
+            resource_id,  # type: ignore[arg-type]
+            cascade_crd=bool(request.data.get("cascade_crd", False)),
+            is_enterprise_admin=self.is_enterprise_admin)
+        return Response(general_message(200, "success", "删除成功", bean=result))
+
+
+class AppK8sResourceDeletionImpactView(ApplicationView):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
+        resource_ids = request.data.get("ids")
+        impact = k8s_resource_service.preview_delete_k8s_resources(self.enterprise.enterprise_id, self.tenant_name,
+                                                                   str(self.app_id), self.region_name, resource_ids)
+        return Response(general_message(200, "success", "查询成功", bean=impact))
+
+
+class AppK8sResourceReconcileView(ApplicationView):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
+        result = k8s_resource_service.reconcile_k8s_resources(self.enterprise.enterprise_id, self.tenant_name, str(self.app_id),
+                                                              self.region_name)
+        return Response(general_message(200, "success", "同步成功", bean=result))
+
+
+class LegacyAppK8sResourceDeletionImpactView(AppK8sResourceDeletionImpactView, AppK8ResourceView):
+    """Keep legacy POST preview requests alongside operations on the named resource."""
+
+
+class LegacyAppK8sResourceReconcileView(AppK8sResourceReconcileView, AppK8ResourceView):
+    """Keep legacy POST reconciliation alongside operations on the named resource."""
 
 
 class AppK8sResourceListView(ApplicationView):
@@ -70,6 +100,11 @@ class AppK8sResourceListView(ApplicationView):
 
     def delete(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         resource_ids = request.data.get("ids")
-        k8s_resource_service.batch_delete_k8s_resource(self.enterprise.enterprise_id, self.tenant_name, str(self.app_id),
-                                                       self.region_name, resource_ids)
-        return Response(general_message(200, "success", "删除成功"))
+        result = k8s_resource_service.batch_delete_k8s_resource(self.enterprise.enterprise_id,
+                                                                self.tenant_name,
+                                                                str(self.app_id),
+                                                                self.region_name,
+                                                                resource_ids,
+                                                                cascade_crd=bool(request.data.get("cascade_crd", False)),
+                                                                is_enterprise_admin=self.is_enterprise_admin)
+        return Response(general_message(200, "success", "删除成功", bean=result))

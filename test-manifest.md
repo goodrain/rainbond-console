@@ -159,9 +159,11 @@
 | console.app.create-k8s-name-autogen | 创建应用时自动生成 k8s_app 名称 | active | regression | console.services.mcp_query_service.call_tool[console.app.create-k8s-name-autogen] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_create_app_generates_k8s_app_when_empty<br>console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_create_app_generates_k8s_app_for_non_ascii_app_name<br>console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_create_app_normalizes_mixed_case_app_name<br>console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_create_app_appends_suffix_when_generated_name_taken_in_console<br>console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_create_app_retries_with_suffix_on_region_side_duplicate<br>console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_create_app_does_not_retry_explicit_k8s_app_on_duplicate |
 | console.app.create-k8s-name-duplicate | App Create K8s Name Duplicate | active | regression | console.services.mcp_query_service.call_tool[console.app.create-k8s-name-duplicate] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_create_app_exposes_structured_k8s_app_duplicate_error |
 | console.app.delete | 删除应用及隐藏快照模板 | active | regression | console.services.group_service._delete_app | console/tests/group_service_test.py::GroupServiceDeleteAppTestCase |
+| console.app.delete-component-failure-guard | Preserve applications when component deletion fails | active | regression | console.services.group_service.batch_delete_app_services | console/tests/group_service_test.py::GroupServiceDeleteComponentFailureGuardTestCase |
 | console.app.delete-confirmation-guard | 阻止无效的应用删除确认 | active | regression | console.services.mcp_query_service.call_tool[rainbond_delete_app] | console/tests/mcp_query_service_test.py::MCPQueryServiceDeleteAppTests.test_delete_app_rejects_invalid_confirmation_token |
 | console.app.delete-shared-orchestration | 共享完整应用删除编排 | active | regression | console.services.application_delete_service.ApplicationDeleteService.delete_app | console/tests/mcp_app_delete_parity_test.py::ApplicationDeleteServiceTests |
 | console.app.delete-with-confirmation | 确认后删除应用 | active | regression | console.services.mcp_query_service.call_tool[rainbond_delete_app] | console/tests/mcp_query_service_test.py::MCPQueryServiceDeleteAppTests.test_delete_app_requires_confirmation_then_delete |
+| console.app.delete-with-resources | Delete applications with attached resources | active | regression | console.services.group_service.delete_app_with_resources | console/tests/group_service_test.py::GroupServiceDeleteAppWithResourcesTestCase |
 | console.app.detail | 查看应用详情 | active | regression | console.services.mcp_query_service.call_tool[rainbond_get_app_detail] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_get_app_detail_returns_status_and_counts |
 | console.app.export-metadata | 生成应用导出元数据 | active | regression | console.services.app_import_and_export_service.AppExportService._AppExportService__get_app_metata | console/tests/app_import_and_export_service_test.py::AppExportServiceMetadataTestCase |
 | console.app.get-yaml-check-result | 查看 YAML 应用校验结果 | active | regression | console.services.mcp_query_service.call_tool[rainbond_get_yaml_app_check_result] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_get_yaml_app_check_result_returns_services |
@@ -279,6 +281,9 @@
 | console.component.summary | 查看组件概览 | active | regression | console.services.mcp_query_service.call_tool[rainbond_get_component_summary] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_get_component_summary_returns_aggregated_info |
 | console.component.tcp-port-close-release | 数据中心路由释放后清理 TCP 端口映射 | active | regression | console.services.app_config.port_service.AppPortService.manage_port | console/tests/port_service_delete_test.py::PortServiceDeleteTests::test_close_tcp_port_releases_all_region_routes_before_local_mapping<br>console/tests/port_service_delete_test.py::PortServiceDeleteTests::test_close_tcp_port_with_no_region_routes_deletes_stale_local_mapping<br>console/tests/port_service_delete_test.py::PortServiceDeleteTests::test_close_tcp_port_preserves_local_mapping_when_region_query_fails<br>console/tests/port_service_delete_test.py::PortServiceDeleteTests::test_close_tcp_port_preserves_local_mapping_when_region_delete_fails |
 | console.component.volume-delete-blocks-shared-mount | 被共享挂载时阻止删除组件存储卷 | active | regression | console.services.app_config.volume_service.AppVolumeService.delete_service_volume_by_id | console/tests/app_config_volume_delete_test.py::AppVolumeDeleteTests.test_delete_service_volume_rejects_shared_mount_even_when_forced |
+| console.component.volume-expansion-reconciles-drift | Forward stored capacity to reconcile PVC drift | active | regression | console.views.app_config.app_volume.AppVolumeManageView.put | console/tests/app_volume_view_test.py::AppVolumeManageViewTestCase::test_put_forwards_same_capacity_for_pvc_reconciliation |
+| console.component.volume-expansion-runtime | Propagate PVC volume expansion runtime fields | active | unit | console.services.app_config.volume_service.AppVolumeService.get_service_volumes | console/tests/app_volume_service_expansion_test.py::AppVolumeServiceExpansionTestCase::test_attach_volume_runtime_status_merges_expansion_fields |
+| console.component.volume-expansion-update | Validate and forward component volume expansion | active | regression | console.views.app_config.app_volume.AppVolumeManageView.put | console/tests/app_volume_view_test.py::AppVolumeManageViewTestCase::test_put_rejects_volume_capacity_shrink |
 | console.dependency.invalid-container-port | Dependency Invalid Container Port | active | regression | console.services.app_config.app_relation_service.AppServiceRelationService | console/tests/app_relation_service_test.py::AppRelationServiceTests.test_add_service_dependency_rejects_unknown_dep_service_port |
 | console.deploy-diagnostics.offline-mode | 离线模式禁用部署诊断上报 | active | regression | console.services.enterprise_first_deploy_service.EnterpriseFirstDeployService | console/tests/enterprise_first_deploy_service_test.py::EnterpriseFirstDeployServiceTests.test_offline_mode_does_not_start_report_sweeper<br>console/tests/enterprise_first_deploy_service_test.py::EnterpriseFirstDeployServiceTests.test_online_mode_starts_report_sweeper<br>console/tests/enterprise_first_deploy_service_test.py::EnterpriseFirstDeployServiceTests.test_offline_mode_skips_report_request<br>console/tests/enterprise_first_deploy_service_test.py::EnterpriseFirstDeployServiceTests.test_offline_mode_does_not_create_deploy_tracking<br>console/tests/enterprise_first_deploy_service_test.py::EnterpriseFirstDeployServiceTests.test_offline_mode_does_not_persist_source_check_failure<br>console/tests/enterprise_first_deploy_service_test.py::EnterpriseFirstDeployServiceTests.test_offline_mode_marks_first_deploy_report_handled_without_thread<br>console/tests/enterprise_first_deploy_service_test.py::EnterpriseFirstDeployServiceTests.test_offline_mode_removes_unreported_deploy_attempt<br>console/tests/enterprise_first_deploy_service_test.py::EnterpriseFirstDeployServiceTests.test_offline_mode_forgets_unpersisted_report |
 | console.deploy-diagnostics.source-check | 源码构建源检测失败诊断埋点 | active | regression | console.views.app_create.app_check.AppCheck.get | console/tests/app_check_view_test.py::AppCheckSourceDiagnosticTests.test_get_reports_source_check_failure_without_changing_response<br>console/tests/source_component_service_test.py::SourceComponentServiceTests.test_auto_create_component_raises_on_check_failure<br>console/tests/enterprise_first_deploy_service_test.py::EnterpriseFirstDeployServiceTests.test_report_source_check_failure_sends_pre_deploy_diagnostic |
@@ -353,6 +358,8 @@
 | console.k8s-attribute.cmd-args-yaml | 将 cmd 和 args Kubernetes 属性规范化为 YAML 数组 | active | regression | console.services.k8s_attribute.ComponentK8sAttributeService.create_k8s_attribute | console/tests/k8s_attribute_service_test.py::ComponentK8sAttributeServiceTests |
 | console.k8s-attribute.upsert-region-sync | Console 与 region 组件 K8s 属性幂等同步 | active | regression | console.services.k8s_attribute.ComponentK8sAttributeService | console/tests/k8s_attribute_service_test.py |
 | console.k8s-namespace.normalize-user-prefix | 将用户名规范化为合法的 Kubernetes 命名空间名 | active | regression | console.utils.validation.normalize_name_for_k8s_namespace | console/tests/utils/validation_test.py::NamespaceNormalizationTests.test_normalize_name_for_k8s_namespace |
+| console.k8s-resource.crd-cascade-delete | CRD cascade deletion synchronizes Console metadata | active | regression | console.services.k8s_resource.ComponentK8sResourceService.batch_delete_k8s_resource | console/tests/k8s_resource_service_test.py::K8sResourceDeletionServiceTest |
+| console.k8s-resource.reconcile-endpoint | Application Kubernetes resource reconcile endpoint | active | regression | POST /console/teams/{team}/groups/{app}/k8s-resources/reconcile | console/tests/k8s_resource_service_test.py::K8sResourceViewTest |
 | console.kubeblocks.app-resource-statistics | KubeBlocks 集群请求携带 app id 以支持资源统计 | active | regression | console.services.kubeblocks_service.KubeBlocksService._build_cluster_request | console/tests/kubeblocks_cluster_validation_test.py::KubeBlocksCreateFlowTests.test_build_cluster_request_includes_app_id_for_resource_statistics |
 | console.kubeblocks.backup-repo.ready-guard | 使用 KubeBlocks 备份仓库前校验就绪状态 | active | regression | console.services.kubeblocks_service.KubeBlocksService.ensure_backup_repo_ready_for_use | console/tests/kubeblocks_backup_repo_test.py::KubeBlocksBackupRepoServiceTests.test_ensure_backup_repo_ready_for_use_rejects_prechecking_repo<br>console/tests/kubeblocks_backup_repo_test.py::KubeBlocksBackupRepoServiceTests.test_ensure_backup_repo_ready_for_use_accepts_ready_repo<br>console/tests/kubeblocks_backup_repo_test.py::KubeBlocksBackupRepoServiceTests.test_ensure_backup_repo_ready_for_use_rejects_missing_live_repo<br>console/tests/kubeblocks_cluster_validation_test.py::KubeBlocksCreateFlowTests.test_create_cluster_returns_backup_repo_not_ready_message |
 | console.kubeblocks.backup-repo.team-create | 创建团队 KubeBlocks 备份仓库 | active | regression | console.services.kubeblocks_service.KubeBlocksService.create_backup_repo | console/tests/kubeblocks_backup_repo_test.py::KubeBlocksBackupRepoServiceTests.test_create_backup_repo_prefixes_namespace_and_does_not_store_secret_values<br>console/tests/kubeblocks_backup_repo_test.py::KubeBlocksBackupRepoServiceTests.test_create_backup_repo_defaults_to_prechecking_when_region_phase_is_empty<br>console/tests/kubeblocks_backup_repo_test.py::KubeBlocksBackupRepoServiceTests.test_create_backup_repo_rejects_existing_region_repo_name_even_if_deleted |
@@ -2155,6 +2162,16 @@
 - 代码路径: `console/services/group_service.py`, `console/services/app_version_service.py`
 - 测试路径: `console/tests/group_service_test.py::GroupServiceDeleteAppTestCase`
 
+### Preserve applications when component deletion fails
+
+- Capability ID: `console.app.delete-component-failure-guard`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.group_service.batch_delete_app_services`
+- 代码路径: `console/services/group_service.py`
+- 测试路径: `console/tests/group_service_test.py::GroupServiceDeleteComponentFailureGuardTestCase`
+
 ### 阻止无效的应用删除确认
 
 - Capability ID: `console.app.delete-confirmation-guard`
@@ -2184,6 +2201,16 @@
 - 业务入口: `console.services.mcp_query_service.call_tool[rainbond_delete_app]`
 - 代码路径: `console/services/mcp_query_service.py`, `console/services/group_service.py`
 - 测试路径: `console/tests/mcp_query_service_test.py::MCPQueryServiceDeleteAppTests.test_delete_app_requires_confirmation_then_delete`
+
+### Delete applications with attached resources
+
+- Capability ID: `console.app.delete-with-resources`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.group_service.delete_app_with_resources`
+- 代码路径: `console/services/group_service.py`
+- 测试路径: `console/tests/group_service_test.py::GroupServiceDeleteAppWithResourcesTestCase`
 
 ### 查看应用详情
 
@@ -3355,6 +3382,36 @@
 - 代码路径: `console/services/app_config/volume_service.py`
 - 测试路径: `console/tests/app_config_volume_delete_test.py::AppVolumeDeleteTests.test_delete_service_volume_rejects_shared_mount_even_when_forced`
 
+### Forward stored capacity to reconcile PVC drift
+
+- Capability ID: `console.component.volume-expansion-reconciles-drift`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `view_endpoint`
+- 业务入口: `console.views.app_config.app_volume.AppVolumeManageView.put`
+- 代码路径: `console/views/app_config/app_volume.py`
+- 测试路径: `console/tests/app_volume_view_test.py::AppVolumeManageViewTestCase::test_put_forwards_same_capacity_for_pvc_reconciliation`
+
+### Propagate PVC volume expansion runtime fields
+
+- Capability ID: `console.component.volume-expansion-runtime`
+- 状态: `active`
+- 测试类型: `unit`
+- 接口类型: `service_method`
+- 业务入口: `console.services.app_config.volume_service.AppVolumeService.get_service_volumes`
+- 代码路径: `console/services/app_config/volume_service.py`
+- 测试路径: `console/tests/app_volume_service_expansion_test.py::AppVolumeServiceExpansionTestCase::test_attach_volume_runtime_status_merges_expansion_fields`
+
+### Validate and forward component volume expansion
+
+- Capability ID: `console.component.volume-expansion-update`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `view_endpoint`
+- 业务入口: `console.views.app_config.app_volume.AppVolumeManageView.put`
+- 代码路径: `console/views/app_config/app_volume.py`
+- 测试路径: `console/tests/app_volume_view_test.py::AppVolumeManageViewTestCase::test_put_rejects_volume_capacity_shrink`
+
 ### Dependency Invalid Container Port
 
 - Capability ID: `console.dependency.invalid-container-port`
@@ -4094,6 +4151,26 @@
 - 业务入口: `console.utils.validation.normalize_name_for_k8s_namespace`
 - 代码路径: `console/utils/validation.py`
 - 测试路径: `console/tests/utils/validation_test.py::NamespaceNormalizationTests.test_normalize_name_for_k8s_namespace`
+
+### CRD cascade deletion synchronizes Console metadata
+
+- Capability ID: `console.k8s-resource.crd-cascade-delete`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.k8s_resource.ComponentK8sResourceService.batch_delete_k8s_resource`
+- 代码路径: `console/services/k8s_resource.py`
+- 测试路径: `console/tests/k8s_resource_service_test.py::K8sResourceDeletionServiceTest`
+
+### Application Kubernetes resource reconcile endpoint
+
+- Capability ID: `console.k8s-resource.reconcile-endpoint`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `view_endpoint`
+- 业务入口: `POST /console/teams/{team}/groups/{app}/k8s-resources/reconcile`
+- 代码路径: `console/views/k8s_resource.py`, `console/urls/__init__.py`
+- 测试路径: `console/tests/k8s_resource_service_test.py::K8sResourceViewTest`
 
 ### KubeBlocks 集群请求携带 app id 以支持资源统计
 

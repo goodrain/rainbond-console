@@ -2,10 +2,13 @@
 import logging
 from typing import Any, List, Tuple
 
+import yaml
+
 from django.db import transaction
 from django.db.models import QuerySet
 
 from console.models.main import K8sResource
+from console.exception.main import ServiceHandleException
 from console.repositories.k8s_resources import k8s_resources_repo
 from console.repositories.region_app import region_app_repo
 from console.services.region_resource_processing import region_resource
@@ -30,7 +33,7 @@ class ComponentK8sResourceService(object):
     def get_k8s_resource(self, enterprise_id: str, tenant_name: str, app_id: str, region_name: str, name: str,
                          resource_id: str) -> Any:
         namespace, region_app_id = self.get_app_id_and_namespace(app_id, tenant_name, region_name)
-        resources = k8s_resources_repo.get_by_id(resource_id)
+        resources = k8s_resources_repo.get_by_app_id_and_id(app_id, resource_id)
         data = {
             "app_id": region_app_id,
             "resource_yaml": resources.content,
@@ -39,7 +42,8 @@ class ComponentK8sResourceService(object):
             "kind": resources.kind
         }
         res, body = region_api.get_app_resource(enterprise_id, region_name, data)
-        k8s_resources_repo.update(app_id, name, resources.kind, content=body["bean"]["content"])  # type: ignore[index]  # NOTE: region_api returns Optional[dict]; runtime always non-None on success
+        # NOTE: region_api types body as Optional[dict], but it is non-None on success.
+        k8s_resources_repo.update(app_id, name, resources.kind, content=body["bean"]["content"])  # type: ignore[index]
         return body["bean"]  # type: ignore[index]  # NOTE: same as above
 
     @transaction.atomic
@@ -48,13 +52,14 @@ class ComponentK8sResourceService(object):
         namespace, region_app_id = self.get_app_id_and_namespace(app_id, tenant_name, region_name)
         data = {"app_id": region_app_id, "resource_yaml": resource_yaml, "namespace": namespace}
         res, body = region_api.create_app_resource(enterprise_id, region_name, data)
-        region_resource.create_k8s_resources(body["list"], app_id)  # type: ignore[index]  # NOTE: region_api returns Optional[dict]; runtime always non-None on success
+        # NOTE: region_api types body as Optional[dict], but it is non-None on success.
+        region_resource.create_k8s_resources(body["list"], app_id)  # type: ignore[index]
 
     @transaction.atomic
     def update_k8s_resource(self, enterprise_id: str, tenant_name: str, app_id: str, resource_yaml: str,
                             region_name: str, name: str, resource_id: str) -> Any:
         namespace, region_app_id = self.get_app_id_and_namespace(app_id, tenant_name, region_name)
-        resources = k8s_resources_repo.get_by_id(resource_id)
+        resources = k8s_resources_repo.get_by_app_id_and_id(app_id, resource_id)
         data: dict = {
             "app_id": region_app_id,
             "resource_yaml": resource_yaml,
@@ -64,7 +69,8 @@ class ComponentK8sResourceService(object):
         }
         res, body = region_api.update_app_resource(enterprise_id, region_name, data)
         data = {
-            "content": body["bean"]["content"],  # type: ignore[index]  # NOTE: region_api returns Optional[dict]; runtime always non-None on success
+            # NOTE: region_api types body as Optional[dict], but it is non-None on success.
+            "content": body["bean"]["content"],  # type: ignore[index]
             "error_overview": body["bean"]["error_overview"],  # type: ignore[index]  # NOTE: same as above
             "state": body["bean"]["state"]  # type: ignore[index]  # NOTE: same as above
         }
@@ -72,30 +78,121 @@ class ComponentK8sResourceService(object):
         return data["state"]
 
     @transaction.atomic
-    def delete_k8s_resource(self, enterprise_id: str, tenant_name: str, app_id: str, region_name: str, name: str,
-                            resource_id: str) -> None:
-        namespace, region_app_id = self.get_app_id_and_namespace(app_id, tenant_name, region_name)
-        resources = k8s_resources_repo.get_by_id(resource_id)
-        if name != "未识别":
-            data = {
-                "app_id": region_app_id,
-                "resource_yaml": resources.content,
-                "namespace": namespace,
-                "name": name,
-                "kind": resources.kind,
-                "state": resources.state
-            }
-            region_api.delete_app_resource(enterprise_id, region_name, data)
-        k8s_resources_repo.delete_by_id(resource_id)
+    def delete_k8s_resource(self,
+                            enterprise_id: str,
+                            tenant_name: str,
+                            app_id: str,
+                            region_name: str,
+                            name: str,
+                            resource_id: str,
+                            cascade_crd: bool = False,
+                            is_enterprise_admin: bool = False) -> Any:
+        return self.batch_delete_k8s_resource(enterprise_id,
+                                              tenant_name,
+                                              app_id,
+                                              region_name, [resource_id],
+                                              cascade_crd=cascade_crd,
+                                              is_enterprise_admin=is_enterprise_admin)
 
-    def batch_delete_k8s_resource(self, enterprise_id: str, tenant_name: str, app_id: str, region_name: str,
-                                  resource_ids: Any) -> None:
-        resources = k8s_resources_repo.list_by_ids(resource_ids)
+    def preview_delete_k8s_resources(self, enterprise_id: str, tenant_name: str, app_id: str, region_name: str,
+                                     resource_ids: Any) -> Any:
+        resources = self._get_owned_resources(app_id, resource_ids)
         namespace, region_app_id = self.get_app_id_and_namespace(app_id, tenant_name, region_name)
-        data = {
+        data = self._build_region_resources_payload(region_app_id, namespace, resources)
+        _, body = region_api.preview_delete_app_resources(enterprise_id, region_name, data)
+        impact = (body or {}).get("bean") or {}
+        impact["crds"] = impact.get("crds") or []
+        for crd in impact["crds"]:
+            crd.pop("affected_region_app_ids", None)
+        return impact
+
+    @staticmethod
+    def validate_crd_cascade(impact: Any, cascade_crd: bool, is_enterprise_admin: bool) -> None:
+        if not impact.get("requires_cascade"):
+            return
+        crd_names = [crd.get("name") for crd in (impact.get("crds") or []) if crd.get("name")]
+        crd_text = "、".join(crd_names) or "相关 CRD"
+        if not is_enterprise_admin:
+            raise ServiceHandleException(
+                msg="CRD deletion affects other applications or unowned resources",
+                msg_show="CRD {} 被其他应用或未归属资源使用，仅企业管理员可以级联删除".format(crd_text),
+                status_code=403,
+                bean=impact)
+        if not cascade_crd:
+            raise ServiceHandleException(
+                msg="explicit CRD cascade confirmation is required",
+                msg_show="删除 CRD {} 会影响其他应用，请明确确认级联删除".format(crd_text),
+                status_code=409,
+                bean=impact)
+
+    @transaction.atomic
+    def batch_delete_k8s_resource(self,
+                                  enterprise_id: str,
+                                  tenant_name: str,
+                                  app_id: str,
+                                  region_name: str,
+                                  resource_ids: Any,
+                                  cascade_crd: bool = False,
+                                  is_enterprise_admin: bool = False) -> Any:
+        resources = self._get_owned_resources(app_id, resource_ids)
+        namespace, region_app_id = self.get_app_id_and_namespace(app_id, tenant_name, region_name)
+        impact = self.preview_delete_k8s_resources(enterprise_id, tenant_name, app_id, region_name, resource_ids)
+        self.validate_crd_cascade(impact, cascade_crd, is_enterprise_admin)
+
+        data = self._build_region_resources_payload(region_app_id, namespace, resources)
+        data["cascade_crd"] = cascade_crd
+        _, body = region_api.batch_delete_app_resources(enterprise_id, region_name, data)
+        result = (body or {}).get("bean") or {}
+        if result.get("status") != "completed":
+            raise ServiceHandleException(msg="Kubernetes resource deletion was not completed",
+                                         msg_show="Kubernetes 资源删除未完成，元数据已保留",
+                                         status_code=502,
+                                         bean=result)
+
+        result["deleted_client_ids"] = result.get("deleted_client_ids") or []
+        result["cascaded_crds"] = result.get("cascaded_crds") or []
+        deleted_client_ids = set(str(item) for item in result["deleted_client_ids"])
+        selected_ids = [resource.ID for resource in resources if str(resource.ID) in deleted_client_ids]
+        if selected_ids:
+            k8s_resources_repo.delete_by_ids(selected_ids)
+        self._delete_cascaded_cr_metadata(region_name, result["cascaded_crds"])
+        return result
+
+    @transaction.atomic
+    def reconcile_k8s_resources(self, enterprise_id: str, tenant_name: str, app_id: str, region_name: str) -> Any:
+        resources = list(k8s_resources_repo.list_available_resources(app_id))
+        if not resources:
+            return {"missing_client_ids": [], "unknown": []}
+        namespace, region_app_id = self.get_app_id_and_namespace(app_id, tenant_name, region_name)
+        data = self._build_region_resources_payload(region_app_id, namespace, resources)
+        _, body = region_api.reconcile_app_resources(enterprise_id, region_name, data)
+        result = (body or {}).get("bean") or {}
+        result["missing_client_ids"] = result.get("missing_client_ids") or []
+        result["unknown"] = result.get("unknown") or []
+        known_ids = set(str(resource.ID) for resource in resources)
+        missing_ids = [int(item) for item in result["missing_client_ids"] if str(item) in known_ids]
+        if missing_ids:
+            k8s_resources_repo.delete_by_ids(missing_ids)
+        return result
+
+    def _get_owned_resources(self, app_id: str, resource_ids: Any) -> List[K8sResource]:
+        if not isinstance(resource_ids, (list, tuple)) or not resource_ids:
+            raise ServiceHandleException(msg="resource ids are required", msg_show="请选择需要删除的 Kubernetes 资源", status_code=400)
+        requested_ids = set(str(resource_id) for resource_id in resource_ids)
+        resources = list(k8s_resources_repo.list_by_app_id_and_ids(app_id, resource_ids))
+        if set(str(resource.ID) for resource in resources) != requested_ids:
+            raise ServiceHandleException(msg="Kubernetes resource not found in current application",
+                                         msg_show="部分 Kubernetes 资源不存在或不属于当前应用",
+                                         status_code=404)
+        return resources
+
+    @staticmethod
+    def _build_region_resources_payload(region_app_id: str, namespace: str, resources: List[K8sResource]) -> dict:
+        return {
             "app_id":
             region_app_id,
             "k8s_resources": [{
+                "client_id": str(resource.ID),
                 "app_id": region_app_id,
                 "resource_yaml": resource.content,
                 "namespace": namespace,
@@ -104,8 +201,35 @@ class ComponentK8sResourceService(object):
                 "state": resource.state
             } for resource in resources]
         }
-        region_api.batch_delete_app_resources(enterprise_id, region_name, data)
-        resources.delete()
+
+    def _delete_cascaded_cr_metadata(self, region_name: str, crds: Any) -> None:
+        app_ids = [mapping.app_id for mapping in region_app_repo.list_by_region(region_name)]
+        if not app_ids:
+            return
+        delete_ids = set()
+        for crd in crds or []:
+            group = crd.get("group")
+            kind = crd.get("kind")
+            if not group or not kind:
+                continue
+            for resource in k8s_resources_repo.list_by_app_ids_and_kind(app_ids, kind):
+                resource_group, resource_kind = self._yaml_group_kind(resource.content)
+                if resource_group == group and resource_kind == kind:
+                    delete_ids.add(resource.ID)
+        if delete_ids:
+            k8s_resources_repo.delete_by_ids(sorted(delete_ids))
+
+    @staticmethod
+    def _yaml_group_kind(content: str) -> Tuple[str, str]:
+        try:
+            resource = yaml.safe_load(content)
+        except (TypeError, ValueError, yaml.YAMLError):
+            return "", ""
+        if not isinstance(resource, dict):
+            return "", ""
+        api_version = resource.get("apiVersion") or ""
+        group = api_version.split("/", 1)[0] if "/" in api_version else ""
+        return group, resource.get("kind") or ""
 
     def get_app_id_and_namespace(self, app_id: str, tenant_name: str, region_name: str) -> Tuple[Any, str]:
         tenant = Tenants.objects.get(tenant_name=tenant_name)

@@ -11,6 +11,29 @@ for attr in ("Mapping", "MutableMapping", "Sequence", "Iterable", "Iterator"):
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "src", "openapi-client")))
 sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
+if "openapi_client" not in sys.modules:
+    openapi_client_module = ModuleType("openapi_client")
+    configuration_module = ModuleType("openapi_client.configuration")
+    rest_module = ModuleType("openapi_client.rest")
+
+    class _DummyConfiguration(object):
+        def __init__(self):
+            self.client_side_validation = False
+            self.host = ""
+            self.api_key = {}
+
+    class _DummyApiException(Exception):
+        status = 500
+        body = ""
+
+    openapi_client_module.ApiClient = object
+    openapi_client_module.MarketOpenapiApi = object
+    configuration_module.Configuration = _DummyConfiguration
+    rest_module.ApiException = _DummyApiException
+
+    sys.modules["openapi_client"] = openapi_client_module
+    sys.modules["openapi_client.configuration"] = configuration_module
+    sys.modules["openapi_client.rest"] = rest_module
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
 
@@ -72,3 +95,123 @@ class AppVolumeManageViewTestCase(TestCase):
         self.assertEqual(volume.volume_capacity, 20)
         volume.save.assert_called_once_with()
         self.assertEqual(mock_region.call_args[0][3]["volume_capacity"], 20)
+
+    # capability_id: console.component.volume-expansion-reconciles-drift
+    def test_put_forwards_same_capacity_for_pvc_reconciliation(self):
+        request = self.factory.put(
+            "/console/teams/demo-team/apps/demo-service/volumes/1",
+            {"new_volume_path": "/data", "volume_capacity": 20},
+            format="json",
+        )
+        request.data = {"new_volume_path": "/data", "volume_capacity": 20}
+        volume = mock.Mock(
+            volume_name="data",
+            volume_path="/data",
+            volume_type="share-file",
+            volume_capacity=20,
+            mode=None,
+        )
+
+        with mock.patch("console.views.app_config.app_volume.volume_repo.get_service_volume_by_pk", return_value=volume):
+            with mock.patch("console.views.app_config.app_volume.volume_repo.get_service_config_file", return_value=None):
+                with mock.patch(
+                    "console.views.app_config.app_volume.volume_service.json_service_volume", return_value="{}"
+                ):
+                    with mock.patch(
+                        "console.views.app_config.app_volume.region_api.upgrade_service_volumes",
+                        return_value=(mock.Mock(status=200), {}),
+                    ) as mock_region:
+                        with mock.patch(
+                            "console.views.app_config.app_volume.operation_log_service.generate_component_comment",
+                            return_value="comment",
+                        ):
+                            with mock.patch("console.views.app_config.app_volume.operation_log_service.create_component_log"):
+                                response = self.view.put(request, volume_id="1")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(mock_region.call_args[0][3]["volume_capacity"], 20)
+        volume.save.assert_called_once_with()
+
+    # capability_id: console.component.volume-expansion-update
+    def test_put_rejects_volume_capacity_shrink(self):
+        request = self.factory.put(
+            "/console/teams/demo-team/apps/demo-service/volumes/1",
+            {"new_volume_path": "/data", "volume_capacity": 9},
+            format="json",
+        )
+        request.data = {"new_volume_path": "/data", "volume_capacity": 9}
+        volume = mock.Mock(
+            volume_name="data",
+            volume_path="/data",
+            volume_type="fast",
+            volume_capacity=10,
+            mode=None,
+        )
+
+        with mock.patch("console.views.app_config.app_volume.volume_repo.get_service_volume_by_pk", return_value=volume):
+            with mock.patch("console.views.app_config.app_volume.volume_repo.get_service_config_file", return_value=None):
+                with mock.patch("console.views.app_config.app_volume.region_api.upgrade_service_volumes") as mock_region:
+                    response = self.view.put(request, volume_id="1")
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data["msg"], "volume shrink is not supported")
+        mock_region.assert_not_called()
+        volume.save.assert_not_called()
+
+    def test_put_rejects_non_integer_volume_capacity(self):
+        request = self.factory.put(
+            "/console/teams/demo-team/apps/demo-service/volumes/1",
+            {"new_volume_path": "/data", "volume_capacity": "20.5"},
+            format="json",
+        )
+        request.data = {"new_volume_path": "/data", "volume_capacity": "20.5"}
+        volume = mock.Mock(
+            volume_name="data",
+            volume_path="/data",
+            volume_type="fast",
+            volume_capacity=10,
+            mode=None,
+        )
+
+        with mock.patch("console.views.app_config.app_volume.volume_repo.get_service_volume_by_pk", return_value=volume):
+            with mock.patch("console.views.app_config.app_volume.region_api.upgrade_service_volumes") as mock_region:
+                response = self.view.put(request, volume_id="1")
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data["msg"], "invalid volume capacity")
+        mock_region.assert_not_called()
+        volume.save.assert_not_called()
+
+    def test_put_preserves_region_error_and_does_not_save(self):
+        request = self.factory.put(
+            "/console/teams/demo-team/apps/demo-service/volumes/1",
+            {"new_volume_path": "/data", "volume_capacity": 20},
+            format="json",
+        )
+        request.data = {"new_volume_path": "/data", "volume_capacity": 20}
+        volume = mock.Mock(
+            volume_name="data",
+            volume_path="/data",
+            volume_type="fast",
+            volume_capacity=10,
+            mode=None,
+        )
+
+        with mock.patch("console.views.app_config.app_volume.volume_repo.get_service_volume_by_pk", return_value=volume):
+            with mock.patch("console.views.app_config.app_volume.volume_repo.get_service_config_file", return_value=None):
+                with mock.patch(
+                    "console.views.app_config.app_volume.volume_service.json_service_volume", return_value="{}"
+                ):
+                    with mock.patch(
+                        "console.views.app_config.app_volume.region_api.upgrade_service_volumes",
+                        return_value=(
+                            mock.Mock(status=400),
+                            {"code": 400, "msg": "StorageClass fast does not allow volume expansion"},
+                        ),
+                    ):
+                        response = self.view.put(request, volume_id="1")
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data["msg"], "StorageClass fast does not allow volume expansion")
+        self.assertEqual(response.data["msg_show"], "StorageClass fast does not allow volume expansion")
+        volume.save.assert_not_called()

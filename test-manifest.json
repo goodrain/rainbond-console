@@ -2930,6 +2930,24 @@
       "status": "active"
     },
     {
+      "id": "console.app.delete-component-failure-guard",
+      "title": "Preserve applications when component deletion fails",
+      "title_zh": "Preserve applications when component deletion fails",
+      "interface_type": "service_method",
+      "interface": "console.services.group_service.batch_delete_app_services",
+      "code_paths": [
+        "console/services/group_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/group_service_test.py",
+          "selector": "GroupServiceDeleteComponentFailureGuardTestCase"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.app.delete-confirmation-guard",
       "title": "Reject invalid application deletion confirmation token",
       "title_zh": "阻止无效的应用删除确认",
@@ -2981,6 +2999,24 @@
         {
           "path": "console/tests/mcp_query_service_test.py",
           "selector": "MCPQueryServiceDeleteAppTests.test_delete_app_requires_confirmation_then_delete"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.app.delete-with-resources",
+      "title": "Delete applications with attached resources",
+      "title_zh": "Delete applications with attached resources",
+      "interface_type": "service_method",
+      "interface": "console.services.group_service.delete_app_with_resources",
+      "code_paths": [
+        "console/services/group_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/group_service_test.py",
+          "selector": "GroupServiceDeleteAppWithResourcesTestCase"
         }
       ],
       "test_type": "regression",
@@ -5284,6 +5320,60 @@
       "status": "active"
     },
     {
+      "id": "console.component.volume-expansion-reconciles-drift",
+      "title": "Forward stored capacity to reconcile PVC drift",
+      "title_zh": "Forward stored capacity to reconcile PVC drift",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.app_config.app_volume.AppVolumeManageView.put",
+      "code_paths": [
+        "console/views/app_config/app_volume.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_volume_view_test.py",
+          "selector": "AppVolumeManageViewTestCase::test_put_forwards_same_capacity_for_pvc_reconciliation"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.component.volume-expansion-runtime",
+      "title": "Propagate PVC volume expansion runtime fields",
+      "title_zh": "Propagate PVC volume expansion runtime fields",
+      "interface_type": "service_method",
+      "interface": "console.services.app_config.volume_service.AppVolumeService.get_service_volumes",
+      "code_paths": [
+        "console/services/app_config/volume_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_volume_service_expansion_test.py",
+          "selector": "AppVolumeServiceExpansionTestCase::test_attach_volume_runtime_status_merges_expansion_fields"
+        }
+      ],
+      "test_type": "unit",
+      "status": "active"
+    },
+    {
+      "id": "console.component.volume-expansion-update",
+      "title": "Validate and forward component volume expansion",
+      "title_zh": "Validate and forward component volume expansion",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.app_config.app_volume.AppVolumeManageView.put",
+      "code_paths": [
+        "console/views/app_config/app_volume.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_volume_view_test.py",
+          "selector": "AppVolumeManageViewTestCase::test_put_rejects_volume_capacity_shrink"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.dependency.invalid-container-port",
       "title": "Dependency Invalid Container Port",
       "title_zh": "Dependency Invalid Container Port",
@@ -6719,6 +6809,43 @@
         {
           "path": "console/tests/utils/validation_test.py",
           "selector": "NamespaceNormalizationTests.test_normalize_name_for_k8s_namespace"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.k8s-resource.crd-cascade-delete",
+      "title": "CRD cascade deletion synchronizes Console metadata",
+      "title_zh": "CRD cascade deletion synchronizes Console metadata",
+      "interface_type": "service_method",
+      "interface": "console.services.k8s_resource.ComponentK8sResourceService.batch_delete_k8s_resource",
+      "code_paths": [
+        "console/services/k8s_resource.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/k8s_resource_service_test.py",
+          "selector": "K8sResourceDeletionServiceTest"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.k8s-resource.reconcile-endpoint",
+      "title": "Application Kubernetes resource reconcile endpoint",
+      "title_zh": "Application Kubernetes resource reconcile endpoint",
+      "interface_type": "view_endpoint",
+      "interface": "POST /console/teams/{team}/groups/{app}/k8s-resources/reconcile",
+      "code_paths": [
+        "console/views/k8s_resource.py",
+        "console/urls/__init__.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/k8s_resource_service_test.py",
+          "selector": "K8sResourceViewTest"
         }
       ],
       "test_type": "regression",

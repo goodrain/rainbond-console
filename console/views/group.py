@@ -245,7 +245,14 @@ class TenantGroupHandleView(ApplicationView):
         """
         删除应用及所有资源
         """
-        application_delete_service.delete_app(self.user, self.tenant, self.region_name, self.app, log_context=self)
+        application_delete_service.delete_app(
+            self.user,
+            self.tenant,
+            self.region_name,
+            self.app,
+            log_context=self,
+            cascade_crd=bool(request.data.get("cascade_crd", False)),
+            is_enterprise_admin=self.is_enterprise_admin)
 
         result = general_message(200, "success", "删除成功")
         return Response(result, status=result["code"])

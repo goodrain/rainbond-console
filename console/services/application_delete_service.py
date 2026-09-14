@@ -3,32 +3,30 @@ import json
 from types import SimpleNamespace
 from typing import Any, Dict
 
-from console.services.app_config_group import app_config_group_service
 from console.services.group_service import group_service
 from console.services.k8s_resource import k8s_resource_service
-from console.services.kubeblocks_service import kubeblocks_service
 from console.services.operation_log import operation_log_service
 
 
 class ApplicationDeleteService(object):
-    def delete_app(self, user: Any, tenant: Any, region_name: str, app: Any, log_context: Any = None) -> Dict[str, Any]:
+    def delete_app(self,
+                   user: Any,
+                   tenant: Any,
+                   region_name: str,
+                   app: Any,
+                   log_context: Any = None,
+                   cascade_crd: bool = False,
+                   is_enterprise_admin: bool = False) -> Dict[str, Any]:
         """Delete an application through the same complete Console workflow."""
-        services = group_service.batch_delete_app_services(user, tenant.tenant_id, region_name, app.ID)
-        service_ids = [service.service_id for service in services]
-        kubeblocks_service.delete_kubeblocks_cluster(service_ids, region_name)
-
         k8s_resources = k8s_resource_service.list_by_app_id(str(app.ID))
         resource_ids = [resource.ID for resource in k8s_resources]
-        k8s_resource_service.batch_delete_k8s_resource(
-            user.enterprise_id,
-            tenant.tenant_name,
-            str(app.ID),
-            region_name,
-            resource_ids,
-        )
-        app_config_group_service.batch_delete_config_group(region_name, tenant.tenant_name, app.ID)
-        group_service.delete_app_share_records(tenant.tenant_name, app.ID)
-        group_service.delete_app(tenant, region_name, app)
+        services = group_service.delete_app_with_resources(user,
+                                                           tenant,
+                                                           region_name,
+                                                           app,
+                                                           cascade_crd=cascade_crd,
+                                                           is_enterprise_admin=is_enterprise_admin)
+        service_ids = [service.service_id for service in services]
 
         component_names = [service.service_cname for service in services]
         old_information = json.dumps(
