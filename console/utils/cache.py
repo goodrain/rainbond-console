@@ -1,16 +1,26 @@
 # -*- coding: utf8 -*-
 import os
 import time
+import threading
 import redis
 import logging
 
 logger = logging.getLogger('default')
+
+_INCREMENT_WITH_EXPIRY = """
+local value = redis.call('INCR', KEYS[1])
+if value == 1 then
+    redis.call('EXPIRE', KEYS[1], ARGV[1])
+end
+return value
+"""
 
 
 class Cache(object):
     def __init__(self, max_cache_size=30):
         self.cache = {}
         self.max_cache_size = max_cache_size
+        self._lock = threading.RLock()
         self.redis = None
         if self.enable_redis:
             self.redis = redis.Redis(
@@ -56,6 +66,38 @@ class Cache(object):
                 logger.debug("The cache is full and cannot be set")
                 return
         self.cache[key] = {"expired_time": time.time() + seconds, "value": value}
+
+    def increment(self, key, seconds):
+        if self.enable_redis:
+            return self._redis_increment(key, seconds)
+        return self._memory_increment(key, seconds)
+
+    def _redis_increment(self, key, seconds):
+        try:
+            return int(self.redis.eval(_INCREMENT_WITH_EXPIRY, 1, key, seconds))
+        except Exception as e:
+            logger.exception(e)
+            return None
+
+    def _memory_increment(self, key, seconds):
+        with self._lock:
+            current = self._memory_get(key)
+            if current is None:
+                self._memory_set(key, 1, seconds)
+                return 1
+            value = int(current) + 1
+            self.cache[key]["value"] = value
+            return value
+
+    def delete(self, key):
+        if self.enable_redis:
+            try:
+                return self.redis.delete(key)
+            except Exception as e:
+                logger.exception(e)
+                return None
+        with self._lock:
+            return self.cache.pop(key, None)
 
     def _remove_expired_key(self):
         remove_keys = []

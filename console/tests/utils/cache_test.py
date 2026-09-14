@@ -117,3 +117,44 @@ class CacheMemoryTests(TestCase):
             with mock.patch("console.utils.cache.redis.Redis", return_value=redis_client):
                 cache = Cache()
                 self.assertIsNone(cache.set("foo", "bar", 30))
+
+
+class CacheAtomicIncrementTests(TestCase):
+    # capability_id: console.cache.atomic-increment
+    def test_memory_increment_uses_one_expiring_counter(self):
+        cache = Cache(max_cache_size=2)
+        with mock.patch("console.utils.cache.time.time", return_value=100):
+            self.assertEqual(cache.increment("attempts", 300), 1)
+        with mock.patch("console.utils.cache.time.time", return_value=101):
+            self.assertEqual(cache.increment("attempts", 300), 2)
+            self.assertEqual(cache.get("attempts"), 2)
+
+    # capability_id: console.cache.atomic-increment
+    def test_redis_increment_and_expiry_are_one_atomic_script(self):
+        with mock.patch.dict(os.environ, {"REDIS_HOST": "redis.example.com"}, clear=True):
+            redis_client = mock.Mock()
+            redis_client.eval.return_value = 3
+            with mock.patch("console.utils.cache.redis.Redis", return_value=redis_client):
+                cache = Cache()
+
+                self.assertEqual(cache.increment("attempts", 300), 3)
+
+                redis_client.eval.assert_called_once()
+                args = redis_client.eval.call_args[0]
+                self.assertIn("INCR", args[0])
+                self.assertIn("EXPIRE", args[0])
+                self.assertEqual(args[1:], (1, "attempts", 300))
+
+    # capability_id: console.cache.atomic-increment
+    def test_delete_removes_memory_and_redis_keys(self):
+        memory_cache = Cache(max_cache_size=2)
+        memory_cache.set("attempts", 1, 300)
+        memory_cache.delete("attempts")
+        self.assertIsNone(memory_cache.get("attempts"))
+
+        with mock.patch.dict(os.environ, {"REDIS_HOST": "redis.example.com"}, clear=True):
+            redis_client = mock.Mock()
+            with mock.patch("console.utils.cache.redis.Redis", return_value=redis_client):
+                redis_cache = Cache()
+                redis_cache.delete("attempts")
+                redis_client.delete.assert_called_once_with("attempts")

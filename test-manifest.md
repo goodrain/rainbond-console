@@ -176,6 +176,7 @@
 | console.app.restart-component-operation | operate_app 重启映射到批量操作 | active | regression | console.services.mcp_query_service.call_tool[console.app.restart-component-operation] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_operate_app_restart_calls_batch_action |
 | console.app.upgrade | 升级应用版本 | active | regression | console.services.mcp_query_service.call_tool[rainbond_upgrade_app] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_upgrade_app_calls_upgrade_service_and_returns_latest_items |
 | console.auth.get-user-no-legacy-middleware | 解析会话用户时不访问已废弃的 MIDDLEWARE_CLASSES | active | regression | console.services.auth.get_user | console/tests/auth_get_user_test.py::GetUserNoLegacyMiddlewareTests.test_returns_user_without_touching_middleware_classes<br>console/tests/auth_get_user_test.py::GetUserNoLegacyMiddlewareTests.test_returns_anonymous_user_when_no_session |
+| console.cache.atomic-increment | Atomic expiring cache increment | active | regression | console.utils.cache.Cache.increment | console/tests/utils/cache_test.py::CacheAtomicIncrementTests |
 | console.cache.capacity-guard | 内存缓存达到容量上限时拒绝或复用缓存槽位 | active | regression | console.utils.cache.Cache._memory_set | console/tests/utils/cache_test.py::CacheMemoryTests.test_memory_cache_refuses_new_key_when_full_without_expired_entries |
 | console.cache.expired-eviction | 在访问时清理已过期的内存缓存项 | active | regression | console.utils.cache.Cache._memory_get | console/tests/utils/cache_test.py::CacheMemoryTests.test_memory_cache_evicts_expired_entry_on_get |
 | console.cache.expired-eviction-count | 返回清理过期缓存时移除的条目数量 | active | regression | console.utils.cache.Cache._remove_expired_key | console/tests/utils/cache_test.py::CacheMemoryTests.test_remove_expired_key_returns_removed_count |
@@ -370,6 +371,11 @@
 | console.kubeblocks.create-credential-sync | 创建 KubeBlocks 组件时同步连接凭据 | active | regression | console.services.kubeblocks_service.KubeBlocksService.create_complete_kubeblocks_component | console/tests/kubeblocks_cluster_validation_test.py::KubeBlocksCreateFlowTests |
 | console.lang-version.proxy-upload | 代理旧版语言包上传接口 | active | regression | console.views.enterprise.UploadLongVersion.post | console/tests/lang_version_proxy_test.py::UploadLongVersionProxyViewTests |
 | console.logging.default-no-debug-noise | 默认控制台日志过滤调试噪音 | active | regression | goodrain_web.settings.LOGGING | console/tests/logging_config_test.py::LoggingConfigTests.test_default_logger_level_defaults_to_info<br>console/tests/logging_config_test.py::LoggingConfigTests.test_ip_formatter_uses_record_level_name |
+| console.login-security.admin-api | Login security admin API | retired | integration | console.views.login_security.LoginSecurityConfigView | console/tests/login_security_view_test.py::LoginSecurityConfigViewTests |
+| console.login-security.configuration | Login security configuration | retired | unit | console.services.login_security_service.LoginSecurityConfigService | console/tests/login_security_service_test.py::LoginSecurityConfigServiceTests |
+| console.login-security.failure-lock | Login failure lockout | active | unit | console.services.login_security_service.LoginAttemptService | console/tests/login_attempt_service_test.py::LoginAttemptServiceTests |
+| console.login-security.login-enforcement | Login CAPTCHA and lock enforcement | active | regression | console.views.jwt_token_view.JWTTokenView | console/tests/jwt_token_view_test.py::JWTTokenViewSecurityTests |
+| console.login-security.plugin-configuration | Plugin-backed login security configuration | active | regression | console.services.login_security_service.LoginSecurityConfigService | console/tests/login_security_service_test.py::LoginSecurityConfigServiceTests |
 | console.market-app.create-template-scope-name | 按发布范围和团队检查应用市场模板重名 | active | regression | console.services.market_app_service.MarketAppService.create_rainbond_app | console/tests/market_app_service_test.py::MarketAppServiceCreateRainbondAppTests |
 | console.market-app.delete-version-endpoint | 删除应用市场应用版本 | active | regression | console.views.center_pool.apps.AppVersionUDView.delete | console/tests/market_app_service_test.py::CenterPoolAppVersionViewTests |
 | console.market-app.install-default-storage-class | 应用市场安装使用平台默认存储类 | active | regression | console.services.market_app.new_components.NewComponents._template_to_volumes | console/tests/market_app_storage_test.py::MarketAppDefaultStorageClassTests.test_resolve_market_default_volume_type_prefers_configured_storage_class<br>console/tests/market_app_storage_test.py::MarketAppDefaultStorageClassTests.test_template_to_volumes_uses_configured_default_storage_class |
@@ -2332,6 +2338,16 @@
 - 代码路径: `console/services/auth/__init__.py`
 - 测试路径: `console/tests/auth_get_user_test.py::GetUserNoLegacyMiddlewareTests.test_returns_user_without_touching_middleware_classes`, `console/tests/auth_get_user_test.py::GetUserNoLegacyMiddlewareTests.test_returns_anonymous_user_when_no_session`
 
+### Atomic expiring cache increment
+
+- Capability ID: `console.cache.atomic-increment`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.utils.cache.Cache.increment`
+- 代码路径: `console/utils/cache.py`
+- 测试路径: `console/tests/utils/cache_test.py::CacheAtomicIncrementTests`
+
 ### 内存缓存达到容量上限时拒绝或复用缓存槽位
 
 - Capability ID: `console.cache.capacity-guard`
@@ -4271,6 +4287,56 @@
 - 业务入口: `goodrain_web.settings.LOGGING`
 - 代码路径: `goodrain_web/settings.py`, `goodrain_web/log_formatter.py`
 - 测试路径: `console/tests/logging_config_test.py::LoggingConfigTests.test_default_logger_level_defaults_to_info`, `console/tests/logging_config_test.py::LoggingConfigTests.test_ip_formatter_uses_record_level_name`
+
+### Login security admin API
+
+- Capability ID: `console.login-security.admin-api`
+- 状态: `retired`
+- 测试类型: `integration`
+- 接口类型: `view_endpoint`
+- 业务入口: `console.views.login_security.LoginSecurityConfigView`
+- 代码路径: `console/views/login_security.py`, `console/serializers/login_security.py`
+- 测试路径: `console/tests/login_security_view_test.py::LoginSecurityConfigViewTests`
+
+### Login security configuration
+
+- Capability ID: `console.login-security.configuration`
+- 状态: `retired`
+- 测试类型: `unit`
+- 接口类型: `service_method`
+- 业务入口: `console.services.login_security_service.LoginSecurityConfigService`
+- 代码路径: `console/services/login_security_service.py`
+- 测试路径: `console/tests/login_security_service_test.py::LoginSecurityConfigServiceTests`
+
+### Login failure lockout
+
+- Capability ID: `console.login-security.failure-lock`
+- 状态: `active`
+- 测试类型: `unit`
+- 接口类型: `service_method`
+- 业务入口: `console.services.login_security_service.LoginAttemptService`
+- 代码路径: `console/services/login_security_service.py`
+- 测试路径: `console/tests/login_attempt_service_test.py::LoginAttemptServiceTests`
+
+### Login CAPTCHA and lock enforcement
+
+- Capability ID: `console.login-security.login-enforcement`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `view_endpoint`
+- 业务入口: `console.views.jwt_token_view.JWTTokenView`
+- 代码路径: `console/views/jwt_token_view.py`, `console/serializer.py`, `console/captcha/captcha_code.py`
+- 测试路径: `console/tests/jwt_token_view_test.py::JWTTokenViewSecurityTests`
+
+### Plugin-backed login security configuration
+
+- Capability ID: `console.login-security.plugin-configuration`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.login_security_service.LoginSecurityConfigService`
+- 代码路径: `console/services/login_security_service.py`, `console/views/logos.py`
+- 测试路径: `console/tests/login_security_service_test.py::LoginSecurityConfigServiceTests`
 
 ### 按发布范围和团队检查应用市场模板重名
 

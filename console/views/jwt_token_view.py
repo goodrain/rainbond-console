@@ -1,13 +1,12 @@
 # coding:utf-8
 import logging
 import datetime
+import secrets
 from typing import Any
 
 from console.login.login_event import LoginEvent
 from console.repositories.login_event import login_event_repo
 from console.services.operation_log import operation_log_service, Operation, OperationModule
-from console.utils.cache import cache
-from rest_framework import status
 from rest_framework.permissions import AllowAny
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -15,9 +14,32 @@ from rest_framework.views import APIView
 
 from console.serializer import CustomJWTSerializer
 from console.login.jwt_manager import JwtManager
+from console.services.login_security_service import (LOGIN_FAILURE_THRESHOLD, LOGIN_LOCK_SECONDS,
+                                                     login_attempt_service, login_security_config_service)
 from console.utils import jwt_issuer
-from www.services import user_svc
 from www.utils.return_message import general_message, error_message
+
+
+def _consume_captcha(request: Request, provided_code: Any) -> bool:
+    expected_code = request.session.pop("captcha_code", None)
+    request.session.save()
+    if expected_code is None or provided_code is None:
+        return False
+    return secrets.compare_digest(str(expected_code).casefold(), str(provided_code).strip().casefold())
+
+
+def _locked_response(retry_after: int) -> Response:
+    response = Response(
+        general_message(
+            429,
+            "login temporarily locked",
+            "登录失败次数过多，请 {0} 秒后重试".format(retry_after),
+            bean={"retry_after": retry_after},
+        ),
+        status=429,
+    )
+    response["Retry-After"] = str(retry_after)
+    return response
 
 
 class JWTTokenView(APIView):
@@ -46,39 +68,6 @@ class JWTTokenView(APIView):
         """
         nick_name = request.POST.get("nick_name", None)
         password = request.POST.get("password", None)
-        captcha_code = request.POST.get("captcha_code", None)
-        real_captcha_code = request.session.get("captcha_code")
-        is_validate = request.POST.get("is_validate", False)
-        times = cache.get(nick_name)
-        # NOTE: nick_name from POST.get is str|None; legacy concat assumes str (operator backlog).
-        pass_error_times = cache.get(nick_name + "pass_error_times")  # type: ignore[operator]
-        if pass_error_times and int(pass_error_times) >= 4:
-            ten_min = cache.get(nick_name + "freeze")  # type: ignore[operator]
-            if not ten_min:
-                ten_min = (datetime.datetime.now() + datetime.timedelta(minutes=10)).strftime('%H:%M:%S')
-                cache.set(nick_name + "freeze", ten_min, 600)  # type: ignore[operator]
-                cache.set(nick_name + "pass_error_times", pass_error_times, 600)  # type: ignore[operator]
-                freeze_time = ten_min
-            elif type(ten_min) == bytes:
-                freeze_time = str(ten_min, encoding='utf-8')
-            else:
-                freeze_time = str(ten_min)
-            return Response(
-                general_message(400, "captcha code error", "连续登录失败次数过多,{0}后重试".format(freeze_time),
-                                {"is_verification_code": True}),
-                status=400)
-        times = 1 if not times else int(times) + 1
-        if is_validate == "false" and (real_captcha_code is None or captcha_code is None
-                                       or real_captcha_code.lower() != captcha_code.lower()):
-            return Response(general_message(400, "captcha code error", "验证码有误", {"is_verification_code": True}), status=400)
-        if is_validate == "true" and times > 3 and (real_captcha_code is None or captcha_code is None
-                                                    or real_captcha_code.lower() != captcha_code.lower()):
-            cache.set(nick_name, times, 3600)
-            return Response(general_message(400, "captcha code error", "验证码有误", {"is_verification_code": True}), status=400)
-        cache.set(nick_name, times, 3600)
-        # Invalidate the verification code after verification
-        request.session["captcha_code"] = None
-        request.session.save()
         try:
             if not nick_name:
                 code = 400
@@ -88,15 +77,25 @@ class JWTTokenView(APIView):
                 code = 400
                 result = general_message(code, "password is missing", "请填写密码")
                 return Response(result, status=code)
-            user, msg, code = user_svc.is_exist(nick_name, password)
-            if not user:
-                code = 400
-                result = general_message(code, "authorization fail ", msg)
-                return Response(result, status=code)
+            config = login_security_config_service.get_config(login_identifier=nick_name)
+            attempt_identity = None
+            if config["login_limit_enabled"]:
+                attempt_identity = login_attempt_service.identity(nick_name)
+                retry_after = login_attempt_service.lock_remaining(attempt_identity)
+                if retry_after > 0:
+                    return _locked_response(retry_after)
+
+            if config["login_captcha_enabled"]:
+                captcha_code = request.POST.get("captcha_code", None)
+                if not _consume_captcha(request, captcha_code):
+                    return Response(general_message(400, "captcha code error", "验证码错误"), status=400)
+
             serializer = self.get_serializer(data=request.data)
             if serializer.is_valid():
                 user = serializer.validated_data.get('user') or request.user
                 token = serializer.validated_data.get('token')
+                if attempt_identity is not None:
+                    login_attempt_service.clear(attempt_identity)
                 response_data = jwt_issuer.jwt_response_payload(token, user, request)
                 result = general_message(200, "login success", "登录成功", bean=response_data)
                 response = Response(result)
@@ -115,8 +114,12 @@ class JWTTokenView(APIView):
                 operation_log_service.create_enterprise_log(user=user, comment=comment,
                                                             enterprise_id=user.enterprise_id)  # type: ignore[union-attr]
                 return response
-            result = general_message(400, "login failed", "{}".format(list(dict(serializer.errors).values())[0][0]))
-            return Response(result, status=status.HTTP_400_BAD_REQUEST)
+            if config["login_limit_enabled"]:
+                failure_count = login_attempt_service.record_failure(attempt_identity)
+                if failure_count is not None and failure_count >= LOGIN_FAILURE_THRESHOLD:
+                    return _locked_response(LOGIN_LOCK_SECONDS)
+            result = general_message(400, "login failed", "用户名或密码错误")
+            return Response(result, status=400)
         except Exception as e:
             logging.exception(e)
             result = error_message()

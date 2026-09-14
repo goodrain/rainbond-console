@@ -3247,6 +3247,24 @@
       "status": "active"
     },
     {
+      "id": "console.cache.atomic-increment",
+      "title": "Atomic expiring cache increment",
+      "title_zh": "Atomic expiring cache increment",
+      "interface_type": "service_method",
+      "interface": "console.utils.cache.Cache.increment",
+      "code_paths": [
+        "console/utils/cache.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/utils/cache_test.py",
+          "selector": "CacheAtomicIncrementTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.cache.capacity-guard",
       "title": "Refuse or reuse cache slots when in-memory cache reaches capacity",
       "title_zh": "内存缓存达到容量上限时拒绝或复用缓存槽位",
@@ -7060,6 +7078,100 @@
         {
           "path": "console/tests/logging_config_test.py",
           "selector": "LoggingConfigTests.test_ip_formatter_uses_record_level_name"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.login-security.admin-api",
+      "title": "Login security admin API",
+      "title_zh": "Login security admin API",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.login_security.LoginSecurityConfigView",
+      "code_paths": [
+        "console/views/login_security.py",
+        "console/serializers/login_security.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/login_security_view_test.py",
+          "selector": "LoginSecurityConfigViewTests"
+        }
+      ],
+      "test_type": "integration",
+      "status": "retired"
+    },
+    {
+      "id": "console.login-security.configuration",
+      "title": "Login security configuration",
+      "title_zh": "Login security configuration",
+      "interface_type": "service_method",
+      "interface": "console.services.login_security_service.LoginSecurityConfigService",
+      "code_paths": [
+        "console/services/login_security_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/login_security_service_test.py",
+          "selector": "LoginSecurityConfigServiceTests"
+        }
+      ],
+      "test_type": "unit",
+      "status": "retired"
+    },
+    {
+      "id": "console.login-security.failure-lock",
+      "title": "Login failure lockout",
+      "title_zh": "Login failure lockout",
+      "interface_type": "service_method",
+      "interface": "console.services.login_security_service.LoginAttemptService",
+      "code_paths": [
+        "console/services/login_security_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/login_attempt_service_test.py",
+          "selector": "LoginAttemptServiceTests"
+        }
+      ],
+      "test_type": "unit",
+      "status": "active"
+    },
+    {
+      "id": "console.login-security.login-enforcement",
+      "title": "Login CAPTCHA and lock enforcement",
+      "title_zh": "Login CAPTCHA and lock enforcement",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.jwt_token_view.JWTTokenView",
+      "code_paths": [
+        "console/views/jwt_token_view.py",
+        "console/serializer.py",
+        "console/captcha/captcha_code.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/jwt_token_view_test.py",
+          "selector": "JWTTokenViewSecurityTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.login-security.plugin-configuration",
+      "title": "Plugin-backed login security configuration",
+      "title_zh": "Plugin-backed login security configuration",
+      "interface_type": "service_method",
+      "interface": "console.services.login_security_service.LoginSecurityConfigService",
+      "code_paths": [
+        "console/services/login_security_service.py",
+        "console/views/logos.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/login_security_service_test.py",
+          "selector": "LoginSecurityConfigServiceTests"
         }
       ],
       "test_type": "regression",
