@@ -15,6 +15,8 @@ from console.models.main import ConsoleSysConfig
 from console.repositories.perm_repo import perms_repo
 from console.repositories.team_repo import team_repo
 from console.services.config_service import (EnterpriseConfigService, platform_config_service)
+from console.services.login_security_service import (apply_login_security_to_platform_config,
+                                                     login_security_config_service)
 from console.services.platform_first_app_service import platform_first_app_service
 from console.services.perm_services import role_kind_services
 from console.services.perm_services import user_kind_role_service
@@ -86,6 +88,8 @@ class ConfigRUDView(AlowAnyApiView):
             ent_config = EnterpriseConfigService(data["enterprise_id"], user.user_id).initialization_or_get_config
             # 更新企业配置（包括自定义字段）
             data.update(ent_config)
+        data = apply_login_security_to_platform_config(
+            data, login_security_config_service.get_config(data.get("enterprise_id", "")))
         data["first_app_deployed"] = platform_first_app_service.is_deployed()
         data["is_disable_logout"] = os.getenv('IS_DISABLE_LOGOUT', False)
         data["is_offline"] = os.getenv('IS_OFFLINE', False)

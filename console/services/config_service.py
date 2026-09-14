@@ -284,7 +284,7 @@ class EnterpriseConfigService(ConfigService):
             "OBJECT_STORAGE", "AUTO_SSL", "TITLE", "LOGO", "FAVICON", "LOGIN_IMAGE", "DOCUMENT",
             "OFFICIAL_DEMO", "VISUAL_MONITOR", "CAPTCHA_CODE", "HEADER_COLOR", "HEADER_WRITING_COLOR",
             "SIDEBAR_COLOR", "SIDEBAR_WRITING_COLOR", "FOOTER", "SHADOW", "SHOW_K8S", "SHOW_LANGUE",
-            ConfigKeyEnum.SECURITY_RESTRICTIONS.name, ConfigKeyEnum.LOGIN_FAILURE_LOCK.name,
+            ConfigKeyEnum.SECURITY_RESTRICTIONS.name,
         ]
         self.cfg_keys_value = {
             "APPSTORE_IMAGE_HUB": {
@@ -391,11 +391,6 @@ class EnterpriseConfigService(ConfigService):
             "CAPTCHA_CODE": {
                 "value": None,
                 "desc": "开启/关闭登录验证码",
-                "enable": False
-            },
-            ConfigKeyEnum.LOGIN_FAILURE_LOCK.name: {
-                "value": None,
-                "desc": "开启/关闭登录失败锁定",
                 "enable": False
             },
             "HEADER_COLOR": {
@@ -518,7 +513,6 @@ class PlatformConfigService(ConfigService):
             "DOCUMENT",
             "OFFICIAL_DEMO",
             "CAPTCHA_CODE",
-            ConfigKeyEnum.LOGIN_FAILURE_LOCK.name,
             "HEADER_COLOR",
             "HEADER_WRITING_COLOR",
             "SIDEBAR_COLOR",
@@ -579,11 +573,6 @@ class PlatformConfigService(ConfigService):
             "CAPTCHA_CODE": {
                 "value": None,
                 "desc": "开启/关闭登录验证码",
-                "enable": False
-            },
-            ConfigKeyEnum.LOGIN_FAILURE_LOCK.name: {
-                "value": None,
-                "desc": "开启/关闭登录失败锁定",
                 "enable": False
             },
             "HEADER_COLOR": {

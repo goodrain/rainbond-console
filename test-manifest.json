@@ -7100,7 +7100,7 @@
         }
       ],
       "test_type": "integration",
-      "status": "active"
+      "status": "retired"
     },
     {
       "id": "console.login-security.configuration",
@@ -7118,7 +7118,7 @@
         }
       ],
       "test_type": "unit",
-      "status": "active"
+      "status": "retired"
     },
     {
       "id": "console.login-security.failure-lock",
@@ -7153,6 +7153,25 @@
         {
           "path": "console/tests/jwt_token_view_test.py",
           "selector": "JWTTokenViewSecurityTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.login-security.plugin-configuration",
+      "title": "Plugin-backed login security configuration",
+      "title_zh": "Plugin-backed login security configuration",
+      "interface_type": "service_method",
+      "interface": "console.services.login_security_service.LoginSecurityConfigService",
+      "code_paths": [
+        "console/services/login_security_service.py",
+        "console/views/logos.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/login_security_service_test.py",
+          "selector": "LoginSecurityConfigServiceTests"
         }
       ],
       "test_type": "regression",

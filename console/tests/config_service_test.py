@@ -145,7 +145,6 @@ class EnterpriseConfigServiceTests(TestCase):
             ConfigKeyEnum=types.SimpleNamespace(
                 SECURITY_RESTRICTIONS=ConfigKey("SECURITY_RESTRICTIONS"),
                 ENTERPRISE_EDITION=ConfigKey("ENTERPRISE_EDITION"),
-                LOGIN_FAILURE_LOCK=ConfigKey("LOGIN_FAILURE_LOCK"),
             ),
         )
         install_stub(

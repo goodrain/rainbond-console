@@ -77,7 +77,7 @@ class JWTTokenView(APIView):
                 code = 400
                 result = general_message(code, "password is missing", "请填写密码")
                 return Response(result, status=code)
-            config = login_security_config_service.get_config()
+            config = login_security_config_service.get_config(login_identifier=nick_name)
             attempt_identity = None
             if config["login_limit_enabled"]:
                 attempt_identity = login_attempt_service.identity(nick_name)

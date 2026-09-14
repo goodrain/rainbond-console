@@ -1,72 +1,154 @@
 # -*- coding: utf-8 -*-
 import hashlib
 import logging
+import os
+import threading
 import time
 from typing import Any, Callable, Dict, Optional
 
-from django.db import transaction
 from django.db.models import Q
 
-from console.models.main import ConsoleSysConfig
+from console.repositories.region_repo import region_repo
 from console.utils.cache import cache
+from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import Users
 
 logger = logging.getLogger("default")
 
-LOGIN_CAPTCHA_CONFIG_KEY = "CAPTCHA_CODE"
-LOGIN_FAILURE_LOCK_CONFIG_KEY = "LOGIN_FAILURE_LOCK"
+SECURITY_CENTER_PLUGIN_NAME = "rainbond-security-center"
+LOGIN_SECURITY_CONFIG_CACHE_TTL_SECONDS = 5
 LOGIN_FAILURE_THRESHOLD = 3
 LOGIN_FAILURE_WINDOW_SECONDS = 300
 LOGIN_LOCK_SECONDS = 300
 
-_CONFIG_DESCRIPTIONS = {
-    LOGIN_CAPTCHA_CONFIG_KEY: "开启/关闭登录验证码",
-    LOGIN_FAILURE_LOCK_CONFIG_KEY: "开启/关闭登录失败锁定",
-}
+
+def _default_login_security_config(plugin_installed: bool = False) -> Dict[str, Any]:
+    return {
+        "plugin_installed": plugin_installed,
+        "login_captcha_enabled": False,
+        "login_limit_enabled": False,
+        "failure_threshold": LOGIN_FAILURE_THRESHOLD,
+        "observation_window_seconds": LOGIN_FAILURE_WINDOW_SECONDS,
+        "lock_seconds": LOGIN_LOCK_SECONDS,
+        "source_region": "",
+    }
+
+
+def apply_login_security_to_platform_config(data: Dict[str, Any], config: Dict[str, Any]) -> Dict[str, Any]:
+    result = dict(data)
+    captcha = dict(result.get("captcha_code") or {})
+    captcha["enable"] = bool(config.get("login_captcha_enabled"))
+    captcha["value"] = None
+    result["captcha_code"] = captcha
+    result["login_security"] = dict(config)
+    return result
 
 
 class LoginSecurityConfigService(object):
-    @staticmethod
-    def _config(key: str) -> ConsoleSysConfig:
-        config, _ = ConsoleSysConfig.objects.get_or_create(
-            key=key,
-            defaults={
-                "type": "string",
-                "value": None,
-                "desc": _CONFIG_DESCRIPTIONS[key],
-                "enable": False,
-                "enterprise_id": "",
-            },
-        )
-        return config
+    def __init__(self,
+                 region_repository: Any = region_repo,
+                 region_client: Optional[Any] = None,
+                 now: Callable[[], float] = time.time,
+                 cache_ttl: int = LOGIN_SECURITY_CONFIG_CACHE_TTL_SECONDS,
+                 enterprise_resolver: Optional[Callable[[str], Any]] = None) -> None:
+        self.region_repository = region_repository
+        self.region_client = region_client or RegionInvokeApi()
+        self.now = now
+        self.cache_ttl = cache_ttl
+        self.enterprise_resolver = enterprise_resolver or self._resolve_enterprise_id
+        self._cache: Dict[str, Any] = {}
+        self._cache_lock = threading.Lock()
 
-    def get_config(self) -> Dict[str, Any]:
+    @staticmethod
+    def _resolve_enterprise_id(identifier: str) -> Optional[str]:
+        return Users.objects.filter(
+            Q(phone=identifier) | Q(email=identifier) | Q(nick_name=identifier)).values_list(
+                "enterprise_id", flat=True).first()
+
+    @staticmethod
+    def _parse_plugin_config(status: int, envelope: Any, region_name: str) -> Optional[Dict[str, Any]]:
+        if status != 200 or not isinstance(envelope, dict):
+            return None
+        try:
+            code = int(envelope.get("code", 0))
+        except (TypeError, ValueError):
+            return None
+        if code != 200:
+            return None
+        data = envelope.get("data")
+        if not isinstance(data, dict):
+            return None
         return {
-            "login_captcha_enabled": bool(self._config(LOGIN_CAPTCHA_CONFIG_KEY).enable),
-            "login_limit_enabled": bool(self._config(LOGIN_FAILURE_LOCK_CONFIG_KEY).enable),
+            "plugin_installed": True,
+            "login_captcha_enabled": data.get("login_captcha_enabled") is True,
+            "login_limit_enabled": data.get("login_limit_enabled") is True,
             "failure_threshold": LOGIN_FAILURE_THRESHOLD,
             "observation_window_seconds": LOGIN_FAILURE_WINDOW_SECONDS,
             "lock_seconds": LOGIN_LOCK_SECONDS,
+            "source_region": region_name,
         }
 
-    @transaction.atomic
-    def update_config(self, login_captcha_enabled: bool, login_limit_enabled: bool) -> Dict[str, Any]:
-        values = {
-            LOGIN_CAPTCHA_CONFIG_KEY: login_captcha_enabled,
-            LOGIN_FAILURE_LOCK_CONFIG_KEY: login_limit_enabled,
-        }
-        for key, enabled in values.items():
-            ConsoleSysConfig.objects.update_or_create(
-                key=key,
-                defaults={
-                    "type": "string",
-                    "value": None,
-                    "desc": _CONFIG_DESCRIPTIONS[key],
-                    "enable": enabled,
-                    "enterprise_id": "",
-                },
-            )
-        return self.get_config()
+    def get_config(self,
+                   enterprise_id: Optional[str] = None,
+                   login_identifier: Optional[str] = None) -> Dict[str, Any]:
+        if not enterprise_id and login_identifier:
+            try:
+                enterprise_id = self.enterprise_resolver(login_identifier)
+            except Exception as exc:
+                logger.warning("failed to resolve enterprise for login security: %s", exc)
+        enterprise_id = enterprise_id or os.environ.get("ENTERPRISE_ID", "")
+        if not enterprise_id:
+            return _default_login_security_config()
+
+        now = self.now()
+        with self._cache_lock:
+            cached = self._cache.get(enterprise_id)
+            if cached and cached["expires_at"] > now:
+                return dict(cached["config"])
+
+        config = _default_login_security_config()
+        try:
+            regions = self.region_repository.get_usable_regions(enterprise_id)
+        except Exception as exc:
+            logger.warning("failed to list regions for security center detection: %s", exc)
+            regions = []
+        if hasattr(regions, "order_by"):
+            regions = regions.order_by("ID")
+        for region in regions or []:
+            region_name = region.region_name
+            try:
+                installed = self.region_client.cluster_plugin_exists(
+                    enterprise_id, region_name, SECURITY_CENTER_PLUGIN_NAME)
+            except Exception as exc:
+                logger.warning("failed to detect security center plugin region=%s: %s", region_name, exc)
+                continue
+            if not installed:
+                continue
+            config["plugin_installed"] = True
+            try:
+                status, envelope = self.region_client.request_plugin_backend(
+                    enterprise_id,
+                    region_name,
+                    SECURITY_CENTER_PLUGIN_NAME,
+                    "GET",
+                    "/api/v1/config",
+                    timeout=3,
+                )
+            except Exception as exc:
+                logger.warning("failed to read security center config region=%s: %s", region_name, exc)
+                continue
+            parsed = self._parse_plugin_config(status, envelope, region_name)
+            if parsed is not None:
+                config = parsed
+                break
+
+        if self.cache_ttl > 0:
+            with self._cache_lock:
+                self._cache[enterprise_id] = {
+                    "expires_at": now + self.cache_ttl,
+                    "config": dict(config),
+                }
+        return config
 
 
 class LoginAttemptService(object):

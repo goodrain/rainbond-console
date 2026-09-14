@@ -75,11 +75,12 @@ class JWTTokenViewSecurityTests(TestCase):
             },
             attempt_service,
         )
-        with patches[0], patches[1]:
+        with patches[0] as get_config, patches[1]:
             response = JWTTokenView().post(self.request({"nick_name": "admin", "password": "wrong"}))
 
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.data["msg_show"], "验证码错误")
+        get_config.assert_called_once_with(login_identifier="admin")
         attempt_service.record_failure.assert_not_called()
 
     # capability_id: console.login-security.login-enforcement
