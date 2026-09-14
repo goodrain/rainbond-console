@@ -78,8 +78,10 @@ class JWTTokenView(APIView):
                 result = general_message(code, "password is missing", "请填写密码")
                 return Response(result, status=code)
             config = login_security_config_service.get_config()
+            attempt_identity = None
             if config["login_limit_enabled"]:
-                retry_after = login_attempt_service.lock_remaining(nick_name)
+                attempt_identity = login_attempt_service.identity(nick_name)
+                retry_after = login_attempt_service.lock_remaining(attempt_identity)
                 if retry_after > 0:
                     return _locked_response(retry_after)
 
@@ -92,7 +94,8 @@ class JWTTokenView(APIView):
             if serializer.is_valid():
                 user = serializer.validated_data.get('user') or request.user
                 token = serializer.validated_data.get('token')
-                login_attempt_service.clear(nick_name)
+                if attempt_identity is not None:
+                    login_attempt_service.clear(attempt_identity)
                 response_data = jwt_issuer.jwt_response_payload(token, user, request)
                 result = general_message(200, "login success", "登录成功", bean=response_data)
                 response = Response(result)
@@ -112,7 +115,7 @@ class JWTTokenView(APIView):
                                                             enterprise_id=user.enterprise_id)  # type: ignore[union-attr]
                 return response
             if config["login_limit_enabled"]:
-                failure_count = login_attempt_service.record_failure(nick_name)
+                failure_count = login_attempt_service.record_failure(attempt_identity)
                 if failure_count is not None and failure_count >= LOGIN_FAILURE_THRESHOLD:
                     return _locked_response(LOGIN_LOCK_SECONDS)
             result = general_message(400, "login failed", "用户名或密码错误")

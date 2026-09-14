@@ -32,6 +32,19 @@ class FailingCache(FakeCache):
 
 class LoginAttemptServiceTests(TestCase):
     # capability_id: console.login-security.failure-lock
+    def test_login_aliases_resolve_to_one_account_identity(self):
+        from console.services.login_security_service import LoginAttemptService
+
+        service = LoginAttemptService(
+            cache_backend=FakeCache(),
+            now=lambda: 1000,
+            account_resolver=lambda identifier: 42,
+        )
+
+        self.assertEqual(service.identity("admin"), service.identity("admin@example.com"))
+        self.assertEqual(service.identity("admin"), "user:42")
+
+    # capability_id: console.login-security.failure-lock
     def test_third_failure_locks_account_for_five_minutes(self):
         from console.services.login_security_service import LoginAttemptService
 

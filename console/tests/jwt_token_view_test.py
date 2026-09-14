@@ -67,6 +67,7 @@ class JWTTokenViewSecurityTests(TestCase):
     # capability_id: console.login-security.login-enforcement
     def test_enabled_captcha_cannot_be_bypassed_by_omitting_client_flag(self):
         attempt_service = mock.Mock()
+        attempt_service.identity.return_value = "user:1"
         patches = self.service_patches(
             {
                 "login_captcha_enabled": True,
@@ -84,6 +85,7 @@ class JWTTokenViewSecurityTests(TestCase):
     # capability_id: console.login-security.login-enforcement
     def test_wrong_captcha_is_consumed_without_counting_password_failure(self):
         attempt_service = mock.Mock()
+        attempt_service.identity.return_value = "user:1"
         patches = self.service_patches(
             {
                 "login_captcha_enabled": True,
@@ -110,6 +112,7 @@ class JWTTokenViewSecurityTests(TestCase):
     # capability_id: console.login-security.login-enforcement
     def test_third_password_failure_returns_429_and_retry_after(self):
         attempt_service = mock.Mock()
+        attempt_service.identity.return_value = "login:missing"
         attempt_service.lock_remaining.return_value = 0
         attempt_service.record_failure.return_value = 3
         patches = self.service_patches(
@@ -131,6 +134,7 @@ class JWTTokenViewSecurityTests(TestCase):
     # capability_id: console.login-security.login-enforcement
     def test_first_password_failure_uses_generic_message(self):
         attempt_service = mock.Mock()
+        attempt_service.identity.return_value = "login:missing"
         attempt_service.lock_remaining.return_value = 0
         attempt_service.record_failure.return_value = 1
         patches = self.service_patches(
@@ -151,6 +155,7 @@ class JWTTokenViewSecurityTests(TestCase):
     # capability_id: console.login-security.login-enforcement
     def test_existing_lock_is_checked_before_captcha_and_password(self):
         attempt_service = mock.Mock()
+        attempt_service.identity.return_value = "user:1"
         attempt_service.lock_remaining.return_value = 120
         patches = self.service_patches(
             {
@@ -187,6 +192,7 @@ class JWTTokenViewSecurityTests(TestCase):
         jwt_payload.return_value = {"token": "jwt-token"}
         operation_log.generate_generic_comment.return_value = "login"
         attempt_service = mock.Mock()
+        attempt_service.identity.return_value = "user:1"
         attempt_service.lock_remaining.return_value = 0
         patches = self.service_patches(
             {
@@ -201,7 +207,7 @@ class JWTTokenViewSecurityTests(TestCase):
             response = view.post(self.request({"nick_name": "Admin", "password": "correct"}))
 
         self.assertEqual(response.status_code, 200)
-        attempt_service.clear.assert_called_once_with("Admin")
+        attempt_service.clear.assert_called_once_with("user:1")
 
 
 class CaptchaViewSecurityTests(TestCase):

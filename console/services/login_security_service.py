@@ -5,9 +5,11 @@ import time
 from typing import Any, Callable, Dict, Optional
 
 from django.db import transaction
+from django.db.models import Q
 
 from console.models.main import ConsoleSysConfig
 from console.utils.cache import cache
+from www.models.main import Users
 
 logger = logging.getLogger("default")
 
@@ -68,9 +70,24 @@ class LoginSecurityConfigService(object):
 
 
 class LoginAttemptService(object):
-    def __init__(self, cache_backend: Any = cache, now: Callable[[], float] = time.time) -> None:
+    def __init__(self,
+                 cache_backend: Any = cache,
+                 now: Callable[[], float] = time.time,
+                 account_resolver: Optional[Callable[[str], Any]] = None) -> None:
         self.cache = cache_backend
         self.now = now
+        self.account_resolver = account_resolver or self._resolve_account_id
+
+    @staticmethod
+    def _resolve_account_id(identifier: str) -> Optional[int]:
+        return Users.objects.filter(
+            Q(phone=identifier) | Q(email=identifier) | Q(nick_name=identifier)).values_list("user_id", flat=True).first()
+
+    def identity(self, identifier: str) -> str:
+        account_id = self.account_resolver(identifier)
+        if account_id is not None:
+            return "user:{}".format(account_id)
+        return "login:{}".format(str(identifier or "").strip().casefold())
 
     @staticmethod
     def _digest(identifier: str) -> str:
