@@ -102,6 +102,7 @@ from console.views.enterprise import (
 from console.views.enterprise_active import (BindMarketEnterpriseAccessTokenView, BindMarketEnterpriseOptimizAccessTokenView)
 from console.views.enterprise_config import (EnterpriseAppStoreImageHubView, EnterpriseObjectStorageView,
                                              EnterpriseVisualMonitorView, EnterpriseAlertsView, EnterpriseConfigView)
+from console.views.login_security import LoginSecurityConfigView
 from console.views.errlog import ErrLogView
 from console.views.file_upload import ConsoleUploadFileView
 from console.views.group import (
@@ -1003,6 +1004,7 @@ urlpatterns = [
     re_path(r'^teams/(?P<team_name>[\w\-]+)/applicants$', ApplicantsView.as_view()),
     # enterprise configuration
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/configs$', EnterpriseConfigView.as_view()),
+    re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/login-security-config$', LoginSecurityConfigView.as_view()),
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/objectstorage$', EnterpriseObjectStorageView.as_view()),
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/appstoreimagehub$', EnterpriseAppStoreImageHubView.as_view()),
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/visualmonitor$', EnterpriseVisualMonitorView.as_view()),

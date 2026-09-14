@@ -20,6 +20,7 @@ class CustomJWTSerializer(serializers.Serializer):
 
     def validate(self, attrs):
         password = attrs.get("password")
+        invalid_credentials = _('用户名或密码错误')
 
         user_obj = Users.objects.filter(
             Q(phone=attrs.get("nick_name")) | Q(email=attrs.get("nick_name")) | Q(nick_name=attrs.get("nick_name"))).first()
@@ -30,13 +31,11 @@ class CustomJWTSerializer(serializers.Serializer):
                 user = authenticate(**credentials)
                 if user:
                     if not user.is_active:
-                        msg = _('用户帐户被禁用.')
-                        raise serializers.ValidationError(msg)
+                        raise serializers.ValidationError(invalid_credentials)
 
                     return {'token': issue_jwt(user), 'user': user}
                 else:
-                    msg = _('无法使用提供的凭证登录.')
-                    raise serializers.ValidationError(msg)
+                    raise serializers.ValidationError(invalid_credentials)
 
             else:
                 msg = _('用户名或密码不能为空.')
@@ -44,8 +43,7 @@ class CustomJWTSerializer(serializers.Serializer):
                 raise serializers.ValidationError(msg)
 
         else:
-            msg = _('账户邮箱/用户名不存在')
-            raise serializers.ValidationError(msg)
+            raise serializers.ValidationError(invalid_credentials)
 
 
 class ProbeSerilizer(serializers.Serializer):

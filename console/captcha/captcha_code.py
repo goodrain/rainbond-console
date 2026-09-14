@@ -1,9 +1,8 @@
 # -*- coding: utf8 -*-
-import hashlib
 import logging
 import random
 import re
-import uuid
+import secrets
 from io import BytesIO
 
 from console.views.base import AlowAnyApiView
@@ -30,9 +29,8 @@ class CaptchaView(AlowAnyApiView):
         获取验证码
         ---
         """
-        uid = str(uuid.uuid4())
-        mp_src = hashlib.md5(uid.encode("UTF-8")).hexdigest()
-        text = mp_src[0:4]
+        alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+        text = "".join(secrets.choice(alphabet) for _ in range(4))
         request.session["captcha_code"] = text
         request.session.save()
         font_path = current_path + "/www/static/www/fonts/Vera.ttf"
@@ -82,5 +80,7 @@ class CaptchaView(AlowAnyApiView):
         response = HttpResponse(content_type='image/png')
         response.write(out.read())
         response['Content-length'] = out.tell()
+        response['Cache-Control'] = 'no-store, no-cache, max-age=0'
+        response['Pragma'] = 'no-cache'
 
         return response
