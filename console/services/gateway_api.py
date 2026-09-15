@@ -26,6 +26,19 @@ class GatewayAPI(object):
         )
         return body["list"]  # type: ignore[index]  # NOTE: caller guarantees body is not None
 
+    def list_gateway_client_cas(self, region: str, tenant_name: str) -> Any:
+        body = region_api.list_gateway_client_cas(region, tenant_name)
+        return body.get("list", []) if body else []
+
+    def create_gateway_client_ca(self, region: str, tenant_name: str, name: str, certificate: str) -> Any:
+        return region_api.create_gateway_client_ca(region, tenant_name, {"name": name, "certificate": certificate})
+
+    def update_gateway_client_ca(self, region: str, tenant_name: str, name: str, certificate: str) -> Any:
+        return region_api.update_gateway_client_ca(region, tenant_name, {"name": name, "certificate": certificate})
+
+    def delete_gateway_client_ca(self, region: str, tenant_name: str, name: str) -> Any:
+        return region_api.delete_gateway_client_ca(region, tenant_name, name)
+
     def create_gateway_tls(self, region: str, tenant_name: str, namespace: str, name: str, private_key: str,
                            certificate: str) -> Any:
         body = dict()

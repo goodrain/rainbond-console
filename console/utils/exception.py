@@ -8,3 +8,5 @@ err_invalid_cert = ServiceHandleException("the certificate is invalid", "无效�
 err_cert_mismatch = ServiceHandleException("the certificate key pair mismatch", "证书密钥对不匹配")
 
 err_invalid_private_key = ServiceHandleException("the private key is invalid", "无效私钥")
+
+err_cert_not_ca = ServiceHandleException("the certificate is not a CA certificate", "证书不是有效的 CA 证书")

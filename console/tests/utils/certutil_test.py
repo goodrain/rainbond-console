@@ -21,6 +21,7 @@ from console.utils.certutil import analyze_cert
 from console.utils.certutil import cert_is_effective
 from console.utils.certutil import parse_subject_alt_names
 from console.utils.certutil import utc2local
+from console.utils.certutil import validate_ca_certificate  # noqa: E402
 
 
 class CertUtilTests(TestCase):
@@ -44,6 +45,25 @@ class CertUtilTests(TestCase):
         cert_pem = crypto.dump_certificate(crypto.FILETYPE_PEM, cert)
         key_pem = crypto.dump_privatekey(crypto.FILETYPE_PEM, key)
         return cert_pem, key_pem
+
+    def _generate_ca_certificate(self, is_ca=True, expired=False):
+        key = crypto.PKey()
+        key.generate_key(crypto.TYPE_RSA, 2048)
+
+        cert = crypto.X509()
+        cert.set_version(2)
+        cert.set_serial_number(10 if is_ca else 11)
+        cert.get_subject().CN = "client-ca" if is_ca else "client"
+        cert.get_issuer().CN = cert.get_subject().CN
+        cert.gmtime_adj_notBefore(-2 * 24 * 60 * 60 if expired else 0)
+        cert.gmtime_adj_notAfter(-24 * 60 * 60 if expired else 365 * 24 * 60 * 60)
+        cert.set_pubkey(key)
+        cert.add_extensions([
+            crypto.X509Extension(b"basicConstraints", True, b"CA:TRUE" if is_ca else b"CA:FALSE"),
+            crypto.X509Extension(b"keyUsage", True, b"keyCertSign" if is_ca else b"digitalSignature"),
+        ])
+        cert.sign(key, "sha256")
+        return crypto.dump_certificate(crypto.FILETYPE_PEM, cert)
 
     # capability_id: console.cert.summary
     def test_analyze_cert(self):
@@ -101,3 +121,14 @@ class CertUtilTests(TestCase):
         cert_pem, _ = self._generate_cert_and_key()
         with self.assertRaises(ServiceHandleException):
             cert_is_effective(cert_pem, b"not-a-private-key")
+
+    # capability_id: console.gateway.client-ca-management
+    def test_validate_ca_certificate(self):
+        self.assertTrue(validate_ca_certificate(self._generate_ca_certificate()))
+
+        with self.assertRaises(ServiceHandleException):
+            validate_ca_certificate(self._generate_ca_certificate(is_ca=False))
+        with self.assertRaises(ServiceHandleException):
+            validate_ca_certificate(self._generate_ca_certificate(expired=True))
+        with self.assertRaises(ServiceHandleException):
+            validate_ca_certificate(b"not-a-certificate")

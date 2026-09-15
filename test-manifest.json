@@ -5998,6 +5998,29 @@
       "status": "active"
     },
     {
+      "id": "console.gateway.client-ca-management",
+      "title": "Manage gateway client CA certificates",
+      "title_zh": "Manage gateway client CA certificates",
+      "interface_type": "service_method",
+      "interface": "console.services.app_config.domain_service.DomainService.add_certificate",
+      "code_paths": [
+        "console/services/app_config/domain_service.py",
+        "console/utils/certutil.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_domain_certificate_test.py",
+          "selector": "GatewayClientCAManagementTests"
+        },
+        {
+          "path": "console/tests/utils/certutil_test.py",
+          "selector": "CertUtilTests.test_validate_ca_certificate"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.gateway.component-env-upsert-schema",
       "title": "Gateway Component Env Upsert Schema",
       "title_zh": "Gateway Component Env Upsert Schema",
@@ -6103,6 +6126,24 @@
         {
           "path": "console/tests/mcp_query_service_test.py",
           "selector": "MCPQueryServiceToolVisibilityTests.test_manage_component_dependency_schema_exposes_container_port_guidance"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.gateway.domain-mtls-proxy",
+      "title": "Proxy gateway domain mTLS updates",
+      "title_zh": "Proxy gateway domain mTLS updates",
+      "interface_type": "service_method",
+      "interface": "www.apiclient.regionapi.RegionInvokeApi.api_gateway_delete_proxy",
+      "code_paths": [
+        "www/apiclient/regionapi.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_domain_certificate_test.py",
+          "selector": "GatewayMTLSProxyTests"
         }
       ],
       "test_type": "regression",

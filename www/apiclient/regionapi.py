@@ -1298,6 +1298,34 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._delete(url, self.default_headers, region=region)
         return body
 
+    def list_gateway_client_cas(self, region: str, tenant_name: str) -> Optional[Dict[str, Any]]:
+        url, token = self.__get_region_access_info(tenant_name, region)
+        url = url + "/v2/tenants/" + tenant_name + "/gateway-client-ca"
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region)
+        return body
+
+    def create_gateway_client_ca(self, region: str, tenant_name: str, body: dict) -> Optional[Dict[str, Any]]:
+        url, token = self.__get_region_access_info(tenant_name, region)
+        url = url + "/v2/tenants/" + tenant_name + "/gateway-client-ca"
+        self._set_headers(token)
+        res, body = self._post(url, self.default_headers, json.dumps(body), region=region)
+        return body
+
+    def update_gateway_client_ca(self, region: str, tenant_name: str, body: dict) -> Optional[Dict[str, Any]]:
+        url, token = self.__get_region_access_info(tenant_name, region)
+        url = url + "/v2/tenants/" + tenant_name + "/gateway-client-ca"
+        self._set_headers(token)
+        res, body = self._put(url, self.default_headers, json.dumps(body), region=region)
+        return body
+
+    def delete_gateway_client_ca(self, region: str, tenant_name: str, name: str) -> Optional[Dict[str, Any]]:
+        url, token = self.__get_region_access_info(tenant_name, region)
+        url = url + "/v2/tenants/" + tenant_name + "/gateway-client-ca?name=" + quote(name, safe="")
+        self._set_headers(token)
+        res, body = self._delete(url, self.default_headers, region=region)
+        return body
+
     def get_gateway_http_route(self, region: str, tenant_name: str, namespace: str,
                                name: str) -> Optional[Dict[str, Any]]:
         url, token = self.__get_region_access_info(tenant_name, region)
@@ -3454,7 +3482,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url, token = self.__get_region_access_info(tenant_name, region)
         self._set_headers(token)
         res, body = self._delete(url + path, self.default_headers, region=region)
-        if body["list"]:
+        if body.get("list", []):
             for n in body["list"]:
                 # 在这里对每个元素进行操作
                 k8s_resources_repo.delete_route_by_name(n)
