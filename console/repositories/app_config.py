@@ -688,18 +688,18 @@ class ServiceDomainRepository(object):
     def get_tenant_certificate(self, tenant_id: str) -> QuerySet:
         return ServiceDomainCertificate.objects.filter(tenant_id=tenant_id)
 
-    def get_tenant_certificate_page(self, tenant_id: str, start: int, end: int,
-                                    search_key: Optional[str] = None) -> Tuple[QuerySet, int]:
+    def get_tenant_certificate_page(self, tenant_id: str, start: int, end: int, search_key: Optional[str] = None,
+                                    certificate_kind: str = "server") -> Tuple[QuerySet, int]:
         """提供指定位置和数量的数据"""
+        cert = ServiceDomainCertificate.objects.filter(tenant_id=tenant_id)
+        if certificate_kind == "client_ca":
+            cert = cert.filter(certificate_type="client_ca")
+        elif certificate_kind != "all":
+            cert = cert.exclude(certificate_type="client_ca")
         if search_key:
             # 如果有搜索关键字，按证书别名进行模糊搜索
-            cert = ServiceDomainCertificate.objects.filter(
-                tenant_id=tenant_id,
-                alias__icontains=search_key
-            )
-        else:
-            cert = ServiceDomainCertificate.objects.filter(tenant_id=tenant_id)
-        
+            cert = cert.filter(alias__icontains=search_key)
+
         nums = cert.count()  # 证书数量
         part_cert = cert[start:end + 1]
         return part_cert, nums

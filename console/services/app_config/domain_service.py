@@ -19,7 +19,7 @@ from console.services.app_config.exceptoin import (err_cert_name_exists, err_cer
 from console.services.gateway_api import gateway_api
 from console.services.group_service import group_service
 from console.services.region_services import region_services
-from console.utils.certutil import analyze_cert, cert_is_effective
+from console.utils.certutil import analyze_cert, cert_is_effective, validate_ca_certificate
 from console.utils.shortcuts import get_object_or_404
 from django.db import connection, transaction
 from django.forms.models import model_to_dict
@@ -36,14 +36,23 @@ ErrNotFoundStreamDomain = ServiceHandleException(status_code=404, error_code=240
 
 class DomainService(object):
     HTTP = "http"
+    CLIENT_CA_CERTIFICATE_TYPE = "client_ca"
+    CLIENT_CA_SECRET_PREFIX = "rbd-client-ca-"
 
     def get_time_now(self) -> str:
         return datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-    def get_certificate(self, tenant: Any, page: int, page_size: int, search_key: Optional[str] = None) -> Tuple[list, Any]:
+    def get_certificate(self, tenant: Any, page: int, page_size: int, search_key: Optional[str] = None,
+                        certificate_kind: str = "server", region_name: Optional[str] = None) -> Tuple[list, Any]:
         end = page_size * page - 1  # 一页数据的开始索引
         start = end - page_size + 1  # 一页数据的结束索引
-        certificate, nums = domain_repo.get_tenant_certificate_page(tenant.tenant_id, start, end, search_key)
+        certificate, nums = domain_repo.get_tenant_certificate_page(
+            tenant.tenant_id, start, end, search_key, certificate_kind)
+        certificate = list(certificate)
+        client_ca_statuses = {}
+        if region_name and any(c.certificate_type == self.CLIENT_CA_CERTIFICATE_TYPE for c in certificate):
+            statuses = gateway_api.list_gateway_client_cas(region_name, tenant.tenant_name)
+            client_ca_statuses = {status.get("name"): status for status in statuses}
         c_list = []
         for c in certificate:
             cert = base64.b64decode(c.certificate).decode('utf-8')
@@ -52,8 +61,15 @@ class DomainService(object):
             data["certificate_type"] = c.certificate_type
             data["id"] = c.ID
             data.update(analyze_cert(cert))
+            if c.certificate_type == self.CLIENT_CA_CERTIFICATE_TYPE:
+                secret_name = self.client_ca_secret_name(c.certificate_id)
+                data["secret_name"] = secret_name
+                data["bound_domains"] = client_ca_statuses.get(secret_name, {}).get("bound_domains", [])
             c_list.append(data)
         return c_list, nums
+
+    def client_ca_secret_name(self, certificate_id: str) -> str:
+        return self.CLIENT_CA_SECRET_PREFIX + certificate_id.lower()
 
     def __check_certificate_alias(self, tenant: Any, alias: str) -> None:
         if domain_repo.get_certificate_by_alias(tenant.tenant_id, alias):
@@ -62,14 +78,28 @@ class DomainService(object):
     def add_certificate(self, region: RegionConfig, tenant: Any, alias: str, certificate_id: str, certificate: str,
                         private_key: str, certificate_type: str) -> ServiceDomainCertificate:
         self.__check_certificate_alias(tenant, alias)
-        cert_is_effective(certificate, private_key)
+        if certificate_type == self.CLIENT_CA_CERTIFICATE_TYPE:
+            validate_ca_certificate(certificate)
+            private_key = ""
+            secret_name = self.client_ca_secret_name(certificate_id)
+            gateway_api.create_gateway_client_ca(region.region_name, tenant.tenant_name, secret_name, certificate)
+        else:
+            cert_is_effective(certificate, private_key)
         if certificate_type == "gateway":
             gateway_api.create_gateway_tls(region.region_name, tenant.tenant_name, tenant.namespace, alias, private_key,
                                            certificate)
         certificate = base64.b64encode(certificate.encode('utf-8')).decode('utf-8')
-        certificate = domain_repo.add_certificate(tenant.tenant_id, alias, certificate_id, certificate, private_key,
-                                                  certificate_type)
-        return certificate
+        try:
+            certificate_record = domain_repo.add_certificate(
+                tenant.tenant_id, alias, certificate_id, certificate, private_key, certificate_type)
+        except Exception:
+            if certificate_type == self.CLIENT_CA_CERTIFICATE_TYPE:
+                try:
+                    gateway_api.delete_gateway_client_ca(region.region_name, tenant.tenant_name, secret_name)
+                except Exception as cleanup_error:
+                    logger.error("failed to clean up gateway client CA secret %s: %s", secret_name, cleanup_error)
+            raise
+        return certificate_record
 
     def delete_certificate_by_alias(self, tenant: Any, alias: str) -> Tuple[int, str]:
         certificate = domain_repo.get_certificate_by_alias(tenant.tenant_id, alias)
@@ -96,6 +126,12 @@ class DomainService(object):
         cert = domain_repo.get_certificate_by_pk(pk)
         if not cert:
             raise err_cert_not_found
+
+        if cert.certificate_type == self.CLIENT_CA_CERTIFICATE_TYPE:
+            gateway_api.delete_gateway_client_ca(
+                region, tenant.tenant_name, self.client_ca_secret_name(cert.certificate_id))
+            cert.delete()
+            return
 
         # can't delete the cerificate that till has http rules
         # NOTE: pk is an int here but list_service_domains_by_cert_id expects str (certificate_id
@@ -127,12 +163,39 @@ class DomainService(object):
     @transaction.atomic
     def update_certificate(self, region: RegionConfig, tenant: Any, certificate_id: str, alias: str, certificate: str,
                            private_key: str, certificate_type: str) -> ServiceDomainCertificate:
-        cert_is_effective(certificate, private_key)
         # NOTE: certificate_id is str here while get_certificate_by_pk expects int; relies on
         # ORM coercion (other callers wrap with int()).
         cert = domain_repo.get_certificate_by_pk(certificate_id)  # type: ignore[arg-type]
         if cert is None:
             raise err_cert_not_found
+        certificate_type = certificate_type or cert.certificate_type
+        alias = alias or cert.alias
+        if cert.certificate_type == self.CLIENT_CA_CERTIFICATE_TYPE or certificate_type == self.CLIENT_CA_CERTIFICATE_TYPE:
+            if cert.certificate_type != self.CLIENT_CA_CERTIFICATE_TYPE or certificate_type != self.CLIENT_CA_CERTIFICATE_TYPE:
+                raise ServiceHandleException(
+                    "client CA certificate type can not be changed", "客户端 CA 类型不允许修改", 400, 400)
+            previous_certificate = base64.b64decode(cert.certificate).decode('utf-8')
+            certificate = certificate or previous_certificate
+            validate_ca_certificate(certificate)
+            secret_name = self.client_ca_secret_name(cert.certificate_id)
+            gateway_api.update_gateway_client_ca(
+                region.region_name, tenant.tenant_name, secret_name, certificate)
+            try:
+                if cert.alias != alias:
+                    self.__check_certificate_alias(tenant, alias)
+                    cert.alias = alias
+                cert.certificate = base64.b64encode(certificate.encode('utf-8')).decode('utf-8')
+                cert.private_key = ""
+                cert.save()
+            except Exception:
+                try:
+                    gateway_api.update_gateway_client_ca(
+                        region.region_name, tenant.tenant_name, secret_name, previous_certificate)
+                except Exception as rollback_error:
+                    logger.error("failed to restore gateway client CA secret %s: %s", secret_name, rollback_error)
+                raise
+            return cert
+        cert_is_effective(certificate, private_key)
         if cert.alias != alias:
             self.__check_certificate_alias(tenant, alias)
             cert.alias = alias

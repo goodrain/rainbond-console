@@ -5,7 +5,7 @@ import logging
 import time
 
 from console.utils.exception import (ServiceHandleException, err_cert_expired, err_cert_mismatch, err_invalid_cert,
-                                     err_invalid_private_key)
+                                     err_invalid_private_key, err_cert_not_ca)
 from OpenSSL import crypto
 
 logger = logging.getLogger("default")
@@ -87,6 +87,28 @@ def cert_is_effective(content, private_key):
         crypto.verify(cert, sign, "data", "sha256")
     except Exception:
         raise err_cert_mismatch
+    return True
+
+
+def validate_ca_certificate(content):
+    """Validate a PEM certificate used as a gateway client trust anchor."""
+    try:
+        cert = crypto.load_certificate(crypto.FILETYPE_PEM, content)
+    except Exception as e:
+        logger.warning("loading CA certificate: {}".format(e))
+        raise err_invalid_cert
+    if cert.has_expired():
+        raise err_cert_expired
+
+    is_ca = False
+    for index in range(cert.get_extension_count()):
+        extension = cert.get_extension(index)
+        short_name = extension.get_short_name()
+        if short_name == b"basicConstraints" or short_name == "basicConstraints":
+            is_ca = "CA:TRUE" in str(extension).upper()
+            break
+    if not is_ca:
+        raise err_cert_not_ca
     return True
 
 

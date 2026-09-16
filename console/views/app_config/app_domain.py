@@ -42,6 +42,15 @@ region_api = RegionInvokeApi()
 dns1123_subdomain_max_length = 253
 
 
+def certificate_operation_information(alias: str, certificate_type: str, certificate: str = "",
+                                      private_key: str = "") -> str:
+    information = {"证书名称": alias, "证书类型": certificate_type}
+    if certificate_type != "client_ca":
+        information["公钥证书"] = certificate
+        information["私钥"] = private_key
+    return json.dumps(information, ensure_ascii=False)
+
+
 def validate_domain(domain: str) -> Tuple[bool, str]:
     if len(domain) > dns1123_subdomain_max_length:
         return False, "域名长度不能超过{}".format(dns1123_subdomain_max_length)
@@ -82,7 +91,9 @@ class TenantCertificateView(RegionTenantHeaderView):
         page = int(request.GET.get("page_num", 1))
         page_size = int(request.GET.get("page_size", 10))
         search_key = request.GET.get("search_key", None)
-        certificates, nums = domain_service.get_certificate(self.tenant, page, page_size, search_key)
+        certificate_kind = request.GET.get("certificate_kind", "server")
+        certificates, nums = domain_service.get_certificate(
+            self.tenant, page, page_size, search_key, certificate_kind, self.region_name)
         bean = {"nums": nums}
         result = general_message(200, "success", "查询成功", list=certificates, bean=bean)
         return Response(result, status=result["code"])
@@ -127,13 +138,7 @@ class TenantCertificateView(RegionTenantHeaderView):
             certificate_type)  # type: ignore[arg-type]
         bean = {"alias": alias, "id": new_c.ID}
         result = general_message(200, "success", "操作成功", bean=bean)
-        new_information = json.dumps({
-            "证书名称": alias,
-            "证书类型": certificate_type,
-            "公钥证书": certificate,
-            "私钥": private_key
-        },
-            ensure_ascii=False)
+        new_information = certificate_operation_information(alias, certificate_type, certificate, private_key)
         comment = operation_log_service.generate_team_comment(
             operation=Operation.FOR,
             module_name=self.tenant.tenant_alias,  # type: ignore[arg-type]
@@ -173,13 +178,9 @@ class TenantCertificateManageView(RegionTenantHeaderView):
         if cert is None:
             result = general_message(200, "success", "证书删除成功")
             return Response(result, status=result["code"])
-        old_information = json.dumps({
-            "证书名称": cert["alias"],  # type: ignore[index]
-            "证书类型": cert["certificate_type"],  # type: ignore[index]
-            "公钥证书": cert["certificate"],  # type: ignore[index]
-            "私钥": cert["private_key"]  # type: ignore[index]
-        },
-            ensure_ascii=False)
+        old_information = certificate_operation_information(
+            cert["alias"], cert["certificate_type"], cert["certificate"], cert["private_key"]  # type: ignore[index]
+        )
         domain_service.delete_certificate_by_pk(self.region.region_name, self.tenant, certificate_id)  # type: ignore[arg-type]
         result = general_message(200, "success", "证书删除成功")
         comment = operation_log_service.generate_team_comment(
@@ -242,26 +243,16 @@ class TenantCertificateManageView(RegionTenantHeaderView):
         certificate = request.data.get("certificate", None)
         certificate_type = request.data.get("certificate_type", None)
         _, _, cert = domain_service.get_certificate_by_pk(certificate_id)
-        old_information = json.dumps({
-            "证书名称": cert["alias"],  # type: ignore[index]
-            "证书类型": cert["certificate_type"],  # type: ignore[index]
-            "公钥证书": cert["certificate"],  # type: ignore[index]
-            "私钥": cert["private_key"]  # type: ignore[index]
-        },
-                                     ensure_ascii=False)
+        old_information = certificate_operation_information(
+            cert["alias"], cert["certificate_type"], cert["certificate"], cert["private_key"]  # type: ignore[index]
+        )
         domain_repo.get_certificate_by_pk(int(certificate_id))
 
         cert = domain_service.update_certificate(
             self.region, self.tenant, certificate_id, new_alias, certificate,  # type: ignore[arg-type]
             private_key,  # type: ignore[arg-type]
             certificate_type)  # type: ignore[arg-type]
-        new_information = json.dumps({
-            "证书名称": cert.alias,
-            "证书类型": certificate_type,
-            "公钥证书": certificate,
-            "私钥": private_key
-        },
-                                     ensure_ascii=False)
+        new_information = certificate_operation_information(cert.alias, cert.certificate_type, certificate, private_key)
         result = general_message(200, "success", "证书修改成功")
         comment = operation_log_service.generate_team_comment(
             operation=Operation.UPDATE,
