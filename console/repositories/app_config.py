@@ -694,7 +694,7 @@ class ServiceDomainRepository(object):
         cert = ServiceDomainCertificate.objects.filter(tenant_id=tenant_id)
         if certificate_kind == "client_ca":
             cert = cert.filter(certificate_type="client_ca")
-        else:
+        elif certificate_kind != "all":
             cert = cert.exclude(certificate_type="client_ca")
         if search_key:
             # 如果有搜索关键字，按证书别名进行模糊搜索

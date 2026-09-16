@@ -41,6 +41,7 @@ from console.exception.main import ServiceHandleException  # noqa: E402
 from www.apiclient.regionapi import RegionInvokeApi  # noqa: E402
 
 domain_service_module = importlib.import_module("console.services.app_config.domain_service")
+app_config_repository_module = importlib.import_module("console.repositories.app_config")
 
 
 class TenantCertificateDeleteTests(TestCase):
@@ -149,6 +150,71 @@ class GatewayClientCAManagementTests(TestCase):
         self.assertEqual(items[0]["secret_name"], "rbd-client-ca-certificate-id")
         self.assertEqual(items[0]["bound_domains"], ["api.example.com"])
         get_page.assert_called_once_with("tenant-id", 0, 9, None, "client_ca")
+
+    def test_list_all_certificate_kinds_maps_client_ca_binding(self):
+        server = SimpleNamespace(
+            alias="api-server",
+            certificate_type="gateway",
+            certificate_id="server-id",
+            certificate=base64.b64encode(b"server-certificate").decode("utf-8"),
+            ID=6,
+        )
+        client_ca = SimpleNamespace(
+            alias="partner-ca",
+            certificate_type="client_ca",
+            certificate_id="certificate-id",
+            certificate=base64.b64encode(b"ca-certificate").decode("utf-8"),
+            ID=7,
+        )
+        statuses = [{"name": "rbd-client-ca-certificate-id", "bound_domains": ["api.example.com"]}]
+
+        with (
+                mock.patch.object(
+                    domain_service_module.domain_repo,
+                    "get_tenant_certificate_page",
+                    return_value=([server, client_ca], 2),
+                ) as get_page,
+                mock.patch.object(
+                    domain_service_module,
+                    "analyze_cert",
+                    side_effect=[{"issued_to": ["api.example.com"]}, {"issued_to": ["Partner Root CA"]}],
+                ),
+                mock.patch.object(
+                    domain_service_module.gateway_api,
+                    "list_gateway_client_cas",
+                    return_value=statuses,
+                ) as list_client_cas,
+        ):
+            items, total = self.service.get_certificate(
+                self.tenant,
+                1,
+                10,
+                certificate_kind="all",
+                region_name="demo-region",
+            )
+
+        self.assertEqual(total, 2)
+        self.assertEqual([item["certificate_type"] for item in items], ["gateway", "client_ca"])
+        self.assertNotIn("bound_domains", items[0])
+        self.assertEqual(items[1]["bound_domains"], ["api.example.com"])
+        get_page.assert_called_once_with("tenant-id", 0, 9, None, "all")
+        list_client_cas.assert_called_once_with("demo-region", "demo-team")
+
+    def test_repository_all_kind_does_not_filter_certificate_type(self):
+        queryset = mock.MagicMock()
+        queryset.count.return_value = 2
+        queryset.__getitem__.return_value = ["server", "client-ca"]
+
+        with mock.patch.object(app_config_repository_module.ServiceDomainCertificate, "objects") as objects:
+            objects.filter.return_value = queryset
+            records, total = app_config_repository_module.domain_repo.get_tenant_certificate_page(
+                "tenant-id", 0, 9, None, "all")
+
+        objects.filter.assert_called_once_with(tenant_id="tenant-id")
+        queryset.filter.assert_not_called()
+        queryset.exclude.assert_not_called()
+        self.assertEqual(records, ["server", "client-ca"])
+        self.assertEqual(total, 2)
 
     def test_add_client_ca_cleans_up_secret_when_database_save_fails(self):
         with (

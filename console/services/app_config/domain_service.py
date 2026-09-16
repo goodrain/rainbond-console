@@ -48,8 +48,9 @@ class DomainService(object):
         start = end - page_size + 1  # 一页数据的结束索引
         certificate, nums = domain_repo.get_tenant_certificate_page(
             tenant.tenant_id, start, end, search_key, certificate_kind)
+        certificate = list(certificate)
         client_ca_statuses = {}
-        if certificate_kind == self.CLIENT_CA_CERTIFICATE_TYPE and region_name:
+        if region_name and any(c.certificate_type == self.CLIENT_CA_CERTIFICATE_TYPE for c in certificate):
             statuses = gateway_api.list_gateway_client_cas(region_name, tenant.tenant_name)
             client_ca_statuses = {status.get("name"): status for status in statuses}
         c_list = []
