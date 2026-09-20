@@ -5,7 +5,7 @@
 import json
 import logging
 import re
-from typing import Any, Tuple
+from typing import Any, Tuple, cast
 
 from console.constants import DomainType
 from console.repositories.app import service_repo
@@ -138,7 +138,8 @@ class TenantCertificateView(RegionTenantHeaderView):
             certificate_type)  # type: ignore[arg-type]
         bean = {"alias": alias, "id": new_c.ID}
         result = general_message(200, "success", "操作成功", bean=bean)
-        new_information = certificate_operation_information(alias, certificate_type, certificate, private_key)
+        new_information = certificate_operation_information(
+            cast(str, alias), cast(str, certificate_type), cast(str, certificate), cast(str, private_key))
         comment = operation_log_service.generate_team_comment(
             operation=Operation.FOR,
             module_name=self.tenant.tenant_alias,  # type: ignore[arg-type]
@@ -252,7 +253,8 @@ class TenantCertificateManageView(RegionTenantHeaderView):
             self.region, self.tenant, certificate_id, new_alias, certificate,  # type: ignore[arg-type]
             private_key,  # type: ignore[arg-type]
             certificate_type)  # type: ignore[arg-type]
-        new_information = certificate_operation_information(cert.alias, cert.certificate_type, certificate, private_key)
+        new_information = certificate_operation_information(cert.alias, cert.certificate_type, cast(str, certificate),
+                                                            cast(str, private_key))
         result = general_message(200, "success", "证书修改成功")
         comment = operation_log_service.generate_team_comment(
             operation=Operation.UPDATE,

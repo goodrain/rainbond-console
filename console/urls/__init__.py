@@ -1296,4 +1296,5 @@ urlpatterns += [
 urlpatterns += [
     re_path(r'^', include('console.urls.platform_resources')),
     re_path(r'^', include('console.urls.team_resources')),
+    re_path(r'^', include('console.urls.cleanup_inventory')),
 ]
