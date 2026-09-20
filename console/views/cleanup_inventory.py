@@ -1,4 +1,4 @@
-"""Internal, explicitly configured, signed GET-only inventory export."""
+"""Installation-scoped, signed GET-only inventory export."""
 import os
 from typing import Any
 
@@ -8,6 +8,8 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from console.services.cleanup_gateway import CleanupGatewayUnavailable
+from console.services.cleanup_installation import resolve_gateway_key
 from console.models.main import AppVersionTemplateRelation, RainbondCenterAppVersion, ServiceUpgradeRecord
 from console.repositories.region_repo import region_repo
 from console.services.cleanup_inventory import template_resource, verify_source_request, version_resources, deployment_resource
@@ -29,14 +31,13 @@ class CleanupInventoryView(APIView):
     def get(self, request: Request, enterprise_id: str, region_name: str) -> Response:
         allowed_enterprise = os.environ.get("CLEANUP_SOURCE_ENTERPRISE_ID", "")
         allowed_regions = os.environ.get("CLEANUP_SOURCE_REGIONS", "").split(",")
-        if not allowed_enterprise or enterprise_id != allowed_enterprise or region_name not in allowed_regions:
+        # Optional explicit legacy scope narrows access; otherwise installation ownership is authoritative.
+        if ((allowed_enterprise and enterprise_id != allowed_enterprise)
+                or (os.environ.get("CLEANUP_SOURCE_REGIONS") and region_name not in allowed_regions)):
             return Response({"errorCode": "SOURCE_SCOPE_UNAVAILABLE"}, status=403)
         try:
-            with open(os.environ.get("CLEANUP_GATEWAY_KEY_FILE", ""), "rb") as stream:
-                key = stream.read(65537).strip()
-            if len(key) > 65536:
-                raise ValueError("invalid configuration")
-        except (OSError, ValueError):
+            key = resolve_gateway_key(enterprise_id, region_name)
+        except CleanupGatewayUnavailable:
             return Response({"errorCode": "SOURCE_AUTH_UNAVAILABLE"}, status=503)
         if not verify_source_request(request.method, request.get_full_path(), enterprise_id, region_name,
                                      request.headers.get("X-Cleanup-Source-Time"),
