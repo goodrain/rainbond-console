@@ -1,8 +1,10 @@
 """Internal, explicitly configured, signed GET-only inventory export."""
 import os
+from typing import Any
 
 from django.db.models import Q
 from rest_framework.permissions import AllowAny
+from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -19,12 +21,12 @@ class CleanupInventoryView(APIView):
     permission_classes = [AllowAny]
     http_method_names = ["get"]
 
-    def finalize_response(self, request, response, *args, **kwargs):
+    def finalize_response(self, request: Request, response: Response, *args: Any, **kwargs: Any) -> Response:
         response = super().finalize_response(request, response, *args, **kwargs)
         response["Cache-Control"] = "no-store"
         return response
 
-    def get(self, request, enterprise_id, region_name):
+    def get(self, request: Request, enterprise_id: str, region_name: str) -> Response:
         allowed_enterprise = os.environ.get("CLEANUP_SOURCE_ENTERPRISE_ID", "")
         allowed_regions = os.environ.get("CLEANUP_SOURCE_REGIONS", "").split(",")
         if not allowed_enterprise or enterprise_id != allowed_enterprise or region_name not in allowed_regions:
@@ -51,27 +53,39 @@ class CleanupInventoryView(APIView):
         except ValueError:
             return Response({"errorCode": "INVALID_REQUEST"}, status=400)
         teams = Tenants.objects.filter(enterprise_id=enterprise_id)
+        page: list[dict[str, Any]]
         if kind == "templates":
-            query = RainbondCenterAppVersion.objects.filter(
+            template_query = RainbondCenterAppVersion.objects.filter(
                 Q(enterprise_id=enterprise_id) | Q(share_team__in=teams.values_list("tenant_name", flat=True))).filter(
                 Q(region_name=region_name) | Q(region_name="") | Q(region_name__isnull=True))
+            if upper == 0:
+                upper = template_query.order_by("-ID").values_list("ID", flat=True).first() or 0
+            if cursor > upper:
+                return Response({"errorCode": "INVALID_REQUEST"}, status=400)
+            template_fields = ("ID", "app_id", "version", "share_team", "app_template")
+            page = list(template_query.filter(ID__gt=cursor, ID__lte=upper).order_by("ID").values(*template_fields)[:26])
         elif kind == "deployments":
-            query = ServiceUpgradeRecord.objects.filter(
+            deployment_query = ServiceUpgradeRecord.objects.filter(
                 app_upgrade_record__tenant_id__in=teams.values_list("tenant_id", flat=True),
                 service__tenant_id__in=teams.values_list("tenant_id", flat=True), service__service_region=region_name)
+            if upper == 0:
+                upper = deployment_query.order_by("-ID").values_list("ID", flat=True).first() or 0
+            if cursor > upper:
+                return Response({"errorCode": "INVALID_REQUEST"}, status=400)
+            deployment_fields = ("ID", "service_id", "service_cname", "status", "app_upgrade_record_id",
+                                 "app_upgrade_record__version", "app_upgrade_record__old_version",
+                                 "app_upgrade_record__record_type")
+            page = list(
+                deployment_query.filter(ID__gt=cursor, ID__lte=upper).order_by("ID").values(*deployment_fields)[:26])
         else:
-            query = TenantServiceInfo.objects.filter(
+            version_query = TenantServiceInfo.objects.filter(
                 tenant_id__in=teams.values_list("tenant_id", flat=True), service_region=region_name)
-        if upper == 0:
-            upper = query.order_by("-ID").values_list("ID", flat=True).first() or 0
-        if cursor > upper:
-            return Response({"errorCode": "INVALID_REQUEST"}, status=400)
-        fields = ("ID", "app_id", "version", "share_team", "app_template") if kind == "templates" else (
-            "ID", "service_id", "service_alias", "service_cname", "tenant_id")
-        if kind == "deployments":
-            fields = ("ID", "service_id", "service_cname", "status", "app_upgrade_record_id",
-                      "app_upgrade_record__version", "app_upgrade_record__old_version", "app_upgrade_record__record_type")
-        page = list(query.filter(ID__gt=cursor, ID__lte=upper).order_by("ID").values(*fields)[:26])
+            if upper == 0:
+                upper = version_query.order_by("-ID").values_list("ID", flat=True).first() or 0
+            if cursor > upper:
+                return Response({"errorCode": "INVALID_REQUEST"}, status=400)
+            version_fields = ("ID", "service_id", "service_alias", "service_cname", "tenant_id")
+            page = list(version_query.filter(ID__gt=cursor, ID__lte=upper).order_by("ID").values(*version_fields)[:26])
         more = len(page) > 25
         page = page[:25]
         resources, failures = [], []

@@ -114,7 +114,7 @@ class JWTTokenView(APIView):
                 operation_log_service.create_enterprise_log(user=user, comment=comment,
                                                             enterprise_id=user.enterprise_id)  # type: ignore[union-attr]
                 return response
-            if config["login_limit_enabled"]:
+            if config["login_limit_enabled"] and attempt_identity is not None:
                 failure_count = login_attempt_service.record_failure(attempt_identity)
                 if failure_count is not None and failure_count >= LOGIN_FAILURE_THRESHOLD:
                     return _locked_response(LOGIN_LOCK_SECONDS)

@@ -13,6 +13,7 @@ from rest_framework.exceptions import PermissionDenied
 from console.exception.main import ServiceHandleException
 from console.repositories.region_repo import region_repo
 from console.services.cleanup_gateway import CleanupAccessDenied, CleanupGatewayUnavailable, prepare_cleanup_request
+from console.services.region_services import region_services
 
 from console.views.base import (
     AlowAnyApiView,
@@ -285,8 +286,11 @@ class RainbondPluginBackendView(JWTAuthApiView):
         super().initial(request, *args, **kwargs)
         if kwargs.get("plugin_name") not in ("rainbond-disk", "rainbond-disk-cleanup"):
             return
-        region_name = kwargs.get("region_name", "")
-        region_allowed = bool(region_repo.get_enterprise_region_by_region_name(self.user.enterprise_id, region_name))
+        region_name = kwargs.get("region_name")
+        enterprise_id = self.user.enterprise_id
+        if not isinstance(region_name, str) or not enterprise_id:
+            raise PermissionDenied("无权管理此集群的磁盘资源")
+        region_allowed = bool(region_repo.get_enterprise_region_by_region_name(enterprise_id, region_name))
         # Never open or forward a privileged signing credential for an unauthorized user.
         if not self.is_enterprise_admin or not region_allowed:
             raise PermissionDenied("无权管理此集群的磁盘资源")
@@ -343,6 +347,7 @@ class RainbondPluginBackendView(JWTAuthApiView):
         path = _backend_plugin_path(plugin_name, file_path, request.META.get('QUERY_STRING', ''))
         return _allow_sameorigin_frame(region_api.stream_proxy(request, path, region_name))
 
+
 class RainbondPluginStatusView(EnterpriseAdminView):
     def post(self, request: Request, region_name: str, plugin_name: str, *args: Any, **kwargs: Any) -> Response:
         path = "/v2/platform/plugins/" + plugin_name + "/status"
@@ -350,6 +355,7 @@ class RainbondPluginStatusView(EnterpriseAdminView):
         # NOTE: post_proxy may return None; legacy code indexes directly (backlog).
         result = general_message(200, "success", "更新成功", bean=resp['bean'], list=resp['list'])  # type: ignore[index]
         return Response(result, status=result["code"])
+
 
 class RainbondOfficialPluginLView(JWTAuthApiView):
     def get(self, request: Request, enterprise_id: str, region_name: str, *args: Any, **kwargs: Any) -> Response:
