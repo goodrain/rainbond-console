@@ -1,6 +1,7 @@
 # -*- coding: utf8 -*-
 import json
 import logging
+import os
 from typing import Any, Dict, Optional, Set
 
 import urllib3
@@ -8,6 +9,10 @@ from django.db.models import Q
 from django.http import HttpResponse
 from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.exceptions import PermissionDenied
+from console.exception.main import ServiceHandleException
+from console.repositories.region_repo import region_repo
+from console.services.cleanup_gateway import CleanupAccessDenied, CleanupGatewayUnavailable, prepare_cleanup_request
 
 from console.views.base import (
     AlowAnyApiView,
@@ -275,6 +280,30 @@ class RainbondPluginStaticView(AlowAnyApiView):
 
 class RainbondPluginBackendView(JWTAuthApiView):
     authentication_classes = (InternalTokenAuthentication, PluginQueryTokenAuthentication)
+
+    def initial(self, request: Request, *args: Any, **kwargs: Any) -> None:
+        super().initial(request, *args, **kwargs)
+        if kwargs.get("plugin_name") not in ("rainbond-disk", "rainbond-disk-cleanup"):
+            return
+        region_name = kwargs.get("region_name", "")
+        region_allowed = bool(region_repo.get_enterprise_region_by_region_name(self.user.enterprise_id, region_name))
+        # Never open or forward a privileged signing credential for an unauthorized user.
+        if not self.is_enterprise_admin or not region_allowed:
+            raise PermissionDenied("无权管理此集群的磁盘资源")
+        try:
+            key_path = os.environ.get("CLEANUP_GATEWAY_KEY_FILE", "")
+            if not key_path:
+                raise CleanupGatewayUnavailable()
+            with open(key_path, "rb") as key_file:
+                key = key_file.read(4097).strip()
+            if len(key) > 4096:
+                raise CleanupGatewayUnavailable()
+            prepare_cleanup_request(request, region_name, kwargs.get("file_path", ""),
+                                    self.is_enterprise_admin, region_allowed, key)
+        except CleanupAccessDenied:
+            raise PermissionDenied("无权管理此集群的磁盘资源")
+        except (CleanupGatewayUnavailable, OSError):
+            raise ServiceHandleException("cleanup gateway unavailable", "磁盘清理访问配置未就绪", status_code=503)
 
     # 流式代理插件后端 API：支持 SSE / 长响应，转发 body 与请求头（含 Cookie/JWT），
     # 不缓冲、不走 proxy() 的固定 20s 超时。
