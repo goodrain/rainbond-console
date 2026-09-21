@@ -3,10 +3,52 @@ import hashlib
 import hmac
 import unittest
 
-from console.services.cleanup_inventory import template_resource, verify_source_request, version_resources, deployment_resource
+from console.services.cleanup_inventory import (template_resource, verify_source_request, version_resources,
+                                                deployment_resource, failed_scope_label)
 
 
 class CleanupInventoryProjectionTests(unittest.TestCase):
+    def test_failed_component_keeps_identifier_and_readable_context(self):
+        self.assertEqual(failed_scope_label({"service_id": "s1", "service_cname": "支付接口", "owner_name": "研发 / 商城"}),
+                         "研发 / 商城 / 支付接口 (s1)")
+        self.assertEqual(failed_scope_label({"service_id": "s1"}), "s1")
+
+    def test_version_owner_uses_team_and_application_label(self):
+        component = {"service_id": "component-id", "service_cname": "订单接口", "owner_name": "研发团队 / 订单系统"}
+        result = version_resources(component, {"list": [{"build_version": "v1"}]}, "r")[0]
+        self.assertEqual(result["name"], "订单接口 / v1")
+        self.assertEqual(result["owner"], "研发团队 / 订单系统")
+        self.assertEqual(result["id"], "version:r:component-id:v1")
+
+    def test_deployment_reference_is_readable_without_changing_key(self):
+        row = {"ID": 1, "service_id": "component-id", "service_cname": "订单接口", "owner_name": "研发团队 / 订单系统",
+               "app_upgrade_record_id": 9, "app_upgrade_record__group_name": "订单系统",
+               "app_upgrade_record__old_version": "v1", "app_upgrade_record__version": "v2"}
+        result = deployment_resource(row, "r")
+        self.assertEqual(result["owner"], "研发团队 / 订单系统")
+        self.assertEqual(result["references"][0]["key"], "app-record:9")
+        self.assertIn("订单系统", result["references"][0]["name"])
+
+    def test_template_uses_published_chinese_name_and_keeps_stable_id(self):
+        row = {"ID": 3, "app_id": "opaque-id", "version": "v2",
+               "share_team": "team-id", "owner_name": "研发团队 / 订单系统",
+               "app_template": json.dumps({"group_name": "订单管理系统", "apps": []})}
+        result = template_resource(row, "r", False)
+        self.assertEqual(result["name"], "订单管理系统 / v2")
+        self.assertEqual(result["id"], "template:r:3")
+        self.assertEqual(result["owner"], "")
+        self.assertEqual(result["protection"], "reference_unknown")
+
+    def test_snapshot_name_and_legacy_name_fallback(self):
+        for template, expected in [({"group_name": "数据库备份"}, "数据库备份"),
+                                   ({"group_name": " ", "app_name": "旧版模板"}, "旧版模板"),
+                                   ({"group_name": {}}, "opaque-id"), ({}, "opaque-id")]:
+            result = template_resource({"ID": 4, "app_id": "opaque-id", "version": "v1",
+                                        "app_template": json.dumps(template)}, "r", True)
+            self.assertEqual(result["name"], expected + " / v1")
+            self.assertEqual(result["resourceType"], "application_snapshot")
+            self.assertEqual(result["owner"], "")
+
     def test_deployment_record_is_read_only_evidence_not_a_rollback_guarantee(self):
         row = {"ID": 8, "service_id": "s", "service_cname": "web", "status": 3,
                "app_upgrade_record__version": "v2", "app_upgrade_record__old_version": "v1",

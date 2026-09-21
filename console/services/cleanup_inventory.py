@@ -39,15 +39,30 @@ def _base(identifier, region, category, kind, name, owner):
             "usageStatus": "unknown", "decision": "protected", "images": [], "actions": []}
 
 
+def _display_name(*values):
+    return next((value.strip() for value in values if isinstance(value, str) and value.strip()), "")
+
+
+def failed_scope_label(row):
+    identifier = str(row.get("id") or row.get("service_id") or "")
+    name = _display_name(row.get("name"), row.get("service_cname"), row.get("service_alias"))
+    owner = _display_name(row.get("owner_name"))
+    label = " / ".join(value for value in (owner, name) if value)
+    return "{} ({})".format(label, identifier) if label else identifier
+
+
 def template_resource(row, region, hidden):
     result = _base("template:{}:{}".format(region, row["ID"]), region, "templates",
                    "application_snapshot" if hidden else "template_version",
-                   "{} / {}".format(row.get("app_id", ""), row.get("version", "")), row.get("share_team", ""))
+                   "{} / {}".format(_display_name(row.get("app_name"), row.get("app_id")), row.get("version", "")),
+                   "")
     result["source"] = "platform_templates"
     try:
         template = json.loads(row.get("app_template") or "{}")
         if not isinstance(template, dict):
             raise ValueError("invalid template")
+        name = _display_name(template.get("group_name"), template.get("app_name"), row.get("app_name"), row.get("app_id"))
+        result["name"] = "{} / {}".format(name, row.get("version", ""))
         images = set()
         for section in ("apps", "plugins"):
             components = template.get(section, [])
@@ -81,7 +96,8 @@ def version_resources(component, payload, region):
         number = str(version["build_version"])
         name = component.get("service_cname") or component.get("service_alias") or component["service_id"]
         result = _base("version:{}:{}:{}".format(region, component["service_id"], number), region,
-                       "rollbacks", "build_version", "{} / {}".format(name, number), component["service_id"])
+                       "rollbacks", "build_version", "{} / {}".format(name, number),
+                       _display_name(component.get("owner_name"), name, component["service_id"]))
         result["source"] = "platform_versions"
         result["usageStatus"] = "current_deployment" if number == current else "history_unverified"
         if number == current:
@@ -101,12 +117,17 @@ def deployment_resource(row, region):
     result = _base("deployment:{}:{}".format(region, row["ID"]), region, "rollbacks", kind,
                    "{} / {} → {}".format(row.get("service_cname") or row["service_id"],
                                          row.get("app_upgrade_record__old_version") or "—",
-                                         row.get("app_upgrade_record__version") or "—"), row["service_id"])
+                                         row.get("app_upgrade_record__version") or "—"),
+                   _display_name(row.get("owner_name"), row.get("service_cname"), row["service_id"]))
     statuses = {1: "pending", 2: "upgrading", 3: "upgraded", 4: "rolling_back", 5: "rolled_back",
                 6: "partial_upgrade", 7: "partial_rollback", 8: "upgrade_failed", 9: "rollback_failed", 10: "deploy_failed"}
     result["recordStatus"] = statuses.get(row.get("status"), "unknown")
     result["source"] = "platform_deployments"
     result["usageStatus"] = "referenced" if row.get("status") in (1, 2, 4) else "history_unverified"
     result["references"] = [{"key": "app-record:{}".format(row["app_upgrade_record_id"]),
-                             "kind": "application_record", "name": str(row["app_upgrade_record_id"])}]
+                             "kind": "application_record", "name": "{} / {} → {}".format(
+                                 _display_name(row.get("app_upgrade_record__group_name"), row.get("owner_name"),
+                                               str(row["app_upgrade_record_id"])),
+                                 row.get("app_upgrade_record__old_version") or "—",
+                                 row.get("app_upgrade_record__version") or "—")}]
     return result

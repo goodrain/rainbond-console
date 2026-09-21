@@ -10,11 +10,12 @@ from rest_framework.views import APIView
 
 from console.services.cleanup_gateway import CleanupGatewayUnavailable
 from console.services.cleanup_installation import resolve_gateway_key
-from console.models.main import AppVersionTemplateRelation, RainbondCenterAppVersion, ServiceUpgradeRecord
+from console.models.main import AppVersionTemplateRelation, RainbondCenterApp, RainbondCenterAppVersion, ServiceUpgradeRecord
 from console.repositories.region_repo import region_repo
-from console.services.cleanup_inventory import template_resource, verify_source_request, version_resources, deployment_resource
+from console.services.cleanup_inventory import (template_resource, verify_source_request, version_resources,
+                                                deployment_resource, failed_scope_label)
 from www.apiclient.regionapi import RegionInvokeApi
-from www.models.main import Tenants, TenantServiceInfo
+from www.models.main import ServiceGroup, ServiceGroupRelation, Tenants, TenantServiceInfo
 
 
 class CleanupInventoryView(APIView):
@@ -75,7 +76,7 @@ class CleanupInventoryView(APIView):
                 return Response({"errorCode": "INVALID_REQUEST"}, status=400)
             deployment_fields = ("ID", "service_id", "service_cname", "status", "app_upgrade_record_id",
                                  "app_upgrade_record__version", "app_upgrade_record__old_version",
-                                 "app_upgrade_record__record_type")
+                                 "app_upgrade_record__record_type", "app_upgrade_record__group_name")
             page = list(
                 deployment_query.filter(ID__gt=cursor, ID__lte=upper).order_by("ID").values(*deployment_fields)[:26])
         else:
@@ -90,11 +91,37 @@ class CleanupInventoryView(APIView):
         more = len(page) > 25
         page = page[:25]
         resources, failures = [], []
+        team_rows = list(teams.values("tenant_id", "tenant_name", "tenant_alias"))
+        team_labels = {team["tenant_name"]: team["tenant_alias"] or team["tenant_name"] for team in team_rows}
+        if kind == "templates":
+            template_names = dict(RainbondCenterApp.objects.filter(
+                Q(enterprise_id=enterprise_id) | Q(create_team__in=team_labels),
+                app_id__in=[row["app_id"] for row in page]).values_list("app_id", "app_name"))
+            for row in page:
+                row["app_name"] = template_names.get(row["app_id"], "")
+        else:
+            team_ids = {team["tenant_id"]: team["tenant_alias"] or team["tenant_name"] for team in team_rows}
+            relations = list(ServiceGroupRelation.objects.filter(
+                tenant_id__in=team_ids, region_name=region_name,
+                service_id__in=[row["service_id"] for row in page]).values("service_id", "tenant_id", "group_id"))
+            app_labels = dict(ServiceGroup.objects.filter(
+                tenant_id__in=team_ids, region_name=region_name,
+                ID__in=[row["group_id"] for row in relations]).values_list("ID", "group_name"))
+            owners: dict[str, set[str]] = {}
+            for relation in relations:
+                label = " / ".join(value for value in [team_ids.get(relation["tenant_id"], ""),
+                                                       app_labels.get(relation["group_id"], "")] if value)
+                if label:
+                    owners.setdefault(relation["service_id"], set()).add(label)
+            for row in page:
+                row["owner_name"] = " · ".join(sorted(owners.get(row["service_id"], set())))
+                if not row["owner_name"]:
+                    row["owner_name"] = team_ids.get(row.get("tenant_id", ""), "")
         if kind == "templates":
             hidden = set(AppVersionTemplateRelation.objects.filter(
                 tenant_id__in=teams.values_list("tenant_id", flat=True)).values_list("app_model_id", flat=True))
             resources = [template_resource(row, region_name, row["app_id"] in hidden) for row in page]
-            failures = [row["id"] for row in resources if not row["observed"]]
+            failures = [failed_scope_label(row) for row in resources if not row["observed"]]
         elif kind == "deployments":
             resources = [deployment_resource(row, region_name) for row in page]
         else:
@@ -111,7 +138,7 @@ class CleanupInventoryView(APIView):
                     resources.extend(rows)
                 except Exception:
                     # Never return upstream bodies, URLs, credentials or full exception text.
-                    failures.append(component["service_id"])
+                    failures.append(failed_scope_label(component))
         return Response({"enterprise": enterprise_id, "region": region_name, "kind": kind,
                          "resources": resources, "cursor": page[-1]["ID"] if more else 0, "upper": upper,
                          "failedScopes": failures, "referencesComplete": False})
