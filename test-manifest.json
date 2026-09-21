@@ -5615,6 +5615,10 @@
         {
           "path": "console/tests/config_service_test.py",
           "selector": "EnterpriseConfigServiceTests.test_add_config_returns_existing_record_when_concurrent_create_wins"
+        },
+        {
+          "path": "console/tests/config_service_test.py",
+          "selector": "EnterpriseConfigServiceTests.test_initialization_uses_config_created_after_bulk_lookup"
         }
       ],
       "test_type": "regression",

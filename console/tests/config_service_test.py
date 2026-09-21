@@ -33,9 +33,25 @@ class IntegrityError(Exception):
     pass
 
 
-class DuplicateConfigManager(DummyQuerySet):
+class ConcurrentConfigManager(DummyQuerySet):
+    def __init__(self, existing_config):
+        self.existing_config = existing_config
+        self.get_calls = []
+
     def create(self, **kwargs):
         raise IntegrityError("duplicate config key")
+
+    def get(self, **kwargs):
+        self.get_calls.append(kwargs)
+        return self.existing_config
+
+
+class ExistingConfigBeforeCreateManager(DummyQuerySet):
+    def exists(self):
+        return True
+
+    def create(self, **kwargs):
+        raise AssertionError("create must not be called for an existing config")
 
 
 class CustomFieldQuerySet(object):
@@ -63,6 +79,11 @@ class CustomFieldManager(object):
         return CustomFieldQuerySet(configs)
 
 
+class ConfigQueryResult(list):
+    def exists(self):
+        return bool(self)
+
+
 class ExistingConfigManager(object):
     def __init__(self, configs):
         self.configs = {config.key: config for config in configs}
@@ -71,8 +92,11 @@ class ExistingConfigManager(object):
 
     def filter(self, **kwargs):
         self.filter_calls.append(kwargs)
-        keys = kwargs.get("key__in", [])
-        return [self.configs[key] for key in keys if key in self.configs]
+        if "key__in" in kwargs:
+            keys = kwargs["key__in"]
+            return ConfigQueryResult(self.configs[key] for key in keys if key in self.configs)
+        key = kwargs.get("key")
+        return ConfigQueryResult([self.configs[key]] if key in self.configs else [])
 
     def get(self, **kwargs):
         self.get_calls.append(kwargs)
@@ -89,6 +113,18 @@ class CreatingConfigManager(ExistingConfigManager):
         config = types.SimpleNamespace(**kwargs)
         self.configs[config.key] = config
         return config
+
+
+class ConfigAppearingBeforeCreateManager(ExistingConfigManager):
+    def filter(self, **kwargs):
+        self.filter_calls.append(kwargs)
+        if "key__in" in kwargs:
+            return ConfigQueryResult()
+        key = kwargs.get("key")
+        return ConfigQueryResult([self.configs[key]] if key in self.configs else [])
+
+    def create(self, **kwargs):
+        raise AssertionError("create must not be called after the config appears")
 
 
 class ConfigKey(object):
@@ -174,9 +210,23 @@ class EnterpriseConfigServiceTests(TestCase):
         self.assertEqual(service.user_id, "user-id")
 
     # capability_id: console.enterprise-config.concurrent-initialization
-    def test_add_config_translates_duplicate_key_race_to_config_exist_error(self):
+    def test_add_config_returns_existing_record_when_concurrent_create_wins(self):
         config_service = self.import_config_service_module()
-        config_service.ConsoleSysConfig = types.SimpleNamespace(objects=DuplicateConfigManager())
+        existing_config = types.SimpleNamespace(key="GLOBAL_IMAGE_REGISTRY", value=None, enable=False)
+        manager = ConcurrentConfigManager(existing_config)
+        config_service.ConsoleSysConfig = types.SimpleNamespace(objects=manager, DoesNotExist=LookupError)
+        reload_calls = []
+        config_service.custom_settings = types.SimpleNamespace(reload=lambda: reload_calls.append(True))
+
+        config = config_service.ConfigService().add_config("GLOBAL_IMAGE_REGISTRY", None, "string")
+
+        self.assertIs(config, existing_config)
+        self.assertEqual(manager.get_calls, [{"key": "GLOBAL_IMAGE_REGISTRY"}])
+        self.assertEqual(reload_calls, [])
+
+    def test_add_config_rejects_config_existing_before_request(self):
+        config_service = self.import_config_service_module()
+        config_service.ConsoleSysConfig = types.SimpleNamespace(objects=ExistingConfigBeforeCreateManager())
 
         with self.assertRaises(ConfigExistError):
             config_service.ConfigService().add_config("GLOBAL_IMAGE_REGISTRY", None, "string")
@@ -267,3 +317,32 @@ class EnterpriseConfigServiceTests(TestCase):
         self.assertEqual(result["base_key"], {"enable": True, "value": "default-base"})
         self.assertEqual(result["config_key"], {"enable": False, "value": "default-config"})
         self.assertEqual([call["key"] for call in manager.create_calls], ["BASE_KEY", "CONFIG_KEY"])
+
+    # capability_id: console.enterprise-config.concurrent-initialization
+    def test_initialization_uses_config_created_after_bulk_lookup(self):
+        config_service = self.import_config_service_module()
+        existing_config = types.SimpleNamespace(
+            key="GLOBAL_IMAGE_REGISTRY",
+            type="string",
+            value=None,
+            enable=False,
+        )
+        manager = ConfigAppearingBeforeCreateManager([existing_config])
+        config_service.ConsoleSysConfig = types.SimpleNamespace(objects=manager, DoesNotExist=LookupError)
+        service = config_service.ConfigService()
+        service.base_cfg_keys = []
+        service.base_cfg_keys_value = {}
+        service.cfg_keys = ["GLOBAL_IMAGE_REGISTRY"]
+        service.cfg_keys_value = {
+            "GLOBAL_IMAGE_REGISTRY": {
+                "value": None,
+                "desc": "global registry",
+                "enable": False,
+            }
+        }
+        service.get_custom_fields = lambda: []
+
+        result = service.initialization_or_get_config
+
+        self.assertEqual(result["global_image_registry"], {"enable": False, "value": None})
+        self.assertEqual(manager.get_calls, [{"key": "GLOBAL_IMAGE_REGISTRY"}])
