@@ -12,6 +12,7 @@ from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
 from console.exception.main import ServiceHandleException
 from console.repositories.region_repo import region_repo
+from console.services.cleanup_installation import resolve_gateway_key
 from console.services.cleanup_gateway import CleanupAccessDenied, CleanupGatewayUnavailable, prepare_cleanup_request
 from console.services.region_services import region_services
 
@@ -295,13 +296,7 @@ class RainbondPluginBackendView(JWTAuthApiView):
         if not self.is_enterprise_admin or not region_allowed:
             raise PermissionDenied("无权管理此集群的磁盘资源")
         try:
-            key_path = os.environ.get("CLEANUP_GATEWAY_KEY_FILE", "")
-            if not key_path:
-                raise CleanupGatewayUnavailable()
-            with open(key_path, "rb") as key_file:
-                key = key_file.read(4097).strip()
-            if len(key) > 4096:
-                raise CleanupGatewayUnavailable()
+            key = resolve_gateway_key(enterprise_id, region_name)
             prepare_cleanup_request(request, region_name, kwargs.get("file_path", ""),
                                     self.is_enterprise_admin, region_allowed, key)
         except CleanupAccessDenied:

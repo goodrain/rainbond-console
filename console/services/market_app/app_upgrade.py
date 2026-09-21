@@ -208,6 +208,11 @@ class AppUpgrade(MarketApp):
             self.rollback()
             raise ServiceHandleException("unexpected error", "安装遇到了故障, 暂无法执行, 请稍后重试")
 
+        # Configure disk-cleanup scope before its first Pod starts. Other plugins retain their lifecycle.
+        if (self.app_template.get("platform_plugin") or {}).get("plugin_id") == "rainbond-disk":
+            from console.services.rbd_plugin_sync_service import rbd_plugin_sync_service
+            rbd_plugin_sync_service.reconcile(self.tenant, self.region, self.app_template, self.app.ID)
+
         if self.is_deploy:
             events = self._install_deploy()
         return events
@@ -231,6 +236,9 @@ class AppUpgrade(MarketApp):
         try:
             # Save the application to the console
             self._save_app()
+            if (self.app_template.get("platform_plugin") or {}).get("plugin_id") == "rainbond-disk":
+                from console.services.rbd_plugin_sync_service import rbd_plugin_sync_service
+                rbd_plugin_sync_service.reconcile(self.tenant, self.region, self.app_template, self.app.ID)
         except Exception as e:
             logger.exception(e)
             self._update_upgrade_record(UpgradeStatus.UPGRADE_FAILED.value)

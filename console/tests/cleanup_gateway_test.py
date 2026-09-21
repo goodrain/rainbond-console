@@ -73,6 +73,7 @@ class CleanupProxyIntegrationTests(TestCase):
         env = {"JWTAuthApiView": Base, "Request": object, "Any": Any, "PermissionDenied": CleanupAccessDenied,
                "ServiceHandleException": Unavailable, "os": os, "CleanupAccessDenied": CleanupAccessDenied,
                "CleanupGatewayUnavailable": CleanupGatewayUnavailable, "prepare_cleanup_request": prepare_cleanup_request,
+               "resolve_gateway_key": mock.Mock(side_effect=CleanupGatewayUnavailable),
                "region_repo": SimpleNamespace(get_enterprise_region_by_region_name=mock.Mock(return_value=region_allowed))}
         exec(compile(ast.fix_missing_locations(module), str(source), "exec"), env)
         return env["RainbondPluginBackendView"], Unavailable
@@ -102,3 +103,14 @@ class CleanupProxyIntegrationTests(TestCase):
             with self.assertRaises(unavailable) as caught:
                 cls().initial(req, plugin_name="rainbond-disk", region_name="r1", file_path="api/v1/clusters")
         self.assertEqual(caught.exception.status_code, 503)
+
+    def test_automatic_key_signs_without_console_environment(self):
+        from unittest import mock
+        cls, _ = self.view_class(True)
+        resolver = mock.Mock(return_value=b"x" * 64)
+        cls.initial.__globals__["resolve_gateway_key"] = resolver
+        req = CleanupGatewayTests().request()
+        req.is_admin = True
+        cls().initial(req, plugin_name="rainbond-disk", region_name="r1", file_path="api/v1/clusters")
+        resolver.assert_called_once_with("enterprise-1", "r1")
+        self.assertIn("HTTP_X_CLEANUP_SIGNATURE", req.META)
