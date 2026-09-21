@@ -1131,10 +1131,14 @@ class AppVersionService(object):
         result["created"] = True
         return result
 
+    @transaction.atomic
     def _take_restore_snapshot(self, tenant: Tenants, app: ServiceGroup,
                                version: str) -> Optional[AppUpgradeSnapshot]:
         # NOTE: app.ID is int AutoField; get_group_services expects a str id.
         services = group_service.get_group_services(app.ID)  # type: ignore[arg-type]
+        from www.models.main import TenantServiceInfo
+        services = list(TenantServiceInfo.objects.select_for_update().filter(
+            service_id__in=[service.service_id for service in services], tenant_id=tenant.tenant_id).order_by('service_id'))
         components = []
         for service in services:
             if service.create_status != "complete":

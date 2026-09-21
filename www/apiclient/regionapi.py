@@ -2063,6 +2063,17 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region)
         return body
 
+    def retire_service_build_version(self, region: str, tenant_name: str, service_alias: str, version_id: str,
+                                     expected: dict) -> Optional[Dict[str, Any]]:
+        """Protected record retirement. Never fall back to the legacy DELETE endpoint."""
+        url, token = self.__get_region_access_info(tenant_name, region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        url += "/v2/tenants/{}/services/{}/build-version/{}/retire".format(
+            tenant_region.region_tenant_name, service_alias, version_id)
+        self._set_headers(token)
+        _, response = self._post(url, self.default_headers, region=region, body=json.dumps(expected))
+        return response
+
     def delete_service_build_version(self, region: str, tenant_name: str, service_alias: str, version_id: str,
                                      body: dict) -> Optional[Dict[str, Any]]:
         """删除组件的某次构建版本"""

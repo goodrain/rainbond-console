@@ -112,6 +112,26 @@ class CleanupInventoryProjectionTests(unittest.TestCase):
         self.assertIsNone(rows[0]["unusedSince"])
         self.assertNotIn("do-not-export", json.dumps(rows))
 
+    def test_retirement_requires_complete_fresh_reference_evidence(self):
+        component = {"service_id": "s", "retirement_references_complete": True, "snapshot_referenced": False}
+        version = {"build_version": "v1", "event_id": "event1", "final_status": "success",
+                   "delivered_type": "image", "image_name": "registry/app:v1"}
+        inspection = {"protocol": 1, "current_version": "v2", "active_operation": False,
+                      "checkpoints": {"event1": "activation1"}}
+        payload = {"deploy_version": "v2", "list": [version], "retirement": inspection}
+        result = version_resources(component, payload, "r")[0]
+        self.assertEqual(result["retirement"]["expected"]["activation_revision"], "activation1")
+        self.assertIsNone(result["unusedSince"])
+        for changes in ({"snapshot_referenced": True}, {"retirement_references_complete": False}):
+            with self.subTest(changes=changes):
+                self.assertNotIn("retirement", version_resources(dict(component, **changes), payload, "r")[0])
+        for changes in ({"current_version": "v3"}, {"active_operation": True}, {"checkpoints": {}}, {"protocol": 0}):
+            with self.subTest(changes=changes):
+                stale = dict(payload, retirement=dict(inspection, **changes))
+                self.assertNotIn("retirement", version_resources(component, stale, "r")[0])
+        current = dict(payload, deploy_version="v1", retirement=dict(inspection, current_version="v1"))
+        self.assertNotIn("retirement", version_resources(component, current, "r")[0])
+
     def test_empty_payload_is_not_an_empty_successful_inventory(self):
         with self.assertRaises(ValueError):
             version_resources({"service_id": "s"}, {}, "r1")

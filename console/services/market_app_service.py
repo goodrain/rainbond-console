@@ -885,7 +885,12 @@ class MarketAppService(object):
             "region_name": region_name,
             "service_group_id": 0 if group_id == -1 else group_id
         }
-        return tenant_service_group_repo.create_tenant_service_group(**params)
+        from console.services.cleanup_retirement import lock_template_use, RetirementConflict
+        try:
+            with lock_template_use(app_key, app_version):
+                return tenant_service_group_repo.create_tenant_service_group(**params)
+        except RetirementConflict:
+            raise ServiceHandleException("template retired", "模板版本已变化或退役，请刷新后重试", status_code=409)
 
     def __generator_group_name(self, group_name: str) -> str:
         return '_'.join([group_name, make_uuid()[-4:]])
