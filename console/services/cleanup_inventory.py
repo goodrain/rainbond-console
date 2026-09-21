@@ -55,7 +55,7 @@ def template_resource(row, region, hidden):
     result = _base("template:{}:{}".format(region, row["ID"]), region, "templates",
                    "application_snapshot" if hidden else "template_version",
                    "{} / {}".format(_display_name(row.get("app_name"), row.get("app_id")), row.get("version", "")),
-                   _display_name(row.get("owner_name"), row.get("share_team")))
+                   "")
     result["source"] = "platform_templates"
     try:
         template = json.loads(row.get("app_template") or "{}")

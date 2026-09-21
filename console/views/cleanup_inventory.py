@@ -99,7 +99,6 @@ class CleanupInventoryView(APIView):
                 app_id__in=[row["app_id"] for row in page]).values_list("app_id", "app_name"))
             for row in page:
                 row["app_name"] = template_names.get(row["app_id"], "")
-                row["owner_name"] = team_labels.get(row["share_team"], row["share_team"])
         else:
             team_ids = {team["tenant_id"]: team["tenant_alias"] or team["tenant_name"] for team in team_rows}
             relations = list(ServiceGroupRelation.objects.filter(

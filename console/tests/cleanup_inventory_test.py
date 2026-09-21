@@ -31,10 +31,12 @@ class CleanupInventoryProjectionTests(unittest.TestCase):
 
     def test_template_uses_published_chinese_name_and_keeps_stable_id(self):
         row = {"ID": 3, "app_id": "opaque-id", "version": "v2",
+               "share_team": "team-id", "owner_name": "研发团队 / 订单系统",
                "app_template": json.dumps({"group_name": "订单管理系统", "apps": []})}
         result = template_resource(row, "r", False)
         self.assertEqual(result["name"], "订单管理系统 / v2")
         self.assertEqual(result["id"], "template:r:3")
+        self.assertEqual(result["owner"], "")
         self.assertEqual(result["protection"], "reference_unknown")
 
     def test_snapshot_name_and_legacy_name_fallback(self):
@@ -45,6 +47,7 @@ class CleanupInventoryProjectionTests(unittest.TestCase):
                                         "app_template": json.dumps(template)}, "r", True)
             self.assertEqual(result["name"], expected + " / v1")
             self.assertEqual(result["resourceType"], "application_snapshot")
+            self.assertEqual(result["owner"], "")
 
     def test_deployment_record_is_read_only_evidence_not_a_rollback_guarantee(self):
         row = {"ID": 8, "service_id": "s", "service_cname": "web", "status": 3,
