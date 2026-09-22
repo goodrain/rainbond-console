@@ -8,6 +8,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from console.services.cleanup_retirement import template_retirement_targets, snapshot_protected_components, RetirementConflict
 from console.services.cleanup_gateway import CleanupGatewayUnavailable
 from console.services.cleanup_installation import resolve_gateway_key
 from console.models.main import AppVersionTemplateRelation, RainbondCenterApp, RainbondCenterAppVersion, ServiceUpgradeRecord
@@ -64,7 +65,8 @@ class CleanupInventoryView(APIView):
                 upper = template_query.order_by("-ID").values_list("ID", flat=True).first() or 0
             if cursor > upper:
                 return Response({"errorCode": "INVALID_REQUEST"}, status=400)
-            template_fields = ("ID", "app_id", "version", "share_team", "app_template")
+            template_fields = ("ID", "app_id", "version", "share_team", "app_template", "enterprise_id", "region_name",
+                               "source", "is_complete", "cleanup_activation_revision")
             page = list(template_query.filter(ID__gt=cursor, ID__lte=upper).order_by("ID").values(*template_fields)[:26])
         elif kind == "deployments":
             deployment_query = ServiceUpgradeRecord.objects.filter(
@@ -120,11 +122,26 @@ class CleanupInventoryView(APIView):
         if kind == "templates":
             hidden = set(AppVersionTemplateRelation.objects.filter(
                 tenant_id__in=teams.values_list("tenant_id", flat=True)).values_list("app_model_id", flat=True))
+            try:
+                targets = template_retirement_targets(enterprise_id, region_name, page, key)
+            except RetirementConflict:
+                # Incomplete safety evidence disables retirement, not inventory display.
+                targets = {}
+                failures.append("snapshot_references_unavailable")
+            for row in page:
+                row["retirement"] = targets.get(row["ID"])
             resources = [template_resource(row, region_name, row["app_id"] in hidden) for row in page]
-            failures = [failed_scope_label(row) for row in resources if not row["observed"]]
+            failures.extend(failed_scope_label(row) for row in resources if not row["observed"])
         elif kind == "deployments":
             resources = [deployment_resource(row, region_name) for row in page]
         else:
+            try:
+                protected_components = snapshot_protected_components(enterprise_id)
+                references_complete = True
+            except (RetirementConflict, ValueError, TypeError):
+                protected_components = set()
+                references_complete = False
+                failures.append("snapshot_references_unavailable")
             names = dict(teams.values_list("tenant_id", "tenant_name"))
             api = RegionInvokeApi()
             for component in page:
@@ -132,6 +149,8 @@ class CleanupInventoryView(APIView):
                     body = api.get_service_build_versions(region_name, names[component["tenant_id"]], component["service_alias"])
                     if not isinstance(body, dict) or not isinstance(body.get("bean"), dict):
                         raise ValueError("source unavailable")
+                    component["retirement_references_complete"] = references_complete
+                    component["snapshot_referenced"] = component["service_id"] in protected_components
                     rows = version_resources(component, body["bean"], region_name)
                     if len(rows) > 5000:
                         raise ValueError("source limit")

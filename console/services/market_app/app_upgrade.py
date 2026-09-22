@@ -218,6 +218,16 @@ class AppUpgrade(MarketApp):
         return events
 
     def upgrade(self) -> AppUpgradeRecord:
+        # Publish the pending reference while holding the same parent lock as retirement.
+        from console.services.cleanup_retirement import lock_template_use, RetirementConflict
+        try:
+            with lock_template_use(self.app_model_key, self.version):
+                if self.record is None or not self.record.ID:
+                    raise RetirementConflict()
+                AppUpgradeRecord.objects.filter(ID=self.record.ID).update(
+                    version=self.version, status=UpgradeStatus.UPGRADING.value)
+        except RetirementConflict:
+            raise ServiceHandleException("template retired", "模板版本已变化或退役，请刷新后重试", status_code=409)
         # install plugins
         try:
             self.install_plugins()
@@ -648,12 +658,17 @@ class AppUpgrade(MarketApp):
         self.record.save()  # type: ignore[union-attr]
         # NOTE: self.record can be None; callers should ensure record is set before upgrade()
 
+    @transaction.atomic
     def _take_snapshot(self) -> Optional[Any]:
         if self.is_upgrade_one:
             return None
 
         new_components = {cpt.component.component_id: cpt for cpt in self.new_app.components()}
 
+        from www.models.main import TenantServiceInfo
+        list(TenantServiceInfo.objects.select_for_update().filter(
+            service_id__in=[cpt.component.component_id for cpt in self.original_app.components()],
+            tenant_id=self.tenant_id).order_by('service_id'))
         components = []
         for cpt in self.original_app.components():
             # component snapshot

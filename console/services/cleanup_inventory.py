@@ -81,6 +81,8 @@ def template_resource(row, region, hidden):
         result["usageStatus"] = "referenced" if images else "unknown"
     except (ValueError, TypeError):
         result["observed"] = False
+    if result["observed"] and row.get("retirement"):
+        result["retirement"] = row["retirement"]
     # Creation/update time is intentionally never copied into unusedSince.
     return result
 
@@ -90,6 +92,8 @@ def version_resources(component, payload, region):
         raise ValueError("incomplete version inventory")
     rows = []
     current = payload.get("deploy_version")
+    inspection = payload.get("retirement") or {}
+    rank = 0
     for version in payload["list"]:
         if not isinstance(version, dict) or not version.get("build_version"):
             raise ValueError("invalid build record")
@@ -106,6 +110,19 @@ def version_resources(component, payload, region):
         if version.get("delivered_type") == "image":
             images.append(_image(version.get("delivered_path")))
         result["images"] = sorted(set(image for image in images if image))
+        if number != current and version.get("final_status") == "success":
+            rank += 1
+            event_id = version.get("event_id")
+            checkpoints = inspection.get("checkpoints") or {}
+            if (component.get("retirement_references_complete") is True and component.get("snapshot_referenced") is False
+                    and inspection.get("protocol") == 1 and inspection.get("current_version") == current
+                    and inspection.get("active_operation") is False and current and event_id in checkpoints
+                    and version.get("delivered_type") == "image" and result["images"]):
+                result["retirement"] = {"protocol": 1, "kind": "build_version", "rank": rank, "expected": {
+                    "service_id": component["service_id"], "version": number, "current_version": current,
+                    "event_id": event_id, "image": _image(version.get("image_name")) or _image(version.get("delivered_path")),
+                    "activation_revision": checkpoints[event_id],
+                }}
         rows.append(result)
     return rows
 
