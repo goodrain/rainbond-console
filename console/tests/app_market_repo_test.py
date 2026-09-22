@@ -7,6 +7,7 @@ from console.repositories.app import (
     PLATFORM_PLUGIN_MARKET_NAME,
     app_market_repo,
 )
+from console.repositories.market_app_repo import RainbondCenterAppRepository
 
 
 class AppMarketRepoPlatformPluginMarketTests(TestCase):
@@ -65,3 +66,26 @@ class AppMarketRepoPlatformPluginMarketTests(TestCase):
                 app_market_repo.get_app_market_by_name("eid", PLATFORM_PLUGIN_MARKET_NAME, raise_exception=True)
 
         self.assertEqual(404, ctx.exception.status_code)
+
+
+class RainbondCenterAppRepositoryTests(TestCase):
+    def test_get_rainbond_app_by_key_version_returns_named_version(self):
+        repository = RainbondCenterAppRepository()
+        app = mock.Mock(app_name="DBTest")
+        app_version = mock.Mock()
+        versions = mock.Mock()
+        versions.order_by.return_value.first.return_value = app_version
+
+        with mock.patch.object(
+                repository,
+                "get_rainbond_app_by_app_id",
+                return_value=app,
+        ), mock.patch.object(
+                repository,
+                "filter_rainbond_app_version_by_app_id_and_version",
+                return_value=versions,
+        ):
+            result = repository.get_rainbond_app_by_key_version("template-id", "2.0.0")
+
+        self.assertIs(result, app_version)
+        self.assertEqual(result.app_name, "DBTest")

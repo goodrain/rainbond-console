@@ -145,8 +145,7 @@ class RainbondCenterAppRepository(object):
 
     def get_rainbond_app_by_key_version(self, group_key: str, version: str) -> Optional[RainbondCenterAppVersion]:
         """使用group_key 和 version 获取一个云市应用"""
-        # pre-existing: called with 2 args though signature declares 3 (enterprise_id)
-        app, app_version = self.get_rainbond_app_and_version(group_key, version)  # type: ignore[call-arg]
+        app, app_version = self.get_rainbond_app_and_version("", group_key, version)
         if app and app_version:
             app_version.app_name = app.app_name
         return app_version
