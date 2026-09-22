@@ -4,6 +4,8 @@ import os
 import threading
 import time
 
+from django.db import OperationalError, connections
+
 from console.utils.offline import is_external_telemetry_disabled
 
 
@@ -23,6 +25,16 @@ def _load_external_telemetry_setting():
     return ConsoleSysConfig.objects.filter(
         key=EXTERNAL_TELEMETRY_ENABLED_KEY,
     ).first()
+
+
+def _load_external_telemetry_setting_with_retry():
+    for attempt in range(2):
+        try:
+            return _load_external_telemetry_setting()
+        except OperationalError:
+            connections.close_all()
+            if attempt == 1:
+                raise
 
 
 def invalidate_external_telemetry_cache():
@@ -46,7 +58,7 @@ def get_external_telemetry_enabled(env=None):
                 return _cached_enabled
 
     try:
-        config = _load_external_telemetry_setting()
+        config = _load_external_telemetry_setting_with_retry()
         enabled = True if config is None else bool(config.enable)
     except Exception as exc:
         logger.warning("failed to read external telemetry setting: %s", exc)

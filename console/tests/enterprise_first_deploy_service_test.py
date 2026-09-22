@@ -186,6 +186,59 @@ class EnterpriseFirstDeployServiceTests(TestCase):
         self.assertTrue(worker.daemon)
         worker.start.assert_called_once_with()
 
+    def test_report_sweeper_resets_database_connection_after_error(self):
+        with mock.patch.object(
+                self.service,
+                "_resume_pending_trackers_once",
+                side_effect=RuntimeError("database connection lost"),
+        ), mock.patch(
+                "console.services.enterprise_first_deploy_service.close_old_connections",
+        ) as mock_close_old_connections, mock.patch(
+                "console.services.enterprise_first_deploy_service.connections.close_all",
+        ) as mock_close_all, mock.patch(
+                "console.services.enterprise_first_deploy_service.time.sleep",
+                side_effect=KeyboardInterrupt,
+        ):
+            with self.assertRaises(KeyboardInterrupt):
+                self.service._resume_pending_trackers_loop()
+
+        mock_close_old_connections.assert_called_once_with()
+        mock_close_all.assert_called_once_with()
+
+    def test_report_worker_manages_database_connection_lifecycle(self):
+        repo = mock.Mock()
+        repo.get_by_key.return_value = None
+
+        with mock.patch(
+                "console.services.enterprise_first_deploy_service.enterprise_first_deploy_repo",
+                repo,
+        ), mock.patch(
+                "console.services.enterprise_first_deploy_service.close_old_connections",
+        ) as mock_close_old_connections, mock.patch(
+                "console.services.enterprise_first_deploy_service.connections.close_all",
+        ) as mock_close_all:
+            self.service._report_by_key("record-key")
+
+        mock_close_old_connections.assert_called_once_with()
+        mock_close_all.assert_called_once_with()
+
+    def test_environment_worker_manages_database_connection_lifecycle(self):
+        repo = mock.Mock()
+        repo.get_by_key.return_value = None
+
+        with mock.patch(
+                "console.services.enterprise_first_deploy_service.enterprise_first_deploy_repo",
+                repo,
+        ), mock.patch(
+                "console.services.enterprise_first_deploy_service.close_old_connections",
+        ) as mock_close_old_connections, mock.patch(
+                "console.services.enterprise_first_deploy_service.connections.close_all",
+        ) as mock_close_all:
+            self.service._collect_environment_by_key("record-key", "enterprise-id", "region-name")
+
+        mock_close_old_connections.assert_called_once_with()
+        mock_close_all.assert_called_once_with()
+
     def test_offline_mode_skips_report_request(self):
         with mock.patch.dict(os.environ, {"DISABLE_DEFAULT_APP_MARKET": "true"}, clear=True), \
                 mock.patch("console.services.enterprise_first_deploy_service.requests.post") as mock_post, \
@@ -2345,12 +2398,16 @@ class EnterpriseFirstDeployServiceTests(TestCase):
 
         with mock.patch("console.services.enterprise_first_deploy_service.enterprise_first_deploy_repo", repo), \
                 mock.patch.object(self.service, "_sync_record",
-                                  side_effect=[RuntimeError("boom"), self.service.STATUS_SUCCESS]) as mock_sync:
+                                  side_effect=[RuntimeError("boom"), self.service.STATUS_SUCCESS]) as mock_sync, \
+                mock.patch("console.services.enterprise_first_deploy_service.close_old_connections") as mock_close_old, \
+                mock.patch("console.services.enterprise_first_deploy_service.connections.close_all") as mock_close_all:
             self.service.POLL_INTERVAL = 0
             self.service.POLL_TIMEOUT = 1
             self.service._poll_until_finished("record-key", "demo-team", "demo-region")
 
         self.assertEqual(mock_sync.call_count, 2)
+        self.assertGreaterEqual(mock_close_old.call_count, 2)
+        self.assertGreaterEqual(mock_close_all.call_count, 2)
 
     def test_resume_pending_trackers_restarts_runtime_polling(self):
         payload = {
