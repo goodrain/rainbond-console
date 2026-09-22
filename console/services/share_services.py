@@ -1733,18 +1733,35 @@ class ShareService(object):
                 message = result.get("message", "")
                 data = result.get("data", {})
 
-                if code == 0:
-                    triggered = data.get("triggered", False)
-                    if triggered:
-                        execution_id = data.get("executionId", "")
-                        workflow_cr_name = data.get("workflowCrName", "")
-                        logger.info(
-                            "Pipeline workflow triggered: template=%s, version=%s, executionId=%s, workflowCrName=%s",
-                            template_uuid, app_version.version, execution_id, workflow_cr_name)
+                if code in (0, 200):
+                    workflows = data.get("workflows")
+                    if isinstance(workflows, list):
+                        successful_workflows = [workflow for workflow in workflows if workflow.get("success")]
+                        if successful_workflows:
+                            execution_ids = [workflow.get("executionId", "") for workflow in successful_workflows]
+                            logger.info(
+                                "Pipeline workflow triggered: template=%s, version=%s, triggeredCount=%s, executionIds=%s",
+                                template_uuid, app_version.version, len(successful_workflows), execution_ids)
+                        elif data.get("triggeredCount", 0) > 0:
+                            errors = [workflow.get("error", "unknown error") for workflow in workflows]
+                            logger.error(
+                                "Pipeline workflow trigger failed: template=%s, version=%s, errors=%s",
+                                template_uuid, app_version.version, errors)
+                        else:
+                            logger.info("Pipeline workflow not triggered: template={}, version={}, reason={}".format(
+                                template_uuid, app_version.version, data.get("message", "No trigger configured")))
                     else:
-                        # triggered=false 是正常情况（未配置触发器或触发器未启用）
-                        logger.info("Pipeline workflow not triggered: template={}, version={}, reason={}".format(
-                            template_uuid, app_version.version, data.get("message", "No trigger configured")))
+                        # 兼容旧版流水线接口响应
+                        triggered = data.get("triggered", False)
+                        if triggered:
+                            execution_id = data.get("executionId", "")
+                            workflow_cr_name = data.get("workflowCrName", "")
+                            logger.info(
+                                "Pipeline workflow triggered: template=%s, version=%s, executionId=%s, workflowCrName=%s",
+                                template_uuid, app_version.version, execution_id, workflow_cr_name)
+                        else:
+                            logger.info("Pipeline workflow not triggered: template={}, version={}, reason={}".format(
+                                template_uuid, app_version.version, data.get("message", "No trigger configured")))
                 else:
                     # code != 0 表示错误
                     logger.error("Pipeline workflow trigger failed: template={}, version={}, code={}, message={}".format(

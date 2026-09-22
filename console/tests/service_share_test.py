@@ -73,6 +73,8 @@ if not hasattr(QuerySet, "__class_getitem__"):
 
 from console.services.share_services import share_service as share_service_instance  # noqa: E402
 from console.services import share_services as share_services_module  # noqa: E402
+from console.services import plugin_service as plugin_service_module  # noqa: E402
+from console.services.plugin_service import rbd_plugin_service  # noqa: E402
 from console.views import service_share  # noqa: E402
 from console.views.service_share import ServiceShareInfoView, ServiceShareRecordView  # noqa: E402
 from console.repositories import share_repo as share_repo_module  # noqa: E402
@@ -985,6 +987,134 @@ class ShareServicePlatformPluginConfigTestCase(TestCase):
         )
 
         self.assertEqual(positions, ["Platform", "Application"])
+
+
+class PipelineTemplateTriggerTestCase(TestCase):
+    BACKEND_URL = "http://rbd-pipeline-api.rbd-plugins.svc.cluster.local:8080"
+
+    def call_pipeline_api(self, response_data, log_level="INFO"):
+        response = mock.Mock(status_code=200)
+        response.json.return_value = response_data
+
+        with mock.patch.object(share_services_module.requests, "post", return_value=response) as post_mock, \
+                self.assertLogs(share_services_module.logger, level=log_level) as logs:
+            share_service_instance._call_pipeline_plugin_api(
+                tenant=mock.Mock(),
+                app_version=mock.Mock(app_id="template-id", version="2.0.0"),
+                share_record=mock.Mock(),
+                user_id="user-id",
+                region_name="rainbond",
+                pipeline_plugin_info={
+                    "name": "rainbond-enterprise-pipeline",
+                    "backend": self.BACKEND_URL,
+                },
+            )
+
+        return post_mock, logs.output
+
+    def test_plugin_list_uses_current_backend_service_as_internal_backend_url(self):
+        region_plugins = {
+            "list": [{
+                "name": "rainbond-enterprise-pipeline",
+                "region_app_id": "pipeline-region-app",
+                "team_name": "rbd-plugins",
+                "alias": "流水线",
+                "backend_service": "rbd-pipeline-api.rbd-plugins.svc.cluster.local:8080",
+            }]
+        }
+
+        with mock.patch.object(
+                plugin_service_module.region_api, "list_plugins", return_value=(None, region_plugins)), \
+                mock.patch.object(plugin_service_module.team_services, "list_by_team_names", return_value=[]), \
+                mock.patch.object(
+                    plugin_service_module.region_app_repo, "list_by_region_app_ids", return_value=[]), \
+                mock.patch.object(
+                    plugin_service_module.service_group_relation_repo, "list_by_tenant_ids", return_value=[]), \
+                mock.patch.object(plugin_service_module.domain_repo, "list_by_component_ids", return_value=[]):
+            plugins, _ = rbd_plugin_service.list_plugins("enterprise-id", "rainbond", official=False)
+
+        self.assertEqual(
+            plugins[0]["backend"],
+            self.BACKEND_URL,
+        )
+
+    def test_pipeline_trigger_accepts_current_success_response(self):
+        post_mock, logs = self.call_pipeline_api({
+            "code": 200,
+            "message": "success",
+            "data": {
+                "triggeredCount": 1,
+                "message": "Triggered 1 workflow(s) successfully",
+                "workflows": [{
+                    "templateUuid": "workflow-uuid",
+                    "templateName": "生产发布",
+                    "executionId": "wf-123",
+                    "workflowCrName": "wf-123",
+                    "success": True,
+                }],
+            },
+        })
+
+        post_mock.assert_called_once_with(
+            self.BACKEND_URL + "/api/v1/workflows/templates/template-id/trigger-by-template-version",
+            headers={"Content-Type": "application/json"},
+            timeout=10,
+        )
+        self.assertTrue(any("Pipeline workflow triggered" in message for message in logs))
+
+    def test_pipeline_trigger_reports_when_no_workflow_matches(self):
+        _, logs = self.call_pipeline_api({
+            "code": 200,
+            "message": "success",
+            "data": {
+                "triggeredCount": 0,
+                "message": "No templates are configured to trigger on this template ID",
+                "workflows": [],
+            },
+        })
+
+        self.assertTrue(any(
+            "Pipeline workflow not triggered" in message
+            and "No templates are configured" in message
+            for message in logs
+        ))
+
+    def test_pipeline_trigger_reports_failed_current_workflow(self):
+        _, logs = self.call_pipeline_api({
+            "code": 200,
+            "message": "success",
+            "data": {
+                "triggeredCount": 1,
+                "workflows": [{
+                    "templateUuid": "workflow-uuid",
+                    "success": False,
+                    "error": "failed to create workflow CR",
+                }],
+            },
+        }, log_level="ERROR")
+
+        self.assertTrue(any(
+            "Pipeline workflow trigger failed" in message
+            and "failed to create workflow CR" in message
+            for message in logs
+        ))
+
+    def test_pipeline_trigger_keeps_legacy_success_response_compatible(self):
+        _, logs = self.call_pipeline_api({
+            "code": 0,
+            "message": "success",
+            "data": {
+                "triggered": True,
+                "executionId": "wf-legacy",
+                "workflowCrName": "wf-legacy",
+            },
+        })
+
+        self.assertTrue(any(
+            "Pipeline workflow triggered" in message
+            and "wf-legacy" in message
+            for message in logs
+        ))
 
 
 class ShareServiceVMPublishMetadataTestCase(TestCase):

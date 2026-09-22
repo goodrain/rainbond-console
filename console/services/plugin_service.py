@@ -242,7 +242,8 @@ class RainbondPluginService(object):
             plugin["app_id"] = app_id
             plugin["urls"] = []
             plugin["display_name"] = plugin["alias"]
-            plugin["backend"] = plugin.get("backend", "")
+            backend = plugin.get("backend_service") or plugin.get("backend", "")
+            plugin["backend"] = self._normalize_access_url(backend)
             access_urls = plugin.get("access_urls") or []
             preferred_vm_urls = []
             if official and plugin.get("name") == "rainbond-vm":
