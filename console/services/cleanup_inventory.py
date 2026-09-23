@@ -48,7 +48,16 @@ def failed_scope_label(row):
     name = _display_name(row.get("name"), row.get("service_cname"), row.get("service_alias"))
     owner = _display_name(row.get("owner_name"))
     label = " / ".join(value for value in (owner, name) if value)
-    return "{} ({})".format(label, identifier) if label else identifier
+    label = "{} ({})".format(label, identifier) if label else identifier
+    explanations = {
+        "snapshot_invalid_structure": "快照结构无法识别",
+        "snapshot_missing_runtime_image": "未记录可核对的镜像",
+        "snapshot_plugin_reference_unknown": "插件版本镜像引用不完整",
+        "snapshot_k8s_override_unknown": "存在尚未解析的 K8s 覆盖",
+    }
+    reasons = [explanations[code] for code in (row.get("incompleteReasons") or [])
+               if isinstance(code, str) and code in explanations]
+    return "{}：{}".format(label, "；".join(reasons)) if reasons else label
 
 
 def template_resource(row, region, hidden):
@@ -166,36 +175,44 @@ def deployment_resource(row, region):
     return result
 
 
-def snapshot_reference_resource(row, region):
-    """Export retained snapshot image references, never backup config or secrets.
+# These attributes are decoded by the core into scheduling types only; none
+# can add or replace a container image. Unknown attributes remain incomplete.
+SNAPSHOT_SCHEDULING_ATTRIBUTES = frozenset(("affinity", "nodeSelector", "tolerations"))
 
-    A missing build image, plugin relation or custom Kubernetes override prevents
-    this source from claiming complete coverage; known images still protect data.
-    """
+
+def snapshot_reference_resource(row, region):
+    """Project saved image evidence without exporting configuration or secrets."""
     result = _base("snapshot-reference:{}:{}".format(region, row["ID"]), region, "templates",
                    "application_snapshot", "保留快照 / {}".format(row["ID"]), "")
     result["source"] = "platform_snapshot_references"
     images = set()
-    complete = True
+    issues = set()
     try:
         snapshot = json.loads(row.get("snapshot") or "")
         if not isinstance(snapshot, dict) or not isinstance(snapshot.get("components"), list):
             raise ValueError()
-        group = snapshot.get("component_group") or {}
+        group = snapshot.get("component_group")
+        if group is None:
+            group = {}
         if not isinstance(group, dict):
-            raise ValueError()
+            issues.add("snapshot_invalid_structure")
+            group = {}
         name = _display_name(group.get("group_name"), "保留快照")
         version = _display_name(group.get("group_version"), str(row["ID"]))
         result["name"] = "{} / {}".format(name, version)
         for component in snapshot["components"]:
             if not isinstance(component, dict) or not isinstance(component.get("service_base"), dict):
-                raise ValueError()
+                issues.add("snapshot_invalid_structure")
+                continue
             base = component["service_base"]
             if not isinstance(base.get("service_id"), str) or not base["service_id"]:
-                raise ValueError()
-            source = component.get("service_source") or {}
+                issues.add("snapshot_invalid_structure")
+            source = component.get("service_source")
+            if source is None:
+                source = {}
             if not isinstance(source, dict):
-                raise ValueError()
+                issues.add("snapshot_invalid_structure")
+                source = {}
             found = False
             for value in (base.get("image"), source.get("image")):
                 if value in (None, ""):
@@ -205,15 +222,25 @@ def snapshot_reference_resource(row, region):
                     images.add(image)
                     found = True
                 else:
-                    complete = False
+                    issues.add("snapshot_missing_runtime_image")
             if not found and base.get("service_source") != "third_party":
-                complete = False
-            if component.get("service_plugin_relation") or component.get("component_k8s_attributes"):
-                complete = False
+                issues.add("snapshot_missing_runtime_image")
+            relations = component.get("service_plugin_relation")
+            if relations is not None and (not isinstance(relations, list) or relations):
+                issues.add("snapshot_plugin_reference_unknown")
+            attributes = component.get("component_k8s_attributes")
+            if attributes is None:
+                attributes = []
+            if not isinstance(attributes, list) or any(
+                    not isinstance(attribute, dict)
+                    or not isinstance(attribute.get("name"), str)
+                    or attribute["name"] not in SNAPSHOT_SCHEDULING_ATTRIBUTES for attribute in attributes):
+                issues.add("snapshot_k8s_override_unknown")
     except (ValueError, TypeError):
-        complete = False
+        issues.add("snapshot_invalid_structure")
     result["images"] = sorted(images)
-    result["observed"] = complete
-    result["protection"] = "referenced" if complete else "reference_unknown"
+    result["incompleteReasons"] = sorted(issues)
+    result["observed"] = not issues
+    result["protection"] = "reference_unknown" if issues else "referenced"
     result["usageStatus"] = "referenced" if images else "unknown"
     return result
