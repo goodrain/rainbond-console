@@ -148,3 +148,56 @@ def deployment_resource(row, region):
                                  row.get("app_upgrade_record__old_version") or "—",
                                  row.get("app_upgrade_record__version") or "—")}]
     return result
+
+
+def snapshot_reference_resource(row, region):
+    """Export retained snapshot image references, never backup config or secrets.
+
+    A missing build image, plugin relation or custom Kubernetes override prevents
+    this source from claiming complete coverage; known images still protect data.
+    """
+    result = _base("snapshot-reference:{}:{}".format(region, row["ID"]), region, "templates",
+                   "application_snapshot", "保留快照 / {}".format(row["ID"]), "")
+    result["source"] = "platform_snapshot_references"
+    images = set()
+    complete = True
+    try:
+        snapshot = json.loads(row.get("snapshot") or "")
+        if not isinstance(snapshot, dict) or not isinstance(snapshot.get("components"), list):
+            raise ValueError()
+        group = snapshot.get("component_group") or {}
+        if not isinstance(group, dict):
+            raise ValueError()
+        name = _display_name(group.get("group_name"), "保留快照")
+        version = _display_name(group.get("group_version"), str(row["ID"]))
+        result["name"] = "{} / {}".format(name, version)
+        for component in snapshot["components"]:
+            if not isinstance(component, dict) or not isinstance(component.get("service_base"), dict):
+                raise ValueError()
+            base = component["service_base"]
+            if not isinstance(base.get("service_id"), str) or not base["service_id"]:
+                raise ValueError()
+            source = component.get("service_source") or {}
+            if not isinstance(source, dict):
+                raise ValueError()
+            found = False
+            for value in (base.get("image"), source.get("image")):
+                if value in (None, ""):
+                    continue
+                image = _image(value)
+                if image:
+                    images.add(image)
+                    found = True
+                else:
+                    complete = False
+            if not found and base.get("service_source") != "third_party":
+                complete = False
+            if component.get("service_plugin_relation") or component.get("component_k8s_attributes"):
+                complete = False
+    except (ValueError, TypeError):
+        complete = False
+    result["images"] = sorted(images)
+    result["observed"] = complete
+    result["protection"] = "referenced" if complete else "reference_unknown"
+    result["usageStatus"] = "referenced" if images else "unknown"
+    return result

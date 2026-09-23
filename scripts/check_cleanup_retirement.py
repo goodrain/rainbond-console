@@ -98,6 +98,28 @@ def main():
             with self.assertRaises(RetirementConflict):
                 retire_template('e', 'r', self.expected, self.key)
 
+        def test_snapshot_reference_page_is_scoped_and_sanitized(self):
+            import json
+            from types import SimpleNamespace
+            from unittest.mock import patch
+            from console.views.cleanup_inventory import CleanupInventoryView
+            Tenants.objects.create(tenant_id='other', tenant_name='other', namespace='other', enterprise_id='other')
+            for team, image in [('team', 'goodrain.me/owned:v1'), ('other', 'goodrain.me/foreign:v1')]:
+                AppUpgradeSnapshot.objects.create(tenant_id=team, snapshot_id=team, snapshot=json.dumps({
+                    'components': [{'service_base': {'service_id': team, 'image': image},
+                                    'service_auths': [{'value': 'do-not-export'}]}]}))
+            request = SimpleNamespace(method='GET', headers={}, query_params={'kind': 'snapshots'},
+                                      get_full_path=lambda: '/inventory')
+            with patch('console.views.cleanup_inventory.resolve_gateway_key', return_value=self.key), \
+                    patch('console.views.cleanup_inventory.verify_source_request', return_value=True), \
+                    patch('console.views.cleanup_inventory.region_repo.get_enterprise_region_by_region_name', return_value=True):
+                response = CleanupInventoryView().get(request, 'e', 'r')
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(len(response.data['resources']), 1)
+            self.assertEqual(response.data['resources'][0]['images'], ['goodrain.me/owned:v1'])
+            self.assertNotIn('do-not-export', json.dumps(response.data))
+            self.assertFalse(response.data['referencesComplete'])
+
         def test_foreign_region_is_protected(self):
             with self.assertRaises(RetirementConflict):
                 retire_template('e', 'other', self.expected, self.key)
