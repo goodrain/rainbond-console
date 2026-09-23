@@ -11,10 +11,11 @@ from rest_framework.views import APIView
 from console.services.cleanup_retirement import template_retirement_targets, snapshot_protected_components, RetirementConflict
 from console.services.cleanup_gateway import CleanupGatewayUnavailable
 from console.services.cleanup_installation import resolve_gateway_key
-from console.models.main import AppVersionTemplateRelation, RainbondCenterApp, RainbondCenterAppVersion, ServiceUpgradeRecord
+from console.models.main import (AppVersionTemplateRelation, RainbondCenterApp, RainbondCenterAppVersion,
+                                 ServiceUpgradeRecord, AppUpgradeSnapshot)
 from console.repositories.region_repo import region_repo
 from console.services.cleanup_inventory import (template_resource, verify_source_request, version_resources,
-                                                deployment_resource, failed_scope_label)
+                                                deployment_resource, failed_scope_label, snapshot_reference_resource)
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import ServiceGroup, ServiceGroupRelation, Tenants, TenantServiceInfo
 
@@ -51,7 +52,7 @@ class CleanupInventoryView(APIView):
         try:
             cursor = int(request.query_params.get("cursor", "0"))
             upper = int(request.query_params.get("upper", "0"))
-            if cursor < 0 or upper < 0 or kind not in ("templates", "versions", "deployments"):
+            if cursor < 0 or upper < 0 or kind not in ("templates", "versions", "deployments", "snapshots"):
                 raise ValueError()
         except ValueError:
             return Response({"errorCode": "INVALID_REQUEST"}, status=400)
@@ -68,6 +69,16 @@ class CleanupInventoryView(APIView):
             template_fields = ("ID", "app_id", "version", "share_team", "app_template", "enterprise_id", "region_name",
                                "source", "is_complete", "cleanup_activation_revision")
             page = list(template_query.filter(ID__gt=cursor, ID__lte=upper).order_by("ID").values(*template_fields)[:26])
+        elif kind == "snapshots":
+            # Include the enterprise's retained snapshots across regions. A
+            # cross-region image match protects content; it never grants delete.
+            snapshot_query = AppUpgradeSnapshot.objects.filter(tenant_id__in=teams.values_list("tenant_id", flat=True))
+            if upper == 0:
+                upper = snapshot_query.order_by("-ID").values_list("ID", flat=True).first() or 0
+            if cursor > upper:
+                return Response({"errorCode": "INVALID_REQUEST"}, status=400)
+            page = [dict(row) for row in snapshot_query.filter(
+                ID__gt=cursor, ID__lte=upper).order_by("ID").values("ID", "snapshot")[:26]]
         elif kind == "deployments":
             deployment_query = ServiceUpgradeRecord.objects.filter(
                 app_upgrade_record__tenant_id__in=teams.values_list("tenant_id", flat=True),
@@ -101,7 +112,7 @@ class CleanupInventoryView(APIView):
                 app_id__in=[row["app_id"] for row in page]).values_list("app_id", "app_name"))
             for row in page:
                 row["app_name"] = template_names.get(row["app_id"], "")
-        else:
+        elif kind != "snapshots":
             team_ids = {team["tenant_id"]: team["tenant_alias"] or team["tenant_name"] for team in team_rows}
             relations = list(ServiceGroupRelation.objects.filter(
                 tenant_id__in=team_ids, region_name=region_name,
@@ -131,6 +142,9 @@ class CleanupInventoryView(APIView):
             for row in page:
                 row["retirement"] = targets.get(row["ID"])
             resources = [template_resource(row, region_name, row["app_id"] in hidden) for row in page]
+            failures.extend(failed_scope_label(row) for row in resources if not row["observed"])
+        elif kind == "snapshots":
+            resources = [snapshot_reference_resource(row, region_name) for row in page]
             failures.extend(failed_scope_label(row) for row in resources if not row["observed"])
         elif kind == "deployments":
             resources = [deployment_resource(row, region_name) for row in page]
