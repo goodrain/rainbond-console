@@ -293,7 +293,7 @@
 | console.endpoint-address.reject-special-ranges | 拒绝 unspecified 和 loopback 的端点地址 | active | regression | console.utils.validation.validate_endpoint_address | console/tests/utils/validation_test.py::EndpointValidationTests.test_validate_endpoint_address_rejects_special_ranges |
 | console.endpoint-list.normalize-scheme-port | 在多端点校验前规范化协议和端口 | active | regression | console.utils.validation.validate_endpoints_info | console/tests/utils/validation_test.py::EndpointValidationTests.test_validate_endpoints_info_normalizes_scheme_and_port |
 | console.endpoint-list.reject-duplicate | 在多实例端点列表中拒绝重复地址 | active | regression | console.utils.validation.validate_endpoints_info | console/tests/utils/validation_test.py::EndpointValidationTests.test_validate_endpoints_info_rejects_duplicate_addresses |
-| console.enterprise-config.concurrent-initialization | 处理企业配置并发初始化 | active | regression | console.services.config_service.ConfigService.add_config | console/tests/config_service_test.py::EnterpriseConfigServiceTests.test_add_config_returns_existing_record_when_concurrent_create_wins |
+| console.enterprise-config.concurrent-initialization | 处理企业配置并发初始化 | active | regression | console.services.config_service.ConfigService.add_config | console/tests/config_service_test.py::EnterpriseConfigServiceTests.test_add_config_returns_existing_record_when_concurrent_create_wins<br>console/tests/config_service_test.py::EnterpriseConfigServiceTests.test_initialization_uses_config_created_after_bulk_lookup |
 | console.enterprise-config.custom-fields-disabled-bool | get_custom_fields 包含被禁用的布尔字段 | active | regression | console.services.config_service.EnterpriseConfigService.get_custom_fields | console/tests/config_service_test.py::EnterpriseConfigServiceTests.test_get_custom_fields_includes_disabled_bool_fields |
 | console.enterprise-config.user-context | 解析企业配置服务用户上下文 | active | regression | console.services.config_service.EnterpriseConfigService.__init__ | console/tests/config_service_test.py::EnterpriseConfigServiceTests.test_enterprise_config_service_defaults_user_id_to_none<br>console/tests/config_service_test.py::EnterpriseConfigServiceTests.test_enterprise_config_service_keeps_explicit_user_id |
 | console.enterprise.bind-market-token-decode | 解码云市绑定企业的认证信息 | active | regression | console.views.enterprise_active.BindMarketEnterpriseOptimizAccessTokenView.post | console/tests/bind_market_token_decode_test.py::BindMarketTokenDecodeTest.test_market_info_is_base64_decoded |
@@ -336,6 +336,7 @@
 | console.gateway.tcp-port-open-failure | TCP 网关开端口失败时拦截创建 | active | regression | console.services.mcp_query_service.create_gateway_rules[tcp] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_create_gateway_rules_tcp_rejects_port_open_failure |
 | console.gateway.tcp-required | 创建 TCP 网关规则时必须提供 tcp 参数 | active | regression | console.services.mcp_query_service.create_gateway_rules[tcp] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_create_gateway_rules_requires_tcp_payload |
 | console.gateway.tcp-third-party-guard | 第三方组件不支持 TCP 网关策略时拦截创建 | active | regression | console.services.mcp_query_service.create_gateway_rules[tcp] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_create_gateway_rules_tcp_rejects_invalid_third_party_component |
+| console.gray-release.route-update-errors-propagate | Gray release propagates route update errors | active | regression | console.services.gray_release_service.GrayReleaseService._update_apisix_route_weights | console/tests/gray_release_service_test.py::GrayReleaseRouteUpdateTests.test_update_apisix_route_weights_propagates_region_errors |
 | console.gray-release.update-route-query-params | Gray Release Update Route Query Params | active | regression | console.services.gray_release_service.GrayReleaseService.update_route | console/tests/gray_release_service_test.py::GrayReleaseRouteUpdateTests.test_update_apisix_route_weights_keeps_service_alias_and_port_in_query |
 | console.gray-release.update-route-query-uses-original-port | Gray Release Update Route Query Uses Original Port | active | regression | console.services.gray_release_service.GrayReleaseService.update_route | console/tests/gray_release_service_light_test.py::GrayReleaseRouteUpdateLightTests.test_update_route_query_uses_original_service_port_when_ports_differ |
 | console.groupcopy.package-build-guard | 上传软件包组件禁止快速复制 | active | regression | console.services.groupcopy_service.GroupAppCopyService.get_modify_group_metadata | console/tests/groupcopy_service_test.py::GroupAppCopyServiceTests.test_get_modify_group_metadata_rejects_package_build |
@@ -386,6 +387,7 @@
 | console.market-app.manual-build-preserves-port-alias | 手动构建保留应用市场端口别名 | active | regression | console.services.app_actions.app_deploy.AppDeployService.deploy / MarketService.update_port_data | console/tests/app_deploy_test.py::MarketServiceBuildBoundaryRegressionTests |
 | console.market-app.restore-preserves-volume-capacity-on-storage-fallback | 市场恢复在存储类型回退时保留卷容量 | active | regression | console.services.market_app.new_components.NewComponents._template_to_volumes | console/tests/market_app_storage_test.py::MarketAppDefaultStorageClassTests.test_template_to_volumes_preserves_capacity_when_storage_type_changes |
 | console.market-app.restore-volume-capacity-helper | resolve_market_restore_volume_settings 在存储类型变化时保留容量 | active | regression | console.services.app_config.volume_service.AppVolumeService.resolve_market_restore_volume_settings | console/tests/market_app_storage_test.py::MarketAppDefaultStorageClassTests.test_resolve_market_restore_volume_settings_preserves_capacity_when_storage_type_changes |
+| console.market-app.skip-default-domain-for-gray-install | Skip default domain creation for gray market installs | active | regression | console.services.market_app_service.MarketAppService.__save_port | console/tests/market_app_service_test.py::MarketAppServicePortPersistenceTests.test_save_outer_port_skips_default_domain_for_gray_install |
 | console.market-app.upgrade-share-image-fallback | Market App Upgrade Share Image Fallback | active | regression | console.services.market_app.update_components | console/tests/market_app_update_components_test.py::MarketAppUpdateComponentsCompatibilityTests.test_create_update_components_falls_back_to_image_when_share_image_missing |
 | console.market-app.version-order-desc | 应用市场版本按新到旧排序 | active | regression | console.services.market_app_service.MarketAppService._patch_rainbond_app_versions | console/tests/market_app_service_test.py::MarketAppVersionOrderingTests |
 | console.market-app.vm-disk-imports-from-template | 市场应用安装从 VM 模板生成磁盘导入配置 | active | regression | console.services.market_app.new_components.NewComponents._template_to_k8s_attributes | console/tests/market_app_update_components_test.py::MarketAppNewComponentsVMK8sAttrsTests.test_template_to_k8s_attributes_backfills_vm_runtime_attrs_from_vm_block |
@@ -3518,7 +3520,7 @@
 - 接口类型: `service_method`
 - 业务入口: `console.services.config_service.ConfigService.add_config`
 - 代码路径: `console/services/config_service.py`
-- 测试路径: `console/tests/config_service_test.py::EnterpriseConfigServiceTests.test_add_config_returns_existing_record_when_concurrent_create_wins`
+- 测试路径: `console/tests/config_service_test.py::EnterpriseConfigServiceTests.test_add_config_returns_existing_record_when_concurrent_create_wins`, `console/tests/config_service_test.py::EnterpriseConfigServiceTests.test_initialization_uses_config_created_after_bulk_lookup`
 
 ### get_custom_fields 包含被禁用的布尔字段
 
@@ -3939,6 +3941,16 @@
 - 业务入口: `console.services.mcp_query_service.create_gateway_rules[tcp]`
 - 代码路径: `console/services/mcp_query_service.py`
 - 测试路径: `console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_create_gateway_rules_tcp_rejects_invalid_third_party_component`
+
+### Gray release propagates route update errors
+
+- Capability ID: `console.gray-release.route-update-errors-propagate`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.gray_release_service.GrayReleaseService._update_apisix_route_weights`
+- 代码路径: `console/services/gray_release_service.py`
+- 测试路径: `console/tests/gray_release_service_test.py::GrayReleaseRouteUpdateTests.test_update_apisix_route_weights_propagates_region_errors`
 
 ### Gray Release Update Route Query Params
 
@@ -4439,6 +4451,16 @@
 - 业务入口: `console.services.app_config.volume_service.AppVolumeService.resolve_market_restore_volume_settings`
 - 代码路径: `console/services/app_config/volume_service.py`
 - 测试路径: `console/tests/market_app_storage_test.py::MarketAppDefaultStorageClassTests.test_resolve_market_restore_volume_settings_preserves_capacity_when_storage_type_changes`
+
+### Skip default domain creation for gray market installs
+
+- Capability ID: `console.market-app.skip-default-domain-for-gray-install`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.market_app_service.MarketAppService.__save_port`
+- 代码路径: `console/services/market_app_service.py`
+- 测试路径: `console/tests/market_app_service_test.py::MarketAppServicePortPersistenceTests.test_save_outer_port_skips_default_domain_for_gray_install`
 
 ### Market App Upgrade Share Image Fallback
 

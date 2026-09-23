@@ -6406,6 +6406,24 @@
       "status": "active"
     },
     {
+      "id": "console.gray-release.route-update-errors-propagate",
+      "title": "Gray release propagates route update errors",
+      "title_zh": "Gray release propagates route update errors",
+      "interface_type": "service_method",
+      "interface": "console.services.gray_release_service.GrayReleaseService._update_apisix_route_weights",
+      "code_paths": [
+        "console/services/gray_release_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/gray_release_service_test.py",
+          "selector": "GrayReleaseRouteUpdateTests.test_update_apisix_route_weights_propagates_region_errors"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.gray-release.update-route-query-params",
       "title": "Gray Release Update Route Query Params",
       "title_zh": "Gray Release Update Route Query Params",
@@ -7387,6 +7405,24 @@
         {
           "path": "console/tests/market_app_storage_test.py",
           "selector": "MarketAppDefaultStorageClassTests.test_resolve_market_restore_volume_settings_preserves_capacity_when_storage_type_changes"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.market-app.skip-default-domain-for-gray-install",
+      "title": "Skip default domain creation for gray market installs",
+      "title_zh": "Skip default domain creation for gray market installs",
+      "interface_type": "service_method",
+      "interface": "console.services.market_app_service.MarketAppService.__save_port",
+      "code_paths": [
+        "console/services/market_app_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/market_app_service_test.py",
+          "selector": "MarketAppServicePortPersistenceTests.test_save_outer_port_skips_default_domain_for_gray_install"
         }
       ],
       "test_type": "regression",

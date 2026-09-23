@@ -1027,6 +1027,44 @@ class MarketAppServicePortPersistenceTests(SimpleTestCase):
         self.assertEqual(["java-maven-demo-gray", "java-maven-demo-gray-admin"],
                          [port.k8s_service_name for port in created_ports])
 
+    # capability_id: console.market-app.skip-default-domain-for-gray-install
+    @patch("console.services.market_app_service.port_repo.bulk_create")
+    @patch("console.services.market_app_service.domain_service.create_default_gateway_rule")
+    def test_save_outer_port_skips_default_domain_for_gray_install(self, mock_create_default_gateway_rule,
+                                                                   mock_bulk_create):
+        from console.services.market_app_service import market_app_service
+
+        tenant = Obj(tenant_id="tenant-1")
+        region = Obj(region_id="region-1")
+        service = Obj(tenant_id="tenant-1", service_id="service-1", service_alias="gr123456")
+        ports = [{
+            "container_port": 5000,
+            "protocol": "http",
+            "port_alias": "WEB",
+            "is_inner_service": True,
+            "is_outer_service": True,
+            "k8s_service_name": "java-maven-demo",
+        }]
+
+        market_app_service._MarketAppService__save_port(
+            tenant=tenant,
+            region=region,
+            service=service,
+            ports=ports,
+            port_k8s_svc_name={"service-1:5000": "java-maven-demo-gray"},
+            app_id="app-1",
+            skip_create_domain=True,
+        )
+
+        mock_create_default_gateway_rule.assert_not_called()
+        mock_bulk_create.assert_called_once()
+        created_ports = mock_bulk_create.call_args.args[0]
+        self.assertEqual(1, len(created_ports))
+        self.assertEqual("service-1", created_ports[0].service_id)
+        self.assertEqual(5000, created_ports[0].container_port)
+        self.assertTrue(created_ports[0].is_outer_service)
+        self.assertEqual("java-maven-demo-gray", created_ports[0].k8s_service_name)
+
 
 class MarketAppServiceVMGuardTests(SimpleTestCase):
     def test_market_app_service_imports_with_app_version_service(self):
