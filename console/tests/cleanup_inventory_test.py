@@ -96,6 +96,25 @@ class CleanupInventoryProjectionTests(unittest.TestCase):
         self.assertNotIn("do-not-export", json.dumps(result))
         self.assertEqual(template_resource(row, "r1", True)["resourceType"], "application_snapshot")
 
+    def test_template_size_uses_install_image_without_dropping_reference_evidence(self):
+        row = {"ID": 3, "app_id": "app", "version": "v1", "app_template": json.dumps({
+            "apps": [{"share_image": "goodrain.me/app:v1", "image": "upstream/app:base",
+                      "service_image": {"image_url": "app:v1"}}], "plugins": [{"image": "goodrain.me/sidecar:v1"}]})}
+        result = template_resource(row, "r", False)
+        self.assertEqual(result["sizeImages"], ["goodrain.me/app:v1", "goodrain.me/sidecar:v1"])
+        self.assertIn("upstream/app:base", result["images"])
+        self.assertIn("app:v1", result["images"])
+        self.assertEqual(result["protection"], "reference_unknown")
+        row["app_template"] = json.dumps({"apps": [{"image": "goodrain.me/app:v1"}, {}]})
+        self.assertEqual(template_resource(row, "r", False)["sizeImages"], [])
+
+    def test_version_size_prefers_runtime_image_over_delivery_alias(self):
+        payload = {"list": [{"build_version": "v1", "delivered_type": "image",
+                             "image_name": "goodrain.me/app:v1", "delivered_path": "app:v1"}]}
+        row = version_resources({"service_id": "s"}, payload, "r")[0]
+        self.assertEqual(row["sizeImages"], ["goodrain.me/app:v1"])
+        self.assertIn("app:v1", row["images"])
+
     def test_invalid_template_is_visible_and_never_claims_complete_references(self):
         result = template_resource({"ID": 1, "app_id": "app", "version": "v", "app_template": "bad-json"}, "r1", False)
         self.assertEqual(result["protection"], "reference_unknown")

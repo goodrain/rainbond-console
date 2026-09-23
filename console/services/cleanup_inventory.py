@@ -64,6 +64,8 @@ def template_resource(row, region, hidden):
         name = _display_name(template.get("group_name"), template.get("app_name"), row.get("app_name"), row.get("app_id"))
         result["name"] = "{} / {}".format(name, row.get("version", ""))
         images = set()
+        size_images = set()
+        size_complete = True
         for section in ("apps", "plugins"):
             components = template.get(section, [])
             if not isinstance(components, list):
@@ -71,6 +73,13 @@ def template_resource(row, region, hidden):
             for component in components:
                 if not isinstance(component, dict):
                     raise ValueError("invalid component")
+                # Match template installation precedence. Other image fields remain
+                # reference evidence, but are not additional installed artifacts.
+                installed = _image(component.get("share_image", component.get("image")))
+                if installed:
+                    size_images.add(installed)
+                else:
+                    size_complete = False
                 delivery = component.get("service_image") or {}
                 for image in (component.get("share_image"), component.get("image"),
                               delivery.get("image_url") if isinstance(delivery, dict) else None):
@@ -78,6 +87,7 @@ def template_resource(row, region, hidden):
                     if clean:
                         images.add(clean)
         result["images"] = sorted(images)
+        result["sizeImages"] = sorted(size_images) if size_complete else []
         result["usageStatus"] = "referenced" if images else "unknown"
     except (ValueError, TypeError):
         result["observed"] = False
@@ -110,6 +120,10 @@ def version_resources(component, payload, region):
         if version.get("delivered_type") == "image":
             images.append(_image(version.get("delivered_path")))
         result["images"] = sorted(set(image for image in images if image))
+        runtime_image = _image(version.get("image_name"))
+        if not runtime_image and version.get("delivered_type") == "image":
+            runtime_image = _image(version.get("delivered_path"))
+        result["sizeImages"] = [runtime_image] if runtime_image else []
         if number != current and version.get("final_status") == "success":
             rank += 1
             event_id = version.get("event_id")
