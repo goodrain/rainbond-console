@@ -248,7 +248,11 @@ SNAPSHOT_SCHEDULING_ATTRIBUTES = frozenset(("affinity", "nodeSelector", "tolerat
 
 
 def snapshot_reference_resource(row, region):
-    """Project saved image evidence without exporting configuration or secrets."""
+    """Export retained snapshot references without configuration or secrets.
+
+    Missing runtime images, plugin relations and unknown Kubernetes overrides
+    keep coverage incomplete; known images are retained as protection evidence.
+    """
     result = _base("snapshot-reference:{}:{}".format(region, row["ID"]), region, "templates",
                    "application_snapshot", "保留快照 / {}".format(row["ID"]), "")
     result["source"] = "platform_snapshot_references"
