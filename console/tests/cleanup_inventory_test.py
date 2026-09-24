@@ -8,6 +8,18 @@ from console.services.cleanup_inventory import (template_resource, verify_source
 
 
 class CleanupInventoryProjectionTests(unittest.TestCase):
+    def test_registry_reference_projection_hides_template_identity(self):
+        from console.services.cleanup_inventory import registry_reference_resource
+        row = {"ID": 7, "app_id": "private-app", "version": "private-version", "share_team": "private-team",
+               "app_template": json.dumps({"group_name": "private-title", "apps": [{"share_image": "goodrain.me/app:v1"}]})}
+        result = registry_reference_resource(row, "templates", "r", bytes(32))
+        self.assertTrue(result["observed"])
+        self.assertEqual(result["images"], ["goodrain.me/app:v1"])
+        self.assertNotIn("private-", json.dumps(result))
+        self.assertNotIn("retirement", result)
+        row["app_template"] = json.dumps({"apps": [{}]})
+        self.assertFalse(registry_reference_resource(row, "templates", "r", bytes(32))["observed"])
+
     def test_failed_component_keeps_identifier_and_readable_context(self):
         self.assertEqual(failed_scope_label({"service_id": "s1", "service_cname": "支付接口", "owner_name": "研发 / 商城"}),
                          "研发 / 商城 / 支付接口 (s1)")

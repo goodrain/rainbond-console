@@ -15,7 +15,8 @@ from console.models.main import (AppVersionTemplateRelation, RainbondCenterApp, 
                                  ServiceUpgradeRecord, AppUpgradeSnapshot)
 from console.repositories.region_repo import region_repo
 from console.services.cleanup_inventory import (template_resource, verify_source_request, version_resources,
-                                                deployment_resource, failed_scope_label, snapshot_reference_resource)
+                                                deployment_resource, failed_scope_label, snapshot_reference_resource,
+                                                registry_reference_resource)
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import ServiceGroup, ServiceGroupRelation, Tenants, TenantServiceInfo
 
@@ -56,6 +57,11 @@ class CleanupInventoryView(APIView):
                 raise ValueError()
         except ValueError:
             return Response({"errorCode": "INVALID_REQUEST"}, status=400)
+        reference_scope = request.query_params.get("reference_scope", "")
+        if reference_scope:
+            if reference_scope != "registry" or kind not in ("templates", "snapshots"):
+                return Response({"errorCode": "INVALID_REQUEST"}, status=400)
+            return self._registry_reference_inventory(enterprise_id, region_name, kind, cursor, upper, key)
         teams = Tenants.objects.filter(enterprise_id=enterprise_id)
         page: list[dict[str, Any]]
         if kind == "templates":
@@ -175,3 +181,31 @@ class CleanupInventoryView(APIView):
         return Response({"enterprise": enterprise_id, "region": region_name, "kind": kind,
                          "resources": resources, "cursor": page[-1]["ID"] if more else 0, "upper": upper,
                          "failedScopes": failures, "referencesComplete": False})
+
+    @staticmethod
+    def _registry_reference_inventory(enterprise_id, region_name, kind, cursor, upper, key):
+        # These rows are protection evidence, not a cross-enterprise resource
+        # listing. The projection strips ownership, names and retirement actions.
+        if kind == "templates":
+            query = RainbondCenterAppVersion.objects.all()
+            fields = ("ID", "app_id", "version", "app_template")
+        else:
+            query = AppUpgradeSnapshot.objects.all()
+            fields = ("ID", "snapshot")
+        if upper == 0:
+            upper = query.order_by("-ID").values_list("ID", flat=True).first() or 0
+        if cursor > upper:
+            return Response({"errorCode": "INVALID_REQUEST"}, status=400)
+        page = list(query.filter(ID__gt=cursor, ID__lte=upper).order_by("ID").values(*fields)[:26])
+        more = len(page) > 25
+        page = page[:25]
+        resources = [registry_reference_resource(row, kind, region_name, key) for row in page]
+        failures = [row["id"] for row in resources if not row["observed"]]
+        # Another Region's retained runtime versions need their own bound audit.
+        # Do not silently treat that uncollected source as empty.
+        if region_repo.get_region_info_all().exclude(region_name=region_name).exists():
+            failures.append("other_region_reference_audit_required")
+        return Response({"enterprise": enterprise_id, "region": region_name, "kind": kind,
+                         "referenceScope": "registry", "resources": resources,
+                         "cursor": page[-1]["ID"] if more else 0, "upper": upper,
+                         "failedScopes": failures, "referencesComplete": not failures})

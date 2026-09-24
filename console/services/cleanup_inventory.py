@@ -311,3 +311,32 @@ def snapshot_reference_resource(row, region):
     result["protection"] = "reference_unknown" if issues else "referenced"
     result["usageStatus"] = "referenced" if images else "unknown"
     return result
+
+
+def registry_reference_resource(row, kind, region, key):
+    """Export only image references, never foreign template names or actions."""
+    if kind == "snapshots":
+        source = snapshot_reference_resource(row, region)
+    elif kind == "templates":
+        source = template_resource(row, region, False)
+        try:
+            template = json.loads(row.get("app_template") or "")
+            if not isinstance(template, dict) or not any(name in template for name in ("apps", "plugins", "k8s_resources")):
+                raise ValueError()
+            for section in ("apps", "plugins"):
+                for component in template.get(section, []):
+                    delivery = component.get("service_image") or {}
+                    images = (component.get("share_image"), component.get("image"),
+                              delivery.get("image_url") if isinstance(delivery, dict) else None)
+                    if not any(_image(value) for value in images):
+                        raise ValueError()
+        except (ValueError, TypeError, AttributeError):
+            source["observed"] = False
+    else:
+        raise ValueError("unsupported reference source")
+    identity = hmac.new(key, "{}:{}".format(kind, row["ID"]).encode(), hashlib.sha256).hexdigest()
+    result = _base("reference:" + identity, region, "templates", "image_reference", "业务镜像引用", "")
+    result["images"] = source["images"]
+    result["observed"] = source["observed"]
+    result["source"] = "platform_reference_inventory"
+    return result

@@ -164,6 +164,37 @@ def main():
             self.assertNotIn('do-not-export', json.dumps(response.data))
             self.assertFalse(response.data['referencesComplete'])
 
+        def test_registry_reference_scope_includes_foreign_protection_without_details(self):
+            import json
+            from types import SimpleNamespace
+            from unittest.mock import patch, Mock
+            from console.views.cleanup_inventory import CleanupInventoryView
+            for team, image in [('team', 'goodrain.me/owned:v1'), ('foreign', 'goodrain.me/foreign:v1')]:
+                AppUpgradeSnapshot.objects.create(tenant_id=team, snapshot_id=team, snapshot=json.dumps({
+                    'component_group': {'group_name': 'private-title'},
+                    'components': [{'service_base': {'service_id': team, 'image': image},
+                                    'service_auths': [{'value': 'do-not-export'}]}]}))
+            request = SimpleNamespace(method='GET', headers={},
+                                      query_params={'kind': 'snapshots', 'reference_scope': 'registry'},
+                                      get_full_path=lambda: '/inventory?reference_scope=registry')
+            regions = Mock()
+            for other_region in [False, True]:
+                regions.exclude.return_value.exists.return_value = other_region
+                with patch('console.views.cleanup_inventory.resolve_gateway_key', return_value=self.key), \
+                        patch('console.views.cleanup_inventory.verify_source_request', return_value=True), \
+                        patch('console.views.cleanup_inventory.region_repo.get_enterprise_region_by_region_name',
+                              return_value=True), \
+                        patch('console.views.cleanup_inventory.region_repo.get_region_info_all', return_value=regions):
+                    response = CleanupInventoryView().get(request, 'e', 'r')
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.data['referenceScope'], 'registry')
+                self.assertEqual(response.data['referencesComplete'], not other_region)
+                self.assertEqual(sorted(image for row in response.data['resources'] for image in row['images']),
+                                 ['goodrain.me/foreign:v1', 'goodrain.me/owned:v1'])
+                self.assertNotIn('do-not-export', json.dumps(response.data))
+                self.assertNotIn('private-title', json.dumps(response.data))
+                self.assertTrue(all(not row.get('retirement') for row in response.data['resources']))
+
         def test_foreign_region_is_protected(self):
             with self.assertRaises(RetirementConflict):
                 retire_template('e', 'other', self.expected, self.key)
