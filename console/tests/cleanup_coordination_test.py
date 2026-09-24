@@ -4,6 +4,45 @@ from console.services.cleanup_coordination import protect_references, Coordinati
 
 
 class CoordinationTests(unittest.TestCase):
+    def test_snapshot_entrypoints_acquire_before_reading_or_writing(self):
+        import ast
+        import json
+        from pathlib import Path
+        from types import SimpleNamespace
+        from typing import Any, Optional
+        from unittest.mock import Mock, patch
+        for file, method_name in [('app_version_service.py', 'create_snapshot'),
+                                  ('market_app/app_upgrade.py', '_take_snapshot'),
+                                  ('share_services.py', 'update_or_create_rainbond_center_app_version')]:
+            path = Path(__file__).resolve().parents[1] / 'services' / file
+            tree = ast.parse(path.read_text())
+            method = next(n for c in tree.body if isinstance(c, ast.ClassDef) for n in c.body
+                          if isinstance(n, ast.FunctionDef) and n.name == method_name)
+            method.decorator_list = []
+            namespace = dict(Optional=Optional,
+                             Any=Any,
+                             Tenants=object,
+                             RegionConfig=object,
+                             Users=object,
+                             ServiceGroup=object,
+                             json=json,
+                             RainbondCenterAppVersion=SimpleNamespace(
+                                 objects=Mock(get=Mock(side_effect=AssertionError("unprotected template write"))),
+                                 DoesNotExist=LookupError))
+            exec(compile(ast.fix_missing_locations(ast.Module(body=[method], type_ignores=[])), str(path), 'exec'), namespace)
+            obj = SimpleNamespace(region_name='r',
+                                  tenant=SimpleNamespace(tenant_name='team'),
+                                  get_or_create_hidden_template=Mock(side_effect=AssertionError('unprotected snapshot work')))
+            with patch('console.services.cleanup_coordination.protect_region_references',
+                       side_effect=CoordinationUnavailable('occupied')):
+                with self.assertRaises(CoordinationUnavailable):
+                    if method_name == 'create_snapshot':
+                        namespace[method_name](obj, obj.tenant, SimpleNamespace(region_name='r'), object(), object())
+                    elif method_name == 'update_or_create_rainbond_center_app_version':
+                        namespace[method_name](obj, obj.tenant, SimpleNamespace(region_name='r'), object(), 'app', 'v1', {})
+                    else:
+                        namespace[method_name](obj)
+
     def test_region_transport_only_exposes_producer_routes(self):
         import ast
         import json

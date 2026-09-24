@@ -1071,65 +1071,68 @@ class AppVersionService(object):
     def create_snapshot(self, tenant: Tenants, region: RegionConfig, user: Users, app: ServiceGroup,
                         version: str = "", version_alias: str = "", app_version_info: str = "",
                         share_info: Optional[dict] = None) -> dict:
-        relation, hidden_app = self.get_or_create_hidden_template(tenant, user, app)
-        latest_version = rainbond_app_repo.get_rainbond_app_versions(relation.app_model_id).filter(
-            template_type=self.SNAPSHOT_TEMPLATE_TYPE
-        ).order_by("-create_time").first()
-        next_version = version or self._next_version(latest_version.version if latest_version else None)
-        if rainbond_app_repo.get_app_version(relation.app_model_id, next_version):
-            raise ServiceHandleException(msg="snapshot version exists", msg_show="版本号已存在", status_code=400)
-        share_info = share_info or {}
-        if share_info.get("share_service_list") or share_info.get("share_plugin_list") or share_info.get("share_k8s_resources"):
-            app_template = self._build_app_template_from_share_info(
-                tenant, region, user, app, relation.app_model_id, next_version, share_info
+        from console.services.cleanup_coordination import protect_region_references
+        with protect_region_references(region.region_name, tenant.tenant_name):
+            relation, hidden_app = self.get_or_create_hidden_template(tenant, user, app)
+            latest_version = rainbond_app_repo.get_rainbond_app_versions(relation.app_model_id).filter(
+                template_type=self.SNAPSHOT_TEMPLATE_TYPE
+            ).order_by("-create_time").first()
+            next_version = version or self._next_version(latest_version.version if latest_version else None)
+            if rainbond_app_repo.get_app_version(relation.app_model_id, next_version):
+                raise ServiceHandleException(msg="snapshot version exists", msg_show="版本号已存在", status_code=400)
+            share_info = share_info or {}
+            if (share_info.get("share_service_list") or share_info.get("share_plugin_list")
+                    or share_info.get("share_k8s_resources")):
+                app_template = self._build_app_template_from_share_info(
+                    tenant, region, user, app, relation.app_model_id, next_version, share_info
+                )
+            else:
+                app_template = self._build_app_template(tenant, region, user, app, relation.app_model_id, next_version)
+            if latest_version:
+                latest_template = json.loads(latest_version.app_template)
+                change_summary = self._summarize_diff(app_template, latest_template)
+                if not change_summary["has_changes"]:
+                    result = self._serialize_version(latest_version)
+                    result["created"] = False
+                    result["change_summary"] = change_summary
+                    return result
+            snapshot = self._take_restore_snapshot(tenant, app, next_version)
+            app_template["snapshot_id"] = snapshot.snapshot_id if snapshot else None
+            version = RainbondCenterAppVersion.objects.create(
+                # NOTE: Tenants.enterprise_id is Optional[str]; the model field is non-null.
+                # Tenants always carry an enterprise_id in this flow (invariant).
+                enterprise_id=tenant.enterprise_id,  # type: ignore[misc]
+                app_id=relation.app_model_id,
+                version=next_version,
+                version_alias=version_alias or "",
+                app_version_info=app_version_info or "",
+                record_id=0,
+                share_user=user.user_id,
+                share_team=tenant.tenant_name,
+                group_id=app.ID,
+                dev_status="",
+                source=self.HIDDEN_TEMPLATE_SOURCE,
+                scope=self.HIDDEN_TEMPLATE_SCOPE,
+                app_template=json.dumps(app_template),
+                template_version="v2",
+                upgrade_time=str(time.time()),
+                install_number=0,
+                is_official=False,
+                is_ingerit=False,
+                is_complete=True,
+                template_type=self.SNAPSHOT_TEMPLATE_TYPE,
+                release_user_id=None,
+                region_name=region.region_name,
+                is_plugin=False,
+                arch=app_template["arch"],
             )
-        else:
-            app_template = self._build_app_template(tenant, region, user, app, relation.app_model_id, next_version)
-        if latest_version:
-            latest_template = json.loads(latest_version.app_template)
-            change_summary = self._summarize_diff(app_template, latest_template)
-            if not change_summary["has_changes"]:
-                result = self._serialize_version(latest_version)
-                result["created"] = False
-                result["change_summary"] = change_summary
-                return result
-        snapshot = self._take_restore_snapshot(tenant, app, next_version)
-        app_template["snapshot_id"] = snapshot.snapshot_id if snapshot else None
-        version = RainbondCenterAppVersion.objects.create(
-            # NOTE: Tenants.enterprise_id is Optional[str]; the model field is non-null.
-            # Tenants always carry an enterprise_id in this flow (invariant).
-            enterprise_id=tenant.enterprise_id,  # type: ignore[misc]
-            app_id=relation.app_model_id,
-            version=next_version,
-            version_alias=version_alias or "",
-            app_version_info=app_version_info or "",
-            record_id=0,
-            share_user=user.user_id,
-            share_team=tenant.tenant_name,
-            group_id=app.ID,
-            dev_status="",
-            source=self.HIDDEN_TEMPLATE_SOURCE,
-            scope=self.HIDDEN_TEMPLATE_SCOPE,
-            app_template=json.dumps(app_template),
-            template_version="v2",
-            upgrade_time=str(time.time()),
-            install_number=0,
-            is_official=False,
-            is_ingerit=False,
-            is_complete=True,
-            template_type=self.SNAPSHOT_TEMPLATE_TYPE,
-            release_user_id=None,
-            region_name=region.region_name,
-            is_plugin=False,
-            arch=app_template["arch"],
-        )
-        hidden_app.is_version = True
-        hidden_app.arch = app_template["arch"]
-        hidden_app.update_time = version.update_time
-        hidden_app.save()
-        result = self._serialize_version(version)
-        result["created"] = True
-        return result
+            hidden_app.is_version = True
+            hidden_app.arch = app_template["arch"]
+            hidden_app.update_time = version.update_time
+            hidden_app.save()
+            result = self._serialize_version(version)
+            result["created"] = True
+            return result
 
     @transaction.atomic
     def _take_restore_snapshot(self, tenant: Tenants, app: ServiceGroup,

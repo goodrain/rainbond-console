@@ -14,6 +14,21 @@ _IDENTITY = re.compile(r'^[A-Za-z0-9][A-Za-z0-9_.:-]{0,63}$')
 _REPOSITORY = re.compile(r'^[a-z0-9]+(?:(?:[._]|__|-+)[a-z0-9]+)*(?:/[a-z0-9]+(?:(?:[._]|__|-+)[a-z0-9]+)*)*$')
 
 
+@contextmanager
+def protect_region_references(region_name, tenant_name, repositories=None):
+    """Protect reference collection through the final Console database commit."""
+    from django.db import transaction
+    from www.apiclient.regionapi import RegionInvokeApi
+    api = RegionInvokeApi()
+
+    def invoke(action, storage, body):
+        return api.cleanup_reference_operation(region_name, tenant_name, action, storage, body)
+
+    with transaction.atomic():
+        with protect_references(invoke, repositories, transaction.on_commit):
+            yield
+
+
 def template_reference_scopes(raw_templates):
     """Use exact repository scopes only when every component is understood."""
     scopes = set()

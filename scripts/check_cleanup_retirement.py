@@ -94,6 +94,30 @@ def main():
             self.assertEqual(self.coordination_calls[-1][0], 'finish')
             self.assertTrue(self.coordination_calls[-1][1]['confirmed'])
 
+        def test_snapshot_reference_context_uses_outer_commit(self):
+            from django.db import transaction
+            from console.services.cleanup_coordination import protect_region_references
+            with transaction.atomic():
+                with protect_region_references('r', 'team'):
+                    self.old.version_alias = 'snapshot'
+                    self.old.save()
+                self.assertEqual([item[0] for item in self.coordination_calls], ['discover', 'acquire'])
+            self.assertTrue(self.coordination_calls[-1][1]['confirmed'])
+            self.old.refresh_from_db()
+            self.assertEqual(self.old.version_alias, 'snapshot')
+
+        def test_snapshot_failure_rolls_back_metadata_and_retains_protection(self):
+            from console.services.cleanup_coordination import protect_region_references
+            original = self.old.version_alias
+            with self.assertRaises(ValueError):
+                with protect_region_references('r', 'team'):
+                    self.old.version_alias = 'interrupted'
+                    self.old.save()
+                    raise ValueError('interrupted')
+            self.old.refresh_from_db()
+            self.assertEqual(self.old.version_alias, original)
+            self.assertFalse(self.coordination_calls[-1][1]['confirmed'])
+
         def test_retired_version_cannot_start_installation(self):
             retire_template('e', 'r', self.expected, self.key)
             with self.assertRaises(RetirementConflict):
