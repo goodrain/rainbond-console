@@ -115,6 +115,27 @@ class CleanupInventoryProjectionTests(unittest.TestCase):
         self.assertEqual(row["sizeImages"], ["goodrain.me/app:v1"])
         self.assertIn("app:v1", row["images"])
 
+    def test_template_embedded_workload_images_are_reference_evidence(self):
+        resource = {
+            "content":
+            ("apiVersion: apps/v1\nkind: Deployment\nspec:\n  template:\n    spec:\n"
+             "      containers:\n      - name: app\n        image: goodrain.me/embedded:v1\n"
+             "      initContainers:\n      - name: init\n        image: goodrain.me/init:v1\n")
+        }
+        row = {
+            "ID": 4,
+            "app_id": "app",
+            "version": "v1",
+            "app_template": json.dumps({"k8s_resources": [resource]})
+        }
+        result = template_resource(row, "r", False)
+        self.assertIn("goodrain.me/embedded:v1", result["images"])
+        self.assertIn("goodrain.me/init:v1", result["images"])
+        resource[
+            "content"] = "apiVersion: example/v1\nkind: UnrecognizedWorkload\nspec: {}"
+        row["app_template"] = json.dumps({"k8s_resources": [resource]})
+        self.assertFalse(template_resource(row, "r", False)["observed"])
+
     def test_invalid_template_is_visible_and_never_claims_complete_references(self):
         result = template_resource({"ID": 1, "app_id": "app", "version": "v", "app_template": "bad-json"}, "r1", False)
         self.assertEqual(result["protection"], "reference_unknown")

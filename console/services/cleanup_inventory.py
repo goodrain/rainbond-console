@@ -5,6 +5,8 @@ import json
 import re
 import time
 
+import yaml
+
 
 def verify_source_request(method, path, enterprise, region, timestamp, signature, key, now=None):
     if method != "GET" or not key or len(key) < 32:
@@ -60,6 +62,65 @@ def failed_scope_label(row):
     return "{}：{}".format(label, "；".join(reasons)) if reasons else label
 
 
+def _embedded_workload_images(resources):
+    images = set()
+    if not isinstance(resources, list) or len(resources) > 1000:
+        return images, False
+    paths = {
+        "Pod": ("spec", ),
+        "Deployment": ("spec", "template", "spec"),
+        "StatefulSet": ("spec", "template", "spec"),
+        "DaemonSet": ("spec", "template", "spec"),
+        "ReplicaSet": ("spec", "template", "spec"),
+        "ReplicationController": ("spec", "template", "spec"),
+        "Job": ("spec", "template", "spec"),
+        "CronJob": ("spec", "jobTemplate", "spec", "template", "spec"),
+    }
+    non_workloads = {
+        "Namespace", "Service", "Secret", "ConfigMap", "Ingress",
+        "PersistentVolumeClaim", "PersistentVolume", "ServiceAccount", "Role",
+        "RoleBinding", "ClusterRole", "ClusterRoleBinding", "NetworkPolicy",
+        "ResourceQuota", "LimitRange", "PodDisruptionBudget",
+        "HorizontalPodAutoscaler"
+    }
+    complete = True
+    for resource in resources:
+        try:
+            content = resource.get("content") if isinstance(resource,
+                                                            dict) else None
+            if not isinstance(content,
+                              str) or not content or len(content) > 1048576:
+                raise ValueError()
+            for document in yaml.safe_load_all(content):
+                if not isinstance(document, dict):
+                    raise ValueError()
+                kind = document.get("kind")
+                if kind in non_workloads:
+                    continue
+                if kind not in paths:
+                    raise ValueError()
+                spec = document
+                for field in paths[kind]:
+                    spec = spec[field]
+                    if not isinstance(spec, dict):
+                        raise ValueError()
+                for field in ("containers", "initContainers",
+                              "ephemeralContainers"):
+                    containers = spec.get(field, [])
+                    if not isinstance(containers, list) or (
+                            field == "containers" and not containers):
+                        raise ValueError()
+                    for container in containers:
+                        image = _image(container.get("image")) if isinstance(
+                            container, dict) else None
+                        if not image:
+                            raise ValueError()
+                        images.add(image)
+        except (ValueError, TypeError, KeyError, yaml.YAMLError):
+            complete = False
+    return images, complete
+
+
 def template_resource(row, region, hidden):
     result = _base("template:{}:{}".format(region, row["ID"]), region, "templates",
                    "application_snapshot" if hidden else "template_version",
@@ -95,6 +156,12 @@ def template_resource(row, region, hidden):
                     clean = _image(image)
                     if clean:
                         images.add(clean)
+        embedded, embedded_complete = _embedded_workload_images(template.get("k8s_resources", []))
+        images.update(embedded)
+        size_images.update(embedded)
+        if not embedded_complete:
+            result["observed"] = False
+            size_complete = False
         result["images"] = sorted(images)
         result["sizeImages"] = sorted(size_images) if size_complete else []
         result["usageStatus"] = "referenced" if images else "unknown"
