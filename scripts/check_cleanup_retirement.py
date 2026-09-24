@@ -28,6 +28,17 @@ def main():
         key = b'test-only-fingerprint-key-material'
 
         def setUp(self):
+            from unittest.mock import patch
+            self.coordination_calls = []
+
+            def coordinate(region, tenant, action, storage, body):
+                self.coordination_calls.append((action, body))
+                if action == 'discover':
+                    return {'bean': {'protocol': 1, 'stores': [{'storage_id': 'hub', 'generation': 'one'}]}}
+                return {'bean': {'protocol': 1, 'newly_admitted': True, 'recorded': True}}
+            coordinator = patch('www.apiclient.regionapi.RegionInvokeApi.cleanup_reference_operation', side_effect=coordinate)
+            coordinator.start()
+            self.addCleanup(coordinator.stop)
             for model in reversed(models):
                 model.objects.all()._raw_delete('default')
             Tenants.objects.create(tenant_id='team', tenant_name='team', namespace='team', enterprise_id='e')
@@ -68,16 +79,25 @@ def main():
                 retire_template('e', 'r', self.expected, self.key)
 
         def test_new_use_changes_checkpoint(self):
-            with lock_template_use('model', 'v1'):
+            with lock_template_use('model', 'v1', 'r', 'team'):
                 pass
             with self.assertRaises(RetirementConflict):
                 retire_template('e', 'r', self.expected, self.key)
             self.assertTrue(RainbondCenterAppVersion.objects.filter(ID=self.old.ID).exists())
 
+        def test_outer_transaction_retains_reference_occupancy(self):
+            from django.db import transaction
+            with transaction.atomic():
+                with lock_template_use('model', 'v1', 'r', 'team'):
+                    pass
+                self.assertEqual([item[0] for item in self.coordination_calls], ['discover', 'acquire'])
+            self.assertEqual(self.coordination_calls[-1][0], 'finish')
+            self.assertTrue(self.coordination_calls[-1][1]['confirmed'])
+
         def test_retired_version_cannot_start_installation(self):
             retire_template('e', 'r', self.expected, self.key)
             with self.assertRaises(RetirementConflict):
-                with lock_template_use('model', 'v1'):
+                with lock_template_use('model', 'v1', 'r', 'team'):
                     self.fail('retired template entered installation')
 
         def test_invalid_snapshot_preserves_inventory_but_blocks_retirement(self):

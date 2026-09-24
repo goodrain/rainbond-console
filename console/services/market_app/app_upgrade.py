@@ -220,12 +220,15 @@ class AppUpgrade(MarketApp):
     def upgrade(self) -> AppUpgradeRecord:
         # Publish the pending reference while holding the same parent lock as retirement.
         from console.services.cleanup_retirement import lock_template_use, RetirementConflict
+        from console.services.cleanup_coordination import CoordinationUnavailable
         try:
-            with lock_template_use(self.app_model_key, self.version):
+            with lock_template_use(self.app_model_key, self.version, self.region_name, self.tenant.tenant_name):
                 if self.record is None or not self.record.ID:
                     raise RetirementConflict()
                 AppUpgradeRecord.objects.filter(ID=self.record.ID).update(
                     version=self.version, status=UpgradeStatus.UPGRADING.value)
+        except CoordinationUnavailable:
+            raise ServiceHandleException("cleanup coordination unavailable", "仓库清理协调未就绪或存在冲突，请稍后重试", status_code=409)
         except RetirementConflict:
             raise ServiceHandleException("template retired", "模板版本已变化或退役，请刷新后重试", status_code=409)
         # install plugins

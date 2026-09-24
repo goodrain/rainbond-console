@@ -102,9 +102,11 @@ def retire_build_version(enterprise: str, region: str, expected: dict, actor: st
 
 
 @contextmanager
-def lock_template_use(app_id: str, version: str) -> Iterator[None]:
+def lock_template_use(app_id: str, version: str, region_name: str, tenant_name: str) -> Iterator[None]:
     """Fence template retirement against a new installation reference."""
     from django.db import transaction
+    from www.apiclient.regionapi import RegionInvokeApi
+    from console.services.cleanup_coordination import protect_references, template_reference_scopes
     from console.models.main import RainbondCenterApp, RainbondCenterAppVersion
     with transaction.atomic():
         parents = list(RainbondCenterApp.objects.select_for_update().filter(app_id=app_id).order_by('ID'))
@@ -114,9 +116,15 @@ def lock_template_use(app_id: str, version: str) -> Iterator[None]:
             app_id=app_id, version=version).order_by('ID'))
         if not versions:
             raise RetirementConflict()
-        RainbondCenterAppVersion.objects.filter(ID__in=[item.ID for item in versions]).update(
-            cleanup_activation_revision=uuid.uuid4().hex)
-        yield
+        api = RegionInvokeApi()
+        scopes = template_reference_scopes([item.app_template for item in versions])
+
+        def invoke(action, storage, body):
+            return api.cleanup_reference_operation(region_name, tenant_name, action, storage, body)
+        with protect_references(invoke, scopes, transaction.on_commit):
+            RainbondCenterAppVersion.objects.filter(ID__in=[item.ID for item in versions]).update(
+                cleanup_activation_revision=uuid.uuid4().hex)
+            yield
 
 
 def template_retirement_targets(enterprise: str, region: str, rows: list[dict], key: bytes) -> dict[int, dict]:

@@ -2074,6 +2074,26 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         _, response = self._post(url, self.default_headers, region=region, body=json.dumps(expected))
         return response
 
+    def cleanup_reference_operation(self, region: str, tenant_name: str, action: str, storage: str,
+                                    data: dict) -> Optional[Dict[str, Any]]:
+        """Call only the authenticated producer-coordination endpoints."""
+        identity = re.compile(r'^[A-Za-z0-9][A-Za-z0-9_.:-]{0,63}$')
+        if action == 'discover':
+            path = '/v2/cleanup/stores/discover'
+        elif action in ('acquire', 'finish') and identity.fullmatch(storage) and data.get('kind') == 'producer':
+            path = '/v2/cleanup/stores/{}/operations'.format(quote(storage, safe=''))
+            if action == 'finish':
+                operation = data.get('operation_id')
+                if not isinstance(operation, str) or not identity.fullmatch(operation):
+                    raise ValueError('invalid cleanup operation identity')
+                path += '/{}/finish'.format(quote(operation, safe=''))
+        else:
+            raise ValueError('invalid cleanup coordination action')
+        url, token = self.__get_region_access_info(tenant_name, region)
+        self._set_headers(token)
+        _, response = self._post(url + path, self.default_headers, region=region, body=json.dumps(data))
+        return response
+
     def delete_service_build_version(self, region: str, tenant_name: str, service_alias: str, version_id: str,
                                      body: dict) -> Optional[Dict[str, Any]]:
         """删除组件的某次构建版本"""
