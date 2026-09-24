@@ -2,7 +2,7 @@
 import os
 from typing import Any
 
-from django.db.models import Q
+from django.db.models import Q, QuerySet
 from rest_framework.permissions import AllowAny
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -183,7 +183,10 @@ class CleanupInventoryView(APIView):
                          "failedScopes": failures, "referencesComplete": False})
 
     @staticmethod
-    def _registry_reference_inventory(enterprise_id, region_name, kind, cursor, upper, key):
+    def _registry_reference_inventory(enterprise_id: str, region_name: str, kind: str,
+                                      cursor: int, upper: int, key: bytes) -> Response:
+        query: QuerySet[Any]
+        fields: tuple[str, ...]
         # These rows are protection evidence, not a cross-enterprise resource
         # listing. The projection strips ownership, names and retirement actions.
         if kind == "templates":

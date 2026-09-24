@@ -1098,7 +1098,7 @@ class AppVersionService(object):
                     return result
             snapshot = self._take_restore_snapshot(tenant, app, next_version)
             app_template["snapshot_id"] = snapshot.snapshot_id if snapshot else None
-            version = RainbondCenterAppVersion.objects.create(
+            snapshot_version = RainbondCenterAppVersion.objects.create(
                 # NOTE: Tenants.enterprise_id is Optional[str]; the model field is non-null.
                 # Tenants always carry an enterprise_id in this flow (invariant).
                 enterprise_id=tenant.enterprise_id,  # type: ignore[misc]
@@ -1128,9 +1128,9 @@ class AppVersionService(object):
             )
             hidden_app.is_version = True
             hidden_app.arch = app_template["arch"]
-            hidden_app.update_time = version.update_time
+            hidden_app.update_time = snapshot_version.update_time
             hidden_app.save()
-            result = self._serialize_version(version)
+            result = self._serialize_version(snapshot_version)
             result["created"] = True
             return result
 

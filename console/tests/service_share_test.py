@@ -744,7 +744,9 @@ class ShareServiceCreateSnapshotPublishTestCase(TestCase):
         self.assertNotIn("share_slug_path", saved_component)
         self.assertNotIn("service_slug", saved_component)
 
-    def test_sync_event_passes_vm_image_source_for_vm_publish(self):
+    @mock.patch("www.apiclient.regionapi.RegionInvokeApi.cleanup_reference_operation",
+                return_value={"bean": {"protocol": 1, "stores": []}})
+    def test_sync_event_passes_vm_image_source_for_vm_publish(self, coordination_mock):
         app_version = mock.Mock(
             template_type=share_service_instance.SNAPSHOT_TEMPLATE_TYPE,
             scope="team",
@@ -823,6 +825,7 @@ class ShareServiceCreateSnapshotPublishTestCase(TestCase):
                 record_event,
             )
 
+        coordination_mock.assert_called_once_with(self.region_name, self.team.tenant_name, "discover", "", {})
         _, call_args, _ = share_service_mock.mock_calls[0]
         share_body = call_args[3]
         self.assertEqual("amd64", share_body["arch"])
@@ -832,7 +835,9 @@ class ShareServiceCreateSnapshotPublishTestCase(TestCase):
         )
         self.assertNotIn("vm_image_token", share_body["image_info"])
 
-    def test_sync_event_passes_vm_export_token_for_live_vm_publish(self):
+    @mock.patch("www.apiclient.regionapi.RegionInvokeApi.cleanup_reference_operation",
+                return_value={"bean": {"protocol": 1, "stores": []}})
+    def test_sync_event_passes_vm_export_token_for_live_vm_publish(self, coordination_mock):
         app_version = mock.Mock(
             template_type="",
             scope="team",
@@ -913,6 +918,7 @@ class ShareServiceCreateSnapshotPublishTestCase(TestCase):
                 record_event,
             )
 
+        coordination_mock.assert_called_once_with(self.region_name, self.team.tenant_name, "discover", "", {})
         _, call_args, _ = share_service_mock.mock_calls[0]
         share_body = call_args[3]
         self.assertEqual(
