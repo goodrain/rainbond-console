@@ -886,9 +886,12 @@ class MarketAppService(object):
             "service_group_id": 0 if group_id == -1 else group_id
         }
         from console.services.cleanup_retirement import lock_template_use, RetirementConflict
+        from console.services.cleanup_coordination import CoordinationUnavailable
         try:
-            with lock_template_use(app_key, app_version):
+            with lock_template_use(app_key, app_version, region_name, Tenants.objects.get(tenant_id=tenant_id).tenant_name):
                 return tenant_service_group_repo.create_tenant_service_group(**params)
+        except CoordinationUnavailable:
+            raise ServiceHandleException("cleanup coordination unavailable", "仓库清理协调未就绪或存在冲突，请稍后重试", status_code=409)
         except RetirementConflict:
             raise ServiceHandleException("template retired", "模板版本已变化或退役，请刷新后重试", status_code=409)
 

@@ -8,6 +8,18 @@ from console.services.cleanup_inventory import (template_resource, verify_source
 
 
 class CleanupInventoryProjectionTests(unittest.TestCase):
+    def test_registry_reference_projection_hides_template_identity(self):
+        from console.services.cleanup_inventory import registry_reference_resource
+        row = {"ID": 7, "app_id": "private-app", "version": "private-version", "share_team": "private-team",
+               "app_template": json.dumps({"group_name": "private-title", "apps": [{"share_image": "goodrain.me/app:v1"}]})}
+        result = registry_reference_resource(row, "templates", "r", bytes(32))
+        self.assertTrue(result["observed"])
+        self.assertEqual(result["images"], ["goodrain.me/app:v1"])
+        self.assertNotIn("private-", json.dumps(result))
+        self.assertNotIn("retirement", result)
+        row["app_template"] = json.dumps({"apps": [{}]})
+        self.assertFalse(registry_reference_resource(row, "templates", "r", bytes(32))["observed"])
+
     def test_failed_component_keeps_identifier_and_readable_context(self):
         self.assertEqual(failed_scope_label({"service_id": "s1", "service_cname": "支付接口", "owner_name": "研发 / 商城"}),
                          "研发 / 商城 / 支付接口 (s1)")
@@ -96,6 +108,46 @@ class CleanupInventoryProjectionTests(unittest.TestCase):
         self.assertNotIn("do-not-export", json.dumps(result))
         self.assertEqual(template_resource(row, "r1", True)["resourceType"], "application_snapshot")
 
+    def test_template_size_uses_install_image_without_dropping_reference_evidence(self):
+        row = {"ID": 3, "app_id": "app", "version": "v1", "app_template": json.dumps({
+            "apps": [{"share_image": "goodrain.me/app:v1", "image": "upstream/app:base",
+                      "service_image": {"image_url": "app:v1"}}], "plugins": [{"image": "goodrain.me/sidecar:v1"}]})}
+        result = template_resource(row, "r", False)
+        self.assertEqual(result["sizeImages"], ["goodrain.me/app:v1", "goodrain.me/sidecar:v1"])
+        self.assertIn("upstream/app:base", result["images"])
+        self.assertIn("app:v1", result["images"])
+        self.assertEqual(result["protection"], "reference_unknown")
+        row["app_template"] = json.dumps({"apps": [{"image": "goodrain.me/app:v1"}, {}]})
+        self.assertEqual(template_resource(row, "r", False)["sizeImages"], [])
+
+    def test_version_size_prefers_runtime_image_over_delivery_alias(self):
+        payload = {"list": [{"build_version": "v1", "delivered_type": "image",
+                             "image_name": "goodrain.me/app:v1", "delivered_path": "app:v1"}]}
+        row = version_resources({"service_id": "s"}, payload, "r")[0]
+        self.assertEqual(row["sizeImages"], ["goodrain.me/app:v1"])
+        self.assertIn("app:v1", row["images"])
+
+    def test_template_embedded_workload_images_are_reference_evidence(self):
+        resource = {
+            "content":
+            ("apiVersion: apps/v1\nkind: Deployment\nspec:\n  template:\n    spec:\n"
+             "      containers:\n      - name: app\n        image: goodrain.me/embedded:v1\n"
+             "      initContainers:\n      - name: init\n        image: goodrain.me/init:v1\n")
+        }
+        row = {
+            "ID": 4,
+            "app_id": "app",
+            "version": "v1",
+            "app_template": json.dumps({"k8s_resources": [resource]})
+        }
+        result = template_resource(row, "r", False)
+        self.assertIn("goodrain.me/embedded:v1", result["images"])
+        self.assertIn("goodrain.me/init:v1", result["images"])
+        resource[
+            "content"] = "apiVersion: example/v1\nkind: UnrecognizedWorkload\nspec: {}"
+        row["app_template"] = json.dumps({"k8s_resources": [resource]})
+        self.assertFalse(template_resource(row, "r", False)["observed"])
+
     def test_invalid_template_is_visible_and_never_claims_complete_references(self):
         result = template_resource({"ID": 1, "app_id": "app", "version": "v", "app_template": "bad-json"}, "r1", False)
         self.assertEqual(result["protection"], "reference_unknown")
@@ -116,7 +168,7 @@ class CleanupInventoryProjectionTests(unittest.TestCase):
         component = {"service_id": "s", "retirement_references_complete": True, "snapshot_referenced": False}
         version = {"build_version": "v1", "event_id": "event1", "final_status": "success",
                    "delivered_type": "image", "image_name": "registry/app:v1"}
-        inspection = {"protocol": 1, "current_version": "v2", "active_operation": False,
+        inspection = {"protocol": 2, "current_version": "v2", "active_operation": False,
                       "checkpoints": {"event1": "activation1"}}
         payload = {"deploy_version": "v2", "list": [version], "retirement": inspection}
         result = version_resources(component, payload, "r")[0]
@@ -125,10 +177,14 @@ class CleanupInventoryProjectionTests(unittest.TestCase):
         for changes in ({"snapshot_referenced": True}, {"retirement_references_complete": False}):
             with self.subTest(changes=changes):
                 self.assertNotIn("retirement", version_resources(dict(component, **changes), payload, "r")[0])
-        for changes in ({"current_version": "v3"}, {"active_operation": True}, {"checkpoints": {}}, {"protocol": 0}):
+        for changes in ({"current_version": "v3"}, {"active_operation": True}, {"checkpoints": {}},
+                        {"protocol": 0}, {"protocol": 1}):
             with self.subTest(changes=changes):
                 stale = dict(payload, retirement=dict(inspection, **changes))
-                self.assertNotIn("retirement", version_resources(component, stale, "r")[0])
+                projected = version_resources(component, stale, "r")[0]
+                self.assertNotIn("retirement", projected)
+                if changes.get("protocol") in (0, 1):
+                    self.assertEqual(projected["protection"], "core_upgrade_required")
         current = dict(payload, deploy_version="v1", retirement=dict(inspection, current_version="v1"))
         self.assertNotIn("retirement", version_resources(component, current, "r")[0])
 

@@ -179,7 +179,8 @@ class CleanupInstallationLifecycleTests(unittest.TestCase):
         sync = ModuleType('console.services.rbd_plugin_sync_service')
         sync.rbd_plugin_sync_service = SimpleNamespace(reconcile=lambda *args: calls.append('configure'))
         obj = SimpleNamespace(install_plugins=Mock(), sync_new_app=Mock(), _save_app=Mock(), region=object(),
-                              tenant=object(), app=SimpleNamespace(ID=42), record=SimpleNamespace(ID=1),
+                              tenant=SimpleNamespace(tenant_name="team"), region_name="r",
+                              app=SimpleNamespace(ID=42), record=SimpleNamespace(ID=1),
                               app_model_key='model', version='v2',
                               app_template={'platform_plugin': {'plugin_id': 'rainbond-disk'}},
                               _deploy=lambda record: calls.append('deploy'))

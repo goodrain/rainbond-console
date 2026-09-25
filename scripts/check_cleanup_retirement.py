@@ -28,6 +28,17 @@ def main():
         key = b'test-only-fingerprint-key-material'
 
         def setUp(self):
+            from unittest.mock import patch
+            self.coordination_calls = []
+
+            def coordinate(region, tenant, action, storage, body):
+                self.coordination_calls.append((action, body))
+                if action == 'discover':
+                    return {'bean': {'protocol': 1, 'stores': [{'storage_id': 'hub', 'generation': 'one'}]}}
+                return {'bean': {'protocol': 1, 'newly_admitted': True, 'recorded': True}}
+            coordinator = patch('www.apiclient.regionapi.RegionInvokeApi.cleanup_reference_operation', side_effect=coordinate)
+            coordinator.start()
+            self.addCleanup(coordinator.stop)
             for model in reversed(models):
                 model.objects.all()._raw_delete('default')
             Tenants.objects.create(tenant_id='team', tenant_name='team', namespace='team', enterprise_id='e')
@@ -68,16 +79,49 @@ def main():
                 retire_template('e', 'r', self.expected, self.key)
 
         def test_new_use_changes_checkpoint(self):
-            with lock_template_use('model', 'v1'):
+            with lock_template_use('model', 'v1', 'r', 'team'):
                 pass
             with self.assertRaises(RetirementConflict):
                 retire_template('e', 'r', self.expected, self.key)
             self.assertTrue(RainbondCenterAppVersion.objects.filter(ID=self.old.ID).exists())
 
+        def test_outer_transaction_retains_reference_occupancy(self):
+            from django.db import transaction
+            with transaction.atomic():
+                with lock_template_use('model', 'v1', 'r', 'team'):
+                    pass
+                self.assertEqual([item[0] for item in self.coordination_calls], ['discover', 'acquire'])
+            self.assertEqual(self.coordination_calls[-1][0], 'finish')
+            self.assertTrue(self.coordination_calls[-1][1]['confirmed'])
+
+        def test_snapshot_reference_context_uses_outer_commit(self):
+            from django.db import transaction
+            from console.services.cleanup_coordination import protect_region_references
+            with transaction.atomic():
+                with protect_region_references('r', 'team'):
+                    self.old.version_alias = 'snapshot'
+                    self.old.save()
+                self.assertEqual([item[0] for item in self.coordination_calls], ['discover', 'acquire'])
+            self.assertTrue(self.coordination_calls[-1][1]['confirmed'])
+            self.old.refresh_from_db()
+            self.assertEqual(self.old.version_alias, 'snapshot')
+
+        def test_snapshot_failure_rolls_back_metadata_and_retains_protection(self):
+            from console.services.cleanup_coordination import protect_region_references
+            original = self.old.version_alias
+            with self.assertRaises(ValueError):
+                with protect_region_references('r', 'team'):
+                    self.old.version_alias = 'interrupted'
+                    self.old.save()
+                    raise ValueError('interrupted')
+            self.old.refresh_from_db()
+            self.assertEqual(self.old.version_alias, original)
+            self.assertFalse(self.coordination_calls[-1][1]['confirmed'])
+
         def test_retired_version_cannot_start_installation(self):
             retire_template('e', 'r', self.expected, self.key)
             with self.assertRaises(RetirementConflict):
-                with lock_template_use('model', 'v1'):
+                with lock_template_use('model', 'v1', 'r', 'team'):
                     self.fail('retired template entered installation')
 
         def test_invalid_snapshot_preserves_inventory_but_blocks_retirement(self):
@@ -119,6 +163,37 @@ def main():
             self.assertEqual(response.data['resources'][0]['images'], ['goodrain.me/owned:v1'])
             self.assertNotIn('do-not-export', json.dumps(response.data))
             self.assertFalse(response.data['referencesComplete'])
+
+        def test_registry_reference_scope_includes_foreign_protection_without_details(self):
+            import json
+            from types import SimpleNamespace
+            from unittest.mock import patch, Mock
+            from console.views.cleanup_inventory import CleanupInventoryView
+            for team, image in [('team', 'goodrain.me/owned:v1'), ('foreign', 'goodrain.me/foreign:v1')]:
+                AppUpgradeSnapshot.objects.create(tenant_id=team, snapshot_id=team, snapshot=json.dumps({
+                    'component_group': {'group_name': 'private-title'},
+                    'components': [{'service_base': {'service_id': team, 'image': image},
+                                    'service_auths': [{'value': 'do-not-export'}]}]}))
+            request = SimpleNamespace(method='GET', headers={},
+                                      query_params={'kind': 'snapshots', 'reference_scope': 'registry'},
+                                      get_full_path=lambda: '/inventory?reference_scope=registry')
+            regions = Mock()
+            for other_region in [False, True]:
+                regions.exclude.return_value.exists.return_value = other_region
+                with patch('console.views.cleanup_inventory.resolve_gateway_key', return_value=self.key), \
+                        patch('console.views.cleanup_inventory.verify_source_request', return_value=True), \
+                        patch('console.views.cleanup_inventory.region_repo.get_enterprise_region_by_region_name',
+                              return_value=True), \
+                        patch('console.views.cleanup_inventory.region_repo.get_region_info_all', return_value=regions):
+                    response = CleanupInventoryView().get(request, 'e', 'r')
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.data['referenceScope'], 'registry')
+                self.assertEqual(response.data['referencesComplete'], not other_region)
+                self.assertEqual(sorted(image for row in response.data['resources'] for image in row['images']),
+                                 ['goodrain.me/foreign:v1', 'goodrain.me/owned:v1'])
+                self.assertNotIn('do-not-export', json.dumps(response.data))
+                self.assertNotIn('private-title', json.dumps(response.data))
+                self.assertTrue(all(not row.get('retirement') for row in response.data['resources']))
 
         def test_foreign_region_is_protected(self):
             with self.assertRaises(RetirementConflict):

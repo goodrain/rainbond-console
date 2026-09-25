@@ -856,8 +856,15 @@ class ShareService(object):
         service.pop("service_image", None)
         service.pop("share_image", None)
 
-    @transaction.atomic
     def sync_event(self, user: Any, region_name: str, tenant_name: str, record_event: Any) -> Any:
+        from console.services.cleanup_coordination import protect_region_references
+        # The Region chooses the destination image during dispatch. Retain broad
+        # admission until that returned reference is committed in the template.
+        with protect_region_references(region_name, tenant_name):
+            return self._sync_event_protected(user, region_name, tenant_name, record_event)
+
+    @transaction.atomic
+    def _sync_event_protected(self, user: Any, region_name: str, tenant_name: str, record_event: Any) -> Any:
         app_version = rainbond_app_repo.get_rainbond_app_version_by_record_id(record_event.record_id)
         if not app_version:
             raise RbdAppNotFound("分享的应用不存在")
@@ -992,9 +999,15 @@ class ShareService(object):
                 transaction.savepoint_rollback(sid)
             raise ServiceHandleException(msg="share failed", msg_show="应用分享介质同步发生错误", status_code=500)
 
-    @transaction.atomic
     def sync_service_plugin_event(self, user: Any, region_name: str, tenant_name: str, record_id: str,
                                   record_event: Any) -> Any:
+        from console.services.cleanup_coordination import protect_region_references
+        with protect_region_references(region_name, tenant_name):
+            return self._sync_service_plugin_event_protected(user, region_name, tenant_name, record_id, record_event)
+
+    @transaction.atomic
+    def _sync_service_plugin_event_protected(self, user: Any, region_name: str, tenant_name: str, record_id: str,
+                                             record_event: Any) -> Any:
         apps_version = rainbond_app_repo.get_rainbond_app_version_by_record_id(record_event.record_id)
         if not apps_version:
             raise RbdAppNotFound("分享的应用不存在")
@@ -2038,32 +2051,35 @@ class ShareService(object):
 
     def update_or_create_rainbond_center_app_version(self, tenant: Any, region: RegionConfig, user: Any, app_id: str,
                                                      version: str, app_template: dict) -> None:
-        try:
-            obj = RainbondCenterAppVersion.objects.get(app_id=app_id, version=version)
-            obj.app_template = json.dumps(app_template)
-            obj.save()
-        except RainbondCenterAppVersion.DoesNotExist:
-            RainbondCenterAppVersion.objects.create(
-                app_id=app_id,
-                version=app_template["group_version"],
-                app_version_info="",
-                version_alias="",
-                template_type="",
-                record_id=0,
-                share_user=user.user_id,
-                share_team=tenant.tenant_name,
-                # group_id=share_record.group_id,
-                source="local",
-                scope="enterprise",
-                app_template=json.dumps(app_template),
-                template_version="v2",
-                enterprise_id=tenant.enterprise_id,
-                region_name=region.region_name,
-                arch=app_template["arch"],
-                is_complete=True,
-                # NOTE: model field upgrade_time is declared str/int but a float (time.time())
-                # is passed; pre-existing wrong-arg-type, not changing behavior.
-                upgrade_time=time.time())  # type: ignore[misc]
+        from console.services.cleanup_coordination import protect_region_references, template_reference_scopes
+        scopes = template_reference_scopes([json.dumps(app_template)])
+        with protect_region_references(region.region_name, tenant.tenant_name, scopes):
+            try:
+                obj = RainbondCenterAppVersion.objects.get(app_id=app_id, version=version)
+                obj.app_template = json.dumps(app_template)
+                obj.save()
+            except RainbondCenterAppVersion.DoesNotExist:
+                RainbondCenterAppVersion.objects.create(
+                    app_id=app_id,
+                    version=app_template["group_version"],
+                    app_version_info="",
+                    version_alias="",
+                    template_type="",
+                    record_id=0,
+                    share_user=user.user_id,
+                    share_team=tenant.tenant_name,
+                    # group_id=share_record.group_id,
+                    source="local",
+                    scope="enterprise",
+                    app_template=json.dumps(app_template),
+                    template_version="v2",
+                    enterprise_id=tenant.enterprise_id,
+                    region_name=region.region_name,
+                    arch=app_template["arch"],
+                    is_complete=True,
+                    # NOTE: model field upgrade_time is declared str/int but a float (time.time())
+                    # is passed; pre-existing wrong-arg-type, not changing behavior.
+                    upgrade_time=time.time())  # type: ignore[misc]
 
 
 share_service = ShareService()
