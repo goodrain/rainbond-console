@@ -323,6 +323,54 @@ class RainSkillsDeploymentServiceTests(TestCase):
         self.assertGreaterEqual(close_all.call_count, 2)
         self.assertNotIn(tracker["key"], repo.records)
 
+    # capability_id: console.rainskills.deployment-report-backpressure
+    def test_worker_limit_preserves_pending_reports_and_sweeps_fairly(self):
+        threads = []
+
+        def factory(*args, **kwargs):
+            thread = DeferredThread(*args, **kwargs)
+            threads.append(thread)
+            return thread
+
+        repo = FakeRepo()
+        for index in range(12):
+            key = "pending-{}".format(index)
+            repo.records[key] = FakeRecord(key, {
+                "created_at": NOW.isoformat(), "report_phase": "final",
+                "local_state": "bound",
+            })
+        service = make_service(repo=repo, thread_factory=factory)
+        seen = set()
+        for _ in range(3):
+            before = len(threads)
+            service.sweep_once()
+            batch = threads[before:]
+            self.assertLessEqual(len(batch), 4)
+            self.assertEqual(len(batch), 4)
+            for worker in batch:
+                seen.add(worker.args[0])
+                with mock.patch.object(service, "_poll_by_key"):
+                    worker.target(*worker.args)
+        self.assertEqual(seen, set(repo.records))
+        self.assertEqual(len(repo.records), 12)
+        self.assertEqual(repo.deleted, [])
+
+    def test_report_closes_database_before_network_wait(self):
+        service = make_service(transport=FakeTransport([503, 503, 503]))
+        with mock.patch.object(deployment_service_module.connections,
+                               "close_all") as close_all:
+            original = service.transport.post
+
+            closed_before_post = []
+
+            def post(*args, **kwargs):
+                closed_before_post.append(close_all.called)
+                return original(*args, **kwargs)
+
+            service.transport.post = post
+            self.assertFalse(service._post_report_payload({}))
+            self.assertEqual(closed_before_post, [True, True, True])
+
     def test_report_url_is_always_the_canonical_request_server(self):
         with mock.patch.dict(
                 os.environ,
@@ -943,7 +991,7 @@ class RainSkillsDeploymentServiceTests(TestCase):
         with mock.patch.object(service, "_start_worker") as start_worker:
             service.sweep_once()
 
-        self.assertEqual(
+        self.assertCountEqual(
             start_worker.call_args_list,
             [mock.call("final"),
              mock.call("events"),

@@ -483,6 +483,7 @@
 | console.port-inner.env-sync-idempotent | Treat duplicate region env create as idempotent during inner port enable | active | regression | console.services.app_config.env_service.AppEnvVarService.add_service_env_var | console/tests/env_service_region_idempotency_test.py::EnvServiceRegionIdempotencyTests.test_add_service_env_var_updates_region_when_env_already_exists<br>console/tests/env_service_region_idempotency_test.py::EnvServiceRegionIdempotencyTests.test_add_service_env_var_retries_add_when_region_update_reports_record_not_found<br>console/tests/env_service_region_idempotency_test.py::EnvServiceRegionIdempotencyTests.test_add_service_env_var_treats_second_add_conflict_as_success |
 | console.rainskills-audit-migration-repair | Rainskills 审计迁移修复 | active | unit | python manage.py repair_legacy_schema --apps console [--plan] | console/tests/legacy_schema_repair_test.py::RepairInitialMigrationTests |
 | console.rainskills-audit-strict-startup | Rainskills 严格审计启动门禁 | active | regression | entrypoint repair plan and strict MCP write audit | console/tests/entrypoint_test.py::EntrypointGunicornTest.test_database_startup_plans_repairs_before_applying_and_migrating<br>console/tests/rainskills_audit_service_test.py::RainSkillsAuditServiceSafetyTests.test_confirmation_metadata_is_required_by_default<br>console/tests/mcp_query_rainskills_audit_test.py::MCPQueryRainSkillsAuditTests.test_strict_mode_blocks_legacy_mutation_before_tool_execution |
+| console.rainskills.deployment-report-backpressure | Bound deployment report workers without losing deferred reports | active | regression | RainSkillsDeploymentService.sweep_once | console/tests/rainskills_deployment_service_test.py::RainSkillsDeploymentServiceTests.test_worker_limit_preserves_pending_reports_and_sweeps_fairly<br>console/tests/rainskills_deployment_service_test.py::RainSkillsDeploymentServiceTests.test_report_closes_database_before_network_wait |
 | console.random.default-version | 生成默认随机版本标识 | active | regression | console.utils.randomutil.make_default_version | console/tests/utils/randomutil_test.py::RandomUtilTests.test_make_default_version |
 | console.realtime-proxy.docker-console-subprotocol | Docker 控制台后端使用 webtty 子协议 | active | regression | console.utils.realtime_proxy._backend_websocket_subprotocols | console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_docker_console_backend_uses_webtty_subprotocol |
 | console.realtime-proxy.docker-console-user-activity | Docker 控制台活动跟踪在用户输入时刷新 | active | regression | console.utils.realtime_proxy.DockerConsoleActivityTracker | console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_docker_console_activity_tracker_refreshes_on_user_input |
@@ -5414,6 +5415,16 @@
 - 业务入口: `entrypoint repair plan and strict MCP write audit`
 - 代码路径: `entrypoint.sh`, `goodrain_web/settings.py`, `console/management/commands/repair_legacy_schema.py`, `console/services/rainskills_audit_service.py`
 - 测试路径: `console/tests/entrypoint_test.py::EntrypointGunicornTest.test_database_startup_plans_repairs_before_applying_and_migrating`, `console/tests/rainskills_audit_service_test.py::RainSkillsAuditServiceSafetyTests.test_confirmation_metadata_is_required_by_default`, `console/tests/mcp_query_rainskills_audit_test.py::MCPQueryRainSkillsAuditTests.test_strict_mode_blocks_legacy_mutation_before_tool_execution`
+
+### Bound deployment report workers without losing deferred reports
+
+- Capability ID: `console.rainskills.deployment-report-backpressure`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `RainSkillsDeploymentService.sweep_once`
+- 代码路径: `console/services/rainskills_deployment_service.py`
+- 测试路径: `console/tests/rainskills_deployment_service_test.py::RainSkillsDeploymentServiceTests.test_worker_limit_preserves_pending_reports_and_sweeps_fairly`, `console/tests/rainskills_deployment_service_test.py::RainSkillsDeploymentServiceTests.test_report_closes_database_before_network_wait`
 
 ### 生成默认随机版本标识
 
