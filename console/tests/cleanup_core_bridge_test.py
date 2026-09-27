@@ -104,6 +104,18 @@ class CleanupCoreForwardingTests(unittest.TestCase):
         self.assertEqual(kwargs['body'], b'{}')
         response.release_conn.assert_called_once()
         client.clear.assert_called_once()
+        api._RegionInvokeApi__get_region_access_info_by_enterprise_id.return_value = ('https://core.invalid', '')
+        config.cert_file = '/fixture/client.crt'
+        config.key_file = '/fixture/client.key'
+        self.assertEqual(api.cleanup_proxy_request('e', 'r', '/v2/cleanup/stores/discover', b'{}')[0], 409)
+        self.assertEqual(client.request.call_args.kwargs['headers'], {'Content-Type': 'application/json'})
+        self.assertTrue(config.verify_ssl)
+        config.key_file = ''
+        previous_calls = client.request.call_count
+        with self.assertRaises(Unavailable):
+            api.cleanup_proxy_request('e', 'r', '/v2/cleanup/stores/discover', b'{}')
+        self.assertEqual(client.request.call_count, previous_calls)
+        config.key_file = '/fixture/client.key'
         client.request.side_effect = RuntimeError('private-fixture-detail')
         with self.assertRaises(Unavailable) as error:
             api.cleanup_proxy_request('e', 'r', '/v2/cleanup/stores/discover', b'{}')
