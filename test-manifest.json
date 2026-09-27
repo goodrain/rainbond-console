@@ -9179,6 +9179,28 @@
       "status": "active"
     },
     {
+      "id": "console.rainskills.deployment-report-backpressure",
+      "title": "Bound deployment report workers without losing deferred reports",
+      "title_zh": "Bound deployment report workers without losing deferred reports",
+      "interface_type": "service_method",
+      "interface": "RainSkillsDeploymentService.sweep_once",
+      "code_paths": [
+        "console/services/rainskills_deployment_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/rainskills_deployment_service_test.py",
+          "selector": "RainSkillsDeploymentServiceTests.test_worker_limit_preserves_pending_reports_and_sweeps_fairly"
+        },
+        {
+          "path": "console/tests/rainskills_deployment_service_test.py",
+          "selector": "RainSkillsDeploymentServiceTests.test_report_closes_database_before_network_wait"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.random.default-version",
       "title": "Generate default random version identifiers",
       "title_zh": "生成默认随机版本标识",
