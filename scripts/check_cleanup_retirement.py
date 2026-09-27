@@ -16,10 +16,10 @@ def main():
         raise RuntimeError('refusing to use a persistent database')
     from console.models.main import (RainbondCenterApp, RainbondCenterAppVersion, AppUpgradeRecord,
                                      AppVersionTemplateRelation, AppUpgradeSnapshot)
-    from www.models.main import Tenants, TenantServiceGroup
+    from www.models.main import Tenants, TenantServiceGroup, TenantServiceInfo
     from console.services.cleanup_retirement import retire_template, RetirementConflict, lock_template_use, template_fingerprint
     models = [Tenants, RainbondCenterApp, RainbondCenterAppVersion, AppUpgradeRecord,
-              AppVersionTemplateRelation, AppUpgradeSnapshot, TenantServiceGroup]
+              AppVersionTemplateRelation, AppUpgradeSnapshot, TenantServiceGroup, TenantServiceInfo]
     with connection.schema_editor() as editor:
         for model in models:
             editor.create_model(model)
@@ -194,6 +194,43 @@ def main():
                 self.assertNotIn('do-not-export', json.dumps(response.data))
                 self.assertNotIn('private-title', json.dumps(response.data))
                 self.assertTrue(all(not row.get('retirement') for row in response.data['resources']))
+
+        def test_component_reference_pages_are_complete_and_anonymous(self):
+            import json
+            from types import SimpleNamespace
+            from unittest.mock import patch, Mock
+            from console.views.cleanup_inventory import CleanupInventoryView
+            for n in range(27):
+                TenantServiceInfo.objects.create(service_id='pending-{}'.format(n), service_alias='pending-{}'.format(n),
+                                                 tenant_id='foreign',
+                                                 service_cname='private-component-title', service_source='docker_image',
+                                                 image='goodrain.me/pending:v{}'.format(n), service_region='r')
+            regions = Mock()
+            regions.exclude.return_value.exists.return_value = False
+            request = SimpleNamespace(method='GET', headers={},
+                                      query_params={'kind': 'components', 'reference_scope': 'registry'},
+                                      get_full_path=lambda: '/inventory?kind=components&reference_scope=registry')
+            with patch('console.views.cleanup_inventory.resolve_gateway_key', return_value=self.key), \
+                    patch('console.views.cleanup_inventory.verify_source_request', return_value=True), \
+                    patch('console.views.cleanup_inventory.region_repo.get_enterprise_region_by_region_name',
+                          return_value=True), \
+                    patch('console.views.cleanup_inventory.region_repo.get_region_info_all', return_value=regions):
+                first = CleanupInventoryView().get(request, 'e', 'r')
+                self.assertEqual(first.status_code, 200)
+                self.assertTrue(first.data['referencesComplete'])
+                self.assertEqual(len(first.data['resources']), 25)
+                request.query_params.update(cursor=str(first.data['cursor']), upper=str(first.data['upper']))
+                second = CleanupInventoryView().get(request, 'e', 'r')
+                self.assertEqual(len(second.data['resources']), 2)
+                self.assertEqual(second.data['cursor'], 0)
+                rows = first.data['resources'] + second.data['resources']
+                self.assertEqual(len({row['id'] for row in rows}), 27)
+                self.assertEqual({image for row in rows for image in row['images']},
+                                 {'goodrain.me/pending:v{}'.format(n) for n in range(27)})
+                self.assertNotIn('private-component-title', json.dumps(rows))
+                self.assertNotIn('foreign', json.dumps(rows))
+                request.query_params = {'kind': 'components'}
+                self.assertEqual(CleanupInventoryView().get(request, 'e', 'r').status_code, 400)
 
         def test_foreign_region_is_protected(self):
             with self.assertRaises(RetirementConflict):

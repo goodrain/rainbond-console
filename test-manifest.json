@@ -3553,6 +3553,61 @@
       "status": "active"
     },
     {
+      "id": "console.cleanup.coordination-signature",
+      "title": "Bind signed cleanup coordination requests to scope and payload",
+      "title_zh": "协调签名绑定范围与原始请求",
+      "interface_type": "service_method",
+      "interface": "console.services.cleanup_core_bridge.verify_core_request",
+      "code_paths": [
+        "console/services/cleanup_core_bridge.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/cleanup_core_bridge_test.py",
+          "selector": "CleanupCoreBridgeTests.test_signature_binds_scope_path_time_and_exact_body"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.cleanup.coordination-upstream",
+      "title": "Verify Core TLS and never retry coordination mutations",
+      "title_zh": "协调请求严格校验证书且不自动重放",
+      "interface_type": "service_method",
+      "interface": "www.apiclient.regionapi.RegionInvokeApi.cleanup_proxy_request",
+      "code_paths": [
+        "www/apiclient/regionapi.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/cleanup_core_bridge_test.py",
+          "selector": "CleanupCoreForwardingTests.test_forwarder_uses_verified_tls_without_retries_or_caller_headers"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.cleanup.coordination-view",
+      "title": "Accept only installation-signed coordination envelopes",
+      "title_zh": "仅转发安装实例签名的协调请求",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.cleanup_core_bridge.CleanupCoreBridgeView.post",
+      "code_paths": [
+        "console/views/cleanup_core_bridge.py",
+        "console/urls/cleanup_inventory.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/cleanup_core_bridge_test.py",
+          "selector": "CleanupCoreForwardingTests.test_view_rejects_browser_credentials_and_forwards_only_signed_envelopes"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.cnb-build.auto-set-build-type",
       "title": "Auto set CNB build type from build parameters",
       "title_zh": "根据构建参数自动设置 CNB 构建类型",

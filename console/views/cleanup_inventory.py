@@ -53,15 +53,17 @@ class CleanupInventoryView(APIView):
         try:
             cursor = int(request.query_params.get("cursor", "0"))
             upper = int(request.query_params.get("upper", "0"))
-            if cursor < 0 or upper < 0 or kind not in ("templates", "versions", "deployments", "snapshots"):
+            if cursor < 0 or upper < 0 or kind not in ("templates", "versions", "deployments", "snapshots", "components"):
                 raise ValueError()
         except ValueError:
             return Response({"errorCode": "INVALID_REQUEST"}, status=400)
         reference_scope = request.query_params.get("reference_scope", "")
         if reference_scope:
-            if reference_scope != "registry" or kind not in ("templates", "snapshots"):
+            if reference_scope != "registry" or kind not in ("templates", "snapshots", "components"):
                 return Response({"errorCode": "INVALID_REQUEST"}, status=400)
             return self._registry_reference_inventory(enterprise_id, region_name, kind, cursor, upper, key)
+        if kind == "components":
+            return Response({"errorCode": "INVALID_REQUEST"}, status=400)
         teams = Tenants.objects.filter(enterprise_id=enterprise_id)
         page: list[dict[str, Any]]
         if kind == "templates":
@@ -189,7 +191,10 @@ class CleanupInventoryView(APIView):
         fields: tuple[str, ...]
         # These rows are protection evidence, not a cross-enterprise resource
         # listing. The projection strips ownership, names and retirement actions.
-        if kind == "templates":
+        if kind == "components":
+            query = TenantServiceInfo.objects.all()
+            fields = ("ID", "image", "service_source")
+        elif kind == "templates":
             query = RainbondCenterAppVersion.objects.all()
             fields = ("ID", "app_id", "version", "app_template")
         else:

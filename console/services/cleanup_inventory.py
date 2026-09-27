@@ -319,7 +319,12 @@ def snapshot_reference_resource(row, region):
 
 def registry_reference_resource(row, kind, region, key):
     """Export only image references, never foreign template names or actions."""
-    if kind == "snapshots":
+    if kind == "components":
+        image = _image(row.get("image"))
+        image_optional = row.get("service_source") in ("source_code", "third_party")
+        source = {"images": [image] if image else [],
+                  "observed": bool(image) or (not row.get("image") and image_optional)}
+    elif kind == "snapshots":
         source = snapshot_reference_resource(row, region)
     elif kind == "templates":
         source = template_resource(row, region, False)

@@ -20,7 +20,7 @@ from console.repositories.app_config import configuration_repo, domain_repo
 from www.apiclient.baseclient import client_auth_service
 from www.apiclient.exception import err_region_not_found
 from www.apiclient.region_types import AppStatus, PodDetail, TenantServices
-from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
+from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient, Configuration
 from www.models.main import TenantRegionInfo, Tenants, ServiceGroup
 from console.exception.bcode import ErrNamespaceExists
 from console.repositories.k8s_resources import k8s_resources_repo
@@ -41,6 +41,48 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         RegionApiBaseHttpClient.__init__(self, *args, **kwargs)
         self.default_headers: Dict[str, Any] = {'Connection': 'keep-alive', 'Content-Type': 'application/json'}
+
+    def cleanup_proxy_request(self, enterprise_id: str, region_name: str, path: str,
+                              body: bytes) -> Tuple[int, Dict[str, Any]]:
+        """Forward only fixed cleanup paths with server-owned credentials and verified TLS."""
+        from urllib.parse import urlsplit
+        from console.services.cleanup_core_bridge import allowed_core_path
+        if not allowed_core_path(path) or len(body) > 16384:
+            raise ServiceHandleException("invalid cleanup coordination request", status_code=400)
+        client = None
+        response = None
+        try:
+            region = self.get_region_info(region_name=region_name)
+            endpoint, token = self.__get_region_access_info_by_enterprise_id(enterprise_id, region_name)
+            origin = urlsplit(endpoint)
+            if (not region or endpoint != region.url or origin.scheme != 'https' or not origin.hostname
+                    or origin.username or origin.password or origin.query or origin.fragment
+                    or origin.path not in ('', '/') or not token):
+                raise ValueError()
+            config = Configuration(region)
+            config.verify_ssl = True
+            client = self.create_client(config, pools_size=1, maxsize=1)
+            response = client.request('POST', endpoint.rstrip('/') + path, body=body,
+                                      headers={'Authorization': token, 'Content-Type': 'application/json'},
+                                      retries=False, redirect=False, preload_content=False,
+                                      timeout=urllib3.Timeout(connect=5, read=30))
+            limit = (32 << 20) + (64 << 10)
+            raw = response.read(limit + 1)
+            if len(raw) > limit or not 200 <= response.status <= 599:
+                raise ValueError()
+            result = json.loads(raw)
+            if not isinstance(result, dict):
+                raise ValueError()
+            return response.status, result
+        except Exception:
+            raise ServiceHandleException("cleanup coordination unavailable", status_code=503) from None
+        finally:
+            for resource, method in ((response, 'release_conn'), (client, 'clear')):
+                if resource is not None:
+                    try:
+                        getattr(resource, method)()
+                    except Exception:
+                        pass
 
     def make_proxy_http(self, region_service_info: dict) -> Any:
         proxy_info = region_service_info['proxy']
@@ -169,7 +211,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             })
 
     def __get_tenant_region_info(self, tenant_name: Any, region: str) -> Any:
-        if type(tenant_name) == Tenants:
+        if type(tenant_name) is Tenants:
             tenant_name = tenant_name.tenant_name
         tenants = Tenants.objects.filter(tenant_name=tenant_name)
         if tenants:
@@ -1631,7 +1673,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         # 根据团队名获取其归属的企业在指定数据中心的访问信息
         token = None
         if tenant_name:
-            if type(tenant_name) == Tenants:
+            if type(tenant_name) is Tenants:
                 tenant_name = tenant_name.tenant_name
             url, token = client_auth_service.get_region_access_token_by_tenant(tenant_name, region)
         # 如果团队所在企业所属数据中心信息不存在则使用通用的配置(兼容未申请数据中心token的企业)
@@ -3419,12 +3461,12 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
                 if data.get("websocket") != "" and service_alias:
                     # 处理多个service_alias，用逗号分隔
                     service_aliases = [alias.strip() for alias in service_alias.split(',') if alias.strip()]
-                    
+
                     for single_service_alias in service_aliases:
                         svc = service_repo.get_service_by_service_alias(single_service_alias)
                         if not svc:
                             continue
-                            
+
                         domains = domain_repo.get_service_domain_by_container_port(svc.service_id, int(port))
                         if domains:
                             domain_name = data.get("name")
@@ -3962,7 +4004,6 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, body=json.dumps(cluster_data), region=region_name)
         return res, body
 
-
     def get_kubeblocks_cluster_detail(self, region_name: str, service_id: str) -> Tuple[Any, Optional[Dict[str, Any]]]:
         """
         获取 KubeBlocks 集群详情
@@ -3993,7 +4034,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
     def update_kubeblocks_backup_config(self, region_name: str, service_id: str,
                                         backup_config: dict) -> Tuple[Any, Optional[Dict[str, Any]]]:
         """
-        更新 KubeBlocks 集群的备份配置, 
+        更新 KubeBlocks 集群的备份配置,
         """
         region_info = self.get_region_info(region_name)
         if not region_info:
@@ -4040,12 +4081,12 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         self._set_headers(region_info.token)
         res, body = self._get(url, self.default_headers, region=region_name)
         return res, body
-        
+
     def delete_kubeblocks_backups(self, region_name: str, service_id: str,
                                   backups: Any) -> Tuple[Any, Optional[Dict[str, Any]]]:
         """
-        删除 KubeBlocks 集群的备份记录, 
-        backups 是需要删除的备份名称列表 
+        删除 KubeBlocks 集群的备份记录,
+        backups 是需要删除的备份名称列表
         """
         region_info = self.get_region_info(region_name)
         if not region_info:

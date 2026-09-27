@@ -193,6 +193,9 @@
 | console.cert.san-parse | 从扩展字符串中解析证书的 SAN 域名与 IP | active | regression | console.utils.certutil.parse_subject_alt_names | console/tests/utils/certutil_test.py::CertUtilTests.test_parse_subject_alt_names |
 | console.cert.summary | 汇总证书 SAN、签发方与过期信息 | active | regression | console.utils.certutil.analyze_cert | console/tests/utils/certutil_test.py::CertUtilTests.test_analyze_cert |
 | console.cert.utc-to-local | 将证书 UTC 时间戳转换为本地时间字符串 | active | regression | console.utils.certutil.utc2local | console/tests/utils/certutil_test.py::CertUtilTests.test_utc2local |
+| console.cleanup.coordination-signature | 协调签名绑定范围与原始请求 | active | regression | console.services.cleanup_core_bridge.verify_core_request | console/tests/cleanup_core_bridge_test.py::CleanupCoreBridgeTests.test_signature_binds_scope_path_time_and_exact_body |
+| console.cleanup.coordination-upstream | 协调请求严格校验证书且不自动重放 | active | regression | www.apiclient.regionapi.RegionInvokeApi.cleanup_proxy_request | console/tests/cleanup_core_bridge_test.py::CleanupCoreForwardingTests.test_forwarder_uses_verified_tls_without_retries_or_caller_headers |
+| console.cleanup.coordination-view | 仅转发安装实例签名的协调请求 | active | regression | console.views.cleanup_core_bridge.CleanupCoreBridgeView.post | console/tests/cleanup_core_bridge_test.py::CleanupCoreForwardingTests.test_view_rejects_browser_credentials_and_forwards_only_signed_envelopes |
 | console.cnb-build.auto-set-build-type | 根据构建参数自动设置 CNB 构建类型 | active | regression | console.utils.cnb_build.has_cnb_build_params | console/tests/cnb_build_test.py::BuildTypeAutoSetTestCase.test_auto_set_build_type_cnb_for_node_language |
 | console.cnb-build.detect-build-params | 识别 CNB 构建参数 | active | regression | console.utils.cnb_build.has_cnb_build_params | console/tests/cnb_build_test.py::CNBParamsDetectionTestCase.test_node_language_detects_cnb_params<br>console/tests/cnb_build_test.py::CNBParamsDetectionTestCase.test_non_cnb_language_ignores_stale_cnb_params<br>console/tests/cnb_build_test.py::CNBParamsDetectionTestCase.test_empty_build_env_dict_has_no_cnb_params<br>console/tests/cnb_build_test.py::CNBParamsDetectionTestCase.test_each_supported_cnb_param_is_detected_for_node_language |
 | console.cnb-build.detect-supported-language | 识别支持 CNB 的构建语言 | active | regression | console.utils.cnb_build.is_cnb_language | console/tests/cnb_build_test.py::CNBLanguageDetectionTestCase.test_nodejs_language_is_cnb<br>console/tests/cnb_build_test.py::CNBLanguageDetectionTestCase.test_static_language_is_cnb |
@@ -2511,6 +2514,36 @@
 - 业务入口: `console.utils.certutil.utc2local`
 - 代码路径: `console/utils/certutil.py`
 - 测试路径: `console/tests/utils/certutil_test.py::CertUtilTests.test_utc2local`
+
+### 协调签名绑定范围与原始请求
+
+- Capability ID: `console.cleanup.coordination-signature`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.cleanup_core_bridge.verify_core_request`
+- 代码路径: `console/services/cleanup_core_bridge.py`
+- 测试路径: `console/tests/cleanup_core_bridge_test.py::CleanupCoreBridgeTests.test_signature_binds_scope_path_time_and_exact_body`
+
+### 协调请求严格校验证书且不自动重放
+
+- Capability ID: `console.cleanup.coordination-upstream`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `www.apiclient.regionapi.RegionInvokeApi.cleanup_proxy_request`
+- 代码路径: `www/apiclient/regionapi.py`
+- 测试路径: `console/tests/cleanup_core_bridge_test.py::CleanupCoreForwardingTests.test_forwarder_uses_verified_tls_without_retries_or_caller_headers`
+
+### 仅转发安装实例签名的协调请求
+
+- Capability ID: `console.cleanup.coordination-view`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `view_endpoint`
+- 业务入口: `console.views.cleanup_core_bridge.CleanupCoreBridgeView.post`
+- 代码路径: `console/views/cleanup_core_bridge.py`, `console/urls/cleanup_inventory.py`
+- 测试路径: `console/tests/cleanup_core_bridge_test.py::CleanupCoreForwardingTests.test_view_rejects_browser_credentials_and_forwards_only_signed_envelopes`
 
 ### 根据构建参数自动设置 CNB 构建类型
 

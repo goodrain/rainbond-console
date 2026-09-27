@@ -8,6 +8,20 @@ from console.services.cleanup_inventory import (template_resource, verify_source
 
 
 class CleanupInventoryProjectionTests(unittest.TestCase):
+    def test_registry_component_references_include_unbuilt_images_without_identity(self):
+        from console.services.cleanup_inventory import registry_reference_resource
+        row = {"ID": 42, "service_source": "docker_image", "image": "goodrain.me/owned:pending",
+               "service_cname": "private-name", "tenant_id": "private-team", "password": "not-exported"}
+        result = registry_reference_resource(row, "components", "r", bytes(32))
+        self.assertTrue(result["observed"])
+        self.assertEqual(result["images"], ["goodrain.me/owned:pending"])
+        self.assertNotIn("private-", json.dumps(result))
+        self.assertNotIn("password", json.dumps(result))
+        row["image"] = ""
+        self.assertFalse(registry_reference_resource(row, "components", "r", bytes(32))["observed"])
+        row["service_source"] = "source_code"
+        self.assertTrue(registry_reference_resource(row, "components", "r", bytes(32))["observed"])
+
     def test_registry_reference_projection_hides_template_identity(self):
         from console.services.cleanup_inventory import registry_reference_resource
         row = {"ID": 7, "app_id": "private-app", "version": "private-version", "share_team": "private-team",
