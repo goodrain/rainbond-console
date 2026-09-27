@@ -57,13 +57,18 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             origin = urlsplit(endpoint)
             if (not region or endpoint != region.url or origin.scheme != 'https' or not origin.hostname
                     or origin.username or origin.password or origin.query or origin.fragment
-                    or origin.path not in ('', '/') or not token):
+                    or origin.path not in ('', '/')):
                 raise ValueError()
             config = Configuration(region)
             config.verify_ssl = True
+            if not token and not (config.cert_file and config.key_file):
+                raise ValueError()
+            headers = {'Content-Type': 'application/json'}
+            if token:
+                headers['Authorization'] = token
             client = self.create_client(config, pools_size=1, maxsize=1)
             response = client.request('POST', endpoint.rstrip('/') + path, body=body,
-                                      headers={'Authorization': token, 'Content-Type': 'application/json'},
+                                      headers=headers,
                                       retries=False, redirect=False, preload_content=False,
                                       timeout=urllib3.Timeout(connect=5, read=30))
             limit = (32 << 20) + (64 << 10)
