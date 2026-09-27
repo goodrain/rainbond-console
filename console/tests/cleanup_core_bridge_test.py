@@ -154,7 +154,8 @@ class CleanupCoreForwardingTests(unittest.TestCase):
                                       'Authorization': 'caller'
                                   },
                                   get_full_path=lambda: request_path)
-        self.assertEqual(scope['post'](None, request, 'e', 'r').status_code, 403)
+        view = SimpleNamespace(resolve_key=scope['resolve_gateway_key'])
+        self.assertEqual(scope['post'](view, request, 'e', 'r').status_code, 403)
         factory.assert_not_called()
         import time
         issued = str(int(time.time()))
@@ -165,5 +166,28 @@ class CleanupCoreForwardingTests(unittest.TestCase):
             'X-Cleanup-Coordination-Time': issued,
             'X-Cleanup-Coordination-Signature': hmac.new(key, payload, hashlib.sha256).hexdigest()
         }
-        self.assertEqual(scope['post'](None, request, 'e', 'r').status_code, 200)
+        self.assertEqual(scope['post'](view, request, 'e', 'r').status_code, 200)
         api.cleanup_proxy_request.assert_called_once_with('e', 'r', '/v2/cleanup/stores/discover', b'{}')
+
+        # A plugin signature cannot be replayed to the independently keyed system URL.
+        request.get_full_path = lambda: '/console/cleanup/internal/system-coordination/e/r'
+        self.assertEqual(scope['post'](SimpleNamespace(resolve_key=lambda *_: key), request, 'e', 'r').status_code, 403)
+        system_resolver = Mock(side_effect=CleanupGatewayUnavailable())
+        self.assertEqual(scope['post'](SimpleNamespace(resolve_key=system_resolver), request, 'e', 'r').status_code, 503)
+        self.assertEqual(api.cleanup_proxy_request.call_count, 1)
+        # The routed subclass selects only the system resolver, with no plugin fallback.
+        subclass = next(n for n in ast.parse(path.read_text()).body
+                        if isinstance(n, ast.ClassDef) and n.name == 'CleanupSystemCoreBridgeView')
+        scope.update(CleanupCoreBridgeView=object, resolve_system_coordination_key=system_resolver)
+        exec(compile(ast.fix_missing_locations(ast.Module(body=[subclass], type_ignores=[])), str(path), 'exec'), scope)
+        self.assertIs(scope['CleanupSystemCoreBridgeView']().resolve_key, system_resolver)
+
+        import os
+        system_key = os.urandom(64)
+        payload = '\n'.join(['cleanup-coordination-v1', 'POST', request.get_full_path(), 'e', 'r', issued,
+                             hashlib.sha256(raw).hexdigest()]).encode()
+        request.headers['X-Cleanup-Coordination-Signature'] = hmac.new(system_key, payload, hashlib.sha256).hexdigest()
+        system_resolver.side_effect = None
+        system_resolver.return_value = system_key
+        self.assertEqual(scope['post'](scope['CleanupSystemCoreBridgeView'](), request, 'e', 'r').status_code, 200)
+        self.assertEqual(api.cleanup_proxy_request.call_count, 2)

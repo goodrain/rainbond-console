@@ -3608,6 +3608,23 @@
       "status": "active"
     },
     {
+      "id": "console.cleanup.system-coordination-key",
+      "title": "Independent scoped system coordination identity",
+      "title_zh": "Independent scoped system coordination identity",
+      "interface_type": "service_method",
+      "interface": "resolve_system_coordination_key",
+      "code_paths": [
+        "console/services/cleanup_system_coordination.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/cleanup_system_coordination_test.py"
+        }
+      ],
+      "test_type": "unit",
+      "status": "active"
+    },
+    {
       "id": "console.cnb-build.auto-set-build-type",
       "title": "Auto set CNB build type from build parameters",
       "title_zh": "根据构建参数自动设置 CNB 构建类型",

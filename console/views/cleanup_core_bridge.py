@@ -10,10 +10,12 @@ from rest_framework.views import APIView
 from console.services.cleanup_core_bridge import decode_core_request, verify_core_request
 from console.services.cleanup_gateway import CleanupGatewayUnavailable
 from console.services.cleanup_installation import resolve_gateway_key
+from console.services.cleanup_system_coordination import resolve_system_coordination_key
 from www.apiclient.regionapi import RegionInvokeApi
 
 
 class CleanupCoreBridgeView(APIView):
+    resolve_key = staticmethod(resolve_gateway_key)
     authentication_classes = []
     permission_classes = [AllowAny]
     http_method_names = ['post']
@@ -37,7 +39,7 @@ class CleanupCoreBridgeView(APIView):
         except ValueError:
             return Response({'msg': 'INVALID_COORDINATION_REQUEST'}, status=400)
         try:
-            key = resolve_gateway_key(enterprise_id, region_name)
+            key = self.resolve_key(enterprise_id, region_name)
         except CleanupGatewayUnavailable:
             return Response({'msg': 'COORDINATION_UNAVAILABLE'}, status=503)
         if not verify_core_request(request.get_full_path(), enterprise_id, region_name,
@@ -49,3 +51,9 @@ class CleanupCoreBridgeView(APIView):
         except Exception:
             return Response({'msg': 'COORDINATION_UNAVAILABLE'}, status=503)
         return Response(result, status=status)
+
+
+class CleanupSystemCoreBridgeView(CleanupCoreBridgeView):
+    """Separate URL and trust root for platform services surviving plugin removal."""
+
+    resolve_key = staticmethod(resolve_system_coordination_key)
