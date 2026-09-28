@@ -3625,6 +3625,43 @@
       "status": "active"
     },
     {
+      "id": "console.cleanup.upload-inventory-scope",
+      "title": "Derive upload event inventory from enterprise and region ownership",
+      "title_zh": "Derive upload event inventory from enterprise and region ownership",
+      "interface_type": "view_endpoint",
+      "interface": "GET cleanup inventory kind=uploads",
+      "code_paths": [
+        "console/views/cleanup_inventory.py",
+        "www/apiclient/regionapi.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/cleanup_upload_inventory_test.py",
+          "selector": "UploadInventoryTests.test_console_derives_event_scope_from_enterprise_and_region"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.cleanup.upload-size-projection",
+      "title": "Preserve actual upload sizes without granting deletion",
+      "title_zh": "Preserve actual upload sizes without granting deletion",
+      "interface_type": "workflow",
+      "interface": "upload_resources",
+      "code_paths": [
+        "console/services/cleanup_upload_inventory.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/cleanup_upload_inventory_test.py",
+          "selector": "UploadInventoryTests.test_actual_size_and_unavailable_measurements_remain_distinct"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.cleanup.writer-runtime-announcement",
       "title": "Announce only verified Console Pod identity through the private Region client",
       "title_zh": "Announce only verified Console Pod identity through the private Region client",

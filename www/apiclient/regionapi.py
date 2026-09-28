@@ -50,6 +50,16 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             raise ServiceHandleException("invalid cleanup coordination request", status_code=400)
         return self._cleanup_control_request(enterprise_id, region_name, path, body)
 
+    def cleanup_upload_inventory(self, enterprise_id: str, region_name: str,
+                                 event_ids: list[str]) -> Tuple[int, Dict[str, Any]]:
+        """Read chunks for server-selected owned events; not exposed by the generic plugin bridge."""
+        if (not isinstance(event_ids, list) or not 1 <= len(event_ids) <= 50
+                or any(not isinstance(value, str) or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_-]{0,63}', value)
+                       for value in event_ids) or len(set(event_ids)) != len(event_ids)):
+            raise ValueError('invalid upload event scope')
+        body = json.dumps({'event_ids': event_ids}).encode('utf-8')
+        return self._cleanup_control_request(enterprise_id, region_name, '/v2/cleanup/uploads/inventory', body)
+
     def register_cleanup_console_writer(self, enterprise_id: str, region_name: str,
                                         pod: str, pod_uid: str) -> Tuple[int, Dict[str, Any]]:
         """Announce only this Console runtime; the plugin bridge cannot reach this path."""

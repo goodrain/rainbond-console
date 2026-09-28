@@ -13,11 +13,12 @@ from console.services.cleanup_gateway import CleanupGatewayUnavailable
 from console.services.cleanup_installation import resolve_gateway_key
 from console.services.cleanup_writer_registration import announce_console_writer
 from console.models.main import (AppVersionTemplateRelation, RainbondCenterApp, RainbondCenterAppVersion,
-                                 ServiceUpgradeRecord, AppUpgradeSnapshot)
+                                 ServiceUpgradeRecord, AppUpgradeSnapshot, PackageUploadRecord)
 from console.repositories.region_repo import region_repo
 from console.services.cleanup_inventory import (template_resource, verify_source_request, version_resources,
                                                 deployment_resource, failed_scope_label, snapshot_reference_resource,
                                                 registry_reference_resource)
+from console.services.cleanup_upload_inventory import upload_resources
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import ServiceGroup, ServiceGroupRelation, Tenants, TenantServiceInfo
 
@@ -54,7 +55,8 @@ class CleanupInventoryView(APIView):
         try:
             cursor = int(request.query_params.get("cursor", "0"))
             upper = int(request.query_params.get("upper", "0"))
-            if cursor < 0 or upper < 0 or kind not in ("templates", "versions", "deployments", "snapshots", "components"):
+            if cursor < 0 or upper < 0 or kind not in (
+                    "templates", "versions", "deployments", "snapshots", "components", "uploads"):
                 raise ValueError()
         except ValueError:
             return Response({"errorCode": "INVALID_REQUEST"}, status=400)
@@ -67,6 +69,8 @@ class CleanupInventoryView(APIView):
         if kind == "components":
             return Response({"errorCode": "INVALID_REQUEST"}, status=400)
         teams = Tenants.objects.filter(enterprise_id=enterprise_id)
+        if kind == "uploads":
+            return self._upload_inventory(enterprise_id, region_name, cursor, upper)
         page: list[dict[str, Any]]
         if kind == "templates":
             template_query = RainbondCenterAppVersion.objects.filter(
@@ -183,6 +187,44 @@ class CleanupInventoryView(APIView):
                     # Never return upstream bodies, URLs, credentials or full exception text.
                     failures.append(failed_scope_label(component))
         return Response({"enterprise": enterprise_id, "region": region_name, "kind": kind,
+                         "resources": resources, "cursor": page[-1]["ID"] if more else 0, "upper": upper,
+                         "failedScopes": failures, "referencesComplete": False})
+
+    @staticmethod
+    def _upload_inventory(enterprise_id: str, region_name: str, cursor: int, upper: int) -> Response:
+        teams = Tenants.objects.filter(enterprise_id=enterprise_id)
+        query = PackageUploadRecord.objects.filter(
+            team_name__in=teams.values_list("tenant_name", flat=True), region=region_name)
+        if upper == 0:
+            upper = query.order_by("-ID").values_list("ID", flat=True).first() or 0
+        if cursor > upper:
+            return Response({"errorCode": "INVALID_REQUEST"}, status=400)
+        page: list[dict[str, Any]] = [dict(row) for row in query.filter(
+            ID__gt=cursor, ID__lte=upper).order_by("ID").values("ID", "event_id")[:26]]
+        more = len(page) > 25
+        page = page[:25]
+        resources: list[dict[str, Any]] = []
+        failures: list[str] = []
+        if page:
+            try:
+                events = sorted({row["event_id"] for row in page if isinstance(row["event_id"], str) and row["event_id"]})
+                if any(not isinstance(row["event_id"], str) or not row["event_id"] for row in page):
+                    failures.append("upload_event_identity_unavailable")
+                if not events:
+                    raise ValueError("upload events unavailable")
+                status, body = RegionInvokeApi().cleanup_upload_inventory(enterprise_id, region_name, events)
+                if status != 200 or not isinstance(body, dict):
+                    raise ValueError("upload inventory unavailable")
+                bean = body.get("bean")
+                if not isinstance(bean, dict):
+                    raise ValueError("upload inventory unavailable")
+                resources = upload_resources(page, bean, region_name)
+                # This endpoint covers chunks only. Finished package files and
+                # upload usage/fencing must be inventoried before claiming completeness.
+                failures.append("upload_package_and_reference_inventory_incomplete")
+            except Exception:
+                failures.append("upload_chunk_inventory_unavailable")
+        return Response({"enterprise": enterprise_id, "region": region_name, "kind": "uploads",
                          "resources": resources, "cursor": page[-1]["ID"] if more else 0, "upper": upper,
                          "failedScopes": failures, "referencesComplete": False})
 
