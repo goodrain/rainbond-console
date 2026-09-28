@@ -45,10 +45,23 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
     def cleanup_proxy_request(self, enterprise_id: str, region_name: str, path: str,
                               body: bytes) -> Tuple[int, Dict[str, Any]]:
         """Forward only fixed cleanup paths with server-owned credentials and verified TLS."""
-        from urllib.parse import urlsplit
         from console.services.cleanup_core_bridge import allowed_core_path
         if not allowed_core_path(path) or len(body) > 16384:
             raise ServiceHandleException("invalid cleanup coordination request", status_code=400)
+        return self._cleanup_control_request(enterprise_id, region_name, path, body)
+
+    def register_cleanup_console_writer(self, enterprise_id: str, region_name: str,
+                                        pod: str, pod_uid: str) -> Tuple[int, Dict[str, Any]]:
+        """Announce only this Console runtime; the plugin bridge cannot reach this path."""
+        if (not re.fullmatch(r'[a-z0-9][a-z0-9.-]{0,252}', pod)
+                or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.:-]{0,63}', pod_uid)):
+            raise ValueError('invalid Console runtime identity')
+        body = json.dumps({'pod': pod, 'pod_uid': pod_uid, 'protocol': 'registry-reference-v1'}).encode('utf-8')
+        return self._cleanup_control_request(enterprise_id, region_name, '/v2/cleanup/reference-writers/console', body)
+
+    def _cleanup_control_request(self, enterprise_id: str, region_name: str, path: str,
+                                 body: bytes) -> Tuple[int, Dict[str, Any]]:
+        from urllib.parse import urlsplit
         client = None
         response = None
         try:

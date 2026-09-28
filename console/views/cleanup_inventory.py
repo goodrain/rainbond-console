@@ -11,6 +11,7 @@ from rest_framework.views import APIView
 from console.services.cleanup_retirement import template_retirement_targets, snapshot_protected_components, RetirementConflict
 from console.services.cleanup_gateway import CleanupGatewayUnavailable
 from console.services.cleanup_installation import resolve_gateway_key
+from console.services.cleanup_writer_registration import announce_console_writer
 from console.models.main import (AppVersionTemplateRelation, RainbondCenterApp, RainbondCenterAppVersion,
                                  ServiceUpgradeRecord, AppUpgradeSnapshot)
 from console.repositories.region_repo import region_repo
@@ -57,6 +58,7 @@ class CleanupInventoryView(APIView):
                 raise ValueError()
         except ValueError:
             return Response({"errorCode": "INVALID_REQUEST"}, status=400)
+        announce_console_writer(enterprise_id, region_name, RegionInvokeApi())
         reference_scope = request.query_params.get("reference_scope", "")
         if reference_scope:
             if reference_scope != "registry" or kind not in ("templates", "snapshots", "components"):

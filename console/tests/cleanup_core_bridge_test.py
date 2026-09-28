@@ -16,6 +16,7 @@ class CleanupCoreBridgeTests(unittest.TestCase):
             self.assertEqual(decode_core_request(raw), (path, b'{}'))
         for path in [
                 'https://foreign.invalid/v2/cleanup/stores/discover', '/v2/tenants/team/services',
+                '/v2/cleanup/reference-writers/console',
                 '/v2/cleanup/stores/s/force-ready', '/v2/cleanup/stores/s/operations/o/../../delete',
                 '/v2/cleanup/stores/s/operations/o/node/status?other=true', '/v2/cleanup/stores/%2e%2e/status'
         ]:
@@ -68,8 +69,9 @@ class CleanupCoreForwardingTests(unittest.TestCase):
         from typing import Any, Dict, Tuple
         path = Path(__file__).resolve().parents[2] / 'www/apiclient/regionapi.py'
         cls = next(n for n in ast.parse(path.read_text()).body if isinstance(n, ast.ClassDef) and n.name == 'RegionInvokeApi')
-        method = next(n for n in cls.body if isinstance(n, ast.FunctionDef) and n.name == 'cleanup_proxy_request')
-        isolated = ast.ClassDef(name='RegionInvokeApi', bases=[], keywords=[], body=[method], decorator_list=[])
+        methods = [n for n in cls.body if isinstance(n, ast.FunctionDef) and n.name in (
+            'cleanup_proxy_request', '_cleanup_control_request', 'register_cleanup_console_writer')]
+        isolated = ast.ClassDef(name='RegionInvokeApi', bases=[], keywords=[], body=methods, decorator_list=[])
         config = SimpleNamespace(verify_ssl=False)
 
         class Unavailable(Exception):
@@ -82,6 +84,7 @@ class CleanupCoreForwardingTests(unittest.TestCase):
             'Dict': Dict,
             'Tuple': Tuple,
             'json': json,
+            're': __import__('re'),
             'Configuration': lambda _: config,
             'ServiceHandleException': Unavailable,
             'urllib3': SimpleNamespace(Timeout=lambda **kwargs: kwargs)
@@ -116,6 +119,10 @@ class CleanupCoreForwardingTests(unittest.TestCase):
             api.cleanup_proxy_request('e', 'r', '/v2/cleanup/stores/discover', b'{}')
         self.assertEqual(client.request.call_count, previous_calls)
         config.key_file = '/fixture/client.key'
+        self.assertEqual(api.register_cleanup_console_writer('e', 'r', 'console-pod', 'pod-uid')[0], 409)
+        self.assertTrue(client.request.call_args.args[1].endswith('/v2/cleanup/reference-writers/console'))
+        self.assertEqual(json.loads(client.request.call_args.kwargs['body']), {
+            'pod': 'console-pod', 'pod_uid': 'pod-uid', 'protocol': 'registry-reference-v1'})
         client.request.side_effect = RuntimeError('private-fixture-detail')
         with self.assertRaises(Unavailable) as error:
             api.cleanup_proxy_request('e', 'r', '/v2/cleanup/stores/discover', b'{}')

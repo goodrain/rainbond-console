@@ -3625,6 +3625,25 @@
       "status": "active"
     },
     {
+      "id": "console.cleanup.writer-runtime-announcement",
+      "title": "Announce only verified Console Pod identity through the private Region client",
+      "title_zh": "Announce only verified Console Pod identity through the private Region client",
+      "interface_type": "service_method",
+      "interface": "console.services.cleanup_writer_registration.announce_console_writer",
+      "code_paths": [
+        "console/services/cleanup_writer_registration.py",
+        "console/views/cleanup_inventory.py",
+        "www/apiclient/regionapi.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/cleanup_writer_registration_test.py"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.cnb-build.auto-set-build-type",
       "title": "Auto set CNB build type from build parameters",
       "title_zh": "根据构建参数自动设置 CNB 构建类型",
