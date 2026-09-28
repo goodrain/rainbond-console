@@ -3644,6 +3644,24 @@
       "status": "active"
     },
     {
+      "id": "console.cleanup.upload-package-size-projection",
+      "title": "Keep package and chunk sizes separate without counting events twice",
+      "title_zh": "Keep package and chunk sizes separate without counting events twice",
+      "interface_type": "workflow",
+      "interface": "upload_resources",
+      "code_paths": [
+        "console/services/cleanup_upload_inventory.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/cleanup_upload_inventory_test.py",
+          "selector": "UploadInventoryTests.test_package_size_is_separate_from_chunks_and_event_is_unique"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.cleanup.upload-size-projection",
       "title": "Preserve actual upload sizes without granting deletion",
       "title_zh": "Preserve actual upload sizes without granting deletion",

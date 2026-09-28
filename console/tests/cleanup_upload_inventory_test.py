@@ -36,6 +36,25 @@ class UploadInventoryTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             upload_resources(records, {'items': []}, 'rainbond')
 
+    # capability_id: console.cleanup.upload-package-size-projection
+    def test_package_size_is_separate_from_chunks_and_event_is_unique(self):
+        records = [{'event_id': 'owned'}]
+        bean = {'protocol': 1, 'scope': 'upload_chunks', 'items': [
+            {'id': 'session', 'event_id': 'owned', 'file_name': '应用.zip', 'size_status': 'measured',
+             'bytes': 17, 'objects': 2}], 'packages': [
+            {'event_id': 'owned', 'size_status': 'measured', 'bytes': 97, 'objects': 3}]}
+        resources = upload_resources(records, bean, 'rainbond')
+        self.assertEqual(len(resources), 2)
+        self.assertEqual(resources[1]['resourceType'], 'upload_package')
+        self.assertEqual(resources[1]['sizeBytes'], 97)
+        self.assertEqual(resources[1]['name'], '应用.zip / 上传包')
+        self.assertEqual(resources[1]['actions'], [])
+        for packages in [bean['packages'] * 2, [{'event_id': 'foreign', 'size_status': 'unavailable'}],
+                         [{'event_id': 'owned', 'size_status': 'measured', 'bytes': True, 'objects': 1}]]:
+            invalid = dict(bean, packages=packages)
+            with self.assertRaises(ValueError):
+                upload_resources(records, invalid, 'rainbond')
+
     # capability_id: console.cleanup.upload-inventory-scope
     def test_console_derives_event_scope_from_enterprise_and_region(self):
         import ast

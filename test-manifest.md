@@ -198,6 +198,7 @@
 | console.cleanup.coordination-view | 仅转发安装实例签名的协调请求 | active | regression | console.views.cleanup_core_bridge.CleanupCoreBridgeView.post | console/tests/cleanup_core_bridge_test.py::CleanupCoreForwardingTests.test_view_rejects_browser_credentials_and_forwards_only_signed_envelopes |
 | console.cleanup.system-coordination-key | Independent scoped system coordination identity | active | unit | resolve_system_coordination_key | console/tests/cleanup_system_coordination_test.py |
 | console.cleanup.upload-inventory-scope | Derive upload event inventory from enterprise and region ownership | active | regression | GET cleanup inventory kind=uploads | console/tests/cleanup_upload_inventory_test.py::UploadInventoryTests.test_console_derives_event_scope_from_enterprise_and_region |
+| console.cleanup.upload-package-size-projection | Keep package and chunk sizes separate without counting events twice | active | regression | upload_resources | console/tests/cleanup_upload_inventory_test.py::UploadInventoryTests.test_package_size_is_separate_from_chunks_and_event_is_unique |
 | console.cleanup.upload-size-projection | Preserve actual upload sizes without granting deletion | active | regression | upload_resources | console/tests/cleanup_upload_inventory_test.py::UploadInventoryTests.test_actual_size_and_unavailable_measurements_remain_distinct |
 | console.cleanup.writer-runtime-announcement | Announce only verified Console Pod identity through the private Region client | active | regression | console.services.cleanup_writer_registration.announce_console_writer | console/tests/cleanup_writer_registration_test.py |
 | console.cnb-build.auto-set-build-type | 根据构建参数自动设置 CNB 构建类型 | active | regression | console.utils.cnb_build.has_cnb_build_params | console/tests/cnb_build_test.py::BuildTypeAutoSetTestCase.test_auto_set_build_type_cnb_for_node_language |
@@ -2569,6 +2570,16 @@
 - 业务入口: `GET cleanup inventory kind=uploads`
 - 代码路径: `console/views/cleanup_inventory.py`, `www/apiclient/regionapi.py`
 - 测试路径: `console/tests/cleanup_upload_inventory_test.py::UploadInventoryTests.test_console_derives_event_scope_from_enterprise_and_region`
+
+### Keep package and chunk sizes separate without counting events twice
+
+- Capability ID: `console.cleanup.upload-package-size-projection`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `workflow`
+- 业务入口: `upload_resources`
+- 代码路径: `console/services/cleanup_upload_inventory.py`
+- 测试路径: `console/tests/cleanup_upload_inventory_test.py::UploadInventoryTests.test_package_size_is_separate_from_chunks_and_event_is_unique`
 
 ### Preserve actual upload sizes without granting deletion
 
