@@ -156,10 +156,7 @@ class CleanupCoreForwardingTests(unittest.TestCase):
         raw = b'{"path":"/v2/cleanup/stores/discover","body":"{}"}'
         request = SimpleNamespace(META={},
                                   body=raw,
-                                  headers={
-                                      'Cookie': 'browser-session',
-                                      'Authorization': 'caller'
-                                  },
+                                  headers={'Cookie': 'browser-session', 'Authorization': 'caller'},
                                   get_full_path=lambda: request_path)
         view = SimpleNamespace(resolve_key=scope['resolve_gateway_key'])
         self.assertEqual(scope['post'](view, request, 'e', 'r').status_code, 403)
