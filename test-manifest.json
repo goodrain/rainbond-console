@@ -3608,6 +3608,97 @@
       "status": "active"
     },
     {
+      "id": "console.cleanup.system-coordination-key",
+      "title": "Independent scoped system coordination identity",
+      "title_zh": "Independent scoped system coordination identity",
+      "interface_type": "service_method",
+      "interface": "resolve_system_coordination_key",
+      "code_paths": [
+        "console/services/cleanup_system_coordination.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/cleanup_system_coordination_test.py"
+        }
+      ],
+      "test_type": "unit",
+      "status": "active"
+    },
+    {
+      "id": "console.cleanup.upload-inventory-scope",
+      "title": "Derive upload event inventory from enterprise and region ownership",
+      "title_zh": "Derive upload event inventory from enterprise and region ownership",
+      "interface_type": "view_endpoint",
+      "interface": "GET cleanup inventory kind=uploads",
+      "code_paths": [
+        "console/views/cleanup_inventory.py",
+        "www/apiclient/regionapi.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/cleanup_upload_inventory_test.py",
+          "selector": "UploadInventoryTests.test_console_derives_event_scope_from_enterprise_and_region"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.cleanup.upload-package-size-projection",
+      "title": "Keep package and chunk sizes separate without counting events twice",
+      "title_zh": "Keep package and chunk sizes separate without counting events twice",
+      "interface_type": "workflow",
+      "interface": "upload_resources",
+      "code_paths": [
+        "console/services/cleanup_upload_inventory.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/cleanup_upload_inventory_test.py",
+          "selector": "UploadInventoryTests.test_package_size_is_separate_from_chunks_and_event_is_unique"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.cleanup.upload-size-projection",
+      "title": "Preserve actual upload sizes without granting deletion",
+      "title_zh": "Preserve actual upload sizes without granting deletion",
+      "interface_type": "workflow",
+      "interface": "upload_resources",
+      "code_paths": [
+        "console/services/cleanup_upload_inventory.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/cleanup_upload_inventory_test.py",
+          "selector": "UploadInventoryTests.test_actual_size_and_unavailable_measurements_remain_distinct"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.cleanup.writer-runtime-announcement",
+      "title": "Announce only verified Console Pod identity through the private Region client",
+      "title_zh": "Announce only verified Console Pod identity through the private Region client",
+      "interface_type": "service_method",
+      "interface": "console.services.cleanup_writer_registration.announce_console_writer",
+      "code_paths": [
+        "console/services/cleanup_writer_registration.py",
+        "console/views/cleanup_inventory.py",
+        "www/apiclient/regionapi.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/cleanup_writer_registration_test.py"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.cnb-build.auto-set-build-type",
       "title": "Auto set CNB build type from build parameters",
       "title_zh": "根据构建参数自动设置 CNB 构建类型",
