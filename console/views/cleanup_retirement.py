@@ -12,7 +12,7 @@ from console.services.cleanup_gateway import CleanupGatewayUnavailable
 from console.services.cleanup_installation import resolve_gateway_key
 from console.services.cleanup_retirement import (
     verify_retirement_request, retire_template, retire_build_version, retire_upload_chunks,
-    validate_upload_chunk_retirement, RetirementConflict
+    validate_upload_chunk_retirement, verify_inspection_request, inspect_upload_chunks, RetirementConflict
 )
 from www.models.main import Users
 
@@ -95,3 +95,49 @@ class CleanupRetirementView(APIView):
         logger.info("cleanup record retired enterprise=%s region=%s actor=%s operation=%s kind=%s",
                     enterprise_id, region_name, actor, operation, data["kind"])
         return Response(dict(result, operationId=operation))
+
+
+class CleanupRetirementInspectView(APIView):
+    """Read one saved upload deletion result; this endpoint cannot mutate it."""
+    authentication_classes: list[Any] = []
+    permission_classes = [AllowAny]
+    http_method_names = ['post']
+
+    def post(self, request: Request, enterprise_id: str, region_name: str) -> Response:
+        length = request.META.get('CONTENT_LENGTH', '')
+        if length and (not str(length).isdigit() or len(str(length)) > 10 or int(length) > 65536):
+            return Response({'errorCode': 'INVALID_REQUEST'}, status=400)
+        body = request.body
+        try:
+            key = resolve_gateway_key(enterprise_id, region_name)
+        except CleanupGatewayUnavailable:
+            return Response({'errorCode': 'SOURCE_AUTH_UNAVAILABLE'}, status=503)
+        if not verify_inspection_request(request.method or "", request.get_full_path(), enterprise_id, region_name,
+                                         request.headers.get('X-Cleanup-Inspection-Time'),
+                                         request.headers.get('X-Cleanup-Inspection-Signature'), body, key):
+            return Response({'errorCode': 'FORBIDDEN'}, status=403)
+        data = request.data
+        if not isinstance(data, dict) or set(data) != {'actor', 'operationId', 'kind', 'expected'}:
+            return Response({'errorCode': 'INVALID_REQUEST'}, status=400)
+        actor = data.get('actor')
+        operation = data.get('operationId')
+        if (not isinstance(actor, str) or not re.fullmatch(r'[0-9]{1,10}', actor)
+                or not isinstance(operation, str) or not re.fullmatch(r'[A-Za-z0-9_-]{1,128}', operation)):
+            return Response({'errorCode': 'INVALID_REQUEST'}, status=400)
+        if not Users.objects.filter(user_id=int(actor), enterprise_id=enterprise_id, is_active=True).exists():
+            return Response({'errorCode': 'FORBIDDEN'}, status=403)
+        if not enterprise_user_perm_repo.is_admin(enterprise_id, actor):
+            return Response({'errorCode': 'FORBIDDEN'}, status=403)
+        expected = data.get('expected')
+        try:
+            if data.get('kind') != 'upload_chunks' or not isinstance(expected, dict):
+                raise ValueError()
+            validate_upload_chunk_retirement(expected)
+            state = inspect_upload_chunks(enterprise_id, region_name, expected, operation)
+        except (ValueError, KeyError):
+            return Response({'errorCode': 'INVALID_REQUEST'}, status=400)
+        except RetirementConflict:
+            return Response({'errorCode': 'RESOURCE_PROTECTED'}, status=409)
+        except Exception:
+            return Response({'errorCode': 'INSPECTION_UNAVAILABLE'}, status=503)
+        return Response({'operationId': operation, 'state': state})
