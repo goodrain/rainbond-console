@@ -13,6 +13,43 @@ class RetirementConflict(Exception):
     pass
 
 
+def validate_upload_chunk_retirement(expected: dict[str, Any]) -> None:
+    if set(expected) != {'session_id', 'event_id', 'state_fingerprint', 'storage_fingerprint', 'idle_days'}:
+        raise ValueError()
+    for field in ('session_id', 'event_id'):
+        value = expected[field]
+        if not isinstance(value, str) or value in ('.', '..') or not re.fullmatch(r'[A-Za-z0-9_.-]{1,64}', value):
+            raise ValueError()
+    for field in ('state_fingerprint', 'storage_fingerprint'):
+        if not isinstance(expected[field], str) or not re.fullmatch(r'[a-f0-9]{64}', expected[field]):
+            raise ValueError()
+    if type(expected['idle_days']) is not int or not 1 <= expected['idle_days'] <= 365:
+        raise ValueError()
+
+
+def retire_upload_chunks(enterprise: str, region: str, expected: dict[str, Any], operation_id: str) -> dict[str, Any]:
+    from console.models.main import PackageUploadRecord
+    from www.models.main import Tenants
+    from www.apiclient.regionapi import RegionInvokeApi
+    validate_upload_chunk_retirement(expected)
+    teams = Tenants.objects.filter(enterprise_id=enterprise).values_list('tenant_name', flat=True)
+    if not PackageUploadRecord.objects.filter(
+            event_id=expected['event_id'], region=region, team_name__in=teams).exists():
+        raise RetirementConflict()
+    command = dict(expected, operation_id=operation_id)
+    status, response = RegionInvokeApi().delete_cleanup_upload_chunks(enterprise, region, command)
+    if status == 409:
+        raise RetirementConflict()
+    if status != 200:
+        raise RuntimeError('upload retirement unavailable')
+    result = (response or {}).get('bean') or {}
+    if (result.get('protocol') != 1 or result.get('operation_id') != operation_id
+            or result.get('event_id') != expected['event_id'] or result.get('session_id') != expected['session_id']
+            or result.get('state') != 'deleted'):
+        raise RetirementConflict()
+    return {'record_retired': True, 'image_deleted': False, 'chunks_deleted': True, 'reclaimed_bytes': None}
+
+
 def retirement_payload(method: str, path: str, enterprise: str, region: str, timestamp: str, body: bytes) -> bytes:
     return '\n'.join(['cleanup-retirement-v1', method, path, enterprise, region, timestamp,
                       hashlib.sha256(body).hexdigest()]).encode('utf-8')

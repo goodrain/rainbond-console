@@ -3625,6 +3625,30 @@
       "status": "active"
     },
     {
+      "id": "console.cleanup.upload-chunk-retirement-bridge",
+      "title": "Validate enterprise ownership and exact Core receipt for upload chunk retirement",
+      "title_zh": "Validate enterprise ownership and exact Core receipt for upload chunk retirement",
+      "interface_type": "workflow",
+      "interface": "retire_upload_chunks",
+      "code_paths": [
+        "console/services/cleanup_retirement.py",
+        "console/views/cleanup_retirement.py",
+        "www/apiclient/regionapi.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/cleanup_retirement_test.py",
+          "selector": "RetirementGuardTests.test_upload_chunk_retirement_is_enterprise_scoped_and_checks_exact_core_receipt"
+        },
+        {
+          "path": "console/tests/cleanup_retirement_test.py",
+          "selector": "RetirementGuardTests.test_region_client_uses_only_fixed_upload_delete_path"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.cleanup.upload-current-source-references",
       "title": "Protect upload packages referenced by current regional component sources",
       "title_zh": "Protect upload packages referenced by current regional component sources",

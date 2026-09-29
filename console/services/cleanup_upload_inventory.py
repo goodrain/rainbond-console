@@ -1,5 +1,6 @@
 """Owned upload chunk projections; observation never grants deletion permission."""
 import re
+from datetime import datetime, timezone
 from typing import Any
 
 from console.services.cleanup_inventory import _base
@@ -8,13 +9,19 @@ _ID = re.compile(r'^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$')
 
 
 def upload_resources(records: list[dict[str, Any]], bean: dict[str, Any], region: str,
-                     current_events: set[str] | None = None) -> list[dict[str, Any]]:
+                     current_events: set[str] | None = None, now: datetime | None = None) -> list[dict[str, Any]]:
     """Accept only sessions belonging to Console-selected upload records."""
     events = {record['event_id'] for record in records if isinstance(record.get('event_id'), str) and record['event_id']}
     if (not isinstance(bean, dict) or bean.get('protocol') != 1 or bean.get('scope') != 'upload_chunks'
             or not isinstance(bean.get('items'), list) or len(bean['items']) > 500):
         raise ValueError('upload inventory unavailable')
     resources: list[dict[str, Any]] = []
+    observed_at = now or datetime.now(timezone.utc)
+    if observed_at.tzinfo is None:
+        observed_at = observed_at.replace(tzinfo=timezone.utc)
+    storage_fingerprint = bean.get('storage_fingerprint')
+    retirement_ready = (bean.get('writers_ready') is True and isinstance(storage_fingerprint, str)
+                        and re.fullmatch(r'[a-f0-9]{64}', storage_fingerprint) is not None)
     seen: set[str] = set()
     for item in bean['items']:
         if (not isinstance(item, dict) or not isinstance(item.get('id'), str) or not _ID.fullmatch(item['id'])
@@ -27,6 +34,23 @@ def upload_resources(records: list[dict[str, Any]], bean: dict[str, Any], region
                          '{} / 上传分片'.format(name) if name else '上传分片', '')
         resource['source'] = 'platform_uploads'
         _apply_size(resource, item)
+        expires_at = _timestamp(item.get('expires_at'))
+        state_fingerprint = item.get('state_fingerprint')
+        size = item.get('bytes')
+        objects = item.get('objects')
+        idle_days = int((observed_at - expires_at).total_seconds() // 86400) if expires_at else 0
+        if (retirement_ready and item.get('status') in ('uploading', 'completed', 'failed')
+                and isinstance(state_fingerprint, str) and re.fullmatch(r'[a-f0-9]{64}', state_fingerprint)
+                and type(size) is int and size > 0 and type(objects) is int and objects > 0
+                and 1 <= idle_days <= 365):
+            resource['retirement'] = {
+                'protocol': 1, 'kind': 'upload_chunks', 'rank': 1,
+                'expected': {
+                    'session_id': item['id'], 'event_id': item['event_id'],
+                    'state_fingerprint': state_fingerprint,
+                    'storage_fingerprint': storage_fingerprint, 'idle_days': idle_days,
+                }
+            }
         resources.append(resource)
     if 'packages' in bean:
         packages = bean['packages']
@@ -61,6 +85,16 @@ def _apply_size(resource: dict[str, Any], item: dict[str, Any]) -> None:
         resource['sizeKnown'] = True
     elif item.get('size_status') != 'unavailable' or item.get('bytes') is not None or item.get('objects') is not None:
         raise ValueError('invalid unknown upload size')
+
+
+def _timestamp(value: Any) -> datetime | None:
+    if not isinstance(value, str) or len(value) > 64:
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.replace('Z', '+00:00'))
+        return parsed.astimezone(timezone.utc) if parsed.tzinfo else None
+    except ValueError:
+        return None
 
 
 def package_reference_events(paths: list[str | None]) -> tuple[set[str], bool]:

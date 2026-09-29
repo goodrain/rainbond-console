@@ -1,6 +1,7 @@
 """Upload inventory must preserve ownership and unknown storage measurements."""
 import copy
 import unittest
+from datetime import datetime, timezone
 
 from console.services.cleanup_upload_inventory import upload_resources
 
@@ -182,3 +183,31 @@ class UploadInventoryTests(unittest.TestCase):
             values.__getitem__.assert_called_once_with(slice(None, 20001, None))
             services.objects.filter.side_effect = RuntimeError('private-database-error')
             self.assertEqual(current_package_reference_events('rainbond'), (set(), False))
+
+    def test_expired_measured_chunks_get_scan_bound_retirement_only_when_writers_are_ready(self):
+        records = [{'event_id': 'owned'}]
+        bean = {
+            'protocol': 1, 'scope': 'upload_chunks', 'writers_ready': True,
+            'storage_fingerprint': 'a' * 64, 'items': [{
+                'id': 'session', 'event_id': 'owned', 'file_name': 'app.zip', 'status': 'uploading',
+                'expires_at': '2026-09-20T00:00:00Z', 'state_fingerprint': 'b' * 64,
+                'size_status': 'measured', 'bytes': 17, 'objects': 2,
+            }]}
+        resources = upload_resources(records, bean, 'rainbond', now=datetime(2026, 9, 29, tzinfo=timezone.utc))
+        chunks = resources[0]
+        self.assertEqual(chunks['retirement']['kind'], 'upload_chunks')
+        self.assertEqual(chunks['retirement']['expected'], {
+            'session_id': 'session', 'event_id': 'owned', 'state_fingerprint': 'b' * 64,
+            'storage_fingerprint': 'a' * 64, 'idle_days': 9,
+        })
+        self.assertEqual(chunks['protection'], 'reference_unknown')
+        for change in [
+                {'writers_ready': False}, {'storage_fingerprint': ''},
+                {'items': [dict(bean['items'][0], objects=0)]},
+                {'items': [dict(bean['items'][0], expires_at='2026-09-29T00:00:00Z')]},
+                {'items': [dict(bean['items'][0], state_fingerprint='changed')]},
+        ]:
+            invalid = copy.deepcopy(bean)
+            invalid.update(change)
+            rows = upload_resources(records, invalid, 'rainbond', now=datetime(2026, 9, 29, tzinfo=timezone.utc))
+            self.assertNotIn('retirement', rows[0])

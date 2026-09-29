@@ -60,6 +60,23 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         body = json.dumps({'event_ids': event_ids}).encode('utf-8')
         return self._cleanup_control_request(enterprise_id, region_name, '/v2/cleanup/uploads/inventory', body)
 
+    def delete_cleanup_upload_chunks(self, enterprise_id: str, region_name: str,
+                                     command: Dict[str, Any]) -> Tuple[int, Dict[str, Any]]:
+        """Delete one server-owned upload session through the fixed internal path."""
+        required = {'operation_id', 'session_id', 'event_id', 'state_fingerprint', 'storage_fingerprint', 'idle_days'}
+        if not isinstance(command, dict) or set(command) != required:
+            raise ValueError('invalid upload deletion command')
+        for field in ('operation_id', 'session_id', 'event_id'):
+            if not isinstance(command[field], str) or not re.fullmatch(r'[A-Za-z0-9_.-]{1,128}', command[field]):
+                raise ValueError('invalid upload deletion identity')
+        for field in ('state_fingerprint', 'storage_fingerprint'):
+            if not isinstance(command[field], str) or not re.fullmatch(r'[a-f0-9]{64}', command[field]):
+                raise ValueError('invalid upload deletion fingerprint')
+        if type(command['idle_days']) is not int or not 1 <= command['idle_days'] <= 365:
+            raise ValueError('invalid upload deletion rule')
+        body = json.dumps(command).encode('utf-8')
+        return self._cleanup_control_request(enterprise_id, region_name, '/v2/cleanup/uploads/chunks/delete', body)
+
     def register_cleanup_console_writer(self, enterprise_id: str, region_name: str,
                                         pod: str, pod_uid: str) -> Tuple[int, Dict[str, Any]]:
         """Announce only this Console runtime; the plugin bridge cannot reach this path."""
