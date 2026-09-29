@@ -49,6 +49,12 @@ class UploadInventoryTests(unittest.TestCase):
         self.assertEqual(resources[1]['sizeBytes'], 97)
         self.assertEqual(resources[1]['name'], '应用.zip / 上传包')
         self.assertEqual(resources[1]['actions'], [])
+        bean['packages'][0]['referenced'] = True
+        protected = upload_resources(records, bean, 'rainbond')[1]
+        self.assertEqual(protected['protection'], 'referenced')
+        self.assertEqual(protected['usageStatus'], 'referenced')
+        self.assertEqual(protected['decision'], 'protected')
+
         for packages in [bean['packages'] * 2, [{'event_id': 'foreign', 'size_status': 'unavailable'}],
                          [{'event_id': 'owned', 'size_status': 'measured', 'bytes': True, 'objects': 1}]]:
             invalid = dict(bean, packages=packages)

@@ -44,6 +44,9 @@ def upload_resources(records: list[dict[str, Any]], bean: dict[str, Any], region
             resource = _base('upload-package:{}:{}'.format(region, event_id), region, 'uploads', 'upload_package', name, '')
             resource['source'] = 'platform_uploads'
             _apply_size(resource, package)
+            if package.get('referenced') is True:
+                resource['protection'] = 'referenced'
+                resource['usageStatus'] = 'referenced'
             resources.append(resource)
     return resources
 
