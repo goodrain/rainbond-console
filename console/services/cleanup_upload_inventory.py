@@ -7,7 +7,8 @@ from console.services.cleanup_inventory import _base
 _ID = re.compile(r'^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$')
 
 
-def upload_resources(records: list[dict[str, Any]], bean: dict[str, Any], region: str) -> list[dict[str, Any]]:
+def upload_resources(records: list[dict[str, Any]], bean: dict[str, Any], region: str,
+                     current_events: set[str] | None = None) -> list[dict[str, Any]]:
     """Accept only sessions belonging to Console-selected upload records."""
     events = {record['event_id'] for record in records if isinstance(record.get('event_id'), str) and record['event_id']}
     if (not isinstance(bean, dict) or bean.get('protocol') != 1 or bean.get('scope') != 'upload_chunks'
@@ -44,7 +45,7 @@ def upload_resources(records: list[dict[str, Any]], bean: dict[str, Any], region
             resource = _base('upload-package:{}:{}'.format(region, event_id), region, 'uploads', 'upload_package', name, '')
             resource['source'] = 'platform_uploads'
             _apply_size(resource, package)
-            if package.get('referenced') is True:
+            if package.get('referenced') is True or event_id in (current_events or set()):
                 resource['protection'] = 'referenced'
                 resource['usageStatus'] = 'referenced'
             resources.append(resource)
@@ -60,3 +61,29 @@ def _apply_size(resource: dict[str, Any], item: dict[str, Any]) -> None:
         resource['sizeKnown'] = True
     elif item.get('size_status') != 'unavailable' or item.get('bytes') is not None or item.get('objects') is not None:
         raise ValueError('invalid unknown upload size')
+
+
+def package_reference_events(paths: list[str | None]) -> tuple[set[str], bool]:
+    """Parse bounded package-only paths; return positive evidence even if incomplete."""
+    events: set[str] = set()
+    complete = len(paths) <= 20000
+    pattern = re.compile(r'^/grdata/package_build/(?:temp|components/[A-Za-z0-9][A-Za-z0-9_-]{0,63})/events/'
+                         r'([A-Za-z0-9][A-Za-z0-9_-]{0,63})$')
+    for value in paths[:20000]:
+        match = pattern.fullmatch(value) if isinstance(value, str) and len(value) <= 512 else None
+        if match:
+            events.add(match.group(1))
+        else:
+            complete = False
+    return events, complete
+
+
+def current_package_reference_events(region: str) -> tuple[set[str], bool]:
+    """Cross-team evidence is reduced to event identifiers, never names or config."""
+    from www.models.main import TenantServiceInfo
+    try:
+        paths = list(TenantServiceInfo.objects.filter(
+            service_region=region, git_url__startswith='/grdata/package_build/').values_list('git_url', flat=True)[:20001])
+        return package_reference_events(paths)
+    except Exception:
+        return set(), False

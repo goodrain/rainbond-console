@@ -197,6 +197,7 @@
 | console.cleanup.coordination-upstream | 协调请求严格校验证书且不自动重放 | active | regression | www.apiclient.regionapi.RegionInvokeApi.cleanup_proxy_request | console/tests/cleanup_core_bridge_test.py::CleanupCoreForwardingTests.test_forwarder_uses_verified_tls_without_retries_or_caller_headers |
 | console.cleanup.coordination-view | 仅转发安装实例签名的协调请求 | active | regression | console.views.cleanup_core_bridge.CleanupCoreBridgeView.post | console/tests/cleanup_core_bridge_test.py::CleanupCoreForwardingTests.test_view_rejects_browser_credentials_and_forwards_only_signed_envelopes |
 | console.cleanup.system-coordination-key | Independent scoped system coordination identity | active | unit | resolve_system_coordination_key | console/tests/cleanup_system_coordination_test.py |
+| console.cleanup.upload-current-source-references | Protect upload packages referenced by current regional component sources | active | regression | current_package_reference_events | console/tests/cleanup_upload_inventory_test.py::UploadInventoryTests.test_current_component_package_paths_add_positive_protection_only<br>console/tests/cleanup_upload_inventory_test.py::UploadInventoryTests.test_current_reference_query_is_region_scoped_and_bounded |
 | console.cleanup.upload-inventory-scope | Derive upload event inventory from enterprise and region ownership | active | regression | GET cleanup inventory kind=uploads | console/tests/cleanup_upload_inventory_test.py::UploadInventoryTests.test_console_derives_event_scope_from_enterprise_and_region |
 | console.cleanup.upload-package-size-projection | Keep package and chunk sizes separate without counting events twice | active | regression | upload_resources | console/tests/cleanup_upload_inventory_test.py::UploadInventoryTests.test_package_size_is_separate_from_chunks_and_event_is_unique |
 | console.cleanup.upload-size-projection | Preserve actual upload sizes without granting deletion | active | regression | upload_resources | console/tests/cleanup_upload_inventory_test.py::UploadInventoryTests.test_actual_size_and_unavailable_measurements_remain_distinct |
@@ -2560,6 +2561,16 @@
 - 业务入口: `resolve_system_coordination_key`
 - 代码路径: `console/services/cleanup_system_coordination.py`
 - 测试路径: `console/tests/cleanup_system_coordination_test.py`
+
+### Protect upload packages referenced by current regional component sources
+
+- Capability ID: `console.cleanup.upload-current-source-references`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `workflow`
+- 业务入口: `current_package_reference_events`
+- 代码路径: `console/services/cleanup_upload_inventory.py`, `console/views/cleanup_inventory.py`
+- 测试路径: `console/tests/cleanup_upload_inventory_test.py::UploadInventoryTests.test_current_component_package_paths_add_positive_protection_only`, `console/tests/cleanup_upload_inventory_test.py::UploadInventoryTests.test_current_reference_query_is_region_scoped_and_bounded`
 
 ### Derive upload event inventory from enterprise and region ownership
 

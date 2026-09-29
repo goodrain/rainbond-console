@@ -3625,6 +3625,29 @@
       "status": "active"
     },
     {
+      "id": "console.cleanup.upload-current-source-references",
+      "title": "Protect upload packages referenced by current regional component sources",
+      "title_zh": "Protect upload packages referenced by current regional component sources",
+      "interface_type": "workflow",
+      "interface": "current_package_reference_events",
+      "code_paths": [
+        "console/services/cleanup_upload_inventory.py",
+        "console/views/cleanup_inventory.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/cleanup_upload_inventory_test.py",
+          "selector": "UploadInventoryTests.test_current_component_package_paths_add_positive_protection_only"
+        },
+        {
+          "path": "console/tests/cleanup_upload_inventory_test.py",
+          "selector": "UploadInventoryTests.test_current_reference_query_is_region_scoped_and_bounded"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.cleanup.upload-inventory-scope",
       "title": "Derive upload event inventory from enterprise and region ownership",
       "title_zh": "Derive upload event inventory from enterprise and region ownership",
