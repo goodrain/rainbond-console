@@ -133,6 +133,49 @@ def template_fingerprint(raw: str, key: bytes) -> str:
     return hmac.new(key, b'cleanup-template-v1\n' + raw.encode('utf-8'), hashlib.sha256).hexdigest()
 
 
+def inspect_template_identity(current: dict[str, Any] | None, expected: dict[str, Any]) -> str:
+    if current is None:
+        return 'absent'
+    for field in ('id', 'app_id', 'version', 'content_hash', 'activation_revision'):
+        if current.get(field) != expected.get(field):
+            raise RetirementConflict()
+    return 'present'
+
+
+def inspect_template_record(enterprise: str, region: str, expected: dict[str, Any], key: bytes) -> str:
+    from console.models.main import RainbondCenterApp, RainbondCenterAppVersion
+    parent = RainbondCenterApp.objects.filter(app_id=expected['app_id'], enterprise_id=enterprise).first()
+    if parent is None:
+        return 'absent'
+    version = RainbondCenterAppVersion.objects.filter(ID=expected['id'], app_id=parent.app_id).first()
+    if version is None:
+        return 'absent'
+    current = {
+        'id': version.ID,
+        'app_id': version.app_id,
+        'version': version.version,
+        'content_hash': template_fingerprint(version.app_template, key),
+        'activation_revision': version.cleanup_activation_revision,
+    }
+    if version.enterprise_id != enterprise or version.region_name != region:
+        raise RetirementConflict()
+    return inspect_template_identity(current, expected)
+
+
+def inspect_build_version_record(enterprise: str, region: str, expected: dict[str, Any]) -> str:
+    from www.models.main import Tenants, TenantServiceInfo
+    from www.apiclient.regionapi import RegionInvokeApi
+    component = TenantServiceInfo.objects.get(service_id=expected['service_id'], service_region=region)
+    tenant = Tenants.objects.get(tenant_id=component.tenant_id, enterprise_id=enterprise)
+    response = RegionInvokeApi().inspect_service_build_version(
+        region, tenant.tenant_name, component.service_alias, expected['version'], expected)
+    result = (response or {}).get('bean') or {}
+    state = result.get('record_state')
+    if state not in ('present', 'absent'):
+        raise RetirementConflict()
+    return state
+
+
 def retire_template(enterprise: str, region: str, expected: dict, key: bytes) -> dict:
     from django.db import transaction
     from django.db.models import Q

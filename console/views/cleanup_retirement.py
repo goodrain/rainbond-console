@@ -12,7 +12,8 @@ from console.services.cleanup_gateway import CleanupGatewayUnavailable
 from console.services.cleanup_installation import resolve_gateway_key
 from console.services.cleanup_retirement import (
     verify_retirement_request, retire_template, retire_build_version, retire_upload_chunks,
-    validate_upload_chunk_retirement, verify_inspection_request, inspect_upload_chunks, RetirementConflict
+    validate_upload_chunk_retirement, verify_inspection_request, inspect_upload_chunks,
+    inspect_template_record, inspect_build_version_record, RetirementConflict
 )
 from www.models.main import Users
 
@@ -98,7 +99,7 @@ class CleanupRetirementView(APIView):
 
 
 class CleanupRetirementInspectView(APIView):
-    """Read one saved upload deletion result; this endpoint cannot mutate it."""
+    """Read one saved upload or version identity; this endpoint cannot mutate it."""
     authentication_classes: list[Any] = []
     permission_classes = [AllowAny]
     http_method_names = ['post']
@@ -119,25 +120,51 @@ class CleanupRetirementInspectView(APIView):
         data = request.data
         if not isinstance(data, dict) or set(data) != {'actor', 'operationId', 'kind', 'expected'}:
             return Response({'errorCode': 'INVALID_REQUEST'}, status=400)
-        actor = data.get('actor')
-        operation = data.get('operationId')
+        actor, operation, expected = data.get('actor'), data.get('operationId'), data.get('expected')
         if (not isinstance(actor, str) or not re.fullmatch(r'[0-9]{1,10}', actor)
-                or not isinstance(operation, str) or not re.fullmatch(r'[A-Za-z0-9_-]{1,128}', operation)):
+                or not isinstance(operation, str) or not re.fullmatch(r'[A-Za-z0-9_-]{1,128}', operation)
+                or not isinstance(expected, dict)):
             return Response({'errorCode': 'INVALID_REQUEST'}, status=400)
         if not Users.objects.filter(user_id=int(actor), enterprise_id=enterprise_id, is_active=True).exists():
             return Response({'errorCode': 'FORBIDDEN'}, status=403)
         if not enterprise_user_perm_repo.is_admin(enterprise_id, actor):
             return Response({'errorCode': 'FORBIDDEN'}, status=403)
-        expected = data.get('expected')
         try:
-            if data.get('kind') != 'upload_chunks' or not isinstance(expected, dict):
+            if data['kind'] == 'upload_chunks':
+                validate_upload_chunk_retirement(expected)
+                state = inspect_upload_chunks(enterprise_id, region_name, expected, operation)
+                return Response({'operationId': operation, 'state': state})
+            if data['kind'] == 'template_version':
+                if (set(expected) != {'id', 'app_id', 'version', 'content_hash', 'activation_revision'}
+                        or type(expected['id']) is not int or expected['id'] <= 0
+                        or not isinstance(expected['content_hash'], str)
+                        or not re.fullmatch(r'[a-f0-9]{64}', expected['content_hash'])
+                        or not isinstance(expected['activation_revision'], str)
+                        or len(expected['activation_revision']) > 64):
+                    raise ValueError()
+                for field in ('app_id', 'version'):
+                    if not isinstance(expected[field], str) or not re.fullmatch(r'[A-Za-z0-9_.-]{1,64}', expected[field]):
+                        raise ValueError()
+                state = inspect_template_record(enterprise_id, region_name, expected, key)
+            elif data['kind'] == 'build_version':
+                if set(expected) != {'service_id', 'version', 'current_version', 'image', 'event_id', 'activation_revision'}:
+                    raise ValueError()
+                for field in ('service_id', 'version', 'current_version', 'event_id'):
+                    if (not isinstance(expected[field], str) or expected[field] in ('.', '..')
+                            or not re.fullmatch(r'[A-Za-z0-9_.-]{1,64}', expected[field])):
+                        raise ValueError()
+                if (not isinstance(expected['image'], str) or not 1 <= len(expected['image']) <= 2048
+                        or not isinstance(expected['activation_revision'], str)
+                        or len(expected['activation_revision']) > 64):
+                    raise ValueError()
+                state = inspect_build_version_record(enterprise_id, region_name, expected)
+            else:
                 raise ValueError()
-            validate_upload_chunk_retirement(expected)
-            state = inspect_upload_chunks(enterprise_id, region_name, expected, operation)
         except (ValueError, KeyError):
             return Response({'errorCode': 'INVALID_REQUEST'}, status=400)
         except RetirementConflict:
-            return Response({'errorCode': 'RESOURCE_PROTECTED'}, status=409)
+            code = 'RESOURCE_PROTECTED' if data.get('kind') == 'upload_chunks' else 'RESOURCE_CHANGED'
+            return Response({'errorCode': code}, status=409)
         except Exception:
             return Response({'errorCode': 'INSPECTION_UNAVAILABLE'}, status=503)
-        return Response({'operationId': operation, 'state': state})
+        return Response({'operationId': operation, 'recordState': state})

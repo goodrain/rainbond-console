@@ -6,7 +6,7 @@ from unittest.mock import Mock, patch
 from console.services.cleanup_retirement import (
     verify_retirement_request, retirement_payload, validate_template_retirement,
     validate_upload_chunk_retirement, retire_upload_chunks, inspection_payload,
-    verify_inspection_request, inspect_upload_chunks, RetirementConflict
+    verify_inspection_request, inspect_upload_chunks, inspect_template_identity, RetirementConflict
 )
 
 
@@ -54,6 +54,14 @@ class RetirementGuardTests(unittest.TestCase):
         current['activation_revision'] = 'used-after-scan'
         with self.assertRaises(RetirementConflict):
             validate_template_retirement(current, expected)
+
+    def test_template_inspection_distinguishes_absent_and_changed_identity(self):
+        expected = {'id': 12, 'app_id': 'model', 'version': 'v1', 'content_hash': 'a' * 64,
+                    'activation_revision': 'revision'}
+        self.assertEqual(inspect_template_identity(None, expected), 'absent')
+        self.assertEqual(inspect_template_identity(dict(expected), expected), 'present')
+        with self.assertRaises(RetirementConflict):
+            inspect_template_identity(dict(expected, content_hash='b' * 64), expected)
 
     def test_upload_chunk_retirement_is_enterprise_scoped_and_checks_exact_core_receipt(self):
         expected = {
