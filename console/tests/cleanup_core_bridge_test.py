@@ -9,7 +9,8 @@ from console.services.cleanup_core_bridge import decode_core_request, verify_cor
 class CleanupCoreBridgeTests(unittest.TestCase):
     def test_only_fixed_cleanup_operations_are_forwardable(self):
         for path in [
-                '/v2/cleanup/managed-cache/inventory', '/v2/cleanup/stores/s/operations',
+                '/v2/cleanup/managed-cache/inventory', '/v2/cleanup/managed-packages/prepare',
+                '/v2/cleanup/stores/s/operations', '/v2/cleanup/stores/s/observation-permit',
                 '/v2/cleanup/stores/s/operations/o/node/recover', '/v2/cleanup/stores/s/operations/o/maintenance/job/status'
         ]:
             raw = json.dumps({'path': path, 'body': '{}'}).encode()
