@@ -18,7 +18,7 @@ from console.repositories.region_repo import region_repo
 from console.services.cleanup_inventory import (template_resource, verify_source_request, version_resources,
                                                 deployment_resource, failed_scope_label, snapshot_reference_resource,
                                                 registry_reference_resource)
-from console.services.cleanup_upload_inventory import upload_resources
+from console.services.cleanup_upload_inventory import upload_resources, current_package_reference_events
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import ServiceGroup, ServiceGroupRelation, Tenants, TenantServiceInfo
 
@@ -218,15 +218,21 @@ class CleanupInventoryView(APIView):
                 bean = body.get("bean")
                 if not isinstance(bean, dict):
                     raise ValueError("upload inventory unavailable")
-                resources = upload_resources(page, bean, region_name)
-                # This endpoint covers chunks only. Finished package files and
-                # upload usage/fencing must be inventoried before claiming completeness.
-                failures.append("upload_package_and_reference_inventory_incomplete")
+                current_events, current_complete = current_package_reference_events(region_name)
+                resources = upload_resources(page, bean, region_name, current_events=current_events)
+                if not current_complete:
+                    failures.append("upload_current_source_references_incomplete")
+                packages = bean.get("packages")
+                package_events = {package.get("event_id") for package in packages or [] if isinstance(package, dict)}
+                if (not isinstance(packages, list) or package_events != set(events)
+                        or any(package.get("references_complete") is not True for package in packages
+                               if isinstance(package, dict))):
+                    failures.append("upload_package_and_reference_inventory_incomplete")
             except Exception:
                 failures.append("upload_chunk_inventory_unavailable")
         return Response({"enterprise": enterprise_id, "region": region_name, "kind": "uploads",
                          "resources": resources, "cursor": page[-1]["ID"] if more else 0, "upper": upper,
-                         "failedScopes": failures, "referencesComplete": False})
+                         "failedScopes": failures, "referencesComplete": not failures})
 
     @staticmethod
     def _registry_reference_inventory(enterprise_id: str, region_name: str, kind: str,
