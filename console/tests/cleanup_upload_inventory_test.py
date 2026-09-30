@@ -1,6 +1,7 @@
 """Upload inventory must preserve ownership and unknown storage measurements."""
 import copy
 import unittest
+from datetime import datetime, timezone
 
 from console.services.cleanup_upload_inventory import upload_resources
 
@@ -49,6 +50,12 @@ class UploadInventoryTests(unittest.TestCase):
         self.assertEqual(resources[1]['sizeBytes'], 97)
         self.assertEqual(resources[1]['name'], '应用.zip / 上传包')
         self.assertEqual(resources[1]['actions'], [])
+        bean['packages'][0]['referenced'] = True
+        protected = upload_resources(records, bean, 'rainbond')[1]
+        self.assertEqual(protected['protection'], 'referenced')
+        self.assertEqual(protected['usageStatus'], 'referenced')
+        self.assertEqual(protected['decision'], 'protected')
+
         for packages in [bean['packages'] * 2, [{'event_id': 'foreign', 'size_status': 'unavailable'}],
                          [{'event_id': 'owned', 'size_status': 'measured', 'bytes': True, 'objects': 1}]]:
             invalid = dict(bean, packages=packages)
@@ -81,7 +88,7 @@ class UploadInventoryTests(unittest.TestCase):
         api.cleanup_upload_inventory.return_value = (200, {'bean': {'protocol': 1, 'scope': 'upload_chunks', 'items': []}})
         scope = {'Any': Any, 'Response': lambda data, status=200: SimpleNamespace(data=data, status_code=status),
                  'Tenants': tenants, 'PackageUploadRecord': records, 'RegionInvokeApi': lambda: api,
-                 'upload_resources': upload_resources}
+                 'upload_resources': upload_resources, 'current_package_reference_events': lambda region: (set(), True)}
         exec(compile(ast.fix_missing_locations(ast.Module(body=[method], type_ignores=[])), str(path), 'exec'), scope)
         response = scope['_upload_inventory']('enterprise', 'region', 0, 0)
         self.assertEqual(response.status_code, 200)
@@ -90,6 +97,13 @@ class UploadInventoryTests(unittest.TestCase):
         api.cleanup_upload_inventory.assert_called_once_with('enterprise', 'region', ['owned'])
         self.assertFalse(response.data['referencesComplete'])
         self.assertIn('upload_package_and_reference_inventory_incomplete', response.data['failedScopes'])
+        api.cleanup_upload_inventory.return_value = (200, {'bean': {
+            'protocol': 1, 'scope': 'upload_chunks', 'items': [], 'packages': [
+                {'event_id': 'owned', 'references_complete': True, 'referenced': False,
+                 'size_status': 'measured', 'bytes': 97, 'objects': 3}]}})
+        response = scope['_upload_inventory']('enterprise', 'region', 0, 9)
+        self.assertTrue(response.data['referencesComplete'])
+        self.assertEqual(response.data['failedScopes'], [])
         api.cleanup_upload_inventory.return_value = (200, {'bean': {'protocol': 1, 'scope': 'upload_chunks', 'items': [
             {'id': 'foreign', 'event_id': 'another-team', 'size_status': 'unavailable'}]}})
         response = scope['_upload_inventory']('enterprise', 'region', 0, 9)
@@ -134,3 +148,73 @@ class UploadInventoryTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 client.cleanup_upload_inventory('e', 'r', ids)
         self.assertEqual(client._cleanup_control_request.call_count, 1)
+
+    # capability_id: console.cleanup.upload-current-source-references
+    def test_current_component_package_paths_add_positive_protection_only(self):
+        from console.services.cleanup_upload_inventory import package_reference_events
+        events, complete = package_reference_events([
+            '/grdata/package_build/components/service-a/events/current',
+            '/grdata/package_build/temp/events/importing',
+            '/grdata/package_build/components/service-b/events/current'])
+        self.assertTrue(complete)
+        self.assertEqual(events, {'current', 'importing'})
+        events, complete = package_reference_events([
+            '/grdata/package_build/components/service-a/events/current',
+            '/grdata/package_build/temp/events/../foreign'])
+        self.assertFalse(complete)
+        self.assertEqual(events, {'current'})
+        records = [{'event_id': 'current'}, {'event_id': 'unmatched'}]
+        bean = {'protocol': 1, 'scope': 'upload_chunks', 'items': [], 'packages': [
+            {'event_id': event, 'bytes': 0, 'objects': 0, 'size_status': 'measured'}
+            for event in ('current', 'unmatched')]}
+        resources = upload_resources(records, bean, 'r', current_events=events)
+        self.assertEqual(resources[0]['protection'], 'referenced')
+        self.assertEqual(resources[1]['protection'], 'reference_unknown')
+        self.assertTrue(all(row['decision'] == 'protected' and row['actions'] == [] for row in resources))
+
+    def test_current_reference_query_is_region_scoped_and_bounded(self):
+        from types import SimpleNamespace
+        from unittest.mock import Mock, patch
+        from console.services.cleanup_upload_inventory import current_package_reference_events
+        services = Mock()
+        values = Mock()
+        values.__getitem__ = Mock(return_value=['/grdata/package_build/temp/events/owned'])
+        services.objects.filter.return_value.values_list.return_value = values
+        with patch.dict('sys.modules', {'www.models.main': SimpleNamespace(TenantServiceInfo=services)}):
+            events, complete = current_package_reference_events('rainbond')
+            self.assertEqual(events, {'owned'})
+            self.assertTrue(complete)
+            services.objects.filter.assert_called_once_with(
+                service_region='rainbond', git_url__startswith='/grdata/package_build/')
+            services.objects.filter.return_value.values_list.assert_called_once_with('git_url', flat=True)
+            values.__getitem__.assert_called_once_with(slice(None, 20001, None))
+            services.objects.filter.side_effect = RuntimeError('private-database-error')
+            self.assertEqual(current_package_reference_events('rainbond'), (set(), False))
+
+    def test_expired_measured_chunks_get_scan_bound_retirement_only_when_writers_are_ready(self):
+        records = [{'event_id': 'owned'}]
+        bean = {
+            'protocol': 1, 'scope': 'upload_chunks', 'writers_ready': True,
+            'storage_fingerprint': 'a' * 64, 'items': [{
+                'id': 'session', 'event_id': 'owned', 'file_name': 'app.zip', 'status': 'uploading',
+                'expires_at': '2026-09-20T00:00:00Z', 'state_fingerprint': 'b' * 64,
+                'size_status': 'measured', 'bytes': 17, 'objects': 2,
+            }]}
+        resources = upload_resources(records, bean, 'rainbond', now=datetime(2026, 9, 29, tzinfo=timezone.utc))
+        chunks = resources[0]
+        self.assertEqual(chunks['retirement']['kind'], 'upload_chunks')
+        self.assertEqual(chunks['retirement']['expected'], {
+            'session_id': 'session', 'event_id': 'owned', 'state_fingerprint': 'b' * 64,
+            'storage_fingerprint': 'a' * 64, 'idle_days': 9,
+        })
+        self.assertEqual(chunks['protection'], 'reference_unknown')
+        for change in [
+                {'writers_ready': False}, {'storage_fingerprint': ''},
+                {'items': [dict(bean['items'][0], objects=0)]},
+                {'items': [dict(bean['items'][0], expires_at='2026-09-29T00:00:00Z')]},
+                {'items': [dict(bean['items'][0], state_fingerprint='changed')]},
+        ]:
+            invalid = copy.deepcopy(bean)
+            invalid.update(change)
+            rows = upload_resources(records, invalid, 'rainbond', now=datetime(2026, 9, 29, tzinfo=timezone.utc))
+            self.assertNotIn('retirement', rows[0])

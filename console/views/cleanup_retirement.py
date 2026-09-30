@@ -11,7 +11,8 @@ from console.repositories.enterprise_repo import enterprise_user_perm_repo
 from console.services.cleanup_gateway import CleanupGatewayUnavailable
 from console.services.cleanup_installation import resolve_gateway_key
 from console.services.cleanup_retirement import (
-    verify_retirement_request, retire_template, retire_build_version, verify_inspection_request,
+    verify_retirement_request, retire_template, retire_build_version, retire_upload_chunks,
+    validate_upload_chunk_retirement, verify_inspection_request, inspect_upload_chunks,
     inspect_template_record, inspect_build_version_record, RetirementConflict
 )
 from www.models.main import Users
@@ -53,10 +54,10 @@ class CleanupRetirementView(APIView):
         expected = data.get('expected')
         if not isinstance(expected, dict):
             return Response({'errorCode': 'INVALID_REQUEST'}, status=400)
-        if not isinstance(expected.get('activation_revision'), str) or len(expected['activation_revision']) > 64:
-            return Response({'errorCode': 'INVALID_REQUEST'}, status=400)
         try:
             if data['kind'] == 'template_version':
+                if not isinstance(expected.get('activation_revision'), str) or len(expected['activation_revision']) > 64:
+                    raise ValueError()
                 if (set(expected) != {'id', 'app_id', 'version', 'content_hash', 'activation_revision'}
                         or type(expected['id']) is not int or expected['id'] <= 0
                         or not isinstance(expected['content_hash'], str)
@@ -67,6 +68,8 @@ class CleanupRetirementView(APIView):
                         raise ValueError()
                 result = retire_template(enterprise_id, region_name, expected, key)
             elif data['kind'] == 'build_version':
+                if not isinstance(expected.get('activation_revision'), str) or len(expected['activation_revision']) > 64:
+                    raise ValueError()
                 if set(expected) != {'service_id', 'version', 'current_version', 'image', 'event_id', 'activation_revision'}:
                     raise ValueError()
                 for field in ('service_id', 'version', 'current_version', 'event_id'):
@@ -76,6 +79,9 @@ class CleanupRetirementView(APIView):
                 if not isinstance(expected['image'], str) or not 1 <= len(expected['image']) <= 2048:
                     raise ValueError()
                 result = retire_build_version(enterprise_id, region_name, expected, actor, operation)
+            elif data['kind'] == 'upload_chunks':
+                validate_upload_chunk_retirement(expected)
+                result = retire_upload_chunks(enterprise_id, region_name, expected, operation)
             else:
                 raise ValueError()
         except (ValueError, KeyError):
@@ -93,7 +99,7 @@ class CleanupRetirementView(APIView):
 
 
 class CleanupRetirementInspectView(APIView):
-    """Read one saved version identity; this endpoint never calls retirement."""
+    """Read one saved upload or version identity; this endpoint cannot mutate it."""
     authentication_classes: list[Any] = []
     permission_classes = [AllowAny]
     http_method_names = ['post']
@@ -124,6 +130,10 @@ class CleanupRetirementInspectView(APIView):
         if not enterprise_user_perm_repo.is_admin(enterprise_id, actor):
             return Response({'errorCode': 'FORBIDDEN'}, status=403)
         try:
+            if data['kind'] == 'upload_chunks':
+                validate_upload_chunk_retirement(expected)
+                state = inspect_upload_chunks(enterprise_id, region_name, expected, operation)
+                return Response({'operationId': operation, 'state': state})
             if data['kind'] == 'template_version':
                 if (set(expected) != {'id', 'app_id', 'version', 'content_hash', 'activation_revision'}
                         or type(expected['id']) is not int or expected['id'] <= 0
@@ -153,7 +163,8 @@ class CleanupRetirementInspectView(APIView):
         except (ValueError, KeyError):
             return Response({'errorCode': 'INVALID_REQUEST'}, status=400)
         except RetirementConflict:
-            return Response({'errorCode': 'RESOURCE_CHANGED'}, status=409)
+            code = 'RESOURCE_PROTECTED' if data.get('kind') == 'upload_chunks' else 'RESOURCE_CHANGED'
+            return Response({'errorCode': code}, status=409)
         except Exception:
             return Response({'errorCode': 'INSPECTION_UNAVAILABLE'}, status=503)
         return Response({'operationId': operation, 'recordState': state})
