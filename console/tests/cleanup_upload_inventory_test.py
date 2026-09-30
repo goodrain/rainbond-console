@@ -97,6 +97,13 @@ class UploadInventoryTests(unittest.TestCase):
         api.cleanup_upload_inventory.assert_called_once_with('enterprise', 'region', ['owned'])
         self.assertFalse(response.data['referencesComplete'])
         self.assertIn('upload_package_and_reference_inventory_incomplete', response.data['failedScopes'])
+        api.cleanup_upload_inventory.return_value = (200, {'bean': {
+            'protocol': 1, 'scope': 'upload_chunks', 'items': [], 'packages': [
+                {'event_id': 'owned', 'references_complete': True, 'referenced': False,
+                 'size_status': 'measured', 'bytes': 97, 'objects': 3}]}})
+        response = scope['_upload_inventory']('enterprise', 'region', 0, 9)
+        self.assertTrue(response.data['referencesComplete'])
+        self.assertEqual(response.data['failedScopes'], [])
         api.cleanup_upload_inventory.return_value = (200, {'bean': {'protocol': 1, 'scope': 'upload_chunks', 'items': [
             {'id': 'foreign', 'event_id': 'another-team', 'size_status': 'unavailable'}]}})
         response = scope['_upload_inventory']('enterprise', 'region', 0, 9)

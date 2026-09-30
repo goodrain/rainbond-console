@@ -222,14 +222,17 @@ class CleanupInventoryView(APIView):
                 resources = upload_resources(page, bean, region_name, current_events=current_events)
                 if not current_complete:
                     failures.append("upload_current_source_references_incomplete")
-                # Other queued uses, node-local replicas and deletion fencing
-                # still need verification before claiming completeness.
-                failures.append("upload_package_and_reference_inventory_incomplete")
+                packages = bean.get("packages")
+                package_events = {package.get("event_id") for package in packages or [] if isinstance(package, dict)}
+                if (not isinstance(packages, list) or package_events != set(events)
+                        or any(package.get("references_complete") is not True for package in packages
+                               if isinstance(package, dict))):
+                    failures.append("upload_package_and_reference_inventory_incomplete")
             except Exception:
                 failures.append("upload_chunk_inventory_unavailable")
         return Response({"enterprise": enterprise_id, "region": region_name, "kind": "uploads",
                          "resources": resources, "cursor": page[-1]["ID"] if more else 0, "upper": upper,
-                         "failedScopes": failures, "referencesComplete": False})
+                         "failedScopes": failures, "referencesComplete": not failures})
 
     @staticmethod
     def _registry_reference_inventory(enterprise_id: str, region_name: str, kind: str,
