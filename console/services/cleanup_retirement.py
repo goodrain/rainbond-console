@@ -32,6 +32,25 @@ def verify_retirement_request(method: str, path: str, enterprise: str, region: s
     return hmac.compare_digest(expected, signature)
 
 
+def inspection_payload(method: str, path: str, enterprise: str, region: str, timestamp: str, body: bytes) -> bytes:
+    return '\n'.join(['cleanup-retirement-inspect-v1', method, path, enterprise, region, timestamp,
+                      hashlib.sha256(body).hexdigest()]).encode('utf-8')
+
+
+def verify_inspection_request(method: str, path: str, enterprise: str, region: str, timestamp: Any,
+                              signature: Any, body: bytes, key: bytes, now: float | None = None) -> bool:
+    if method != 'POST' or len(key) < 32 or len(body) > 65536:
+        return False
+    if not isinstance(timestamp, str) or not re.fullmatch(r'[0-9]{1,12}', timestamp):
+        return False
+    if not isinstance(signature, str) or not re.fullmatch(r'[a-f0-9]{64}', signature):
+        return False
+    if abs(int(time.time() if now is None else now) - int(timestamp)) > 120:
+        return False
+    expected = hmac.new(key, inspection_payload(method, path, enterprise, region, timestamp, body), hashlib.sha256).hexdigest()
+    return hmac.compare_digest(expected, signature)
+
+
 def validate_template_retirement(current: dict, expected: dict) -> None:
     if any(not expected.get(key) or current.get(key) != expected[key] for key in ('id', 'app_id', 'version', 'content_hash')):
         raise RetirementConflict()
@@ -46,6 +65,49 @@ def template_fingerprint(raw: str, key: bytes) -> str:
     if len(key) < 32:
         raise RetirementConflict()
     return hmac.new(key, b'cleanup-template-v1\n' + raw.encode('utf-8'), hashlib.sha256).hexdigest()
+
+
+def inspect_template_identity(current: dict[str, Any] | None, expected: dict[str, Any]) -> str:
+    if current is None:
+        return 'absent'
+    for field in ('id', 'app_id', 'version', 'content_hash', 'activation_revision'):
+        if current.get(field) != expected.get(field):
+            raise RetirementConflict()
+    return 'present'
+
+
+def inspect_template_record(enterprise: str, region: str, expected: dict[str, Any], key: bytes) -> str:
+    from console.models.main import RainbondCenterApp, RainbondCenterAppVersion
+    parent = RainbondCenterApp.objects.filter(app_id=expected['app_id'], enterprise_id=enterprise).first()
+    if parent is None:
+        return 'absent'
+    version = RainbondCenterAppVersion.objects.filter(ID=expected['id'], app_id=parent.app_id).first()
+    if version is None:
+        return 'absent'
+    current = {
+        'id': version.ID,
+        'app_id': version.app_id,
+        'version': version.version,
+        'content_hash': template_fingerprint(version.app_template, key),
+        'activation_revision': version.cleanup_activation_revision,
+    }
+    if version.enterprise_id != enterprise or version.region_name != region:
+        raise RetirementConflict()
+    return inspect_template_identity(current, expected)
+
+
+def inspect_build_version_record(enterprise: str, region: str, expected: dict[str, Any]) -> str:
+    from www.models.main import Tenants, TenantServiceInfo
+    from www.apiclient.regionapi import RegionInvokeApi
+    component = TenantServiceInfo.objects.get(service_id=expected['service_id'], service_region=region)
+    tenant = Tenants.objects.get(tenant_id=component.tenant_id, enterprise_id=enterprise)
+    response = RegionInvokeApi().inspect_service_build_version(
+        region, tenant.tenant_name, component.service_alias, expected['version'], expected)
+    result = (response or {}).get('bean') or {}
+    state = result.get('record_state')
+    if state not in ('present', 'absent'):
+        raise RetirementConflict()
+    return state
 
 
 def retire_template(enterprise: str, region: str, expected: dict, key: bytes) -> dict:

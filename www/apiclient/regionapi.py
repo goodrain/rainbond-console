@@ -2144,6 +2144,17 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         _, response = self._post(url, self.default_headers, region=region, body=json.dumps(expected))
         return response
 
+    def inspect_service_build_version(self, region: str, tenant_name: str, service_alias: str, version_id: str,
+                                      expected: dict) -> Optional[Dict[str, Any]]:
+        """Read the exact build-version retirement state without invoking retirement."""
+        url, token = self.__get_region_access_info(tenant_name, region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        url += "/v2/tenants/{}/services/{}/build-version/{}/retirement-status".format(
+            tenant_region.region_tenant_name, service_alias, version_id)
+        self._set_headers(token)
+        _, response = self._post(url, self.default_headers, region=region, body=json.dumps(expected))
+        return response
+
     def cleanup_reference_operation(self, region: str, tenant_name: str, action: str, storage: str,
                                     data: dict) -> Optional[Dict[str, Any]]:
         """Call only the authenticated producer-coordination endpoints."""

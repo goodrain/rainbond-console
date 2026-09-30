@@ -2,7 +2,8 @@ import hashlib
 import hmac
 import unittest
 from console.services.cleanup_retirement import (
-    verify_retirement_request, retirement_payload, validate_template_retirement, RetirementConflict
+    verify_retirement_request, retirement_payload, verify_inspection_request, inspection_payload,
+    inspect_template_identity, validate_template_retirement, RetirementConflict
 )
 
 
@@ -39,3 +40,19 @@ class RetirementGuardTests(unittest.TestCase):
         current['activation_revision'] = 'used-after-scan'
         with self.assertRaises(RetirementConflict):
             validate_template_retirement(current, expected)
+
+    def test_inspection_signature_is_separate_and_read_only(self):
+        key = bytes(range(32))
+        body = b'{"actor":"7","operationId":"operation-1","kind":"template_version"}'
+        path = '/console/cleanup/internal/inspect/e/r'
+        signature = hmac.new(key, inspection_payload('POST', path, 'e', 'r', '1000', body), hashlib.sha256).hexdigest()
+        self.assertTrue(verify_inspection_request('POST', path, 'e', 'r', '1000', signature, body, key, now=1000))
+        destructive = hmac.new(key, retirement_payload('POST', path, 'e', 'r', '1000', body), hashlib.sha256).hexdigest()
+        self.assertFalse(verify_inspection_request('POST', path, 'e', 'r', '1000', destructive, body, key, now=1000))
+
+    def test_template_inspection_distinguishes_absent_and_changed_identity(self):
+        expected = {'id': 12, 'app_id': 'model', 'version': 'v1', 'content_hash': 'a' * 64, 'activation_revision': 'revision'}
+        self.assertEqual(inspect_template_identity(None, expected), 'absent')
+        self.assertEqual(inspect_template_identity(dict(expected), expected), 'present')
+        with self.assertRaises(RetirementConflict):
+            inspect_template_identity(dict(expected, content_hash='b' * 64), expected)
