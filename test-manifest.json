@@ -4010,6 +4010,24 @@
       "status": "active"
     },
     {
+      "id": "console.component-build.serializable-failure-response",
+      "title": "Serialize component build failure responses",
+      "title_zh": "组件构建失败响应可序列化",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.app_create.app_build.AppBuild.post",
+      "code_paths": [
+        "console/views/app_create/app_build.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_build_first_deploy_test.py",
+          "selector": "AppBuildFirstDeployTrackingTests.test_app_build_serializes_unexpected_deploy_error_message"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.component-check.duplicate-port-noise",
       "title": "Treat duplicate detected component port as expected",
       "title_zh": "组件检测重复端口按预期处理",

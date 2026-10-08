@@ -99,7 +99,7 @@ class AppBuild(AppBaseView, CloudEnterpriseCenterView):
                     enterprise_first_deploy_service.safe_mark_failure(tracker, reason=str(e))
                     logger.exception(e)
                     err = ErrComponentBuildFailed()
-                    result = general_message(err.error_code, e, err.msg_show)
+                    result = general_message(err.error_code, str(e), err.msg_show)
                     return Response(result, status=400)
                 # 添加组件部署关系
                 deploy_repo.create_deploy_relation_by_service_id(service_id=self.service.service_id)
