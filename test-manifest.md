@@ -460,6 +460,7 @@
 | console.oauth.token-update | 将刷新的 OAuth access/refresh token 持久化到绑定用户 | active | regression | console.utils.oauth.base.oauth.OAuth2Interface.update_access_token | console/tests/utils/oauth_base_test.py::OAuthBaseTests.test_update_access_token_updates_bound_user |
 | console.oauth.unsupported-type | 拒绝不支持的 OAuth 服务类型 | active | regression | console.utils.oauth.oauth_types.get_oauth_instance | console/tests/utils/oauth_types_test.py::OAuthTypeTests.test_get_oauth_instance_unsupported_type |
 | console.oauth.user-binding | 将 OAuth 服务和用户对象绑定到 helper 实例 | active | regression | console.utils.oauth.base.oauth.OAuth2Interface.set_oauth_user | console/tests/utils/oauth_base_test.py::OAuthBaseTests.test_set_oauth_user_and_service |
+| console.openapi.helm-chart-query-schema | Helm Chart GET 参数使用查询序列化器 | active | regression | openapi.views.apps.apps.HelmChart.get | console/tests/openapi_swagger_test.py::OpenAPISwaggerMetadataTests.test_helm_chart_get_declares_query_serializer_without_request_body |
 | console.operator-managed.skip-kubeblocks-services | Skip KubeBlocks services during operator-managed component import | active | regression | console.services.group_service.GroupService.get_watch_managed_data | console/tests/group_service_test.py::GroupServiceOperatorManagedTests |
 | console.package-component.auto-create-flow | 执行制品包组件自动创建全流程 | active | regression | console.services.package_component_service.auto_create_component | console/tests/package_component_service_test.py::PackageComponentServiceTests.test_auto_create_component_runs_full_package_flow |
 | console.package-component.check-request-failure | 制品包组件检测请求失败时拦截创建 | active | regression | console.services.package_component_service.auto_create_component | console/tests/package_component_service_test.py::PackageComponentServiceTests.test_auto_create_component_rejects_check_request_failure |
@@ -5216,6 +5217,16 @@
 - 业务入口: `console.utils.oauth.base.oauth.OAuth2Interface.set_oauth_user`
 - 代码路径: `console/utils/oauth/base/oauth.py`
 - 测试路径: `console/tests/utils/oauth_base_test.py::OAuthBaseTests.test_set_oauth_user_and_service`
+
+### Helm Chart GET 参数使用查询序列化器
+
+- Capability ID: `console.openapi.helm-chart-query-schema`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `view_endpoint`
+- 业务入口: `openapi.views.apps.apps.HelmChart.get`
+- 代码路径: `openapi/views/apps/apps.py`
+- 测试路径: `console/tests/openapi_swagger_test.py::OpenAPISwaggerMetadataTests.test_helm_chart_get_declares_query_serializer_without_request_body`
 
 ### Skip KubeBlocks services during operator-managed component import
 

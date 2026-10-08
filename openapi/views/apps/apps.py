@@ -1407,7 +1407,7 @@ class HelmChart(TeamAPIView):
             openapi.Parameter("app_id", openapi.IN_PATH, description="应用id", type=openapi.TYPE_INTEGER),
             openapi.Parameter("region_name", openapi.IN_PATH, description="集群名称", type=openapi.TYPE_STRING),
         ],
-        request_body=HelmChartSerializer,
+        query_serializer=HelmChartSerializer,
         tags=['openapi-apps'],
     )
     def get(self, request: Request, app_id: str, *args: Any, **kwargs: Any) -> Response:
@@ -1478,7 +1478,7 @@ class HelmChart(TeamAPIView):  # type: ignore[no-redef]
             openapi.Parameter("app_id", openapi.IN_PATH, description="应用id", type=openapi.TYPE_INTEGER),
             openapi.Parameter("region_name", openapi.IN_PATH, description="集群名称", type=openapi.TYPE_STRING),
         ],
-        request_body=HelmChartSerializer,
+        query_serializer=HelmChartSerializer,
         tags=['openapi-apps'],
     )
     def get(self, request: Request, app_id: str, *args: Any, **kwargs: Any) -> Response:

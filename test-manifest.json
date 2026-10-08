@@ -8819,6 +8819,24 @@
       "status": "active"
     },
     {
+      "id": "console.openapi.helm-chart-query-schema",
+      "title": "Declare Helm chart GET inputs as query parameters",
+      "title_zh": "Helm Chart GET 参数使用查询序列化器",
+      "interface_type": "view_endpoint",
+      "interface": "openapi.views.apps.apps.HelmChart.get",
+      "code_paths": [
+        "openapi/views/apps/apps.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/openapi_swagger_test.py",
+          "selector": "OpenAPISwaggerMetadataTests.test_helm_chart_get_declares_query_serializer_without_request_body"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.operator-managed.skip-kubeblocks-services",
       "title": "Skip KubeBlocks services during operator-managed component import",
       "title_zh": "Skip KubeBlocks services during operator-managed component import",
