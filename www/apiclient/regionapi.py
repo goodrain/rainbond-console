@@ -3773,8 +3773,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
                         text = decoder.decode(chunk)
                         if text:
                             yield text
-                except urllib3.exceptions.ProtocolError as error:
-                    logger.info("SSE upstream stream closed: %s", error)
+                except (urllib3.exceptions.ProtocolError, urllib3.exceptions.ReadTimeoutError) as error:
+                    logger.info("SSE upstream stream ended: %s", error)
                 remaining = decoder.decode(b"", final=True)
                 if remaining:
                     yield remaining

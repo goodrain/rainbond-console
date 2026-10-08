@@ -90,6 +90,29 @@ class RegionApiSSEProxyTests(SimpleTestCase):
 
     @patch.object(RegionInvokeApi, "get_client")
     @patch.object(RegionInvokeApi, "get_region_info")
+    # capability_id: console.region.sse-read-timeout
+    def test_sse_proxy_ends_cleanly_after_idle_read_timeout(self, mock_get_region_info, mock_get_client):
+        api = RegionInvokeApi()
+        mock_get_region_info.return_value = Mock(url="http://region.example.com", token="region-token")
+        response = Mock()
+
+        def timed_out_stream(_chunk_size):
+            yield b"complete line\n"
+            raise urllib3.exceptions.ReadTimeoutError(None, "/v2/logs", "Read timed out")
+
+        response.stream.side_effect = timed_out_stream
+        client = Mock()
+        client.request.return_value = response
+        mock_get_client.return_value = client
+
+        http_response = api.sse_proxy("rainbond", "/v2/logs")
+
+        content = b"".join(http_response.streaming_content).decode("utf-8")
+        self.assertEqual(content, "complete line\n")
+        response.close.assert_called_once_with()
+
+    @patch.object(RegionInvokeApi, "get_client")
+    @patch.object(RegionInvokeApi, "get_region_info")
     @patch.object(RegionInvokeApi, "_RegionInvokeApi__get_tenant_region_info")
     # capability_id: console.resource-center.pod-logs
     def test_sse_proxy_rewrites_console_tenant_name_to_region_tenant_name(
