@@ -329,6 +329,7 @@
 | console.enterprise.region-update | 更新企业集群 | active | regression | console.services.mcp_query_service.call_tool[rainbond_update_region] | console/tests/mcp_query_service_test.py::MCPQueryServiceRegionMutationTests.test_update_region_executes_directly_with_merged_full_payload |
 | console.file-manage.region-request-timeout | 文件管理区域请求使用选定容器与更长超时 | active | regression | www.apiclient.regionapi.RegionInvokeApi.get_files | console/tests/file_manage_service_test.py::test_region_api_get_files_uses_container_name_and_longer_timeout |
 | console.file-manage.selected-container-forwarding | 列出文件管理内容时透传用户选择的容器名 | active | regression | console.services.group_service.GroupService.get_file_and_dir | console/tests/file_manage_service_test.py::test_get_file_and_dir_forwards_selected_container_name |
+| console.first-deploy.concurrent-record-cleanup | 兼容首次部署追踪记录并发清理 | active | regression | console.repositories.first_deploy_repo.EnterpriseFirstDeployRepository.update_payload | console/tests/first_deploy_repo_test.py::EnterpriseFirstDeployRepositoryConcurrencyTests |
 | console.gateway.certificate-delete-idempotent | Delete missing gateway certificate idempotently | active | regression | DELETE /console/teams/{tenant}/certificates/{certificate_id} | console/tests/app_domain_certificate_test.py::TenantCertificateDeleteTests::test_delete_missing_certificate_is_idempotent |
 | console.gateway.client-ca-management | Manage gateway client CA certificates | active | regression | console.services.app_config.domain_service.DomainService.add_certificate | console/tests/app_domain_certificate_test.py::GatewayClientCAManagementTests<br>console/tests/utils/certutil_test.py::CertUtilTests.test_validate_ca_certificate |
 | console.gateway.component-env-upsert-schema | Gateway Component Env Upsert Schema | active | regression | console.services.mcp_query_service.call_tool[console.gateway.component-env-upsert-schema] | console/tests/mcp_query_service_test.py::MCPQueryServiceToolVisibilityTests.test_manage_component_envs_schema_exposes_single_item_upsert_guidance |
@@ -3891,6 +3892,16 @@
 - 业务入口: `console.services.group_service.GroupService.get_file_and_dir`
 - 代码路径: `console/services/group_service.py`, `console/views/app_overview.py`
 - 测试路径: `console/tests/file_manage_service_test.py::test_get_file_and_dir_forwards_selected_container_name`
+
+### 兼容首次部署追踪记录并发清理
+
+- Capability ID: `console.first-deploy.concurrent-record-cleanup`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `dao_method`
+- 业务入口: `console.repositories.first_deploy_repo.EnterpriseFirstDeployRepository.update_payload`
+- 代码路径: `console/repositories/first_deploy_repo.py`
+- 测试路径: `console/tests/first_deploy_repo_test.py::EnterpriseFirstDeployRepositoryConcurrencyTests`
 
 ### Delete missing gateway certificate idempotently
 

@@ -6313,6 +6313,24 @@
       "status": "active"
     },
     {
+      "id": "console.first-deploy.concurrent-record-cleanup",
+      "title": "Ignore concurrent first deploy tracker cleanup",
+      "title_zh": "兼容首次部署追踪记录并发清理",
+      "interface_type": "dao_method",
+      "interface": "console.repositories.first_deploy_repo.EnterpriseFirstDeployRepository.update_payload",
+      "code_paths": [
+        "console/repositories/first_deploy_repo.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/first_deploy_repo_test.py",
+          "selector": "EnterpriseFirstDeployRepositoryConcurrencyTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.gateway.certificate-delete-idempotent",
       "title": "Delete missing gateway certificate idempotently",
       "title_zh": "Delete missing gateway certificate idempotently",

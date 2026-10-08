@@ -66,12 +66,20 @@ class EnterpriseFirstDeployRepository(object):
         except IntegrityError:
             return self.get_by_key(key), False
 
-    def update_payload(self, record: ConsoleSysConfig, payload: dict) -> ConsoleSysConfig:
+    def update_payload(self, record: ConsoleSysConfig, payload: dict) -> Optional[ConsoleSysConfig]:
+        value = json.dumps(payload, ensure_ascii=False)
+        updated = ConsoleSysConfig.objects.filter(pk=record.pk).update(
+            type="json",
+            value=value,
+            desc=self.DESC,
+            enable=True,
+        )
+        if not updated:
+            return None
         record.type = "json"
-        record.value = json.dumps(payload, ensure_ascii=False)
+        record.value = value
         record.desc = self.DESC
         record.enable = True
-        record.save(update_fields=["type", "value", "desc", "enable"])
         return record
 
     @staticmethod
