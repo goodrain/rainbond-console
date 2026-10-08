@@ -622,13 +622,15 @@ class CustomWebHooksDeploy(AlowAnyApiView):
         import base64
         import pickle
         secret_key = request.data.get("secret_key")
+        service_obj = TenantServiceInfo.objects.filter(service_id=service_id).first()
+        if not service_obj:
+            return Response(general_message(404, "component not found", "组件不存在"), status=404)
         # 加密
         deploy_key = deploy_repo.get_secret_key_by_service_id(service_id=service_id)
         deploy_key_decode = pickle.loads(base64.b64decode(ast.literal_eval(deploy_key))).get("secret_key")
         if secret_key != deploy_key_decode:
             result = general_message(400, "failed", "密钥错误")
             return Response(result, status=400)
-        service_obj = TenantServiceInfo.objects.get(service_id=service_id)
         tenant_obj = Tenants.objects.get(tenant_id=service_obj.tenant_id)
         status_map = app_service.get_service_status(tenant_obj, service_obj)
         user_obj = user_services.init_webhook_user(service_obj, "WebAPI")

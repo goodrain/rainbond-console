@@ -639,6 +639,7 @@
 | console.vm-template-import.delete-abnormal-vm | delete 允许异常状态虚拟机跳过运行中校验 | active | regression | console.services.app_actions.app_manage.AppManageService.delete | console/tests/app_manage_test.py::AppManageVMRestoreDeleteTests.test_delete_allows_abnormal_vm_to_skip_running_guard |
 | console.vm-template-import.delete-restoring-vm | Allow deleting restoring VM components | active | regression | console.services.app_actions.app_manage.AppManageService.delete | console/tests/app_manage_test.py::AppManageVMRestoreDeleteTests |
 | console.vm-template-import.restore-operation-record | VM template import restore operation record exposes progress | active | unit | console.services.app_actions.app_log.AppEventService.build_vm_restore_event | console/tests/vm_profile_runtime_status_test.py::VMRestoreEventTests.test_build_vm_restore_event_exposes_progress_and_importer_logs<br>console/tests/vm_profile_runtime_status_test.py::VMRestoreEventTests.test_build_vm_restore_event_marks_success_after_import_finishes |
+| console.webhook.custom-deploy-missing-component | 自定义部署回调在组件已删除时返回 404 | active | regression | console.views.webhook.CustomWebHooksDeploy.post | console/tests/custom_webhook_test.py::CustomWebhookDeployTests.test_post_returns_not_found_before_reading_key_for_deleted_component<br>console/tests/custom_webhook_test.py::CustomWebhookDeployTests.test_post_still_rejects_invalid_key_for_existing_component |
 | openapi.app-service.team-not-found | 应用关联的团队不存在时返回404错误 | active | regression | openapi.services.app_service.AppService.get_app_services_and_status | console/tests/openapi_app_service_team_not_found_test.py::AppServiceTeamNotFoundTest |
 | openapi.app.create-third-component-deploy-key | OpenAPI 创建第三方 api 组件时生成密钥 | active | regression | openapi.views.apps.apps.CreateThirdComponentView.post | console/tests/openapi_third_component_deploy_repo_test.py::ThirdComponentDeployRepoTest.test_deploy_repo_is_the_singleton_not_the_module |
 | openapi.app.team-apps-close | OpenAPI 关闭团队全部应用 | active | regression | openapi.views.apps.apps.TeamAppsCloseView.post | console/tests/openapi_team_apps_close_test.py::TeamAppsCloseTest.test_post_unpacks_three_return_values_from_batch_action |
@@ -7010,6 +7011,16 @@
 - 业务入口: `console.services.app_actions.app_log.AppEventService.build_vm_restore_event`
 - 代码路径: `console/services/app_actions/app_log.py`, `console/services/app.py`, `console/views/app_event.py`
 - 测试路径: `console/tests/vm_profile_runtime_status_test.py::VMRestoreEventTests.test_build_vm_restore_event_exposes_progress_and_importer_logs`, `console/tests/vm_profile_runtime_status_test.py::VMRestoreEventTests.test_build_vm_restore_event_marks_success_after_import_finishes`
+
+### 自定义部署回调在组件已删除时返回 404
+
+- Capability ID: `console.webhook.custom-deploy-missing-component`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `view_endpoint`
+- 业务入口: `console.views.webhook.CustomWebHooksDeploy.post`
+- 代码路径: `console/views/webhook.py`
+- 测试路径: `console/tests/custom_webhook_test.py::CustomWebhookDeployTests.test_post_returns_not_found_before_reading_key_for_deleted_component`, `console/tests/custom_webhook_test.py::CustomWebhookDeployTests.test_post_still_rejects_invalid_key_for_existing_component`
 
 ### 应用关联的团队不存在时返回404错误
 

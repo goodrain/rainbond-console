@@ -12163,6 +12163,28 @@
       "status": "active"
     },
     {
+      "id": "console.webhook.custom-deploy-missing-component",
+      "title": "Reject custom deploy webhooks for deleted components",
+      "title_zh": "自定义部署回调在组件已删除时返回 404",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.webhook.CustomWebHooksDeploy.post",
+      "code_paths": [
+        "console/views/webhook.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/custom_webhook_test.py",
+          "selector": "CustomWebhookDeployTests.test_post_returns_not_found_before_reading_key_for_deleted_component"
+        },
+        {
+          "path": "console/tests/custom_webhook_test.py",
+          "selector": "CustomWebhookDeployTests.test_post_still_rejects_invalid_key_for_existing_component"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "openapi.app-service.team-not-found",
       "title": "Raise error when team associated with app is not found",
       "title_zh": "应用关联的团队不存在时返回404错误",
