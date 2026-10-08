@@ -10009,6 +10009,24 @@
       "status": "active"
     },
     {
+      "id": "console.region.sse-protocol-disconnect",
+      "title": "End SSE streams cleanly after upstream protocol disconnects",
+      "title_zh": "上游协议中断后平静结束 SSE 流",
+      "interface_type": "service_method",
+      "interface": "www.apiclient.regionapi.RegionInvokeApi.sse_proxy",
+      "code_paths": [
+        "www/apiclient/regionapi.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/regionapi_sse_proxy_test.py",
+          "selector": "RegionApiSSEProxyTests.test_sse_proxy_ends_cleanly_when_upstream_disconnects"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.region.sse-utf8-streaming",
       "title": "Decode UTF-8 safely across SSE chunks",
       "title_zh": "SSE 分片安全解码 UTF-8",

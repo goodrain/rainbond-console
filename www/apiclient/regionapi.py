@@ -3767,13 +3767,19 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
 
         def event_stream() -> Any:
             decoder = codecs.getincrementaldecoder("utf-8")(errors="replace")
-            for chunk in resp.stream(4096):
-                text = decoder.decode(chunk)
-                if text:
-                    yield text
-            remaining = decoder.decode(b"", final=True)
-            if remaining:
-                yield remaining
+            try:
+                try:
+                    for chunk in resp.stream(4096):
+                        text = decoder.decode(chunk)
+                        if text:
+                            yield text
+                except urllib3.exceptions.ProtocolError as error:
+                    logger.info("SSE upstream stream closed: %s", error)
+                remaining = decoder.decode(b"", final=True)
+                if remaining:
+                    yield remaining
+            finally:
+                resp.close()
 
         response = StreamingHttpResponse(event_stream(), content_type='text/event-stream')
         response['Content-Encoding'] = 'identity'
