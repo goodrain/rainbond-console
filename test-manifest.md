@@ -504,6 +504,7 @@
 | console.rainskills-audit-strict-startup | Rainskills 严格审计启动门禁 | active | regression | entrypoint repair plan and strict MCP write audit | console/tests/entrypoint_test.py::EntrypointGunicornTest.test_database_startup_plans_repairs_before_applying_and_migrating<br>console/tests/rainskills_audit_service_test.py::RainSkillsAuditServiceSafetyTests.test_confirmation_metadata_is_required_by_default<br>console/tests/mcp_query_rainskills_audit_test.py::MCPQueryRainSkillsAuditTests.test_strict_mode_blocks_legacy_mutation_before_tool_execution |
 | console.rainskills.deployment-report-backpressure | Bound deployment report workers without losing deferred reports | active | regression | RainSkillsDeploymentService.sweep_once | console/tests/rainskills_deployment_service_test.py::RainSkillsDeploymentServiceTests.test_worker_limit_preserves_pending_reports_and_sweeps_fairly<br>console/tests/rainskills_deployment_service_test.py::RainSkillsDeploymentServiceTests.test_report_closes_database_before_network_wait |
 | console.random.default-version | 生成默认随机版本标识 | active | regression | console.utils.randomutil.make_default_version | console/tests/utils/randomutil_test.py::RandomUtilTests.test_make_default_version |
+| console.realtime-proxy.client-reset-close | WebSocket 连接重置按正常关闭处理 | active | regression | console.utils.realtime_proxy.proxy_websocket_request | console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_websocket_proxy_treats_client_connection_reset_as_normal_close |
 | console.realtime-proxy.docker-console-subprotocol | Docker 控制台后端使用 webtty 子协议 | active | regression | console.utils.realtime_proxy._backend_websocket_subprotocols | console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_docker_console_backend_uses_webtty_subprotocol |
 | console.realtime-proxy.docker-console-user-activity | Docker 控制台活动跟踪在用户输入时刷新 | active | regression | console.utils.realtime_proxy.DockerConsoleActivityTracker | console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_docker_console_activity_tracker_refreshes_on_user_input |
 | console.realtime-proxy.docker-console-user-idle-timeout | Docker 控制台活动跟踪忽略 webtty 心跳 | active | regression | console.utils.realtime_proxy.DockerConsoleActivityTracker | console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_docker_console_activity_tracker_ignores_webtty_ping |
@@ -5653,6 +5654,16 @@
 - 业务入口: `console.utils.randomutil.make_default_version`
 - 代码路径: `console/utils/randomutil.py`
 - 测试路径: `console/tests/utils/randomutil_test.py::RandomUtilTests.test_make_default_version`
+
+### WebSocket 连接重置按正常关闭处理
+
+- Capability ID: `console.realtime-proxy.client-reset-close`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `package_function`
+- 业务入口: `console.utils.realtime_proxy.proxy_websocket_request`
+- 代码路径: `console/utils/realtime_proxy.py`
+- 测试路径: `console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_websocket_proxy_treats_client_connection_reset_as_normal_close`
 
 ### Docker 控制台后端使用 webtty 子协议
 

@@ -66,6 +66,7 @@ from console.utils.realtime_proxy import (  # noqa: E402
     build_region_realtime_proxy_url,
     open_backend_websocket,
     proxy_http_request,
+    proxy_websocket_request,
 )
 
 
@@ -338,6 +339,54 @@ class RealtimeProxyUrlTests(SimpleTestCase):
         protocols = _backend_websocket_subprotocols(request, "docker_console")
 
         self.assertEqual(protocols, ["webtty", "other"])
+
+    # capability_id: console.realtime-proxy.client-reset-close
+    def test_websocket_proxy_treats_client_connection_reset_as_normal_close(self):
+        request = self.factory.get("/console/regions/rainbond/websocket/services/service-a/pubsub")
+        client_ws = mock.Mock()
+        client_ws.receive.return_value = "client event"
+        client_ws.send.side_effect = ConnectionResetError(104, "Connection reset by peer")
+        request.environ["wsgi.websocket"] = client_ws
+
+        backend_ws = mock.Mock()
+        backend_ws.send.side_effect = ConnectionResetError(104, "Connection reset by peer")
+        from websocket import ABNF
+        backend_ws.recv_data.return_value = (ABNF.OPCODE_TEXT, b"event")
+
+        def run_greenlet(target):
+            target()
+            return mock.Mock()
+
+        fake_gevent = ModuleType("gevent")
+        fake_gevent.spawn = mock.Mock(side_effect=run_greenlet)
+        fake_gevent.joinall = mock.Mock()
+        fake_geventwebsocket = ModuleType("geventwebsocket")
+        fake_geventwebsocket_exceptions = ModuleType("geventwebsocket.exceptions")
+        fake_geventwebsocket_exceptions.WebSocketError = type("WebSocketError", (Exception, ), {})
+        fake_geventwebsocket.exceptions = fake_geventwebsocket_exceptions
+
+        with mock.patch.dict(
+            sys.modules,
+            {
+                "gevent": fake_gevent,
+                "geventwebsocket": fake_geventwebsocket,
+                "geventwebsocket.exceptions": fake_geventwebsocket_exceptions,
+            },
+        ), mock.patch(
+            "console.utils.realtime_proxy.build_region_realtime_proxy_url",
+            return_value="ws://region.example.com:6060/services/service-a/pubsub",
+        ), mock.patch(
+            "websocket.create_connection",
+            return_value=backend_ws,
+        ), mock.patch(
+            "console.utils.realtime_proxy.logger.exception",
+        ) as log_exception:
+            response = proxy_websocket_request(request, "rainbond", "services/service-a/pubsub")
+
+        self.assertEqual(response.status_code, 204)
+        log_exception.assert_not_called()
+        backend_ws.close.assert_called_once_with()
+        client_ws.close.assert_called_once_with()
 
     # capability_id: console.realtime-proxy.websocket-idle-timeout
     def test_backend_websocket_uses_short_read_timeout_for_idle_checks(self):

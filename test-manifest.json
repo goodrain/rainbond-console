@@ -9629,6 +9629,24 @@
       "status": "active"
     },
     {
+      "id": "console.realtime-proxy.client-reset-close",
+      "title": "Treat websocket connection resets as normal closure",
+      "title_zh": "WebSocket 连接重置按正常关闭处理",
+      "interface_type": "package_function",
+      "interface": "console.utils.realtime_proxy.proxy_websocket_request",
+      "code_paths": [
+        "console/utils/realtime_proxy.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/realtime_proxy_url_test.py",
+          "selector": "RealtimeProxyUrlTests.test_websocket_proxy_treats_client_connection_reset_as_normal_close"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.realtime-proxy.docker-console-subprotocol",
       "title": "Docker console backend uses webtty subprotocol",
       "title_zh": "Docker 控制台后端使用 webtty 子协议",

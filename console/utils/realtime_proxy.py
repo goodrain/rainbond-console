@@ -338,7 +338,7 @@ def proxy_websocket_request(request, region_name, proxy_path):
                     backend_ws.send_binary(message)
                 else:
                     backend_ws.send(message)
-            except (WebSocketError, WebSocketConnectionClosedException):
+            except (WebSocketError, WebSocketConnectionClosedException, ConnectionResetError):
                 break
             except Exception:
                 logger.exception("websocket proxy client->backend failed")
@@ -363,7 +363,7 @@ def proxy_websocket_request(request, region_name, proxy_path):
                     backend_ws.pong(data)
             except WebSocketTimeoutException:
                 continue
-            except (WebSocketError, WebSocketConnectionClosedException):
+            except (WebSocketError, WebSocketConnectionClosedException, ConnectionResetError):
                 break
             except Exception:
                 logger.exception("websocket proxy backend->client failed")
