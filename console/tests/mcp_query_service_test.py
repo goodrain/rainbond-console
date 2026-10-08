@@ -5626,6 +5626,11 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         mock_manage_port.return_value = (200, "success", port)
         mock_bind_httpdomain.return_value = rule
 
+        http_payload = {
+            "service_id": "svc-1",
+            "container_port": 80,
+            "domain_name": "demo.example.com",
+        }
         result = mcp_query_service.call_tool(
             self.user,
             "rainbond_create_gateway_rules",
@@ -5634,16 +5639,20 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
                 "region_name": "rainbond",
                 "app_id": 12,
                 "protocol": "http",
-                "http": {
-                    "service_id": "svc-1",
-                    "container_port": 80,
-                    "domain_name": "demo.example.com",
-                    "domain_path": "/",
-                },
+                "http": http_payload,
             },
         )
 
         self.assertEqual(result["http_rule_id"], "rule-1")
+        self.assertNotIn("domain_heander", http_payload)
+        self.assertNotIn("domain_type", http_payload)
+        self.assertNotIn("protocol", http_payload)
+        bound_payload = mock_bind_httpdomain.call_args[0][3]
+        self.assertEqual(bound_payload["certificate_id"], 0)
+        self.assertEqual(bound_payload["domain_path"], "/")
+        self.assertEqual(bound_payload["rule_extensions"], [])
+        self.assertIs(bound_payload["auto_ssl"], False)
+        self.assertIsNone(bound_payload["auto_ssl_config"])
 
     @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
     @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
@@ -5715,6 +5724,75 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
 
         self.assertEqual(context.exception.status_code, 400)
         self.assertEqual(context.exception.msg_show, "缺少参数http")
+
+    @patch.object(mcp_query_service, "_get_service_in_team_app")
+    @patch.object(mcp_query_service, "_get_team_app_context")
+    # capability_id: console.gateway.rule-input-validation
+    def test_create_gateway_rules_http_validates_nested_required_fields(self, mock_context, mock_service):
+        mock_context.return_value = (self.team, self.app)
+        mock_service.return_value = self.service
+        invalid_payloads = [
+            ("container_port", {
+                "service_id": "svc-1",
+                "domain_name": "demo.example.com",
+            }),
+            ("domain_name", {
+                "service_id": "svc-1",
+                "container_port": 80,
+            }),
+        ]
+
+        for field, payload in invalid_payloads:
+            with self.subTest(field=field):
+                with self.assertRaises(ServiceHandleException) as context:
+                    mcp_query_service.call_tool(
+                        self.user,
+                        "rainbond_create_gateway_rules",
+                        {
+                            "team_name": "demo-team",
+                            "region_name": "rainbond",
+                            "app_id": 12,
+                            "protocol": "http",
+                            "http": payload,
+                        },
+                    )
+
+                self.assertEqual(context.exception.status_code, 400)
+                self.assertEqual(context.exception.msg_show, "参数{}无效".format(field))
+
+    @patch("console.services.mcp_query_service.port_service.manage_port")
+    @patch("console.services.mcp_query_service.port_service.get_service_port_by_port")
+    @patch("console.services.mcp_query_service.domain_service.check_domain_exist")
+    @patch.object(mcp_query_service, "_get_service_in_team_app")
+    @patch.object(mcp_query_service, "_get_team_app_context")
+    # capability_id: console.gateway.rule-input-validation
+    def test_create_gateway_rules_http_rejects_unknown_component_port(
+            self, mock_context, mock_service, mock_check_domain_exist, mock_get_port, mock_manage_port):
+        mock_context.return_value = (self.team, self.app)
+        mock_service.return_value = self.service
+        mock_check_domain_exist.return_value = False
+        mock_get_port.return_value = None
+
+        with self.assertRaises(ServiceHandleException) as context:
+            mcp_query_service.call_tool(
+                self.user,
+                "rainbond_create_gateway_rules",
+                {
+                    "team_name": "demo-team",
+                    "region_name": "rainbond",
+                    "app_id": 12,
+                    "protocol": "http",
+                    "http": {
+                        "service_id": "svc-1",
+                        "container_port": 80,
+                        "domain_name": "demo.example.com",
+                    },
+                },
+            )
+
+        self.assertEqual(context.exception.status_code, 400)
+        self.assertEqual(context.exception.msg_show, "组件端口不存在")
+        mock_manage_port.assert_not_called()
 
     @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
     @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
@@ -5901,7 +5979,7 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
                     "service_id": "svc-1",
                     "container_port": 6379,
                     "end_point": "1.1.1.1:30001",
-                    "default_port": False,
+                    "default_port": 30001,
                 },
             },
         )
@@ -5949,7 +6027,7 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
                         "service_id": "svc-1",
                         "container_port": 6379,
                         "end_point": "1.1.1.1:30001",
-                        "default_port": False,
+                        "default_port": 30001,
                     },
                 },
             )
@@ -5994,7 +6072,7 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
                         "service_id": "svc-1",
                         "container_port": 6379,
                         "end_point": "1.1.1.1:30001",
-                        "default_port": False,
+                        "default_port": 30001,
                     },
                 },
             )
@@ -6021,6 +6099,139 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
 
         self.assertEqual(context.exception.status_code, 400)
         self.assertEqual(context.exception.msg_show, "缺少参数tcp")
+
+    @patch("console.services.mcp_query_service.domain_service.bind_tcpdomain")
+    @patch("console.services.mcp_query_service.port_service.manage_port")
+    @patch("console.services.mcp_query_service.port_service.get_service_port_by_port")
+    @patch.object(mcp_query_service, "_get_service_in_team_app")
+    @patch.object(mcp_query_service, "_get_team_app_context")
+    # capability_id: console.gateway.rule-input-validation
+    def test_create_gateway_rules_tcp_validates_nested_required_fields(
+            self,
+            mock_context,
+            mock_service,
+            mock_get_port,
+            mock_manage_port,
+            mock_bind_tcpdomain,
+    ):
+        mock_context.return_value = (self.team, self.app)
+        mock_service.return_value = self.service
+        port = Obj(container_port=6379, protocol="tcp", port_alias="REDIS", is_outer_service=True)
+        mock_get_port.return_value = port
+        mock_manage_port.return_value = (200, "success", port)
+        mock_bind_tcpdomain.return_value = {"tcp_rule_id": "rule-2"}
+        invalid_payloads = [
+            ("container_port", {
+                "service_id": "svc-1",
+                "end_point": "1.1.1.1:30001",
+                "default_port": 30001,
+            }),
+            ("end_point", {
+                "service_id": "svc-1",
+                "container_port": 6379,
+                "default_port": 30001,
+            }),
+            ("default_port", {
+                "service_id": "svc-1",
+                "container_port": 6379,
+                "end_point": "1.1.1.1:30001",
+            }),
+        ]
+
+        for field, payload in invalid_payloads:
+            with self.subTest(field=field):
+                with self.assertRaises(ServiceHandleException) as context:
+                    mcp_query_service.call_tool(
+                        self.user,
+                        "rainbond_create_gateway_rules",
+                        {
+                            "team_name": "demo-team",
+                            "region_name": "rainbond",
+                            "app_id": 12,
+                            "protocol": "tcp",
+                            "tcp": payload,
+                        },
+                    )
+
+                self.assertEqual(context.exception.status_code, 400)
+                self.assertEqual(context.exception.msg_show, "参数{}无效".format(field))
+
+    @patch.object(mcp_query_service, "_get_team_app_context")
+    # capability_id: console.gateway.rule-input-validation
+    def test_create_gateway_rules_tcp_rejects_invalid_endpoint(self, mock_context):
+        mock_context.return_value = (self.team, self.app)
+        for end_point in ("1.1.1.1", "1.1.1.1:not-a-port", ":30001", "1.1.1.1:70000"):
+            with self.subTest(end_point=end_point):
+                with self.assertRaises(ServiceHandleException) as context:
+                    mcp_query_service.call_tool(
+                        self.user,
+                        "rainbond_create_gateway_rules",
+                        {
+                            "team_name": "demo-team",
+                            "region_name": "rainbond",
+                            "app_id": 12,
+                            "protocol": "tcp",
+                            "tcp": {
+                                "service_id": "svc-1",
+                                "container_port": 6379,
+                                "end_point": end_point,
+                                "default_port": 30001,
+                            },
+                        },
+                    )
+
+                self.assertEqual(context.exception.status_code, 400)
+                self.assertEqual(context.exception.msg_show, "参数end_point无效")
+
+    @patch("console.services.mcp_query_service.domain_service.bind_tcpdomain")
+    @patch("console.services.mcp_query_service.port_service.manage_port")
+    @patch("console.services.mcp_query_service.port_service.get_service_port_by_port")
+    @patch.object(mcp_query_service, "_get_service_in_team_app")
+    @patch.object(mcp_query_service, "_get_team_app_context")
+    # capability_id: console.gateway.rule-input-validation
+    def test_create_gateway_rules_tcp_rejects_unknown_component_port(
+            self, mock_context, mock_service, mock_get_port, mock_manage_port, mock_bind_tcpdomain):
+        mock_context.return_value = (self.team, self.app)
+        mock_service.return_value = self.service
+        mock_get_port.return_value = None
+
+        with self.assertRaises(ServiceHandleException) as context:
+            mcp_query_service.call_tool(
+                self.user,
+                "rainbond_create_gateway_rules",
+                {
+                    "team_name": "demo-team",
+                    "region_name": "rainbond",
+                    "app_id": 12,
+                    "protocol": "tcp",
+                    "tcp": {
+                        "service_id": "svc-1",
+                        "container_port": 6379,
+                        "end_point": "1.1.1.1:30001",
+                        "default_port": 30001,
+                    },
+                },
+            )
+
+        self.assertEqual(context.exception.status_code, 400)
+        self.assertEqual(context.exception.msg_show, "组件端口不存在")
+        mock_manage_port.assert_not_called()
+        mock_bind_tcpdomain.assert_not_called()
+
+    # capability_id: console.gateway.rule-input-validation
+    def test_create_gateway_rules_schema_describes_nested_requirements(self):
+        tools = mcp_query_service.list_tools(self.user)
+        tool = next(tool for tool in tools if tool["name"] == "rainbond_create_gateway_rules")
+        properties = tool["inputSchema"]["properties"]
+
+        self.assertEqual(properties["protocol"]["enum"], ["http", "tcp"])
+        self.assertEqual(properties["http"]["required"], ["service_id", "container_port", "domain_name"])
+        self.assertEqual(properties["http"]["properties"]["certificate_id"]["default"], 0)
+        self.assertEqual(properties["http"]["properties"]["domain_path"]["default"], "/")
+        self.assertIs(properties["http"]["properties"]["auto_ssl"]["default"], False)
+        self.assertEqual(
+            properties["tcp"]["required"], ["service_id", "container_port", "end_point", "default_port"])
+        self.assertEqual(properties["tcp"]["properties"]["default_port"], {"type": "integer", "minimum": 1})
 
     @patch.object(mcp_query_service, "_get_team_app_context")
     # capability_id: console.gateway.protocol-guard

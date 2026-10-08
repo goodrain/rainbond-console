@@ -6589,6 +6589,44 @@
       "status": "active"
     },
     {
+      "id": "console.gateway.rule-input-validation",
+      "title": "Validate gateway rule inputs",
+      "title_zh": "校验网关规则输入",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[rainbond_create_gateway_rules]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_create_gateway_rules_http_validates_nested_required_fields"
+        },
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_create_gateway_rules_http_rejects_unknown_component_port"
+        },
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_create_gateway_rules_tcp_validates_nested_required_fields"
+        },
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_create_gateway_rules_tcp_rejects_invalid_endpoint"
+        },
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_create_gateway_rules_tcp_rejects_unknown_component_port"
+        },
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_create_gateway_rules_schema_describes_nested_requirements"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.gateway.source-code-from-schema",
       "title": "Gateway Source Code From Schema",
       "title_zh": "Gateway Source Code From Schema",

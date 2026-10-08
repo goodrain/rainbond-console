@@ -4318,12 +4318,24 @@ class MCPQueryService(object):
             httpdomain = arguments.get("http")
             if not isinstance(httpdomain, dict):
                 raise ServiceHandleException(msg="missing http", msg_show="缺少参数http", status_code=400)
+            httpdomain = dict(httpdomain)
+            service_id = self._require_string(httpdomain, "service_id")
+            container_port = self._require_int(httpdomain, "container_port")
+            domain_name = self._require_string(httpdomain, "domain_name")
+            httpdomain["service_id"] = service_id
+            httpdomain["container_port"] = container_port
+            httpdomain["domain_name"] = domain_name
+            httpdomain.setdefault("certificate_id", 0)
+            httpdomain.setdefault("domain_path", "/")
+            httpdomain.setdefault("rule_extensions", [])
+            httpdomain.setdefault("auto_ssl", False)
+            httpdomain.setdefault("auto_ssl_config", None)
             httpdomain["domain_heander"] = httpdomain.get("domain_header", None)
             httpdomain["domain_type"] = "www"
             httpdomain["protocol"] = "https" if httpdomain.get("certificate_id") else "http"
-            service = self._get_service_in_team_app(team, app, self._require_string(httpdomain, "service_id"))
+            service = self._get_service_in_team_app(team, app, service_id)
             if domain_service.check_domain_exist(
-                    httpdomain["service_id"], httpdomain["container_port"], httpdomain["domain_name"],
+                    service_id, container_port, domain_name,
                     httpdomain["protocol"], httpdomain.get("domain_path"), httpdomain.get("rule_extensions")):
                 raise ServiceHandleException(msg="exist", msg_show="策略已存在", status_code=400)
             if service.service_source == "third_party":
@@ -4331,20 +4343,23 @@ class MCPQueryService(object):
                 if code != 200:
                     raise ServiceHandleException(msg=msg, msg_show=msg_show, status_code=code)
             if httpdomain.get("whether_open", True):
-                tenant_service_port = port_service.get_service_port_by_port(service, httpdomain["container_port"])
+                tenant_service_port = port_service.get_service_port_by_port(service, container_port)
+                if not tenant_service_port:
+                    raise ServiceHandleException(
+                        msg="component port not found", msg_show="组件端口不存在", status_code=400)
                 code, msg, _ = port_service.manage_port(
                     team, service, service.service_region, int(tenant_service_port.container_port), "only_open_outer",
                     tenant_service_port.protocol, tenant_service_port.port_alias
                 )
                 if code != 200:
                     raise ServiceHandleException(msg="change port fail", msg_show=msg, status_code=code)
-            tenant_service_port = port_service.get_service_port_by_port(service, httpdomain["container_port"])
+            tenant_service_port = port_service.get_service_port_by_port(service, container_port)
             if not tenant_service_port or not tenant_service_port.is_outer_service:
                 raise ServiceHandleException(msg="port not open", msg_show="没有开启对外端口", status_code=400)
             data = domain_service.bind_httpdomain(team, user, service, httpdomain, True)
             try:
                 region_api.api_gateway_bind_http_domain(
-                    service.service_alias, app.region_name, team.tenant_name, [httpdomain["domain_name"]],
+                    service.service_alias, app.region_name, team.tenant_name, [domain_name],
                     tenant_service_port, app.ID)
             except Exception as e:
                 logger.warning("create apisix route failed: %s", str(e))
@@ -4353,12 +4368,24 @@ class MCPQueryService(object):
             tcpdomain = arguments.get("tcp")
             if not isinstance(tcpdomain, dict):
                 raise ServiceHandleException(msg="missing tcp", msg_show="缺少参数tcp", status_code=400)
-            service = self._get_service_in_team_app(team, app, self._require_string(tcpdomain, "service_id"))
+            tcpdomain = dict(tcpdomain)
+            service_id = self._require_string(tcpdomain, "service_id")
+            container_port = self._require_int(tcpdomain, "container_port")
+            end_point = self._require_tcp_endpoint(tcpdomain, "end_point")
+            default_port = self._require_int(tcpdomain, "default_port")
+            tcpdomain["service_id"] = service_id
+            tcpdomain["container_port"] = container_port
+            tcpdomain["end_point"] = end_point
+            tcpdomain["default_port"] = default_port
+            service = self._get_service_in_team_app(team, app, service_id)
             if service.service_source == "third_party":
                 msg, msg_show, code = port_service.check_domain_thirdpart(team, service)
                 if code != 200:
                     raise ServiceHandleException(msg=msg, msg_show=msg_show, status_code=code)
-            tenant_service_port = port_service.get_service_port_by_port(service, tcpdomain["container_port"])
+            tenant_service_port = port_service.get_service_port_by_port(service, container_port)
+            if not tenant_service_port:
+                raise ServiceHandleException(
+                    msg="component port not found", msg_show="组件端口不存在", status_code=400)
             code, msg, _ = port_service.manage_port(
                 team, service, service.service_region, int(tenant_service_port.container_port), "only_open_outer",
                 tenant_service_port.protocol, tenant_service_port.port_alias
@@ -4366,7 +4393,7 @@ class MCPQueryService(object):
             if code != 200:
                 raise ServiceHandleException(msg="change port fail", msg_show="open port failure", status_code=code)
             data = domain_service.bind_tcpdomain(
-                team, user, service, tcpdomain["end_point"], tcpdomain["container_port"], tcpdomain["default_port"],
+                team, user, service, end_point, container_port, default_port,
                 tcpdomain.get("rule_extensions"), tcpdomain.get("default_ip")
             )
             return data
@@ -4865,6 +4892,23 @@ class MCPQueryService(object):
         # are declared str (latent int/str inconsistency across the codebase).
         value = arguments.get(field)
         return MCPQueryService._require_positive_int_value(value, field)
+
+    @staticmethod
+    def _require_tcp_endpoint(arguments: dict, field: str) -> str:
+        value = MCPQueryService._require_string(arguments, field)
+        parts = value.split(":")
+        if len(parts) != 2 or not parts[0]:
+            raise ServiceHandleException(
+                msg="invalid {}".format(field), msg_show="参数{}无效".format(field), status_code=400)
+        try:
+            port = int(parts[1])
+        except (TypeError, ValueError):
+            raise ServiceHandleException(
+                msg="invalid {}".format(field), msg_show="参数{}无效".format(field), status_code=400)
+        if port <= 0 or port > 65535:
+            raise ServiceHandleException(
+                msg="invalid {}".format(field), msg_show="参数{}无效".format(field), status_code=400)
+        return value
 
     @staticmethod
     def _require_positive_int_value(value: Any, field: str) -> int:
@@ -7979,9 +8023,56 @@ class MCPQueryService(object):
                     "team_name": {"type": "string"},
                     "region_name": {"type": "string"},
                     "app_id": {"type": "integer", "minimum": 1},
-                    "protocol": {"type": "string"},
-                    "http": {"type": "object"},
-                    "tcp": {"type": "object"}
+                    "protocol": {"type": "string", "enum": ["http", "tcp"]},
+                    "http": {
+                        "type": "object",
+                        "properties": {
+                            "service_id": {"type": "string", "minLength": 1},
+                            "container_port": {"type": "integer", "minimum": 1},
+                            "domain_name": {"type": "string", "minLength": 1},
+                            "domain_path": {"type": "string", "default": "/"},
+                            "domain_header": {"type": "string"},
+                            "certificate_id": {"type": "integer", "default": 0},
+                            "whether_open": {"type": "boolean", "default": True},
+                            "auto_ssl": {"type": "boolean", "default": False},
+                            "auto_ssl_config": {"type": ["string", "null"], "default": None},
+                            "rule_extensions": {
+                                "type": "array",
+                                "default": [],
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "key": {"type": "string"},
+                                        "value": {"type": "string"}
+                                    },
+                                    "required": ["key", "value"]
+                                }
+                            }
+                        },
+                        "required": ["service_id", "container_port", "domain_name"]
+                    },
+                    "tcp": {
+                        "type": "object",
+                        "properties": {
+                            "service_id": {"type": "string", "minLength": 1},
+                            "container_port": {"type": "integer", "minimum": 1},
+                            "end_point": {"type": "string", "pattern": "^[^:]+:[0-9]+$"},
+                            "default_port": {"type": "integer", "minimum": 1},
+                            "default_ip": {"type": "string"},
+                            "rule_extensions": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "key": {"type": "string"},
+                                        "value": {"type": "string"}
+                                    },
+                                    "required": ["key", "value"]
+                                }
+                            }
+                        },
+                        "required": ["service_id", "container_port", "end_point", "default_port"]
+                    }
                 },
                 "required": ["team_name", "region_name", "app_id", "protocol"]
             }
