@@ -134,7 +134,7 @@ class ServiceRepoPerformanceTests(TestCase):
 
 class TopologicalServicePerformanceTests(TestCase):
 
-    def _call_topology_with_dynamic_services(self, dynamic_services):
+    def _call_topology_with_dynamic_services(self, dynamic_services, status_error=None):
         app = SimpleNamespace(ID=1, app_id=1, app_type="rainbond", group_name="app")
         relation = SimpleNamespace(service_id="service-a", group_id=1)
         service = SimpleNamespace(
@@ -160,8 +160,12 @@ class TopologicalServicePerformanceTests(TestCase):
                 mock.patch.object(topological_service_module.ServiceGroup.objects, "filter", return_value=[app]))
             stack.enter_context(
                 mock.patch.object(topological_service_module.TenantServicesPort.objects, "filter", return_value=[]))
-            stack.enter_context(
-                mock.patch.object(topological_service_module.region_api, "service_status", return_value={"list": []}))
+            service_status = stack.enter_context(
+                mock.patch.object(topological_service_module.region_api, "service_status"))
+            if status_error:
+                service_status.side_effect = status_error
+            else:
+                service_status.return_value = {"list": []}
             stack.enter_context(
                 mock.patch.object(topological_service_module.base_service, "_process_kubeblocks_status", return_value=[]))
             stack.enter_context(
@@ -183,6 +187,16 @@ class TopologicalServicePerformanceTests(TestCase):
         result = self._call_topology_with_dynamic_services(None)
 
         self.assertEqual(result["json_data"]["service-a"]["node_num"], 2)
+
+    # capability_id: console.topology.batch-status-error-logging
+    def test_topology_logs_batch_status_failure_once_with_exception_context(self):
+        with mock.patch.object(topological_service_module.logger, "error") as log_error, mock.patch.object(
+                topological_service_module.logger, "exception") as log_exception:
+            result = self._call_topology_with_dynamic_services([], status_error=RuntimeError("region unavailable"))
+
+        log_error.assert_not_called()
+        log_exception.assert_called_once_with("batch query service status failed")
+        self.assertEqual(result["json_data"]["service-a"]["cur_status"], "Unknown")
 
     def test_topology_batches_ports_and_counts_dynamic_instances_once(self):
         app = SimpleNamespace(ID=1,

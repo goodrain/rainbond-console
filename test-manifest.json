@@ -11424,6 +11424,24 @@
       "status": "active"
     },
     {
+      "id": "console.topology.batch-status-error-logging",
+      "title": "Log topology batch status failures once with exception context",
+      "title_zh": "拓扑批量状态失败仅记录一次真实异常",
+      "interface_type": "service_method",
+      "interface": "console.services.topological_services.TopologicalService.get_group_topological_graph",
+      "code_paths": [
+        "console/services/topological_services.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_component_performance_test.py",
+          "selector": "TopologicalServicePerformanceTests.test_topology_logs_batch_status_failure_once_with_exception_context"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.url.path-legal",
       "title": "Validate whether paths satisfy the URL path legality rule",
       "title_zh": "校验路径是否满足 URL 路径合法性规则",

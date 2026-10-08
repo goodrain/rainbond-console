@@ -601,6 +601,7 @@
 | console.timeutil.parse | 将格式化时间字符串解析为 datetime 对象 | active | regression | console.utils.timeutil.str_to_time | console/tests/utils/timeutil_test.py::TimeUtilTests.test_str_to_time |
 | console.tool-visibility.enterprise-admin | 向企业管理员暴露管理工具集 | active | regression | console.services.mcp_query_service.list_tools[enterprise_admin] | console/tests/mcp_query_service_test.py::MCPQueryServiceToolVisibilityTests.test_list_tools_for_enterprise_admin_includes_region_and_enterprise_tools |
 | console.tool-visibility.standard-user | 向普通用户隐藏企业管理工具 | active | regression | console.services.mcp_query_service.list_tools[standard_user] | console/tests/mcp_query_service_test.py::MCPQueryServiceToolVisibilityTests.test_list_tools_for_non_enterprise_admin_hides_region_and_enterprise_tools |
+| console.topology.batch-status-error-logging | 拓扑批量状态失败仅记录一次真实异常 | active | regression | console.services.topological_services.TopologicalService.get_group_topological_graph | console/tests/app_component_performance_test.py::TopologicalServicePerformanceTests.test_topology_logs_batch_status_failure_once_with_exception_context |
 | console.url.path-legal | 校验路径是否满足 URL 路径合法性规则 | active | regression | console.utils.urlutil.is_path_legal | console/tests/utils/urlutil_test.py::UrlUtilTests.test_is_path_legal |
 | console.url.query-build | 根据基础路径和参数构建 GET URL | active | regression | console.utils.urlutil.set_get_url | console/tests/utils/urlutil_test.py::UrlUtilTests.test_set_get_url |
 | console.url.query-empty | 即使没有查询参数也能构建 GET URL | active | regression | console.utils.urlutil.set_get_url | console/tests/utils/urlutil_test.py::UrlUtilTests.test_set_get_url_with_empty_params |
@@ -6620,6 +6621,16 @@
 - 业务入口: `console.services.mcp_query_service.list_tools[standard_user]`
 - 代码路径: `console/services/mcp_query_service.py`
 - 测试路径: `console/tests/mcp_query_service_test.py::MCPQueryServiceToolVisibilityTests.test_list_tools_for_non_enterprise_admin_hides_region_and_enterprise_tools`
+
+### 拓扑批量状态失败仅记录一次真实异常
+
+- Capability ID: `console.topology.batch-status-error-logging`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.topological_services.TopologicalService.get_group_topological_graph`
+- 代码路径: `console/services/topological_services.py`
+- 测试路径: `console/tests/app_component_performance_test.py::TopologicalServicePerformanceTests.test_topology_logs_batch_status_failure_once_with_exception_context`
 
 ### 校验路径是否满足 URL 路径合法性规则
 

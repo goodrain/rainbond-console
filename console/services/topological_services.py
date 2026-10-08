@@ -142,9 +142,8 @@ class TopologicalService(object):
 
                 if service_status_list:
                     service_status_map = {status_map["service_id"]: status_map for status_map in service_status_list}
-            except Exception as e:
-                logger.error('batch query service status failed!')
-                logger.exception(e)
+            except Exception:
+                logger.exception("batch query service status failed")
         for app_id in component_ids_under_app:
             component_statuses = [
                 service_status_map.get(component_id, {}).get("status", "unknown")
