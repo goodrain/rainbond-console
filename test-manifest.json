@@ -8623,6 +8623,32 @@
       "status": "active"
     },
     {
+      "id": "console.oauth.gitlab-webhook-url",
+      "title": "Normalize GitLab OAuth webhook URLs",
+      "title_zh": "规范化 GitLab OAuth Webhook 地址",
+      "interface_type": "service_method",
+      "interface": "console.utils.oauth.gitlab_api.GitlabApiV4.create_hook",
+      "code_paths": [
+        "console/utils/oauth/gitlab_api.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/utils/gitlab_api_test.py",
+          "selector": "GitlabApiV4WebhookTests.test_create_hook_adds_https_scheme_to_bare_host"
+        },
+        {
+          "path": "console/tests/utils/gitlab_api_test.py",
+          "selector": "GitlabApiV4WebhookTests.test_create_hook_supports_protocol_relative_host"
+        },
+        {
+          "path": "console/tests/utils/gitlab_api_test.py",
+          "selector": "GitlabApiV4WebhookTests.test_create_hook_preserves_scheme_and_normalizes_slashes"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.oauth.instance-create",
       "title": "Create OAuth helper instances and bind service user context",
       "title_zh": "创建 OAuth helper 实例并绑定服务与用户上下文",

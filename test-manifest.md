@@ -450,6 +450,7 @@
 | console.mcp.wait-for-build-completion | MCP 构建/部署就绪等待工具 | active | unit | console.services.mcp_query_service.call_tool[console.mcp.wait-for-build-completion] | console/tests/mcp_query_wait_build_test.py |
 | console.ns-resource.batch-create | Ns Resource Batch Create | active | regression | console.views.team_resources | console/tests/team_resources_test.py::NsResourceDetailViewTestCase.test_post_preserves_partial_success_status_and_payload |
 | console.ns-resource.update | 通过 YAML 更新命名空间资源 | active | regression | console.views.team_resources.NsResourceDetailView.put | console/tests/team_resources_test.py::NsResourceDetailViewTestCase.test_put_accepts_yaml_media_type_and_forwards_raw_body<br>console/tests/team_resources_test.py::RegionInvokeApiNsResourceTestCase.test_put_tenant_ns_resource_preserves_custom_content_type |
+| console.oauth.gitlab-webhook-url | 规范化 GitLab OAuth Webhook 地址 | active | regression | console.utils.oauth.gitlab_api.GitlabApiV4.create_hook | console/tests/utils/gitlab_api_test.py::GitlabApiV4WebhookTests.test_create_hook_adds_https_scheme_to_bare_host<br>console/tests/utils/gitlab_api_test.py::GitlabApiV4WebhookTests.test_create_hook_supports_protocol_relative_host<br>console/tests/utils/gitlab_api_test.py::GitlabApiV4WebhookTests.test_create_hook_preserves_scheme_and_normalizes_slashes |
 | console.oauth.instance-create | 创建 OAuth helper 实例并绑定服务与用户上下文 | active | regression | console.utils.oauth.oauth_types.get_oauth_instance | console/tests/utils/oauth_types_test.py::OAuthTypeTests.test_get_oauth_instance |
 | console.oauth.kind-flags | 返回基础与 git OAuth helper 的能力标记 | active | regression | console.utils.oauth.base.git_oauth.GitOAuth2Interface.is_git_oauth | console/tests/utils/oauth_base_test.py::OAuthBaseTests.test_oauth_kind_flags |
 | console.oauth.session-retry | 创建带重试 HTTP 适配器的 OAuth 会话 | active | regression | console.utils.oauth.base.oauth.OAuth2Interface.set_session | console/tests/utils/oauth_base_test.py::OAuthBaseTests.test_set_session_builds_retrying_requests_session |
@@ -5108,6 +5109,16 @@
 - 业务入口: `console.views.team_resources.NsResourceDetailView.put`
 - 代码路径: `console/views/team_resources.py`, `www/apiclient/regionapi.py`
 - 测试路径: `console/tests/team_resources_test.py::NsResourceDetailViewTestCase.test_put_accepts_yaml_media_type_and_forwards_raw_body`, `console/tests/team_resources_test.py::RegionInvokeApiNsResourceTestCase.test_put_tenant_ns_resource_preserves_custom_content_type`
+
+### 规范化 GitLab OAuth Webhook 地址
+
+- Capability ID: `console.oauth.gitlab-webhook-url`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.utils.oauth.gitlab_api.GitlabApiV4.create_hook`
+- 代码路径: `console/utils/oauth/gitlab_api.py`
+- 测试路径: `console/tests/utils/gitlab_api_test.py::GitlabApiV4WebhookTests.test_create_hook_adds_https_scheme_to_bare_host`, `console/tests/utils/gitlab_api_test.py::GitlabApiV4WebhookTests.test_create_hook_supports_protocol_relative_host`, `console/tests/utils/gitlab_api_test.py::GitlabApiV4WebhookTests.test_create_hook_preserves_scheme_and_normalizes_slashes`
 
 ### 创建 OAuth helper 实例并绑定服务与用户上下文
 
