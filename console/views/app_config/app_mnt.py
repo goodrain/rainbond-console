@@ -111,8 +111,15 @@ class AppMntView(AppBaseView):
               paramType: body
 
         """
-        dep_vol_data = request.data["body"]
-        dep_vol_data = json.loads(dep_vol_data)
+        dep_vol_data = request.data.get("body")
+        try:
+            if isinstance(dep_vol_data, str):
+                dep_vol_data = json.loads(dep_vol_data)
+        except (TypeError, ValueError):
+            return Response(general_message(400, "invalid mount data", "挂载信息格式错误"), status=400)
+        if not isinstance(dep_vol_data, list) or not dep_vol_data or any(
+                not isinstance(item, dict) or not item.get("id") for item in dep_vol_data):
+            return Response(general_message(400, "invalid mount data", "挂载信息不能为空且必须包含存储ID"), status=400)
         mnt_service.batch_mnt_serivce_volume(
             self.tenant, self.service, dep_vol_data, self.user.nick_name)  # type: ignore[arg-type]
         result = general_message(200, "success", "操作成功")

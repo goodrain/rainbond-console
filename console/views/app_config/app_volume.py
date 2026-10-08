@@ -351,17 +351,18 @@ class AppVolumeManageView(AppBaseView):
         if not volume_id:
             return Response(general_message(400, "attr_name not specify", "未指定需要删除的持久化路径"), status=400)
         volume = volume_repo.get_service_volume_by_pk(volume_id)
+        if not volume:
+            return Response(general_message(404, "volume not found", "存储不存在或已被删除"), status=404)
         file_content = ""
-        # NOTE: get_service_volume_by_pk / get_service_config_file may return None (backlog)
-        if volume.volume_type == "config-file":  # type: ignore[union-attr]
-            file_content = volume_repo.get_service_config_file(volume).file_content  # type: ignore[arg-type,union-attr]
+        if volume.volume_type == "config-file":
+            file_content = volume_repo.get_service_config_file(volume).file_content
         old_information = volume_service.json_service_volume(
-            volume_name=volume.volume_name,  # type: ignore[union-attr]
-            volume_path=volume.volume_path,  # type: ignore[union-attr]
-            mode=volume.mode,  # type: ignore[union-attr]
+            volume_name=volume.volume_name,
+            volume_path=volume.volume_path,
+            mode=volume.mode,
             file_content=file_content,
-            volume_cap=volume.volume_capacity,  # type: ignore[union-attr]
-            volume_type=volume.volume_type)  # type: ignore[union-attr]
+            volume_cap=volume.volume_capacity,
+            volume_type=volume.volume_type)
         # NOTE: nick_name is str|None (backlog)
         code, msg, volume = volume_service.delete_service_volume_by_id(
             self.tenant, self.service, int(volume_id), self.user.nick_name, force)  # type: ignore[arg-type]

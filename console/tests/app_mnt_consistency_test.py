@@ -91,6 +91,60 @@ class AppMntViewConsistencyTests(TestCase):
         self.assertEqual(response.data["data"]["list"], [{"dep_vol_id": 9}])
         self.assertEqual(response.data["data"]["total"], 21)
 
+    # capability_id: console.component.mount-request-validation
+    def test_post_rejects_empty_mount_list(self):
+        request = self.factory.post(
+            "/console/teams/team-1/apps/consumer-1/mnt",
+            {"body": "[]"},
+            format="json",
+        )
+        request.data = {"body": "[]"}
+        self.view.user = SimpleNamespace(nick_name="operator")
+
+        with mock.patch(
+                "console.views.app_config.app_mnt.mnt_service.batch_mnt_serivce_volume") as batch_mount:
+            response = self.view.post(request)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data["msg"], "invalid mount data")
+        batch_mount.assert_not_called()
+
+    # capability_id: console.component.mount-request-validation
+    def test_post_rejects_mount_without_volume_id(self):
+        request = self.factory.post(
+            "/console/teams/team-1/apps/consumer-1/mnt",
+            {"body": '[{"path": "/data"}]'},
+            format="json",
+        )
+        request.data = {"body": '[{"path": "/data"}]'}
+        self.view.user = SimpleNamespace(nick_name="operator")
+
+        with mock.patch(
+                "console.views.app_config.app_mnt.mnt_service.batch_mnt_serivce_volume") as batch_mount:
+            response = self.view.post(request)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data["msg"], "invalid mount data")
+        batch_mount.assert_not_called()
+
+    # capability_id: console.component.mount-request-validation
+    def test_post_rejects_malformed_mount_json(self):
+        request = self.factory.post(
+            "/console/teams/team-1/apps/consumer-1/mnt",
+            {"body": "not-json"},
+            format="json",
+        )
+        request.data = {"body": "not-json"}
+        self.view.user = SimpleNamespace(nick_name="operator")
+
+        with mock.patch(
+                "console.views.app_config.app_mnt.mnt_service.batch_mnt_serivce_volume") as batch_mount:
+            response = self.view.post(request)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data["msg"], "invalid mount data")
+        batch_mount.assert_not_called()
+
 
 class AppMntServiceConsistencyTests(TestCase):
 

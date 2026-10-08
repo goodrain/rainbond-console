@@ -59,13 +59,6 @@ class PasswordResetForm(forms.Form):
         'password_repeat': "两次输入的密码不一致",
     }
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        super(PasswordResetForm, self).__init__(*args, **kwargs)
-        # NOTE: helper is a crispy-forms attr not declared on forms.Form (legacy, backlog).
-        self.helper.form_tag = False  # type: ignore[attr-defined]
-        self.helper.help_text_inline = True  # type: ignore[attr-defined]
-        self.helper.error_text_inline = True  # type: ignore[attr-defined]
-
     def clean(self) -> None:
         password = self.cleaned_data.get('password')
         password_repeat = self.cleaned_data.get('password_repeat')
@@ -299,15 +292,25 @@ class PasswordResetBegin(BaseApiView):
               type: string
               paramType: form
         """
+        tag = request.GET.get('tag')
         try:
-            tag = str(request.GET.get('tag'))
-            email, old_timestamp = AuthCode.decode(tag, 'password').split(',')
+            email, old_timestamp_value = AuthCode.decode(str(tag), 'password').split(',', 1)
+            old_timestamp = int(old_timestamp_value)
+        except (TypeError, UnicodeError, ValueError):
+            result = general_message(400, "invalid password reset link", "链接无效或已失效")
+            return Response(result, status=400)
+
+        try:
             timestamp = int(time.time())
-            if (timestamp - int(old_timestamp)) > 3600:
-                logger.info("account.passwdreset", "link expired, email: {0}, link_timestamp: {1}".format(email, old_timestamp))
+            if (timestamp - old_timestamp) > 3600:
+                logger.info("account.passwdreset: link expired, email: %s, link_timestamp: %s", email, old_timestamp)
                 result = general_message(400, "failed", "链接已失效")
                 return Response(result, status=400)
-            user = Users.objects.get(email=email)
+            try:
+                user = Users.objects.get(email=email)
+            except Users.DoesNotExist:
+                result = general_message(400, "invalid password reset link", "链接无效或已失效")
+                return Response(result, status=400)
             form = PasswordResetForm(request.POST)
             if form.is_valid():
                 raw_password = request.POST.get('password')
@@ -321,7 +324,7 @@ class PasswordResetBegin(BaseApiView):
                 return Response(result, status=400)
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)  # type: ignore[attr-defined]
+            result = error_message(str(e))
             return Response(result, status=500)
 
 

@@ -1381,6 +1381,24 @@
       "status": "active"
     },
     {
+      "id": "console.app-overview.group-visit-resilience",
+      "title": "Keep application access links resilient to stale components",
+      "title_zh": "Keep application access links resilient to stale components",
+      "interface_type": "view_endpoint",
+      "interface": "GET /console/teams/{team_name}/group/service/visit",
+      "code_paths": [
+        "console/views/app_overview.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_group_visit_view_test.py",
+          "selector": "AppGroupVisitViewTestCase"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.app-publish.candidates",
       "title": "App Publish Candidates",
       "title_zh": "App Publish Candidates",
@@ -4906,6 +4924,32 @@
       "status": "active"
     },
     {
+      "id": "console.component.mount-request-validation",
+      "title": "Reject empty or malformed component mount requests",
+      "title_zh": "Reject empty or malformed component mount requests",
+      "interface_type": "view_endpoint",
+      "interface": "POST /console/teams/{tenantName}/apps/{serviceAlias}/mnt",
+      "code_paths": [
+        "console/views/app_config/app_mnt.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_mnt_consistency_test.py",
+          "selector": "AppMntViewConsistencyTests::test_post_rejects_empty_mount_list"
+        },
+        {
+          "path": "console/tests/app_mnt_consistency_test.py",
+          "selector": "AppMntViewConsistencyTests::test_post_rejects_mount_without_volume_id"
+        },
+        {
+          "path": "console/tests/app_mnt_consistency_test.py",
+          "selector": "AppMntViewConsistencyTests::test_post_rejects_malformed_mount_json"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.component.operation-aliases",
       "title": "Normalize component operation aliases",
       "title_zh": "规范化组件操作别名",
@@ -5318,6 +5362,24 @@
         {
           "path": "console/tests/app_config_test.py",
           "selector": "TenantServiceVolumnRepositoryTests.test_list_custom_volumes_treats_local_path_as_builtin_volume_type"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.component.storage-delete-missing-volume",
+      "title": "Return not found when deleting a stale component volume",
+      "title_zh": "Return not found when deleting a stale component volume",
+      "interface_type": "view_endpoint",
+      "interface": "DELETE /console/teams/{tenantName}/apps/{serviceAlias}/volumes/{volume_id}",
+      "code_paths": [
+        "console/views/app_config/app_volume.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_volume_view_test.py",
+          "selector": "AppVolumeManageViewTestCase::test_delete_returns_not_found_for_stale_volume"
         }
       ],
       "test_type": "regression",
@@ -11171,6 +11233,24 @@
         {
           "path": "console/tests/user_services_get_by_ids_test.py",
           "selector": "GetUsersByUserIdsTest.test_delegates_to_repo_get_by_user_ids"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.user.password-reset-invalid-link",
+      "title": "Reject invalid password reset links without server errors",
+      "title_zh": "Reject invalid password reset links without server errors",
+      "interface_type": "view_endpoint",
+      "interface": "POST /console/users/begin_password_reset",
+      "code_paths": [
+        "console/views/user_operation.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/password_reset_view_test.py",
+          "selector": "PasswordResetViewTestCase"
         }
       ],
       "test_type": "regression",

@@ -78,6 +78,7 @@
 | console.app-migration.unfinished-record-empty | 无未完成迁移记录时返回已完成状态 | active | regression | console.views.center_pool.groupapp_migration.MigrateRecordView.get | console/tests/groupapp_backup_migration_test.py::GroupAppsMigrateRecordViewTests.test_get_returns_finished_when_no_unfinished_record |
 | console.app-migration.unfinished-record-guard | 查询未完成迁移记录时必须提供 group_uuid | active | regression | console.views.center_pool.groupapp_migration.MigrateRecordView.get | console/tests/groupapp_backup_migration_test.py::GroupAppsMigrateRecordViewTests.test_get_requires_group_uuid |
 | console.app-migration.usable-region-guard | 目标团队无可用集群时阻止迁移 | active | regression | console.views.center_pool.groupapp_migration.GroupAppsMigrateView.post | console/tests/groupapp_backup_migration_test.py::GroupAppsMigrationViewWorkflowTests.test_post_rejects_when_target_team_has_no_usable_regions |
+| console.app-overview.group-visit-resilience | Keep application access links resilient to stale components | active | regression | GET /console/teams/{team_name}/group/service/visit | console/tests/app_group_visit_view_test.py::AppGroupVisitViewTestCase |
 | console.app-publish.candidates | App Publish Candidates | active | regression | console.services.mcp_query_service.call_tool[console.app-publish.candidates] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_get_app_publish_candidates_returns_models |
 | console.app-scale.vertical-gpu-default | 垂直伸缩未传 GPU 时保留组件当前值 | active | regression | console.services.app_actions.app_manage.AppManageService.vertical_upgrade | console/tests/vertical_upgrade_gpu_test.py::VerticalUpgradeGPUTests.test_omitted_gpu_keeps_current_value_instead_of_null<br>console/tests/vertical_upgrade_gpu_test.py::VerticalUpgradeGPUTests.test_omitted_gpu_defaults_to_zero_when_current_is_none<br>console/tests/vertical_upgrade_gpu_test.py::VerticalUpgradeGPUTests.test_explicit_gpu_is_applied_and_sent_to_region |
 | console.app-share.complete | App Share Complete | active | regression | console.services.mcp_query_service.call_tool[console.app-share.complete] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_complete_app_share_calls_share_service_complete |
@@ -262,6 +263,7 @@
 | console.component.logs-fallback | 读取组件日志时自动回退到实例容器 | active | regression | console.services.mcp_query_service.get_component_logs fallback selection | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_get_component_logs_service_falls_back_to_first_pod_container |
 | console.component.logs-no-instance | 无运行实例时拒绝查询组件日志 | active | regression | console.services.mcp_query_service.get_component_logs | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_get_component_logs_rejects_when_no_runtime_instance_found |
 | console.component.logs-parse-sse | 解析组件日志 SSE 数据 | active | regression | console.services.mcp_query_service._parse_component_log_line | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_parse_component_log_line_handles_sse_prefix |
+| console.component.mount-request-validation | Reject empty or malformed component mount requests | active | regression | POST /console/teams/{tenantName}/apps/{serviceAlias}/mnt | console/tests/app_mnt_consistency_test.py::AppMntViewConsistencyTests::test_post_rejects_empty_mount_list<br>console/tests/app_mnt_consistency_test.py::AppMntViewConsistencyTests::test_post_rejects_mount_without_volume_id<br>console/tests/app_mnt_consistency_test.py::AppMntViewConsistencyTests::test_post_rejects_malformed_mount_json |
 | console.component.operation-aliases | 规范化组件操作别名 | active | regression | console.services.mcp_query_service._normalize_component_operation | console/tests/mcp_query_service_test.py::MCPQueryServiceToolVisibilityTests.test_normalize_component_operation_aliases |
 | console.component.pods | Component Pods | active | regression | console.services.mcp_query_service.call_tool[console.component.pods] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_get_component_pods_returns_normalized_runtime_instances |
 | console.component.port-add-invalid-alias | Component Port Add Invalid Alias | active | regression | console.services.mcp_query_service.call_tool[console.component.port-add-invalid-alias] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_handle_component_ports_add_exposes_structured_alias_validation |
@@ -282,6 +284,7 @@
 | console.component.storage-create-mount | 创建组件共享存储挂载 | active | regression | console.services.mcp_query_service.call_tool[rainbond_manage_component_storage#create_mnt] | console/tests/mcp_query_storage_ops_test.py::ManageComponentStorageTests.test_create_mnt_batches_mounts |
 | console.component.storage-create-volume | 创建组件存储卷 | active | regression | console.services.mcp_query_service.call_tool[rainbond_manage_component_storage#create_volume] | console/tests/mcp_query_storage_ops_test.py::ManageComponentStorageTests.test_create_volume_returns_created_and_volume<br>console/tests/mcp_query_storage_ops_test.py::ManageComponentStorageTests.test_create_volume_rejects_collision_with_existing_config_file_path |
 | console.component.storage-custom-volume-filter | 过滤组件自定义卷列表中的内置卷类型 | active | regression | console.repositories.app_config.TenantServiceVolumnRepository.list_custom_volumes | console/tests/app_config_test.py::TenantServiceVolumnRepositoryTests.test_list_custom_volumes_treats_local_path_as_builtin_volume_type |
+| console.component.storage-delete-missing-volume | Return not found when deleting a stale component volume | active | regression | DELETE /console/teams/{tenantName}/apps/{serviceAlias}/volumes/{volume_id} | console/tests/app_volume_view_test.py::AppVolumeManageViewTestCase::test_delete_returns_not_found_for_stale_volume |
 | console.component.storage-delete-mount | 删除组件共享存储挂载 | active | regression | console.services.mcp_query_service.call_tool[rainbond_manage_component_storage#delete_mnt] | console/tests/mcp_query_storage_ops_test.py::ManageComponentStorageTests.test_delete_mnt_removes_relation |
 | console.component.storage-delete-volume | 删除组件存储卷 | active | regression | console.services.mcp_query_service.call_tool[rainbond_manage_component_storage#delete_volume] | console/tests/mcp_query_storage_ops_test.py::ManageComponentStorageTests.test_delete_volume_requires_force_branch<br>console/tests/mcp_query_storage_ops_test.py::ManageComponentStorageTests.test_delete_volume_success_branch |
 | console.component.storage-summary | 查看组件存储概览 | active | regression | console.services.mcp_query_service.call_tool[rainbond_manage_component_storage] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_manage_component_storage_summary_returns_storage_snapshot<br>console/tests/mcp_query_storage_ops_test.py::ManageComponentStorageTests.test_summary_includes_config_file_volumes |
@@ -591,6 +594,7 @@
 | console.user.current-profile | 查看当前用户身份信息 | active | regression | console.services.mcp_query_service.get_current_user | console/tests/mcp_query_service_test.py::MCPQueryServiceToolVisibilityTests.test_get_current_user_returns_identity_and_enterprise_admin_flag |
 | console.user.favorite-delete-log | 删除收藏视图时记录收藏名称 | active | regression | console.views.user_operation.UserFavoriteUDView.delete | console/tests/user_favorite_delete_log_test.py::UserFavoriteDeleteLogTest |
 | console.user.get-users-by-ids | 通过用户仓储按用户 ID 列表批量查询用户 | active | regression | console.services.user_services.UserService.get_users_by_user_ids | console/tests/user_services_get_by_ids_test.py::GetUsersByUserIdsTest.test_delegates_to_repo_get_by_user_ids |
+| console.user.password-reset-invalid-link | Reject invalid password reset links without server errors | active | regression | POST /console/users/begin_password_reset | console/tests/password_reset_view_test.py::PasswordResetViewTestCase |
 | console.validation.display-name | 校验用户展示名称的中英文数字与连接符规则 | active | regression | console.utils.validation.validate_name | console/tests/utils/validation_test.py::NamespaceNormalizationTests.test_validate_name |
 | console.validation.k8s-qualified-name | 校验 Kubernetes 合法资源名称格式 | active | regression | console.utils.validation.is_qualified_name | console/tests/utils/validation_test.py::NamespaceNormalizationTests.test_is_qualified_name |
 | console.version.compare | 比较语义化风格的版本字符串 | active | regression | console.utils.version.compare_version | console/tests/utils/version_test.py::VersionUtilsTests.test_compare_version |
@@ -1372,6 +1376,16 @@
 - 业务入口: `console.views.center_pool.groupapp_migration.GroupAppsMigrateView.post`
 - 代码路径: `console/views/center_pool/groupapp_migration.py`
 - 测试路径: `console/tests/groupapp_backup_migration_test.py::GroupAppsMigrationViewWorkflowTests.test_post_rejects_when_target_team_has_no_usable_regions`
+
+### Keep application access links resilient to stale components
+
+- Capability ID: `console.app-overview.group-visit-resilience`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `view_endpoint`
+- 业务入口: `GET /console/teams/{team_name}/group/service/visit`
+- 代码路径: `console/views/app_overview.py`
+- 测试路径: `console/tests/app_group_visit_view_test.py::AppGroupVisitViewTestCase`
 
 ### App Publish Candidates
 
@@ -3213,6 +3227,16 @@
 - 代码路径: `console/services/mcp_query_service.py`
 - 测试路径: `console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_parse_component_log_line_handles_sse_prefix`
 
+### Reject empty or malformed component mount requests
+
+- Capability ID: `console.component.mount-request-validation`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `view_endpoint`
+- 业务入口: `POST /console/teams/{tenantName}/apps/{serviceAlias}/mnt`
+- 代码路径: `console/views/app_config/app_mnt.py`
+- 测试路径: `console/tests/app_mnt_consistency_test.py::AppMntViewConsistencyTests::test_post_rejects_empty_mount_list`, `console/tests/app_mnt_consistency_test.py::AppMntViewConsistencyTests::test_post_rejects_mount_without_volume_id`, `console/tests/app_mnt_consistency_test.py::AppMntViewConsistencyTests::test_post_rejects_malformed_mount_json`
+
 ### 规范化组件操作别名
 
 - Capability ID: `console.component.operation-aliases`
@@ -3412,6 +3436,16 @@
 - 业务入口: `console.repositories.app_config.TenantServiceVolumnRepository.list_custom_volumes`
 - 代码路径: `console/repositories/app_config.py`
 - 测试路径: `console/tests/app_config_test.py::TenantServiceVolumnRepositoryTests.test_list_custom_volumes_treats_local_path_as_builtin_volume_type`
+
+### Return not found when deleting a stale component volume
+
+- Capability ID: `console.component.storage-delete-missing-volume`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `view_endpoint`
+- 业务入口: `DELETE /console/teams/{tenantName}/apps/{serviceAlias}/volumes/{volume_id}`
+- 代码路径: `console/views/app_config/app_volume.py`
+- 测试路径: `console/tests/app_volume_view_test.py::AppVolumeManageViewTestCase::test_delete_returns_not_found_for_stale_volume`
 
 ### 删除组件共享存储挂载
 
@@ -6502,6 +6536,16 @@
 - 业务入口: `console.services.user_services.UserService.get_users_by_user_ids`
 - 代码路径: `console/services/user_services.py`, `console/repositories/user_repo.py`
 - 测试路径: `console/tests/user_services_get_by_ids_test.py::GetUsersByUserIdsTest.test_delegates_to_repo_get_by_user_ids`
+
+### Reject invalid password reset links without server errors
+
+- Capability ID: `console.user.password-reset-invalid-link`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `view_endpoint`
+- 业务入口: `POST /console/users/begin_password_reset`
+- 代码路径: `console/views/user_operation.py`
+- 测试路径: `console/tests/password_reset_view_test.py::PasswordResetViewTestCase`
 
 ### 校验用户展示名称的中英文数字与连接符规则
 
