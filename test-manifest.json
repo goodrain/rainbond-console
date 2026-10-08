@@ -10111,6 +10111,24 @@
       "status": "active"
     },
     {
+      "id": "console.region.list-current-enterprise",
+      "title": "List regions for the authenticated enterprise",
+      "title_zh": "查询当前认证企业的数据中心",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.region.QyeryRegionView.get",
+      "code_paths": [
+        "console/views/region.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/region_view_test.py",
+          "selector": "QueryRegionViewTests.test_get_uses_authenticated_users_enterprise_without_path_parameter"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.region.sse-protocol-disconnect",
       "title": "End SSE streams cleanly after upstream protocol disconnects",
       "title_zh": "上游协议中断后平静结束 SSE 流",
