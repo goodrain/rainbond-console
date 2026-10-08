@@ -275,6 +275,7 @@
 | console.component.port-open-inner | 开放组件内网端口 | active | regression | console.services.mcp_query_service.call_tool[rainbond_manage_component_ports#enable_inner] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_manage_component_ports_enable_inner_maps_to_open_inner |
 | console.component.port-open-outer-only | 仅开放组件公网端口 | active | regression | console.services.mcp_query_service.call_tool[rainbond_manage_component_ports#enable_outer_only] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_manage_component_ports_enable_outer_only_maps_to_only_open_outer |
 | console.component.port-open-public | 打开组件公网端口 | active | regression | console.services.mcp_query_service.call_tool[rainbond_handle_component_ports] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_handle_component_ports_alias_action_maps_to_standard_action |
+| console.component.port-operation-errors | 组件端口操作错误提示 | active | regression | console.services.app_config.port_service.AppPortService.manage_port | console/tests/port_service_delete_test.py::PortServiceDeleteTests::test_open_outer_protocol_mismatch_explains_how_to_resynchronize_inner_service<br>console/tests/port_service_delete_test.py::PortServiceDeleteTests::test_port_toggle_region_errors_use_action_specific_messages<br>console/tests/port_service_delete_test.py::PortServiceDeleteTests::test_port_toggle_region_errors_translate_common_recovery_cases<br>console/tests/port_service_delete_test.py::PortServiceDeleteTests::test_open_outer_http_default_route_failure_uses_user_facing_message<br>console/tests/port_service_delete_test.py::PortServiceDeleteTests::test_port_toggle_translates_unfriendly_service_errors<br>console/tests/port_service_delete_test.py::PortServiceDeleteTests::test_port_toggle_preserves_existing_actionable_service_errors |
 | console.component.port-protocol-normalize | 归一化组件端口协议参数 | active | regression | console.services.mcp_query_service.call_tool[rainbond_manage_component_ports#update_protocol] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_manage_component_ports_update_protocol_normalizes_protocol |
 | console.component.port-protocol-validation | 调用服务前拦截非法组件端口协议 | active | regression | console.services.mcp_query_service.call_tool[rainbond_manage_component_ports#update_protocol] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_manage_component_ports_update_protocol_rejects_invalid_protocol_before_service_call |
 | console.component.port-summary | 查看组件端口概览 | active | regression | console.services.mcp_query_service.call_tool[rainbond_manage_component_ports] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_manage_component_ports_summary_delegates_to_port_handler |
@@ -3348,6 +3349,16 @@
 - 业务入口: `console.services.mcp_query_service.call_tool[rainbond_handle_component_ports]`
 - 代码路径: `console/services/mcp_query_service.py`, `console/services/app_config/port_service.py`
 - 测试路径: `console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_handle_component_ports_alias_action_maps_to_standard_action`
+
+### 组件端口操作错误提示
+
+- Capability ID: `console.component.port-operation-errors`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.app_config.port_service.AppPortService.manage_port`
+- 代码路径: `console/services/app_config/port_service.py`
+- 测试路径: `console/tests/port_service_delete_test.py::PortServiceDeleteTests::test_open_outer_protocol_mismatch_explains_how_to_resynchronize_inner_service`, `console/tests/port_service_delete_test.py::PortServiceDeleteTests::test_port_toggle_region_errors_use_action_specific_messages`, `console/tests/port_service_delete_test.py::PortServiceDeleteTests::test_port_toggle_region_errors_translate_common_recovery_cases`, `console/tests/port_service_delete_test.py::PortServiceDeleteTests::test_open_outer_http_default_route_failure_uses_user_facing_message`, `console/tests/port_service_delete_test.py::PortServiceDeleteTests::test_port_toggle_translates_unfriendly_service_errors`, `console/tests/port_service_delete_test.py::PortServiceDeleteTests::test_port_toggle_preserves_existing_actionable_service_errors`
 
 ### 归一化组件端口协议参数
 

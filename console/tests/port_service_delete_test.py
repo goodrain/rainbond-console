@@ -33,6 +33,14 @@ class ServiceHandleException(AbortRequest):
     pass
 
 
+class RegionCallApiError(Exception):
+    def __init__(self, message, status=400, body=None):
+        super(RegionCallApiError, self).__init__(message)
+        self.body = body or {"msg": message}
+        self.status = status
+        self.message = {"httpcode": status, "body": self.body}
+
+
 class PortServiceDeleteTests(TestCase):
     def tearDown(self):
         for module_name in (
@@ -55,6 +63,7 @@ class PortServiceDeleteTests(TestCase):
             "console.services.plugin",
             "console.services.region_services",
             "django.db",
+            "django.db.models",
             "validators",
             "www.apiclient.regionapi",
             "www.apiclient.regionapibaseclient",
@@ -70,6 +79,7 @@ class PortServiceDeleteTests(TestCase):
         sys.modules["console.services.app_config"] = app_config_package
 
         install_stub("django.db", transaction=types.SimpleNamespace(atomic=atomic))
+        install_stub("django.db.models", QuerySet=object)
         install_stub("validators", ipv4=lambda value: False, ipv6=lambda value: False, domain=lambda value: True)
         install_stub("console.constants", ServicePortConstants=types.SimpleNamespace())
         install_stub("console.enum.app", GovernanceModeEnum=types.SimpleNamespace(
@@ -94,7 +104,7 @@ class PortServiceDeleteTests(TestCase):
         install_stub("www.models.main", ServiceGroup=object, TenantServiceEnvVar=object, TenantServicesPort=object, Tenants=object)
         install_stub("www.apiclient.regionapi", RegionInvokeApi=MagicMock)
         install_stub("www.apiclient.regionapibaseclient",
-                     RegionApiBaseHttpClient=types.SimpleNamespace(CallApiError=Exception))
+                     RegionApiBaseHttpClient=types.SimpleNamespace(CallApiError=RegionCallApiError))
         install_stub("www.utils.crypt", make_uuid=lambda value: "uuid-" + str(value))
 
         module_path = repo_root / "console" / "services" / "app_config" / "port_service.py"
@@ -343,6 +353,176 @@ class PortServiceDeleteTests(TestCase):
         module.tcp_domain.delete_by_component_port.assert_not_called()
         module.region_api.manage_outer_port.assert_not_called()
         sys.modules["console.services.plugin"].app_plugin_service.update_config_if_have_entrance_plugin.assert_not_called()
+
+    # capability_id: console.component.port-operation-errors
+    def test_open_outer_protocol_mismatch_explains_how_to_resynchronize_inner_service(self):
+        module = self.import_port_service_module()
+        tenant = types.SimpleNamespace(tenant_id="tenant-1", tenant_name="default", enterprise_id="enterprise-1")
+        service = types.SimpleNamespace(
+            service_id="component-1",
+            tenant_id="tenant-1",
+            service_region="region-1",
+            service_alias="gr2dc0bf",
+            service_cname="sip",
+            service_key="sip",
+            service_source="source",
+            create_status="complete",
+            namespace="",
+        )
+        port = types.SimpleNamespace(
+            container_port=5060,
+            protocol="udp",
+            port_alias="SIP",
+            is_inner_service=True,
+            is_outer_service=False,
+            k8s_service_name="gr2dc0bf",
+            save=MagicMock(),
+        )
+        app = self.configure_manage_port_dependencies(module, port)
+        module.tcp_domain.get_service_tcp_domains_by_service_id_and_port.return_value = []
+        module.region_api.api_gateway_bind_tcp_domain.side_effect = RegionCallApiError(
+            "protocol is not supported by the component port")
+
+        with self.assertRaises(ServiceHandleException) as ctx:
+            module.AppPortService().manage_port(
+                tenant, service, "region-1", 5060, "open_outer", None, "SIP", user_name="alice", app=app)
+
+        self.assertEqual(ctx.exception.msg, "protocol is not supported by the component port")
+        self.assertEqual(
+            ctx.exception.msg_show,
+            "组件对内服务的 5060 端口协议尚未同步为 UDP，请关闭并重新开启对内服务后，再开启对外服务",
+        )
+        self.assertNotIn("数据中心", ctx.exception.msg_show)
+
+    # capability_id: console.component.port-operation-errors
+    def test_port_toggle_region_errors_use_action_specific_messages(self):
+        module = self.import_port_service_module()
+
+        expectations = {
+            "open_inner": "开启对内服务失败，请稍后重试；若问题持续，请查看组件事件",
+            "close_inner": "关闭对内服务失败，请稍后重试；若问题持续，请查看组件事件",
+            "open_outer": "开启对外服务失败，请稍后重试；若问题持续，请查看组件事件",
+            "close_outer": "关闭对外服务失败，请稍后重试；若问题持续，请查看组件事件",
+        }
+        for action, expected in expectations.items():
+            with self.subTest(action=action):
+                self.assertEqual(
+                    module.build_port_operation_error_msg_show(action, 8080, "tcp", {"msg": "unexpected failure"}, 500),
+                    expected,
+                )
+
+    # capability_id: console.component.port-operation-errors
+    def test_port_toggle_region_errors_translate_common_recovery_cases(self):
+        module = self.import_port_service_module()
+
+        self.assertEqual(
+            module.build_port_operation_error_msg_show(
+                "open_outer", 8080, "tcp", {"msg": "backend service is unavailable for protocol validation"}, 400),
+            "组件对内服务尚未就绪，请关闭并重新开启对内服务后，再开启对外服务",
+        )
+        self.assertEqual(
+            module.build_port_operation_error_msg_show(
+                "close_inner", 8080, "tcp", {"msg": "service port record not found"}, 404),
+            "组件端口 8080 不存在或已被删除，请刷新页面后重试",
+        )
+        self.assertEqual(
+            module.build_port_operation_error_msg_show(
+                "open_inner", 8080, "tcp", {"type": "connect error"}, 503),
+            "集群通信异常，开启对内服务未完成，请稍后重试",
+        )
+
+    # capability_id: console.component.port-operation-errors
+    def test_open_outer_http_default_route_failure_uses_user_facing_message(self):
+        module = self.import_port_service_module()
+        tenant = types.SimpleNamespace(tenant_id="tenant-1", tenant_name="default", enterprise_id="enterprise-1")
+        service = types.SimpleNamespace(
+            service_id="component-1",
+            tenant_id="tenant-1",
+            service_region="region-1",
+            service_alias="gr2dc0bf",
+            service_cname="web",
+            service_key="web",
+            service_source="source",
+            create_status="complete",
+            namespace="",
+        )
+        port = types.SimpleNamespace(
+            container_port=80,
+            protocol="http",
+            port_alias="HTTP",
+            is_inner_service=True,
+            is_outer_service=False,
+            k8s_service_name="gr2dc0bf",
+            save=MagicMock(),
+        )
+        app = self.configure_manage_port_dependencies(module, port)
+        module.region_api.api_gateway_bind_http_domain.side_effect = RuntimeError("gateway failed")
+
+        result = module.AppPortService().manage_port(
+            tenant, service, "region-1", 80, "open_outer", None, "HTTP", user_name="alice", app=app)
+
+        self.assertEqual(result[:2], (412, "创建默认访问地址失败，请稍后重试"))
+        self.assertNotIn("数据中心", result[1])
+
+    # capability_id: console.component.port-operation-errors
+    def test_port_toggle_translates_unfriendly_service_errors(self):
+        module = self.import_port_service_module()
+        tenant = types.SimpleNamespace(tenant_id="tenant-1", tenant_name="default", enterprise_id="enterprise-1")
+        service = types.SimpleNamespace(
+            service_id="component-1",
+            tenant_id="tenant-1",
+            service_region="region-1",
+            service_alias="gr2dc0bf",
+            service_key="web",
+            create_status="complete",
+        )
+        port = types.SimpleNamespace(
+            container_port=8080,
+            protocol="tcp",
+            port_alias="TCP",
+            is_inner_service=False,
+            is_outer_service=False,
+            k8s_service_name="gr2dc0bf",
+            save=MagicMock(),
+        )
+        self.configure_manage_port_dependencies(module, port)
+        module.region_api.manage_inner_port.side_effect = ServiceHandleException(
+            msg="update service port error", msg_show="update service port error", status_code=500)
+
+        with self.assertRaises(ServiceHandleException) as ctx:
+            module.AppPortService().manage_port(
+                tenant, service, "region-1", 8080, "open_inner", None, "TCP", user_name="alice")
+
+        self.assertEqual(ctx.exception.msg_show, "开启对内服务失败，请稍后重试；若问题持续，请查看组件事件")
+
+    # capability_id: console.component.port-operation-errors
+    def test_port_toggle_preserves_existing_actionable_service_errors(self):
+        module = self.import_port_service_module()
+        tenant = types.SimpleNamespace(tenant_id="tenant-1", tenant_name="default", enterprise_id="enterprise-1")
+        service = types.SimpleNamespace(
+            service_id="component-1",
+            tenant_id="tenant-1",
+            service_region="region-1",
+            service_alias="gr2dc0bf",
+            service_key="web",
+            create_status="complete",
+        )
+        port = types.SimpleNamespace(
+            container_port=8080,
+            protocol="tcp",
+            port_alias="TCP",
+            is_inner_service=False,
+            is_outer_service=True,
+            k8s_service_name="gr2dc0bf",
+            save=MagicMock(),
+        )
+        self.configure_manage_port_dependencies(module, port)
+
+        with self.assertRaises(ServiceHandleException) as ctx:
+            module.AppPortService().manage_port(
+                tenant, service, "region-1", 8080, "close_inner", None, "TCP", user_name="alice")
+
+        self.assertEqual(ctx.exception.msg_show, "对外服务开启中，需先关闭对外服务")
 
     def test_delete_closed_port_ignores_inactive_custom_http_domains(self):
         module = self.import_port_service_module()

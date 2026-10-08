@@ -5150,6 +5150,44 @@
       "status": "active"
     },
     {
+      "id": "console.component.port-operation-errors",
+      "title": "Actionable component port operation errors",
+      "title_zh": "组件端口操作错误提示",
+      "interface_type": "service_method",
+      "interface": "console.services.app_config.port_service.AppPortService.manage_port",
+      "code_paths": [
+        "console/services/app_config/port_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/port_service_delete_test.py",
+          "selector": "PortServiceDeleteTests::test_open_outer_protocol_mismatch_explains_how_to_resynchronize_inner_service"
+        },
+        {
+          "path": "console/tests/port_service_delete_test.py",
+          "selector": "PortServiceDeleteTests::test_port_toggle_region_errors_use_action_specific_messages"
+        },
+        {
+          "path": "console/tests/port_service_delete_test.py",
+          "selector": "PortServiceDeleteTests::test_port_toggle_region_errors_translate_common_recovery_cases"
+        },
+        {
+          "path": "console/tests/port_service_delete_test.py",
+          "selector": "PortServiceDeleteTests::test_open_outer_http_default_route_failure_uses_user_facing_message"
+        },
+        {
+          "path": "console/tests/port_service_delete_test.py",
+          "selector": "PortServiceDeleteTests::test_port_toggle_translates_unfriendly_service_errors"
+        },
+        {
+          "path": "console/tests/port_service_delete_test.py",
+          "selector": "PortServiceDeleteTests::test_port_toggle_preserves_existing_actionable_service_errors"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.component.port-protocol-normalize",
       "title": "Normalize component port protocol input",
       "title_zh": "归一化组件端口协议参数",

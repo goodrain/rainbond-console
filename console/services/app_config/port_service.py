@@ -46,6 +46,47 @@ region_api = RegionInvokeApi()
 env_var_service = AppEnvVarService()
 logger = logging.getLogger("default")
 
+PORT_OPERATION_LABELS = {
+    "open_inner": "开启对内服务",
+    "close_inner": "关闭对内服务",
+    "open_outer": "开启对外服务",
+    "only_open_outer": "开启对外服务",
+    "close_outer": "关闭对外服务",
+    "change_protocol": "修改端口协议",
+    "change_port_alias": "修改端口别名",
+}
+
+
+def build_port_operation_error_msg_show(action: str, container_port: int, protocol: Any,
+                                        error_body: Any, status_code: int) -> str:
+    action_label = PORT_OPERATION_LABELS.get(action, "操作端口")
+    body = error_body if isinstance(error_body, dict) else {}
+    core_message = str(body.get("msg") or "")
+    normalized_message = core_message.lower()
+
+    if action in ("open_outer", "only_open_outer"):
+        if "protocol is not supported by the component port" in normalized_message:
+            protocol_name = str(protocol or "目标协议").upper()
+            return "组件对内服务的 {} 端口协议尚未同步为 {}，请关闭并重新开启对内服务后，再开启对外服务".format(
+                container_port, protocol_name)
+        if "backend service is unavailable for protocol validation" in normalized_message:
+            return "组件对内服务尚未就绪，请关闭并重新开启对内服务后，再开启对外服务"
+
+    if status_code == 404 or "service port" in normalized_message and "not found" in normalized_message:
+        return "组件端口 {} 不存在或已被删除，请刷新页面后重试".format(container_port)
+
+    if body.get("type") == "connect error":
+        return "集群通信异常，{}未完成，请稍后重试".format(action_label)
+
+    return "{}失败，请稍后重试；若问题持续，请查看组件事件".format(action_label)
+
+
+def get_region_error_message(error: RegionApiBaseHttpClient.CallApiError) -> str:
+    body = getattr(error, "body", None)
+    if isinstance(body, dict):
+        return str(body.get("msg") or body.get("error") or body.get("type") or error)
+    return str(error)
+
 
 class AppPortService(object):
     def json_service_port(self, service_port: TenantServicesPort) -> str:
@@ -579,31 +620,58 @@ class AppPortService(object):
         deal_port = port_repo.get_service_port_by_port(tenant.tenant_id, service.service_id, container_port)
         if not deal_port:
             raise ServiceHandleException(msg="component port does not exist", msg_show="组件端口不存在", status_code=404)
-        if action == "open_outer":
-            if not deal_port.is_inner_service:
-                raise ServiceHandleException(msg="inner port is not open", msg_show="对内服务未开启，需先开启对内服务", status_code=404)
-            if not app:
-                try:
-                    app = group_repo.get_by_service_id(tenant.tenant_id, service.service_id)
-                except ServiceGroup.DoesNotExist:
-                    raise ServiceHandleException(msg="app not found", msg_show="应用不存在", status_code=404)
-            # NOTE: region may be None when region_name is unknown (potential latent
-            # None-bug); callees deref region attrs without guarding.
-            code, msg = self.__open_outer(tenant, service, region, deal_port, app, user_name)  # type: ignore[arg-type]
-        elif action == "only_open_outer":
-            code, msg = self.__only_open_outer(tenant, service, region, deal_port, user_name)  # type: ignore[arg-type]
-        elif action == "close_outer":
-            code, msg = self.__close_outer(tenant, service, region, deal_port, user_name)  # type: ignore[arg-type]
-        elif action == "open_inner":
-            code, msg = self.__open_inner(tenant, service, deal_port, user_name)
-        elif action == "close_inner":
-            if deal_port.is_outer_service:
-                raise ServiceHandleException(msg="inner port is not open", msg_show="对外服务开启中，需先关闭对外服务", status_code=404)
-            code, msg = self.__close_inner(tenant, service, deal_port, user_name)
-        elif action == "change_protocol":
-            code, msg = self.__change_protocol(tenant, service, deal_port, protocol, user_name)
-        elif action == "change_port_alias":
-            self.change_port_alias(tenant, service, deal_port, port_alias, k8s_service_name, user_name)
+        try:
+            if action == "open_outer":
+                if not deal_port.is_inner_service:
+                    raise ServiceHandleException(msg="inner port is not open", msg_show="对内服务未开启，需先开启对内服务", status_code=404)
+                if not app:
+                    try:
+                        app = group_repo.get_by_service_id(tenant.tenant_id, service.service_id)
+                    except ServiceGroup.DoesNotExist:
+                        raise ServiceHandleException(msg="app not found", msg_show="应用不存在", status_code=404)
+                # NOTE: region may be None when region_name is unknown (potential latent
+                # None-bug); callees deref region attrs without guarding.
+                code, msg = self.__open_outer(tenant, service, region, deal_port, app, user_name)  # type: ignore[arg-type]
+            elif action == "only_open_outer":
+                code, msg = self.__only_open_outer(tenant, service, region, deal_port, user_name)  # type: ignore[arg-type]
+            elif action == "close_outer":
+                code, msg = self.__close_outer(tenant, service, region, deal_port, user_name)  # type: ignore[arg-type]
+            elif action == "open_inner":
+                code, msg = self.__open_inner(tenant, service, deal_port, user_name)
+            elif action == "close_inner":
+                if deal_port.is_outer_service:
+                    raise ServiceHandleException(msg="inner port is not open", msg_show="对外服务开启中，需先关闭对外服务", status_code=404)
+                code, msg = self.__close_inner(tenant, service, deal_port, user_name)
+            elif action == "change_protocol":
+                code, msg = self.__change_protocol(tenant, service, deal_port, protocol, user_name)
+            elif action == "change_port_alias":
+                self.change_port_alias(tenant, service, deal_port, port_alias, k8s_service_name, user_name)
+        except RegionApiBaseHttpClient.CallApiError as error:
+            status_code = getattr(error, "status", 400)
+            if not isinstance(status_code, int) or status_code < 400 or status_code > 599:
+                status_code = 400
+            error_body = getattr(error, "body", {})
+            message = get_region_error_message(error)
+            msg_show = build_port_operation_error_msg_show(
+                action, container_port, deal_port.protocol, error_body, status_code)
+            logger.exception(
+                "component port operation failed: action=%s service_id=%s port=%s region_error=%s",
+                action, service.service_id, container_port, message)
+            raise ServiceHandleException(
+                msg=message, msg_show=msg_show, status_code=status_code, error_code=status_code)
+        except ServiceHandleException as error:
+            current_msg = str(error.msg or "")
+            current_msg_show = str(error.msg_show or "")
+            if current_msg_show and current_msg_show != current_msg and "数据中心" not in current_msg_show:
+                raise
+            status_code = error.status_code if isinstance(error.status_code, int) else 400
+            msg_show = build_port_operation_error_msg_show(
+                action, container_port, deal_port.protocol, {"msg": current_msg}, status_code)
+            logger.warning(
+                "component port operation returned an unfriendly error: action=%s service_id=%s port=%s error=%s",
+                action, service.service_id, container_port, current_msg)
+            raise ServiceHandleException(
+                msg=current_msg, msg_show=msg_show, status_code=status_code, error_code=error.error_code)
 
         new_port = port_repo.get_service_port_by_port(tenant.tenant_id, service.service_id, container_port)
         if code != 200:
@@ -669,7 +737,7 @@ class AppPortService(object):
                     except Exception as e:
                         logger.exception(e)
                         domain_repo.delete_http_domains(http_rule_id)
-                        return 412, "数据中心添加策略失败"
+                        return 412, "创建默认访问地址失败，请稍后重试"
 
             path = "/api-gateway/v1/" + tenant.tenant_name + "/routes/http/port?act=opeo&service_alias=" + service.service_alias +"&port="+str(container_port)
             region_api.api_gateway_get_proxy(region, tenant.tenant_id, path, None)
@@ -781,7 +849,7 @@ class AppPortService(object):
                     except Exception as e:
                         logger.exception(e)
                         domain_repo.delete_http_domains(http_rule_id)
-                        return 412, "数据中心添加策略失败"
+                        return 412, "创建默认访问地址失败，请稍后重试"
 
             path = "/api-gateway/v1/" + tenant.tenant_name + "/routes/http/port?act=opeo&service_alias=" + service.service_alias +"&port="+str(container_port)
             region_api.api_gateway_get_proxy(region, tenant.tenant_id, path, None)
