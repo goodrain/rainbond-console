@@ -169,6 +169,94 @@ class AppManageMarketBuildPreferenceTests(TestCase):
         self.assertEqual(build_info["image_info"]["password"], "hub-password")
         self.assertNotIn("slug_info", build_info)
 
+    # capability_id: console.market-build.template-update-time
+    def test_deploy_market_component_uses_version_update_time_after_loading_template_json(self):
+        tenant = mock.Mock(creater="creator", enterprise_id="eid", tenant_id="tenant-id")
+        user = mock.Mock(user_id=7)
+        service = mock.Mock(
+            service_id="service-1",
+            build_upgrade=False,
+            language=None,
+            tenant_id="tenant-id",
+            arch="amd64",
+            service_source="market",
+            cmd="python app.py",
+            image="goodrain.me/runner:latest-amd64",
+        )
+        service_two = mock.Mock(
+            service_id="service-2",
+            build_upgrade=False,
+            language=None,
+            tenant_id="tenant-id",
+            arch="amd64",
+            service_source="market",
+            cmd="python app.py",
+            image="goodrain.me/runner:latest-amd64",
+        )
+
+        def service_source():
+            source = mock.Mock(
+                extend_info=json.dumps({
+                    "source_service_share_uuid": "svc-1+svc-1",
+                    "source_deploy_version": "old-deploy-version",
+                }),
+                group_key="app-key",
+                version="1.0.0",
+            )
+            source.is_install_from_cloud.return_value = False
+            return source
+
+        service_sources = [service_source(), service_source()]
+        template = {
+            "apps": [{
+                "service_share_uuid": "svc-1+svc-1",
+                "service_key": "svc-1",
+                "share_image": "registry.example.com/demo/web:1.2.3",
+                "deploy_version": "new-deploy-version",
+                "service_image": {},
+                "service_env_map_list": [],
+                "service_connect_info_map_list": [],
+                "service_volume_map_list": [],
+                "port_map_list": [],
+                "extend_method_map": {},
+            }],
+        }
+        version_update_time = datetime(2026, 10, 6, 7, 25, 0)
+        app_version = mock.Mock(app_template=json.dumps(template), update_time=version_update_time)
+        service_manage = app_manage_module.AppManageService()
+
+        with mock.patch.object(app_manage_module, "check_account_quota", return_value=True), \
+                mock.patch.object(app_manage_module.env_var_repo, "get_build_envs", return_value={}), \
+                mock.patch.object(
+                    app_manage_module.service_source_repo,
+                    "get_service_source",
+                    side_effect=service_sources,
+                ), \
+                mock.patch.object(
+                    app_manage_module.rainbond_app_repo,
+                    "get_rainbond_app_and_version",
+                    return_value=(mock.Mock(), app_version),
+                ) as get_app_version, mock.patch.object(
+                    service_manage,
+                    "_AppManageService__save_env",
+                    return_value=(200, "success"),
+                ), \
+                mock.patch.object(service_manage, "_AppManageService__save_volume"), \
+                mock.patch.object(service_manage, "_AppManageService__save_port", return_value=(200, "success")), \
+                mock.patch.object(service_manage, "_AppManageService__save_extend_info"), \
+                mock.patch.object(app_manage_module.logger, "exception") as log_exception:
+            code, _ = service_manage.deploy_services_info(
+                {}, [service, service_two], tenant, user, None, region_name="demo-region")
+
+        self.assertEqual(code, 200)
+        log_exception.assert_not_called()
+        for source in service_sources:
+            saved_extend_info = json.loads(source.extend_info)
+            self.assertEqual(saved_extend_info["update_time"], "2026-10-06 07:25:00")
+            self.assertEqual(saved_extend_info["source_deploy_version"], "new-deploy-version")
+            source.save.assert_called_once_with()
+        get_app_version.assert_called_once_with("eid", "app-key", "1.0.0")
+
 
 class AppManageStartErrorTests(TestCase):
     def test_start_returns_region_error_reason_instead_of_generic_component_error(self):

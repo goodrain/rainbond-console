@@ -7941,6 +7941,24 @@
       "status": "active"
     },
     {
+      "id": "console.market-build.template-update-time",
+      "title": "Preserve market template update time during batch build",
+      "title_zh": "批量构建市场组件时保留模板更新时间",
+      "interface_type": "service_method",
+      "interface": "console.services.app_actions.app_manage.AppManageService.deploy_services_info",
+      "code_paths": [
+        "console/services/app_actions/app_manage.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_manage_test.py",
+          "selector": "AppManageMarketBuildPreferenceTests.test_deploy_market_component_uses_version_update_time_after_loading_template_json"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.market-client.auth-missing",
       "title": "Translate 401 market API errors into missing-token service errors",
       "title_zh": "将 401 应用市场错误转换为缺少 token 的服务异常",

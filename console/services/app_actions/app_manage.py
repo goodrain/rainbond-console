@@ -839,6 +839,10 @@ class AppManageService(AppManageBase):
                 try:
                     if service_source:
                         apps_template = template_apps
+                        template_update_time = (
+                            apps_template.get("update_time")
+                            if isinstance(apps_template, dict) else getattr(apps_template, "update_time", None)
+                        )
                         if not apps_template:
                             # NOTE: service_source.extend_info / group_key / version are Optional[str] on
                             # the model; they are non-null in practice for market sources. The deref/concat
@@ -848,8 +852,9 @@ class AppManageService(AppManageBase):
                             # install from cloud
                             install_from_cloud = service_source.is_install_from_cloud()
                             cache_key = service_source.group_key + service_source.version  # type: ignore[operator]
-                            if app_version_cache.get(cache_key):
-                                apps_template = app_version_cache.get(cache_key)
+                            cached_version = app_version_cache.get(cache_key)
+                            if cached_version:
+                                apps_template, template_update_time = cached_version
                             else:
                                 if install_from_cloud:
                                     # TODO:Skip the subcontract structure to avoid loop introduction
@@ -865,7 +870,8 @@ class AppManageService(AppManageBase):
                                         service_source.version)  # type: ignore[arg-type]
                                 if app_version:
                                     apps_template = json.loads(app_version.app_template)
-                                    app_version_cache[cache_key] = apps_template
+                                    template_update_time = app_version.update_time
+                                    app_version_cache[cache_key] = (apps_template, template_update_time)
                                 else:
                                     raise ServiceHandleException(msg="version can not found", msg_show="应用版本不存在，无法构建")
                         if not apps_template:
@@ -910,7 +916,10 @@ class AppManageService(AppManageBase):
                                         = template_app.get("service_share_uuid") \
                                         if template_app.get("service_share_uuid", None) \
                                         else template_app.get("service_key", "")
-                                    new_extend_info["update_time"] = apps_template.update_time.strftime('%Y-%m-%d %H:%M:%S')
+                                    new_extend_info["update_time"] = (
+                                        template_update_time.strftime('%Y-%m-%d %H:%M:%S')
+                                        if isinstance(template_update_time, datetime.datetime) else template_update_time
+                                    )
                                     if install_from_cloud:
                                         new_extend_info["install_from_cloud"] = True
                                         new_extend_info["market"] = "default"

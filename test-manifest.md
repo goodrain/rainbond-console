@@ -413,6 +413,7 @@
 | console.market-app.vm-disk-imports-from-template | 市场应用安装从 VM 模板生成磁盘导入配置 | active | regression | console.services.market_app.new_components.NewComponents._template_to_k8s_attributes | console/tests/market_app_update_components_test.py::MarketAppNewComponentsVMK8sAttrsTests.test_template_to_k8s_attributes_backfills_vm_runtime_attrs_from_vm_block |
 | console.market-app.vm-runtime-status-guard | 虚拟机平台异常时禁止安装虚拟机模板 | active | regression | console.services.market_app_service.MarketAppService.install_app | console/tests/market_app_service_test.py::MarketAppServiceVMGuardTests |
 | console.market-app.vm-template-dynamic-pod-ip | 从应用模板创建虚拟机时使用动态 Pod IP | active | regression | console.services.market_app.new_components.NewComponents._template_to_k8s_attributes | console/tests/market_app_update_components_test.py::MarketAppNewComponentsVMK8sAttrsTests.test_template_to_k8s_attributes_drops_fixed_pod_ip_for_vm |
+| console.market-build.template-update-time | 批量构建市场组件时保留模板更新时间 | active | regression | console.services.app_actions.app_manage.AppManageService.deploy_services_info | console/tests/app_manage_test.py::AppManageMarketBuildPreferenceTests.test_deploy_market_component_uses_version_update_time_after_loading_template_json |
 | console.market-client.auth-missing | 将 401 应用市场错误转换为缺少 token 的服务异常 | active | regression | console.utils.restful_client.apiException | console/tests/utils/restful_client_test.py::RestfulClientApiExceptionTests.test_api_exception_401 |
 | console.market-client.bad-request | 将通用 4xx 应用市场错误转换为参数错误响应 | active | regression | console.utils.restful_client.apiException | console/tests/utils/restful_client_test.py::RestfulClientApiExceptionTests.test_api_exception_generic_4xx |
 | console.market-client.default-host | 使用默认回退 host 创建应用市场客户端 | active | regression | console.utils.restful_client.get_market_client | console/tests/utils/restful_client_test.py::RestfulClientFactoryTests.test_get_market_client_uses_default_host |
@@ -4744,6 +4745,16 @@
 - 业务入口: `console.services.market_app.new_components.NewComponents._template_to_k8s_attributes`
 - 代码路径: `console/services/market_app/new_components.py`
 - 测试路径: `console/tests/market_app_update_components_test.py::MarketAppNewComponentsVMK8sAttrsTests.test_template_to_k8s_attributes_drops_fixed_pod_ip_for_vm`
+
+### 批量构建市场组件时保留模板更新时间
+
+- Capability ID: `console.market-build.template-update-time`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.app_actions.app_manage.AppManageService.deploy_services_info`
+- 代码路径: `console/services/app_actions/app_manage.py`
+- 测试路径: `console/tests/app_manage_test.py::AppManageMarketBuildPreferenceTests.test_deploy_market_component_uses_version_update_time_after_loading_template_json`
 
 ### 将 401 应用市场错误转换为缺少 token 的服务异常
 
