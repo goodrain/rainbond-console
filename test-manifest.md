@@ -517,6 +517,7 @@
 | console.region-api.helm-resource-conflict-msg | 将 Helm 资源归属冲突转换为可操作错误提示 | active | regression | www.apiclient.regionapibaseclient.RegionApiBaseHttpClient._check_status | console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_check_status_translates_helm_ownership_conflict_to_actionable_msg_show |
 | console.region-api.proxy-error-pass-through | 对非 Helm 冲突保留原始上游错误信息 | active | regression | www.apiclient.regionapibaseclient.RegionApiBaseHttpClient._check_status | console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_check_status_keeps_original_message_for_non_helm_conflicts |
 | console.region-api.vm-snapshot-feature-gate-msg | _check_status 将虚拟机快照功能门禁错误翻译为可操作提示 | active | regression | www.apiclient.regionapibaseclient.RegionApiBaseHttpClient._check_status | console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_check_status_translates_snapshot_feature_gate_error_to_actionable_msg_show |
+| console.region.sse-utf8-streaming | SSE 分片安全解码 UTF-8 | active | regression | www.apiclient.regionapi.RegionInvokeApi.sse_proxy | console/tests/regionapi_sse_proxy_test.py::RegionApiSSEProxyTests.test_sse_proxy_decodes_utf8_characters_split_across_chunks<br>console/tests/regionapi_sse_proxy_test.py::RegionApiSSEProxyTests.test_sse_proxy_replaces_invalid_trailing_utf8_without_stopping_stream |
 | console.region.update-region-config | 依据配置项是否存在选择更新或新增数据中心配置 | active | regression | console.services.region_services.RegionService.update_region_config | console/tests/region_config_update_test.py::UpdateRegionConfigTest.test_update_when_config_exists_passes_dict_value<br>console/tests/region_config_update_test.py::UpdateRegionConfigTest.test_add_when_config_missing_passes_json_string_and_desc |
 | console.request-args.bool-coercion | 将请求中的布尔参数从字符串或布尔值安全转换 | active | regression | console.utils.reqparse.bool_argument | console/tests/utils/reqparse_test.py::BoolArgumentTestCase |
 | console.request-args.bool-default-false | 缺失布尔查询参数时返回 false 默认值 | active | regression | console.utils.reqparse.parse_argument | console/tests/utils/reqparse_test.py::ParseArgumentTestCase.test_parse_argument_return_default_false_bool |
@@ -5767,6 +5768,16 @@
 - 业务入口: `www.apiclient.regionapibaseclient.RegionApiBaseHttpClient._check_status`
 - 代码路径: `www/apiclient/regionapibaseclient.py`
 - 测试路径: `console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_check_status_translates_snapshot_feature_gate_error_to_actionable_msg_show`
+
+### SSE 分片安全解码 UTF-8
+
+- Capability ID: `console.region.sse-utf8-streaming`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `www.apiclient.regionapi.RegionInvokeApi.sse_proxy`
+- 代码路径: `www/apiclient/regionapi.py`
+- 测试路径: `console/tests/regionapi_sse_proxy_test.py::RegionApiSSEProxyTests.test_sse_proxy_decodes_utf8_characters_split_across_chunks`, `console/tests/regionapi_sse_proxy_test.py::RegionApiSSEProxyTests.test_sse_proxy_replaces_invalid_trailing_utf8_without_stopping_stream`
 
 ### 依据配置项是否存在选择更新或新增数据中心配置
 

@@ -9837,6 +9837,28 @@
       "status": "active"
     },
     {
+      "id": "console.region.sse-utf8-streaming",
+      "title": "Decode UTF-8 safely across SSE chunks",
+      "title_zh": "SSE 分片安全解码 UTF-8",
+      "interface_type": "service_method",
+      "interface": "www.apiclient.regionapi.RegionInvokeApi.sse_proxy",
+      "code_paths": [
+        "www/apiclient/regionapi.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/regionapi_sse_proxy_test.py",
+          "selector": "RegionApiSSEProxyTests.test_sse_proxy_decodes_utf8_characters_split_across_chunks"
+        },
+        {
+          "path": "console/tests/regionapi_sse_proxy_test.py",
+          "selector": "RegionApiSSEProxyTests.test_sse_proxy_replaces_invalid_trailing_utf8_without_stopping_stream"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.region.update-region-config",
       "title": "Persist region config via update or add based on existing key",
       "title_zh": "依据配置项是否存在选择更新或新增数据中心配置",

@@ -1,4 +1,5 @@
 # -*- coding: utf8 -*-
+import codecs
 import json
 import logging
 import os
@@ -3765,8 +3766,14 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         )
 
         def event_stream() -> Any:
+            decoder = codecs.getincrementaldecoder("utf-8")(errors="replace")
             for chunk in resp.stream(4096):
-                yield str(chunk, encoding="utf-8")
+                text = decoder.decode(chunk)
+                if text:
+                    yield text
+            remaining = decoder.decode(b"", final=True)
+            if remaining:
+                yield remaining
 
         response = StreamingHttpResponse(event_stream(), content_type='text/event-stream')
         response['Content-Encoding'] = 'identity'
