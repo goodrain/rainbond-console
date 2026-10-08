@@ -48,7 +48,7 @@ from console.enum.component_enum import ComponentType, is_support  # noqa: E402
 from console.services.app_actions import app_manage as app_manage_module  # noqa: E402
 from console.services import helm_app_yaml as helm_app_yaml_module  # noqa: E402
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient  # noqa: E402
-from www.models.main import TenantServiceInfo, VirtualMachineImage  # noqa: E402
+from www.models.main import TenantServiceInfo, TenantServiceInfoDelete, VirtualMachineImage  # noqa: E402
 
 
 class ComponentDaemonSetSupportTests(TestCase):
@@ -493,3 +493,34 @@ class AppManageIncompleteVMCleanupTests(DjangoTestCase):
 
         self.assertNotIn("build_strategy", captured_data)
         self.assertEqual(captured_data.get("inner_port", 0), 0)
+
+
+class AppManageDeleteRecordIdempotencyTests(DjangoTestCase):
+    # capability_id: console.component-delete.idempotent-record
+    def test_create_delete_service_updates_existing_record_for_repeated_delete(self):
+        data = {
+            "service_id": "service-delete-1",
+            "tenant_id": "tenant-a",
+            "service_key": "service-delete-1",
+            "service_alias": "service-delete-1",
+            "service_cname": "old name",
+            "service_region": "demo-region",
+            "category": "application",
+            "version": "v1",
+            "image": "nginx:1",
+        }
+        first = app_manage_module.delete_service_repo.create_delete_service(**data)
+
+        second = app_manage_module.delete_service_repo.create_delete_service(
+            **dict(data, service_cname="new name", version="v2", image="nginx:2")
+        )
+
+        self.assertEqual(first.ID, second.ID)
+        self.assertEqual(
+            TenantServiceInfoDelete.objects.filter(service_id="service-delete-1").count(),
+            1,
+        )
+        second.refresh_from_db()
+        self.assertEqual(second.service_cname, "new name")
+        self.assertEqual(second.version, "v2")
+        self.assertEqual(second.image, "nginx:2")

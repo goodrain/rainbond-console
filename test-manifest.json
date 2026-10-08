@@ -4010,6 +4010,24 @@
       "status": "active"
     },
     {
+      "id": "console.component-delete.idempotent-record",
+      "title": "Persist component delete records idempotently",
+      "title_zh": "幂等保存组件删除记录",
+      "interface_type": "dao_method",
+      "interface": "console.repositories.app.TenantServiceDeleteRepository.create_delete_service",
+      "code_paths": [
+        "console/repositories/app.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_manage_test.py",
+          "selector": "AppManageDeleteRecordIdempotencyTests.test_create_delete_service_updates_existing_record_for_repeated_delete"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.component-type.daemonset",
       "title": "DaemonSet component type support",
       "title_zh": "DaemonSet 组件类型支持",

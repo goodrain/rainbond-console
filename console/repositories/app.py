@@ -397,7 +397,13 @@ class ServiceRelationRecycleBinRepository(object):
 
 class TenantServiceDeleteRepository(object):
     def create_delete_service(self, **params: Any) -> TenantServiceInfoDelete:
-        return TenantServiceInfoDelete.objects.create(**params)
+        defaults = dict(params)
+        service_id = defaults.pop("service_id")
+        delete_service, _ = TenantServiceInfoDelete.objects.update_or_create(
+            service_id=service_id,
+            defaults=defaults,
+        )
+        return delete_service
 
     def get_delete_service_map(self, service_ids: Any) -> dict:
         tsds = TenantServiceInfoDelete.objects.filter(service_id__in=service_ids)
