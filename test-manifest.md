@@ -92,6 +92,7 @@
 | console.app-status.aggregate-rainbond-components | 根据组件状态聚合 Rainbond 应用状态 | active | regression | console.services.group_service.GroupService.get_app_status | console/tests/group_service_test.py::GroupServiceAppStatusAggregationTests.test_get_app_status_uses_component_aggregation_for_rainbond_apps |
 | console.app-status.closed-with-undeploy-components | 将关闭与未部署组件组合识别为应用已关闭 | active | regression | console.services.topological_services.TopologicalService.get_app_status | console/tests/topological_service_test.py::TopologicalServiceAppStatusTests.test_closed_and_undeploy_components_make_app_closed |
 | console.app-status.list-closed-with-undeploy-components | 当组件为关闭或未部署时将列表应用状态聚合为关闭 | active | regression | console.services.group_service.GroupService._add_component_status_to_apps | console/tests/group_service_test.py::GroupServiceAppStatusAggregationTests.test_add_component_status_to_apps_marks_closed_when_components_are_closed_or_undeploy |
+| console.app-status.missing-region-app-fallback | 区域应用映射缺失时回退组件状态 | active | regression | console.services.group_service.GroupService.get_app_status | console/tests/group_service_test.py::GroupServiceAppStatusAggregationTests.test_get_app_status_uses_component_fallback_when_region_app_mapping_is_missing |
 | console.app-status.partial-abnormal-mixed-components | 将运行中与异常混合组件识别为部分异常 | active | regression | console.services.topological_services.TopologicalService.get_app_status | console/tests/topological_service_test.py::TopologicalServiceAppStatusTests.test_mixed_abnormal_components_make_app_partially_abnormal |
 | console.app-status.partial-abnormal-some-abnormal | 将 some_abnormal 组件识别为部分异常 | active | regression | console.services.topological_services.TopologicalService.get_app_status | console/tests/topological_service_test.py::TopologicalServiceAppStatusTests.test_some_abnormal_component_makes_app_partially_abnormal |
 | console.app-status.region-status-typeddict | 归一化集群应用状态返回（AppStatus TypedDict 落地） | active | regression | console.services.group_service.GroupService.get_app_status | console/tests/group_app_status_typeddict_test.py::GroupAppStatusTypedDictTest |
@@ -1519,6 +1520,16 @@
 - 业务入口: `console.services.group_service.GroupService._add_component_status_to_apps`
 - 代码路径: `console/services/group_service.py`, `console/services/topological_services.py`
 - 测试路径: `console/tests/group_service_test.py::GroupServiceAppStatusAggregationTests.test_add_component_status_to_apps_marks_closed_when_components_are_closed_or_undeploy`
+
+### 区域应用映射缺失时回退组件状态
+
+- Capability ID: `console.app-status.missing-region-app-fallback`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.group_service.GroupService.get_app_status`
+- 代码路径: `console/services/group_service.py`
+- 测试路径: `console/tests/group_service_test.py::GroupServiceAppStatusAggregationTests.test_get_app_status_uses_component_fallback_when_region_app_mapping_is_missing`
 
 ### 将运行中与异常混合组件识别为部分异常
 

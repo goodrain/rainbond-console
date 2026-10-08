@@ -1643,6 +1643,24 @@
       "status": "active"
     },
     {
+      "id": "console.app-status.missing-region-app-fallback",
+      "title": "Fallback to component status when region app mapping is missing",
+      "title_zh": "区域应用映射缺失时回退组件状态",
+      "interface_type": "service_method",
+      "interface": "console.services.group_service.GroupService.get_app_status",
+      "code_paths": [
+        "console/services/group_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/group_service_test.py",
+          "selector": "GroupServiceAppStatusAggregationTests.test_get_app_status_uses_component_fallback_when_region_app_mapping_is_missing"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.app-status.partial-abnormal-mixed-components",
       "title": "Treat mixed running and abnormal components as partially abnormal",
       "title_zh": "将运行中与异常混合组件识别为部分异常",
