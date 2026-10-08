@@ -6728,6 +6728,10 @@
       "tests": [
         {
           "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_create_gateway_rules_http_returns_bound_rule"
+        },
+        {
+          "path": "console/tests/mcp_query_service_test.py",
           "selector": "MCPQueryServiceApplicationToolTests.test_create_gateway_rules_http_validates_nested_required_fields"
         },
         {

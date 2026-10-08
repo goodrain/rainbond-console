@@ -5600,6 +5600,7 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.domain_service.bind_httpdomain")
     @patch("console.services.mcp_query_service.region_api.api_gateway_bind_http_domain")
     # capability_id: console.gateway.create-http-rule
+    # capability_id: console.gateway.rule-input-validation
     def test_create_gateway_rules_http_returns_bound_rule(
             self,
             mock_bind_http_route,
@@ -5630,6 +5631,10 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
             "service_id": "svc-1",
             "container_port": 80,
             "domain_name": "demo.example.com",
+            "domain_path": None,
+            "rule_extensions": None,
+            "auto_ssl": None,
+            "auto_ssl_config": None,
         }
         result = mcp_query_service.call_tool(
             self.user,
@@ -5647,6 +5652,8 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         self.assertNotIn("domain_heander", http_payload)
         self.assertNotIn("domain_type", http_payload)
         self.assertNotIn("protocol", http_payload)
+        mock_check_domain_exist.assert_called_once_with(
+            "svc-1", 80, "demo.example.com", "http", "/", [])
         bound_payload = mock_bind_httpdomain.call_args[0][3]
         self.assertEqual(bound_payload["certificate_id"], 0)
         self.assertEqual(bound_payload["domain_path"], "/")

@@ -4325,11 +4325,11 @@ class MCPQueryService(object):
             httpdomain["service_id"] = service_id
             httpdomain["container_port"] = container_port
             httpdomain["domain_name"] = domain_name
-            httpdomain.setdefault("certificate_id", 0)
-            httpdomain.setdefault("domain_path", "/")
-            httpdomain.setdefault("rule_extensions", [])
-            httpdomain.setdefault("auto_ssl", False)
-            httpdomain.setdefault("auto_ssl_config", None)
+            httpdomain["certificate_id"] = httpdomain.get("certificate_id") or 0
+            httpdomain["domain_path"] = httpdomain.get("domain_path") or "/"
+            httpdomain["rule_extensions"] = httpdomain.get("rule_extensions") or []
+            httpdomain["auto_ssl"] = bool(httpdomain.get("auto_ssl", False))
+            httpdomain["auto_ssl_config"] = httpdomain.get("auto_ssl_config")
             httpdomain["domain_heander"] = httpdomain.get("domain_header", None)
             httpdomain["domain_type"] = "www"
             httpdomain["protocol"] = "https" if httpdomain.get("certificate_id") else "http"
