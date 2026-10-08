@@ -9037,6 +9037,24 @@
       "status": "active"
     },
     {
+      "id": "console.package-create.group-id-validation",
+      "title": "Validate package component group id",
+      "title_zh": "校验包组件应用 ID",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.app_create.source_code.PackageCreateView.post",
+      "code_paths": [
+        "console/views/app_create/source_code.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/package_create_view_test.py",
+          "selector": "PackageCreateViewGroupIdTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.package-upload.archive-reuse",
       "title": "Package Upload Archive Reuse",
       "title_zh": "Package Upload Archive Reuse",

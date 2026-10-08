@@ -473,6 +473,7 @@
 | console.package-component.replace-upload-owner-guard | Reject package uploads bound to another component | active | unit | PackageComponentService.replace_component | console/tests/package_component_service_test.py::PackageComponentServiceTests::test_replace_component_rejects_upload_bound_to_another_component |
 | console.package-component.require-upload-record | 创建制品包组件前必须存在上传记录 | active | regression | console.services.package_component_service.auto_create_component | console/tests/package_component_service_test.py::PackageComponentServiceTests.test_auto_create_component_requires_existing_upload_record |
 | console.package-component.upload-missing | 制品包列表为空时拦截组件创建 | active | regression | console.services.package_component_service.auto_create_component | console/tests/package_component_service_test.py::PackageComponentServiceTests.test_auto_create_component_requires_uploaded_package_list |
+| console.package-create.group-id-validation | 校验包组件应用 ID | active | regression | console.views.app_create.source_code.PackageCreateView.post | console/tests/package_create_view_test.py::PackageCreateViewGroupIdTests |
 | console.package-upload.archive-reuse | Package Upload Archive Reuse | active | regression | console.services.package_upload_tool_service | console/tests/package_upload_tool_service_test.py::PackageUploadToolServiceTests.test_prepare_upload_archive_reuses_supported_package_file |
 | console.package-upload.archive-zip-dir | Package Upload Archive Zip Dir | active | regression | console.services.package_upload_tool_service | console/tests/package_upload_tool_service_test.py::PackageUploadToolServiceTests.test_prepare_upload_archive_zips_directory |
 | console.package-upload.delete | Package Upload Delete | active | regression | console.services.mcp_query_service.call_tool[console.package-upload.delete] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_delete_package_upload_delegates_to_upload_tool_service |
@@ -5337,6 +5338,16 @@
 - 业务入口: `console.services.package_component_service.auto_create_component`
 - 代码路径: `console/services/package_component_service.py`
 - 测试路径: `console/tests/package_component_service_test.py::PackageComponentServiceTests.test_auto_create_component_requires_uploaded_package_list`
+
+### 校验包组件应用 ID
+
+- Capability ID: `console.package-create.group-id-validation`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `view_endpoint`
+- 业务入口: `console.views.app_create.source_code.PackageCreateView.post`
+- 代码路径: `console/views/app_create/source_code.py`
+- 测试路径: `console/tests/package_create_view_test.py::PackageCreateViewGroupIdTests`
 
 ### Package Upload Archive Reuse
 

@@ -356,6 +356,14 @@ class PackageCreateView(RegionTenantHeaderView):
               paramType: form
         """
         group_id = request.data.get("group_id", -1)
+        try:
+            if isinstance(group_id, bool):
+                raise ValueError
+            group_id = int(group_id)
+        except (TypeError, ValueError):
+            return Response(general_message(400, "invalid group id", "应用 ID 无效"), status=400)
+        if group_id <= 0:
+            return Response(general_message(400, "invalid group id", "应用 ID 无效"), status=400)
         region = request.data.get("region")
         event_id = request.data.get("event_id")
         service_cname = request.data.get("service_cname", None)
