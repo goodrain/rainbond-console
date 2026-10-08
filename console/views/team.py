@@ -1059,10 +1059,10 @@ class TeamSortDomainQueryView(RegionTenantHeaderView):
               type: string
               paramType: path
         """
-        page = int(request.GET.get("page", 1))
-        page_size = int(request.GET.get("page_size", 5))
         repo = request.GET.get("repo", "1")
         if repo == "1":
+            page = int(request.GET.get("page", 1))
+            page_size = int(request.GET.get("page_size", 5))
             total_traffic = 0
             total = 0
             domain_list = []
@@ -1087,6 +1087,9 @@ class TeamSortDomainQueryView(RegionTenantHeaderView):
             # NOTE: start/end reused with different types across branches (behavior preserved).
             start = request.GET.get("start", None)  # type: ignore[assignment]
             end = request.GET.get("end", None)  # type: ignore[assignment]
+            if not start or not end:
+                result = general_message(400, "missing time range", "缺少时间范围参数")
+                return Response(result, status=400)
             body = {}
             sufix = "?query=ceil(sum(increase(gateway_requests%7B" \
                 + "namespace%3D%22{0}%22%7D%5B1h%5D)))&start={1}&end={2}&step=60".format(self.tenant.tenant_id, start, end)

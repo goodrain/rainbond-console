@@ -11146,6 +11146,24 @@
       "status": "active"
     },
     {
+      "id": "console.team-domain-monitor.time-range-validation",
+      "title": "Validate domain monitor time range",
+      "title_zh": "校验域名监控时间范围",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.team.TeamSortDomainQueryView.get",
+      "code_paths": [
+        "console/views/team.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/team_sort_domain_query_test.py",
+          "selector": "TeamSortDomainQueryTimeRangeTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.team-query.current-user-membership",
       "title": "List only teams joined by the current user",
       "title_zh": "仅列出当前用户已加入的团队",
