@@ -9835,6 +9835,28 @@
       "status": "active"
     },
     {
+      "id": "console.realtime-proxy.interrupted-upload",
+      "title": "Handle interrupted client uploads without hiding backend failures",
+      "title_zh": "受控处理客户端中断上传并保留后端故障",
+      "interface_type": "package_function",
+      "interface": "console.utils.realtime_proxy.proxy_http_request",
+      "code_paths": [
+        "console/utils/realtime_proxy.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/realtime_proxy_url_test.py",
+          "selector": "RealtimeProxyUrlTests.test_http_proxy_returns_bad_request_when_client_upload_is_interrupted"
+        },
+        {
+          "path": "console/tests/realtime_proxy_url_test.py",
+          "selector": "RealtimeProxyUrlTests.test_http_proxy_keeps_backend_connection_errors_visible"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.realtime-proxy.multipart-folder-upload-forward",
       "title": "Forward repeated multipart file fields for folder uploads",
       "title_zh": "转发文件夹上传中的重复 multipart 文件字段",

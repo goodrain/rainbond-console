@@ -5,6 +5,7 @@ import time
 
 import requests
 from django.http import HttpResponse, HttpResponseBadRequest, StreamingHttpResponse
+from django.http.request import UnreadablePostError
 
 from console.repositories.region_repo import region_repo
 
@@ -184,6 +185,24 @@ def _request_body_stream(request):
     return LimitedRequestBody(request, content_length)
 
 
+def _is_interrupted_client_upload(error):
+    pending = [error]
+    seen = set()
+    while pending:
+        current = pending.pop()
+        if id(current) in seen:
+            continue
+        seen.add(id(current))
+        if isinstance(current, UnreadablePostError):
+            return True
+        if isinstance(current, BaseException):
+            pending.extend(current.args)
+            pending.extend([current.__cause__, current.__context__])
+        elif isinstance(current, (list, tuple)):
+            pending.extend(current)
+    return False
+
+
 def proxy_http_request(request, region_name, proxy_path):
     target_url = build_region_realtime_proxy_url(
         region_name,
@@ -203,16 +222,22 @@ def proxy_http_request(request, region_name, proxy_path):
             headers.pop("Content-Length", None)
             data, files = build_multipart_payload(request)
 
-    response = requests.request(
-        request.method,
-        target_url,
-        headers=headers,
-        data=data,
-        files=files,
-        stream=True,
-        timeout=(10, 3600),
-        allow_redirects=False,
-    )
+    try:
+        response = requests.request(
+            request.method,
+            target_url,
+            headers=headers,
+            data=data,
+            files=files,
+            stream=True,
+            timeout=(10, 3600),
+            allow_redirects=False,
+        )
+    except requests.ConnectionError as error:
+        if not _is_interrupted_client_upload(error):
+            raise
+        logger.info("realtime proxy client upload interrupted")
+        return HttpResponseBadRequest("client upload interrupted")
 
     excluded_headers = HOP_BY_HOP_HEADERS | {"content-encoding"}
     response_headers = {
