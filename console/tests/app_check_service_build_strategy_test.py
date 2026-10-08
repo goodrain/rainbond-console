@@ -87,6 +87,40 @@ class AppCheckServiceBuildStrategyTests(TestCase):
                          )))
         return stack
 
+    # capability_id: console.component-check.duplicate-port-noise
+    def test_update_service_check_info_logs_duplicate_detected_port_as_info(self):
+        service = DummyService()
+        data = {
+            "check_status": "success",
+            "service_info": [{"language": "Java-maven"}],
+        }
+
+        with patch.object(self.service_helper, "upgrade_service_env_info"), \
+                patch.object(
+                    self.service_helper,
+                    "add_service_check_port",
+                    side_effect=app_check_service_module.ErrComponentPortExists,
+                ), patch.object(
+                    app_check_service_module,
+                    "source_build_state_service",
+                    Mock(
+                        build_snapshot=Mock(return_value={}),
+                        save_detected_defaults=Mock(),
+                        save_user_snapshot=Mock(),
+                    ),
+                ), patch.object(
+                    app_check_service_module.compile_env_service,
+                    "get_service_default_env_by_language",
+                    return_value={},
+                ), patch.object(app_check_service_module.logger, "info") as info_log, \
+                patch.object(app_check_service_module.logger, "error") as error_log:
+            self.service_helper.update_service_check_info(self.tenant, service, data)
+
+        info_log.assert_called_once_with(
+            "skip duplicate component port while applying source check result"
+        )
+        error_log.assert_not_called()
+
     def test_save_service_info_defaults_supported_language_to_cnb(self):
         service = DummyService()
 

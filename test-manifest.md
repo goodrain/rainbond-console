@@ -215,6 +215,7 @@
 | console.cnb-build.preserve-supported-envs | 保留支持语言的 CNB 环境变量 | active | regression | console.utils.cnb_build.sanitize_build_env_dict_for_language | console/tests/cnb_build_test.py::BuildEnvSanitizeTestCase.test_node_build_envs_preserve_cnb_markers<br>console/tests/cnb_build_test.py::BuildEnvSanitizeTestCase.test_static_build_envs_preserve_cnb_markers<br>console/tests/cnb_build_test.py::BuildEnvSanitizeTestCase.test_node_build_envs_preserve_common_mirror_fields<br>console/tests/cnb_build_test.py::BuildEnvSanitizeTestCase.test_node_build_envs_preserve_known_node_versions |
 | console.cnb-build.reject-unsupported-language | 拒绝不支持 CNB 的构建语言 | active | regression | console.utils.cnb_build.is_cnb_language | console/tests/cnb_build_test.py::CNBLanguageDetectionTestCase.test_java_language_is_not_cnb<br>console/tests/cnb_build_test.py::CNBLanguageDetectionTestCase.test_dockerfile_node_language_is_not_cnb |
 | console.cnb-build.sanitize-unsupported-envs | 清理非支持语言中的陈旧 CNB 环境变量 | active | regression | console.utils.cnb_build.sanitize_build_env_dict_for_language | console/tests/cnb_build_test.py::BuildEnvSanitizeTestCase.test_java_build_envs_strip_stale_cnb_markers<br>console/tests/cnb_build_test.py::BuildEnvSanitizeTestCase.test_java_build_envs_strip_runtime_aliases_used_by_builder<br>console/tests/cnb_build_test.py::BuildEnvSanitizeTestCase.test_non_cnb_languages_strip_stale_cnb_markers |
+| console.component-check.duplicate-port-noise | 组件检测重复端口按预期处理 | active | regression | console.services.app_check_service.AppCheckService.update_service_check_info | console/tests/app_check_service_build_strategy_test.py::AppCheckServiceBuildStrategyTests.test_update_service_check_info_logs_duplicate_detected_port_as_info |
 | console.component-delete.idempotent-record | 幂等保存组件删除记录 | active | regression | console.repositories.app.TenantServiceDeleteRepository.create_delete_service | console/tests/app_manage_test.py::AppManageDeleteRecordIdempotencyTests.test_create_delete_service_updates_existing_record_for_repeated_delete |
 | console.component-type.daemonset | DaemonSet 组件类型支持 | active | regression | console.enum.component_enum.ComponentType | console/tests/app_manage_test.py::ComponentDaemonSetSupportTests.test_daemonset_component_type_is_supported<br>console/tests/app_manage_test.py::ComponentDaemonSetSupportTests.test_extend_method_name_supports_daemonset<br>console/tests/app_manage_test.py::ComponentDaemonSetSupportTests.test_change_service_type_blocks_daemonset_transition |
 | console.component.autoscaler-invalid-metrics | manage_component_autoscaler 在调用服务前拒绝不完整指标 | active | regression | console.services.mcp_query_service.call_tool[console.component.autoscaler-invalid-metrics] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_manage_component_autoscaler_create_rejects_incomplete_metric_before_service_call |
@@ -2752,6 +2753,16 @@
 - 业务入口: `console.utils.cnb_build.sanitize_build_env_dict_for_language`
 - 代码路径: `console/utils/cnb_build.py`
 - 测试路径: `console/tests/cnb_build_test.py::BuildEnvSanitizeTestCase.test_java_build_envs_strip_stale_cnb_markers`, `console/tests/cnb_build_test.py::BuildEnvSanitizeTestCase.test_java_build_envs_strip_runtime_aliases_used_by_builder`, `console/tests/cnb_build_test.py::BuildEnvSanitizeTestCase.test_non_cnb_languages_strip_stale_cnb_markers`
+
+### 组件检测重复端口按预期处理
+
+- Capability ID: `console.component-check.duplicate-port-noise`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.app_check_service.AppCheckService.update_service_check_info`
+- 代码路径: `console/services/app_check_service.py`
+- 测试路径: `console/tests/app_check_service_build_strategy_test.py::AppCheckServiceBuildStrategyTests.test_update_service_check_info_logs_duplicate_detected_port_as_info`
 
 ### 幂等保存组件删除记录
 

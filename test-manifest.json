@@ -4010,6 +4010,24 @@
       "status": "active"
     },
     {
+      "id": "console.component-check.duplicate-port-noise",
+      "title": "Treat duplicate detected component port as expected",
+      "title_zh": "组件检测重复端口按预期处理",
+      "interface_type": "service_method",
+      "interface": "console.services.app_check_service.AppCheckService.update_service_check_info",
+      "code_paths": [
+        "console/services/app_check_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_check_service_build_strategy_test.py",
+          "selector": "AppCheckServiceBuildStrategyTests.test_update_service_check_info_logs_duplicate_detected_port_as_info"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.component-delete.idempotent-record",
       "title": "Persist component delete records idempotently",
       "title_zh": "幂等保存组件删除记录",
