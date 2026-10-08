@@ -10679,6 +10679,25 @@
       "status": "active"
     },
     {
+      "id": "console.runtime.sse-gunicorn-timeout",
+      "title": "Keep Gunicorn workers alive for one-hour SSE streams",
+      "title_zh": "Gunicorn 超时覆盖一小时 SSE 长连接",
+      "interface_type": "workflow",
+      "interface": "entrypoint.sh/Procfile",
+      "code_paths": [
+        "entrypoint.sh",
+        "Procfile"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/entrypoint_test.py",
+          "selector": "EntrypointGunicornTest.test_gunicorn_timeout_outlives_one_hour_sse_streams"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.sentry.expected-not-found-errors",
       "title": "Suppress expected not-found telemetry",
       "title_zh": "过滤预期的资源不存在异常",
