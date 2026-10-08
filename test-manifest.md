@@ -372,6 +372,7 @@
 | console.helm-release.source-tracking | 追踪 Helm 发布来源信息 | active | regression | console.views.team_resources.Helm release source persistence lifecycle | console/tests/team_resources_test.py::HelmReleasesViewTestCase.test_post_persists_install_source_after_success<br>console/tests/team_resources_test.py::HelmReleasesViewTestCase.test_put_persists_upgrade_source_after_success<br>console/tests/team_resources_test.py::HelmReleasesViewTestCase.test_delete_cleans_up_saved_install_source_after_success |
 | console.helm-release.team-namespace-ops | 在团队命名空间内执行 Helm 操作 | active | regression | console.views.team_resources.Helm release lifecycle uses tenant namespace | console/tests/team_resources_test.py::HelmReleasesViewTestCase.test_post_uses_team_namespace_for_helm_install<br>console/tests/team_resources_test.py::HelmReleasesViewTestCase.test_delete_uses_team_namespace_for_helm_release_uninstall<br>console/tests/team_resources_test.py::HelmReleasesViewTestCase.test_put_uses_team_namespace_for_helm_release_upgrade<br>console/tests/team_resources_test.py::HelmReleasesViewTestCase.test_post_uses_team_namespace_for_helm_release_rollback |
 | console.helm-release.upgrade | 升级 Helm 发布并保存来源记录 | active | regression | console.views.team_resources.HelmReleaseDetailView.put | console/tests/team_resources_test.py::HelmReleasesViewTestCase.test_put_persists_upgrade_source_after_success |
+| console.helm-repo.input-length | 持久化前校验 Helm 仓库字段 | active | regression | console.views.helm_app.HelmRepo | console/tests/helm_repo_view_test.py::HelmRepoViewTests.test_post_rejects_repo_url_longer_than_model_limit<br>console/tests/helm_repo_view_test.py::HelmRepoViewTests.test_put_rejects_repo_url_longer_than_model_limit<br>console/tests/helm_repo_view_test.py::HelmRepoViewTests.test_post_accepts_repo_url_at_model_limit<br>console/tests/helm_repo_view_test.py::HelmRepoViewTests.test_post_rejects_missing_or_overlong_repo_identity |
 | console.helm.build | 构建 Helm 应用模板 | active | regression | console.services.mcp_query_service.call_tool[rainbond_build_helm_app] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_build_helm_app_generates_template |
 | console.helm.check | 检查 Helm 应用 | active | regression | console.services.mcp_query_service.call_tool[rainbond_check_helm_app] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_check_helm_app_returns_check_result |
 | console.helm.daemonset-template | Helm DaemonSet 资源映射为组件模板 | active | regression | console.services.helm_app_yaml.HelmAppService.generate_template | console/tests/app_manage_test.py::ComponentDaemonSetSupportTests.test_helm_template_maps_daemonset_resource_type |
@@ -4341,6 +4342,16 @@
 - 业务入口: `console.views.team_resources.HelmReleaseDetailView.put`
 - 代码路径: `console/views/team_resources.py`
 - 测试路径: `console/tests/team_resources_test.py::HelmReleasesViewTestCase.test_put_persists_upgrade_source_after_success`
+
+### 持久化前校验 Helm 仓库字段
+
+- Capability ID: `console.helm-repo.input-length`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `view_endpoint`
+- 业务入口: `console.views.helm_app.HelmRepo`
+- 代码路径: `console/views/helm_app.py`
+- 测试路径: `console/tests/helm_repo_view_test.py::HelmRepoViewTests.test_post_rejects_repo_url_longer_than_model_limit`, `console/tests/helm_repo_view_test.py::HelmRepoViewTests.test_put_rejects_repo_url_longer_than_model_limit`, `console/tests/helm_repo_view_test.py::HelmRepoViewTests.test_post_accepts_repo_url_at_model_limit`, `console/tests/helm_repo_view_test.py::HelmRepoViewTests.test_post_rejects_missing_or_overlong_repo_identity`
 
 ### 构建 Helm 应用模板
 

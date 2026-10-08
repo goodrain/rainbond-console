@@ -15,6 +15,18 @@ from www.utils.return_message import general_message
 from rest_framework.response import Response
 
 
+def _validate_helm_repo(repo_name: Any, repo_url: Any) -> Any:
+    if not isinstance(repo_name, str) or not repo_name:
+        return general_message(400, "invalid repo name", "仓库名称不能为空")
+    if len(repo_name) > HelmRepoInfo._meta.get_field("repo_name").max_length:
+        return general_message(400, "repo name too long", "仓库名称长度不能超过64个字符")
+    if not isinstance(repo_url, str) or not repo_url:
+        return general_message(400, "invalid repo url", "仓库地址不能为空")
+    if len(repo_url) > HelmRepoInfo._meta.get_field("repo_url").max_length:
+        return general_message(400, "repo url too long", "仓库地址长度不能超过128个字符")
+    return None
+
+
 class HelmAppView(RegionTenantHeaderView):
     def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
@@ -180,6 +192,9 @@ class HelmRepo(JWTAuthApiView):
         repo_url = request.data.get("repo_url")
         username = request.data.get("username", "")
         password = request.data.get("password", "")
+        validation_error = _validate_helm_repo(repo_name, repo_url)
+        if validation_error:
+            return Response(validation_error, status=status.HTTP_400_BAD_REQUEST)
         # NOTE: request.data fields are Any|None but repo/service expect str (systemic mismatch; backlog).
         if helm_repo.get_helm_repo_by_name(repo_name):  # type: ignore[arg-type]
             result = general_message(200, "success", "仓库已存在", "")
@@ -194,6 +209,9 @@ class HelmRepo(JWTAuthApiView):
         """
         repo_name = request.data.get("repo_name")
         repo_url = request.data.get("repo_url")
+        validation_error = _validate_helm_repo(repo_name, repo_url)
+        if validation_error:
+            return Response(validation_error, status=status.HTTP_400_BAD_REQUEST)
         helm_repo.update_helm_repo(repo_name, repo_url)  # type: ignore[arg-type]
         result = general_message(200, "success", "更新成功", "")
         return Response(result, status=status.HTTP_200_OK)

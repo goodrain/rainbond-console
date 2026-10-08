@@ -7147,6 +7147,36 @@
       "status": "active"
     },
     {
+      "id": "console.helm-repo.input-length",
+      "title": "Validate Helm repository fields before persistence",
+      "title_zh": "持久化前校验 Helm 仓库字段",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.helm_app.HelmRepo",
+      "code_paths": [
+        "console/views/helm_app.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/helm_repo_view_test.py",
+          "selector": "HelmRepoViewTests.test_post_rejects_repo_url_longer_than_model_limit"
+        },
+        {
+          "path": "console/tests/helm_repo_view_test.py",
+          "selector": "HelmRepoViewTests.test_put_rejects_repo_url_longer_than_model_limit"
+        },
+        {
+          "path": "console/tests/helm_repo_view_test.py",
+          "selector": "HelmRepoViewTests.test_post_accepts_repo_url_at_model_limit"
+        },
+        {
+          "path": "console/tests/helm_repo_view_test.py",
+          "selector": "HelmRepoViewTests.test_post_rejects_missing_or_overlong_repo_identity"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.helm.build",
       "title": "Build helm application template",
       "title_zh": "构建 Helm 应用模板",
