@@ -312,8 +312,22 @@ def get_path_pattern(value):
     return "/".join(result) + suffix
 
 
+def is_expected_region_frequent_error(hint):
+    exc_info = (hint or {}).get("exc_info")
+    if not exc_info or len(exc_info) < 2:
+        return False
+    exception = exc_info[1]
+    exception_type = exception.__class__ if exception is not None else exc_info[0]
+    return (
+        getattr(exception_type, "__module__", "") == "www.apiclient.regionapibaseclient"
+        and getattr(exception_type, "__name__", "") == "CallApiFrequentError"
+    )
+
+
 def before_send(event, hint):
     if not is_external_telemetry_enabled():
+        return None
+    if is_expected_region_frequent_error(hint):
         return None
     event.pop("user", None)
     request = event.get("request")

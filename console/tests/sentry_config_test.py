@@ -92,6 +92,46 @@ def test_before_send_drops_events_when_platform_telemetry_is_disabled():
         assert sentry_config.before_send({"message": "error"}, {}) is None
 
 
+# capability_id: console.sentry.expected-region-frequent-error
+def test_before_send_drops_region_api_frequent_operation_exception():
+    frequent_error_type = type(
+        "CallApiFrequentError",
+        (Exception, ),
+        {"__module__": "www.apiclient.regionapibaseclient"},
+    )
+    error = frequent_error_type("operation too frequent")
+
+    with mock.patch("goodrain_web.sentry_config.is_external_telemetry_enabled", return_value=True):
+        result = sentry_config.before_send(
+            {"message": "operation too frequent"},
+            {"exc_info": (frequent_error_type, error, None)},
+        )
+        type_only_result = sentry_config.before_send(
+            {"message": "operation too frequent"},
+            {"exc_info": (frequent_error_type, None, None)},
+        )
+
+    assert result is None
+    assert type_only_result is None
+
+
+def test_before_send_keeps_same_exception_name_from_other_modules():
+    other_error_type = type(
+        "CallApiFrequentError",
+        (Exception, ),
+        {"__module__": "tests.fake_region_client"},
+    )
+    error = other_error_type("unexpected frequent error")
+
+    with mock.patch("goodrain_web.sentry_config.is_external_telemetry_enabled", return_value=True):
+        result = sentry_config.before_send(
+            {"message": "unexpected frequent error"},
+            {"exc_info": (other_error_type, error, None)},
+        )
+
+    assert result == {"message": "unexpected frequent error"}
+
+
 def test_get_path_pattern_removes_dynamic_segments_and_query():
     assert (
         sentry_config.get_path_pattern(
