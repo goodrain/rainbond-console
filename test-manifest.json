@@ -22,6 +22,28 @@
       "status": "active"
     },
     {
+      "id": "console.app-backup.create-group-missing",
+      "title": "Reject backup metadata collection for missing applications",
+      "title_zh": "备份不存在的应用时返回 404",
+      "interface_type": "service_method",
+      "interface": "console.services.backup_service.GroupAppBackupService.get_group_app_metadata",
+      "code_paths": [
+        "console/services/backup_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/backup_service_test.py",
+          "selector": "GroupAppBackupMetadataTests.test_get_group_app_metadata_keeps_valid_empty_group_metadata"
+        },
+        {
+          "path": "console/tests/backup_service_test.py",
+          "selector": "GroupAppBackupMetadataTests.test_get_group_app_metadata_rejects_missing_group_before_collecting_components"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.app-backup.custom-volume-guard",
       "title": "Reject backup when app uses custom volume",
       "title_zh": "组件使用自定义存储时阻止备份",

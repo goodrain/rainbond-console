@@ -123,6 +123,70 @@ class GroupAppBackupServiceScopeTests(TestCase):
         self.assertIs(result, backup_record)
 
 
+class GroupAppBackupMetadataTests(TestCase):
+    # capability_id: console.app-backup.create-group-missing
+    def test_get_group_app_metadata_rejects_missing_group_before_collecting_components(self):
+        service = GroupAppBackupService()
+        tenant = Obj(tenant_id="team-1", tenant_name="demo-team", enterprise_id="eid-1")
+
+        with mock.patch.object(
+                backup_service_module.compose_repo,
+                "get_group_compose_by_group_id",
+                return_value=None,
+        ), mock.patch.object(
+            backup_service_module.group_repo,
+            "get_group_by_id",
+            return_value=None,
+        ), mock.patch.object(
+            backup_service_module.group_service_relation_repo,
+            "get_services_by_group",
+        ) as get_relations, mock.patch.object(
+            service,
+            "_get_effective_group_services",
+        ) as get_services:
+            with self.assertRaises(backup_service_module.ServiceHandleException) as context:
+                service.get_group_app_metadata("404", tenant, "demo-region")
+
+        self.assertEqual(context.exception.status_code, 404)
+        self.assertEqual(context.exception.msg_show, "应用不存在")
+        get_relations.assert_not_called()
+        get_services.assert_not_called()
+
+    # capability_id: console.app-backup.create-group-missing
+    def test_get_group_app_metadata_keeps_valid_empty_group_metadata(self):
+        service = GroupAppBackupService()
+        tenant = Obj(tenant_id="team-1", tenant_name="demo-team", enterprise_id="eid-1")
+        group = mock.Mock()
+        group.to_dict.return_value = {"ID": 42, "group_name": "demo"}
+
+        with mock.patch.object(
+                backup_service_module.compose_repo,
+                "get_group_compose_by_group_id",
+                return_value=None,
+        ), mock.patch.object(
+            backup_service_module.group_repo,
+            "get_group_by_id",
+            return_value=group,
+        ), mock.patch.object(
+            backup_service_module.group_service_relation_repo,
+            "get_services_by_group",
+            return_value=[],
+        ), mock.patch.object(
+            service,
+            "_get_effective_group_services",
+            return_value=[],
+        ), mock.patch.object(
+            backup_service_module.app_config_group_repo,
+            "get_config_group_in_use",
+            return_value=[],
+        ):
+            total_memory, metadata = service.get_group_app_metadata("42", tenant, "demo-region")
+
+        self.assertEqual(total_memory, 0)
+        self.assertEqual(metadata["group_info"], {"ID": 42, "group_name": "demo"})
+        self.assertEqual(metadata["apps"], [])
+
+
 # capability_id: console.app-backup.delete-in-progress
 class GroupAppBackupServiceDeleteInProgressTests(TestCase):
     def test_delete_group_backup_raises_when_backup_in_progress(self):

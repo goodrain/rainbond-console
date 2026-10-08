@@ -239,6 +239,8 @@ class GroupAppBackupService(object):
             compose_service_relation = compose_relation_repo.get_compose_service_relation_by_compose_id(
                 compose_group_info.compose_id)
         group_info = group_repo.get_group_by_id(group_id)
+        if not group_info:
+            raise ServiceHandleException(msg="app not found", msg_show="应用不存在", status_code=404)
 
         service_group_relations = group_service_relation_repo.get_services_by_group(group_id)
         services = self._get_effective_group_services(tenant, region_name, group_id)
@@ -248,7 +250,7 @@ class GroupAppBackupService(object):
         all_data["compose_group_info"] = compose_group_info.to_dict() if compose_group_info else None
         all_data["compose_service_relation"] = [relation.to_dict()
                                                 for relation in compose_service_relation] if compose_service_relation else None
-        all_data["group_info"] = group_info.to_dict()  # type: ignore[union-attr]  # NOTE: group_info may be None if group_id is invalid; original code does not guard
+        all_data["group_info"] = group_info.to_dict()
         all_data["service_group_relation"] = [sgr.to_dict() for sgr in service_group_relations]
         apps = []
         total_memory = 0

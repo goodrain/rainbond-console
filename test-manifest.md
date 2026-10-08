@@ -5,6 +5,7 @@
 | Capability ID | 中文标题 | 状态 | 测试类型 | 业务入口 | 测试文件 |
 |---|---|---|---|---|---|
 | console.app-backup.create | 创建应用备份 | active | regression | console.views.center_pool.groupapp_backup.GroupAppsBackupView.post | console/tests/groupapp_backup_migration_test.py::GroupAppsBackupViewWorkflowTests.test_post_starts_group_backup |
+| console.app-backup.create-group-missing | 备份不存在的应用时返回 404 | active | regression | console.services.backup_service.GroupAppBackupService.get_group_app_metadata | console/tests/backup_service_test.py::GroupAppBackupMetadataTests.test_get_group_app_metadata_keeps_valid_empty_group_metadata<br>console/tests/backup_service_test.py::GroupAppBackupMetadataTests.test_get_group_app_metadata_rejects_missing_group_before_collecting_components |
 | console.app-backup.custom-volume-guard | 组件使用自定义存储时阻止备份 | active | regression | console.views.center_pool.groupapp_backup.GroupAppsBackupView.post | console/tests/groupapp_backup_migration_test.py::GroupAppsBackupViewWorkflowTests.test_post_rejects_custom_volume_usage |
 | console.app-backup.delete | 删除应用备份 | active | regression | console.views.center_pool.groupapp_backup.GroupAppsBackupView.delete | console/tests/groupapp_backup_migration_test.py::GroupAppsBackupViewWorkflowTests.test_delete_removes_group_backup |
 | console.app-backup.delete-id-required | 删除应用备份前必须提供备份 ID | active | regression | console.views.center_pool.groupapp_backup.GroupAppsBackupView.delete | console/tests/groupapp_backup_migration_test.py::GroupAppsBackupViewWorkflowTests.test_delete_requires_backup_id |
@@ -665,6 +666,16 @@
 - 业务入口: `console.views.center_pool.groupapp_backup.GroupAppsBackupView.post`
 - 代码路径: `console/views/center_pool/groupapp_backup.py`, `console/services/backup_service.py`
 - 测试路径: `console/tests/groupapp_backup_migration_test.py::GroupAppsBackupViewWorkflowTests.test_post_starts_group_backup`
+
+### 备份不存在的应用时返回 404
+
+- Capability ID: `console.app-backup.create-group-missing`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.backup_service.GroupAppBackupService.get_group_app_metadata`
+- 代码路径: `console/services/backup_service.py`
+- 测试路径: `console/tests/backup_service_test.py::GroupAppBackupMetadataTests.test_get_group_app_metadata_keeps_valid_empty_group_metadata`, `console/tests/backup_service_test.py::GroupAppBackupMetadataTests.test_get_group_app_metadata_rejects_missing_group_before_collecting_components`
 
 ### 组件使用自定义存储时阻止备份
 
