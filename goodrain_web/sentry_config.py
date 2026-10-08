@@ -312,22 +312,44 @@ def get_path_pattern(value):
     return "/".join(result) + suffix
 
 
-def is_expected_region_frequent_error(hint):
+def get_hint_exception(hint):
     exc_info = (hint or {}).get("exc_info")
     if not exc_info or len(exc_info) < 2:
-        return False
+        return None, None
     exception = exc_info[1]
     exception_type = exception.__class__ if exception is not None else exc_info[0]
+    return exception_type, exception
+
+
+def is_expected_region_frequent_error(hint):
+    exception_type, _ = get_hint_exception(hint)
+    if exception_type is None:
+        return False
     return (
         getattr(exception_type, "__module__", "") == "www.apiclient.regionapibaseclient"
         and getattr(exception_type, "__name__", "") == "CallApiFrequentError"
     )
 
 
+def is_expected_not_found_error(hint):
+    exception_type, exception = get_hint_exception(hint)
+    if exception_type is None:
+        return False
+    module = getattr(exception_type, "__module__", "")
+    name = getattr(exception_type, "__name__", "")
+    if name == "Http404" and module.startswith("django.http"):
+        return True
+    if name == "ServiceHandleException" and module == "console.exception.main":
+        return str(getattr(exception, "status_code", "")) == "404"
+    if name == "CallApiError" and module == "www.apiclient.regionapibaseclient":
+        return str(getattr(exception, "status", "")) == "404"
+    return False
+
+
 def before_send(event, hint):
     if not is_external_telemetry_enabled():
         return None
-    if is_expected_region_frequent_error(hint):
+    if is_expected_region_frequent_error(hint) or is_expected_not_found_error(hint):
         return None
     event.pop("user", None)
     request = event.get("request")

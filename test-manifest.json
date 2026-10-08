@@ -10581,6 +10581,28 @@
       "status": "active"
     },
     {
+      "id": "console.sentry.expected-not-found-errors",
+      "title": "Suppress expected not-found telemetry",
+      "title_zh": "过滤预期的资源不存在异常",
+      "interface_type": "package_function",
+      "interface": "goodrain_web.sentry_config.before_send",
+      "code_paths": [
+        "goodrain_web/sentry_config.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/sentry_config_test.py",
+          "selector": "test_before_send_drops_expected_not_found_exceptions"
+        },
+        {
+          "path": "console/tests/sentry_config_test.py",
+          "selector": "test_before_send_keeps_server_side_service_and_region_errors"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.sentry.expected-region-frequent-error",
       "title": "Suppress expected region frequent-operation exceptions",
       "title_zh": "过滤预期的区域操作频繁异常",

@@ -132,6 +132,69 @@ def test_before_send_keeps_same_exception_name_from_other_modules():
     assert result == {"message": "unexpected frequent error"}
 
 
+# capability_id: console.sentry.expected-not-found-errors
+def test_before_send_drops_expected_not_found_exceptions():
+    http404_type = type("Http404", (Exception, ), {"__module__": "django.http.response"})
+    service_error_type = type(
+        "ServiceHandleException",
+        (Exception, ),
+        {"__module__": "console.exception.main"},
+    )
+    region_error_type = type(
+        "CallApiError",
+        (Exception, ),
+        {"__module__": "www.apiclient.regionapibaseclient"},
+    )
+    errors = [
+        http404_type("not found"),
+        service_error_type("application not found"),
+        region_error_type("region resource not found"),
+    ]
+    errors[1].status_code = 404
+    errors[2].status = 404
+
+    with mock.patch("goodrain_web.sentry_config.is_external_telemetry_enabled", return_value=True):
+        results = [
+            sentry_config.before_send(
+                {"message": str(error)},
+                {"exc_info": (error.__class__, error, None)},
+            )
+            for error in errors
+        ]
+
+    assert results == [None, None, None]
+
+
+def test_before_send_keeps_server_side_service_and_region_errors():
+    service_error_type = type(
+        "ServiceHandleException",
+        (Exception, ),
+        {"__module__": "console.exception.main"},
+    )
+    region_error_type = type(
+        "CallApiError",
+        (Exception, ),
+        {"__module__": "www.apiclient.regionapibaseclient"},
+    )
+    service_error = service_error_type("service failed")
+    service_error.status_code = 500
+    region_error = region_error_type("region failed")
+    region_error.status = 500
+
+    with mock.patch("goodrain_web.sentry_config.is_external_telemetry_enabled", return_value=True):
+        service_result = sentry_config.before_send(
+            {"message": "service failed"},
+            {"exc_info": (service_error_type, service_error, None)},
+        )
+        region_result = sentry_config.before_send(
+            {"message": "region failed"},
+            {"exc_info": (region_error_type, region_error, None)},
+        )
+
+    assert service_result == {"message": "service failed"}
+    assert region_result == {"message": "region failed"}
+
+
 def test_get_path_pattern_removes_dynamic_segments_and_query():
     assert (
         sentry_config.get_path_pattern(
