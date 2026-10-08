@@ -81,6 +81,7 @@
 | console.app-migration.usable-region-guard | 目标团队无可用集群时阻止迁移 | active | regression | console.views.center_pool.groupapp_migration.GroupAppsMigrateView.post | console/tests/groupapp_backup_migration_test.py::GroupAppsMigrationViewWorkflowTests.test_post_rejects_when_target_team_has_no_usable_regions |
 | console.app-overview.group-visit-resilience | Keep application access links resilient to stale components | active | regression | GET /console/teams/{team_name}/group/service/visit | console/tests/app_group_visit_view_test.py::AppGroupVisitViewTestCase |
 | console.app-publish.candidates | App Publish Candidates | active | regression | console.services.mcp_query_service.call_tool[console.app-publish.candidates] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_get_app_publish_candidates_returns_models |
+| console.app-route.numeric-id | 应用详情路由仅接受数字 ID | active | regression | console.urls[/teams/{tenantName}/groups/{app_id}] | console/tests/group_route_test.py::GroupRouteTests.test_group_detail_route_accepts_numeric_id<br>console/tests/group_route_test.py::GroupRouteTests.test_group_detail_route_rejects_reserved_word_as_id |
 | console.app-scale.vertical-gpu-default | 垂直伸缩未传 GPU 时保留组件当前值 | active | regression | console.services.app_actions.app_manage.AppManageService.vertical_upgrade | console/tests/vertical_upgrade_gpu_test.py::VerticalUpgradeGPUTests.test_omitted_gpu_keeps_current_value_instead_of_null<br>console/tests/vertical_upgrade_gpu_test.py::VerticalUpgradeGPUTests.test_omitted_gpu_defaults_to_zero_when_current_is_none<br>console/tests/vertical_upgrade_gpu_test.py::VerticalUpgradeGPUTests.test_explicit_gpu_is_applied_and_sent_to_region |
 | console.app-share.complete | App Share Complete | active | regression | console.services.mcp_query_service.call_tool[console.app-share.complete] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_complete_app_share_calls_share_service_complete |
 | console.app-share.create-record | App Share Create Record | active | regression | console.services.mcp_query_service.call_tool[console.app-share.create-record] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_create_app_share_record_supports_snapshot_mode |
@@ -1429,6 +1430,16 @@
 - 业务入口: `console.services.mcp_query_service.call_tool[console.app-publish.candidates]`
 - 代码路径: `console/services/mcp_query_service.py`
 - 测试路径: `console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_get_app_publish_candidates_returns_models`
+
+### 应用详情路由仅接受数字 ID
+
+- Capability ID: `console.app-route.numeric-id`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `view_endpoint`
+- 业务入口: `console.urls[/teams/{tenantName}/groups/{app_id}]`
+- 代码路径: `console/urls/__init__.py`
+- 测试路径: `console/tests/group_route_test.py::GroupRouteTests.test_group_detail_route_accepts_numeric_id`, `console/tests/group_route_test.py::GroupRouteTests.test_group_detail_route_rejects_reserved_word_as_id`
 
 ### 垂直伸缩未传 GPU 时保留组件当前值
 

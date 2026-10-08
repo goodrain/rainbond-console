@@ -469,7 +469,7 @@ urlpatterns = [
     re_path(r'^teams/(?P<team_name>[\w\-]+)/share/(?P<share_id>[\w\-]+)/complete$', ServiceShareCompleteView.as_view()),
     # 租户数据中心组信息
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/groups$', TenantGroupView.as_view(), perms.APP_CREATE_PERMS),
-    re_path(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)$', TenantGroupOperationView.as_view(),
+    re_path(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>\d+)$', TenantGroupOperationView.as_view(),
         perms.APP_OVERVIEW_PERMS),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/handle$', TenantGroupHandleView.as_view(),
         perms.APP_OVERVIEW_PERMS),
@@ -517,7 +517,7 @@ urlpatterns = [
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<app_id>[\w\-]+)/operation-logs$', AppOperationLogView.as_view()),
 
     # 应用状态（应用）
-    re_path(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[\w\-]+)$', GroupStatusView.as_view(), perms.APP_OVERVIEW_PERMS),
+    re_path(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>\d+)$', GroupStatusView.as_view(), perms.APP_OVERVIEW_PERMS),
     # 应用(组)常见操作
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[\w\-]+)/common_operation$',
         TenantGroupCommonOperationView.as_view(), perms.APP_OVERVIEW_PERMS),

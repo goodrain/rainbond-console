@@ -1439,6 +1439,28 @@
       "status": "active"
     },
     {
+      "id": "console.app-route.numeric-id",
+      "title": "Restrict application detail routes to numeric IDs",
+      "title_zh": "应用详情路由仅接受数字 ID",
+      "interface_type": "view_endpoint",
+      "interface": "console.urls[/teams/{tenantName}/groups/{app_id}]",
+      "code_paths": [
+        "console/urls/__init__.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/group_route_test.py",
+          "selector": "GroupRouteTests.test_group_detail_route_accepts_numeric_id"
+        },
+        {
+          "path": "console/tests/group_route_test.py",
+          "selector": "GroupRouteTests.test_group_detail_route_rejects_reserved_word_as_id"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.app-scale.vertical-gpu-default",
       "title": "Vertical scale keeps GPU value when omitted",
       "title_zh": "垂直伸缩未传 GPU 时保留组件当前值",
