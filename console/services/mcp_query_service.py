@@ -5261,8 +5261,16 @@ class MCPQueryService(object):
             details=self._build_port_tool_error_details(msg_show),
         )
 
-    def _normalize_env_scope(self, scope: Optional[str]) -> str:
-        scope = (scope or "inner").strip().lower()
+    def _normalize_env_scope(self, scope: Any) -> str:
+        if scope in (None, ""):
+            scope = "inner"
+        if not isinstance(scope, str):
+            raise ServiceHandleException(
+                msg="params error",
+                msg_show="scope必须是字符串",
+                status_code=400,
+            )
+        scope = scope.strip().lower()
         normalized = self.ENV_SCOPE_ALIASES.get(scope)
         if normalized:
             return normalized

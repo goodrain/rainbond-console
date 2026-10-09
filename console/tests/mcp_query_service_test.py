@@ -570,6 +570,9 @@ class MCPQueryServiceToolVisibilityTests(SimpleTestCase):
         self.assertEqual(mcp_query_service._normalize_env_scope("local"), "inner")
         with self.assertRaises(ServiceHandleException):
             mcp_query_service._normalize_env_scope("connection")
+        with self.assertRaises(ServiceHandleException) as raised:
+            mcp_query_service._normalize_env_scope({"scope": "inner"})
+        self.assertEqual(raised.exception.status_code, 400)
 
     @patch("console.services.mcp_query_service.region_services.get_enterprise_regions")
     # capability_id: console.enterprise.region-list-authz
