@@ -10459,6 +10459,33 @@
       "status": "active"
     },
     {
+      "id": "console.region-api.unavailable-response",
+      "title": "Return stable retryable responses for Region API outages",
+      "title_zh": "Region API 不可达时返回稳定可重试响应",
+      "interface_type": "package_function",
+      "interface": "www.apiclient.regionapibaseclient.RegionApiBaseHttpClient._request",
+      "code_paths": [
+        "www/apiclient/regionapibaseclient.py",
+        "console/views/base.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/regionapibaseclient_test.py",
+          "selector": "RegionApiBaseHttpClientTestCase.test_request_translates_retry_exhaustion_to_stable_retryable_503"
+        },
+        {
+          "path": "console/tests/regionapibaseclient_test.py",
+          "selector": "RegionApiBaseHttpClientTestCase.test_request_classifies_timeout_tls_and_other_transport_failures"
+        },
+        {
+          "path": "console/tests/regionapibaseclient_test.py",
+          "selector": "RegionApiBaseHttpClientTestCase.test_retryable_service_unavailable_response_includes_retry_after"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.region-api.vm-snapshot-feature-gate-msg",
       "title": "_check_status translates VM snapshot feature gate error to actionable msg_show",
       "title_zh": "_check_status 将虚拟机快照功能门禁错误翻译为可操作提示",

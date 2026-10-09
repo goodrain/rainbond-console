@@ -578,7 +578,10 @@ def custom_exception_handler(exc: Exception, context: Any) -> Optional[Response]
         data = {"code": 10400, "msg": "invalid license", "msg_show": "license不正确或已过期"}
         return Response(data, status=401)
     if isinstance(exc, ServiceHandleException):
-        return exc.response
+        response = exc.response
+        if exc.status_code == 503 and isinstance(exc.details, dict) and exc.details.get("retryable") is True:
+            response["Retry-After"] = "3"
+        return response
     elif isinstance(exc, ResourceNotEnoughException):
         data = {"code": 10406, "msg": "resource is not enough", "msg_show": exc.message}  # type: ignore[attr-defined]
         return Response(data, status=412)

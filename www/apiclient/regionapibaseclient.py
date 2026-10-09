@@ -317,23 +317,33 @@ class RegionApiBaseHttpClient(object):
                     timeout=urllib3.Timeout(connect=d_connect, read=timeout),
                     retries=retries)
             return response.status, response.data
-        except urllib3.exceptions.SSLError:
+        except urllib3.exceptions.SSLError as exc:
             self.destroy_client(region_config=region)
-            raise ServiceHandleException(error_code=10411, msg="SSLError", msg_show="访问数据中心异常，请稍后重试")
-        except socket.timeout as e:
-            raise self.CallApiError(self.apitype, url, method, Dict({"status": 101}), {
-                "type": "request time out",
-                "error": str(e),
-                "error_code": 10411,
-            })
-        except MaxRetryError as e:
-            logger.debug("error url {}".format(url))
-            logger.exception(e)
-            raise ServiceHandleException(error_code=10411, msg="MaxRetryError{}".format(e), msg_show="访问数据中心异常，请稍后重试")
-        except Exception as e:
-            logger.debug("error url {}".format(url))
-            logger.exception(e)
-            raise ServiceHandleException(error_code=10411, msg="Exception{}".format(e), msg_show="访问数据中心异常，请稍后重试")
+            reason = "tls_error"
+            transport_exception = exc
+        except socket.timeout as exc:
+            reason = "timeout"
+            transport_exception = exc
+        except MaxRetryError as exc:
+            reason = "connection_failed"
+            transport_exception = exc
+        except Exception as exc:
+            reason = "transport_error"
+            transport_exception = exc
+        logger.warning(
+            "region api request unavailable method=%s region=%s reason=%s",
+            method,
+            region_name,
+            reason,
+            exc_info=(transport_exception.__class__, transport_exception, transport_exception.__traceback__),
+        )
+        raise ServiceHandleException(
+            error_code=10411,
+            msg="region api unavailable",
+            msg_show="访问数据中心异常，请稍后重试",
+            status_code=503,
+            details={"retryable": True, "reason": reason},
+        ) from None
 
     def destroy_client(self, region_config):
         key = hash(region_config.url + region_config.ssl_ca_cert + region_config.cert_file + region_config.key_file)

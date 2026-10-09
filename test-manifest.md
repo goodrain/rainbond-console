@@ -547,6 +547,7 @@
 | console.region-api.domain-conflict-msg | 将上游域名冲突保留为可操作的 409 错误提示 | active | regression | www.apiclient.regionapibaseclient.RegionApiBaseHttpClient._check_status | console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_check_status_keeps_domain_conflict_as_conflict_error |
 | console.region-api.helm-resource-conflict-msg | 将 Helm 资源归属冲突转换为可操作错误提示 | active | regression | www.apiclient.regionapibaseclient.RegionApiBaseHttpClient._check_status | console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_check_status_translates_helm_ownership_conflict_to_actionable_msg_show |
 | console.region-api.proxy-error-pass-through | 对非 Helm 冲突保留原始上游错误信息 | active | regression | www.apiclient.regionapibaseclient.RegionApiBaseHttpClient._check_status | console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_check_status_keeps_original_message_for_non_helm_conflicts |
+| console.region-api.unavailable-response | Region API 不可达时返回稳定可重试响应 | active | regression | www.apiclient.regionapibaseclient.RegionApiBaseHttpClient._request | console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_request_translates_retry_exhaustion_to_stable_retryable_503<br>console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_request_classifies_timeout_tls_and_other_transport_failures<br>console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_retryable_service_unavailable_response_includes_retry_after |
 | console.region-api.vm-snapshot-feature-gate-msg | _check_status 将虚拟机快照功能门禁错误翻译为可操作提示 | active | regression | www.apiclient.regionapibaseclient.RegionApiBaseHttpClient._check_status | console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_check_status_translates_snapshot_feature_gate_error_to_actionable_msg_show |
 | console.region.list-current-enterprise | 查询当前认证企业的数据中心 | active | regression | console.views.region.QyeryRegionView.get | console/tests/region_view_test.py::QueryRegionViewTests.test_get_uses_authenticated_users_enterprise_without_path_parameter |
 | console.region.partial-update-preserves-required-fields | 集群部分更新保留未提交字段 | active | regression | console.repositories.region_repo.RegionRepo.update_enterprise_region | console/tests/region_repo_update_test.py::RegionRepoUpdateTestCase.test_partial_update_preserves_omitted_required_connection_fields |
@@ -6111,6 +6112,16 @@
 - 业务入口: `www.apiclient.regionapibaseclient.RegionApiBaseHttpClient._check_status`
 - 代码路径: `www/apiclient/regionapibaseclient.py`
 - 测试路径: `console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_check_status_keeps_original_message_for_non_helm_conflicts`
+
+### Region API 不可达时返回稳定可重试响应
+
+- Capability ID: `console.region-api.unavailable-response`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `package_function`
+- 业务入口: `www.apiclient.regionapibaseclient.RegionApiBaseHttpClient._request`
+- 代码路径: `www/apiclient/regionapibaseclient.py`, `console/views/base.py`
+- 测试路径: `console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_request_translates_retry_exhaustion_to_stable_retryable_503`, `console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_request_classifies_timeout_tls_and_other_transport_failures`, `console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_retryable_service_unavailable_response_includes_retry_after`
 
 ### _check_status 将虚拟机快照功能门禁错误翻译为可操作提示
 
