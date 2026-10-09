@@ -318,6 +318,7 @@
 | console.enterprise-config.concurrent-initialization | 处理企业配置并发初始化 | active | regression | console.services.config_service.ConfigService.add_config | console/tests/config_service_test.py::EnterpriseConfigServiceTests.test_add_config_returns_existing_record_when_concurrent_create_wins<br>console/tests/config_service_test.py::EnterpriseConfigServiceTests.test_initialization_uses_config_created_after_bulk_lookup |
 | console.enterprise-config.custom-fields-disabled-bool | get_custom_fields 包含被禁用的布尔字段 | active | regression | console.services.config_service.EnterpriseConfigService.get_custom_fields | console/tests/config_service_test.py::EnterpriseConfigServiceTests.test_get_custom_fields_includes_disabled_bool_fields |
 | console.enterprise-config.user-context | 解析企业配置服务用户上下文 | active | regression | console.services.config_service.EnterpriseConfigService.__init__ | console/tests/config_service_test.py::EnterpriseConfigServiceTests.test_enterprise_config_service_defaults_user_id_to_none<br>console/tests/config_service_test.py::EnterpriseConfigServiceTests.test_enterprise_config_service_keeps_explicit_user_id |
+| console.enterprise-init.empty-region | 集群初始化前返回空默认区域 | active | regression | console.views.team.InitDefaultInfoView.post | console/tests/team_init_default_view_test.py::InitDefaultInfoViewTestCase.test_post_returns_null_default_region_when_enterprise_has_no_regions |
 | console.enterprise.bind-market-token-decode | 解码云市绑定企业的认证信息 | active | regression | console.views.enterprise_active.BindMarketEnterpriseOptimizAccessTokenView.post | console/tests/bind_market_token_decode_test.py::BindMarketTokenDecodeTest.test_market_info_is_base64_decoded |
 | console.enterprise.region-component-list | 查看集群控制面组件列表 | active | regression | console.services.mcp_query_service.call_tool[rainbond_query_region_rbd_components] | console/tests/mcp_query_service_test.py::MCPQueryServiceToolVisibilityTests.test_query_region_rbd_components_returns_components_for_enterprise_admin |
 | console.enterprise.region-create | 创建企业集群 | active | regression | console.services.mcp_query_service.call_tool[rainbond_create_region] | console/tests/mcp_query_service_test.py::MCPQueryServiceRegionMutationTests.test_create_region_executes_directly |
@@ -3810,6 +3811,16 @@
 - 业务入口: `console.services.config_service.EnterpriseConfigService.__init__`
 - 代码路径: `console/services/config_service.py`
 - 测试路径: `console/tests/config_service_test.py::EnterpriseConfigServiceTests.test_enterprise_config_service_defaults_user_id_to_none`, `console/tests/config_service_test.py::EnterpriseConfigServiceTests.test_enterprise_config_service_keeps_explicit_user_id`
+
+### 集群初始化前返回空默认区域
+
+- Capability ID: `console.enterprise-init.empty-region`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `view_endpoint`
+- 业务入口: `console.views.team.InitDefaultInfoView.post`
+- 代码路径: `console/views/team.py`
+- 测试路径: `console/tests/team_init_default_view_test.py::InitDefaultInfoViewTestCase.test_post_returns_null_default_region_when_enterprise_has_no_regions`
 
 ### 解码云市绑定企业的认证信息
 

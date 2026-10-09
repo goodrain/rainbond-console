@@ -6115,6 +6115,24 @@
       "status": "active"
     },
     {
+      "id": "console.enterprise-init.empty-region",
+      "title": "Return an empty default region before cluster initialization",
+      "title_zh": "集群初始化前返回空默认区域",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.team.InitDefaultInfoView.post",
+      "code_paths": [
+        "console/views/team.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/team_init_default_view_test.py",
+          "selector": "InitDefaultInfoViewTestCase.test_post_returns_null_default_region_when_enterprise_has_no_regions"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.enterprise.bind-market-token-decode",
       "title": "Decode the cloud-market bind token payload",
       "title_zh": "解码云市绑定企业的认证信息",

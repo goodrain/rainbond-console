@@ -712,7 +712,7 @@ class InitDefaultInfoView(JWTAuthApiView):
         ent["is_enterprise"] = is_ent
         regions = region_repo.get_regions_by_enterprise_id(self.enterprise.enterprise_id, 1)  # type: ignore[arg-type]
         ent["disable_install_cluster_log"] = False
-        ent["default_region"] = regions[0].to_dict()
+        ent["default_region"] = regions[0].to_dict() if regions else None
         result = general_message(200, "success", "查询成功", bean=ent)
         return Response(result, status=result["code"])
 
