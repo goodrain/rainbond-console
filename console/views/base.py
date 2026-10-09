@@ -22,6 +22,7 @@ from console.repositories.perm_repo import optimized_role_perm_repo
 from console.services.group_service import group_service
 from console.services.user_services import user_services
 from console.utils.database_errors import is_transient_database_error
+from console.utils.external_http_errors import is_retryable_external_http_error
 from console.utils import perms
 from console.utils.oauth.oauth_types import get_oauth_instance
 from django.core.exceptions import PermissionDenied
@@ -587,6 +588,18 @@ def custom_exception_handler(exc: Exception, context: Any) -> Optional[Response]
             status_code=503,
             error_code=503,
             details={"retryable": True, "reason": "database_connection"},
+        )
+        response = error.response
+        response["Retry-After"] = "3"
+        return response
+    if is_retryable_external_http_error(exc):
+        logger.warning("external HTTP service unavailable")
+        error = ServiceHandleException(
+            msg="external service unavailable",
+            msg_show="外部服务暂不可用，请稍后重试",
+            status_code=502,
+            error_code=502,
+            details={"retryable": True, "reason": "external_http"},
         )
         response = error.response
         response["Retry-After"] = "3"

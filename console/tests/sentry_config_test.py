@@ -2,6 +2,7 @@
 from unittest import mock
 
 from django.db import OperationalError
+import requests
 
 from goodrain_web import sentry_config
 
@@ -250,6 +251,24 @@ def test_before_send_groups_transient_database_outages_with_stable_fingerprint()
             {"exc_info": (OperationalError, schema_error, None)},
         )
     assert "fingerprint" not in schema_result
+
+
+# capability_id: console.external-http.unavailable-response
+def test_before_send_groups_external_http_failures_by_host_and_path():
+    error = requests.exceptions.SSLError("bad tls")
+    error.request = mock.Mock(url="https://ghcr.io/v2/_catalog?last=demo/image")
+
+    with mock.patch("goodrain_web.sentry_config.is_external_telemetry_enabled", return_value=True):
+        result = sentry_config.before_send(
+            {"message": "bad tls"},
+            {"exc_info": (requests.exceptions.SSLError, error, None)},
+        )
+
+    assert result["fingerprint"] == [
+        "external-http-unavailable",
+        "ghcr.io",
+        "/v2/_catalog?[Filtered]",
+    ]
 
 
 def test_get_path_pattern_removes_dynamic_segments_and_query():

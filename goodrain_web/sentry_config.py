@@ -12,6 +12,7 @@ from console.services.telemetry_switch import (
     get_external_telemetry_enabled as is_external_telemetry_enabled,
 )
 from console.utils.database_errors import is_transient_database_error
+from console.utils.external_http_errors import get_external_http_url, is_retryable_external_http_error
 from console.utils.offline import is_external_telemetry_disabled, is_offline_mode
 
 
@@ -375,6 +376,16 @@ def get_region_upstream_server_error_path(hint):
     return get_path_pattern(getattr(exception, "url", "")) or "unknown"
 
 
+def get_external_http_error_target(hint):
+    _, exception = get_hint_exception(hint)
+    if exception is None or not is_retryable_external_http_error(exception):
+        return None
+    parsed = urlparse(get_external_http_url(exception))
+    host = parsed.hostname or "unknown"
+    path = get_path_pattern(get_external_http_url(exception)) or "unknown"
+    return host, path
+
+
 def before_send(event, hint):
     if not is_external_telemetry_enabled():
         return None
@@ -385,6 +396,9 @@ def before_send(event, hint):
     region_upstream_path = get_region_upstream_server_error_path(hint)
     if region_upstream_path:
         event["fingerprint"] = ["region-upstream-error", region_upstream_path]
+    external_http_target = get_external_http_error_target(hint)
+    if external_http_target:
+        event["fingerprint"] = ["external-http-unavailable"] + list(external_http_target)
     event.pop("user", None)
     request = event.get("request")
     if request:

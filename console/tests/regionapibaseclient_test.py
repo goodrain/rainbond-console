@@ -9,6 +9,7 @@ from types import ModuleType
 from unittest import TestCase, mock
 
 import urllib3
+import requests
 
 for attr in ("Mapping", "MutableMapping", "Sequence", "Iterable", "Iterator"):
     if not hasattr(collections, attr):
@@ -31,6 +32,18 @@ from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient, create_fi
 
 
 class RegionApiBaseHttpClientTestCase(TestCase):
+    # capability_id: console.external-http.unavailable-response
+    def test_external_http_failure_returns_retryable_502(self):
+        error = requests.exceptions.SSLError("bad tls")
+        error.request = mock.Mock(url="https://ghcr.io/v2/_catalog?last=demo/image")
+
+        response = custom_exception_handler(error, {})
+
+        self.assertEqual(response.status_code, 502)
+        self.assertEqual(response["Retry-After"], "3")
+        self.assertEqual(response.data["msg"], "external service unavailable")
+        self.assertTrue(response.data["data"]["details"]["retryable"])
+
     # capability_id: console.region-api.upstream-server-error
     def test_region_upstream_server_error_returns_retryable_502(self):
         error = RegionApiBaseHttpClient.CallApiError(

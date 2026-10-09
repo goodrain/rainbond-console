@@ -6534,6 +6534,30 @@
       "status": "active"
     },
     {
+      "id": "console.external-http.unavailable-response",
+      "title": "Normalize external HTTP connectivity failures",
+      "title_zh": "统一外部 HTTP 连接故障响应",
+      "interface_type": "package_function",
+      "interface": "console.utils.external_http_errors.is_retryable_external_http_error",
+      "code_paths": [
+        "console/utils/external_http_errors.py",
+        "console/views/base.py",
+        "goodrain_web/sentry_config.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/regionapibaseclient_test.py",
+          "selector": "RegionApiBaseHttpClientTestCase.test_external_http_failure_returns_retryable_502"
+        },
+        {
+          "path": "console/tests/sentry_config_test.py",
+          "selector": "test_before_send_groups_external_http_failures_by_host_and_path"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.file-manage.region-request-timeout",
       "title": "Use selected container and longer timeout for file-manage region requests",
       "title_zh": "文件管理区域请求使用选定容器与更长超时",
