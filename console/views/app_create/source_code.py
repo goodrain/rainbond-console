@@ -369,7 +369,7 @@ class PackageCreateView(RegionTenantHeaderView):
         service_cname = request.data.get("service_cname", None)
         k8s_component_name = request.data.get("k8s_component_name", "")
         arch = request.data.get("arch", "amd64")
-        if k8s_component_name and app_service.is_k8s_component_name_duplicate(group_id, k8s_component_name):
+        if k8s_component_name and app_service.is_k8s_component_name_duplicate(str(group_id), k8s_component_name):
             raise ErrK8sComponentNameExists
         try:
             pkg_record = package_upload_service.get_upload_record(self.team_name, region, event_id)  # type: ignore[arg-type]

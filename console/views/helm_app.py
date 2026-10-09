@@ -18,11 +18,13 @@ from rest_framework.response import Response
 def _validate_helm_repo(repo_name: Any, repo_url: Any) -> Any:
     if not isinstance(repo_name, str) or not repo_name:
         return general_message(400, "invalid repo name", "仓库名称不能为空")
-    if len(repo_name) > HelmRepoInfo._meta.get_field("repo_name").max_length:
+    repo_name_max_length = HelmRepoInfo._meta.get_field("repo_name").max_length
+    if repo_name_max_length is not None and len(repo_name) > repo_name_max_length:
         return general_message(400, "repo name too long", "仓库名称长度不能超过64个字符")
     if not isinstance(repo_url, str) or not repo_url:
         return general_message(400, "invalid repo url", "仓库地址不能为空")
-    if len(repo_url) > HelmRepoInfo._meta.get_field("repo_url").max_length:
+    repo_url_max_length = HelmRepoInfo._meta.get_field("repo_url").max_length
+    if repo_url_max_length is not None and len(repo_url) > repo_url_max_length:
         return general_message(400, "repo url too long", "仓库地址长度不能超过128个字符")
     return None
 

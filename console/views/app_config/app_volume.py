@@ -355,7 +355,9 @@ class AppVolumeManageView(AppBaseView):
             return Response(general_message(404, "volume not found", "存储不存在或已被删除"), status=404)
         file_content = ""
         if volume.volume_type == "config-file":
-            file_content = volume_repo.get_service_config_file(volume).file_content
+            config_file = volume_repo.get_service_config_file(volume)
+            if config_file:
+                file_content = config_file.file_content
         old_information = volume_service.json_service_volume(
             volume_name=volume.volume_name,
             volume_path=volume.volume_path,
