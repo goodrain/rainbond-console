@@ -498,6 +498,7 @@
 | console.package-upload.local-path-missing-details | _normalize_local_path 在路径缺失时抛出结构化详情 | active | regression | console.services.package_upload_tool_service.PackageUploadToolService._normalize_local_path | console/tests/package_upload_tool_service_test.py::PackageUploadToolServiceTests.test_normalize_local_path_raises_structured_details_when_path_missing |
 | console.package-upload.local-path-required-details | _normalize_local_path 在路径为空时抛出结构化详情 | active | regression | console.services.package_upload_tool_service.PackageUploadToolService._normalize_local_path | console/tests/package_upload_tool_service_test.py::PackageUploadToolServiceTests.test_normalize_local_path_raises_structured_details_when_path_empty |
 | console.package-upload.local-path-schema | Package Upload Local Path Schema | active | regression | console.services.mcp_query_service.call_tool[console.package-upload.local-path-schema] | console/tests/mcp_query_service_test.py::MCPQueryServiceToolVisibilityTests.test_upload_package_file_tool_schema_exposes_local_path_guidance |
+| console.package-upload.missing-event-record | 上传记录不存在时拒绝包组件变更 | active | regression | console.views.app_create.source_code.PackageCreateView | console/tests/package_upload_view_test.py::PackageCreateViewTests.test_post_returns_404_before_creating_component_when_upload_record_is_missing<br>console/tests/package_upload_view_test.py::PackageCreateViewTests.test_put_returns_404_before_updating_component_when_upload_record_is_missing |
 | console.package-upload.rainskills-tool-visibility | RainSkills 工具发现隐藏服务端本地软件包工具 | active | regression | console.services.mcp_query_service.list_tools[console.package-upload.rainskills-tool-visibility] | console/tests/mcp_query_service_test.py::MCPQueryServiceToolVisibilityTests.test_rainskills_hides_server_local_package_tools_only_from_discovery |
 | console.package-upload.status | Package Upload Status | active | regression | console.services.mcp_query_service.call_tool[console.package-upload.status] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_get_package_upload_status_delegates_to_upload_tool_service |
 | console.package-upload.status-flow | Package Upload Status Flow | active | regression | console.services.package_upload_tool_service | console/tests/package_upload_tool_service_test.py::PackageUploadToolServiceTests.test_get_upload_status_reads_packages_and_updates_record |
@@ -5611,6 +5612,16 @@
 - 业务入口: `console.services.mcp_query_service.call_tool[console.package-upload.local-path-schema]`
 - 代码路径: `console/services/mcp_query_service.py`
 - 测试路径: `console/tests/mcp_query_service_test.py::MCPQueryServiceToolVisibilityTests.test_upload_package_file_tool_schema_exposes_local_path_guidance`
+
+### 上传记录不存在时拒绝包组件变更
+
+- Capability ID: `console.package-upload.missing-event-record`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `view_endpoint`
+- 业务入口: `console.views.app_create.source_code.PackageCreateView`
+- 代码路径: `console/views/app_create/source_code.py`
+- 测试路径: `console/tests/package_upload_view_test.py::PackageCreateViewTests.test_post_returns_404_before_creating_component_when_upload_record_is_missing`, `console/tests/package_upload_view_test.py::PackageCreateViewTests.test_put_returns_404_before_updating_component_when_upload_record_is_missing`
 
 ### RainSkills 工具发现隐藏服务端本地软件包工具
 

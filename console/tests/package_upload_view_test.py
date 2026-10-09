@@ -61,3 +61,61 @@ class UploadRecordLastViewTests(TestCase):
             "source_dir": ["demo.zip"],
             "event_id": "event-1",
         })
+
+
+class PackageCreateViewTests(TestCase):
+    def _request(self, view, method, data):
+        request_factory = APIRequestFactory()
+        request = getattr(request_factory, method)(
+            "/console/teams/demo/apps/package_build",
+            data,
+            format="json",
+        )
+        return view.initialize_request(request)
+
+    # capability_id: console.package-upload.missing-event-record
+    def test_post_returns_404_before_creating_component_when_upload_record_is_missing(self):
+        view = source_code_module.PackageCreateView()
+        view.team_name = "demo"
+        request = self._request(view, "post", {
+            "group_id": 1,
+            "region": "rainbond",
+            "event_id": "missing-event",
+            "service_cname": "demo",
+        })
+
+        with mock.patch.object(
+                source_code_module.package_upload_service,
+                "get_upload_record",
+                return_value=None,
+        ), mock.patch.object(source_code_module.app_service, "create_package_upload_info") as create_component, \
+                mock.patch.object(source_code_module.logger, "exception") as log_exception:
+            response = view.post(request, "demo")
+
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.data["msg_show"], "上传记录不存在")
+        create_component.assert_not_called()
+        log_exception.assert_not_called()
+
+    # capability_id: console.package-upload.missing-event-record
+    def test_put_returns_404_before_updating_component_when_upload_record_is_missing(self):
+        view = source_code_module.PackageCreateView()
+        view.team_name = "demo"
+        request = self._request(view, "put", {
+            "region": "rainbond",
+            "event_id": "missing-event",
+            "service_id": "service-id",
+        })
+
+        with mock.patch.object(
+                source_code_module.package_upload_service,
+                "get_upload_record",
+                return_value=None,
+        ), mock.patch.object(source_code_module.app_service, "change_package_upload_info") as update_component, \
+                mock.patch.object(source_code_module.logger, "exception") as log_exception:
+            response = view.put(request, "demo")
+
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.data["msg_show"], "上传记录不存在")
+        update_component.assert_not_called()
+        log_exception.assert_not_called()

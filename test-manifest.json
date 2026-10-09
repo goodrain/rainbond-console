@@ -9528,6 +9528,28 @@
       "status": "active"
     },
     {
+      "id": "console.package-upload.missing-event-record",
+      "title": "Reject package component changes for missing upload records",
+      "title_zh": "上传记录不存在时拒绝包组件变更",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.app_create.source_code.PackageCreateView",
+      "code_paths": [
+        "console/views/app_create/source_code.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/package_upload_view_test.py",
+          "selector": "PackageCreateViewTests.test_post_returns_404_before_creating_component_when_upload_record_is_missing"
+        },
+        {
+          "path": "console/tests/package_upload_view_test.py",
+          "selector": "PackageCreateViewTests.test_put_returns_404_before_updating_component_when_upload_record_is_missing"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.package-upload.rainskills-tool-visibility",
       "title": "Hide server-local package tools from RainSkills discovery",
       "title_zh": "RainSkills 工具发现隐藏服务端本地软件包工具",

@@ -372,9 +372,11 @@ class PackageCreateView(RegionTenantHeaderView):
         if k8s_component_name and app_service.is_k8s_component_name_duplicate(group_id, k8s_component_name):
             raise ErrK8sComponentNameExists
         try:
-            # NOTE: get_upload_record may return None; backlog
             pkg_record = package_upload_service.get_upload_record(self.team_name, region, event_id)  # type: ignore[arg-type]
-            pkg_create_time = pkg_record.create_time  # type: ignore[union-attr]
+            if not pkg_record:
+                result = general_message(404, "package upload record not found", "上传记录不存在")
+                return Response(result, status=result["code"])
+            pkg_create_time = pkg_record.create_time
             # 创建信息
             ts = app_service.create_package_upload_info(
                 region, self.tenant, self.user, service_cname, k8s_component_name,  # type: ignore[arg-type]
@@ -406,7 +408,10 @@ class PackageCreateView(RegionTenantHeaderView):
         region = request.data.get("region", "")
         try:
             pkg_record = package_upload_service.get_upload_record(self.team_name, region, event_id)  # type: ignore[arg-type]
-            pkg_create_time = pkg_record.create_time  # type: ignore[union-attr]
+            if not pkg_record:
+                result = general_message(404, "package upload record not found", "上传记录不存在")
+                return Response(result, status=result["code"])
+            pkg_create_time = pkg_record.create_time
             app_service.change_package_upload_info(service_id, event_id, pkg_create_time)  # type: ignore[arg-type]
             update_record = {
                 "status": "finished",
