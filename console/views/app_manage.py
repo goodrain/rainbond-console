@@ -677,6 +677,8 @@ class BatchActionView(RegionTenantHeaderCloudEnterpriseCenterView):
         move_group_id = request.data.get("move_group_id", None)
         if action not in ("stop", "start", "restart", "move", "upgrade", "deploy"):
             return Response(general_message(400, "param error", "操作类型错误"), status=400)
+        if not isinstance(service_ids, str) or not service_ids.strip():
+            return Response(general_message(400, "param error", "组件 ID 不能为空"), status=400)
 
         action_zh = ""
         if action == "stop":
@@ -692,15 +694,15 @@ class BatchActionView(RegionTenantHeaderCloudEnterpriseCenterView):
         if action == "deploy":
             action_zh = "构建"
         comment = "批量" + action_zh + "了应用{app}下的组件"
-        # NOTE: service_ids comes from request body (Any|None); legacy code assumes str (backlog).
-        service_id_list = service_ids.split(",")  # type: ignore[union-attr]
+        service_id_list = [service_id for service_id in service_ids.split(",") if service_id]
         app = group_service.get_service_group_info(service_id_list[0])
         code, msg, services = app_manage_service.batch_action(
             self.region_name, self.tenant, self.user, action, service_id_list, move_group_id, self.oauth_instance)
 
-        # NOTE: get_service_group_info may return None; legacy code assumes present (backlog).
-        app_name = operation_log_service.process_app_name(
-            app.app_name, self.region_name, self.team_name, app.app_id)  # type: ignore[union-attr]
+        app_name = "未分组"
+        if app:
+            app_name = operation_log_service.process_app_name(
+                app.app_name, self.region_name, self.team_name, app.app_id)
         comment = comment.format(app=app_name)
         component_names = []
         idx = 0
@@ -733,7 +735,7 @@ class BatchActionView(RegionTenantHeaderCloudEnterpriseCenterView):
             # NOTE: enterprise_id nullable on model; service expects str (backlog).
             enterprise_id=self.user.enterprise_id,  # type: ignore[arg-type]
             team_name=self.team_name,
-            app_id=app.app_id,  # type: ignore[union-attr]
+            app_id=app.app_id if app else 0,
             new_information=new_information,
             information_type=InformationType.INFORMATION_ADDS.value)
 

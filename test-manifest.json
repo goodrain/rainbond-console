@@ -4076,6 +4076,24 @@
       "status": "active"
     },
     {
+      "id": "console.component-batch-action.missing-app",
+      "title": "Keep batch actions working for ungrouped components",
+      "title_zh": "未分组组件仍可执行批量操作",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.app_manage.BatchActionView.post",
+      "code_paths": [
+        "console/views/app_manage.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/batch_action_view_test.py",
+          "selector": "BatchActionViewTestCase.test_post_keeps_batch_action_successful_when_component_has_no_app"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.component-build.serializable-failure-response",
       "title": "Serialize component build failure responses",
       "title_zh": "组件构建失败响应可序列化",
