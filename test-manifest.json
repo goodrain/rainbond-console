@@ -9783,6 +9783,24 @@
       "status": "active"
     },
     {
+      "id": "console.rainskills-audit.transient-terminal-lock-retry",
+      "title": "Retry transient RainSkills terminal audit database locks",
+      "title_zh": "重试 RainSkills 审计终态瞬时数据库锁",
+      "interface_type": "service_method",
+      "interface": "console.services.rainskills_audit_service.RainSkillsAuditService.finalize_failure",
+      "code_paths": [
+        "console/services/rainskills_audit_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/rainskills_audit_service_test.py",
+          "selector": "RainSkillsAuditServiceSafetyTests.test_terminal_persistence_retries_transient_database_locks"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.rainskills.deployment-report-backpressure",
       "title": "Bound deployment report workers without losing deferred reports",
       "title_zh": "Bound deployment report workers without losing deferred reports",
