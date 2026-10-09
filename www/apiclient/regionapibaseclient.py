@@ -658,7 +658,7 @@ class RegionApiBaseHttpClient(object):
 
 def create_file(path, name, body):
     if not os.path.exists(path):
-        os.makedirs(path)
+        os.makedirs(path, exist_ok=True)
     file_path = path + "/" + name
     with open(file_path, 'w') as f:
         f.writelines(body)

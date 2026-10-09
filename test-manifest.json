@@ -10175,6 +10175,24 @@
       "status": "active"
     },
     {
+      "id": "console.region-api.concurrent-certificate-directory",
+      "title": "Create region certificate directories safely under concurrency",
+      "title_zh": "并发安全创建区域证书目录",
+      "interface_type": "package_function",
+      "interface": "www.apiclient.regionapibaseclient.create_file",
+      "code_paths": [
+        "www/apiclient/regionapibaseclient.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/regionapibaseclient_test.py",
+          "selector": "RegionApiBaseHttpClientTestCase.test_create_file_tolerates_concurrent_directory_creation"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.region-api.domain-conflict-msg",
       "title": "Preserve upstream domain conflict as actionable 409",
       "title_zh": "将上游域名冲突保留为可操作的 409 错误提示",

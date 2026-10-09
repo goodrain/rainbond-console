@@ -25,10 +25,24 @@ django.setup()
 
 from console.exception.main import ServiceHandleException  # noqa: E402
 from django.http import StreamingHttpResponse  # noqa: E402
-from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient  # noqa: E402
+from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient, create_file  # noqa: E402
 
 
 class RegionApiBaseHttpClientTestCase(TestCase):
+    # capability_id: console.region-api.concurrent-certificate-directory
+    def test_create_file_tolerates_concurrent_directory_creation(self):
+        def concurrent_makedirs(path, exist_ok=False):
+            if not exist_ok:
+                raise FileExistsError(path)
+
+        with mock.patch("www.apiclient.regionapibaseclient.os.path.exists", return_value=False), \
+                mock.patch("www.apiclient.regionapibaseclient.os.makedirs", side_effect=concurrent_makedirs) as makedirs, \
+                mock.patch("builtins.open", mock.mock_open(read_data="certificate")):
+            file_path = create_file("/tmp/region-ssl", "ca.pem", "certificate")
+
+        makedirs.assert_called_once_with("/tmp/region-ssl", exist_ok=True)
+        self.assertEqual(file_path, "/tmp/region-ssl/ca.pem")
+
     def test_timed_client_request_records_success(self):
         client = RegionApiBaseHttpClient()
         transport = mock.Mock()

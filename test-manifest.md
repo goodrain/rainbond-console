@@ -532,6 +532,7 @@
 | console.realtime-proxy.websocket-idle-timeout | 后端 websocket 使用短读超时检测空闲 | active | regression | console.utils.realtime_proxy.open_backend_websocket | console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_backend_websocket_uses_short_read_timeout_for_idle_checks |
 | console.realtime-proxy.websocket-url | 实时代理 WebSocket URL | active | regression | console.services.app_actions.app_log.AppWebSocketService.get_event_log_ws | console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_websocket_service_returns_console_proxy_url_without_6060 |
 | console.region-api.batch-create-error-bean | Region Api Batch Create Error Bean | active | regression | www.apiclient.regionapibaseclient.RegionApiBaseHttpClient._check_status | console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_check_status_preserves_batch_create_result_bean_for_coded_errors |
+| console.region-api.concurrent-certificate-directory | 并发安全创建区域证书目录 | active | regression | www.apiclient.regionapibaseclient.create_file | console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_create_file_tolerates_concurrent_directory_creation |
 | console.region-api.domain-conflict-msg | 将上游域名冲突保留为可操作的 409 错误提示 | active | regression | www.apiclient.regionapibaseclient.RegionApiBaseHttpClient._check_status | console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_check_status_keeps_domain_conflict_as_conflict_error |
 | console.region-api.helm-resource-conflict-msg | 将 Helm 资源归属冲突转换为可操作错误提示 | active | regression | www.apiclient.regionapibaseclient.RegionApiBaseHttpClient._check_status | console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_check_status_translates_helm_ownership_conflict_to_actionable_msg_show |
 | console.region-api.proxy-error-pass-through | 对非 Helm 冲突保留原始上游错误信息 | active | regression | www.apiclient.regionapibaseclient.RegionApiBaseHttpClient._check_status | console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_check_status_keeps_original_message_for_non_helm_conflicts |
@@ -5947,6 +5948,16 @@
 - 业务入口: `www.apiclient.regionapibaseclient.RegionApiBaseHttpClient._check_status`
 - 代码路径: `www/apiclient/regionapibaseclient.py`
 - 测试路径: `console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_check_status_preserves_batch_create_result_bean_for_coded_errors`
+
+### 并发安全创建区域证书目录
+
+- Capability ID: `console.region-api.concurrent-certificate-directory`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `package_function`
+- 业务入口: `www.apiclient.regionapibaseclient.create_file`
+- 代码路径: `www/apiclient/regionapibaseclient.py`
+- 测试路径: `console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_create_file_tolerates_concurrent_directory_creation`
 
 ### 将上游域名冲突保留为可操作的 409 错误提示
 
