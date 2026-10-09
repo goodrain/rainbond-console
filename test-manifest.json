@@ -4130,6 +4130,42 @@
       "status": "active"
     },
     {
+      "id": "console.component-delete.missing-app-relation",
+      "title": "Delete components without an application relation",
+      "title_zh": "删除缺少应用关系的组件",
+      "interface_type": "service_method",
+      "interface": "console.services.app_actions.app_manage.AppManageService.get_app_by_service",
+      "code_paths": [
+        "console/services/app_actions/app_manage.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_manage_test.py",
+          "selector": "AppManageDeleteRecordIdempotencyTests.test_get_app_by_service_returns_none_when_group_relation_is_missing"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.component-delete.region-payload-isolation",
+      "title": "Keep region-only deletion fields out of database records",
+      "title_zh": "区域删除参数不写入数据库记录",
+      "interface_type": "service_method",
+      "interface": "console.services.app_actions.app_manage.AppManageService._build_delete_record_data",
+      "code_paths": [
+        "console/services/app_actions/app_manage.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_manage_test.py",
+          "selector": "AppManageDeleteRecordIdempotencyTests.test_delete_record_payload_excludes_region_only_fields_for_incomplete_service"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.component-env.delete-missing-404",
       "title": "Return a controlled 404 when deleting a missing environment variable",
       "title_zh": "删除不存在的环境变量时返回受控 404",

@@ -584,6 +584,31 @@ class AppManageIncompleteVMCleanupTests(DjangoTestCase):
 
 
 class AppManageDeleteRecordIdempotencyTests(DjangoTestCase):
+    # capability_id: console.component-delete.missing-app-relation
+    def test_get_app_by_service_returns_none_when_group_relation_is_missing(self):
+        service = mock.Mock(service_id="service-without-app")
+
+        with mock.patch.object(
+                app_manage_module.group_service_relation_repo,
+                "get_group_by_service_id",
+                return_value=None,
+        ), mock.patch.object(app_manage_module.group_repo, "get_group_by_id") as get_group:
+            app = app_manage_module.AppManageService().get_app_by_service(service)
+
+        self.assertIsNone(app)
+        get_group.assert_not_called()
+
+    # capability_id: console.component-delete.region-payload-isolation
+    def test_delete_record_payload_excludes_region_only_fields_for_incomplete_service(self):
+        service = mock.Mock(create_status="creating")
+        user = mock.Mock(nick_name="operator")
+
+        data = app_manage_module.AppManageService()._build_delete_record_data(
+            service, app=None, user=user)
+
+        self.assertEqual(data, {"exec_user": "operator"})
+        self.assertNotIn("etcd_keys", data)
+
     # capability_id: console.component-delete.idempotent-record
     def test_create_delete_service_updates_existing_record_for_repeated_delete(self):
         data = {

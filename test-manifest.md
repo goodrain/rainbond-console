@@ -221,6 +221,8 @@
 | console.component-build.serializable-failure-response | 组件构建失败响应可序列化 | active | regression | console.views.app_create.app_build.AppBuild.post | console/tests/app_build_first_deploy_test.py::AppBuildFirstDeployTrackingTests.test_app_build_serializes_unexpected_deploy_error_message |
 | console.component-check.duplicate-port-noise | 组件检测重复端口按预期处理 | active | regression | console.services.app_check_service.AppCheckService.update_service_check_info | console/tests/app_check_service_build_strategy_test.py::AppCheckServiceBuildStrategyTests.test_update_service_check_info_logs_duplicate_detected_port_as_info |
 | console.component-delete.idempotent-record | 幂等保存组件删除记录 | active | regression | console.repositories.app.TenantServiceDeleteRepository.create_delete_service | console/tests/app_manage_test.py::AppManageDeleteRecordIdempotencyTests.test_create_delete_service_updates_existing_record_for_repeated_delete |
+| console.component-delete.missing-app-relation | 删除缺少应用关系的组件 | active | regression | console.services.app_actions.app_manage.AppManageService.get_app_by_service | console/tests/app_manage_test.py::AppManageDeleteRecordIdempotencyTests.test_get_app_by_service_returns_none_when_group_relation_is_missing |
+| console.component-delete.region-payload-isolation | 区域删除参数不写入数据库记录 | active | regression | console.services.app_actions.app_manage.AppManageService._build_delete_record_data | console/tests/app_manage_test.py::AppManageDeleteRecordIdempotencyTests.test_delete_record_payload_excludes_region_only_fields_for_incomplete_service |
 | console.component-env.delete-missing-404 | 删除不存在的环境变量时返回受控 404 | active | regression | console.services.app_config.env_service.AppEnvVarService.delete_env_by_env_id | console/tests/app_env_service_test.py::TenantServiceEnvVarRepositoryUpdateTestCase.test_404_lookup_rejects_non_numeric_environment_id_before_querying<br>console/tests/app_env_service_test.py::AppEnvVarServiceUpdateTestCase.test_delete_env_by_env_id_uses_404_aware_lookup_and_returns_deleted_env |
 | console.component-env.field-length-validation | 持久化前校验环境变量字段长度 | active | regression | console.services.app_config.env_service.AppEnvVarService.add_service_env_var | console/tests/app_env_service_test.py::AppEnvVarServiceUpdateTestCase.test_add_env_rejects_overlong_description_before_region_or_database_write |
 | console.component-type.daemonset | DaemonSet 组件类型支持 | active | regression | console.enum.component_enum.ComponentType | console/tests/app_manage_test.py::ComponentDaemonSetSupportTests.test_daemonset_component_type_is_supported<br>console/tests/app_manage_test.py::ComponentDaemonSetSupportTests.test_extend_method_name_supports_daemonset<br>console/tests/app_manage_test.py::ComponentDaemonSetSupportTests.test_change_service_type_blocks_daemonset_transition |
@@ -2845,6 +2847,26 @@
 - 业务入口: `console.repositories.app.TenantServiceDeleteRepository.create_delete_service`
 - 代码路径: `console/repositories/app.py`
 - 测试路径: `console/tests/app_manage_test.py::AppManageDeleteRecordIdempotencyTests.test_create_delete_service_updates_existing_record_for_repeated_delete`
+
+### 删除缺少应用关系的组件
+
+- Capability ID: `console.component-delete.missing-app-relation`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.app_actions.app_manage.AppManageService.get_app_by_service`
+- 代码路径: `console/services/app_actions/app_manage.py`
+- 测试路径: `console/tests/app_manage_test.py::AppManageDeleteRecordIdempotencyTests.test_get_app_by_service_returns_none_when_group_relation_is_missing`
+
+### 区域删除参数不写入数据库记录
+
+- Capability ID: `console.component-delete.region-payload-isolation`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.app_actions.app_manage.AppManageService._build_delete_record_data`
+- 代码路径: `console/services/app_actions/app_manage.py`
+- 测试路径: `console/tests/app_manage_test.py::AppManageDeleteRecordIdempotencyTests.test_delete_record_payload_excludes_region_only_fields_for_incomplete_service`
 
 ### 删除不存在的环境变量时返回受控 404
 
