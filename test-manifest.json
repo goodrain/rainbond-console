@@ -9024,6 +9024,24 @@
       "status": "active"
     },
     {
+      "id": "console.oauth.missing-access-key-fallback",
+      "title": "Treat missing OAuth access keys as an expected repository fallback",
+      "title_zh": "OAuth Access Key 缺失时按预期回退仓库地址",
+      "interface_type": "service_method",
+      "interface": "console.services.app_actions.app_manage.AppManageService.deploy_services_info",
+      "code_paths": [
+        "console/services/app_actions/app_manage.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_manage_test.py",
+          "selector": "AppManageBatchActionDeployEventTests.test_deploy_info_falls_back_without_error_log_when_oauth_access_key_is_missing"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.oauth.service-validation",
       "title": "Validate OAuth service references before use",
       "title_zh": "使用前校验 OAuth 服务引用",

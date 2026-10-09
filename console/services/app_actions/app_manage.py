@@ -817,8 +817,8 @@ class AppManageService(AppManageBase):
                         continue
                     try:
                         git_url = instance.get_clone_url(service.git_url)
-                    except NoAccessKeyErr as e:
-                        logger.exception(e)
+                    except NoAccessKeyErr:
+                        logger.warning("OAuth access key unavailable; falling back to the configured repository URL")
                         git_url = service.git_url
                     source_code["repo_url"] = git_url
                 elif service_source and (service_source.user_name or service_source.password):

@@ -373,6 +373,50 @@ class AppManageStartErrorTests(TestCase):
 
 class AppManageBatchActionDeployEventTests(DjangoTestCase):
 
+    # capability_id: console.oauth.missing-access-key-fallback
+    def test_deploy_info_falls_back_without_error_log_when_oauth_access_key_is_missing(self):
+        tenant = mock.Mock(tenant_id="tenant-id", enterprise_id="enterprise-id", creater="creator")
+        user = mock.Mock(user_id=1)
+        service = mock.Mock(
+            service_id="service-1",
+            service_alias="grsvc1",
+            service_cname="api",
+            service_source="source_code",
+            create_status="complete",
+            build_upgrade=False,
+            language="python",
+            build_strategy="dockerfile",
+            git_url="https://git.example.com/demo/api.git",
+            code_version="main",
+            arch="amd64",
+            oauth_service_id=7,
+        )
+        oauth_service = mock.Mock(oauth_type="gitea")
+        oauth_instance = mock.Mock()
+        oauth_instance.is_git_oauth.return_value = True
+        oauth_instance.get_clone_url.side_effect = app_manage_module.NoAccessKeyErr("expired")
+
+        with mock.patch.object(app_manage_module, "check_account_quota", return_value=True), \
+                mock.patch.object(app_manage_module.env_var_repo, "get_build_envs", return_value=[]), \
+                mock.patch.object(
+                    app_manage_module.AppManageService,
+                    "_AppManageService__get_service_kind",
+                    return_value="build_from_source_code",
+                ), mock.patch.object(app_manage_module, "compose_source_code_info", return_value={}), \
+                mock.patch.object(app_manage_module.service_source_repo, "get_service_source", return_value=None), \
+                mock.patch.object(app_manage_module.oauth_repo, "get_oauth_services_by_service_id", return_value=oauth_service), \
+                mock.patch.object(app_manage_module.oauth_user_repo, "get_user_oauth_by_user_id", return_value=mock.Mock()), \
+                mock.patch.object(app_manage_module, "get_oauth_instance", return_value=oauth_instance), \
+                mock.patch.object(app_manage_module.logger, "exception") as log_exception, \
+                mock.patch.object(app_manage_module.logger, "warning") as log_warning:
+            code, body = app_manage_module.AppManageService().deploy_services_info(
+                {}, [service], tenant, user, None, region_name="region-a")
+
+        self.assertEqual(code, 200)
+        self.assertEqual(body["build_infos"][0]["code_info"]["repo_url"], service.git_url)
+        log_exception.assert_not_called()
+        log_warning.assert_called_once()
+
     def test_batch_action_keeps_return_contract_and_records_deploy_event_on_service(self):
         tenant = mock.Mock()
         user = mock.Mock()
