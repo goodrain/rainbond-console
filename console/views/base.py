@@ -21,9 +21,11 @@ from console.repositories.perm_repo import optimized_role_perm_repo
 # service
 from console.services.group_service import group_service
 from console.services.user_services import user_services
+from console.utils.database_errors import is_transient_database_error
 from console.utils import perms
 from console.utils.oauth.oauth_types import get_oauth_instance
 from django.core.exceptions import PermissionDenied
+from django.db import OperationalError
 from django.http import Http404
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy as trans
@@ -577,6 +579,18 @@ def custom_exception_handler(exc: Exception, context: Any) -> Optional[Response]
     if isinstance(exc, RegionApiBaseHttpClient.InvalidLicenseError):
         data = {"code": 10400, "msg": "invalid license", "msg_show": "license不正确或已过期"}
         return Response(data, status=401)
+    if isinstance(exc, OperationalError) and is_transient_database_error(exc):
+        logger.warning("transient database connection failure")
+        error = ServiceHandleException(
+            msg="database unavailable",
+            msg_show="数据库暂不可用，请稍后重试",
+            status_code=503,
+            error_code=503,
+            details={"retryable": True, "reason": "database_connection"},
+        )
+        response = error.response
+        response["Retry-After"] = "3"
+        return response
     if isinstance(exc, ServiceHandleException):
         response = exc.response
         if exc.status_code == 503 and isinstance(exc.details, dict) and exc.details.get("retryable") is True:

@@ -5937,6 +5937,30 @@
       "status": "active"
     },
     {
+      "id": "console.database.transient-unavailable",
+      "title": "Normalize transient database outages",
+      "title_zh": "统一瞬时数据库不可用响应",
+      "interface_type": "package_function",
+      "interface": "console.utils.database_errors.is_transient_database_error",
+      "code_paths": [
+        "console/utils/database_errors.py",
+        "console/views/base.py",
+        "goodrain_web/sentry_config.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/regionapibaseclient_test.py",
+          "selector": "RegionApiBaseHttpClientTestCase.test_transient_database_error_returns_retryable_503"
+        },
+        {
+          "path": "console/tests/sentry_config_test.py",
+          "selector": "test_before_send_groups_transient_database_outages_with_stable_fingerprint"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.dependency.invalid-container-port",
       "title": "Dependency Invalid Container Port",
       "title_zh": "Dependency Invalid Container Port",

@@ -25,11 +25,24 @@ django.setup()
 
 from console.exception.main import ServiceHandleException  # noqa: E402
 from console.views.base import custom_exception_handler  # noqa: E402
+from django.db import OperationalError  # noqa: E402
 from django.http import StreamingHttpResponse  # noqa: E402
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient, create_file  # noqa: E402
 
 
 class RegionApiBaseHttpClientTestCase(TestCase):
+    # capability_id: console.database.transient-unavailable
+    def test_transient_database_error_returns_retryable_503(self):
+        response = custom_exception_handler(
+            OperationalError(2006, "Server has gone away"),
+            {},
+        )
+
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(response["Retry-After"], "3")
+        self.assertEqual(response.data["msg"], "database unavailable")
+        self.assertTrue(response.data["data"]["details"]["retryable"])
+
     # capability_id: console.region-api.unavailable-response
     def test_request_translates_retry_exhaustion_to_stable_retryable_503(self):
         client = RegionApiBaseHttpClient()

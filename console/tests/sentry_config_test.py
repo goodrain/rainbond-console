@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 from unittest import mock
 
+from django.db import OperationalError
+
 from goodrain_web import sentry_config
 
 
@@ -193,6 +195,35 @@ def test_before_send_keeps_server_side_service_and_region_errors():
 
     assert service_result == {"message": "service failed"}
     assert region_result == {"message": "region failed"}
+
+
+# capability_id: console.database.transient-unavailable
+def test_before_send_groups_transient_database_outages_with_stable_fingerprint():
+    error = OperationalError(2006, "Server has gone away")
+    event = {
+        "message": "Server has gone away",
+        "request": {
+            "url": "/console/teams/demo/apps",
+            "method": "GET",
+        },
+    }
+
+    with mock.patch("goodrain_web.sentry_config.is_external_telemetry_enabled", return_value=True):
+        result = sentry_config.before_send(
+            event,
+            {"exc_info": (OperationalError, error, None)},
+        )
+
+    assert result["fingerprint"] == ["database-unavailable"]
+    assert result["request"]["url"] == "/console/teams/:id/apps"
+
+    schema_error = OperationalError(1051, "Unknown table 'console_ci.mcp_device_authorization'")
+    with mock.patch("goodrain_web.sentry_config.is_external_telemetry_enabled", return_value=True):
+        schema_result = sentry_config.before_send(
+            {"message": "Unknown table"},
+            {"exc_info": (OperationalError, schema_error, None)},
+        )
+    assert "fingerprint" not in schema_result
 
 
 def test_get_path_pattern_removes_dynamic_segments_and_query():

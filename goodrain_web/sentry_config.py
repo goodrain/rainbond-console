@@ -11,6 +11,7 @@ except ImportError:  # pragma: no cover - Python 2 compatibility guard
 from console.services.telemetry_switch import (
     get_external_telemetry_enabled as is_external_telemetry_enabled,
 )
+from console.utils.database_errors import is_transient_database_error
 from console.utils.offline import is_external_telemetry_disabled, is_offline_mode
 
 
@@ -346,11 +347,24 @@ def is_expected_not_found_error(hint):
     return False
 
 
+def is_transient_database_exception(hint):
+    exception_type, exception = get_hint_exception(hint)
+    if exception_type is None or exception is None:
+        return False
+    if getattr(exception_type, "__module__", "") != "django.db.utils":
+        return False
+    if getattr(exception_type, "__name__", "") != "OperationalError":
+        return False
+    return is_transient_database_error(exception)
+
+
 def before_send(event, hint):
     if not is_external_telemetry_enabled():
         return None
     if is_expected_region_frequent_error(hint) or is_expected_not_found_error(hint):
         return None
+    if is_transient_database_exception(hint):
+        event["fingerprint"] = ["database-unavailable"]
     event.pop("user", None)
     request = event.get("request")
     if request:
