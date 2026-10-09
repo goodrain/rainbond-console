@@ -4154,6 +4154,24 @@
       "status": "active"
     },
     {
+      "id": "console.component-env.field-length-validation",
+      "title": "Validate environment variable field lengths before persistence",
+      "title_zh": "持久化前校验环境变量字段长度",
+      "interface_type": "service_method",
+      "interface": "console.services.app_config.env_service.AppEnvVarService.add_service_env_var",
+      "code_paths": [
+        "console/services/app_config/env_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_env_service_test.py",
+          "selector": "AppEnvVarServiceUpdateTestCase.test_add_env_rejects_overlong_description_before_region_or_database_write"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.component-type.daemonset",
       "title": "DaemonSet component type support",
       "title_zh": "DaemonSet 组件类型支持",

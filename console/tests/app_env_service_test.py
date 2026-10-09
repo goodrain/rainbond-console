@@ -52,6 +52,35 @@ class TenantServiceEnvVarRepositoryUpdateTestCase(TestCase):
 
 
 class AppEnvVarServiceUpdateTestCase(TestCase):
+    # capability_id: console.component-env.field-length-validation
+    def test_add_env_rejects_overlong_description_before_region_or_database_write(self):
+        tenant = mock.Mock(tenant_id="tenant-id", tenant_name="tenant-name", enterprise_id="enterprise-id")
+        service = mock.Mock(
+            tenant_id="tenant-id",
+            service_id="service-id",
+            service_region="region-name",
+            service_alias="service-alias",
+            create_status="complete")
+        repo = mock.Mock()
+        repo.get_service_env_by_attr_name.return_value = None
+
+        cases = (
+            ("x" * 1025, "VALID_NAME", "环境变量说明长度不能超过1024个字符"),
+            ("description", "A" * 1025, "环境变量名称长度不能超过1024个字符"),
+        )
+        for name, attr_name, expected_message in cases:
+            with self.subTest(expected_message=expected_message), \
+                    mock.patch.object(env_service_module, "env_var_repo", repo), \
+                    mock.patch.object(env_service_module, "region_api") as region_api:
+                code, msg, env = AppEnvVarService().add_service_env_var(
+                    tenant, service, 0, name, attr_name, "value", True, "inner", "operator")
+
+            self.assertEqual(code, 400)
+            self.assertEqual(msg, expected_message)
+            self.assertIsNone(env)
+            region_api.add_service_env.assert_not_called()
+            repo.add_service_env.assert_not_called()
+
     # capability_id: console.component-env.delete-missing-404
     def test_delete_env_by_env_id_uses_404_aware_lookup_and_returns_deleted_env(self):
         tenant = mock.Mock(tenant_id="tenant-id", tenant_name="tenant-name", enterprise_id="enterprise-id")

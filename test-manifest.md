@@ -222,6 +222,7 @@
 | console.component-check.duplicate-port-noise | 组件检测重复端口按预期处理 | active | regression | console.services.app_check_service.AppCheckService.update_service_check_info | console/tests/app_check_service_build_strategy_test.py::AppCheckServiceBuildStrategyTests.test_update_service_check_info_logs_duplicate_detected_port_as_info |
 | console.component-delete.idempotent-record | 幂等保存组件删除记录 | active | regression | console.repositories.app.TenantServiceDeleteRepository.create_delete_service | console/tests/app_manage_test.py::AppManageDeleteRecordIdempotencyTests.test_create_delete_service_updates_existing_record_for_repeated_delete |
 | console.component-env.delete-missing-404 | 删除不存在的环境变量时返回受控 404 | active | regression | console.services.app_config.env_service.AppEnvVarService.delete_env_by_env_id | console/tests/app_env_service_test.py::TenantServiceEnvVarRepositoryUpdateTestCase.test_404_lookup_rejects_non_numeric_environment_id_before_querying<br>console/tests/app_env_service_test.py::AppEnvVarServiceUpdateTestCase.test_delete_env_by_env_id_uses_404_aware_lookup_and_returns_deleted_env |
+| console.component-env.field-length-validation | 持久化前校验环境变量字段长度 | active | regression | console.services.app_config.env_service.AppEnvVarService.add_service_env_var | console/tests/app_env_service_test.py::AppEnvVarServiceUpdateTestCase.test_add_env_rejects_overlong_description_before_region_or_database_write |
 | console.component-type.daemonset | DaemonSet 组件类型支持 | active | regression | console.enum.component_enum.ComponentType | console/tests/app_manage_test.py::ComponentDaemonSetSupportTests.test_daemonset_component_type_is_supported<br>console/tests/app_manage_test.py::ComponentDaemonSetSupportTests.test_extend_method_name_supports_daemonset<br>console/tests/app_manage_test.py::ComponentDaemonSetSupportTests.test_change_service_type_blocks_daemonset_transition |
 | console.component.autoscaler-invalid-metrics | manage_component_autoscaler 在调用服务前拒绝不完整指标 | active | regression | console.services.mcp_query_service.call_tool[console.component.autoscaler-invalid-metrics] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_manage_component_autoscaler_create_rejects_incomplete_metric_before_service_call |
 | console.component.autoscaler-summary | 查看组件伸缩概览 | active | regression | console.services.mcp_query_service.call_tool[rainbond_manage_component_autoscaler] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_manage_component_autoscaler_summary_returns_rules_and_records |
@@ -2853,6 +2854,16 @@
 - 业务入口: `console.services.app_config.env_service.AppEnvVarService.delete_env_by_env_id`
 - 代码路径: `console/repositories/app_config.py`, `console/services/app_config/env_service.py`, `console/views/app_config/app_env.py`
 - 测试路径: `console/tests/app_env_service_test.py::TenantServiceEnvVarRepositoryUpdateTestCase.test_404_lookup_rejects_non_numeric_environment_id_before_querying`, `console/tests/app_env_service_test.py::AppEnvVarServiceUpdateTestCase.test_delete_env_by_env_id_uses_404_aware_lookup_and_returns_deleted_env`
+
+### 持久化前校验环境变量字段长度
+
+- Capability ID: `console.component-env.field-length-validation`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.app_config.env_service.AppEnvVarService.add_service_env_var`
+- 代码路径: `console/services/app_config/env_service.py`
+- 测试路径: `console/tests/app_env_service_test.py::AppEnvVarServiceUpdateTestCase.test_add_env_rejects_overlong_description_before_region_or_database_write`
 
 ### DaemonSet 组件类型支持
 

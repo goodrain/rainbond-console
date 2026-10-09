@@ -30,6 +30,15 @@ class AppEnvVarService(object):
     SENSITIVE_ENV_NAMES = ('TENANT_ID', 'SERVICE_ID', 'TENANT_NAME', 'SERVICE_NAME', 'SERVICE_VERSION', 'MEMORY_SIZE',
                            'SERVICE_EXTEND_METHOD', 'SLUG_URL', 'DEPEND_SERVICE', 'REVERSE_DEPEND_SERVICE', 'POD_ORDER', 'PATH',
                            'POD_NET_IP', 'LOG_MATCH')
+    ENV_NAME_MAX_LENGTH = TenantServiceEnvVar._meta.get_field("name").max_length
+    ENV_ATTR_NAME_MAX_LENGTH = TenantServiceEnvVar._meta.get_field("attr_name").max_length
+
+    def validate_env_field_lengths(self, name: Any, attr_name: Any) -> Optional[str]:
+        if len(str(name or "")) > self.ENV_NAME_MAX_LENGTH:
+            return "环境变量说明长度不能超过{0}个字符".format(self.ENV_NAME_MAX_LENGTH)
+        if len(str(attr_name or "")) > self.ENV_ATTR_NAME_MAX_LENGTH:
+            return "环境变量名称长度不能超过{0}个字符".format(self.ENV_ATTR_NAME_MAX_LENGTH)
+        return None
 
     def check_env_attr_name(self, attr_name: str) -> Tuple[bool, str]:
         if attr_name in self.SENSITIVE_ENV_NAMES:
@@ -60,6 +69,9 @@ class AppEnvVarService(object):
         raise: EnvAlreadyExist
         raise: InvalidEnvName
         """
+        length_error = self.validate_env_field_lengths(name, attr_name)
+        if length_error:
+            raise InvalidEnvName(length_error)
         self.check_env(service, attr_name, attr_value)
         if len(str(attr_value)) > 65532:
             attr_value = str(attr_value)[:65532]
@@ -109,6 +121,9 @@ class AppEnvVarService(object):
                             user_name: str = '') -> Tuple[int, str, Optional[TenantServiceEnvVar]]:
         attr_name = str(attr_name).strip()
         attr_value = str(attr_value).strip()
+        length_error = self.validate_env_field_lengths(name, attr_name)
+        if length_error:
+            return 400, length_error, None
         is_pass, msg = self.check_env_attr_name(attr_name)
         if not is_pass:
             return 400, msg, None
@@ -205,6 +220,9 @@ class AppEnvVarService(object):
                                   scope: str = "build") -> Tuple[int, str, Optional[TenantServiceEnvVar]]:
         attr_name = str(attr_name).strip()
         attr_value = str(attr_value).strip()
+        length_error = self.validate_env_field_lengths(name, attr_name)
+        if length_error:
+            return 400, length_error, None
         is_pass, msg = self.check_env_attr_name(attr_name)
         if not is_pass:
             return 400, msg, None
@@ -290,6 +308,9 @@ class AppEnvVarService(object):
             return 404, "环境变量不存在", None
         old_attr_name = env.attr_name
         new_attr_name = attr_name.strip() if attr_name is not None else old_attr_name
+        length_error = self.validate_env_field_lengths(name, new_attr_name)
+        if length_error:
+            return 400, length_error, None
         is_pass, msg = self.check_env_attr_name(new_attr_name)
         if not is_pass:
             return 400, msg, None
