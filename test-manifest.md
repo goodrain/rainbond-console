@@ -487,6 +487,7 @@
 | console.package-upload.file | Package Upload File | active | regression | console.services.mcp_query_service.call_tool[console.package-upload.file] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_upload_package_file_delegates_to_upload_tool_service |
 | console.package-upload.init | Package Upload Init | active | regression | console.services.mcp_query_service.call_tool[console.package-upload.init] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_init_package_upload_delegates_to_upload_tool_service |
 | console.package-upload.init-flow | Package Upload Init Flow | active | regression | console.services.package_upload_tool_service | console/tests/package_upload_tool_service_test.py::PackageUploadToolServiceTests.test_init_upload_creates_remote_dir_and_record |
+| console.package-upload.last-record-empty | 无上传记录时返回空状态 | active | regression | console.views.app_create.source_code.UploadRecordLastView.get | console/tests/package_upload_view_test.py::UploadRecordLastViewTests.test_get_keeps_existing_upload_record_response<br>console/tests/package_upload_view_test.py::UploadRecordLastViewTests.test_get_returns_empty_result_without_logging_when_record_is_missing |
 | console.package-upload.local-package | Package Upload Local Package | active | regression | console.services.mcp_query_service.call_tool[console.package-upload.local-package] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_create_component_from_local_package_calls_upload_tool_service |
 | console.package-upload.local-package-flow | Package Upload Local Package Flow | active | regression | console.services.package_upload_tool_service | console/tests/package_upload_tool_service_test.py::PackageUploadToolServiceTests.test_auto_create_component_from_local_path_runs_full_flow |
 | console.package-upload.local-path-create-schema | create_component_from_local_package 工具 schema 暴露服务端本地路径指引 | active | regression | console.services.mcp_query_service.list_tools[console.package-upload.local-path-create-schema] | console/tests/mcp_query_service_test.py::MCPQueryServiceToolVisibilityTests.test_create_component_from_local_package_tool_schema_exposes_server_side_local_path_guidance |
@@ -5492,6 +5493,16 @@
 - 业务入口: `console.services.package_upload_tool_service`
 - 代码路径: `console/services/package_upload_tool_service.py`
 - 测试路径: `console/tests/package_upload_tool_service_test.py::PackageUploadToolServiceTests.test_init_upload_creates_remote_dir_and_record`
+
+### 无上传记录时返回空状态
+
+- Capability ID: `console.package-upload.last-record-empty`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `view_endpoint`
+- 业务入口: `console.views.app_create.source_code.UploadRecordLastView.get`
+- 代码路径: `console/views/app_create/source_code.py`
+- 测试路径: `console/tests/package_upload_view_test.py::UploadRecordLastViewTests.test_get_keeps_existing_upload_record_response`, `console/tests/package_upload_view_test.py::UploadRecordLastViewTests.test_get_returns_empty_result_without_logging_when_record_is_missing`
 
 ### Package Upload Local Package
 

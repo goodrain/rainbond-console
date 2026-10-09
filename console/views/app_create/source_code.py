@@ -556,11 +556,14 @@ class UploadRecordLastView(RegionTenantHeaderView):
         try:
             # NOTE: get_last_upload_record may return None; backlog
             records = package_upload_service.get_last_upload_record(tenantName, region, component_id)  # type: ignore[arg-type]
+            if not records:
+                result = general_message(200, "success", "暂无记录", bean={})
+                return Response(result, status=result["code"])
             bean = dict()
-            if records.source_dir != "":  # type: ignore[union-attr]
-                dir_list = eval(records.source_dir)  # type: ignore[union-attr,arg-type]
+            if records.source_dir != "":
+                dir_list = eval(records.source_dir)  # type: ignore[arg-type]
                 bean["source_dir"] = dir_list
-                bean["event_id"] = records.event_id  # type: ignore[union-attr]
+                bean["event_id"] = records.event_id
             result = general_message(200, "success", "操作成功", bean=bean)
             return Response(result, status=result["code"])
         except Exception as e:

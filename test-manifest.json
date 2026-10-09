@@ -9321,6 +9321,28 @@
       "status": "active"
     },
     {
+      "id": "console.package-upload.last-record-empty",
+      "title": "Return an empty package upload state when no record exists",
+      "title_zh": "无上传记录时返回空状态",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.app_create.source_code.UploadRecordLastView.get",
+      "code_paths": [
+        "console/views/app_create/source_code.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/package_upload_view_test.py",
+          "selector": "UploadRecordLastViewTests.test_get_keeps_existing_upload_record_response"
+        },
+        {
+          "path": "console/tests/package_upload_view_test.py",
+          "selector": "UploadRecordLastViewTests.test_get_returns_empty_result_without_logging_when_record_is_missing"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.package-upload.local-package",
       "title": "Package Upload Local Package",
       "title_zh": "Package Upload Local Package",
