@@ -4136,10 +4136,15 @@
       "interface_type": "service_method",
       "interface": "console.services.app_config.env_service.AppEnvVarService.delete_env_by_env_id",
       "code_paths": [
+        "console/repositories/app_config.py",
         "console/services/app_config/env_service.py",
         "console/views/app_config/app_env.py"
       ],
       "tests": [
+        {
+          "path": "console/tests/app_env_service_test.py",
+          "selector": "TenantServiceEnvVarRepositoryUpdateTestCase.test_404_lookup_rejects_non_numeric_environment_id_before_querying"
+        },
         {
           "path": "console/tests/app_env_service_test.py",
           "selector": "AppEnvVarServiceUpdateTestCase.test_delete_env_by_env_id_uses_404_aware_lookup_and_returns_deleted_env"

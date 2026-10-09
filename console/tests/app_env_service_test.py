@@ -21,6 +21,7 @@ django.setup()
 import console.services.app_config.env_service as env_service_module  # noqa: E402
 import console.repositories.app_config as app_config_repo_module  # noqa: E402
 import console.views.app_config.app_env as app_env_view_module  # noqa: E402
+from console.exception.main import AbortRequest  # noqa: E402
 from console.repositories.app_config import TenantServiceEnvVarRepository  # noqa: E402
 from console.services.app_config.env_service import AppEnvVarService  # noqa: E402
 from console.views.app_config.app_env import AppEnvManageView  # noqa: E402
@@ -28,6 +29,15 @@ from django.test import RequestFactory  # noqa: E402
 
 
 class TenantServiceEnvVarRepositoryUpdateTestCase(TestCase):
+    # capability_id: console.component-env.delete-missing-404
+    def test_404_lookup_rejects_non_numeric_environment_id_before_querying(self):
+        with self.assertRaises(AbortRequest) as raised:
+            TenantServiceEnvVarRepository().get_service_env_or_404_by_env_id(
+                "tenant-id", "service-id", "CORS_ORIGINS")
+
+        self.assertEqual(raised.exception.status_code, 404)
+        self.assertEqual(raised.exception.msg_show, "环境变量`CORS_ORIGINS`不存在")
+
     def test_update_env_var_can_update_attr_name_while_filtering_by_old_key(self):
         queryset = mock.Mock()
         manager = mock.Mock()
