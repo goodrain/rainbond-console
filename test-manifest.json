@@ -5937,6 +5937,29 @@
       "status": "active"
     },
     {
+      "id": "console.config.expected-conflict",
+      "title": "Return expected configuration conflicts without Sentry noise",
+      "title_zh": "配置已存在时返回预期冲突并停止上报",
+      "interface_type": "package_function",
+      "interface": "console.views.base.custom_exception_handler",
+      "code_paths": [
+        "console/views/base.py",
+        "goodrain_web/sentry_config.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/regionapibaseclient_test.py",
+          "selector": "RegionApiBaseHttpClientTestCase.test_config_exist_error_returns_conflict_response"
+        },
+        {
+          "path": "console/tests/sentry_config_test.py",
+          "selector": "test_before_send_drops_expected_config_conflict"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.database.required-schema-startup-gate",
       "title": "Block startup when critical migrated tables are missing",
       "title_zh": "关键迁移表缺失时阻止启动",

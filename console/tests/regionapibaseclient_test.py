@@ -25,6 +25,7 @@ import django  # noqa: E402
 django.setup()
 
 from console.exception.main import ServiceHandleException  # noqa: E402
+from console.exception.exceptions import ConfigExistError  # noqa: E402
 from console.views.base import custom_exception_handler  # noqa: E402
 from django.db import OperationalError  # noqa: E402
 from django.http import StreamingHttpResponse  # noqa: E402
@@ -32,6 +33,13 @@ from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient, create_fi
 
 
 class RegionApiBaseHttpClientTestCase(TestCase):
+    # capability_id: console.config.expected-conflict
+    def test_config_exist_error_returns_conflict_response(self):
+        response = custom_exception_handler(ConfigExistError("配置已存在"), {})
+
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(response.data["msg"], "config already exists")
+
     # capability_id: console.external-http.unavailable-response
     def test_external_http_failure_returns_retryable_502(self):
         error = requests.exceptions.SSLError("bad tls")

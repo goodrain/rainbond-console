@@ -312,6 +312,7 @@
 | console.component.volume-expansion-reconciles-drift | Forward stored capacity to reconcile PVC drift | active | regression | console.views.app_config.app_volume.AppVolumeManageView.put | console/tests/app_volume_view_test.py::AppVolumeManageViewTestCase::test_put_forwards_same_capacity_for_pvc_reconciliation |
 | console.component.volume-expansion-runtime | Propagate PVC volume expansion runtime fields | active | unit | console.services.app_config.volume_service.AppVolumeService.get_service_volumes | console/tests/app_volume_service_expansion_test.py::AppVolumeServiceExpansionTestCase::test_attach_volume_runtime_status_merges_expansion_fields |
 | console.component.volume-expansion-update | Validate and forward component volume expansion | active | regression | console.views.app_config.app_volume.AppVolumeManageView.put | console/tests/app_volume_view_test.py::AppVolumeManageViewTestCase::test_put_rejects_volume_capacity_shrink |
+| console.config.expected-conflict | 配置已存在时返回预期冲突并停止上报 | active | regression | console.views.base.custom_exception_handler | console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_config_exist_error_returns_conflict_response<br>console/tests/sentry_config_test.py::test_before_send_drops_expected_config_conflict |
 | console.database.required-schema-startup-gate | 关键迁移表缺失时阻止启动 | active | regression | entrypoint migrate then verify_required_schema | console/tests/entrypoint_test.py::EntrypointGunicornTest.test_database_startup_plans_repairs_before_applying_and_migrating<br>console/tests/schema_verification_test.py::RequiredSchemaVerificationTestCase.test_missing_required_tables_are_reported_in_stable_order |
 | console.database.transient-unavailable | 统一瞬时数据库不可用响应 | active | regression | console.utils.database_errors.is_transient_database_error | console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_transient_database_error_returns_retryable_503<br>console/tests/sentry_config_test.py::test_before_send_groups_transient_database_outages_with_stable_fingerprint |
 | console.dependency.invalid-container-port | Dependency Invalid Container Port | active | regression | console.services.app_config.app_relation_service.AppServiceRelationService | console/tests/app_relation_service_test.py::AppRelationServiceTests.test_add_service_dependency_rejects_unknown_dep_service_port |
@@ -3767,6 +3768,16 @@
 - 业务入口: `console.views.app_config.app_volume.AppVolumeManageView.put`
 - 代码路径: `console/views/app_config/app_volume.py`
 - 测试路径: `console/tests/app_volume_view_test.py::AppVolumeManageViewTestCase::test_put_rejects_volume_capacity_shrink`
+
+### 配置已存在时返回预期冲突并停止上报
+
+- Capability ID: `console.config.expected-conflict`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `package_function`
+- 业务入口: `console.views.base.custom_exception_handler`
+- 代码路径: `console/views/base.py`, `goodrain_web/sentry_config.py`
+- 测试路径: `console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_config_exist_error_returns_conflict_response`, `console/tests/sentry_config_test.py::test_before_send_drops_expected_config_conflict`
 
 ### 关键迁移表缺失时阻止启动
 

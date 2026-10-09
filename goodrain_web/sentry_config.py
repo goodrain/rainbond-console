@@ -348,6 +348,16 @@ def is_expected_not_found_error(hint):
     return False
 
 
+def is_expected_config_conflict(hint):
+    exception_type, _ = get_hint_exception(hint)
+    if exception_type is None:
+        return False
+    return (
+        getattr(exception_type, "__module__", "") == "console.exception.exceptions"
+        and getattr(exception_type, "__name__", "") == "ConfigExistError"
+    )
+
+
 def is_transient_database_exception(hint):
     exception_type, exception = get_hint_exception(hint)
     if exception_type is None or exception is None:
@@ -389,7 +399,8 @@ def get_external_http_error_target(hint):
 def before_send(event, hint):
     if not is_external_telemetry_enabled():
         return None
-    if is_expected_region_frequent_error(hint) or is_expected_not_found_error(hint):
+    if (is_expected_region_frequent_error(hint) or is_expected_not_found_error(hint)
+            or is_expected_config_conflict(hint)):
         return None
     if is_transient_database_exception(hint):
         event["fingerprint"] = ["database-unavailable"]

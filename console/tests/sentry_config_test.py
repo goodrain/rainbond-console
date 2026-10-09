@@ -4,6 +4,7 @@ from unittest import mock
 from django.db import OperationalError
 import requests
 
+from console.exception.exceptions import ConfigExistError
 from goodrain_web import sentry_config
 
 
@@ -166,6 +167,19 @@ def test_before_send_drops_expected_not_found_exceptions():
         ]
 
     assert results == [None, None, None]
+
+
+# capability_id: console.config.expected-conflict
+def test_before_send_drops_expected_config_conflict():
+    error = ConfigExistError("配置GLOBAL_IMAGE_REGISTRY已存在")
+
+    with mock.patch("goodrain_web.sentry_config.is_external_telemetry_enabled", return_value=True):
+        result = sentry_config.before_send(
+            {"message": str(error)},
+            {"exc_info": (ConfigExistError, error, None)},
+        )
+
+    assert result is None
 
 
 def test_before_send_keeps_server_side_service_and_region_errors():

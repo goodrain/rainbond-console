@@ -6,7 +6,7 @@ import traceback
 from typing import Any, List, Optional
 
 from addict import Dict
-from console.exception.exceptions import AuthenticationInfoHasExpiredError
+from console.exception.exceptions import AuthenticationInfoHasExpiredError, ConfigExistError
 from console.exception.main import (BusinessException, NoPermissionsError, ResourceNotEnoughException, ServiceHandleException,
                                     AbortRequest)
 from console.models.main import (EnterpriseUserPerm, OAuthServices, PermsInfo, RoleInfo, RolePerms, UserOAuthServices, UserRole,
@@ -592,6 +592,13 @@ def custom_exception_handler(exc: Exception, context: Any) -> Optional[Response]
         response = error.response
         response["Retry-After"] = "3"
         return response
+    if isinstance(exc, ConfigExistError):
+        return ServiceHandleException(
+            msg="config already exists",
+            msg_show=str(exc),
+            status_code=409,
+            error_code=409,
+        ).response
     if is_retryable_external_http_error(exc):
         logger.warning("external HTTP service unavailable")
         error = ServiceHandleException(
