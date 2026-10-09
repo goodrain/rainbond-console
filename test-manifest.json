@@ -9545,6 +9545,24 @@
       "status": "active"
     },
     {
+      "id": "console.permissions.concurrent-initialization",
+      "title": "Synchronize permission metadata idempotently across workers",
+      "title_zh": "多进程幂等同步权限元数据",
+      "interface_type": "dao_method",
+      "interface": "console.repositories.perm_repo.PermsRepo._sync_permission_settings",
+      "code_paths": [
+        "console/repositories/perm_repo.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/perm_repo_performance_test.py",
+          "selector": "PermsRepoPerformanceTests.test_changed_permissions_sync_idempotently_within_the_check_interval"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.platform-plugin.vm-access-url-fallback",
       "title": "Fallback official VM plugin access URL from frontend component",
       "title_zh": "从前端组件访问地址回填官方虚拟机插件访问前缀",
