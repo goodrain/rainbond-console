@@ -159,8 +159,14 @@ class MarketAppService(object):
             app_template["governance_mode"] = GovernanceModeEnum.KUBERNETES_NATIVE_SERVICE.name
         if app.governance_mode == GovernanceModeEnum.KUBERNETES_NATIVE_SERVICE.name:
             app_template["governance_mode"] = GovernanceModeEnum.KUBERNETES_NATIVE_SERVICE.name
-        component_group = self._create_tenant_service_group(region.region_name, tenant.tenant_id, app.app_id, market_app.app_id,
-                                                            version, market_app.app_name)
+        component_group = self._create_tenant_service_group(
+            region.region_name,
+            tenant.tenant_id,
+            app.app_id,
+            market_app.app_id,
+            version,
+            market_app.app_name,
+            external_template=app_template if install_from_cloud else None)
 
         app_upgrade = AppUpgrade(
             user.enterprise_id,  # type: ignore[arg-type]  # NOTE: nullable enterprise_id model field, runtime-safe
@@ -390,8 +396,14 @@ class MarketAppService(object):
             resolve_none_placeholders(apps)
             hostname_remap = collect_install_hostname_remap(tenant.tenant_id, apps)
             apply_hostname_remap(apps, hostname_remap)
-            tenant_service_group = self._create_tenant_service_group(region_name, tenant.tenant_id, group_id, market_app.app_id,
-                                                                     market_app_version.version, market_app.app_name)
+            tenant_service_group = self._create_tenant_service_group(
+                region_name,
+                tenant.tenant_id,
+                group_id,
+                market_app.app_id,
+                market_app_version.version,
+                market_app.app_name,
+                external_template=app_templates if install_from_cloud else None)
             # install plugin for tenant
             plugins = app_templates.get("plugins", [])
             if plugins:
@@ -874,7 +886,8 @@ class MarketAppService(object):
         return 200, "success"
 
     def _create_tenant_service_group(self, region_name: str, tenant_id: str, group_id: str, app_key: str,
-                                     app_version: str, app_name: str) -> Any:
+                                     app_version: str, app_name: str,
+                                     external_template: Optional[dict] = None) -> Any:
         group_name = self.__generator_group_name("gr")
         params = {
             "tenant_id": tenant_id,
@@ -888,7 +901,12 @@ class MarketAppService(object):
         from console.services.cleanup_retirement import lock_template_use, RetirementConflict
         from console.services.cleanup_coordination import CoordinationUnavailable
         try:
-            with lock_template_use(app_key, app_version, region_name, Tenants.objects.get(tenant_id=tenant_id).tenant_name):
+            with lock_template_use(
+                    app_key,
+                    app_version,
+                    region_name,
+                    Tenants.objects.get(tenant_id=tenant_id).tenant_name,
+                    external_template=external_template):
                 return tenant_service_group_repo.create_tenant_service_group(**params)
         except CoordinationUnavailable:
             raise ServiceHandleException("cleanup coordination unavailable", "仓库清理协调未就绪或存在冲突，请稍后重试", status_code=409)
@@ -1985,8 +2003,14 @@ class MarketAppService(object):
         app_template, market_app = self.get_app_template(app_model_key, install_from_cloud, market_name, region, tenant, user,
                                                          version)
 
-        component_group = self._create_tenant_service_group(region.region_name, tenant.tenant_id, app.app_id, market_app.app_id,
-                                                            version, market_app.app_name)
+        component_group = self._create_tenant_service_group(
+            region.region_name,
+            tenant.tenant_id,
+            app.app_id,
+            market_app.app_id,
+            version,
+            market_app.app_name,
+            external_template=app_template if install_from_cloud else None)
 
         app_upgrade = AppUpgrade(
             user.enterprise_id,  # type: ignore[arg-type]  # NOTE: nullable enterprise_id model field, runtime-safe

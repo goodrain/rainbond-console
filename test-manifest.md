@@ -198,6 +198,7 @@
 | console.cert.san-parse | 从扩展字符串中解析证书的 SAN 域名与 IP | active | regression | console.utils.certutil.parse_subject_alt_names | console/tests/utils/certutil_test.py::CertUtilTests.test_parse_subject_alt_names |
 | console.cert.summary | 汇总证书 SAN、签发方与过期信息 | active | regression | console.utils.certutil.analyze_cert | console/tests/utils/certutil_test.py::CertUtilTests.test_analyze_cert |
 | console.cert.utc-to-local | 将证书 UTC 时间戳转换为本地时间字符串 | active | regression | console.utils.certutil.utc2local | console/tests/utils/certutil_test.py::CertUtilTests.test_utc2local |
+| console.cleanup.cloud-template-reference | 云端市场临时模板安装与升级引用保护 | active | regression | console.services.cleanup_retirement.lock_template_use | console/tests/cleanup_retirement_test.py::RetirementGuardTests.test_cloud_template_use_does_not_require_local_market_rows<br>console/tests/market_app_service_test.py::MarketAppServiceTelemetryTests.test_cloud_install_protects_transient_template_without_local_market_row<br>console/tests/cleanup_installation_test.py::CleanupInstallationLifecycleTests.test_upgrade_configures_before_replacing_pods<br>console/tests/platform_plugin_first_deploy_test.py::PlatformPluginFirstDeployTrackingTests.test_install_platform_plugin_reports_first_deploy_tracking |
 | console.cleanup.coordination-signature | 协调签名绑定范围与原始请求 | active | regression | console.services.cleanup_core_bridge.verify_core_request | console/tests/cleanup_core_bridge_test.py::CleanupCoreBridgeTests.test_signature_binds_scope_path_time_and_exact_body |
 | console.cleanup.coordination-upstream | 协调请求严格校验证书且不自动重放 | active | regression | www.apiclient.regionapi.RegionInvokeApi.cleanup_proxy_request | console/tests/cleanup_core_bridge_test.py::CleanupCoreForwardingTests.test_forwarder_uses_verified_tls_without_retries_or_caller_headers |
 | console.cleanup.coordination-view | 仅转发安装实例签名的协调请求 | active | regression | console.views.cleanup_core_bridge.CleanupCoreBridgeView.post | console/tests/cleanup_core_bridge_test.py::CleanupCoreForwardingTests.test_view_rejects_browser_credentials_and_forwards_only_signed_envelopes |
@@ -2628,6 +2629,16 @@
 - 业务入口: `console.utils.certutil.utc2local`
 - 代码路径: `console/utils/certutil.py`
 - 测试路径: `console/tests/utils/certutil_test.py::CertUtilTests.test_utc2local`
+
+### 云端市场临时模板安装与升级引用保护
+
+- Capability ID: `console.cleanup.cloud-template-reference`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `workflow`
+- 业务入口: `console.services.cleanup_retirement.lock_template_use`
+- 代码路径: `console/services/cleanup_retirement.py`, `console/services/market_app_service.py`, `console/services/market_app/app_upgrade.py`, `console/services/platform_plugin_service.py`
+- 测试路径: `console/tests/cleanup_retirement_test.py::RetirementGuardTests.test_cloud_template_use_does_not_require_local_market_rows`, `console/tests/market_app_service_test.py::MarketAppServiceTelemetryTests.test_cloud_install_protects_transient_template_without_local_market_row`, `console/tests/cleanup_installation_test.py::CleanupInstallationLifecycleTests.test_upgrade_configures_before_replacing_pods`, `console/tests/platform_plugin_first_deploy_test.py::PlatformPluginFirstDeployTrackingTests.test_install_platform_plugin_reports_first_deploy_tracking`
 
 ### 协调签名绑定范围与原始请求
 

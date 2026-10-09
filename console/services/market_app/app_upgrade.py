@@ -222,7 +222,12 @@ class AppUpgrade(MarketApp):
         from console.services.cleanup_retirement import lock_template_use, RetirementConflict
         from console.services.cleanup_coordination import CoordinationUnavailable
         try:
-            with lock_template_use(self.app_model_key, self.version, self.region_name, self.tenant.tenant_name):
+            with lock_template_use(
+                    self.app_model_key,
+                    self.version,
+                    self.region_name,
+                    self.tenant.tenant_name,
+                    external_template=self.app_template if self.install_from_cloud else None):
                 if self.record is None or not self.record.ID:
                     raise RetirementConflict()
                 AppUpgradeRecord.objects.filter(ID=self.record.ID).update(

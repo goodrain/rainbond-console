@@ -207,6 +207,38 @@ class MarketAppServiceTelemetryTests(SimpleTestCase):
         )
         reconcile_plugin.assert_called_once_with(tenant, region, app_template, "app-7")
 
+    # capability_id: console.cleanup.cloud-template-reference
+    def test_cloud_install_protects_transient_template_without_local_market_row(self):
+        from console.services.market_app_service import market_app_service
+
+        tenant = Obj(tenant_id="tenant-1", tenant_name="team-a", enterprise_id="eid-1")
+        region = Obj(region_name="region-a")
+        user = Obj(enterprise_id="eid-1", nick_name="tester")
+        app = Obj(ID=7, governance_mode="KUBERNETES_NATIVE_SERVICE", app_id="app-7")
+        market_app = Obj(app_id="model-1", app_name="Demo App", source="market")
+        app_template = {"apps": [{"image": "goodrain.me/team/demo:v1"}], "arch": "amd64"}
+        app_upgrade = mock.Mock()
+        app_upgrade.install.return_value = []
+        app_upgrade.new_app.components.return_value = []
+
+        with patch("console.services.market_app_service.group_repo.get_group_by_id", return_value=app), \
+                patch.object(market_app_service, "get_app_template", return_value=(app_template, market_app)), \
+                patch("console.services.market_app_service.region_api.get_cluster_nodes_arch",
+                      return_value=(None, {"list": ["amd64"]})), \
+                patch("console.services.market_app_service.market_install_preflight_service.run",
+                      return_value={"status": "pass", "should_block": False, "summary": "ok", "checks": []}), \
+                patch.object(market_app_service, "_create_tenant_service_group", return_value=Obj()) as create_group, \
+                patch("console.services.market_app_service.AppUpgrade", return_value=app_upgrade), \
+                patch("console.services.market_app_service.enterprise_first_deploy_service.safe_bind_events"), \
+                patch.object(market_app_service, "_create_rbdplugin_if_needed"), \
+                patch.object(market_app_service, "_track_market_app_installed"):
+            market_app_service.install_app(
+                tenant, region, user, 7, "model-1", "1.2.3", "RainbondMarket", True, is_deploy=False)
+
+        create_group.assert_called_once_with(
+            "region-a", "tenant-1", "app-7", "model-1", "1.2.3", "Demo App",
+            external_template=app_template)
+
     def test_install_app_dry_run_does_not_reconcile_rbdplugin(self):
         from console.services.market_app_service import market_app_service
 
@@ -306,7 +338,7 @@ class MarketAppServiceTelemetryTests(SimpleTestCase):
 
         with patch("console.services.market_app_service.group_repo.get_or_create_default_group", return_value=app), \
                 patch.object(market_app_service, "get_app_template", return_value=(app_template, market_app)), \
-                patch.object(market_app_service, "_create_tenant_service_group", return_value=Obj()), \
+                patch.object(market_app_service, "_create_tenant_service_group", return_value=Obj()) as create_group, \
                 patch("console.services.market_app_service.AppUpgrade", return_value=app_upgrade), \
                 patch.object(market_app_service, "_create_rbdplugin_if_needed") as reconcile_plugin:
             result = market_app_service.install_plugin_app(
@@ -314,6 +346,9 @@ class MarketAppServiceTelemetryTests(SimpleTestCase):
                 "tenant-1", "region-a")
 
         app_upgrade.install_plugins.assert_called_once_with()
+        create_group.assert_called_once_with(
+            "region-a", "tenant-1", 7, "agent-model", "1.0.0", "AI助手",
+            external_template=app_template)
         reconcile_plugin.assert_called_once_with(tenant, region, app_template, 7)
         self.assertEqual("AI助手", result)
 
@@ -338,7 +373,8 @@ class MarketAppServiceTelemetryTests(SimpleTestCase):
         with patch("console.services.market_app_service.region_services.get_enterprise_region_by_region_name",
                    return_value=region), \
                 patch.object(market_app_service, "_ensure_vm_template_allowed"), \
-                patch.object(market_app_service, "_create_tenant_service_group", return_value=tenant_service_group), \
+                patch.object(market_app_service, "_create_tenant_service_group",
+                             return_value=tenant_service_group) as create_group, \
                 patch.object(market_app_service, "_MarketAppService__save_component_meta", return_value=service), \
                 patch.object(market_app_service, "_MarketAppService__save_service_deps"), \
                 patch.object(market_app_service, "_MarketAppService__create_region_services", return_value=[service]), \
@@ -349,6 +385,11 @@ class MarketAppServiceTelemetryTests(SimpleTestCase):
                 tenant, "region-a", user, 7, market_app, market_app_version, False, True, market_name="goodrain")
 
         self.assertEqual((tenant_service_group, []), install_info)
+        expected_external_template = json.loads(market_app_version.app_template)
+        expected_external_template["apps"][0]["update_time"] = None
+        create_group.assert_called_once_with(
+            "region-a", "tenant-1", 7, "model-1", "1.2.3", "Demo App",
+            external_template=expected_external_template)
         telemetry.track_market_app_installed.assert_called_once_with(
             tenant=tenant,
             region_name="region-a",

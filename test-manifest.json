@@ -3655,6 +3655,39 @@
       "status": "active"
     },
     {
+      "id": "console.cleanup.cloud-template-reference",
+      "title": "Protect transient cloud templates during install and upgrade",
+      "title_zh": "云端市场临时模板安装与升级引用保护",
+      "interface_type": "workflow",
+      "interface": "console.services.cleanup_retirement.lock_template_use",
+      "code_paths": [
+        "console/services/cleanup_retirement.py",
+        "console/services/market_app_service.py",
+        "console/services/market_app/app_upgrade.py",
+        "console/services/platform_plugin_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/cleanup_retirement_test.py",
+          "selector": "RetirementGuardTests.test_cloud_template_use_does_not_require_local_market_rows"
+        },
+        {
+          "path": "console/tests/market_app_service_test.py",
+          "selector": "MarketAppServiceTelemetryTests.test_cloud_install_protects_transient_template_without_local_market_row"
+        },
+        {
+          "path": "console/tests/cleanup_installation_test.py",
+          "selector": "CleanupInstallationLifecycleTests.test_upgrade_configures_before_replacing_pods"
+        },
+        {
+          "path": "console/tests/platform_plugin_first_deploy_test.py",
+          "selector": "PlatformPluginFirstDeployTrackingTests.test_install_platform_plugin_reports_first_deploy_tracking"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.cleanup.coordination-signature",
       "title": "Bind signed cleanup coordination requests to scope and payload",
       "title_zh": "协调签名绑定范围与原始请求",

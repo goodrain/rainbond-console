@@ -1,16 +1,47 @@
 import hashlib
 import hmac
 import unittest
+from contextlib import nullcontext
+from types import ModuleType
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 from console.services.cleanup_retirement import (
     verify_retirement_request, retirement_payload, validate_template_retirement,
     validate_upload_chunk_retirement, retire_upload_chunks, inspection_payload,
-    verify_inspection_request, inspect_upload_chunks, inspect_template_identity, RetirementConflict
+    verify_inspection_request, inspect_upload_chunks, inspect_template_identity, lock_template_use, RetirementConflict
 )
 
 
+# capability_id: console.cleanup.upload-chunk-retirement-bridge
+# capability_id: console.cleanup.cloud-template-reference
 class RetirementGuardTests(unittest.TestCase):
+    def test_cloud_template_use_does_not_require_local_market_rows(self):
+        parents = Mock()
+        versions = Mock()
+        api = Mock()
+        transaction = SimpleNamespace(atomic=lambda: nullcontext(), on_commit=Mock())
+        django_db = ModuleType('django.db')
+        django_db.transaction = transaction
+        modules = {
+            'django.db': django_db,
+            'console.models.main': SimpleNamespace(
+                RainbondCenterApp=parents,
+                RainbondCenterAppVersion=versions,
+            ),
+            'www.apiclient.regionapi': SimpleNamespace(RegionInvokeApi=Mock(return_value=api)),
+        }
+        template = {'apps': [{'image': 'goodrain.me/team/demo:v1'}]}
+
+        with patch.dict('sys.modules', modules), \
+                patch('console.services.cleanup_coordination.protect_references',
+                      return_value=nullcontext()) as protect:
+            with lock_template_use('cloud-model', 'v1', 'rainbond', 'team', external_template=template):
+                pass
+
+        parents.objects.select_for_update.assert_not_called()
+        versions.objects.select_for_update.assert_not_called()
+        self.assertEqual(protect.call_args.args[1], ['team/demo'])
+
     def test_signature_binds_body_scope_method_and_time(self):
         key = bytes(range(32))
         body = b'{"actor":"7","operationId":"operation-1"}'

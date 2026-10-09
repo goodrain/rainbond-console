@@ -4,6 +4,7 @@ import uuid
 from contextlib import contextmanager
 from collections.abc import Iterator
 import hmac
+import json
 import re
 import time
 from typing import Any
@@ -230,28 +231,38 @@ def retire_build_version(enterprise: str, region: str, expected: dict, actor: st
 
 
 @contextmanager
-def lock_template_use(app_id: str, version: str, region_name: str, tenant_name: str) -> Iterator[None]:
+def lock_template_use(app_id: str, version: str, region_name: str, tenant_name: str,
+                      external_template: dict[str, Any] | None = None) -> Iterator[None]:
     """Fence template retirement against a new installation reference."""
     from django.db import transaction
     from www.apiclient.regionapi import RegionInvokeApi
     from console.services.cleanup_coordination import protect_references, template_reference_scopes
     from console.models.main import RainbondCenterApp, RainbondCenterAppVersion
     with transaction.atomic():
-        parents = list(RainbondCenterApp.objects.select_for_update().filter(app_id=app_id).order_by('ID'))
-        if not parents:
-            raise RetirementConflict()
-        versions = list(RainbondCenterAppVersion.objects.select_for_update().filter(
-            app_id=app_id, version=version).order_by('ID'))
-        if not versions:
-            raise RetirementConflict()
+        versions = []
+        if external_template is None:
+            parents = list(RainbondCenterApp.objects.select_for_update().filter(app_id=app_id).order_by('ID'))
+            if not parents:
+                raise RetirementConflict()
+            versions = list(RainbondCenterAppVersion.objects.select_for_update().filter(
+                app_id=app_id, version=version).order_by('ID'))
+            if not versions:
+                raise RetirementConflict()
+            raw_templates = [item.app_template for item in versions]
+        else:
+            # Cloud-market models are transient Django objects and are intentionally
+            # not stored in the local template tables. Protect their image references
+            # without treating the missing local rows as retirement.
+            raw_templates = [json.dumps(external_template, default=str)]
         api = RegionInvokeApi()
-        scopes = template_reference_scopes([item.app_template for item in versions])
+        scopes = template_reference_scopes(raw_templates)
 
         def invoke(action, storage, body):
             return api.cleanup_reference_operation(region_name, tenant_name, action, storage, body)
         with protect_references(invoke, scopes, transaction.on_commit):
-            RainbondCenterAppVersion.objects.filter(ID__in=[item.ID for item in versions]).update(
-                cleanup_activation_revision=uuid.uuid4().hex)
+            if versions:
+                RainbondCenterAppVersion.objects.filter(ID__in=[item.ID for item in versions]).update(
+                    cleanup_activation_revision=uuid.uuid4().hex)
             yield
 
 

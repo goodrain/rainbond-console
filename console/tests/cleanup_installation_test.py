@@ -163,6 +163,7 @@ class CleanupInstallationLifecycleTests(unittest.TestCase):
                 namespace['install'](obj)
             self.assertEqual(calls, expected)
 
+    # capability_id: console.cleanup.cloud-template-reference
     def test_upgrade_configures_before_replacing_pods(self):
         import ast
         from pathlib import Path
@@ -182,10 +183,13 @@ class CleanupInstallationLifecycleTests(unittest.TestCase):
                               tenant=SimpleNamespace(tenant_name="team"), region_name="r",
                               app=SimpleNamespace(ID=42), record=SimpleNamespace(ID=1),
                               app_model_key='model', version='v2',
+                              install_from_cloud=True,
                               app_template={'platform_plugin': {'plugin_id': 'rainbond-disk'}},
                               _deploy=lambda record: calls.append('deploy'))
         from contextlib import nullcontext
         with patch.dict('sys.modules', {'console.services.rbd_plugin_sync_service': sync}), \
-                patch('console.services.cleanup_retirement.lock_template_use', return_value=nullcontext()):
+                patch('console.services.cleanup_retirement.lock_template_use', return_value=nullcontext()) as lock_template:
             namespace['upgrade'](obj)
         self.assertEqual(calls, ['configure', 'deploy'])
+        lock_template.assert_called_once_with(
+            'model', 'v2', 'r', 'team', external_template=obj.app_template)
