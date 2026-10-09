@@ -465,6 +465,7 @@
 | console.oauth.gitlab-webhook-url | 规范化 GitLab OAuth Webhook 地址 | active | regression | console.utils.oauth.gitlab_api.GitlabApiV4.create_hook | console/tests/utils/gitlab_api_test.py::GitlabApiV4WebhookTests.test_create_hook_adds_https_scheme_to_bare_host<br>console/tests/utils/gitlab_api_test.py::GitlabApiV4WebhookTests.test_create_hook_supports_protocol_relative_host<br>console/tests/utils/gitlab_api_test.py::GitlabApiV4WebhookTests.test_create_hook_preserves_scheme_and_normalizes_slashes |
 | console.oauth.instance-create | 创建 OAuth helper 实例并绑定服务与用户上下文 | active | regression | console.utils.oauth.oauth_types.get_oauth_instance | console/tests/utils/oauth_types_test.py::OAuthTypeTests.test_get_oauth_instance |
 | console.oauth.kind-flags | 返回基础与 git OAuth helper 的能力标记 | active | regression | console.utils.oauth.base.git_oauth.GitOAuth2Interface.is_git_oauth | console/tests/utils/oauth_base_test.py::OAuthBaseTests.test_oauth_kind_flags |
+| console.oauth.service-validation | 使用前校验 OAuth 服务引用 | active | regression | console.repositories.oauth_repo.OAuthRepo.get_oauth_services_by_service_id | console/tests/oauth_repo_validation_test.py::OAuthRepoValidationTestCase.test_get_service_rejects_non_numeric_id_as_not_found<br>console/tests/oauth_repo_validation_test.py::OAuthRepoValidationTestCase.test_update_rejects_deleted_oauth_service_before_reading_home_url |
 | console.oauth.session-retry | 创建带重试 HTTP 适配器的 OAuth 会话 | active | regression | console.utils.oauth.base.oauth.OAuth2Interface.set_session | console/tests/utils/oauth_base_test.py::OAuthBaseTests.test_set_session_builds_retrying_requests_session |
 | console.oauth.supported-types | 列出支持的 OAuth 服务类型 | active | regression | console.utils.oauth.oauth_types.get_support_oauth_servers | console/tests/utils/oauth_types_test.py::OAuthTypeTests.test_get_support_oauth_servers |
 | console.oauth.token-update | 将刷新的 OAuth access/refresh token 持久化到绑定用户 | active | regression | console.utils.oauth.base.oauth.OAuth2Interface.update_access_token | console/tests/utils/oauth_base_test.py::OAuthBaseTests.test_update_access_token_updates_bound_user |
@@ -5288,6 +5289,16 @@
 - 业务入口: `console.utils.oauth.base.git_oauth.GitOAuth2Interface.is_git_oauth`
 - 代码路径: `console/utils/oauth/base/git_oauth.py`
 - 测试路径: `console/tests/utils/oauth_base_test.py::OAuthBaseTests.test_oauth_kind_flags`
+
+### 使用前校验 OAuth 服务引用
+
+- Capability ID: `console.oauth.service-validation`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `dao_method`
+- 业务入口: `console.repositories.oauth_repo.OAuthRepo.get_oauth_services_by_service_id`
+- 代码路径: `console/repositories/oauth_repo.py`
+- 测试路径: `console/tests/oauth_repo_validation_test.py::OAuthRepoValidationTestCase.test_get_service_rejects_non_numeric_id_as_not_found`, `console/tests/oauth_repo_validation_test.py::OAuthRepoValidationTestCase.test_update_rejects_deleted_oauth_service_before_reading_home_url`
 
 ### 创建带重试 HTTP 适配器的 OAuth 会话
 

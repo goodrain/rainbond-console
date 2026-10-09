@@ -8935,6 +8935,28 @@
       "status": "active"
     },
     {
+      "id": "console.oauth.service-validation",
+      "title": "Validate OAuth service references before use",
+      "title_zh": "使用前校验 OAuth 服务引用",
+      "interface_type": "dao_method",
+      "interface": "console.repositories.oauth_repo.OAuthRepo.get_oauth_services_by_service_id",
+      "code_paths": [
+        "console/repositories/oauth_repo.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/oauth_repo_validation_test.py",
+          "selector": "OAuthRepoValidationTestCase.test_get_service_rejects_non_numeric_id_as_not_found"
+        },
+        {
+          "path": "console/tests/oauth_repo_validation_test.py",
+          "selector": "OAuthRepoValidationTestCase.test_update_rejects_deleted_oauth_service_before_reading_home_url"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.oauth.session-retry",
       "title": "Create OAuth sessions with retry-capable HTTP adapters",
       "title_zh": "创建带重试 HTTP 适配器的 OAuth 会话",
