@@ -237,16 +237,17 @@ class AppEnvVarService(object):
             })
         env_var_repo.delete_service_env_by_attr_name(tenant.tenant_id, service.service_id, attr_name)
 
-    def delete_env_by_env_id(self, tenant: Any, service: Any, env_id: str, user_name: str = '') -> None:
-        env = env_var_repo.get_env_by_ids_and_env_id(tenant.tenant_id, service.service_id, env_id)
-        if env:
-            env_var_repo.delete_service_env_by_attr_name(tenant.tenant_id, service.service_id, env.attr_name)
-            if service.create_status == "complete":
-                region_api.delete_service_env(service.service_region, tenant.tenant_name, service.service_alias, {
-                    "env_name": env.attr_name,
-                    "enterprise_id": tenant.enterprise_id,
-                    "operator": user_name
-                })
+    def delete_env_by_env_id(self, tenant: Any, service: Any, env_id: str,
+                             user_name: str = '') -> TenantServiceEnvVar:
+        env = env_var_repo.get_service_env_or_404_by_env_id(tenant.tenant_id, service.service_id, env_id)
+        env_var_repo.delete_service_env_by_attr_name(tenant.tenant_id, service.service_id, env.attr_name)
+        if service.create_status == "complete":
+            region_api.delete_service_env(service.service_region, tenant.tenant_name, service.service_alias, {
+                "env_name": env.attr_name,
+                "enterprise_id": tenant.enterprise_id,
+                "operator": user_name
+            })
+        return env
 
     def delete_env_by_container_port(self, tenant: Any, service: Any, container_port: int, user_name: str = '') -> None:
         envs = env_var_repo.get_service_env_by_port(tenant.tenant_id, service.service_id, container_port)

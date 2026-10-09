@@ -20,8 +20,11 @@ django.setup()
 
 import console.services.app_config.env_service as env_service_module  # noqa: E402
 import console.repositories.app_config as app_config_repo_module  # noqa: E402
+import console.views.app_config.app_env as app_env_view_module  # noqa: E402
 from console.repositories.app_config import TenantServiceEnvVarRepository  # noqa: E402
 from console.services.app_config.env_service import AppEnvVarService  # noqa: E402
+from console.views.app_config.app_env import AppEnvManageView  # noqa: E402
+from django.test import RequestFactory  # noqa: E402
 
 
 class TenantServiceEnvVarRepositoryUpdateTestCase(TestCase):
@@ -39,6 +42,65 @@ class TenantServiceEnvVarRepositoryUpdateTestCase(TestCase):
 
 
 class AppEnvVarServiceUpdateTestCase(TestCase):
+    # capability_id: console.component-env.delete-missing-404
+    def test_delete_env_by_env_id_uses_404_aware_lookup_and_returns_deleted_env(self):
+        tenant = mock.Mock(tenant_id="tenant-id", tenant_name="tenant-name", enterprise_id="enterprise-id")
+        service = mock.Mock(
+            service_id="service-id",
+            service_region="region-name",
+            service_alias="service-alias",
+            create_status="complete")
+        env = mock.Mock(ID=7, attr_name="OLD_KEY")
+        repo = mock.Mock()
+        repo.get_service_env_or_404_by_env_id.return_value = env
+
+        with mock.patch.object(env_service_module, "env_var_repo", repo), \
+                mock.patch.object(env_service_module, "region_api") as region_api:
+            deleted = AppEnvVarService().delete_env_by_env_id(
+                tenant, service, "7", "operator")
+
+        self.assertIs(deleted, env)
+        repo.get_service_env_or_404_by_env_id.assert_called_once_with("tenant-id", "service-id", "7")
+        repo.get_env_by_ids_and_env_id.assert_not_called()
+        repo.delete_service_env_by_attr_name.assert_called_once_with("tenant-id", "service-id", "OLD_KEY")
+        region_api.delete_service_env.assert_called_once_with(
+            "region-name",
+            "tenant-name",
+            "service-alias",
+            {
+                "env_name": "OLD_KEY",
+                "enterprise_id": "enterprise-id",
+                "operator": "operator",
+            },
+        )
+
+    def test_delete_view_reuses_the_environment_returned_by_the_service(self):
+        env = mock.Mock(attr_name="OLD_KEY", attr_value="old-value", name="old note")
+        env_service = mock.Mock()
+        env_service.delete_env_by_env_id.return_value = env
+        env_service.json_service_env_var.return_value = {"attr_name": "OLD_KEY"}
+        operation_log_service = mock.Mock()
+        operation_log_service.generate_component_comment.return_value = "deleted OLD_KEY"
+        view = AppEnvManageView()
+        view.tenant = mock.Mock(tenant_name="tenant-name")
+        view.service = mock.Mock(service_cname="component", service_region="region-name", service_alias="service-alias")
+        view.user = mock.Mock(nick_name="operator", enterprise_id="enterprise-id")
+        view.app = mock.Mock(ID=12)
+
+        with mock.patch.object(app_env_view_module, "env_var_service", env_service), \
+                mock.patch.object(app_env_view_module, "operation_log_service", operation_log_service), \
+                mock.patch.object(app_env_view_module, "env_var_repo") as env_var_repo:
+            response = view.delete(
+                RequestFactory().delete("/console/teams/tenant-name/apps/service-alias/envs/7"),
+                env_id="7",
+            )
+
+        self.assertEqual(response.status_code, 200)
+        env_service.delete_env_by_env_id.assert_called_once_with(
+            view.tenant, view.service, "7", "operator")
+        env_var_repo.get_env_by_ids_and_env_id.assert_not_called()
+        operation_log_service.create_component_log.assert_called_once()
+
     def test_update_env_by_env_id_renames_env_key_in_console_and_region(self):
         tenant = mock.Mock(tenant_id="tenant-id", tenant_name="tenant-name", enterprise_id="enterprise-id")
         service = mock.Mock(
@@ -51,8 +113,8 @@ class AppEnvVarServiceUpdateTestCase(TestCase):
         repo.get_env_by_ids_and_env_id.return_value = env
         repo.get_service_env_by_attr_name.return_value = None
 
-        with mock.patch.object(env_service_module, "env_var_repo", repo), mock.patch.object(env_service_module,
-                                                                                             "region_api") as region_api:
+        with mock.patch.object(env_service_module, "env_var_repo", repo), \
+             mock.patch.object(env_service_module, "region_api") as region_api:
             code, msg, updated = AppEnvVarService().update_env_by_env_id(
                 tenant, service, "7", "new note", "new-value", "operator", attr_name="NEW_KEY")
 

@@ -4130,6 +4130,25 @@
       "status": "active"
     },
     {
+      "id": "console.component-env.delete-missing-404",
+      "title": "Return a controlled 404 when deleting a missing environment variable",
+      "title_zh": "删除不存在的环境变量时返回受控 404",
+      "interface_type": "service_method",
+      "interface": "console.services.app_config.env_service.AppEnvVarService.delete_env_by_env_id",
+      "code_paths": [
+        "console/services/app_config/env_service.py",
+        "console/views/app_config/app_env.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_env_service_test.py",
+          "selector": "AppEnvVarServiceUpdateTestCase.test_delete_env_by_env_id_uses_404_aware_lookup_and_returns_deleted_env"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.component-type.daemonset",
       "title": "DaemonSet component type support",
       "title_zh": "DaemonSet 组件类型支持",

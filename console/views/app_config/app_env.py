@@ -296,11 +296,10 @@ class AppEnvManageView(AppBaseView):
         env_id = kwargs.get("env_id", None)
         if not env_id:
             return Response(general_message(400, "env_id not specify", "环境变量ID未指定"))
-        env = env_var_repo.get_env_by_ids_and_env_id(self.tenant.tenant_id, self.service.service_id, env_id)
+        env = env_var_service.delete_env_by_env_id(
+            self.tenant, self.service, env_id, self.user.nick_name)  # type: ignore[arg-type]
         old_information = env_var_service.json_service_env_var(
             attr_name=env.attr_name, attr_value=env.attr_value, name=env.name)
-        env_var_service.delete_env_by_env_id(
-            self.tenant, self.service, env_id, self.user.nick_name)  # type: ignore[arg-type]
         result = general_message(200, "success", "删除成功")
         comment = operation_log_service.generate_component_comment(
             operation=Operation.DELETE,
