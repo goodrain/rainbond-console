@@ -3327,6 +3327,28 @@
       "status": "active"
     },
     {
+      "id": "console.build-env.duplicate-update",
+      "title": "Update duplicate build environment rows without crashing",
+      "title_zh": "重复构建环境变量统一更新",
+      "interface_type": "dao_method",
+      "interface": "console.repositories.app_config.TenantServiceEnvVarRepository.update_or_create_env_var",
+      "code_paths": [
+        "console/repositories/app_config.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_config_test.py",
+          "selector": "TenantServiceEnvVarRepositoryTests.test_update_or_create_env_var_updates_all_duplicate_rows"
+        },
+        {
+          "path": "console/tests/app_config_test.py",
+          "selector": "TenantServiceEnvVarRepositoryTests.test_update_or_create_env_var_creates_row_when_no_match_exists"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.cache.atomic-increment",
       "title": "Atomic expiring cache increment",
       "title_zh": "Atomic expiring cache increment",

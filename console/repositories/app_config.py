@@ -115,12 +115,9 @@ class TenantServiceEnvVarRepository(object):
         创建或更新构建时环境变量。
         注意：此方法专用于构建变量，始终确保 scope 为 build。
         """
-        try:
-            obj = TenantServiceEnvVar.objects.get(tenant_id=tenant_id, service_id=service_id, attr_name=attr_name)
-            obj.attr_value = attr_value
-            obj.scope = "build"  # 确保更新时也设置为构建时变量
-            obj.save()
-        except TenantServiceEnvVar.DoesNotExist:
+        envs = TenantServiceEnvVar.objects.filter(
+            tenant_id=tenant_id, service_id=service_id, attr_name=attr_name)
+        if envs.update(attr_value=attr_value, scope="build") == 0:
             TenantServiceEnvVar.objects.create(
                 tenant_id=tenant_id,
                 service_id=service_id,

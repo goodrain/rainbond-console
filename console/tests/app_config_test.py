@@ -166,6 +166,44 @@ class TenantServiceEnvVarRepositoryTests(TestCase):
         self.assertNotIn("PROCFILE", envs)
         self.assertNotIn("PYTHON_PACKAGE_MANAGER", envs)
 
+    # capability_id: console.build-env.duplicate-update
+    def test_update_or_create_env_var_updates_all_duplicate_rows(self):
+        repository_module = self.import_repository_module()
+        queryset = MagicMock()
+        queryset.update.return_value = 2
+        manager = MagicMock()
+        manager.filter.return_value = queryset
+        repository_module.TenantServiceEnvVar.objects = manager
+
+        repository_module.TenantServiceEnvVarRepository().update_or_create_env_var(
+            "team-1", "svc-1", "BUILD_PACKAGE_TOOL", "pnpm")
+
+        manager.filter.assert_called_once_with(
+            tenant_id="team-1", service_id="svc-1", attr_name="BUILD_PACKAGE_TOOL")
+        queryset.update.assert_called_once_with(attr_value="pnpm", scope="build")
+        manager.get.assert_not_called()
+        manager.create.assert_not_called()
+
+    # capability_id: console.build-env.duplicate-update
+    def test_update_or_create_env_var_creates_row_when_no_match_exists(self):
+        repository_module = self.import_repository_module()
+        queryset = MagicMock()
+        queryset.update.return_value = 0
+        manager = MagicMock()
+        manager.filter.return_value = queryset
+        repository_module.TenantServiceEnvVar.objects = manager
+
+        repository_module.TenantServiceEnvVarRepository().update_or_create_env_var(
+            "team-1", "svc-1", "BUILD_PACKAGE_TOOL", "pnpm")
+
+        manager.create.assert_called_once()
+        create_kwargs = manager.create.call_args.kwargs
+        self.assertEqual(create_kwargs["tenant_id"], "team-1")
+        self.assertEqual(create_kwargs["service_id"], "svc-1")
+        self.assertEqual(create_kwargs["attr_name"], "BUILD_PACKAGE_TOOL")
+        self.assertEqual(create_kwargs["attr_value"], "pnpm")
+        self.assertEqual(create_kwargs["scope"], "build")
+
 
 class ServiceExtendRepositoryTests(TestCase):
     def tearDown(self):
