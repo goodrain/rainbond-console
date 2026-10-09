@@ -6603,6 +6603,24 @@
       "status": "active"
     },
     {
+      "id": "console.gateway.domain-port-required",
+      "title": "Reject domain binding when the component port is missing",
+      "title_zh": "组件端口不存在时拒绝绑定域名",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.app_config.app_domain.ServiceDomainView.post",
+      "code_paths": [
+        "console/views/app_config/app_domain.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/service_domain_view_test.py",
+          "selector": "ServiceDomainViewTests.test_post_rejects_missing_component_port_before_binding_domain"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.gateway.http-port-not-open",
       "title": "Reject HTTP gateway rule when port is not open to public",
       "title_zh": "对外端口未开启时拦截 HTTP 网关创建",

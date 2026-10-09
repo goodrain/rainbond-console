@@ -344,6 +344,7 @@
 | console.gateway.create-tcp-rule | 创建 TCP 网关规则 | active | regression | console.services.mcp_query_service.call_tool[rainbond_create_gateway_rules] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_create_gateway_rules_tcp_returns_bound_rule |
 | console.gateway.dependency-container-port-schema | Gateway Dependency Container Port Schema | active | regression | console.services.mcp_query_service.call_tool[console.gateway.dependency-container-port-schema] | console/tests/mcp_query_service_test.py::MCPQueryServiceToolVisibilityTests.test_manage_component_dependency_schema_exposes_container_port_guidance |
 | console.gateway.domain-mtls-proxy | Proxy gateway domain mTLS updates | active | regression | www.apiclient.regionapi.RegionInvokeApi.api_gateway_delete_proxy | console/tests/app_domain_certificate_test.py::GatewayMTLSProxyTests |
+| console.gateway.domain-port-required | 组件端口不存在时拒绝绑定域名 | active | regression | console.views.app_config.app_domain.ServiceDomainView.post | console/tests/service_domain_view_test.py::ServiceDomainViewTests.test_post_rejects_missing_component_port_before_binding_domain |
 | console.gateway.http-port-not-open | 对外端口未开启时拦截 HTTP 网关创建 | active | regression | console.services.mcp_query_service.create_gateway_rules[http] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_create_gateway_rules_http_rejects_when_outer_port_is_unavailable |
 | console.gateway.http-port-open-failure | HTTP 网关开端口失败时拦截创建 | active | regression | console.services.mcp_query_service.create_gateway_rules[http] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_create_gateway_rules_http_rejects_port_open_failure |
 | console.gateway.http-required | 创建 HTTP 网关规则时必须提供 http 参数 | active | regression | console.services.mcp_query_service.create_gateway_rules[http] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_create_gateway_rules_requires_http_payload |
@@ -4066,6 +4067,16 @@
 - 业务入口: `www.apiclient.regionapi.RegionInvokeApi.api_gateway_delete_proxy`
 - 代码路径: `www/apiclient/regionapi.py`
 - 测试路径: `console/tests/app_domain_certificate_test.py::GatewayMTLSProxyTests`
+
+### 组件端口不存在时拒绝绑定域名
+
+- Capability ID: `console.gateway.domain-port-required`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `view_endpoint`
+- 业务入口: `console.views.app_config.app_domain.ServiceDomainView.post`
+- 代码路径: `console/views/app_config/app_domain.py`
+- 测试路径: `console/tests/service_domain_view_test.py::ServiceDomainViewTests.test_post_rejects_missing_component_port_before_binding_domain`
 
 ### 对外端口未开启时拦截 HTTP 网关创建
 
