@@ -348,6 +348,27 @@ class RealtimeProxyUrlTests(SimpleTestCase):
         self.assertEqual(response.content, b"client upload interrupted")
 
     # capability_id: console.realtime-proxy.interrupted-upload
+    def test_http_proxy_handles_direct_unreadable_post_error(self):
+        request = self.factory.post(
+            "/console/regions/rainbond/websocket/package_build/component/events/evt-1",
+            data=b"partial upload",
+            content_type="application/octet-stream",
+        )
+        interrupted = UnreadablePostError("unexpected end of file while reading request")
+
+        with mock.patch(
+            "console.utils.realtime_proxy.build_region_realtime_proxy_url",
+            return_value="http://region.example.com:6060/package_build/component/events/evt-1",
+        ), mock.patch(
+            "console.utils.realtime_proxy.requests.request",
+            side_effect=interrupted,
+        ):
+            response = proxy_http_request(request, "rainbond", "package_build/component/events/evt-1")
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.content, b"client upload interrupted")
+
+    # capability_id: console.realtime-proxy.interrupted-upload
     def test_http_proxy_keeps_backend_connection_errors_visible(self):
         request = self.factory.get("/console/regions/rainbond/websocket/event_log")
         backend_error = requests.ConnectionError("backend unavailable")

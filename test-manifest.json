@@ -9898,6 +9898,10 @@
       "tests": [
         {
           "path": "console/tests/realtime_proxy_url_test.py",
+          "selector": "RealtimeProxyUrlTests.test_http_proxy_handles_direct_unreadable_post_error"
+        },
+        {
+          "path": "console/tests/realtime_proxy_url_test.py",
           "selector": "RealtimeProxyUrlTests.test_http_proxy_returns_bad_request_when_client_upload_is_interrupted"
         },
         {

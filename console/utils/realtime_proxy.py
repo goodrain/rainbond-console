@@ -233,7 +233,7 @@ def proxy_http_request(request, region_name, proxy_path):
             timeout=(10, 3600),
             allow_redirects=False,
         )
-    except requests.ConnectionError as error:
+    except (requests.ConnectionError, UnreadablePostError) as error:
         if not _is_interrupted_client_upload(error):
             raise
         logger.info("realtime proxy client upload interrupted")
