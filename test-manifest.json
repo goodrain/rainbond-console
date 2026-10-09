@@ -9591,6 +9591,24 @@
       "status": "active"
     },
     {
+      "id": "console.package-upload.record-required-params",
+      "title": "Validate package upload record query parameters",
+      "title_zh": "校验软件包上传记录查询参数",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.app_create.source_code.PackageUploadRecordView.get",
+      "code_paths": [
+        "console/views/app_create/source_code.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/package_upload_view_test.py",
+          "selector": "PackageUploadRecordViewTests.test_get_rejects_missing_event_id_before_calling_region"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.package-upload.status",
       "title": "Package Upload Status",
       "title_zh": "Package Upload Status",

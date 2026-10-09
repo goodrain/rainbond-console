@@ -119,3 +119,30 @@ class PackageCreateViewTests(TestCase):
         self.assertEqual(response.data["msg_show"], "上传记录不存在")
         update_component.assert_not_called()
         log_exception.assert_not_called()
+
+
+class PackageUploadRecordViewTests(TestCase):
+    # capability_id: console.package-upload.record-required-params
+    def test_get_rejects_missing_event_id_before_calling_region(self):
+        view = source_code_module.PackageUploadRecordView()
+        cases = (
+            ({"region": "rainbond"}, "上传事件 ID 不能为空"),
+            ({"event_id": "event-1"}, "集群不能为空"),
+        )
+        for query, expected_message in cases:
+            request = view.initialize_request(
+                APIRequestFactory().get(
+                    "/console/teams/demo/apps/package_build/record",
+                    query,
+                )
+            )
+
+            with self.subTest(query=query), \
+                    mock.patch.object(source_code_module.region_api, "get_upload_file_dir") as get_upload_dir, \
+                    mock.patch.object(source_code_module.logger, "exception") as log_exception:
+                response = view.get(request, "demo")
+
+            self.assertEqual(response.status_code, 400)
+            self.assertEqual(response.data["msg_show"], expected_message)
+            get_upload_dir.assert_not_called()
+            log_exception.assert_not_called()

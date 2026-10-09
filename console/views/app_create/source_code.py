@@ -446,8 +446,12 @@ class PackageUploadRecordView(RegionTenantHeaderView):
         """
         region = request.GET.get("region", None)
         event_id = request.GET.get("event_id", None)
+        if not region:
+            return Response(general_message(400, "region is required", "集群不能为空"), status=400)
+        if not event_id:
+            return Response(general_message(400, "event_id is required", "上传事件 ID 不能为空"), status=400)
         try:
-            res, body = region_api.get_upload_file_dir(region, tenantName, event_id)  # type: ignore[arg-type]
+            res, body = region_api.get_upload_file_dir(region, tenantName, event_id)
             packages = body["bean"].get("packages", [])  # type: ignore[index]
             packages = packages if packages else []
             bean = dict()
