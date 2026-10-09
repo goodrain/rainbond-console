@@ -59,6 +59,10 @@ function init_database() {
     echo -e "${RED}ERROR: failed to migrate${NC}"
     exit 1
   fi
+  if ! python manage.py verify_required_schema; then
+    echo -e "${RED}ERROR: required database schema is incomplete${NC}"
+    exit 1
+  fi
   echo -e "${GREEN}INFO: Database initialization completed${NC}"
 }
 

@@ -5937,6 +5937,29 @@
       "status": "active"
     },
     {
+      "id": "console.database.required-schema-startup-gate",
+      "title": "Block startup when critical migrated tables are missing",
+      "title_zh": "关键迁移表缺失时阻止启动",
+      "interface_type": "workflow",
+      "interface": "entrypoint migrate then verify_required_schema",
+      "code_paths": [
+        "entrypoint.sh",
+        "console/management/commands/verify_required_schema.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/entrypoint_test.py",
+          "selector": "EntrypointGunicornTest.test_database_startup_plans_repairs_before_applying_and_migrating"
+        },
+        {
+          "path": "console/tests/schema_verification_test.py",
+          "selector": "RequiredSchemaVerificationTestCase.test_missing_required_tables_are_reported_in_stable_order"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.database.transient-unavailable",
       "title": "Normalize transient database outages",
       "title_zh": "统一瞬时数据库不可用响应",

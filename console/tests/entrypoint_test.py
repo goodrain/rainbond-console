@@ -24,14 +24,17 @@ class EntrypointGunicornTest(unittest.TestCase):
         self.assertIn(timeout_option, self.procfile_command)
 
     # capability_id: console.rainskills-audit-strict-startup
+    # capability_id: console.database.required-schema-startup-gate
     def test_database_startup_plans_repairs_before_applying_and_migrating(self):
         plan = "if ! python manage.py repair_legacy_schema --apps authtoken,www,console --plan; then"
         repair = "if ! python manage.py repair_legacy_schema --apps authtoken,www,console; then"
         migrate = "if ! python manage.py migrate --fake-initial --noinput; then"
+        verify = "if ! python manage.py verify_required_schema; then"
 
         self.assertIn(plan, self.source)
         self.assertLess(self.source.index(plan), self.source.index(repair))
         self.assertLess(self.source.index(repair), self.source.index(migrate))
+        self.assertLess(self.source.index(migrate), self.source.index(verify))
 
 
 if __name__ == "__main__":
