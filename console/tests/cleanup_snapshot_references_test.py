@@ -47,6 +47,24 @@ class SnapshotReferenceTests(unittest.TestCase):
         self.assertEqual(result['images'], ['goodrain.me/app:v1'])
         self.assertNotIn('do-not-export', json.dumps(result))
 
+    def test_source_snapshot_without_saved_image_and_non_image_attributes_is_complete(self):
+        component = {
+            'service_base': {
+                'service_id': 's',
+                'service_source': 'source_code',
+                'image': ''
+            },
+            'component_k8s_attributes': [
+                {'name': name, 'attribute_value': 'do-not-export'}
+                for name in ('hostNetwork', 'labels', 'podSecurityContext', 'serviceAccountName',
+                             'volumeMounts', 'volumes')
+            ]
+        }
+        result = snapshot_reference_resource({'ID': 8, 'snapshot': json.dumps({'components': [component]})}, 'r')
+        self.assertTrue(result['observed'])
+        self.assertEqual(result['images'], [])
+        self.assertNotIn('do-not-export', json.dumps(result))
+
     def test_incomplete_components_keep_other_known_image_evidence(self):
         components = [None, {'service_base': {'service_id': 's', 'image': 'goodrain.me/app:v1'},
                              'service_source': 'invalid'}]

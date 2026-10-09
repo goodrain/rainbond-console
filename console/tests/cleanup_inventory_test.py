@@ -34,6 +34,16 @@ class CleanupInventoryProjectionTests(unittest.TestCase):
         row["app_template"] = json.dumps({"apps": [{}]})
         self.assertFalse(registry_reference_resource(row, "templates", "r", bytes(32))["observed"])
 
+    def test_registry_reference_allows_explicit_source_build_without_saved_image(self):
+        from console.services.cleanup_inventory import registry_reference_resource
+        row = {
+            "ID": 8,
+            "app_template": json.dumps({"apps": [{"service_source": "source_code"}]})
+        }
+        result = registry_reference_resource(row, "templates", "r", bytes(32))
+        self.assertTrue(result["observed"])
+        self.assertEqual(result["images"], [])
+
     def test_failed_component_keeps_identifier_and_readable_context(self):
         self.assertEqual(failed_scope_label({"service_id": "s1", "service_cname": "支付接口", "owner_name": "研发 / 商城"}),
                          "研发 / 商城 / 支付接口 (s1)")
