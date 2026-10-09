@@ -10510,6 +10510,29 @@
       "status": "active"
     },
     {
+      "id": "console.region-api.upstream-server-error",
+      "title": "Normalize Region upstream server errors",
+      "title_zh": "统一 Region 上游服务错误",
+      "interface_type": "package_function",
+      "interface": "console.views.base.custom_exception_handler",
+      "code_paths": [
+        "console/views/base.py",
+        "goodrain_web/sentry_config.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/regionapibaseclient_test.py",
+          "selector": "RegionApiBaseHttpClientTestCase.test_region_upstream_server_error_returns_retryable_502"
+        },
+        {
+          "path": "console/tests/sentry_config_test.py",
+          "selector": "test_before_send_groups_region_server_errors_by_normalized_upstream_path"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.region-api.vm-snapshot-feature-gate-msg",
       "title": "_check_status translates VM snapshot feature gate error to actionable msg_show",
       "title_zh": "_check_status 将虚拟机快照功能门禁错误翻译为可操作提示",

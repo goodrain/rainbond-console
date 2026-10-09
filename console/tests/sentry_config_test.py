@@ -194,7 +194,33 @@ def test_before_send_keeps_server_side_service_and_region_errors():
         )
 
     assert service_result == {"message": "service failed"}
-    assert region_result == {"message": "region failed"}
+    assert region_result == {
+        "message": "region failed",
+        "fingerprint": ["region-upstream-error", "unknown"],
+    }
+
+
+# capability_id: console.region-api.upstream-server-error
+def test_before_send_groups_region_server_errors_by_normalized_upstream_path():
+    region_error_type = type(
+        "CallApiError",
+        (Exception, ),
+        {"__module__": "www.apiclient.regionapibaseclient"},
+    )
+    error = region_error_type("plugin unavailable")
+    error.status = 500
+    error.url = "https://rbd-api-api:8443/v2/tenants/demo/services/gr123456/pods/pod-abc/detail"
+
+    with mock.patch("goodrain_web.sentry_config.is_external_telemetry_enabled", return_value=True):
+        result = sentry_config.before_send(
+            {"message": "plugin unavailable"},
+            {"exc_info": (region_error_type, error, None)},
+        )
+
+    assert result["fingerprint"] == [
+        "region-upstream-error",
+        "/v2/tenants/:id/services/:id/pods/pod-abc/detail",
+    ]
 
 
 # capability_id: console.database.transient-unavailable

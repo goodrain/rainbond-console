@@ -603,8 +603,27 @@ def custom_exception_handler(exc: Exception, context: Any) -> Optional[Response]
         data = {"code": 409, "msg": "wait a moment please", "msg_show": "操作过于频繁，请稍后再试"}
         return Response(data, status=409)
     elif isinstance(exc, RegionApiBaseHttpClient.CallApiError):
-        if exc.message.get("httpcode") == 404:
+        try:
+            upstream_status = int(exc.message.get("httpcode") or 0)
+        except (TypeError, ValueError):
+            upstream_status = 0
+        if upstream_status == 404:
             data = {"code": 404, "msg": "region no found this resource", "msg_show": "数据中心资源不存在"}
+        elif upstream_status >= 500:
+            error = ServiceHandleException(
+                msg="region upstream error",
+                msg_show="数据中心服务异常，请稍后重试",
+                status_code=502,
+                error_code=502,
+                details={
+                    "retryable": True,
+                    "reason": "region_upstream_error",
+                    "upstream_status": upstream_status,
+                },
+            )
+            response = error.response
+            response["Retry-After"] = "3"
+            return response
         else:
             error_body = exc.message.get('body', {})
             if isinstance(error_body, dict) and error_body.get('msg'):

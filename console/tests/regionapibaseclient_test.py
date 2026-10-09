@@ -31,6 +31,26 @@ from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient, create_fi
 
 
 class RegionApiBaseHttpClientTestCase(TestCase):
+    # capability_id: console.region-api.upstream-server-error
+    def test_region_upstream_server_error_returns_retryable_502(self):
+        error = RegionApiBaseHttpClient.CallApiError(
+            "Not specified",
+            "https://region.example.com/v2/cluster/kubeblocks/clusters/demo",
+            "GET",
+            mock.Mock(status=500),
+            {"msg": "plugin unavailable"},
+        )
+
+        response = custom_exception_handler(error, {})
+
+        self.assertEqual(response.status_code, 502)
+        self.assertEqual(response["Retry-After"], "3")
+        self.assertEqual(response.data["msg"], "region upstream error")
+        self.assertEqual(
+            response.data["data"]["details"],
+            {"retryable": True, "reason": "region_upstream_error", "upstream_status": 500},
+        )
+
     # capability_id: console.database.transient-unavailable
     def test_transient_database_error_returns_retryable_503(self):
         response = custom_exception_handler(

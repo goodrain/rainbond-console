@@ -358,6 +358,23 @@ def is_transient_database_exception(hint):
     return is_transient_database_error(exception)
 
 
+def get_region_upstream_server_error_path(hint):
+    exception_type, exception = get_hint_exception(hint)
+    if exception_type is None or exception is None:
+        return None
+    if getattr(exception_type, "__module__", "") != "www.apiclient.regionapibaseclient":
+        return None
+    if getattr(exception_type, "__name__", "") != "CallApiError":
+        return None
+    try:
+        status = int(getattr(exception, "status", 0) or 0)
+    except (TypeError, ValueError):
+        return None
+    if status < 500:
+        return None
+    return get_path_pattern(getattr(exception, "url", "")) or "unknown"
+
+
 def before_send(event, hint):
     if not is_external_telemetry_enabled():
         return None
@@ -365,6 +382,9 @@ def before_send(event, hint):
         return None
     if is_transient_database_exception(hint):
         event["fingerprint"] = ["database-unavailable"]
+    region_upstream_path = get_region_upstream_server_error_path(hint)
+    if region_upstream_path:
+        event["fingerprint"] = ["region-upstream-error", region_upstream_path]
     event.pop("user", None)
     request = event.get("request")
     if request:
