@@ -549,6 +549,7 @@
 | console.region-api.proxy-error-pass-through | 对非 Helm 冲突保留原始上游错误信息 | active | regression | www.apiclient.regionapibaseclient.RegionApiBaseHttpClient._check_status | console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_check_status_keeps_original_message_for_non_helm_conflicts |
 | console.region-api.vm-snapshot-feature-gate-msg | _check_status 将虚拟机快照功能门禁错误翻译为可操作提示 | active | regression | www.apiclient.regionapibaseclient.RegionApiBaseHttpClient._check_status | console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_check_status_translates_snapshot_feature_gate_error_to_actionable_msg_show |
 | console.region.list-current-enterprise | 查询当前认证企业的数据中心 | active | regression | console.views.region.QyeryRegionView.get | console/tests/region_view_test.py::QueryRegionViewTests.test_get_uses_authenticated_users_enterprise_without_path_parameter |
+| console.region.partial-update-preserves-required-fields | 集群部分更新保留未提交字段 | active | regression | console.repositories.region_repo.RegionRepo.update_enterprise_region | console/tests/region_repo_update_test.py::RegionRepoUpdateTestCase.test_partial_update_preserves_omitted_required_connection_fields |
 | console.region.sse-protocol-disconnect | 上游协议中断后平静结束 SSE 流 | active | regression | www.apiclient.regionapi.RegionInvokeApi.sse_proxy | console/tests/regionapi_sse_proxy_test.py::RegionApiSSEProxyTests.test_sse_proxy_ends_cleanly_when_upstream_disconnects |
 | console.region.sse-read-timeout | SSE 空闲读取超时后平静结束流 | active | regression | www.apiclient.regionapi.RegionInvokeApi.sse_proxy | console/tests/regionapi_sse_proxy_test.py::RegionApiSSEProxyTests.test_sse_proxy_ends_cleanly_after_idle_read_timeout |
 | console.region.sse-utf8-streaming | SSE 分片安全解码 UTF-8 | active | regression | www.apiclient.regionapi.RegionInvokeApi.sse_proxy | console/tests/regionapi_sse_proxy_test.py::RegionApiSSEProxyTests.test_sse_proxy_decodes_utf8_characters_split_across_chunks<br>console/tests/regionapi_sse_proxy_test.py::RegionApiSSEProxyTests.test_sse_proxy_replaces_invalid_trailing_utf8_without_stopping_stream |
@@ -6130,6 +6131,16 @@
 - 业务入口: `console.views.region.QyeryRegionView.get`
 - 代码路径: `console/views/region.py`
 - 测试路径: `console/tests/region_view_test.py::QueryRegionViewTests.test_get_uses_authenticated_users_enterprise_without_path_parameter`
+
+### 集群部分更新保留未提交字段
+
+- Capability ID: `console.region.partial-update-preserves-required-fields`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `dao_method`
+- 业务入口: `console.repositories.region_repo.RegionRepo.update_enterprise_region`
+- 代码路径: `console/repositories/region_repo.py`
+- 测试路径: `console/tests/region_repo_update_test.py::RegionRepoUpdateTestCase.test_partial_update_preserves_omitted_required_connection_fields`
 
 ### 上游协议中断后平静结束 SSE 流
 

@@ -213,19 +213,11 @@ class RegionRepo(object):
         region = self.get_region_by_id(eid, region_id)
         if not region:
             raise RegionNotFound("region no found")
-        # data.get() yields Any|None; assigning to non-null model fields trips
-        # django-stubs strictness but is safe at runtime (callers pass values).
-        region.region_alias = data.get("region_alias")  # type: ignore[assignment]
-        region.url = data.get("url")  # type: ignore[assignment]
-        region.wsurl = data.get("wsurl")  # type: ignore[assignment]
-        region.httpdomain = data.get("httpdomain")  # type: ignore[assignment]
-        region.tcpdomain = data.get("tcpdomain")  # type: ignore[assignment]
-        if data.get("scope"):
-            region.scope = data.get("scope")  # type: ignore[assignment]
-        region.ssl_ca_cert = data.get("ssl_ca_cert")  # type: ignore[assignment]
-        region.cert_file = data.get("cert_file")  # type: ignore[assignment]
-        region.desc = data.get("desc")  # type: ignore[assignment]
-        region.key_file = data.get("key_file")  # type: ignore[assignment]
+        for field in (
+                "region_alias", "url", "wsurl", "httpdomain", "tcpdomain", "scope", "ssl_ca_cert", "cert_file",
+                "desc", "key_file"):
+            if field in data and data[field] is not None:
+                setattr(region, field, data[field])
         region.save()
         return region
 

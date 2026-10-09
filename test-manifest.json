@@ -10495,6 +10495,24 @@
       "status": "active"
     },
     {
+      "id": "console.region.partial-update-preserves-required-fields",
+      "title": "Preserve omitted region fields during partial updates",
+      "title_zh": "集群部分更新保留未提交字段",
+      "interface_type": "dao_method",
+      "interface": "console.repositories.region_repo.RegionRepo.update_enterprise_region",
+      "code_paths": [
+        "console/repositories/region_repo.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/region_repo_update_test.py",
+          "selector": "RegionRepoUpdateTestCase.test_partial_update_preserves_omitted_required_connection_fields"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.region.sse-protocol-disconnect",
       "title": "End SSE streams cleanly after upstream protocol disconnects",
       "title_zh": "上游协议中断后平静结束 SSE 流",
