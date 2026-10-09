@@ -616,6 +616,7 @@
 | console.url.path-legal | 校验路径是否满足 URL 路径合法性规则 | active | regression | console.utils.urlutil.is_path_legal | console/tests/utils/urlutil_test.py::UrlUtilTests.test_is_path_legal |
 | console.url.query-build | 根据基础路径和参数构建 GET URL | active | regression | console.utils.urlutil.set_get_url | console/tests/utils/urlutil_test.py::UrlUtilTests.test_set_get_url |
 | console.url.query-empty | 即使没有查询参数也能构建 GET URL | active | regression | console.utils.urlutil.set_get_url | console/tests/utils/urlutil_test.py::UrlUtilTests.test_set_get_url_with_empty_params |
+| console.user-registration.required-username | 注册缺少用户名时返回表单错误 | active | regression | console.views.user_operation.TenantServiceView.post | console/tests/user_registration_view_test.py::TenantServiceRegistrationViewTests.test_post_normalizes_provided_username_before_form_validation<br>console/tests/user_registration_view_test.py::TenantServiceRegistrationViewTests.test_post_returns_form_error_when_username_is_missing |
 | console.user.access-token-delete-log | 删除访问令牌时记录令牌备注 | active | regression | console.views.user_accesstoken.UserAccessTokenRUDView.delete | console/tests/user_accesstoken_delete_log_test.py::UserAccessTokenDeleteLogTest.test_delete_logs_token_note_without_nameerror |
 | console.user.current-profile | 查看当前用户身份信息 | active | regression | console.services.mcp_query_service.get_current_user | console/tests/mcp_query_service_test.py::MCPQueryServiceToolVisibilityTests.test_get_current_user_returns_identity_and_enterprise_admin_flag |
 | console.user.favorite-delete-log | 删除收藏视图时记录收藏名称 | active | regression | console.views.user_operation.UserFavoriteUDView.delete | console/tests/user_favorite_delete_log_test.py::UserFavoriteDeleteLogTest |
@@ -6783,6 +6784,16 @@
 - 业务入口: `console.utils.urlutil.set_get_url`
 - 代码路径: `console/utils/urlutil.py`
 - 测试路径: `console/tests/utils/urlutil_test.py::UrlUtilTests.test_set_get_url_with_empty_params`
+
+### 注册缺少用户名时返回表单错误
+
+- Capability ID: `console.user-registration.required-username`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `view_endpoint`
+- 业务入口: `console.views.user_operation.TenantServiceView.post`
+- 代码路径: `console/views/user_operation.py`
+- 测试路径: `console/tests/user_registration_view_test.py::TenantServiceRegistrationViewTests.test_post_normalizes_provided_username_before_form_validation`, `console/tests/user_registration_view_test.py::TenantServiceRegistrationViewTests.test_post_returns_form_error_when_username_is_missing`
 
 ### 删除访问令牌时记录令牌备注
 

@@ -11731,6 +11731,28 @@
       "status": "active"
     },
     {
+      "id": "console.user-registration.required-username",
+      "title": "Validate missing usernames through the registration form",
+      "title_zh": "注册缺少用户名时返回表单错误",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.user_operation.TenantServiceView.post",
+      "code_paths": [
+        "console/views/user_operation.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/user_registration_view_test.py",
+          "selector": "TenantServiceRegistrationViewTests.test_post_normalizes_provided_username_before_form_validation"
+        },
+        {
+          "path": "console/tests/user_registration_view_test.py",
+          "selector": "TenantServiceRegistrationViewTests.test_post_returns_form_error_when_username_is_missing"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.user.access-token-delete-log",
       "title": "Log the access token note when deleting a token",
       "title_zh": "删除访问令牌时记录令牌备注",
