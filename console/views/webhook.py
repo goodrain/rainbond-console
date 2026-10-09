@@ -41,6 +41,12 @@ class ImageWebhookEvent(object):
         self.pusher = pusher
 
 
+def commit_message_matches_deploy_keyword(deploy_keyword: Any, message: Any) -> bool:
+    if not deploy_keyword:
+        return True
+    return "@{0}".format(deploy_keyword) in str(message or "")
+
+
 def parse_image_webhook_payload(data: Any) -> "ImageWebhookEvent":
     if is_harbor_webhook_payload(data):
         return parse_harbor_image_webhook_payload(data)
@@ -124,8 +130,7 @@ class WebHooksDeploy(AlowAnyApiView):
                     result = general_message(400, "can not get commit info", "提交信息获取失败")
                     return Response(result, status=400)
                 message = commits_info.get("message")
-                keyword = "@" + service_webhook.deploy_keyword
-                if service_webhook.deploy_keyword and keyword not in message:
+                if not commit_message_matches_deploy_keyword(service_webhook.deploy_keyword, message):
                     result = general_message(200, "commit message not include {0}".format(service_webhook.deploy_keyword),
                                              "提交信息无效")
                     return Response(result, status=200)
@@ -171,8 +176,7 @@ class WebHooksDeploy(AlowAnyApiView):
                     result = general_message(400, "can not get commit info", "提交信息获取失败")
                     return Response(result, status=400)
                 message = commits_info[-1].get("message")
-                keyword = "@" + service_webhook.deploy_keyword
-                if service_webhook.deploy_keyword and keyword not in message:
+                if not commit_message_matches_deploy_keyword(service_webhook.deploy_keyword, message):
                     result = general_message(200, "commit message not include {0}".format(service_webhook.deploy_keyword),
                                              "提交信息无效")
                     return Response(result, status=200)
@@ -232,8 +236,7 @@ class WebHooksDeploy(AlowAnyApiView):
                     result = general_message(400, "can not get commit info", "提交信息获取失败")
                     return Response(result, status=400)
                 message = commits_info.get("message")
-                keyword = "@" + service_webhook.deploy_keyword
-                if service_webhook.deploy_keyword and keyword not in message:
+                if not commit_message_matches_deploy_keyword(service_webhook.deploy_keyword, message):
                     result = general_message(200, "commit message not include {0}".format(service_webhook.deploy_keyword),
                                              "提交信息无效")
                     return Response(result, status=200)
@@ -279,8 +282,7 @@ class WebHooksDeploy(AlowAnyApiView):
                     result = general_message(400, "can not get commit info", "提交信息获取失败")
                     return Response(result, status=400)
                 message = commits_info[0].get("message")
-                keyword = "@" + service_webhook.deploy_keyword
-                if service_webhook.deploy_keyword and keyword not in message:
+                if not commit_message_matches_deploy_keyword(service_webhook.deploy_keyword, message):
                     result = general_message(200, "commit message not include {0}".format(service_webhook.deploy_keyword),
                                              "提交信息无效")
                     return Response(result, status=200)
@@ -334,8 +336,7 @@ class WebHooksDeploy(AlowAnyApiView):
                     result = general_message(400, "can not get commit info", "提交信息获取失败")
                     return Response(result, status=400)
                 message = commits_info.get("message")
-                keyword = "@" + service_webhook.deploy_keyword
-                if service_webhook.deploy_keyword and keyword not in message:
+                if not commit_message_matches_deploy_keyword(service_webhook.deploy_keyword, message):
                     result = general_message(200, "commit message not include {0}".format(service_webhook.deploy_keyword),
                                              "提交信息无效")
                     return Response(result, status=200)

@@ -4076,6 +4076,24 @@
       "status": "active"
     },
     {
+      "id": "console.code-webhook.null-commit-message",
+      "title": "Handle null code webhook commit messages",
+      "title_zh": "处理代码仓库 Webhook 空提交消息",
+      "interface_type": "package_function",
+      "interface": "console.views.webhook.commit_message_matches_deploy_keyword",
+      "code_paths": [
+        "console/views/webhook.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/webhook_test.py",
+          "selector": "ImageWebhookPayloadTestCase.test_null_commit_message_does_not_match_deploy_keyword"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.component-batch-action.missing-app",
       "title": "Keep batch actions working for ungrouped components",
       "title_zh": "未分组组件仍可执行批量操作",
