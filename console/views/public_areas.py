@@ -88,8 +88,8 @@ class AllServiceInfo(RegionTenantHeaderView):
 class TeamArchView(RegionTenantHeaderView):
     def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         res, body = region_api.get_cluster_nodes_arch(self.region_name)
-        # NOTE: region_api may return None body / None list; legacy assumes present (backlog).
-        result = general_message(200, "success", "架构获取成功", list=list(set(body.get("list"))))  # type: ignore[union-attr,arg-type]
+        architectures = body.get("list") if isinstance(body, dict) else None
+        result = general_message(200, "success", "架构获取成功", list=list(set(architectures or [])))
         return Response(result, status=200)
 
 

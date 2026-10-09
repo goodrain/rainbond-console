@@ -51,6 +51,23 @@ class Obj(object):
 
 class TeamOverviewQueryScopeTest(TestCase):
 
+    # capability_id: console.team-arch.empty-region-response
+    def test_team_arch_returns_empty_list_when_region_has_no_architectures(self):
+        view = public_areas.TeamArchView()
+        view.region_name = "region-a"
+        request = APIRequestFactory().get("/console/teams/team-name/arch")
+
+        for body in (None, {"list": None}):
+            with self.subTest(body=body), mock.patch.object(
+                    public_areas.region_api,
+                    "get_cluster_nodes_arch",
+                    return_value=(mock.Mock(status=200), body),
+            ):
+                response = view.get(request)
+
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.data["data"]["list"], [])
+
     def test_empty_application_set_skips_region_status_request(self):
         view = public_areas.TeamOverView()
         view.team = Obj(tenant_id="team-id", enterprise_id="enterprise-id")

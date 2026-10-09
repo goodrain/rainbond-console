@@ -609,6 +609,7 @@
 | console.source-component.normalize-git-url | 为 Git 地址追加一次子目录参数 | active | regression | console.services.source_component_service.normalize_git_url | console/tests/source_component_service_test.py::SourceComponentServiceTests.test_normalize_git_url_appends_subdirectory_once |
 | console.source-component.prefer-dockerfile | Source Component Prefer Dockerfile | active | regression | console.services.source_component_service | console/tests/source_component_service_test.py::SourceComponentServiceTests.test_auto_create_component_prefers_dockerfile_when_requested |
 | console.source-component.prefer-dockerfile-from-dockerfiles-flag | Source Component Prefer Dockerfile From Dockerfiles Flag | active | regression | console.services.source_component_service | console/tests/source_component_service_test.py::SourceComponentServiceTests.test_auto_create_component_prefers_dockerfile_when_dockerfiles_exist |
+| console.team-arch.empty-region-response | 区域架构响应为空时返回空列表 | active | regression | console.views.public_areas.TeamArchView.get | console/tests/team_overview_query_scope_test.py::TeamOverviewQueryScopeTest.test_team_arch_returns_empty_list_when_region_has_no_architectures |
 | console.team-domain-monitor.time-range-validation | 校验域名监控时间范围 | active | regression | console.views.team.TeamSortDomainQueryView.get | console/tests/team_sort_domain_query_test.py::TeamSortDomainQueryTimeRangeTests |
 | console.team-query.current-user-membership | 仅列出当前用户已加入的团队 | active | regression | console.services.mcp_query_service.call_tool[rainbond_query_teams] | console/tests/mcp_query_service_test.py::MCPQueryServiceTeamQueryTests.test_query_teams_only_lists_teams_joined_by_current_user |
 | console.team.create-invalid-namespace | 创建团队时拒绝非法命名空间 | active | regression | console.views.team.AddTeamView.post | console/tests/add_team_namespace_validation_test.py::AddTeamInvalidNamespaceTest.test_invalid_namespace_raises_qualified_name_error_not_typeerror |
@@ -6722,6 +6723,16 @@
 - 业务入口: `console.services.source_component_service`
 - 代码路径: `console/services/source_component_service.py`
 - 测试路径: `console/tests/source_component_service_test.py::SourceComponentServiceTests.test_auto_create_component_prefers_dockerfile_when_dockerfiles_exist`
+
+### 区域架构响应为空时返回空列表
+
+- Capability ID: `console.team-arch.empty-region-response`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `view_endpoint`
+- 业务入口: `console.views.public_areas.TeamArchView.get`
+- 代码路径: `console/views/public_areas.py`
+- 测试路径: `console/tests/team_overview_query_scope_test.py::TeamOverviewQueryScopeTest.test_team_arch_returns_empty_list_when_region_has_no_architectures`
 
 ### 校验域名监控时间范围
 

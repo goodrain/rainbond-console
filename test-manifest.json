@@ -11619,6 +11619,24 @@
       "status": "active"
     },
     {
+      "id": "console.team-arch.empty-region-response",
+      "title": "Return an empty architecture list for empty region responses",
+      "title_zh": "区域架构响应为空时返回空列表",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.public_areas.TeamArchView.get",
+      "code_paths": [
+        "console/views/public_areas.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/team_overview_query_scope_test.py",
+          "selector": "TeamOverviewQueryScopeTest.test_team_arch_returns_empty_list_when_region_has_no_architectures"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.team-domain-monitor.time-range-validation",
       "title": "Validate domain monitor time range",
       "title_zh": "校验域名监控时间范围",
