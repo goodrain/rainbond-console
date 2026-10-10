@@ -17,7 +17,7 @@ from console.models.main import (AppVersionTemplateRelation, RainbondCenterApp, 
 from console.repositories.region_repo import region_repo
 from console.services.cleanup_inventory import (template_resource, verify_source_request, version_resources,
                                                 deployment_resource, failed_scope_label, snapshot_reference_resource,
-                                                registry_reference_resource)
+                                                registry_reference_resource, version_inventory_required)
 from console.services.cleanup_upload_inventory import upload_resources, current_package_reference_events
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import ServiceGroup, ServiceGroupRelation, Tenants, TenantServiceInfo
@@ -113,7 +113,7 @@ class CleanupInventoryView(APIView):
                 upper = version_query.order_by("-ID").values_list("ID", flat=True).first() or 0
             if cursor > upper:
                 return Response({"errorCode": "INVALID_REQUEST"}, status=400)
-            version_fields = ("ID", "service_id", "service_alias", "service_cname", "tenant_id")
+            version_fields = ("ID", "service_id", "service_alias", "service_cname", "tenant_id", "create_status")
             page = list(version_query.filter(ID__gt=cursor, ID__lte=upper).order_by("ID").values(*version_fields)[:26])
         more = len(page) > 25
         page = page[:25]
@@ -173,6 +173,8 @@ class CleanupInventoryView(APIView):
             names = dict(teams.values_list("tenant_id", "tenant_name"))
             api = RegionInvokeApi()
             for component in page:
+                if not version_inventory_required(component):
+                    continue
                 try:
                     body = api.get_service_build_versions(region_name, names[component["tenant_id"]], component["service_alias"])
                     if not isinstance(body, dict) or not isinstance(body.get("bean"), dict):
@@ -243,7 +245,7 @@ class CleanupInventoryView(APIView):
         # listing. The projection strips ownership, names and retirement actions.
         if kind == "components":
             query = TenantServiceInfo.objects.all()
-            fields = ("ID", "image", "service_source")
+            fields = ("ID", "image", "service_source", "create_status")
         elif kind == "templates":
             query = RainbondCenterAppVersion.objects.all()
             fields = ("ID", "app_id", "version", "app_template")

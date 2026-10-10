@@ -75,7 +75,8 @@ def _embedded_image_values(value, allow_symbolic=False):
         image = _image(value)
         if image:
             return {image}, True
-        return set(), allow_symbolic and "{{" in value and "}}" in value
+        substituted, count = re.subn(r"{{[^{}]+}}|\$\([^)]+\)|\$\{[^{}]+\}", "placeholder", value.strip())
+        return set(), allow_symbolic and count > 0 and bool(_image(substituted))
     if isinstance(value, list):
         images = set()
         complete = True
@@ -146,7 +147,8 @@ def _embedded_workload_images(resources):
         "PersistentVolumeClaim", "PersistentVolume", "ServiceAccount", "Role",
         "RoleBinding", "ClusterRole", "ClusterRoleBinding", "NetworkPolicy",
         "ResourceQuota", "LimitRange", "PodDisruptionBudget",
-        "HorizontalPodAutoscaler", "CustomResourceDefinition"
+        "HorizontalPodAutoscaler", "CustomResourceDefinition", "Endpoints",
+        "PriorityClass"
     }
     complete = True
     for resource in resources:
@@ -320,6 +322,11 @@ SNAPSHOT_NON_IMAGE_ATTRIBUTES = frozenset((
     "serviceAccountName", "tolerations", "volumeMounts", "volumes"
 ))
 IMAGE_OPTIONAL_SOURCES = frozenset(("package_build", "source_code", "third_party"))
+COMPONENT_IMAGE_OPTIONAL_SOURCES = frozenset(("kubeblocks", "source_code", "third_party"))
+
+
+def version_inventory_required(component):
+    return component.get("create_status") != "creating"
 
 
 def snapshot_reference_resource(row, region):
@@ -395,10 +402,15 @@ def snapshot_reference_resource(row, region):
 def registry_reference_resource(row, kind, region, key):
     """Export only image references, never foreign template names or actions."""
     if kind == "components":
-        image = _image(row.get("image"))
-        image_optional = row.get("service_source") in ("source_code", "third_party")
+        raw_image = row.get("image")
+        candidate = raw_image.strip() if isinstance(raw_image, str) else raw_image
+        image_optional = (row.get("service_source") in COMPONENT_IMAGE_OPTIONAL_SOURCES
+                          or not version_inventory_required(row))
+        if candidate == ":" and image_optional:
+            candidate = ""
+        image = _image(candidate)
         source = {"images": [image] if image else [],
-                  "observed": bool(image) or (not row.get("image") and image_optional)}
+                  "observed": bool(image) or (not candidate and image_optional)}
     elif kind == "snapshots":
         source = snapshot_reference_resource(row, region)
     elif kind == "templates":

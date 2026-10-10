@@ -22,6 +22,7 @@ class SnapshotReferenceTests(unittest.TestCase):
     def test_unknown_code_build_or_sidecar_references_are_incomplete(self):
         for component in [
                 {'service_base': {'service_id': 's', 'image': ''}},
+                {'service_base': {'service_id': 's', 'service_source': 'kubeblocks', 'image': ''}},
                 {'service_base': {'service_id': 's', 'image': 'goodrain.me/app:v1'},
                  'service_plugin_relation': [{'plugin_id': 'p'}]},
                 {'service_base': {'service_id': 's', 'image': 'https://do-not-export@example.invalid'}},
