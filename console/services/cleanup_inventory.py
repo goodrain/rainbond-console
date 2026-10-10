@@ -62,6 +62,71 @@ def failed_scope_label(row):
     return "{}：{}".format(label, "；".join(reasons)) if reasons else label
 
 
+KUBEBLOCKS_RESOURCE_KINDS = frozenset((
+    "ActionSet", "Addon", "BackupPolicyTemplate", "ClusterDefinition",
+    "ComponentDefinition", "ComponentVersion", "OpsDefinition",
+    "ParamConfigRenderer", "ParametersDefinition", "RBDPlugin",
+    "ShardingDefinition", "StorageProvider"
+))
+
+
+def _embedded_image_values(value, allow_symbolic=False):
+    if isinstance(value, str):
+        image = _image(value)
+        if image:
+            return {image}, True
+        return set(), allow_symbolic and "{{" in value and "}}" in value
+    if isinstance(value, list):
+        images = set()
+        complete = True
+        for item in value:
+            found, valid = _embedded_image_values(item, allow_symbolic)
+            images.update(found)
+            complete = complete and valid
+        return images, complete
+    if isinstance(value, dict):
+        images = set()
+        complete = True
+        for item in value.values():
+            found, valid = _embedded_image_values(item, allow_symbolic)
+            images.update(found)
+            complete = complete and valid
+        return images, complete
+    return set(), False
+
+
+def _kubeblocks_resource_images(document):
+    kind = document.get("kind")
+    if kind not in KUBEBLOCKS_RESOURCE_KINDS:
+        return set(), False
+    images = set()
+    complete = True
+    image_keys = {"image"}
+    if kind == "Addon":
+        image_keys.add("chartsImage")
+    if kind == "ComponentVersion":
+        image_keys.add("images")
+
+    def walk(value):
+        nonlocal complete
+        if isinstance(value, list):
+            for item in value:
+                walk(item)
+            return
+        if not isinstance(value, dict):
+            return
+        for key, item in value.items():
+            if key in image_keys:
+                found, valid = _embedded_image_values(item, allow_symbolic=key == "image")
+                images.update(found)
+                complete = complete and valid
+            else:
+                walk(item)
+
+    walk(document)
+    return images, complete
+
+
 def _embedded_workload_images(resources):
     images = set()
     if not isinstance(resources, list) or len(resources) > 1000:
@@ -81,7 +146,7 @@ def _embedded_workload_images(resources):
         "PersistentVolumeClaim", "PersistentVolume", "ServiceAccount", "Role",
         "RoleBinding", "ClusterRole", "ClusterRoleBinding", "NetworkPolicy",
         "ResourceQuota", "LimitRange", "PodDisruptionBudget",
-        "HorizontalPodAutoscaler"
+        "HorizontalPodAutoscaler", "CustomResourceDefinition"
     }
     complete = True
     for resource in resources:
@@ -96,6 +161,12 @@ def _embedded_workload_images(resources):
                     raise ValueError()
                 kind = document.get("kind")
                 if kind in non_workloads:
+                    continue
+                if kind in KUBEBLOCKS_RESOURCE_KINDS:
+                    found, valid = _kubeblocks_resource_images(document)
+                    if not valid:
+                        raise ValueError()
+                    images.update(found)
                     continue
                 if kind not in paths:
                     raise ValueError()

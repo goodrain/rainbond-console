@@ -172,6 +172,105 @@ class CleanupInventoryProjectionTests(unittest.TestCase):
         row["app_template"] = json.dumps({"k8s_resources": [resource]})
         self.assertFalse(template_resource(row, "r", False)["observed"])
 
+    def test_template_kubeblocks_resources_export_literal_images(self):
+        resources = [{"content": content} for content in [
+            """apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+spec:
+  versions:
+  - schema:
+      openAPIV3Schema:
+        properties:
+          image:
+            type: string
+""",
+            """apiVersion: apps.kubeblocks.io/v1
+kind: ComponentVersion
+spec:
+  releases:
+  - images:
+      app: goodrain.me/kubeblocks-app:v1
+      helper: goodrain.me/kubeblocks-helper:v1
+""",
+            """apiVersion: dataprotection.kubeblocks.io/v1alpha1
+kind: ActionSet
+spec:
+  backup:
+    backupData:
+      image: '{{ .Images.app }}'
+    preDelete:
+      image: goodrain.me/kubeblocks-action:v1
+""",
+            """apiVersion: extensions.kubeblocks.io/v1alpha1
+kind: Addon
+spec:
+  helm:
+    chartsImage: goodrain.me/kubeblocks-chart:v1
+""",
+            """apiVersion: apps.kubeblocks.io/v1alpha1
+kind: OpsDefinition
+spec:
+  actions:
+  - workload:
+      podSpec:
+        containers:
+        - image: goodrain.me/kubeblocks-ops:v1
+""",
+            """apiVersion: parameters.kubeblocks.io/v1alpha1
+kind: ParametersDefinition
+spec:
+  reloadAction:
+    shellTrigger:
+      toolsSetup:
+        toolConfigs:
+        - image: goodrain.me/kubeblocks-tools:v1
+""",
+            """apiVersion: apps.kubeblocks.io/v1
+kind: ComponentDefinition
+spec:
+  runtime:
+    containers:
+    - imagePullPolicy: IfNotPresent
+""",
+        ]]
+        row = {
+            "ID": 5,
+            "app_id": "database",
+            "version": "v1",
+            "app_template": json.dumps({
+                "apps": [{"share_image": "goodrain.me/database:v1"}],
+                "k8s_resources": resources,
+            }),
+        }
+
+        result = template_resource(row, "r", False)
+
+        self.assertTrue(result["observed"])
+        self.assertEqual(set(result["images"]), {
+            "goodrain.me/database:v1",
+            "goodrain.me/kubeblocks-action:v1",
+            "goodrain.me/kubeblocks-app:v1",
+            "goodrain.me/kubeblocks-chart:v1",
+            "goodrain.me/kubeblocks-helper:v1",
+            "goodrain.me/kubeblocks-ops:v1",
+            "goodrain.me/kubeblocks-tools:v1",
+        })
+        self.assertNotIn("IfNotPresent", result["images"])
+
+    def test_template_kubeblocks_invalid_literal_image_stays_incomplete(self):
+        resource = {
+            "content":
+            """apiVersion: apps.kubeblocks.io/v1
+kind: ComponentVersion
+spec:
+  releases:
+  - images:
+      app: https://invalid.example/image
+"""
+        }
+        row = {"ID": 6, "app_template": json.dumps({"k8s_resources": [resource]})}
+        self.assertFalse(template_resource(row, "r", False)["observed"])
+
     def test_invalid_template_is_visible_and_never_claims_complete_references(self):
         result = template_resource({"ID": 1, "app_id": "app", "version": "v", "app_template": "bad-json"}, "r1", False)
         self.assertEqual(result["protection"], "reference_unknown")
