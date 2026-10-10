@@ -11998,6 +11998,24 @@
       "status": "active"
     },
     {
+      "id": "console.team-events.deleted-component-metadata",
+      "title": "Preserve deleted component metadata in team events",
+      "title_zh": "Preserve deleted component metadata in team events",
+      "interface_type": "package_function",
+      "interface": "console.views.public_areas._enrich_service_events",
+      "code_paths": [
+        "console/views/public_areas.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/team_overview_query_scope_test.py",
+          "selector": "TeamOverviewQueryScopeTest.test_team_events_preserve_live_and_deleted_component_targets"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.team-query.current-user-membership",
       "title": "List only teams joined by the current user",
       "title_zh": "仅列出当前用户已加入的团队",
