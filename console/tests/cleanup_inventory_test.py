@@ -191,6 +191,20 @@ class CleanupInventoryProjectionTests(unittest.TestCase):
         row["app_template"] = json.dumps({"k8s_resources": [resource]})
         self.assertFalse(template_resource(row, "r", False)["observed"])
 
+    def test_large_single_document_crd_is_non_workload_evidence(self):
+        padding = "x" * 1048576
+        crd = "apiVersion: apiextensions.k8s.io/v1\nkind: CustomResourceDefinition\nspec:\n  padding: " + padding
+        row = {"ID": 7, "app_template": json.dumps({"k8s_resources": [{"content": crd}]})}
+        self.assertTrue(template_resource(row, "r", False)["observed"])
+
+        unknown = crd.replace("CustomResourceDefinition", "UnknownLargeResource", 1)
+        row["app_template"] = json.dumps({"k8s_resources": [{"content": unknown}]})
+        self.assertFalse(template_resource(row, "r", False)["observed"])
+
+        multiple = crd + "\n---\napiVersion: apps/v1\nkind: Deployment\nspec: {}\n"
+        row["app_template"] = json.dumps({"k8s_resources": [{"content": multiple}]})
+        self.assertFalse(template_resource(row, "r", False)["observed"])
+
     def test_template_kubeblocks_resources_export_literal_images(self):
         resources = [{"content": content} for content in [
             """apiVersion: apiextensions.k8s.io/v1

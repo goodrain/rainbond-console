@@ -68,6 +68,18 @@ KUBEBLOCKS_RESOURCE_KINDS = frozenset((
     "ParamConfigRenderer", "ParametersDefinition", "RBDPlugin",
     "ShardingDefinition", "StorageProvider"
 ))
+MAX_EMBEDDED_RESOURCE_BYTES = 1048576
+MAX_EMBEDDED_CRD_BYTES = 4 * 1048576
+
+
+def _large_single_document_crd(content):
+    if len(content) <= MAX_EMBEDDED_RESOURCE_BYTES or len(content) > MAX_EMBEDDED_CRD_BYTES:
+        return False
+    kinds = re.findall(r"(?m)^kind:[ \t]*([^#\s]+)[ \t]*(?:#.*)?$", content)
+    if kinds != ["CustomResourceDefinition"]:
+        return False
+    markers = list(re.finditer(r"(?m)^---[ \t]*(?:#.*)?$", content))
+    return not markers or (len(markers) == 1 and not content[:markers[0].start()].strip())
 
 
 def _embedded_image_values(value, allow_symbolic=False):
@@ -155,8 +167,11 @@ def _embedded_workload_images(resources):
         try:
             content = resource.get("content") if isinstance(resource,
                                                             dict) else None
-            if not isinstance(content,
-                              str) or not content or len(content) > 1048576:
+            if not isinstance(content, str) or not content:
+                raise ValueError()
+            if len(content) > MAX_EMBEDDED_RESOURCE_BYTES:
+                if _large_single_document_crd(content):
+                    continue
                 raise ValueError()
             for document in yaml.safe_load_all(content):
                 if not isinstance(document, dict):
