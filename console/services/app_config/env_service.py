@@ -7,7 +7,7 @@ import logging
 import re
 from itertools import chain
 from datetime import datetime
-from typing import Any, Iterator, Optional, Tuple
+from typing import Any, Iterator, Optional, Tuple, cast
 
 from django.db.models import QuerySet
 from django.db.transaction import atomic
@@ -30,8 +30,8 @@ class AppEnvVarService(object):
     SENSITIVE_ENV_NAMES = ('TENANT_ID', 'SERVICE_ID', 'TENANT_NAME', 'SERVICE_NAME', 'SERVICE_VERSION', 'MEMORY_SIZE',
                            'SERVICE_EXTEND_METHOD', 'SLUG_URL', 'DEPEND_SERVICE', 'REVERSE_DEPEND_SERVICE', 'POD_ORDER', 'PATH',
                            'POD_NET_IP', 'LOG_MATCH')
-    ENV_NAME_MAX_LENGTH = TenantServiceEnvVar._meta.get_field("name").max_length
-    ENV_ATTR_NAME_MAX_LENGTH = TenantServiceEnvVar._meta.get_field("attr_name").max_length
+    ENV_NAME_MAX_LENGTH = cast(int, TenantServiceEnvVar._meta.get_field("name").max_length)
+    ENV_ATTR_NAME_MAX_LENGTH = cast(int, TenantServiceEnvVar._meta.get_field("attr_name").max_length)
 
     def validate_env_field_lengths(self, name: Any, attr_name: Any) -> Optional[str]:
         if len(str(name or "")) > self.ENV_NAME_MAX_LENGTH:

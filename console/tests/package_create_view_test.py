@@ -78,7 +78,7 @@ class PackageCreateViewGroupIdTests(TestCase):
             response = self.view.post(request, tenantName="demo-team")
 
         self.assertEqual(response.status_code, 200)
-        duplicate_check.assert_called_once_with(42, "demo")
+        duplicate_check.assert_called_once_with("42", "demo")
         add_to_group.assert_called_once_with(
             self.view.tenant,
             "demo-region",

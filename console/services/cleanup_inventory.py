@@ -242,9 +242,13 @@ def deployment_resource(row, region):
     return result
 
 
-# These attributes are decoded by the core into scheduling types only; none
-# can add or replace a container image. Unknown attributes remain incomplete.
-SNAPSHOT_SCHEDULING_ATTRIBUTES = frozenset(("affinity", "nodeSelector", "tolerations"))
+# These attributes cannot add or replace a container image. Unknown attributes
+# remain incomplete until their image semantics are explicitly understood.
+SNAPSHOT_NON_IMAGE_ATTRIBUTES = frozenset((
+    "affinity", "hostNetwork", "labels", "nodeSelector", "podSecurityContext",
+    "serviceAccountName", "tolerations", "volumeMounts", "volumes"
+))
+IMAGE_OPTIONAL_SOURCES = frozenset(("package_build", "source_code", "third_party"))
 
 
 def snapshot_reference_resource(row, region):
@@ -294,7 +298,7 @@ def snapshot_reference_resource(row, region):
                     found = True
                 else:
                     issues.add("snapshot_missing_runtime_image")
-            if not found and base.get("service_source") != "third_party":
+            if not found and base.get("service_source") not in IMAGE_OPTIONAL_SOURCES:
                 issues.add("snapshot_missing_runtime_image")
             relations = component.get("service_plugin_relation")
             if relations is not None and (not isinstance(relations, list) or relations):
@@ -305,7 +309,7 @@ def snapshot_reference_resource(row, region):
             if not isinstance(attributes, list) or any(
                     not isinstance(attribute, dict)
                     or not isinstance(attribute.get("name"), str)
-                    or attribute["name"] not in SNAPSHOT_SCHEDULING_ATTRIBUTES for attribute in attributes):
+                    or attribute["name"] not in SNAPSHOT_NON_IMAGE_ATTRIBUTES for attribute in attributes):
                 issues.add("snapshot_k8s_override_unknown")
     except (ValueError, TypeError):
         issues.add("snapshot_invalid_structure")
@@ -337,7 +341,8 @@ def registry_reference_resource(row, kind, region, key):
                     delivery = component.get("service_image") or {}
                     images = (component.get("share_image"), component.get("image"),
                               delivery.get("image_url") if isinstance(delivery, dict) else None)
-                    if not any(_image(value) for value in images):
+                    if (not any(_image(value) for value in images)
+                            and component.get("service_source") not in IMAGE_OPTIONAL_SOURCES):
                         raise ValueError()
         except (ValueError, TypeError, AttributeError):
             source["observed"] = False

@@ -64,6 +64,8 @@ class EnvServiceRegionIdempotencyTests(TestCase):
 
     def import_env_service_module(self):
         repo_root = Path(__file__).resolve().parents[2]
+        env_var_model = types.SimpleNamespace(
+            _meta=types.SimpleNamespace(get_field=lambda _: types.SimpleNamespace(max_length=1024)))
 
         install_stub("django.db.transaction", atomic=atomic)
         install_stub(
@@ -78,7 +80,8 @@ class EnvServiceRegionIdempotencyTests(TestCase):
             dep_relation_repo=MagicMock(),
             env_var_repo=MagicMock(),
         )
-        install_stub("www.models.main", TenantServicesPort=object, TenantServiceEnvVar=object, TenantServiceEnv=object)
+        install_stub(
+            "www.models.main", TenantServicesPort=object, TenantServiceEnvVar=env_var_model, TenantServiceEnv=object)
         install_stub("www.apiclient.regionapi", RegionInvokeApi=MagicMock)
         install_stub(
             "www.apiclient.regionapibaseclient",
