@@ -5,7 +5,8 @@ from typing import Any
 
 from console.exception.exceptions import GroupNotExistError
 from console.repositories.app_config import volume_repo
-from console.repositories.group import group_repo
+from console.repositories.app import delete_service_repo
+from console.repositories.group import group_repo, group_service_relation_repo
 from console.repositories.region_app import region_app_repo
 from console.repositories.region_repo import region_repo
 from console.repositories.service_repo import service_repo
@@ -53,6 +54,33 @@ def _get_group_service_ids(team_id: str, region_name: str, group_ids: Any) -> di
     for relation in relations:
         result.setdefault(relation["group_id"], []).append(relation["service_id"])
     return result
+
+
+def _enrich_service_events(events: list, live_services: Any, deleted_services: dict,
+                           live_apps: dict) -> list:
+    live_service_map = {service.service_id: service for service in live_services}
+    for event in events:
+        if event.get("Target") != "service":
+            continue
+        service_id = event.get("TargetID")
+        live_service = live_service_map.get(service_id)
+        deleted_service = deleted_services.get(service_id, {})
+        app_info = live_apps.get(service_id, {})
+
+        service_alias = getattr(live_service, "service_alias", "") or deleted_service.get("service_alias", "")
+        service_name = getattr(live_service, "service_cname", "") or deleted_service.get("service_cname", "")
+        app_id = app_info.get("app_id") or deleted_service.get("app_id")
+        app_name = app_info.get("app_name", "") or deleted_service.get("app_name", "")
+
+        if service_alias:
+            event["service_alias"] = service_alias
+        if service_name:
+            event["service_name"] = service_name
+        if app_id and int(app_id) > 0:
+            event["app_id"] = app_id
+        if app_name:
+            event["app_name"] = app_name
+    return events
 
 
 class AllServiceInfo(RegionTenantHeaderView):
@@ -430,15 +458,22 @@ class ServiceEventsView(RegionTenantHeaderView):
                 service_ids.append(event["TargetID"])
 
         services = service_repo.list_by_component_ids(service_ids)
-
-        event_service_list = []
-        for event in event_service_dynamic_list:
-            if event["Target"] == "service":
-                for service in services:
-                    if service.service_id == event["TargetID"]:
-                        event["service_alias"] = service.service_alias
-                        event["service_name"] = service.service_cname
-            event_service_list.append(event)
+        deleted_services = delete_service_repo.get_delete_service_map(service_ids)
+        live_service_ids = [service.service_id for service in services]
+        group_info_map = group_service_relation_repo.get_group_by_service_ids(live_service_ids)
+        live_apps = {
+            service_id: {
+                "app_id": group_info.get("group_id"),
+                "app_name": group_info.get("group_name", ""),
+            }
+            for service_id, group_info in group_info_map.items()
+        }
+        event_service_list = _enrich_service_events(
+            event_service_dynamic_list,
+            services,
+            deleted_services,
+            live_apps,
+        )
 
         event_paginator = JuncheePaginator(event_service_list, int(page_size))
         event_page_list = event_paginator.page(page)

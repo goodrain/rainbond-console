@@ -51,6 +51,74 @@ class Obj(object):
 
 class TeamOverviewQueryScopeTest(TestCase):
 
+    # capability_id: console.team-events.deleted-component-metadata
+    def test_team_events_preserve_live_and_deleted_component_targets(self):
+        events = [
+            {"Target": "service", "TargetID": "live-service"},
+            {"Target": "service", "TargetID": "deleted-service"},
+            {"Target": "service", "TargetID": "unknown-service"},
+            {"Target": "tenant", "TargetID": "team-id"},
+        ]
+        live_services = [Obj(
+            service_id="live-service",
+            service_alias="live-alias",
+            service_cname="Live Component",
+        )]
+        deleted_services = {
+            "deleted-service": {
+                "service_alias": "deleted-alias",
+                "service_cname": "Deleted Component",
+                "app_id": 42,
+                "app_name": "Deleted App",
+            }
+        }
+        live_apps = {
+            "live-service": {"app_id": 11, "app_name": "Live App"},
+        }
+
+        result = public_areas._enrich_service_events(events, live_services, deleted_services, live_apps)
+
+        self.assertEqual(result[0]["service_alias"], "live-alias")
+        self.assertEqual(result[0]["service_name"], "Live Component")
+        self.assertEqual(result[0]["app_id"], 11)
+        self.assertEqual(result[0]["app_name"], "Live App")
+        self.assertEqual(result[1]["service_alias"], "deleted-alias")
+        self.assertEqual(result[1]["service_name"], "Deleted Component")
+        self.assertEqual(result[1]["app_id"], 42)
+        self.assertEqual(result[1]["app_name"], "Deleted App")
+        self.assertNotIn("service_alias", result[2])
+        self.assertNotIn("app_id", result[2])
+        self.assertEqual(result[3], events[3])
+
+    def test_team_event_view_wires_deleted_component_metadata(self):
+        view = public_areas.ServiceEventsView()
+        view.tenant = Obj(tenant_name="team-name", tenant_id="team-id")
+        request = APIRequestFactory().get("/console/teams/team-name/services/event?page=1&page_size=8")
+        events = [{
+            "Target": "service",
+            "TargetID": "deleted-service",
+            "start_time": "2026-10-10T01:00:00Z",
+        }]
+
+        with mock.patch.object(public_areas.region_repo, "get_team_opened_region", return_value=[Obj(region_name="region-a")]), \
+                mock.patch.object(public_areas.event_service, "get_target_events", return_value=(events, 1, False)), \
+                mock.patch.object(public_areas.service_repo, "list_by_component_ids", return_value=[]), \
+                mock.patch.object(public_areas.delete_service_repo, "get_delete_service_map", return_value={
+                    "deleted-service": {
+                        "service_alias": "deleted-alias",
+                        "service_cname": "Deleted Component",
+                        "app_id": 42,
+                        "app_name": "Deleted App",
+                    }
+                }), \
+                mock.patch.object(public_areas.group_service_relation_repo, "get_group_by_service_ids", return_value={}):
+            response = view.get(request)
+
+        self.assertEqual(response.status_code, 200)
+        event = response.data["data"]["list"][0]
+        self.assertEqual(event["service_alias"], "deleted-alias")
+        self.assertEqual(event["app_id"], 42)
+
     # capability_id: console.team-arch.empty-region-response
     def test_team_arch_returns_empty_list_when_region_has_no_architectures(self):
         view = public_areas.TeamArchView()
