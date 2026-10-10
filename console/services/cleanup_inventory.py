@@ -75,7 +75,11 @@ def _embedded_image_values(value, allow_symbolic=False):
         image = _image(value)
         if image:
             return {image}, True
-        return set(), allow_symbolic and "{{" in value and "}}" in value
+        symbolic = value.strip()
+        symbolic = ((symbolic.startswith("{{") and symbolic.endswith("}}"))
+                    or (symbolic.startswith("$(") and symbolic.endswith(")"))
+                    or (symbolic.startswith("${") and symbolic.endswith("}")))
+        return set(), allow_symbolic and symbolic
     if isinstance(value, list):
         images = set()
         complete = True

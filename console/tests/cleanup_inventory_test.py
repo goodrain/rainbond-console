@@ -200,6 +200,12 @@ spec:
       image: '{{ .Images.app }}'
     preDelete:
       image: goodrain.me/kubeblocks-action:v1
+  restore:
+    prepareData:
+      image: $(KB_RESTORE_IMAGE)
+    postReady:
+    - job:
+        image: ${KB_POST_READY_IMAGE}
 """,
             """apiVersion: extensions.kubeblocks.io/v1alpha1
 kind: Addon
