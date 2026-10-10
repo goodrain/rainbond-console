@@ -27,6 +27,11 @@ class CleanupInventoryProjectionTests(unittest.TestCase):
         self.assertTrue(registry_reference_resource(row, "components", "r", bytes(32))["observed"])
         row.update(service_source="third_party", create_status="complete", image=" ")
         self.assertTrue(registry_reference_resource(row, "components", "r", bytes(32))["observed"])
+        row["image"] = ":"
+        self.assertTrue(registry_reference_resource(row, "components", "r", bytes(32))["observed"])
+        row["service_source"] = "docker_image"
+        self.assertFalse(registry_reference_resource(row, "components", "r", bytes(32))["observed"])
+        row["service_source"] = "third_party"
         row["image"] = "https://invalid.example/image"
         self.assertFalse(registry_reference_resource(row, "components", "r", bytes(32))["observed"])
 

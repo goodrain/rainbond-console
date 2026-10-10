@@ -404,9 +404,11 @@ def registry_reference_resource(row, kind, region, key):
     if kind == "components":
         raw_image = row.get("image")
         candidate = raw_image.strip() if isinstance(raw_image, str) else raw_image
-        image = _image(candidate)
         image_optional = (row.get("service_source") in COMPONENT_IMAGE_OPTIONAL_SOURCES
                           or not version_inventory_required(row))
+        if candidate == ":" and image_optional:
+            candidate = ""
+        image = _image(candidate)
         source = {"images": [image] if image else [],
                   "observed": bool(image) or (not candidate and image_optional)}
     elif kind == "snapshots":
