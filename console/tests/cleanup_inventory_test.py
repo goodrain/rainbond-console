@@ -11,7 +11,8 @@ class CleanupInventoryProjectionTests(unittest.TestCase):
     def test_registry_component_references_include_unbuilt_images_without_identity(self):
         from console.services.cleanup_inventory import registry_reference_resource
         row = {"ID": 42, "service_source": "docker_image", "image": "goodrain.me/owned:pending",
-               "service_cname": "private-name", "tenant_id": "private-team", "password": "not-exported"}
+               "create_status": "complete", "service_cname": "private-name", "tenant_id": "private-team",
+               "password": "not-exported"}
         result = registry_reference_resource(row, "components", "r", bytes(32))
         self.assertTrue(result["observed"])
         self.assertEqual(result["images"], ["goodrain.me/owned:pending"])
@@ -19,8 +20,21 @@ class CleanupInventoryProjectionTests(unittest.TestCase):
         self.assertNotIn("password", json.dumps(result))
         row["image"] = ""
         self.assertFalse(registry_reference_resource(row, "components", "r", bytes(32))["observed"])
-        row["service_source"] = "source_code"
+        for source in ("source_code", "third_party", "kubeblocks"):
+            row["service_source"] = source
+            self.assertTrue(registry_reference_resource(row, "components", "r", bytes(32))["observed"])
+        row.update(service_source="docker_image", create_status="creating")
         self.assertTrue(registry_reference_resource(row, "components", "r", bytes(32))["observed"])
+        row.update(service_source="third_party", create_status="complete", image=" ")
+        self.assertTrue(registry_reference_resource(row, "components", "r", bytes(32))["observed"])
+        row["image"] = "https://invalid.example/image"
+        self.assertFalse(registry_reference_resource(row, "components", "r", bytes(32))["observed"])
+
+    def test_creating_component_does_not_require_version_inventory(self):
+        from console.services.cleanup_inventory import version_inventory_required
+        self.assertFalse(version_inventory_required({"create_status": "creating"}))
+        self.assertTrue(version_inventory_required({"create_status": "complete"}))
+        self.assertTrue(version_inventory_required({"create_status": None}))
 
     def test_registry_reference_projection_hides_template_identity(self):
         from console.services.cleanup_inventory import registry_reference_resource
@@ -202,10 +216,10 @@ spec:
       image: goodrain.me/kubeblocks-action:v1
   restore:
     prepareData:
-      image: $(KB_RESTORE_IMAGE)
+      image: $(KB_RESTORE_IMAGE):v1
     postReady:
     - job:
-        image: ${KB_POST_READY_IMAGE}
+        image: goodrain.me/${KB_POST_READY_IMAGE}
 """,
             """apiVersion: extensions.kubeblocks.io/v1alpha1
 kind: Addon
@@ -238,6 +252,14 @@ spec:
     containers:
     - imagePullPolicy: IfNotPresent
 """,
+            """apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+value: 1000
+""",
+            """apiVersion: v1
+kind: Endpoints
+subsets: []
+""",
         ]]
         row = {
             "ID": 5,
@@ -264,18 +286,20 @@ spec:
         self.assertNotIn("IfNotPresent", result["images"])
 
     def test_template_kubeblocks_invalid_literal_image_stays_incomplete(self):
-        resource = {
-            "content":
-            """apiVersion: apps.kubeblocks.io/v1
+        for image in ("https://invalid.example/image", "$(MISSING", "${MISSING", "prefix $(BROKEN"):
+            resource = {
+                "content":
+                """apiVersion: apps.kubeblocks.io/v1
 kind: ComponentVersion
 spec:
   releases:
   - images:
-      app: https://invalid.example/image
-"""
-        }
-        row = {"ID": 6, "app_template": json.dumps({"k8s_resources": [resource]})}
-        self.assertFalse(template_resource(row, "r", False)["observed"])
+      app: {image}
+""".format(image=image)
+            }
+            row = {"ID": 6, "app_template": json.dumps({"k8s_resources": [resource]})}
+            with self.subTest(image=image):
+                self.assertFalse(template_resource(row, "r", False)["observed"])
 
     def test_invalid_template_is_visible_and_never_claims_complete_references(self):
         result = template_resource({"ID": 1, "app_id": "app", "version": "v", "app_template": "bad-json"}, "r1", False)
