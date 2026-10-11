@@ -62,6 +62,10 @@ def failed_scope_label(row):
     return "{}：{}".format(label, "；".join(reasons)) if reasons else label
 
 
+def reference_inventory_complete(failures):
+    return not failures
+
+
 KUBEBLOCKS_RESOURCE_KINDS = frozenset((
     "ActionSet", "Addon", "BackupPolicyTemplate", "ClusterDefinition",
     "ComponentDefinition", "ComponentVersion", "OpsDefinition",

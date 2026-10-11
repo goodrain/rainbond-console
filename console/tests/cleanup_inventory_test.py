@@ -4,10 +4,15 @@ import hmac
 import unittest
 
 from console.services.cleanup_inventory import (template_resource, verify_source_request, version_resources,
-                                                deployment_resource, failed_scope_label)
+                                                deployment_resource, failed_scope_label,
+                                                reference_inventory_complete)
 
 
 class CleanupInventoryProjectionTests(unittest.TestCase):
+    def test_reference_inventory_is_complete_only_without_failures(self):
+        self.assertTrue(reference_inventory_complete([]))
+        self.assertFalse(reference_inventory_complete(["component-unavailable"]))
+
     def test_registry_component_references_include_unbuilt_images_without_identity(self):
         from console.services.cleanup_inventory import registry_reference_resource
         row = {"ID": 42, "service_source": "docker_image", "image": "goodrain.me/owned:pending",

@@ -17,7 +17,8 @@ from console.models.main import (AppVersionTemplateRelation, RainbondCenterApp, 
 from console.repositories.region_repo import region_repo
 from console.services.cleanup_inventory import (template_resource, verify_source_request, version_resources,
                                                 deployment_resource, failed_scope_label, snapshot_reference_resource,
-                                                registry_reference_resource, version_inventory_required)
+                                                registry_reference_resource, version_inventory_required,
+                                                reference_inventory_complete)
 from console.services.cleanup_upload_inventory import upload_resources, current_package_reference_events
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import ServiceGroup, ServiceGroupRelation, Tenants, TenantServiceInfo
@@ -190,7 +191,8 @@ class CleanupInventoryView(APIView):
                     failures.append(failed_scope_label(component))
         return Response({"enterprise": enterprise_id, "region": region_name, "kind": kind,
                          "resources": resources, "cursor": page[-1]["ID"] if more else 0, "upper": upper,
-                         "failedScopes": failures, "referencesComplete": False})
+                         "failedScopes": failures,
+                         "referencesComplete": reference_inventory_complete(failures)})
 
     @staticmethod
     def _upload_inventory(enterprise_id: str, region_name: str, cursor: int, upper: int) -> Response:
