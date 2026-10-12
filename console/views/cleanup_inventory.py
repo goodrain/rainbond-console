@@ -82,7 +82,7 @@ class CleanupInventoryView(APIView):
             if cursor > upper:
                 return Response({"errorCode": "INVALID_REQUEST"}, status=400)
             template_fields = ("ID", "app_id", "version", "share_team", "app_template", "enterprise_id", "region_name",
-                               "source", "is_complete", "cleanup_activation_revision")
+                               "source", "is_complete", "cleanup_activation_revision", "create_time", "update_time")
             page = list(template_query.filter(ID__gt=cursor, ID__lte=upper).order_by("ID").values(*template_fields)[:26])
         elif kind == "snapshots":
             # Include the enterprise's retained snapshots across regions. A

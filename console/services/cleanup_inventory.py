@@ -4,6 +4,7 @@ import hmac
 import json
 import re
 import time
+from datetime import datetime, timedelta, timezone
 
 import yaml
 
@@ -43,6 +44,26 @@ def _base(identifier, region, category, kind, name, owner):
 
 def _display_name(*values):
     return next((value.strip() for value in values if isinstance(value, str) and value.strip()), "")
+
+
+def _timestamp(value):
+    parsed = value if isinstance(value, datetime) else None
+    if isinstance(value, str):
+        match = re.fullmatch(
+            r"(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2}:\d{2})(\.\d{1,6})?(Z|[+-]\d{2}:\d{2})?", value.strip())
+        if match:
+            fraction = (match.group(3) or ".0").ljust(7, "0")
+            zone = match.group(4) or "+08:00"
+            normalized = "{}T{}{}{}".format(match.group(1), match.group(2), fraction, "+00:00" if zone == "Z" else zone)
+            try:
+                parsed = datetime.strptime(normalized[:-3] + normalized[-2:], "%Y-%m-%dT%H:%M:%S.%f%z")
+            except ValueError:
+                parsed = None
+    if parsed is None:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone(timedelta(hours=8)))
+    return parsed.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
 def failed_scope_label(row):
@@ -261,7 +282,7 @@ def template_resource(row, region, hidden):
         result["observed"] = False
     if result["observed"] and row.get("retirement"):
         result["retirement"] = row["retirement"]
-    # Creation/update time is intentionally never copied into unusedSince.
+    result["unusedSince"] = _timestamp(row.get("update_time") or row.get("create_time"))
     return result
 
 
@@ -282,6 +303,7 @@ def version_resources(component, payload, region):
                        _display_name(component.get("owner_name"), name, component["service_id"]))
         result["source"] = "platform_versions"
         result["usageStatus"] = "current_deployment" if number == current else "history_unverified"
+        result["unusedSince"] = _timestamp(version.get("finish_time") or version.get("create_time"))
         if number == current:
             result["protection"] = "referenced"
         images = [_image(version.get("image_name"))]

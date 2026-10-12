@@ -2,6 +2,7 @@ import json
 import hashlib
 import hmac
 import unittest
+from datetime import datetime
 
 from console.services.cleanup_inventory import (template_resource, verify_source_request, version_resources,
                                                 deployment_resource, failed_scope_label,
@@ -146,13 +147,16 @@ class CleanupInventoryProjectionTests(unittest.TestCase):
             self.assertFalse(verify_source_request(method, target, enterprise, region, timestamp, signed, key, now=now))
 
     def test_template_projection_keeps_images_but_excludes_configuration(self):
-        row = {"ID": 3, "app_id": "app", "version": "v1", "app_template": json.dumps({
+        row = {"ID": 3, "app_id": "app", "version": "v1",
+               "create_time": datetime(2025, 12, 1),
+               "update_time": datetime(2026, 1, 2, 3, 4, 5),
+               "app_template": json.dumps({
             "apps": [{"share_image": "registry/app:v1", "envs": [{"name": "PRIVATE", "value": "do-not-export"}]}],
             "plugins": [{"image": "registry/sidecar:v1"}], "opaque_configuration": "do-not-export"})}
         result = template_resource(row, "r1", False)
         self.assertEqual(result["images"], ["registry/app:v1", "registry/sidecar:v1"])
         self.assertFalse(result["sizeKnown"])
-        self.assertIsNone(result["unusedSince"])
+        self.assertEqual(result["unusedSince"], "2026-01-01T19:04:05Z")
         self.assertNotIn("do-not-export", json.dumps(result))
         self.assertEqual(template_resource(row, "r1", True)["resourceType"], "application_snapshot")
 
@@ -333,12 +337,13 @@ spec:
     def test_build_history_does_not_claim_successful_deployment_or_idle_time(self):
         component = {"service_id": "s", "service_cname": "backend", "service_alias": "svc"}
         payload = {"deploy_version": "v2", "list": [
-            {"build_version": "v1", "image_name": "registry/app:v1", "final_status": "success", "repo_url": "do-not-export"},
+            {"build_version": "v1", "image_name": "registry/app:v1", "final_status": "success",
+             "finish_time": "2026-01-02T03:04:05Z", "repo_url": "do-not-export"},
             {"build_version": "v2", "image_name": "registry/app:v2", "final_status": "success"}]}
         rows = version_resources(component, payload, "r1")
         self.assertEqual(rows[0]["usageStatus"], "history_unverified")
         self.assertEqual(rows[1]["usageStatus"], "current_deployment")
-        self.assertIsNone(rows[0]["unusedSince"])
+        self.assertEqual(rows[0]["unusedSince"], "2026-01-02T03:04:05Z")
         self.assertNotIn("do-not-export", json.dumps(rows))
 
     def test_retirement_requires_complete_fresh_reference_evidence(self):
