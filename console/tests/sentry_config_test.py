@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
 from unittest import mock
 
+from django.db import OperationalError
+import requests
+
+from console.exception.exceptions import ConfigExistError
 from goodrain_web import sentry_config
 
 
@@ -90,6 +94,195 @@ def test_before_send_filters_sensitive_request_data():
 def test_before_send_drops_events_when_platform_telemetry_is_disabled():
     with mock.patch("goodrain_web.sentry_config.is_external_telemetry_enabled", return_value=False):
         assert sentry_config.before_send({"message": "error"}, {}) is None
+
+
+# capability_id: console.sentry.expected-region-frequent-error
+def test_before_send_drops_region_api_frequent_operation_exception():
+    frequent_error_type = type(
+        "CallApiFrequentError",
+        (Exception, ),
+        {"__module__": "www.apiclient.regionapibaseclient"},
+    )
+    error = frequent_error_type("operation too frequent")
+
+    with mock.patch("goodrain_web.sentry_config.is_external_telemetry_enabled", return_value=True):
+        result = sentry_config.before_send(
+            {"message": "operation too frequent"},
+            {"exc_info": (frequent_error_type, error, None)},
+        )
+        type_only_result = sentry_config.before_send(
+            {"message": "operation too frequent"},
+            {"exc_info": (frequent_error_type, None, None)},
+        )
+
+    assert result is None
+    assert type_only_result is None
+
+
+def test_before_send_keeps_same_exception_name_from_other_modules():
+    other_error_type = type(
+        "CallApiFrequentError",
+        (Exception, ),
+        {"__module__": "tests.fake_region_client"},
+    )
+    error = other_error_type("unexpected frequent error")
+
+    with mock.patch("goodrain_web.sentry_config.is_external_telemetry_enabled", return_value=True):
+        result = sentry_config.before_send(
+            {"message": "unexpected frequent error"},
+            {"exc_info": (other_error_type, error, None)},
+        )
+
+    assert result == {"message": "unexpected frequent error"}
+
+
+# capability_id: console.sentry.expected-not-found-errors
+def test_before_send_drops_expected_not_found_exceptions():
+    http404_type = type("Http404", (Exception, ), {"__module__": "django.http.response"})
+    service_error_type = type(
+        "ServiceHandleException",
+        (Exception, ),
+        {"__module__": "console.exception.main"},
+    )
+    region_error_type = type(
+        "CallApiError",
+        (Exception, ),
+        {"__module__": "www.apiclient.regionapibaseclient"},
+    )
+    errors = [
+        http404_type("not found"),
+        service_error_type("application not found"),
+        region_error_type("region resource not found"),
+    ]
+    errors[1].status_code = 404
+    errors[2].status = 404
+
+    with mock.patch("goodrain_web.sentry_config.is_external_telemetry_enabled", return_value=True):
+        results = [
+            sentry_config.before_send(
+                {"message": str(error)},
+                {"exc_info": (error.__class__, error, None)},
+            )
+            for error in errors
+        ]
+
+    assert results == [None, None, None]
+
+
+# capability_id: console.config.expected-conflict
+def test_before_send_drops_expected_config_conflict():
+    error = ConfigExistError("配置GLOBAL_IMAGE_REGISTRY已存在")
+
+    with mock.patch("goodrain_web.sentry_config.is_external_telemetry_enabled", return_value=True):
+        result = sentry_config.before_send(
+            {"message": str(error)},
+            {"exc_info": (ConfigExistError, error, None)},
+        )
+
+    assert result is None
+
+
+def test_before_send_keeps_server_side_service_and_region_errors():
+    service_error_type = type(
+        "ServiceHandleException",
+        (Exception, ),
+        {"__module__": "console.exception.main"},
+    )
+    region_error_type = type(
+        "CallApiError",
+        (Exception, ),
+        {"__module__": "www.apiclient.regionapibaseclient"},
+    )
+    service_error = service_error_type("service failed")
+    service_error.status_code = 500
+    region_error = region_error_type("region failed")
+    region_error.status = 500
+
+    with mock.patch("goodrain_web.sentry_config.is_external_telemetry_enabled", return_value=True):
+        service_result = sentry_config.before_send(
+            {"message": "service failed"},
+            {"exc_info": (service_error_type, service_error, None)},
+        )
+        region_result = sentry_config.before_send(
+            {"message": "region failed"},
+            {"exc_info": (region_error_type, region_error, None)},
+        )
+
+    assert service_result == {"message": "service failed"}
+    assert region_result == {
+        "message": "region failed",
+        "fingerprint": ["region-upstream-error", "unknown"],
+    }
+
+
+# capability_id: console.region-api.upstream-server-error
+def test_before_send_groups_region_server_errors_by_normalized_upstream_path():
+    region_error_type = type(
+        "CallApiError",
+        (Exception, ),
+        {"__module__": "www.apiclient.regionapibaseclient"},
+    )
+    error = region_error_type("plugin unavailable")
+    error.status = 500
+    error.url = "https://rbd-api-api:8443/v2/tenants/demo/services/gr123456/pods/pod-abc/detail"
+
+    with mock.patch("goodrain_web.sentry_config.is_external_telemetry_enabled", return_value=True):
+        result = sentry_config.before_send(
+            {"message": "plugin unavailable"},
+            {"exc_info": (region_error_type, error, None)},
+        )
+
+    assert result["fingerprint"] == [
+        "region-upstream-error",
+        "/v2/tenants/:id/services/:id/pods/pod-abc/detail",
+    ]
+
+
+# capability_id: console.database.transient-unavailable
+def test_before_send_groups_transient_database_outages_with_stable_fingerprint():
+    error = OperationalError(2006, "Server has gone away")
+    event = {
+        "message": "Server has gone away",
+        "request": {
+            "url": "/console/teams/demo/apps",
+            "method": "GET",
+        },
+    }
+
+    with mock.patch("goodrain_web.sentry_config.is_external_telemetry_enabled", return_value=True):
+        result = sentry_config.before_send(
+            event,
+            {"exc_info": (OperationalError, error, None)},
+        )
+
+    assert result["fingerprint"] == ["database-unavailable"]
+    assert result["request"]["url"] == "/console/teams/:id/apps"
+
+    schema_error = OperationalError(1051, "Unknown table 'console_ci.mcp_device_authorization'")
+    with mock.patch("goodrain_web.sentry_config.is_external_telemetry_enabled", return_value=True):
+        schema_result = sentry_config.before_send(
+            {"message": "Unknown table"},
+            {"exc_info": (OperationalError, schema_error, None)},
+        )
+    assert "fingerprint" not in schema_result
+
+
+# capability_id: console.external-http.unavailable-response
+def test_before_send_groups_external_http_failures_by_host_and_path():
+    error = requests.exceptions.SSLError("bad tls")
+    error.request = mock.Mock(url="https://ghcr.io/v2/_catalog?last=demo/image")
+
+    with mock.patch("goodrain_web.sentry_config.is_external_telemetry_enabled", return_value=True):
+        result = sentry_config.before_send(
+            {"message": "bad tls"},
+            {"exc_info": (requests.exceptions.SSLError, error, None)},
+        )
+
+    assert result["fingerprint"] == [
+        "external-http-unavailable",
+        "ghcr.io",
+        "/v2/_catalog?[Filtered]",
+    ]
 
 
 def test_get_path_pattern_removes_dynamic_segments_and_query():

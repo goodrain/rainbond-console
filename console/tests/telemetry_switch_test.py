@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
 
+from django.db import OperationalError
 from django.test import TestCase
 from unittest import mock
 
@@ -47,3 +48,32 @@ class ExternalTelemetrySwitchTests(TestCase):
             side_effect=RuntimeError("database unavailable"),
         ):
             self.assertFalse(get_external_telemetry_enabled({}))
+
+    def test_operational_error_retries_after_closing_connections(self):
+        setting = mock.Mock(enable=True)
+
+        with mock.patch(
+            "console.services.telemetry_switch._load_external_telemetry_setting",
+            side_effect=[OperationalError(2006, "Server has gone away"), setting],
+        ) as mock_load, mock.patch(
+            "console.services.telemetry_switch.connections.close_all",
+        ) as mock_close_all:
+            self.assertTrue(get_external_telemetry_enabled({}))
+
+        self.assertEqual(mock_load.call_count, 2)
+        mock_close_all.assert_called_once_with()
+
+    def test_repeated_operational_error_fails_closed(self):
+        with mock.patch(
+            "console.services.telemetry_switch._load_external_telemetry_setting",
+            side_effect=[
+                OperationalError(2006, "Server has gone away"),
+                OperationalError(2013, "Lost connection to MySQL server"),
+            ],
+        ) as mock_load, mock.patch(
+            "console.services.telemetry_switch.connections.close_all",
+        ) as mock_close_all:
+            self.assertFalse(get_external_telemetry_enabled({}))
+
+        self.assertEqual(mock_load.call_count, 2)
+        self.assertEqual(mock_close_all.call_count, 2)

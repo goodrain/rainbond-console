@@ -20,11 +20,18 @@ django.setup()
 
 from console.views.webhook import (  # noqa: E402
     UnsupportedImageWebhookEvent,
+    commit_message_matches_deploy_keyword,
     parse_image_webhook_payload,
 )
 
 
 class ImageWebhookPayloadTestCase(TestCase):
+    # capability_id: console.code-webhook.null-commit-message
+    def test_null_commit_message_does_not_match_deploy_keyword(self):
+        self.assertFalse(commit_message_matches_deploy_keyword("deploy", None))
+        self.assertTrue(commit_message_matches_deploy_keyword("", None))
+        self.assertTrue(commit_message_matches_deploy_keyword("deploy", "release @deploy"))
+
     # capability_id: console.image-webhook.harbor-push-artifact
     def test_parse_harbor_push_artifact_payload(self):
         payload = {

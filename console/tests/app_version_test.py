@@ -1728,3 +1728,38 @@ class AppRestoreRollbackRecordTestCase(TestCase):
         restore.rollback_record = None
 
         restore._update_rollback_record(5)
+
+
+class CleanupPublicationBoundaryTestCase(TestCase):
+    def test_publish_dispatch_and_template_write_share_one_protection(self):
+        from contextlib import contextmanager
+        from console.services.share_services import ShareService, rainbond_app_repo
+        cases = [("sync_event", "_sync_event_protected", (object(), "region", "team", mock.Mock(record_id="record"))),
+                 ("sync_service_plugin_event", "_sync_service_plugin_event_protected",
+                  (object(), "region", "team", "record", mock.Mock(record_id="record")))]
+        for public, implementation, arguments in cases:
+            with self.subTest(method=public):
+                order = []
+                result = object()
+
+                @contextmanager
+                def protection(region, team):
+                    self.assertEqual((region, team), ("region", "team"))
+                    order.append("protected")
+                    yield
+                    order.append("committed")
+
+                def dispatch(*args):
+                    self.assertEqual(order, ["protected"])
+                    order.append("dispatch-and-save")
+                    return result
+
+                with mock.patch("console.services.cleanup_coordination.protect_region_references", protection), \
+                     mock.patch.object(ShareService, implementation, side_effect=dispatch, create=True), \
+                     mock.patch.object(rainbond_app_repo, "get_rainbond_app_version_by_record_id",
+                                       side_effect=AssertionError("unguarded publication body reached")):
+                    method = getattr(ShareService, public)
+                    method = getattr(method, "__wrapped__", method)
+                    returned = method(ShareService.__new__(ShareService), *arguments)
+                self.assertIs(returned, result)
+                self.assertEqual(order, ["protected", "dispatch-and-save", "committed"])

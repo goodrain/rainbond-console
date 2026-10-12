@@ -9,6 +9,7 @@ from types import ModuleType
 from unittest import TestCase, mock
 
 import urllib3
+import requests
 
 for attr in ("Mapping", "MutableMapping", "Sequence", "Iterable", "Iterator"):
     if not hasattr(collections, attr):
@@ -24,11 +25,142 @@ import django  # noqa: E402
 django.setup()
 
 from console.exception.main import ServiceHandleException  # noqa: E402
+from console.exception.exceptions import ConfigExistError  # noqa: E402
+from console.views.base import custom_exception_handler  # noqa: E402
+from django.db import OperationalError  # noqa: E402
 from django.http import StreamingHttpResponse  # noqa: E402
-from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient  # noqa: E402
+from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient, create_file  # noqa: E402
 
 
 class RegionApiBaseHttpClientTestCase(TestCase):
+    # capability_id: console.config.expected-conflict
+    def test_config_exist_error_returns_conflict_response(self):
+        response = custom_exception_handler(ConfigExistError("配置已存在"), {})
+
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(response.data["msg"], "config already exists")
+
+    # capability_id: console.external-http.unavailable-response
+    def test_external_http_failure_returns_retryable_502(self):
+        error = requests.exceptions.SSLError("bad tls")
+        error.request = mock.Mock(url="https://ghcr.io/v2/_catalog?last=demo/image")
+
+        response = custom_exception_handler(error, {})
+
+        self.assertEqual(response.status_code, 502)
+        self.assertEqual(response["Retry-After"], "3")
+        self.assertEqual(response.data["msg"], "external service unavailable")
+        self.assertTrue(response.data["data"]["details"]["retryable"])
+
+    # capability_id: console.region-api.upstream-server-error
+    def test_region_upstream_server_error_returns_retryable_502(self):
+        error = RegionApiBaseHttpClient.CallApiError(
+            "Not specified",
+            "https://region.example.com/v2/cluster/kubeblocks/clusters/demo",
+            "GET",
+            mock.Mock(status=500),
+            {"msg": "plugin unavailable"},
+        )
+
+        response = custom_exception_handler(error, {})
+
+        self.assertEqual(response.status_code, 502)
+        self.assertEqual(response["Retry-After"], "3")
+        self.assertEqual(response.data["msg"], "region upstream error")
+        self.assertEqual(
+            response.data["data"]["details"],
+            {"retryable": True, "reason": "region_upstream_error", "upstream_status": 500},
+        )
+
+    # capability_id: console.database.transient-unavailable
+    def test_transient_database_error_returns_retryable_503(self):
+        response = custom_exception_handler(
+            OperationalError(2006, "Server has gone away"),
+            {},
+        )
+
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(response["Retry-After"], "3")
+        self.assertEqual(response.data["msg"], "database unavailable")
+        self.assertTrue(response.data["data"]["details"]["retryable"])
+
+    # capability_id: console.region-api.unavailable-response
+    def test_request_translates_retry_exhaustion_to_stable_retryable_503(self):
+        client = RegionApiBaseHttpClient()
+        region = mock.Mock()
+        transport = mock.Mock()
+        transport.request.side_effect = urllib3.exceptions.MaxRetryError(
+            None, "/v2/cluster", reason=socket.timeout("timed out"))
+
+        with mock.patch("www.apiclient.regionapibaseclient.region_repo.get_region_by_region_name", return_value=region), \
+                mock.patch.object(client, "get_client", return_value=transport), \
+                mock.patch("www.apiclient.regionapibaseclient.logger.warning") as warning:
+            with self.assertRaises(ServiceHandleException) as raised:
+                client._request("https://region.example.com/v2/cluster", "GET", region="rainbond")
+
+        error = raised.exception
+        self.assertEqual(error.status_code, 503)
+        self.assertEqual(error.msg, "region api unavailable")
+        self.assertEqual(error.details, {"retryable": True, "reason": "connection_failed"})
+        self.assertTrue(error.__suppress_context__)
+        warning.assert_called_once()
+
+    # capability_id: console.region-api.unavailable-response
+    def test_request_classifies_timeout_tls_and_other_transport_failures(self):
+        cases = (
+            (socket.timeout("timed out"), "timeout"),
+            (urllib3.exceptions.SSLError("bad tls"), "tls_error"),
+            (RuntimeError("connection reset"), "transport_error"),
+        )
+        for transport_error, expected_reason in cases:
+            client = RegionApiBaseHttpClient()
+            region = mock.Mock()
+            transport = mock.Mock()
+            transport.request.side_effect = transport_error
+
+            with self.subTest(expected_reason=expected_reason), \
+                    mock.patch(
+                        "www.apiclient.regionapibaseclient.region_repo.get_region_by_region_name",
+                        return_value=region,
+                    ), mock.patch.object(client, "get_client", return_value=transport), \
+                    mock.patch.object(client, "destroy_client"), \
+                    mock.patch("www.apiclient.regionapibaseclient.logger.warning"):
+                with self.assertRaises(ServiceHandleException) as raised:
+                    client._request("https://region.example.com/v2/cluster", "GET", region="rainbond")
+
+            self.assertEqual(raised.exception.status_code, 503)
+            self.assertEqual(raised.exception.details["reason"], expected_reason)
+
+    # capability_id: console.region-api.unavailable-response
+    def test_retryable_service_unavailable_response_includes_retry_after(self):
+        error = ServiceHandleException(
+            msg="region api unavailable",
+            msg_show="访问数据中心异常，请稍后重试",
+            status_code=503,
+            error_code=10411,
+            details={"retryable": True, "reason": "timeout"},
+        )
+
+        response = custom_exception_handler(error, {})
+
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(response["Retry-After"], "3")
+        self.assertTrue(response.data["data"]["details"]["retryable"])
+
+    # capability_id: console.region-api.concurrent-certificate-directory
+    def test_create_file_tolerates_concurrent_directory_creation(self):
+        def concurrent_makedirs(path, exist_ok=False):
+            if not exist_ok:
+                raise FileExistsError(path)
+
+        with mock.patch("www.apiclient.regionapibaseclient.os.path.exists", return_value=False), \
+                mock.patch("www.apiclient.regionapibaseclient.os.makedirs", side_effect=concurrent_makedirs) as makedirs, \
+                mock.patch("builtins.open", mock.mock_open(read_data="certificate")):
+            file_path = create_file("/tmp/region-ssl", "ca.pem", "certificate")
+
+        makedirs.assert_called_once_with("/tmp/region-ssl", exist_ok=True)
+        self.assertEqual(file_path, "/tmp/region-ssl/ca.pem")
+
     def test_timed_client_request_records_success(self):
         client = RegionApiBaseHttpClient()
         transport = mock.Mock()

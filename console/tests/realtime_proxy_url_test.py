@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import collections
 import os
+import requests
 import sys
 import typing
 from types import ModuleType
@@ -47,6 +48,7 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
 import django  # noqa: E402
 from django.core.files.uploadedfile import SimpleUploadedFile  # noqa: E402
 from django.db.models.query import QuerySet  # noqa: E402
+from django.http.request import UnreadablePostError  # noqa: E402
 from django.test import RequestFactory, SimpleTestCase  # noqa: E402
 
 django.setup()
@@ -66,6 +68,7 @@ from console.utils.realtime_proxy import (  # noqa: E402
     build_region_realtime_proxy_url,
     open_backend_websocket,
     proxy_http_request,
+    proxy_websocket_request,
 )
 
 
@@ -320,6 +323,68 @@ class RealtimeProxyUrlTests(SimpleTestCase):
         self.assertIn(b'filename="demo.iso"', forwarded_body)
         self.assertEqual(response.status_code, 200)
 
+    # capability_id: console.realtime-proxy.interrupted-upload
+    def test_http_proxy_returns_bad_request_when_client_upload_is_interrupted(self):
+        request = self.factory.post(
+            "/console/regions/rainbond/websocket/package_build/component/events/evt-1",
+            data=b"partial upload",
+            content_type="application/octet-stream",
+        )
+        interrupted = requests.ConnectionError(
+            "Connection aborted.",
+            UnreadablePostError("unexpected end of file while reading request"),
+        )
+
+        with mock.patch(
+            "console.utils.realtime_proxy.build_region_realtime_proxy_url",
+            return_value="http://region.example.com:6060/package_build/component/events/evt-1",
+        ), mock.patch(
+            "console.utils.realtime_proxy.requests.request",
+            side_effect=interrupted,
+        ):
+            response = proxy_http_request(request, "rainbond", "package_build/component/events/evt-1")
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.content, b"client upload interrupted")
+
+    # capability_id: console.realtime-proxy.interrupted-upload
+    def test_http_proxy_handles_direct_unreadable_post_error(self):
+        request = self.factory.post(
+            "/console/regions/rainbond/websocket/package_build/component/events/evt-1",
+            data=b"partial upload",
+            content_type="application/octet-stream",
+        )
+        interrupted = UnreadablePostError("unexpected end of file while reading request")
+
+        with mock.patch(
+            "console.utils.realtime_proxy.build_region_realtime_proxy_url",
+            return_value="http://region.example.com:6060/package_build/component/events/evt-1",
+        ), mock.patch(
+            "console.utils.realtime_proxy.requests.request",
+            side_effect=interrupted,
+        ):
+            response = proxy_http_request(request, "rainbond", "package_build/component/events/evt-1")
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.content, b"client upload interrupted")
+
+    # capability_id: console.realtime-proxy.interrupted-upload
+    def test_http_proxy_keeps_backend_connection_errors_visible(self):
+        request = self.factory.get("/console/regions/rainbond/websocket/event_log")
+        backend_error = requests.ConnectionError("backend unavailable")
+
+        with mock.patch(
+            "console.utils.realtime_proxy.build_region_realtime_proxy_url",
+            return_value="http://region.example.com:6060/event_log",
+        ), mock.patch(
+            "console.utils.realtime_proxy.requests.request",
+            side_effect=backend_error,
+        ):
+            with self.assertRaises(requests.ConnectionError) as context:
+                proxy_http_request(request, "rainbond", "event_log")
+
+        self.assertIs(context.exception, backend_error)
+
     # capability_id: console.realtime-proxy.docker-console-subprotocol
     def test_docker_console_backend_uses_webtty_subprotocol(self):
         request = self.factory.get("/console/regions/rainbond/websocket/docker_console")
@@ -338,6 +403,54 @@ class RealtimeProxyUrlTests(SimpleTestCase):
         protocols = _backend_websocket_subprotocols(request, "docker_console")
 
         self.assertEqual(protocols, ["webtty", "other"])
+
+    # capability_id: console.realtime-proxy.client-reset-close
+    def test_websocket_proxy_treats_client_connection_reset_as_normal_close(self):
+        request = self.factory.get("/console/regions/rainbond/websocket/services/service-a/pubsub")
+        client_ws = mock.Mock()
+        client_ws.receive.return_value = "client event"
+        client_ws.send.side_effect = ConnectionResetError(104, "Connection reset by peer")
+        request.environ["wsgi.websocket"] = client_ws
+
+        backend_ws = mock.Mock()
+        backend_ws.send.side_effect = ConnectionResetError(104, "Connection reset by peer")
+        from websocket import ABNF
+        backend_ws.recv_data.return_value = (ABNF.OPCODE_TEXT, b"event")
+
+        def run_greenlet(target):
+            target()
+            return mock.Mock()
+
+        fake_gevent = ModuleType("gevent")
+        fake_gevent.spawn = mock.Mock(side_effect=run_greenlet)
+        fake_gevent.joinall = mock.Mock()
+        fake_geventwebsocket = ModuleType("geventwebsocket")
+        fake_geventwebsocket_exceptions = ModuleType("geventwebsocket.exceptions")
+        fake_geventwebsocket_exceptions.WebSocketError = type("WebSocketError", (Exception, ), {})
+        fake_geventwebsocket.exceptions = fake_geventwebsocket_exceptions
+
+        with mock.patch.dict(
+            sys.modules,
+            {
+                "gevent": fake_gevent,
+                "geventwebsocket": fake_geventwebsocket,
+                "geventwebsocket.exceptions": fake_geventwebsocket_exceptions,
+            },
+        ), mock.patch(
+            "console.utils.realtime_proxy.build_region_realtime_proxy_url",
+            return_value="ws://region.example.com:6060/services/service-a/pubsub",
+        ), mock.patch(
+            "websocket.create_connection",
+            return_value=backend_ws,
+        ), mock.patch(
+            "console.utils.realtime_proxy.logger.exception",
+        ) as log_exception:
+            response = proxy_websocket_request(request, "rainbond", "services/service-a/pubsub")
+
+        self.assertEqual(response.status_code, 204)
+        log_exception.assert_not_called()
+        backend_ws.close.assert_called_once_with()
+        client_ws.close.assert_called_once_with()
 
     # capability_id: console.realtime-proxy.websocket-idle-timeout
     def test_backend_websocket_uses_short_read_timeout_for_idle_checks(self):

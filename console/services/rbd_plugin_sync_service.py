@@ -119,6 +119,13 @@ class RBDPluginSyncService(object):
                 safe_context={"region_name": region.region_name},
             )
 
+        if plugin_id == "rainbond-disk":
+            from console.services.cleanup_installation import configure_installation
+            try:
+                configure_installation(tenant, region, backend_component)
+            except Exception as error:
+                self._fail("configure_cleanup_installation", app_id, plugin_id, error=error)
+
         frontend_service = self._service_address(frontend_port, namespace)
         entry_path = platform_plugin["entry_path"]
         frontend_service = frontend_service.rstrip("/") + "/" + entry_path.lstrip("/")

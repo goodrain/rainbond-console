@@ -39,7 +39,14 @@ class OAuthRepo(object):
             if pre_enterprise_center:
                 return OAuthServices.objects.get(name=pre_enterprise_center, oauth_type="enterprisecenter")
             return OAuthServices.objects.filter(oauth_type="enterprisecenter", enable=True, is_deleted=False).first()
-        return OAuthServices.objects.get(ID=service_id, enable=True, is_deleted=False)
+        try:
+            service_pk = int(service_id)
+        except (TypeError, ValueError):
+            raise ErrOauthServiceNotFound
+        try:
+            return OAuthServices.objects.get(ID=service_pk, enable=True, is_deleted=False)
+        except OAuthServices.DoesNotExist:
+            raise ErrOauthServiceNotFound
 
     @staticmethod
     def get_by_client_id(client_id: str, user_id: str) -> OAuthServices:
@@ -98,7 +105,9 @@ class OAuthRepo(object):
                     self.delete_oauth_service(service_id=value.get("service_id"))
                 else:
                     old_service = self.open_get_oauth_services_by_service_id(service_id=value.get("service_id"))
-                    if old_service.home_url != value["home_url"]:  # type: ignore[union-attr]  # may be None
+                    if old_service is None:
+                        raise ErrOauthServiceNotFound
+                    if old_service.home_url != value["home_url"]:
                         UserOAuthServices.objects.filter(service_id=value.get("service_id")).delete()
                     OAuthServices.objects.filter(ID=value["service_id"]).update(
                         name=value["name"],

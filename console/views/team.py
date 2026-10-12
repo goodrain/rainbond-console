@@ -712,7 +712,7 @@ class InitDefaultInfoView(JWTAuthApiView):
         ent["is_enterprise"] = is_ent
         regions = region_repo.get_regions_by_enterprise_id(self.enterprise.enterprise_id, 1)  # type: ignore[arg-type]
         ent["disable_install_cluster_log"] = False
-        ent["default_region"] = regions[0].to_dict()
+        ent["default_region"] = regions[0].to_dict() if regions else None
         result = general_message(200, "success", "查询成功", bean=ent)
         return Response(result, status=result["code"])
 
@@ -1059,10 +1059,10 @@ class TeamSortDomainQueryView(RegionTenantHeaderView):
               type: string
               paramType: path
         """
-        page = int(request.GET.get("page", 1))
-        page_size = int(request.GET.get("page_size", 5))
         repo = request.GET.get("repo", "1")
         if repo == "1":
+            page = int(request.GET.get("page", 1))
+            page_size = int(request.GET.get("page_size", 5))
             total_traffic = 0
             total = 0
             domain_list = []
@@ -1087,6 +1087,9 @@ class TeamSortDomainQueryView(RegionTenantHeaderView):
             # NOTE: start/end reused with different types across branches (behavior preserved).
             start = request.GET.get("start", None)  # type: ignore[assignment]
             end = request.GET.get("end", None)  # type: ignore[assignment]
+            if not start or not end:
+                result = general_message(400, "missing time range", "缺少时间范围参数")
+                return Response(result, status=400)
             body = {}
             sufix = "?query=ceil(sum(increase(gateway_requests%7B" \
                 + "namespace%3D%22{0}%22%7D%5B1h%5D)))&start={1}&end={2}&step=60".format(self.tenant.tenant_id, start, end)

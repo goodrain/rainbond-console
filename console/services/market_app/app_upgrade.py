@@ -208,11 +208,34 @@ class AppUpgrade(MarketApp):
             self.rollback()
             raise ServiceHandleException("unexpected error", "安装遇到了故障, 暂无法执行, 请稍后重试")
 
+        # Configure disk-cleanup scope before its first Pod starts. Other plugins retain their lifecycle.
+        if (self.app_template.get("platform_plugin") or {}).get("plugin_id") == "rainbond-disk":
+            from console.services.rbd_plugin_sync_service import rbd_plugin_sync_service
+            rbd_plugin_sync_service.reconcile(self.tenant, self.region, self.app_template, self.app.ID)
+
         if self.is_deploy:
             events = self._install_deploy()
         return events
 
     def upgrade(self) -> AppUpgradeRecord:
+        # Publish the pending reference while holding the same parent lock as retirement.
+        from console.services.cleanup_retirement import lock_template_use, RetirementConflict
+        from console.services.cleanup_coordination import CoordinationUnavailable
+        try:
+            with lock_template_use(
+                    self.app_model_key,
+                    self.version,
+                    self.region_name,
+                    self.tenant.tenant_name,
+                    external_template=self.app_template if self.install_from_cloud else None):
+                if self.record is None or not self.record.ID:
+                    raise RetirementConflict()
+                AppUpgradeRecord.objects.filter(ID=self.record.ID).update(
+                    version=self.version, status=UpgradeStatus.UPGRADING.value)
+        except CoordinationUnavailable:
+            raise ServiceHandleException("cleanup coordination unavailable", "仓库清理协调未就绪或存在冲突，请稍后重试", status_code=409)
+        except RetirementConflict:
+            raise ServiceHandleException("template retired", "模板版本已变化或退役，请刷新后重试", status_code=409)
         # install plugins
         try:
             self.install_plugins()
@@ -231,6 +254,9 @@ class AppUpgrade(MarketApp):
         try:
             # Save the application to the console
             self._save_app()
+            if (self.app_template.get("platform_plugin") or {}).get("plugin_id") == "rainbond-disk":
+                from console.services.rbd_plugin_sync_service import rbd_plugin_sync_service
+                rbd_plugin_sync_service.reconcile(self.tenant, self.region, self.app_template, self.app.ID)
         except Exception as e:
             logger.exception(e)
             self._update_upgrade_record(UpgradeStatus.UPGRADE_FAILED.value)
@@ -640,36 +666,43 @@ class AppUpgrade(MarketApp):
         self.record.save()  # type: ignore[union-attr]
         # NOTE: self.record can be None; callers should ensure record is set before upgrade()
 
+    @transaction.atomic
     def _take_snapshot(self) -> Optional[Any]:
-        if self.is_upgrade_one:
-            return None
+        from console.services.cleanup_coordination import protect_region_references
+        with protect_region_references(self.region_name, self.tenant.tenant_name):
+            if self.is_upgrade_one:
+                return None
 
-        new_components = {cpt.component.component_id: cpt for cpt in self.new_app.components()}
+            new_components = {cpt.component.component_id: cpt for cpt in self.new_app.components()}
 
-        components = []
-        for cpt in self.original_app.components():
-            # component snapshot
-            csnap, _ = groupapp_backup_service.get_service_details(self.tenant, cpt.component)
-            new_component = new_components.get(cpt.component.component_id)
-            if new_component:
-                csnap["action_type"] = new_component.action_type
-            else:
-                # no action for original component without changes
-                csnap["action_type"] = ActionType.NOTHING.value
-            components.append(csnap)
-        if not components:
-            return None
-        snapshot = app_snapshot_repo.create(
-            AppUpgradeSnapshot(
-                tenant_id=self.tenant_id,
-                upgrade_group_id=self.upgrade_group_id,
-                snapshot_id=make_uuid(),
-                snapshot=json.dumps({
-                    "components": components,
-                    "component_group": self.component_group.component_group.to_dict(),
-                }),
-            ))
-        return snapshot
+            from www.models.main import TenantServiceInfo
+            list(TenantServiceInfo.objects.select_for_update().filter(
+                service_id__in=[cpt.component.component_id for cpt in self.original_app.components()],
+                tenant_id=self.tenant_id).order_by('service_id'))
+            components = []
+            for cpt in self.original_app.components():
+                # component snapshot
+                csnap, _ = groupapp_backup_service.get_service_details(self.tenant, cpt.component)
+                new_component = new_components.get(cpt.component.component_id)
+                if new_component:
+                    csnap["action_type"] = new_component.action_type
+                else:
+                    # no action for original component without changes
+                    csnap["action_type"] = ActionType.NOTHING.value
+                components.append(csnap)
+            if not components:
+                return None
+            snapshot = app_snapshot_repo.create(
+                AppUpgradeSnapshot(
+                    tenant_id=self.tenant_id,
+                    upgrade_group_id=self.upgrade_group_id,
+                    snapshot_id=make_uuid(),
+                    snapshot=json.dumps({
+                        "components": components,
+                        "component_group": self.component_group.component_group.to_dict(),
+                    }),
+                ))
+            return snapshot
 
     def _config_group_items(self, config_groups: List[ApplicationConfigGroup]) -> List[ConfigGroupItem]:
         """

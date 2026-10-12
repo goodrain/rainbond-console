@@ -41,6 +41,12 @@ class ImageWebhookEvent(object):
         self.pusher = pusher
 
 
+def commit_message_matches_deploy_keyword(deploy_keyword: Any, message: Any) -> bool:
+    if not deploy_keyword:
+        return True
+    return "@{0}".format(deploy_keyword) in str(message or "")
+
+
 def parse_image_webhook_payload(data: Any) -> "ImageWebhookEvent":
     if is_harbor_webhook_payload(data):
         return parse_harbor_image_webhook_payload(data)
@@ -124,8 +130,7 @@ class WebHooksDeploy(AlowAnyApiView):
                     result = general_message(400, "can not get commit info", "提交信息获取失败")
                     return Response(result, status=400)
                 message = commits_info.get("message")
-                keyword = "@" + service_webhook.deploy_keyword
-                if service_webhook.deploy_keyword and keyword not in message:
+                if not commit_message_matches_deploy_keyword(service_webhook.deploy_keyword, message):
                     result = general_message(200, "commit message not include {0}".format(service_webhook.deploy_keyword),
                                              "提交信息无效")
                     return Response(result, status=200)
@@ -171,8 +176,7 @@ class WebHooksDeploy(AlowAnyApiView):
                     result = general_message(400, "can not get commit info", "提交信息获取失败")
                     return Response(result, status=400)
                 message = commits_info[-1].get("message")
-                keyword = "@" + service_webhook.deploy_keyword
-                if service_webhook.deploy_keyword and keyword not in message:
+                if not commit_message_matches_deploy_keyword(service_webhook.deploy_keyword, message):
                     result = general_message(200, "commit message not include {0}".format(service_webhook.deploy_keyword),
                                              "提交信息无效")
                     return Response(result, status=200)
@@ -232,8 +236,7 @@ class WebHooksDeploy(AlowAnyApiView):
                     result = general_message(400, "can not get commit info", "提交信息获取失败")
                     return Response(result, status=400)
                 message = commits_info.get("message")
-                keyword = "@" + service_webhook.deploy_keyword
-                if service_webhook.deploy_keyword and keyword not in message:
+                if not commit_message_matches_deploy_keyword(service_webhook.deploy_keyword, message):
                     result = general_message(200, "commit message not include {0}".format(service_webhook.deploy_keyword),
                                              "提交信息无效")
                     return Response(result, status=200)
@@ -279,8 +282,7 @@ class WebHooksDeploy(AlowAnyApiView):
                     result = general_message(400, "can not get commit info", "提交信息获取失败")
                     return Response(result, status=400)
                 message = commits_info[0].get("message")
-                keyword = "@" + service_webhook.deploy_keyword
-                if service_webhook.deploy_keyword and keyword not in message:
+                if not commit_message_matches_deploy_keyword(service_webhook.deploy_keyword, message):
                     result = general_message(200, "commit message not include {0}".format(service_webhook.deploy_keyword),
                                              "提交信息无效")
                     return Response(result, status=200)
@@ -334,8 +336,7 @@ class WebHooksDeploy(AlowAnyApiView):
                     result = general_message(400, "can not get commit info", "提交信息获取失败")
                     return Response(result, status=400)
                 message = commits_info.get("message")
-                keyword = "@" + service_webhook.deploy_keyword
-                if service_webhook.deploy_keyword and keyword not in message:
+                if not commit_message_matches_deploy_keyword(service_webhook.deploy_keyword, message):
                     result = general_message(200, "commit message not include {0}".format(service_webhook.deploy_keyword),
                                              "提交信息无效")
                     return Response(result, status=200)
@@ -622,13 +623,15 @@ class CustomWebHooksDeploy(AlowAnyApiView):
         import base64
         import pickle
         secret_key = request.data.get("secret_key")
+        service_obj = TenantServiceInfo.objects.filter(service_id=service_id).first()
+        if not service_obj:
+            return Response(general_message(404, "component not found", "组件不存在"), status=404)
         # 加密
         deploy_key = deploy_repo.get_secret_key_by_service_id(service_id=service_id)
         deploy_key_decode = pickle.loads(base64.b64decode(ast.literal_eval(deploy_key))).get("secret_key")
         if secret_key != deploy_key_decode:
             result = general_message(400, "failed", "密钥错误")
             return Response(result, status=400)
-        service_obj = TenantServiceInfo.objects.get(service_id=service_id)
         tenant_obj = Tenants.objects.get(tenant_id=service_obj.tenant_id)
         status_map = app_service.get_service_status(tenant_obj, service_obj)
         user_obj = user_services.init_webhook_user(service_obj, "WebAPI")

@@ -42,110 +42,6 @@ class GrayReleaseService(object):
                 status_code=400
             )
 
-    def _delete_new_service_domains(self, team: Tenants, region_name: str,
-                                    new_service_ids: List[str]) -> None:
-        """
-        Delete domains (ApisixRoutes) automatically created for new services during gray release
-        删除灰度发布时为新服务自动创建的域名
-        """
-        try:
-            from www.apiclient.regionapi import RegionInvokeApi
-            from www.models.main import TenantServicesPort
-            from console.repositories.region_repo import region_repo
-
-            region_api = RegionInvokeApi()
-            region = region_repo.get_region_by_region_name(region_name)
-            if not region:
-                logger.error(f"[GrayRelease] Region not found: {region_name}")
-                return
-
-            logger.info(f"[GrayRelease] Checking for auto-created domains for {len(new_service_ids)} new services")
-
-            # 获取新服务对象
-            new_services = []
-            for service_id in new_service_ids:
-                service = TenantServiceInfo.objects.filter(
-                    tenant_id=team.tenant_id,
-                    service_id=service_id
-                ).first()
-                if service:
-                    new_services.append(service)
-
-            # 获取所有路由
-            try:
-                # NOTE: app_id=None fetches all routes (callee str typing is loose);
-                # response Optional deref guarded by enclosing try/except.
-                response = region_api.get_api_gateway(region, team, None)  # type: ignore[arg-type]  # 获取全部路由
-                routes = response.get("list", [])  # type: ignore[union-attr]
-                logger.info(f"[GrayRelease] Found {len(routes)} total routes")
-
-                # 查找新服务的路由
-                deleted_count = 0
-                for route in routes:
-                    backends = route.get("backends", [])
-                    route_name = route.get("name", "")
-
-                    # 检查是否是新服务的路由
-                    if len(backends) != 1:
-                        continue  # 跳过多 backend 的路由
-
-                    backend_service_name = backends[0].get("serviceName", "")
-                    if not backend_service_name:
-                        continue
-
-                    # 检查这个 backend 是否属于新服务
-                    for new_service in new_services:
-                        # 查找该服务的端口
-                        ports = TenantServicesPort.objects.filter(
-                            tenant_id=team.tenant_id,
-                            service_id=new_service.service_id,
-                            is_outer_service=True
-                        )
-
-                        for port in ports:
-                            if port.k8s_service_name == backend_service_name:
-                                # 找到了新服务的路由，删除它
-                                logger.info(f"[GrayRelease] Found auto-created route for new service {new_service.service_alias}: {route_name}")
-                                logger.info(f"[GrayRelease] Backend: {backend_service_name}")
-
-                                # 从 route_name 中提取 region_app_id (格式: region_app_id|actual_name|...)
-                                region_app_id = ""
-                                if "|" in route_name:
-                                    parts = route_name.split("|", 1)
-                                    if len(parts) >= 1:
-                                        region_app_id = parts[0]
-
-                                try:
-                                    logger.info(f"[GrayRelease] Deleting route: {route_name}")
-                                    # NOTE: callee region param typed str; RegionConfig
-                                    # passed here (region helpers accept either at runtime).
-                                    region_api.delete_gateway_http_route(
-                                        region,  # type: ignore[arg-type]
-                                        team.tenant_name,
-                                        team.namespace,
-                                        route_name,
-                                        region_app_id
-                                    )
-                                    deleted_count += 1
-                                    logger.info(f"[GrayRelease] Successfully deleted route: {route_name}")
-                                except Exception as e:
-                                    logger.error(f"[GrayRelease] Failed to delete route {route_name}: {e}")
-                                    import traceback
-                                    logger.error(f"[GrayRelease] Traceback: {traceback.format_exc()}")
-
-                logger.info(f"[GrayRelease] Deleted {deleted_count} auto-created routes")
-
-            except Exception as e:
-                import traceback
-                logger.error(f"[GrayRelease] Failed to get routes: {e}")
-                logger.error(f"[GrayRelease] Traceback: {traceback.format_exc()}")
-
-        except Exception as e:
-            import traceback
-            logger.error(f"[GrayRelease] Failed to delete new service domains: {e}")
-            logger.error(f"[GrayRelease] Traceback: {traceback.format_exc()}")
-            # 不抛出异常，因为这不是关键步骤
-
     def _update_apisix_route_weights(self, team: Tenants, region: RegionConfig,
                                      app: ServiceGroup, domain: dict,
                                      original_service: TenantServiceInfo,
@@ -267,87 +163,72 @@ class GrayReleaseService(object):
             logger.info(f"[GrayRelease] Updating route: {route_name}")
 
             # 使用 console API 更新域名权重
-            try:
-                from www.apiclient.regionapi import RegionInvokeApi
-                from console.repositories.region_app import region_app_repo
-                region_api = RegionInvokeApi()
+            logger.info(f"[GrayRelease] Updating route via console API")
+            logger.info(f"[GrayRelease] Route name: {route_name}")
 
-                logger.info(f"[GrayRelease] Updating route via console API")
-                logger.info(f"[GrayRelease] Route name: {route_name}")
+            # 获取 region_app_id (需要转换回内部 app_id)
+            # 从 domain 中获取，或者使用解析出的 region_app_id
 
-                # 获取 region_app_id (需要转换回内部 app_id)
-                # 从 domain 中获取，或者使用解析出的 region_app_id
+            # 构建更新请求体
+            # 需要包含完整的路由配置
+            match_config = domain.get("match", {})
+            update_body = {
+                "namespace": team.namespace,
+                "name": route_name,  # 使用从 original_name 解析出的路由名称
+                "app_id": region_app_id,  # 使用从 original_name 解析出的区域应用ID
+                "section_name": domain.get("section_name", "default"),
+                "gateway_name": domain.get("gateway_name", "default"),
+                "gateway_namespace": domain.get("gateway_namespace", "rbd-system"),
+                "hosts": match_config.get("hosts", []),  # 从 match 中提取 hosts
+                "rules": domain.get("rules", []),  # 路由规则
+                "backends": new_backends,  # 更新为加权的 backends
+                "plugins": domain.get("plugins", []),
+                "websocket": domain.get("websocket", False),
+                "authentication": domain.get("authentication", {})
+            }
 
-                # 构建更新请求体
-                # 需要包含完整的路由配置
-                match_config = domain.get("match", {})
-                update_body = {
-                    "namespace": team.namespace,
-                    "name": route_name,  # 使用从 original_name 解析出的路由名称
-                    "app_id": region_app_id,  # 使用从 original_name 解析出的区域应用ID
-                    "section_name": domain.get("section_name", "default"),
-                    "gateway_name": domain.get("gateway_name", "default"),
-                    "gateway_namespace": domain.get("gateway_namespace", "rbd-system"),
-                    "hosts": match_config.get("hosts", []),  # 从 match 中提取 hosts
-                    "rules": domain.get("rules", []),  # 路由规则
-                    "backends": new_backends,  # 更新为加权的 backends
-                    "plugins": domain.get("plugins", []),
-                    "websocket": domain.get("websocket", False),
-                    "authentication": domain.get("authentication", {})
-                }
+            logger.info(f"[GrayRelease] Update body: {update_body}")
+            logger.info(f"[GrayRelease] New backends: {new_backends}")
 
-                logger.info(f"[GrayRelease] Update body: {update_body}")
-                logger.info(f"[GrayRelease] New backends: {new_backends}")
+            # 调用 RegionAPI 更新路由 - 使用正确的 ApisixRoute 接口
+            # 构建请求路径 - 添加 appID 查询参数
+            path = (
+                f"/api-gateway/v1/{team.tenant_name}/routes/http"
+                f"?appID={app.app_id}&service_alias={original_service.service_alias}"
+                f"&port={route_sync_port}"
+            )
+            # 构建请求体 - 使用后端期望的格式
+            put_body = {
+                "name": route_name,
+                "app_id": region_app_id,
+                "namespace": team.namespace,
+                "section_name": domain.get("section_name", "default"),
+                "gateway_name": domain.get("gateway_name", "default"),
+                "gateway_namespace": domain.get("gateway_namespace", "rbd-system"),
+                "match": match_config,
+                "rules": domain.get("rules", []),
+                "backends": new_backends,
+                "plugins": domain.get("plugins", []),
+                "websocket": domain.get("websocket", False),
+                "authentication": domain.get("authentication", {})
+            }
 
-                # 调用 RegionAPI 更新路由 - 使用正确的 ApisixRoute 接口
-                # 构建请求路径 - 添加 appID 查询参数
-                path = (
-                    f"/api-gateway/v1/{team.tenant_name}/routes/http"
-                    f"?appID={app.app_id}&service_alias={original_service.service_alias}"
-                    f"&port={route_sync_port}"
-                )
-                # 构建请求体 - 使用后端期望的格式
-                put_body = {
-                    "name": route_name,
-                    "app_id": region_app_id,
-                    "namespace": team.namespace,
-                    "section_name": domain.get("section_name", "default"),
-                    "gateway_name": domain.get("gateway_name", "default"),
-                    "gateway_namespace": domain.get("gateway_namespace", "rbd-system"),
-                    "match": match_config,
-                    "rules": domain.get("rules", []),
-                    "backends": new_backends,
-                    "plugins": domain.get("plugins", []),
-                    "websocket": domain.get("websocket", False),
-                    "authentication": domain.get("authentication", {})
-                }
+            logger.info(f"[GrayRelease] Updating ApisixRoute via API: {path}")
+            logger.info(f"[GrayRelease] Request body: {put_body}")
 
-                logger.info(f"[GrayRelease] Updating ApisixRoute via API: {path}")
-                logger.info(f"[GrayRelease] Request body: {put_body}")
+            # 使用 api_gateway_post_proxy 方法调用后端 API (POST 方法)
+            result = region_api.api_gateway_post_proxy(
+                region,
+                team.tenant_name,
+                path,
+                put_body,
+                app.app_id,
+                service_alias=original_service.service_alias,
+                port=str(route_sync_port)
+            )
 
-                # 使用 api_gateway_post_proxy 方法调用后端 API (POST 方法)
-                result = region_api.api_gateway_post_proxy(
-                    region,
-                    team.tenant_name,
-                    path,
-                    put_body,
-                    app.app_id,
-                    service_alias=original_service.service_alias,
-                    port=str(route_sync_port)
-                )
-
-                logger.info(f"[GrayRelease] Successfully updated route via console API")
-                logger.info(f"[GrayRelease] Result: {result}")
-
-            except Exception as e:
-                import traceback
-                logger.error(f"[GrayRelease] Failed to update route via console API: {e}")
-                logger.error(f"[GrayRelease] Traceback: {traceback.format_exc()}")
-                logger.warning(f"[GrayRelease] Route update failed, please update manually")
-                logger.info(f"[GrayRelease] Manual update: Edit ApisixRoute {route_name} in namespace {team.namespace}")
-                logger.info(f"[GrayRelease] Set backends to: {new_backends}")
-                # 不抛出异常，允许继续执行
-                logger.warning(f"[GrayRelease] Continuing without automatic route update")
+            logger.info(f"[GrayRelease] Successfully updated route via console API")
+            logger.info(f"[GrayRelease] Result: {result}")
 
         except ServiceHandleException:
             raise
@@ -773,10 +654,6 @@ class GrayReleaseService(object):
             new_service_ids = [s.service_id for s in all_services if s.service_id not in existing_service_ids]
 
             logger.info(f"[GrayRelease] Installed {len(new_service_ids)} new services: {new_service_ids}")
-
-            # Step 2.5: Delete domains created for new services (since skip_create_domain doesn't always work)
-            logger.info("[GrayRelease] Checking and deleting auto-created domains for new services")
-            self._delete_new_service_domains(team, region_name, new_service_ids)
 
             # Step 3: Setup domain weights
             logger.info("Setting up domain weights for gray release")
@@ -1317,10 +1194,6 @@ class GrayReleaseService(object):
 
                 if gray_services:
                     logger.info(f"[GrayRollback] Found {len(gray_services)} services in gray upgrade group")
-
-                    # Delete auto-created domains first
-                    gray_service_ids = [svc.service_id for svc in gray_services]
-                    self._delete_new_service_domains(team, region_name, gray_service_ids)
 
                     # Batch delete services
                     for service in gray_services:

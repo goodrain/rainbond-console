@@ -11,6 +11,8 @@ except ImportError:  # pragma: no cover - Python 2 compatibility guard
 from console.services.telemetry_switch import (
     get_external_telemetry_enabled as is_external_telemetry_enabled,
 )
+from console.utils.database_errors import is_transient_database_error
+from console.utils.external_http_errors import get_external_http_url, is_retryable_external_http_error
 from console.utils.offline import is_external_telemetry_disabled, is_offline_mode
 
 
@@ -312,9 +314,102 @@ def get_path_pattern(value):
     return "/".join(result) + suffix
 
 
+def get_hint_exception(hint):
+    exc_info = (hint or {}).get("exc_info")
+    if not exc_info or len(exc_info) < 2:
+        return None, None
+    exception = exc_info[1]
+    exception_type = exception.__class__ if exception is not None else exc_info[0]
+    return exception_type, exception
+
+
+def is_expected_region_frequent_error(hint):
+    exception_type, _ = get_hint_exception(hint)
+    if exception_type is None:
+        return False
+    return (
+        getattr(exception_type, "__module__", "") == "www.apiclient.regionapibaseclient"
+        and getattr(exception_type, "__name__", "") == "CallApiFrequentError"
+    )
+
+
+def is_expected_not_found_error(hint):
+    exception_type, exception = get_hint_exception(hint)
+    if exception_type is None:
+        return False
+    module = getattr(exception_type, "__module__", "")
+    name = getattr(exception_type, "__name__", "")
+    if name == "Http404" and module.startswith("django.http"):
+        return True
+    if name == "ServiceHandleException" and module == "console.exception.main":
+        return str(getattr(exception, "status_code", "")) == "404"
+    if name == "CallApiError" and module == "www.apiclient.regionapibaseclient":
+        return str(getattr(exception, "status", "")) == "404"
+    return False
+
+
+def is_expected_config_conflict(hint):
+    exception_type, _ = get_hint_exception(hint)
+    if exception_type is None:
+        return False
+    return (
+        getattr(exception_type, "__module__", "") == "console.exception.exceptions"
+        and getattr(exception_type, "__name__", "") == "ConfigExistError"
+    )
+
+
+def is_transient_database_exception(hint):
+    exception_type, exception = get_hint_exception(hint)
+    if exception_type is None or exception is None:
+        return False
+    if getattr(exception_type, "__module__", "") != "django.db.utils":
+        return False
+    if getattr(exception_type, "__name__", "") != "OperationalError":
+        return False
+    return is_transient_database_error(exception)
+
+
+def get_region_upstream_server_error_path(hint):
+    exception_type, exception = get_hint_exception(hint)
+    if exception_type is None or exception is None:
+        return None
+    if getattr(exception_type, "__module__", "") != "www.apiclient.regionapibaseclient":
+        return None
+    if getattr(exception_type, "__name__", "") != "CallApiError":
+        return None
+    try:
+        status = int(getattr(exception, "status", 0) or 0)
+    except (TypeError, ValueError):
+        return None
+    if status < 500:
+        return None
+    return get_path_pattern(getattr(exception, "url", "")) or "unknown"
+
+
+def get_external_http_error_target(hint):
+    _, exception = get_hint_exception(hint)
+    if exception is None or not is_retryable_external_http_error(exception):
+        return None
+    parsed = urlparse(get_external_http_url(exception))
+    host = parsed.hostname or "unknown"
+    path = get_path_pattern(get_external_http_url(exception)) or "unknown"
+    return host, path
+
+
 def before_send(event, hint):
     if not is_external_telemetry_enabled():
         return None
+    if (is_expected_region_frequent_error(hint) or is_expected_not_found_error(hint)
+            or is_expected_config_conflict(hint)):
+        return None
+    if is_transient_database_exception(hint):
+        event["fingerprint"] = ["database-unavailable"]
+    region_upstream_path = get_region_upstream_server_error_path(hint)
+    if region_upstream_path:
+        event["fingerprint"] = ["region-upstream-error", region_upstream_path]
+    external_http_target = get_external_http_error_target(hint)
+    if external_http_target:
+        event["fingerprint"] = ["external-http-unavailable"] + list(external_http_target)
     event.pop("user", None)
     request = event.get("request")
     if request:

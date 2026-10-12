@@ -5,7 +5,7 @@
 import json
 import logging
 import re
-from typing import Any, Tuple
+from typing import Any, Tuple, cast
 
 from console.constants import DomainType
 from console.repositories.app import service_repo
@@ -138,7 +138,8 @@ class TenantCertificateView(RegionTenantHeaderView):
             certificate_type)  # type: ignore[arg-type]
         bean = {"alias": alias, "id": new_c.ID}
         result = general_message(200, "success", "操作成功", bean=bean)
-        new_information = certificate_operation_information(alias, certificate_type, certificate, private_key)
+        new_information = certificate_operation_information(
+            cast(str, alias), cast(str, certificate_type), cast(str, certificate), cast(str, private_key))
         comment = operation_log_service.generate_team_comment(
             operation=Operation.FOR,
             module_name=self.tenant.tenant_alias,  # type: ignore[arg-type]
@@ -252,7 +253,8 @@ class TenantCertificateManageView(RegionTenantHeaderView):
             self.region, self.tenant, certificate_id, new_alias, certificate,  # type: ignore[arg-type]
             private_key,  # type: ignore[arg-type]
             certificate_type)  # type: ignore[arg-type]
-        new_information = certificate_operation_information(cert.alias, cert.certificate_type, certificate, private_key)
+        new_information = certificate_operation_information(cert.alias, cert.certificate_type, cast(str, certificate),
+                                                            cast(str, private_key))
         result = general_message(200, "success", "证书修改成功")
         comment = operation_log_service.generate_team_comment(
             operation=Operation.UPDATE,
@@ -373,6 +375,10 @@ class ServiceDomainView(AppBaseView):
         protocol = request.data.get("protocol", None)
         certificate_id = request.data.get("certificate_id", None)
         rule_extensions = request.data.get("rule_extensions", None)
+        svc = port_repo.get_service_port_by_port(
+            self.tenant.tenant_id, self.service.service_id, container_port)  # type: ignore[arg-type]
+        if not svc:
+            return Response(general_message(400, "component port not found", "组件端口不存在"), status=400)
 
         # 判断策略是否存在
         service_domain = domain_repo.get_domain_by_name_and_port_and_protocol(
@@ -392,8 +398,6 @@ class ServiceDomainView(AppBaseView):
                 self.tenant, self.user, self.service, domain_name, container_port, protocol,  # type: ignore[arg-type]
                 certificate_id, DomainType.WWW, rule_extensions)  # type: ignore[arg-type]
         result = general_message(200, "success", "域名绑定成功")
-        svc = port_repo.get_service_port_by_port(
-            self.tenant.tenant_id, self.service.service_id, container_port)  # type: ignore[arg-type]
 
         region_api.api_gateway_bind_http_domain(self.service.service_alias, self.region, self.tenant.tenant_name,
                                                 [domain_name], svc, self.app.app_id)

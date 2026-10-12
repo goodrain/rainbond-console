@@ -148,6 +148,8 @@ for _module_name, _previous_module in _previous_modules.items():
         assert sys.modules[_module_name] is _previous_module
 
 
+# capability_id: console.deploy-diagnostics.v3
+# capability_id: console.cleanup.cloud-template-reference
 class PlatformPluginFirstDeployTrackingTests(TestCase):
     def test_install_platform_plugin_reports_first_deploy_tracking(self):
         market_plugins = [{
@@ -201,6 +203,9 @@ class PlatformPluginFirstDeployTrackingTests(TestCase):
 
         market_install_preflight_service.run.assert_called_once_with(
             tenant, region, dict(app_template, update_time=""), check_images=False)
+        market_app_service._create_tenant_service_group.assert_called_once_with(
+            "rainbond", "team-1", 1, "app-id", "1.0.0", "AI助手",
+            external_template=dict(app_template, update_time=""))
         first_deploy_service.safe_begin_deploy_tracking.assert_called_once()
         tracking_kwargs = first_deploy_service.safe_begin_deploy_tracking.call_args[1]
         self.assertEqual("eid", tracking_kwargs["enterprise_id"])

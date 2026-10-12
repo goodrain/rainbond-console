@@ -30,6 +30,7 @@ class RainSkillsDeploymentService(object):
     POLL_WINDOW_SECONDS = 20 * 60
     POLL_INTERVAL_SECONDS = 5
     SWEEPER_INTERVAL_SECONDS = 15
+    MAX_REPORT_WORKERS = 4
     MAX_RETENTION_SECONDS = 7 * 24 * 60 * 60
     MAX_IDS = 50
     MAX_FAILURE_REASON_LENGTH = 1024
@@ -238,6 +239,7 @@ class RainSkillsDeploymentService(object):
         self.thread_factory = thread_factory or threading.Thread
         self.report_url = self.DEFAULT_REPORT_URL
         self._running_keys: Set[str] = set()
+        self._sweep_offset = 0
         self._lock = threading.Lock()
         if start_sweeper is None:
             start_sweeper = os.getenv("DISABLE_RAINSKILLS_DEPLOY_SWEEPER",
@@ -424,7 +426,8 @@ class RainSkillsDeploymentService(object):
         if not key:
             return
         with self._lock:
-            if key in self._running_keys:
+            if key in self._running_keys or len(self._running_keys) >= self.MAX_REPORT_WORKERS:
+                # The durable tracker remains available to a later sweep.
                 return
             self._running_keys.add(key)
         try:
@@ -587,7 +590,14 @@ class RainSkillsDeploymentService(object):
         return False
 
     def sweep_once(self) -> None:
-        for record in list(self.repo.list_tracking_records()):
+        records = sorted(self.repo.list_tracking_records(), key=lambda record: record.key)
+        if not records:
+            return
+        with self._lock:
+            offset = self._sweep_offset % len(records)
+            self._sweep_offset = (offset + self.MAX_REPORT_WORKERS) % len(records)
+        # Failed external reports must not starve records later in the backlog.
+        for record in records[offset:] + records[:offset]:
             try:
                 payload = self.repo.load_payload(record)
                 if self._elapsed_seconds(payload.get(
@@ -621,6 +631,9 @@ class RainSkillsDeploymentService(object):
 
     def _post_report_payload(self, payload: dict) -> bool:
         report_payload = self._build_report_payload(payload)
+        # No transaction spans external reporting; reconnect only if a later
+        # operation needs the database, rather than holding a slot during retries.
+        connections.close_all()
         for attempt in range(3):
             try:
                 response = self.transport.post(self.report_url,

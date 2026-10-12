@@ -3,6 +3,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from django.conf import settings
+from django.db import OperationalError
 from django.test import SimpleTestCase, override_settings
 
 from console.exception.main import ServiceHandleException
@@ -192,6 +193,7 @@ class RainSkillsAuditServiceSafetyTests(SimpleTestCase):
         ])
         self.assertNotIn("secret-component", str(context))
 
+    # capability_id: console.rainskills-audit-strict-startup
     def test_confirmation_metadata_is_required_by_default(self):
         self.assertTrue(settings.RAINSKILLS_AUDIT_STRICT)
 
@@ -320,3 +322,33 @@ class RainSkillsAuditServiceSafetyTests(SimpleTestCase):
         self.assertEqual(failure_values["status"], "failed")
         self.assertEqual(failure_values["error_code"], "resource_conflict")
         self.assertNotIn("secret-value", failure_values["error_message"])
+
+    # capability_id: console.rainskills-audit.transient-terminal-lock-retry
+    @patch("console.services.rainskills_audit_service.time.sleep")
+    @patch("console.services.rainskills_audit_service.rainskills_audit_repo")
+    def test_terminal_persistence_retries_transient_database_locks(self, repo, sleep):
+        operation = SimpleNamespace(pk=1)
+        context = RainSkillsAuditContext(operation=operation)
+        repo.finalize_operation.side_effect = [
+            OperationalError("database is locked"),
+            operation,
+        ]
+
+        rainskills_audit_service.finalize_failure(context, RuntimeError("tool failed"))
+
+        self.assertEqual(repo.finalize_operation.call_count, 2)
+        sleep.assert_called_once_with(0.1)
+
+    @patch("console.services.rainskills_audit_service.logger.exception")
+    @patch("console.services.rainskills_audit_service.time.sleep")
+    @patch("console.services.rainskills_audit_service.rainskills_audit_repo")
+    def test_terminal_persistence_does_not_retry_other_database_errors(self, repo, sleep, log_exception):
+        operation = SimpleNamespace(pk=1)
+        context = RainSkillsAuditContext(operation=operation)
+        repo.finalize_operation.side_effect = OperationalError("database unavailable")
+
+        rainskills_audit_service.finalize_failure(context, RuntimeError("tool failed"))
+
+        repo.finalize_operation.assert_called_once()
+        sleep.assert_not_called()
+        log_exception.assert_called_once_with("RainSkills terminal failure audit persistence failed")

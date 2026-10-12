@@ -6,7 +6,7 @@ import traceback
 from typing import Any, List, Optional
 
 from addict import Dict
-from console.exception.exceptions import AuthenticationInfoHasExpiredError
+from console.exception.exceptions import AuthenticationInfoHasExpiredError, ConfigExistError
 from console.exception.main import (BusinessException, NoPermissionsError, ResourceNotEnoughException, ServiceHandleException,
                                     AbortRequest)
 from console.models.main import (EnterpriseUserPerm, OAuthServices, PermsInfo, RoleInfo, RolePerms, UserOAuthServices, UserRole,
@@ -21,9 +21,12 @@ from console.repositories.perm_repo import optimized_role_perm_repo
 # service
 from console.services.group_service import group_service
 from console.services.user_services import user_services
+from console.utils.database_errors import is_transient_database_error
+from console.utils.external_http_errors import is_retryable_external_http_error
 from console.utils import perms
 from console.utils.oauth.oauth_types import get_oauth_instance
 from django.core.exceptions import PermissionDenied
+from django.db import OperationalError
 from django.http import Http404
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy as trans
@@ -577,8 +580,42 @@ def custom_exception_handler(exc: Exception, context: Any) -> Optional[Response]
     if isinstance(exc, RegionApiBaseHttpClient.InvalidLicenseError):
         data = {"code": 10400, "msg": "invalid license", "msg_show": "license不正确或已过期"}
         return Response(data, status=401)
+    if isinstance(exc, OperationalError) and is_transient_database_error(exc):
+        logger.warning("transient database connection failure")
+        error = ServiceHandleException(
+            msg="database unavailable",
+            msg_show="数据库暂不可用，请稍后重试",
+            status_code=503,
+            error_code=503,
+            details={"retryable": True, "reason": "database_connection"},
+        )
+        response = error.response
+        response["Retry-After"] = "3"
+        return response
+    if isinstance(exc, ConfigExistError):
+        return ServiceHandleException(
+            msg="config already exists",
+            msg_show=str(exc),
+            status_code=409,
+            error_code=409,
+        ).response
+    if is_retryable_external_http_error(exc):
+        logger.warning("external HTTP service unavailable")
+        error = ServiceHandleException(
+            msg="external service unavailable",
+            msg_show="外部服务暂不可用，请稍后重试",
+            status_code=502,
+            error_code=502,
+            details={"retryable": True, "reason": "external_http"},
+        )
+        response = error.response
+        response["Retry-After"] = "3"
+        return response
     if isinstance(exc, ServiceHandleException):
-        return exc.response
+        response = exc.response
+        if exc.status_code == 503 and isinstance(exc.details, dict) and exc.details.get("retryable") is True:
+            response["Retry-After"] = "3"
+        return response
     elif isinstance(exc, ResourceNotEnoughException):
         data = {"code": 10406, "msg": "resource is not enough", "msg_show": exc.message}  # type: ignore[attr-defined]
         return Response(data, status=412)
@@ -586,8 +623,27 @@ def custom_exception_handler(exc: Exception, context: Any) -> Optional[Response]
         data = {"code": 409, "msg": "wait a moment please", "msg_show": "操作过于频繁，请稍后再试"}
         return Response(data, status=409)
     elif isinstance(exc, RegionApiBaseHttpClient.CallApiError):
-        if exc.message.get("httpcode") == 404:
+        try:
+            upstream_status = int(exc.message.get("httpcode") or 0)
+        except (TypeError, ValueError):
+            upstream_status = 0
+        if upstream_status == 404:
             data = {"code": 404, "msg": "region no found this resource", "msg_show": "数据中心资源不存在"}
+        elif upstream_status >= 500:
+            error = ServiceHandleException(
+                msg="region upstream error",
+                msg_show="数据中心服务异常，请稍后重试",
+                status_code=502,
+                error_code=502,
+                details={
+                    "retryable": True,
+                    "reason": "region_upstream_error",
+                    "upstream_status": upstream_status,
+                },
+            )
+            response = error.response
+            response["Retry-After"] = "3"
+            return response
         else:
             error_body = exc.message.get('body', {})
             if isinstance(error_body, dict) and error_body.get('msg'):

@@ -117,6 +117,8 @@ class RainbondCenterApp(BaseModel):
 class RainbondCenterAppVersion(BaseModel):
     """云市应用版本"""
 
+    cleanup_activation_revision = models.CharField(max_length=64, default="", blank=True)
+
     class Meta:
         db_table = "rainbond_center_app_version"
 

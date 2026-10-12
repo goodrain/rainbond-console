@@ -1,4 +1,5 @@
 # -*- coding: utf8 -*-
+import codecs
 import json
 import logging
 import os
@@ -20,7 +21,7 @@ from console.repositories.app_config import configuration_repo, domain_repo
 from www.apiclient.baseclient import client_auth_service
 from www.apiclient.exception import err_region_not_found
 from www.apiclient.region_types import AppStatus, PodDetail, TenantServices
-from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
+from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient, Configuration
 from www.models.main import TenantRegionInfo, Tenants, ServiceGroup
 from console.exception.bcode import ErrNamespaceExists
 from console.repositories.k8s_resources import k8s_resources_repo
@@ -41,6 +42,112 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         RegionApiBaseHttpClient.__init__(self, *args, **kwargs)
         self.default_headers: Dict[str, Any] = {'Connection': 'keep-alive', 'Content-Type': 'application/json'}
+
+    def cleanup_proxy_request(self, enterprise_id: str, region_name: str, path: str,
+                              body: bytes) -> Tuple[int, Dict[str, Any]]:
+        """Forward only fixed cleanup paths with server-owned credentials and verified TLS."""
+        from console.services.cleanup_core_bridge import allowed_core_path
+        if not allowed_core_path(path) or len(body) > 16384:
+            raise ServiceHandleException("invalid cleanup coordination request", status_code=400)
+        return self._cleanup_control_request(enterprise_id, region_name, path, body)
+
+    def cleanup_upload_inventory(self, enterprise_id: str, region_name: str,
+                                 event_ids: list[str]) -> Tuple[int, Dict[str, Any]]:
+        """Read chunks for server-selected owned events; not exposed by the generic plugin bridge."""
+        if (not isinstance(event_ids, list) or not 1 <= len(event_ids) <= 50
+                or any(not isinstance(value, str) or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_-]{0,63}', value)
+                       for value in event_ids) or len(set(event_ids)) != len(event_ids)):
+            raise ValueError('invalid upload event scope')
+        body = json.dumps({'event_ids': event_ids}).encode('utf-8')
+        return self._cleanup_control_request(enterprise_id, region_name, '/v2/cleanup/uploads/inventory', body)
+
+    def delete_cleanup_upload_chunks(self, enterprise_id: str, region_name: str,
+                                     command: Dict[str, Any]) -> Tuple[int, Dict[str, Any]]:
+        """Delete one server-owned upload session through the fixed internal path."""
+        required = {'operation_id', 'session_id', 'event_id', 'state_fingerprint', 'storage_fingerprint', 'idle_days'}
+        if not isinstance(command, dict) or set(command) != required:
+            raise ValueError('invalid upload deletion command')
+        if not isinstance(command['operation_id'], str) or not re.fullmatch(r'[A-Za-z0-9_-]{1,128}', command['operation_id']):
+            raise ValueError('invalid upload deletion operation')
+        for field in ('session_id', 'event_id'):
+            if not isinstance(command[field], str) or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_-]{0,63}', command[field]):
+                raise ValueError('invalid upload deletion identity')
+        for field in ('state_fingerprint', 'storage_fingerprint'):
+            if not isinstance(command[field], str) or not re.fullmatch(r'[a-f0-9]{64}', command[field]):
+                raise ValueError('invalid upload deletion fingerprint')
+        if type(command['idle_days']) is not int or not 1 <= command['idle_days'] <= 365:
+            raise ValueError('invalid upload deletion rule')
+        body = json.dumps(command).encode('utf-8')
+        return self._cleanup_control_request(enterprise_id, region_name, '/v2/cleanup/uploads/chunks/delete', body)
+
+    def inspect_cleanup_upload_chunks(self, enterprise_id: str, region_name: str,
+                                      command: Dict[str, Any]) -> Tuple[int, Dict[str, Any]]:
+        """Read one original upload deletion receipt through a fixed internal path."""
+        required = {'operation_id', 'session_id', 'event_id', 'state_fingerprint', 'storage_fingerprint'}
+        if not isinstance(command, dict) or set(command) != required:
+            raise ValueError('invalid upload inspection command')
+        if not isinstance(command['operation_id'], str) or not re.fullmatch(r'[A-Za-z0-9_-]{1,128}', command['operation_id']):
+            raise ValueError('invalid upload inspection operation')
+        for field in ('session_id', 'event_id'):
+            if not isinstance(command[field], str) or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_-]{0,63}', command[field]):
+                raise ValueError('invalid upload inspection identity')
+        for field in ('state_fingerprint', 'storage_fingerprint'):
+            if not isinstance(command[field], str) or not re.fullmatch(r'[a-f0-9]{64}', command[field]):
+                raise ValueError('invalid upload inspection fingerprint')
+        body = json.dumps(command).encode('utf-8')
+        return self._cleanup_control_request(enterprise_id, region_name, '/v2/cleanup/uploads/chunks/inspect', body)
+
+    def register_cleanup_console_writer(self, enterprise_id: str, region_name: str,
+                                        pod: str, pod_uid: str) -> Tuple[int, Dict[str, Any]]:
+        """Announce only this Console runtime; the plugin bridge cannot reach this path."""
+        if (not re.fullmatch(r'[a-z0-9][a-z0-9.-]{0,252}', pod)
+                or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.:-]{0,63}', pod_uid)):
+            raise ValueError('invalid Console runtime identity')
+        body = json.dumps({'pod': pod, 'pod_uid': pod_uid, 'protocol': 'registry-reference-v1'}).encode('utf-8')
+        return self._cleanup_control_request(enterprise_id, region_name, '/v2/cleanup/reference-writers/console', body)
+
+    def _cleanup_control_request(self, enterprise_id: str, region_name: str, path: str,
+                                 body: bytes) -> Tuple[int, Dict[str, Any]]:
+        from urllib.parse import urlsplit
+        client = None
+        response = None
+        try:
+            region = self.get_region_info(region_name=region_name)
+            endpoint, token = self.__get_region_access_info_by_enterprise_id(enterprise_id, region_name)
+            origin = urlsplit(endpoint)
+            if (not region or endpoint != region.url or origin.scheme != 'https' or not origin.hostname
+                    or origin.username or origin.password or origin.query or origin.fragment
+                    or origin.path not in ('', '/')):
+                raise ValueError()
+            config = Configuration(region)
+            config.verify_ssl = True
+            if not token and not (config.cert_file and config.key_file):
+                raise ValueError()
+            headers = {'Content-Type': 'application/json'}
+            if token:
+                headers['Authorization'] = token
+            client = self.create_client(config, pools_size=1, maxsize=1)
+            response = client.request('POST', endpoint.rstrip('/') + path, body=body,
+                                      headers=headers,
+                                      retries=False, redirect=False, preload_content=False,
+                                      timeout=urllib3.Timeout(connect=5, read=30))
+            limit = (32 << 20) + (64 << 10)
+            raw = response.read(limit + 1)
+            if len(raw) > limit or not 200 <= response.status <= 599:
+                raise ValueError()
+            result = json.loads(raw)
+            if not isinstance(result, dict):
+                raise ValueError()
+            return response.status, result
+        except Exception:
+            raise ServiceHandleException("cleanup coordination unavailable", status_code=503) from None
+        finally:
+            for resource, method in ((response, 'release_conn'), (client, 'clear')):
+                if resource is not None:
+                    try:
+                        getattr(resource, method)()
+                    except Exception:
+                        pass
 
     def make_proxy_http(self, region_service_info: dict) -> Any:
         proxy_info = region_service_info['proxy']
@@ -169,7 +276,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             })
 
     def __get_tenant_region_info(self, tenant_name: Any, region: str) -> Any:
-        if type(tenant_name) == Tenants:
+        if type(tenant_name) is Tenants:
             tenant_name = tenant_name.tenant_name
         tenants = Tenants.objects.filter(tenant_name=tenant_name)
         if tenants:
@@ -1631,7 +1738,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         # 根据团队名获取其归属的企业在指定数据中心的访问信息
         token = None
         if tenant_name:
-            if type(tenant_name) == Tenants:
+            if type(tenant_name) is Tenants:
                 tenant_name = tenant_name.tenant_name
             url, token = client_auth_service.get_region_access_token_by_tenant(tenant_name, region)
         # 如果团队所在企业所属数据中心信息不存在则使用通用的配置(兼容未申请数据中心token的企业)
@@ -2062,6 +2169,48 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         self._set_headers(token)
         res, body = self._get(url, self.default_headers, region=region)
         return body
+
+    def retire_service_build_version(self, region: str, tenant_name: str, service_alias: str, version_id: str,
+                                     expected: dict) -> Optional[Dict[str, Any]]:
+        """Protected record retirement. Never fall back to the legacy DELETE endpoint."""
+        url, token = self.__get_region_access_info(tenant_name, region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        url += "/v2/tenants/{}/services/{}/build-version/{}/retire".format(
+            tenant_region.region_tenant_name, service_alias, version_id)
+        self._set_headers(token)
+        _, response = self._post(url, self.default_headers, region=region, body=json.dumps(expected))
+        return response
+
+    def inspect_service_build_version(self, region: str, tenant_name: str, service_alias: str, version_id: str,
+                                      expected: dict) -> Optional[Dict[str, Any]]:
+        """Read the exact build-version retirement state without invoking retirement."""
+        url, token = self.__get_region_access_info(tenant_name, region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        url += "/v2/tenants/{}/services/{}/build-version/{}/retirement-status".format(
+            tenant_region.region_tenant_name, service_alias, version_id)
+        self._set_headers(token)
+        _, response = self._post(url, self.default_headers, region=region, body=json.dumps(expected))
+        return response
+
+    def cleanup_reference_operation(self, region: str, tenant_name: str, action: str, storage: str,
+                                    data: dict) -> Optional[Dict[str, Any]]:
+        """Call only the authenticated producer-coordination endpoints."""
+        identity = re.compile(r'^[A-Za-z0-9][A-Za-z0-9_.:-]{0,63}$')
+        if action == 'discover':
+            path = '/v2/cleanup/stores/discover'
+        elif action in ('acquire', 'finish') and identity.fullmatch(storage) and data.get('kind') == 'producer':
+            path = '/v2/cleanup/stores/{}/operations'.format(quote(storage, safe=''))
+            if action == 'finish':
+                operation = data.get('operation_id')
+                if not isinstance(operation, str) or not identity.fullmatch(operation):
+                    raise ValueError('invalid cleanup operation identity')
+                path += '/{}/finish'.format(quote(operation, safe=''))
+        else:
+            raise ValueError('invalid cleanup coordination action')
+        url, token = self.__get_region_access_info(tenant_name, region)
+        self._set_headers(token)
+        _, response = self._post(url + path, self.default_headers, region=region, body=json.dumps(data))
+        return response
 
     def delete_service_build_version(self, region: str, tenant_name: str, service_alias: str, version_id: str,
                                      body: dict) -> Optional[Dict[str, Any]]:
@@ -3388,12 +3537,12 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
                 if data.get("websocket") != "" and service_alias:
                     # 处理多个service_alias，用逗号分隔
                     service_aliases = [alias.strip() for alias in service_alias.split(',') if alias.strip()]
-                    
+
                     for single_service_alias in service_aliases:
                         svc = service_repo.get_service_by_service_alias(single_service_alias)
                         if not svc:
                             continue
-                            
+
                         domains = domain_repo.get_service_domain_by_container_port(svc.service_id, int(port))
                         if domains:
                             domain_name = data.get("name")
@@ -3617,8 +3766,20 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         )
 
         def event_stream() -> Any:
-            for chunk in resp.stream(4096):
-                yield str(chunk, encoding="utf-8")
+            decoder = codecs.getincrementaldecoder("utf-8")(errors="replace")
+            try:
+                try:
+                    for chunk in resp.stream(4096):
+                        text = decoder.decode(chunk)
+                        if text:
+                            yield text
+                except (urllib3.exceptions.ProtocolError, urllib3.exceptions.ReadTimeoutError) as error:
+                    logger.info("SSE upstream stream ended: %s", error)
+                remaining = decoder.decode(b"", final=True)
+                if remaining:
+                    yield remaining
+            finally:
+                resp.close()
 
         response = StreamingHttpResponse(event_stream(), content_type='text/event-stream')
         response['Content-Encoding'] = 'identity'
@@ -3931,7 +4092,6 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, body=json.dumps(cluster_data), region=region_name)
         return res, body
 
-
     def get_kubeblocks_cluster_detail(self, region_name: str, service_id: str) -> Tuple[Any, Optional[Dict[str, Any]]]:
         """
         获取 KubeBlocks 集群详情
@@ -3962,7 +4122,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
     def update_kubeblocks_backup_config(self, region_name: str, service_id: str,
                                         backup_config: dict) -> Tuple[Any, Optional[Dict[str, Any]]]:
         """
-        更新 KubeBlocks 集群的备份配置, 
+        更新 KubeBlocks 集群的备份配置,
         """
         region_info = self.get_region_info(region_name)
         if not region_info:
@@ -4009,12 +4169,12 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         self._set_headers(region_info.token)
         res, body = self._get(url, self.default_headers, region=region_name)
         return res, body
-        
+
     def delete_kubeblocks_backups(self, region_name: str, service_id: str,
                                   backups: Any) -> Tuple[Any, Optional[Dict[str, Any]]]:
         """
-        删除 KubeBlocks 集群的备份记录, 
-        backups 是需要删除的备份名称列表 
+        删除 KubeBlocks 集群的备份记录,
+        backups 是需要删除的备份名称列表
         """
         region_info = self.get_region_info(region_name)
         if not region_info:

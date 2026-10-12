@@ -356,17 +356,27 @@ class PackageCreateView(RegionTenantHeaderView):
               paramType: form
         """
         group_id = request.data.get("group_id", -1)
+        try:
+            if isinstance(group_id, bool):
+                raise ValueError
+            group_id = int(group_id)
+        except (TypeError, ValueError):
+            return Response(general_message(400, "invalid group id", "应用 ID 无效"), status=400)
+        if group_id <= 0:
+            return Response(general_message(400, "invalid group id", "应用 ID 无效"), status=400)
         region = request.data.get("region")
         event_id = request.data.get("event_id")
         service_cname = request.data.get("service_cname", None)
         k8s_component_name = request.data.get("k8s_component_name", "")
         arch = request.data.get("arch", "amd64")
-        if k8s_component_name and app_service.is_k8s_component_name_duplicate(group_id, k8s_component_name):
+        if k8s_component_name and app_service.is_k8s_component_name_duplicate(str(group_id), k8s_component_name):
             raise ErrK8sComponentNameExists
         try:
-            # NOTE: get_upload_record may return None; backlog
             pkg_record = package_upload_service.get_upload_record(self.team_name, region, event_id)  # type: ignore[arg-type]
-            pkg_create_time = pkg_record.create_time  # type: ignore[union-attr]
+            if not pkg_record:
+                result = general_message(404, "package upload record not found", "上传记录不存在")
+                return Response(result, status=result["code"])
+            pkg_create_time = pkg_record.create_time
             # 创建信息
             ts = app_service.create_package_upload_info(
                 region, self.tenant, self.user, service_cname, k8s_component_name,  # type: ignore[arg-type]
@@ -398,7 +408,10 @@ class PackageCreateView(RegionTenantHeaderView):
         region = request.data.get("region", "")
         try:
             pkg_record = package_upload_service.get_upload_record(self.team_name, region, event_id)  # type: ignore[arg-type]
-            pkg_create_time = pkg_record.create_time  # type: ignore[union-attr]
+            if not pkg_record:
+                result = general_message(404, "package upload record not found", "上传记录不存在")
+                return Response(result, status=result["code"])
+            pkg_create_time = pkg_record.create_time
             app_service.change_package_upload_info(service_id, event_id, pkg_create_time)  # type: ignore[arg-type]
             update_record = {
                 "status": "finished",
@@ -433,8 +446,12 @@ class PackageUploadRecordView(RegionTenantHeaderView):
         """
         region = request.GET.get("region", None)
         event_id = request.GET.get("event_id", None)
+        if not region:
+            return Response(general_message(400, "region is required", "集群不能为空"), status=400)
+        if not event_id:
+            return Response(general_message(400, "event_id is required", "上传事件 ID 不能为空"), status=400)
         try:
-            res, body = region_api.get_upload_file_dir(region, tenantName, event_id)  # type: ignore[arg-type]
+            res, body = region_api.get_upload_file_dir(region, tenantName, event_id)
             packages = body["bean"].get("packages", [])  # type: ignore[index]
             packages = packages if packages else []
             bean = dict()
@@ -548,11 +565,14 @@ class UploadRecordLastView(RegionTenantHeaderView):
         try:
             # NOTE: get_last_upload_record may return None; backlog
             records = package_upload_service.get_last_upload_record(tenantName, region, component_id)  # type: ignore[arg-type]
+            if not records:
+                result = general_message(200, "success", "暂无记录", bean={})
+                return Response(result, status=result["code"])
             bean = dict()
-            if records.source_dir != "":  # type: ignore[union-attr]
-                dir_list = eval(records.source_dir)  # type: ignore[union-attr,arg-type]
+            if records.source_dir != "":
+                dir_list = eval(records.source_dir)  # type: ignore[arg-type]
                 bean["source_dir"] = dir_list
-                bean["event_id"] = records.event_id  # type: ignore[union-attr]
+                bean["event_id"] = records.event_id
             result = general_message(200, "success", "操作成功", bean=bean)
             return Response(result, status=result["code"])
         except Exception as e:

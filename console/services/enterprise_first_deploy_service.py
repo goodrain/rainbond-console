@@ -14,7 +14,7 @@ import requests
 from console.models.main import ConsoleSysConfig
 from console.repositories.first_deploy_repo import enterprise_first_deploy_repo
 from console.utils.offline import is_offline_mode
-from django.db import transaction
+from django.db import close_old_connections, connections, transaction
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import TenantEnterprise
 
@@ -819,8 +819,10 @@ class EnterpriseFirstDeployService(object):
     def _resume_pending_trackers_loop(self) -> None:
         while True:
             try:
+                close_old_connections()
                 self._resume_pending_trackers_once()
             except Exception as e:
+                connections.close_all()
                 logger.exception("resume first deploy trackers failed: %s", e)
             time.sleep(self.RESUME_INTERVAL)
 
@@ -845,6 +847,7 @@ class EnterpriseFirstDeployService(object):
         try:
             deadline = time.time() + self.POLL_TIMEOUT
             while time.time() < deadline:
+                close_old_connections()
                 record = None
                 payload = self._load_memory_payload(key)
                 if payload is None:
@@ -857,6 +860,7 @@ class EnterpriseFirstDeployService(object):
                 try:
                     status = self._sync_record(record, payload, tenant_name, region_name, key=key)
                 except Exception as e:
+                    connections.close_all()
                     logger.exception("poll first deploy status failed: %s", e)
                     time.sleep(self.POLL_INTERVAL)
                     continue
@@ -864,6 +868,7 @@ class EnterpriseFirstDeployService(object):
                     return
                 time.sleep(self.POLL_INTERVAL)
 
+            close_old_connections()
             record = None
             payload = self._load_memory_payload(key)
             if payload is None:
@@ -879,6 +884,7 @@ class EnterpriseFirstDeployService(object):
                 self._set_stage_failure(payload, stage, stage_status=self.STAGE_STATUS_TIMEOUT)
                 self._complete_tracking(record, payload, self.STATUS_FAILURE, key=key)
         finally:
+            connections.close_all()
             with self._lock:
                 self._running_keys.discard(key)
 
@@ -1329,6 +1335,7 @@ class EnterpriseFirstDeployService(object):
 
     def _report_by_key(self, key: str) -> None:
         try:
+            close_old_connections()
             record = None
             payload = self._load_memory_payload(key)
             if payload is None:
@@ -1339,6 +1346,7 @@ class EnterpriseFirstDeployService(object):
                 return
             self._report_if_needed(record, payload, async_report=False, key=key)
         finally:
+            connections.close_all()
             with self._lock:
                 self._reporting_keys.discard(key)
 
@@ -1456,6 +1464,7 @@ class EnterpriseFirstDeployService(object):
 
     def _collect_environment_by_key(self, key: str, enterprise_id: str, region_name: str) -> None:
         try:
+            close_old_connections()
             payload = self._load_memory_payload(key)
             if payload is not None:
                 environment_context = self._collect_environment_context(enterprise_id, region_name)
@@ -1479,6 +1488,8 @@ class EnterpriseFirstDeployService(object):
             enterprise_first_deploy_repo.update_payload(record, payload)
         except Exception as exc:
             logger.debug("collect deployment diagnostic environment failed: %s", exc)
+        finally:
+            connections.close_all()
 
     def _collect_environment_context(self, enterprise_id: str, region_name: str) -> dict:
         context: Dict[str, Any] = {

@@ -1109,7 +1109,10 @@ class GroupService(object):
 
     @staticmethod
     def get_app_status(tenant: Tenants, region_name: str, app_id: str) -> Dict[str, Any]:
-        region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
+        try:
+            region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
+        except RegionApp.DoesNotExist:
+            return GroupService._add_component_status_to_app(tenant, region_name, app_id, {})
         region_status = region_api.get_app_status(region_name, tenant.tenant_name, region_app_id)
         # Copy the region AppStatus payload into a plain dict before reshaping it for the
         # response (status NIL -> None, overrides "k=v" -> [{k: v}]); guards a null payload.

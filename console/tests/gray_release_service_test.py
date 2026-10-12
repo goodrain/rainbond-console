@@ -19,6 +19,7 @@ import django  # noqa: E402
 
 django.setup()
 
+from console.exception.main import ServiceHandleException  # noqa: E402
 from console.services.gray_release_service import GrayReleaseService  # noqa: E402
 
 
@@ -77,3 +78,62 @@ class GrayReleaseRouteUpdateTests(TestCase):
         self.assertEqual(query.get("port"), ["80"])
         self.assertEqual(call[1]["service_alias"], "test")
         self.assertEqual(call[1]["port"], "80")
+
+    # capability_id: console.gray-release.route-update-errors-propagate
+    def test_update_apisix_route_weights_propagates_region_errors(self):
+        service = GrayReleaseService()
+        team = Obj(tenant_id="tenant-id", tenant_name="demo-team", namespace="demo-ns")
+        app = Obj(ID="internal-app-id", app_id="region-app-id")
+        domain = {
+            "name": "123test.rainbond.cnp-ps-s-testsvc",
+            "match": {
+                "hosts": ["test.rainbond.cn"],
+                "paths": ["/*"],
+            },
+            "rules": [],
+            "plugins": [],
+            "authentication": {},
+            "websocket": False,
+        }
+        original_service = Obj(service_id="origin-svc-id", service_alias="test", service_cname="test")
+        new_service = Obj(service_id="gray-svc-id", service_alias="test-2033", service_cname="test")
+        new_port = Obj(k8s_service_name="test-2033", container_port=8080)
+        original_route_port = Obj(k8s_service_name="test", container_port=8080)
+        port_filters = [
+            mock.Mock(first=mock.Mock(return_value=new_port)),
+            mock.Mock(first=mock.Mock(return_value=original_route_port)),
+        ]
+
+        with mock.patch("www.apiclient.regionapi.RegionInvokeApi") as region_api_class, \
+                mock.patch("www.models.main.TenantServicesPort.objects.filter", side_effect=port_filters) as port_filter:
+            route_update = region_api_class.return_value.api_gateway_post_proxy
+            route_update.side_effect = RuntimeError("route sync failed")
+
+            with self.assertRaises(ServiceHandleException) as raised:
+                service._update_apisix_route_weights(
+                    team,
+                    "demo-region",
+                    app,
+                    domain,
+                    original_service,
+                    new_service,
+                    50,
+                    50,
+                    False,
+                )
+
+        self.assertIn("route sync failed", raised.exception.msg)
+        route_update.assert_called_once()
+        self.assertEqual(port_filter.call_count, 2)
+        self.assertEqual(
+            port_filter.call_args_list,
+            [
+                mock.call(tenant_id="tenant-id", service_id="gray-svc-id", is_outer_service=True),
+                mock.call(
+                    tenant_id="tenant-id",
+                    service_id="origin-svc-id",
+                    is_outer_service=True,
+                    container_port=8080,
+                ),
+            ],
+        )

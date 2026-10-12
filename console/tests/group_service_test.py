@@ -356,6 +356,27 @@ class GroupServiceDeleteComponentFailureGuardTestCase(TestCase):
 
 
 class GroupServiceAppStatusAggregationTests(TestCase):
+    # capability_id: console.app-status.missing-region-app-fallback
+    def test_get_app_status_uses_component_fallback_when_region_app_mapping_is_missing(self):
+        tenant = Obj(tenant_name="demo-team", enterprise_id="eid-1")
+        fallback_status = {"status": "CLOSED"}
+
+        with mock.patch.object(
+                group_service_module.region_app_repo,
+                "get_region_app_id",
+                side_effect=group_service_module.RegionApp.DoesNotExist,
+        ), mock.patch.object(group_service_module.region_api, "get_app_status") as get_region_status, \
+                mock.patch.object(
+                    group_service_module.GroupService,
+                    "_add_component_status_to_app",
+                    return_value=fallback_status,
+                ) as add_component_status:
+            status = group_service.get_app_status(tenant, "demo-region", 42)
+
+        self.assertEqual(status, fallback_status)
+        add_component_status.assert_called_once_with(tenant, "demo-region", 42, {})
+        get_region_status.assert_not_called()
+
     # capability_id: console.app-status.aggregate-rainbond-components
     def test_get_app_status_uses_component_aggregation_for_rainbond_apps(self):
         tenant = Obj(tenant_name="demo-team", enterprise_id="eid-1")

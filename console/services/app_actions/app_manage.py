@@ -817,8 +817,8 @@ class AppManageService(AppManageBase):
                         continue
                     try:
                         git_url = instance.get_clone_url(service.git_url)
-                    except NoAccessKeyErr as e:
-                        logger.exception(e)
+                    except NoAccessKeyErr:
+                        logger.warning("OAuth access key unavailable; falling back to the configured repository URL")
                         git_url = service.git_url
                     source_code["repo_url"] = git_url
                 elif service_source and (service_source.user_name or service_source.password):
@@ -839,6 +839,10 @@ class AppManageService(AppManageBase):
                 try:
                     if service_source:
                         apps_template = template_apps
+                        template_update_time = (
+                            apps_template.get("update_time")
+                            if isinstance(apps_template, dict) else getattr(apps_template, "update_time", None)
+                        )
                         if not apps_template:
                             # NOTE: service_source.extend_info / group_key / version are Optional[str] on
                             # the model; they are non-null in practice for market sources. The deref/concat
@@ -848,8 +852,9 @@ class AppManageService(AppManageBase):
                             # install from cloud
                             install_from_cloud = service_source.is_install_from_cloud()
                             cache_key = service_source.group_key + service_source.version  # type: ignore[operator]
-                            if app_version_cache.get(cache_key):
-                                apps_template = app_version_cache.get(cache_key)
+                            cached_version = app_version_cache.get(cache_key)
+                            if cached_version:
+                                apps_template, template_update_time = cached_version
                             else:
                                 if install_from_cloud:
                                     # TODO:Skip the subcontract structure to avoid loop introduction
@@ -865,7 +870,8 @@ class AppManageService(AppManageBase):
                                         service_source.version)  # type: ignore[arg-type]
                                 if app_version:
                                     apps_template = json.loads(app_version.app_template)
-                                    app_version_cache[cache_key] = apps_template
+                                    template_update_time = app_version.update_time
+                                    app_version_cache[cache_key] = (apps_template, template_update_time)
                                 else:
                                     raise ServiceHandleException(msg="version can not found", msg_show="应用版本不存在，无法构建")
                         if not apps_template:
@@ -910,7 +916,10 @@ class AppManageService(AppManageBase):
                                         = template_app.get("service_share_uuid") \
                                         if template_app.get("service_share_uuid", None) \
                                         else template_app.get("service_key", "")
-                                    new_extend_info["update_time"] = apps_template.update_time.strftime('%Y-%m-%d %H:%M:%S')
+                                    new_extend_info["update_time"] = (
+                                        template_update_time.strftime('%Y-%m-%d %H:%M:%S')
+                                        if isinstance(template_update_time, datetime.datetime) else template_update_time
+                                    )
                                     if install_from_cloud:
                                         new_extend_info["install_from_cloud"] = True
                                         new_extend_info["market"] = "default"
@@ -1048,11 +1057,27 @@ class AppManageService(AppManageBase):
 
     def get_app_by_service(self, service: TenantServiceInfo) -> Optional[ServiceGroup]:
         relation = group_service_relation_repo.get_group_by_service_id(service.service_id)
-        # NOTE: get_group_by_service_id may return None (potential latent None-bug: a service
-        # with no group relation would raise AttributeError here); preserved as-is. group_id is
-        # an IntegerField (int) used as a str id by GroupRepository.
-        group = group_repo.get_group_by_id(relation.group_id)  # type: ignore[union-attr, arg-type]
-        return group
+        if relation is None:
+            return None
+        return group_repo.get_group_by_id(relation.group_id)  # type: ignore[arg-type]
+
+    @staticmethod
+    def _build_delete_record_data(service: TenantServiceInfo,
+                                  app: Optional[ServiceGroup] = None,
+                                  user: Any = None) -> dict:
+        data: dict = {}
+        if service.create_status == "complete":
+            data = service.toJSON()
+            for field in (
+                    "ID", "service_name", "build_upgrade", "oauth_service_id", "is_upgrate", "secret",
+                    "open_webhooks", "server_type", "git_full_name", "arch", "build_strategy"):
+                data.pop(field, None)
+        if app:
+            data["app_name"] = app.group_name
+            data["app_id"] = app.ID
+        if user:
+            data["exec_user"] = user.nick_name
+        return data
 
     def delete_components(self, tenant: Tenants, components: Any, user: Any = None) -> None:
         # Batch delete considers that the preconditions have been met,
@@ -1075,25 +1100,7 @@ class AppManageService(AppManageBase):
 
     def _truncate_service(self, tenant: Tenants, service: TenantServiceInfo, user: Any = None,
                           app: Optional[ServiceGroup] = None) -> None:
-        data: dict = {}
-        if service.create_status == "complete":
-            data = service.toJSON()
-            data.pop("ID")
-            data.pop("service_name")
-            data.pop("build_upgrade")
-            data.pop("oauth_service_id")
-            data.pop("is_upgrate")
-            data.pop("secret")
-            data.pop("open_webhooks")
-            data.pop("server_type")
-            data.pop("git_full_name")
-            data.pop("arch")
-            data.pop("build_strategy")
-        if app:
-            data["app_name"] = app.group_name
-            data["app_id"] = app.ID
-        if user:
-            data["exec_user"] = user.nick_name
+        data = self._build_delete_record_data(service, app, user)
         try:
             _create_delete_service_with_retry(data)
         except Exception as e:
@@ -1410,13 +1417,12 @@ class AppManageService(AppManageBase):
                               app: Optional[ServiceGroup] = None) -> bool:
         """组件真实删除方法，调用端必须进行事务控制"""
         ignore_delete_from_cluster = not_delete_from_cluster
-        data: dict = {}
         if not not_delete_from_cluster:
             try:
-                data["etcd_keys"] = self.get_etcd_keys(tenant, service)
+                region_delete_data = {"etcd_keys": self.get_etcd_keys(tenant, service)}
                 # NOTE: tenant.enterprise_id is Optional[str] on the model but non-null in practice.
                 region_api.delete_service(service.service_region, tenant.tenant_name, service.service_alias,
-                                          tenant.enterprise_id, data)  # type: ignore[arg-type]
+                                          tenant.enterprise_id, region_delete_data)  # type: ignore[arg-type]
             except region_api.CallApiError as e:
                 if (not ignore_cluster_result) and int(e.status) != 404:
                     logger.error("delete component form cluster failure {}".format(e.body))
@@ -1427,24 +1433,7 @@ class AppManageService(AppManageBase):
                     raise ServiceHandleException(msg="delete component from cluster failure", msg_show="组件从集群删除失败")
                 else:
                     ignore_delete_from_cluster = True
-        if service.create_status == "complete":
-            data = service.toJSON()
-            data.pop("ID")
-            data.pop("service_name")
-            data.pop("build_upgrade")
-            data.pop("oauth_service_id")
-            data.pop("is_upgrate")
-            data.pop("secret")
-            data.pop("open_webhooks")
-            data.pop("server_type")
-            data.pop("git_full_name")
-            data.pop("arch")
-            data.pop("build_strategy")
-        if app:
-            data["app_name"] = app.group_name
-            data["app_id"] = app.ID
-        if user:
-            data["exec_user"] = user.nick_name
+        data = self._build_delete_record_data(service, app, user)
         try:
             _create_delete_service_with_retry(data)
         except Exception as e:

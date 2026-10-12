@@ -202,13 +202,13 @@ class RegionMonitor(AlowAnyApiView):
 
 
 class QyeryRegionView(JWTAuthApiView):
-    def get(self, request: Request, enterprise_id: str, *args: Any, **kwargs: Any) -> Response:
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         获取当前可用全部数据中心
         ---
 
         """
-        regions = region_services.get_open_regions(enterprise_id)
+        regions = region_services.get_open_regions(self.user.enterprise_id)  # type: ignore[arg-type]
         result = general_message(200, 'query success', '数据中心获取成功', list=[r.to_dict() for r in regions])
         return Response(result, status=200)
 

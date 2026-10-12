@@ -47,7 +47,8 @@ class ConfigService(object):
                 config_type = "string"
                 if isinstance(value, (dict, list)):
                     config_type = "json"
-                rst_key = self.add_config(key=key, default_value=value, type=config_type, enable=enable, desc=desc)
+                rst_key = self._add_config_or_get_existing(
+                    key=key, default_value=value, type=config_type, enable=enable, desc=desc)
                 configs_by_key[key] = rst_key
 
                 value = rst_key.value
@@ -72,7 +73,8 @@ class ConfigService(object):
                 config_type = "string"
                 if isinstance(value, (dict, list)):
                     config_type = "json"
-                rst_key = self.add_config(key=key, default_value=value, type=config_type, enable=enable, desc=desc)
+                rst_key = self._add_config_or_get_existing(
+                    key=key, default_value=value, type=config_type, enable=enable, desc=desc)
                 configs_by_key[key] = rst_key
 
                 value = rst_key.value
@@ -102,6 +104,16 @@ class ConfigService(object):
 
         return rst_datas
 
+    def _add_config_or_get_existing(self, key: str, default_value: Any, type: str, enable: bool,
+                                    desc: str) -> ConsoleSysConfig:
+        try:
+            return self.add_config(key=key, default_value=default_value, type=type, enable=enable, desc=desc)
+        except ConfigExistError:
+            config = self.get_config_by_key(key)
+            if config is None:
+                raise
+            return config
+
     def update_config(self, key: str, value: dict) -> Dict[str, Any]:
         return self.update_config_by_key(key, value)
 
@@ -110,6 +122,9 @@ class ConfigService(object):
 
     def add_config(self, key: str, default_value: Any, type: str, enable: bool = True,
                    desc: str = "") -> ConsoleSysConfig:
+        if ConsoleSysConfig.objects.filter(key=key).exists():
+            raise ConfigExistError("配置{}已存在".format(key))
+
         create_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         try:
             config = ConsoleSysConfig.objects.create(
@@ -121,7 +136,10 @@ class ConfigService(object):
                 enable=enable,
                 enterprise_id=self.enterprise_id)
         except IntegrityError as exc:
-            raise ConfigExistError("配置{}已存在".format(key)) from exc
+            try:
+                return ConsoleSysConfig.objects.get(key=key)
+            except ConsoleSysConfig.DoesNotExist:
+                raise exc
         custom_settings.reload()
         return config
 

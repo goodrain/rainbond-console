@@ -59,6 +59,10 @@ function init_database() {
     echo -e "${RED}ERROR: failed to migrate${NC}"
     exit 1
   fi
+  if ! python manage.py verify_required_schema; then
+    echo -e "${RED}ERROR: required database schema is incomplete${NC}"
+    exit 1
+  fi
   echo -e "${GREEN}INFO: Database initialization completed${NC}"
 }
 
@@ -88,5 +92,5 @@ else
     init_database
   fi
   # python upgrade.py
-  exec gunicorn goodrain_web.wsgi -b 0.0.0.0:${PORT:-7070} --max-requests=${MAX_REQUESTS:-5000} -k geventwebsocket.gunicorn.workers.GeventWebSocketWorker --workers=${WORKERS:-4} --timeout=75 --log-file - --access-logfile - --error-logfile -
+  exec gunicorn goodrain_web.wsgi -b 0.0.0.0:${PORT:-7070} --max-requests=${MAX_REQUESTS:-5000} -k geventwebsocket.gunicorn.workers.GeventWebSocketWorker --workers=${WORKERS:-4} --timeout=${GUNICORN_TIMEOUT:-3700} --log-file - --access-logfile - --error-logfile -
 fi

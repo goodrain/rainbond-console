@@ -779,7 +779,7 @@ class PlatformPluginService(object):
         # 7. Create component group and install
         component_group = market_app_service._create_tenant_service_group(
             region_name, tenant.tenant_id, app.ID, market_app.app_id,  # type: ignore[union-attr, arg-type]  # NOTE: app is Optional[ServiceGroup]; _ensure_plugin_app only returns None when get_group_by_id returns None (pk lookup, should not happen post-create); app.ID is int but _create_tenant_service_group expects str (pre-existing callers pass int)
-            latest_version, market_app.app_name)
+            latest_version, market_app.app_name, external_template=app_template)
 
         app_upgrade = AppUpgrade(
             enterprise_id, tenant, region, user, app,  # type: ignore[arg-type]  # NOTE: app is Optional[ServiceGroup]; see above

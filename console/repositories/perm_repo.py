@@ -47,11 +47,13 @@ class PermsRepo(object):
         all_perms_list.sort(key=lambda perm: perm[2])
         has_perms_list.sort(key=lambda perm: perm[2])
         if all_perms_list != has_perms_list:
-            has_perms.delete()
-            perms_list = []
+            permission_codes = []
             for perm in all_perms_list:
-                perms_list.append(PermsInfo(name=perm[0], desc=perm[1], code=perm[2], group=perm[3], kind=perm[4]))
-            PermsInfo.objects.bulk_create(perms_list)
+                permission_codes.append(perm[2])
+                PermsInfo.objects.update_or_create(
+                    code=perm[2],
+                    defaults={"name": perm[0], "desc": perm[1], "group": perm[3], "kind": perm[4]})
+            PermsInfo.objects.exclude(code__in=permission_codes).delete()
 
     def get_all_perms(self) -> QuerySet:
         perms = PermsInfo.objects.all()

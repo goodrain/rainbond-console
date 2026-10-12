@@ -48,7 +48,7 @@ from console.enum.component_enum import ComponentType, is_support  # noqa: E402
 from console.services.app_actions import app_manage as app_manage_module  # noqa: E402
 from console.services import helm_app_yaml as helm_app_yaml_module  # noqa: E402
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient  # noqa: E402
-from www.models.main import TenantServiceInfo, VirtualMachineImage  # noqa: E402
+from www.models.main import TenantServiceInfo, TenantServiceInfoDelete, VirtualMachineImage  # noqa: E402
 
 
 class ComponentDaemonSetSupportTests(TestCase):
@@ -169,6 +169,94 @@ class AppManageMarketBuildPreferenceTests(TestCase):
         self.assertEqual(build_info["image_info"]["password"], "hub-password")
         self.assertNotIn("slug_info", build_info)
 
+    # capability_id: console.market-build.template-update-time
+    def test_deploy_market_component_uses_version_update_time_after_loading_template_json(self):
+        tenant = mock.Mock(creater="creator", enterprise_id="eid", tenant_id="tenant-id")
+        user = mock.Mock(user_id=7)
+        service = mock.Mock(
+            service_id="service-1",
+            build_upgrade=False,
+            language=None,
+            tenant_id="tenant-id",
+            arch="amd64",
+            service_source="market",
+            cmd="python app.py",
+            image="goodrain.me/runner:latest-amd64",
+        )
+        service_two = mock.Mock(
+            service_id="service-2",
+            build_upgrade=False,
+            language=None,
+            tenant_id="tenant-id",
+            arch="amd64",
+            service_source="market",
+            cmd="python app.py",
+            image="goodrain.me/runner:latest-amd64",
+        )
+
+        def service_source():
+            source = mock.Mock(
+                extend_info=json.dumps({
+                    "source_service_share_uuid": "svc-1+svc-1",
+                    "source_deploy_version": "old-deploy-version",
+                }),
+                group_key="app-key",
+                version="1.0.0",
+            )
+            source.is_install_from_cloud.return_value = False
+            return source
+
+        service_sources = [service_source(), service_source()]
+        template = {
+            "apps": [{
+                "service_share_uuid": "svc-1+svc-1",
+                "service_key": "svc-1",
+                "share_image": "registry.example.com/demo/web:1.2.3",
+                "deploy_version": "new-deploy-version",
+                "service_image": {},
+                "service_env_map_list": [],
+                "service_connect_info_map_list": [],
+                "service_volume_map_list": [],
+                "port_map_list": [],
+                "extend_method_map": {},
+            }],
+        }
+        version_update_time = datetime(2026, 10, 6, 7, 25, 0)
+        app_version = mock.Mock(app_template=json.dumps(template), update_time=version_update_time)
+        service_manage = app_manage_module.AppManageService()
+
+        with mock.patch.object(app_manage_module, "check_account_quota", return_value=True), \
+                mock.patch.object(app_manage_module.env_var_repo, "get_build_envs", return_value={}), \
+                mock.patch.object(
+                    app_manage_module.service_source_repo,
+                    "get_service_source",
+                    side_effect=service_sources,
+                ), \
+                mock.patch.object(
+                    app_manage_module.rainbond_app_repo,
+                    "get_rainbond_app_and_version",
+                    return_value=(mock.Mock(), app_version),
+                ) as get_app_version, mock.patch.object(
+                    service_manage,
+                    "_AppManageService__save_env",
+                    return_value=(200, "success"),
+                ), \
+                mock.patch.object(service_manage, "_AppManageService__save_volume"), \
+                mock.patch.object(service_manage, "_AppManageService__save_port", return_value=(200, "success")), \
+                mock.patch.object(service_manage, "_AppManageService__save_extend_info"), \
+                mock.patch.object(app_manage_module.logger, "exception") as log_exception:
+            code, _ = service_manage.deploy_services_info(
+                {}, [service, service_two], tenant, user, None, region_name="demo-region")
+
+        self.assertEqual(code, 200)
+        log_exception.assert_not_called()
+        for source in service_sources:
+            saved_extend_info = json.loads(source.extend_info)
+            self.assertEqual(saved_extend_info["update_time"], "2026-10-06 07:25:00")
+            self.assertEqual(saved_extend_info["source_deploy_version"], "new-deploy-version")
+            source.save.assert_called_once_with()
+        get_app_version.assert_called_once_with("eid", "app-key", "1.0.0")
+
 
 class AppManageStartErrorTests(TestCase):
     def test_start_returns_region_error_reason_instead_of_generic_component_error(self):
@@ -284,6 +372,50 @@ class AppManageStartErrorTests(TestCase):
 
 
 class AppManageBatchActionDeployEventTests(DjangoTestCase):
+
+    # capability_id: console.oauth.missing-access-key-fallback
+    def test_deploy_info_falls_back_without_error_log_when_oauth_access_key_is_missing(self):
+        tenant = mock.Mock(tenant_id="tenant-id", enterprise_id="enterprise-id", creater="creator")
+        user = mock.Mock(user_id=1)
+        service = mock.Mock(
+            service_id="service-1",
+            service_alias="grsvc1",
+            service_cname="api",
+            service_source="source_code",
+            create_status="complete",
+            build_upgrade=False,
+            language="python",
+            build_strategy="dockerfile",
+            git_url="https://git.example.com/demo/api.git",
+            code_version="main",
+            arch="amd64",
+            oauth_service_id=7,
+        )
+        oauth_service = mock.Mock(oauth_type="gitea")
+        oauth_instance = mock.Mock()
+        oauth_instance.is_git_oauth.return_value = True
+        oauth_instance.get_clone_url.side_effect = app_manage_module.NoAccessKeyErr("expired")
+
+        with mock.patch.object(app_manage_module, "check_account_quota", return_value=True), \
+                mock.patch.object(app_manage_module.env_var_repo, "get_build_envs", return_value=[]), \
+                mock.patch.object(
+                    app_manage_module.AppManageService,
+                    "_AppManageService__get_service_kind",
+                    return_value="build_from_source_code",
+                ), mock.patch.object(app_manage_module, "compose_source_code_info", return_value={}), \
+                mock.patch.object(app_manage_module.service_source_repo, "get_service_source", return_value=None), \
+                mock.patch.object(app_manage_module.oauth_repo, "get_oauth_services_by_service_id", return_value=oauth_service), \
+                mock.patch.object(app_manage_module.oauth_user_repo, "get_user_oauth_by_user_id", return_value=mock.Mock()), \
+                mock.patch.object(app_manage_module, "get_oauth_instance", return_value=oauth_instance), \
+                mock.patch.object(app_manage_module.logger, "exception") as log_exception, \
+                mock.patch.object(app_manage_module.logger, "warning") as log_warning:
+            code, body = app_manage_module.AppManageService().deploy_services_info(
+                {}, [service], tenant, user, None, region_name="region-a")
+
+        self.assertEqual(code, 200)
+        self.assertEqual(body["build_infos"][0]["code_info"]["repo_url"], service.git_url)
+        log_exception.assert_not_called()
+        log_warning.assert_called_once()
 
     def test_batch_action_keeps_return_contract_and_records_deploy_event_on_service(self):
         tenant = mock.Mock()
@@ -493,3 +625,59 @@ class AppManageIncompleteVMCleanupTests(DjangoTestCase):
 
         self.assertNotIn("build_strategy", captured_data)
         self.assertEqual(captured_data.get("inner_port", 0), 0)
+
+
+class AppManageDeleteRecordIdempotencyTests(DjangoTestCase):
+    # capability_id: console.component-delete.missing-app-relation
+    def test_get_app_by_service_returns_none_when_group_relation_is_missing(self):
+        service = mock.Mock(service_id="service-without-app")
+
+        with mock.patch.object(
+                app_manage_module.group_service_relation_repo,
+                "get_group_by_service_id",
+                return_value=None,
+        ), mock.patch.object(app_manage_module.group_repo, "get_group_by_id") as get_group:
+            app = app_manage_module.AppManageService().get_app_by_service(service)
+
+        self.assertIsNone(app)
+        get_group.assert_not_called()
+
+    # capability_id: console.component-delete.region-payload-isolation
+    def test_delete_record_payload_excludes_region_only_fields_for_incomplete_service(self):
+        service = mock.Mock(create_status="creating")
+        user = mock.Mock(nick_name="operator")
+
+        data = app_manage_module.AppManageService()._build_delete_record_data(
+            service, app=None, user=user)
+
+        self.assertEqual(data, {"exec_user": "operator"})
+        self.assertNotIn("etcd_keys", data)
+
+    # capability_id: console.component-delete.idempotent-record
+    def test_create_delete_service_updates_existing_record_for_repeated_delete(self):
+        data = {
+            "service_id": "service-delete-1",
+            "tenant_id": "tenant-a",
+            "service_key": "service-delete-1",
+            "service_alias": "service-delete-1",
+            "service_cname": "old name",
+            "service_region": "demo-region",
+            "category": "application",
+            "version": "v1",
+            "image": "nginx:1",
+        }
+        first = app_manage_module.delete_service_repo.create_delete_service(**data)
+
+        second = app_manage_module.delete_service_repo.create_delete_service(
+            **dict(data, service_cname="new name", version="v2", image="nginx:2")
+        )
+
+        self.assertEqual(first.ID, second.ID)
+        self.assertEqual(
+            TenantServiceInfoDelete.objects.filter(service_id="service-delete-1").count(),
+            1,
+        )
+        second.refresh_from_db()
+        self.assertEqual(second.service_cname, "new name")
+        self.assertEqual(second.version, "v2")
+        self.assertEqual(second.image, "nginx:2")

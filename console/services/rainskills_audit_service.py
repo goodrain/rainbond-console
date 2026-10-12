@@ -3,11 +3,13 @@ import hashlib
 import json
 import logging
 import re
+import time
 import uuid
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
 from django.conf import settings
+from django.db import OperationalError
 
 from console.exception.main import ServiceHandleException
 from console.repositories.app import service_repo
@@ -47,6 +49,8 @@ _MAX_INPUT_JSON_BYTES = 32 * 1024
 _MAX_VALUE_TEXT_LENGTH = 512
 _MAX_SUMMARY_LENGTH = 4096
 _MAX_TARGETS = 100
+_TERMINAL_DB_LOCK_MAX_RETRIES = 3
+_TERMINAL_DB_LOCK_RETRY_DELAY = 0.1
 
 
 def _audit_metric(name: str, value: int = 1, **labels: Any) -> None:
@@ -227,6 +231,23 @@ def _audit_unavailable(exc: Exception) -> ServiceHandleException:
     )
 
 
+def _finalize_operation_with_retry(operation: Any, **values: Any) -> Any:
+    for attempt in range(_TERMINAL_DB_LOCK_MAX_RETRIES):
+        try:
+            return rainskills_audit_repo.finalize_operation(operation, **values)
+        except OperationalError as exc:
+            if "database is locked" not in str(exc) or attempt == _TERMINAL_DB_LOCK_MAX_RETRIES - 1:
+                raise
+            delay = _TERMINAL_DB_LOCK_RETRY_DELAY * (attempt + 1)
+            logger.warning(
+                "RainSkills terminal audit database locked; retrying in %.1fs (%d/%d)",
+                delay,
+                attempt + 1,
+                _TERMINAL_DB_LOCK_MAX_RETRIES,
+            )
+            time.sleep(delay)
+
+
 class RainSkillsAuditService(object):
 
     def begin(self, user: Any, tool_name: str, arguments: Dict[str, Any],
@@ -324,7 +345,7 @@ class RainSkillsAuditService(object):
         if context is None:
             return
         try:
-            rainskills_audit_repo.finalize_operation(
+            _finalize_operation_with_retry(
                 context.operation,
                 status="succeeded",
                 output_summary=_safe_summary(result),
@@ -341,7 +362,7 @@ class RainSkillsAuditService(object):
         error_code = getattr(exc, "error_code", None) or exc.__class__.__name__.lower()
         reason = getattr(exc, "msg_show", None) or str(exc) or exc.__class__.__name__
         try:
-            rainskills_audit_repo.finalize_operation(
+            _finalize_operation_with_retry(
                 context.operation,
                 status="failed",
                 error_code=str(error_code)[:64],

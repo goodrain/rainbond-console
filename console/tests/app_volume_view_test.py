@@ -215,3 +215,17 @@ class AppVolumeManageViewTestCase(TestCase):
         self.assertEqual(response.data["msg"], "StorageClass fast does not allow volume expansion")
         self.assertEqual(response.data["msg_show"], "StorageClass fast does not allow volume expansion")
         volume.save.assert_not_called()
+
+    # capability_id: console.component.storage-delete-missing-volume
+    def test_delete_returns_not_found_for_stale_volume(self):
+        request = self.factory.delete("/console/teams/demo-team/apps/demo-service/volumes/404")
+
+        with mock.patch(
+                "console.views.app_config.app_volume.volume_repo.get_service_volume_by_pk", return_value=None), \
+                mock.patch(
+                    "console.views.app_config.app_volume.volume_service.delete_service_volume_by_id") as delete_volume:
+            response = self.view.delete(request, volume_id="404")
+
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.data["msg"], "volume not found")
+        delete_volume.assert_not_called()

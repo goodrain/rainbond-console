@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import json
 import os
 import sys
 import typing
@@ -164,6 +165,55 @@ install_stub("console.views.base",
 
 # capability_id: console.deploy-diagnostics.v3
 class AppBuildFirstDeployTrackingTests(TestCase):
+    # capability_id: console.component-build.serializable-failure-response
+    def test_app_build_serializes_unexpected_deploy_error_message(self):
+        from console.views.app_create.app_build import AppBuild
+
+        view = AppBuild()
+        view.tenant = Obj(tenant_name="demo-team", enterprise_id="eid-1")
+        view.user = Obj(nick_name="tester", enterprise_id="eid-1")
+        view.region = Obj(region_name="rainbond")
+        view.oauth_instance = None
+        view.app = Obj(ID=12, group_name="demo-app")
+        view.service = Obj(
+            service_id="draft-service",
+            service_alias="draft-alias",
+            service_region="rainbond",
+            service_source="source_code",
+            language="Java",
+            arch="amd64",
+            service_cname="demo",
+        )
+        built_service = Obj(
+            service_id="service-1",
+            service_alias="demo",
+            service_region="rainbond",
+            service_source="source_code",
+            language="Java",
+            arch="amd64",
+            service_cname="demo",
+        )
+        tracker = {"key": "FIRST_DEPLOY_x", "enterprise_id": "eid-1"}
+
+        with mock.patch(
+                "console.views.app_create.app_build.app_service.create_region_service",
+                return_value=built_service,
+        ), mock.patch(
+                "console.views.app_create.app_build.app_manage_service.deploy",
+                side_effect=RuntimeError("version already exists"),
+        ), mock.patch(
+                "console.views.app_create.app_build.enterprise_first_deploy_service.safe_begin_deploy_tracking",
+                return_value=tracker,
+        ), mock.patch(
+                "console.views.app_create.app_build.enterprise_first_deploy_service.safe_mark_failure",
+        ) as mark_failure:
+            response = view.post(Obj(data={"is_deploy": True}, META={}))
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data["msg"], "version already exists")
+        json.dumps(response.data)
+        mark_failure.assert_called_once_with(tracker, reason="version already exists")
+
     def test_app_build_tracks_source_image_and_package_deploy_types(self):
         from console.views.app_create.app_build import AppBuild
 

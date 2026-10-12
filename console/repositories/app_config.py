@@ -44,13 +44,21 @@ class TenantServiceEnvVarRepository(object):
         return None
 
     def get_service_env_or_404_by_env_id(self, tenant_id: str, service_id: str, env_id: str) -> TenantServiceEnvVar:
+        try:
+            env_pk = int(env_id)
+        except (TypeError, ValueError):
+            raise AbortRequest(
+                msg="Environment variable with ID {} not found".format(env_id),
+                msg_show="环境变量`{}`不存在".format(env_id),
+                status_code=404,
+            )
         return get_object_or_404(
             TenantServiceEnvVar,
             msg="Environment variable with ID {} not found".format(env_id),
             msg_show="环境变量`{}`不存在".format(env_id),
             tenant_id=tenant_id,
             service_id=service_id,
-            ID=env_id)
+            ID=env_pk)
 
     def get_env_by_ids_and_attr_names(self, tenant_id: str, service_ids: Any,
                                       attr_names: Any) -> QuerySet:
@@ -115,12 +123,9 @@ class TenantServiceEnvVarRepository(object):
         创建或更新构建时环境变量。
         注意：此方法专用于构建变量，始终确保 scope 为 build。
         """
-        try:
-            obj = TenantServiceEnvVar.objects.get(tenant_id=tenant_id, service_id=service_id, attr_name=attr_name)
-            obj.attr_value = attr_value
-            obj.scope = "build"  # 确保更新时也设置为构建时变量
-            obj.save()
-        except TenantServiceEnvVar.DoesNotExist:
+        envs = TenantServiceEnvVar.objects.filter(
+            tenant_id=tenant_id, service_id=service_id, attr_name=attr_name)
+        if envs.update(attr_value=attr_value, scope="build") == 0:
             TenantServiceEnvVar.objects.create(
                 tenant_id=tenant_id,
                 service_id=service_id,

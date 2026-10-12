@@ -291,7 +291,7 @@ class AppCheckService(object):
             try:
                 self.add_service_check_port(tenant, service, data)
             except ErrComponentPortExists:
-                logger.error('upgrade component port by code check failure due to component port exists')
+                logger.info("skip duplicate component port while applying source check result")
             raw_language = data["service_info"][0]["language"]
             lang = self._effective_language(raw_language)
             if lang == "dockerfile" or lang == "static":

@@ -5,6 +5,7 @@
 | Capability ID | 中文标题 | 状态 | 测试类型 | 业务入口 | 测试文件 |
 |---|---|---|---|---|---|
 | console.app-backup.create | 创建应用备份 | active | regression | console.views.center_pool.groupapp_backup.GroupAppsBackupView.post | console/tests/groupapp_backup_migration_test.py::GroupAppsBackupViewWorkflowTests.test_post_starts_group_backup |
+| console.app-backup.create-group-missing | 备份不存在的应用时返回 404 | active | regression | console.services.backup_service.GroupAppBackupService.get_group_app_metadata | console/tests/backup_service_test.py::GroupAppBackupMetadataTests.test_get_group_app_metadata_keeps_valid_empty_group_metadata<br>console/tests/backup_service_test.py::GroupAppBackupMetadataTests.test_get_group_app_metadata_rejects_missing_group_before_collecting_components |
 | console.app-backup.custom-volume-guard | 组件使用自定义存储时阻止备份 | active | regression | console.views.center_pool.groupapp_backup.GroupAppsBackupView.post | console/tests/groupapp_backup_migration_test.py::GroupAppsBackupViewWorkflowTests.test_post_rejects_custom_volume_usage |
 | console.app-backup.delete | 删除应用备份 | active | regression | console.views.center_pool.groupapp_backup.GroupAppsBackupView.delete | console/tests/groupapp_backup_migration_test.py::GroupAppsBackupViewWorkflowTests.test_delete_removes_group_backup |
 | console.app-backup.delete-id-required | 删除应用备份前必须提供备份 ID | active | regression | console.views.center_pool.groupapp_backup.GroupAppsBackupView.delete | console/tests/groupapp_backup_migration_test.py::GroupAppsBackupViewWorkflowTests.test_delete_requires_backup_id |
@@ -78,7 +79,9 @@
 | console.app-migration.unfinished-record-empty | 无未完成迁移记录时返回已完成状态 | active | regression | console.views.center_pool.groupapp_migration.MigrateRecordView.get | console/tests/groupapp_backup_migration_test.py::GroupAppsMigrateRecordViewTests.test_get_returns_finished_when_no_unfinished_record |
 | console.app-migration.unfinished-record-guard | 查询未完成迁移记录时必须提供 group_uuid | active | regression | console.views.center_pool.groupapp_migration.MigrateRecordView.get | console/tests/groupapp_backup_migration_test.py::GroupAppsMigrateRecordViewTests.test_get_requires_group_uuid |
 | console.app-migration.usable-region-guard | 目标团队无可用集群时阻止迁移 | active | regression | console.views.center_pool.groupapp_migration.GroupAppsMigrateView.post | console/tests/groupapp_backup_migration_test.py::GroupAppsMigrationViewWorkflowTests.test_post_rejects_when_target_team_has_no_usable_regions |
+| console.app-overview.group-visit-resilience | Keep application access links resilient to stale components | active | regression | GET /console/teams/{team_name}/group/service/visit | console/tests/app_group_visit_view_test.py::AppGroupVisitViewTestCase |
 | console.app-publish.candidates | App Publish Candidates | active | regression | console.services.mcp_query_service.call_tool[console.app-publish.candidates] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_get_app_publish_candidates_returns_models |
+| console.app-route.numeric-id | 应用详情路由仅接受数字 ID | active | regression | console.urls[/teams/{tenantName}/groups/{app_id}] | console/tests/group_route_test.py::GroupRouteTests.test_group_detail_route_accepts_numeric_id<br>console/tests/group_route_test.py::GroupRouteTests.test_group_detail_route_rejects_reserved_word_as_id |
 | console.app-scale.vertical-gpu-default | 垂直伸缩未传 GPU 时保留组件当前值 | active | regression | console.services.app_actions.app_manage.AppManageService.vertical_upgrade | console/tests/vertical_upgrade_gpu_test.py::VerticalUpgradeGPUTests.test_omitted_gpu_keeps_current_value_instead_of_null<br>console/tests/vertical_upgrade_gpu_test.py::VerticalUpgradeGPUTests.test_omitted_gpu_defaults_to_zero_when_current_is_none<br>console/tests/vertical_upgrade_gpu_test.py::VerticalUpgradeGPUTests.test_explicit_gpu_is_applied_and_sent_to_region |
 | console.app-share.complete | App Share Complete | active | regression | console.services.mcp_query_service.call_tool[console.app-share.complete] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_complete_app_share_calls_share_service_complete |
 | console.app-share.create-record | App Share Create Record | active | regression | console.services.mcp_query_service.call_tool[console.app-share.create-record] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_create_app_share_record_supports_snapshot_mode |
@@ -91,6 +94,7 @@
 | console.app-status.aggregate-rainbond-components | 根据组件状态聚合 Rainbond 应用状态 | active | regression | console.services.group_service.GroupService.get_app_status | console/tests/group_service_test.py::GroupServiceAppStatusAggregationTests.test_get_app_status_uses_component_aggregation_for_rainbond_apps |
 | console.app-status.closed-with-undeploy-components | 将关闭与未部署组件组合识别为应用已关闭 | active | regression | console.services.topological_services.TopologicalService.get_app_status | console/tests/topological_service_test.py::TopologicalServiceAppStatusTests.test_closed_and_undeploy_components_make_app_closed |
 | console.app-status.list-closed-with-undeploy-components | 当组件为关闭或未部署时将列表应用状态聚合为关闭 | active | regression | console.services.group_service.GroupService._add_component_status_to_apps | console/tests/group_service_test.py::GroupServiceAppStatusAggregationTests.test_add_component_status_to_apps_marks_closed_when_components_are_closed_or_undeploy |
+| console.app-status.missing-region-app-fallback | 区域应用映射缺失时回退组件状态 | active | regression | console.services.group_service.GroupService.get_app_status | console/tests/group_service_test.py::GroupServiceAppStatusAggregationTests.test_get_app_status_uses_component_fallback_when_region_app_mapping_is_missing |
 | console.app-status.partial-abnormal-mixed-components | 将运行中与异常混合组件识别为部分异常 | active | regression | console.services.topological_services.TopologicalService.get_app_status | console/tests/topological_service_test.py::TopologicalServiceAppStatusTests.test_mixed_abnormal_components_make_app_partially_abnormal |
 | console.app-status.partial-abnormal-some-abnormal | 将 some_abnormal 组件识别为部分异常 | active | regression | console.services.topological_services.TopologicalService.get_app_status | console/tests/topological_service_test.py::TopologicalServiceAppStatusTests.test_some_abnormal_component_makes_app_partially_abnormal |
 | console.app-status.region-status-typeddict | 归一化集群应用状态返回（AppStatus TypedDict 落地） | active | regression | console.services.group_service.GroupService.get_app_status | console/tests/group_app_status_typeddict_test.py::GroupAppStatusTypedDictTest |
@@ -176,6 +180,7 @@
 | console.app.restart-component-operation | operate_app 重启映射到批量操作 | active | regression | console.services.mcp_query_service.call_tool[console.app.restart-component-operation] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_operate_app_restart_calls_batch_action |
 | console.app.upgrade | 升级应用版本 | active | regression | console.services.mcp_query_service.call_tool[rainbond_upgrade_app] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_upgrade_app_calls_upgrade_service_and_returns_latest_items |
 | console.auth.get-user-no-legacy-middleware | 解析会话用户时不访问已废弃的 MIDDLEWARE_CLASSES | active | regression | console.services.auth.get_user | console/tests/auth_get_user_test.py::GetUserNoLegacyMiddlewareTests.test_returns_user_without_touching_middleware_classes<br>console/tests/auth_get_user_test.py::GetUserNoLegacyMiddlewareTests.test_returns_anonymous_user_when_no_session |
+| console.build-env.duplicate-update | 重复构建环境变量统一更新 | active | regression | console.repositories.app_config.TenantServiceEnvVarRepository.update_or_create_env_var | console/tests/app_config_test.py::TenantServiceEnvVarRepositoryTests.test_update_or_create_env_var_updates_all_duplicate_rows<br>console/tests/app_config_test.py::TenantServiceEnvVarRepositoryTests.test_update_or_create_env_var_creates_row_when_no_match_exists |
 | console.cache.atomic-increment | Atomic expiring cache increment | active | regression | console.utils.cache.Cache.increment | console/tests/utils/cache_test.py::CacheAtomicIncrementTests |
 | console.cache.capacity-guard | 内存缓存达到容量上限时拒绝或复用缓存槽位 | active | regression | console.utils.cache.Cache._memory_set | console/tests/utils/cache_test.py::CacheMemoryTests.test_memory_cache_refuses_new_key_when_full_without_expired_entries |
 | console.cache.expired-eviction | 在访问时清理已过期的内存缓存项 | active | regression | console.utils.cache.Cache._memory_get | console/tests/utils/cache_test.py::CacheMemoryTests.test_memory_cache_evicts_expired_entry_on_get |
@@ -193,6 +198,17 @@
 | console.cert.san-parse | 从扩展字符串中解析证书的 SAN 域名与 IP | active | regression | console.utils.certutil.parse_subject_alt_names | console/tests/utils/certutil_test.py::CertUtilTests.test_parse_subject_alt_names |
 | console.cert.summary | 汇总证书 SAN、签发方与过期信息 | active | regression | console.utils.certutil.analyze_cert | console/tests/utils/certutil_test.py::CertUtilTests.test_analyze_cert |
 | console.cert.utc-to-local | 将证书 UTC 时间戳转换为本地时间字符串 | active | regression | console.utils.certutil.utc2local | console/tests/utils/certutil_test.py::CertUtilTests.test_utc2local |
+| console.cleanup.cloud-template-reference | 云端市场临时模板安装与升级引用保护 | active | regression | console.services.cleanup_retirement.lock_template_use | console/tests/cleanup_retirement_test.py::RetirementGuardTests.test_cloud_template_use_does_not_require_local_market_rows<br>console/tests/market_app_service_test.py::MarketAppServiceTelemetryTests.test_cloud_install_protects_transient_template_without_local_market_row<br>console/tests/cleanup_installation_test.py::CleanupInstallationLifecycleTests.test_upgrade_configures_before_replacing_pods<br>console/tests/platform_plugin_first_deploy_test.py::PlatformPluginFirstDeployTrackingTests.test_install_platform_plugin_reports_first_deploy_tracking |
+| console.cleanup.coordination-signature | 协调签名绑定范围与原始请求 | active | regression | console.services.cleanup_core_bridge.verify_core_request | console/tests/cleanup_core_bridge_test.py::CleanupCoreBridgeTests.test_signature_binds_scope_path_time_and_exact_body |
+| console.cleanup.coordination-upstream | 协调请求严格校验证书且不自动重放 | active | regression | www.apiclient.regionapi.RegionInvokeApi.cleanup_proxy_request | console/tests/cleanup_core_bridge_test.py::CleanupCoreForwardingTests.test_forwarder_uses_verified_tls_without_retries_or_caller_headers |
+| console.cleanup.coordination-view | 仅转发安装实例签名的协调请求 | active | regression | console.views.cleanup_core_bridge.CleanupCoreBridgeView.post | console/tests/cleanup_core_bridge_test.py::CleanupCoreForwardingTests.test_view_rejects_browser_credentials_and_forwards_only_signed_envelopes |
+| console.cleanup.system-coordination-key | Independent scoped system coordination identity | active | unit | resolve_system_coordination_key | console/tests/cleanup_system_coordination_test.py |
+| console.cleanup.upload-chunk-retirement-bridge | Validate enterprise ownership and exact Core receipt for upload chunk retirement | active | regression | retire_upload_chunks | console/tests/cleanup_retirement_test.py::RetirementGuardTests.test_upload_chunk_retirement_is_enterprise_scoped_and_checks_exact_core_receipt<br>console/tests/cleanup_retirement_test.py::RetirementGuardTests.test_region_client_uses_only_fixed_upload_delete_path |
+| console.cleanup.upload-current-source-references | Protect upload packages referenced by current regional component sources | active | regression | current_package_reference_events | console/tests/cleanup_upload_inventory_test.py::UploadInventoryTests.test_current_component_package_paths_add_positive_protection_only<br>console/tests/cleanup_upload_inventory_test.py::UploadInventoryTests.test_current_reference_query_is_region_scoped_and_bounded |
+| console.cleanup.upload-inventory-scope | Derive upload event inventory from enterprise and region ownership | active | regression | GET cleanup inventory kind=uploads | console/tests/cleanup_upload_inventory_test.py::UploadInventoryTests.test_console_derives_event_scope_from_enterprise_and_region |
+| console.cleanup.upload-package-size-projection | Keep package and chunk sizes separate without counting events twice | active | regression | upload_resources | console/tests/cleanup_upload_inventory_test.py::UploadInventoryTests.test_package_size_is_separate_from_chunks_and_event_is_unique |
+| console.cleanup.upload-size-projection | Preserve actual upload sizes without granting deletion | active | regression | upload_resources | console/tests/cleanup_upload_inventory_test.py::UploadInventoryTests.test_actual_size_and_unavailable_measurements_remain_distinct |
+| console.cleanup.writer-runtime-announcement | Announce only verified Console Pod identity through the private Region client | active | regression | console.services.cleanup_writer_registration.announce_console_writer | console/tests/cleanup_writer_registration_test.py |
 | console.cnb-build.auto-set-build-type | 根据构建参数自动设置 CNB 构建类型 | active | regression | console.utils.cnb_build.has_cnb_build_params | console/tests/cnb_build_test.py::BuildTypeAutoSetTestCase.test_auto_set_build_type_cnb_for_node_language |
 | console.cnb-build.detect-build-params | 识别 CNB 构建参数 | active | regression | console.utils.cnb_build.has_cnb_build_params | console/tests/cnb_build_test.py::CNBParamsDetectionTestCase.test_node_language_detects_cnb_params<br>console/tests/cnb_build_test.py::CNBParamsDetectionTestCase.test_non_cnb_language_ignores_stale_cnb_params<br>console/tests/cnb_build_test.py::CNBParamsDetectionTestCase.test_empty_build_env_dict_has_no_cnb_params<br>console/tests/cnb_build_test.py::CNBParamsDetectionTestCase.test_each_supported_cnb_param_is_detected_for_node_language |
 | console.cnb-build.detect-supported-language | 识别支持 CNB 的构建语言 | active | regression | console.utils.cnb_build.is_cnb_language | console/tests/cnb_build_test.py::CNBLanguageDetectionTestCase.test_nodejs_language_is_cnb<br>console/tests/cnb_build_test.py::CNBLanguageDetectionTestCase.test_static_language_is_cnb |
@@ -203,6 +219,15 @@
 | console.cnb-build.preserve-supported-envs | 保留支持语言的 CNB 环境变量 | active | regression | console.utils.cnb_build.sanitize_build_env_dict_for_language | console/tests/cnb_build_test.py::BuildEnvSanitizeTestCase.test_node_build_envs_preserve_cnb_markers<br>console/tests/cnb_build_test.py::BuildEnvSanitizeTestCase.test_static_build_envs_preserve_cnb_markers<br>console/tests/cnb_build_test.py::BuildEnvSanitizeTestCase.test_node_build_envs_preserve_common_mirror_fields<br>console/tests/cnb_build_test.py::BuildEnvSanitizeTestCase.test_node_build_envs_preserve_known_node_versions |
 | console.cnb-build.reject-unsupported-language | 拒绝不支持 CNB 的构建语言 | active | regression | console.utils.cnb_build.is_cnb_language | console/tests/cnb_build_test.py::CNBLanguageDetectionTestCase.test_java_language_is_not_cnb<br>console/tests/cnb_build_test.py::CNBLanguageDetectionTestCase.test_dockerfile_node_language_is_not_cnb |
 | console.cnb-build.sanitize-unsupported-envs | 清理非支持语言中的陈旧 CNB 环境变量 | active | regression | console.utils.cnb_build.sanitize_build_env_dict_for_language | console/tests/cnb_build_test.py::BuildEnvSanitizeTestCase.test_java_build_envs_strip_stale_cnb_markers<br>console/tests/cnb_build_test.py::BuildEnvSanitizeTestCase.test_java_build_envs_strip_runtime_aliases_used_by_builder<br>console/tests/cnb_build_test.py::BuildEnvSanitizeTestCase.test_non_cnb_languages_strip_stale_cnb_markers |
+| console.code-webhook.null-commit-message | 处理代码仓库 Webhook 空提交消息 | active | regression | console.views.webhook.commit_message_matches_deploy_keyword | console/tests/webhook_test.py::ImageWebhookPayloadTestCase.test_null_commit_message_does_not_match_deploy_keyword |
+| console.component-batch-action.missing-app | 未分组组件仍可执行批量操作 | active | regression | console.views.app_manage.BatchActionView.post | console/tests/batch_action_view_test.py::BatchActionViewTestCase.test_post_keeps_batch_action_successful_when_component_has_no_app |
+| console.component-build.serializable-failure-response | 组件构建失败响应可序列化 | active | regression | console.views.app_create.app_build.AppBuild.post | console/tests/app_build_first_deploy_test.py::AppBuildFirstDeployTrackingTests.test_app_build_serializes_unexpected_deploy_error_message |
+| console.component-check.duplicate-port-noise | 组件检测重复端口按预期处理 | active | regression | console.services.app_check_service.AppCheckService.update_service_check_info | console/tests/app_check_service_build_strategy_test.py::AppCheckServiceBuildStrategyTests.test_update_service_check_info_logs_duplicate_detected_port_as_info |
+| console.component-delete.idempotent-record | 幂等保存组件删除记录 | active | regression | console.repositories.app.TenantServiceDeleteRepository.create_delete_service | console/tests/app_manage_test.py::AppManageDeleteRecordIdempotencyTests.test_create_delete_service_updates_existing_record_for_repeated_delete |
+| console.component-delete.missing-app-relation | 删除缺少应用关系的组件 | active | regression | console.services.app_actions.app_manage.AppManageService.get_app_by_service | console/tests/app_manage_test.py::AppManageDeleteRecordIdempotencyTests.test_get_app_by_service_returns_none_when_group_relation_is_missing |
+| console.component-delete.region-payload-isolation | 区域删除参数不写入数据库记录 | active | regression | console.services.app_actions.app_manage.AppManageService._build_delete_record_data | console/tests/app_manage_test.py::AppManageDeleteRecordIdempotencyTests.test_delete_record_payload_excludes_region_only_fields_for_incomplete_service |
+| console.component-env.delete-missing-404 | 删除不存在的环境变量时返回受控 404 | active | regression | console.services.app_config.env_service.AppEnvVarService.delete_env_by_env_id | console/tests/app_env_service_test.py::TenantServiceEnvVarRepositoryUpdateTestCase.test_404_lookup_rejects_non_numeric_environment_id_before_querying<br>console/tests/app_env_service_test.py::AppEnvVarServiceUpdateTestCase.test_delete_env_by_env_id_uses_404_aware_lookup_and_returns_deleted_env |
+| console.component-env.field-length-validation | 持久化前校验环境变量字段长度 | active | regression | console.services.app_config.env_service.AppEnvVarService.add_service_env_var | console/tests/app_env_service_test.py::AppEnvVarServiceUpdateTestCase.test_add_env_rejects_overlong_description_before_region_or_database_write |
 | console.component-type.daemonset | DaemonSet 组件类型支持 | active | regression | console.enum.component_enum.ComponentType | console/tests/app_manage_test.py::ComponentDaemonSetSupportTests.test_daemonset_component_type_is_supported<br>console/tests/app_manage_test.py::ComponentDaemonSetSupportTests.test_extend_method_name_supports_daemonset<br>console/tests/app_manage_test.py::ComponentDaemonSetSupportTests.test_change_service_type_blocks_daemonset_transition |
 | console.component.autoscaler-invalid-metrics | manage_component_autoscaler 在调用服务前拒绝不完整指标 | active | regression | console.services.mcp_query_service.call_tool[console.component.autoscaler-invalid-metrics] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_manage_component_autoscaler_create_rejects_incomplete_metric_before_service_call |
 | console.component.autoscaler-summary | 查看组件伸缩概览 | active | regression | console.services.mcp_query_service.call_tool[rainbond_manage_component_autoscaler] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_manage_component_autoscaler_summary_returns_rules_and_records |
@@ -252,6 +277,7 @@
 | console.component.logs-fallback | 读取组件日志时自动回退到实例容器 | active | regression | console.services.mcp_query_service.get_component_logs fallback selection | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_get_component_logs_service_falls_back_to_first_pod_container |
 | console.component.logs-no-instance | 无运行实例时拒绝查询组件日志 | active | regression | console.services.mcp_query_service.get_component_logs | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_get_component_logs_rejects_when_no_runtime_instance_found |
 | console.component.logs-parse-sse | 解析组件日志 SSE 数据 | active | regression | console.services.mcp_query_service._parse_component_log_line | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_parse_component_log_line_handles_sse_prefix |
+| console.component.mount-request-validation | Reject empty or malformed component mount requests | active | regression | POST /console/teams/{tenantName}/apps/{serviceAlias}/mnt | console/tests/app_mnt_consistency_test.py::AppMntViewConsistencyTests::test_post_rejects_empty_mount_list<br>console/tests/app_mnt_consistency_test.py::AppMntViewConsistencyTests::test_post_rejects_mount_without_volume_id<br>console/tests/app_mnt_consistency_test.py::AppMntViewConsistencyTests::test_post_rejects_malformed_mount_json |
 | console.component.operation-aliases | 规范化组件操作别名 | active | regression | console.services.mcp_query_service._normalize_component_operation | console/tests/mcp_query_service_test.py::MCPQueryServiceToolVisibilityTests.test_normalize_component_operation_aliases |
 | console.component.pods | Component Pods | active | regression | console.services.mcp_query_service.call_tool[console.component.pods] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_get_component_pods_returns_normalized_runtime_instances |
 | console.component.port-add-invalid-alias | Component Port Add Invalid Alias | active | regression | console.services.mcp_query_service.call_tool[console.component.port-add-invalid-alias] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_handle_component_ports_add_exposes_structured_alias_validation |
@@ -263,6 +289,7 @@
 | console.component.port-open-inner | 开放组件内网端口 | active | regression | console.services.mcp_query_service.call_tool[rainbond_manage_component_ports#enable_inner] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_manage_component_ports_enable_inner_maps_to_open_inner |
 | console.component.port-open-outer-only | 仅开放组件公网端口 | active | regression | console.services.mcp_query_service.call_tool[rainbond_manage_component_ports#enable_outer_only] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_manage_component_ports_enable_outer_only_maps_to_only_open_outer |
 | console.component.port-open-public | 打开组件公网端口 | active | regression | console.services.mcp_query_service.call_tool[rainbond_handle_component_ports] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_handle_component_ports_alias_action_maps_to_standard_action |
+| console.component.port-operation-errors | 组件端口操作错误提示 | active | regression | console.services.app_config.port_service.AppPortService.manage_port | console/tests/port_service_delete_test.py::PortServiceDeleteTests::test_open_outer_protocol_mismatch_explains_how_to_resynchronize_inner_service<br>console/tests/port_service_delete_test.py::PortServiceDeleteTests::test_port_toggle_region_errors_use_action_specific_messages<br>console/tests/port_service_delete_test.py::PortServiceDeleteTests::test_port_toggle_region_errors_translate_common_recovery_cases<br>console/tests/port_service_delete_test.py::PortServiceDeleteTests::test_open_outer_http_default_route_failure_uses_user_facing_message<br>console/tests/port_service_delete_test.py::PortServiceDeleteTests::test_port_toggle_translates_unfriendly_service_errors<br>console/tests/port_service_delete_test.py::PortServiceDeleteTests::test_port_toggle_preserves_existing_actionable_service_errors |
 | console.component.port-protocol-normalize | 归一化组件端口协议参数 | active | regression | console.services.mcp_query_service.call_tool[rainbond_manage_component_ports#update_protocol] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_manage_component_ports_update_protocol_normalizes_protocol |
 | console.component.port-protocol-validation | 调用服务前拦截非法组件端口协议 | active | regression | console.services.mcp_query_service.call_tool[rainbond_manage_component_ports#update_protocol] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_manage_component_ports_update_protocol_rejects_invalid_protocol_before_service_call |
 | console.component.port-summary | 查看组件端口概览 | active | regression | console.services.mcp_query_service.call_tool[rainbond_manage_component_ports] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_manage_component_ports_summary_delegates_to_port_handler |
@@ -272,6 +299,7 @@
 | console.component.storage-create-mount | 创建组件共享存储挂载 | active | regression | console.services.mcp_query_service.call_tool[rainbond_manage_component_storage#create_mnt] | console/tests/mcp_query_storage_ops_test.py::ManageComponentStorageTests.test_create_mnt_batches_mounts |
 | console.component.storage-create-volume | 创建组件存储卷 | active | regression | console.services.mcp_query_service.call_tool[rainbond_manage_component_storage#create_volume] | console/tests/mcp_query_storage_ops_test.py::ManageComponentStorageTests.test_create_volume_returns_created_and_volume<br>console/tests/mcp_query_storage_ops_test.py::ManageComponentStorageTests.test_create_volume_rejects_collision_with_existing_config_file_path |
 | console.component.storage-custom-volume-filter | 过滤组件自定义卷列表中的内置卷类型 | active | regression | console.repositories.app_config.TenantServiceVolumnRepository.list_custom_volumes | console/tests/app_config_test.py::TenantServiceVolumnRepositoryTests.test_list_custom_volumes_treats_local_path_as_builtin_volume_type |
+| console.component.storage-delete-missing-volume | Return not found when deleting a stale component volume | active | regression | DELETE /console/teams/{tenantName}/apps/{serviceAlias}/volumes/{volume_id} | console/tests/app_volume_view_test.py::AppVolumeManageViewTestCase::test_delete_returns_not_found_for_stale_volume |
 | console.component.storage-delete-mount | 删除组件共享存储挂载 | active | regression | console.services.mcp_query_service.call_tool[rainbond_manage_component_storage#delete_mnt] | console/tests/mcp_query_storage_ops_test.py::ManageComponentStorageTests.test_delete_mnt_removes_relation |
 | console.component.storage-delete-volume | 删除组件存储卷 | active | regression | console.services.mcp_query_service.call_tool[rainbond_manage_component_storage#delete_volume] | console/tests/mcp_query_storage_ops_test.py::ManageComponentStorageTests.test_delete_volume_requires_force_branch<br>console/tests/mcp_query_storage_ops_test.py::ManageComponentStorageTests.test_delete_volume_success_branch |
 | console.component.storage-summary | 查看组件存储概览 | active | regression | console.services.mcp_query_service.call_tool[rainbond_manage_component_storage] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_manage_component_storage_summary_returns_storage_snapshot<br>console/tests/mcp_query_storage_ops_test.py::ManageComponentStorageTests.test_summary_includes_config_file_volumes |
@@ -285,6 +313,9 @@
 | console.component.volume-expansion-reconciles-drift | Forward stored capacity to reconcile PVC drift | active | regression | console.views.app_config.app_volume.AppVolumeManageView.put | console/tests/app_volume_view_test.py::AppVolumeManageViewTestCase::test_put_forwards_same_capacity_for_pvc_reconciliation |
 | console.component.volume-expansion-runtime | Propagate PVC volume expansion runtime fields | active | unit | console.services.app_config.volume_service.AppVolumeService.get_service_volumes | console/tests/app_volume_service_expansion_test.py::AppVolumeServiceExpansionTestCase::test_attach_volume_runtime_status_merges_expansion_fields |
 | console.component.volume-expansion-update | Validate and forward component volume expansion | active | regression | console.views.app_config.app_volume.AppVolumeManageView.put | console/tests/app_volume_view_test.py::AppVolumeManageViewTestCase::test_put_rejects_volume_capacity_shrink |
+| console.config.expected-conflict | 配置已存在时返回预期冲突并停止上报 | active | regression | console.views.base.custom_exception_handler | console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_config_exist_error_returns_conflict_response<br>console/tests/sentry_config_test.py::test_before_send_drops_expected_config_conflict |
+| console.database.required-schema-startup-gate | 关键迁移表缺失时阻止启动 | active | regression | entrypoint migrate then verify_required_schema | console/tests/entrypoint_test.py::EntrypointGunicornTest.test_database_startup_plans_repairs_before_applying_and_migrating<br>console/tests/schema_verification_test.py::RequiredSchemaVerificationTestCase.test_missing_required_tables_are_reported_in_stable_order |
+| console.database.transient-unavailable | 统一瞬时数据库不可用响应 | active | regression | console.utils.database_errors.is_transient_database_error | console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_transient_database_error_returns_retryable_503<br>console/tests/sentry_config_test.py::test_before_send_groups_transient_database_outages_with_stable_fingerprint |
 | console.dependency.invalid-container-port | Dependency Invalid Container Port | active | regression | console.services.app_config.app_relation_service.AppServiceRelationService | console/tests/app_relation_service_test.py::AppRelationServiceTests.test_add_service_dependency_rejects_unknown_dep_service_port |
 | console.deploy-diagnostics.offline-mode | 离线模式禁用部署诊断上报 | active | regression | console.services.enterprise_first_deploy_service.EnterpriseFirstDeployService | console/tests/enterprise_first_deploy_service_test.py::EnterpriseFirstDeployServiceTests.test_offline_mode_does_not_start_report_sweeper<br>console/tests/enterprise_first_deploy_service_test.py::EnterpriseFirstDeployServiceTests.test_online_mode_starts_report_sweeper<br>console/tests/enterprise_first_deploy_service_test.py::EnterpriseFirstDeployServiceTests.test_offline_mode_skips_report_request<br>console/tests/enterprise_first_deploy_service_test.py::EnterpriseFirstDeployServiceTests.test_offline_mode_does_not_create_deploy_tracking<br>console/tests/enterprise_first_deploy_service_test.py::EnterpriseFirstDeployServiceTests.test_offline_mode_does_not_persist_source_check_failure<br>console/tests/enterprise_first_deploy_service_test.py::EnterpriseFirstDeployServiceTests.test_offline_mode_marks_first_deploy_report_handled_without_thread<br>console/tests/enterprise_first_deploy_service_test.py::EnterpriseFirstDeployServiceTests.test_offline_mode_removes_unreported_deploy_attempt<br>console/tests/enterprise_first_deploy_service_test.py::EnterpriseFirstDeployServiceTests.test_offline_mode_forgets_unpersisted_report |
 | console.deploy-diagnostics.source-check | 源码构建源检测失败诊断埋点 | active | regression | console.views.app_create.app_check.AppCheck.get | console/tests/app_check_view_test.py::AppCheckSourceDiagnosticTests.test_get_reports_source_check_failure_without_changing_response<br>console/tests/source_component_service_test.py::SourceComponentServiceTests.test_auto_create_component_raises_on_check_failure<br>console/tests/enterprise_first_deploy_service_test.py::EnterpriseFirstDeployServiceTests.test_report_source_check_failure_sends_pre_deploy_diagnostic |
@@ -293,9 +324,10 @@
 | console.endpoint-address.reject-special-ranges | 拒绝 unspecified 和 loopback 的端点地址 | active | regression | console.utils.validation.validate_endpoint_address | console/tests/utils/validation_test.py::EndpointValidationTests.test_validate_endpoint_address_rejects_special_ranges |
 | console.endpoint-list.normalize-scheme-port | 在多端点校验前规范化协议和端口 | active | regression | console.utils.validation.validate_endpoints_info | console/tests/utils/validation_test.py::EndpointValidationTests.test_validate_endpoints_info_normalizes_scheme_and_port |
 | console.endpoint-list.reject-duplicate | 在多实例端点列表中拒绝重复地址 | active | regression | console.utils.validation.validate_endpoints_info | console/tests/utils/validation_test.py::EndpointValidationTests.test_validate_endpoints_info_rejects_duplicate_addresses |
-| console.enterprise-config.concurrent-initialization | 处理企业配置并发初始化 | active | regression | console.services.config_service.ConfigService.add_config | console/tests/config_service_test.py::EnterpriseConfigServiceTests.test_add_config_returns_existing_record_when_concurrent_create_wins |
+| console.enterprise-config.concurrent-initialization | 处理企业配置并发初始化 | active | regression | console.services.config_service.ConfigService.add_config | console/tests/config_service_test.py::EnterpriseConfigServiceTests.test_add_config_returns_existing_record_when_concurrent_create_wins<br>console/tests/config_service_test.py::EnterpriseConfigServiceTests.test_initialization_uses_config_created_after_bulk_lookup |
 | console.enterprise-config.custom-fields-disabled-bool | get_custom_fields 包含被禁用的布尔字段 | active | regression | console.services.config_service.EnterpriseConfigService.get_custom_fields | console/tests/config_service_test.py::EnterpriseConfigServiceTests.test_get_custom_fields_includes_disabled_bool_fields |
 | console.enterprise-config.user-context | 解析企业配置服务用户上下文 | active | regression | console.services.config_service.EnterpriseConfigService.__init__ | console/tests/config_service_test.py::EnterpriseConfigServiceTests.test_enterprise_config_service_defaults_user_id_to_none<br>console/tests/config_service_test.py::EnterpriseConfigServiceTests.test_enterprise_config_service_keeps_explicit_user_id |
+| console.enterprise-init.empty-region | 集群初始化前返回空默认区域 | active | regression | console.views.team.InitDefaultInfoView.post | console/tests/team_init_default_view_test.py::InitDefaultInfoViewTestCase.test_post_returns_null_default_region_when_enterprise_has_no_regions |
 | console.enterprise.bind-market-token-decode | 解码云市绑定企业的认证信息 | active | regression | console.views.enterprise_active.BindMarketEnterpriseOptimizAccessTokenView.post | console/tests/bind_market_token_decode_test.py::BindMarketTokenDecodeTest.test_market_info_is_base64_decoded |
 | console.enterprise.region-component-list | 查看集群控制面组件列表 | active | regression | console.services.mcp_query_service.call_tool[rainbond_query_region_rbd_components] | console/tests/mcp_query_service_test.py::MCPQueryServiceToolVisibilityTests.test_query_region_rbd_components_returns_components_for_enterprise_admin |
 | console.enterprise.region-create | 创建企业集群 | active | regression | console.services.mcp_query_service.call_tool[rainbond_create_region] | console/tests/mcp_query_service_test.py::MCPQueryServiceRegionMutationTests.test_create_region_executes_directly |
@@ -311,8 +343,10 @@
 | console.enterprise.region-node-detail | 查看集群节点详情 | active | regression | console.services.mcp_query_service.call_tool[rainbond_get_region_node_detail] | console/tests/mcp_query_service_test.py::MCPQueryServiceToolVisibilityTests.test_get_region_node_detail_returns_node_detail_for_enterprise_admin |
 | console.enterprise.region-node-list | 查看集群节点列表 | active | regression | console.services.mcp_query_service.call_tool[rainbond_query_region_nodes] | console/tests/mcp_query_service_test.py::MCPQueryServiceToolVisibilityTests.test_query_region_nodes_returns_nodes_for_enterprise_admin |
 | console.enterprise.region-update | 更新企业集群 | active | regression | console.services.mcp_query_service.call_tool[rainbond_update_region] | console/tests/mcp_query_service_test.py::MCPQueryServiceRegionMutationTests.test_update_region_executes_directly_with_merged_full_payload |
+| console.external-http.unavailable-response | 统一外部 HTTP 连接故障响应 | active | regression | console.utils.external_http_errors.is_retryable_external_http_error | console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_external_http_failure_returns_retryable_502<br>console/tests/sentry_config_test.py::test_before_send_groups_external_http_failures_by_host_and_path |
 | console.file-manage.region-request-timeout | 文件管理区域请求使用选定容器与更长超时 | active | regression | www.apiclient.regionapi.RegionInvokeApi.get_files | console/tests/file_manage_service_test.py::test_region_api_get_files_uses_container_name_and_longer_timeout |
 | console.file-manage.selected-container-forwarding | 列出文件管理内容时透传用户选择的容器名 | active | regression | console.services.group_service.GroupService.get_file_and_dir | console/tests/file_manage_service_test.py::test_get_file_and_dir_forwards_selected_container_name |
+| console.first-deploy.concurrent-record-cleanup | 兼容首次部署追踪记录并发清理 | active | regression | console.repositories.first_deploy_repo.EnterpriseFirstDeployRepository.update_payload | console/tests/first_deploy_repo_test.py::EnterpriseFirstDeployRepositoryConcurrencyTests |
 | console.gateway.certificate-delete-idempotent | Delete missing gateway certificate idempotently | active | regression | DELETE /console/teams/{tenant}/certificates/{certificate_id} | console/tests/app_domain_certificate_test.py::TenantCertificateDeleteTests::test_delete_missing_certificate_is_idempotent |
 | console.gateway.client-ca-management | Manage gateway client CA certificates | active | regression | console.services.app_config.domain_service.DomainService.add_certificate | console/tests/app_domain_certificate_test.py::GatewayClientCAManagementTests<br>console/tests/utils/certutil_test.py::CertUtilTests.test_validate_ca_certificate |
 | console.gateway.component-env-upsert-schema | Gateway Component Env Upsert Schema | active | regression | console.services.mcp_query_service.call_tool[console.gateway.component-env-upsert-schema] | console/tests/mcp_query_service_test.py::MCPQueryServiceToolVisibilityTests.test_manage_component_envs_schema_exposes_single_item_upsert_guidance |
@@ -322,6 +356,7 @@
 | console.gateway.create-tcp-rule | 创建 TCP 网关规则 | active | regression | console.services.mcp_query_service.call_tool[rainbond_create_gateway_rules] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_create_gateway_rules_tcp_returns_bound_rule |
 | console.gateway.dependency-container-port-schema | Gateway Dependency Container Port Schema | active | regression | console.services.mcp_query_service.call_tool[console.gateway.dependency-container-port-schema] | console/tests/mcp_query_service_test.py::MCPQueryServiceToolVisibilityTests.test_manage_component_dependency_schema_exposes_container_port_guidance |
 | console.gateway.domain-mtls-proxy | Proxy gateway domain mTLS updates | active | regression | www.apiclient.regionapi.RegionInvokeApi.api_gateway_delete_proxy | console/tests/app_domain_certificate_test.py::GatewayMTLSProxyTests |
+| console.gateway.domain-port-required | 组件端口不存在时拒绝绑定域名 | active | regression | console.views.app_config.app_domain.ServiceDomainView.post | console/tests/service_domain_view_test.py::ServiceDomainViewTests.test_post_rejects_missing_component_port_before_binding_domain |
 | console.gateway.http-port-not-open | 对外端口未开启时拦截 HTTP 网关创建 | active | regression | console.services.mcp_query_service.create_gateway_rules[http] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_create_gateway_rules_http_rejects_when_outer_port_is_unavailable |
 | console.gateway.http-port-open-failure | HTTP 网关开端口失败时拦截创建 | active | regression | console.services.mcp_query_service.create_gateway_rules[http] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_create_gateway_rules_http_rejects_port_open_failure |
 | console.gateway.http-required | 创建 HTTP 网关规则时必须提供 http 参数 | active | regression | console.services.mcp_query_service.create_gateway_rules[http] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_create_gateway_rules_requires_http_payload |
@@ -332,10 +367,12 @@
 | console.gateway.port-constraints-schema | Gateway Port Constraints Schema | active | regression | console.services.mcp_query_service.call_tool[console.gateway.port-constraints-schema] | console/tests/mcp_query_service_test.py::MCPQueryServiceToolVisibilityTests.test_manage_component_ports_tool_schema_exposes_port_constraints |
 | console.gateway.port-protocol-schema | 暴露组件端口协议枚举 | active | regression | console.services.mcp_query_service._tool_manage_component_ports | console/tests/mcp_query_service_test.py::MCPQueryServiceToolVisibilityTests.test_manage_component_ports_tool_schema_exposes_protocol_enum |
 | console.gateway.protocol-guard | 拦截不支持的网关协议 | active | regression | console.services.mcp_query_service.create_gateway_rules | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_create_gateway_rules_rejects_invalid_protocol |
+| console.gateway.rule-input-validation | 校验网关规则输入 | active | regression | console.services.mcp_query_service.call_tool[rainbond_create_gateway_rules] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_create_gateway_rules_http_returns_bound_rule<br>console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_create_gateway_rules_http_validates_nested_required_fields<br>console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_create_gateway_rules_http_rejects_unknown_component_port<br>console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_create_gateway_rules_tcp_validates_nested_required_fields<br>console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_create_gateway_rules_tcp_rejects_invalid_endpoint<br>console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_create_gateway_rules_tcp_rejects_unknown_component_port<br>console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_create_gateway_rules_schema_describes_nested_requirements |
 | console.gateway.source-code-from-schema | Gateway Source Code From Schema | active | regression | console.services.mcp_query_service.call_tool[console.gateway.source-code-from-schema] | console/tests/mcp_query_service_test.py::MCPQueryServiceToolVisibilityTests.test_create_component_from_source_schema_exposes_code_from_guidance |
 | console.gateway.tcp-port-open-failure | TCP 网关开端口失败时拦截创建 | active | regression | console.services.mcp_query_service.create_gateway_rules[tcp] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_create_gateway_rules_tcp_rejects_port_open_failure |
 | console.gateway.tcp-required | 创建 TCP 网关规则时必须提供 tcp 参数 | active | regression | console.services.mcp_query_service.create_gateway_rules[tcp] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_create_gateway_rules_requires_tcp_payload |
 | console.gateway.tcp-third-party-guard | 第三方组件不支持 TCP 网关策略时拦截创建 | active | regression | console.services.mcp_query_service.create_gateway_rules[tcp] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_create_gateway_rules_tcp_rejects_invalid_third_party_component |
+| console.gray-release.route-update-errors-propagate | Gray release propagates route update errors | active | regression | console.services.gray_release_service.GrayReleaseService._update_apisix_route_weights | console/tests/gray_release_service_test.py::GrayReleaseRouteUpdateTests.test_update_apisix_route_weights_propagates_region_errors |
 | console.gray-release.update-route-query-params | Gray Release Update Route Query Params | active | regression | console.services.gray_release_service.GrayReleaseService.update_route | console/tests/gray_release_service_test.py::GrayReleaseRouteUpdateTests.test_update_apisix_route_weights_keeps_service_alias_and_port_in_query |
 | console.gray-release.update-route-query-uses-original-port | Gray Release Update Route Query Uses Original Port | active | regression | console.services.gray_release_service.GrayReleaseService.update_route | console/tests/gray_release_service_light_test.py::GrayReleaseRouteUpdateLightTests.test_update_route_query_uses_original_service_port_when_ports_differ |
 | console.groupcopy.package-build-guard | 上传软件包组件禁止快速复制 | active | regression | console.services.groupcopy_service.GroupAppCopyService.get_modify_group_metadata | console/tests/groupcopy_service_test.py::GroupAppCopyServiceTests.test_get_modify_group_metadata_rejects_package_build |
@@ -349,6 +386,7 @@
 | console.helm-release.source-tracking | 追踪 Helm 发布来源信息 | active | regression | console.views.team_resources.Helm release source persistence lifecycle | console/tests/team_resources_test.py::HelmReleasesViewTestCase.test_post_persists_install_source_after_success<br>console/tests/team_resources_test.py::HelmReleasesViewTestCase.test_put_persists_upgrade_source_after_success<br>console/tests/team_resources_test.py::HelmReleasesViewTestCase.test_delete_cleans_up_saved_install_source_after_success |
 | console.helm-release.team-namespace-ops | 在团队命名空间内执行 Helm 操作 | active | regression | console.views.team_resources.Helm release lifecycle uses tenant namespace | console/tests/team_resources_test.py::HelmReleasesViewTestCase.test_post_uses_team_namespace_for_helm_install<br>console/tests/team_resources_test.py::HelmReleasesViewTestCase.test_delete_uses_team_namespace_for_helm_release_uninstall<br>console/tests/team_resources_test.py::HelmReleasesViewTestCase.test_put_uses_team_namespace_for_helm_release_upgrade<br>console/tests/team_resources_test.py::HelmReleasesViewTestCase.test_post_uses_team_namespace_for_helm_release_rollback |
 | console.helm-release.upgrade | 升级 Helm 发布并保存来源记录 | active | regression | console.views.team_resources.HelmReleaseDetailView.put | console/tests/team_resources_test.py::HelmReleasesViewTestCase.test_put_persists_upgrade_source_after_success |
+| console.helm-repo.input-length | 持久化前校验 Helm 仓库字段 | active | regression | console.views.helm_app.HelmRepo | console/tests/helm_repo_view_test.py::HelmRepoViewTests.test_post_rejects_repo_url_longer_than_model_limit<br>console/tests/helm_repo_view_test.py::HelmRepoViewTests.test_put_rejects_repo_url_longer_than_model_limit<br>console/tests/helm_repo_view_test.py::HelmRepoViewTests.test_post_accepts_repo_url_at_model_limit<br>console/tests/helm_repo_view_test.py::HelmRepoViewTests.test_post_rejects_missing_or_overlong_repo_identity |
 | console.helm.build | 构建 Helm 应用模板 | active | regression | console.services.mcp_query_service.call_tool[rainbond_build_helm_app] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_build_helm_app_generates_template |
 | console.helm.check | 检查 Helm 应用 | active | regression | console.services.mcp_query_service.call_tool[rainbond_check_helm_app] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_check_helm_app_returns_check_result |
 | console.helm.daemonset-template | Helm DaemonSet 资源映射为组件模板 | active | regression | console.services.helm_app_yaml.HelmAppService.generate_template | console/tests/app_manage_test.py::ComponentDaemonSetSupportTests.test_helm_template_maps_daemonset_resource_type |
@@ -386,11 +424,13 @@
 | console.market-app.manual-build-preserves-port-alias | 手动构建保留应用市场端口别名 | active | regression | console.services.app_actions.app_deploy.AppDeployService.deploy / MarketService.update_port_data | console/tests/app_deploy_test.py::MarketServiceBuildBoundaryRegressionTests |
 | console.market-app.restore-preserves-volume-capacity-on-storage-fallback | 市场恢复在存储类型回退时保留卷容量 | active | regression | console.services.market_app.new_components.NewComponents._template_to_volumes | console/tests/market_app_storage_test.py::MarketAppDefaultStorageClassTests.test_template_to_volumes_preserves_capacity_when_storage_type_changes |
 | console.market-app.restore-volume-capacity-helper | resolve_market_restore_volume_settings 在存储类型变化时保留容量 | active | regression | console.services.app_config.volume_service.AppVolumeService.resolve_market_restore_volume_settings | console/tests/market_app_storage_test.py::MarketAppDefaultStorageClassTests.test_resolve_market_restore_volume_settings_preserves_capacity_when_storage_type_changes |
+| console.market-app.skip-default-domain-for-gray-install | Skip default domain creation for gray market installs | active | regression | console.services.market_app_service.MarketAppService.__save_port | console/tests/market_app_service_test.py::MarketAppServicePortPersistenceTests.test_save_outer_port_skips_default_domain_for_gray_install |
 | console.market-app.upgrade-share-image-fallback | Market App Upgrade Share Image Fallback | active | regression | console.services.market_app.update_components | console/tests/market_app_update_components_test.py::MarketAppUpdateComponentsCompatibilityTests.test_create_update_components_falls_back_to_image_when_share_image_missing |
 | console.market-app.version-order-desc | 应用市场版本按新到旧排序 | active | regression | console.services.market_app_service.MarketAppService._patch_rainbond_app_versions | console/tests/market_app_service_test.py::MarketAppVersionOrderingTests |
 | console.market-app.vm-disk-imports-from-template | 市场应用安装从 VM 模板生成磁盘导入配置 | active | regression | console.services.market_app.new_components.NewComponents._template_to_k8s_attributes | console/tests/market_app_update_components_test.py::MarketAppNewComponentsVMK8sAttrsTests.test_template_to_k8s_attributes_backfills_vm_runtime_attrs_from_vm_block |
 | console.market-app.vm-runtime-status-guard | 虚拟机平台异常时禁止安装虚拟机模板 | active | regression | console.services.market_app_service.MarketAppService.install_app | console/tests/market_app_service_test.py::MarketAppServiceVMGuardTests |
 | console.market-app.vm-template-dynamic-pod-ip | 从应用模板创建虚拟机时使用动态 Pod IP | active | regression | console.services.market_app.new_components.NewComponents._template_to_k8s_attributes | console/tests/market_app_update_components_test.py::MarketAppNewComponentsVMK8sAttrsTests.test_template_to_k8s_attributes_drops_fixed_pod_ip_for_vm |
+| console.market-build.template-update-time | 批量构建市场组件时保留模板更新时间 | active | regression | console.services.app_actions.app_manage.AppManageService.deploy_services_info | console/tests/app_manage_test.py::AppManageMarketBuildPreferenceTests.test_deploy_market_component_uses_version_update_time_after_loading_template_json |
 | console.market-client.auth-missing | 将 401 应用市场错误转换为缺少 token 的服务异常 | active | regression | console.utils.restful_client.apiException | console/tests/utils/restful_client_test.py::RestfulClientApiExceptionTests.test_api_exception_401 |
 | console.market-client.bad-request | 将通用 4xx 应用市场错误转换为参数错误响应 | active | regression | console.utils.restful_client.apiException | console/tests/utils/restful_client_test.py::RestfulClientApiExceptionTests.test_api_exception_generic_4xx |
 | console.market-client.default-host | 使用默认回退 host 创建应用市场客户端 | active | regression | console.utils.restful_client.get_market_client | console/tests/utils/restful_client_test.py::RestfulClientFactoryTests.test_get_market_client_uses_default_host |
@@ -428,13 +468,17 @@
 | console.mcp.wait-for-build-completion | MCP 构建/部署就绪等待工具 | active | unit | console.services.mcp_query_service.call_tool[console.mcp.wait-for-build-completion] | console/tests/mcp_query_wait_build_test.py |
 | console.ns-resource.batch-create | Ns Resource Batch Create | active | regression | console.views.team_resources | console/tests/team_resources_test.py::NsResourceDetailViewTestCase.test_post_preserves_partial_success_status_and_payload |
 | console.ns-resource.update | 通过 YAML 更新命名空间资源 | active | regression | console.views.team_resources.NsResourceDetailView.put | console/tests/team_resources_test.py::NsResourceDetailViewTestCase.test_put_accepts_yaml_media_type_and_forwards_raw_body<br>console/tests/team_resources_test.py::RegionInvokeApiNsResourceTestCase.test_put_tenant_ns_resource_preserves_custom_content_type |
+| console.oauth.gitlab-webhook-url | 规范化 GitLab OAuth Webhook 地址 | active | regression | console.utils.oauth.gitlab_api.GitlabApiV4.create_hook | console/tests/utils/gitlab_api_test.py::GitlabApiV4WebhookTests.test_create_hook_adds_https_scheme_to_bare_host<br>console/tests/utils/gitlab_api_test.py::GitlabApiV4WebhookTests.test_create_hook_supports_protocol_relative_host<br>console/tests/utils/gitlab_api_test.py::GitlabApiV4WebhookTests.test_create_hook_preserves_scheme_and_normalizes_slashes |
 | console.oauth.instance-create | 创建 OAuth helper 实例并绑定服务与用户上下文 | active | regression | console.utils.oauth.oauth_types.get_oauth_instance | console/tests/utils/oauth_types_test.py::OAuthTypeTests.test_get_oauth_instance |
 | console.oauth.kind-flags | 返回基础与 git OAuth helper 的能力标记 | active | regression | console.utils.oauth.base.git_oauth.GitOAuth2Interface.is_git_oauth | console/tests/utils/oauth_base_test.py::OAuthBaseTests.test_oauth_kind_flags |
+| console.oauth.missing-access-key-fallback | OAuth Access Key 缺失时按预期回退仓库地址 | active | regression | console.services.app_actions.app_manage.AppManageService.deploy_services_info | console/tests/app_manage_test.py::AppManageBatchActionDeployEventTests.test_deploy_info_falls_back_without_error_log_when_oauth_access_key_is_missing |
+| console.oauth.service-validation | 使用前校验 OAuth 服务引用 | active | regression | console.repositories.oauth_repo.OAuthRepo.get_oauth_services_by_service_id | console/tests/oauth_repo_validation_test.py::OAuthRepoValidationTestCase.test_get_service_rejects_non_numeric_id_as_not_found<br>console/tests/oauth_repo_validation_test.py::OAuthRepoValidationTestCase.test_update_rejects_deleted_oauth_service_before_reading_home_url |
 | console.oauth.session-retry | 创建带重试 HTTP 适配器的 OAuth 会话 | active | regression | console.utils.oauth.base.oauth.OAuth2Interface.set_session | console/tests/utils/oauth_base_test.py::OAuthBaseTests.test_set_session_builds_retrying_requests_session |
 | console.oauth.supported-types | 列出支持的 OAuth 服务类型 | active | regression | console.utils.oauth.oauth_types.get_support_oauth_servers | console/tests/utils/oauth_types_test.py::OAuthTypeTests.test_get_support_oauth_servers |
 | console.oauth.token-update | 将刷新的 OAuth access/refresh token 持久化到绑定用户 | active | regression | console.utils.oauth.base.oauth.OAuth2Interface.update_access_token | console/tests/utils/oauth_base_test.py::OAuthBaseTests.test_update_access_token_updates_bound_user |
 | console.oauth.unsupported-type | 拒绝不支持的 OAuth 服务类型 | active | regression | console.utils.oauth.oauth_types.get_oauth_instance | console/tests/utils/oauth_types_test.py::OAuthTypeTests.test_get_oauth_instance_unsupported_type |
 | console.oauth.user-binding | 将 OAuth 服务和用户对象绑定到 helper 实例 | active | regression | console.utils.oauth.base.oauth.OAuth2Interface.set_oauth_user | console/tests/utils/oauth_base_test.py::OAuthBaseTests.test_set_oauth_user_and_service |
+| console.openapi.helm-chart-query-schema | Helm Chart GET 参数使用查询序列化器 | active | regression | openapi.views.apps.apps.HelmChart.get | console/tests/openapi_swagger_test.py::OpenAPISwaggerMetadataTests.test_helm_chart_get_declares_query_serializer_without_request_body |
 | console.operator-managed.skip-kubeblocks-services | Skip KubeBlocks services during operator-managed component import | active | regression | console.services.group_service.GroupService.get_watch_managed_data | console/tests/group_service_test.py::GroupServiceOperatorManagedTests |
 | console.package-component.auto-create-flow | 执行制品包组件自动创建全流程 | active | regression | console.services.package_component_service.auto_create_component | console/tests/package_component_service_test.py::PackageComponentServiceTests.test_auto_create_component_runs_full_package_flow |
 | console.package-component.check-request-failure | 制品包组件检测请求失败时拦截创建 | active | regression | console.services.package_component_service.auto_create_component | console/tests/package_component_service_test.py::PackageComponentServiceTests.test_auto_create_component_rejects_check_request_failure |
@@ -451,6 +495,7 @@
 | console.package-component.replace-upload-owner-guard | Reject package uploads bound to another component | active | unit | PackageComponentService.replace_component | console/tests/package_component_service_test.py::PackageComponentServiceTests::test_replace_component_rejects_upload_bound_to_another_component |
 | console.package-component.require-upload-record | 创建制品包组件前必须存在上传记录 | active | regression | console.services.package_component_service.auto_create_component | console/tests/package_component_service_test.py::PackageComponentServiceTests.test_auto_create_component_requires_existing_upload_record |
 | console.package-component.upload-missing | 制品包列表为空时拦截组件创建 | active | regression | console.services.package_component_service.auto_create_component | console/tests/package_component_service_test.py::PackageComponentServiceTests.test_auto_create_component_requires_uploaded_package_list |
+| console.package-create.group-id-validation | 校验包组件应用 ID | active | regression | console.views.app_create.source_code.PackageCreateView.post | console/tests/package_create_view_test.py::PackageCreateViewGroupIdTests |
 | console.package-upload.archive-reuse | Package Upload Archive Reuse | active | regression | console.services.package_upload_tool_service | console/tests/package_upload_tool_service_test.py::PackageUploadToolServiceTests.test_prepare_upload_archive_reuses_supported_package_file |
 | console.package-upload.archive-zip-dir | Package Upload Archive Zip Dir | active | regression | console.services.package_upload_tool_service | console/tests/package_upload_tool_service_test.py::PackageUploadToolServiceTests.test_prepare_upload_archive_zips_directory |
 | console.package-upload.delete | Package Upload Delete | active | regression | console.services.mcp_query_service.call_tool[console.package-upload.delete] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_delete_package_upload_delegates_to_upload_tool_service |
@@ -458,16 +503,20 @@
 | console.package-upload.file | Package Upload File | active | regression | console.services.mcp_query_service.call_tool[console.package-upload.file] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_upload_package_file_delegates_to_upload_tool_service |
 | console.package-upload.init | Package Upload Init | active | regression | console.services.mcp_query_service.call_tool[console.package-upload.init] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_init_package_upload_delegates_to_upload_tool_service |
 | console.package-upload.init-flow | Package Upload Init Flow | active | regression | console.services.package_upload_tool_service | console/tests/package_upload_tool_service_test.py::PackageUploadToolServiceTests.test_init_upload_creates_remote_dir_and_record |
+| console.package-upload.last-record-empty | 无上传记录时返回空状态 | active | regression | console.views.app_create.source_code.UploadRecordLastView.get | console/tests/package_upload_view_test.py::UploadRecordLastViewTests.test_get_keeps_existing_upload_record_response<br>console/tests/package_upload_view_test.py::UploadRecordLastViewTests.test_get_returns_empty_result_without_logging_when_record_is_missing |
 | console.package-upload.local-package | Package Upload Local Package | active | regression | console.services.mcp_query_service.call_tool[console.package-upload.local-package] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_create_component_from_local_package_calls_upload_tool_service |
 | console.package-upload.local-package-flow | Package Upload Local Package Flow | active | regression | console.services.package_upload_tool_service | console/tests/package_upload_tool_service_test.py::PackageUploadToolServiceTests.test_auto_create_component_from_local_path_runs_full_flow |
 | console.package-upload.local-path-create-schema | create_component_from_local_package 工具 schema 暴露服务端本地路径指引 | active | regression | console.services.mcp_query_service.list_tools[console.package-upload.local-path-create-schema] | console/tests/mcp_query_service_test.py::MCPQueryServiceToolVisibilityTests.test_create_component_from_local_package_tool_schema_exposes_server_side_local_path_guidance |
 | console.package-upload.local-path-missing-details | _normalize_local_path 在路径缺失时抛出结构化详情 | active | regression | console.services.package_upload_tool_service.PackageUploadToolService._normalize_local_path | console/tests/package_upload_tool_service_test.py::PackageUploadToolServiceTests.test_normalize_local_path_raises_structured_details_when_path_missing |
 | console.package-upload.local-path-required-details | _normalize_local_path 在路径为空时抛出结构化详情 | active | regression | console.services.package_upload_tool_service.PackageUploadToolService._normalize_local_path | console/tests/package_upload_tool_service_test.py::PackageUploadToolServiceTests.test_normalize_local_path_raises_structured_details_when_path_empty |
 | console.package-upload.local-path-schema | Package Upload Local Path Schema | active | regression | console.services.mcp_query_service.call_tool[console.package-upload.local-path-schema] | console/tests/mcp_query_service_test.py::MCPQueryServiceToolVisibilityTests.test_upload_package_file_tool_schema_exposes_local_path_guidance |
+| console.package-upload.missing-event-record | 上传记录不存在时拒绝包组件变更 | active | regression | console.views.app_create.source_code.PackageCreateView | console/tests/package_upload_view_test.py::PackageCreateViewTests.test_post_returns_404_before_creating_component_when_upload_record_is_missing<br>console/tests/package_upload_view_test.py::PackageCreateViewTests.test_put_returns_404_before_updating_component_when_upload_record_is_missing |
 | console.package-upload.rainskills-tool-visibility | RainSkills 工具发现隐藏服务端本地软件包工具 | active | regression | console.services.mcp_query_service.list_tools[console.package-upload.rainskills-tool-visibility] | console/tests/mcp_query_service_test.py::MCPQueryServiceToolVisibilityTests.test_rainskills_hides_server_local_package_tools_only_from_discovery |
+| console.package-upload.record-required-params | 校验软件包上传记录查询参数 | active | regression | console.views.app_create.source_code.PackageUploadRecordView.get | console/tests/package_upload_view_test.py::PackageUploadRecordViewTests.test_get_rejects_missing_event_id_before_calling_region |
 | console.package-upload.status | Package Upload Status | active | regression | console.services.mcp_query_service.call_tool[console.package-upload.status] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_get_package_upload_status_delegates_to_upload_tool_service |
 | console.package-upload.status-flow | Package Upload Status Flow | active | regression | console.services.package_upload_tool_service | console/tests/package_upload_tool_service_test.py::PackageUploadToolServiceTests.test_get_upload_status_reads_packages_and_updates_record |
 | console.package-upload.upload-flow | Package Upload Upload Flow | active | regression | console.services.package_upload_tool_service | console/tests/package_upload_tool_service_test.py::PackageUploadToolServiceTests.test_upload_package_uploads_archive_and_returns_status |
+| console.permissions.concurrent-initialization | 多进程幂等同步权限元数据 | active | regression | console.repositories.perm_repo.PermsRepo._sync_permission_settings | console/tests/perm_repo_performance_test.py::PermsRepoPerformanceTests.test_changed_permissions_sync_idempotently_within_the_check_interval |
 | console.platform-plugin.vm-access-url-fallback | 从前端组件访问地址回填官方虚拟机插件访问前缀 | active | regression | console.services.plugin_service.RainbondPluginService.list_plugins | console/tests/rbd_plugin_service_test.py::RainbondPluginServiceTests.test_official_vm_plugin_uses_frontend_component_access_url_when_region_urls_missing |
 | console.platform-plugin.vm-runtime-status-guard | 校验虚拟机平台插件运行状态 | active | regression | console.services.platform_plugin_service.PlatformPluginService.ensure_vm_plugin_running | console/tests/platform_plugin_service_test.py::PlatformPluginServiceTests.test_ensure_vm_plugin_running_rejects_non_running_status |
 | console.plugin-build.infer-arch | Infer plugin build architecture from region chaos nodes | active | regression | console.services.plugin_build_arch.resolve_plugin_build_arch | console/tests/plugin_build_arch_test.py::PluginBuildArchTests |
@@ -478,7 +527,10 @@
 | console.port-inner.env-sync-idempotent | Treat duplicate region env create as idempotent during inner port enable | active | regression | console.services.app_config.env_service.AppEnvVarService.add_service_env_var | console/tests/env_service_region_idempotency_test.py::EnvServiceRegionIdempotencyTests.test_add_service_env_var_updates_region_when_env_already_exists<br>console/tests/env_service_region_idempotency_test.py::EnvServiceRegionIdempotencyTests.test_add_service_env_var_retries_add_when_region_update_reports_record_not_found<br>console/tests/env_service_region_idempotency_test.py::EnvServiceRegionIdempotencyTests.test_add_service_env_var_treats_second_add_conflict_as_success |
 | console.rainskills-audit-migration-repair | Rainskills 审计迁移修复 | active | unit | python manage.py repair_legacy_schema --apps console [--plan] | console/tests/legacy_schema_repair_test.py::RepairInitialMigrationTests |
 | console.rainskills-audit-strict-startup | Rainskills 严格审计启动门禁 | active | regression | entrypoint repair plan and strict MCP write audit | console/tests/entrypoint_test.py::EntrypointGunicornTest.test_database_startup_plans_repairs_before_applying_and_migrating<br>console/tests/rainskills_audit_service_test.py::RainSkillsAuditServiceSafetyTests.test_confirmation_metadata_is_required_by_default<br>console/tests/mcp_query_rainskills_audit_test.py::MCPQueryRainSkillsAuditTests.test_strict_mode_blocks_legacy_mutation_before_tool_execution |
+| console.rainskills-audit.transient-terminal-lock-retry | 重试 RainSkills 审计终态瞬时数据库锁 | active | regression | console.services.rainskills_audit_service.RainSkillsAuditService.finalize_failure | console/tests/rainskills_audit_service_test.py::RainSkillsAuditServiceSafetyTests.test_terminal_persistence_retries_transient_database_locks |
+| console.rainskills.deployment-report-backpressure | Bound deployment report workers without losing deferred reports | active | regression | RainSkillsDeploymentService.sweep_once | console/tests/rainskills_deployment_service_test.py::RainSkillsDeploymentServiceTests.test_worker_limit_preserves_pending_reports_and_sweeps_fairly<br>console/tests/rainskills_deployment_service_test.py::RainSkillsDeploymentServiceTests.test_report_closes_database_before_network_wait |
 | console.random.default-version | 生成默认随机版本标识 | active | regression | console.utils.randomutil.make_default_version | console/tests/utils/randomutil_test.py::RandomUtilTests.test_make_default_version |
+| console.realtime-proxy.client-reset-close | WebSocket 连接重置按正常关闭处理 | active | regression | console.utils.realtime_proxy.proxy_websocket_request | console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_websocket_proxy_treats_client_connection_reset_as_normal_close |
 | console.realtime-proxy.docker-console-subprotocol | Docker 控制台后端使用 webtty 子协议 | active | regression | console.utils.realtime_proxy._backend_websocket_subprotocols | console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_docker_console_backend_uses_webtty_subprotocol |
 | console.realtime-proxy.docker-console-user-activity | Docker 控制台活动跟踪在用户输入时刷新 | active | regression | console.utils.realtime_proxy.DockerConsoleActivityTracker | console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_docker_console_activity_tracker_refreshes_on_user_input |
 | console.realtime-proxy.docker-console-user-idle-timeout | Docker 控制台活动跟踪忽略 webtty 心跳 | active | regression | console.utils.realtime_proxy.DockerConsoleActivityTracker | console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_docker_console_activity_tracker_ignores_webtty_ping |
@@ -486,6 +538,7 @@
 | console.realtime-proxy.forward-client-subprotocols | 转发客户端请求的 websocket 子协议 | active | regression | console.utils.realtime_proxy._backend_websocket_subprotocols | console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_websocket_proxy_keeps_client_requested_subprotocols |
 | console.realtime-proxy.http-forward | 实时代理 HTTP 转发 | active | regression | console.utils.realtime_proxy.proxy_http_request | console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_http_proxy_forwards_upload_request_to_region_websocket_service |
 | console.realtime-proxy.internal-target-override | 实时代理内部目标覆盖 | active | regression | console.utils.realtime_proxy.build_region_realtime_proxy_url | console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_region_proxy_target_prefers_internal_override_for_builtin_region |
+| console.realtime-proxy.interrupted-upload | 受控处理客户端中断上传并保留后端故障 | active | regression | console.utils.realtime_proxy.proxy_http_request | console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_http_proxy_handles_direct_unreadable_post_error<br>console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_http_proxy_returns_bad_request_when_client_upload_is_interrupted<br>console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_http_proxy_keeps_backend_connection_errors_visible |
 | console.realtime-proxy.multipart-folder-upload-forward | 转发文件夹上传中的重复 multipart 文件字段 | active | regression | console.utils.realtime_proxy.build_multipart_payload | console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_multipart_folder_upload_encodes_repeated_file_field |
 | console.realtime-proxy.multipart-upload-forward | 实时代理流式转发离线应用上传请求 | active | regression | console.utils.realtime_proxy._should_forward_raw_multipart | console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_app_import_upload_forwards_raw_multipart_body |
 | console.realtime-proxy.non-terminal-no-user-idle-timeout | 非终端实时代理不触发用户空闲超时 | active | regression | console.utils.realtime_proxy.DockerConsoleActivityTracker | console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_non_docker_console_activity_tracker_never_user_idle_expires |
@@ -496,10 +549,18 @@
 | console.realtime-proxy.websocket-idle-timeout | 后端 websocket 使用短读超时检测空闲 | active | regression | console.utils.realtime_proxy.open_backend_websocket | console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_backend_websocket_uses_short_read_timeout_for_idle_checks |
 | console.realtime-proxy.websocket-url | 实时代理 WebSocket URL | active | regression | console.services.app_actions.app_log.AppWebSocketService.get_event_log_ws | console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_websocket_service_returns_console_proxy_url_without_6060 |
 | console.region-api.batch-create-error-bean | Region Api Batch Create Error Bean | active | regression | www.apiclient.regionapibaseclient.RegionApiBaseHttpClient._check_status | console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_check_status_preserves_batch_create_result_bean_for_coded_errors |
+| console.region-api.concurrent-certificate-directory | 并发安全创建区域证书目录 | active | regression | www.apiclient.regionapibaseclient.create_file | console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_create_file_tolerates_concurrent_directory_creation |
 | console.region-api.domain-conflict-msg | 将上游域名冲突保留为可操作的 409 错误提示 | active | regression | www.apiclient.regionapibaseclient.RegionApiBaseHttpClient._check_status | console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_check_status_keeps_domain_conflict_as_conflict_error |
 | console.region-api.helm-resource-conflict-msg | 将 Helm 资源归属冲突转换为可操作错误提示 | active | regression | www.apiclient.regionapibaseclient.RegionApiBaseHttpClient._check_status | console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_check_status_translates_helm_ownership_conflict_to_actionable_msg_show |
 | console.region-api.proxy-error-pass-through | 对非 Helm 冲突保留原始上游错误信息 | active | regression | www.apiclient.regionapibaseclient.RegionApiBaseHttpClient._check_status | console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_check_status_keeps_original_message_for_non_helm_conflicts |
+| console.region-api.unavailable-response | Region API 不可达时返回稳定可重试响应 | active | regression | www.apiclient.regionapibaseclient.RegionApiBaseHttpClient._request | console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_request_translates_retry_exhaustion_to_stable_retryable_503<br>console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_request_classifies_timeout_tls_and_other_transport_failures<br>console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_retryable_service_unavailable_response_includes_retry_after |
+| console.region-api.upstream-server-error | 统一 Region 上游服务错误 | active | regression | console.views.base.custom_exception_handler | console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_region_upstream_server_error_returns_retryable_502<br>console/tests/sentry_config_test.py::test_before_send_groups_region_server_errors_by_normalized_upstream_path |
 | console.region-api.vm-snapshot-feature-gate-msg | _check_status 将虚拟机快照功能门禁错误翻译为可操作提示 | active | regression | www.apiclient.regionapibaseclient.RegionApiBaseHttpClient._check_status | console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_check_status_translates_snapshot_feature_gate_error_to_actionable_msg_show |
+| console.region.list-current-enterprise | 查询当前认证企业的数据中心 | active | regression | console.views.region.QyeryRegionView.get | console/tests/region_view_test.py::QueryRegionViewTests.test_get_uses_authenticated_users_enterprise_without_path_parameter |
+| console.region.partial-update-preserves-required-fields | 集群部分更新保留未提交字段 | active | regression | console.repositories.region_repo.RegionRepo.update_enterprise_region | console/tests/region_repo_update_test.py::RegionRepoUpdateTestCase.test_partial_update_preserves_omitted_required_connection_fields |
+| console.region.sse-protocol-disconnect | 上游协议中断后平静结束 SSE 流 | active | regression | www.apiclient.regionapi.RegionInvokeApi.sse_proxy | console/tests/regionapi_sse_proxy_test.py::RegionApiSSEProxyTests.test_sse_proxy_ends_cleanly_when_upstream_disconnects |
+| console.region.sse-read-timeout | SSE 空闲读取超时后平静结束流 | active | regression | www.apiclient.regionapi.RegionInvokeApi.sse_proxy | console/tests/regionapi_sse_proxy_test.py::RegionApiSSEProxyTests.test_sse_proxy_ends_cleanly_after_idle_read_timeout |
+| console.region.sse-utf8-streaming | SSE 分片安全解码 UTF-8 | active | regression | www.apiclient.regionapi.RegionInvokeApi.sse_proxy | console/tests/regionapi_sse_proxy_test.py::RegionApiSSEProxyTests.test_sse_proxy_decodes_utf8_characters_split_across_chunks<br>console/tests/regionapi_sse_proxy_test.py::RegionApiSSEProxyTests.test_sse_proxy_replaces_invalid_trailing_utf8_without_stopping_stream |
 | console.region.update-region-config | 依据配置项是否存在选择更新或新增数据中心配置 | active | regression | console.services.region_services.RegionService.update_region_config | console/tests/region_config_update_test.py::UpdateRegionConfigTest.test_update_when_config_exists_passes_dict_value<br>console/tests/region_config_update_test.py::UpdateRegionConfigTest.test_add_when_config_missing_passes_json_string_and_desc |
 | console.request-args.bool-coercion | 将请求中的布尔参数从字符串或布尔值安全转换 | active | regression | console.utils.reqparse.bool_argument | console/tests/utils/reqparse_test.py::BoolArgumentTestCase |
 | console.request-args.bool-default-false | 缺失布尔查询参数时返回 false 默认值 | active | regression | console.utils.reqparse.parse_argument | console/tests/utils/reqparse_test.py::ParseArgumentTestCase.test_parse_argument_return_default_false_bool |
@@ -533,6 +594,9 @@
 | console.rke2.cluster-install-structured-helm-error | Rainbond 安装失败时返回结构化错误且不进入集成中状态 | active | regression | console.views.rke2.ClusterRKEInstallRB.post | console/tests/rke2_cluster_errors_test.py::ClusterRKEErrorTests.test_cluster_install_returns_structured_helm_error_without_saving_integrating |
 | console.rke2.cluster-missing-metadata-404 | 请求的 RKE 集群元数据缺失时返回 404 | active | regression | console.views.rke2.ClusterRKE.get | console/tests/rke2_cluster_errors_test.py::ClusterRKEErrorTests.test_cluster_get_returns_structured_404_when_cluster_metadata_missing |
 | console.rke2.helm-subprocess-error-sanitized | 清洗 Rainbond 安装中的 Helm 子进程失败信息 | active | regression | console.utils.k8s_cli.K8sClient.install_rainbond | console/tests/rke2_cluster_errors_test.py::ClusterRKEErrorTests.test_install_rainbond_returns_sanitized_subprocess_error |
+| console.runtime.sse-gunicorn-timeout | Gunicorn 超时覆盖一小时 SSE 长连接 | active | regression | entrypoint.sh/Procfile | console/tests/entrypoint_test.py::EntrypointGunicornTest.test_gunicorn_timeout_outlives_one_hour_sse_streams |
+| console.sentry.expected-not-found-errors | 过滤预期的资源不存在异常 | active | regression | goodrain_web.sentry_config.before_send | console/tests/sentry_config_test.py::test_before_send_drops_expected_not_found_exceptions<br>console/tests/sentry_config_test.py::test_before_send_keeps_server_side_service_and_region_errors |
+| console.sentry.expected-region-frequent-error | 过滤预期的区域操作频繁异常 | active | regression | goodrain_web.sentry_config.before_send | console/tests/sentry_config_test.py::test_before_send_drops_region_api_frequent_operation_exception<br>console/tests/sentry_config_test.py::test_before_send_keeps_same_exception_name_from_other_modules |
 | console.service-share.cnb-publish-command | 发布组件模板时清理 CNB 源码启动命令 | active | regression | console.services.share_services.ShareService.query_share_service_info | console/tests/service_share_test.py::ShareServiceCNBPublishCommandTestCase |
 | console.service-share.create-record | 创建组件共享记录 | active | regression | console.views.service_share.ServiceShareRecordView.post | console/tests/service_share_test.py::ServiceShareRecordViewTestCase |
 | console.service-share.create-snapshot-record | 创建基于快照的服务分享记录 | active | regression | console.views.service_share.ServiceShareRecordView.post | console/tests/service_share_test.py::ServiceShareRecordViewTestCase.test_post_snapshot_mode_uses_hidden_template_app_id |
@@ -561,6 +625,9 @@
 | console.source-component.normalize-git-url | 为 Git 地址追加一次子目录参数 | active | regression | console.services.source_component_service.normalize_git_url | console/tests/source_component_service_test.py::SourceComponentServiceTests.test_normalize_git_url_appends_subdirectory_once |
 | console.source-component.prefer-dockerfile | Source Component Prefer Dockerfile | active | regression | console.services.source_component_service | console/tests/source_component_service_test.py::SourceComponentServiceTests.test_auto_create_component_prefers_dockerfile_when_requested |
 | console.source-component.prefer-dockerfile-from-dockerfiles-flag | Source Component Prefer Dockerfile From Dockerfiles Flag | active | regression | console.services.source_component_service | console/tests/source_component_service_test.py::SourceComponentServiceTests.test_auto_create_component_prefers_dockerfile_when_dockerfiles_exist |
+| console.team-arch.empty-region-response | 区域架构响应为空时返回空列表 | active | regression | console.views.public_areas.TeamArchView.get | console/tests/team_overview_query_scope_test.py::TeamOverviewQueryScopeTest.test_team_arch_returns_empty_list_when_region_has_no_architectures |
+| console.team-domain-monitor.time-range-validation | 校验域名监控时间范围 | active | regression | console.views.team.TeamSortDomainQueryView.get | console/tests/team_sort_domain_query_test.py::TeamSortDomainQueryTimeRangeTests |
+| console.team-events.deleted-component-metadata | Preserve deleted component metadata in team events | active | regression | console.views.public_areas._enrich_service_events | console/tests/team_overview_query_scope_test.py::TeamOverviewQueryScopeTest.test_team_events_preserve_live_and_deleted_component_targets |
 | console.team-query.current-user-membership | 仅列出当前用户已加入的团队 | active | regression | console.services.mcp_query_service.call_tool[rainbond_query_teams] | console/tests/mcp_query_service_test.py::MCPQueryServiceTeamQueryTests.test_query_teams_only_lists_teams_joined_by_current_user |
 | console.team.create-invalid-namespace | 创建团队时拒绝非法命名空间 | active | regression | console.views.team.AddTeamView.post | console/tests/add_team_namespace_validation_test.py::AddTeamInvalidNamespaceTest.test_invalid_namespace_raises_qualified_name_error_not_typeerror |
 | console.test-manifest.ignore-worktrees | 测试清单校验忽略嵌套 worktree 测试 | active | regression | scripts.validate_test_manifest.collect_marked_tests | scripts/validate_test_manifest_test.py::ValidateTestManifestTests |
@@ -571,13 +638,16 @@
 | console.timeutil.parse | 将格式化时间字符串解析为 datetime 对象 | active | regression | console.utils.timeutil.str_to_time | console/tests/utils/timeutil_test.py::TimeUtilTests.test_str_to_time |
 | console.tool-visibility.enterprise-admin | 向企业管理员暴露管理工具集 | active | regression | console.services.mcp_query_service.list_tools[enterprise_admin] | console/tests/mcp_query_service_test.py::MCPQueryServiceToolVisibilityTests.test_list_tools_for_enterprise_admin_includes_region_and_enterprise_tools |
 | console.tool-visibility.standard-user | 向普通用户隐藏企业管理工具 | active | regression | console.services.mcp_query_service.list_tools[standard_user] | console/tests/mcp_query_service_test.py::MCPQueryServiceToolVisibilityTests.test_list_tools_for_non_enterprise_admin_hides_region_and_enterprise_tools |
+| console.topology.batch-status-error-logging | 拓扑批量状态失败仅记录一次真实异常 | active | regression | console.services.topological_services.TopologicalService.get_group_topological_graph | console/tests/app_component_performance_test.py::TopologicalServicePerformanceTests.test_topology_logs_batch_status_failure_once_with_exception_context |
 | console.url.path-legal | 校验路径是否满足 URL 路径合法性规则 | active | regression | console.utils.urlutil.is_path_legal | console/tests/utils/urlutil_test.py::UrlUtilTests.test_is_path_legal |
 | console.url.query-build | 根据基础路径和参数构建 GET URL | active | regression | console.utils.urlutil.set_get_url | console/tests/utils/urlutil_test.py::UrlUtilTests.test_set_get_url |
 | console.url.query-empty | 即使没有查询参数也能构建 GET URL | active | regression | console.utils.urlutil.set_get_url | console/tests/utils/urlutil_test.py::UrlUtilTests.test_set_get_url_with_empty_params |
+| console.user-registration.required-username | 注册缺少用户名时返回表单错误 | active | regression | console.views.user_operation.TenantServiceView.post | console/tests/user_registration_view_test.py::TenantServiceRegistrationViewTests.test_post_normalizes_provided_username_before_form_validation<br>console/tests/user_registration_view_test.py::TenantServiceRegistrationViewTests.test_post_returns_form_error_when_username_is_missing |
 | console.user.access-token-delete-log | 删除访问令牌时记录令牌备注 | active | regression | console.views.user_accesstoken.UserAccessTokenRUDView.delete | console/tests/user_accesstoken_delete_log_test.py::UserAccessTokenDeleteLogTest.test_delete_logs_token_note_without_nameerror |
 | console.user.current-profile | 查看当前用户身份信息 | active | regression | console.services.mcp_query_service.get_current_user | console/tests/mcp_query_service_test.py::MCPQueryServiceToolVisibilityTests.test_get_current_user_returns_identity_and_enterprise_admin_flag |
 | console.user.favorite-delete-log | 删除收藏视图时记录收藏名称 | active | regression | console.views.user_operation.UserFavoriteUDView.delete | console/tests/user_favorite_delete_log_test.py::UserFavoriteDeleteLogTest |
 | console.user.get-users-by-ids | 通过用户仓储按用户 ID 列表批量查询用户 | active | regression | console.services.user_services.UserService.get_users_by_user_ids | console/tests/user_services_get_by_ids_test.py::GetUsersByUserIdsTest.test_delegates_to_repo_get_by_user_ids |
+| console.user.password-reset-invalid-link | Reject invalid password reset links without server errors | active | regression | POST /console/users/begin_password_reset | console/tests/password_reset_view_test.py::PasswordResetViewTestCase |
 | console.validation.display-name | 校验用户展示名称的中英文数字与连接符规则 | active | regression | console.utils.validation.validate_name | console/tests/utils/validation_test.py::NamespaceNormalizationTests.test_validate_name |
 | console.validation.k8s-qualified-name | 校验 Kubernetes 合法资源名称格式 | active | regression | console.utils.validation.is_qualified_name | console/tests/utils/validation_test.py::NamespaceNormalizationTests.test_is_qualified_name |
 | console.version.compare | 比较语义化风格的版本字符串 | active | regression | console.utils.version.compare_version | console/tests/utils/version_test.py::VersionUtilsTests.test_compare_version |
@@ -598,6 +668,7 @@
 | console.vm-template-import.delete-abnormal-vm | delete 允许异常状态虚拟机跳过运行中校验 | active | regression | console.services.app_actions.app_manage.AppManageService.delete | console/tests/app_manage_test.py::AppManageVMRestoreDeleteTests.test_delete_allows_abnormal_vm_to_skip_running_guard |
 | console.vm-template-import.delete-restoring-vm | Allow deleting restoring VM components | active | regression | console.services.app_actions.app_manage.AppManageService.delete | console/tests/app_manage_test.py::AppManageVMRestoreDeleteTests |
 | console.vm-template-import.restore-operation-record | VM template import restore operation record exposes progress | active | unit | console.services.app_actions.app_log.AppEventService.build_vm_restore_event | console/tests/vm_profile_runtime_status_test.py::VMRestoreEventTests.test_build_vm_restore_event_exposes_progress_and_importer_logs<br>console/tests/vm_profile_runtime_status_test.py::VMRestoreEventTests.test_build_vm_restore_event_marks_success_after_import_finishes |
+| console.webhook.custom-deploy-missing-component | 自定义部署回调在组件已删除时返回 404 | active | regression | console.views.webhook.CustomWebHooksDeploy.post | console/tests/custom_webhook_test.py::CustomWebhookDeployTests.test_post_returns_not_found_before_reading_key_for_deleted_component<br>console/tests/custom_webhook_test.py::CustomWebhookDeployTests.test_post_still_rejects_invalid_key_for_existing_component |
 | openapi.app-service.team-not-found | 应用关联的团队不存在时返回404错误 | active | regression | openapi.services.app_service.AppService.get_app_services_and_status | console/tests/openapi_app_service_team_not_found_test.py::AppServiceTeamNotFoundTest |
 | openapi.app.create-third-component-deploy-key | OpenAPI 创建第三方 api 组件时生成密钥 | active | regression | openapi.views.apps.apps.CreateThirdComponentView.post | console/tests/openapi_third_component_deploy_repo_test.py::ThirdComponentDeployRepoTest.test_deploy_repo_is_the_singleton_not_the_module |
 | openapi.app.team-apps-close | OpenAPI 关闭团队全部应用 | active | regression | openapi.views.apps.apps.TeamAppsCloseView.post | console/tests/openapi_team_apps_close_test.py::TeamAppsCloseTest.test_post_unpacks_three_return_values_from_batch_action |
@@ -629,6 +700,16 @@
 - 业务入口: `console.views.center_pool.groupapp_backup.GroupAppsBackupView.post`
 - 代码路径: `console/views/center_pool/groupapp_backup.py`, `console/services/backup_service.py`
 - 测试路径: `console/tests/groupapp_backup_migration_test.py::GroupAppsBackupViewWorkflowTests.test_post_starts_group_backup`
+
+### 备份不存在的应用时返回 404
+
+- Capability ID: `console.app-backup.create-group-missing`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.backup_service.GroupAppBackupService.get_group_app_metadata`
+- 代码路径: `console/services/backup_service.py`
+- 测试路径: `console/tests/backup_service_test.py::GroupAppBackupMetadataTests.test_get_group_app_metadata_keeps_valid_empty_group_metadata`, `console/tests/backup_service_test.py::GroupAppBackupMetadataTests.test_get_group_app_metadata_rejects_missing_group_before_collecting_components`
 
 ### 组件使用自定义存储时阻止备份
 
@@ -1360,6 +1441,16 @@
 - 代码路径: `console/views/center_pool/groupapp_migration.py`
 - 测试路径: `console/tests/groupapp_backup_migration_test.py::GroupAppsMigrationViewWorkflowTests.test_post_rejects_when_target_team_has_no_usable_regions`
 
+### Keep application access links resilient to stale components
+
+- Capability ID: `console.app-overview.group-visit-resilience`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `view_endpoint`
+- 业务入口: `GET /console/teams/{team_name}/group/service/visit`
+- 代码路径: `console/views/app_overview.py`
+- 测试路径: `console/tests/app_group_visit_view_test.py::AppGroupVisitViewTestCase`
+
 ### App Publish Candidates
 
 - Capability ID: `console.app-publish.candidates`
@@ -1369,6 +1460,16 @@
 - 业务入口: `console.services.mcp_query_service.call_tool[console.app-publish.candidates]`
 - 代码路径: `console/services/mcp_query_service.py`
 - 测试路径: `console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_get_app_publish_candidates_returns_models`
+
+### 应用详情路由仅接受数字 ID
+
+- Capability ID: `console.app-route.numeric-id`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `view_endpoint`
+- 业务入口: `console.urls[/teams/{tenantName}/groups/{app_id}]`
+- 代码路径: `console/urls/__init__.py`
+- 测试路径: `console/tests/group_route_test.py::GroupRouteTests.test_group_detail_route_accepts_numeric_id`, `console/tests/group_route_test.py::GroupRouteTests.test_group_detail_route_rejects_reserved_word_as_id`
 
 ### 垂直伸缩未传 GPU 时保留组件当前值
 
@@ -1489,6 +1590,16 @@
 - 业务入口: `console.services.group_service.GroupService._add_component_status_to_apps`
 - 代码路径: `console/services/group_service.py`, `console/services/topological_services.py`
 - 测试路径: `console/tests/group_service_test.py::GroupServiceAppStatusAggregationTests.test_add_component_status_to_apps_marks_closed_when_components_are_closed_or_undeploy`
+
+### 区域应用映射缺失时回退组件状态
+
+- Capability ID: `console.app-status.missing-region-app-fallback`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.group_service.GroupService.get_app_status`
+- 代码路径: `console/services/group_service.py`
+- 测试路径: `console/tests/group_service_test.py::GroupServiceAppStatusAggregationTests.test_get_app_status_uses_component_fallback_when_region_app_mapping_is_missing`
 
 ### 将运行中与异常混合组件识别为部分异常
 
@@ -2340,6 +2451,16 @@
 - 代码路径: `console/services/auth/__init__.py`
 - 测试路径: `console/tests/auth_get_user_test.py::GetUserNoLegacyMiddlewareTests.test_returns_user_without_touching_middleware_classes`, `console/tests/auth_get_user_test.py::GetUserNoLegacyMiddlewareTests.test_returns_anonymous_user_when_no_session`
 
+### 重复构建环境变量统一更新
+
+- Capability ID: `console.build-env.duplicate-update`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `dao_method`
+- 业务入口: `console.repositories.app_config.TenantServiceEnvVarRepository.update_or_create_env_var`
+- 代码路径: `console/repositories/app_config.py`
+- 测试路径: `console/tests/app_config_test.py::TenantServiceEnvVarRepositoryTests.test_update_or_create_env_var_updates_all_duplicate_rows`, `console/tests/app_config_test.py::TenantServiceEnvVarRepositoryTests.test_update_or_create_env_var_creates_row_when_no_match_exists`
+
 ### Atomic expiring cache increment
 
 - Capability ID: `console.cache.atomic-increment`
@@ -2510,6 +2631,116 @@
 - 代码路径: `console/utils/certutil.py`
 - 测试路径: `console/tests/utils/certutil_test.py::CertUtilTests.test_utc2local`
 
+### 云端市场临时模板安装与升级引用保护
+
+- Capability ID: `console.cleanup.cloud-template-reference`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `workflow`
+- 业务入口: `console.services.cleanup_retirement.lock_template_use`
+- 代码路径: `console/services/cleanup_retirement.py`, `console/services/market_app_service.py`, `console/services/market_app/app_upgrade.py`, `console/services/platform_plugin_service.py`
+- 测试路径: `console/tests/cleanup_retirement_test.py::RetirementGuardTests.test_cloud_template_use_does_not_require_local_market_rows`, `console/tests/market_app_service_test.py::MarketAppServiceTelemetryTests.test_cloud_install_protects_transient_template_without_local_market_row`, `console/tests/cleanup_installation_test.py::CleanupInstallationLifecycleTests.test_upgrade_configures_before_replacing_pods`, `console/tests/platform_plugin_first_deploy_test.py::PlatformPluginFirstDeployTrackingTests.test_install_platform_plugin_reports_first_deploy_tracking`
+
+### 协调签名绑定范围与原始请求
+
+- Capability ID: `console.cleanup.coordination-signature`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.cleanup_core_bridge.verify_core_request`
+- 代码路径: `console/services/cleanup_core_bridge.py`
+- 测试路径: `console/tests/cleanup_core_bridge_test.py::CleanupCoreBridgeTests.test_signature_binds_scope_path_time_and_exact_body`
+
+### 协调请求严格校验证书且不自动重放
+
+- Capability ID: `console.cleanup.coordination-upstream`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `www.apiclient.regionapi.RegionInvokeApi.cleanup_proxy_request`
+- 代码路径: `www/apiclient/regionapi.py`
+- 测试路径: `console/tests/cleanup_core_bridge_test.py::CleanupCoreForwardingTests.test_forwarder_uses_verified_tls_without_retries_or_caller_headers`
+
+### 仅转发安装实例签名的协调请求
+
+- Capability ID: `console.cleanup.coordination-view`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `view_endpoint`
+- 业务入口: `console.views.cleanup_core_bridge.CleanupCoreBridgeView.post`
+- 代码路径: `console/views/cleanup_core_bridge.py`, `console/urls/cleanup_inventory.py`
+- 测试路径: `console/tests/cleanup_core_bridge_test.py::CleanupCoreForwardingTests.test_view_rejects_browser_credentials_and_forwards_only_signed_envelopes`
+
+### Independent scoped system coordination identity
+
+- Capability ID: `console.cleanup.system-coordination-key`
+- 状态: `active`
+- 测试类型: `unit`
+- 接口类型: `service_method`
+- 业务入口: `resolve_system_coordination_key`
+- 代码路径: `console/services/cleanup_system_coordination.py`
+- 测试路径: `console/tests/cleanup_system_coordination_test.py`
+
+### Validate enterprise ownership and exact Core receipt for upload chunk retirement
+
+- Capability ID: `console.cleanup.upload-chunk-retirement-bridge`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `workflow`
+- 业务入口: `retire_upload_chunks`
+- 代码路径: `console/services/cleanup_retirement.py`, `console/views/cleanup_retirement.py`, `www/apiclient/regionapi.py`
+- 测试路径: `console/tests/cleanup_retirement_test.py::RetirementGuardTests.test_upload_chunk_retirement_is_enterprise_scoped_and_checks_exact_core_receipt`, `console/tests/cleanup_retirement_test.py::RetirementGuardTests.test_region_client_uses_only_fixed_upload_delete_path`
+
+### Protect upload packages referenced by current regional component sources
+
+- Capability ID: `console.cleanup.upload-current-source-references`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `workflow`
+- 业务入口: `current_package_reference_events`
+- 代码路径: `console/services/cleanup_upload_inventory.py`, `console/views/cleanup_inventory.py`
+- 测试路径: `console/tests/cleanup_upload_inventory_test.py::UploadInventoryTests.test_current_component_package_paths_add_positive_protection_only`, `console/tests/cleanup_upload_inventory_test.py::UploadInventoryTests.test_current_reference_query_is_region_scoped_and_bounded`
+
+### Derive upload event inventory from enterprise and region ownership
+
+- Capability ID: `console.cleanup.upload-inventory-scope`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `view_endpoint`
+- 业务入口: `GET cleanup inventory kind=uploads`
+- 代码路径: `console/views/cleanup_inventory.py`, `www/apiclient/regionapi.py`
+- 测试路径: `console/tests/cleanup_upload_inventory_test.py::UploadInventoryTests.test_console_derives_event_scope_from_enterprise_and_region`
+
+### Keep package and chunk sizes separate without counting events twice
+
+- Capability ID: `console.cleanup.upload-package-size-projection`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `workflow`
+- 业务入口: `upload_resources`
+- 代码路径: `console/services/cleanup_upload_inventory.py`
+- 测试路径: `console/tests/cleanup_upload_inventory_test.py::UploadInventoryTests.test_package_size_is_separate_from_chunks_and_event_is_unique`
+
+### Preserve actual upload sizes without granting deletion
+
+- Capability ID: `console.cleanup.upload-size-projection`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `workflow`
+- 业务入口: `upload_resources`
+- 代码路径: `console/services/cleanup_upload_inventory.py`
+- 测试路径: `console/tests/cleanup_upload_inventory_test.py::UploadInventoryTests.test_actual_size_and_unavailable_measurements_remain_distinct`
+
+### Announce only verified Console Pod identity through the private Region client
+
+- Capability ID: `console.cleanup.writer-runtime-announcement`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.cleanup_writer_registration.announce_console_writer`
+- 代码路径: `console/services/cleanup_writer_registration.py`, `console/views/cleanup_inventory.py`, `www/apiclient/regionapi.py`
+- 测试路径: `console/tests/cleanup_writer_registration_test.py`
+
 ### 根据构建参数自动设置 CNB 构建类型
 
 - Capability ID: `console.cnb-build.auto-set-build-type`
@@ -2609,6 +2840,96 @@
 - 业务入口: `console.utils.cnb_build.sanitize_build_env_dict_for_language`
 - 代码路径: `console/utils/cnb_build.py`
 - 测试路径: `console/tests/cnb_build_test.py::BuildEnvSanitizeTestCase.test_java_build_envs_strip_stale_cnb_markers`, `console/tests/cnb_build_test.py::BuildEnvSanitizeTestCase.test_java_build_envs_strip_runtime_aliases_used_by_builder`, `console/tests/cnb_build_test.py::BuildEnvSanitizeTestCase.test_non_cnb_languages_strip_stale_cnb_markers`
+
+### 处理代码仓库 Webhook 空提交消息
+
+- Capability ID: `console.code-webhook.null-commit-message`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `package_function`
+- 业务入口: `console.views.webhook.commit_message_matches_deploy_keyword`
+- 代码路径: `console/views/webhook.py`
+- 测试路径: `console/tests/webhook_test.py::ImageWebhookPayloadTestCase.test_null_commit_message_does_not_match_deploy_keyword`
+
+### 未分组组件仍可执行批量操作
+
+- Capability ID: `console.component-batch-action.missing-app`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `view_endpoint`
+- 业务入口: `console.views.app_manage.BatchActionView.post`
+- 代码路径: `console/views/app_manage.py`
+- 测试路径: `console/tests/batch_action_view_test.py::BatchActionViewTestCase.test_post_keeps_batch_action_successful_when_component_has_no_app`
+
+### 组件构建失败响应可序列化
+
+- Capability ID: `console.component-build.serializable-failure-response`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `view_endpoint`
+- 业务入口: `console.views.app_create.app_build.AppBuild.post`
+- 代码路径: `console/views/app_create/app_build.py`
+- 测试路径: `console/tests/app_build_first_deploy_test.py::AppBuildFirstDeployTrackingTests.test_app_build_serializes_unexpected_deploy_error_message`
+
+### 组件检测重复端口按预期处理
+
+- Capability ID: `console.component-check.duplicate-port-noise`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.app_check_service.AppCheckService.update_service_check_info`
+- 代码路径: `console/services/app_check_service.py`
+- 测试路径: `console/tests/app_check_service_build_strategy_test.py::AppCheckServiceBuildStrategyTests.test_update_service_check_info_logs_duplicate_detected_port_as_info`
+
+### 幂等保存组件删除记录
+
+- Capability ID: `console.component-delete.idempotent-record`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `dao_method`
+- 业务入口: `console.repositories.app.TenantServiceDeleteRepository.create_delete_service`
+- 代码路径: `console/repositories/app.py`
+- 测试路径: `console/tests/app_manage_test.py::AppManageDeleteRecordIdempotencyTests.test_create_delete_service_updates_existing_record_for_repeated_delete`
+
+### 删除缺少应用关系的组件
+
+- Capability ID: `console.component-delete.missing-app-relation`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.app_actions.app_manage.AppManageService.get_app_by_service`
+- 代码路径: `console/services/app_actions/app_manage.py`
+- 测试路径: `console/tests/app_manage_test.py::AppManageDeleteRecordIdempotencyTests.test_get_app_by_service_returns_none_when_group_relation_is_missing`
+
+### 区域删除参数不写入数据库记录
+
+- Capability ID: `console.component-delete.region-payload-isolation`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.app_actions.app_manage.AppManageService._build_delete_record_data`
+- 代码路径: `console/services/app_actions/app_manage.py`
+- 测试路径: `console/tests/app_manage_test.py::AppManageDeleteRecordIdempotencyTests.test_delete_record_payload_excludes_region_only_fields_for_incomplete_service`
+
+### 删除不存在的环境变量时返回受控 404
+
+- Capability ID: `console.component-env.delete-missing-404`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.app_config.env_service.AppEnvVarService.delete_env_by_env_id`
+- 代码路径: `console/repositories/app_config.py`, `console/services/app_config/env_service.py`, `console/views/app_config/app_env.py`
+- 测试路径: `console/tests/app_env_service_test.py::TenantServiceEnvVarRepositoryUpdateTestCase.test_404_lookup_rejects_non_numeric_environment_id_before_querying`, `console/tests/app_env_service_test.py::AppEnvVarServiceUpdateTestCase.test_delete_env_by_env_id_uses_404_aware_lookup_and_returns_deleted_env`
+
+### 持久化前校验环境变量字段长度
+
+- Capability ID: `console.component-env.field-length-validation`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.app_config.env_service.AppEnvVarService.add_service_env_var`
+- 代码路径: `console/services/app_config/env_service.py`
+- 测试路径: `console/tests/app_env_service_test.py::AppEnvVarServiceUpdateTestCase.test_add_env_rejects_overlong_description_before_region_or_database_write`
 
 ### DaemonSet 组件类型支持
 
@@ -3100,6 +3421,16 @@
 - 代码路径: `console/services/mcp_query_service.py`
 - 测试路径: `console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_parse_component_log_line_handles_sse_prefix`
 
+### Reject empty or malformed component mount requests
+
+- Capability ID: `console.component.mount-request-validation`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `view_endpoint`
+- 业务入口: `POST /console/teams/{tenantName}/apps/{serviceAlias}/mnt`
+- 代码路径: `console/views/app_config/app_mnt.py`
+- 测试路径: `console/tests/app_mnt_consistency_test.py::AppMntViewConsistencyTests::test_post_rejects_empty_mount_list`, `console/tests/app_mnt_consistency_test.py::AppMntViewConsistencyTests::test_post_rejects_mount_without_volume_id`, `console/tests/app_mnt_consistency_test.py::AppMntViewConsistencyTests::test_post_rejects_malformed_mount_json`
+
 ### 规范化组件操作别名
 
 - Capability ID: `console.component.operation-aliases`
@@ -3210,6 +3541,16 @@
 - 代码路径: `console/services/mcp_query_service.py`, `console/services/app_config/port_service.py`
 - 测试路径: `console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_handle_component_ports_alias_action_maps_to_standard_action`
 
+### 组件端口操作错误提示
+
+- Capability ID: `console.component.port-operation-errors`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.app_config.port_service.AppPortService.manage_port`
+- 代码路径: `console/services/app_config/port_service.py`
+- 测试路径: `console/tests/port_service_delete_test.py::PortServiceDeleteTests::test_open_outer_protocol_mismatch_explains_how_to_resynchronize_inner_service`, `console/tests/port_service_delete_test.py::PortServiceDeleteTests::test_port_toggle_region_errors_use_action_specific_messages`, `console/tests/port_service_delete_test.py::PortServiceDeleteTests::test_port_toggle_region_errors_translate_common_recovery_cases`, `console/tests/port_service_delete_test.py::PortServiceDeleteTests::test_open_outer_http_default_route_failure_uses_user_facing_message`, `console/tests/port_service_delete_test.py::PortServiceDeleteTests::test_port_toggle_translates_unfriendly_service_errors`, `console/tests/port_service_delete_test.py::PortServiceDeleteTests::test_port_toggle_preserves_existing_actionable_service_errors`
+
 ### 归一化组件端口协议参数
 
 - Capability ID: `console.component.port-protocol-normalize`
@@ -3299,6 +3640,16 @@
 - 业务入口: `console.repositories.app_config.TenantServiceVolumnRepository.list_custom_volumes`
 - 代码路径: `console/repositories/app_config.py`
 - 测试路径: `console/tests/app_config_test.py::TenantServiceVolumnRepositoryTests.test_list_custom_volumes_treats_local_path_as_builtin_volume_type`
+
+### Return not found when deleting a stale component volume
+
+- Capability ID: `console.component.storage-delete-missing-volume`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `view_endpoint`
+- 业务入口: `DELETE /console/teams/{tenantName}/apps/{serviceAlias}/volumes/{volume_id}`
+- 代码路径: `console/views/app_config/app_volume.py`
+- 测试路径: `console/tests/app_volume_view_test.py::AppVolumeManageViewTestCase::test_delete_returns_not_found_for_stale_volume`
 
 ### 删除组件共享存储挂载
 
@@ -3430,6 +3781,36 @@
 - 代码路径: `console/views/app_config/app_volume.py`
 - 测试路径: `console/tests/app_volume_view_test.py::AppVolumeManageViewTestCase::test_put_rejects_volume_capacity_shrink`
 
+### 配置已存在时返回预期冲突并停止上报
+
+- Capability ID: `console.config.expected-conflict`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `package_function`
+- 业务入口: `console.views.base.custom_exception_handler`
+- 代码路径: `console/views/base.py`, `goodrain_web/sentry_config.py`
+- 测试路径: `console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_config_exist_error_returns_conflict_response`, `console/tests/sentry_config_test.py::test_before_send_drops_expected_config_conflict`
+
+### 关键迁移表缺失时阻止启动
+
+- Capability ID: `console.database.required-schema-startup-gate`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `workflow`
+- 业务入口: `entrypoint migrate then verify_required_schema`
+- 代码路径: `entrypoint.sh`, `console/management/commands/verify_required_schema.py`
+- 测试路径: `console/tests/entrypoint_test.py::EntrypointGunicornTest.test_database_startup_plans_repairs_before_applying_and_migrating`, `console/tests/schema_verification_test.py::RequiredSchemaVerificationTestCase.test_missing_required_tables_are_reported_in_stable_order`
+
+### 统一瞬时数据库不可用响应
+
+- Capability ID: `console.database.transient-unavailable`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `package_function`
+- 业务入口: `console.utils.database_errors.is_transient_database_error`
+- 代码路径: `console/utils/database_errors.py`, `console/views/base.py`, `goodrain_web/sentry_config.py`
+- 测试路径: `console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_transient_database_error_returns_retryable_503`, `console/tests/sentry_config_test.py::test_before_send_groups_transient_database_outages_with_stable_fingerprint`
+
 ### Dependency Invalid Container Port
 
 - Capability ID: `console.dependency.invalid-container-port`
@@ -3518,7 +3899,7 @@
 - 接口类型: `service_method`
 - 业务入口: `console.services.config_service.ConfigService.add_config`
 - 代码路径: `console/services/config_service.py`
-- 测试路径: `console/tests/config_service_test.py::EnterpriseConfigServiceTests.test_add_config_returns_existing_record_when_concurrent_create_wins`
+- 测试路径: `console/tests/config_service_test.py::EnterpriseConfigServiceTests.test_add_config_returns_existing_record_when_concurrent_create_wins`, `console/tests/config_service_test.py::EnterpriseConfigServiceTests.test_initialization_uses_config_created_after_bulk_lookup`
 
 ### get_custom_fields 包含被禁用的布尔字段
 
@@ -3539,6 +3920,16 @@
 - 业务入口: `console.services.config_service.EnterpriseConfigService.__init__`
 - 代码路径: `console/services/config_service.py`
 - 测试路径: `console/tests/config_service_test.py::EnterpriseConfigServiceTests.test_enterprise_config_service_defaults_user_id_to_none`, `console/tests/config_service_test.py::EnterpriseConfigServiceTests.test_enterprise_config_service_keeps_explicit_user_id`
+
+### 集群初始化前返回空默认区域
+
+- Capability ID: `console.enterprise-init.empty-region`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `view_endpoint`
+- 业务入口: `console.views.team.InitDefaultInfoView.post`
+- 代码路径: `console/views/team.py`
+- 测试路径: `console/tests/team_init_default_view_test.py::InitDefaultInfoViewTestCase.test_post_returns_null_default_region_when_enterprise_has_no_regions`
 
 ### 解码云市绑定企业的认证信息
 
@@ -3690,6 +4081,16 @@
 - 代码路径: `console/services/mcp_query_service.py`
 - 测试路径: `console/tests/mcp_query_service_test.py::MCPQueryServiceRegionMutationTests.test_update_region_executes_directly_with_merged_full_payload`
 
+### 统一外部 HTTP 连接故障响应
+
+- Capability ID: `console.external-http.unavailable-response`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `package_function`
+- 业务入口: `console.utils.external_http_errors.is_retryable_external_http_error`
+- 代码路径: `console/utils/external_http_errors.py`, `console/views/base.py`, `goodrain_web/sentry_config.py`
+- 测试路径: `console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_external_http_failure_returns_retryable_502`, `console/tests/sentry_config_test.py::test_before_send_groups_external_http_failures_by_host_and_path`
+
 ### 文件管理区域请求使用选定容器与更长超时
 
 - Capability ID: `console.file-manage.region-request-timeout`
@@ -3709,6 +4110,16 @@
 - 业务入口: `console.services.group_service.GroupService.get_file_and_dir`
 - 代码路径: `console/services/group_service.py`, `console/views/app_overview.py`
 - 测试路径: `console/tests/file_manage_service_test.py::test_get_file_and_dir_forwards_selected_container_name`
+
+### 兼容首次部署追踪记录并发清理
+
+- Capability ID: `console.first-deploy.concurrent-record-cleanup`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `dao_method`
+- 业务入口: `console.repositories.first_deploy_repo.EnterpriseFirstDeployRepository.update_payload`
+- 代码路径: `console/repositories/first_deploy_repo.py`
+- 测试路径: `console/tests/first_deploy_repo_test.py::EnterpriseFirstDeployRepositoryConcurrencyTests`
 
 ### Delete missing gateway certificate idempotently
 
@@ -3799,6 +4210,16 @@
 - 业务入口: `www.apiclient.regionapi.RegionInvokeApi.api_gateway_delete_proxy`
 - 代码路径: `www/apiclient/regionapi.py`
 - 测试路径: `console/tests/app_domain_certificate_test.py::GatewayMTLSProxyTests`
+
+### 组件端口不存在时拒绝绑定域名
+
+- Capability ID: `console.gateway.domain-port-required`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `view_endpoint`
+- 业务入口: `console.views.app_config.app_domain.ServiceDomainView.post`
+- 代码路径: `console/views/app_config/app_domain.py`
+- 测试路径: `console/tests/service_domain_view_test.py::ServiceDomainViewTests.test_post_rejects_missing_component_port_before_binding_domain`
 
 ### 对外端口未开启时拦截 HTTP 网关创建
 
@@ -3900,6 +4321,16 @@
 - 代码路径: `console/services/mcp_query_service.py`
 - 测试路径: `console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_create_gateway_rules_rejects_invalid_protocol`
 
+### 校验网关规则输入
+
+- Capability ID: `console.gateway.rule-input-validation`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `workflow`
+- 业务入口: `console.services.mcp_query_service.call_tool[rainbond_create_gateway_rules]`
+- 代码路径: `console/services/mcp_query_service.py`
+- 测试路径: `console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_create_gateway_rules_http_returns_bound_rule`, `console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_create_gateway_rules_http_validates_nested_required_fields`, `console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_create_gateway_rules_http_rejects_unknown_component_port`, `console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_create_gateway_rules_tcp_validates_nested_required_fields`, `console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_create_gateway_rules_tcp_rejects_invalid_endpoint`, `console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_create_gateway_rules_tcp_rejects_unknown_component_port`, `console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_create_gateway_rules_schema_describes_nested_requirements`
+
 ### Gateway Source Code From Schema
 
 - Capability ID: `console.gateway.source-code-from-schema`
@@ -3939,6 +4370,16 @@
 - 业务入口: `console.services.mcp_query_service.create_gateway_rules[tcp]`
 - 代码路径: `console/services/mcp_query_service.py`
 - 测试路径: `console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_create_gateway_rules_tcp_rejects_invalid_third_party_component`
+
+### Gray release propagates route update errors
+
+- Capability ID: `console.gray-release.route-update-errors-propagate`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.gray_release_service.GrayReleaseService._update_apisix_route_weights`
+- 代码路径: `console/services/gray_release_service.py`
+- 测试路径: `console/tests/gray_release_service_test.py::GrayReleaseRouteUpdateTests.test_update_apisix_route_weights_propagates_region_errors`
 
 ### Gray Release Update Route Query Params
 
@@ -4069,6 +4510,16 @@
 - 业务入口: `console.views.team_resources.HelmReleaseDetailView.put`
 - 代码路径: `console/views/team_resources.py`
 - 测试路径: `console/tests/team_resources_test.py::HelmReleasesViewTestCase.test_put_persists_upgrade_source_after_success`
+
+### 持久化前校验 Helm 仓库字段
+
+- Capability ID: `console.helm-repo.input-length`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `view_endpoint`
+- 业务入口: `console.views.helm_app.HelmRepo`
+- 代码路径: `console/views/helm_app.py`
+- 测试路径: `console/tests/helm_repo_view_test.py::HelmRepoViewTests.test_post_rejects_repo_url_longer_than_model_limit`, `console/tests/helm_repo_view_test.py::HelmRepoViewTests.test_put_rejects_repo_url_longer_than_model_limit`, `console/tests/helm_repo_view_test.py::HelmRepoViewTests.test_post_accepts_repo_url_at_model_limit`, `console/tests/helm_repo_view_test.py::HelmRepoViewTests.test_post_rejects_missing_or_overlong_repo_identity`
 
 ### 构建 Helm 应用模板
 
@@ -4440,6 +4891,16 @@
 - 代码路径: `console/services/app_config/volume_service.py`
 - 测试路径: `console/tests/market_app_storage_test.py::MarketAppDefaultStorageClassTests.test_resolve_market_restore_volume_settings_preserves_capacity_when_storage_type_changes`
 
+### Skip default domain creation for gray market installs
+
+- Capability ID: `console.market-app.skip-default-domain-for-gray-install`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.market_app_service.MarketAppService.__save_port`
+- 代码路径: `console/services/market_app_service.py`
+- 测试路径: `console/tests/market_app_service_test.py::MarketAppServicePortPersistenceTests.test_save_outer_port_skips_default_domain_for_gray_install`
+
 ### Market App Upgrade Share Image Fallback
 
 - Capability ID: `console.market-app.upgrade-share-image-fallback`
@@ -4489,6 +4950,16 @@
 - 业务入口: `console.services.market_app.new_components.NewComponents._template_to_k8s_attributes`
 - 代码路径: `console/services/market_app/new_components.py`
 - 测试路径: `console/tests/market_app_update_components_test.py::MarketAppNewComponentsVMK8sAttrsTests.test_template_to_k8s_attributes_drops_fixed_pod_ip_for_vm`
+
+### 批量构建市场组件时保留模板更新时间
+
+- Capability ID: `console.market-build.template-update-time`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.app_actions.app_manage.AppManageService.deploy_services_info`
+- 代码路径: `console/services/app_actions/app_manage.py`
+- 测试路径: `console/tests/app_manage_test.py::AppManageMarketBuildPreferenceTests.test_deploy_market_component_uses_version_update_time_after_loading_template_json`
 
 ### 将 401 应用市场错误转换为缺少 token 的服务异常
 
@@ -4860,6 +5331,16 @@
 - 代码路径: `console/views/team_resources.py`, `www/apiclient/regionapi.py`
 - 测试路径: `console/tests/team_resources_test.py::NsResourceDetailViewTestCase.test_put_accepts_yaml_media_type_and_forwards_raw_body`, `console/tests/team_resources_test.py::RegionInvokeApiNsResourceTestCase.test_put_tenant_ns_resource_preserves_custom_content_type`
 
+### 规范化 GitLab OAuth Webhook 地址
+
+- Capability ID: `console.oauth.gitlab-webhook-url`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.utils.oauth.gitlab_api.GitlabApiV4.create_hook`
+- 代码路径: `console/utils/oauth/gitlab_api.py`
+- 测试路径: `console/tests/utils/gitlab_api_test.py::GitlabApiV4WebhookTests.test_create_hook_adds_https_scheme_to_bare_host`, `console/tests/utils/gitlab_api_test.py::GitlabApiV4WebhookTests.test_create_hook_supports_protocol_relative_host`, `console/tests/utils/gitlab_api_test.py::GitlabApiV4WebhookTests.test_create_hook_preserves_scheme_and_normalizes_slashes`
+
 ### 创建 OAuth helper 实例并绑定服务与用户上下文
 
 - Capability ID: `console.oauth.instance-create`
@@ -4879,6 +5360,26 @@
 - 业务入口: `console.utils.oauth.base.git_oauth.GitOAuth2Interface.is_git_oauth`
 - 代码路径: `console/utils/oauth/base/git_oauth.py`
 - 测试路径: `console/tests/utils/oauth_base_test.py::OAuthBaseTests.test_oauth_kind_flags`
+
+### OAuth Access Key 缺失时按预期回退仓库地址
+
+- Capability ID: `console.oauth.missing-access-key-fallback`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.app_actions.app_manage.AppManageService.deploy_services_info`
+- 代码路径: `console/services/app_actions/app_manage.py`
+- 测试路径: `console/tests/app_manage_test.py::AppManageBatchActionDeployEventTests.test_deploy_info_falls_back_without_error_log_when_oauth_access_key_is_missing`
+
+### 使用前校验 OAuth 服务引用
+
+- Capability ID: `console.oauth.service-validation`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `dao_method`
+- 业务入口: `console.repositories.oauth_repo.OAuthRepo.get_oauth_services_by_service_id`
+- 代码路径: `console/repositories/oauth_repo.py`
+- 测试路径: `console/tests/oauth_repo_validation_test.py::OAuthRepoValidationTestCase.test_get_service_rejects_non_numeric_id_as_not_found`, `console/tests/oauth_repo_validation_test.py::OAuthRepoValidationTestCase.test_update_rejects_deleted_oauth_service_before_reading_home_url`
 
 ### 创建带重试 HTTP 适配器的 OAuth 会话
 
@@ -4929,6 +5430,16 @@
 - 业务入口: `console.utils.oauth.base.oauth.OAuth2Interface.set_oauth_user`
 - 代码路径: `console/utils/oauth/base/oauth.py`
 - 测试路径: `console/tests/utils/oauth_base_test.py::OAuthBaseTests.test_set_oauth_user_and_service`
+
+### Helm Chart GET 参数使用查询序列化器
+
+- Capability ID: `console.openapi.helm-chart-query-schema`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `view_endpoint`
+- 业务入口: `openapi.views.apps.apps.HelmChart.get`
+- 代码路径: `openapi/views/apps/apps.py`
+- 测试路径: `console/tests/openapi_swagger_test.py::OpenAPISwaggerMetadataTests.test_helm_chart_get_declares_query_serializer_without_request_body`
 
 ### Skip KubeBlocks services during operator-managed component import
 
@@ -5090,6 +5601,16 @@
 - 代码路径: `console/services/package_component_service.py`
 - 测试路径: `console/tests/package_component_service_test.py::PackageComponentServiceTests.test_auto_create_component_requires_uploaded_package_list`
 
+### 校验包组件应用 ID
+
+- Capability ID: `console.package-create.group-id-validation`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `view_endpoint`
+- 业务入口: `console.views.app_create.source_code.PackageCreateView.post`
+- 代码路径: `console/views/app_create/source_code.py`
+- 测试路径: `console/tests/package_create_view_test.py::PackageCreateViewGroupIdTests`
+
 ### Package Upload Archive Reuse
 
 - Capability ID: `console.package-upload.archive-reuse`
@@ -5160,6 +5681,16 @@
 - 代码路径: `console/services/package_upload_tool_service.py`
 - 测试路径: `console/tests/package_upload_tool_service_test.py::PackageUploadToolServiceTests.test_init_upload_creates_remote_dir_and_record`
 
+### 无上传记录时返回空状态
+
+- Capability ID: `console.package-upload.last-record-empty`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `view_endpoint`
+- 业务入口: `console.views.app_create.source_code.UploadRecordLastView.get`
+- 代码路径: `console/views/app_create/source_code.py`
+- 测试路径: `console/tests/package_upload_view_test.py::UploadRecordLastViewTests.test_get_keeps_existing_upload_record_response`, `console/tests/package_upload_view_test.py::UploadRecordLastViewTests.test_get_returns_empty_result_without_logging_when_record_is_missing`
+
 ### Package Upload Local Package
 
 - Capability ID: `console.package-upload.local-package`
@@ -5220,6 +5751,16 @@
 - 代码路径: `console/services/mcp_query_service.py`
 - 测试路径: `console/tests/mcp_query_service_test.py::MCPQueryServiceToolVisibilityTests.test_upload_package_file_tool_schema_exposes_local_path_guidance`
 
+### 上传记录不存在时拒绝包组件变更
+
+- Capability ID: `console.package-upload.missing-event-record`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `view_endpoint`
+- 业务入口: `console.views.app_create.source_code.PackageCreateView`
+- 代码路径: `console/views/app_create/source_code.py`
+- 测试路径: `console/tests/package_upload_view_test.py::PackageCreateViewTests.test_post_returns_404_before_creating_component_when_upload_record_is_missing`, `console/tests/package_upload_view_test.py::PackageCreateViewTests.test_put_returns_404_before_updating_component_when_upload_record_is_missing`
+
 ### RainSkills 工具发现隐藏服务端本地软件包工具
 
 - Capability ID: `console.package-upload.rainskills-tool-visibility`
@@ -5229,6 +5770,16 @@
 - 业务入口: `console.services.mcp_query_service.list_tools[console.package-upload.rainskills-tool-visibility]`
 - 代码路径: `console/services/mcp_query_service.py`
 - 测试路径: `console/tests/mcp_query_service_test.py::MCPQueryServiceToolVisibilityTests.test_rainskills_hides_server_local_package_tools_only_from_discovery`
+
+### 校验软件包上传记录查询参数
+
+- Capability ID: `console.package-upload.record-required-params`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `view_endpoint`
+- 业务入口: `console.views.app_create.source_code.PackageUploadRecordView.get`
+- 代码路径: `console/views/app_create/source_code.py`
+- 测试路径: `console/tests/package_upload_view_test.py::PackageUploadRecordViewTests.test_get_rejects_missing_event_id_before_calling_region`
 
 ### Package Upload Status
 
@@ -5259,6 +5810,16 @@
 - 业务入口: `console.services.package_upload_tool_service`
 - 代码路径: `console/services/package_upload_tool_service.py`
 - 测试路径: `console/tests/package_upload_tool_service_test.py::PackageUploadToolServiceTests.test_upload_package_uploads_archive_and_returns_status`
+
+### 多进程幂等同步权限元数据
+
+- Capability ID: `console.permissions.concurrent-initialization`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `dao_method`
+- 业务入口: `console.repositories.perm_repo.PermsRepo._sync_permission_settings`
+- 代码路径: `console/repositories/perm_repo.py`
+- 测试路径: `console/tests/perm_repo_performance_test.py::PermsRepoPerformanceTests.test_changed_permissions_sync_idempotently_within_the_check_interval`
 
 ### 从前端组件访问地址回填官方虚拟机插件访问前缀
 
@@ -5360,6 +5921,26 @@
 - 代码路径: `entrypoint.sh`, `goodrain_web/settings.py`, `console/management/commands/repair_legacy_schema.py`, `console/services/rainskills_audit_service.py`
 - 测试路径: `console/tests/entrypoint_test.py::EntrypointGunicornTest.test_database_startup_plans_repairs_before_applying_and_migrating`, `console/tests/rainskills_audit_service_test.py::RainSkillsAuditServiceSafetyTests.test_confirmation_metadata_is_required_by_default`, `console/tests/mcp_query_rainskills_audit_test.py::MCPQueryRainSkillsAuditTests.test_strict_mode_blocks_legacy_mutation_before_tool_execution`
 
+### 重试 RainSkills 审计终态瞬时数据库锁
+
+- Capability ID: `console.rainskills-audit.transient-terminal-lock-retry`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.rainskills_audit_service.RainSkillsAuditService.finalize_failure`
+- 代码路径: `console/services/rainskills_audit_service.py`
+- 测试路径: `console/tests/rainskills_audit_service_test.py::RainSkillsAuditServiceSafetyTests.test_terminal_persistence_retries_transient_database_locks`
+
+### Bound deployment report workers without losing deferred reports
+
+- Capability ID: `console.rainskills.deployment-report-backpressure`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `RainSkillsDeploymentService.sweep_once`
+- 代码路径: `console/services/rainskills_deployment_service.py`
+- 测试路径: `console/tests/rainskills_deployment_service_test.py::RainSkillsDeploymentServiceTests.test_worker_limit_preserves_pending_reports_and_sweeps_fairly`, `console/tests/rainskills_deployment_service_test.py::RainSkillsDeploymentServiceTests.test_report_closes_database_before_network_wait`
+
 ### 生成默认随机版本标识
 
 - Capability ID: `console.random.default-version`
@@ -5369,6 +5950,16 @@
 - 业务入口: `console.utils.randomutil.make_default_version`
 - 代码路径: `console/utils/randomutil.py`
 - 测试路径: `console/tests/utils/randomutil_test.py::RandomUtilTests.test_make_default_version`
+
+### WebSocket 连接重置按正常关闭处理
+
+- Capability ID: `console.realtime-proxy.client-reset-close`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `package_function`
+- 业务入口: `console.utils.realtime_proxy.proxy_websocket_request`
+- 代码路径: `console/utils/realtime_proxy.py`
+- 测试路径: `console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_websocket_proxy_treats_client_connection_reset_as_normal_close`
 
 ### Docker 控制台后端使用 webtty 子协议
 
@@ -5439,6 +6030,16 @@
 - 业务入口: `console.utils.realtime_proxy.build_region_realtime_proxy_url`
 - 代码路径: `console/utils/realtime_proxy.py`
 - 测试路径: `console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_region_proxy_target_prefers_internal_override_for_builtin_region`
+
+### 受控处理客户端中断上传并保留后端故障
+
+- Capability ID: `console.realtime-proxy.interrupted-upload`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `package_function`
+- 业务入口: `console.utils.realtime_proxy.proxy_http_request`
+- 代码路径: `console/utils/realtime_proxy.py`
+- 测试路径: `console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_http_proxy_handles_direct_unreadable_post_error`, `console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_http_proxy_returns_bad_request_when_client_upload_is_interrupted`, `console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_http_proxy_keeps_backend_connection_errors_visible`
 
 ### 转发文件夹上传中的重复 multipart 文件字段
 
@@ -5540,6 +6141,16 @@
 - 代码路径: `www/apiclient/regionapibaseclient.py`
 - 测试路径: `console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_check_status_preserves_batch_create_result_bean_for_coded_errors`
 
+### 并发安全创建区域证书目录
+
+- Capability ID: `console.region-api.concurrent-certificate-directory`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `package_function`
+- 业务入口: `www.apiclient.regionapibaseclient.create_file`
+- 代码路径: `www/apiclient/regionapibaseclient.py`
+- 测试路径: `console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_create_file_tolerates_concurrent_directory_creation`
+
 ### 将上游域名冲突保留为可操作的 409 错误提示
 
 - Capability ID: `console.region-api.domain-conflict-msg`
@@ -5570,6 +6181,26 @@
 - 代码路径: `www/apiclient/regionapibaseclient.py`
 - 测试路径: `console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_check_status_keeps_original_message_for_non_helm_conflicts`
 
+### Region API 不可达时返回稳定可重试响应
+
+- Capability ID: `console.region-api.unavailable-response`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `package_function`
+- 业务入口: `www.apiclient.regionapibaseclient.RegionApiBaseHttpClient._request`
+- 代码路径: `www/apiclient/regionapibaseclient.py`, `console/views/base.py`
+- 测试路径: `console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_request_translates_retry_exhaustion_to_stable_retryable_503`, `console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_request_classifies_timeout_tls_and_other_transport_failures`, `console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_retryable_service_unavailable_response_includes_retry_after`
+
+### 统一 Region 上游服务错误
+
+- Capability ID: `console.region-api.upstream-server-error`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `package_function`
+- 业务入口: `console.views.base.custom_exception_handler`
+- 代码路径: `console/views/base.py`, `goodrain_web/sentry_config.py`
+- 测试路径: `console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_region_upstream_server_error_returns_retryable_502`, `console/tests/sentry_config_test.py::test_before_send_groups_region_server_errors_by_normalized_upstream_path`
+
 ### _check_status 将虚拟机快照功能门禁错误翻译为可操作提示
 
 - Capability ID: `console.region-api.vm-snapshot-feature-gate-msg`
@@ -5579,6 +6210,56 @@
 - 业务入口: `www.apiclient.regionapibaseclient.RegionApiBaseHttpClient._check_status`
 - 代码路径: `www/apiclient/regionapibaseclient.py`
 - 测试路径: `console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_check_status_translates_snapshot_feature_gate_error_to_actionable_msg_show`
+
+### 查询当前认证企业的数据中心
+
+- Capability ID: `console.region.list-current-enterprise`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `view_endpoint`
+- 业务入口: `console.views.region.QyeryRegionView.get`
+- 代码路径: `console/views/region.py`
+- 测试路径: `console/tests/region_view_test.py::QueryRegionViewTests.test_get_uses_authenticated_users_enterprise_without_path_parameter`
+
+### 集群部分更新保留未提交字段
+
+- Capability ID: `console.region.partial-update-preserves-required-fields`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `dao_method`
+- 业务入口: `console.repositories.region_repo.RegionRepo.update_enterprise_region`
+- 代码路径: `console/repositories/region_repo.py`
+- 测试路径: `console/tests/region_repo_update_test.py::RegionRepoUpdateTestCase.test_partial_update_preserves_omitted_required_connection_fields`
+
+### 上游协议中断后平静结束 SSE 流
+
+- Capability ID: `console.region.sse-protocol-disconnect`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `www.apiclient.regionapi.RegionInvokeApi.sse_proxy`
+- 代码路径: `www/apiclient/regionapi.py`
+- 测试路径: `console/tests/regionapi_sse_proxy_test.py::RegionApiSSEProxyTests.test_sse_proxy_ends_cleanly_when_upstream_disconnects`
+
+### SSE 空闲读取超时后平静结束流
+
+- Capability ID: `console.region.sse-read-timeout`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `www.apiclient.regionapi.RegionInvokeApi.sse_proxy`
+- 代码路径: `www/apiclient/regionapi.py`
+- 测试路径: `console/tests/regionapi_sse_proxy_test.py::RegionApiSSEProxyTests.test_sse_proxy_ends_cleanly_after_idle_read_timeout`
+
+### SSE 分片安全解码 UTF-8
+
+- Capability ID: `console.region.sse-utf8-streaming`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `www.apiclient.regionapi.RegionInvokeApi.sse_proxy`
+- 代码路径: `www/apiclient/regionapi.py`
+- 测试路径: `console/tests/regionapi_sse_proxy_test.py::RegionApiSSEProxyTests.test_sse_proxy_decodes_utf8_characters_split_across_chunks`, `console/tests/regionapi_sse_proxy_test.py::RegionApiSSEProxyTests.test_sse_proxy_replaces_invalid_trailing_utf8_without_stopping_stream`
 
 ### 依据配置项是否存在选择更新或新增数据中心配置
 
@@ -5910,6 +6591,36 @@
 - 代码路径: `console/utils/k8s_cli.py`
 - 测试路径: `console/tests/rke2_cluster_errors_test.py::ClusterRKEErrorTests.test_install_rainbond_returns_sanitized_subprocess_error`
 
+### Gunicorn 超时覆盖一小时 SSE 长连接
+
+- Capability ID: `console.runtime.sse-gunicorn-timeout`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `workflow`
+- 业务入口: `entrypoint.sh/Procfile`
+- 代码路径: `entrypoint.sh`, `Procfile`
+- 测试路径: `console/tests/entrypoint_test.py::EntrypointGunicornTest.test_gunicorn_timeout_outlives_one_hour_sse_streams`
+
+### 过滤预期的资源不存在异常
+
+- Capability ID: `console.sentry.expected-not-found-errors`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `package_function`
+- 业务入口: `goodrain_web.sentry_config.before_send`
+- 代码路径: `goodrain_web/sentry_config.py`
+- 测试路径: `console/tests/sentry_config_test.py::test_before_send_drops_expected_not_found_exceptions`, `console/tests/sentry_config_test.py::test_before_send_keeps_server_side_service_and_region_errors`
+
+### 过滤预期的区域操作频繁异常
+
+- Capability ID: `console.sentry.expected-region-frequent-error`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `package_function`
+- 业务入口: `goodrain_web.sentry_config.before_send`
+- 代码路径: `goodrain_web/sentry_config.py`
+- 测试路径: `console/tests/sentry_config_test.py::test_before_send_drops_region_api_frequent_operation_exception`, `console/tests/sentry_config_test.py::test_before_send_keeps_same_exception_name_from_other_modules`
+
 ### 发布组件模板时清理 CNB 源码启动命令
 
 - Capability ID: `console.service-share.cnb-publish-command`
@@ -6190,6 +6901,36 @@
 - 代码路径: `console/services/source_component_service.py`
 - 测试路径: `console/tests/source_component_service_test.py::SourceComponentServiceTests.test_auto_create_component_prefers_dockerfile_when_dockerfiles_exist`
 
+### 区域架构响应为空时返回空列表
+
+- Capability ID: `console.team-arch.empty-region-response`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `view_endpoint`
+- 业务入口: `console.views.public_areas.TeamArchView.get`
+- 代码路径: `console/views/public_areas.py`
+- 测试路径: `console/tests/team_overview_query_scope_test.py::TeamOverviewQueryScopeTest.test_team_arch_returns_empty_list_when_region_has_no_architectures`
+
+### 校验域名监控时间范围
+
+- Capability ID: `console.team-domain-monitor.time-range-validation`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `view_endpoint`
+- 业务入口: `console.views.team.TeamSortDomainQueryView.get`
+- 代码路径: `console/views/team.py`
+- 测试路径: `console/tests/team_sort_domain_query_test.py::TeamSortDomainQueryTimeRangeTests`
+
+### Preserve deleted component metadata in team events
+
+- Capability ID: `console.team-events.deleted-component-metadata`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `package_function`
+- 业务入口: `console.views.public_areas._enrich_service_events`
+- 代码路径: `console/views/public_areas.py`
+- 测试路径: `console/tests/team_overview_query_scope_test.py::TeamOverviewQueryScopeTest.test_team_events_preserve_live_and_deleted_component_targets`
+
 ### 仅列出当前用户已加入的团队
 
 - Capability ID: `console.team-query.current-user-membership`
@@ -6290,6 +7031,16 @@
 - 代码路径: `console/services/mcp_query_service.py`
 - 测试路径: `console/tests/mcp_query_service_test.py::MCPQueryServiceToolVisibilityTests.test_list_tools_for_non_enterprise_admin_hides_region_and_enterprise_tools`
 
+### 拓扑批量状态失败仅记录一次真实异常
+
+- Capability ID: `console.topology.batch-status-error-logging`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.topological_services.TopologicalService.get_group_topological_graph`
+- 代码路径: `console/services/topological_services.py`
+- 测试路径: `console/tests/app_component_performance_test.py::TopologicalServicePerformanceTests.test_topology_logs_batch_status_failure_once_with_exception_context`
+
 ### 校验路径是否满足 URL 路径合法性规则
 
 - Capability ID: `console.url.path-legal`
@@ -6319,6 +7070,16 @@
 - 业务入口: `console.utils.urlutil.set_get_url`
 - 代码路径: `console/utils/urlutil.py`
 - 测试路径: `console/tests/utils/urlutil_test.py::UrlUtilTests.test_set_get_url_with_empty_params`
+
+### 注册缺少用户名时返回表单错误
+
+- Capability ID: `console.user-registration.required-username`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `view_endpoint`
+- 业务入口: `console.views.user_operation.TenantServiceView.post`
+- 代码路径: `console/views/user_operation.py`
+- 测试路径: `console/tests/user_registration_view_test.py::TenantServiceRegistrationViewTests.test_post_normalizes_provided_username_before_form_validation`, `console/tests/user_registration_view_test.py::TenantServiceRegistrationViewTests.test_post_returns_form_error_when_username_is_missing`
 
 ### 删除访问令牌时记录令牌备注
 
@@ -6359,6 +7120,16 @@
 - 业务入口: `console.services.user_services.UserService.get_users_by_user_ids`
 - 代码路径: `console/services/user_services.py`, `console/repositories/user_repo.py`
 - 测试路径: `console/tests/user_services_get_by_ids_test.py::GetUsersByUserIdsTest.test_delegates_to_repo_get_by_user_ids`
+
+### Reject invalid password reset links without server errors
+
+- Capability ID: `console.user.password-reset-invalid-link`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `view_endpoint`
+- 业务入口: `POST /console/users/begin_password_reset`
+- 代码路径: `console/views/user_operation.py`
+- 测试路径: `console/tests/password_reset_view_test.py::PasswordResetViewTestCase`
 
 ### 校验用户展示名称的中英文数字与连接符规则
 
@@ -6559,6 +7330,16 @@
 - 业务入口: `console.services.app_actions.app_log.AppEventService.build_vm_restore_event`
 - 代码路径: `console/services/app_actions/app_log.py`, `console/services/app.py`, `console/views/app_event.py`
 - 测试路径: `console/tests/vm_profile_runtime_status_test.py::VMRestoreEventTests.test_build_vm_restore_event_exposes_progress_and_importer_logs`, `console/tests/vm_profile_runtime_status_test.py::VMRestoreEventTests.test_build_vm_restore_event_marks_success_after_import_finishes`
+
+### 自定义部署回调在组件已删除时返回 404
+
+- Capability ID: `console.webhook.custom-deploy-missing-component`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `view_endpoint`
+- 业务入口: `console.views.webhook.CustomWebHooksDeploy.post`
+- 代码路径: `console/views/webhook.py`
+- 测试路径: `console/tests/custom_webhook_test.py::CustomWebhookDeployTests.test_post_returns_not_found_before_reading_key_for_deleted_component`, `console/tests/custom_webhook_test.py::CustomWebhookDeployTests.test_post_still_rejects_invalid_key_for_existing_component`
 
 ### 应用关联的团队不存在时返回404错误
 

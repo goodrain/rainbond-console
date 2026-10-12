@@ -570,15 +570,18 @@ class AppGroupVisitView(RegionTenantHeaderView):
             for service_alias in service_list:
                 bean = dict()
                 service = service_repo.get_service_by_service_alias(service_alias)
-                access_type, data = port_service.get_access_info(team, service)  # type: ignore[arg-type]
+                if not service:
+                    continue
+                access_type, data = port_service.get_access_info(team, service)
                 bean["access_type"] = access_type
                 bean["access_info"] = data
                 service_access_list.append(bean)
             result = general_message(200, "success", "操作成功", list=service_access_list)
+        except ServiceHandleException:
+            raise
         except Exception as e:
             logger.exception(e)
-            # NOTE: py2-era Exception.message; absent in py3 (backlog, behavior preserved).
-            result = error_message(e.message)  # type: ignore[attr-defined]
+            result = error_message(str(e))
         return Response(result, status=result["code"])
 
 
