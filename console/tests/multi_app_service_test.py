@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# capability_id: console.multi-app.incomplete-detection-guard
 import os
 import sys
 from contextlib import contextmanager
@@ -141,3 +142,41 @@ class MultiAppServiceTests(TestCase):
 
         duplicate_name.assert_not_called()
         self.assertEqual(create_source.call_args.kwargs["k8s_component_name"], "")
+
+    def test_rejects_non_mapping_service_info_before_creation(self):
+        with self.assertRaises(multi_app_service_module.AbortRequest) as raised:
+            self.save_services([None])
+
+        self.assertEqual(raised.exception.status_code, 400)
+        self.assertEqual(raised.exception.msg_show, "多组件检测结果不完整，请重新检测")
+
+    def test_rejects_service_info_without_component_name_before_creation(self):
+        with self.assertRaises(multi_app_service_module.AbortRequest) as raised:
+            self.save_services([{"envs": []}])
+
+        self.assertEqual(raised.exception.status_code, 400)
+        self.assertEqual(raised.exception.msg_show, "多组件检测结果不完整，请重新检测")
+
+    def test_converts_processing_key_error_to_recoverable_request_error(self):
+        with mock.patch.object(
+                multi_app_service_module.service_repo,
+                "get_service_by_tenant_and_alias",
+                return_value=self.temporary_service), mock.patch.object(
+                    multi_app_service_module.service_group_relation_repo,
+                    "get_group_id_by_service",
+                    return_value=12), mock.patch.object(
+                        multi_app_service_module.multi_app_service,
+                        "save_multi_services",
+                        side_effect=KeyError("service_id")):
+            with self.assertRaises(multi_app_service_module.AbortRequest) as raised:
+                multi_app_service_module.multi_app_service.create_services(
+                    region_name="rainbond",
+                    tenant=self.tenant,
+                    user=self.user,
+                    service_alias="temporary-alias",
+                    service_infos=[{"cname": "api"}],
+                    host="https://console.example.com",
+                )
+
+        self.assertEqual(raised.exception.status_code, 400)
+        self.assertEqual(raised.exception.msg_show, "多组件检测结果不完整，请重新检测")

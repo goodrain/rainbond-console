@@ -8977,6 +8977,24 @@
       "status": "active"
     },
     {
+      "id": "console.multi-app.incomplete-detection-guard",
+      "title": "Reject incomplete multi-component detection results",
+      "title_zh": "拒绝不完整的多组件检测结果",
+      "interface_type": "service_method",
+      "interface": "console.services.multi_app_service.MultiAppService.create_services",
+      "code_paths": [
+        "console/services/multi_app_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/multi_app_service_test.py",
+          "selector": "MultiAppServiceTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.ns-resource.batch-create",
       "title": "Ns Resource Batch Create",
       "title_zh": "Ns Resource Batch Create",
