@@ -347,7 +347,8 @@ spec:
         self.assertNotIn("do-not-export", json.dumps(rows))
 
     def test_retirement_requires_complete_fresh_reference_evidence(self):
-        component = {"service_id": "s", "retirement_references_complete": True, "snapshot_referenced": False}
+        component = {"service_id": "s", "retirement_references_complete": True,
+                     "snapshot_reference_images": set(), "snapshot_reference_unknown": False}
         version = {"build_version": "v1", "event_id": "event1", "final_status": "success",
                    "delivered_type": "image", "image_name": "registry/app:v1"}
         inspection = {"protocol": 2, "current_version": "v2", "active_operation": False,
@@ -356,7 +357,8 @@ spec:
         result = version_resources(component, payload, "r")[0]
         self.assertEqual(result["retirement"]["expected"]["activation_revision"], "activation1")
         self.assertIsNone(result["unusedSince"])
-        for changes in ({"snapshot_referenced": True}, {"retirement_references_complete": False}):
+        for changes in ({"snapshot_reference_images": {"registry/app:v1"}},
+                        {"snapshot_reference_unknown": True}, {"retirement_references_complete": False}):
             with self.subTest(changes=changes):
                 self.assertNotIn("retirement", version_resources(dict(component, **changes), payload, "r")[0])
         for changes in ({"current_version": "v3"}, {"active_operation": True}, {"checkpoints": {}},
