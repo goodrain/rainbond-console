@@ -8,7 +8,8 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from console.services.cleanup_retirement import template_retirement_targets, snapshot_protected_components, RetirementConflict
+from console.services.cleanup_retirement import (template_retirement_targets, snapshot_protected_version_images,
+                                                 is_hidden_template_version, RetirementConflict)
 from console.services.cleanup_gateway import CleanupGatewayUnavailable
 from console.services.cleanup_installation import resolve_gateway_key
 from console.services.cleanup_writer_registration import announce_console_writer
@@ -82,7 +83,8 @@ class CleanupInventoryView(APIView):
             if cursor > upper:
                 return Response({"errorCode": "INVALID_REQUEST"}, status=400)
             template_fields = ("ID", "app_id", "version", "share_team", "app_template", "enterprise_id", "region_name",
-                               "source", "is_complete", "cleanup_activation_revision", "create_time", "update_time")
+                               "source", "is_complete", "cleanup_activation_revision", "create_time", "update_time",
+                               "record_id")
             page = list(template_query.filter(ID__gt=cursor, ID__lte=upper).order_by("ID").values(*template_fields)[:26])
         elif kind == "snapshots":
             # Include the enterprise's retained snapshots across regions. A
@@ -156,7 +158,7 @@ class CleanupInventoryView(APIView):
                 failures.append("snapshot_references_unavailable")
             for row in page:
                 row["retirement"] = targets.get(row["ID"])
-            resources = [template_resource(row, region_name, row["app_id"] in hidden) for row in page]
+            resources = [template_resource(row, region_name, is_hidden_template_version(row, hidden)) for row in page]
             failures.extend(failed_scope_label(row) for row in resources if not row["observed"])
         elif kind == "snapshots":
             resources = [snapshot_reference_resource(row, region_name) for row in page]
@@ -165,10 +167,10 @@ class CleanupInventoryView(APIView):
             resources = [deployment_resource(row, region_name) for row in page]
         else:
             try:
-                protected_components = snapshot_protected_components(enterprise_id)
+                protected_images = snapshot_protected_version_images(enterprise_id)
                 references_complete = True
             except (RetirementConflict, ValueError, TypeError):
-                protected_components = set()
+                protected_images = {}
                 references_complete = False
                 failures.append("snapshot_references_unavailable")
             names = dict(teams.values_list("tenant_id", "tenant_name"))
@@ -181,7 +183,10 @@ class CleanupInventoryView(APIView):
                     if not isinstance(body, dict) or not isinstance(body.get("bean"), dict):
                         raise ValueError("source unavailable")
                     component["retirement_references_complete"] = references_complete
-                    component["snapshot_referenced"] = component["service_id"] in protected_components
+                    component["snapshot_reference_unknown"] = (
+                        component["service_id"] in protected_images
+                        and protected_images[component["service_id"]] is None)
+                    component["snapshot_reference_images"] = protected_images.get(component["service_id"]) or set()
                     rows = version_resources(component, body["bean"], region_name)
                     if len(rows) > 5000:
                         raise ValueError("source limit")

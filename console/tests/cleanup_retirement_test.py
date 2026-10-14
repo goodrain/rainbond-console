@@ -1,5 +1,6 @@
 import hashlib
 import hmac
+import json
 import unittest
 from contextlib import nullcontext
 from types import ModuleType
@@ -8,13 +9,37 @@ from unittest.mock import Mock, patch
 from console.services.cleanup_retirement import (
     verify_retirement_request, retirement_payload, validate_template_retirement,
     validate_upload_chunk_retirement, retire_upload_chunks, inspection_payload,
-    verify_inspection_request, inspect_upload_chunks, inspect_template_identity, lock_template_use, RetirementConflict
+    verify_inspection_request, inspect_upload_chunks, inspect_template_identity, lock_template_use, RetirementConflict,
+    is_hidden_template_version, snapshot_protected_version_images_from_rows,
 )
 
 
 # capability_id: console.cleanup.upload-chunk-retirement-bridge
 # capability_id: console.cleanup.cloud-template-reference
 class RetirementGuardTests(unittest.TestCase):
+    def test_hidden_template_detection_is_version_specific(self):
+        hidden_models = {'model'}
+        self.assertTrue(is_hidden_template_version({'app_id': 'model', 'record_id': 0}, hidden_models))
+        self.assertFalse(is_hidden_template_version({'app_id': 'model', 'record_id': 131}, hidden_models))
+        self.assertFalse(is_hidden_template_version({'app_id': 'published', 'record_id': 0}, hidden_models))
+
+    def test_snapshot_version_images_are_precise_and_fail_closed_per_component(self):
+        rows = [json.dumps({'components': [
+            {'service_base': {'service_id': 'known', 'image': 'goodrain.me/app:v3'}},
+            {'service_base': {'service_id': 'unknown'}},
+        ]})]
+        protected = snapshot_protected_version_images_from_rows(rows)
+        self.assertEqual(protected['known'], {'goodrain.me/app:v3'})
+        self.assertIsNone(protected['unknown'])
+        self.assertNotIn('absent', protected)
+
+        merged = snapshot_protected_version_images_from_rows(rows + [json.dumps({'components': [
+            {'service_base': {'service_id': 'known', 'image': 'goodrain.me/app:v4'}},
+            {'service_base': {'service_id': 'unknown', 'image': 'goodrain.me/unknown:v2'}},
+        ]})])
+        self.assertEqual(merged['known'], {'goodrain.me/app:v3', 'goodrain.me/app:v4'})
+        self.assertIsNone(merged['unknown'])
+
     def test_cloud_template_use_does_not_require_local_market_rows(self):
         parents = Mock()
         versions = Mock()

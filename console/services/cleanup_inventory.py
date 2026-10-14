@@ -320,7 +320,10 @@ def version_resources(component, payload, region):
             checkpoints = inspection.get("checkpoints") or {}
             if inspection.get("protocol") != 2:
                 result["protection"] = "core_upgrade_required"
-            if (component.get("retirement_references_complete") is True and component.get("snapshot_referenced") is False
+            snapshot_images = component.get("snapshot_reference_images") or set()
+            snapshot_referenced = bool(set(result["images"]) & set(snapshot_images))
+            if (component.get("retirement_references_complete") is True
+                    and component.get("snapshot_reference_unknown") is False and not snapshot_referenced
                     and inspection.get("protocol") == 2 and inspection.get("current_version") == current
                     and inspection.get("active_operation") is False and current and event_id in checkpoints
                     and version.get("delivered_type") == "image" and result["images"]):

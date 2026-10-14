@@ -14,6 +14,10 @@ class RetirementConflict(Exception):
     pass
 
 
+def is_hidden_template_version(row: dict[str, Any], hidden_models: set[str]) -> bool:
+    return row.get('app_id') in hidden_models and row.get('record_id') == 0
+
+
 def validate_upload_chunk_retirement(expected: dict[str, Any]) -> None:
     if set(expected) != {'session_id', 'event_id', 'state_fingerprint', 'storage_fingerprint', 'idle_days'}:
         raise ValueError()
@@ -200,7 +204,7 @@ def retire_template(enterprise: str, region: str, expected: dict, key: bytes) ->
             'active_operation': AppUpgradeRecord.objects.filter(group_key=version.app_id).filter(
                 Q(version=version.version) | Q(old_version=version.version)).filter(status__in=[0, 1, 2, 4]).exists(),
         }
-        if AppVersionTemplateRelation.objects.filter(app_model_id=parent.app_id).exists():
+        if version.record_id == 0 and AppVersionTemplateRelation.objects.filter(app_model_id=parent.app_id).exists():
             state['managed'] = False
         validate_template_retirement(state, expected)
         version.delete()
@@ -217,8 +221,9 @@ def retire_build_version(enterprise: str, region: str, expected: dict, actor: st
         component = TenantServiceInfo.objects.select_for_update().get(
             service_id=expected['service_id'], service_region=region)
         tenant = Tenants.objects.get(tenant_id=component.tenant_id, enterprise_id=enterprise)
+        snapshot_references = snapshot_protected_version_images(enterprise).get(component.service_id, set())
         if (ServiceUpgradeRecord.objects.filter(service=component, status__in=[1, 2, 4]).exists()
-                or component.service_id in snapshot_protected_components(enterprise)):
+                or snapshot_references is None or expected['image'] in snapshot_references):
             raise RetirementConflict()
         api = RegionInvokeApi()
         command = dict(expected, operator='cleanup:' + actor, operation_id=operation_id)
@@ -288,7 +293,7 @@ def template_retirement_targets(enterprise: str, region: str, rows: list[dict], 
     result = {}
     for row in rows:
         app_id, version = row['app_id'], row['version']
-        if (app_id not in owned or app_id in hidden or row.get('enterprise_id') != enterprise
+        if (app_id not in owned or is_hidden_template_version(row, hidden) or row.get('enterprise_id') != enterprise
                 or row.get('region_name') != region or row.get('source') != 'local' or not row.get('is_complete')
                 or ranks.get(row['ID'], 0) <= 1 or (app_id, version) in bindings or (app_id, version) in active):
             continue
@@ -332,6 +337,54 @@ def snapshot_protected_components(enterprise: str) -> set[str]:
     for raw in AppUpgradeSnapshot.objects.filter(tenant_id__in=teams).values_list('snapshot', flat=True).iterator(chunk_size=20):
         protected.update(snapshot_component_ids(raw))
     return protected
+
+
+def snapshot_protected_version_images_from_rows(rows: Iterator[str] | list[str]) -> dict[str, set[str] | None]:
+    protected: dict[str, set[str] | None] = {}
+    image_pattern = re.compile(r'^[A-Za-z0-9][A-Za-z0-9._:/-]*(?:@sha256:[a-fA-F0-9]{64})?$')
+    for raw in rows:
+        try:
+            data = json.loads(raw)
+        except (ValueError, TypeError):
+            raise RetirementConflict() from None
+        if not isinstance(data, dict) or not isinstance(data.get('components'), list):
+            raise RetirementConflict()
+        for component in data['components']:
+            if not isinstance(component, dict) or not isinstance(component.get('service_base'), dict):
+                raise RetirementConflict()
+            base = component['service_base']
+            identifier = base.get('service_id')
+            if not isinstance(identifier, str) or not identifier:
+                raise RetirementConflict()
+            source = component.get('service_source') or {}
+            if not isinstance(source, dict):
+                protected[identifier] = None
+                continue
+            images = set()
+            invalid = False
+            for value in (base.get('image'), source.get('image')):
+                if value in (None, ''):
+                    continue
+                if not isinstance(value, str) or len(value) > 2048 or '://' in value or not image_pattern.fullmatch(value):
+                    invalid = True
+                    break
+                images.add(value)
+            if invalid or not images or (identifier in protected and protected[identifier] is None):
+                protected[identifier] = None
+            else:
+                current = protected.setdefault(identifier, set())
+                assert current is not None
+                current.update(images)
+    return protected
+
+
+def snapshot_protected_version_images(enterprise: str) -> dict[str, set[str] | None]:
+    from console.models.main import AppUpgradeSnapshot
+    from www.models.main import Tenants
+    teams = Tenants.objects.filter(enterprise_id=enterprise).values_list('tenant_id', flat=True)
+    rows = AppUpgradeSnapshot.objects.filter(tenant_id__in=teams).values_list(
+        'snapshot', flat=True).iterator(chunk_size=20)
+    return snapshot_protected_version_images_from_rows(rows)
 
 
 def snapshot_template_bindings(enterprise: str) -> set[tuple[str, str]]:
