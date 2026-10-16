@@ -766,7 +766,6 @@ class BuildSourceinfo(AppBaseView):
         修改构建源
         ---
         """
-        s_id = transaction.savepoint()
         try:
             image = request.data.get("image", None)
             cmd = request.data.get("cmd", None)
@@ -847,7 +846,6 @@ class BuildSourceinfo(AppBaseView):
                 self.service.image = ""
                 self.service.service_key = "application"
                 self.service.save()
-                transaction.savepoint_commit(s_id)
             elif service_source == "docker_run":
                 self.service.service_source = "docker_image"
                 if image:
@@ -864,7 +862,6 @@ class BuildSourceinfo(AppBaseView):
                 self.service.service_key = "application"
                 self.service.language = ""
                 self.service.save()
-                transaction.savepoint_commit(s_id)
 
             # 保存原架构，用于判断是否发生变化
             old_arch = self.service.arch
@@ -897,8 +894,8 @@ class BuildSourceinfo(AppBaseView):
             result = general_message(200, "success", "修改成功")
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)  # type: ignore[attr-defined]
-            transaction.savepoint_rollback(s_id)
+            transaction.set_rollback(True)
+            result = error_message()
         return Response(result, status=result["code"])
 
 

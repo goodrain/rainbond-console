@@ -3349,6 +3349,24 @@
       "status": "active"
     },
     {
+      "id": "console.build-source.single-transaction-boundary",
+      "title": "Keep build source updates in one transaction",
+      "title_zh": "构建源更新使用单一事务边界",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.app_overview.BuildSourceinfo.put",
+      "code_paths": [
+        "console/views/app_overview.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/buildsource_transaction_test.py",
+          "selector": "BuildSourceTransactionTests.test_build_source_update_uses_atomic_rollback_without_manual_savepoints"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.cache.atomic-increment",
       "title": "Atomic expiring cache increment",
       "title_zh": "Atomic expiring cache increment",
@@ -6040,6 +6058,24 @@
       "status": "active"
     },
     {
+      "id": "console.dependency.concurrent-duplicate",
+      "title": "Handle concurrent duplicate component dependencies",
+      "title_zh": "处理并发重复组件依赖",
+      "interface_type": "service_method",
+      "interface": "console.services.app_config.app_relation_service.AppServiceRelationService.add_service_dependency",
+      "code_paths": [
+        "console/services/app_config/app_relation_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_relation_service_test.py",
+          "selector": "AppRelationServiceTests.test_add_service_dependency_converts_insert_race_to_existing_relation"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.dependency.invalid-container-port",
       "title": "Dependency Invalid Container Port",
       "title_zh": "Dependency Invalid Container Port",
@@ -8126,6 +8162,24 @@
         {
           "path": "console/tests/app_import_and_export_service_test.py",
           "selector": "AppImportServiceMetadataTestCase.test_save_enterprise_import_info_preserves_explicit_unlimited_resources"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.market-app.k8s-attribute-extra-fields",
+      "title": "Ignore template metadata in component K8s attributes",
+      "title_zh": "忽略组件 K8s 属性模板元数据",
+      "interface_type": "service_method",
+      "interface": "console.services.market_app.component.Component._update_component_k8s_attributes",
+      "code_paths": [
+        "console/services/market_app/component.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/market_app_component_test.py",
+          "selector": "MarketAppComponentPortTests.test_update_k8s_attribute_ignores_template_metadata_fields"
         }
       ],
       "test_type": "regression",
@@ -11396,6 +11450,24 @@
       "status": "active"
     },
     {
+      "id": "console.rke2.preserve-method-not-allowed",
+      "title": "Preserve method-not-allowed responses",
+      "title_zh": "保留不支持方法响应",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.rke2.BaseClusterView.handle_exception",
+      "code_paths": [
+        "console/views/rke2.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/rke2_cluster_errors_test.py",
+          "selector": "ClusterRKEErrorTests.test_cluster_install_get_preserves_method_not_allowed"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.runtime.sse-gunicorn-timeout",
       "title": "Keep Gunicorn workers alive for one-hour SSE streams",
       "title_zh": "Gunicorn 超时覆盖一小时 SSE 长连接",
@@ -11668,6 +11740,24 @@
         {
           "path": "console/tests/service_share_test.py",
           "selector": "ShareServiceCheckServiceSourceTestCase"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.source-code.optional-oauth-project-id",
+      "title": "Allow optional OAuth repository project IDs",
+      "title_zh": "允许 OAuth 仓库缺少项目 ID",
+      "interface_type": "service_method",
+      "interface": "console.services.app.ConsoleAppService.init_repositories",
+      "code_paths": [
+        "console/services/app.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_service_test.py",
+          "selector": "AppServiceTests.test_init_repositories_defaults_empty_oauth_project_id_to_zero"
         }
       ],
       "test_type": "regression",

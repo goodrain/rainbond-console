@@ -181,6 +181,7 @@
 | console.app.upgrade | 升级应用版本 | active | regression | console.services.mcp_query_service.call_tool[rainbond_upgrade_app] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_upgrade_app_calls_upgrade_service_and_returns_latest_items |
 | console.auth.get-user-no-legacy-middleware | 解析会话用户时不访问已废弃的 MIDDLEWARE_CLASSES | active | regression | console.services.auth.get_user | console/tests/auth_get_user_test.py::GetUserNoLegacyMiddlewareTests.test_returns_user_without_touching_middleware_classes<br>console/tests/auth_get_user_test.py::GetUserNoLegacyMiddlewareTests.test_returns_anonymous_user_when_no_session |
 | console.build-env.duplicate-update | 重复构建环境变量统一更新 | active | regression | console.repositories.app_config.TenantServiceEnvVarRepository.update_or_create_env_var | console/tests/app_config_test.py::TenantServiceEnvVarRepositoryTests.test_update_or_create_env_var_updates_all_duplicate_rows<br>console/tests/app_config_test.py::TenantServiceEnvVarRepositoryTests.test_update_or_create_env_var_creates_row_when_no_match_exists |
+| console.build-source.single-transaction-boundary | 构建源更新使用单一事务边界 | active | regression | console.views.app_overview.BuildSourceinfo.put | console/tests/buildsource_transaction_test.py::BuildSourceTransactionTests.test_build_source_update_uses_atomic_rollback_without_manual_savepoints |
 | console.cache.atomic-increment | Atomic expiring cache increment | active | regression | console.utils.cache.Cache.increment | console/tests/utils/cache_test.py::CacheAtomicIncrementTests |
 | console.cache.capacity-guard | 内存缓存达到容量上限时拒绝或复用缓存槽位 | active | regression | console.utils.cache.Cache._memory_set | console/tests/utils/cache_test.py::CacheMemoryTests.test_memory_cache_refuses_new_key_when_full_without_expired_entries |
 | console.cache.expired-eviction | 在访问时清理已过期的内存缓存项 | active | regression | console.utils.cache.Cache._memory_get | console/tests/utils/cache_test.py::CacheMemoryTests.test_memory_cache_evicts_expired_entry_on_get |
@@ -316,6 +317,7 @@
 | console.config.expected-conflict | 配置已存在时返回预期冲突并停止上报 | active | regression | console.views.base.custom_exception_handler | console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_config_exist_error_returns_conflict_response<br>console/tests/sentry_config_test.py::test_before_send_drops_expected_config_conflict |
 | console.database.required-schema-startup-gate | 关键迁移表缺失时阻止启动 | active | regression | entrypoint migrate then verify_required_schema | console/tests/entrypoint_test.py::EntrypointGunicornTest.test_database_startup_plans_repairs_before_applying_and_migrating<br>console/tests/schema_verification_test.py::RequiredSchemaVerificationTestCase.test_missing_required_tables_are_reported_in_stable_order |
 | console.database.transient-unavailable | 统一瞬时数据库不可用响应 | active | regression | console.utils.database_errors.is_transient_database_error | console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_transient_database_error_returns_retryable_503<br>console/tests/sentry_config_test.py::test_before_send_groups_transient_database_outages_with_stable_fingerprint |
+| console.dependency.concurrent-duplicate | 处理并发重复组件依赖 | active | regression | console.services.app_config.app_relation_service.AppServiceRelationService.add_service_dependency | console/tests/app_relation_service_test.py::AppRelationServiceTests.test_add_service_dependency_converts_insert_race_to_existing_relation |
 | console.dependency.invalid-container-port | Dependency Invalid Container Port | active | regression | console.services.app_config.app_relation_service.AppServiceRelationService | console/tests/app_relation_service_test.py::AppRelationServiceTests.test_add_service_dependency_rejects_unknown_dep_service_port |
 | console.deploy-diagnostics.offline-mode | 离线模式禁用部署诊断上报 | active | regression | console.services.enterprise_first_deploy_service.EnterpriseFirstDeployService | console/tests/enterprise_first_deploy_service_test.py::EnterpriseFirstDeployServiceTests.test_offline_mode_does_not_start_report_sweeper<br>console/tests/enterprise_first_deploy_service_test.py::EnterpriseFirstDeployServiceTests.test_online_mode_starts_report_sweeper<br>console/tests/enterprise_first_deploy_service_test.py::EnterpriseFirstDeployServiceTests.test_offline_mode_skips_report_request<br>console/tests/enterprise_first_deploy_service_test.py::EnterpriseFirstDeployServiceTests.test_offline_mode_does_not_create_deploy_tracking<br>console/tests/enterprise_first_deploy_service_test.py::EnterpriseFirstDeployServiceTests.test_offline_mode_does_not_persist_source_check_failure<br>console/tests/enterprise_first_deploy_service_test.py::EnterpriseFirstDeployServiceTests.test_offline_mode_marks_first_deploy_report_handled_without_thread<br>console/tests/enterprise_first_deploy_service_test.py::EnterpriseFirstDeployServiceTests.test_offline_mode_removes_unreported_deploy_attempt<br>console/tests/enterprise_first_deploy_service_test.py::EnterpriseFirstDeployServiceTests.test_offline_mode_forgets_unpersisted_report |
 | console.deploy-diagnostics.source-check | 源码构建源检测失败诊断埋点 | active | regression | console.views.app_create.app_check.AppCheck.get | console/tests/app_check_view_test.py::AppCheckSourceDiagnosticTests.test_get_reports_source_check_failure_without_changing_response<br>console/tests/source_component_service_test.py::SourceComponentServiceTests.test_auto_create_component_raises_on_check_failure<br>console/tests/enterprise_first_deploy_service_test.py::EnterpriseFirstDeployServiceTests.test_report_source_check_failure_sends_pre_deploy_diagnostic |
@@ -420,6 +422,7 @@
 | console.market-app.delete-version-endpoint | 删除应用市场应用版本 | active | regression | console.views.center_pool.apps.AppVersionUDView.delete | console/tests/market_app_service_test.py::CenterPoolAppVersionViewTests |
 | console.market-app.install-default-storage-class | 应用市场安装使用平台默认存储类 | active | regression | console.services.market_app.new_components.NewComponents._template_to_volumes | console/tests/market_app_storage_test.py::MarketAppDefaultStorageClassTests.test_resolve_market_default_volume_type_prefers_configured_storage_class<br>console/tests/market_app_storage_test.py::MarketAppDefaultStorageClassTests.test_template_to_volumes_uses_configured_default_storage_class |
 | console.market-app.install-unlimited-resources | 市场发布和安装保留不限制资源 | active | regression | console.services.share_services.ShareService.query_share_service_info / console.services.market_app.new_components.NewComponents._template_to_component / console.services.market_app_service.MarketAppService.__init_component_from_market_app / console.services.app_import_and_export_service.AppImportService.__normalize_import_component_template | console/tests/service_share_test.py::ShareServiceQueryResourceLimitTestCase.test_query_share_service_info_preserves_unlimited_resource_limits<br>console/tests/market_app_update_components_test.py::MarketAppNewComponentsResourceLimitTests.test_template_to_component_preserves_explicit_unlimited_cpu_and_memory<br>console/tests/market_app_service_test.py::MarketAppServiceResourceLimitTests.test_init_component_from_market_app_preserves_explicit_unlimited_cpu_and_memory<br>console/tests/app_import_and_export_service_test.py::AppImportServiceMetadataTestCase.test_save_enterprise_import_info_preserves_explicit_unlimited_resources |
+| console.market-app.k8s-attribute-extra-fields | 忽略组件 K8s 属性模板元数据 | active | regression | console.services.market_app.component.Component._update_component_k8s_attributes | console/tests/market_app_component_test.py::MarketAppComponentPortTests.test_update_k8s_attribute_ignores_template_metadata_fields |
 | console.market-app.local-snapshot-offline-upgrade | 离线模式检测本地快照升级 | active | regression | console.services.market_app_service.MarketAppService.get_market_apps_in_app | console/tests/market_app_service_test.py::MarketAppServiceOfflineUpgradeTests::test_local_snapshot_offline_upgrade_is_detected<br>console/tests/market_app_service_test.py::MarketAppServiceOfflineUpgradeTests::test_local_snapshot_versions_still_use_local_repository_when_offline |
 | console.market-app.manual-build-preserves-port-alias | 手动构建保留应用市场端口别名 | active | regression | console.services.app_actions.app_deploy.AppDeployService.deploy / MarketService.update_port_data | console/tests/app_deploy_test.py::MarketServiceBuildBoundaryRegressionTests |
 | console.market-app.restore-preserves-volume-capacity-on-storage-fallback | 市场恢复在存储类型回退时保留卷容量 | active | regression | console.services.market_app.new_components.NewComponents._template_to_volumes | console/tests/market_app_storage_test.py::MarketAppDefaultStorageClassTests.test_template_to_volumes_preserves_capacity_when_storage_type_changes |
@@ -595,6 +598,7 @@
 | console.rke2.cluster-install-structured-helm-error | Rainbond 安装失败时返回结构化错误且不进入集成中状态 | active | regression | console.views.rke2.ClusterRKEInstallRB.post | console/tests/rke2_cluster_errors_test.py::ClusterRKEErrorTests.test_cluster_install_returns_structured_helm_error_without_saving_integrating |
 | console.rke2.cluster-missing-metadata-404 | 请求的 RKE 集群元数据缺失时返回 404 | active | regression | console.views.rke2.ClusterRKE.get | console/tests/rke2_cluster_errors_test.py::ClusterRKEErrorTests.test_cluster_get_returns_structured_404_when_cluster_metadata_missing |
 | console.rke2.helm-subprocess-error-sanitized | 清洗 Rainbond 安装中的 Helm 子进程失败信息 | active | regression | console.utils.k8s_cli.K8sClient.install_rainbond | console/tests/rke2_cluster_errors_test.py::ClusterRKEErrorTests.test_install_rainbond_returns_sanitized_subprocess_error |
+| console.rke2.preserve-method-not-allowed | 保留不支持方法响应 | active | regression | console.views.rke2.BaseClusterView.handle_exception | console/tests/rke2_cluster_errors_test.py::ClusterRKEErrorTests.test_cluster_install_get_preserves_method_not_allowed |
 | console.runtime.sse-gunicorn-timeout | Gunicorn 超时覆盖一小时 SSE 长连接 | active | regression | entrypoint.sh/Procfile | console/tests/entrypoint_test.py::EntrypointGunicornTest.test_gunicorn_timeout_outlives_one_hour_sse_streams |
 | console.sentry.expected-not-found-errors | 过滤预期的资源不存在异常 | active | regression | goodrain_web.sentry_config.before_send | console/tests/sentry_config_test.py::test_before_send_drops_expected_not_found_exceptions<br>console/tests/sentry_config_test.py::test_before_send_keeps_server_side_service_and_region_errors |
 | console.sentry.expected-region-frequent-error | 过滤预期的区域操作频繁异常 | active | regression | goodrain_web.sentry_config.before_send | console/tests/sentry_config_test.py::test_before_send_drops_region_api_frequent_operation_exception<br>console/tests/sentry_config_test.py::test_before_send_keeps_same_exception_name_from_other_modules |
@@ -609,6 +613,7 @@
 | console.service-share.view-snapshot-info | 查看分享快照详情 | active | regression | console.views.service_share.ServiceShareInfoView.get | console/tests/service_share_test.py::ServiceShareInfoViewTestCase.test_get_returns_snapshot_template_payload |
 | console.service-share.vm-qcow2-publish | 将虚拟机系统盘发布为 qcow2 镜像源 | active | regression | console.services.share_services.ShareService.sync_event | console/tests/service_share_test.py::ShareRepoVMServiceSourceTestCase.test_get_service_list_keeps_vm_run_components_for_publish<br>console/tests/service_share_test.py::ShareServiceCreateSnapshotPublishTestCase.test_sync_event_passes_vm_image_source_for_vm_publish<br>console/tests/service_share_test.py::ShareServiceCreateSnapshotPublishTestCase.test_sync_event_passes_vm_export_token_for_live_vm_publish<br>console/tests/service_share_test.py::ShareServiceVMPublishMetadataTestCase |
 | console.service-share.vm-shutdown-guard | 虚拟机发布关机限制 | active | regression | console.services.share_services.ShareService.check_service_source | console/tests/service_share_test.py::ShareServiceCheckServiceSourceTestCase |
+| console.source-code.optional-oauth-project-id | 允许 OAuth 仓库缺少项目 ID | active | regression | console.services.app.ConsoleAppService.init_repositories | console/tests/app_service_test.py::AppServiceTests.test_init_repositories_defaults_empty_oauth_project_id_to_zero |
 | console.source-component.auto-create-flow | 执行源码组件自动创建全流程 | active | regression | console.services.source_component_service.auto_create_component | console/tests/source_component_service_test.py::SourceComponentServiceTests.test_auto_create_component_runs_full_source_flow |
 | console.source-component.build-config-error | 应用默认源码构建配置失败时抛错 | active | regression | console.services.source_component_service.apply_default_build_config | console/tests/source_component_service_test.py::SourceComponentServiceTests.test_apply_default_build_config_raises_when_save_fails |
 | console.source-component.check-failure | 源码组件检测失败时中止创建 | active | regression | console.services.source_component_service.auto_create_component | console/tests/source_component_service_test.py::SourceComponentServiceTests.test_auto_create_component_raises_on_check_failure |
@@ -2462,6 +2467,16 @@
 - 代码路径: `console/repositories/app_config.py`
 - 测试路径: `console/tests/app_config_test.py::TenantServiceEnvVarRepositoryTests.test_update_or_create_env_var_updates_all_duplicate_rows`, `console/tests/app_config_test.py::TenantServiceEnvVarRepositoryTests.test_update_or_create_env_var_creates_row_when_no_match_exists`
 
+### 构建源更新使用单一事务边界
+
+- Capability ID: `console.build-source.single-transaction-boundary`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `view_endpoint`
+- 业务入口: `console.views.app_overview.BuildSourceinfo.put`
+- 代码路径: `console/views/app_overview.py`
+- 测试路径: `console/tests/buildsource_transaction_test.py::BuildSourceTransactionTests.test_build_source_update_uses_atomic_rollback_without_manual_savepoints`
+
 ### Atomic expiring cache increment
 
 - Capability ID: `console.cache.atomic-increment`
@@ -3812,6 +3827,16 @@
 - 代码路径: `console/utils/database_errors.py`, `console/views/base.py`, `goodrain_web/sentry_config.py`
 - 测试路径: `console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_transient_database_error_returns_retryable_503`, `console/tests/sentry_config_test.py::test_before_send_groups_transient_database_outages_with_stable_fingerprint`
 
+### 处理并发重复组件依赖
+
+- Capability ID: `console.dependency.concurrent-duplicate`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.app_config.app_relation_service.AppServiceRelationService.add_service_dependency`
+- 代码路径: `console/services/app_config/app_relation_service.py`
+- 测试路径: `console/tests/app_relation_service_test.py::AppRelationServiceTests.test_add_service_dependency_converts_insert_race_to_existing_relation`
+
 ### Dependency Invalid Container Port
 
 - Capability ID: `console.dependency.invalid-container-port`
@@ -4851,6 +4876,16 @@
 - 业务入口: `console.services.share_services.ShareService.query_share_service_info / console.services.market_app.new_components.NewComponents._template_to_component / console.services.market_app_service.MarketAppService.__init_component_from_market_app / console.services.app_import_and_export_service.AppImportService.__normalize_import_component_template`
 - 代码路径: `console/services/share_services.py`, `console/services/market_app/new_components.py`, `console/services/market_app_service.py`, `console/services/app_import_and_export_service.py`
 - 测试路径: `console/tests/service_share_test.py::ShareServiceQueryResourceLimitTestCase.test_query_share_service_info_preserves_unlimited_resource_limits`, `console/tests/market_app_update_components_test.py::MarketAppNewComponentsResourceLimitTests.test_template_to_component_preserves_explicit_unlimited_cpu_and_memory`, `console/tests/market_app_service_test.py::MarketAppServiceResourceLimitTests.test_init_component_from_market_app_preserves_explicit_unlimited_cpu_and_memory`, `console/tests/app_import_and_export_service_test.py::AppImportServiceMetadataTestCase.test_save_enterprise_import_info_preserves_explicit_unlimited_resources`
+
+### 忽略组件 K8s 属性模板元数据
+
+- Capability ID: `console.market-app.k8s-attribute-extra-fields`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.market_app.component.Component._update_component_k8s_attributes`
+- 代码路径: `console/services/market_app/component.py`
+- 测试路径: `console/tests/market_app_component_test.py::MarketAppComponentPortTests.test_update_k8s_attribute_ignores_template_metadata_fields`
 
 ### 离线模式检测本地快照升级
 
@@ -6602,6 +6637,16 @@
 - 代码路径: `console/utils/k8s_cli.py`
 - 测试路径: `console/tests/rke2_cluster_errors_test.py::ClusterRKEErrorTests.test_install_rainbond_returns_sanitized_subprocess_error`
 
+### 保留不支持方法响应
+
+- Capability ID: `console.rke2.preserve-method-not-allowed`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `view_endpoint`
+- 业务入口: `console.views.rke2.BaseClusterView.handle_exception`
+- 代码路径: `console/views/rke2.py`
+- 测试路径: `console/tests/rke2_cluster_errors_test.py::ClusterRKEErrorTests.test_cluster_install_get_preserves_method_not_allowed`
+
 ### Gunicorn 超时覆盖一小时 SSE 长连接
 
 - Capability ID: `console.runtime.sse-gunicorn-timeout`
@@ -6741,6 +6786,16 @@
 - 业务入口: `console.services.share_services.ShareService.check_service_source`
 - 代码路径: `console/services/share_services.py`
 - 测试路径: `console/tests/service_share_test.py::ShareServiceCheckServiceSourceTestCase`
+
+### 允许 OAuth 仓库缺少项目 ID
+
+- Capability ID: `console.source-code.optional-oauth-project-id`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.app.ConsoleAppService.init_repositories`
+- 代码路径: `console/services/app.py`
+- 测试路径: `console/tests/app_service_test.py::AppServiceTests.test_init_repositories_defaults_empty_oauth_project_id_to_zero`
 
 ### 执行源码组件自动创建全流程
 

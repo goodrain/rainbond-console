@@ -188,6 +188,31 @@ class AppServiceTests(SimpleTestCase):
         self.assertEqual(service.code_version, "main")
         mock_create_hook.assert_called_once_with("goodrain", "rainbond", "token-1")
 
+    # capability_id: console.source-code.optional-oauth-project-id
+    @patch("console.services.app.support_oauth_type", {"gitlab": object()})
+    def test_init_repositories_defaults_empty_oauth_project_id_to_zero(self):
+        from console.services.app import app_service
+
+        service = Obj()
+        service.save = lambda: None
+
+        code, msg = app_service.init_repositories(
+            service,
+            Obj(),
+            "oauth_gitlab",
+            "https://git.example.com/team/project.git",
+            "",
+            "main",
+            None,
+            None,
+            "oauth-service-1",
+            "team/project",
+        )
+
+        self.assertEqual(code, 200)
+        self.assertEqual(msg, "success")
+        self.assertEqual(service.git_project_id, 0)
+
     @patch("console.services.app.gitHubClient.createReposHook")
     def test_init_repositories_skips_github_hook_without_github_token(self, mock_create_hook):
         from console.services.app import app_service

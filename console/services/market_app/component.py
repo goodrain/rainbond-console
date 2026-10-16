@@ -362,15 +362,11 @@ class Component(object):
                         attribute_value=attribute.get("attribute_value"),
                     ))
                 continue
-            # update attrs
-            k8s_attr = ComponentK8sAttributes(**attribute)
-            k8s_attr.tenant_id = self.component.tenant_id
-            k8s_attr.component_id = self.component.component_id
-            k8s_attributes[attr_name] = k8s_attr
+            k8s_attributes[attr_name] = attribute.get("attribute_value")
 
         for original_attr in self.k8s_attributes:
-            if k8s_attributes.get(original_attr.name):
-                original_attr.attribute_value = k8s_attributes[original_attr.name].attribute_value
+            if original_attr.name in k8s_attributes:
+                original_attr.attribute_value = k8s_attributes[original_attr.name]
 
         self.update_action_type(ActionType.UPDATE.value)
 

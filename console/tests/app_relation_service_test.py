@@ -9,13 +9,14 @@ sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
 
-import django
-from django.test import SimpleTestCase
+import django  # noqa: E402
+from django.db import IntegrityError  # noqa: E402
+from django.test import TestCase  # noqa: E402
 
 django.setup()
 
-from console.exception.main import ServiceHandleException
-from console.services.app_config.app_relation_service import AppServiceRelationService
+from console.exception.main import ServiceHandleException  # noqa: E402
+from console.services.app_config.app_relation_service import AppServiceRelationService  # noqa: E402
 
 APP_RELATION_PATH = "console.services.app_config.app_relation_service"
 
@@ -40,7 +41,44 @@ class FakeDependency(object):
         self.deleted = True
 
 
-class AppRelationServiceTests(SimpleTestCase):
+class AppRelationServiceTests(TestCase):
+
+    # capability_id: console.dependency.concurrent-duplicate
+    @patch(APP_RELATION_PATH + ".dep_relation_repo.add_service_dependency", side_effect=IntegrityError("duplicate"))
+    @patch(APP_RELATION_PATH + ".AppServiceRelationService._AppServiceRelationService__is_env_duplicate",
+           return_value=False)
+    @patch(APP_RELATION_PATH + ".port_repo.get_service_ports")
+    @patch(APP_RELATION_PATH + ".service_repo.get_service_by_tenant_and_id")
+    @patch(APP_RELATION_PATH + ".dep_relation_repo.get_depency_by_serivce_id_and_dep_service_id")
+    def test_add_service_dependency_converts_insert_race_to_existing_relation(
+            self,
+            mock_get_dependency,
+            mock_get_dep_service,
+            mock_get_service_ports,
+            _mock_is_env_duplicate,
+            _mock_add_dependency,
+    ):
+        relation_service = AppServiceRelationService()
+        tenant = Obj(tenant_id="team-1", tenant_name="demo-team", enterprise_id="eid-1", namespace="default")
+        service = Obj(
+            tenant_id="team-1",
+            service_id="svc-1",
+            service_region="rainbond",
+            service_alias="api",
+            create_status="creating",
+        )
+        dep_service = Obj(service_id="svc-2", tenant_id="team-1", service_type="web")
+        existing_relation = Obj(service_id="svc-1", dep_service_id="svc-2")
+
+        mock_get_dependency.side_effect = [None, existing_relation]
+        mock_get_dep_service.return_value = dep_service
+        mock_get_service_ports.return_value = FakePorts([Obj(container_port=3306, is_inner_service=True)])
+
+        code, msg, relation = relation_service.add_service_dependency(tenant, service, "svc-2")
+
+        self.assertEqual(code, 212)
+        self.assertEqual(msg, "当前组件已被关联")
+        self.assertIsNone(relation)
 
     # capability_id: console.dependency.invalid-container-port
     @patch("console.services.app_config.app_relation_service.dep_relation_repo.get_depency_by_serivce_id_and_dep_service_id")

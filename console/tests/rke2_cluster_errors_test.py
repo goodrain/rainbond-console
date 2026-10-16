@@ -31,7 +31,7 @@ django.setup()
 
 from rest_framework.permissions import AllowAny  # noqa: E402
 from rest_framework.test import APIRequestFactory  # noqa: E402
-from rest_framework.views import APIView  # noqa: E402
+from rest_framework.views import APIView, exception_handler  # noqa: E402
 
 
 class TestAllowAnyApiView(APIView):
@@ -41,6 +41,7 @@ class TestAllowAnyApiView(APIView):
 
 base_module = ModuleType("console.views.base")
 base_module.AlowAnyApiView = TestAllowAnyApiView
+base_module.custom_exception_handler = exception_handler
 sys.modules.setdefault("console.views.base", base_module)
 
 init_cluster_module = ModuleType("console.repositories.init_cluster")
@@ -55,6 +56,16 @@ from console.views.rke2 import ClusterRKE, ClusterRKEInstallRB  # noqa: E402
 class ClusterRKEErrorTests(TestCase):
     def setUp(self):
         self.factory = APIRequestFactory()
+
+    # capability_id: console.rke2.preserve-method-not-allowed
+    @patch("console.views.rke2.logger.error")
+    def test_cluster_install_get_preserves_method_not_allowed(self, mock_logger_error):
+        request = self.factory.get("/console/cluster_install")
+
+        response = ClusterRKEInstallRB.as_view()(request)
+
+        self.assertEqual(response.status_code, 405)
+        mock_logger_error.assert_not_called()
 
     @patch("console.views.rke2.rke_cluster")
     # capability_id: console.rke2.cluster-missing-metadata-404

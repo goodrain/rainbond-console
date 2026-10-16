@@ -6,6 +6,8 @@ import json
 import logging
 from typing import Any, List, Tuple
 
+from django.db import IntegrityError, transaction
+
 from console.exception.main import (InnerPortNotFound, ServiceHandleException, ServiceRelationAlreadyExist)
 from console.repositories.app import service_repo
 from console.repositories.app_config import (dep_relation_repo, env_var_repo, port_repo)
@@ -40,7 +42,6 @@ class AppServiceRelationService(object):
             service_dependency_dict["组件名"] = dependencie.service_cname
             service_dependency_list.append(service_dependency_dict)
         return json.dumps(service_dependency_list, ensure_ascii=False)
-
 
     def get_dep_service_ids(self, service: TenantServiceInfo) -> Any:
         return dep_relation_repo.get_service_dependencies(service.tenant_id, service.service_id).values_list(
@@ -253,7 +254,15 @@ class AppServiceRelationService(object):
             "dep_service_type": dep_service.service_type,
             "dep_order": 0,
         }
-        dep_relation = dep_relation_repo.add_service_dependency(**tenant_service_relation)
+        try:
+            with transaction.atomic():
+                dep_relation = dep_relation_repo.add_service_dependency(**tenant_service_relation)
+        except IntegrityError:
+            existing_relation = dep_relation_repo.get_depency_by_serivce_id_and_dep_service_id(
+                tenant.tenant_id, service.service_id, dep_service_id)
+            if existing_relation:
+                return 212, "当前组件已被关联", None
+            raise
         # component dependency change, will change export network governance plugin configuration
         if service.create_status == "complete":
             from console.services.plugin import app_plugin_service

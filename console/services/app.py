@@ -246,7 +246,7 @@ class AppService(object):
                 service.check_uuid = check_uuid
             if event_id:
                 service.check_event_id = event_id
-            service.git_project_id = service_code_id
+            service.git_project_id = service_code_id if service_code_id not in (None, "") else 0
             service.git_url = service_code_clone_url
             service.code_from = service_code_from
             service.code_version = service_code_version
