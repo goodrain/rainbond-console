@@ -909,8 +909,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
 
         url, token = self.__get_region_access_info(tenant_name, region)
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
-        url = (url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/status?enterprise_id="
-               + enterprise_id)
+        url = (url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias +
+               "/status?enterprise_id=" + enterprise_id)
 
         self._set_headers(token)
         kwargs = {"region": region}
@@ -919,14 +919,18 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, **kwargs)
         return body
 
-    def get_user_service_abnormal_status(self, region: str, enterprise_id: str) -> Optional[Dict[str, Any]]:
+    def get_user_service_abnormal_status(self, region: str, enterprise_id: str, timeout: int = 2, retries: int = 2,
+                                         connect_timeout: Optional[int] = None) -> Optional[Dict[str, Any]]:
         """获取用户所有组件异常状态"""
         region_info = self.get_enterprise_region_info(enterprise_id, region)
         if not region_info:
             raise ServiceHandleException("region not found")
         url = region_info.url
         url = url + "/v2/enterprise/" + enterprise_id + "/abnormal_status"
-        res, body = self._get(url, self.default_headers, region=region, timeout=2)
+        kwargs = {"region": region, "timeout": timeout, "retries": retries}
+        if connect_timeout is not None:
+            kwargs["connect_timeout"] = connect_timeout
+        res, body = self._get(url, self.default_headers, **kwargs)
         if res.get("status") == 200 and isinstance(body, dict):
             return body
         return None
@@ -1146,14 +1150,17 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region_name)
         return body
 
-    def get_enterprise_running_services(self, enterprise_id: str, region: str,
-                                        test: bool = False) -> Optional[Dict[str, Any]]:
+    def get_enterprise_running_services(self, enterprise_id: str, region: str, test: bool = False, timeout: int = 10,
+                                        retries: int = 2, connect_timeout: Optional[int] = None) -> Optional[Dict[str, Any]]:
         if test:
             self.get_enterprise_api_version_v2(enterprise_id, region=region)
         url, token = self.__get_region_access_info_by_enterprise_id(enterprise_id, region)
         url = url + "/v2/enterprise/" + enterprise_id + "/running-services"
         self._set_headers(token)
-        res, body = self._get(url, self.default_headers, region=region, timeout=10)
+        kwargs = {"region": region, "timeout": timeout, "retries": retries}
+        if connect_timeout is not None:
+            kwargs["connect_timeout"] = connect_timeout
+        res, body = self._get(url, self.default_headers, **kwargs)
         if res.get("status") == 200 and isinstance(body, dict):
             return body
         return None
@@ -1683,13 +1690,16 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region, timeout=10, retries=1)
         return res, body
 
-    def get_query_range_data(self, region: str, tenant_name: str,
-                             params: str) -> Tuple[Any, Optional[Dict[str, Any]]]:
+    def get_query_range_data(self, region: str, tenant_name: str, params: str, timeout: int = 10, retries: int = 1,
+                             connect_timeout: Optional[int] = None) -> Tuple[Any, Optional[Dict[str, Any]]]:
         """获取监控数据"""
         url, token = self.__get_region_access_info(tenant_name, region)
         url = url + "/api/v1/query_range" + params
         self._set_headers(token)
-        res, body = self._get(url, self.default_headers, region=region, timeout=10, retries=1)
+        kwargs = {"region": region, "timeout": timeout, "retries": retries}
+        if connect_timeout is not None:
+            kwargs["connect_timeout"] = connect_timeout
+        res, body = self._get(url, self.default_headers, **kwargs)
         return res, body
 
     def get_query_service_access(self, region: str, tenant_name: str,
@@ -2445,8 +2455,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url, token = self.__get_region_access_info_by_enterprise_id(enterprise_id, region_name)
         url = url + "/v2/cluster"
         self._set_headers(token)
-        kwargs["retries"] = 1
-        kwargs["timeout"] = 5
+        kwargs.setdefault("retries", 1)
+        kwargs.setdefault("timeout", 5)
         res, body = self._get(url, self.default_headers, **kwargs)
         return res, body
 
@@ -3199,13 +3209,21 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._delete(url, self.default_headers, region=region, body=json.dumps(data))
         return body
 
-    def get_cluster_nodes(self, region: str) -> Tuple[Any, Optional[Dict[str, Any]]]:
+    def get_cluster_nodes(self, region: str, timeout: Optional[int] = None, retries: Optional[int] = None,
+                          connect_timeout: Optional[int] = None) -> Tuple[Any, Optional[Dict[str, Any]]]:
         region_info = self.get_region_info(region)
         if not region_info:
             raise ServiceHandleException("region not found")
         url = region_info.url
         url = url + "/v2/cluster/nodes"
-        res, body = self._get(url, self.default_headers, region=region)
+        kwargs = {"region": region}
+        if timeout is not None:
+            kwargs["timeout"] = timeout
+        if retries is not None:
+            kwargs["retries"] = retries
+        if connect_timeout is not None:
+            kwargs["connect_timeout"] = connect_timeout
+        res, body = self._get(url, self.default_headers, **kwargs)
         return res, body
 
     def get_cluster_nodes_arch(self, region: str) -> Tuple[Any, Optional[Dict[str, Any]]]:
@@ -3291,13 +3309,21 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._put(url, self.default_headers, region=region, body=json.dumps(data))
         return res, body
 
-    def get_rainbond_components(self, region: str) -> Tuple[Any, Optional[Dict[str, Any]]]:
+    def get_rainbond_components(self, region: str, timeout: Optional[int] = None, retries: Optional[int] = None,
+                                connect_timeout: Optional[int] = None) -> Tuple[Any, Optional[Dict[str, Any]]]:
         region_info = self.get_region_info(region)
         if not region_info:
             raise ServiceHandleException("region not found")
         url = region_info.url
         url = url + "/v2/cluster/rbd-components"
-        res, body = self._get(url, self.default_headers, region=region)
+        kwargs = {"region": region}
+        if timeout is not None:
+            kwargs["timeout"] = timeout
+        if retries is not None:
+            kwargs["retries"] = retries
+        if connect_timeout is not None:
+            kwargs["connect_timeout"] = connect_timeout
+        res, body = self._get(url, self.default_headers, **kwargs)
         return res, body
 
     def get_container_disk(self, region: str, container_type: str) -> Tuple[Any, Optional[Dict[str, Any]]]:
@@ -3309,12 +3335,16 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region)
         return res, body
 
-    def list_plugins(self, enterprise_id: str, region_name: str, official: Any) -> Tuple[Any, Optional[Dict[str, Any]]]:
+    def list_plugins(self, enterprise_id: str, region_name: str, official: Any, timeout: int = 10, retries: int = 2,
+                     connect_timeout: Optional[int] = None) -> Tuple[Any, Optional[Dict[str, Any]]]:
         region_info = self.get_enterprise_region_info(enterprise_id, region_name)
         if not region_info:
             raise ServiceHandleException("region not found")
         url = region_info.url + "/v2/cluster/plugins?official={0}".format(official)
-        res, body = self._get(url, self.default_headers, region=region_name, timeout=10)
+        kwargs = {"region": region_name, "timeout": timeout, "retries": retries}
+        if connect_timeout is not None:
+            kwargs["connect_timeout"] = connect_timeout
+        res, body = self._get(url, self.default_headers, **kwargs)
         return res, body
 
     def cluster_plugin_exists(self, enterprise_id: str, region_name: str, plugin_name: str) -> bool:

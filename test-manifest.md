@@ -521,6 +521,8 @@
 | console.package-upload.status-flow | Package Upload Status Flow | active | regression | console.services.package_upload_tool_service | console/tests/package_upload_tool_service_test.py::PackageUploadToolServiceTests.test_get_upload_status_reads_packages_and_updates_record |
 | console.package-upload.upload-flow | Package Upload Upload Flow | active | regression | console.services.package_upload_tool_service | console/tests/package_upload_tool_service_test.py::PackageUploadToolServiceTests.test_upload_package_uploads_archive_and_returns_status |
 | console.permissions.concurrent-initialization | 多进程幂等同步权限元数据 | active | regression | console.repositories.perm_repo.PermsRepo._sync_permission_settings | console/tests/perm_repo_performance_test.py::PermsRepoPerformanceTests.test_changed_permissions_sync_idempotently_within_the_check_interval |
+| console.platform-overview.aggregate | Platform overview aggregation | active | unit | console.services.platform_overview_service.PlatformOverviewService | console/tests/platform_overview_service_test.py::PlatformOverviewServiceTest<br>console/tests/platform_overview_service_test.py::PlatformPluginInstalledOnlyTest |
+| console.platform-overview.http-api | Platform overview HTTP API | active | regression | console.views.platform_overview | console/tests/platform_overview_view_test.py::PlatformOverviewViewTest |
 | console.platform-plugin.vm-access-url-fallback | 从前端组件访问地址回填官方虚拟机插件访问前缀 | active | regression | console.services.plugin_service.RainbondPluginService.list_plugins | console/tests/rbd_plugin_service_test.py::RainbondPluginServiceTests.test_official_vm_plugin_uses_frontend_component_access_url_when_region_urls_missing |
 | console.platform-plugin.vm-runtime-status-guard | 校验虚拟机平台插件运行状态 | active | regression | console.services.platform_plugin_service.PlatformPluginService.ensure_vm_plugin_running | console/tests/platform_plugin_service_test.py::PlatformPluginServiceTests.test_ensure_vm_plugin_running_rejects_non_running_status |
 | console.plugin-build.infer-arch | Infer plugin build architecture from region chaos nodes | active | regression | console.services.plugin_build_arch.resolve_plugin_build_arch | console/tests/plugin_build_arch_test.py::PluginBuildArchTests |
@@ -5867,6 +5869,26 @@
 - 业务入口: `console.repositories.perm_repo.PermsRepo._sync_permission_settings`
 - 代码路径: `console/repositories/perm_repo.py`
 - 测试路径: `console/tests/perm_repo_performance_test.py::PermsRepoPerformanceTests.test_changed_permissions_sync_idempotently_within_the_check_interval`
+
+### Platform overview aggregation
+
+- Capability ID: `console.platform-overview.aggregate`
+- 状态: `active`
+- 测试类型: `unit`
+- 接口类型: `service_method`
+- 业务入口: `console.services.platform_overview_service.PlatformOverviewService`
+- 代码路径: `console/services/platform_overview_service.py`, `console/services/platform_plugin_service.py`, `console/services/enterprise_services.py`, `www/apiclient/regionapi.py`
+- 测试路径: `console/tests/platform_overview_service_test.py::PlatformOverviewServiceTest`, `console/tests/platform_overview_service_test.py::PlatformPluginInstalledOnlyTest`
+
+### Platform overview HTTP API
+
+- Capability ID: `console.platform-overview.http-api`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `view_endpoint`
+- 业务入口: `console.views.platform_overview`
+- 代码路径: `console/views/platform_overview.py`, `console/urls/__init__.py`
+- 测试路径: `console/tests/platform_overview_view_test.py::PlatformOverviewViewTest`
 
 ### 从前端组件访问地址回填官方虚拟机插件访问前缀
 

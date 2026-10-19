@@ -291,10 +291,14 @@ class PlatformPluginService(object):
             logger.warning("Failed to list region plugins: %s", e)
         return installed_plugins
 
-    def _get_installed_plugins_strict(self, enterprise_id: str, region_name: str) -> Dict[str, Any]:
+    def _get_installed_plugins_strict(self, enterprise_id: str, region_name: str,
+                                      region_api_client: Any = None) -> Dict[str, Any]:
         try:
-            _, body = region_api.list_plugins(enterprise_id, region_name, False)
-            if not isinstance(body, dict) or not isinstance(body.get("list"), list):
+            client = region_api_client if region_api_client is not None else region_api
+            response, body = client.list_plugins(
+                enterprise_id, region_name, False, connect_timeout=2, timeout=3, retries=0)
+            if (not isinstance(response, dict) or response.get("status") != 200 or not isinstance(body, dict) or
+                    not isinstance(body.get("list"), list)):
                 raise ServiceHandleException(
                     msg="platform plugin state unavailable",
                     msg_show="无法确认平台插件安装状态，请稍后重试",
@@ -315,6 +319,19 @@ class PlatformPluginService(object):
                 status_code=503,
                 error_code="platform_plugin_state_unavailable",
             )
+
+    def list_installed_platform_plugins(self, enterprise_id: str, region_name: str,
+                                        region_api_client: Any = None) -> List[dict]:
+        """Return cluster-installed plugins without consulting any application market."""
+        installed_plugins = self._get_installed_plugins_strict(
+            enterprise_id, region_name, region_api_client=region_api_client)
+        return sorted(
+            [dict(plugin) for plugin in installed_plugins.values()],
+            key=lambda plugin: (
+                str(plugin.get("status", "") or "").upper() == "RUNNING",
+                plugin.get("name", ""),
+            ),
+        )
 
     def get_vm_plugin_status(self, enterprise_id: str, region_name: str) -> str:
         installed_plugins = self._get_installed_plugins(enterprise_id, region_name)

@@ -9992,6 +9992,50 @@
       "status": "active"
     },
     {
+      "id": "console.platform-overview.aggregate",
+      "title": "Platform overview aggregation",
+      "title_zh": "Platform overview aggregation",
+      "interface_type": "service_method",
+      "interface": "console.services.platform_overview_service.PlatformOverviewService",
+      "code_paths": [
+        "console/services/platform_overview_service.py",
+        "console/services/platform_plugin_service.py",
+        "console/services/enterprise_services.py",
+        "www/apiclient/regionapi.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/platform_overview_service_test.py",
+          "selector": "PlatformOverviewServiceTest"
+        },
+        {
+          "path": "console/tests/platform_overview_service_test.py",
+          "selector": "PlatformPluginInstalledOnlyTest"
+        }
+      ],
+      "test_type": "unit",
+      "status": "active"
+    },
+    {
+      "id": "console.platform-overview.http-api",
+      "title": "Platform overview HTTP API",
+      "title_zh": "Platform overview HTTP API",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.platform_overview",
+      "code_paths": [
+        "console/views/platform_overview.py",
+        "console/urls/__init__.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/platform_overview_view_test.py",
+          "selector": "PlatformOverviewViewTest"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.platform-plugin.vm-access-url-fallback",
       "title": "Fallback official VM plugin access URL from frontend component",
       "title_zh": "从前端组件访问地址回填官方虚拟机插件访问前缀",
