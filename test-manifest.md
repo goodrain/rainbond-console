@@ -556,6 +556,7 @@
 | console.region-api.concurrent-certificate-directory | 并发安全创建区域证书目录 | active | regression | www.apiclient.regionapibaseclient.create_file | console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_create_file_tolerates_concurrent_directory_creation |
 | console.region-api.domain-conflict-msg | 将上游域名冲突保留为可操作的 409 错误提示 | active | regression | www.apiclient.regionapibaseclient.RegionApiBaseHttpClient._check_status | console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_check_status_keeps_domain_conflict_as_conflict_error |
 | console.region-api.helm-resource-conflict-msg | 将 Helm 资源归属冲突转换为可操作错误提示 | active | regression | www.apiclient.regionapibaseclient.RegionApiBaseHttpClient._check_status | console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_check_status_translates_helm_ownership_conflict_to_actionable_msg_show |
+| console.region-api.polling-deadlines | 限制轮询请求的 Region 调用时延 | active | regression | www.apiclient.regionapi.RegionInvokeApi polling reads | console/tests/regionapi_polling_deadline_test.py::RegionApiPollingDeadlineTests |
 | console.region-api.proxy-error-pass-through | 对非 Helm 冲突保留原始上游错误信息 | active | regression | www.apiclient.regionapibaseclient.RegionApiBaseHttpClient._check_status | console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_check_status_keeps_original_message_for_non_helm_conflicts |
 | console.region-api.unavailable-response | Region API 不可达时返回稳定可重试响应 | active | regression | www.apiclient.regionapibaseclient.RegionApiBaseHttpClient._request | console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_request_translates_retry_exhaustion_to_stable_retryable_503<br>console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_request_classifies_timeout_tls_and_other_transport_failures<br>console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_retryable_service_unavailable_response_includes_retry_after |
 | console.region-api.upstream-server-error | 统一 Region 上游服务错误 | active | regression | console.views.base.custom_exception_handler | console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_region_upstream_server_error_returns_retryable_502<br>console/tests/sentry_config_test.py::test_before_send_groups_region_server_errors_by_normalized_upstream_path |
@@ -6216,6 +6217,16 @@
 - 业务入口: `www.apiclient.regionapibaseclient.RegionApiBaseHttpClient._check_status`
 - 代码路径: `www/apiclient/regionapibaseclient.py`
 - 测试路径: `console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_check_status_translates_helm_ownership_conflict_to_actionable_msg_show`
+
+### 限制轮询请求的 Region 调用时延
+
+- Capability ID: `console.region-api.polling-deadlines`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `www.apiclient.regionapi.RegionInvokeApi polling reads`
+- 代码路径: `www/apiclient/regionapi.py`
+- 测试路径: `console/tests/regionapi_polling_deadline_test.py::RegionApiPollingDeadlineTests`
 
 ### 对非 Helm 冲突保留原始上游错误信息
 

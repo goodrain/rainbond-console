@@ -1616,7 +1616,7 @@ class KubeBlocksService(object):
 
     def merge_region_and_kb_events(self, target: str, target_id: str, tenant: Tenants,
                                    region_name: str, service: TenantServiceInfo, page: int,
-                                   page_size: int) -> Tuple[list, int, bool]:
+                                   page_size: int, polling: bool = False) -> Tuple[list, int, bool]:
         """
         合并 Region event 和 KubeBlocks event
         """
@@ -1629,7 +1629,7 @@ class KubeBlocksService(object):
         try:
             # 获取 Region 事件
             region_events, region_total, _ = event_service.get_target_events(
-                target, target_id, tenant, region_name, page, window
+                target, target_id, tenant, region_name, page, window, polling=polling
             )
 
             # 获取 KB 事件（格式与 Region 事件一致）

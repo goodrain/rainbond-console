@@ -852,12 +852,12 @@ class AppService(object):
 
         return TenantServiceInfo.objects.filter(q)
 
-    def get_service_status(self, tenant: Tenants, service: TenantServiceInfo) -> dict:
+    def get_service_status(self, tenant: Tenants, service: TenantServiceInfo, polling: bool = False) -> dict:
         """获取组件状态"""
         start_time = ""
         try:
             body = region_api.check_service_status(service.service_region, tenant.tenant_name, service.service_alias,
-                                                   tenant.enterprise_id)  # type: ignore[arg-type]
+                                                   tenant.enterprise_id, polling=polling)  # type: ignore[arg-type]
             # NOTE: check_service_status may return None; guarded by the surrounding try/except.
             bean = body["bean"]  # type: ignore[index]
             status = bean["cur_status"]

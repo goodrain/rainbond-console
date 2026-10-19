@@ -10658,6 +10658,24 @@
       "status": "active"
     },
     {
+      "id": "console.region-api.polling-deadlines",
+      "title": "Bound polling requests to Region",
+      "title_zh": "限制轮询请求的 Region 调用时延",
+      "interface_type": "service_method",
+      "interface": "www.apiclient.regionapi.RegionInvokeApi polling reads",
+      "code_paths": [
+        "www/apiclient/regionapi.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/regionapi_polling_deadline_test.py",
+          "selector": "RegionApiPollingDeadlineTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.region-api.proxy-error-pass-through",
       "title": "Keep original upstream error message for non-helm conflicts",
       "title_zh": "对非 Helm 冲突保留原始上游错误信息",

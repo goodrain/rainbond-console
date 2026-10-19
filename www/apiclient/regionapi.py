@@ -629,8 +629,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._put(url, self.default_headers, json.dumps(body), region=region)
         return res, body
 
-    def get_service_pods(self, region: str, tenant_name: str, service_alias: str,
-                         enterprise_id: str) -> Optional[Dict[str, Any]]:
+    def get_service_pods(self, region: str, tenant_name: str, service_alias: str, enterprise_id: str,
+                         polling: bool = False) -> Optional[Dict[str, Any]]:
         """获取组件pod信息"""
 
         url, token = self.__get_region_access_info(tenant_name, region)
@@ -639,7 +639,10 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
                enterprise_id)
 
         self._set_headers(token)
-        res, body = self._get(url, self.default_headers, None, region=region, timeout=15)
+        kwargs = {"region": region, "timeout": 15}
+        if polling:
+            kwargs.update({"connect_timeout": 3, "timeout": 8, "retries": 0})
+        res, body = self._get(url, self.default_headers, None, **kwargs)
         return body
 
     def get_dynamic_services_pods(self, region: str, tenant_name: str,
@@ -900,8 +903,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._post(url, self.default_headers, json.dumps(body), region=region)
         return body
 
-    def check_service_status(self, region: str, tenant_name: str, service_alias: str,
-                             enterprise_id: str) -> Optional[Dict[str, Any]]:
+    def check_service_status(self, region: str, tenant_name: str, service_alias: str, enterprise_id: str,
+                             polling: bool = False) -> Optional[Dict[str, Any]]:
         """获取单个组件状态"""
 
         url, token = self.__get_region_access_info(tenant_name, region)
@@ -910,7 +913,10 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
                + enterprise_id)
 
         self._set_headers(token)
-        res, body = self._get(url, self.default_headers, region=region)
+        kwargs = {"region": region}
+        if polling:
+            kwargs.update({"connect_timeout": 3, "timeout": 5, "retries": 0})
+        res, body = self._get(url, self.default_headers, **kwargs)
         return body
 
     def get_user_service_abnormal_status(self, region: str, enterprise_id: str) -> Optional[Dict[str, Any]]:
@@ -1200,12 +1206,15 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         return res, body
 
     def get_target_events_list(self, region: str, tenant_name: str, target: str, target_id: str, page: int,
-                               page_size: int) -> Tuple[Any, Optional[Dict[str, Any]]]:
+                               page_size: int, polling: bool = False) -> Tuple[Any, Optional[Dict[str, Any]]]:
         """获取作用对象事件日志列表"""
         url, token = self.__get_region_access_info(tenant_name, region)
         url = url + "/v2/events" + "?target={0}&target-id={1}&page={2}&size={3}".format(target, target_id, page, page_size)
         self._set_headers(token)
-        res, body = self._get(url, self.default_headers, region=region, timeout=20)
+        kwargs = {"region": region, "timeout": 20}
+        if polling:
+            kwargs.update({"connect_timeout": 3, "timeout": 8, "retries": 0})
+        res, body = self._get(url, self.default_headers, **kwargs)
         return res, body
 
     def get_myteams_events_list(self, region: str, enterprise_id: str, tenant: str, tenant_id_list: Any, page: int,

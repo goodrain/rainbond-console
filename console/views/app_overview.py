@@ -392,7 +392,7 @@ class AppStatusView(AppBaseView):
         """
         bean = dict()
         bean["check_uuid"] = self.service.check_uuid
-        status_map = app_service.get_service_status(self.tenant, self.service)
+        status_map = app_service.get_service_status(self.tenant, self.service, polling=True)
         # kubeblocks_component 需要额外补充状态到 app status
         if is_kubeblocks(self.service.extend_method):
             kubeblocks_status = kubeblocks_service.get_kubeblocks_service_status(
@@ -425,7 +425,7 @@ class ListAppPodsView(AppBaseView):
         """
 
         data = region_api.get_service_pods(self.service.service_region, self.tenant.tenant_name, self.service.service_alias,
-                                           self.tenant.enterprise_id)  # type: ignore[arg-type]
+                                           self.tenant.enterprise_id, polling=True)  # type: ignore[arg-type]
         result = {}
         # NOTE: regionapi result is typed dict|None; legacy code assumes dict (backlog).
         if data["bean"]:  # type: ignore[index]

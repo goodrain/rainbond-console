@@ -63,7 +63,7 @@ class AppEventView(AppBaseView):
             if self.service.extend_method == 'kubeblocks_component':
                 events, total, has_next = kubeblocks_service.merge_region_and_kb_events(
                     'service', self.service.service_id, self.tenant, 
-                    self.service.service_region, self.service, int(page), int(page_size)
+                    self.service.service_region, self.service, int(page), int(page_size), polling=True
                 )
                 result = general_message(200, "success", "查询成功", list=events, total=total, has_next=has_next)
                 return Response(result, status=result["code"])
@@ -263,13 +263,13 @@ class AppEventsView(RegionTenantHeaderView):
                 if self.service.extend_method == 'kubeblocks_component':
                     events, total, has_next = kubeblocks_service.merge_region_and_kb_events(
                         target, target_id, self.tenant, self.service.service_region, 
-                        self.service, int(page), int(page_size)
+                        self.service, int(page), int(page_size), polling=True
                     )
                     result = general_message(200, "success", "查询成功", list=events, total=total, has_next=has_next)
                 else:
-                    events, total, has_next = event_service.get_target_events(target, target_id,
-                                                                              self.tenant, self.service.service_region, int(page),
-                                                                              int(page_size))
+                    events, total, has_next = event_service.get_target_events(
+                        target, target_id, self.tenant, self.service.service_region,
+                        int(page), int(page_size), polling=True)
                     events = event_service.merge_vm_restore_event(events, self.tenant, self.service, int(page))
                     relys = []
                     for event in events:
@@ -292,7 +292,7 @@ class AppEventsView(RegionTenantHeaderView):
             target_id = self.tenant.tenant_id
             region = self.response_region
             events, total, has_next = event_service.get_target_events(target, target_id, self.tenant, region, int(page),
-                                                                      int(page_size))
+                                                                      int(page_size), polling=True)
             result = general_message(200, "success", "查询成功", list=events, total=total, has_next=has_next)
         return Response(result, status=result["code"])
 
