@@ -11,6 +11,11 @@ on:
         description: Rainbond release URL
         required: true
         type: string
+      target:
+        description: Commit to tag (pinned by rainbond's release workflow). Empty = current main
+        required: false
+        type: string
+        default: ""
 
 permissions:
   contents: write
@@ -39,6 +44,42 @@ jobs:
             echo "exists=false" >> "$GITHUB_OUTPUT"
           fi
 
+      # rainbond's release workflow pins the commit it tested; tag exactly that
+      # commit instead of whatever main points to when this run starts.
+      - name: Resolve target commit
+        id: target
+        if: steps.release.outputs.exists != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET: ${{ inputs.target }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "$TARGET" ]; then
+            echo "ref=$GITHUB_REF_NAME" >> "$GITHUB_OUTPUT"
+            echo "No target given, tagging $GITHUB_REF_NAME"
+            exit 0
+          fi
+
+          if ! [[ "$TARGET" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::target must be a full 40-character commit SHA, got '$TARGET'"
+            exit 1
+          fi
+
+          if ! status=$(gh api "repos/$GITHUB_REPOSITORY/compare/${TARGET}...${GITHUB_REF_NAME}" --jq .status 2>/dev/null); then
+            status=unknown-commit
+          fi
+          case "$status" in
+            identical|ahead) ;;
+            *)
+              echo "::error::$TARGET is not on $GITHUB_REF_NAME (compare status: $status)"
+              exit 1
+              ;;
+          esac
+
+          echo "ref=$TARGET" >> "$GITHUB_OUTPUT"
+          echo "Tagging pinned commit $TARGET"
+
       - name: Find previous release tag
         id: previous
         if: steps.release.outputs.exists != 'true'
@@ -66,6 +107,7 @@ jobs:
           TAG: ${{ inputs.tag }}
           PREV_TAG: ${{ steps.previous.outputs.tag }}
           RAINBOND_RELEASE_URL: ${{ inputs.rainbond_release_url }}
+          TARGET_REF: ${{ steps.target.outputs.ref }}
         run: |
           set -euo pipefail
 
@@ -78,12 +120,12 @@ jobs:
               --generate-notes \
               --notes-start-tag "$PREV_TAG" \
               --notes "$NOTES" \
-              --target "$GITHUB_REF_NAME"
+              --target "$TARGET_REF"
           else
             gh release create "$TAG" \
               --repo "$GITHUB_REPOSITORY" \
               --title "$TAG" \
               --generate-notes \
               --notes "$NOTES" \
-              --target "$GITHUB_REF_NAME"
+              --target "$TARGET_REF"
           fi
