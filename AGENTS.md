@@ -221,8 +221,7 @@ them; a PR that breaks the others will be sent back.
 
 ### Stop and ask a human first when the fix
 
-- changes the database schema beyond adding a nullable or defaulted
-  column/field, or touches migrations;
+- changes the database schema (any model field or table) or touches migrations;
 - changes an API contract (console ↔ region `/v2/...`, `/openapi/v1/...`,
   response fields) or removes/renames a field;
 - adds or renames configuration (env vars, Helm values, CRD fields);
@@ -249,13 +248,14 @@ too (`DB_TYPE` unset); set `DB_TYPE=mysql` and `MYSQL_*` to use MySQL.
 
 ### Repo-specific risks (rainbond-console)
 
-- **Migrations run at every startup**: `entrypoint.sh` runs `makemigrations`,
-  `repair_legacy_schema`, `migrate --fake-initial` and `verify_required_schema`.
-  A model change ships to every installation on upgrade, on both MySQL and
-  sqlite. Only add nullable or defaulted fields without asking; anything else
-  (drop, rename, type change, new unique/index) needs human review. Check
-  `console/management/commands/repair_legacy_schema.py` and
-  `verify_required_schema.py`. Do not change the migration rules in `.gitignore`.
+- **Schema changes are not applied on upgrade**: images ship without
+  `migrations/` (`.dockerignore`), and `entrypoint.sh` regenerates a fresh
+  `0001_initial` at every start, which is only faked on existing installations.
+  `repair_legacy_schema` creates missing tables but not missing columns, so a new
+  model field reaches fresh installs but not upgraded ones. Any model field or
+  table change is stop-and-ask, even a nullable one. Never add, edit or rely on
+  files under `*/migrations/`, and do not change the migration rules in
+  `.gitignore`.
 - **API responses**: return `Response(general_message(code, msg, msg_show, ...))`;
   raise `ServiceHandleException` (or a typed error in `console/exception/bcode.py`)
   for business errors. `msg` is English, `msg_show` is the Chinese text users see.
