@@ -9994,7 +9994,7 @@
     {
       "id": "console.platform-overview.aggregate",
       "title": "Platform overview aggregation",
-      "title_zh": "Platform overview aggregation",
+      "title_zh": "平台总览聚合、已启用插件与真实集群版本",
       "interface_type": "service_method",
       "interface": "console.services.platform_overview_service.PlatformOverviewService",
       "code_paths": [

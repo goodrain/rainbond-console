@@ -38,6 +38,7 @@ from console.services.platform_plugin_service import PlatformPluginService  # no
 from console.services import platform_plugin_service as platform_plugin_module  # noqa: E402
 from console.exception.main import ServiceHandleException  # noqa: E402
 from console.services import platform_overview_service as overview_module  # noqa: E402
+from django.conf import settings  # noqa: E402
 
 # capability_id: console.platform-overview.aggregate
 
@@ -385,7 +386,6 @@ class PlatformOverviewServiceTest(TestCase):
                 "cap_mem": 16384,
                 "req_mem": 4096,
                 "run_pod_number": 17,
-                "rbd_version": "v6.9.12",
                 "k8s_version": "v1.30.4",
             }
         }))
@@ -400,6 +400,97 @@ class PlatformOverviewServiceTest(TestCase):
                                                                               connect_timeout=2,
                                                                               timeout=3,
                                                                               retries=0)
+
+    def test_cluster_version_uses_real_show_contract_and_is_cached(self):
+        self.region_api.get_enterprise_api_version_v2.return_value = ({"status": 200}, {"raw": "v6.9.12-release-real"})
+
+        first = self.service._fetch_cluster_version("eid", "region-a")
+        second = self.service._fetch_cluster_version("eid", "region-a")
+
+        self.assertEqual("v6.9.12-release-real", first)
+        self.assertEqual(first, second)
+        self.region_api.get_enterprise_api_version_v2.assert_called_once_with("eid",
+                                                                              region="region-a",
+                                                                              connect_timeout=2,
+                                                                              timeout=3,
+                                                                              retries=0)
+
+    def test_snapshot_uses_show_version_and_keeps_resources_when_version_fails(self):
+        sections = {
+            "resources": {
+                "status": "ok",
+                "data": {
+                    "cpu": {
+                        "capacity": 8
+                    },
+                    "versions": {
+                        "kubernetes": "v1.30.4"
+                    }
+                }
+            },
+            "versions": {
+                "status": "ok",
+                "data": "v6.9.12-release-real"
+            },
+        }
+        with mock.patch.object(self.service, "_run_sections", return_value=sections):
+            result = self.service._build_cluster_overview("eid", "region-a", REGION)
+        self.assertEqual("v6.9.12-release-real", result["sections"]["resources"]["data"]["versions"]["rainbond"])
+
+        sections["versions"] = {"status": "unavailable", "data": None}
+        with mock.patch.object(self.service, "_run_sections", return_value=sections):
+            result = self.service._build_cluster_overview("eid", "region-a", REGION)
+        self.assertEqual("ok", result["sections"]["resources"]["status"])
+        self.assertIsNone(result["sections"]["resources"]["data"]["versions"]["rainbond"])
+
+    def test_cluster_version_rejects_missing_or_failed_show_response(self):
+        for response in (({"status": 200}, {}), ({"status": 503}, {"raw": "stale"})):
+            self.region_api.get_enterprise_api_version_v2.return_value = response
+            with self.assertRaises(RuntimeError):
+                self.service._fetch_cluster_version("eid", "region-a")
+
+    def test_cluster_version_decodes_actual_plain_text_show_bytes(self):
+        self.region_api.get_enterprise_api_version_v2.return_value = ({"status": 200}, {"raw": b"v6.9.12-release-real"})
+
+        result = self.service._fetch_cluster_version("eid", "region-a")
+
+        self.assertEqual("v6.9.12-release-real", result)
+        self.assertEqual(result, self.service._cache.get("platform-overview:version:eid:region-a"))
+
+    def test_invalid_show_bytes_become_unavailable_without_caching(self):
+        self.region_api.get_enterprise_api_version_v2.return_value = ({"status": 200}, {"raw": b"\xff\xfe"})
+
+        sections = self.service._run_sections(
+            {"versions": lambda: self.service._fetch_cluster_version("eid", "region-a")}, max_workers=1)
+
+        self.assertEqual({"status": "unavailable", "data": None}, sections["versions"])
+        self.assertIsNone(self.service._cache.get("platform-overview:version:eid:region-a"))
+
+    def test_show_client_respects_overview_deadline_and_retry_options(self):
+        client = overview_module.RegionInvokeApi()
+        with mock.patch.object(client, "_RegionInvokeApi__get_region_access_info_by_enterprise_id",
+                               return_value=("https://region.example", "")), \
+                mock.patch.object(client, "_get", return_value=({"status": 200}, {"raw": "v6.9.12"})) as get:
+            client.get_enterprise_api_version_v2("eid", "region-a", connect_timeout=2, timeout=3, retries=0)
+        self.assertEqual(0, get.call_args.kwargs["retries"])
+        self.assertEqual(3, get.call_args.kwargs["timeout"])
+
+    def test_isolated_cluster_clients_send_the_owned_region_authorization(self):
+        methods = [
+            ("get_cluster_nodes", ("region-a",)),
+            ("get_rainbond_components", ("region-a",)),
+            ("list_plugins", ("eid", "region-a", False)),
+            ("get_user_service_abnormal_status", ("region-a", "eid")),
+        ]
+        for method_name, args in methods:
+            client = overview_module.RegionInvokeApi()
+            region = SimpleNamespace(url="https://region.example", token="Token test-region")
+            with mock.patch.object(client, "get_region_info", return_value=region), \
+                    mock.patch.object(client, "get_enterprise_region_info", return_value=region), \
+                    mock.patch.dict(settings.MODULES, {"RegionToken": True}), \
+                    mock.patch.object(client, "_get", return_value=({"status": 200}, {})) as get:
+                getattr(client, method_name)(*args)
+            self.assertEqual("Token test-region", get.call_args.args[1].get("Authorization"), method_name)
 
     def test_overview_node_and_component_calls_use_single_five_second_attempt(self):
         self.service._region_api.get_cluster_nodes = mock.Mock(return_value=({"status": 200}, {"list": []}))
@@ -751,6 +842,40 @@ class PlatformOverviewServiceTest(TestCase):
 
 
 class PlatformPluginInstalledOnlyTest(TestCase):
+    def test_overview_lists_only_enabled_plugins_preserving_legacy_default(self):
+        service = PlatformPluginService()
+        plugins = [
+            {
+                "name": "enabled",
+                "enable_status": "true",
+                "status": "RUNNING"
+            },
+            {
+                "name": "disabled",
+                "enable_status": "false",
+                "status": "RUNNING"
+            },
+            {
+                "name": "disabled-bool",
+                "enable_status": False,
+                "status": "RUNNING"
+            },
+            {
+                "name": "legacy",
+                "status": "RUNNING"
+            },
+            {
+                "name": "abnormal",
+                "enable_status": "true",
+                "status": "ABNORMAL"
+            },
+        ]
+        service._get_installed_plugins_strict = mock.Mock(return_value={plugin["name"]: plugin for plugin in plugins})
+
+        result = service.list_installed_platform_plugins("eid", "region-a")
+
+        self.assertEqual(["abnormal", "enabled", "legacy"], [plugin["name"] for plugin in result])
+
     def test_installed_plugins_do_not_call_market(self):
         service = PlatformPluginService()
         service._get_installed_plugins_strict = mock.Mock(return_value={

@@ -927,6 +927,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             raise ServiceHandleException("region not found")
         url = region_info.url
         url = url + "/v2/enterprise/" + enterprise_id + "/abnormal_status"
+        self._set_headers(region_info.token)
         kwargs = {"region": region, "timeout": timeout, "retries": retries}
         if connect_timeout is not None:
             kwargs["connect_timeout"] = connect_timeout
@@ -1263,8 +1264,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
     def get_enterprise_api_version_v2(self, enterprise_id: str, region: str,
                                       **kwargs: Any) -> Tuple[Any, Optional[Dict[str, Any]]]:
         """获取api版本-v2"""
-        kwargs["retries"] = 1
-        kwargs["timeout"] = 1
+        kwargs.setdefault("retries", 1)
+        kwargs.setdefault("timeout", 1)
         url, token = self.__get_region_access_info_by_enterprise_id(enterprise_id, region)
         url += "/v2/show"
         self._set_headers(token)
@@ -3216,6 +3217,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             raise ServiceHandleException("region not found")
         url = region_info.url
         url = url + "/v2/cluster/nodes"
+        self._set_headers(region_info.token)
         kwargs = {"region": region}
         if timeout is not None:
             kwargs["timeout"] = timeout
@@ -3316,6 +3318,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             raise ServiceHandleException("region not found")
         url = region_info.url
         url = url + "/v2/cluster/rbd-components"
+        self._set_headers(region_info.token)
         kwargs = {"region": region}
         if timeout is not None:
             kwargs["timeout"] = timeout
@@ -3341,6 +3344,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         if not region_info:
             raise ServiceHandleException("region not found")
         url = region_info.url + "/v2/cluster/plugins?official={0}".format(official)
+        self._set_headers(region_info.token)
         kwargs = {"region": region_name, "timeout": timeout, "retries": retries}
         if connect_timeout is not None:
             kwargs["connect_timeout"] = connect_timeout

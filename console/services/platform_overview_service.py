@@ -35,6 +35,7 @@ class PlatformOverviewService(object):
     RUNTIME_CACHE_SECONDS = 15
     SNAPSHOT_CACHE_SECONDS = 10
     METRICS_CACHE_SECONDS = 15
+    VERSION_CACHE_SECONDS = 300
     DISK_ALERT_THRESHOLD = 70.0
     REGION_CONNECT_TIMEOUT_SECONDS = 2
     REGION_READ_TIMEOUT_SECONDS = 3
@@ -225,6 +226,7 @@ class PlatformOverviewService(object):
     def _build_cluster_overview(self, enterprise_id: str, region_name: str, region: RegionConfig) -> dict:
         calls = {
             "resources": self._deferred(self._fetch_cluster_resources, enterprise_id, region_name),
+            "versions": self._deferred(self._fetch_cluster_version, enterprise_id, region_name),
             "nodes": self._deferred(self._fetch_nodes, region_name),
             "components": self._deferred(self._fetch_components, region_name),
             "plugins": self._deferred(self._fetch_plugins, enterprise_id, region_name),
@@ -232,6 +234,11 @@ class PlatformOverviewService(object):
             "gateway": self._deferred(self._database_gateway_summary, enterprise_id, region),
         }
         sections = self._run_sections(calls, max_workers=4)
+        resources = sections.get("resources", {})
+        versions = sections.get("versions", {})
+        if resources.get("status") == "ok" and isinstance(resources.get("data"), dict):
+            resource_versions = resources["data"].setdefault("versions", {})
+            resource_versions["rainbond"] = versions.get("data") if versions.get("status") == "ok" else None
         if sections.get("gateway", {}).get("status") == "ok" and not sections["gateway"]["data"]:
             sections["gateway"] = {"status": "empty", "data": None}
         overall_status = self._overall_status(sections)
@@ -575,11 +582,34 @@ class PlatformOverviewService(object):
                 "total": pod_total,
             },
             "versions": {
-                "rainbond": bean.get("rbd_version"),
                 "kubernetes": bean.get("k8s_version"),
             },
             "resource_proxy_status": bean.get("resource_proxy_status"),
         }
+
+    def _fetch_cluster_version(self, enterprise_id: str, region_name: str) -> str:
+        cache_key = self._cache_key("version", enterprise_id, region_name)
+        version = self._cache.get(cache_key)
+        if version is not None:
+            return version
+        response, body = self._new_region_api().get_enterprise_api_version_v2(
+            enterprise_id,
+            region=region_name,
+            connect_timeout=self.REGION_CONNECT_TIMEOUT_SECONDS,
+            timeout=self.REGION_READ_TIMEOUT_SECONDS,
+            retries=0)
+        if not isinstance(response, dict) or response.get("status") != 200 or not isinstance(body, dict):
+            raise RuntimeError("invalid cluster version response")
+        version = body.get("raw")
+        if isinstance(version, bytes):
+            try:
+                version = version.decode("utf-8")
+            except UnicodeDecodeError as exc:
+                raise RuntimeError("invalid cluster version encoding") from exc
+        if not isinstance(version, str) or not version.strip():
+            raise RuntimeError("invalid cluster version response")
+        self._cache.set(cache_key, version, self.VERSION_CACHE_SECONDS)
+        return version
 
     def _fetch_nodes(self, region_name: str) -> dict:
         response, body = self._new_region_api().get_cluster_nodes(region_name,

@@ -320,13 +320,17 @@ class PlatformPluginService(object):
                 error_code="platform_plugin_state_unavailable",
             )
 
-    def list_installed_platform_plugins(self, enterprise_id: str, region_name: str,
+    def list_installed_platform_plugins(self,
+                                        enterprise_id: str,
+                                        region_name: str,
                                         region_api_client: Any = None) -> List[dict]:
         """Return cluster-installed plugins without consulting any application market."""
-        installed_plugins = self._get_installed_plugins_strict(
-            enterprise_id, region_name, region_api_client=region_api_client)
+        installed_plugins = self._get_installed_plugins_strict(enterprise_id, region_name, region_api_client=region_api_client)
         return sorted(
-            [dict(plugin) for plugin in installed_plugins.values()],
+            [
+                dict(plugin)
+                for plugin in installed_plugins.values() if str(plugin.get("enable_status", "true")).strip().lower() != "false"
+            ],
             key=lambda plugin: (
                 str(plugin.get("status", "") or "").upper() == "RUNNING",
                 plugin.get("name", ""),
