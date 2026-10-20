@@ -6649,6 +6649,26 @@
       "status": "active"
     },
     {
+      "id": "console.events.batch-dependencies",
+      "title": "Batch component event dependency names",
+      "title_zh": "批量解析组件事件依赖名称",
+      "interface_type": "service_method",
+      "interface": "console.services.event_dependencies.populate_event_dependencies",
+      "code_paths": [
+        "console/services/event_dependencies.py",
+        "console/views/app_event.py",
+        "console/services/kubeblocks_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/event_dependencies_test.py",
+          "selector": "EventDependenciesTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.external-http.unavailable-response",
       "title": "Normalize external HTTP connectivity failures",
       "title_zh": "统一外部 HTTP 连接故障响应",

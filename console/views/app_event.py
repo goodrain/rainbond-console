@@ -2,7 +2,6 @@
 """
   Created on 18/1/15.
 """
-import json
 import logging
 from typing import Any
 
@@ -10,6 +9,7 @@ from rest_framework.request import Request
 
 from console.constants import LogConstants
 from console.services.app_actions import event_service, log_service, ws_service
+from console.services.event_dependencies import populate_event_dependencies
 from console.services.kubeblocks_service import kubeblocks_service
 from console.views.app_config.base import AppBaseView
 from console.views.base import RegionTenantHeaderView
@@ -271,20 +271,7 @@ class AppEventsView(RegionTenantHeaderView):
                         target, target_id, self.tenant, self.service.service_region,
                         int(page), int(page_size), polling=True)
                     events = event_service.merge_vm_restore_event(events, self.tenant, self.service, int(page))
-                    relys = []
-                    for event in events:
-                        if event["opt_type"] == "INITIATING":
-                            msg = event["message"]
-                            alias = msg.split(",")
-                            for ali in alias:
-                                service = TenantServiceInfo.objects.filter(
-                                    service_alias=ali, tenant_id=self.tenant.tenant_id).first()
-                                relys.append({
-                                    # NOTE: .first() may return None; legacy code accesses attrs directly (backlog).
-                                    "service_cname": service.service_cname,  # type: ignore[union-attr]
-                                    "serivce_alias": service.service_alias,  # type: ignore[union-attr]
-                                })
-                            event["Message"] = "依赖的其他组件暂未运行 {0}".format(json.dumps(relys, ensure_ascii=False))
+                    populate_event_dependencies(events, self.tenant.tenant_id, include_empty=True)
                     result = general_message(200, "success", "查询成功", list=events, total=total, has_next=has_next)
             else:
                 result = general_message(200, "success", "查询成功", list=[], total=0, has_next=False)

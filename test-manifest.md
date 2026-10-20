@@ -345,6 +345,7 @@
 | console.enterprise.region-node-detail | 查看集群节点详情 | active | regression | console.services.mcp_query_service.call_tool[rainbond_get_region_node_detail] | console/tests/mcp_query_service_test.py::MCPQueryServiceToolVisibilityTests.test_get_region_node_detail_returns_node_detail_for_enterprise_admin |
 | console.enterprise.region-node-list | 查看集群节点列表 | active | regression | console.services.mcp_query_service.call_tool[rainbond_query_region_nodes] | console/tests/mcp_query_service_test.py::MCPQueryServiceToolVisibilityTests.test_query_region_nodes_returns_nodes_for_enterprise_admin |
 | console.enterprise.region-update | 更新企业集群 | active | regression | console.services.mcp_query_service.call_tool[rainbond_update_region] | console/tests/mcp_query_service_test.py::MCPQueryServiceRegionMutationTests.test_update_region_executes_directly_with_merged_full_payload |
+| console.events.batch-dependencies | 批量解析组件事件依赖名称 | active | regression | console.services.event_dependencies.populate_event_dependencies | console/tests/event_dependencies_test.py::EventDependenciesTests |
 | console.external-http.unavailable-response | 统一外部 HTTP 连接故障响应 | active | regression | console.utils.external_http_errors.is_retryable_external_http_error | console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_external_http_failure_returns_retryable_502<br>console/tests/sentry_config_test.py::test_before_send_groups_external_http_failures_by_host_and_path |
 | console.file-manage.region-request-timeout | 文件管理区域请求使用选定容器与更长超时 | active | regression | www.apiclient.regionapi.RegionInvokeApi.get_files | console/tests/file_manage_service_test.py::test_region_api_get_files_uses_container_name_and_longer_timeout |
 | console.file-manage.selected-container-forwarding | 列出文件管理内容时透传用户选择的容器名 | active | regression | console.services.group_service.GroupService.get_file_and_dir | console/tests/file_manage_service_test.py::test_get_file_and_dir_forwards_selected_container_name |
@@ -4109,6 +4110,16 @@
 - 业务入口: `console.services.mcp_query_service.call_tool[rainbond_update_region]`
 - 代码路径: `console/services/mcp_query_service.py`
 - 测试路径: `console/tests/mcp_query_service_test.py::MCPQueryServiceRegionMutationTests.test_update_region_executes_directly_with_merged_full_payload`
+
+### 批量解析组件事件依赖名称
+
+- Capability ID: `console.events.batch-dependencies`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.event_dependencies.populate_event_dependencies`
+- 代码路径: `console/services/event_dependencies.py`, `console/views/app_event.py`, `console/services/kubeblocks_service.py`
+- 测试路径: `console/tests/event_dependencies_test.py::EventDependenciesTests`
 
 ### 统一外部 HTTP 连接故障响应
 

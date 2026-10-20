@@ -17,6 +17,7 @@ from console.services.app_actions import app_manage_service
 from console.services.app_config.env_service import AppEnvVarService
 from console.services.app_config.port_service import AppPortService
 from console.services.enterprise_first_deploy_service import enterprise_first_deploy_service
+from console.services.event_dependencies import populate_event_dependencies
 from console.services.group_service import GroupService
 from console.repositories.group import group_repo
 from console.repositories.kubeblocks_backup_repo import kubeblocks_backup_repo_repo
@@ -1621,8 +1622,6 @@ class KubeBlocksService(object):
         合并 Region event 和 KubeBlocks event
         """
         from console.services.app_actions import event_service
-        from www.models.main import TenantServiceInfo
-        import json
 
         window = page * page_size
 
@@ -1655,22 +1654,7 @@ class KubeBlocksService(object):
             total = int(region_total) + int(kb_total)
             has_next = end < total
 
-            for event in page_list:
-                if event.get("opt_type") == "INITIATING":
-                    msg = event.get("message", "")
-                    alias = msg.split(",") if msg else []
-                    relys = []
-                    for ali in alias:
-                        service_obj = TenantServiceInfo.objects.filter(
-                            service_alias=ali, tenant_id=tenant.tenant_id
-                        ).first()
-                        if service_obj:
-                            relys.append({
-                                "service_cname": service_obj.service_cname,
-                                "serivce_alias": service_obj.service_alias,
-                            })
-                    if relys:
-                        event["Message"] = "依赖的其他组件暂未运行 {0}".format(json.dumps(relys, ensure_ascii=False))
+            populate_event_dependencies(page_list, tenant.tenant_id)
 
             return page_list, total, has_next
 
