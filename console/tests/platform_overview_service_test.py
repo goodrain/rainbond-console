@@ -40,6 +40,7 @@ from console.services import platform_plugin_service as platform_plugin_module  
 from console.exception.main import ServiceHandleException  # noqa: E402
 from console.services import platform_overview_service as overview_module  # noqa: E402
 from django.conf import settings  # noqa: E402
+from django.test import override_settings  # noqa: E402
 
 # capability_id: console.platform-overview.aggregate
 
@@ -130,7 +131,8 @@ class PlatformOverviewServiceTest(TestCase):
                         "region_name": "region-a",
                         "nodes": {
                             "total": 2,
-                            "ready": 2
+                            "ready": 2,
+                            "certificate_status": "ok"
                         },
                         "running_service_ids": ["s1", "s2"],
                         "abnormal_service_ids": [],
@@ -1247,3 +1249,113 @@ class PlatformPluginInstalledOnlyTest(TestCase):
                 service.list_installed_platform_plugins("eid", "region-a")
 
         list_plugins.assert_called_once_with("eid", "region-a", False, connect_timeout=2, timeout=3, retries=0)
+
+
+# capability_id: console.platform-overview.node-certificates
+class NodeCertificateAlertsTest(TestCase):
+    def setUp(self):
+        self.service = PlatformOverviewService(cache_backend=MemoryCache(), region_api=mock.Mock())
+        self.now = datetime.datetime(2026, 10, 20, tzinfo=datetime.timezone.utc)
+
+    def node(self, seconds=86400, status="partial"):
+        return {"name": "worker", "conditions": [{"type": "Ready", "status": "True"}],
+                "certificate_status": status, "certificates": [{
+                    "name": "agent/client-kubelet.crt",
+                    "expires_at": (self.now + datetime.timedelta(seconds=seconds)).isoformat()}]}
+
+    def normalize(self, nodes):
+        with mock.patch.object(overview_module.timezone, "now", return_value=self.now):
+            return self.service._normalize_nodes({"list": nodes})
+
+    def test_certificate_deadline_boundaries_and_renewal(self):
+        for seconds, kind, days in [(2591999, "certificate_expiring", 30), (2592000, "certificate_expiring", 30),
+                                    (0, "certificate_expired", 0), (-1, "certificate_expired", 0),
+                                    (-86401, "certificate_expired", -1)]:
+            with self.subTest(seconds=seconds):
+                result = self.normalize([self.node(seconds)])
+                alert = result["alerts"][0]
+                self.assertEqual(kind, alert["type"])
+                self.assertEqual("critical", alert["severity"])
+                self.assertEqual("worker", alert["node_name"])
+                self.assertEqual("agent/client-kubelet.crt", alert["certificate_name"])
+                self.assertEqual(days, alert["remaining_days"])
+                self.assertIsInstance(alert["expires_at"], str)
+        self.assertEqual([], self.normalize([self.node(2592001)])["alerts"])
+        self.assertEqual([], self.normalize([self.node(31536000)])["alerts"])
+
+    @override_settings(USE_TZ=False)
+    def test_certificate_alerts_with_production_naive_clock(self):
+        self.assertTrue(overview_module.timezone.is_naive(overview_module.timezone.now()))
+        expiry = (datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=10)).isoformat()
+        names = ("agent/client-kubelet.crt", "agent/serving-kubelet.crt",
+                 "agent/client-kube-proxy.crt", "agent/client-rke2-controller.crt")
+        node = self.node(status="ok")
+        node["certificates"] = [{"name": name, "expires_at": expiry} for name in names]
+        result = self.service._normalize_nodes({"list": [node]})
+        self.assertEqual("ok", result["certificate_status"])
+        self.assertEqual(4, len(result["alerts"]))
+        self.assertTrue(all(alert["remaining_days"] == 10 for alert in result["alerts"]))
+
+    def test_incomplete_or_unknown_certificates_cannot_report_ok(self):
+        self.assertEqual("partial", self.normalize([self.node(31536000, status="ok")])["certificate_status"])
+        node = self.node(31536000, status="ok")
+        node["certificates"][0]["name"] = "unknown.crt"
+        self.assertEqual("unavailable", self.normalize([node])["certificate_status"])
+        node = self.node(31536000, status="ok")
+        for name in ("agent/serving-kubelet.crt", "agent/client-kube-proxy.crt", "agent/client-rke2-controller.crt"):
+            node["certificates"].append(dict(node["certificates"][0], name=name))
+        self.assertEqual("ok", self.normalize([node])["certificate_status"])
+        node["certificates"].append({"name": "unknown.crt", "expires_at": "2026-10-20T00:00:00Z"})
+        self.assertEqual("partial", self.normalize([node])["certificate_status"])
+
+    def test_certificate_offset_is_compared_as_absolute_time(self):
+        node = self.node()
+        node["certificates"][0]["expires_at"] = "2026-11-19T08:00:00+08:00"
+        alert = self.normalize([node])["alerts"][0]
+        self.assertEqual(30, alert["remaining_days"])
+        self.assertEqual("2026-11-19T00:00:00Z", alert["expires_at"])
+
+    def test_invalid_and_naive_metadata_keeps_valid_risk(self):
+        node = self.node(status="ok")
+        node["certificates"].extend([None, {"name": "bad", "expires_at": "invalid"},
+                                     {"name": "naive", "expires_at": "2026-10-20T00:00:00"}])
+        result = self.normalize([node])
+        self.assertEqual("partial", result["certificate_status"])
+        self.assertEqual(1, len(result["items"][0]["certificates"]))
+        self.assertEqual(1, len(result["alerts"]))
+        for source in [{"name": "legacy"}, dict(node, certificates=None), dict(node, certificates=[])]:
+            self.assertEqual("unavailable", self.normalize([source])["certificate_status"])
+
+    def test_applicability_aggregation_and_existing_alerts(self):
+        other = {"name": "other", "certificate_status": "not_applicable"}
+        self.assertEqual("not_applicable", self.normalize([other])["certificate_status"])
+        self.assertEqual("partial", self.normalize([other, self.node()])["certificate_status"])
+        node = self.node()
+        node["conditions"] = []
+        node["resource"] = {"req_disk": 90, "cap_disk": 100}
+        self.assertEqual({"certificate_expiring", "node_not_ready", "disk_usage"},
+                         {alert["type"] for alert in self.normalize([node])["alerts"]})
+
+    def test_runtime_health_and_counts_include_certificate_coverage(self):
+        for status, alerts, ready, expected in [
+                ("ok", [], 1, "healthy"), ("not_applicable", [], 1, "healthy"),
+                ("partial", [], 1, "unavailable"), ("unavailable", [], 1, "unavailable"),
+                (None, [], 1, "unavailable"), ("partial", [{"type": "certificate_expiring"}], 1, "warning"),
+                ("unavailable", [{"type": "node_not_ready"}], 0, "warning")]:
+            with self.subTest(status=status, expected=expected):
+                nodes = {"total": 1, "ready": ready, "certificate_status": status, "alerts": alerts}
+                data = {"nodes": nodes, "workloads_status": "ok", "alarms_status": "ok"}
+                with mock.patch.object(self.service, "_list_region_records", return_value=[REGION]), \
+                        mock.patch.object(self.service, "_fetch_runtime_regions",
+                                          return_value={"region-a": {"status": "ok", "data": data}}), \
+                        mock.patch.object(self.service, "_database_workload_counts",
+                                          return_value={"applications": 0, "components": 0}), \
+                        mock.patch.object(self.service, "_database_running_workload_counts",
+                                          return_value={"applications": 0, "components": 0}), \
+                        mock.patch.object(self.service, "_database_application_alerts", return_value=[]):
+                    result = self.service._build_runtime("eid")
+                self.assertEqual(expected, result["regions"][0]["status"])
+                self.assertEqual(1, result["global"]["nodes"]["total"])
+                self.assertEqual(ready, result["global"]["nodes"]["ready"])
+                if status not in ("ok", "not_applicable"):
+                    self.assertEqual("partial", result["status"])

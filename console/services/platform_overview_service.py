@@ -19,6 +19,7 @@ from django.db import close_old_connections
 from django.db.models import Count, F, IntegerField, Sum
 from django.db.models.expressions import ExpressionWrapper
 from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 from OpenSSL import crypto
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import (ServiceDomain, ServiceDomainCertificate, ServiceGroup, ServiceGroupRelation, ServiceTcpDomain,
@@ -39,6 +40,8 @@ class PlatformOverviewService(object):
     METRICS_CACHE_SECONDS = 15
     VERSION_CACHE_SECONDS = 300
     DISK_ALERT_THRESHOLD = 70.0
+    REQUIRED_NODE_CERTIFICATES = frozenset(("agent/client-kubelet.crt", "agent/serving-kubelet.crt",
+                                            "agent/client-kube-proxy.crt", "agent/client-rke2-controller.crt"))
     REGION_CONNECT_TIMEOUT_SECONDS = 2
     REGION_READ_TIMEOUT_SECONDS = 3
     SECTION_DEADLINE_SECONDS = 5
@@ -164,8 +167,18 @@ class PlatformOverviewService(object):
                 node_regions_available += 1
                 node_total += int(nodes.get("total") or 0)
                 node_ready += int(nodes.get("ready") or 0)
-                health = "healthy" if nodes.get("total") and nodes.get("total") == nodes.get("ready") else "warning"
-                if health == "healthy":
+                certificate_status = nodes.get("certificate_status", "unavailable")
+                if certificate_status not in ("ok", "not_applicable"):
+                    runtime_partial = True
+                if nodes.get("alerts") or not nodes.get("total") or nodes.get("total") != nodes.get("ready"):
+                    health = "warning"
+                elif certificate_status not in ("ok", "not_applicable"):
+                    health = "unavailable"
+                else:
+                    health = "healthy"
+                if health == "unavailable":
+                    cluster_unavailable += 1
+                elif health == "healthy":
                     cluster_healthy += 1
                 else:
                     cluster_warning += 1
@@ -816,6 +829,7 @@ class PlatformOverviewService(object):
         nodes = []
         alerts = []
         ready_count = 0
+        now = timezone.now().astimezone(datetime.timezone.utc)
         if not isinstance(body.get("list"), list):
             raise RuntimeError("invalid node list")
         for source in body["list"]:
@@ -894,10 +908,60 @@ class PlatformOverviewService(object):
             elif disk_status == "ok" and len(node["disks"]) < 2:
                 disk_status = "partial" if node["disks"] else "unavailable"
             node["disk_stats_status"] = disk_status
+            certificate_status, certificates, certificate_alerts = self._node_certificates(source, name, now)
+            node["certificate_status"] = certificate_status
+            node["certificates"] = certificates
+            alerts.extend(certificate_alerts)
             nodes.append(node)
         statuses = {node["disk_stats_status"] for node in nodes}
         disk_status = (next(iter(statuses)) if len(statuses) == 1 else ("partial" if statuses else "unavailable"))
-        return {"total": len(nodes), "ready": ready_count, "items": nodes, "alerts": alerts, "disk_stats_status": disk_status}
+        certificate_statuses = {node["certificate_status"] for node in nodes} - {"not_applicable"}
+        if not certificate_statuses:
+            certificate_status = "not_applicable" if nodes else "unavailable"
+        elif len(certificate_statuses) == 1:
+            certificate_status = next(iter(certificate_statuses))
+        else:
+            certificate_status = "partial"
+        return {"total": len(nodes), "ready": ready_count, "items": nodes, "alerts": alerts,
+                "disk_stats_status": disk_status, "certificate_status": certificate_status}
+
+    def _node_certificates(self, source: dict, node_name: str, now: datetime.datetime) -> tuple:
+        status = source.get("certificate_status", "unavailable")
+        if status == "not_applicable":
+            return status, [], []
+        certificates = []
+        alerts = []
+        malformed = False
+        entries = source.get("certificates")
+        if not isinstance(entries, list):
+            entries = []
+            malformed = True
+        seen = set()
+        for entry in entries:
+            try:
+                if (not isinstance(entry, dict) or not isinstance(entry.get("name"), str)
+                        or entry["name"] not in self.REQUIRED_NODE_CERTIFICATES):
+                    raise ValueError("invalid certificate name")
+                expires_at = parse_datetime(entry["expires_at"])
+                if expires_at is None or timezone.is_naive(expires_at) or entry["name"] in seen:
+                    raise ValueError("invalid certificate expiration")
+                expires_at = expires_at.astimezone(datetime.timezone.utc)
+            except (KeyError, TypeError, ValueError, OverflowError):
+                malformed = True
+                continue
+            seen.add(entry["name"])
+            expiry_text = expires_at.isoformat().replace("+00:00", "Z")
+            certificates.append({"name": entry["name"], "expires_at": expiry_text})
+            seconds = (expires_at - now).total_seconds()
+            if seconds <= 30 * 86400:
+                alerts.append({"type": "certificate_expired" if seconds <= 0 else "certificate_expiring",
+                               "severity": "critical", "node_name": node_name, "certificate_name": entry["name"],
+                               "expires_at": expiry_text, "remaining_days": int(math.ceil(seconds / 86400))})
+        if not certificates:
+            status = "unavailable"
+        elif malformed or status != "ok" or seen != self.REQUIRED_NODE_CERTIFICATES:
+            status = "partial"
+        return status, certificates, alerts
 
     def _fetch_components(self, region_name: str) -> list:
         components = enterprise_services.get_rbdcomponents(region_name,
