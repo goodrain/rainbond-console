@@ -913,7 +913,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
                "/status?enterprise_id=" + enterprise_id)
 
         self._set_headers(token)
-        kwargs = {"region": region}
+        kwargs: Dict[str, Any] = {"region": region}
         if polling:
             kwargs.update({"connect_timeout": 3, "timeout": 5, "retries": 0})
         res, body = self._get(url, self.default_headers, **kwargs)
@@ -3221,7 +3221,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         if not include_stats:
             url += "?include_stats=false"
         self._set_headers(region_info.token)
-        kwargs = {"region": region}
+        kwargs: Dict[str, Any] = {"region": region}
         if timeout is not None:
             kwargs["timeout"] = timeout
         if retries is not None:
@@ -3322,7 +3322,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url = region_info.url
         url = url + "/v2/cluster/rbd-components"
         self._set_headers(region_info.token)
-        kwargs = {"region": region}
+        kwargs: Dict[str, Any] = {"region": region}
         if timeout is not None:
             kwargs["timeout"] = timeout
         if retries is not None:
@@ -4149,7 +4149,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url = region_info.url
         url += f"/v2/cluster/kubeblocks/clusters/{service_id}"
         self._set_headers(region_info.token)
-        kwargs = {"region": region_name}
+        kwargs: Dict[str, Any] = {"region": region_name}
         if polling:
             kwargs.update({"connect_timeout": 3, "timeout": 5, "retries": 0})
         res, body = self._get(url, self.default_headers, **kwargs)
@@ -4261,7 +4261,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         # 构造查询串，保持参数命名与现有 get_target_events 一致
         url += f"/v2/cluster/kubeblocks/clusters/{service_id}/events?page={int(page)}&page_size={int(page_size)}"
         self._set_headers(region_info.token)
-        kwargs = {"region": region_name}
+        kwargs: Dict[str, Any] = {"region": region_name}
         if polling:
             kwargs.update({"connect_timeout": 3, "timeout": 8, "retries": 0})
         res, body = self._get(url, self.default_headers, **kwargs)

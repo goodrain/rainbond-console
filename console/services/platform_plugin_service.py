@@ -298,9 +298,9 @@ class PlatformPluginService(object):
             response, body = client.list_plugins(
                 enterprise_id, region_name, False, connect_timeout=2, timeout=3, retries=0)
             valid_response = isinstance(response, dict) and response.get("status") == 200
-            valid_body = isinstance(body, dict) and "list" in body
-            if valid_body:
-                valid_body = body["list"] is None or isinstance(body["list"], list)
+            plugin_list = body.get("list") if isinstance(body, dict) else None
+            valid_body = (isinstance(body, dict) and "list" in body and
+                          (plugin_list is None or isinstance(plugin_list, list)))
             if not valid_response or not valid_body:
                 raise ServiceHandleException(
                     msg="platform plugin state unavailable",
@@ -310,7 +310,7 @@ class PlatformPluginService(object):
                 )
             return {
                 plugin.get("name", ""): plugin
-                for plugin in body["list"] or [] if isinstance(plugin, dict) and plugin.get("name")
+                for plugin in plugin_list or [] if isinstance(plugin, dict) and plugin.get("name")
             }
         except ServiceHandleException:
             raise
