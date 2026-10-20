@@ -392,13 +392,13 @@ class AppStatusView(AppBaseView):
         """
         bean = dict()
         bean["check_uuid"] = self.service.check_uuid
-        status_map = app_service.get_service_status(self.tenant, self.service, polling=True)
-        # kubeblocks_component 需要额外补充状态到 app status
+        status_map = None
+        # KB 状态可用时直接返回，避免先发一次会被覆盖的通用状态请求。
         if is_kubeblocks(self.service.extend_method):
-            kubeblocks_status = kubeblocks_service.get_kubeblocks_service_status(
-                self.service.service_region, self.service.service_id)
-            if kubeblocks_status:
-                status_map = kubeblocks_status
+            status_map = kubeblocks_service.get_kubeblocks_service_status(
+                self.service.service_region, self.service.service_id, polling=True)
+        if not status_map:
+            status_map = app_service.get_service_status(self.tenant, self.service, polling=True)
         platform_first_app_service.safe_mark_if_running(status_map)
         bean.update(status_map)
         result = general_message(200, "success", "查询成功", bean=bean)

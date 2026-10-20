@@ -4135,7 +4135,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, body=json.dumps(cluster_data), region=region_name)
         return res, body
 
-    def get_kubeblocks_cluster_detail(self, region_name: str, service_id: str) -> Tuple[Any, Optional[Dict[str, Any]]]:
+    def get_kubeblocks_cluster_detail(self, region_name: str, service_id: str,
+                                      polling: bool = False) -> Tuple[Any, Optional[Dict[str, Any]]]:
         """
         获取 KubeBlocks 集群详情
         """
@@ -4145,7 +4146,10 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url = region_info.url
         url += f"/v2/cluster/kubeblocks/clusters/{service_id}"
         self._set_headers(region_info.token)
-        res, body = self._get(url, self.default_headers, region=region_name)
+        kwargs = {"region": region_name}
+        if polling:
+            kwargs.update({"connect_timeout": 3, "timeout": 5, "retries": 0})
+        res, body = self._get(url, self.default_headers, **kwargs)
         return res, body
 
     def expansion_kubeblocks_cluster(self, region_name: str, service_id: str,
@@ -4243,7 +4247,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         return res, body
 
     def get_kubeblocks_cluster_events(self, region_name: str, service_id: str, page: int,
-                                      page_size: int) -> Tuple[Any, Optional[Dict[str, Any]]]:
+                                      page_size: int, polling: bool = False) -> Tuple[Any, Optional[Dict[str, Any]]]:
         """
         获取 KubeBlocks 集群的事件（操作记录）列表
         """
@@ -4254,7 +4258,10 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         # 构造查询串，保持参数命名与现有 get_target_events 一致
         url += f"/v2/cluster/kubeblocks/clusters/{service_id}/events?page={int(page)}&page_size={int(page_size)}"
         self._set_headers(region_info.token)
-        res, body = self._get(url, self.default_headers, region=region_name)
+        kwargs = {"region": region_name}
+        if polling:
+            kwargs.update({"connect_timeout": 3, "timeout": 8, "retries": 0})
+        res, body = self._get(url, self.default_headers, **kwargs)
         return res, body
 
     def manage_cluster_status(self, region_name: str, service_ids: Any,

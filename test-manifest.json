@@ -10708,12 +10708,22 @@
       "interface_type": "service_method",
       "interface": "www.apiclient.regionapi.RegionInvokeApi polling reads",
       "code_paths": [
-        "www/apiclient/regionapi.py"
+        "www/apiclient/regionapi.py",
+        "console/services/app.py",
+        "console/services/app_actions/app_log.py",
+        "console/services/kubeblocks_service.py",
+        "console/views/app_overview.py",
+        "console/views/kubeblocks.py",
+        "console/views/app_event.py"
       ],
       "tests": [
         {
           "path": "console/tests/regionapi_polling_deadline_test.py",
           "selector": "RegionApiPollingDeadlineTests"
+        },
+        {
+          "path": "console/tests/regionapi_polling_deadline_test.py",
+          "selector": "KubeBlocksPollingFlowTests"
         }
       ],
       "test_type": "regression",
