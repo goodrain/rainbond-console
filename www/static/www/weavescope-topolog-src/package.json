@@ -98,6 +98,7 @@
     "webpack-hot-middleware": "2.18.0"
   },
   "scripts": {
+    "build:polling": "node scripts/build-polling-asset.cjs",
     "build": "webpack --config webpack.production.config.js",
     "build-external": "EXTERNAL=true webpack --config webpack.production.config.js",
     "copy-pkg-files": "cp package.json build-pkg/ && cp -R app/styles build-pkg/",

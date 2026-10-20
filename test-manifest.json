@@ -3,6 +3,25 @@
   "repo": "rainbond-console",
   "capabilities": [
     {
+      "id": "console.topology.polling-lifecycle",
+      "title": "Bound topology polling and publish source-correlated iframe asset",
+      "title_zh": "拓扑单链轮询及源码一致的实际 iframe 产物",
+      "interface_type": "workflow",
+      "interface": "weavescope-topolog.web-api-utils.getNodesDelta",
+      "code_paths": [
+        "www/static/www/weavescope-topolog-src/app/scripts/utils/topology-polling.js",
+        "www/static/www/weavescope-topolog-src/app/scripts/utils/web-api-utils.js",
+        "www/static/www/weavescope-topolog-src/scripts/build-polling-asset.cjs",
+        "www/static/www/weavescope-topolog/index.html"
+      ],
+      "tests": [
+        { "path": "www/static/www/weavescope-topolog-src/app/scripts/utils/topology-polling.node.test.js" },
+        { "path": "www/static/www/weavescope-topolog-src/scripts/polling-asset.node.test.cjs" }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.app-backup.create",
       "title": "Create application backup",
       "title_zh": "创建应用备份",
