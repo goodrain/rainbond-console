@@ -269,7 +269,7 @@ class PlatformOverviewService(object):
         if time_range not in self.RANGE_CONFIG:
             raise ValueError("unsupported range")
         self._get_enterprise_region(enterprise_id, region_name)
-        cache_key = self._cache_key("metrics", enterprise_id, region_name, metric, time_range)
+        cache_key = self._cache_key("metrics-absolute-v1", enterprise_id, region_name, metric, time_range)
         return self._cached(cache_key, self.METRICS_CACHE_SECONDS,
                             lambda: self._load_metrics(enterprise_id, region_name, metric, time_range))
 
@@ -305,23 +305,19 @@ class PlatformOverviewService(object):
         tenant_name = tenant_name or ""
         duration, step = self.RANGE_CONFIG[time_range]
         end = int(timezone.now().timestamp())
-        for source, query in (("node_exporter", self.METRIC_QUERIES[metric]),
-                              ("cadvisor_root", self._cadvisor_query(metric))):
-            series = self._query_metric_source(region_name, tenant_name, query, end - duration, end, step, deadline)
+        for source in ("node_exporter", "cadvisor_root"):
+            query = self._metric_bundle_query(metric, source)
+            matrix = self._query_metric_source(region_name, tenant_name, query, end - duration, end, step, deadline)
+            series, absolute = self._metric_payload(matrix, metric)
             if series:
-                return {
-                    "status": "ok",
-                    "generated_at": self._generated_at(),
-                    "metric": metric,
-                    "range": time_range,
-                    "unit": self.METRIC_UNITS[metric],
-                    "series": series,
-                    "source": source,
-                    "coverage": "scrape_targets",
-                    "semantics": ("host_memory_working_set" if source == "cadvisor_root" and metric == "memory" else
-                                  self.METRIC_SEMANTICS[metric]),
-                    "reason": None,
-                }
+                semantics = ("host_memory_working_set" if source == "cadvisor_root" and metric == "memory" else
+                             self.METRIC_SEMANTICS[metric])
+                result = {"status": "ok", "generated_at": self._generated_at(), "metric": metric, "range": time_range,
+                          "unit": self.METRIC_UNITS[metric], "series": series, "source": source,
+                          "coverage": "scrape_targets", "semantics": semantics, "reason": None}
+                if absolute is not None:
+                    result["absolute"] = absolute
+                return result
         return {
             "status": "empty",
             "generated_at": self._generated_at(),
@@ -355,18 +351,101 @@ class PlatformOverviewService(object):
             raise RuntimeError("invalid Prometheus response")
         if not isinstance(body.get("data"), dict) or not isinstance(body["data"].get("result"), list):
             raise RuntimeError("invalid Prometheus response")
-        return self._finite_metric_series(body["data"]["result"])
+        return body["data"]["result"]
 
     @classmethod
-    def _cadvisor_query(cls, metric: str) -> str:
+    def _metric_payload(cls, matrix: list, metric: str) -> tuple:
+        if metric == "network" or not any(
+                isinstance(row, dict) and isinstance(row.get("metric"), dict) and "overview_stat" in row["metric"]
+                for row in matrix):
+            return cls._finite_metric_series(matrix), None
+        roles = {role: [] for role in ("percent", "used", "capacity")}
+        for row in matrix:
+            if isinstance(row, dict) and isinstance(row.get("metric"), dict):
+                role = row["metric"].get("overview_stat")
+                if isinstance(role, str) and role in roles:
+                    roles[role].append(row)
+        percent = cls._finite_metric_series(roles["percent"])
+        absolute = {"unit": "cores" if metric == "cpu" else "bytes", "samples": []}
+        # Each aggregate must be unique: never silently merge conflicting series or timestamps.
+        if any(len(rows) != 1 for rows in roles.values()):
+            return percent, absolute
+        indexed = {}
+        for role, rows in roles.items():
+            values, duplicates = {}, set()
+            points = rows[0].get("values")
+            if not isinstance(points, list):
+                return percent, absolute
+            for point in points:
+                if not isinstance(point, (list, tuple)) or len(point) != 2:
+                    continue
+                timestamp = cls._optional_number(point[0])
+                if timestamp is None:
+                    continue
+                if timestamp in values:
+                    duplicates.add(timestamp)
+                values[timestamp] = cls._optional_number(point[1])
+            indexed[role] = {stamp: value for stamp, value in values.items() if stamp not in duplicates}
+        for timestamp, percentage in sorted(indexed["percent"].items()):
+            used, capacity = indexed["used"].get(timestamp), indexed["capacity"].get(timestamp)
+            if percentage is None or used is None or capacity is None or capacity <= 0:
+                continue
+            if math.isclose(100.0 * used / capacity, percentage, rel_tol=1e-6, abs_tol=1e-4):
+                absolute["samples"].append({"timestamp": timestamp, "used": used, "capacity": capacity})
+        return percent, absolute
+
+    @staticmethod
+    def _tag_metric_query(query: str, role: str) -> str:
+        return 'label_replace(({}), "overview_stat", "{}", "__name__", ".*")'.format(query, role)
+
+    @classmethod
+    def _metric_bundle_query(cls, metric: str, source: str) -> str:
+        if source == "cadvisor_root":
+            return cls._cadvisor_query(metric, bundle=metric != "network")
+        percent = cls.METRIC_QUERIES[metric]
+        if metric == "network":
+            return percent
+        if metric == "cpu":
+            rates = 'rate(node_cpu_seconds_total{mode="idle"}[5m])'
+            used, capacity = "sum(1 - ({}))".format(rates), "count({})".format(rates)
+            # Identity must be unambiguous; count uses precisely the same rate sample set as the numerator.
+            guards = [
+                'count({}) == count(rate(node_cpu_seconds_total{{mode="idle",instance!="",cpu!=""}}[5m]))'.format(rates),
+                "max(count by (instance,cpu) ({})) == 1".format(rates),
+                "min({}) >= 0".format(rates),
+                "max({}) <= 1".format(rates),
+            ]
+        else:
+            total, available = "node_memory_MemTotal_bytes", "node_memory_MemAvailable_bytes"
+            used, capacity = "sum({}) - sum({})".format(total, available), "sum({})".format(total)
+            guards = []
+            for sample in (total, available):
+                guards.extend([
+                    'count({}) == count({}{{instance!=""}})'.format(sample, sample),
+                    "max(count by (instance) ({})) == 1".format(sample)
+                ])
+            guards.extend([
+                "count({}) == count({})".format(total, available),
+                "count({}) == count(({}) and on (instance) ({}))".format(total, total, available),
+                "min({}) > 0".format(total),
+                "min({}) >= 0".format(available),
+                # Normalize only for this validation join: duplicate identities are rejected by the count guards above.
+                "max((max by (instance) ({})) - on (instance) (max by (instance) ({}))) <= 0".format(available, total),
+            ])
+        suffix = "".join(" and on () ({})".format(guard) for guard in guards)
+        return " or ".join(
+            (cls._tag_metric_query(percent, "percent"), cls._tag_metric_query(
+                "({})".format(used) + suffix, "used"), cls._tag_metric_query("({})".format(capacity) + suffix, "capacity")))
+
+    @classmethod
+    def _cadvisor_query(cls, metric: str, bundle: bool = False) -> str:
         # The operator rewrites instance to the apiserver. Only stable node labels can safely join root and machine data.
         node = "kubernetes_io_hostname"
         selector = 'job="cadvisor",kubernetes_io_hostname!=""'
         root_selector = selector + ',id="/",namespace="",pod=""'
         targets = "max by ({}) (up{{{}}})".format(node, selector)
         if metric == "cpu":
-            used = ('max by ({}) (rate(container_cpu_usage_seconds_total{{{},cpu=~"total|"}}[5m]))'.format(
-                node, root_selector))
+            used = ('max by ({}) (rate(container_cpu_usage_seconds_total{{{},cpu=~"total|"}}[5m]))'.format(node, root_selector))
             capacity = "max by ({}) (machine_cpu_cores{{{}}} > 0)".format(node, selector)
         elif metric == "memory":
             used = "max by ({}) (container_memory_working_set_bytes{{{}}})".format(node, root_selector)
@@ -393,7 +472,13 @@ class PlatformOverviewService(object):
         else:
             value = "sum({})".format(used)
         # Filters, not bool comparisons: an incomplete target set produces no point, never a reassuring zero.
-        return "({})".format(value) + "".join(" and on () ({})".format(guard) for guard in guards)
+        suffix = "".join(" and on () ({})".format(guard) for guard in guards)
+        percent = "({})".format(value) + suffix
+        if bundle and capacity is not None:
+            return " or ".join(
+                (cls._tag_metric_query(percent, "percent"), cls._tag_metric_query("(sum({}))".format(used) + suffix, "used"),
+                 cls._tag_metric_query("(sum({}))".format(capacity) + suffix, "capacity")))
+        return percent
 
     @classmethod
     def _finite_metric_series(cls, series: list) -> list:

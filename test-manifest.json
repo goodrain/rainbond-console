@@ -3,25 +3,6 @@
   "repo": "rainbond-console",
   "capabilities": [
     {
-      "id": "console.topology.polling-lifecycle",
-      "title": "Bound topology polling and publish source-correlated iframe asset",
-      "title_zh": "拓扑单链轮询及源码一致的实际 iframe 产物",
-      "interface_type": "workflow",
-      "interface": "weavescope-topolog.web-api-utils.getNodesDelta",
-      "code_paths": [
-        "www/static/www/weavescope-topolog-src/app/scripts/utils/topology-polling.js",
-        "www/static/www/weavescope-topolog-src/app/scripts/utils/web-api-utils.js",
-        "www/static/www/weavescope-topolog-src/scripts/build-polling-asset.cjs",
-        "www/static/www/weavescope-topolog/index.html"
-      ],
-      "tests": [
-        { "path": "www/static/www/weavescope-topolog-src/app/scripts/utils/topology-polling.node.test.js" },
-        { "path": "www/static/www/weavescope-topolog-src/scripts/polling-asset.node.test.cjs" }
-      ],
-      "test_type": "regression",
-      "status": "active"
-    },
-    {
       "id": "console.app-backup.create",
       "title": "Create application backup",
       "title_zh": "创建应用备份",
@@ -10031,6 +10012,23 @@
       "status": "active"
     },
     {
+      "id": "console.platform-overview.absolute-metrics",
+      "title": "Historical absolute usage in platform overview metrics",
+      "title_zh": "Historical absolute usage in platform overview metrics",
+      "interface_type": "service_method",
+      "interface": "console.services.platform_overview_service.PlatformOverviewService.get_metrics",
+      "code_paths": [
+        "console/services/platform_overview_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/platform_overview_absolute_test.py"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.platform-overview.aggregate",
       "title": "Platform overview aggregation",
       "title_zh": "平台总览聚合、已启用插件与真实集群版本",
@@ -12427,6 +12425,29 @@
         {
           "path": "console/tests/app_component_performance_test.py",
           "selector": "TopologicalServicePerformanceTests.test_topology_logs_batch_status_failure_once_with_exception_context"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.topology.polling-lifecycle",
+      "title": "Bound topology polling and publish source-correlated iframe asset",
+      "title_zh": "拓扑单链轮询及源码一致的实际 iframe 产物",
+      "interface_type": "workflow",
+      "interface": "weavescope-topolog.web-api-utils.getNodesDelta",
+      "code_paths": [
+        "www/static/www/weavescope-topolog-src/app/scripts/utils/topology-polling.js",
+        "www/static/www/weavescope-topolog-src/app/scripts/utils/web-api-utils.js",
+        "www/static/www/weavescope-topolog-src/scripts/build-polling-asset.cjs",
+        "www/static/www/weavescope-topolog/index.html"
+      ],
+      "tests": [
+        {
+          "path": "www/static/www/weavescope-topolog-src/app/scripts/utils/topology-polling.node.test.js"
+        },
+        {
+          "path": "www/static/www/weavescope-topolog-src/scripts/polling-asset.node.test.cjs"
         }
       ],
       "test_type": "regression",

@@ -758,7 +758,7 @@ class PlatformOverviewServiceTest(TestCase):
         self.assertLessEqual(options["timeout"], 3)
         self.assertLessEqual(options["connect_timeout"] + options["timeout"], 5)
         self.assertEqual(0, options["retries"])
-        self.assertEqual([("platform-overview:metrics:eid:region-a:cpu:6h", 15)], self.service._cache.set_calls)
+        self.assertEqual([("platform-overview:metrics-absolute-v1:eid:region-a:cpu:6h", 15)], self.service._cache.set_calls)
 
     def test_metric_query_failure_returns_unavailable(self):
         self.service._get_enterprise_region = mock.Mock(return_value=REGION)

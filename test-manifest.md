@@ -522,7 +522,8 @@
 | console.package-upload.status-flow | Package Upload Status Flow | active | regression | console.services.package_upload_tool_service | console/tests/package_upload_tool_service_test.py::PackageUploadToolServiceTests.test_get_upload_status_reads_packages_and_updates_record |
 | console.package-upload.upload-flow | Package Upload Upload Flow | active | regression | console.services.package_upload_tool_service | console/tests/package_upload_tool_service_test.py::PackageUploadToolServiceTests.test_upload_package_uploads_archive_and_returns_status |
 | console.permissions.concurrent-initialization | 多进程幂等同步权限元数据 | active | regression | console.repositories.perm_repo.PermsRepo._sync_permission_settings | console/tests/perm_repo_performance_test.py::PermsRepoPerformanceTests.test_changed_permissions_sync_idempotently_within_the_check_interval |
-| console.platform-overview.aggregate | Platform overview aggregation | active | unit | console.services.platform_overview_service.PlatformOverviewService | console/tests/platform_overview_service_test.py::PlatformOverviewServiceTest<br>console/tests/platform_overview_service_test.py::PlatformPluginInstalledOnlyTest |
+| console.platform-overview.absolute-metrics | Historical absolute usage in platform overview metrics | active | regression | console.services.platform_overview_service.PlatformOverviewService.get_metrics | console/tests/platform_overview_absolute_test.py |
+| console.platform-overview.aggregate | 平台总览聚合、已启用插件与真实集群版本 | active | unit | console.services.platform_overview_service.PlatformOverviewService | console/tests/platform_overview_service_test.py::PlatformOverviewServiceTest<br>console/tests/platform_overview_service_test.py::PlatformPluginInstalledOnlyTest |
 | console.platform-overview.http-api | Platform overview HTTP API | active | regression | console.views.platform_overview | console/tests/platform_overview_view_test.py::PlatformOverviewViewTest |
 | console.platform-plugin.vm-access-url-fallback | 从前端组件访问地址回填官方虚拟机插件访问前缀 | active | regression | console.services.plugin_service.RainbondPluginService.list_plugins | console/tests/rbd_plugin_service_test.py::RainbondPluginServiceTests.test_official_vm_plugin_uses_frontend_component_access_url_when_region_urls_missing |
 | console.platform-plugin.vm-runtime-status-guard | 校验虚拟机平台插件运行状态 | active | regression | console.services.platform_plugin_service.PlatformPluginService.ensure_vm_plugin_running | console/tests/platform_plugin_service_test.py::PlatformPluginServiceTests.test_ensure_vm_plugin_running_rejects_non_running_status |
@@ -649,6 +650,7 @@
 | console.tool-visibility.enterprise-admin | 向企业管理员暴露管理工具集 | active | regression | console.services.mcp_query_service.list_tools[enterprise_admin] | console/tests/mcp_query_service_test.py::MCPQueryServiceToolVisibilityTests.test_list_tools_for_enterprise_admin_includes_region_and_enterprise_tools |
 | console.tool-visibility.standard-user | 向普通用户隐藏企业管理工具 | active | regression | console.services.mcp_query_service.list_tools[standard_user] | console/tests/mcp_query_service_test.py::MCPQueryServiceToolVisibilityTests.test_list_tools_for_non_enterprise_admin_hides_region_and_enterprise_tools |
 | console.topology.batch-status-error-logging | 拓扑批量状态失败仅记录一次真实异常 | active | regression | console.services.topological_services.TopologicalService.get_group_topological_graph | console/tests/app_component_performance_test.py::TopologicalServicePerformanceTests.test_topology_logs_batch_status_failure_once_with_exception_context |
+| console.topology.polling-lifecycle | 拓扑单链轮询及源码一致的实际 iframe 产物 | active | regression | weavescope-topolog.web-api-utils.getNodesDelta | www/static/www/weavescope-topolog-src/app/scripts/utils/topology-polling.node.test.js<br>www/static/www/weavescope-topolog-src/scripts/polling-asset.node.test.cjs |
 | console.url.path-legal | 校验路径是否满足 URL 路径合法性规则 | active | regression | console.utils.urlutil.is_path_legal | console/tests/utils/urlutil_test.py::UrlUtilTests.test_is_path_legal |
 | console.url.query-build | 根据基础路径和参数构建 GET URL | active | regression | console.utils.urlutil.set_get_url | console/tests/utils/urlutil_test.py::UrlUtilTests.test_set_get_url |
 | console.url.query-empty | 即使没有查询参数也能构建 GET URL | active | regression | console.utils.urlutil.set_get_url | console/tests/utils/urlutil_test.py::UrlUtilTests.test_set_get_url_with_empty_params |
@@ -5881,7 +5883,17 @@
 - 代码路径: `console/repositories/perm_repo.py`
 - 测试路径: `console/tests/perm_repo_performance_test.py::PermsRepoPerformanceTests.test_changed_permissions_sync_idempotently_within_the_check_interval`
 
-### Platform overview aggregation
+### Historical absolute usage in platform overview metrics
+
+- Capability ID: `console.platform-overview.absolute-metrics`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.platform_overview_service.PlatformOverviewService.get_metrics`
+- 代码路径: `console/services/platform_overview_service.py`
+- 测试路径: `console/tests/platform_overview_absolute_test.py`
+
+### 平台总览聚合、已启用插件与真实集群版本
 
 - Capability ID: `console.platform-overview.aggregate`
 - 状态: `active`
@@ -7150,6 +7162,16 @@
 - 业务入口: `console.services.topological_services.TopologicalService.get_group_topological_graph`
 - 代码路径: `console/services/topological_services.py`
 - 测试路径: `console/tests/app_component_performance_test.py::TopologicalServicePerformanceTests.test_topology_logs_batch_status_failure_once_with_exception_context`
+
+### 拓扑单链轮询及源码一致的实际 iframe 产物
+
+- Capability ID: `console.topology.polling-lifecycle`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `workflow`
+- 业务入口: `weavescope-topolog.web-api-utils.getNodesDelta`
+- 代码路径: `www/static/www/weavescope-topolog-src/app/scripts/utils/topology-polling.js`, `www/static/www/weavescope-topolog-src/app/scripts/utils/web-api-utils.js`, `www/static/www/weavescope-topolog-src/scripts/build-polling-asset.cjs`, `www/static/www/weavescope-topolog/index.html`
+- 测试路径: `www/static/www/weavescope-topolog-src/app/scripts/utils/topology-polling.node.test.js`, `www/static/www/weavescope-topolog-src/scripts/polling-asset.node.test.cjs`
 
 ### 校验路径是否满足 URL 路径合法性规则
 
