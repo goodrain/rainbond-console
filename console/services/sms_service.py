@@ -1,7 +1,9 @@
 import json
+import logging
 import random
+import threading
 from datetime import datetime, timedelta
-from typing import Dict, Optional
+from typing import Any, Callable, Dict, Optional
 from django.utils import timezone
 
 from console.models.main import SMSVerificationCode
@@ -9,27 +11,28 @@ from console.repositories.enterprise_repo import enterprise_repo
 from console.repositories.sms_repo import sms_repo
 from console.exception.main import ServiceHandleException
 from console.services.config_service import EnterpriseConfigService
+from console.services.sms_config import normalize_sms_config, parse_sms_config
+from console.services.sms_credentials import (VolcanoCredentialProvider,
+                                              create_aliyun_client)
+
+logger = logging.getLogger("default")
+
 
 class SMSProvider(object):
     """短信服务商基类"""
     def send_sms(self, phone: str, code: str, config: Dict) -> None:
         raise NotImplementedError
 
+
 class AliyunSMSProvider(SMSProvider):
     """阿里云短信"""
+    def __init__(self, client_factory: Callable[[Dict], Any] = create_aliyun_client) -> None:
+        self.client_factory = client_factory
+
     def send_sms(self, phone: str, code: str, config: Dict) -> None:
-        from alibabacloud_dysmsapi20170525.client import Client
-        from alibabacloud_tea_openapi import models as open_api_models
         from alibabacloud_dysmsapi20170525 import models as dysmsapi_models
 
-        client = Client(
-            open_api_models.Config(
-                access_key_id=config["access_key"],
-                access_key_secret=config["access_secret"],
-                endpoint='dysmsapi.aliyuncs.com'
-            )
-        )
-
+        client = self.client_factory(config)
         send_req = dysmsapi_models.SendSmsRequest(
             phone_numbers=phone,
             sign_name=config["sign_name"],
@@ -41,15 +44,21 @@ class AliyunSMSProvider(SMSProvider):
         if response.body.code != "OK":
             raise Exception(response.body.message)
 
+
 class VolcanoSMSProvider(SMSProvider):
     """火山云短信"""
-    def send_sms(self, phone: str, code: str, config: Dict) -> None:
+    def __init__(self, credential_provider: Optional[VolcanoCredentialProvider] = None,
+                 sms_service_factory: Optional[Callable[[], Any]] = None) -> None:
+        self.credential_provider = credential_provider or VolcanoCredentialProvider()
+        self.sms_service_factory = sms_service_factory or self._create_sms_service
+        self.send_lock = threading.Lock()
+
+    @staticmethod
+    def _create_sms_service() -> Any:
         from volcengine.sms.SmsService import SmsService
+        return SmsService()
 
-        sms_service = SmsService()
-        sms_service.set_ak(config["access_key"])
-        sms_service.set_sk(config["access_secret"])
-
+    def send_sms(self, phone: str, code: str, config: Dict) -> None:
         body = {
             "SmsAccount": config["sms_account"],
             "Sign": config["sign_name"],
@@ -57,11 +66,18 @@ class VolcanoSMSProvider(SMSProvider):
             "TemplateParam": '{"code":"%s"}' % code,
             "PhoneNumbers": phone,
         }
-        response = sms_service.send_sms(json.dumps(body))
+        credentials = self.credential_provider.get_credentials(config)
+        with self.send_lock:
+            sms_service = self.sms_service_factory()
+            sms_service.set_ak(credentials.access_key)
+            sms_service.set_sk(credentials.access_secret)
+            sms_service.set_session_token(credentials.session_token)
+            response = sms_service.send_sms(json.dumps(body))
         # 火山云返回码为 0 表示成功
         if response.get("ResponseMetadata", {}).get("Error") is not None:
             error = response["ResponseMetadata"]["Error"]
             raise Exception(f"Code: {error.get('Code')}, Message: {error.get('Message')}")
+
 
 class SMSService(object):
     def __init__(self) -> None:
@@ -114,22 +130,25 @@ class SMSService(object):
         # 生成验证码
         code = self.generate_code()
 
-        # 发送短信
+        provider = "unknown"
+        auth_type = "unknown"
         try:
-            config = eval(sms_config.value)  # type: ignore[arg-type]  # NOTE: sms_config.value is Optional[str]; runtime guarantees non-None here but mypy can't narrow past the Optional
-            provider = config.get("provider", "aliyun")  # 默认使用阿里云
-            if provider not in self.providers:
-                raise ServiceHandleException(
-                    msg="unsupported sms provider",
-                    msg_show="不支持的短信服务商",
-                    status_code=400
-                )
-
+            config = normalize_sms_config(parse_sms_config(sms_config.value))
+            provider = config["provider"]
+            auth_type = config["auth_type"]
             self.providers[provider].send_sms(phone, code, config)
+        except ServiceHandleException:
+            raise
         except Exception as e:
+            logger.exception(
+                "send verification SMS failed provider=%s auth_type=%s error_type=%s",
+                provider,
+                auth_type,
+                type(e).__name__,
+            )
             raise ServiceHandleException(
                 msg="send sms failed",
-                msg_show=str(e),
+                msg_show="短信发送失败，请检查短信服务认证、签名和模板配置",
                 status_code=500
             )
 
@@ -166,5 +185,6 @@ class SMSService(object):
             )
 
         return True
+
 
 sms_service = SMSService()

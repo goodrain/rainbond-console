@@ -7,7 +7,7 @@ import math
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, wait
-from typing import Any, Callable, Dict, Iterable, Optional, Tuple
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 from urllib.parse import urlencode
 
 from console.models.main import RegionConfig
@@ -115,9 +115,9 @@ class PlatformOverviewService(object):
         regions = self._list_region_records(enterprise_id)
         active_regions = [region for region in regions if region.status == "1"]
         region_sections = self._fetch_runtime_regions(enterprise_id, active_regions)
-        running_service_ids = []
-        abnormal_service_ids = []
-        region_data = []
+        running_service_ids: List[str] = []
+        abnormal_service_ids: List[str] = []
+        region_data: List[dict] = []
         node_total = 0
         node_ready = 0
         node_regions_available = 0
@@ -639,7 +639,7 @@ class PlatformOverviewService(object):
         for service in services:
             team = teams.get(service.tenant_id)
             group_id = relations.get(service.service_id)
-            group = groups.get(group_id)
+            group = groups.get(group_id) if group_id is not None else None
             items.append({
                 "service_id": service.service_id,
                 "service_alias": service.service_alias,
@@ -828,7 +828,7 @@ class PlatformOverviewService(object):
                 ready_count += 1
             resource = source.get("resource") or {}
             name = source.get("name") or source.get("internal_ip") or ""
-            node = {
+            node: Dict[str, Any] = {
                 "name": name,
                 "internal_ip": source.get("internal_ip"),
                 "external_ip": source.get("external_ip"),

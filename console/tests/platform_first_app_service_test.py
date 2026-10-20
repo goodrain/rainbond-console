@@ -190,10 +190,12 @@ class PlatformFirstAppServiceTests(TestCase):
     def test_app_status_marks_after_kubeblocks_status_override(self):
         source = (Path(__file__).parents[1] / "views" / "app_overview.py").read_text()
 
-        override_position = source.index("status_map = kubeblocks_status")
+        kubeblocks_position = source.index("status_map = kubeblocks_service.get_kubeblocks_service_status")
+        fallback_position = source.index("status_map = app_service.get_service_status")
         mark_position = source.index("platform_first_app_service.safe_mark_if_running(status_map)")
 
-        self.assertGreater(mark_position, override_position)
+        self.assertGreater(mark_position, kubeblocks_position)
+        self.assertGreater(mark_position, fallback_position)
 
     def test_config_info_sets_platform_state_after_enterprise_config_merge(self):
         source = (Path(__file__).parents[1] / "views" / "logos.py").read_text()
