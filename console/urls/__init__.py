@@ -19,6 +19,7 @@ from console.views.agent_llm_config import (AgentLLMConfigView, AgentLLMRuntimeC
 from console.views.agent_feishu_identity import AgentFeishuEligibleUsersView
 from console.views.agent_web_search_config import (AgentWebSearchConfigView,
                                                     AgentWebSearchRuntimeConfigView)
+from console.views.agent_web_search import AgentWebSearchRuntimeView
 from console.views.rainskills_access import RainSkillsAccessView
 from console.views.app_autoscaler import (AppAutoscalerView, AppScalingRecords, ListAppAutoscalerView)
 from console.views.app_config.app_dependency import (AppDependencyManageView, AppDependencyView, AppNotDependencyView,
@@ -243,6 +244,7 @@ urlpatterns = [
     re_path(r'^enterprise/(?P<eid>[^/]+)/agent-llm-config$', AgentLLMConfigView.as_view()),
     re_path(r'^enterprise/(?P<eid>[^/]+)/agent-web-search-config$', AgentWebSearchConfigView.as_view()),
     re_path(r'^internal/agent-web-search-config/runtime$', AgentWebSearchRuntimeConfigView.as_view()),
+    re_path(r'^internal/agent-web-search$', AgentWebSearchRuntimeView.as_view()),
     re_path(r'^internal/agent-llm-config/runtime$', AgentLLMRuntimeConfigView.as_view()),
     re_path(r'^internal/agent-mcp-credentials/runtime$', AgentMCPRuntimeCredentialsView.as_view()),
     re_path(r'^internal/agent-mcp-credentials/service$', AgentMCPServiceCredentialsView.as_view()),
