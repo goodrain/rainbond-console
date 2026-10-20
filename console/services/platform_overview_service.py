@@ -3,7 +3,9 @@ import base64
 import copy
 import datetime
 import logging
+import math
 import threading
+import time
 from concurrent.futures import ThreadPoolExecutor, wait
 from typing import Any, Callable, Dict, Iterable, Optional, Tuple
 from urllib.parse import urlencode
@@ -52,6 +54,11 @@ class PlatformOverviewService(object):
                     'sum(rate(node_network_transmit_bytes_total{device!="lo"}[5m]))'),
     }
     METRIC_UNITS = {"cpu": "percent", "memory": "percent", "network": "bytes_per_second"}
+    METRIC_SEMANTICS = {
+        "cpu": "host_cpu_utilization",
+        "memory": "host_memory_utilization",
+        "network": "host_network_throughput",
+    }
     RANGE_CONFIG = {"1h": (3600, 60), "6h": (21600, 300), "24h": (86400, 900)}
 
     def __init__(self,
@@ -113,6 +120,7 @@ class PlatformOverviewService(object):
         region_data = []
         node_total = 0
         node_ready = 0
+        node_regions_available = 0
         cluster_healthy = 0
         cluster_warning = 0
         cluster_unavailable = 0
@@ -153,6 +161,7 @@ class PlatformOverviewService(object):
                 health = "unavailable"
                 cluster_unavailable += 1
             else:
+                node_regions_available += 1
                 node_total += int(nodes.get("total") or 0)
                 node_ready += int(nodes.get("ready") or 0)
                 health = "healthy" if nodes.get("total") and nodes.get("total") == nodes.get("ready") else "warning"
@@ -180,6 +189,8 @@ class PlatformOverviewService(object):
                                                          set(running_service_ids))
         application_alarms = self._database_application_alerts(enterprise_id, set(abnormal_service_ids))
         status = self._overall_status(region_sections)
+        node_status = "ok" if node_regions_available == len(active_regions) else (
+            "partial" if node_regions_available else "unavailable")
         result = {
             "status": status,
             "generated_at": self._generated_at(),
@@ -192,8 +203,9 @@ class PlatformOverviewService(object):
                     "disabled": cluster_disabled,
                 },
                 "nodes": {
-                    "total": node_total,
-                    "ready": node_ready
+                    "status": node_status,
+                    "total": node_total if node_status != "unavailable" else None,
+                    "ready": node_ready if node_status != "unavailable" else None,
                 },
                 "applications": {
                     "total": totals["applications"],
@@ -264,7 +276,7 @@ class PlatformOverviewService(object):
     def _load_metrics(self, enterprise_id: str, region_name: str, metric: str, time_range: str) -> dict:
         try:
             result = self._query_metrics(enterprise_id, region_name, metric, time_range)
-        except Exception:
+        except Exception as exc:
             logger.warning(
                 "platform overview metric query failed: enterprise=%s region=%s metric=%s range=%s",
                 enterprise_id,
@@ -280,37 +292,124 @@ class PlatformOverviewService(object):
                 "range": time_range,
                 "unit": self.METRIC_UNITS[metric],
                 "series": [],
+                "source": "unknown",
+                "coverage": "unknown",
+                "semantics": self.METRIC_SEMANTICS[metric],
+                "reason": "deadline_exceeded" if isinstance(exc, TimeoutError) else "query_failed",
             }
         return result
 
     def _query_metrics(self, enterprise_id: str, region_name: str, metric: str, time_range: str) -> dict:
+        deadline = time.monotonic() + self.SECTION_DEADLINE_SECONDS
         tenant_name = self._metric_tenant_name(enterprise_id, region_name)
         tenant_name = tenant_name or ""
         duration, step = self.RANGE_CONFIG[time_range]
         end = int(timezone.now().timestamp())
-        params = "?{}".format(
-            urlencode({
-                "query": self.METRIC_QUERIES[metric],
-                "start": end - duration,
-                "end": end,
-                "step": step,
-            }))
-        response, body = self._new_region_api().get_query_range_data(region_name,
-                                                                     tenant_name,
-                                                                     params,
-                                                                     connect_timeout=self.REGION_CONNECT_TIMEOUT_SECONDS,
-                                                                     timeout=self.REGION_READ_TIMEOUT_SECONDS,
-                                                                     retries=0)
-        if not isinstance(body, dict) or body.get("status") != "success":
-            raise RuntimeError("invalid Prometheus response")
+        for source, query in (("node_exporter", self.METRIC_QUERIES[metric]),
+                              ("cadvisor_root", self._cadvisor_query(metric))):
+            series = self._query_metric_source(region_name, tenant_name, query, end - duration, end, step, deadline)
+            if series:
+                return {
+                    "status": "ok",
+                    "generated_at": self._generated_at(),
+                    "metric": metric,
+                    "range": time_range,
+                    "unit": self.METRIC_UNITS[metric],
+                    "series": series,
+                    "source": source,
+                    "coverage": "scrape_targets",
+                    "semantics": ("host_memory_working_set" if source == "cadvisor_root" and metric == "memory" else
+                                  self.METRIC_SEMANTICS[metric]),
+                    "reason": None,
+                }
         return {
-            "status": "ok",
+            "status": "empty",
             "generated_at": self._generated_at(),
             "metric": metric,
             "range": time_range,
             "unit": self.METRIC_UNITS[metric],
-            "series": (body.get("data") or {}).get("result") or [],
+            "series": [],
+            "source": "cadvisor_root",
+            "coverage": "unknown",
+            "semantics": "host_memory_working_set" if metric == "memory" else self.METRIC_SEMANTICS[metric],
+            "reason": "host_coverage_unverified",
         }
+
+    def _query_metric_source(self, region_name: str, tenant_name: str, query: str, start: int, end: int, step: int,
+                             deadline: float) -> list:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise TimeoutError("overview metric deadline exceeded")
+        connect_timeout = min(self.REGION_CONNECT_TIMEOUT_SECONDS, remaining * 0.4)
+        read_timeout = min(self.REGION_READ_TIMEOUT_SECONDS, remaining - connect_timeout)
+        params = "?{}".format(urlencode({"query": query, "start": start, "end": end, "step": step}))
+        response, body = self._new_region_api().get_query_range_data(region_name,
+                                                                     tenant_name,
+                                                                     params,
+                                                                     connect_timeout=connect_timeout,
+                                                                     timeout=read_timeout,
+                                                                     retries=0)
+        if not isinstance(response, dict) or response.get("status") != 200:
+            raise RuntimeError("invalid Prometheus response")
+        if not isinstance(body, dict) or body.get("status") != "success":
+            raise RuntimeError("invalid Prometheus response")
+        if not isinstance(body.get("data"), dict) or not isinstance(body["data"].get("result"), list):
+            raise RuntimeError("invalid Prometheus response")
+        return self._finite_metric_series(body["data"]["result"])
+
+    @classmethod
+    def _cadvisor_query(cls, metric: str) -> str:
+        # The operator rewrites instance to the apiserver. Only stable node labels can safely join root and machine data.
+        node = "kubernetes_io_hostname"
+        selector = 'job="cadvisor",kubernetes_io_hostname!=""'
+        root_selector = selector + ',id="/",namespace="",pod=""'
+        targets = "max by ({}) (up{{{}}})".format(node, selector)
+        if metric == "cpu":
+            used = ('max by ({}) (rate(container_cpu_usage_seconds_total{{{},cpu=~"total|"}}[5m]))'.format(
+                node, root_selector))
+            capacity = "max by ({}) (machine_cpu_cores{{{}}} > 0)".format(node, selector)
+        elif metric == "memory":
+            used = "max by ({}) (container_memory_working_set_bytes{{{}}})".format(node, root_selector)
+            capacity = "max by ({}) (machine_memory_bytes{{{}}} > 0)".format(node, selector)
+        else:
+            directions = []
+            for direction in ("receive", "transmit"):
+                directions.append(
+                    'sum by ({}) (max by ({},interface) (rate(container_network_{}_bytes_total{{{},interface!="lo"}}[5m])))'.
+                    format(node, node, direction, root_selector))
+            used = "({}) + on ({}) ({})".format(directions[0], node, directions[1])
+            capacity = None
+        used = "(({}) >= 0) and on ({}) ({})".format(used, node, targets)
+        guards = [
+            "count({}) == count({})".format(used, targets),
+            "min({}) == 1".format(targets),
+            "count({}) > 0".format(targets),
+            'count(up{job="cadvisor"}) == count(up{' + selector + '})',
+        ]
+        if capacity is not None:
+            capacity = "({}) and on ({}) ({})".format(capacity, node, targets)
+            guards.append("count({}) == count({})".format(capacity, targets))
+            value = "100 * sum({}) / sum({})".format(used, capacity)
+        else:
+            value = "sum({})".format(used)
+        # Filters, not bool comparisons: an incomplete target set produces no point, never a reassuring zero.
+        return "({})".format(value) + "".join(" and on () ({})".format(guard) for guard in guards)
+
+    @classmethod
+    def _finite_metric_series(cls, series: list) -> list:
+        normalized = []
+        for item in series:
+            if not isinstance(item, dict) or not isinstance(item.get("values"), list):
+                raise RuntimeError("invalid Prometheus series")
+            values = []
+            for point in item["values"]:
+                if not isinstance(point, (list, tuple)) or len(point) != 2:
+                    continue
+                if cls._optional_number(point[0]) is not None and cls._optional_number(point[1]) is not None:
+                    values.append(list(point))
+            if values:
+                normalized.append({"metric": item.get("metric") or {}, "values": sorted(values, key=lambda p: float(p[0]))})
+        return normalized
 
     @staticmethod
     def _deferred(func: Callable[..., Any], *args: Any) -> Callable[[], Any]:
@@ -472,7 +571,7 @@ class PlatformOverviewService(object):
     def _fetch_runtime_regions(self, enterprise_id: str, regions: list) -> dict:
         calls = {}
         for region in regions:
-            calls[self._runtime_key(region.region_name, "nodes")] = self._deferred(self._fetch_nodes, region.region_name)
+            calls[self._runtime_key(region.region_name, "nodes")] = self._deferred(self._fetch_nodes, region.region_name, False)
             calls[self._runtime_key(region.region_name, "workloads")] = self._deferred(self._fetch_running_service_ids,
                                                                                        enterprise_id, region.region_name)
             calls[self._runtime_key(region.region_name, "alarms")] = self._deferred(self._fetch_abnormal_service_ids,
@@ -482,7 +581,7 @@ class PlatformOverviewService(object):
 
     def _fetch_region_runtime(self, enterprise_id: str, region: RegionConfig) -> dict:
         calls = {
-            "nodes": self._deferred(self._fetch_nodes, region.region_name),
+            "nodes": self._deferred(self._fetch_nodes, region.region_name, False),
             "workloads": self._deferred(self._fetch_running_service_ids, enterprise_id, region.region_name),
             "alarms": self._deferred(self._fetch_abnormal_service_ids, enterprise_id, region.region_name),
         }
@@ -549,21 +648,24 @@ class PlatformOverviewService(object):
                                                                      connect_timeout=self.REGION_CONNECT_TIMEOUT_SECONDS,
                                                                      timeout=self.REGION_READ_TIMEOUT_SECONDS,
                                                                      retries=0)
-        if not isinstance(body, dict) or response.get("status") != 200:
+        if not isinstance(response, dict) or not isinstance(body, dict) or response.get("status") != 200:
             raise RuntimeError("invalid cluster resource response")
-        bean = body.get("bean") or {}
-        cap_cpu = self._number(bean.get("cap_cpu"))
-        req_cpu = self._number(bean.get("req_cpu"))
-        cap_mem = self._number(bean.get("cap_mem"))
-        req_mem = self._number(bean.get("req_mem"))
+        bean = body.get("bean")
+        if not isinstance(bean, dict):
+            raise RuntimeError("invalid cluster resource response")
+        cap_cpu = (self._required_number(bean.get("cap_cpu_millicores")) / 1000 if "cap_cpu_millicores" in bean else
+                   self._required_number(bean.get("cap_cpu")))
+        req_cpu = self._required_number(bean.get("req_cpu"))
+        cap_mem = self._required_number(bean.get("cap_mem"))
+        req_mem = self._required_number(bean.get("req_mem"))
         pods = bean.get("pods")
         pod_total = None
         if isinstance(pods, list):
             pod_total = len(pods)
         elif bean.get("pod_number") is not None:
-            pod_total = self._integer(bean.get("pod_number"))
+            pod_total = self._optional_count(bean.get("pod_number"))
         elif bean.get("total_pods") is not None:
-            pod_total = self._integer(bean.get("total_pods"))
+            pod_total = self._optional_count(bean.get("total_pods"))
         return {
             "cpu": {
                 "capacity": cap_cpu,
@@ -578,13 +680,16 @@ class PlatformOverviewService(object):
                 "unit": "MiB",
             },
             "pods": {
-                "running": self._integer(bean.get("run_pod_number", bean.get("running_pods"))),
+                "running": self._optional_count(bean.get("running_pod_number")),
+                "active": self._optional_count(bean.get("run_pod_number")),
                 "total": pod_total,
             },
             "versions": {
                 "kubernetes": bean.get("k8s_version"),
             },
             "resource_proxy_status": bean.get("resource_proxy_status"),
+            "source": bean.get("resource_source") or "unknown",
+            "scope": bean.get("resource_scope") or "unknown",
         }
 
     def _fetch_cluster_version(self, enterprise_id: str, region_name: str) -> str:
@@ -611,12 +716,14 @@ class PlatformOverviewService(object):
         self._cache.set(cache_key, version, self.VERSION_CACHE_SECONDS)
         return version
 
-    def _fetch_nodes(self, region_name: str) -> dict:
+    def _fetch_nodes(self, region_name: str, include_stats: bool = True) -> dict:
+        kwargs = {"include_stats": False} if not include_stats else {}
         response, body = self._new_region_api().get_cluster_nodes(region_name,
                                                                   connect_timeout=self.REGION_CONNECT_TIMEOUT_SECONDS,
                                                                   timeout=self.REGION_READ_TIMEOUT_SECONDS,
-                                                                  retries=0)
-        if not isinstance(body, dict) or response.get("status") != 200:
+                                                                  retries=0,
+                                                                  **kwargs)
+        if not isinstance(response, dict) or not isinstance(body, dict) or response.get("status") != 200:
             raise RuntimeError("invalid node response")
         return self._normalize_nodes(body)
 
@@ -624,7 +731,11 @@ class PlatformOverviewService(object):
         nodes = []
         alerts = []
         ready_count = 0
-        for source in body.get("list") or []:
+        if not isinstance(body.get("list"), list):
+            raise RuntimeError("invalid node list")
+        for source in body["list"]:
+            if not isinstance(source, dict):
+                raise RuntimeError("invalid node item")
             conditions = source.get("conditions") or []
             ready = any(
                 condition.get("type") == "Ready" and str(condition.get("status")).lower() == "true" for condition in conditions)
@@ -641,13 +752,13 @@ class PlatformOverviewService(object):
                 "roles": source.get("roles") or [],
                 "architecture": source.get("architecture"),
                 "cpu": {
-                    "capacity": self._number(resource.get("cap_cpu")),
-                    "allocated": self._number(resource.get("req_cpu")),
+                    "capacity": self._optional_number(resource.get("cap_cpu")),
+                    "allocated": self._optional_number(resource.get("req_cpu")),
                     "unit": "core",
                 },
                 "memory": {
-                    "capacity": self._number(resource.get("cap_memory")),
-                    "allocated": self._number(resource.get("req_memory")),
+                    "capacity": self._optional_number(resource.get("cap_memory")),
+                    "allocated": self._optional_number(resource.get("req_memory")),
                     "unit": "MiB",
                 },
                 "disks": [],
@@ -664,9 +775,11 @@ class PlatformOverviewService(object):
                 ("container", resource.get("req_container_disk"), resource.get("cap_container_disk")),
             )
             for filesystem, used, capacity in disk_fields:
-                used_value = self._number(used)
-                capacity_value = self._number(capacity)
-                if capacity_value <= 0:
+                if source.get("disk_stats_status") in ("not_requested", "unavailable"):
+                    continue
+                used_value = self._optional_number(used)
+                capacity_value = self._optional_number(capacity)
+                if used_value is None or capacity_value is None or capacity_value <= 0:
                     continue
                 usage = self._percentage(used_value, capacity_value)
                 node["disks"].append({
@@ -690,15 +803,31 @@ class PlatformOverviewService(object):
                         "message":
                         "磁盘空间使用率已超过 {}%，当前已使用 {}%".format(int(self.DISK_ALERT_THRESHOLD), self._display_percentage(usage)),
                     })
+            disk_status = source.get("disk_stats_status")
+            if disk_status not in ("ok", "partial", "unavailable", "not_requested"):
+                disk_status = "ok" if len(node["disks"]) == 2 else ("partial" if node["disks"] else "unavailable")
+            elif disk_status == "ok" and len(node["disks"]) < 2:
+                disk_status = "partial" if node["disks"] else "unavailable"
+            node["disk_stats_status"] = disk_status
             nodes.append(node)
-        return {"total": len(nodes), "ready": ready_count, "items": nodes, "alerts": alerts}
+        statuses = {node["disk_stats_status"] for node in nodes}
+        disk_status = (next(iter(statuses)) if len(statuses) == 1 else ("partial" if statuses else "unavailable"))
+        return {"total": len(nodes), "ready": ready_count, "items": nodes, "alerts": alerts, "disk_stats_status": disk_status}
 
     def _fetch_components(self, region_name: str) -> list:
-        return enterprise_services.get_rbdcomponents(region_name,
-                                                     connect_timeout=self.REGION_CONNECT_TIMEOUT_SECONDS,
-                                                     timeout=self.REGION_READ_TIMEOUT_SECONDS,
-                                                     retries=0,
-                                                     region_api_client=self._new_region_api())
+        components = enterprise_services.get_rbdcomponents(region_name,
+                                                           connect_timeout=self.REGION_CONNECT_TIMEOUT_SECONDS,
+                                                           timeout=self.REGION_READ_TIMEOUT_SECONDS,
+                                                           retries=0,
+                                                           region_api_client=self._new_region_api())
+        if not isinstance(components, list) or any(not isinstance(item, dict) for item in components):
+            raise RuntimeError("invalid Rainbond component list")
+        return [item for item in components if not all((
+            item.get("name") in ("rainbond-operator", "rbd-operator"),
+            item.get("all_pods") == 0,
+            item.get("run_pods") == 0,
+            not item.get("pods"),
+        ))]
 
     def _fetch_plugins(self, enterprise_id: str, region_name: str) -> list:
         return platform_plugin_service.list_installed_platform_plugins(enterprise_id,
@@ -708,7 +837,7 @@ class PlatformOverviewService(object):
     def _database_team_ranking(self, enterprise_id: str, region_name: str) -> dict:
         tenant_ids = list(self._tenant_ids(enterprise_id, region_name))
         if not tenant_ids:
-            return {"cpu": [], "memory": [], "applications": []}
+            return self._build_team_rankings([], [], [])
         teams = list(Tenants.objects.filter(tenant_id__in=tenant_ids).values("tenant_id", "tenant_name", "tenant_alias"))
         cpu_expression = ExpressionWrapper(F("min_cpu") * F("min_node"), output_field=IntegerField())
         memory_expression = ExpressionWrapper(F("min_memory") * F("min_node"), output_field=IntegerField())
@@ -738,6 +867,13 @@ class PlatformOverviewService(object):
             "cpu": self._top_five(items, "cpu_cores"),
             "memory": self._top_five(items, "memory_gib"),
             "applications": self._top_five(items, "applications"),
+            "scope": "configured_resources",
+            "includes_inactive_components": True,
+            "totals": {
+                "cpu_cores": round(sum(item["cpu_cores"] for item in items), 3),
+                "memory_gib": round(sum(item["memory_gib"] for item in items), 3),
+                "applications": sum(item["applications"] for item in items),
+            },
         }
 
     @staticmethod
@@ -775,8 +911,8 @@ class PlatformOverviewService(object):
         relations = {}
         for relation in relation_candidates:
             service = service_map.get(relation.service_id)
-            if (service and relation.tenant_id == service["tenant_id"] and
-                    relation.region_name == region.region_name and relation.group_id in valid_group_ids):
+            if service and all((relation.tenant_id == service["tenant_id"], relation.region_name == region.region_name,
+                                relation.group_id in valid_group_ids)):
                 relations[relation.service_id] = relation.group_id
         issues = []
         now = timezone.now()
@@ -799,6 +935,8 @@ class PlatformOverviewService(object):
             "tcp_routes": len(tcp_domains),
             "certificates": certificate_items,
             "issues": issues,
+            "scope": "configured_routes_and_bound_certificates",
+            "reachability_checked": False,
         }
 
     def _certificate_status(self, certificate: ServiceDomainCertificate, now: datetime.datetime) -> Tuple[str, Optional[str]]:
@@ -843,6 +981,32 @@ class PlatformOverviewService(object):
     def _metric_tenant_name(self, enterprise_id: str, region_name: str) -> Optional[str]:
         tenant_ids = self._tenant_ids(enterprise_id, region_name)
         return Tenants.objects.filter(tenant_id__in=tenant_ids).order_by("ID").values_list("tenant_name", flat=True).first()
+
+    @staticmethod
+    def _optional_number(value: Any) -> Optional[float]:
+        if value is None or isinstance(value, bool):
+            return None
+        try:
+            number = float(value)
+        except (TypeError, ValueError, OverflowError):
+            return None
+        return number if math.isfinite(number) and number >= 0 else None
+
+    @classmethod
+    def _required_number(cls, value: Any) -> float:
+        number = cls._optional_number(value)
+        if number is None:
+            raise RuntimeError("invalid cluster resource value")
+        return number
+
+    @classmethod
+    def _optional_count(cls, value: Any) -> Optional[int]:
+        if value is None:
+            return None
+        number = cls._required_number(value)
+        if not number.is_integer():
+            raise RuntimeError("invalid cluster resource count")
+        return int(number)
 
     @staticmethod
     def _number(value: Any) -> float:

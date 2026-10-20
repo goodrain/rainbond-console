@@ -297,8 +297,11 @@ class PlatformPluginService(object):
             client = region_api_client if region_api_client is not None else region_api
             response, body = client.list_plugins(
                 enterprise_id, region_name, False, connect_timeout=2, timeout=3, retries=0)
-            if (not isinstance(response, dict) or response.get("status") != 200 or not isinstance(body, dict) or
-                    not isinstance(body.get("list"), list)):
+            valid_response = isinstance(response, dict) and response.get("status") == 200
+            valid_body = isinstance(body, dict) and "list" in body
+            if valid_body:
+                valid_body = body["list"] is None or isinstance(body["list"], list)
+            if not valid_response or not valid_body:
                 raise ServiceHandleException(
                     msg="platform plugin state unavailable",
                     msg_show="无法确认平台插件安装状态，请稍后重试",
@@ -307,7 +310,7 @@ class PlatformPluginService(object):
                 )
             return {
                 plugin.get("name", ""): plugin
-                for plugin in body["list"] if isinstance(plugin, dict) and plugin.get("name")
+                for plugin in body["list"] or [] if isinstance(plugin, dict) and plugin.get("name")
             }
         except ServiceHandleException:
             raise

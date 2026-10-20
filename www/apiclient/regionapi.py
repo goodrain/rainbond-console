@@ -3211,12 +3211,15 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         return body
 
     def get_cluster_nodes(self, region: str, timeout: Optional[int] = None, retries: Optional[int] = None,
-                          connect_timeout: Optional[int] = None) -> Tuple[Any, Optional[Dict[str, Any]]]:
+                          connect_timeout: Optional[int] = None,
+                          include_stats: bool = True) -> Tuple[Any, Optional[Dict[str, Any]]]:
         region_info = self.get_region_info(region)
         if not region_info:
             raise ServiceHandleException("region not found")
         url = region_info.url
         url = url + "/v2/cluster/nodes"
+        if not include_stats:
+            url += "?include_stats=false"
         self._set_headers(region_info.token)
         kwargs = {"region": region}
         if timeout is not None:

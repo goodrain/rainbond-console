@@ -9,6 +9,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from types import ModuleType, SimpleNamespace
 from unittest import TestCase, mock
+from urllib.parse import parse_qs
 
 for attr in ("Mapping", "MutableMapping", "Sequence", "Iterable", "Iterator"):
     if not hasattr(collections, attr):
@@ -392,7 +393,7 @@ class PlatformOverviewServiceTest(TestCase):
 
         result = self.service._fetch_cluster_resources("eid", "region-a")
 
-        self.assertEqual({"running": 17, "total": None}, result["pods"])
+        self.assertEqual({"running": None, "active": 17, "total": None}, result["pods"])
         self.assertEqual(25.0, result["cpu"]["allocation_percent"])
         self.assertEqual("MiB", result["memory"]["unit"])
         self.service._region_api.get_region_resources.assert_called_once_with("eid",
@@ -674,6 +675,8 @@ class PlatformOverviewServiceTest(TestCase):
 
         services.assert_called_once_with(tenant_id__in=["t1", "t2"], service_region="region-a")
         self.assertEqual(1, result["http_domains"])
+        self.assertEqual("configured_routes_and_bound_certificates", result["scope"])
+        self.assertFalse(result["reachability_checked"])
         self.assertEqual("api.example.com", result["issues"][0]["domain"])
         self.assertEqual(42, result["issues"][0]["application_id"])
         relations.assert_called_once_with(service_id__in=["s1", "s2"],
@@ -750,11 +753,11 @@ class PlatformOverviewServiceTest(TestCase):
         self.assertNotIn("up%7B", params)
         self.assertEqual(first, second)
         self.assertEqual(1, self.service._region_api.get_query_range_data.call_count)
-        self.assertEqual({
-            "connect_timeout": 2,
-            "timeout": 3,
-            "retries": 0
-        }, self.service._region_api.get_query_range_data.call_args.kwargs)
+        options = self.service._region_api.get_query_range_data.call_args.kwargs
+        self.assertLessEqual(options["connect_timeout"], 2)
+        self.assertLessEqual(options["timeout"], 3)
+        self.assertLessEqual(options["connect_timeout"] + options["timeout"], 5)
+        self.assertEqual(0, options["retries"])
         self.assertEqual([("platform-overview:metrics:eid:region-a:cpu:6h", 15)], self.service._cache.set_calls)
 
     def test_metric_query_failure_returns_unavailable(self):
@@ -766,11 +769,9 @@ class PlatformOverviewServiceTest(TestCase):
 
         self.assertEqual("unavailable", result["status"])
         self.assertEqual([], result["series"])
-        self.assertEqual({
-            "connect_timeout": 2,
-            "timeout": 3,
-            "retries": 0
-        }, self.service._region_api.get_query_range_data.call_args.kwargs)
+        options = self.service._region_api.get_query_range_data.call_args.kwargs
+        self.assertLessEqual(options["connect_timeout"] + options["timeout"], 5)
+        self.assertEqual(0, options["retries"])
 
     def test_metrics_use_cluster_query_path_without_initialized_team(self):
         self.service._get_enterprise_region = mock.Mock(return_value=REGION)
@@ -786,7 +787,7 @@ class PlatformOverviewServiceTest(TestCase):
 
         result = self.service.get_metrics("eid", "region-a", "cpu", "1h")
 
-        self.assertEqual("ok", result["status"])
+        self.assertEqual("empty", result["status"])
         self.assertEqual("", self.service._region_api.get_query_range_data.call_args.args[1])
 
     def test_tenant_ids_exclude_inactive_teams_and_stale_region_memberships(self):
@@ -840,8 +841,331 @@ class PlatformOverviewServiceTest(TestCase):
         with self.assertRaises(ValueError):
             self.service.get_metrics("eid", "region-a", "cpu", "7d")
 
+    def _remediation_runtime(self, region_sections, regions=None):
+        self.service._list_region_records = mock.Mock(return_value=[REGION] if regions is None else regions)
+        self.service._fetch_runtime_regions = mock.Mock(return_value=region_sections)
+        self.service._database_workload_counts = mock.Mock(return_value={"applications": 0, "components": 0})
+        self.service._database_running_workload_counts = mock.Mock(return_value={"applications": 0, "components": 0})
+        self.service._database_application_alerts = mock.Mock(return_value=[])
+        return self.service.get_runtime("eid")
+
+    def test_remediation_all_failed_node_counts_are_null_not_zero(self):
+        result = self._remediation_runtime({
+            "region-a": {"status": "unavailable", "data": None},
+        })
+
+        self.assertEqual({"status": "unavailable", "total": None, "ready": None}, result["global"]["nodes"])
+        self.assertEqual(1, result["global"]["clusters"]["unavailable"])
+
+    def test_remediation_partial_node_counts_are_explicitly_partial(self):
+        region_b = SimpleNamespace(**dict(REGION.__dict__, region_name="region-b"))
+        result = self._remediation_runtime({
+            "region-a": {
+                "status": "ok",
+                "data": {
+                    "nodes": {"total": 2, "ready": 1},
+                    "workloads_status": "ok",
+                    "alarms_status": "ok",
+                },
+            },
+            "region-b": {"status": "unavailable", "data": None},
+        }, [REGION, region_b])
+
+        self.assertEqual({"status": "partial", "total": 2, "ready": 1}, result["global"]["nodes"])
+
+    def test_remediation_optional_workload_failure_does_not_make_nodes_partial(self):
+        result = self._remediation_runtime({
+            "region-a": {
+                "status": "ok",
+                "data": {
+                    "nodes": {"total": 2, "ready": 2},
+                    "workloads_status": "unavailable",
+                    "alarms_status": "ok",
+                    "status": "partial",
+                },
+            },
+        })
+
+        self.assertEqual({"status": "ok", "total": 2, "ready": 2}, result["global"]["nodes"])
+
+    def test_remediation_zero_active_regions_have_real_zero_nodes(self):
+        disabled = SimpleNamespace(**dict(REGION.__dict__, status="0"))
+        for regions in ([], [disabled]):
+            self.service._cache = MemoryCache()
+            result = self._remediation_runtime({}, regions)
+            self.assertEqual({"status": "ok", "total": 0, "ready": 0}, result["global"]["nodes"])
+
+    def test_remediation_runtime_nodes_request_lightweight_mode(self):
+        self.region_api.get_cluster_nodes.return_value = ({"status": 200}, {"list": []})
+        self.region_api.get_enterprise_running_services.return_value = {"service_ids": []}
+        self.region_api.get_user_service_abnormal_status.return_value = {"service_ids": []}
+
+        self.service._fetch_runtime_regions("eid", [REGION])
+
+        self.region_api.get_cluster_nodes.assert_called_once_with(
+            "region-a", include_stats=False, connect_timeout=2, timeout=3, retries=0)
+
+    def test_remediation_region_node_client_keeps_default_and_adds_only_explicit_lightweight_query(self):
+        client = overview_module.RegionInvokeApi()
+        region = SimpleNamespace(url="https://region.example", token="")
+        with mock.patch.object(client, "get_region_info", return_value=region), \
+                mock.patch.object(client, "_get", return_value=({"status": 200}, {"list": []})) as get:
+            client.get_cluster_nodes("region-a")
+            self.assertEqual("https://region.example/v2/cluster/nodes", get.call_args.args[0])
+            client.get_cluster_nodes("region-a", include_stats=False, connect_timeout=2, timeout=3, retries=0)
+            self.assertEqual("https://region.example/v2/cluster/nodes?include_stats=false", get.call_args.args[0])
+
+    def test_remediation_resources_prefer_millicores_and_strict_running_pods(self):
+        self.region_api.get_region_resources.return_value = ({"status": 200}, {"bean": {
+            "cap_cpu": 7,
+            "cap_cpu_millicores": 7900,
+            "req_cpu": 2,
+            "cap_mem": 16384,
+            "req_mem": 4096,
+            "run_pod_number": 17,
+            "running_pod_number": 12,
+            "resource_source": "kubernetes",
+            "resource_scope": "rainbond_workloads",
+        }})
+
+        result = self.service._fetch_cluster_resources("eid", "region-a")
+
+        self.assertEqual(7.9, result["cpu"]["capacity"])
+        self.assertEqual({"running": 12, "active": 17, "total": None}, result["pods"])
+        self.assertEqual("kubernetes", result["source"])
+        self.assertEqual("rainbond_workloads", result["scope"])
+
+    def test_remediation_old_resource_api_does_not_relabel_active_as_running(self):
+        self.region_api.get_region_resources.return_value = ({"status": 200}, {"bean": {
+            "cap_cpu": 8, "req_cpu": 2, "cap_mem": 16384, "req_mem": 4096, "run_pod_number": 17,
+        }})
+
+        result = self.service._fetch_cluster_resources("eid", "region-a")
+
+        self.assertEqual({"running": None, "active": 17, "total": None}, result["pods"])
+        self.assertEqual("unknown", result["source"])
+
+    def test_remediation_resource_fields_reject_missing_negative_and_nonfinite_values(self):
+        good = {"cap_cpu": 8, "req_cpu": 2, "cap_mem": 16384, "req_mem": 4096}
+        for field in good:
+            for invalid in (None, "not-a-number", "NaN", float("inf"), -1):
+                with self.subTest(field=field, invalid=invalid):
+                    self.region_api.get_region_resources.return_value = ({"status": 200}, {
+                        "bean": dict(good, **{field: invalid})})
+                    with self.assertRaises(RuntimeError):
+                        self.service._fetch_cluster_resources("eid", "region-a")
+
+    def test_remediation_legacy_missing_disk_stats_are_unknown_not_healthy(self):
+        result = self.service._normalize_nodes({"list": [{
+            "name": "node-a", "conditions": [{"type": "Ready", "status": "True"}], "resource": {},
+        }]})
+
+        self.assertEqual("unavailable", result["disk_stats_status"])
+        self.assertEqual("unavailable", result["items"][0]["disk_stats_status"])
+        self.assertEqual([], result["alerts"])
+
+    def test_remediation_disk_availability_preserves_explicit_partial_and_not_requested(self):
+        for status in ("partial", "not_requested"):
+            with self.subTest(status=status):
+                result = self.service._normalize_nodes({"list": [{
+                    "name": "node-a", "disk_stats_status": status,
+                    "conditions": [{"type": "Ready", "status": "True"}],
+                    "resource": {"req_disk": 82, "cap_disk": 100},
+                }]})
+                self.assertEqual(status, result["disk_stats_status"])
+                self.assertEqual(status, result["items"][0]["disk_stats_status"])
+
+    def test_remediation_nodes_reject_malformed_lists_and_do_not_serialize_nan_resources(self):
+        for body in ({}, {"list": None}, {"list": {}}, {"list": [None]}):
+            with self.subTest(body=body), self.assertRaises(RuntimeError):
+                self.service._normalize_nodes(body)
+        result = self.service._normalize_nodes({"list": [{
+            "name": "node-a", "conditions": [], "resource": {"cap_cpu": "NaN", "req_cpu": "Inf"},
+        }]})
+        self.assertIsNone(result["items"][0]["cpu"]["capacity"])
+        self.assertIsNone(result["items"][0]["cpu"]["allocated"])
+
+    def test_remediation_unavailable_disk_stats_do_not_produce_stale_disk_alerts(self):
+        result = self.service._normalize_nodes({"list": [{
+            "name": "node-a", "disk_stats_status": "unavailable",
+            "conditions": [{"type": "Ready", "status": "True"}],
+            "resource": {"req_disk": 82, "cap_disk": 100},
+        }]})
+        self.assertEqual([], result["items"][0]["disks"])
+        self.assertEqual([], result["alerts"])
+
+    def test_remediation_overview_hides_only_absent_operator_not_other_zero_replica_services(self):
+        components = [
+            {"name": "rainbond-operator", "run_pods": 0, "all_pods": 0, "pods": []},
+            {"name": "rbd-api", "run_pods": 0, "all_pods": 0, "pods": []},
+            {"name": "rbd-worker", "run_pods": 0, "all_pods": 1, "pods": [{"pod_name": "pending"}]},
+        ]
+        with mock.patch.object(overview_module.enterprise_services, "get_rbdcomponents", return_value=components):
+            result = self.service._fetch_components("region-a")
+
+        self.assertEqual(["rbd-api", "rbd-worker"], [item["name"] for item in result])
+        self.assertEqual([{"pod_name": "pending"}], result[1]["pods"])
+        self.assertEqual(3, len(components))
+
+    def test_remediation_team_rankings_declare_configured_resource_scope_and_all_team_totals(self):
+        teams = [{"tenant_id": str(index), "tenant_name": str(index), "tenant_alias": str(index)} for index in range(6)]
+        resources = [{"tenant_id": str(index), "cpu_millicores": 1000, "memory_mib": 1024} for index in range(6)]
+        applications = [{"tenant_id": str(index), "total": 1} for index in range(6)]
+
+        result = self.service._build_team_rankings(teams, resources, applications)
+
+        self.assertEqual("configured_resources", result["scope"])
+        self.assertTrue(result["includes_inactive_components"])
+        self.assertEqual({"cpu_cores": 6, "memory_gib": 6, "applications": 6}, result["totals"])
+        self.assertEqual(5, len(result["cpu"]))
+
+    def _remediation_metric_query(self, responses, metric="cpu"):
+        self.service._get_enterprise_region = mock.Mock(return_value=REGION)
+        self.service._metric_tenant_name = mock.Mock(return_value="team-a")
+        self.region_api.get_query_range_data.side_effect = responses
+        return self.service.get_metrics("eid", "region-a", metric, "1h")
+
+    @staticmethod
+    def _prometheus_result(values):
+        return {"status": 200}, {"status": "success", "data": {"result": values}}
+
+    def test_remediation_metrics_filter_invalid_points_but_keep_real_zero(self):
+        result = self._remediation_metric_query([self._prometheus_result([{
+            "metric": {}, "values": [[1, "NaN"], [2, "+Inf"], ["bad", "1"], [3, "0"], [4, "12.5"]],
+        }])])
+
+        self.assertEqual("ok", result["status"])
+        self.assertEqual([[3, "0"], [4, "12.5"]], result["series"][0]["values"])
+        self.assertEqual("node_exporter", result["source"])
+        self.assertEqual("host_cpu_utilization", result["semantics"])
+        self.assertEqual(1, self.region_api.get_query_range_data.call_count)
+
+    def test_remediation_metrics_empty_primary_uses_one_guarded_root_cadvisor_fallback(self):
+        result = self._remediation_metric_query([
+            self._prometheus_result([]),
+            self._prometheus_result([{"metric": {}, "values": [[1, "34.5"]]}]),
+        ], metric="memory")
+
+        self.assertEqual("ok", result["status"])
+        self.assertEqual("cadvisor_root", result["source"])
+        self.assertEqual("scrape_targets", result["coverage"])
+        self.assertEqual("host_memory_working_set", result["semantics"])
+        self.assertEqual(2, self.region_api.get_query_range_data.call_count)
+        params = self.region_api.get_query_range_data.call_args.args[2]
+        query = parse_qs(params.lstrip("?"))["query"][0]
+        for guard in ('job="cadvisor"', 'id="/"', 'kubernetes_io_hostname!=""', "machine_memory_bytes", "up{"):
+            self.assertIn(guard, query)
+        self.assertIn('namespace=""', query)
+        self.assertIn('pod=""', query)
+        self.assertNotIn("service_id", query)
+
+    def test_remediation_metrics_no_host_coverage_remains_empty_not_zero(self):
+        result = self._remediation_metric_query([self._prometheus_result([]), self._prometheus_result([])])
+
+        self.assertEqual("empty", result["status"])
+        self.assertEqual("host_coverage_unverified", result["reason"])
+        self.assertEqual([], result["series"])
+        self.assertEqual(2, self.region_api.get_query_range_data.call_count)
+
+    def test_remediation_metrics_failed_primary_does_not_retry_or_fallback(self):
+        result = self._remediation_metric_query([({"status": 503}, {"status": "success", "data": {"result": []}})])
+
+        self.assertEqual("unavailable", result["status"])
+        self.assertEqual("query_failed", result["reason"])
+        self.assertEqual(1, self.region_api.get_query_range_data.call_count)
+
+    def test_remediation_metrics_malformed_success_is_unavailable_not_empty(self):
+        for body in ({"status": "success"}, {"status": "success", "data": {"result": None}},
+                     {"status": "success", "data": {"result": [{"values": "bad"}]}}):
+            with self.subTest(body=body):
+                self.service._cache = MemoryCache()
+                self.region_api.get_query_range_data.reset_mock()
+                result = self._remediation_metric_query([({"status": 200}, body)])
+                self.assertEqual("unavailable", result["status"])
+                self.assertEqual("query_failed", result["reason"])
+                self.assertEqual(1, self.region_api.get_query_range_data.call_count)
+
+    def test_remediation_each_fallback_has_root_node_identity_and_target_coverage_guards(self):
+        for metric in ("cpu", "memory", "network"):
+            with self.subTest(metric=metric):
+                query = self.service._cadvisor_query(metric)
+                self.assertIn('id="/"', query)
+                self.assertIn('namespace=""', query)
+                self.assertIn('pod=""', query)
+                self.assertIn('kubernetes_io_hostname!=""', query)
+                self.assertIn('count(up{job="cadvisor"}) == count(up{job="cadvisor",kubernetes_io_hostname!=""})', query)
+                self.assertIn("min(max by (kubernetes_io_hostname)", query)
+                self.assertNotIn(" bool ", query)
+                self.assertNotIn("by (instance)", query)
+
+    def test_remediation_cadvisor_cpu_accepts_total_and_unlabelled_root_samples_only(self):
+        query = self.service._cadvisor_query("cpu")
+
+        self.assertIn('cpu=~"total|"', query)
+        self.assertIn("max by (kubernetes_io_hostname)", query)
+        self.assertNotIn('cpu=~".*"', query)
+
+    def test_remediation_metrics_all_nonfinite_points_do_not_form_a_curve(self):
+        result = self._remediation_metric_query([
+            self._prometheus_result([{"metric": {}, "values": [[1, "NaN"], [2, "Inf"]]}]),
+            self._prometheus_result([{"metric": {}, "values": [[1, "NaN"]]}]),
+        ])
+
+        self.assertEqual("empty", result["status"])
+        self.assertEqual([], result["series"])
+
+    def test_remediation_metrics_fallback_obeys_remaining_five_second_budget(self):
+        clock = [100.0]
+
+        def query(_region, _tenant, _params, **kwargs):
+            self.assertLessEqual(kwargs["connect_timeout"] + kwargs["timeout"], 5 - (clock[0] - 100.0) + 0.001)
+            self.assertEqual(0, kwargs["retries"])
+            clock[0] += 4.0 if self.region_api.get_query_range_data.call_count == 1 else 1.0
+            return self._prometheus_result([])
+
+        self.service._get_enterprise_region = mock.Mock(return_value=REGION)
+        self.service._metric_tenant_name = mock.Mock(return_value="team-a")
+        self.region_api.get_query_range_data.side_effect = query
+        with mock.patch("time.monotonic", side_effect=lambda: clock[0]):
+            result = self.service.get_metrics("eid", "region-a", "cpu", "1h")
+
+        self.assertEqual(2, self.region_api.get_query_range_data.call_count)
+        self.assertEqual("empty", result["status"])
+
+    def test_remediation_metrics_exhausted_budget_does_not_start_fallback(self):
+        clock = [100.0]
+
+        def query(*_args, **_kwargs):
+            clock[0] = 105.1
+            return self._prometheus_result([])
+
+        self.service._get_enterprise_region = mock.Mock(return_value=REGION)
+        self.service._metric_tenant_name = mock.Mock(return_value="team-a")
+        self.region_api.get_query_range_data.side_effect = query
+        with mock.patch("time.monotonic", side_effect=lambda: clock[0]):
+            result = self.service.get_metrics("eid", "region-a", "cpu", "1h")
+
+        self.assertEqual("unavailable", result["status"])
+        self.assertEqual("deadline_exceeded", result["reason"])
+        self.assertEqual(1, self.region_api.get_query_range_data.call_count)
+
 
 class PlatformPluginInstalledOnlyTest(TestCase):
+    def test_remediation_null_plugin_list_is_a_legacy_empty_list(self):
+        service = PlatformPluginService()
+        client = mock.Mock()
+        client.list_plugins.return_value = ({"status": 200}, {"list": None})
+
+        self.assertEqual([], service.list_installed_platform_plugins("eid", "region-a", region_api_client=client))
+
+    def test_remediation_malformed_plugin_lists_remain_unavailable(self):
+        for body in ({}, {"list": {}}, {"list": "invalid"}):
+            service = PlatformPluginService()
+            client = mock.Mock()
+            client.list_plugins.return_value = ({"status": 200}, body)
+            with self.subTest(body=body), self.assertRaises(ServiceHandleException):
+                service.list_installed_platform_plugins("eid", "region-a", region_api_client=client)
+
     def test_overview_lists_only_enabled_plugins_preserving_legacy_default(self):
         service = PlatformPluginService()
         plugins = [
