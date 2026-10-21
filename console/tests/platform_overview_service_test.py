@@ -1283,6 +1283,66 @@ class NodeCertificateAlertsTest(TestCase):
         self.assertEqual([], self.normalize([self.node(2592001)])["alerts"])
         self.assertEqual([], self.normalize([self.node(31536000)])["alerts"])
 
+    def native_node(self, seconds=86400, status="ok"):
+        node = self.node(seconds, status)
+        node.update(certificate_source="rke2_events", certificate_observed_at=self.now.isoformat())
+        return node
+
+    def test_fresh_native_ok_and_sparse_warning(self):
+        node = self.native_node()
+        node["certificates"] = []
+        result = self.normalize([node])
+        self.assertEqual("ok", result["certificate_status"])
+        self.assertEqual([], result["alerts"])
+        result = self.normalize([self.native_node(30 * 86400)])
+        self.assertEqual("ok", result["certificate_status"])
+        self.assertEqual("critical", result["alerts"][0]["severity"])
+        self.assertEqual("certificate_expiring", result["alerts"][0]["type"])
+
+    def test_native_invalid_observation_drops_stale_risks(self):
+        for observed in [None, "invalid", "2026-10-20T00:00:00",
+                         (self.now - datetime.timedelta(minutes=65, seconds=1)).isoformat(),
+                         (self.now + datetime.timedelta(minutes=1, seconds=1)).isoformat()]:
+            with self.subTest(observed=observed):
+                node = self.native_node()
+                node["certificate_observed_at"] = observed
+                result = self.normalize([node])
+                self.assertEqual("unavailable", result["certificate_status"])
+                self.assertEqual([], result["alerts"])
+                self.assertEqual([], result["items"][0]["certificates"])
+
+        node = self.native_node()
+        del node["certificate_observed_at"]
+        self.assertEqual("unavailable", self.normalize([node])["certificate_status"])
+        self.assertEqual([], self.normalize([node])["alerts"])
+
+    def test_native_observation_boundaries_and_partial_risks(self):
+        for seconds in [-3900, 60]:
+            node = self.native_node()
+            node["certificate_observed_at"] = (self.now + datetime.timedelta(seconds=seconds)).isoformat()
+            self.assertEqual("ok", self.normalize([node])["certificate_status"])
+        node = self.native_node(status="partial")
+        node["certificates"].append({"name": "unknown", "expires_at": self.now.isoformat()})
+        result = self.normalize([node])
+        self.assertEqual("partial", result["certificate_status"])
+        self.assertEqual(1, len(result["alerts"]))
+        for status in ["partial", "unavailable"]:
+            node = self.native_node(status=status)
+            node["certificates"] = []
+            self.assertEqual("unavailable", self.normalize([node])["certificate_status"])
+        for entries in [None, "invalid"]:
+            node = self.native_node()
+            node["certificates"] = entries
+            self.assertEqual("unavailable", self.normalize([node])["certificate_status"])
+        node = self.native_node()
+        del node["certificates"]
+        self.assertEqual("unavailable", self.normalize([node])["certificate_status"])
+        node = self.native_node()
+        node["certificates"].append(None)
+        result = self.normalize([node])
+        self.assertEqual("partial", result["certificate_status"])
+        self.assertEqual(1, len(result["alerts"]))
+
     @override_settings(USE_TZ=False)
     def test_certificate_alerts_with_production_naive_clock(self):
         self.assertTrue(overview_module.timezone.is_naive(overview_module.timezone.now()))

@@ -927,7 +927,18 @@ class PlatformOverviewService(object):
 
     def _node_certificates(self, source: dict, node_name: str, now: datetime.datetime) -> tuple:
         status = source.get("certificate_status", "unavailable")
-        if status == "not_applicable":
+        native = source.get("certificate_source") == "rke2_events"
+        if native:
+            try:
+                observed = parse_datetime(source["certificate_observed_at"])
+                if observed is None or timezone.is_naive(observed):
+                    raise ValueError("invalid native observation")
+                age = (now - observed).total_seconds()
+                if age > 65 * 60 or age < -60:
+                    raise ValueError("stale native observation")
+            except (KeyError, TypeError, ValueError, OverflowError):
+                return "unavailable", [], []
+        elif status == "not_applicable":
             return status, [], []
         certificates = []
         alerts = []
@@ -957,7 +968,10 @@ class PlatformOverviewService(object):
                 alerts.append({"type": "certificate_expired" if seconds <= 0 else "certificate_expiring",
                                "severity": "critical", "node_name": node_name, "certificate_name": entry["name"],
                                "expires_at": expiry_text, "remaining_days": int(math.ceil(seconds / 86400))})
-        if not certificates:
+        if native and status == "ok" and not malformed:
+            # Native checks report only risks; a fresh explicit empty list means OK.
+            status = "ok"
+        elif not certificates:
             status = "unavailable"
         elif malformed or status != "ok" or seen != self.REQUIRED_NODE_CERTIFICATES:
             status = "partial"
