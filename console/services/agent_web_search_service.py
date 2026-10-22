@@ -97,3 +97,6 @@ class AgentWebSearchService(object):
                 "publishedAt": item.get("date") or "",
             })
         return {"provider": "deepseek", "sources": sources, "content": "", "truncated": len(results) >= limit}
+
+
+agent_web_search_service = AgentWebSearchService()

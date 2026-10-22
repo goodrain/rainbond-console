@@ -15,7 +15,7 @@ django.setup()
 
 from console.exception.main import ServiceHandleException
 from console.services.agent_web_search_config_service import AgentWebSearchConfigService
-from console.services.agent_web_search_service import AgentWebSearchService
+from console.services.agent_web_search_service import AgentWebSearchService, agent_web_search_service
 
 
 class AgentWebSearchConfigServiceTests(SimpleTestCase):
@@ -69,6 +69,9 @@ class AgentWebSearchConfigServiceTests(SimpleTestCase):
 
 
 class AgentWebSearchServiceTests(SimpleTestCase):
+
+    def test_exports_module_singleton_for_views(self):
+        self.assertIsInstance(agent_web_search_service, AgentWebSearchService)
 
     def test_maps_deepseek_search_results(self):
         service = AgentWebSearchService()
