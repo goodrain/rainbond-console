@@ -17,7 +17,7 @@ logger = logging.getLogger("default")
 
 AI_AGENT_WEB_SEARCH_CONFIG_KEY = "AI_AGENT_WEB_SEARCH_CONFIG"
 API_KEY_PREFIX = "fernet:v1:"
-WEB_SEARCH_PROVIDERS = ("exa", "perplexity")
+WEB_SEARCH_PROVIDERS = ("exa", "perplexity", "deepseek")
 DEFAULT_CONFIG = {
     "enabled": True,
     "provider": "exa",
@@ -122,7 +122,7 @@ class AgentWebSearchConfigService(object):
         if config["provider"] not in WEB_SEARCH_PROVIDERS:
             raise ServiceHandleException(
                 msg="invalid web search provider",
-                msg_show="联网搜索 provider 必须是 exa 或 perplexity",
+                msg_show="联网搜索 provider 必须是 exa、perplexity 或 deepseek",
                 status_code=400,
             )
         if not (1 <= config["max_results"] <= 10):

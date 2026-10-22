@@ -12,6 +12,7 @@ logger = logging.getLogger("default")
 
 EXA_SEARCH_URL = "https://api.exa.ai/search"
 PERPLEXITY_CHAT_URL = "https://api.perplexity.ai/chat/completions"
+DEEPSEEK_SEARCH_URL = "https://api.deepseek.com/v1/tools/search"
 
 
 class AgentWebSearchService(object):
@@ -48,7 +49,9 @@ class AgentWebSearchService(object):
         provider = config.get("provider") or "exa"
         limit = max(1, min(int(max_results or config.get("max_results") or 5), 10))
         timeout = max(1.0, min(float(config.get("fetch_timeout_ms") or 15000) / 1000.0, 60.0))
-        if provider == "perplexity":
+        if provider == "deepseek":
+            result = self._search_deepseek(query, limit, api_key, timeout)
+        elif provider == "perplexity":
             result = self._search_perplexity(query, limit, api_key, timeout)
         else:
             result = self._search_exa(query, limit, api_key, timeout)
@@ -84,6 +87,36 @@ class AgentWebSearchService(object):
                 "publishedAt": item.get("publishedDate") or "",
             })
         return {"provider": "exa", "sources": sources, "content": "", "truncated": len(sources) >= limit}
+
+    def _search_deepseek(self, query: str, limit: int, api_key: str, timeout: float) -> Dict[str, Any]:
+        try:
+            response = requests.post(
+                DEEPSEEK_SEARCH_URL,
+                headers={"Authorization": "Bearer {}".format(api_key), "content-type": "application/json"},
+                json={"query": query, "count": limit, "need_content": False},
+                timeout=timeout,
+            )
+        except requests.RequestException as exc:
+            logger.warning("deepseek search failed: %s", exc)
+            raise ServiceHandleException(msg="deepseek search failed", msg_show="联网搜索请求失败", status_code=502)
+        if response.status_code >= 400:
+            logger.warning("deepseek search status=%s body=%s", response.status_code, response.text[:300])
+            if response.status_code in (401, 403):
+                raise ServiceHandleException(
+                    msg="deepseek search unauthorized", msg_show="DeepSeek API Key 无效", status_code=401)
+            raise ServiceHandleException(msg="deepseek search failed", msg_show="联网搜索服务返回错误", status_code=502)
+        payload = response.json() if response.content else {}
+        sources: List[Dict[str, Any]] = []
+        for item in (payload.get("results") or [])[:limit]:
+            if not item.get("url"):
+                continue
+            sources.append({
+                "url": item["url"],
+                "title": item.get("title") or "",
+                "snippet": (item.get("summary") or item.get("snippet") or "")[:1200],
+                "publishedAt": item.get("date") or "",
+            })
+        return {"provider": "deepseek", "sources": sources, "content": "", "truncated": len(sources) >= limit}
 
     def _search_perplexity(self, query: str, limit: int, api_key: str, timeout: float) -> Dict[str, Any]:
         try:
