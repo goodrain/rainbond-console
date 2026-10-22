@@ -1288,6 +1288,165 @@ class NodeCertificateAlertsTest(TestCase):
         node.update(certificate_source="rke2_events", certificate_observed_at=self.now.isoformat())
         return node
 
+    def unobserved_node(self):
+        return {"name": "worker", "conditions": [{"type": "Ready", "status": "True"}],
+                "certificate_status": "not_observed", "certificate_source": "rke2_events",
+                "certificate_checked_at": self.now.isoformat(), "certificates": []}
+
+    def test_successful_event_query_without_observation_preserves_coverage(self):
+        result = self.normalize([self.unobserved_node()])
+        self.assertEqual("not_observed", result["certificate_status"])
+        self.assertEqual([], result["alerts"])
+        item = result["items"][0]
+        self.assertEqual("not_observed", item["certificate_status"])
+        self.assertEqual("rke2_events", item["certificate_source"])
+        self.assertEqual(self.now.isoformat(), item["certificate_checked_at"])
+        self.assertNotIn("certificate_observed_at", item)
+        self.assertEqual([], item["certificates"])
+
+    def test_native_warnings_preserve_unparsed_and_ca_risks_without_fake_expiration(self):
+        for reason in ("CertificateExpirationWarning", "CACertificateExpirationWarning"):
+            with self.subTest(reason=reason):
+                node = self.native_node(status="unavailable")
+                node["certificates"] = []
+                node["certificate_warnings"] = [{"reason": reason, "observed_at": self.now.isoformat()}]
+                result = self.normalize([node])
+                self.assertEqual("unavailable", result["certificate_status"])
+                self.assertEqual([{"type": "certificate_warning", "severity": "critical", "node_name": "worker",
+                                   "reason": reason, "observed_at": "2026-10-20T00:00:00Z"}], result["alerts"])
+
+    def test_native_warning_validation_and_independent_observation_times(self):
+        warning = {"reason": "CACertificateExpirationWarning", "observed_at": self.now.isoformat()}
+        invalid_warnings = [None, "", {}, [None], [dict(warning, reason="Other")]]
+        invalid_warnings.extend([dict(warning, observed_at=stamp)] for stamp in (
+            None, "invalid", "2026-10-20T00:00:00", [], {},
+            (self.now - datetime.timedelta(minutes=65, seconds=1)).isoformat(),
+            (self.now + datetime.timedelta(minutes=1, seconds=1)).isoformat()))
+        for warnings in invalid_warnings:
+            with self.subTest(warnings=warnings):
+                node = self.native_node()
+                node["certificates"] = []
+                node["certificate_warnings"] = warnings
+                result = self.normalize([node])
+                self.assertEqual([], result["alerts"])
+                self.assertEqual("unavailable", result["certificate_status"])
+        node = self.native_node(status="unavailable")
+        node["certificate_observed_at"] = "invalid"
+        node["certificates"] = []
+        node["certificate_warnings"] = [warning, dict(warning)]
+        result = self.normalize([node])
+        self.assertEqual(1, len(result["alerts"]))
+        self.assertEqual("certificate_warning", result["alerts"][0]["type"])
+        node["certificate_source"] = "other"
+        self.assertEqual([], self.normalize([node])["alerts"])
+
+    def test_native_warnings_cannot_be_cleared_by_coverage_status_or_leaf_ok(self):
+        for status in ("ok", "not_observed", "partial", "unavailable"):
+            with self.subTest(status=status):
+                node = self.unobserved_node()
+                node["certificate_status"] = status
+                node["certificate_observed_at"] = self.now.isoformat()
+                observed = (self.now - datetime.timedelta(minutes=1)).isoformat()
+                node["certificate_warnings"] = [{"reason": "CACertificateExpirationWarning", "observed_at": observed}]
+                result = self.normalize([node])
+                self.assertEqual("unavailable", result["certificate_status"])
+                self.assertEqual(1, len(result["alerts"]))
+                self.assertEqual("2026-10-19T23:59:00Z", result["alerts"][0]["observed_at"])
+        node = self.native_node(status="partial")
+        node["certificate_warnings"] = [{"reason": "CertificateExpirationWarning", "observed_at": self.now.isoformat()}]
+        result = self.normalize([node])
+        self.assertEqual({"certificate_expiring", "certificate_warning"}, {alert["type"] for alert in result["alerts"]})
+
+    def test_native_warning_freshness_boundaries_and_malformed_siblings_preserve_risk(self):
+        node = self.native_node(status="unavailable")
+        node["certificates"] = []
+        for stamp in ((self.now - datetime.timedelta(minutes=65)).isoformat(),
+                      (self.now + datetime.timedelta(minutes=1)).isoformat(), "2026-10-20T08:00:00+08:00"):
+            with self.subTest(stamp=stamp):
+                node["certificate_warnings"] = [None, {"reason": "CACertificateExpirationWarning", "observed_at": stamp}]
+                self.assertEqual(1, len(self.normalize([node])["alerts"]))
+
+    def test_ca_age_at_transport_boundary_cannot_discard_fresh_leaf_expiration(self):
+        node = self.native_node(status="partial")
+        node["certificate_checked_at"] = self.now.isoformat()
+        node["certificate_warnings"] = [{"reason": "CACertificateExpirationWarning",
+                                         "observed_at": (self.now - datetime.timedelta(minutes=65)).isoformat()}]
+        with mock.patch.object(overview_module.timezone, "now", return_value=self.now + datetime.timedelta(seconds=2)):
+            result = self.service._normalize_nodes({"list": [node]})
+        self.assertEqual("partial", result["certificate_status"])
+        self.assertEqual(1, len(result["items"][0]["certificates"]))
+        self.assertEqual(["certificate_expiring"], [alert["type"] for alert in result["alerts"]])
+
+    def test_unobserved_requires_fresh_native_query_and_explicit_empty_list(self):
+        node = self.unobserved_node()
+        variants = [dict(node, certificate_source=source) for source in (None, "", "other", [], {})]
+        variants.extend(dict(node, certificate_checked_at=stamp) for stamp in (
+            None, "invalid", "2026-10-20T00:00:00", [], {},
+            (self.now - datetime.timedelta(minutes=65, seconds=1)).isoformat(),
+            (self.now + datetime.timedelta(minutes=1, seconds=1)).isoformat()))
+        variants.extend(dict(node, certificates=entries) for entries in (None, "", {}, [None]))
+        for field in ("certificate_source", "certificate_checked_at", "certificates"):
+            missing = dict(node)
+            del missing[field]
+            variants.append(missing)
+        for variant in variants:
+            with self.subTest(variant=variant):
+                result = self.normalize([variant])
+                self.assertEqual("unavailable", result["certificate_status"])
+                self.assertEqual([], result["alerts"])
+
+    def test_unobserved_query_freshness_boundaries_and_offsets(self):
+        for stamp in ((self.now - datetime.timedelta(minutes=65)).isoformat(),
+                      (self.now + datetime.timedelta(minutes=1)).isoformat(), "2026-10-20T08:00:00+08:00"):
+            with self.subTest(stamp=stamp):
+                node = self.unobserved_node()
+                node["certificate_checked_at"] = stamp
+                self.assertEqual("not_observed", self.normalize([node])["certificate_status"])
+
+    def test_unobserved_cannot_replace_a_real_certificate_risk(self):
+        node = self.native_node(status="not_observed")
+        node["certificate_checked_at"] = self.now.isoformat()
+        result = self.normalize([node])
+        self.assertEqual("partial", result["certificate_status"])
+        self.assertEqual("certificate_expiring", result["alerts"][0]["type"])
+        self.assertEqual(self.now.isoformat(), result["items"][0]["certificate_observed_at"])
+        self.assertEqual(self.now.isoformat(), result["items"][0]["certificate_checked_at"])
+
+    def test_unobserved_aggregation_never_hides_missing_or_partial_coverage(self):
+        observed = self.native_node()
+        observed["certificates"] = []
+        not_applicable = {"name": "other", "certificate_status": "not_applicable"}
+        unavailable = {"name": "legacy"}
+        partial = self.native_node(status="partial")
+        scenarios = [
+            ([self.unobserved_node(), observed, not_applicable], "not_observed"),
+            ([not_applicable, self.unobserved_node()], "not_observed"),
+            ([self.unobserved_node(), unavailable], "partial"),
+            ([self.unobserved_node(), partial], "partial"),
+            ([unavailable, dict(unavailable, name="legacy-2")], "unavailable"),
+        ]
+        for nodes, expected in scenarios:
+            with self.subTest(expected=expected, nodes=nodes):
+                self.assertEqual(expected, self.normalize(nodes)["certificate_status"])
+
+    def test_runtime_accepts_normalized_unobserved_nodes_without_inventing_expiration(self):
+        nodes = self.normalize([self.unobserved_node()])
+        data = {"nodes": nodes, "workloads_status": "ok", "alarms_status": "ok"}
+        with mock.patch.object(self.service, "_list_region_records", return_value=[REGION]), \
+                mock.patch.object(self.service, "_fetch_runtime_regions",
+                                  return_value={"region-a": {"status": "ok", "data": data}}), \
+                mock.patch.object(self.service, "_database_workload_counts",
+                                  return_value={"applications": 0, "components": 0}), \
+                mock.patch.object(self.service, "_database_running_workload_counts",
+                                  return_value={"applications": 0, "components": 0}), \
+                mock.patch.object(self.service, "_database_application_alerts", return_value=[]):
+            result = self.service._build_runtime("eid")
+        self.assertEqual("ok", result["status"])
+        self.assertEqual("healthy", result["regions"][0]["status"])
+        self.assertEqual(1, result["global"]["clusters"]["healthy"])
+        self.assertEqual(0, result["global"]["clusters"]["unavailable"])
+        self.assertEqual([], nodes["items"][0]["certificates"])
+
     def test_fresh_native_ok_and_sparse_warning(self):
         node = self.native_node()
         node["certificates"] = []
@@ -1401,6 +1560,7 @@ class NodeCertificateAlertsTest(TestCase):
                 ("ok", [], 1, "healthy"), ("not_applicable", [], 1, "healthy"),
                 ("partial", [], 1, "healthy"), ("unavailable", [], 1, "healthy"),
                 (None, [], 1, "healthy"), ("partial", [{"type": "certificate_expiring"}], 1, "warning"),
+                ("unavailable", [{"type": "certificate_warning"}], 1, "warning"),
                 ("unavailable", [{"type": "node_not_ready"}], 0, "warning")]:
             with self.subTest(status=status, expected=expected):
                 nodes = {"total": 1, "ready": ready, "certificate_status": status, "alerts": alerts}
@@ -1418,3 +1578,24 @@ class NodeCertificateAlertsTest(TestCase):
                 self.assertEqual(1, result["global"]["nodes"]["total"])
                 self.assertEqual(ready, result["global"]["nodes"]["ready"])
                 self.assertEqual("ok", result["status"])
+
+    def test_multiple_ready_clusters_do_not_confuse_warning_with_missing_coverage(self):
+        region_b = SimpleNamespace(**dict(REGION.__dict__, region_name="region-b", region_id="region-b-id"))
+        normal = {"total": 1, "ready": 1, "certificate_status": "not_observed", "alerts": []}
+        warning = {"total": 1, "ready": 1, "certificate_status": "unavailable",
+                   "alerts": [{"type": "certificate_warning", "severity": "critical", "node_name": "worker"}]}
+        data = {"workloads_status": "ok", "alarms_status": "ok", "status": "ok"}
+        sections = {"region-a": {"status": "ok", "data": dict(data, nodes=normal)},
+                    "region-b": {"status": "ok", "data": dict(data, nodes=warning)}}
+        with mock.patch.object(self.service, "_list_region_records", return_value=[REGION, region_b]), \
+                mock.patch.object(self.service, "_fetch_runtime_regions", return_value=sections), \
+                mock.patch.object(self.service, "_database_workload_counts",
+                                  return_value={"applications": 0, "components": 0}), \
+                mock.patch.object(self.service, "_database_running_workload_counts",
+                                  return_value={"applications": 0, "components": 0}), \
+                mock.patch.object(self.service, "_database_application_alerts", return_value=[]):
+            result = self.service._build_runtime("eid")
+        self.assertEqual("ok", result["status"])
+        self.assertEqual({"total": 2, "healthy": 1, "warning": 1, "unavailable": 0, "disabled": 0},
+                         result["global"]["clusters"])
+        self.assertEqual({"status": "ok", "total": 2, "ready": 2}, result["global"]["nodes"])

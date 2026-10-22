@@ -906,6 +906,9 @@ class PlatformOverviewService(object):
             certificate_status, certificates, certificate_alerts = self._node_certificates(source, name, now)
             node["certificate_status"] = certificate_status
             node["certificates"] = certificates
+            for field in ("certificate_source", "certificate_observed_at", "certificate_checked_at"):
+                if isinstance(source.get(field), str) and source[field]:
+                    node[field] = source[field]
             alerts.extend(certificate_alerts)
             nodes.append(node)
         statuses = {node["disk_stats_status"] for node in nodes}
@@ -915,6 +918,8 @@ class PlatformOverviewService(object):
             certificate_status = "not_applicable" if nodes else "unavailable"
         elif len(certificate_statuses) == 1:
             certificate_status = next(iter(certificate_statuses))
+        elif certificate_statuses <= {"ok", "not_observed"}:
+            certificate_status = "not_observed"
         else:
             certificate_status = "partial"
         return {"total": len(nodes), "ready": ready_count, "items": nodes, "alerts": alerts,
@@ -923,6 +928,20 @@ class PlatformOverviewService(object):
     def _node_certificates(self, source: dict, node_name: str, now: datetime.datetime) -> tuple:
         status = source.get("certificate_status", "unavailable")
         native = source.get("certificate_source") == "rke2_events"
+        warning_alerts, warnings_malformed = self._native_certificate_warnings(source, node_name, now) if native else ([], False)
+        if (native and status == "not_observed" and isinstance(source.get("certificates"), list)
+                and not source["certificates"] and not warning_alerts and not warnings_malformed):
+            try:
+                checked = parse_datetime(source["certificate_checked_at"])
+                if checked is None or timezone.is_naive(checked):
+                    raise ValueError("invalid native query timestamp")
+                age = (now - checked).total_seconds()
+                if age > 65 * 60 or age < -60:
+                    raise ValueError("stale native query timestamp")
+            except (KeyError, TypeError, ValueError, OverflowError):
+                return "unavailable", [], warning_alerts
+            # A successful event query is not a complete certificate validity check.
+            return "not_observed", [], []
         if native:
             try:
                 observed = parse_datetime(source["certificate_observed_at"])
@@ -932,12 +951,12 @@ class PlatformOverviewService(object):
                 if age > 65 * 60 or age < -60:
                     raise ValueError("stale native observation")
             except (KeyError, TypeError, ValueError, OverflowError):
-                return "unavailable", [], []
+                return "unavailable", [], warning_alerts
         elif status == "not_applicable":
             return status, [], []
         certificates = []
-        alerts = []
-        malformed = False
+        alerts = list(warning_alerts)
+        malformed = warnings_malformed
         entries = source.get("certificates")
         if not isinstance(entries, list):
             entries = []
@@ -963,7 +982,7 @@ class PlatformOverviewService(object):
                 alerts.append({"type": "certificate_expired" if seconds <= 0 else "certificate_expiring",
                                "severity": "critical", "node_name": node_name, "certificate_name": entry["name"],
                                "expires_at": expiry_text, "remaining_days": int(math.ceil(seconds / 86400))})
-        if native and status == "ok" and not malformed:
+        if native and status == "ok" and not malformed and not warning_alerts:
             # Native checks report only risks; a fresh explicit empty list means OK.
             status = "ok"
         elif not certificates:
@@ -971,6 +990,37 @@ class PlatformOverviewService(object):
         elif malformed or status != "ok" or seen != self.REQUIRED_NODE_CERTIFICATES:
             status = "partial"
         return status, certificates, alerts
+
+    @staticmethod
+    def _native_certificate_warnings(source: dict, node_name: str, now: datetime.datetime) -> tuple:
+        entries = source.get("certificate_warnings", [])
+        if not isinstance(entries, list):
+            return [], True
+        alerts = []
+        malformed = False
+        seen = set()
+        for entry in entries:
+            try:
+                if not isinstance(entry, dict) or entry.get("reason") not in (
+                        "CertificateExpirationWarning", "CACertificateExpirationWarning"):
+                    raise ValueError("invalid native warning reason")
+                observed = parse_datetime(entry["observed_at"])
+                if observed is None or timezone.is_naive(observed):
+                    raise ValueError("invalid native warning timestamp")
+                age = (now - observed).total_seconds()
+                if age > 65 * 60 or age < -60:
+                    raise ValueError("stale native warning timestamp")
+            except (KeyError, TypeError, ValueError, OverflowError):
+                malformed = True
+                continue
+            observed_at = observed.astimezone(datetime.timezone.utc).isoformat().replace("+00:00", "Z")
+            identity = (entry["reason"], observed_at)
+            if identity in seen:
+                continue
+            seen.add(identity)
+            alerts.append({"type": "certificate_warning", "severity": "critical", "node_name": node_name,
+                           "reason": entry["reason"], "observed_at": observed_at})
+        return alerts, malformed
 
     def _fetch_components(self, region_name: str) -> list:
         components = enterprise_services.get_rbdcomponents(region_name,
