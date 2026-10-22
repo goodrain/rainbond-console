@@ -23,6 +23,7 @@ from django.conf import settings
 from django.http import HttpResponse, QueryDict, StreamingHttpResponse
 from goodrain_web.performance import record_region_call
 from urllib3.exceptions import MaxRetryError
+from www.apiclient.certificate_bundle import materialize_certificate_bundle
 
 logger = logging.getLogger('default')
 
@@ -317,7 +318,7 @@ class RegionApiBaseHttpClient(object):
                     timeout=urllib3.Timeout(connect=d_connect, read=timeout),
                     retries=retries)
             return response.status, response.data
-        except urllib3.exceptions.SSLError as exc:
+        except (urllib3.exceptions.SSLError, ssl.SSLError) as exc:
             self.destroy_client(region_config=region)
             reason = "tls_error"
             transport_exception = exc
@@ -326,6 +327,9 @@ class RegionApiBaseHttpClient(object):
             transport_exception = exc
         except MaxRetryError as exc:
             reason = "connection_failed"
+            if isinstance(exc.reason, (urllib3.exceptions.SSLError, ssl.SSLError)):
+                reason = "tls_error"
+                self.destroy_client(region_config=region)
             transport_exception = exc
         except Exception as exc:
             reason = "transport_error"
@@ -709,26 +713,9 @@ class Configuration():
         self.verify_ssl = verify_ssl
         # Set this to customize the certificate file to verify the peer.
         # 兼容证书路径和内容
-        file_path = settings.BASE_DIR + "/data/{0}-{1}/ssl".format(region_config.enterprise_id, region_config.region_name)
-        ssl_ca_cert = region_config.ssl_ca_cert
-        cert_file = region_config.cert_file
-        key_file = region_config.key_file
-        if not ssl_ca_cert or ssl_ca_cert.startswith('/'):
-            self.ssl_ca_cert = ssl_ca_cert
-        else:
-            self.ssl_ca_cert = check_file_path(file_path, "ca.pem", ssl_ca_cert)
-
-        # client certificate file
-        if not cert_file or cert_file.startswith('/'):
-            self.cert_file = cert_file
-        else:
-            self.cert_file = check_file_path(file_path, "client.pem", cert_file)
-
-        # client key file
-        if not key_file or key_file.startswith('/'):
-            self.key_file = key_file
-        else:
-            self.key_file = check_file_path(file_path, "client.key.pem", key_file)
+        self.ssl_ca_cert, self.cert_file, self.key_file = materialize_certificate_bundle(
+            os.path.join(settings.BASE_DIR, 'data', 'region-certificate-bundles'),
+            region_config.ssl_ca_cert, region_config.cert_file, region_config.key_file)
 
         # Set this to True/False to enable/disable SSL hostname verification.
         self.assert_hostname = assert_hostname

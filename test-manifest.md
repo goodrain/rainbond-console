@@ -414,6 +414,7 @@
 | console.kubeblocks.create-credential-sync | 创建 KubeBlocks 组件时同步连接凭据 | active | regression | console.services.kubeblocks_service.KubeBlocksService.create_complete_kubeblocks_component | console/tests/kubeblocks_cluster_validation_test.py::KubeBlocksCreateFlowTests |
 | console.lang-version.proxy-upload | 代理旧版语言包上传接口 | active | regression | console.views.enterprise.UploadLongVersion.post | console/tests/lang_version_proxy_test.py::UploadLongVersionProxyViewTests |
 | console.logging.default-no-debug-noise | 默认控制台日志过滤调试噪音 | active | regression | goodrain_web.settings.LOGGING | console/tests/logging_config_test.py::LoggingConfigTests.test_default_logger_level_defaults_to_info<br>console/tests/logging_config_test.py::LoggingConfigTests.test_ip_formatter_uses_record_level_name |
+| console.logging.safe-exception-traceback | 保留脱敏异常链与堆栈并兼容原日志格式 | active | regression | goodrain_web.log_formatter.IPFormatter.format | console/tests/logging_config_test.py::SafeExceptionLoggingTests |
 | console.login-security.admin-api | Login security admin API | retired | integration | console.views.login_security.LoginSecurityConfigView | console/tests/login_security_view_test.py::LoginSecurityConfigViewTests |
 | console.login-security.configuration | Login security configuration | retired | unit | console.services.login_security_service.LoginSecurityConfigService | console/tests/login_security_service_test.py::LoginSecurityConfigServiceTests |
 | console.login-security.failure-lock | Login failure lockout | active | unit | console.services.login_security_service.LoginAttemptService | console/tests/login_attempt_service_test.py::LoginAttemptServiceTests |
@@ -561,6 +562,7 @@
 | console.region-api.concurrent-certificate-directory | 并发安全创建区域证书目录 | active | regression | www.apiclient.regionapibaseclient.create_file | console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_create_file_tolerates_concurrent_directory_creation |
 | console.region-api.domain-conflict-msg | 将上游域名冲突保留为可操作的 409 错误提示 | active | regression | www.apiclient.regionapibaseclient.RegionApiBaseHttpClient._check_status | console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_check_status_keeps_domain_conflict_as_conflict_error |
 | console.region-api.helm-resource-conflict-msg | 将 Helm 资源归属冲突转换为可操作错误提示 | active | regression | www.apiclient.regionapibaseclient.RegionApiBaseHttpClient._check_status | console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_check_status_translates_helm_ownership_conflict_to_actionable_msg_show |
+| console.region-api.immutable-certificate-bundle | 跨进程安全发布与复用不可变集群证书版本 | active | regression | www.apiclient.certificate_bundle.materialize_certificate_bundle | console/tests/region_certificate_bundle_test.py::RegionCertificateBundleTestCase |
 | console.region-api.polling-deadlines | 限制轮询请求的 Region 调用时延 | active | regression | www.apiclient.regionapi.RegionInvokeApi polling reads | console/tests/regionapi_polling_deadline_test.py::RegionApiPollingDeadlineTests<br>console/tests/regionapi_polling_deadline_test.py::KubeBlocksPollingFlowTests |
 | console.region-api.proxy-error-pass-through | 对非 Helm 冲突保留原始上游错误信息 | active | regression | www.apiclient.regionapibaseclient.RegionApiBaseHttpClient._check_status | console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_check_status_keeps_original_message_for_non_helm_conflicts |
 | console.region-api.unavailable-response | Region API 不可达时返回稳定可重试响应 | active | regression | www.apiclient.regionapibaseclient.RegionApiBaseHttpClient._request | console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_request_translates_retry_exhaustion_to_stable_retryable_503<br>console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_request_classifies_timeout_tls_and_other_transport_failures<br>console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_retryable_service_unavailable_response_includes_retry_after |
@@ -4805,6 +4807,16 @@
 - 代码路径: `goodrain_web/settings.py`, `goodrain_web/log_formatter.py`
 - 测试路径: `console/tests/logging_config_test.py::LoggingConfigTests.test_default_logger_level_defaults_to_info`, `console/tests/logging_config_test.py::LoggingConfigTests.test_ip_formatter_uses_record_level_name`
 
+### 保留脱敏异常链与堆栈并兼容原日志格式
+
+- Capability ID: `console.logging.safe-exception-traceback`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `other`
+- 业务入口: `goodrain_web.log_formatter.IPFormatter.format`
+- 代码路径: `goodrain_web/log_formatter.py`
+- 测试路径: `console/tests/logging_config_test.py::SafeExceptionLoggingTests`
+
 ### Login security admin API
 
 - Capability ID: `console.login-security.admin-api`
@@ -6274,6 +6286,16 @@
 - 业务入口: `www.apiclient.regionapibaseclient.RegionApiBaseHttpClient._check_status`
 - 代码路径: `www/apiclient/regionapibaseclient.py`
 - 测试路径: `console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_check_status_translates_helm_ownership_conflict_to_actionable_msg_show`
+
+### 跨进程安全发布与复用不可变集群证书版本
+
+- Capability ID: `console.region-api.immutable-certificate-bundle`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `package_function`
+- 业务入口: `www.apiclient.certificate_bundle.materialize_certificate_bundle`
+- 代码路径: `www/apiclient/certificate_bundle.py`, `www/apiclient/regionapibaseclient.py`
+- 测试路径: `console/tests/region_certificate_bundle_test.py::RegionCertificateBundleTestCase`
 
 ### 限制轮询请求的 Region 调用时延
 

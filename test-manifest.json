@@ -8001,6 +8001,24 @@
       "status": "active"
     },
     {
+      "id": "console.logging.safe-exception-traceback",
+      "title": "Preserve safely redacted exception traces in console logs",
+      "title_zh": "保留脱敏异常链与堆栈并兼容原日志格式",
+      "interface_type": "other",
+      "interface": "goodrain_web.log_formatter.IPFormatter.format",
+      "code_paths": [
+        "goodrain_web/log_formatter.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/logging_config_test.py",
+          "selector": "SafeExceptionLoggingTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.login-security.admin-api",
       "title": "Login security admin API",
       "title_zh": "Login security admin API",
@@ -10751,6 +10769,25 @@
         {
           "path": "console/tests/regionapibaseclient_test.py",
           "selector": "RegionApiBaseHttpClientTestCase.test_check_status_translates_helm_ownership_conflict_to_actionable_msg_show"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.region-api.immutable-certificate-bundle",
+      "title": "Publish immutable region TLS certificate bundles safely across processes",
+      "title_zh": "跨进程安全发布与复用不可变集群证书版本",
+      "interface_type": "package_function",
+      "interface": "www.apiclient.certificate_bundle.materialize_certificate_bundle",
+      "code_paths": [
+        "www/apiclient/certificate_bundle.py",
+        "www/apiclient/regionapibaseclient.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/region_certificate_bundle_test.py",
+          "selector": "RegionCertificateBundleTestCase"
         }
       ],
       "test_type": "regression",
