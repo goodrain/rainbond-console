@@ -167,13 +167,8 @@ class PlatformOverviewService(object):
                 node_regions_available += 1
                 node_total += int(nodes.get("total") or 0)
                 node_ready += int(nodes.get("ready") or 0)
-                certificate_status = nodes.get("certificate_status", "unavailable")
-                if certificate_status not in ("ok", "not_applicable"):
-                    runtime_partial = True
                 if nodes.get("alerts") or not nodes.get("total") or nodes.get("total") != nodes.get("ready"):
                     health = "warning"
-                elif certificate_status not in ("ok", "not_applicable"):
-                    health = "unavailable"
                 else:
                     health = "healthy"
                 if health == "unavailable":

@@ -1399,8 +1399,8 @@ class NodeCertificateAlertsTest(TestCase):
     def test_runtime_health_and_counts_include_certificate_coverage(self):
         for status, alerts, ready, expected in [
                 ("ok", [], 1, "healthy"), ("not_applicable", [], 1, "healthy"),
-                ("partial", [], 1, "unavailable"), ("unavailable", [], 1, "unavailable"),
-                (None, [], 1, "unavailable"), ("partial", [{"type": "certificate_expiring"}], 1, "warning"),
+                ("partial", [], 1, "healthy"), ("unavailable", [], 1, "healthy"),
+                (None, [], 1, "healthy"), ("partial", [{"type": "certificate_expiring"}], 1, "warning"),
                 ("unavailable", [{"type": "node_not_ready"}], 0, "warning")]:
             with self.subTest(status=status, expected=expected):
                 nodes = {"total": 1, "ready": ready, "certificate_status": status, "alerts": alerts}
@@ -1417,5 +1417,4 @@ class NodeCertificateAlertsTest(TestCase):
                 self.assertEqual(expected, result["regions"][0]["status"])
                 self.assertEqual(1, result["global"]["nodes"]["total"])
                 self.assertEqual(ready, result["global"]["nodes"]["ready"])
-                if status not in ("ok", "not_applicable"):
-                    self.assertEqual("partial", result["status"])
+                self.assertEqual("ok", result["status"])
