@@ -606,6 +606,7 @@
 | console.rke2.helm-subprocess-error-sanitized | 清洗 Rainbond 安装中的 Helm 子进程失败信息 | active | regression | console.utils.k8s_cli.K8sClient.install_rainbond | console/tests/rke2_cluster_errors_test.py::ClusterRKEErrorTests.test_install_rainbond_returns_sanitized_subprocess_error |
 | console.rke2.preserve-method-not-allowed | 保留不支持方法响应 | active | regression | console.views.rke2.BaseClusterView.handle_exception | console/tests/rke2_cluster_errors_test.py::ClusterRKEErrorTests.test_cluster_install_get_preserves_method_not_allowed |
 | console.runtime.sse-gunicorn-timeout | Gunicorn 超时覆盖一小时 SSE 长连接 | active | regression | entrypoint.sh/Procfile | console/tests/entrypoint_test.py::EntrypointGunicornTest.test_gunicorn_timeout_outlives_one_hour_sse_streams |
+| console.runtime.static-precompression | 镜像构建预压缩静态资源并保持原始响应兼容 | active | regression | Dockerfile collectstatic and WhiteNoise compression | console/tests/static_precompression_test.py::StaticPrecompressionTests |
 | console.sentry.expected-not-found-errors | 过滤预期的资源不存在异常 | active | regression | goodrain_web.sentry_config.before_send | console/tests/sentry_config_test.py::test_before_send_drops_expected_not_found_exceptions<br>console/tests/sentry_config_test.py::test_before_send_keeps_server_side_service_and_region_errors |
 | console.sentry.expected-region-frequent-error | 过滤预期的区域操作频繁异常 | active | regression | goodrain_web.sentry_config.before_send | console/tests/sentry_config_test.py::test_before_send_drops_region_api_frequent_operation_exception<br>console/tests/sentry_config_test.py::test_before_send_keeps_same_exception_name_from_other_modules |
 | console.service-share.cnb-publish-command | 发布组件模板时清理 CNB 源码启动命令 | active | regression | console.services.share_services.ShareService.query_share_service_info | console/tests/service_share_test.py::ShareServiceCNBPublishCommandTestCase |
@@ -6723,6 +6724,16 @@
 - 业务入口: `entrypoint.sh/Procfile`
 - 代码路径: `entrypoint.sh`, `Procfile`
 - 测试路径: `console/tests/entrypoint_test.py::EntrypointGunicornTest.test_gunicorn_timeout_outlives_one_hour_sse_streams`
+
+### 镜像构建预压缩静态资源并保持原始响应兼容
+
+- Capability ID: `console.runtime.static-precompression`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `workflow`
+- 业务入口: `Dockerfile collectstatic and WhiteNoise compression`
+- 代码路径: `Dockerfile`
+- 测试路径: `console/tests/static_precompression_test.py::StaticPrecompressionTests`
 
 ### 过滤预期的资源不存在异常
 

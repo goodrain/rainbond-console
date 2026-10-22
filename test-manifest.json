@@ -11614,6 +11614,24 @@
       "status": "active"
     },
     {
+      "id": "console.runtime.static-precompression",
+      "title": "Precompress static assets while preserving original responses",
+      "title_zh": "镜像构建预压缩静态资源并保持原始响应兼容",
+      "interface_type": "workflow",
+      "interface": "Dockerfile collectstatic and WhiteNoise compression",
+      "code_paths": [
+        "Dockerfile"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/static_precompression_test.py",
+          "selector": "StaticPrecompressionTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.sentry.expected-not-found-errors",
       "title": "Suppress expected not-found telemetry",
       "title_zh": "过滤预期的资源不存在异常",
