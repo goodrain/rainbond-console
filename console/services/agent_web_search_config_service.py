@@ -125,10 +125,10 @@ class AgentWebSearchConfigService(object):
                 msg_show="联网搜索目前仅支持 deepseek",
                 status_code=400,
             )
-        if not (1 <= config["max_results"] <= 10):
+        if not (1 <= config["max_results"] <= 50):
             raise ServiceHandleException(
                 msg="invalid max_results",
-                msg_show="联网搜索 max_results 必须在 1..10",
+                msg_show="联网搜索 max_results 必须在 1..50",
                 status_code=400,
             )
         if not (1000 <= config["fetch_timeout_ms"] <= 60000):

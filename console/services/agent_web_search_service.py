@@ -10,9 +10,9 @@ from console.services.agent_web_search_config_service import agent_web_search_co
 
 logger = logging.getLogger("default")
 
-EXA_SEARCH_URL = "https://api.exa.ai/search"
-PERPLEXITY_CHAT_URL = "https://api.perplexity.ai/chat/completions"
 DEEPSEEK_SEARCH_URL = "https://api.deepseek.com/v1/tools/search"
+DEEPSEEK_SEARCH_MAX_RESULTS = 50
+DEEPSEEK_SNIPPET_MAX_CHARS = 1200
 
 
 class AgentWebSearchService(object):
@@ -43,52 +43,28 @@ class AgentWebSearchService(object):
         config = agent_web_search_config_service.get_runtime_config()
         if not config.get("enabled", True):
             raise ServiceHandleException(msg="web search disabled", msg_show="联网搜索已关闭", status_code=403)
+        provider = config.get("provider") or "deepseek"
+        if provider != "deepseek":
+            raise ServiceHandleException(
+                msg="unsupported web search provider",
+                msg_show="联网搜索目前仅支持 DeepSeek",
+                status_code=400,
+            )
         api_key = config.get("api_key") or ""
         if not api_key:
-            raise ServiceHandleException(msg="web search api key missing", msg_show="联网搜索 API Key 未配置", status_code=503)
-        provider = config.get("provider") or "deepseek"
-        if provider not in ("deepseek", "exa", "perplexity"):
-            provider = "deepseek"
-        limit = max(1, min(int(max_results or config.get("max_results") or 5), 10))
+            raise ServiceHandleException(
+                msg="web search api key missing",
+                msg_show="联网搜索 DeepSeek API Key 未配置",
+                status_code=503,
+            )
+        limit = max(1, min(int(max_results or config.get("max_results") or 5), DEEPSEEK_SEARCH_MAX_RESULTS))
         timeout = max(1.0, min(float(config.get("fetch_timeout_ms") or 15000) / 1000.0, 60.0))
-        if provider == "deepseek":
-            result = self._search_deepseek(query, limit, api_key, timeout)
-        elif provider == "perplexity":
-            result = self._search_perplexity(query, limit, api_key, timeout)
-        else:
-            result = self._search_exa(query, limit, api_key, timeout)
+        result = self._search_deepseek(query, limit, api_key, timeout)
         logger.info(
-            "agent_web_search scope=%s provider=%s query_len=%s sources=%s",
-            scope or "global", result.get("provider"), len(query), len(result.get("sources") or []),
+            "agent_web_search scope=%s provider=deepseek query_len=%s sources=%s",
+            scope or "global", len(query), len(result.get("sources") or []),
         )
         return result
-
-    def _search_exa(self, query: str, limit: int, api_key: str, timeout: float) -> Dict[str, Any]:
-        try:
-            response = requests.post(
-                EXA_SEARCH_URL,
-                headers={"x-api-key": api_key, "content-type": "application/json"},
-                json={"query": query, "numResults": limit, "contents": {"text": {"maxCharacters": 1200}}},
-                timeout=timeout,
-            )
-        except requests.RequestException as exc:
-            logger.warning("exa search failed: %s", exc)
-            raise ServiceHandleException(msg="exa search failed", msg_show="联网搜索请求失败", status_code=502)
-        if response.status_code >= 400:
-            logger.warning("exa search status=%s body=%s", response.status_code, response.text[:300])
-            raise ServiceHandleException(msg="exa search failed", msg_show="联网搜索服务返回错误", status_code=502)
-        payload = response.json() if response.content else {}
-        sources: List[Dict[str, Any]] = []
-        for item in (payload.get("results") or [])[:limit]:
-            if not item.get("url"):
-                continue
-            sources.append({
-                "url": item["url"],
-                "title": item.get("title") or "",
-                "snippet": item.get("text") or "",
-                "publishedAt": item.get("publishedDate") or "",
-            })
-        return {"provider": "exa", "sources": sources, "content": "", "truncated": len(sources) >= limit}
 
     def _search_deepseek(self, query: str, limit: int, api_key: str, timeout: float) -> Dict[str, Any]:
         try:
@@ -108,44 +84,16 @@ class AgentWebSearchService(object):
                     msg="deepseek search unauthorized", msg_show="DeepSeek API Key 无效", status_code=401)
             raise ServiceHandleException(msg="deepseek search failed", msg_show="联网搜索服务返回错误", status_code=502)
         payload = response.json() if response.content else {}
+        results = payload.get("results") or []
         sources: List[Dict[str, Any]] = []
-        for item in (payload.get("results") or [])[:limit]:
+        for item in results[:limit]:
             if not item.get("url"):
                 continue
+            snippet = item.get("snippet") or item.get("summary") or ""
             sources.append({
                 "url": item["url"],
                 "title": item.get("title") or "",
-                "snippet": (item.get("summary") or item.get("snippet") or "")[:1200],
+                "snippet": snippet[:DEEPSEEK_SNIPPET_MAX_CHARS],
                 "publishedAt": item.get("date") or "",
             })
-        return {"provider": "deepseek", "sources": sources, "content": "", "truncated": len(sources) >= limit}
-
-    def _search_perplexity(self, query: str, limit: int, api_key: str, timeout: float) -> Dict[str, Any]:
-        try:
-            response = requests.post(
-                PERPLEXITY_CHAT_URL,
-                headers={"Authorization": "Bearer {}".format(api_key), "content-type": "application/json"},
-                json={
-                    "model": "sonar",
-                    "messages": [{"role": "user", "content": query}],
-                    "max_tokens": 1200,
-                },
-                timeout=timeout,
-            )
-        except requests.RequestException as exc:
-            logger.warning("perplexity search failed: %s", exc)
-            raise ServiceHandleException(msg="perplexity search failed", msg_show="联网搜索请求失败", status_code=502)
-        if response.status_code >= 400:
-            logger.warning("perplexity status=%s body=%s", response.status_code, response.text[:300])
-            raise ServiceHandleException(msg="perplexity search failed", msg_show="联网搜索服务返回错误", status_code=502)
-        payload = response.json() if response.content else {}
-        choices = payload.get("choices") or []
-        content = ""
-        if choices:
-            content = ((choices[0].get("message") or {}).get("content") or "").strip()
-        citations = payload.get("citations") or []
-        sources = [{"url": url, "title": "", "snippet": ""} for url in citations[:limit] if url]
-        return {"provider": "perplexity", "sources": sources, "content": content, "truncated": len(sources) >= limit}
-
-
-agent_web_search_service = AgentWebSearchService()
+        return {"provider": "deepseek", "sources": sources, "content": "", "truncated": len(results) >= limit}
