@@ -4,6 +4,7 @@ import hashlib
 import json
 import logging
 from typing import Any, Optional
+from urllib.parse import urlparse
 
 from cryptography.fernet import Fernet, InvalidToken
 from django.conf import settings
@@ -19,6 +20,7 @@ AI_AGENT_LLM_CONFIG_KEY = "AI_AGENT_LLM_CONFIG"
 API_KEY_PREFIX = "fernet:v1:"
 DEFAULT_MODEL = "gpt-4o-mini"
 ALLOWED_REASONING_EFFORTS = ("", "low", "medium", "high")
+ALLOWED_LLM_PROVIDERS = ("", "deepseek", "openai")
 
 
 class AgentLLMConfigService(object):
@@ -38,11 +40,14 @@ class AgentLLMConfigService(object):
         raw_api_key = self._read_string(data.get("openai_api_key"))
         # 留空表示保持当前密钥不变；仅当传入新密钥时才重新加密覆盖
         stored_api_key = self._encrypt_api_key(raw_api_key) if raw_api_key else existing_stored_key
+        raw_provider = self._read_string(data.get("llm_provider")).lower()
+        stored_provider = raw_provider or self._read_string(existing.get("LLM_PROVIDER")).lower()
 
         next_config = {
             "OPENAI_API_KEY": stored_api_key,
             "OPENAI_MODEL": self._read_string(data.get("openai_model")),
             "OPENAI_BASE_URL": self._read_string(data.get("openai_base_url")),
+            "LLM_PROVIDER": stored_provider,
             "LLM_THINKING_ENABLED": self._read_bool(data.get("llm_thinking_enabled"),
                                                     False),
             "LLM_REASONING_EFFORT": self._read_string(data.get("llm_reasoning_effort")).lower(),
@@ -60,6 +65,7 @@ class AgentLLMConfigService(object):
             "OPENAI_API_KEY": api_key,
             "OPENAI_MODEL": config.get("OPENAI_MODEL") or DEFAULT_MODEL,
             "OPENAI_BASE_URL": config.get("OPENAI_BASE_URL") or "",
+            "LLM_PROVIDER": self._resolve_provider(config),
             "LLM_THINKING_ENABLED": self._format_bool(config.get("LLM_THINKING_ENABLED")),
             "LLM_REASONING_EFFORT": config.get("LLM_REASONING_EFFORT") or "",
             "updated_at": config.get("updated_at") or "",
@@ -134,6 +140,10 @@ class AgentLLMConfigService(object):
         if reasoning_effort not in ALLOWED_REASONING_EFFORTS:
             errors.append("LLM_REASONING_EFFORT 只能为 low、medium 或 high")
 
+        provider = self._read_string(data.get("llm_provider")).lower()
+        if provider not in ALLOWED_LLM_PROVIDERS:
+            errors.append("LLM_PROVIDER 只能为 deepseek 或 openai")
+
         if errors:
             raise ServiceHandleException(
                 msg="invalid ai agent llm config",
@@ -147,11 +157,25 @@ class AgentLLMConfigService(object):
             "openai_api_key_masked": self._mask_api_key(api_key),
             "openai_model": config.get("OPENAI_MODEL") or DEFAULT_MODEL,
             "openai_base_url": config.get("OPENAI_BASE_URL") or "",
+            "llm_provider": self._resolve_provider(config),
             "llm_thinking_enabled": self._read_bool(config.get("LLM_THINKING_ENABLED"), False),
             "llm_reasoning_effort": config.get("LLM_REASONING_EFFORT") or "",
             "updated_at": config.get("updated_at") or "",
             "updated_by": config.get("updated_by") or "",
         }
+
+    def _resolve_provider(self, config: dict) -> str:
+        provider = self._read_string(config.get("LLM_PROVIDER")).lower()
+        if provider in ("deepseek", "openai"):
+            return provider
+        base_url = self._read_string(config.get("OPENAI_BASE_URL")).lower()
+        if not base_url:
+            return "deepseek"
+        try:
+            host = urlparse(base_url).hostname or ""
+        except ValueError:
+            host = ""
+        return "deepseek" if "deepseek" in host else "openai"
 
     def _encrypt_api_key(self, api_key: str) -> str:
         if not api_key:
