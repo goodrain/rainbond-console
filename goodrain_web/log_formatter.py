@@ -8,7 +8,11 @@ _KEY_MARKERS = ("password", "passwd", "pwd", "token", "secret", "apikey", "api_k
                 "access-key", "authorization", "authzcode", "authz_code", "authz-code", "privatekey", "private_key",
                 "private-key", "signingkey", "signing_key", "signing-key", "signature", "credential", "cookie")
 _HEADER_KEYS = frozenset(("authorization", "proxy-authorization", "proxy_authorization", "cookie", "set-cookie", "set_cookie"))
-_FIELD_RE = re.compile(r'''(?<![\w-])(?P<quote>["']?)(?P<key>[\w-]+)(?P=quote)[ \t]*[:=][ \t]*''')
+_FIELD_RE = re.compile(
+    r'''(?<![\w-])(?:(?:br|rb|b|r|u)(?=["']))?(?P<quote>["']?)(?P<key>[\w-]+)(?P=quote)[ \t]*[:=][ \t]*''',
+    re.IGNORECASE)
+_STRING_START_RE = re.compile(r'''(?:br|rb|b|r|u)?(["'])''', re.IGNORECASE)
+_BYTEARRAY_START_RE = re.compile(r'bytearray[ \t]*\(')
 _PEM_RE = re.compile(r"-----BEGIN [A-Z0-9 ]+-----.*?(?:-----END [A-Z0-9 ]+-----|\Z)", re.DOTALL)
 _URL_USERINFO_RE = re.compile(r"(?<![\w+.-])([A-Za-z][A-Za-z0-9+.-]*://)[^\s/?#]*@")
 _AUTH_VALUE_RE = re.compile(r'''\b(?:Bearer|Basic)\s+[^\s,'";}\]]+''', re.IGNORECASE)
@@ -39,9 +43,9 @@ def _container_end(text, start):
                 quote = None
         elif character in ('"', "'"):
             quote = character
-        elif character in '[{':
-            brackets.append(']' if character == '[' else '}')
-        elif character in ']}':
+        elif character in '[{(':
+            brackets.append({'[': ']', '{': '}', '(': ')'}[character])
+        elif character in ']})':
             if not brackets or character != brackets.pop():
                 return len(text)
             if not brackets:
@@ -53,16 +57,21 @@ def _value_end(text, start, header):
     if start >= len(text):
         return start
     first = text[start]
-    if first in '[{':
+    if first in '[{(':
         return _container_end(text, start)
-    if first in ('"', "'"):
+    bytearray_start = _BYTEARRAY_START_RE.match(text, start)
+    if bytearray_start:
+        return _container_end(text, bytearray_start.end() - 1)
+    string_start = _STRING_START_RE.match(text, start)
+    if string_start:
+        quote = string_start.group(1)
         escaped = False
-        for index in range(start + 1, len(text)):
+        for index in range(string_start.end(), len(text)):
             if escaped:
                 escaped = False
             elif text[index] == '\\':
                 escaped = True
-            elif text[index] == first:
+            elif text[index] == quote:
                 return index + 1
         return len(text)
     end = start

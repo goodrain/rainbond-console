@@ -209,6 +209,50 @@ class SafeExceptionLoggingTests(TestCase):
                 for excluded in ("$PASSWORD", "$TOKEN", "$SECRET", "$CONTINUED_SECRET"):
                     self.assertNotIn(excluded, message)
 
+    def test_python_prefixed_sensitive_strings_are_redacted_in_full(self):
+        for prefix in ("b", "B", "r", "R", "u", "U", "br", "BR", "rb", "Rb"):
+            for quote in ("'", '"'):
+                with self.subTest(prefix=prefix, quote=quote):
+                    fixture = "token=" + prefix + quote + "$VALUE \\" + quote + " quoted\n$CONTINUED_VALUE" + quote
+                    message = IPFormatter().format(self.record(fixture + "; status=503 [SSL] PEM lib"))
+                    self.assertNotIn("$VALUE", message)
+                    self.assertNotIn("$CONTINUED_VALUE", message)
+                    self.assertIn("status=503", message)
+                    self.assertIn("[SSL] PEM lib", message)
+
+    def test_python_bytes_keys_and_bytearray_values_do_not_leak(self):
+        fixtures = (
+            repr({b"token": b"$VALUE", "status": 503}),
+            repr({b"private_key": bytearray(b"$VALUE\n$CONTINUED_VALUE"), "status": 503}),
+            "credentials=bytearray(b'$VALUE\\\'quoted\\n$CONTINUED_VALUE'); status=503",
+            "secret=(b'$VALUE', bytearray(b'$CONTINUED_VALUE')); status=503",
+            "token={'nested': [bytearray(b'$VALUE'), (b'$CONTINUED_VALUE',)]}; status=503",
+        )
+        for fixture in fixtures:
+            with self.subTest(fixture=fixture):
+                message = IPFormatter().format(self.record(fixture))
+                self.assertNotIn("$VALUE", message)
+                self.assertNotIn("$CONTINUED_VALUE", message)
+                self.assertIn("status", message)
+                self.assertIn("503", message)
+
+    def test_truncated_prefixed_or_bytearray_values_fail_closed(self):
+        fixtures = (
+            "token=b'$VALUE\n$CONTINUED_VALUE",
+            'password=R"$VALUE\\\"$CONTINUED_VALUE',
+            "secret=bytearray(b'$VALUE'\n$CONTINUED_VALUE",
+            "token=(b'$VALUE'] $CONTINUED_VALUE",
+        )
+        for fixture in fixtures:
+            with self.subTest(fixture=fixture):
+                message = IPFormatter().format(self.record(fixture))
+                self.assertNotIn("$VALUE", message)
+                self.assertNotIn("$CONTINUED_VALUE", message)
+
+    def test_non_sensitive_python_byte_values_are_untouched(self):
+        fixture = "status=503 payload=b'$PUBLIC_VALUE' data=bytearray(b'$PUBLIC_DATA')"
+        self.assertIn(fixture, IPFormatter().format(self.record(fixture)))
+
     def test_balanced_sensitive_containers_keep_status_reason_and_frames(self):
         fixture = json.dumps({
             "token": {
