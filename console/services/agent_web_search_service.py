@@ -46,7 +46,9 @@ class AgentWebSearchService(object):
         api_key = config.get("api_key") or ""
         if not api_key:
             raise ServiceHandleException(msg="web search api key missing", msg_show="联网搜索 API Key 未配置", status_code=503)
-        provider = config.get("provider") or "exa"
+        provider = config.get("provider") or "deepseek"
+        if provider not in ("deepseek", "exa", "perplexity"):
+            provider = "deepseek"
         limit = max(1, min(int(max_results or config.get("max_results") or 5), 10))
         timeout = max(1.0, min(float(config.get("fetch_timeout_ms") or 15000) / 1000.0, 60.0))
         if provider == "deepseek":

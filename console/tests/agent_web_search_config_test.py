@@ -26,7 +26,7 @@ class AgentWebSearchConfigServiceTests(SimpleTestCase):
     def test_rejects_missing_api_key(self):
         with mock.patch.object(self.service, "_load_config", return_value={}):
             with self.assertRaises(ServiceHandleException) as context:
-                self.service.update_config({"provider": "exa", "max_results": 5})
+                self.service.update_config({"provider": "deepseek", "max_results": 5})
         self.assertIn("API Key", context.exception.msg_show)
 
     def test_rejects_invalid_provider(self):
@@ -39,11 +39,26 @@ class AgentWebSearchConfigServiceTests(SimpleTestCase):
         with mock.patch.object(self.service, "_load_config", return_value={}), \
                 mock.patch.object(self.service, "_save_config") as save:
             result = self.service.update_config(
-                {"provider": "exa", "api_key": "exa-123456789", "max_results": 3})
+                {"provider": "deepseek", "api_key": "ds-123456789", "max_results": 3})
         self.assertTrue(result["api_key_set"])
-        self.assertNotIn("exa-123456789", str(result))
+        self.assertNotIn("ds-123456789", str(result))
         stored = save.call_args[0][0]
         self.assertTrue(stored["api_key"].startswith("fernet:v1:"))
+
+    def test_normalizes_legacy_provider_to_deepseek(self):
+        with mock.patch.object(self.service, "_load_config",
+                               return_value={"provider": "exa", "api_key": ""}):
+            runtime = self.service.get_runtime_config()
+            masked = self.service.get_masked_config()
+        self.assertEqual("deepseek", runtime["provider"])
+        self.assertEqual("deepseek", masked["provider"])
+
+    def test_rejects_non_deepseek_provider(self):
+        with mock.patch.object(self.service, "_load_config", return_value={}):
+            with self.assertRaises(ServiceHandleException) as context:
+                self.service.update_config(
+                    {"provider": "exa", "api_key": "k", "max_results": 5})
+        self.assertIn("deepseek", context.exception.msg_show)
 
     def test_accepts_deepseek_provider(self):
         with mock.patch.object(self.service, "_load_config", return_value={}), \

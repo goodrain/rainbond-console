@@ -17,10 +17,10 @@ logger = logging.getLogger("default")
 
 AI_AGENT_WEB_SEARCH_CONFIG_KEY = "AI_AGENT_WEB_SEARCH_CONFIG"
 API_KEY_PREFIX = "fernet:v1:"
-WEB_SEARCH_PROVIDERS = ("exa", "perplexity", "deepseek")
+WEB_SEARCH_PROVIDERS = ("deepseek",)
 DEFAULT_CONFIG = {
     "enabled": True,
-    "provider": "exa",
+    "provider": "deepseek",
     "max_results": 5,
     "fetch_timeout_ms": 15000,
 }
@@ -37,7 +37,7 @@ class AgentWebSearchConfigService(object):
         config = self._load_config()
         return {
             "enabled": self._read_bool(config.get("enabled"), True),
-            "provider": self._read_string(config.get("provider"), DEFAULT_CONFIG["provider"]),
+            "provider": self._normalize_provider(config.get("provider")),
             "api_key": self._decrypt_api_key(config.get("api_key", "")),
             "max_results": self._read_int(config.get("max_results"), DEFAULT_CONFIG["max_results"]),
             "fetch_timeout_ms": self._read_int(
@@ -122,7 +122,7 @@ class AgentWebSearchConfigService(object):
         if config["provider"] not in WEB_SEARCH_PROVIDERS:
             raise ServiceHandleException(
                 msg="invalid web search provider",
-                msg_show="联网搜索 provider 必须是 exa、perplexity 或 deepseek",
+                msg_show="联网搜索目前仅支持 deepseek",
                 status_code=400,
             )
         if not (1 <= config["max_results"] <= 10):
@@ -138,11 +138,15 @@ class AgentWebSearchConfigService(object):
                 status_code=400,
             )
 
+    def _normalize_provider(self, value: Any) -> str:
+        provider = self._read_string(value).lower()
+        return provider if provider in WEB_SEARCH_PROVIDERS else DEFAULT_CONFIG["provider"]
+
     def _to_masked(self, config: Dict[str, Any], api_key: str,
                    updated_by: str = "") -> Dict[str, Any]:
         return {
             "enabled": self._read_bool(config.get("enabled"), True),
-            "provider": self._read_string(config.get("provider"), DEFAULT_CONFIG["provider"]),
+            "provider": self._normalize_provider(config.get("provider")),
             "max_results": self._read_int(config.get("max_results"), DEFAULT_CONFIG["max_results"]),
             "fetch_timeout_ms": self._read_int(
                 config.get("fetch_timeout_ms"), DEFAULT_CONFIG["fetch_timeout_ms"]),
