@@ -60,6 +60,13 @@ class AgentWebSearchConfigServiceTests(SimpleTestCase):
                     {"provider": "exa", "api_key": "k", "max_results": 5})
         self.assertIn("deepseek", context.exception.msg_show)
 
+    def test_allows_disabled_search_without_api_key(self):
+        with mock.patch.object(self.service, "_load_config", return_value={}), \
+                mock.patch.object(self.service, "_save_config"):
+            result = self.service.update_config(
+                {"enabled": False, "provider": "deepseek", "max_results": 5})
+        self.assertFalse(result["enabled"])
+
     def test_accepts_deepseek_provider(self):
         with mock.patch.object(self.service, "_load_config", return_value={}), \
                 mock.patch.object(self.service, "_save_config"):

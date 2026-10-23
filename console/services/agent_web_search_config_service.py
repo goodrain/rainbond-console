@@ -108,7 +108,9 @@ class AgentWebSearchConfigService(object):
             )
 
     def _validate(self, config: Dict[str, Any], has_api_key: bool) -> None:
-        if not has_api_key:
+        # A disabled search backend may be saved without a key; enabling it
+        # later requires the key again.
+        if config.get("enabled", True) and not has_api_key:
             raise ServiceHandleException(
                 msg="web search api key is required",
                 msg_show="联网搜索 API Key 不能为空",
