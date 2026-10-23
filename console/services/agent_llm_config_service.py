@@ -20,7 +20,10 @@ AI_AGENT_LLM_CONFIG_KEY = "AI_AGENT_LLM_CONFIG"
 API_KEY_PREFIX = "fernet:v1:"
 DEFAULT_MODEL = "gpt-4o-mini"
 ALLOWED_REASONING_EFFORTS = ("", "low", "medium", "high")
-ALLOWED_LLM_PROVIDERS = ("", "deepseek", "openai")
+ALLOWED_LLM_PROVIDERS = (
+    "", "deepseek", "qwen", "kimi", "glm", "doubao", "mimo",
+    "openai-compatible", "openai",
+)
 
 
 class AgentLLMConfigService(object):
@@ -142,7 +145,7 @@ class AgentLLMConfigService(object):
 
         provider = self._read_string(data.get("llm_provider")).lower()
         if provider not in ALLOWED_LLM_PROVIDERS:
-            errors.append("LLM_PROVIDER 只能为 deepseek 或 openai")
+            errors.append("LLM_PROVIDER 不是支持的国内模型厂商")
 
         if errors:
             raise ServiceHandleException(
@@ -166,8 +169,10 @@ class AgentLLMConfigService(object):
 
     def _resolve_provider(self, config: dict) -> str:
         provider = self._read_string(config.get("LLM_PROVIDER")).lower()
-        if provider in ("deepseek", "openai"):
+        if provider in ("deepseek", "qwen", "kimi", "glm", "doubao", "mimo"):
             return provider
+        if provider in ("openai", "openai-compatible"):
+            return "openai-compatible"
         base_url = self._read_string(config.get("OPENAI_BASE_URL")).lower()
         if not base_url:
             return "deepseek"
@@ -175,7 +180,19 @@ class AgentLLMConfigService(object):
             host = urlparse(base_url).hostname or ""
         except ValueError:
             host = ""
-        return "deepseek" if "deepseek" in host else "openai"
+        if "deepseek" in host:
+            return "deepseek"
+        if "dashscope" in host or "aliyuncs" in host:
+            return "qwen"
+        if "moonshot" in host:
+            return "kimi"
+        if "bigmodel" in host:
+            return "glm"
+        if "volces" in host or "volcengine" in host:
+            return "doubao"
+        if "xiaomimimo" in host or "mimo" in host:
+            return "mimo"
+        return "openai-compatible"
 
     def _encrypt_api_key(self, api_key: str) -> str:
         if not api_key:
