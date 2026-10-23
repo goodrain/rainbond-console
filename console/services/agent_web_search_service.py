@@ -13,6 +13,7 @@ logger = logging.getLogger("default")
 DEEPSEEK_SEARCH_URL = "https://api.deepseek.com/v1/tools/search"
 DEEPSEEK_SEARCH_MAX_RESULTS = 50
 DEEPSEEK_SNIPPET_MAX_CHARS = 1200
+DEEPSEEK_SEARCH_TIMEOUT_SECONDS = 15.0
 
 
 class AgentWebSearchService(object):
@@ -58,7 +59,7 @@ class AgentWebSearchService(object):
                 status_code=503,
             )
         limit = max(1, min(int(max_results or config.get("max_results") or 5), DEEPSEEK_SEARCH_MAX_RESULTS))
-        timeout = max(1.0, min(float(config.get("fetch_timeout_ms") or 15000) / 1000.0, 60.0))
+        timeout = DEEPSEEK_SEARCH_TIMEOUT_SECONDS
         result = self._search_deepseek(query, limit, api_key, timeout)
         logger.info(
             "agent_web_search scope=%s provider=deepseek query_len=%s sources=%s",

@@ -93,7 +93,6 @@ class AgentWebSearchServiceTests(SimpleTestCase):
             "provider": "deepseek",
             "api_key": "ds-key",
             "max_results": 5,
-            "fetch_timeout_ms": 15000,
         }
         with mock.patch(
                 "console.services.agent_web_search_service.agent_web_search_config_service.get_runtime_config",
@@ -122,7 +121,6 @@ class AgentWebSearchServiceTests(SimpleTestCase):
             "provider": "deepseek",
             "api_key": "bad-key",
             "max_results": 5,
-            "fetch_timeout_ms": 15000,
         }
         with mock.patch(
                 "console.services.agent_web_search_service.agent_web_search_config_service.get_runtime_config",

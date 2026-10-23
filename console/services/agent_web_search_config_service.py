@@ -22,7 +22,6 @@ DEFAULT_CONFIG = {
     "enabled": True,
     "provider": "deepseek",
     "max_results": 5,
-    "fetch_timeout_ms": 15000,
 }
 
 
@@ -40,8 +39,6 @@ class AgentWebSearchConfigService(object):
             "provider": self._normalize_provider(config.get("provider")),
             "api_key": self._decrypt_api_key(config.get("api_key", "")),
             "max_results": self._read_int(config.get("max_results"), DEFAULT_CONFIG["max_results"]),
-            "fetch_timeout_ms": self._read_int(
-                config.get("fetch_timeout_ms"), DEFAULT_CONFIG["fetch_timeout_ms"]),
             "updated_at": config.get("updated_at") or "",
         }
 
@@ -57,8 +54,6 @@ class AgentWebSearchConfigService(object):
             "provider": self._read_string(data.get("provider"), DEFAULT_CONFIG["provider"]),
             "api_key": stored_key,
             "max_results": self._read_int(data.get("max_results"), DEFAULT_CONFIG["max_results"]),
-            "fetch_timeout_ms": self._read_int(
-                data.get("fetch_timeout_ms"), DEFAULT_CONFIG["fetch_timeout_ms"]),
         }
         self._validate(config, has_api_key=bool(raw_key or self._decrypt_api_key(current_key)))
         self._save_config(config, updated_by)
@@ -131,13 +126,6 @@ class AgentWebSearchConfigService(object):
                 msg_show="联网搜索 max_results 必须在 1..50",
                 status_code=400,
             )
-        if not (1000 <= config["fetch_timeout_ms"] <= 60000):
-            raise ServiceHandleException(
-                msg="invalid fetch_timeout_ms",
-                msg_show="联网搜索 fetch_timeout_ms 必须在 1000..60000",
-                status_code=400,
-            )
-
     def _normalize_provider(self, value: Any) -> str:
         provider = self._read_string(value).lower()
         return provider if provider in WEB_SEARCH_PROVIDERS else DEFAULT_CONFIG["provider"]
@@ -148,8 +136,6 @@ class AgentWebSearchConfigService(object):
             "enabled": self._read_bool(config.get("enabled"), True),
             "provider": self._normalize_provider(config.get("provider")),
             "max_results": self._read_int(config.get("max_results"), DEFAULT_CONFIG["max_results"]),
-            "fetch_timeout_ms": self._read_int(
-                config.get("fetch_timeout_ms"), DEFAULT_CONFIG["fetch_timeout_ms"]),
             "api_key_set": bool(api_key),
             "api_key_masked": self._mask_api_key(api_key),
             "updated_by": updated_by or str(config.get("updated_by") or ""),
