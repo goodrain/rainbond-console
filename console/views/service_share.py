@@ -10,6 +10,7 @@ from typing import Any
 from console.appstore.appstore import app_store
 from console.enum.component_enum import is_singleton
 from console.exception.main import ServiceHandleException
+from console.services.cleanup_coordination import CoordinationUnavailable
 from console.models.main import PluginShareRecordEvent, ServiceShareRecordEvent
 from console.repositories.group import group_repo
 from console.repositories.market_app_repo import rainbond_app_repo
@@ -326,8 +327,7 @@ class ServiceShareDeleteView(RegionTenantHeaderView):
             raise e
         except Exception as e:
             logger.exception(e)
-            # NOTE: py2-era Exception.message; preserved for behavior compat (backlog).
-            result = error_message(e.message)  # type: ignore[attr-defined]
+            result = error_message(str(e))
             return Response(result, status=500)
 
 
@@ -488,7 +488,7 @@ class ServiceShareEventList(RegionTenantHeaderView):
             raise e
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)  # type: ignore[attr-defined]
+            result = error_message(str(e))
             return Response(result, status=500)
 
 
@@ -512,9 +512,12 @@ class ServiceShareEventPost(RegionTenantHeaderView):
             return Response(result, status=200)
         except ServiceHandleException as e:
             raise e
+        except CoordinationUnavailable:
+            raise ServiceHandleException(
+                "cleanup coordination unavailable", "仓库清理协调未就绪或存在冲突，请稍后重试", status_code=409)
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)  # type: ignore[attr-defined]
+            result = error_message(str(e))
             return Response(result, status=500)
 
     def get(self, request: Request, team_name: str, share_id: str, event_id: str, *args: Any, **kwargs: Any) -> Response:
@@ -540,7 +543,7 @@ class ServiceShareEventPost(RegionTenantHeaderView):
             raise e
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)  # type: ignore[attr-defined]
+            result = error_message(str(e))
             return Response(result, status=500)
 
 
