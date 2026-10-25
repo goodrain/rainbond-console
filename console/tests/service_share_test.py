@@ -73,10 +73,13 @@ if not hasattr(QuerySet, "__class_getitem__"):
 
 from console.services.share_services import share_service as share_service_instance  # noqa: E402
 from console.services import share_services as share_services_module  # noqa: E402
+from console.services.cleanup_coordination import CoordinationUnavailable  # noqa: E402
+from console.exception.main import ServiceHandleException  # noqa: E402
 from console.services import plugin_service as plugin_service_module  # noqa: E402
 from console.services.plugin_service import rbd_plugin_service  # noqa: E402
 from console.views import service_share  # noqa: E402
-from console.views.service_share import ServiceShareInfoView, ServiceShareRecordView  # noqa: E402
+from console.views.service_share import ServiceShareEventPost, ServiceShareInfoView, ServiceShareRecordView  # noqa: E402
+from console.views.base import custom_exception_handler  # noqa: E402
 from console.repositories import share_repo as share_repo_module  # noqa: E402
 
 
@@ -140,6 +143,38 @@ class ServiceShareRecordViewTestCase(TestCase):
         self.assertEqual(response.status_code, 500)
         self.assertEqual(response.data["msg"], "boom")
         self.assertEqual(response.data["msg_show"], "系统异常")
+
+
+class ServiceShareEventPostTestCase(TestCase):
+    def setUp(self):
+        self.factory = APIRequestFactory()
+        self.view = ServiceShareEventPost()
+        self.view.user = mock.Mock(user_id=1)
+        self.view.response_region = "demo-region"
+
+    def make_request(self):
+        return self.view.initialize_request(
+            self.factory.post("/console/teams/demo-team/share/share-id/events/event-id", {}, format="json"))
+
+    def test_post_returns_409_when_cleanup_coordination_is_unavailable(self):
+        share_record = mock.Mock(is_success=False, step=2)
+        record_event = mock.Mock()
+
+        with mock.patch.object(
+                service_share.share_service, "get_service_share_record_by_ID", return_value=share_record), \
+                mock.patch.object(
+                    service_share.ServiceShareRecordEvent.objects, "filter", return_value=[record_event]), \
+                mock.patch.object(
+                    service_share.share_service,
+                    "sync_event",
+                    side_effect=CoordinationUnavailable("cleanup coordination request was not acknowledged")):
+            with self.assertRaises(ServiceHandleException) as context:
+                self.view.post(self.make_request(), "demo-team", "share-id", "event-id")
+
+        response = custom_exception_handler(context.exception, {})
+
+        self.assertEqual(409, response.status_code)
+        self.assertEqual("仓库清理协调未就绪或存在冲突，请稍后重试", response.data["msg_show"])
 
 
 # capability_id: console.service-share.view-info
