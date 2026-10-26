@@ -486,6 +486,7 @@
 | console.oauth.unsupported-type | 拒绝不支持的 OAuth 服务类型 | active | regression | console.utils.oauth.oauth_types.get_oauth_instance | console/tests/utils/oauth_types_test.py::OAuthTypeTests.test_get_oauth_instance_unsupported_type |
 | console.oauth.user-binding | 将 OAuth 服务和用户对象绑定到 helper 实例 | active | regression | console.utils.oauth.base.oauth.OAuth2Interface.set_oauth_user | console/tests/utils/oauth_base_test.py::OAuthBaseTests.test_set_oauth_user_and_service |
 | console.openapi.helm-chart-query-schema | Helm Chart GET 参数使用查询序列化器 | active | regression | openapi.views.apps.apps.HelmChart.get | console/tests/openapi_swagger_test.py::OpenAPISwaggerMetadataTests.test_helm_chart_get_declares_query_serializer_without_request_body |
+| console.operator-managed.scoped-application-lookup | Operator资源读取校验应用存在及团队区域归属 | active | regression | console.services.group_service.GroupService.get_watch_managed_data | console/tests/operator_managed_app_scope_test.py::OperatorManagedAppScopeTestCase |
 | console.operator-managed.skip-kubeblocks-services | Skip KubeBlocks services during operator-managed component import | active | regression | console.services.group_service.GroupService.get_watch_managed_data | console/tests/group_service_test.py::GroupServiceOperatorManagedTests |
 | console.package-component.auto-create-flow | 执行制品包组件自动创建全流程 | active | regression | console.services.package_component_service.auto_create_component | console/tests/package_component_service_test.py::PackageComponentServiceTests.test_auto_create_component_runs_full_package_flow |
 | console.package-component.check-request-failure | 制品包组件检测请求失败时拦截创建 | active | regression | console.services.package_component_service.auto_create_component | console/tests/package_component_service_test.py::PackageComponentServiceTests.test_auto_create_component_rejects_check_request_failure |
@@ -5530,6 +5531,16 @@
 - 业务入口: `openapi.views.apps.apps.HelmChart.get`
 - 代码路径: `openapi/views/apps/apps.py`
 - 测试路径: `console/tests/openapi_swagger_test.py::OpenAPISwaggerMetadataTests.test_helm_chart_get_declares_query_serializer_without_request_body`
+
+### Operator资源读取校验应用存在及团队区域归属
+
+- Capability ID: `console.operator-managed.scoped-application-lookup`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `workflow`
+- 业务入口: `console.services.group_service.GroupService.get_watch_managed_data`
+- 代码路径: `console/services/group_service.py`, `console/views/public_areas.py`
+- 测试路径: `console/tests/operator_managed_app_scope_test.py::OperatorManagedAppScopeTestCase`
 
 ### Skip KubeBlocks services during operator-managed component import
 

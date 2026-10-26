@@ -9358,6 +9358,25 @@
       "status": "active"
     },
     {
+      "id": "console.operator-managed.scoped-application-lookup",
+      "title": "Reject missing or foreign operator-managed applications",
+      "title_zh": "Operator资源读取校验应用存在及团队区域归属",
+      "interface_type": "workflow",
+      "interface": "console.services.group_service.GroupService.get_watch_managed_data",
+      "code_paths": [
+        "console/services/group_service.py",
+        "console/views/public_areas.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/operator_managed_app_scope_test.py",
+          "selector": "OperatorManagedAppScopeTestCase"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.operator-managed.skip-kubeblocks-services",
       "title": "Skip KubeBlocks services during operator-managed component import",
       "title_zh": "Skip KubeBlocks services during operator-managed component import",

@@ -1203,7 +1203,23 @@ class GroupService(object):
         # 如果 app_id 为空，返回空数据
         if not app_id:
             return {"service": [], "config_map": [], "secret": []}
-        region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
+        try:
+            if isinstance(app_id, bool) or not isinstance(app_id, (str, int)):
+                raise ValueError
+            parsed_app_id = int(app_id)
+            if parsed_app_id <= 0:
+                raise ValueError
+        except (TypeError, ValueError):
+            raise AbortRequest(msg="app id illegal", msg_show="应用ID不合法") from None
+        app_id = str(parsed_app_id)
+        app = group_repo.get_group_by_pk(tenant.tenant_id, region_name, app_id)
+        if not app:
+            raise AbortRequest(msg="app not found", msg_show="应用不存在", status_code=404)
+        try:
+            region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
+        except RegionApp.DoesNotExist:
+            # Console may be saved before its Region mapping is initialized.
+            return {"service": [], "config_map": [], "secret": []}
         watch_managed_data = base_service.get_watch_managed(region_name, tenant.tenant_name, region_app_id)
         kubeblocks_service_names = {
             getattr(component, "k8s_component_name", "")

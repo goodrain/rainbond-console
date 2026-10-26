@@ -733,7 +733,7 @@ class RegionApiPodCountTests(TestCase):
 # capability_id: console.operator-managed.skip-kubeblocks-services
 class GroupServiceOperatorManagedTests(TestCase):
     def test_get_watch_managed_data_skips_services_backing_kubeblocks_components(self):
-        tenant = Obj(tenant_name="demo-team", namespace="demo-ns")
+        tenant = Obj(tenant_id="team-a", tenant_name="demo-team", namespace="demo-ns")
         kubeblocks_component = Obj(
             extend_method="kubeblocks_component",
             service_source="kubeblocks",
@@ -744,9 +744,11 @@ class GroupServiceOperatorManagedTests(TestCase):
             is_k8s_component_name_duplicate=mock.Mock(return_value=False)
         )
 
-        with mock.patch.object(group_service_module.region_app_repo,
-                               "get_region_app_id",
-                               return_value="region-app-1"), \
+        with mock.patch.object(group_service_module.group_repo,
+                               "get_group_by_pk", return_value=Obj(ID=42)), \
+                mock.patch.object(group_service_module.region_app_repo,
+                                  "get_region_app_id",
+                                  return_value="region-app-1"), \
                 mock.patch.object(group_service_module.base_service,
                                   "get_watch_managed",
                                   return_value={
