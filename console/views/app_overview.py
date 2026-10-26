@@ -15,7 +15,7 @@ from console.enum.component_enum import is_kubeblocks
 from console.exception.bcode import ErrK8sComponentNameExists
 from console.exception.main import (MarketAppLost, RbdAppNotFound, ServiceHandleException)
 from console.repositories.app import (service_repo, service_source_repo, service_webhooks_repo)
-from console.repositories.app_config import service_endpoints_repo, volume_repo
+from console.repositories.app_config import port_repo, service_endpoints_repo, volume_repo
 from console.repositories.deploy_repo import deploy_repo
 from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.oauth_repo import oauth_repo, oauth_user_repo
@@ -567,12 +567,19 @@ class AppGroupVisitView(RegionTenantHeaderView):
                 result = general_message(400, "not tenant", "团队不存在")
                 return Response(result)
             service_list = serviceAlias.split('-')
+            services = list(service_repo.list_by_tenant_region_and_aliases(team.tenant_id, self.region_name, service_list))
+            by_alias = {service.service_alias: service for service in services}
+            by_service = {}
+            for port in port_repo.list_by_service_ids(team.tenant_id, [service.service_id for service in services]):
+                by_service.setdefault(port.service_id, []).append(port)
+            context = {}
             for service_alias in service_list:
                 bean = dict()
-                service = service_repo.get_service_by_service_alias(service_alias)
+                service = by_alias.get(service_alias)
                 if not service:
                     continue
-                access_type, data = port_service.get_access_info(team, service)
+                access_type, data = port_service.get_access_info(
+                    team, service, service_ports=by_service.get(service.service_id, []), context=context)
                 bean["access_type"] = access_type
                 bean["access_info"] = data
                 service_access_list.append(bean)

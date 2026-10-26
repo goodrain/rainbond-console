@@ -1403,6 +1403,26 @@
       "status": "active"
     },
     {
+      "id": "console.app-overview.group-visit-batched-access",
+      "title": "Batch scoped application visit components and ports",
+      "title_zh": "按团队区域批量读取应用访问组件和端口",
+      "interface_type": "workflow",
+      "interface": "console.views.app_overview.AppGroupVisitView.get",
+      "code_paths": [
+        "console/views/app_overview.py",
+        "console/repositories/app.py",
+        "console/services/app_config/port_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_group_visit_view_test.py",
+          "selector": "AppGroupVisitBatchAccessTestCase"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.app-overview.group-visit-resilience",
       "title": "Keep application access links resilient to stale components",
       "title_zh": "Keep application access links resilient to stale components",
@@ -10091,6 +10111,44 @@
       "status": "active"
     },
     {
+      "id": "console.platform-plugin.batch-install-metadata",
+      "title": "Batch latest plugin installation metadata",
+      "title_zh": "批量读取插件最新安装元数据",
+      "interface_type": "workflow",
+      "interface": "console.services.platform_plugin_service.PlatformPluginService.list_platform_plugins",
+      "code_paths": [
+        "console/services/platform_plugin_service.py",
+        "console/repositories/group.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/platform_plugin_read_optimization_test.py",
+          "selector": "PlatformPluginInstallationBatchTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.platform-plugin.coalesced-catalog-reads",
+      "title": "Coalesce plugin catalog and architecture reads safely",
+      "title_zh": "安全合并插件目录与架构并发读取",
+      "interface_type": "workflow",
+      "interface": "console.services.platform_plugin_service.PlatformPluginService",
+      "code_paths": [
+        "console/services/platform_plugin_service.py",
+        "console/utils/coalesced_read_cache.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/platform_plugin_read_optimization_test.py",
+          "selector": "PlatformPluginReadCacheTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.platform-plugin.vm-access-url-fallback",
       "title": "Fallback official VM plugin access URL from frontend component",
       "title_zh": "从前端组件访问地址回填官方虚拟机插件访问前缀",
@@ -11000,6 +11058,24 @@
         {
           "path": "console/tests/region_config_update_test.py",
           "selector": "UpdateRegionConfigTest.test_add_when_config_missing_passes_json_string_and_desc"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.registry.aliyun-enterprise",
+      "title": "Discover enterprise ACR instances and list namespaces and repositories",
+      "title_zh": "兼容阿里云ACR企业版公网和VPC地址及云API查询",
+      "interface_type": "service_method",
+      "interface": "console.services.team_services.TeamService.get_cloud_registry_namespaces",
+      "code_paths": [
+        "console/services/team_services.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/registry_service_test.py",
+          "selector": "AliyunEnterpriseRegistryTestCase"
         }
       ],
       "test_type": "regression",
@@ -13450,24 +13526,6 @@
       "tests": [
         {
           "path": "console/tests/vm_asset_instantiation_test.py"
-        }
-      ],
-      "test_type": "regression",
-      "status": "active"
-    },
-    {
-      "id": "console.registry.aliyun-enterprise",
-      "title": "Discover enterprise ACR instances and list namespaces and repositories",
-      "title_zh": "兼容阿里云ACR企业版公网和VPC地址及云API查询",
-      "interface_type": "service_method",
-      "interface": "console.services.team_services.TeamService.get_cloud_registry_namespaces",
-      "code_paths": [
-        "console/services/team_services.py"
-      ],
-      "tests": [
-        {
-          "path": "console/tests/registry_service_test.py",
-          "selector": "AliyunEnterpriseRegistryTestCase"
         }
       ],
       "test_type": "regression",

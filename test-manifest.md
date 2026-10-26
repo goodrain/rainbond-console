@@ -79,6 +79,7 @@
 | console.app-migration.unfinished-record-empty | 无未完成迁移记录时返回已完成状态 | active | regression | console.views.center_pool.groupapp_migration.MigrateRecordView.get | console/tests/groupapp_backup_migration_test.py::GroupAppsMigrateRecordViewTests.test_get_returns_finished_when_no_unfinished_record |
 | console.app-migration.unfinished-record-guard | 查询未完成迁移记录时必须提供 group_uuid | active | regression | console.views.center_pool.groupapp_migration.MigrateRecordView.get | console/tests/groupapp_backup_migration_test.py::GroupAppsMigrateRecordViewTests.test_get_requires_group_uuid |
 | console.app-migration.usable-region-guard | 目标团队无可用集群时阻止迁移 | active | regression | console.views.center_pool.groupapp_migration.GroupAppsMigrateView.post | console/tests/groupapp_backup_migration_test.py::GroupAppsMigrationViewWorkflowTests.test_post_rejects_when_target_team_has_no_usable_regions |
+| console.app-overview.group-visit-batched-access | 按团队区域批量读取应用访问组件和端口 | active | regression | console.views.app_overview.AppGroupVisitView.get | console/tests/app_group_visit_view_test.py::AppGroupVisitBatchAccessTestCase |
 | console.app-overview.group-visit-resilience | Keep application access links resilient to stale components | active | regression | GET /console/teams/{team_name}/group/service/visit | console/tests/app_group_visit_view_test.py::AppGroupVisitViewTestCase |
 | console.app-publish.candidates | App Publish Candidates | active | regression | console.services.mcp_query_service.call_tool[console.app-publish.candidates] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_get_app_publish_candidates_returns_models |
 | console.app-route.numeric-id | 应用详情路由仅接受数字 ID | active | regression | console.urls[/teams/{tenantName}/groups/{app_id}] | console/tests/group_route_test.py::GroupRouteTests.test_group_detail_route_accepts_numeric_id<br>console/tests/group_route_test.py::GroupRouteTests.test_group_detail_route_rejects_reserved_word_as_id |
@@ -526,6 +527,8 @@
 | console.platform-overview.absolute-metrics | Historical absolute usage in platform overview metrics | active | regression | console.services.platform_overview_service.PlatformOverviewService.get_metrics | console/tests/platform_overview_absolute_test.py |
 | console.platform-overview.aggregate | 平台总览聚合、已启用插件与真实集群版本 | active | unit | console.services.platform_overview_service.PlatformOverviewService | console/tests/platform_overview_service_test.py::PlatformOverviewServiceTest<br>console/tests/platform_overview_service_test.py::PlatformPluginInstalledOnlyTest |
 | console.platform-overview.http-api | Platform overview HTTP API | active | regression | console.views.platform_overview | console/tests/platform_overview_view_test.py::PlatformOverviewViewTest |
+| console.platform-plugin.batch-install-metadata | 批量读取插件最新安装元数据 | active | regression | console.services.platform_plugin_service.PlatformPluginService.list_platform_plugins | console/tests/platform_plugin_read_optimization_test.py::PlatformPluginInstallationBatchTests |
+| console.platform-plugin.coalesced-catalog-reads | 安全合并插件目录与架构并发读取 | active | regression | console.services.platform_plugin_service.PlatformPluginService | console/tests/platform_plugin_read_optimization_test.py::PlatformPluginReadCacheTests |
 | console.platform-plugin.vm-access-url-fallback | 从前端组件访问地址回填官方虚拟机插件访问前缀 | active | regression | console.services.plugin_service.RainbondPluginService.list_plugins | console/tests/rbd_plugin_service_test.py::RainbondPluginServiceTests.test_official_vm_plugin_uses_frontend_component_access_url_when_region_urls_missing |
 | console.platform-plugin.vm-runtime-status-guard | 校验虚拟机平台插件运行状态 | active | regression | console.services.platform_plugin_service.PlatformPluginService.ensure_vm_plugin_running | console/tests/platform_plugin_service_test.py::PlatformPluginServiceTests.test_ensure_vm_plugin_running_rejects_non_running_status |
 | console.plugin-build.infer-arch | Infer plugin build architecture from region chaos nodes | active | regression | console.services.plugin_build_arch.resolve_plugin_build_arch | console/tests/plugin_build_arch_test.py::PluginBuildArchTests |
@@ -573,6 +576,7 @@
 | console.region.sse-read-timeout | SSE 空闲读取超时后平静结束流 | active | regression | www.apiclient.regionapi.RegionInvokeApi.sse_proxy | console/tests/regionapi_sse_proxy_test.py::RegionApiSSEProxyTests.test_sse_proxy_ends_cleanly_after_idle_read_timeout |
 | console.region.sse-utf8-streaming | SSE 分片安全解码 UTF-8 | active | regression | www.apiclient.regionapi.RegionInvokeApi.sse_proxy | console/tests/regionapi_sse_proxy_test.py::RegionApiSSEProxyTests.test_sse_proxy_decodes_utf8_characters_split_across_chunks<br>console/tests/regionapi_sse_proxy_test.py::RegionApiSSEProxyTests.test_sse_proxy_replaces_invalid_trailing_utf8_without_stopping_stream |
 | console.region.update-region-config | 依据配置项是否存在选择更新或新增数据中心配置 | active | regression | console.services.region_services.RegionService.update_region_config | console/tests/region_config_update_test.py::UpdateRegionConfigTest.test_update_when_config_exists_passes_dict_value<br>console/tests/region_config_update_test.py::UpdateRegionConfigTest.test_add_when_config_missing_passes_json_string_and_desc |
+| console.registry.aliyun-enterprise | 兼容阿里云ACR企业版公网和VPC地址及云API查询 | active | regression | console.services.team_services.TeamService.get_cloud_registry_namespaces | console/tests/registry_service_test.py::AliyunEnterpriseRegistryTestCase |
 | console.request-args.bool-coercion | 将请求中的布尔参数从字符串或布尔值安全转换 | active | regression | console.utils.reqparse.bool_argument | console/tests/utils/reqparse_test.py::BoolArgumentTestCase |
 | console.request-args.bool-default-false | 缺失布尔查询参数时返回 false 默认值 | active | regression | console.utils.reqparse.parse_argument | console/tests/utils/reqparse_test.py::ParseArgumentTestCase.test_parse_argument_return_default_false_bool |
 | console.request-args.bool-default-true | 为布尔查询参数使用 true 默认值 | active | unit | console.utils.reqparse.parse_argument | console/tests/utils/reqparse_test.py::ParseArgumentTestCase.test_parse_argument_return_default_bool |
@@ -1455,6 +1459,16 @@
 - 业务入口: `console.views.center_pool.groupapp_migration.GroupAppsMigrateView.post`
 - 代码路径: `console/views/center_pool/groupapp_migration.py`
 - 测试路径: `console/tests/groupapp_backup_migration_test.py::GroupAppsMigrationViewWorkflowTests.test_post_rejects_when_target_team_has_no_usable_regions`
+
+### 按团队区域批量读取应用访问组件和端口
+
+- Capability ID: `console.app-overview.group-visit-batched-access`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `workflow`
+- 业务入口: `console.views.app_overview.AppGroupVisitView.get`
+- 代码路径: `console/views/app_overview.py`, `console/repositories/app.py`, `console/services/app_config/port_service.py`
+- 测试路径: `console/tests/app_group_visit_view_test.py::AppGroupVisitBatchAccessTestCase`
 
 ### Keep application access links resilient to stale components
 
@@ -5926,6 +5940,26 @@
 - 代码路径: `console/views/platform_overview.py`, `console/urls/__init__.py`
 - 测试路径: `console/tests/platform_overview_view_test.py::PlatformOverviewViewTest`
 
+### 批量读取插件最新安装元数据
+
+- Capability ID: `console.platform-plugin.batch-install-metadata`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `workflow`
+- 业务入口: `console.services.platform_plugin_service.PlatformPluginService.list_platform_plugins`
+- 代码路径: `console/services/platform_plugin_service.py`, `console/repositories/group.py`
+- 测试路径: `console/tests/platform_plugin_read_optimization_test.py::PlatformPluginInstallationBatchTests`
+
+### 安全合并插件目录与架构并发读取
+
+- Capability ID: `console.platform-plugin.coalesced-catalog-reads`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `workflow`
+- 业务入口: `console.services.platform_plugin_service.PlatformPluginService`
+- 代码路径: `console/services/platform_plugin_service.py`, `console/utils/coalesced_read_cache.py`
+- 测试路径: `console/tests/platform_plugin_read_optimization_test.py::PlatformPluginReadCacheTests`
+
 ### 从前端组件访问地址回填官方虚拟机插件访问前缀
 
 - Capability ID: `console.platform-plugin.vm-access-url-fallback`
@@ -6395,6 +6429,16 @@
 - 业务入口: `console.services.region_services.RegionService.update_region_config`
 - 代码路径: `console/services/region_services.py`
 - 测试路径: `console/tests/region_config_update_test.py::UpdateRegionConfigTest.test_update_when_config_exists_passes_dict_value`, `console/tests/region_config_update_test.py::UpdateRegionConfigTest.test_add_when_config_missing_passes_json_string_and_desc`
+
+### 兼容阿里云ACR企业版公网和VPC地址及云API查询
+
+- Capability ID: `console.registry.aliyun-enterprise`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.team_services.TeamService.get_cloud_registry_namespaces`
+- 代码路径: `console/services/team_services.py`
+- 测试路径: `console/tests/registry_service_test.py::AliyunEnterpriseRegistryTestCase`
 
 ### 将请求中的布尔参数从字符串或布尔值安全转换
 
