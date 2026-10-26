@@ -79,6 +79,7 @@ class PerformanceTimingMiddleware(object):
         token, context = _start_performance_context()
         started = time.monotonic()
         status = 500
+        response = None
         try:
             response = self.get_response(request)
             status = getattr(response, "status_code", 200)
@@ -87,6 +88,13 @@ class PerformanceTimingMiddleware(object):
         finally:
             try:
                 total_ms = round((time.monotonic() - started) * 1000, 3)
+                if response is not None:
+                    try:
+                        # Region duration is the recorded client-call sum, not the request critical path.
+                        response["Server-Timing"] = "console_handler;dur={:.3f}, region_http;dur={:.3f}".format(
+                            total_ms, context["region_total_ms"])
+                    except Exception:
+                        pass
                 if _performance_logging_enabled() and (status >= 500 or total_ms >= _slow_request_threshold_ms()):
                     payload = {
                         "event": "console_request_timing",

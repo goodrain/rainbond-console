@@ -10032,6 +10032,24 @@
       "status": "active"
     },
     {
+      "id": "console.performance.response-timing",
+      "title": "Expose numeric request and Region durations without logging or payload changes",
+      "title_zh": "响应以固定数值暴露请求与Region累计耗时且不改变日志及业务返回",
+      "interface_type": "workflow",
+      "interface": "goodrain_web.performance.PerformanceTimingMiddleware",
+      "code_paths": [
+        "goodrain_web/performance.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/performance_timing_test.py",
+          "selector": "PerformanceTimingMiddlewareTestCase"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.permissions.concurrent-initialization",
       "title": "Synchronize permission metadata idempotently across workers",
       "title_zh": "多进程幂等同步权限元数据",

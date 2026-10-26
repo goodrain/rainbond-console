@@ -523,6 +523,7 @@
 | console.package-upload.status | Package Upload Status | active | regression | console.services.mcp_query_service.call_tool[console.package-upload.status] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_get_package_upload_status_delegates_to_upload_tool_service |
 | console.package-upload.status-flow | Package Upload Status Flow | active | regression | console.services.package_upload_tool_service | console/tests/package_upload_tool_service_test.py::PackageUploadToolServiceTests.test_get_upload_status_reads_packages_and_updates_record |
 | console.package-upload.upload-flow | Package Upload Upload Flow | active | regression | console.services.package_upload_tool_service | console/tests/package_upload_tool_service_test.py::PackageUploadToolServiceTests.test_upload_package_uploads_archive_and_returns_status |
+| console.performance.response-timing | 响应以固定数值暴露请求与Region累计耗时且不改变日志及业务返回 | active | regression | goodrain_web.performance.PerformanceTimingMiddleware | console/tests/performance_timing_test.py::PerformanceTimingMiddlewareTestCase |
 | console.permissions.concurrent-initialization | 多进程幂等同步权限元数据 | active | regression | console.repositories.perm_repo.PermsRepo._sync_permission_settings | console/tests/perm_repo_performance_test.py::PermsRepoPerformanceTests.test_changed_permissions_sync_idempotently_within_the_check_interval |
 | console.platform-overview.absolute-metrics | Historical absolute usage in platform overview metrics | active | regression | console.services.platform_overview_service.PlatformOverviewService.get_metrics | console/tests/platform_overview_absolute_test.py |
 | console.platform-overview.aggregate | 平台总览聚合、已启用插件与真实集群版本 | active | unit | console.services.platform_overview_service.PlatformOverviewService | console/tests/platform_overview_service_test.py::PlatformOverviewServiceTest<br>console/tests/platform_overview_service_test.py::PlatformPluginInstalledOnlyTest |
@@ -5899,6 +5900,16 @@
 - 业务入口: `console.services.package_upload_tool_service`
 - 代码路径: `console/services/package_upload_tool_service.py`
 - 测试路径: `console/tests/package_upload_tool_service_test.py::PackageUploadToolServiceTests.test_upload_package_uploads_archive_and_returns_status`
+
+### 响应以固定数值暴露请求与Region累计耗时且不改变日志及业务返回
+
+- Capability ID: `console.performance.response-timing`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `workflow`
+- 业务入口: `goodrain_web.performance.PerformanceTimingMiddleware`
+- 代码路径: `goodrain_web/performance.py`
+- 测试路径: `console/tests/performance_timing_test.py::PerformanceTimingMiddlewareTestCase`
 
 ### 多进程幂等同步权限元数据
 
