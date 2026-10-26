@@ -791,3 +791,117 @@ class RegistryNamespaceServiceTestCase(TestCase):
 
         self.assertEqual(result, names)
         self.assertEqual(get_mock.call_count, 2)
+
+
+# capability_id: console.registry.aliyun-enterprise
+class AliyunEnterpriseRegistryTestCase(TestCase):
+    def test_accepts_enterprise_and_personal_endpoints(self):
+        for host in (
+                "registry.cn-shanghai.aliyuncs.com", "registry-vpc.cn-shanghai.aliyuncs.com",
+                "demo-acr-registry.cn-shanghai.cr.aliyuncs.com",
+                "demo-acr-registry-vpc.cn-shanghai.cr.aliyuncs.com"):
+            with self.subTest(host=host):
+                self.assertEqual(team_services._parse_aliyun_acr_domain("https://" + host), "cn-shanghai")
+
+    def test_rejects_unrelated_and_suffix_spoofed_domains(self):
+        for host in ("example.com", "demo-registry.cn-shanghai.cr.aliyuncs.com.example.com"):
+            with self.subTest(host=host), self.assertRaises(ServiceHandleException):
+                team_services._parse_aliyun_acr_domain("https://" + host)
+
+    def test_enterprise_connection_discovers_instance_and_paginates_namespaces(self):
+        client = mock.Mock()
+        client.call_api.side_effect = [
+            {"body": {"IsSuccess": True, "Instances": [
+                {"InstanceName": "other", "InstanceId": "other-id"},
+                {"InstanceName": "demo-acr", "InstanceId": "test-instance"}], "TotalCount": 2}},
+            {"body": {"IsSuccess": True, "Namespaces": [{"NamespaceName": "apps"}], "TotalCount": 2}},
+            {"body": {"IsSuccess": True, "Namespaces": [{"NamespaceName": "base"}], "TotalCount": 2}},
+        ]
+        with mock.patch.object(team_services, "_aliyun_acr_client", return_value=client):
+            namespaces = team_services.get_cloud_registry_namespaces(
+                "https://demo-acr-registry-vpc.cn-shanghai.cr.aliyuncs.com", "", "", "AliyunACR")
+        self.assertEqual(namespaces, ["apps", "base"])
+        calls = client.call_api.call_args_list
+        self.assertEqual([call.args[0].action for call in calls], ["ListInstance", "ListNamespace", "ListNamespace"])
+        for call in calls:
+            self.assertEqual(call.args[0].version, "2018-12-01")
+            self.assertEqual(call.args[0].style, "RPC")
+            self.assertEqual(call.args[0].pathname, "/")
+        self.assertEqual(calls[1].args[1].query["InstanceId"], "test-instance")
+        self.assertEqual(calls[2].args[1].query["PageNo"], "2")
+
+    def test_enterprise_images_preserve_namespace_and_pagination(self):
+        client = mock.Mock()
+        client.call_api.side_effect = [
+            {"body": {"Instances": [{"InstanceName": "demo-acr", "InstanceId": "test-instance"}], "TotalCount": 1}},
+            {"body": {"Repositories": [{"RepoName": "nginx", "RepoNamespaceName": "apps",
+                                        "RepoType": "PRIVATE", "CreateTime": 123, "ModifiedTime": 456}],
+                      "TotalCount": "11"}},
+        ]
+        with mock.patch.object(team_services, "_aliyun_acr_client", return_value=client):
+            result = team_services.get_cloud_registry_images(
+                "https://demo-acr-registry.cn-shanghai.cr.aliyuncs.com", "", "", "AliyunACR", "apps", 2, 10)
+        params, request, _ = client.call_api.call_args.args
+        self.assertEqual(params.action, "ListRepository")
+        self.assertEqual(request.query, {"InstanceId": "test-instance", "RepoNamespaceName": "apps",
+                                         "PageNo": "2", "PageSize": "10"})
+        self.assertEqual(result["total"], 11)
+        self.assertEqual(result["images"][0]["namespace"], "apps")
+        self.assertEqual(result["images"][0]["created_at"], 123)
+        self.assertEqual(result["images"][0]["updated_at"], 456)
+        self.assertFalse(result["images"][0]["is_public"])
+
+    def test_missing_instance_does_not_query_another_instance(self):
+        client = mock.Mock()
+        client.call_api.return_value = {"body": {"Instances": [
+            {"InstanceName": "other", "InstanceId": "other-id"}], "TotalCount": 1}}
+        with mock.patch.object(team_services, "_aliyun_acr_client", return_value=client):
+            with self.assertRaises(ServiceHandleException):
+                team_services.get_cloud_registry_namespaces(
+                    "https://demo-acr-registry-vpc.cn-shanghai.cr.aliyuncs.com", "", "", "AliyunACR")
+        self.assertEqual(client.call_api.call_count, 1)
+
+    def test_enterprise_api_failure_is_not_reported_as_successful_connection(self):
+        client = mock.Mock()
+        client.call_api.return_value = {"body": {"IsSuccess": False, "Code": "NoPrivilege"}}
+        with mock.patch.object(team_services, "_aliyun_acr_client", return_value=client):
+            with self.assertRaises(ServiceHandleException):
+                team_services.check_registry_connection(
+                    "https://demo-acr-registry-vpc.cn-shanghai.cr.aliyuncs.com", "", "", "AliyunACR")
+
+    def test_enterprise_search_filters_across_pages(self):
+        client = mock.Mock()
+        client.call_api.side_effect = [
+            {"body": {"Instances": [{"InstanceName": "demo", "InstanceId": "test-instance"}], "TotalCount": 1}},
+            {"body": {"Repositories": [{"RepoName": "other"}], "TotalCount": "2"}},
+            {"body": {"Repositories": [{"RepoName": "nginx"}], "TotalCount": "2"}},
+        ]
+        with mock.patch.object(team_services, "_aliyun_acr_client", return_value=client):
+            result = team_services.get_cloud_registry_images(
+                "https://demo-registry-vpc.cn-shanghai.cr.aliyuncs.com", "", "", "AliyunACR", "apps", 1, 10, "NGINX")
+        self.assertEqual(result["total"], 1)
+        self.assertEqual([image["name"] for image in result["images"]], ["nginx"])
+        self.assertEqual(client.call_api.call_args.args[1].query["PageNo"], "2")
+
+    def test_instance_discovery_checks_later_pages(self):
+        client = mock.Mock()
+        client.call_api.side_effect = [
+            {"body": {"Instances": [{"InstanceName": "other", "InstanceId": "other-id"}], "TotalCount": 2}},
+            {"body": {"Instances": [{"InstanceName": "demo", "InstanceId": "test-instance"}], "TotalCount": 2}},
+            {"body": {"Namespaces": [], "TotalCount": 0}},
+        ]
+        with mock.patch.object(team_services, "_aliyun_acr_client", return_value=client):
+            self.assertTrue(team_services.check_registry_connection(
+                "https://demo-registry-vpc.cn-shanghai.cr.aliyuncs.com", "", "", "AliyunACR"))
+        self.assertEqual(client.call_api.call_args.args[1].query["InstanceId"], "test-instance")
+
+    def test_namespace_api_failure_is_not_reported_as_successful_connection(self):
+        client = mock.Mock()
+        client.call_api.side_effect = [
+            {"body": {"Instances": [{"InstanceName": "demo", "InstanceId": "test-instance"}], "TotalCount": 1}},
+            {"body": {"IsSuccess": False, "Code": "NoPrivilege"}},
+        ]
+        with mock.patch.object(team_services, "_aliyun_acr_client", return_value=client):
+            with self.assertRaises(ServiceHandleException):
+                team_services.check_registry_connection(
+                    "https://demo-registry-vpc.cn-shanghai.cr.aliyuncs.com", "", "", "AliyunACR")

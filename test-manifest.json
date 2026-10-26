@@ -13454,6 +13454,24 @@
       ],
       "test_type": "regression",
       "status": "active"
+    },
+    {
+      "id": "console.registry.aliyun-enterprise",
+      "title": "Discover enterprise ACR instances and list namespaces and repositories",
+      "title_zh": "兼容阿里云ACR企业版公网和VPC地址及云API查询",
+      "interface_type": "service_method",
+      "interface": "console.services.team_services.TeamService.get_cloud_registry_namespaces",
+      "code_paths": [
+        "console/services/team_services.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/registry_service_test.py",
+          "selector": "AliyunEnterpriseRegistryTestCase"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
     }
   ]
 }

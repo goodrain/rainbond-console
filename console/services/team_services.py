@@ -57,7 +57,9 @@ class TeamService(object):
         "Volcano": "VolcanoCR",
     }
     CLOUD_REGISTRY_HUB_TYPES = ("AliyunACR", "TencentTCR", "HuaweiSWR", "VolcanoCR")
-    ALIYUN_ACR_DOMAIN_RE = re.compile(r"^registry\.(?P<region>[^.]+)\.aliyuncs\.com$")
+    ALIYUN_ACR_DOMAIN_RE = re.compile(r"^registry(?:-vpc)?\.(?P<region>[a-z0-9-]+)\.aliyuncs\.com$")
+    ALIYUN_ACR_ENTERPRISE_DOMAIN_RE = re.compile(
+        r"^(?P<instance>[a-z0-9][a-z0-9-]*)-registry(?:-vpc)?\.(?P<region>[a-z0-9-]+)\.cr\.aliyuncs\.com$")
     TENCENT_TCR_DOMAIN_RE = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9-]*(?:\.[a-zA-Z0-9-]+)*\.tencentcloudcr\.com$")
     TENCENT_TCR_PERSONAL_REGIONS = {
         "ccr.ccs.tencentyun.com": "ap-guangzhou",
@@ -1042,7 +1044,7 @@ class TeamService(object):
 
     def _parse_aliyun_acr_domain(self, domain: str) -> str:
         host = self._registry_domain_host(domain)
-        match = self.ALIYUN_ACR_DOMAIN_RE.match(host)
+        match = self.ALIYUN_ACR_DOMAIN_RE.match(host) or self.ALIYUN_ACR_ENTERPRISE_DOMAIN_RE.match(host)
         if not match:
             raise ServiceHandleException(
                 msg="invalid aliyun acr domain",
@@ -1259,7 +1261,7 @@ class TeamService(object):
         }
 
     def _aliyun_acr_call_api(self, client: Any, action: str, pathname: str,
-                             query: Optional[Dict[str, Any]] = None) -> Any:
+                             query: Optional[Dict[str, Any]] = None, enterprise: bool = False) -> Any:
         from alibabacloud_tea_openapi import models as open_api_models
         from alibabacloud_openapi_util.client import Client as OpenApiUtilClient
         from alibabacloud_tea_util import models as util_models
@@ -1268,19 +1270,65 @@ class TeamService(object):
             query=OpenApiUtilClient.query(query or {}))
         params = open_api_models.Params(
             action=action,
-            version="2016-06-07",
+            version="2018-12-01" if enterprise else "2016-06-07",
             protocol="HTTPS",
             pathname=pathname,
             method="GET",
             auth_type="AK",
-            style="ROA",
+            style="RPC" if enterprise else "ROA",
             req_body_type="json",
             body_type="json")
         return client.call_api(params, request, util_models.RuntimeOptions())
 
+    def _aliyun_acr_enterprise_list(self, client: Any, action: str, key: str,
+                                    query: Optional[Dict[str, Any]] = None) -> List[Any]:
+        items = []
+        page = 1
+        while True:
+            data = self._aliyun_acr_enterprise_request(
+                client, action, dict(query or {}, PageNo=page, PageSize=100))
+            batch = self._cloud_list(data, key)
+            items.extend(batch)
+            if not batch or len(items) >= self._cloud_total(data, len(items)):
+                return items
+            page += 1
+
+    def _aliyun_acr_enterprise_request(self, client: Any, action: str, query: Dict[str, Any]) -> Any:
+        response = self._aliyun_acr_call_api(client, action, "/", query, enterprise=True)
+        data = self._cloud_response_data(response)
+        if self._cloud_attr(data, "IsSuccess") is False:
+            raise ServiceHandleException(
+                msg="aliyun acr enterprise request failed",
+                msg_show="阿里云ACR企业版接口调用失败，请检查访问权限及实例状态",
+                status_code=400)
+        return data
+
+    def _aliyun_acr_instance_id(self, client: Any, domain: str) -> Optional[str]:
+        match = self.ALIYUN_ACR_ENTERPRISE_DOMAIN_RE.match(self._registry_domain_host(domain))
+        if not match:
+            return None
+        instance_name = match.group("instance")
+        instances = self._aliyun_acr_enterprise_list(
+            client, "ListInstance", "Instances", {"InstanceName": instance_name})
+        for instance in instances:
+            if self._cloud_attr(instance, "InstanceName") == instance_name:
+                instance_id = self._cloud_attr(instance, "InstanceId")
+                if instance_id:
+                    return instance_id
+        raise ServiceHandleException(
+            msg="aliyun acr enterprise instance not found",
+            msg_show="未找到地址对应的阿里云ACR企业版实例，请检查实例地址和访问权限",
+            status_code=400)
+
     def _get_aliyun_acr_namespaces(self, domain: str, access_key: str, access_secret: str) -> List[str]:
         region = self._parse_aliyun_acr_domain(domain)
         client = self._aliyun_acr_client(access_key, access_secret, region)
+        instance_id = self._aliyun_acr_instance_id(client, domain)
+        if instance_id:
+            namespaces = self._aliyun_acr_enterprise_list(
+                client, "ListNamespace", "Namespaces", {"InstanceId": instance_id})
+            return [self._cloud_attr(item, "NamespaceName") for item in namespaces
+                    if self._cloud_attr(item, "NamespaceName")]
         response = self._aliyun_acr_call_api(client, "GetNamespaceList", "/namespace")
         data = self._cloud_response_data(response)
         items = self._cloud_list(data, "namespaces", "Namespaces", "namespaceList", "NamespaceList")
@@ -1296,7 +1344,15 @@ class TeamService(object):
         region = self._parse_aliyun_acr_domain(domain)
         client = self._aliyun_acr_client(access_key, access_secret, region)
 
+        instance_id = self._aliyun_acr_instance_id(client, domain)
+
         def list_repositories(request_page: int, request_page_size: int) -> Tuple[List[Any], int]:
+            if instance_id:
+                data = self._aliyun_acr_enterprise_request(client, "ListRepository", {
+                    "InstanceId": instance_id, "RepoNamespaceName": namespace,
+                    "PageNo": request_page, "PageSize": request_page_size})
+                repositories = self._cloud_list(data, "Repositories")
+                return repositories, self._cloud_total(data, len(repositories))
             response = self._aliyun_acr_call_api(
                 client,
                 "GetRepoListByNamespace",
@@ -1331,12 +1387,14 @@ class TeamService(object):
                 is_public = str(repo_type).lower() == "public"
             images.append(self._cloud_registry_image(
                 repo_name,
-                self._cloud_attr(repo, "repoNamespace", "RepoNamespace", "namespace", "Namespace") or namespace,
+                self._cloud_attr(
+                    repo, "repoNamespace", "RepoNamespace", "RepoNamespaceName", "namespace", "Namespace") or namespace,
                 "AliyunACR",
                 description=self._cloud_attr(repo, "summary", "Summary", "description", "Description"),
                 is_public=is_public,
-                created_at=self._cloud_attr(repo, "gmtCreate", "GmtCreate", "creationTime", "CreationTime"),
-                updated_at=self._cloud_attr(repo, "gmtModified", "GmtModified", "updateTime", "UpdateTime")))
+                created_at=self._cloud_attr(repo, "gmtCreate", "GmtCreate", "creationTime", "CreationTime", "CreateTime"),
+                updated_at=self._cloud_attr(
+                    repo, "gmtModified", "GmtModified", "updateTime", "UpdateTime", "ModifiedTime")))
         if search_key:
             total = len(images)
             start = (page - 1) * page_size
