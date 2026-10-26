@@ -10091,24 +10091,6 @@
       "status": "active"
     },
     {
-      "id": "console.platform-overview.node-certificates",
-      "title": "Cluster node certificate expiration alerts and coverage health",
-      "title_zh": "集群节点证书到期告警与采集状态",
-      "interface_type": "service_method",
-      "interface": "console.services.platform_overview_service.PlatformOverviewService._normalize_nodes",
-      "code_paths": [
-        "console/services/platform_overview_service.py"
-      ],
-      "tests": [
-        {
-          "path": "console/tests/platform_overview_service_test.py",
-          "selector": "NodeCertificateAlertsTest"
-        }
-      ],
-      "test_type": "regression",
-      "status": "active"
-    },
-    {
       "id": "console.platform-plugin.vm-access-url-fallback",
       "title": "Fallback official VM plugin access URL from frontend component",
       "title_zh": "从前端组件访问地址回填官方虚拟机插件访问前缀",

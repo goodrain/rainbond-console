@@ -19,7 +19,6 @@ from django.db import close_old_connections
 from django.db.models import Count, F, IntegerField, Sum
 from django.db.models.expressions import ExpressionWrapper
 from django.utils import timezone
-from django.utils.dateparse import parse_datetime
 from OpenSSL import crypto
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import (ServiceDomain, ServiceDomainCertificate, ServiceGroup, ServiceGroupRelation, ServiceTcpDomain,
@@ -40,8 +39,6 @@ class PlatformOverviewService(object):
     METRICS_CACHE_SECONDS = 15
     VERSION_CACHE_SECONDS = 300
     DISK_ALERT_THRESHOLD = 70.0
-    REQUIRED_NODE_CERTIFICATES = frozenset(("agent/client-kubelet.crt", "agent/serving-kubelet.crt",
-                                            "agent/client-kube-proxy.crt", "agent/client-rke2-controller.crt"))
     REGION_CONNECT_TIMEOUT_SECONDS = 2
     REGION_READ_TIMEOUT_SECONDS = 3
     SECTION_DEADLINE_SECONDS = 5
@@ -824,7 +821,6 @@ class PlatformOverviewService(object):
         nodes = []
         alerts = []
         ready_count = 0
-        now = timezone.now().astimezone(datetime.timezone.utc)
         if not isinstance(body.get("list"), list):
             raise RuntimeError("invalid node list")
         for source in body["list"]:
@@ -903,124 +899,10 @@ class PlatformOverviewService(object):
             elif disk_status == "ok" and len(node["disks"]) < 2:
                 disk_status = "partial" if node["disks"] else "unavailable"
             node["disk_stats_status"] = disk_status
-            certificate_status, certificates, certificate_alerts = self._node_certificates(source, name, now)
-            node["certificate_status"] = certificate_status
-            node["certificates"] = certificates
-            for field in ("certificate_source", "certificate_observed_at", "certificate_checked_at"):
-                if isinstance(source.get(field), str) and source[field]:
-                    node[field] = source[field]
-            alerts.extend(certificate_alerts)
             nodes.append(node)
         statuses = {node["disk_stats_status"] for node in nodes}
         disk_status = (next(iter(statuses)) if len(statuses) == 1 else ("partial" if statuses else "unavailable"))
-        certificate_statuses = {node["certificate_status"] for node in nodes} - {"not_applicable"}
-        if not certificate_statuses:
-            certificate_status = "not_applicable" if nodes else "unavailable"
-        elif len(certificate_statuses) == 1:
-            certificate_status = next(iter(certificate_statuses))
-        elif certificate_statuses <= {"ok", "not_observed"}:
-            certificate_status = "not_observed"
-        else:
-            certificate_status = "partial"
-        return {"total": len(nodes), "ready": ready_count, "items": nodes, "alerts": alerts,
-                "disk_stats_status": disk_status, "certificate_status": certificate_status}
-
-    def _node_certificates(self, source: dict, node_name: str, now: datetime.datetime) -> tuple:
-        status = source.get("certificate_status", "unavailable")
-        native = source.get("certificate_source") == "rke2_events"
-        warning_alerts, warnings_malformed = self._native_certificate_warnings(source, node_name, now) if native else ([], False)
-        if (native and status == "not_observed" and isinstance(source.get("certificates"), list)
-                and not source["certificates"] and not warning_alerts and not warnings_malformed):
-            try:
-                checked = parse_datetime(source["certificate_checked_at"])
-                if checked is None or timezone.is_naive(checked):
-                    raise ValueError("invalid native query timestamp")
-                age = (now - checked).total_seconds()
-                if age > 65 * 60 or age < -60:
-                    raise ValueError("stale native query timestamp")
-            except (KeyError, TypeError, ValueError, OverflowError):
-                return "unavailable", [], warning_alerts
-            # A successful event query is not a complete certificate validity check.
-            return "not_observed", [], []
-        if native:
-            try:
-                observed = parse_datetime(source["certificate_observed_at"])
-                if observed is None or timezone.is_naive(observed):
-                    raise ValueError("invalid native observation")
-                age = (now - observed).total_seconds()
-                if age > 65 * 60 or age < -60:
-                    raise ValueError("stale native observation")
-            except (KeyError, TypeError, ValueError, OverflowError):
-                return "unavailable", [], warning_alerts
-        elif status == "not_applicable":
-            return status, [], []
-        certificates = []
-        alerts = list(warning_alerts)
-        malformed = warnings_malformed
-        entries = source.get("certificates")
-        if not isinstance(entries, list):
-            entries = []
-            malformed = True
-        seen = set()
-        for entry in entries:
-            try:
-                if (not isinstance(entry, dict) or not isinstance(entry.get("name"), str)
-                        or entry["name"] not in self.REQUIRED_NODE_CERTIFICATES):
-                    raise ValueError("invalid certificate name")
-                expires_at = parse_datetime(entry["expires_at"])
-                if expires_at is None or timezone.is_naive(expires_at) or entry["name"] in seen:
-                    raise ValueError("invalid certificate expiration")
-                expires_at = expires_at.astimezone(datetime.timezone.utc)
-            except (KeyError, TypeError, ValueError, OverflowError):
-                malformed = True
-                continue
-            seen.add(entry["name"])
-            expiry_text = expires_at.isoformat().replace("+00:00", "Z")
-            certificates.append({"name": entry["name"], "expires_at": expiry_text})
-            seconds = (expires_at - now).total_seconds()
-            if seconds <= 30 * 86400:
-                alerts.append({"type": "certificate_expired" if seconds <= 0 else "certificate_expiring",
-                               "severity": "critical", "node_name": node_name, "certificate_name": entry["name"],
-                               "expires_at": expiry_text, "remaining_days": int(math.ceil(seconds / 86400))})
-        if native and status == "ok" and not malformed and not warning_alerts:
-            # Native checks report only risks; a fresh explicit empty list means OK.
-            status = "ok"
-        elif not certificates:
-            status = "unavailable"
-        elif malformed or status != "ok" or seen != self.REQUIRED_NODE_CERTIFICATES:
-            status = "partial"
-        return status, certificates, alerts
-
-    @staticmethod
-    def _native_certificate_warnings(source: dict, node_name: str, now: datetime.datetime) -> tuple:
-        entries = source.get("certificate_warnings", [])
-        if not isinstance(entries, list):
-            return [], True
-        alerts = []
-        malformed = False
-        seen = set()
-        for entry in entries:
-            try:
-                if not isinstance(entry, dict) or entry.get("reason") not in (
-                        "CertificateExpirationWarning", "CACertificateExpirationWarning"):
-                    raise ValueError("invalid native warning reason")
-                observed = parse_datetime(entry["observed_at"])
-                if observed is None or timezone.is_naive(observed):
-                    raise ValueError("invalid native warning timestamp")
-                age = (now - observed).total_seconds()
-                if age > 65 * 60 or age < -60:
-                    raise ValueError("stale native warning timestamp")
-            except (KeyError, TypeError, ValueError, OverflowError):
-                malformed = True
-                continue
-            observed_at = observed.astimezone(datetime.timezone.utc).isoformat().replace("+00:00", "Z")
-            identity = (entry["reason"], observed_at)
-            if identity in seen:
-                continue
-            seen.add(identity)
-            alerts.append({"type": "certificate_warning", "severity": "critical", "node_name": node_name,
-                           "reason": entry["reason"], "observed_at": observed_at})
-        return alerts, malformed
+        return {"total": len(nodes), "ready": ready_count, "items": nodes, "alerts": alerts, "disk_stats_status": disk_status}
 
     def _fetch_components(self, region_name: str) -> list:
         components = enterprise_services.get_rbdcomponents(region_name,
