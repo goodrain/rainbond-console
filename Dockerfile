@@ -33,6 +33,8 @@ RUN python -m venv --copies /app/ui/py_venv && \
     pip install --no-cache-dir -r requirements.txt $PYTHONPROXY && \
     bash scripts/install_openapi_client.sh --no-cache-dir $PYTHONPROXY && \
     python manage.py collectstatic --noinput --ignore weavescope-src --ignore drf-yasg --ignore rest_framework && \
+    python -m whitenoise.compress --no-brotli static/ && \
+    python -m whitenoise.compress --no-brotli www/static/ && \
     find /app/ui/py_venv/lib/python3.11/site-packages -depth -type d \( -name __pycache__ -o -name tests \) -exec rm -rf {} + && \
     find /app/ui/py_venv -name '*.pyc' -delete
 

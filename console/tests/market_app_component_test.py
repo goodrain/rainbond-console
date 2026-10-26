@@ -51,6 +51,22 @@ def _component(service_alias="grabcd"):
 
 class MarketAppComponentPortTests(TestCase):
 
+    # capability_id: console.market-app.k8s-attribute-extra-fields
+    def test_update_k8s_attribute_ignores_template_metadata_fields(self):
+        component = _component()
+        component.k8s_attributes = [SimpleNamespace(name="affinity", attribute_value="old")]
+
+        component._update_component_k8s_attributes({
+            "upd": [{
+                "name": "affinity",
+                "save_type": "json",
+                "attribute_value": '{"nodeAffinity": {}}',
+                "operator": "admin",
+            }]
+        })
+
+        self.assertEqual(component.k8s_attributes[0].attribute_value, '{"nodeAffinity": {}}')
+
     def test_update_port_data_preserves_template_port_alias(self):
         component = _component()
         port = {

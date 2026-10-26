@@ -3,8 +3,6 @@ import json
 import logging
 import os
 import secrets
-import threading
-import time
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 from console.appstore.appstore import app_store
@@ -31,6 +29,7 @@ from console.services.market_app_service import market_app_service
 from console.services.region_services import region_services
 from console.services.team_services import team_services
 from console.utils import jwt_issuer
+from console.utils.coalesced_read_cache import CoalescedReadCache
 from console.utils.offline import is_cloud_market_disabled
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import ServiceGroup, ServiceGroupRelation, TenantServiceInfo, Tenants
@@ -62,18 +61,14 @@ class PlatformPluginService(object):
     ARCH_PLUGIN_SUFFIXES = ("-ARM64", "-AMD64")
 
     def __init__(self) -> None:
-        self._market_plugin_cache: Dict[str, Any] = {}
-        self._market_plugin_cache_lock = threading.Lock()
-        self._region_arch_cache: Dict[str, Any] = {}
-        self._region_arch_cache_lock = threading.Lock()
+        self._market_plugin_cache = CoalescedReadCache()
+        self._region_arch_cache = CoalescedReadCache()
 
     def clear_market_plugin_cache(self) -> None:
-        with self._market_plugin_cache_lock:
-            self._market_plugin_cache.clear()
+        self._market_plugin_cache.clear()
 
     def clear_region_arches_cache(self) -> None:
-        with self._region_arch_cache_lock:
-            self._region_arch_cache.clear()
+        self._region_arch_cache.clear()
 
     @staticmethod
     def _get_region_arch_cache_ttl_seconds() -> int:
@@ -102,14 +97,11 @@ class PlatformPluginService(object):
         失败 fallback 为全集 {amd64, arm64}, 避免单点接口异常导致 ARM 集群
         看不到 ARM 版本插件. 同 region 60s 内缓存, 避免顶栏轮询打爆 region API.
         """
-        ttl = self._get_region_arch_cache_ttl_seconds()
-        now = time.time() if now is None else now
-        if ttl > 0:
-            with self._region_arch_cache_lock:
-                entry = self._region_arch_cache.get(region_name)
-                if entry and entry["expires_at"] > now:
-                    return set(entry["arches"])
+        return self._region_arch_cache.get(region_name, self._get_region_arch_cache_ttl_seconds(),
+                                           lambda: self._read_region_arches(region_name), now=now)
 
+    @staticmethod
+    def _read_region_arches(region_name: str) -> Set[str]:
         try:
             _, body = region_api.get_cluster_nodes_arch(region_name)
             raw = (body or {}).get("list") or []
@@ -121,12 +113,6 @@ class PlatformPluginService(object):
             logger.warning("get region arches failed region=%s: %s", region_name, e)
             arches = set(KNOWN_ARCHES)
 
-        if ttl > 0:
-            with self._region_arch_cache_lock:
-                self._region_arch_cache[region_name] = {
-                    "expires_at": now + ttl,
-                    "arches": set(arches),
-                }
         return arches
 
     @staticmethod
@@ -135,10 +121,6 @@ class PlatformPluginService(object):
             return int(os.environ.get("MARKET_PLUGIN_CACHE_TTL_SECONDS", MARKET_PLUGIN_CACHE_TTL_SECONDS))
         except (TypeError, ValueError):
             return MARKET_PLUGIN_CACHE_TTL_SECONDS
-
-    @staticmethod
-    def _copy_market_plugins(plugins: Any) -> List[Any]:
-        return [dict(item) if isinstance(item, dict) else item for item in (plugins or [])]
 
     def _strip_plugin_arch_suffix(self, plugin_id: Any) -> str:
         plugin_id = str(plugin_id or "").strip()
@@ -252,33 +234,8 @@ class PlatformPluginService(object):
         return market, plugins
 
     def _get_market_platform_plugins_cached(self, enterprise_id: str, now: Optional[float] = None) -> Tuple[AppMarket, List[Any]]:
-        ttl = self._get_market_plugin_cache_ttl_seconds()
-        if ttl <= 0:
-            return self._get_market_platform_plugins(enterprise_id)
-
-        now = time.time() if now is None else now
-        cache_key = enterprise_id
-        with self._market_plugin_cache_lock:
-            entry = self._market_plugin_cache.get(cache_key)
-            if entry and entry["expires_at"] > now:
-                logger.debug(
-                    "platform plugin market cache hit enterprise_id=%s plugin_count=%s ttl_remaining_ms=%.1f",
-                    enterprise_id,
-                    len(entry["plugins"]),
-                    (entry["expires_at"] - now) * 1000,
-                )
-                return entry["market"], self._copy_market_plugins(entry["plugins"])
-
-        logger.debug("platform plugin market cache miss enterprise_id=%s", enterprise_id)
-        market, plugins = self._get_market_platform_plugins(enterprise_id)
-        cached_plugins = self._copy_market_plugins(plugins)
-        with self._market_plugin_cache_lock:
-            self._market_plugin_cache[cache_key] = {
-                "expires_at": now + ttl,
-                "market": market,
-                "plugins": cached_plugins,
-            }
-        return market, self._copy_market_plugins(cached_plugins)
+        return self._market_plugin_cache.get(enterprise_id, self._get_market_plugin_cache_ttl_seconds(),
+                                             lambda: self._get_market_platform_plugins(enterprise_id), now=now)
 
     def _get_installed_plugins(self, enterprise_id: str, region_name: str) -> Dict[str, Any]:
         installed_plugins = {}
@@ -291,10 +248,17 @@ class PlatformPluginService(object):
             logger.warning("Failed to list region plugins: %s", e)
         return installed_plugins
 
-    def _get_installed_plugins_strict(self, enterprise_id: str, region_name: str) -> Dict[str, Any]:
+    def _get_installed_plugins_strict(self, enterprise_id: str, region_name: str,
+                                      region_api_client: Any = None) -> Dict[str, Any]:
         try:
-            _, body = region_api.list_plugins(enterprise_id, region_name, False)
-            if not isinstance(body, dict) or not isinstance(body.get("list"), list):
+            client = region_api_client if region_api_client is not None else region_api
+            response, body = client.list_plugins(
+                enterprise_id, region_name, False, connect_timeout=2, timeout=3, retries=0)
+            valid_response = isinstance(response, dict) and response.get("status") == 200
+            plugin_list = body.get("list") if isinstance(body, dict) else None
+            valid_body = (isinstance(body, dict) and "list" in body and
+                          (plugin_list is None or isinstance(plugin_list, list)))
+            if not valid_response or not valid_body:
                 raise ServiceHandleException(
                     msg="platform plugin state unavailable",
                     msg_show="无法确认平台插件安装状态，请稍后重试",
@@ -303,7 +267,7 @@ class PlatformPluginService(object):
                 )
             return {
                 plugin.get("name", ""): plugin
-                for plugin in body["list"] if isinstance(plugin, dict) and plugin.get("name")
+                for plugin in plugin_list or [] if isinstance(plugin, dict) and plugin.get("name")
             }
         except ServiceHandleException:
             raise
@@ -315,6 +279,23 @@ class PlatformPluginService(object):
                 status_code=503,
                 error_code="platform_plugin_state_unavailable",
             )
+
+    def list_installed_platform_plugins(self,
+                                        enterprise_id: str,
+                                        region_name: str,
+                                        region_api_client: Any = None) -> List[dict]:
+        """Return cluster-installed plugins without consulting any application market."""
+        installed_plugins = self._get_installed_plugins_strict(enterprise_id, region_name, region_api_client=region_api_client)
+        return sorted(
+            [
+                dict(plugin)
+                for plugin in installed_plugins.values() if str(plugin.get("enable_status", "true")).strip().lower() != "false"
+            ],
+            key=lambda plugin: (
+                str(plugin.get("status", "") or "").upper() == "RUNNING",
+                plugin.get("name", ""),
+            ),
+        )
 
     def get_vm_plugin_status(self, enterprise_id: str, region_name: str) -> str:
         installed_plugins = self._get_installed_plugins(enterprise_id, region_name)
@@ -393,7 +374,8 @@ class PlatformPluginService(object):
         )
         return selected
 
-    def _resolve_installed_sku(self, installed_plugin: Any, region_app_id_map: Dict[str, Any], candidates: List[Any]) -> Optional[Any]:
+    def _resolve_installed_sku(self, installed_plugin: Any, region_app_id_map: Dict[str, Any], candidates: List[Any],
+                               installation_by_app_id: Dict[int, Any]) -> Optional[Any]:
         """根据已安装 RBDPlugin 的 region_app_id 反查安装时的 app_key, 从 market 候选里
         找到对应 SKU 记录, 用来锚定 latest_version 与 installed_arch.
         失败/拿不到时返回 None, 由上层退化为按集群 arch 选中的 SKU.
@@ -404,14 +386,10 @@ class PlatformPluginService(object):
         console_app_id = region_app_id_map.get(region_app_id)
         if not console_app_id:
             return None
-        try:
-            cgroups = tenant_service_group_repo.get_group_by_app_id(console_app_id)
-            if not cgroups:
-                return None
-            installed_app_key = cgroups.last().group_key  # type: ignore[union-attr]  # NOTE: .last() returns None when QuerySet empty, but guarded by `if not cgroups` above; Django ORM returns None for empty QS.last()
-        except Exception as e:
-            logger.warning("resolve installed SKU failed app_id=%s: %s", console_app_id, e)
+        installation = installation_by_app_id.get(console_app_id)
+        if installation is None:
             return None
+        installed_app_key = installation.group_key
         if not installed_app_key:
             return None
         for c in candidates:
@@ -422,7 +400,7 @@ class PlatformPluginService(object):
 
     def _build_plugin_info(self, plugin_id: str, selected: Any, display_sku: Any, installed_sku: Optional[Any],
                            installed_plugins: Dict[str, Any], region_app_id_map: Dict[str, Any],
-                           candidates: List[Any]) -> Dict[str, Any]:
+                           candidates: List[Any], installation_by_app_id: Dict[int, Any]) -> Dict[str, Any]:
         """构造单条 plugin 返回 dict. display_sku 决定 latest_version 等版本类字段,
         selected 决定 app_level/路由/前端组件等运行时字段.
         """
@@ -465,9 +443,9 @@ class PlatformPluginService(object):
             plugin_info["plugin_type"] = installed_plugin.get("plugin_type", plugin_info["plugin_type"])
             plugin_info["plugin_views"] = installed_plugin.get("plugin_views", plugin_info["plugin_views"])
             if console_app_id > 0:
-                cgroups = tenant_service_group_repo.get_group_by_app_id(console_app_id)
-                if cgroups:
-                    plugin_info["installed_version"] = cgroups.last().group_version or ""  # type: ignore[union-attr]  # NOTE: .last() may return None when QuerySet is empty, but guarded by `if cgroups` above
+                installation = installation_by_app_id.get(console_app_id)
+                if installation is not None:
+                    plugin_info["installed_version"] = installation.group_version or ""
             # installed_sku 为 None = 当前安装的 app 跟列表里选中的 market SKU 不是同一份
             # (例如本地 import 的 app model 跟市场上同名 plugin_id 的 SKU), 跨源比对版本会
             # 假阳性报"可升级", 而升级页按 service_source.group_key 拉本地版本会"暂无新版本"
@@ -556,7 +534,7 @@ class PlatformPluginService(object):
             if pid:
                 grouped.setdefault(pid, []).append(mp)
 
-        result = []
+        selected_plugins = []
         for plugin_id, candidates in grouped.items():
             # 1. 按集群 arch 过滤候选
             arch_matched = [c for c in candidates if self._get_plugin_arch(c) in region_arches]
@@ -593,11 +571,22 @@ class PlatformPluginService(object):
                 )
                 continue
 
+            selected_plugins.append((plugin_id, candidates, selected))
+
+        installed_app_ids = {
+            region_app_id_map.get(installed_plugins[plugin_id].get("region_app_id"))
+            for plugin_id, _, _ in selected_plugins if plugin_id in installed_plugins
+        }
+        installation_by_app_id = tenant_service_group_repo.get_latest_groups_by_app_ids(
+            [app_id for app_id in installed_app_ids if app_id and app_id > 0])
+        result = []
+        for plugin_id, candidates, selected in selected_plugins:
+
             # 5. installed SKU 锚定 latest_version
             installed_sku = None
             if plugin_id in installed_plugins:
                 installed_sku = self._resolve_installed_sku(
-                    installed_plugins[plugin_id], region_app_id_map, candidates)
+                    installed_plugins[plugin_id], region_app_id_map, candidates, installation_by_app_id)
             display_sku = installed_sku or selected
 
             plugin_info = self._build_plugin_info(
@@ -608,6 +597,7 @@ class PlatformPluginService(object):
                 installed_plugins=installed_plugins,
                 region_app_id_map=region_app_id_map,
                 candidates=candidates,
+                installation_by_app_id=installation_by_app_id,
             )
             result.append(plugin_info)
 

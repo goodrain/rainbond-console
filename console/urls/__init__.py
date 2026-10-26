@@ -127,6 +127,8 @@ from console.views.oauth import (EnterpriseOauthService, OauthConfig, OAuthGitCo
                                  OauthType,
                                  OAuthUserInfo, UserOAuthLink, OauthUserLogoutView, OverScore)
 from console.views.operation_log import OperationLogView, TeamOperationLogView, AppOperationLogView
+from console.views.platform_overview import (PlatformOverviewMetricsView, PlatformOverviewRuntimeView,
+                                             PlatformOverviewShellView, PlatformOverviewSnapshotView)
 from console.views.perms import (PermsInfoLView, TeamRolePermsRUDView, TeamRolesLCView, TeamRolesPermsLView, TeamRolesRUDView,
                                  TeamUserPermsLView, TeamUserRolesRUDView, TeamUsersRolesLView)
 from console.views.plugin.plugin_config import (ConfigPluginManageView, ConfigPreviewView, PluginVolumeOptionsView)
@@ -1034,6 +1036,14 @@ urlpatterns = [
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/active/optimiz$', BindMarketEnterpriseOptimizAccessTokenView.as_view()),
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/info$', EnterpriseRUDView.as_view()),
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/overview$', EnterpriseOverview.as_view()),
+    re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/platform-overview/runtime\Z', PlatformOverviewRuntimeView.as_view()),
+    re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/platform-overview\Z', PlatformOverviewShellView.as_view()),
+    re_path(
+        r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/platform-overview/metrics\Z',
+        PlatformOverviewMetricsView.as_view()),
+    re_path(
+        r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/platform-overview\Z',
+        PlatformOverviewSnapshotView.as_view()),
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/overview/app$', EnterpriseAppOverView.as_view()),
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/overview/team$', EnterpriseTeamOverView.as_view()),
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/monitor$', EnterpriseMonitor.as_view()),

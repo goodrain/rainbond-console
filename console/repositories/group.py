@@ -294,6 +294,14 @@ class TenantServiceGroupRepository(object):
     def get_group_by_app_id(self, app_id: str) -> QuerySet:
         return TenantServiceGroup.objects.filter(service_group_id=app_id)
 
+    def get_latest_groups_by_app_ids(self, app_ids: list) -> dict:
+        if not app_ids:
+            return {}
+        latest = {}
+        for group in TenantServiceGroup.objects.filter(service_group_id__in=app_ids).order_by("pk"):
+            latest[group.service_group_id] = group
+        return latest
+
 
 group_repo = GroupRepository()
 group_service_relation_repo = GroupServiceRelationRepository()

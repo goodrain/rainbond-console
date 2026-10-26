@@ -326,11 +326,12 @@ class AppEventService(object):
         event_repo.delete_events(service.service_id)
 
     def get_target_events(self, target: str, target_id: str, tenant: Any, region: str, page: int,
-                          page_size: int) -> Tuple[list, int, bool]:
+                          page_size: int, polling: bool = False) -> Tuple[list, int, bool]:
         msg_list = []  # type: list
         has_next = False
         total = 0
-        res, rt_data = region_api.get_target_events_list(region, tenant.tenant_name, target, target_id, page, page_size)
+        res, rt_data = region_api.get_target_events_list(
+            region, tenant.tenant_name, target, target_id, page, page_size, polling=polling)
         # NOTE: rt_data is Optional[dict] guarded only by status==200, not None;
         # a 200 with None body would raise AttributeError (potential latent None-bug).
         if int(res.status) == 200:

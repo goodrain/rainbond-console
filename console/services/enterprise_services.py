@@ -370,8 +370,17 @@ class EnterpriseServices(object):
         page_alarms = [alert for alert in alerts if alert["labels"].get("PageAlarm") == "true"]
         return page_alarms
 
-    def get_rbdcomponents(self, region_name: str) -> list:
-        res, body = region_api.get_rainbond_components(region_name)
+    def get_rbdcomponents(self, region_name: str, timeout: Optional[int] = None, retries: Optional[int] = None,
+                          connect_timeout: Optional[int] = None, region_api_client: Any = None) -> list:
+        kwargs = {}
+        if timeout is not None:
+            kwargs["timeout"] = timeout
+        if retries is not None:
+            kwargs["retries"] = retries
+        if connect_timeout is not None:
+            kwargs["connect_timeout"] = connect_timeout
+        client = region_api_client if region_api_client is not None else region_api
+        res, body = client.get_rainbond_components(region_name, **kwargs)
         # NOTE: region_api returns Optional[dict] body; invariant — non-None on a successful
         # region call.
         components = body["list"]  # type: ignore[index]
@@ -380,37 +389,39 @@ class EnterpriseServices(object):
         for component in components:
             component_info = {}
             pod_list = []
-            component_info["name"] = component["name"]
-            component_info["run_pods"] = component["run_pods"]
-            component_info["all_pods"] = component["all_pods"]
-            if component["run_pods"] == component["all_pods"]:
+            component_info["name"] = component.get("name", "")
+            component_info["run_pods"] = component.get("run_pods", 0)
+            component_info["all_pods"] = component.get("all_pods", 0)
+            if component_info["all_pods"] > 0 and component_info["run_pods"] == component_info["all_pods"]:
                 component_info["status"] = "Running"
             else:
                 component_info["status"] = "Abnormal"
             pod_succeed_num = 0
-            for pod in component["pods"]:
+            for pod in component.get("pods") or []:
                 pod_info = {}
-                pod_name = pod["metadata"]["name"]
-                pod_status = pod["status"]["phase"]
+                metadata = pod.get("metadata") or {}
+                pod_status_info = pod.get("status") or {}
+                pod_name = metadata.get("name", "")
+                pod_status = pod_status_info.get("phase", "Unknown")
                 pod_info["pod_name"] = pod_name
-                pod_info["create_time"] = pod["metadata"]["creationTimestamp"]
+                pod_info["create_time"] = metadata.get("creationTimestamp")
                 pod_info["status"] = pod_status
-                container_status = pod["status"]["containerStatuses"]
-                pod_info["pod_ip"] = pod["status"]["podIP"]
+                container_status = pod_status_info.get("containerStatuses") or []
+                pod_info["pod_ip"] = pod_status_info.get("podIP")
                 pod_info["all_container"] = len(container_status)
                 run_container = 0
                 restart_count = 0
                 for ctr_status in container_status:
-                    restart_count += ctr_status["restartCount"]
-                    state = ctr_status["state"]
-                    if "running" in state.keys():
+                    restart_count += ctr_status.get("restartCount", 0)
+                    state = ctr_status.get("state") or {}
+                    if "running" in state:
                         run_container += 1
                 pod_info["run_container"] = run_container
                 pod_info["restart_count"] = restart_count
                 if pod_status == "Succeeded":
                     pod_succeed_num += 1
                 pod_list.append(pod_info)
-            if pod_succeed_num == component["all_pods"]:
+            if component_info["all_pods"] > 0 and pod_succeed_num == component_info["all_pods"]:
                 component_info["status"] = "Completed"
             component_info["pods"] = pod_list
             component_list.append(component_info)

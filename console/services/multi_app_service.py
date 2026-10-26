@@ -20,6 +20,31 @@ logger = logging.getLogger("default")
 
 
 class MultiAppService(object):
+    INCOMPLETE_DETECTION_MESSAGE = "多组件检测结果不完整，请重新检测"
+
+    @classmethod
+    def validate_service_infos(cls, service_infos: Any) -> None:
+        if not isinstance(service_infos, list) or not service_infos:
+            raise AbortRequest(
+                "incomplete multi-component detection result",
+                cls.INCOMPLETE_DETECTION_MESSAGE,
+                status_code=400,
+                error_code=11006)
+        for service_info in service_infos:
+            if not isinstance(service_info, dict):
+                raise AbortRequest(
+                    "invalid multi-component detection item",
+                    cls.INCOMPLETE_DETECTION_MESSAGE,
+                    status_code=400,
+                    error_code=11006)
+            component_name = service_info.get("cname")
+            if not isinstance(component_name, str) or not component_name.strip():
+                raise AbortRequest(
+                    "multi-component detection item missing component name",
+                    cls.INCOMPLETE_DETECTION_MESSAGE,
+                    status_code=400,
+                    error_code=11006)
+
     def list_services(self, region_name: str, tenant: Tenants, check_uuid: str) -> Any:
         # get detection information from data center(region)
         # first result(code) is always 200
@@ -35,6 +60,7 @@ class MultiAppService(object):
 
     def create_services(self, region_name: str, tenant: Tenants, user: Any, service_alias: str,
                         service_infos: Any, host: str) -> Tuple[Any, List[str]]:
+        self.validate_service_infos(service_infos)
         # get temporary service
         temporary_service = service_repo.get_service_by_tenant_and_alias(tenant.tenant_id, service_alias)
         if not temporary_service:
@@ -43,14 +69,25 @@ class MultiAppService(object):
         group_id = service_group_relation_repo.get_group_id_by_service(temporary_service)
 
         # save services
-        service_ids = self.save_multi_services(
-            region_name=region_name,
-            tenant=tenant,
-            group_id=group_id,
-            service=temporary_service,
-            user=user,
-            service_infos=service_infos,
-            host=host)
+        try:
+            service_ids = self.save_multi_services(
+                region_name=region_name,
+                tenant=tenant,
+                group_id=group_id,
+                service=temporary_service,
+                user=user,
+                service_infos=service_infos,
+                host=host)
+        except KeyError as error:
+            logger.warning(
+                "multi-component creation data missing required key: %s",
+                error.args[0] if error.args else "unknown",
+                exc_info=True)
+            raise AbortRequest(
+                "incomplete multi-component detection result",
+                self.INCOMPLETE_DETECTION_MESSAGE,
+                status_code=400,
+                error_code=11006)
 
         code, msg = app_manage_service.delete(user, tenant, temporary_service, True)
         if code != 200:
@@ -66,6 +103,7 @@ class MultiAppService(object):
     def save_multi_services(self, region_name: str, tenant: Tenants, group_id: Any,
                             service: TenantServiceInfo, user: Any, service_infos: Any,
                             host: str) -> Any:
+        self.validate_service_infos(service_infos)
         service_source = service_source_repo.get_service_source(tenant.tenant_id, service.service_id)
         service_ids: List[str] = []
 

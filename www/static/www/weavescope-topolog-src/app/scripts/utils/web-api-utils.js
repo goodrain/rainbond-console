@@ -13,6 +13,7 @@ import {
 } from '../actions/app-actions';
 import { API_INTERVAL } from '../constants/timer';
 import { layersTopologyIdsSelector } from '../selectors/resource-view/layout';
+const { createTopologyPolling } = require('./topology-polling');
 
 
 const log = debug('scope:web-api-utils');
@@ -39,7 +40,11 @@ let socket;
 let reconnectTimer = 0;
 let currentUrl = null;
 let currentOptions = null;
-const topologyTimer = 0;
+let topologyPolling = null;
+let topologyDispatch = null;
+let topologyScope = null;
+let topologyVisibilityListener = null;
+let topologyMessageListener = null;
 let apiDetailsTimer = 0;
 let controlErrorTimer = 0;
 let createWebsocketAt = 0;
@@ -361,6 +366,8 @@ function goodrainData2scopeData(data = {}) {
   scopeData.remove = null;
   scopeData.update = null;
   if (scopeDataAdd.length === 0) {
+    scopeData.remove = newData && newData.length ? newData.map(item => item.id) : null;
+    newData = null;
     return scopeData;
   }
   if (newData === null) { scopeData.add = scopeDataAdd; }
@@ -449,34 +456,43 @@ export function getNodesDelta(topologyUrl, options, dispatch) {
     config.getNodes && dispatch(receiveNodesDelta(config.getNodes()));
     return false;
   }
-    // tiem++
-  const windowParent = window.parent;
-  const url = (windowParent && windowParent.iframeGetNodeUrl && windowParent.iframeGetNodeUrl()) || '';
-  // const url = 'https://goodrain.goodrain.com/console/teams/64q1jlfb/regions/rainbond/topological?group_id=644';
-  doRequest({
-    url,
-    success: (res) => {
-      if (res.code === 200) {
+  continuePolling = true;
+  topologyDispatch = dispatch;
+  const getRequestScope = () => {
+    const frameParent = window.parent;
+    return (frameParent && frameParent.iframeGetNodeUrl && frameParent.iframeGetNodeUrl()) || '';
+  };
+  if (!topologyPolling) {
+    topologyPolling = createTopologyPolling({
+      getScope: getRequestScope,
+      isVisible: () => !document.hidden,
+      request: (url, success, error) => {
+        if (topologyScope !== url) {
+          topologyScope = url;
+          newData = null;
+        }
+        return doRequest({ url, timeout: 12000, success, error });
+      },
+      apply: (res) => {
         const scopeData = goodrainData2scopeData(res.data.bean);
-        const Operator = handleOperatorInfo(res.data.bean)
-        dispatch({
-          type:"OPERATOR",
-          data: Operator
-        });
-        dispatch(receiveNodesDelta(scopeData));
-      }
-      setTimeout(() => {
-        getNodesDelta(topologyUrl, options, dispatch);
-      }, 5000);
-    },
-    error: () => {
-      dispatch(receiveError(url));
-      setTimeout(() => {
-        getNodesDelta(topologyUrl, options, dispatch);
-      }, 5000);
-    }
-  });
-
+        topologyDispatch({ type: 'OPERATOR', data: handleOperatorInfo(res.data.bean) });
+        topologyDispatch(receiveNodesDelta(scopeData));
+      },
+      onError: (error, url) => topologyDispatch(receiveError(url))
+    });
+    topologyVisibilityListener = () => topologyPolling && topologyPolling.visibilityChanged();
+    topologyMessageListener = (event) => {
+      const frameParent = window.parent;
+      const scope = frameParent && frameParent.iframeGetTopologyScope && frameParent.iframeGetTopologyScope();
+      if (event.source !== frameParent || event.origin !== window.location.origin || !event.data || !scope || event.data.scope !== scope) return;
+      if (event.data.type === 'rainbond:topology-refresh') {
+        topologyPolling.refresh();
+      } else if (event.data.type === 'rainbond:topology-stop') stopPolling();
+    };
+    document.addEventListener('visibilitychange', topologyVisibilityListener);
+    window.addEventListener('message', topologyMessageListener);
+  }
+  topologyPolling.start();
 
   const optionsQuery = buildOptionsQuery(options);
   // Only recreate websocket if url changed or if forced (weave cloud instance reload);
@@ -979,7 +995,15 @@ export function getPipeStatus(pipeId, dispatch) {
 
 export function stopPolling() {
   clearTimeout(apiDetailsTimer);
-  clearTimeout(topologyTimer);
+  if (topologyPolling) topologyPolling.stop();
+  topologyPolling = null;
+  if (topologyVisibilityListener) document.removeEventListener('visibilitychange', topologyVisibilityListener);
+  if (topologyMessageListener) window.removeEventListener('message', topologyMessageListener);
+  topologyVisibilityListener = null;
+  topologyMessageListener = null;
+  topologyDispatch = null;
+  topologyScope = null;
+  newData = null;
   continuePolling = false;
 }
 

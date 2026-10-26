@@ -4,6 +4,7 @@ import io
 import json
 import os
 import socket
+import ssl
 import sys
 from types import ModuleType
 from unittest import TestCase, mock
@@ -110,6 +111,7 @@ class RegionApiBaseHttpClientTestCase(TestCase):
         cases = (
             (socket.timeout("timed out"), "timeout"),
             (urllib3.exceptions.SSLError("bad tls"), "tls_error"),
+            (ssl.SSLError("tls unavailable"), "tls_error"),
             (RuntimeError("connection reset"), "transport_error"),
         )
         for transport_error, expected_reason in cases:
@@ -146,6 +148,36 @@ class RegionApiBaseHttpClientTestCase(TestCase):
         self.assertEqual(response.status_code, 503)
         self.assertEqual(response["Retry-After"], "3")
         self.assertTrue(response.data["data"]["details"]["retryable"])
+
+    # capability_id: console.region-api.unavailable-response
+    def test_request_classifies_wrapped_tls_failure_without_changing_retry_policy(self):
+        for tls_error in (urllib3.exceptions.SSLError('tls unavailable'), ssl.SSLError('tls unavailable')):
+            client = RegionApiBaseHttpClient()
+            region = mock.Mock()
+            transport = mock.Mock()
+            transport.request.side_effect = urllib3.exceptions.MaxRetryError(None, '/v2/cluster', reason=tls_error)
+            with self.subTest(error_type=type(tls_error).__name__), \
+                    mock.patch('www.apiclient.regionapibaseclient.region_repo.get_region_by_region_name',
+                               return_value=region), mock.patch.object(client, 'get_client', return_value=transport), \
+                    mock.patch.object(client, 'destroy_client') as destroy, \
+                    mock.patch('www.apiclient.regionapibaseclient.logger.warning') as warning:
+                with self.assertRaises(ServiceHandleException) as raised:
+                    client._request('https://region.example.invalid/v2/cluster',
+                                    'GET',
+                                    region='rainbond',
+                                    retries=0,
+                                    timeout=3,
+                                    connect_timeout=1)
+
+            self.assertEqual(raised.exception.status_code, 503)
+            self.assertEqual(raised.exception.details, {'retryable': True, 'reason': 'tls_error'})
+            self.assertEqual(raised.exception.msg, 'region api unavailable')
+            self.assertTrue(raised.exception.__suppress_context__)
+            destroy.assert_called_once_with(region_config=region)
+            self.assertEqual(transport.request.call_args.kwargs['retries'], 0)
+            self.assertEqual(transport.request.call_args.kwargs['timeout'].connect_timeout, 1)
+            self.assertEqual(transport.request.call_args.kwargs['timeout'].read_timeout, 3)
+            self.assertEqual(warning.call_args.args[0], 'region api request unavailable method=%s region=%s reason=%s')
 
     # capability_id: console.region-api.concurrent-certificate-directory
     def test_create_file_tolerates_concurrent_directory_creation(self):

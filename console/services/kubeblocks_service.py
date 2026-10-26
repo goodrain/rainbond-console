@@ -17,6 +17,7 @@ from console.services.app_actions import app_manage_service
 from console.services.app_config.env_service import AppEnvVarService
 from console.services.app_config.port_service import AppPortService
 from console.services.enterprise_first_deploy_service import enterprise_first_deploy_service
+from console.services.event_dependencies import populate_event_dependencies
 from console.services.group_service import GroupService
 from console.repositories.group import group_repo
 from console.repositories.kubeblocks_backup_repo import kubeblocks_backup_repo_repo
@@ -1203,7 +1204,7 @@ class KubeBlocksService(object):
                              service_id, region_name, str(e))
             return 500, {"msg_show": f"请求异常: {str(e)}"}
 
-    def get_cluster_detail(self, region_name: str, service_id: str) -> Tuple[int, dict]:
+    def get_cluster_detail(self, region_name: str, service_id: str, polling: bool = False) -> Tuple[int, dict]:
         """
         获取 KubeBlocks Cluster 详情
         """
@@ -1214,7 +1215,7 @@ class KubeBlocksService(object):
             return 400, {"msg_show": "组件ID不能为空"}
 
         try:
-            res, body = region_api.get_kubeblocks_cluster_detail(region_name, service_id)
+            res, body = region_api.get_kubeblocks_cluster_detail(region_name, service_id, polling=polling)
             status_code = res.get("status", 500)
 
             if status_code == 200:
@@ -1369,7 +1370,7 @@ class KubeBlocksService(object):
                              str(service_ids), region_name, str(e))
 
     def get_kubeblocks_service_status(self, region_name: str, service_id: str,
-                                      cluster_detail: Optional[dict] = None) -> Optional[dict]:
+                                      cluster_detail: Optional[dict] = None, polling: bool = False) -> Optional[dict]:
         """
         获取 KubeBlocks 组件状态信息
 
@@ -1383,7 +1384,7 @@ class KubeBlocksService(object):
         """
         try:
             if cluster_detail is None:
-                status_code, response = self.get_cluster_detail(region_name, service_id)
+                status_code, response = self.get_cluster_detail(region_name, service_id, polling=polling)
 
                 if status_code != 200:
                     if status_code == 503:
@@ -1590,12 +1591,12 @@ class KubeBlocksService(object):
 
     def get_cluster_events(self, region_name: str, service_id: str, tenant: Tenants,
                            service: TenantServiceInfo, page: int,
-                           page_size: int) -> Tuple[list, int, bool]:
+                           page_size: int, polling: bool = False) -> Tuple[list, int, bool]:
         """
         获取 KubeBlocks 集群事件列表
         """
         try:
-            res, body = region_api.get_kubeblocks_cluster_events(region_name, service_id, page, page_size)
+            res, body = region_api.get_kubeblocks_cluster_events(region_name, service_id, page, page_size, polling=polling)
             status_code = res.get('status', 500) if isinstance(res, dict) else getattr(res, 'status', 500)
 
             if status_code == 200:
@@ -1616,25 +1617,23 @@ class KubeBlocksService(object):
 
     def merge_region_and_kb_events(self, target: str, target_id: str, tenant: Tenants,
                                    region_name: str, service: TenantServiceInfo, page: int,
-                                   page_size: int) -> Tuple[list, int, bool]:
+                                   page_size: int, polling: bool = False) -> Tuple[list, int, bool]:
         """
         合并 Region event 和 KubeBlocks event
         """
         from console.services.app_actions import event_service
-        from www.models.main import TenantServiceInfo
-        import json
 
         window = page * page_size
 
         try:
             # 获取 Region 事件
             region_events, region_total, _ = event_service.get_target_events(
-                target, target_id, tenant, region_name, page, window
+                target, target_id, tenant, region_name, page, window, polling=polling
             )
 
             # 获取 KB 事件（格式与 Region 事件一致）
             kb_events, kb_total, _ = self.get_cluster_events(
-                region_name, target_id, tenant, service, page, window
+                region_name, target_id, tenant, service, page, window, polling=polling
             )
 
             merged_map = {}
@@ -1655,22 +1654,7 @@ class KubeBlocksService(object):
             total = int(region_total) + int(kb_total)
             has_next = end < total
 
-            for event in page_list:
-                if event.get("opt_type") == "INITIATING":
-                    msg = event.get("message", "")
-                    alias = msg.split(",") if msg else []
-                    relys = []
-                    for ali in alias:
-                        service_obj = TenantServiceInfo.objects.filter(
-                            service_alias=ali, tenant_id=tenant.tenant_id
-                        ).first()
-                        if service_obj:
-                            relys.append({
-                                "service_cname": service_obj.service_cname,
-                                "serivce_alias": service_obj.service_alias,
-                            })
-                    if relys:
-                        event["Message"] = "依赖的其他组件暂未运行 {0}".format(json.dumps(relys, ensure_ascii=False))
+            populate_event_dependencies(page_list, tenant.tenant_id)
 
             return page_list, total, has_next
 

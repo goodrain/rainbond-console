@@ -7,6 +7,7 @@ from typing import Any, Iterator
 import yaml
 from django.db import IntegrityError
 from django.http import StreamingHttpResponse
+from rest_framework.exceptions import APIException
 from rest_framework.request import Request
 from rest_framework.response import Response
 from console.repositories.init_cluster import rke_cluster, rke_cluster_node
@@ -19,6 +20,8 @@ logger = logging.getLogger("default")
 
 class BaseClusterView(AlowAnyApiView):
     def handle_exception(self, e: Any, message: str = "Operation failed", message_cn: str = "操作失败") -> Response:
+        if isinstance(e, APIException):
+            return super().handle_exception(e)
         error = e if isinstance(e, dict) else str(e)
         logger.error("%s: %s", message, error)
         result = general_message(500, message, message_cn, bean={"error": error})

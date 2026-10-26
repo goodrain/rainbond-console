@@ -1403,6 +1403,26 @@
       "status": "active"
     },
     {
+      "id": "console.app-overview.group-visit-batched-access",
+      "title": "Batch scoped application visit components and ports",
+      "title_zh": "按团队区域批量读取应用访问组件和端口",
+      "interface_type": "workflow",
+      "interface": "console.views.app_overview.AppGroupVisitView.get",
+      "code_paths": [
+        "console/views/app_overview.py",
+        "console/repositories/app.py",
+        "console/services/app_config/port_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_group_visit_view_test.py",
+          "selector": "AppGroupVisitBatchAccessTestCase"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.app-overview.group-visit-resilience",
       "title": "Keep application access links resilient to stale components",
       "title_zh": "Keep application access links resilient to stale components",
@@ -3343,6 +3363,24 @@
         {
           "path": "console/tests/app_config_test.py",
           "selector": "TenantServiceEnvVarRepositoryTests.test_update_or_create_env_var_creates_row_when_no_match_exists"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.build-source.single-transaction-boundary",
+      "title": "Keep build source updates in one transaction",
+      "title_zh": "构建源更新使用单一事务边界",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.app_overview.BuildSourceinfo.put",
+      "code_paths": [
+        "console/views/app_overview.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/buildsource_transaction_test.py",
+          "selector": "BuildSourceTransactionTests.test_build_source_update_uses_atomic_rollback_without_manual_savepoints"
         }
       ],
       "test_type": "regression",
@@ -6040,6 +6078,24 @@
       "status": "active"
     },
     {
+      "id": "console.dependency.concurrent-duplicate",
+      "title": "Handle concurrent duplicate component dependencies",
+      "title_zh": "处理并发重复组件依赖",
+      "interface_type": "service_method",
+      "interface": "console.services.app_config.app_relation_service.AppServiceRelationService.add_service_dependency",
+      "code_paths": [
+        "console/services/app_config/app_relation_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_relation_service_test.py",
+          "selector": "AppRelationServiceTests.test_add_service_dependency_converts_insert_race_to_existing_relation"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.dependency.invalid-container-port",
       "title": "Dependency Invalid Container Port",
       "title_zh": "Dependency Invalid Container Port",
@@ -6607,6 +6663,26 @@
         {
           "path": "console/tests/mcp_query_service_test.py",
           "selector": "MCPQueryServiceRegionMutationTests.test_update_region_executes_directly_with_merged_full_payload"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.events.batch-dependencies",
+      "title": "Batch component event dependency names",
+      "title_zh": "批量解析组件事件依赖名称",
+      "interface_type": "service_method",
+      "interface": "console.services.event_dependencies.populate_event_dependencies",
+      "code_paths": [
+        "console/services/event_dependencies.py",
+        "console/views/app_event.py",
+        "console/services/kubeblocks_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/event_dependencies_test.py",
+          "selector": "EventDependenciesTests"
         }
       ],
       "test_type": "regression",
@@ -7945,6 +8021,24 @@
       "status": "active"
     },
     {
+      "id": "console.logging.safe-exception-traceback",
+      "title": "Preserve safely redacted exception traces in console logs",
+      "title_zh": "保留脱敏异常链与堆栈并兼容原日志格式",
+      "interface_type": "other",
+      "interface": "goodrain_web.log_formatter.IPFormatter.format",
+      "code_paths": [
+        "goodrain_web/log_formatter.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/logging_config_test.py",
+          "selector": "SafeExceptionLoggingTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.login-security.admin-api",
       "title": "Login security admin API",
       "title_zh": "Login security admin API",
@@ -8126,6 +8220,24 @@
         {
           "path": "console/tests/app_import_and_export_service_test.py",
           "selector": "AppImportServiceMetadataTestCase.test_save_enterprise_import_info_preserves_explicit_unlimited_resources"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.market-app.k8s-attribute-extra-fields",
+      "title": "Ignore template metadata in component K8s attributes",
+      "title_zh": "忽略组件 K8s 属性模板元数据",
+      "interface_type": "service_method",
+      "interface": "console.services.market_app.component.Component._update_component_k8s_attributes",
+      "code_paths": [
+        "console/services/market_app/component.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/market_app_component_test.py",
+          "selector": "MarketAppComponentPortTests.test_update_k8s_attribute_ignores_template_metadata_fields"
         }
       ],
       "test_type": "regression",
@@ -8977,6 +9089,24 @@
       "status": "active"
     },
     {
+      "id": "console.multi-app.incomplete-detection-guard",
+      "title": "Reject incomplete multi-component detection results",
+      "title_zh": "拒绝不完整的多组件检测结果",
+      "interface_type": "service_method",
+      "interface": "console.services.multi_app_service.MultiAppService.create_services",
+      "code_paths": [
+        "console/services/multi_app_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/multi_app_service_test.py",
+          "selector": "MultiAppServiceTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.ns-resource.batch-create",
       "title": "Ns Resource Batch Create",
       "title_zh": "Ns Resource Batch Create",
@@ -9222,6 +9352,25 @@
         {
           "path": "console/tests/openapi_swagger_test.py",
           "selector": "OpenAPISwaggerMetadataTests.test_helm_chart_get_declares_query_serializer_without_request_body"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.operator-managed.scoped-application-lookup",
+      "title": "Reject missing or foreign operator-managed applications",
+      "title_zh": "Operator资源读取校验应用存在及团队区域归属",
+      "interface_type": "workflow",
+      "interface": "console.services.group_service.GroupService.get_watch_managed_data",
+      "code_paths": [
+        "console/services/group_service.py",
+        "console/views/public_areas.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/operator_managed_app_scope_test.py",
+          "selector": "OperatorManagedAppScopeTestCase"
         }
       ],
       "test_type": "regression",
@@ -9902,6 +10051,24 @@
       "status": "active"
     },
     {
+      "id": "console.performance.response-timing",
+      "title": "Expose numeric request and Region durations without logging or payload changes",
+      "title_zh": "响应以固定数值暴露请求与Region累计耗时且不改变日志及业务返回",
+      "interface_type": "workflow",
+      "interface": "goodrain_web.performance.PerformanceTimingMiddleware",
+      "code_paths": [
+        "goodrain_web/performance.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/performance_timing_test.py",
+          "selector": "PerformanceTimingMiddlewareTestCase"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.permissions.concurrent-initialization",
       "title": "Synchronize permission metadata idempotently across workers",
       "title_zh": "多进程幂等同步权限元数据",
@@ -9914,6 +10081,105 @@
         {
           "path": "console/tests/perm_repo_performance_test.py",
           "selector": "PermsRepoPerformanceTests.test_changed_permissions_sync_idempotently_within_the_check_interval"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.platform-overview.absolute-metrics",
+      "title": "Historical absolute usage in platform overview metrics",
+      "title_zh": "Historical absolute usage in platform overview metrics",
+      "interface_type": "service_method",
+      "interface": "console.services.platform_overview_service.PlatformOverviewService.get_metrics",
+      "code_paths": [
+        "console/services/platform_overview_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/platform_overview_absolute_test.py"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.platform-overview.aggregate",
+      "title": "Platform overview aggregation",
+      "title_zh": "平台总览聚合、已启用插件与真实集群版本",
+      "interface_type": "service_method",
+      "interface": "console.services.platform_overview_service.PlatformOverviewService",
+      "code_paths": [
+        "console/services/platform_overview_service.py",
+        "console/services/platform_plugin_service.py",
+        "console/services/enterprise_services.py",
+        "www/apiclient/regionapi.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/platform_overview_service_test.py",
+          "selector": "PlatformOverviewServiceTest"
+        },
+        {
+          "path": "console/tests/platform_overview_service_test.py",
+          "selector": "PlatformPluginInstalledOnlyTest"
+        }
+      ],
+      "test_type": "unit",
+      "status": "active"
+    },
+    {
+      "id": "console.platform-overview.http-api",
+      "title": "Platform overview HTTP API",
+      "title_zh": "Platform overview HTTP API",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.platform_overview",
+      "code_paths": [
+        "console/views/platform_overview.py",
+        "console/urls/__init__.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/platform_overview_view_test.py",
+          "selector": "PlatformOverviewViewTest"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.platform-plugin.batch-install-metadata",
+      "title": "Batch latest plugin installation metadata",
+      "title_zh": "批量读取插件最新安装元数据",
+      "interface_type": "workflow",
+      "interface": "console.services.platform_plugin_service.PlatformPluginService.list_platform_plugins",
+      "code_paths": [
+        "console/services/platform_plugin_service.py",
+        "console/repositories/group.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/platform_plugin_read_optimization_test.py",
+          "selector": "PlatformPluginInstallationBatchTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.platform-plugin.coalesced-catalog-reads",
+      "title": "Coalesce plugin catalog and architecture reads safely",
+      "title_zh": "安全合并插件目录与架构并发读取",
+      "interface_type": "workflow",
+      "interface": "console.services.platform_plugin_service.PlatformPluginService",
+      "code_paths": [
+        "console/services/platform_plugin_service.py",
+        "console/utils/coalesced_read_cache.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/platform_plugin_read_optimization_test.py",
+          "selector": "PlatformPluginReadCacheTests"
         }
       ],
       "test_type": "regression",
@@ -10586,6 +10852,53 @@
       "status": "active"
     },
     {
+      "id": "console.region-api.immutable-certificate-bundle",
+      "title": "Publish immutable region TLS certificate bundles safely across processes",
+      "title_zh": "跨进程安全发布与复用不可变集群证书版本",
+      "interface_type": "package_function",
+      "interface": "www.apiclient.certificate_bundle.materialize_certificate_bundle",
+      "code_paths": [
+        "www/apiclient/certificate_bundle.py",
+        "www/apiclient/regionapibaseclient.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/region_certificate_bundle_test.py",
+          "selector": "RegionCertificateBundleTestCase"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.region-api.polling-deadlines",
+      "title": "Bound polling requests to Region",
+      "title_zh": "限制轮询请求的 Region 调用时延",
+      "interface_type": "service_method",
+      "interface": "www.apiclient.regionapi.RegionInvokeApi polling reads",
+      "code_paths": [
+        "www/apiclient/regionapi.py",
+        "console/services/app.py",
+        "console/services/app_actions/app_log.py",
+        "console/services/kubeblocks_service.py",
+        "console/views/app_overview.py",
+        "console/views/kubeblocks.py",
+        "console/views/app_event.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/regionapi_polling_deadline_test.py",
+          "selector": "RegionApiPollingDeadlineTests"
+        },
+        {
+          "path": "console/tests/regionapi_polling_deadline_test.py",
+          "selector": "KubeBlocksPollingFlowTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.region-api.proxy-error-pass-through",
       "title": "Keep original upstream error message for non-helm conflicts",
       "title_zh": "对非 Helm 冲突保留原始上游错误信息",
@@ -10782,6 +11095,24 @@
         {
           "path": "console/tests/region_config_update_test.py",
           "selector": "UpdateRegionConfigTest.test_add_when_config_missing_passes_json_string_and_desc"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.registry.aliyun-enterprise",
+      "title": "Discover enterprise ACR instances and list namespaces and repositories",
+      "title_zh": "兼容阿里云ACR企业版公网和VPC地址及云API查询",
+      "interface_type": "service_method",
+      "interface": "console.services.team_services.TeamService.get_cloud_registry_namespaces",
+      "code_paths": [
+        "console/services/team_services.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/registry_service_test.py",
+          "selector": "AliyunEnterpriseRegistryTestCase"
         }
       ],
       "test_type": "regression",
@@ -11378,6 +11709,24 @@
       "status": "active"
     },
     {
+      "id": "console.rke2.preserve-method-not-allowed",
+      "title": "Preserve method-not-allowed responses",
+      "title_zh": "保留不支持方法响应",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.rke2.BaseClusterView.handle_exception",
+      "code_paths": [
+        "console/views/rke2.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/rke2_cluster_errors_test.py",
+          "selector": "ClusterRKEErrorTests.test_cluster_install_get_preserves_method_not_allowed"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.runtime.sse-gunicorn-timeout",
       "title": "Keep Gunicorn workers alive for one-hour SSE streams",
       "title_zh": "Gunicorn 超时覆盖一小时 SSE 长连接",
@@ -11391,6 +11740,24 @@
         {
           "path": "console/tests/entrypoint_test.py",
           "selector": "EntrypointGunicornTest.test_gunicorn_timeout_outlives_one_hour_sse_streams"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.runtime.static-precompression",
+      "title": "Precompress static assets while preserving original responses",
+      "title_zh": "镜像构建预压缩静态资源并保持原始响应兼容",
+      "interface_type": "workflow",
+      "interface": "Dockerfile collectstatic and WhiteNoise compression",
+      "code_paths": [
+        "Dockerfile"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/static_precompression_test.py",
+          "selector": "StaticPrecompressionTests"
         }
       ],
       "test_type": "regression",
@@ -11650,6 +12017,24 @@
         {
           "path": "console/tests/service_share_test.py",
           "selector": "ShareServiceCheckServiceSourceTestCase"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.source-code.optional-oauth-project-id",
+      "title": "Allow optional OAuth repository project IDs",
+      "title_zh": "允许 OAuth 仓库缺少项目 ID",
+      "interface_type": "service_method",
+      "interface": "console.services.app.ConsoleAppService.init_repositories",
+      "code_paths": [
+        "console/services/app.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_service_test.py",
+          "selector": "AppServiceTests.test_init_repositories_defaults_empty_oauth_project_id_to_zero"
         }
       ],
       "test_type": "regression",
@@ -12208,6 +12593,29 @@
         {
           "path": "console/tests/app_component_performance_test.py",
           "selector": "TopologicalServicePerformanceTests.test_topology_logs_batch_status_failure_once_with_exception_context"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.topology.polling-lifecycle",
+      "title": "Bound topology polling and publish source-correlated iframe asset",
+      "title_zh": "拓扑单链轮询及源码一致的实际 iframe 产物",
+      "interface_type": "workflow",
+      "interface": "weavescope-topolog.web-api-utils.getNodesDelta",
+      "code_paths": [
+        "www/static/www/weavescope-topolog-src/app/scripts/utils/topology-polling.js",
+        "www/static/www/weavescope-topolog-src/app/scripts/utils/web-api-utils.js",
+        "www/static/www/weavescope-topolog-src/scripts/build-polling-asset.cjs",
+        "www/static/www/weavescope-topolog/index.html"
+      ],
+      "tests": [
+        {
+          "path": "www/static/www/weavescope-topolog-src/app/scripts/utils/topology-polling.node.test.js"
+        },
+        {
+          "path": "www/static/www/weavescope-topolog-src/scripts/polling-asset.node.test.cjs"
         }
       ],
       "test_type": "regression",

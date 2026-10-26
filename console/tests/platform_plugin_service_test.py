@@ -984,9 +984,6 @@ class PlatformPluginInstallViewTests(TestCase):
         }
 
         component_group = mock.Mock(group_version="0.1", group_key="5da180e862344ae7945245cb66ca856d")
-        component_groups_qs = mock.Mock()
-        component_groups_qs.last.return_value = component_group
-        component_groups_qs.__iter__ = lambda self: iter([component_group])
 
         with mock.patch.object(platform_plugin_service, "_get_license_bean", return_value={}), \
                 mock.patch.object(platform_plugin_service, "_get_installed_plugins",
@@ -997,8 +994,8 @@ class PlatformPluginInstallViewTests(TestCase):
                                   return_value=(mock.Mock(), market_plugins)), \
                 mock.patch.object(platform_plugin_service, "_get_region_arches",
                                   return_value={"amd64"}), \
-                mock.patch("console.services.platform_plugin_service.tenant_service_group_repo.get_group_by_app_id",
-                           return_value=component_groups_qs):
+                mock.patch("console.services.platform_plugin_service.tenant_service_group_repo.get_latest_groups_by_app_ids",
+                           return_value={99: component_group}):
             plugins = platform_plugin_service.list_platform_plugins("eid", "rainbond")
 
         self.assertEqual(1, len(plugins))
@@ -1030,9 +1027,6 @@ class PlatformPluginInstallViewTests(TestCase):
         }
 
         component_group = mock.Mock(group_version="1.0.0", group_key="arm-ak")
-        component_groups_qs = mock.Mock()
-        component_groups_qs.last.return_value = component_group
-        component_groups_qs.__iter__ = lambda self: iter([component_group])
 
         with mock.patch.object(platform_plugin_service, "_get_license_bean", return_value={}), \
                 mock.patch.object(platform_plugin_service, "_get_installed_plugins",
@@ -1043,8 +1037,8 @@ class PlatformPluginInstallViewTests(TestCase):
                                   return_value=(mock.Mock(), market_plugins)), \
                 mock.patch.object(platform_plugin_service, "_get_region_arches",
                                   return_value={"arm64"}), \
-                mock.patch("console.services.platform_plugin_service.tenant_service_group_repo.get_group_by_app_id",
-                           return_value=component_groups_qs):
+                mock.patch("console.services.platform_plugin_service.tenant_service_group_repo.get_latest_groups_by_app_ids",
+                           return_value={42: component_group}):
             plugins = platform_plugin_service.list_platform_plugins("eid", "rainbond")
 
         self.assertEqual(1, len(plugins))

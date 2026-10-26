@@ -246,7 +246,7 @@ class AppService(object):
                 service.check_uuid = check_uuid
             if event_id:
                 service.check_event_id = event_id
-            service.git_project_id = service_code_id
+            service.git_project_id = service_code_id if service_code_id not in (None, "") else 0
             service.git_url = service_code_clone_url
             service.code_from = service_code_from
             service.code_version = service_code_version
@@ -852,12 +852,12 @@ class AppService(object):
 
         return TenantServiceInfo.objects.filter(q)
 
-    def get_service_status(self, tenant: Tenants, service: TenantServiceInfo) -> dict:
+    def get_service_status(self, tenant: Tenants, service: TenantServiceInfo, polling: bool = False) -> dict:
         """获取组件状态"""
         start_time = ""
         try:
             body = region_api.check_service_status(service.service_region, tenant.tenant_name, service.service_alias,
-                                                   tenant.enterprise_id)  # type: ignore[arg-type]
+                                                   tenant.enterprise_id, polling=polling)  # type: ignore[arg-type]
             # NOTE: check_service_status may return None; guarded by the surrounding try/except.
             bean = body["bean"]  # type: ignore[index]
             status = bean["cur_status"]

@@ -15,7 +15,7 @@ from console.enum.component_enum import is_kubeblocks
 from console.exception.bcode import ErrK8sComponentNameExists
 from console.exception.main import (MarketAppLost, RbdAppNotFound, ServiceHandleException)
 from console.repositories.app import (service_repo, service_source_repo, service_webhooks_repo)
-from console.repositories.app_config import service_endpoints_repo, volume_repo
+from console.repositories.app_config import port_repo, service_endpoints_repo, volume_repo
 from console.repositories.deploy_repo import deploy_repo
 from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.oauth_repo import oauth_repo, oauth_user_repo
@@ -392,13 +392,13 @@ class AppStatusView(AppBaseView):
         """
         bean = dict()
         bean["check_uuid"] = self.service.check_uuid
-        status_map = app_service.get_service_status(self.tenant, self.service)
-        # kubeblocks_component 需要额外补充状态到 app status
+        status_map = None
+        # KB 状态可用时直接返回，避免先发一次会被覆盖的通用状态请求。
         if is_kubeblocks(self.service.extend_method):
-            kubeblocks_status = kubeblocks_service.get_kubeblocks_service_status(
-                self.service.service_region, self.service.service_id)
-            if kubeblocks_status:
-                status_map = kubeblocks_status
+            status_map = kubeblocks_service.get_kubeblocks_service_status(
+                self.service.service_region, self.service.service_id, polling=True)
+        if not status_map:
+            status_map = app_service.get_service_status(self.tenant, self.service, polling=True)
         platform_first_app_service.safe_mark_if_running(status_map)
         bean.update(status_map)
         result = general_message(200, "success", "查询成功", bean=bean)
@@ -425,7 +425,7 @@ class ListAppPodsView(AppBaseView):
         """
 
         data = region_api.get_service_pods(self.service.service_region, self.tenant.tenant_name, self.service.service_alias,
-                                           self.tenant.enterprise_id)  # type: ignore[arg-type]
+                                           self.tenant.enterprise_id, polling=True)  # type: ignore[arg-type]
         result = {}
         # NOTE: regionapi result is typed dict|None; legacy code assumes dict (backlog).
         if data["bean"]:  # type: ignore[index]
@@ -567,12 +567,19 @@ class AppGroupVisitView(RegionTenantHeaderView):
                 result = general_message(400, "not tenant", "团队不存在")
                 return Response(result)
             service_list = serviceAlias.split('-')
+            services = list(service_repo.list_by_tenant_region_and_aliases(team.tenant_id, self.region_name, service_list))
+            by_alias = {service.service_alias: service for service in services}
+            by_service = {}
+            for port in port_repo.list_by_service_ids(team.tenant_id, [service.service_id for service in services]):
+                by_service.setdefault(port.service_id, []).append(port)
+            context = {}
             for service_alias in service_list:
                 bean = dict()
-                service = service_repo.get_service_by_service_alias(service_alias)
+                service = by_alias.get(service_alias)
                 if not service:
                     continue
-                access_type, data = port_service.get_access_info(team, service)
+                access_type, data = port_service.get_access_info(
+                    team, service, service_ports=by_service.get(service.service_id, []), context=context)
                 bean["access_type"] = access_type
                 bean["access_info"] = data
                 service_access_list.append(bean)
@@ -766,7 +773,6 @@ class BuildSourceinfo(AppBaseView):
         修改构建源
         ---
         """
-        s_id = transaction.savepoint()
         try:
             image = request.data.get("image", None)
             cmd = request.data.get("cmd", None)
@@ -847,7 +853,6 @@ class BuildSourceinfo(AppBaseView):
                 self.service.image = ""
                 self.service.service_key = "application"
                 self.service.save()
-                transaction.savepoint_commit(s_id)
             elif service_source == "docker_run":
                 self.service.service_source = "docker_image"
                 if image:
@@ -864,7 +869,6 @@ class BuildSourceinfo(AppBaseView):
                 self.service.service_key = "application"
                 self.service.language = ""
                 self.service.save()
-                transaction.savepoint_commit(s_id)
 
             # 保存原架构，用于判断是否发生变化
             old_arch = self.service.arch
@@ -897,8 +901,8 @@ class BuildSourceinfo(AppBaseView):
             result = general_message(200, "success", "修改成功")
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)  # type: ignore[attr-defined]
-            transaction.savepoint_rollback(s_id)
+            transaction.set_rollback(True)
+            result = error_message()
         return Response(result, status=result["code"])
 
 

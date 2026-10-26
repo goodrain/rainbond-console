@@ -116,9 +116,11 @@ class KubeBlocksClusterDetailView(AppBaseView):
         获取 Cluster detail
         """
         try:
+            polling_options = {"polling": True} if request.query_params.get("polling") == "true" else {}
             status_code, data = kubeblocks_service.get_cluster_detail(
                 self.response_region,
-                self.service.service_id
+                self.service.service_id,
+                **polling_options
             )
 
             if status_code == 200:

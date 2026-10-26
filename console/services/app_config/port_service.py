@@ -1213,10 +1213,12 @@ class AppPortService(object):
             accesses[svc.service_id] = {"access_type": ServicePortConstants.NO_PORT, "access_info": []}
         return accesses
 
-    def get_access_info(self, tenant: Tenants, service: TenantServiceInfo) -> Tuple[Any, Any]:
+    def get_access_info(self, tenant: Tenants, service: TenantServiceInfo,
+                        service_ports: Optional[Any] = None, context: Optional[Dict[Any, Any]] = None) -> Tuple[Any, Any]:
         access_type = ""
         data: Any = []
-        service_ports = port_repo.get_service_ports(tenant.tenant_id, service.service_id)
+        if service_ports is None:
+            service_ports = port_repo.get_service_ports(tenant.tenant_id, service.service_id)
         # ①是否有端口
         if not service_ports:
             access_type = ServicePortConstants.NO_PORT
@@ -1245,20 +1247,21 @@ class AppPortService(object):
             if not port.is_outer_service and (not port.is_inner_service):
                 unopened_port.append(port)
         access_type, data = self.__handle_port_info(tenant, service, unopened_port, http_outer_port, http_inner_port,
-                                                    stream_outer_port, stream_inner_port)
+                                                    stream_outer_port, stream_inner_port, context=context)
         return access_type, data
 
     def __handle_port_info(self, tenant: Tenants, service: TenantServiceInfo, unopened_port: Any, http_outer_port: Any,
-                           http_inner_port: Any, stream_outer_port: Any, stream_inner_port: Any) -> Any:
+                           http_inner_port: Any, stream_outer_port: Any, stream_inner_port: Any,
+                           context: Optional[Dict[Any, Any]] = None) -> Any:
         # 有http对外访问端口
         if http_outer_port:
             access_type = ServicePortConstants.HTTP_PORT
             port_info_list = []
             for p in http_outer_port:
                 port_dict = p.to_dict()
-                access_urls = self.__get_port_access_url(tenant, service, p.container_port)
+                access_urls = self.__get_port_access_url(tenant, service, p.container_port, context=context)
                 if not access_urls:
-                    port_and_url = self.__get_stream_outer_url(tenant, service, p)
+                    port_and_url = self.__get_stream_outer_url(tenant, service, p, context=context)
                     if port_and_url:
                         access_type = ServicePortConstants.NOT_HTTP_OUTER
                         access_urls = [port_and_url]
@@ -1271,7 +1274,7 @@ class AppPortService(object):
             access_type = ServicePortConstants.NOT_HTTP_OUTER
             port_info_list = []
             for p in stream_outer_port:
-                port_and_url = self.__get_stream_outer_url(tenant, service, p)
+                port_and_url = self.__get_stream_outer_url(tenant, service, p, context=context)
                 associate_info = self.get_port_associated_env(tenant, service, p.container_port)
                 port_dict = p.to_dict()
                 port_dict["access_urls"] = [port_and_url] if port_and_url else []
@@ -1308,8 +1311,14 @@ class AppPortService(object):
             return access_type, []
 
     def __get_stream_outer_url(self, tenant: Tenants, service: TenantServiceInfo,
-                               port: TenantServicesPort) -> Optional[str]:
-        region = region_repo.get_region_by_region_name(service.service_region)
+                               port: TenantServicesPort, context: Optional[Dict[Any, Any]] = None) -> Optional[str]:
+        key = ("region", service.service_region)
+        if context is None:
+            region = region_repo.get_region_by_region_name(service.service_region)
+        else:
+            if key not in context:
+                context[key] = region_repo.get_region_by_region_name(service.service_region)
+            region = context[key]
         if region:
             service_tcp_domain = tcp_domain.get_service_tcpdomain(tenant.tenant_id, region.region_id, service.service_id,
                                                                   port.container_port)
@@ -1350,11 +1359,19 @@ class AppPortService(object):
             env_list.append({"name": e.name, "attr_name": e.attr_name, "attr_value": e.attr_value})
         return env_list
 
-    def __get_port_access_url(self, tenant: Tenants, service: TenantServiceInfo, port: int) -> List[str]:
+    def __get_port_access_url(self, tenant: Tenants, service: TenantServiceInfo, port: int,
+                              context: Optional[Dict[Any, Any]] = None) -> List[str]:
         urls: List[str] = []
         # NOTE: Tenants.enterprise_id is nullable (str | None); callee expects str.
-        region_info = region_services.get_enterprise_region_by_region_name(
-            tenant.enterprise_id, service.service_region)  # type: ignore[arg-type]
+        key = ("enterprise-region", tenant.enterprise_id, service.service_region)
+        if context is None:
+            region_info = region_services.get_enterprise_region_by_region_name(
+                tenant.enterprise_id, service.service_region)  # type: ignore[arg-type]
+        else:
+            if key not in context:
+                context[key] = region_services.get_enterprise_region_by_region_name(
+                    tenant.enterprise_id, service.service_region)  # type: ignore[arg-type]
+            region_info = context[key]
         path = ("/api-gateway/v1/" + tenant.tenant_name + "/routes/http/domains?service_alias=" +
                 service.service_alias + "&port=" + str(port))
         # NOTE: region_info may be None (Optional region lookup); api_gateway_get_proxy
