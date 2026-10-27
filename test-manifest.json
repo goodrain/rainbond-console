@@ -10186,6 +10186,29 @@
       "status": "active"
     },
     {
+      "id": "console.platform-plugin.scoped-component-domain-reads",
+      "title": "Scope plugin component and domain reads by tenant application and region",
+      "title_zh": "按租户应用和区域限定插件组件与域名读取",
+      "interface_type": "service_method",
+      "interface": "console.services.plugin_service.RainbondPluginService.list_plugins",
+      "code_paths": [
+        "console/repositories/service_group_relation_repo.py",
+        "console/services/plugin_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/rbd_plugin_service_test.py",
+          "selector": "PluginRelationScopeTests"
+        },
+        {
+          "path": "console/tests/rbd_plugin_service_test.py",
+          "selector": "PluginScopedReadIntegrationTests"
+        }
+      ],
+      "test_type": "integration",
+      "status": "active"
+    },
+    {
       "id": "console.platform-plugin.vm-access-url-fallback",
       "title": "Fallback official VM plugin access URL from frontend component",
       "title_zh": "从前端组件访问地址回填官方虚拟机插件访问前缀",

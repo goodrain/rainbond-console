@@ -33,5 +33,10 @@ class ServiceGroupRelationRepositry(object):
     def list_by_tenant_ids(tenant_ids: List[str]) -> QuerySet:
         return ServiceGroupRelation.objects.filter(tenant_id__in=tenant_ids)
 
+    @staticmethod
+    def list_by_tenant_and_app_ids(tenant_ids: List[str], app_ids: List[Any], region_name: str) -> QuerySet:
+        return ServiceGroupRelation.objects.filter(
+            tenant_id__in=tenant_ids, group_id__in=app_ids, region_name=region_name)
+
 
 service_group_relation_repo = ServiceGroupRelationRepositry()
