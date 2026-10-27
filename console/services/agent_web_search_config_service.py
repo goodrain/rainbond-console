@@ -19,7 +19,7 @@ AI_AGENT_WEB_SEARCH_CONFIG_KEY = "AI_AGENT_WEB_SEARCH_CONFIG"
 API_KEY_PREFIX = "fernet:v1:"
 WEB_SEARCH_PROVIDERS = ("deepseek",)
 DEFAULT_CONFIG = {
-    "enabled": True,
+    "enabled": False,
     "provider": "deepseek",
     "max_results": 5,
 }
@@ -35,7 +35,7 @@ class AgentWebSearchConfigService(object):
     def get_runtime_config(self) -> Dict[str, Any]:
         config = self._load_config()
         return {
-            "enabled": self._read_bool(config.get("enabled"), True),
+            "enabled": self._read_bool(config.get("enabled"), False),
             "provider": self._normalize_provider(config.get("provider")),
             "api_key": self._decrypt_api_key(config.get("api_key", "")),
             "max_results": self._read_int(config.get("max_results"), DEFAULT_CONFIG["max_results"]),
@@ -50,7 +50,7 @@ class AgentWebSearchConfigService(object):
         raw_key = self._read_string(data.get("api_key"))
         stored_key = self._encrypt_api_key(raw_key) if raw_key else current_key
         config = {
-            "enabled": self._read_bool(data.get("enabled"), True),
+            "enabled": self._read_bool(data.get("enabled"), False),
             "provider": self._read_string(data.get("provider"), DEFAULT_CONFIG["provider"]),
             "api_key": stored_key,
             "max_results": self._read_int(data.get("max_results"), DEFAULT_CONFIG["max_results"]),
@@ -110,7 +110,7 @@ class AgentWebSearchConfigService(object):
     def _validate(self, config: Dict[str, Any], has_api_key: bool) -> None:
         # A disabled search backend may be saved without a key; enabling it
         # later requires the key again.
-        if config.get("enabled", True) and not has_api_key:
+        if config.get("enabled", False) and not has_api_key:
             raise ServiceHandleException(
                 msg="web search api key is required",
                 msg_show="联网搜索 API Key 不能为空",
@@ -135,7 +135,7 @@ class AgentWebSearchConfigService(object):
     def _to_masked(self, config: Dict[str, Any], api_key: str,
                    updated_by: str = "") -> Dict[str, Any]:
         return {
-            "enabled": self._read_bool(config.get("enabled"), True),
+            "enabled": self._read_bool(config.get("enabled"), False),
             "provider": self._normalize_provider(config.get("provider")),
             "max_results": self._read_int(config.get("max_results"), DEFAULT_CONFIG["max_results"]),
             "api_key_set": bool(api_key),

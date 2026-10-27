@@ -61,8 +61,10 @@ class AgentWebSearchRuntimeConfigView(APIView):
     permission_classes = (IsAuthenticated, )
 
     def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
+        # Agent 只需要开关与参数，不需要（也不应该拿到）解密后的 API Key。
+        config = dict(agent_web_search_config_service.get_runtime_config())
+        config.pop("api_key", None)
         return Response(
-            general_message(200, "success", "获取成功",
-                            bean=agent_web_search_config_service.get_runtime_config()),
+            general_message(200, "success", "获取成功", bean=config),
             status=200,
         )

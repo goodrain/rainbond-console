@@ -13,6 +13,8 @@ from django.test import SimpleTestCase
 
 django.setup()
 
+from rest_framework.test import APIRequestFactory, force_authenticate
+
 from console.exception.main import ServiceHandleException
 from console.services.agent_web_search_config_service import AgentWebSearchConfigService
 from console.services.agent_web_search_service import AgentWebSearchService, agent_web_search_service
@@ -23,11 +25,17 @@ class AgentWebSearchConfigServiceTests(SimpleTestCase):
     def setUp(self):
         self.service = AgentWebSearchConfigService()
 
-    def test_rejects_missing_api_key(self):
+    def test_rejects_missing_api_key_when_enabled(self):
         with mock.patch.object(self.service, "_load_config", return_value={}):
             with self.assertRaises(ServiceHandleException) as context:
-                self.service.update_config({"provider": "deepseek", "max_results": 5})
+                self.service.update_config(
+                    {"enabled": True, "provider": "deepseek", "max_results": 5})
         self.assertIn("API Key", context.exception.msg_show)
+
+    def test_defaults_to_disabled_when_config_missing(self):
+        with mock.patch.object(self.service, "_load_config", return_value={}):
+            runtime = self.service.get_runtime_config()
+        self.assertFalse(runtime["enabled"])
 
     def test_rejects_invalid_provider(self):
         with mock.patch.object(self.service, "_load_config", return_value={}):
@@ -138,3 +146,26 @@ class AgentWebSearchServiceTests(SimpleTestCase):
                 service.search("q", 1, "deepseek-401-scope")
         self.assertEqual(401, context.exception.status_code)
         self.assertIn("API Key", context.exception.msg_show)
+
+
+class AgentWebSearchRuntimeConfigViewTests(SimpleTestCase):
+
+    def test_runtime_view_does_not_expose_api_key(self):
+        from console.views.agent_web_search_config import AgentWebSearchRuntimeConfigView
+
+        factory = APIRequestFactory()
+        request = factory.get("/console/internal/agent-web-search-config/runtime")
+        force_authenticate(request, user=SimpleNamespace(is_authenticated=True))
+        with mock.patch(
+                "console.views.agent_web_search_config.agent_web_search_config_service.get_runtime_config",
+                return_value={
+                    "enabled": True,
+                    "provider": "deepseek",
+                    "api_key": "secret-key",
+                    "max_results": 5,
+                }):
+            response = AgentWebSearchRuntimeConfigView.as_view()(request)
+
+        self.assertEqual(200, response.status_code)
+        self.assertNotIn("api_key", response.data["data"]["bean"])
+        self.assertTrue(response.data["data"]["bean"]["enabled"])
