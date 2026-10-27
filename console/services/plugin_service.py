@@ -216,7 +216,7 @@ class RainbondPluginService(object):
             app_ids.append(region_app.app_id)
             region_apps_map[region_app.region_app_id] = region_app.app_id
         app_component_rels: Dict[Any, List[Any]] = {}
-        relations = service_group_relation_repo.list_by_tenant_ids(team_ids)
+        relations = service_group_relation_repo.list_by_tenant_and_app_ids(team_ids, app_ids, region_name)
         for relation in relations:
             component_ids.append(relation.service_id)
             if app_component_rels.get(relation.group_id):
