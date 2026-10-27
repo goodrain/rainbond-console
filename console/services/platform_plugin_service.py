@@ -1038,6 +1038,21 @@ class PlatformPluginService(object):
             "service_alias": getattr(service, "service_alias", "") or "",
         }
 
+    def get_agent_credential_encryption_key_value(self, enterprise_id: str,
+                                                  region_name: str) -> Optional[str]:
+        """Return the persisted key material for host-internal hot installation."""
+        tenant, _, service = self._resolve_installed_agent_context(enterprise_id, region_name)
+        env, _ = self._read_agent_encryption_env(tenant, service)
+        value = str(getattr(env, "attr_value", "") or "").strip()
+        return value or None
+
+    def store_agent_credential_encryption_key(self, enterprise_id: str, region_name: str,
+                                              key: str, user: Any) -> None:
+        """Persist the key without restarting the Agent; the Agent hot-loads it."""
+        tenant, _, service = self._resolve_installed_agent_context(enterprise_id, region_name)
+        self._upsert_agent_service_envs(
+            tenant, service, {AGENT_CREDENTIAL_ENCRYPTION_ENV: key}, user)
+
     def ensure_agent_credential_encryption_key(self, enterprise_id: str, region_name: str,
                                                user: Any, agent_status: Dict[str, Any]) -> Dict[str, Any]:
         from django.db import transaction

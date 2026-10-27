@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import json
 import logging
+import secrets
 from typing import Any
 
 from rest_framework.request import Request
@@ -136,28 +137,68 @@ class AgentKubernetesEncryptionKeyView(JWTAuthApiView):
                 status=503,
             )
 
-        try:
-            agent_status = body.get("data") if isinstance(body, dict) else None
-            if not isinstance(agent_status, dict) or not agent_status.get("status"):
-                raise ServiceHandleException(
-                    msg="agent_encryption_status_unavailable",
-                    msg_show="无法确认 AI 助手加密状态，请稍后重试",
-                    status_code=503,
-                )
-            if agent_status.get("status") == "recovery_required":
-                raise ServiceHandleException(
-                    msg="credential_key_recovery_required",
-                    msg_show="检测到历史密文无法解密，请恢复原加密密钥",
-                    status_code=412,
-                )
-            result = platform_plugin_service.ensure_agent_credential_encryption_key(
-                enterprise_id, region_name, self.user, agent_status)
-            return Response(general_message(200, "success", "加密密钥已处理", bean=result), status=200)
-        except ServiceHandleException as exc:
-            return Response(general_message(exc.status_code, exc.msg, exc.msg_show), status=exc.status_code)
-        except Exception:
-            logger.exception("ensure agent credential encryption key failed")
+        agent_status = body.get("data") if isinstance(body, dict) else None
+        if not isinstance(agent_status, dict) or not agent_status.get("status"):
             return Response(
                 general_message(503, "agent_encryption_status_unavailable", "无法确认 AI 助手加密状态，请稍后重试"),
                 status=503,
             )
+        status = str(agent_status.get("status") or "")
+        if status in ("ready", "legacy_ready"):
+            return Response(general_message(200, "success", "加密密钥已就绪", bean=agent_status), status=200)
+        if status not in ("missing", "recovery_required"):
+            return Response(
+                general_message(503, "agent_encryption_status_unavailable", "无法确认 AI 助手加密状态，请稍后重试"),
+                status=503,
+            )
+
+        try:
+            key = platform_plugin_service.get_agent_credential_encryption_key_value(enterprise_id, region_name)
+            if not key:
+                if status == "recovery_required":
+                    return Response(
+                        general_message(412, "credential_key_recovery_required",
+                                        "检测到历史密文无法解密，请恢复原加密密钥"),
+                        status=412,
+                    )
+                key = secrets.token_hex(32)
+                platform_plugin_service.store_agent_credential_encryption_key(
+                    enterprise_id, region_name, key, self.user)
+        except ServiceHandleException as exc:
+            return Response(general_message(exc.status_code, exc.msg, exc.msg_show), status=exc.status_code)
+        except Exception:
+            logger.exception("read or store agent credential encryption key failed")
+            return Response(
+                general_message(503, "agent_encryption_status_unavailable", "无法确认 AI 助手加密状态，请稍后重试"),
+                status=503,
+            )
+
+        try:
+            # 热装载：把 key 交给运行中的 Agent，不写 env、不重启。
+            return region_api.proxy(
+                request,
+                "/v2/platform/backend/plugins/rainbond-agent/api/v1/kubernetes/credentials/encryption/key",
+                region_name,
+                requests_args={
+                    "body": json.dumps({"key": key}),
+                    "headers": {"Content-Type": "application/json"},
+                },
+            )
+        except Exception:
+            logger.warning(
+                "agent credential key hot install failed; falling back to restart enterprise_id=%s region_name=%s",
+                enterprise_id,
+                region_name,
+            )
+            try:
+                result = platform_plugin_service.ensure_agent_credential_encryption_key(
+                    enterprise_id, region_name, self.user, agent_status)
+                return Response(general_message(200, "success", "加密密钥已处理", bean=result), status=200)
+            except ServiceHandleException as exc:
+                return Response(general_message(exc.status_code, exc.msg, exc.msg_show), status=exc.status_code)
+            except Exception:
+                logger.exception("ensure agent credential encryption key failed")
+                return Response(
+                    general_message(503, "agent_encryption_status_unavailable", "无法确认 AI 助手加密状态，请稍后重试"),
+                    status=503,
+                )
