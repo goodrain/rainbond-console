@@ -6,6 +6,7 @@ from typing import Any, List, Optional, Tuple
 from console.exception.bcode import ErrOauthServiceExists, ErrOauthUserNotFound, ErrOauthServiceNotFound
 from console.models.main import OAuthServices, UserOAuthServices
 from console.utils.oauth.oauth_types import (get_oauth_instance, support_oauth_type)
+from django.db import transaction
 from django.db.models import QuerySet
 
 logger = logging.getLogger('default')
@@ -178,6 +179,33 @@ class OAuthRepo(object):
 
 
 class UserOAuthRepo(object):
+    @transaction.atomic
+    def reauthorize_git_user(self, service_id: int, user_id: int, oauth_user_id: str,
+                             user_name: str, user_email: str, access_token: str,
+                             refresh_token: str, code: str) -> bool:
+        # Serialize binding changes for this service, including first-time bindings.
+        OAuthServices.objects.select_for_update().get(pk=service_id, enable=True, is_deleted=False)
+        bindings = UserOAuthServices.objects.filter(service_id=service_id)
+        targets = bindings.filter(oauth_user_id=oauth_user_id)
+        if targets.exclude(user_id=user_id).filter(user_id__isnull=False).exists():
+            return False
+        current = bindings.filter(user_id=user_id).first()
+        target = targets.first()
+        binding = current or target or UserOAuthServices(service_id=service_id)
+        # Remove only unbound duplicate rows; never change another user's binding.
+        targets.filter(user_id__isnull=True).exclude(pk=binding.pk).delete()
+        binding.oauth_user_id = oauth_user_id
+        binding.oauth_user_name = user_name
+        binding.oauth_user_email = user_email
+        binding.user_id = user_id
+        binding.access_token = access_token
+        binding.refresh_token = refresh_token
+        binding.code = code
+        binding.is_authenticated = True
+        binding.is_expired = False
+        binding.save()
+        return True
+
     def save_oauth(self, *args: Any, **kwargs: Any) -> Optional[UserOAuthServices]:
         try:
             user = UserOAuthServices.objects.get(

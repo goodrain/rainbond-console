@@ -447,21 +447,35 @@ class OAuthServerUserAuthorize(JWTAuthApiView):
             logger.debug(e)
             rst = {"data": {"bean": None}, "status": 404, "msg_show": "未找到oauth服务"}
             return Response(rst, status=status.HTTP_200_OK)
+        if api.is_git_oauth() and (
+                oauth_service.eid != login_user.enterprise_id or
+                (not oauth_service.system and oauth_service.user_id != login_user.user_id)):
+            rst = {"data": {"bean": None}, "status": 403, "msg_show": "无权访问该 OAuth 服务"}
+            return Response(rst, status=status.HTTP_200_OK)
         try:
             # 只有 Gitea 需要 PKCE 的 code_verifier 参数
             if oauth_service.oauth_type == 'gitea':  # type: ignore[union-attr]
                 user, access_token, refresh_token = api.get_user_info(code=code, code_verifier=code_verifier)
             else:
                 user, access_token, refresh_token = api.get_user_info(code=code)
-        except Exception as e:
-            logger.exception(e)
-            # NOTE: py2-era Exception.message; preserved for behavior compat (backlog).
-            rst = {"data": {"bean": None}, "status": 404, "msg_show": e.message}  # type: ignore[attr-defined]
+        except Exception:
+            logger.warning("OAuth authorization code exchange failed")
+            rst = {"data": {"bean": None}, "status": 400, "msg_show": "OAuth 认证失败，请重新认证"}
             return Response(rst, status=status.HTTP_200_OK)
 
         user_name = user.name
         user_id = str(user.id)
         user_email = user.email
+        if api.is_git_oauth():
+            updated = oauth_user_repo.reauthorize_git_user(
+                oauth_service.pk, login_user.user_id, user_id, user_name, user_email,
+                access_token, refresh_token, code)
+            if not updated:
+                rst = {"data": {"bean": None}, "status": 400, "msg_show": "该 Git 账号已被其他用户绑定"}
+                return Response(rst, status=status.HTTP_200_OK)
+            rst = {"data": {"bean": None}, "status": 200, "msg_show": "绑定成功"}
+            return Response(rst, status=status.HTTP_200_OK)
+
         # NOTE: service_id is str|None & login_user is User|AnonymousUser; legacy assumes str/user (backlog).
         authenticated_user = oauth_user_repo.user_oauth_exists(service_id=service_id, oauth_user_id=user_id)  # type: ignore[arg-type]
         link_user = oauth_user_repo.get_user_oauth_by_user_id(service_id=service_id, user_id=login_user.user_id)  # type: ignore[arg-type, union-attr]

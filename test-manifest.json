@@ -13567,6 +13567,25 @@
       ],
       "test_type": "regression",
       "status": "active"
+    },
+    {
+      "id": "console.oauth.reauthorization",
+      "title": "Refresh Git OAuth credentials and safely switch linked accounts",
+      "title_zh": "Git OAuth 重新授权与安全账号换绑",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.oauth.OAuthServerUserAuthorize.post",
+      "code_paths": [
+        "console/views/oauth.py",
+        "console/repositories/oauth_repo.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/oauth_reauthorization_test.py",
+          "selector": "OAuthReauthorizationTests"
+        }
+      ],
+      "test_type": "integration",
+      "status": "active"
     }
   ]
 }
