@@ -6337,7 +6337,9 @@ class MCPQueryService(object):
     def _tool_manage_component_envs(self) -> dict:
         return {
             "name": "rainbond_manage_component_envs",
-            "description": "高层自定义环境变量管理工具。只用于组件自身环境变量（custom envs, inner）和构建环境变量（build envs），不要用于组件连接信息（outer）。",
+            "description": "高层自定义环境变量管理工具。只用于组件自身环境变量（custom envs, inner）和构建环境变量（build envs），不要用于组件连接信息（outer）。"
+                           "运行时变量变更后需调用 rainbond_operate_app(action=upgrade) 才作用于运行实例；"
+                           "replace_build_envs 是构建参数，下次构建生效，不是 upgrade。",
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -6392,7 +6394,8 @@ class MCPQueryService(object):
     def _tool_manage_component_connection_envs(self) -> dict:
         return {
             "name": "rainbond_manage_component_connection_envs",
-            "description": "高层组件连接信息管理工具。只用于组件连接信息（connection envs, outer），不要用于自定义环境变量（inner）。",
+            "description": "高层组件连接信息管理工具。只用于组件连接信息（connection envs, outer），不要用于自定义环境变量（inner）。"
+                           "连接信息变更后，依赖该组件的 consumer 需要 rainbond_operate_app(action=upgrade) 才会拿到新值。",
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -6651,6 +6654,11 @@ class MCPQueryService(object):
         return {
             "name": "rainbond_operate_app",
             "description": "Batch operate application components. Supported actions: start, stop, restart, upgrade, deploy. "
+                           "upgrade applies already-saved configuration (envs, dependencies, storage, probes, connection envs) "
+                           "to running instances via rolling update and does NOT rebuild. "
+                           "deploy rebuilds from source code or image before deploying; use it only when the code/image "
+                           "changed or for the first deployment. "
+                           "restart only recreates instances: it neither rebuilds nor applies pending configuration changes. "
                            "Response includes event_ids ([{service_id, service_alias, event_id}]); after a failed "
                            "operation pass an event_id to rainbond_get_operation_failure_context for diagnosis.",
             "inputSchema": {
@@ -8278,6 +8286,7 @@ class MCPQueryService(object):
                 "delete_volume 推荐先 summary 获取 volume_id，也可用当前组件已有的 volume_path 或 volume_name 定位（被共享挂载时不允许删除）；"
                 "create_mnt 必填 mounts 数组（每项含 dep_vol_id + mount_path）；"
                 "delete_mnt 必填 dep_vol_id。"
+                "存储或挂载变更写入后，需调用 rainbond_operate_app(action=upgrade) 才会进入运行实例。"
             ),
             "inputSchema": {
                 "type": "object",
@@ -8407,7 +8416,8 @@ class MCPQueryService(object):
     def _tool_manage_component_probe(self) -> dict:
         return {
             "name": "rainbond_manage_component_probe",
-            "description": "高层探针管理工具，统一处理组件健康探针的查看、新增、修改、删除。",
+            "description": "高层探针管理工具，统一处理组件健康探针的查看、新增、修改、删除。"
+                           "探针变更写入后，需调用 rainbond_operate_app(action=upgrade) 才会作用于运行实例。",
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -8437,7 +8447,9 @@ class MCPQueryService(object):
     def _tool_manage_component_dependency(self) -> dict:
         return {
             "name": "rainbond_manage_component_dependency",
-            "description": "高层依赖管理工具，统一处理组件依赖、反向依赖及可依赖组件查询。",
+            "description": "高层依赖管理工具，统一处理组件依赖、反向依赖及可依赖组件查询。"
+                           "建立或删除依赖只写入元数据；consumer 需要调用 rainbond_operate_app(action=upgrade) "
+                           "才会注入或移除依赖变量。",
             "inputSchema": {
                 "type": "object",
                 "properties": {
