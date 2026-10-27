@@ -18,7 +18,11 @@ from rest_framework.test import APIRequestFactory, force_authenticate
 
 django.setup()
 
-from console.views.agent_kubernetes import AgentKubernetesBootstrapView, AgentKubernetesEncryptionKeyView
+from console.views.agent_kubernetes import (
+    AgentKubernetesBootstrapView,
+    AgentKubernetesEncryptionKeyView,
+    AgentKubernetesEncryptionResetView,
+)
 
 
 class AgentKubernetesBootstrapViewTests(SimpleTestCase):
@@ -398,3 +402,53 @@ class AgentKubernetesEncryptionKeyViewTests(SimpleTestCase):
         self.assertEqual(503, response.status_code)
         self.assertEqual("agent_encryption_status_unavailable", response.data["msg"])
         ensure.assert_not_called()
+
+
+class AgentKubernetesEncryptionResetViewTests(SimpleTestCase):
+
+    def setUp(self):
+        self.factory = APIRequestFactory()
+        self.view = AgentKubernetesEncryptionResetView.as_view()
+
+    def _request(self, confirm=True):
+        request = self.factory.post(
+            "/console/enterprise/eid/regions/rainbond/agent-kubernetes/encryption/reset",
+            data=json.dumps({"confirm_reset": confirm}),
+            content_type="application/json",
+        )
+        force_authenticate(request, user=SimpleNamespace(
+            user_id=1, nick_name="admin", enterprise_id="eid", is_authenticated=True))
+        stack = ExitStack()
+        enterprise_filter = stack.enter_context(mock.patch("console.views.base.TenantEnterprise.objects.filter"))
+        enterprise_filter.return_value.first.return_value = SimpleNamespace(enterprise_id="eid")
+        stack.enter_context(mock.patch("console.views.base.enterprise_user_perm_repo.is_admin", return_value=True))
+        stack.enter_context(mock.patch("console.views.base.user_services.list_roles", return_value=[]))
+        stack.enter_context(mock.patch("console.views.base.perms.list_enterprise_perm_codes_by_roles", return_value=[]))
+        return request, stack
+
+    def test_reset_clears_data_then_hot_installs_a_new_key(self):
+        request, stack = self._request()
+        proxy = stack.enter_context(mock.patch(
+            "console.views.agent_kubernetes.region_api.proxy",
+            side_effect=[Response({}, status=200), Response({"data": {"status": "ready"}}, status=200)],
+        ))
+        store = stack.enter_context(mock.patch(
+            "console.views.agent_kubernetes.platform_plugin_service.store_agent_credential_encryption_key"))
+        with stack:
+            response = self.view(request, enterprise_id="eid", region_name="rainbond")
+
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(2, proxy.call_count)
+        self.assertIn("/credentials/encryption/reset", proxy.call_args_list[0].args[1])
+        self.assertIn("/credentials/encryption/key", proxy.call_args_list[1].args[1])
+        key = json.loads(proxy.call_args_list[1].kwargs["requests_args"]["body"])["key"]
+        self.assertEqual(64, len(key))
+        store.assert_called_once_with("eid", "rainbond", key, mock.ANY)
+
+    def test_reset_requires_explicit_confirmation(self):
+        request, stack = self._request(confirm=False)
+        proxy = stack.enter_context(mock.patch("console.views.agent_kubernetes.region_api.proxy"))
+        with stack:
+            response = self.view(request, enterprise_id="eid", region_name="rainbond")
+        self.assertEqual(400, response.status_code)
+        proxy.assert_not_called()

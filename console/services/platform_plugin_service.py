@@ -972,7 +972,8 @@ class PlatformPluginService(object):
                     name=name,
                     attr_name=attr_name,
                     attr_value=attr_value,
-                    is_change=attr_name != AGENT_CREDENTIAL_ENCRYPTION_ENV,
+                    # 加密密钥也必须标记为变更，否则组件升级/重建可能丢失该环境变量。
+                    is_change=True,
                     scope="inner",
                     user_name=user_name,
                 )

@@ -202,3 +202,75 @@ class AgentKubernetesEncryptionKeyView(JWTAuthApiView):
                     general_message(503, "agent_encryption_status_unavailable", "无法确认 AI 助手加密状态，请稍后重试"),
                     status=503,
                 )
+
+
+class AgentKubernetesEncryptionResetView(JWTAuthApiView):
+    """Dangerous, explicit reset: drop encrypted data, then issue a new key."""
+
+    def _check_access(self, enterprise_id: str) -> Response | None:
+        if not self.is_enterprise_admin:
+            return Response(general_message(403, "forbidden", "无权限管理凭据加密密钥"), status=403)
+        if enterprise_id != self.user.enterprise_id:
+            return Response(general_message(403, "forbidden", "无权限操作该企业"), status=403)
+        return None
+
+    def post(self, request: Request, enterprise_id: str, region_name: str, *args: Any, **kwargs: Any) -> Response:
+        denied = self._check_access(enterprise_id)
+        if denied:
+            return denied
+        if (request.data or {}).get("confirm_reset") is not True:
+            return Response(
+                general_message(400, "confirmation_required", "请确认清空全部加密数据并重新生成密钥"),
+                status=400,
+            )
+
+        try:
+            reset = region_api.proxy(
+                request,
+                "/v2/platform/backend/plugins/rainbond-agent/api/v1/kubernetes/credentials/encryption/reset",
+                region_name,
+                requests_args={
+                    "body": json.dumps({"confirm_reset": True}),
+                    "headers": {"Content-Type": "application/json"},
+                },
+            )
+        except Exception:
+            logger.warning("agent credential encryption reset failed enterprise_id=%s region_name=%s",
+                           enterprise_id, region_name)
+            return Response(
+                general_message(503, "agent_encryption_status_unavailable", "无法完成密钥重置，请稍后重试"),
+                status=503,
+            )
+        if getattr(reset, "status_code", 200) >= 300:
+            return reset
+
+        key = secrets.token_hex(32)
+        try:
+            platform_plugin_service.store_agent_credential_encryption_key(
+                enterprise_id, region_name, key, self.user)
+        except ServiceHandleException as exc:
+            return Response(general_message(exc.status_code, exc.msg, exc.msg_show), status=exc.status_code)
+        except Exception:
+            logger.exception("store agent credential encryption key after reset failed")
+            return Response(
+                general_message(503, "agent_encryption_status_unavailable", "无法保存新的加密密钥"),
+                status=503,
+            )
+
+        try:
+            return region_api.proxy(
+                request,
+                "/v2/platform/backend/plugins/rainbond-agent/api/v1/kubernetes/credentials/encryption/key",
+                region_name,
+                requests_args={
+                    "body": json.dumps({"key": key}),
+                    "headers": {"Content-Type": "application/json"},
+                },
+            )
+        except Exception:
+            logger.warning("agent credential key hot install after reset failed enterprise_id=%s region_name=%s",
+                           enterprise_id, region_name)
+            return Response(
+                general_message(503, "agent_encryption_status_unavailable", "新密钥已保存，但加载失败，请稍后重试"),
+                status=503,
+            )
