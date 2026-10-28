@@ -1,0 +1,424 @@
+{
+  "version": 1,
+  "note": "MCP 工具快照。由 console/scripts/export_mcp_tools.py 生成，请勿手工编辑。",
+  "generated_from": "rainbond-console::console/services/mcp_*.py",
+  "tools": [
+    {
+      "name": "rainbond_analyze_env_conflicts"
+    },
+    {
+      "name": "rainbond_bind_component_volume"
+    },
+    {
+      "name": "rainbond_build_component"
+    },
+    {
+      "name": "rainbond_build_helm_app"
+    },
+    {
+      "name": "rainbond_change_component_image"
+    },
+    {
+      "name": "rainbond_check_component"
+    },
+    {
+      "name": "rainbond_check_helm_app"
+    },
+    {
+      "name": "rainbond_check_yaml_app"
+    },
+    {
+      "name": "rainbond_close_apps"
+    },
+    {
+      "name": "rainbond_complete_app_share"
+    },
+    {
+      "name": "rainbond_copy_app"
+    },
+    {
+      "name": "rainbond_create_ai_engine_instance"
+    },
+    {
+      "name": "rainbond_create_ai_engine_model_download"
+    },
+    {
+      "name": "rainbond_create_app"
+    },
+    {
+      "name": "rainbond_create_app_from_snapshot_version"
+    },
+    {
+      "name": "rainbond_create_app_from_yaml"
+    },
+    {
+      "name": "rainbond_create_app_share_record"
+    },
+    {
+      "name": "rainbond_create_app_upgrade_record"
+    },
+    {
+      "name": "rainbond_create_app_version_snapshot"
+    },
+    {
+      "name": "rainbond_create_component"
+    },
+    {
+      "name": "rainbond_create_component_from_image"
+    },
+    {
+      "name": "rainbond_create_component_from_local_package"
+    },
+    {
+      "name": "rainbond_create_component_from_package"
+    },
+    {
+      "name": "rainbond_create_component_from_source"
+    },
+    {
+      "name": "rainbond_create_gateway_rules"
+    },
+    {
+      "name": "rainbond_create_region"
+    },
+    {
+      "name": "rainbond_delete_ai_engine_instance"
+    },
+    {
+      "name": "rainbond_delete_ai_engine_team_model"
+    },
+    {
+      "name": "rainbond_delete_app"
+    },
+    {
+      "name": "rainbond_delete_app_share_record"
+    },
+    {
+      "name": "rainbond_delete_app_version_rollback_record"
+    },
+    {
+      "name": "rainbond_delete_app_version_snapshot"
+    },
+    {
+      "name": "rainbond_delete_component"
+    },
+    {
+      "name": "rainbond_delete_package_upload"
+    },
+    {
+      "name": "rainbond_delete_region"
+    },
+    {
+      "name": "rainbond_deploy_app_upgrade_record"
+    },
+    {
+      "name": "rainbond_exec_component"
+    },
+    {
+      "name": "rainbond_execute_app_upgrade_record"
+    },
+    {
+      "name": "rainbond_get_ai_engine_capabilities"
+    },
+    {
+      "name": "rainbond_get_ai_engine_gpu_device_timeseries"
+    },
+    {
+      "name": "rainbond_get_ai_engine_instance"
+    },
+    {
+      "name": "rainbond_get_ai_engine_instance_deployment"
+    },
+    {
+      "name": "rainbond_get_ai_engine_instance_logs"
+    },
+    {
+      "name": "rainbond_get_ai_engine_model_catalog_detail"
+    },
+    {
+      "name": "rainbond_get_ai_engine_model_download"
+    },
+    {
+      "name": "rainbond_get_ai_engine_model_download_logs"
+    },
+    {
+      "name": "rainbond_get_ai_engine_monitoring_overview"
+    },
+    {
+      "name": "rainbond_get_ai_engine_resource_capacity"
+    },
+    {
+      "name": "rainbond_get_ai_engine_team_model"
+    },
+    {
+      "name": "rainbond_get_app_detail"
+    },
+    {
+      "name": "rainbond_get_app_health_overview"
+    },
+    {
+      "name": "rainbond_get_app_last_upgrade_record"
+    },
+    {
+      "name": "rainbond_get_app_publish_candidates"
+    },
+    {
+      "name": "rainbond_get_app_rollback_records"
+    },
+    {
+      "name": "rainbond_get_app_share_event"
+    },
+    {
+      "name": "rainbond_get_app_share_info"
+    },
+    {
+      "name": "rainbond_get_app_share_record"
+    },
+    {
+      "name": "rainbond_get_app_upgrade_changes"
+    },
+    {
+      "name": "rainbond_get_app_upgrade_detail"
+    },
+    {
+      "name": "rainbond_get_app_upgrade_info"
+    },
+    {
+      "name": "rainbond_get_app_upgrade_record"
+    },
+    {
+      "name": "rainbond_get_app_version_overview"
+    },
+    {
+      "name": "rainbond_get_app_version_rollback_record_detail"
+    },
+    {
+      "name": "rainbond_get_app_version_snapshot_detail"
+    },
+    {
+      "name": "rainbond_get_component_build_logs"
+    },
+    {
+      "name": "rainbond_get_component_build_source"
+    },
+    {
+      "name": "rainbond_get_component_check_result"
+    },
+    {
+      "name": "rainbond_get_component_detail"
+    },
+    {
+      "name": "rainbond_get_component_events"
+    },
+    {
+      "name": "rainbond_get_component_logs"
+    },
+    {
+      "name": "rainbond_get_component_pods"
+    },
+    {
+      "name": "rainbond_get_component_summary"
+    },
+    {
+      "name": "rainbond_get_config_file"
+    },
+    {
+      "name": "rainbond_get_copy_app_info"
+    },
+    {
+      "name": "rainbond_get_current_user"
+    },
+    {
+      "name": "rainbond_get_operation_failure_context"
+    },
+    {
+      "name": "rainbond_get_package_upload_status"
+    },
+    {
+      "name": "rainbond_get_pod_detail"
+    },
+    {
+      "name": "rainbond_get_region_detail"
+    },
+    {
+      "name": "rainbond_get_region_node_detail"
+    },
+    {
+      "name": "rainbond_get_team_apps"
+    },
+    {
+      "name": "rainbond_get_yaml_app_check_result"
+    },
+    {
+      "name": "rainbond_giveup_app_share"
+    },
+    {
+      "name": "rainbond_handle_component_ports"
+    },
+    {
+      "name": "rainbond_horizontal_scale_component"
+    },
+    {
+      "name": "rainbond_init_package_upload"
+    },
+    {
+      "name": "rainbond_install_app_by_market"
+    },
+    {
+      "name": "rainbond_install_app_model"
+    },
+    {
+      "name": "rainbond_install_platform_plugin"
+    },
+    {
+      "name": "rainbond_list_ai_engine_gpu_devices"
+    },
+    {
+      "name": "rainbond_list_ai_engine_gpu_instance_bindings"
+    },
+    {
+      "name": "rainbond_list_ai_engine_gpu_instance_usage"
+    },
+    {
+      "name": "rainbond_list_ai_engine_instance_events"
+    },
+    {
+      "name": "rainbond_list_ai_engine_instances"
+    },
+    {
+      "name": "rainbond_list_ai_engine_model_recommendations"
+    },
+    {
+      "name": "rainbond_list_ai_engine_team_models"
+    },
+    {
+      "name": "rainbond_list_app_share_events"
+    },
+    {
+      "name": "rainbond_list_app_share_records"
+    },
+    {
+      "name": "rainbond_list_app_version_rollback_records"
+    },
+    {
+      "name": "rainbond_list_app_version_snapshots"
+    },
+    {
+      "name": "rainbond_list_platform_plugins"
+    },
+    {
+      "name": "rainbond_manage_component_autoscaler"
+    },
+    {
+      "name": "rainbond_manage_component_connection_envs"
+    },
+    {
+      "name": "rainbond_manage_component_dependency"
+    },
+    {
+      "name": "rainbond_manage_component_envs"
+    },
+    {
+      "name": "rainbond_manage_component_ports"
+    },
+    {
+      "name": "rainbond_manage_component_probe"
+    },
+    {
+      "name": "rainbond_manage_component_storage"
+    },
+    {
+      "name": "rainbond_operate_app"
+    },
+    {
+      "name": "rainbond_publish_snapshot_to_store"
+    },
+    {
+      "name": "rainbond_query_app_model_versions"
+    },
+    {
+      "name": "rainbond_query_app_monitor"
+    },
+    {
+      "name": "rainbond_query_app_monitor_range"
+    },
+    {
+      "name": "rainbond_query_app_upgrade_records"
+    },
+    {
+      "name": "rainbond_query_apps"
+    },
+    {
+      "name": "rainbond_query_cloud_app_models"
+    },
+    {
+      "name": "rainbond_query_cloud_markets"
+    },
+    {
+      "name": "rainbond_query_components"
+    },
+    {
+      "name": "rainbond_query_enterprises"
+    },
+    {
+      "name": "rainbond_query_local_app_models"
+    },
+    {
+      "name": "rainbond_query_region_nodes"
+    },
+    {
+      "name": "rainbond_query_region_rbd_components"
+    },
+    {
+      "name": "rainbond_query_regions"
+    },
+    {
+      "name": "rainbond_query_teams"
+    },
+    {
+      "name": "rainbond_replace_component_package"
+    },
+    {
+      "name": "rainbond_rewrite_snapshot_images"
+    },
+    {
+      "name": "rainbond_rollback_app_upgrade_record"
+    },
+    {
+      "name": "rainbond_rollback_app_version_snapshot"
+    },
+    {
+      "name": "rainbond_search_ai_engine_model_catalog"
+    },
+    {
+      "name": "rainbond_start_app_share_event"
+    },
+    {
+      "name": "rainbond_submit_app_share_info"
+    },
+    {
+      "name": "rainbond_update_ai_engine_instance_state"
+    },
+    {
+      "name": "rainbond_update_component_build_source"
+    },
+    {
+      "name": "rainbond_update_component_envs"
+    },
+    {
+      "name": "rainbond_update_region"
+    },
+    {
+      "name": "rainbond_upgrade_app"
+    },
+    {
+      "name": "rainbond_upload_package_file"
+    },
+    {
+      "name": "rainbond_vertical_scale_component"
+    },
+    {
+      "name": "rainbond_wait_for_build_completion"
+    }
+  ]
+}
