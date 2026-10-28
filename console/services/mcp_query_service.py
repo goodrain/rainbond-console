@@ -822,7 +822,7 @@ class MCPQueryService(object):
         envs = env_var_service.get_self_define_env(service)
         build_envs = env_var_service.get_service_build_envs(service)
         volumes = volume_service.get_all_service_volumes_with_status(team, service)
-        mnts, mnt_total = mnt_service.get_service_mnt_details(team, service, None, page=1, page_size=1000)
+        mnts, mnt_total = mnt_service.get_service_mnt_details(team, service, None, page=1, page_size=100)
         autoscaler_rules = autoscaler_service.list_autoscaler_rules(service.service_id)
         probe_code, _, probe = probe_service.get_service_probe(service)
         events, total, has_next = event_service.get_target_events(
@@ -849,7 +849,7 @@ class MCPQueryService(object):
                 "total": len(build_envs),
             },
             "volumes": {"items": [self._serialize_model_item(volume) for volume in volumes], "total": len(volumes)},
-            "mnts": {"items": mnts, "total": mnt_total},
+            "mnts": {"items": mnts, "total": mnt_total, "truncated": len(mnts) < mnt_total},
             "probe": self._serialize_model_item(probe) if probe_code == 200 else None,
             "autoscaler_rules": {
                 "items": [self._serialize_model_item(rule) for rule in autoscaler_rules],
@@ -2365,12 +2365,12 @@ class MCPQueryService(object):
             # volumes from AI assistants.
             volume_options = volume_service.get_service_support_volume_options(team, service)
             volumes = volume_service.get_all_service_volumes_with_status(team, service)
-            mnts, total = mnt_service.get_service_mnt_details(team, service, arguments.get("volume_types"), page=1, page_size=1000)
+            mnts, total = mnt_service.get_service_mnt_details(team, service, arguments.get("volume_types"), page=1, page_size=100)
             return {
                 "service_id": service.service_id,
                 "volume_options": {"items": volume_options, "total": len(volume_options)},
                 "volumes": {"items": [self._serialize_model_item(v) for v in volumes], "total": len(volumes)},
-                "mnts": {"items": mnts, "total": total},
+                "mnts": {"items": mnts, "total": total, "truncated": len(mnts) < total},
             }
         if operation == "list_unmounted":
             page = self._parse_int_with_default(arguments.get("page"), 1)

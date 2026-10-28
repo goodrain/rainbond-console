@@ -20,6 +20,7 @@ from console.services.deployment_invocation import (
 )
 from console.services.user_services import user_services
 from console.services.mcp_query_service import mcp_query_service
+from console.services.mcp_result_text import render_result_text
 from console.services.rainskills_deployment_service import rainskills_deployment_service
 from console.services.rainskills_audit_service import rainskills_audit_service
 from console.services.rainskills_tool_audit_policy import classify_tool
@@ -332,7 +333,7 @@ class MCPQueryRPCMixin(object):
                 data = self._call_tool(user, tool_name, arguments, request_meta=request_meta)
                 return self._jsonrpc_result(request_id, {
                     "isError": False,
-                    "content": [{"type": "text", "text": json.dumps(data, ensure_ascii=False, default=str)}],
+                    "content": [{"type": "text", "text": render_result_text(data)}],
                     "structuredContent": data,
                 })
             except ServiceHandleException as exc:
