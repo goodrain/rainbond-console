@@ -3369,6 +3369,24 @@
       "status": "active"
     },
     {
+      "id": "console.build-source.preserve-source-type",
+      "title": "Preserve source types during OAuth and ordinary source updates",
+      "title_zh": "OAuth构建源更新保持Git类型并兼容普通源码",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.app_overview.BuildSourceinfo.put",
+      "code_paths": [
+        "console/views/app_overview.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/buildsource_update_test.py",
+          "selector": "BuildSourceUpdateTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.build-source.single-transaction-boundary",
       "title": "Keep build source updates in one transaction",
       "title_zh": "构建源更新使用单一事务边界",
