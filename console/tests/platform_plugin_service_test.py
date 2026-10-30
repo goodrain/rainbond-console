@@ -409,7 +409,7 @@ class PlatformPluginServiceTests(TestCase):
         }, result)
         self.assertEqual("COPILOT_CREDENTIAL_ENCRYPTION_KEY", add_env.call_args.kwargs["attr_name"])
         self.assertEqual("inner", add_env.call_args.kwargs["scope"])
-        self.assertFalse(add_env.call_args.kwargs["is_change"])
+        self.assertTrue(add_env.call_args.kwargs["is_change"])
         restart.assert_called_once_with(tenant, locked_service, user, None)
         self.assertNotIn("a" * 64, str(result))
 
