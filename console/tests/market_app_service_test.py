@@ -982,6 +982,42 @@ class MarketAppServiceCreateRainbondAppTests(SimpleTestCase):
 
 class MarketAppServicePortPersistenceTests(SimpleTestCase):
 
+    # capability_id: console.market-app.persist-ports-before-tcp-rules
+    def test_save_outer_tcp_ports_creates_gateway_rules_after_persisting_ports(self):
+        from console.services.market_app_service import market_app_service
+
+        domain_module = importlib.import_module("console.services.app_config.domain_service")
+        tenant = Obj(tenant_id="tenant-1", tenant_name="team-1")
+        region = Obj(region_id="region-1")
+        service = Obj(service_id="service-1", service_alias="gr123456", service_cname="Database",
+                      service_region="region-1")
+        ports = [
+            {"container_port": port, "protocol": "tcp", "is_outer_service": True}
+            for port in (3306, 6379)
+        ]
+        persisted_ports = {}
+
+        def persist_ports(created_ports):
+            persisted_ports.update({port.container_port: port for port in created_ports})
+
+        def find_port(tenant_id, service_id, container_port):
+            return persisted_ports.get(container_port)
+
+        with patch("console.services.market_app_service.port_repo.bulk_create", side_effect=persist_ports), \
+                patch.object(domain_module.port_repo, "get_service_port_by_port", side_effect=find_port), \
+                patch.object(domain_module.region_api, "api_gateway_bind_tcp_domain",
+                             side_effect=[{"bean": 30001}, {"bean": 30002}]) as bind_tcp, \
+                patch.object(domain_module.tcp_domain, "create_service_tcp_domains") as save_rule:
+            market_app_service._MarketAppService__save_port(tenant, region, service, ports, {}, "app-1")
+
+        self.assertEqual([3306, 6379], sorted(persisted_ports))
+        self.assertEqual([
+            mock.call(region="region-1", tenant_name="team-1", k8s_service_name="gr123456",
+                      container_port=port, app_id="app-1", protocol="tcp")
+            for port in (3306, 6379)
+        ], bind_tcp.call_args_list)
+        self.assertEqual(["0.0.0.0:30001", "0.0.0.0:30002"], [call.args[2] for call in save_rule.call_args_list])
+
     @patch("console.services.market_app_service.group_repo.get_by_service_id")
     @patch("console.services.market_app_service.MarketAppService._MarketAppService__handle_k8s_service_name")
     def test_handle_service_connect_info_tracks_resolved_names_per_port(

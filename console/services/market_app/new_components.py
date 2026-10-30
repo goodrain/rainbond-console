@@ -327,7 +327,8 @@ class NewComponents(object):
         for env in inner_envs:
             if not env.get("attr_name"):
                 continue
-            attr_value = env.get("attr_value", "")
+            raw_value = env.get("attr_value")
+            attr_value = "" if raw_value is None else str(raw_value)
             resolved = self._resolve_none_placeholder(attr_value)
             if resolved is not None:
                 attr_value = resolved
@@ -347,16 +348,18 @@ class NewComponents(object):
             if not env.get("attr_name"):
                 continue
             container_port = env.get("container_port", 0)
-            resolved = self._resolve_none_placeholder(env.get("attr_value") or "")
+            raw_value = env.get("attr_value")
+            attr_value = "" if raw_value is None else str(raw_value)
+            resolved = self._resolve_none_placeholder(attr_value)
             if resolved is not None:
-                env = dict(env, attr_value=resolved)
+                attr_value = resolved
             service_env = TenantServiceEnvVar(
                 tenant_id=component.tenant_id,
                 service_id=component.service_id,
                 container_port=container_port,
                 name=env.get("name") or env.get("attr_name"),
                 attr_name=env.get("attr_name"),
-                attr_value=env.get("attr_value"),
+                attr_value=attr_value,
                 is_change=env.get("is_change", True),
                 scope="outer")
             if self.original_app.governance_mode == GovernanceModeEnum.KUBERNETES_NATIVE_SERVICE.name \

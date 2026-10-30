@@ -1080,11 +1080,12 @@ class MarketAppService(object):
                 k8s_service_name=k8s_service_name,
             )
             create_ports.append(t_port)
-            # Skip domain creation for gray release scenarios
-            if port.get("is_outer_service", False) and not skip_create_domain:
-                domain_service.create_default_gateway_rule(tenant, region, service, t_port, app_id)
         if len(create_ports) > 0:
             port_repo.bulk_create(create_ports)
+        # TCP gateway rules look up their component port, so persist ports first.
+        for port in create_ports:
+            if port.is_outer_service and not skip_create_domain:
+                domain_service.create_default_gateway_rule(tenant, region, service, port, app_id)
 
     def __save_volume(self, tenant: Tenants, service: TenantServiceInfo,
                       volumes: Any) -> Optional[Tuple[int, str]]:

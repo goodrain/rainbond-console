@@ -810,6 +810,9 @@ class BuildSourceinfo(AppBaseView):
                 service_source_user.password = password
                 service_source_user.save()
             if service_source == "source_code":
+                requested_server_type = (request.data.get("server_type") or "").strip()
+                existing_server_type = (self.service.server_type or "").strip()
+                server_type = "git" if is_oauth else (requested_server_type or existing_server_type or "git")
                 if code_version:
                     self.service.code_version = code_version
                 elif server_type == "oss":

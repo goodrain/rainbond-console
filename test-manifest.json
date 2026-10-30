@@ -3369,6 +3369,24 @@
       "status": "active"
     },
     {
+      "id": "console.build-source.preserve-source-type",
+      "title": "Preserve source types during OAuth and ordinary source updates",
+      "title_zh": "OAuth构建源更新保持Git类型并兼容普通源码",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.app_overview.BuildSourceinfo.put",
+      "code_paths": [
+        "console/views/app_overview.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/buildsource_update_test.py",
+          "selector": "BuildSourceUpdateTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.build-source.single-transaction-boundary",
       "title": "Keep build source updates in one transaction",
       "title_zh": "构建源更新使用单一事务边界",
@@ -8278,6 +8296,46 @@
         {
           "path": "console/tests/app_deploy_test.py",
           "selector": "MarketServiceBuildBoundaryRegressionTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.market-app.normalize-template-env-values",
+      "title": "Normalize template environment values before region synchronization",
+      "title_zh": "应用模板环境变量同步前转换为字符串",
+      "interface_type": "workflow",
+      "interface": "console.services.market_app.new_components.NewComponents._template_to_envs",
+      "code_paths": [
+        "console/services/market_app/new_components.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/test_none_group_envs.py",
+          "selector": "TemplateToEnvsNoneProcessingTests::test_numeric_inner_port_values_are_strings_for_region_sync"
+        },
+        {
+          "path": "console/tests/test_none_group_envs.py",
+          "selector": "TemplateToEnvsNoneProcessingTests::test_numeric_outer_port_values_are_strings_for_region_sync"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.market-app.persist-ports-before-tcp-rules",
+      "title": "Persist imported ports before creating TCP gateway rules",
+      "title_zh": "导入应用端口保存后再创建 TCP 访问策略",
+      "interface_type": "service_method",
+      "interface": "console.services.market_app_service.MarketAppService.install_service",
+      "code_paths": [
+        "console/services/market_app_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/market_app_service_test.py",
+          "selector": "MarketAppServicePortPersistenceTests::test_save_outer_tcp_ports_creates_gateway_rules_after_persisting_ports"
         }
       ],
       "test_type": "regression",
