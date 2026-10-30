@@ -428,6 +428,8 @@
 | console.market-app.k8s-attribute-extra-fields | 忽略组件 K8s 属性模板元数据 | active | regression | console.services.market_app.component.Component._update_component_k8s_attributes | console/tests/market_app_component_test.py::MarketAppComponentPortTests.test_update_k8s_attribute_ignores_template_metadata_fields |
 | console.market-app.local-snapshot-offline-upgrade | 离线模式检测本地快照升级 | active | regression | console.services.market_app_service.MarketAppService.get_market_apps_in_app | console/tests/market_app_service_test.py::MarketAppServiceOfflineUpgradeTests::test_local_snapshot_offline_upgrade_is_detected<br>console/tests/market_app_service_test.py::MarketAppServiceOfflineUpgradeTests::test_local_snapshot_versions_still_use_local_repository_when_offline |
 | console.market-app.manual-build-preserves-port-alias | 手动构建保留应用市场端口别名 | active | regression | console.services.app_actions.app_deploy.AppDeployService.deploy / MarketService.update_port_data | console/tests/app_deploy_test.py::MarketServiceBuildBoundaryRegressionTests |
+| console.market-app.normalize-template-env-values | 应用模板环境变量同步前转换为字符串 | active | regression | console.services.market_app.new_components.NewComponents._template_to_envs | console/tests/test_none_group_envs.py::TemplateToEnvsNoneProcessingTests::test_numeric_inner_port_values_are_strings_for_region_sync<br>console/tests/test_none_group_envs.py::TemplateToEnvsNoneProcessingTests::test_numeric_outer_port_values_are_strings_for_region_sync |
+| console.market-app.persist-ports-before-tcp-rules | 导入应用端口保存后再创建 TCP 访问策略 | active | regression | console.services.market_app_service.MarketAppService.install_service | console/tests/market_app_service_test.py::MarketAppServicePortPersistenceTests::test_save_outer_tcp_ports_creates_gateway_rules_after_persisting_ports |
 | console.market-app.restore-preserves-volume-capacity-on-storage-fallback | 市场恢复在存储类型回退时保留卷容量 | active | regression | console.services.market_app.new_components.NewComponents._template_to_volumes | console/tests/market_app_storage_test.py::MarketAppDefaultStorageClassTests.test_template_to_volumes_preserves_capacity_when_storage_type_changes |
 | console.market-app.restore-volume-capacity-helper | resolve_market_restore_volume_settings 在存储类型变化时保留容量 | active | regression | console.services.app_config.volume_service.AppVolumeService.resolve_market_restore_volume_settings | console/tests/market_app_storage_test.py::MarketAppDefaultStorageClassTests.test_resolve_market_restore_volume_settings_preserves_capacity_when_storage_type_changes |
 | console.market-app.skip-default-domain-for-gray-install | Skip default domain creation for gray market installs | active | regression | console.services.market_app_service.MarketAppService.__save_port | console/tests/market_app_service_test.py::MarketAppServicePortPersistenceTests.test_save_outer_port_skips_default_domain_for_gray_install |
@@ -4951,6 +4953,26 @@
 - 业务入口: `console.services.app_actions.app_deploy.AppDeployService.deploy / MarketService.update_port_data`
 - 代码路径: `console/services/app_actions/app_deploy.py`
 - 测试路径: `console/tests/app_deploy_test.py::MarketServiceBuildBoundaryRegressionTests`
+
+### 应用模板环境变量同步前转换为字符串
+
+- Capability ID: `console.market-app.normalize-template-env-values`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `workflow`
+- 业务入口: `console.services.market_app.new_components.NewComponents._template_to_envs`
+- 代码路径: `console/services/market_app/new_components.py`
+- 测试路径: `console/tests/test_none_group_envs.py::TemplateToEnvsNoneProcessingTests::test_numeric_inner_port_values_are_strings_for_region_sync`, `console/tests/test_none_group_envs.py::TemplateToEnvsNoneProcessingTests::test_numeric_outer_port_values_are_strings_for_region_sync`
+
+### 导入应用端口保存后再创建 TCP 访问策略
+
+- Capability ID: `console.market-app.persist-ports-before-tcp-rules`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.market_app_service.MarketAppService.install_service`
+- 代码路径: `console/services/market_app_service.py`
+- 测试路径: `console/tests/market_app_service_test.py::MarketAppServicePortPersistenceTests::test_save_outer_tcp_ports_creates_gateway_rules_after_persisting_ports`
 
 ### 市场恢复在存储类型回退时保留卷容量
 

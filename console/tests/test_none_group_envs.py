@@ -172,6 +172,35 @@ class TemplateToEnvsNoneProcessingTests:
     inner and outer envs, including the ``**None:group**`` variant.
     """
 
+    # capability_id: console.market-app.normalize-template-env-values
+    def test_numeric_inner_port_values_are_strings_for_region_sync(self):
+        creator = _make_creator(original_app=_fake_original_app())
+        component = _fake_component()
+        inner_envs = [
+            {"attr_name": name, "attr_value": value}
+            for name, value in (("MYSQL_PORT", 3306), ("RETRY_COUNT", 0), ("OPTIONAL_VALUE", None))
+        ]
+        original = copy.deepcopy(inner_envs)
+
+        envs = creator._template_to_envs(component, inner_envs, [], [], {"mysql": "mysql-1234"})
+
+        assert [env.to_dict()["attr_value"] for env in envs] == ["3306", "0", ""]
+        assert inner_envs == original
+
+    # capability_id: console.market-app.normalize-template-env-values
+    def test_numeric_outer_port_values_are_strings_for_region_sync(self):
+        creator = _make_creator(original_app=_fake_original_app())
+        component = _fake_component()
+        outer_envs = [{"attr_name": "MYSQL_PORT", "attr_value": 3306, "container_port": 3306}]
+        original = copy.deepcopy(outer_envs)
+
+        envs = creator._template_to_envs(component, [], outer_envs, [])
+
+        assert envs[0].to_dict()["attr_value"] == "3306"
+        assert envs[0].container_port == 3306
+        assert envs[0].scope == "outer"
+        assert outer_envs == original
+
     def test_inner_env_none_resolved(self):
         """Inner env with ``**None**`` gets auto-generated value (8 chars)."""
         creator = _make_creator(original_app=_fake_original_app())
