@@ -20,6 +20,7 @@ from console.services.exception import (ErrAdminUserDoesNotExist, ErrCannotDelLa
 from console.services.perm_services import (role_kind_services, user_kind_role_service)
 from console.services.team_services import team_services
 from console.services.user_accesstoken_services import user_access_services
+from console.services.user_identity import check_login_identifiers_available, validate_new_username
 from console.utils.oauth.oauth_types import get_oauth_instance
 from django.core.paginator import Paginator
 from django.db import transaction
@@ -154,6 +155,7 @@ class UserService(object):
         return Users.objects.create(**user_dict)
 
     def update(self, user_id: str, data: dict) -> None:
+        check_login_identifiers_available(email=data.get("email"), phone=data.get("phone"), user_id=user_id)
         d: Dict[str, Any] = {}
         if data.get("email", None) is not None:
             d["email"] = data["email"]
@@ -185,6 +187,8 @@ class UserService(object):
 
     def create_user_set_password(self, user_name: str, email: str, raw_password: str, rf: str, enterprise: Any,
                                  client_ip: str, phone: Optional[str] = None, real_name: Optional[str] = None) -> Users:
+        validate_new_username(user_name)
+        check_login_identifiers_available(nick_name=user_name, email=email, phone=phone)
         user = Users.objects.create(
             nick_name=user_name,
             email=email,
@@ -226,6 +230,7 @@ class UserService(object):
         user = Users.objects.get(user_id=user_id, enterprise_id=enterprise_id)
         user.real_name = real_name
         if phone:
+            check_login_identifiers_available(phone=phone, user_id=user.pk)
             u = user_repo.get_user_by_phone(phone)
             if u and int(u.user_id) != int(user.user_id):
                 raise AbortRequest(msg="phone exists", msg_show="手机号已存在")
@@ -454,10 +459,12 @@ class UserService(object):
         self.__check_user_name(user_name, eid)
         self.__check_email(email)
         self.__check_phone(phone)
+        check_login_identifiers_available(nick_name=user_name, email=email, phone=phone)
         if password != re_password:
             raise AbortRequest("The two passwords do not match", "两次输入的密码不一致")
 
     def __check_user_name(self, user_name: str, eid: Any = None) -> None:
+        validate_new_username(user_name)
         if not user_name:
             raise AbortRequest("empty username", "用户名不能为空")
         if self.is_user_exist(user_name, eid):

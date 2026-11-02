@@ -665,12 +665,13 @@
 | console.url.path-legal | 校验路径是否满足 URL 路径合法性规则 | active | regression | console.utils.urlutil.is_path_legal | console/tests/utils/urlutil_test.py::UrlUtilTests.test_is_path_legal |
 | console.url.query-build | 根据基础路径和参数构建 GET URL | active | regression | console.utils.urlutil.set_get_url | console/tests/utils/urlutil_test.py::UrlUtilTests.test_set_get_url |
 | console.url.query-empty | 即使没有查询参数也能构建 GET URL | active | regression | console.utils.urlutil.set_get_url | console/tests/utils/urlutil_test.py::UrlUtilTests.test_set_get_url_with_empty_params |
-| console.user-registration.required-username | 注册缺少用户名时返回表单错误 | active | regression | console.views.user_operation.TenantServiceView.post | console/tests/user_registration_view_test.py::TenantServiceRegistrationViewTests.test_post_normalizes_provided_username_before_form_validation<br>console/tests/user_registration_view_test.py::TenantServiceRegistrationViewTests.test_post_returns_form_error_when_username_is_missing |
+| console.user-registration.required-username | 注册缺少用户名时返回表单错误 | active | regression | console.views.user_operation.TenantServiceView.post | console/tests/user_registration_view_test.py::TenantServiceRegistrationViewTests.test_post_preserves_numeric_username_before_form_validation<br>console/tests/user_registration_view_test.py::TenantServiceRegistrationViewTests.test_post_returns_form_error_when_username_is_missing |
 | console.user.access-token-delete-log | 删除访问令牌时记录令牌备注 | active | regression | console.views.user_accesstoken.UserAccessTokenRUDView.delete | console/tests/user_accesstoken_delete_log_test.py::UserAccessTokenDeleteLogTest.test_delete_logs_token_note_without_nameerror |
 | console.user.current-profile | 查看当前用户身份信息 | active | regression | console.services.mcp_query_service.get_current_user | console/tests/mcp_query_service_test.py::MCPQueryServiceToolVisibilityTests.test_get_current_user_returns_identity_and_enterprise_admin_flag |
 | console.user.favorite-delete-log | 删除收藏视图时记录收藏名称 | active | regression | console.views.user_operation.UserFavoriteUDView.delete | console/tests/user_favorite_delete_log_test.py::UserFavoriteDeleteLogTest |
 | console.user.get-users-by-ids | 通过用户仓储按用户 ID 列表批量查询用户 | active | regression | console.services.user_services.UserService.get_users_by_user_ids | console/tests/user_services_get_by_ids_test.py::GetUsersByUserIdsTest.test_delegates_to_repo_get_by_user_ids |
 | console.user.password-reset-invalid-link | Reject invalid password reset links without server errors | active | regression | POST /console/users/begin_password_reset | console/tests/password_reset_view_test.py::PasswordResetViewTestCase |
+| console.users.numeric-username | Numeric username creation and unambiguous login | active | regression | console.services.user_identity | console/tests/numeric_username_test.py::NumericUsernameTests |
 | console.validation.display-name | 校验用户展示名称的中英文数字与连接符规则 | active | regression | console.utils.validation.validate_name | console/tests/utils/validation_test.py::NamespaceNormalizationTests.test_validate_name |
 | console.validation.k8s-qualified-name | 校验 Kubernetes 合法资源名称格式 | active | regression | console.utils.validation.is_qualified_name | console/tests/utils/validation_test.py::NamespaceNormalizationTests.test_is_qualified_name |
 | console.version.compare | 比较语义化风格的版本字符串 | active | regression | console.utils.version.compare_version | console/tests/utils/version_test.py::VersionUtilsTests.test_compare_version |
@@ -7332,7 +7333,7 @@
 - 接口类型: `view_endpoint`
 - 业务入口: `console.views.user_operation.TenantServiceView.post`
 - 代码路径: `console/views/user_operation.py`
-- 测试路径: `console/tests/user_registration_view_test.py::TenantServiceRegistrationViewTests.test_post_normalizes_provided_username_before_form_validation`, `console/tests/user_registration_view_test.py::TenantServiceRegistrationViewTests.test_post_returns_form_error_when_username_is_missing`
+- 测试路径: `console/tests/user_registration_view_test.py::TenantServiceRegistrationViewTests.test_post_preserves_numeric_username_before_form_validation`, `console/tests/user_registration_view_test.py::TenantServiceRegistrationViewTests.test_post_returns_form_error_when_username_is_missing`
 
 ### 删除访问令牌时记录令牌备注
 
@@ -7383,6 +7384,16 @@
 - 业务入口: `POST /console/users/begin_password_reset`
 - 代码路径: `console/views/user_operation.py`
 - 测试路径: `console/tests/password_reset_view_test.py::PasswordResetViewTestCase`
+
+### Numeric username creation and unambiguous login
+
+- Capability ID: `console.users.numeric-username`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `workflow`
+- 业务入口: `console.services.user_identity`
+- 代码路径: `console/services/user_identity.py`, `console/views/user_operation.py`, `console/forms/users_operation.py`, `console/services/user_services.py`, `console/services/user_service.py`, `console/serializer.py`, `console/services/auth/backends.py`, `console/services/login_security_service.py`, `openapi/serializer/user_serializer.py`, `www/services/user.py`, `console/views/team.py`
+- 测试路径: `console/tests/numeric_username_test.py::NumericUsernameTests`
 
 ### 校验用户展示名称的中英文数字与连接符规则
 

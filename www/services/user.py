@@ -3,7 +3,7 @@
 import random
 import string
 from www.models.main import Tenants, PermRelTenant, Users, TenantEnterprise, TenantRegionInfo
-from django.db.models import Q
+from console.services.user_identity import resolve_login_user
 
 
 class UserService(object):
@@ -59,7 +59,9 @@ class UserService(object):
 
     def is_exist(self, username, password):
         try:
-            u = Users.objects.get(Q(phone=username) | Q(email=username) | Q(nick_name=username))
+            u = resolve_login_user(username)
+            if u is None:
+                return None, '用户名或密码错误', 400
             if not u.check_password(password):
                 return None, '密码不正确', 400
             return u, "验证成功", 200

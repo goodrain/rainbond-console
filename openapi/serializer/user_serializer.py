@@ -2,6 +2,8 @@
 # creater by: barnett
 from rest_framework import serializers
 
+from console.exception.main import ServiceHandleException
+from console.services.user_identity import validate_new_username
 from openapi.serializer.role_serializer import RoleInfoSerializer
 from openapi.serializer.utils import DateCharField
 
@@ -23,8 +25,17 @@ class ListUsersRespView(serializers.Serializer):
     total = serializers.IntegerField()
 
 
+class UsernameField(serializers.CharField):
+    def to_internal_value(self, data):
+        try:
+            validate_new_username(data)
+        except ServiceHandleException as error:
+            raise serializers.ValidationError(error.msg_show)
+        return super().to_internal_value(data)
+
+
 class CreateUserSerializer(serializers.Serializer):
-    nick_name = serializers.CharField(max_length=24, required=True, help_text="用户昵称")
+    nick_name = UsernameField(min_length=3, max_length=24, required=True, help_text="用户账号")
     password = serializers.CharField(max_length=16, required=True, min_length=8, help_text="密码")
     enterprise_id = serializers.CharField(max_length=32, required=True, help_text="enterprise_id")
     email = serializers.EmailField(max_length=35, required=False, help_text="邮件地址")

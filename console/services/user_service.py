@@ -2,6 +2,7 @@
 import logging
 
 from console.repositories.user_repo import user_repo
+from console.services.user_identity import check_login_identifiers_available, validate_new_username
 from console.repositories.sms_repo import sms_repo
 from console.exception.main import ServiceHandleException
 from www.models.main import Users
@@ -11,6 +12,7 @@ logger = logging.getLogger("default")
 class UserService(object):
     def register_by_phone(self, enterprise_id: str, phone: str, code: str, nick_name: str) -> Users:
         """手机号注册"""
+        validate_new_username(nick_name)
         # 校验验证码
         valid_code = sms_repo.get_valid_code(phone, "register")
         if not valid_code:
@@ -43,6 +45,7 @@ class UserService(object):
                 status_code=400
             )
 
+        check_login_identifiers_available(nick_name=nick_name, phone=phone)
         # 创建用户
         user = Users.objects.create(
             phone=phone,
