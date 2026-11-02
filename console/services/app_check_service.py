@@ -74,14 +74,22 @@ class AppCheckService(object):
     DETECTED_DEFAULT_MEMORY_FALLBACK = 128
     DETECTED_DEFAULT_MEMORY_ALIGN_STEP = 32
     DETECTED_DEFAULT_CPU_MILLI = 500
+    JAVA_DEFAULT_MEMORY = 1024
 
     @staticmethod
     def _effective_language(language: str) -> str:
         return pick_preferred_language(language) or language
 
+    @staticmethod
+    def _is_java_build_language(language: str) -> bool:
+        policy = cnb_build_utils.get_cnb_policy_definition(language)
+        return bool(policy and policy.get("policy_key") == "java")
+
     def normalize_detected_default_resources(self, service_info: dict) -> dict:
         memory = service_info.get("memory", self.DETECTED_DEFAULT_MEMORY_FALLBACK)
         normalized_memory = memory - memory % self.DETECTED_DEFAULT_MEMORY_ALIGN_STEP
+        if self._is_java_build_language(service_info.get("language", "")):
+            normalized_memory = max(normalized_memory, self.JAVA_DEFAULT_MEMORY)
         return {
             "min_memory": normalized_memory,
             "min_cpu": self.DETECTED_DEFAULT_CPU_MILLI,
