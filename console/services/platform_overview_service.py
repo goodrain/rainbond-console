@@ -364,14 +364,14 @@ class PlatformOverviewService(object):
                 isinstance(row, dict) and isinstance(row.get("metric"), dict) and "overview_stat" in row["metric"]
                 for row in matrix):
             return cls._finite_metric_series(matrix), None
-        roles = {role: [] for role in ("percent", "used", "capacity")}
+        roles: dict[str, list[Any]] = {role: [] for role in ("percent", "used", "capacity")}
         for row in matrix:
             if isinstance(row, dict) and isinstance(row.get("metric"), dict):
                 role = row["metric"].get("overview_stat")
                 if isinstance(role, str) and role in roles:
                     roles[role].append(row)
         percent = cls._finite_metric_series(roles["percent"])
-        absolute = {"unit": "cores" if metric == "cpu" else "bytes", "samples": []}
+        absolute: dict[str, Any] = {"unit": "cores" if metric == "cpu" else "bytes", "samples": []}
         # Each aggregate must be unique: never silently merge conflicting series or timestamps.
         if any(len(rows) != 1 for rows in roles.values()):
             return percent, absolute
