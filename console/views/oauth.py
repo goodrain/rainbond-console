@@ -447,9 +447,10 @@ class OAuthServerUserAuthorize(JWTAuthApiView):
             logger.debug(e)
             rst = {"data": {"bean": None}, "status": 404, "msg_show": "未找到oauth服务"}
             return Response(rst, status=status.HTTP_200_OK)
+        # NOTE: oauth_service may be None & login_user is User|AnonymousUser; legacy assumes both present (backlog).
         if api.is_git_oauth() and (
-                oauth_service.eid != login_user.enterprise_id or
-                (not oauth_service.system and oauth_service.user_id != login_user.user_id)):
+                oauth_service.eid != login_user.enterprise_id or  # type: ignore[union-attr]
+                (not oauth_service.system and oauth_service.user_id != login_user.user_id)):  # type: ignore[union-attr]
             rst = {"data": {"bean": None}, "status": 403, "msg_show": "无权访问该 OAuth 服务"}
             return Response(rst, status=status.HTTP_200_OK)
         try:
@@ -468,8 +469,8 @@ class OAuthServerUserAuthorize(JWTAuthApiView):
         user_email = user.email
         if api.is_git_oauth():
             updated = oauth_user_repo.reauthorize_git_user(
-                oauth_service.pk, login_user.user_id, user_id, user_name, user_email,
-                access_token, refresh_token, code)
+                oauth_service.pk, login_user.user_id, user_id, user_name, user_email,  # type: ignore[union-attr]
+                access_token, refresh_token, code)  # type: ignore[arg-type]
             if not updated:
                 rst = {"data": {"bean": None}, "status": 400, "msg_show": "该 Git 账号已被其他用户绑定"}
                 return Response(rst, status=status.HTTP_200_OK)
