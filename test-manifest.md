@@ -117,6 +117,9 @@
 | console.app-upgrade.remote-offline-market-guard | 离线升级流程阻断远程应用市场访问 | active | regression | console.services.upgrade_services.UpgradeService.get_property_changes | console/tests/app_upgrade_offline_test.py::AppUpgradeOfflineTests::test_remote_upgrade_details_skip_market_lookup_when_offline<br>console/tests/market_app_service_test.py::MarketAppServiceOfflineUpgradeTests::test_remote_component_versions_skip_market_lookup_when_offline<br>console/tests/market_app_service_test.py::MarketAppServiceOfflineUpgradeTests::test_remote_model_versions_skip_market_lookup_when_offline<br>console/tests/market_app_service_test.py::MarketAppServiceOfflineUpgradeTests::test_remote_record_versions_skip_market_lookup_when_offline |
 | console.app-upgrade.rollback | App Upgrade Rollback | active | regression | console.services.mcp_query_service.call_tool[console.app-upgrade.rollback] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_rollback_app_upgrade_record_calls_restore |
 | console.app-upgrade.rollback-records | App Upgrade Rollback Records | active | regression | console.services.mcp_query_service.call_tool[console.app-upgrade.rollback-records] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_get_app_rollback_records_returns_items |
+| console.app-version.automatic-snapshot-api | 应用版本概览展示自动快照状态 | active | regression | GET /console/teams/{team}/groups/{app}/app-versions/overview | console/tests/app_version_test.py::AutomaticSnapshotOverviewContractTests |
+| console.app-version.automatic-snapshot-readiness | 自动快照等待全应用组件完成部署 | active | regression | console.services.app_version_auto_snapshot.AppVersionAutoSnapshotService._ready | console/tests/app_version_auto_snapshot_test.py::AutomaticSnapshotReadinessTests |
+| console.app-version.automatic-snapshots | 组件库部署成功后自动生成应用版本快照 | active | regression | console.services.app_version_auto_snapshot.AppVersionAutoSnapshotService | console/tests/app_version_auto_snapshot_test.py::AutomaticAppSnapshotTests |
 | console.app-version.component-diff-details | 生成应用版本组件差异明细 | active | regression | console.services.app_version_service._build_component_diff_details | console/tests/app_version_test.py::AppVersionServiceComponentDiffDetailTestCase.test_build_component_diff_details_tracks_added_removed_and_field_updates<br>console/tests/app_version_test.py::AppVersionServiceComponentDiffDetailTestCase.test_build_component_diff_details_tracks_connect_envs_and_other_changes |
 | console.app-version.create-app-from-snapshot | App Version Create App From Snapshot | active | regression | console.services.mcp_query_service.call_tool[console.app-version.create-app-from-snapshot] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_create_app_from_snapshot_version_installs_hidden_template_into_new_app |
 | console.app-version.create-app-from-snapshot-invalid-name | 从快照版本创建应用时拒绝非法目标应用名 | active | regression | console.services.mcp_query_service.call_tool[console.app-version.create-app-from-snapshot-invalid-name] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_create_app_from_snapshot_version_returns_structured_details_for_illegal_target_app_name |
@@ -127,6 +130,7 @@
 | console.app-version.diff-summary | 汇总应用版本差异 | active | regression | console.services.app_version_service._summarize_diff | console/tests/app_version_test.py::AppVersionServiceDiffSummaryTestCase.test_summarize_diff_keeps_real_component_changes |
 | console.app-version.hidden-template-cleanup | 清理应用版本隐藏模板记录 | active | regression | console.services.market_app.market_app_service.delete_rainbond_app_all_info_by_id | console/tests/app_version_test.py::AppVersionTemplateDeleteTestCase.test_delete_rainbond_app_all_info_by_id_cleans_snapshot_relation |
 | console.app-version.hidden-template-create | 创建应用版本隐藏模板 | active | regression | console.services.app_version_service.get_or_create_hidden_template | console/tests/app_version_test.py::AppVersionServiceHiddenTemplateTestCase |
+| console.app-version.market-deploy-snapshot-hook | 组件库安装升级与旧入口回滚接入自动快照 | active | regression | console.services.market_app.app_upgrade.AppUpgrade.deploy | console/tests/app_version_test.py::MarketDeploymentSnapshotHookTests |
 | console.app-version.overview | 查看应用版本概览 | active | regression | console.services.app_version_service.get_overview | console/tests/app_version_test.py::AppVersionServiceOverviewTestCase.test_get_overview_promotes_latest_successful_rollback_target_to_current_version<br>console/tests/app_version_test.py::AppVersionServiceOverviewTestCase.test_get_overview_keeps_latest_snapshot_as_current_version_when_newer_than_rollback<br>console/tests/app_version_test.py::AppVersionServiceOverviewTestCase.test_get_overview_promotes_partial_rollback_target_to_current_version<br>console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_get_app_version_overview_returns_version_center_overview |
 | console.app-version.restore-builds | 回滚后生成构建任务 | active | regression | console.services.market_app.market_app.MarketApp._generate_builds | console/tests/app_version_test.py::MarketAppBuildGenerationTestCase.test_generate_builds_allows_components_without_source_metadata |
 | console.app-version.restore-component-without-source | 无来源信息时恢复组件 | active | regression | console.services.market_app.app_restore.AppRestore._create_component | console/tests/app_version_test.py::AppRestoreSnapshotCompatibilityTestCase.test_create_component_allows_snapshot_without_service_source |
@@ -144,12 +148,14 @@
 | console.app-version.rollback-record-update-ignore-missing | 回滚记录缺失时忽略状态更新 | active | regression | console.services.market_app.app_restore.AppRestore._update_rollback_record | console/tests/app_version_test.py::AppRestoreRollbackRecordTestCase.test_update_rollback_record_ignores_missing_record |
 | console.app-version.rollback-restore-components | 应用版本回滚时恢复缺失组件 | active | regression | console.services.app_version_service.AppVersionRollbackRestore._create_new_app | console/tests/app_version_test.py::AppVersionRollbackRestoreSnapshotCoverageTestCase |
 | console.app-version.rollback-snapshot | App Version Rollback Snapshot | active | regression | console.services.mcp_query_service.call_tool[console.app-version.rollback-snapshot] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_rollback_app_version_snapshot_returns_rollback_record |
+| console.app-version.rollback-source-versions | 应用快照回滚同步恢复组件库安装版本 | active | regression | console.services.app_version_service.AppVersionRollbackRestore._restore_source_groups | console/tests/app_version_test.py::AppVersionRollbackRestoreSnapshotCoverageTestCase |
 | console.app-version.rollback-vm-snapshot-guard | 禁止回滚虚拟机应用版本快照 | active | regression | console.services.app_version_service.AppVersionService.rollback_snapshot | console/tests/app_version_test.py::AppVersionServiceRollbackVMSnapshotGuardTestCase |
 | console.app-version.snapshot-delete-guard | 阻止删除最新应用版本快照 | active | regression | console.services.app_version_service.delete_snapshot | console/tests/app_version_test.py::AppVersionServiceDeleteSnapshotTestCase.test_delete_snapshot_rejects_latest_version |
 | console.app-version.snapshot-delete-history | 删除历史应用版本快照 | active | regression | console.services.app_version_service.delete_snapshot | console/tests/app_version_test.py::AppVersionServiceDeleteSnapshotTestCase.test_delete_snapshot_removes_historical_version |
 | console.app-version.snapshot-detail | 查看应用版本快照详情 | active | regression | console.services.app_version_service.get_snapshot_detail | console/tests/app_version_test.py::AppVersionServiceSnapshotDetailTestCase.test_get_snapshot_detail_includes_previous_version_and_field_diff |
 | console.app-version.snapshot-no-change | 无变更时跳过创建快照 | active | regression | console.views.app_version.AppVersionSnapshotListView.post | console/tests/app_version_test.py::AppVersionSnapshotListViewPostTestCase.test_post_returns_no_change_message_when_snapshot_not_created |
 | console.app-version.snapshot-share-image-fallback | App Version Snapshot Share Image Fallback | active | regression | console.services.app_version_service | console/tests/app_version_test.py::AppVersionServiceTemplateNormalizationTestCase.test_assemble_app_template_falls_back_to_image_when_share_image_missing |
+| console.app-version.snapshot-source-version-dedup | 快照去重保留组件库来源版本变化 | active | regression | console.services.app_version_service.AppVersionService.create_snapshot | console/tests/app_version_test.py::AppVersionSnapshotSourceVersionTests |
 | console.app-version.snapshots | App Version Snapshots | active | regression | console.services.mcp_query_service.call_tool[console.app-version.snapshots] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_list_app_version_snapshots_returns_versions |
 | console.app-version.target-app-name-schema | create_app_from_snapshot_version 工具暴露目标应用名约束 | active | regression | console.services.mcp_query_service.list_tools[console.app-version.target-app-name-schema] | console/tests/mcp_query_service_test.py::MCPQueryServiceToolVisibilityTests.test_create_app_from_snapshot_version_tool_exposes_target_app_name_constraints |
 | console.app-version.view-diff | 查看应用版本差异详情 | active | regression | console.services.app_version_service._build_component_diff_details | console/tests/app_version_test.py::AppVersionServiceDiffSummaryTestCase<br>console/tests/app_version_test.py::AppVersionServiceComponentDiffDetailTestCase |
@@ -182,6 +188,7 @@
 | console.app.upgrade | 升级应用版本 | active | regression | console.services.mcp_query_service.call_tool[rainbond_upgrade_app] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_upgrade_app_calls_upgrade_service_and_returns_latest_items |
 | console.auth.get-user-no-legacy-middleware | 解析会话用户时不访问已废弃的 MIDDLEWARE_CLASSES | active | regression | console.services.auth.get_user | console/tests/auth_get_user_test.py::GetUserNoLegacyMiddlewareTests.test_returns_user_without_touching_middleware_classes<br>console/tests/auth_get_user_test.py::GetUserNoLegacyMiddlewareTests.test_returns_anonymous_user_when_no_session |
 | console.build-env.duplicate-update | 重复构建环境变量统一更新 | active | regression | console.repositories.app_config.TenantServiceEnvVarRepository.update_or_create_env_var | console/tests/app_config_test.py::TenantServiceEnvVarRepositoryTests.test_update_or_create_env_var_updates_all_duplicate_rows<br>console/tests/app_config_test.py::TenantServiceEnvVarRepositoryTests.test_update_or_create_env_var_creates_row_when_no_match_exists |
+| console.build-source.preserve-source-type | OAuth构建源更新保持Git类型并兼容普通源码 | active | regression | console.views.app_overview.BuildSourceinfo.put | console/tests/buildsource_update_test.py::BuildSourceUpdateTests |
 | console.build-source.single-transaction-boundary | 构建源更新使用单一事务边界 | active | regression | console.views.app_overview.BuildSourceinfo.put | console/tests/buildsource_transaction_test.py::BuildSourceTransactionTests.test_build_source_update_uses_atomic_rollback_without_manual_savepoints |
 | console.cache.atomic-increment | Atomic expiring cache increment | active | regression | console.utils.cache.Cache.increment | console/tests/utils/cache_test.py::CacheAtomicIncrementTests |
 | console.cache.capacity-guard | 内存缓存达到容量上限时拒绝或复用缓存槽位 | active | regression | console.utils.cache.Cache._memory_set | console/tests/utils/cache_test.py::CacheMemoryTests.test_memory_cache_refuses_new_key_when_full_without_expired_entries |
@@ -481,6 +488,7 @@
 | console.oauth.instance-create | 创建 OAuth helper 实例并绑定服务与用户上下文 | active | regression | console.utils.oauth.oauth_types.get_oauth_instance | console/tests/utils/oauth_types_test.py::OAuthTypeTests.test_get_oauth_instance |
 | console.oauth.kind-flags | 返回基础与 git OAuth helper 的能力标记 | active | regression | console.utils.oauth.base.git_oauth.GitOAuth2Interface.is_git_oauth | console/tests/utils/oauth_base_test.py::OAuthBaseTests.test_oauth_kind_flags |
 | console.oauth.missing-access-key-fallback | OAuth Access Key 缺失时按预期回退仓库地址 | active | regression | console.services.app_actions.app_manage.AppManageService.deploy_services_info | console/tests/app_manage_test.py::AppManageBatchActionDeployEventTests.test_deploy_info_falls_back_without_error_log_when_oauth_access_key_is_missing |
+| console.oauth.reauthorization | Git OAuth 重新授权与安全账号换绑 | active | integration | console.views.oauth.OAuthServerUserAuthorize.post | console/tests/oauth_reauthorization_test.py::OAuthReauthorizationTests |
 | console.oauth.service-validation | 使用前校验 OAuth 服务引用 | active | regression | console.repositories.oauth_repo.OAuthRepo.get_oauth_services_by_service_id | console/tests/oauth_repo_validation_test.py::OAuthRepoValidationTestCase.test_get_service_rejects_non_numeric_id_as_not_found<br>console/tests/oauth_repo_validation_test.py::OAuthRepoValidationTestCase.test_update_rejects_deleted_oauth_service_before_reading_home_url |
 | console.oauth.session-retry | 创建带重试 HTTP 适配器的 OAuth 会话 | active | regression | console.utils.oauth.base.oauth.OAuth2Interface.set_session | console/tests/utils/oauth_base_test.py::OAuthBaseTests.test_set_session_builds_retrying_requests_session |
 | console.oauth.supported-types | 列出支持的 OAuth 服务类型 | active | regression | console.utils.oauth.oauth_types.get_support_oauth_servers | console/tests/utils/oauth_types_test.py::OAuthTypeTests.test_get_support_oauth_servers |
@@ -533,6 +541,7 @@
 | console.platform-overview.http-api | Platform overview HTTP API | active | regression | console.views.platform_overview | console/tests/platform_overview_view_test.py::PlatformOverviewViewTest |
 | console.platform-plugin.batch-install-metadata | 批量读取插件最新安装元数据 | active | regression | console.services.platform_plugin_service.PlatformPluginService.list_platform_plugins | console/tests/platform_plugin_read_optimization_test.py::PlatformPluginInstallationBatchTests |
 | console.platform-plugin.coalesced-catalog-reads | 安全合并插件目录与架构并发读取 | active | regression | console.services.platform_plugin_service.PlatformPluginService | console/tests/platform_plugin_read_optimization_test.py::PlatformPluginReadCacheTests |
+| console.platform-plugin.scoped-component-domain-reads | 按租户应用和区域限定插件组件与域名读取 | active | integration | console.services.plugin_service.RainbondPluginService.list_plugins | console/tests/rbd_plugin_service_test.py::PluginRelationScopeTests<br>console/tests/rbd_plugin_service_test.py::PluginScopedReadIntegrationTests |
 | console.platform-plugin.vm-access-url-fallback | 从前端组件访问地址回填官方虚拟机插件访问前缀 | active | regression | console.services.plugin_service.RainbondPluginService.list_plugins | console/tests/rbd_plugin_service_test.py::RainbondPluginServiceTests.test_official_vm_plugin_uses_frontend_component_access_url_when_region_urls_missing |
 | console.platform-plugin.vm-runtime-status-guard | 校验虚拟机平台插件运行状态 | active | regression | console.services.platform_plugin_service.PlatformPluginService.ensure_vm_plugin_running | console/tests/platform_plugin_service_test.py::PlatformPluginServiceTests.test_ensure_vm_plugin_running_rejects_non_running_status |
 | console.plugin-build.infer-arch | Infer plugin build architecture from region chaos nodes | active | regression | console.services.plugin_build_arch.resolve_plugin_build_arch | console/tests/plugin_build_arch_test.py::PluginBuildArchTests |
@@ -1845,6 +1854,36 @@
 - 代码路径: `console/services/mcp_query_service.py`
 - 测试路径: `console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_get_app_rollback_records_returns_items`
 
+### 应用版本概览展示自动快照状态
+
+- Capability ID: `console.app-version.automatic-snapshot-api`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `view_endpoint`
+- 业务入口: `GET /console/teams/{team}/groups/{app}/app-versions/overview`
+- 代码路径: `console/views/app_version.py`
+- 测试路径: `console/tests/app_version_test.py::AutomaticSnapshotOverviewContractTests`
+
+### 自动快照等待全应用组件完成部署
+
+- Capability ID: `console.app-version.automatic-snapshot-readiness`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.app_version_auto_snapshot.AppVersionAutoSnapshotService._ready`
+- 代码路径: `console/services/app_version_auto_snapshot.py`
+- 测试路径: `console/tests/app_version_auto_snapshot_test.py::AutomaticSnapshotReadinessTests`
+
+### 组件库部署成功后自动生成应用版本快照
+
+- Capability ID: `console.app-version.automatic-snapshots`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `workflow`
+- 业务入口: `console.services.app_version_auto_snapshot.AppVersionAutoSnapshotService`
+- 代码路径: `console/services/app_version_auto_snapshot.py`, `console/services/market_app/app_upgrade.py`, `console/services/app_actions/app_manage.py`
+- 测试路径: `console/tests/app_version_auto_snapshot_test.py::AutomaticAppSnapshotTests`
+
 ### 生成应用版本组件差异明细
 
 - Capability ID: `console.app-version.component-diff-details`
@@ -1944,6 +1983,16 @@
 - 业务入口: `console.services.app_version_service.get_or_create_hidden_template`
 - 代码路径: `console/services/app_version_service.py`
 - 测试路径: `console/tests/app_version_test.py::AppVersionServiceHiddenTemplateTestCase`
+
+### 组件库安装升级与旧入口回滚接入自动快照
+
+- Capability ID: `console.app-version.market-deploy-snapshot-hook`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `workflow`
+- 业务入口: `console.services.market_app.app_upgrade.AppUpgrade.deploy`
+- 代码路径: `console/services/market_app/app_upgrade.py`, `console/services/market_app/app_restore.py`
+- 测试路径: `console/tests/app_version_test.py::MarketDeploymentSnapshotHookTests`
 
 ### 查看应用版本概览
 
@@ -2115,6 +2164,16 @@
 - 代码路径: `console/services/mcp_query_service.py`
 - 测试路径: `console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_rollback_app_version_snapshot_returns_rollback_record`
 
+### 应用快照回滚同步恢复组件库安装版本
+
+- Capability ID: `console.app-version.rollback-source-versions`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.app_version_service.AppVersionRollbackRestore._restore_source_groups`
+- 代码路径: `console/services/app_version_service.py`
+- 测试路径: `console/tests/app_version_test.py::AppVersionRollbackRestoreSnapshotCoverageTestCase`
+
 ### 禁止回滚虚拟机应用版本快照
 
 - Capability ID: `console.app-version.rollback-vm-snapshot-guard`
@@ -2174,6 +2233,16 @@
 - 业务入口: `console.services.app_version_service`
 - 代码路径: `console/services/app_version_service.py`, `console/views/app_version.py`
 - 测试路径: `console/tests/app_version_test.py::AppVersionServiceTemplateNormalizationTestCase.test_assemble_app_template_falls_back_to_image_when_share_image_missing`
+
+### 快照去重保留组件库来源版本变化
+
+- Capability ID: `console.app-version.snapshot-source-version-dedup`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.app_version_service.AppVersionService.create_snapshot`
+- 代码路径: `console/services/app_version_service.py`
+- 测试路径: `console/tests/app_version_test.py::AppVersionSnapshotSourceVersionTests`
 
 ### App Version Snapshots
 
@@ -2494,6 +2563,16 @@
 - 业务入口: `console.repositories.app_config.TenantServiceEnvVarRepository.update_or_create_env_var`
 - 代码路径: `console/repositories/app_config.py`
 - 测试路径: `console/tests/app_config_test.py::TenantServiceEnvVarRepositoryTests.test_update_or_create_env_var_updates_all_duplicate_rows`, `console/tests/app_config_test.py::TenantServiceEnvVarRepositoryTests.test_update_or_create_env_var_creates_row_when_no_match_exists`
+
+### OAuth构建源更新保持Git类型并兼容普通源码
+
+- Capability ID: `console.build-source.preserve-source-type`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `view_endpoint`
+- 业务入口: `console.views.app_overview.BuildSourceinfo.put`
+- 代码路径: `console/views/app_overview.py`
+- 测试路径: `console/tests/buildsource_update_test.py::BuildSourceUpdateTests`
 
 ### 构建源更新使用单一事务边界
 
@@ -5485,6 +5564,16 @@
 - 代码路径: `console/services/app_actions/app_manage.py`
 - 测试路径: `console/tests/app_manage_test.py::AppManageBatchActionDeployEventTests.test_deploy_info_falls_back_without_error_log_when_oauth_access_key_is_missing`
 
+### Git OAuth 重新授权与安全账号换绑
+
+- Capability ID: `console.oauth.reauthorization`
+- 状态: `active`
+- 测试类型: `integration`
+- 接口类型: `view_endpoint`
+- 业务入口: `console.views.oauth.OAuthServerUserAuthorize.post`
+- 代码路径: `console/views/oauth.py`, `console/repositories/oauth_repo.py`
+- 测试路径: `console/tests/oauth_reauthorization_test.py::OAuthReauthorizationTests`
+
 ### 使用前校验 OAuth 服务引用
 
 - Capability ID: `console.oauth.service-validation`
@@ -6004,6 +6093,16 @@
 - 业务入口: `console.services.platform_plugin_service.PlatformPluginService`
 - 代码路径: `console/services/platform_plugin_service.py`, `console/utils/coalesced_read_cache.py`
 - 测试路径: `console/tests/platform_plugin_read_optimization_test.py::PlatformPluginReadCacheTests`
+
+### 按租户应用和区域限定插件组件与域名读取
+
+- Capability ID: `console.platform-plugin.scoped-component-domain-reads`
+- 状态: `active`
+- 测试类型: `integration`
+- 接口类型: `service_method`
+- 业务入口: `console.services.plugin_service.RainbondPluginService.list_plugins`
+- 代码路径: `console/repositories/service_group_relation_repo.py`, `console/services/plugin_service.py`
+- 测试路径: `console/tests/rbd_plugin_service_test.py::PluginRelationScopeTests`, `console/tests/rbd_plugin_service_test.py::PluginScopedReadIntegrationTests`
 
 ### 从前端组件访问地址回填官方虚拟机插件访问前缀
 
