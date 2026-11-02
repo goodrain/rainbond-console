@@ -364,14 +364,14 @@ class PlatformOverviewService(object):
                 isinstance(row, dict) and isinstance(row.get("metric"), dict) and "overview_stat" in row["metric"]
                 for row in matrix):
             return cls._finite_metric_series(matrix), None
-        roles = {role: [] for role in ("percent", "used", "capacity")}
+        roles: Dict[str, List[Any]] = {role: [] for role in ("percent", "used", "capacity")}
         for row in matrix:
             if isinstance(row, dict) and isinstance(row.get("metric"), dict):
                 role = row["metric"].get("overview_stat")
                 if isinstance(role, str) and role in roles:
                     roles[role].append(row)
         percent = cls._finite_metric_series(roles["percent"])
-        absolute = {"unit": "cores" if metric == "cpu" else "bytes", "samples": []}
+        absolute: Dict[str, Any] = {"unit": "cores" if metric == "cpu" else "bytes", "samples": []}
         # Each aggregate must be unique: never silently merge conflicting series or timestamps.
         if any(len(rows) != 1 for rows in roles.values()):
             return percent, absolute
@@ -1031,12 +1031,11 @@ class PlatformOverviewService(object):
 
     def _certificate_status(self, certificate: ServiceDomainCertificate, now: datetime.datetime) -> Tuple[str, Optional[str]]:
         try:
-            content = base64.b64decode(certificate.certificate).decode("utf-8")
+            content = base64.b64decode(certificate.certificate)
             parsed = crypto.load_certificate(crypto.FILETYPE_PEM, content)
             not_after = parsed.get_notAfter()
-            if isinstance(not_after, bytes):
-                not_after = not_after.decode("ascii")
-            expires = datetime.datetime.strptime(not_after, "%Y%m%d%H%M%SZ").replace(tzinfo=datetime.timezone.utc)
+            expiry_text = not_after.decode("ascii") if isinstance(not_after, bytes) else str(not_after)
+            expires = datetime.datetime.strptime(expiry_text, "%Y%m%d%H%M%SZ").replace(tzinfo=datetime.timezone.utc)
             if timezone.is_naive(now):
                 now = timezone.make_aware(now, timezone.get_current_timezone())
             now = now.astimezone(datetime.timezone.utc)

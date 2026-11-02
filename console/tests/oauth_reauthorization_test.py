@@ -65,6 +65,13 @@ class OAuthReauthorizationTests(TestCase):
         with mock.patch("console.views.oauth.get_oauth_instance", return_value=self.api):
             return OAuthServerUserAuthorize().post(request)
 
+    def test_missing_service_does_not_exchange_code_or_create_binding(self):
+        with mock.patch("console.views.oauth.oauth_repo.get_oauth_services_by_service_id", return_value=None):
+            response = self.authorize()
+        self.assertEqual(response.data["status"], 404)
+        self.api.get_user_info.assert_not_called()
+        self.assertEqual(UserOAuthServices.objects.count(), 0)
+
     def test_same_account_refreshes_existing_binding(self):
         binding = self.binding("new-account", is_authenticated=False, is_expired=True)
         response = self.authorize()

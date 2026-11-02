@@ -14,6 +14,12 @@ set -uo pipefail
 WHITELIST_RE='console/repositories/|console/services/|console/views/|openapi/|www/apiclient/regionapi\.py'
 
 OUT=$(mypy --config-file mypy.ini console/ www/ openapi/ 2>&1)
+MYPY_STATUS=$?
+if [ "$MYPY_STATUS" -gt 1 ]; then
+  echo "$OUT"
+  echo "::error::mypy could not complete (exit $MYPY_STATUS)"
+  exit "$MYPY_STATUS"
+fi
 echo "$OUT" | tail -1
 
 HITS=$(echo "$OUT" | grep ': error' | grep -E "$WHITELIST_RE" || true)

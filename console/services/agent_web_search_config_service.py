@@ -18,7 +18,7 @@ logger = logging.getLogger("default")
 AI_AGENT_WEB_SEARCH_CONFIG_KEY = "AI_AGENT_WEB_SEARCH_CONFIG"
 API_KEY_PREFIX = "fernet:v1:"
 WEB_SEARCH_PROVIDERS = ("deepseek",)
-DEFAULT_CONFIG = {
+DEFAULT_CONFIG: Dict[str, Any] = {
     "enabled": False,
     "provider": "deepseek",
     "max_results": 5,
@@ -78,7 +78,8 @@ class AgentWebSearchConfigService(object):
             return {}
         if not isinstance(parsed, dict):
             return {}
-        return parsed.get("config") if isinstance(parsed.get("config"), dict) else parsed
+        config = parsed.get("config")
+        return config if isinstance(config, dict) else parsed
 
     def _save_config(self, config: Dict[str, Any], updated_by: str) -> None:
         value = json.dumps(
@@ -128,6 +129,7 @@ class AgentWebSearchConfigService(object):
                 msg_show="联网搜索 max_results 必须在 1..50",
                 status_code=400,
             )
+
     def _normalize_provider(self, value: Any) -> str:
         provider = self._read_string(value).lower()
         return provider if provider in WEB_SEARCH_PROVIDERS else DEFAULT_CONFIG["provider"]

@@ -125,8 +125,8 @@ def _shrink(value: Any, target: int, hint: str) -> Any:
             continue
 
         strings.sort(key=lambda item: len(item[2]), reverse=True)
-        for item in strings:
-            if _trim_string(item, hint):
+        for string_item in strings:
+            if _trim_string(string_item, hint):
                 trimmed = True
                 break
         if trimmed:

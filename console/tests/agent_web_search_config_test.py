@@ -41,7 +41,9 @@ class AgentWebSearchConfigServiceTests(SimpleTestCase):
         with mock.patch.object(self.service, "_load_config", return_value={}):
             with self.assertRaises(ServiceHandleException) as context:
                 self.service.update_config({"provider": "google", "api_key": "k"})
-        self.assertIn("provider", context.exception.msg_show)
+        self.assertEqual(400, context.exception.status_code)
+        self.assertEqual("invalid web search provider", context.exception.msg)
+        self.assertIn("deepseek", context.exception.msg_show)
 
     def test_masks_api_key_without_encrypting_plain_text(self):
         with mock.patch.object(self.service, "_load_config", return_value={}), \
