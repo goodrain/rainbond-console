@@ -569,10 +569,10 @@ class AppGroupVisitView(RegionTenantHeaderView):
             service_list = serviceAlias.split('-')
             services = list(service_repo.list_by_tenant_region_and_aliases(team.tenant_id, self.region_name, service_list))
             by_alias = {service.service_alias: service for service in services}
-            by_service = {}
+            by_service: dict[str, list[Any]] = {}
             for port in port_repo.list_by_service_ids(team.tenant_id, [service.service_id for service in services]):
                 by_service.setdefault(port.service_id, []).append(port)
-            context = {}
+            context: dict[str, Any] = {}
             for service_alias in service_list:
                 bean = dict()
                 service = by_alias.get(service_alias)
