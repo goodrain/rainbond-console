@@ -157,6 +157,17 @@ class AppCheckServiceBuildStrategyTests(TestCase):
         self.assertEqual(resources["min_memory"], 128)
         self.assertEqual(resources["min_cpu"], 500)
 
+    def test_normalize_detected_default_resources_defaults_java_builds_to_1g(self):
+        for language in ("Java-maven", "Java-jar", "Java-war", "Gradle"):
+            with self.subTest(language=language):
+                resources = self.service_helper.normalize_detected_default_resources({
+                    "language": language,
+                    "memory": 512,
+                })
+
+                self.assertEqual(resources["min_memory"], 1024)
+                self.assertEqual(resources["min_cpu"], 500)
+
     def test_save_service_info_keeps_explicit_slug_strategy(self):
         service = DummyService(build_strategy="slug")
 
