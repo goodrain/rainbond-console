@@ -331,7 +331,7 @@ class PlatformOverviewServiceTest(TestCase):
         self.service._fetch_nodes = mock.Mock(return_value={})
         self.service._fetch_components = mock.Mock(return_value=[])
         self.service._fetch_plugins = mock.Mock(return_value=[])
-        self.service._database_team_ranking = mock.Mock(return_value={})
+        self.service._fetch_team_ranking = mock.Mock(return_value={})
         self.service._database_gateway_summary = mock.Mock(return_value=None)
 
         started = time.monotonic()
@@ -343,7 +343,7 @@ class PlatformOverviewServiceTest(TestCase):
         self.assertEqual("partial", result["status"])
         self.assertEqual("unavailable", result["sections"]["resources"]["status"])
         time.sleep(0.02)
-        cached = self.service._cache.get("platform-overview:snapshot:eid:region-a")
+        cached = self.service._cache.get("platform-overview:snapshot-team-usage-v1:eid:region-a")
         self.assertEqual("unavailable", cached["sections"]["resources"]["status"])
 
     def test_cluster_snapshot_degrades_one_failed_section(self):
@@ -352,7 +352,7 @@ class PlatformOverviewServiceTest(TestCase):
         self.service._fetch_nodes = mock.Mock(side_effect=RuntimeError("nodes down"))
         self.service._fetch_components = mock.Mock(return_value=[{"name": "rbd-api", "status": "Running"}])
         self.service._fetch_plugins = mock.Mock(return_value=[{"name": "monitor", "status": "RUNNING"}])
-        self.service._database_team_ranking = mock.Mock(return_value=[])
+        self.service._fetch_team_ranking = mock.Mock(return_value=[])
         self.service._database_gateway_summary = mock.Mock(return_value=None)
 
         result = self.service.get_cluster_overview("eid", "region-a")
@@ -361,7 +361,7 @@ class PlatformOverviewServiceTest(TestCase):
         self.assertEqual("unavailable", result["sections"]["nodes"]["status"])
         self.assertEqual("ok", result["sections"]["components"]["status"])
         self.assertEqual("empty", result["sections"]["gateway"]["status"])
-        self.assertEqual([("platform-overview:snapshot:eid:region-a", 10)], self.service._cache.set_calls)
+        self.assertEqual([("platform-overview:snapshot-team-usage-v1:eid:region-a", 10)], self.service._cache.set_calls)
 
     def test_snapshot_degrades_plugin_section_when_region_plugin_http_status_fails(self):
         self.service._get_enterprise_region = mock.Mock(return_value=REGION)
@@ -369,7 +369,7 @@ class PlatformOverviewServiceTest(TestCase):
         self.service._fetch_nodes = mock.Mock(return_value={})
         self.service._fetch_components = mock.Mock(return_value=[])
         self.service._fetch_plugins = mock.Mock(side_effect=ServiceHandleException("plugins unavailable"))
-        self.service._database_team_ranking = mock.Mock(return_value={})
+        self.service._fetch_team_ranking = mock.Mock(return_value={})
         self.service._database_gateway_summary = mock.Mock(return_value=None)
 
         result = self.service.get_cluster_overview("eid", "region-a")
@@ -564,7 +564,7 @@ class PlatformOverviewServiceTest(TestCase):
         service._fetch_cluster_resources = mock.Mock(return_value={})
         service._fetch_nodes = mock.Mock(return_value={})
         service._fetch_plugins = mock.Mock(return_value=[])
-        service._database_team_ranking = mock.Mock(return_value={})
+        service._fetch_team_ranking = mock.Mock(return_value={})
         service._database_gateway_summary = mock.Mock(return_value=None)
 
         result = service.get_cluster_overview("eid", "region-a")
@@ -618,9 +618,9 @@ class PlatformOverviewServiceTest(TestCase):
         self.assertEqual(["team-1", "team-3"], [result[0]["tenant_alias"], result[1]["tenant_alias"]])
         self.assertEqual([9, 9, 7, 6, 5], [item["score"] for item in result])
 
-    def test_team_ranking_allocation_math_and_units(self):
+    def test_team_ranking_usage_units(self):
         teams = [{"tenant_id": "t1", "tenant_name": "team-one", "tenant_alias": "Team One"}]
-        resources = [{"tenant_id": "t1", "cpu_millicores": 3500, "memory_mib": 5120}]
+        resources = [{"tenant_id": "t1", "cpu_cores": 3.5, "memory_gib": 5.0}]
         applications = [{"tenant_id": "t1", "total": 4}]
 
         result = self.service._build_team_rankings(teams, resources, applications)
@@ -1007,15 +1007,15 @@ class PlatformOverviewServiceTest(TestCase):
         self.assertEqual([{"pod_name": "pending"}], result[1]["pods"])
         self.assertEqual(3, len(components))
 
-    def test_remediation_team_rankings_declare_configured_resource_scope_and_all_team_totals(self):
+    def test_remediation_team_rankings_declare_usage_scope_and_all_team_totals(self):
         teams = [{"tenant_id": str(index), "tenant_name": str(index), "tenant_alias": str(index)} for index in range(6)]
-        resources = [{"tenant_id": str(index), "cpu_millicores": 1000, "memory_mib": 1024} for index in range(6)]
+        resources = [{"tenant_id": str(index), "cpu_cores": 1, "memory_gib": 1} for index in range(6)]
         applications = [{"tenant_id": str(index), "total": 1} for index in range(6)]
 
         result = self.service._build_team_rankings(teams, resources, applications)
 
-        self.assertEqual("configured_resources", result["scope"])
-        self.assertTrue(result["includes_inactive_components"])
+        self.assertEqual("actual_usage", result["scope"])
+        self.assertFalse(result["includes_inactive_components"])
         self.assertEqual({"cpu_cores": 6, "memory_gib": 6, "applications": 6}, result["totals"])
         self.assertEqual(5, len(result["cpu"]))
 

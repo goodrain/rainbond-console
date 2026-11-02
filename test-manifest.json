@@ -13806,6 +13806,24 @@
       ],
       "test_type": "regression",
       "status": "active"
+    },
+    {
+      "id": "console.platform-overview.team-usage",
+      "title": "Team resource usage ranking from scoped monitoring",
+      "title_zh": "基于实际监控用量的团队资源排行",
+      "interface_type": "service_method",
+      "interface": "console.services.platform_overview_service.PlatformOverviewService._fetch_team_ranking",
+      "code_paths": [
+        "console/services/platform_overview_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/platform_overview_team_usage_test.py",
+          "selector": "PlatformOverviewTeamUsageTest"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
     }
   ]
 }
