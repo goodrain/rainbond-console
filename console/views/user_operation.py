@@ -221,7 +221,7 @@ class TenantServiceView(BaseApiView):
                 return Response(result, status=400)
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message if hasattr(e, 'message') else '')
+            result = error_message(getattr(e, "msg", getattr(e, "message", str(e))) if hasattr(e, 'message') else '')
             return Response(result, status=500)
 
 
@@ -273,7 +273,7 @@ class SendResetEmail(BaseApiView):
         except Exception as e:
             logger.exception(e)
             # NOTE: py2-era Exception.message; preserved for behavior compat (backlog).
-            result = error_message(e.message)  # type: ignore[attr-defined]
+            result = error_message(getattr(e, "msg", getattr(e, "message", str(e))))  # type: ignore[attr-defined]
             return Response(result, status=500)
 
 
@@ -382,7 +382,7 @@ class ChangeLoginPassword(JWTAuthApiView):
             return Response(result, status=code)
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)  # type: ignore[attr-defined]
+            result = error_message(getattr(e, "msg", getattr(e, "message", str(e))))  # type: ignore[attr-defined]
             return Response(result, status=500)
 
 
@@ -621,7 +621,7 @@ class UserInviteView(JWTAuthApiView):
 
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)  # type: ignore[attr-defined]
+            result = error_message(getattr(e, "msg", getattr(e, "message", str(e))))  # type: ignore[attr-defined]
             return Response(result, status=500)
 
 
@@ -661,7 +661,7 @@ class UserInviteJoinView(JWTAuthApiView):
 
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)  # type: ignore[attr-defined]
+            result = error_message(getattr(e, "msg", getattr(e, "message", str(e))))  # type: ignore[attr-defined]
             return Response(result, status=500)
 
     def post(self, request: Request, invitation_id: str, *args: Any, **kwargs: Any) -> Response:
@@ -726,7 +726,7 @@ class UserInviteJoinView(JWTAuthApiView):
 
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)  # type: ignore[attr-defined]
+            result = error_message(getattr(e, "msg", getattr(e, "message", str(e))))  # type: ignore[attr-defined]
             return Response(result, status=500)
 
 

@@ -1143,7 +1143,7 @@ class AppManageService(AppManageBase):
         except region_api.CallApiError as e:
             if int(e.status) != 404:
                 logger.exception(e)
-                return 500, "删除组件失败 {0}".format(e.message)
+                return 500, "删除组件失败 {0}".format(getattr(e, "msg", getattr(e, "message", str(e))))
 
         self._truncate_service(tenant, service, user, app)
 

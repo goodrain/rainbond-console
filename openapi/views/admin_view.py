@@ -98,5 +98,5 @@ class AdminInfoView(BaseOpenAPIView):
         except ErrCannotDelLastAdminUser as e:
             # NOTE: py2-style Exception.message attribute, absent in py3.
             raise serializers.ValidationError(
-                {"msg": e.message},  # type: ignore[attr-defined]
+                {"msg": getattr(e, "msg", getattr(e, "message", str(e)))},  # type: ignore[attr-defined]
                 status.HTTP_400_BAD_REQUEST)  # type: ignore[arg-type]

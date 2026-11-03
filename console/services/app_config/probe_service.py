@@ -200,7 +200,7 @@ class ProbeService(object):
                 logger.debug("update probe action status {0}".format(res.status))
             except region_api.CallApiError as e:
                 logger.debug(e)
-                if e.message.get("httpcode") == 404:
+                if getattr(e, "msg", getattr(e, "message", str(e))).get("httpcode") == 404:
                     probe.delete()
         console_probe.pop("probe_id")
         console_probe.pop("service_id")

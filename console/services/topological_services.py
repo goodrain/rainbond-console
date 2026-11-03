@@ -354,7 +354,7 @@ class TopologicalService(object):
                 enterprise_id=team.enterprise_id)
             region_data["pod_list"] = pod_list["list"]  # type: ignore[index]  # NOTE: region_api returns Any, may be None on error
         except region_api.CallApiError as e:
-            if e.message["httpcode"] == 404:
+            if getattr(e, "msg", getattr(e, "message", str(e)))["httpcode"] == 404:
                 region_data = {"status_cn": "创建中", "cur_status": "creating"}
             elif service.create_status != "complete":
                 region_data = {"status_cn": "创建中", "cur_status": "creating"}

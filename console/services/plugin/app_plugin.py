@@ -214,8 +214,9 @@ class AppPluginService(object):
         try:
             region_api.install_service_plugin(region, tenant.tenant_name, service.service_alias, data)
         except region_api.CallApiError as e:
-            if "body" in e.message and "msg" in e.message["body"] \
-                    and "a same kind plugin has been linked" in e.message["body"]["msg"]:
+            message = getattr(e, "msg", getattr(e, "message", str(e)))
+            if "body" in message and "msg" in message["body"] \
+                    and "a same kind plugin has been linked" in message["body"]["msg"]:
                 raise ServiceHandleException(msg="install plugin fail", msg_show="网络类插件不能重复安装", status_code=409)
 
     def save_default_plugin_config(self, tenant: Tenants, service: TenantServiceInfo, plugin_id: str,

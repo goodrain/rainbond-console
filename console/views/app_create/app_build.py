@@ -122,16 +122,16 @@ class AppBuild(AppBaseView, CloudEnterpriseCenterView):
         except HttpClient.CallApiError as e:
             logger.exception(e)
             if e.status == 403:
-                result = general_message(10407, "no cloud permission", e.message)
+                result = general_message(10407, "no cloud permission", getattr(e, "msg", getattr(e, "message", str(e))))
                 status = e.status
             elif e.status == 400:
-                if "is exist" in e.message.get("body", ""):
+                if "is exist" in getattr(e, "msg", getattr(e, "message", str(e))).get("body", ""):
                     result = general_message(400, "the service is exist in region", "该组件在数据中心已存在，你可能重复创建？")
                 else:
-                    result = general_message(400, "call cloud api failure", e.message)
+                    result = general_message(400, "call cloud api failure", getattr(e, "msg", getattr(e, "message", str(e))))
                 status = e.status
             else:
-                result = general_message(400, "call cloud api failure", e.message)
+                result = general_message(400, "call cloud api failure", getattr(e, "msg", getattr(e, "message", str(e))))
                 status = 400
         # 删除probe
         # 删除region端数据
@@ -249,7 +249,7 @@ class ComposeBuildView(RegionTenantHeaderCloudEnterpriseCenterView):
             result = general_message(200, "success", "构建成功")
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)  # type: ignore[attr-defined]
+            result = error_message(getattr(e, "msg", getattr(e, "message", str(e))))  # type: ignore[attr-defined]
             if services:
                 for service in services:
                     if probe_map:

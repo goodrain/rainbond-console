@@ -617,14 +617,19 @@ def custom_exception_handler(exc: Exception, context: Any) -> Optional[Response]
             response["Retry-After"] = "3"
         return response
     elif isinstance(exc, ResourceNotEnoughException):
-        data = {"code": 10406, "msg": "resource is not enough", "msg_show": exc.message}  # type: ignore[attr-defined]
+        data = {
+            "code": 10406,
+            "msg": "resource is not enough",
+            "msg_show": getattr(exc, "msg", getattr(exc, "message", str(exc))),
+        }  # type: ignore[attr-defined]
         return Response(data, status=412)
     elif isinstance(exc, RegionApiBaseHttpClient.CallApiFrequentError):
         data = {"code": 409, "msg": "wait a moment please", "msg_show": "操作过于频繁，请稍后再试"}
         return Response(data, status=409)
     elif isinstance(exc, RegionApiBaseHttpClient.CallApiError):
+        message = getattr(exc, "msg", getattr(exc, "message", str(exc)))
         try:
-            upstream_status = int(exc.message.get("httpcode") or 0)
+            upstream_status = int(message.get("httpcode") or 0)
         except (TypeError, ValueError):
             upstream_status = 0
         if upstream_status == 404:
@@ -645,12 +650,12 @@ def custom_exception_handler(exc: Exception, context: Any) -> Optional[Response]
             response["Retry-After"] = "3"
             return response
         else:
-            error_body = exc.message.get('body', {})
+            error_body = message.get('body', {})
             if isinstance(error_body, dict) and error_body.get('msg'):
                 core_error = error_body['msg']
             else:
-                core_error = str(exc.message)
-            data = {"code": 400, "msg": exc.message, "msg_show": "数据中心操作故障 {}".format(core_error)}
+                core_error = str(message)
+            data = {"code": 400, "msg": message, "msg_show": "数据中心操作故障 {}".format(core_error)}
         return Response(data, status=data["code"])  # type: ignore[arg-type]
     elif isinstance(exc, ValidationError):
         logger.debug(exc)
@@ -724,7 +729,7 @@ def custom_exception_handler(exc: Exception, context: Any) -> Optional[Response]
         # 处理数据为标准返回格式
         data = {
             "code": status.HTTP_400_BAD_REQUEST,
-            "msg": exc.message if hasattr(exc, 'message') else '',
+            "msg": getattr(exc, "msg", getattr(exc, "message", str(exc))) if hasattr(exc, 'message') else '',
             "msg_show": "{0}".format("请求参数不全")
         }
         return Response(data, status=status.HTTP_400_BAD_REQUEST)
@@ -738,7 +743,7 @@ def custom_exception_handler(exc: Exception, context: Any) -> Optional[Response]
             "error_trace": traceback.format_exc(),
             "error_details": {
                 "args": getattr(exc, 'args', None),
-                "message": exc.message if hasattr(exc, 'message') else str(exc),
+                "message": getattr(exc, "msg", getattr(exc, "message", str(exc))) if hasattr(exc, 'message') else str(exc),
                 "module": exc.__class__.__module__
             }
         }

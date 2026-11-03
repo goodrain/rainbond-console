@@ -69,7 +69,8 @@ class CheckSourceView(AlowAnyApiView):
                 return Response(result, status=code)
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)  # type: ignore[attr-defined]  # NOTE: py2 Exception.message
+            result = error_message(
+                getattr(e, "msg", getattr(e, "message", str(e))))  # type: ignore[attr-defined]  # NOTE: py2 Exception.message
             return Response(result, status=500)
 
 
@@ -130,7 +131,7 @@ class UserLoginView(BaseApiView):
         except Exception as e:
             logger.exception(e)
             code = 500
-            result = error_message(e.message)  # type: ignore[attr-defined]
+            result = error_message(getattr(e, "msg", getattr(e, "message", str(e))))  # type: ignore[attr-defined]
         return Response(result, status=code)
 
 
@@ -165,7 +166,7 @@ class UserLogoutView(JWTAuthApiView):
                 return response
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)  # type: ignore[attr-defined]
+            result = error_message(getattr(e, "msg", getattr(e, "message", str(e))))  # type: ignore[attr-defined]
             return Response(result, status=500)
 
 

@@ -42,7 +42,7 @@ class RegQuyView(RegionTenantHeaderView):
             code = 500
             logger.exception(e)
             # NOTE: py2-style Exception.message; not present on py3 Exception (legacy; backlog).
-            result = error_message(e.message)  # type: ignore[attr-defined]
+            result = error_message(getattr(e, "msg", getattr(e, "message", str(e))))  # type: ignore[attr-defined]
         return Response(result, status=code)
 
 
@@ -284,7 +284,7 @@ class PublicRegionListView(JWTAuthApiView):
         except Exception as e:
             code = 500
             logger.exception(e)
-            result = error_message(e.message)  # type: ignore[attr-defined]
+            result = error_message(getattr(e, "msg", getattr(e, "message", str(e))))  # type: ignore[attr-defined]
         return Response(result, status=code)
 
 
@@ -327,7 +327,7 @@ class RegionResourceDetailView(JWTAuthApiView):
                 result = general_message(200, "success", "查询成功", bean=data)
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)  # type: ignore[attr-defined]
+            result = error_message(getattr(e, "msg", getattr(e, "message", str(e))))  # type: ignore[attr-defined]
         return Response(result, status=result["code"])
 
 
@@ -403,7 +403,7 @@ class MavenSettingView(RegionTenantHeaderView):
             res, body = region_api.add_maven_setting(enterprise_id, region_name, request.data)
             result = general_message(200, 'query success', '添加成功', bean=body.get("bean"))  # type: ignore[union-attr]
         except RegionApiBaseHttpClient.CallApiError as exc:
-            if exc.message.get("httpcode") == 400:
+            if getattr(exc, "msg", getattr(exc, "message", str(exc))).get("httpcode") == 400:
                 result = general_message(400, 'maven setting name is exist', '配置名称已存在')
             else:
                 logger.exception(exc)
@@ -423,7 +423,7 @@ class MavenSettingRUDView(RegionTenantHeaderView):
             res, body = region_api.get_maven_setting(enterprise_id, region_name, name)
             result = general_message(200, 'query success', '获取成功', bean=body.get("bean"))  # type: ignore[union-attr]
         except RegionApiBaseHttpClient.CallApiError as exc:
-            if exc.message.get("httpcode") == 404:
+            if getattr(exc, "msg", getattr(exc, "message", str(exc))).get("httpcode") == 404:
                 result = general_message(404, 'maven setting is not exist', '配置不存在')
             else:
                 logger.exception(exc)
@@ -441,7 +441,7 @@ class MavenSettingRUDView(RegionTenantHeaderView):
             res, body = region_api.update_maven_setting(enterprise_id, region_name, name, request.data)
             result = general_message(200, 'update success', '修改成功', bean=body.get("bean"))  # type: ignore[union-attr]
         except RegionApiBaseHttpClient.CallApiError as exc:
-            if exc.message.get("httpcode") == 404:
+            if getattr(exc, "msg", getattr(exc, "message", str(exc))).get("httpcode") == 404:
                 result = general_message(404, 'maven setting is not exist', '配置不存在')
             else:
                 logger.exception(exc)
@@ -459,7 +459,7 @@ class MavenSettingRUDView(RegionTenantHeaderView):
             res, body = region_api.delete_maven_setting(enterprise_id, region_name, name)
             result = general_message(200, 'delete success', '删除成功', bean=body.get("bean"))  # type: ignore[union-attr]
         except RegionApiBaseHttpClient.CallApiError as exc:
-            if exc.message.get("httpcode") == 404:
+            if getattr(exc, "msg", getattr(exc, "message", str(exc))).get("httpcode") == 404:
                 result = general_message(404, 'maven setting is not exist', '配置不存在')
             else:
                 logger.exception(exc)

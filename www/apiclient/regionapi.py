@@ -331,9 +331,10 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             res, body = self._post(url, self.default_headers, region=region, body=json.dumps(data))
             return res, body
         except RegionApiBaseHttpClient.CallApiError as e:
-            if "namespace exists" in e.message['body'].get('msg', ""):
+            message = getattr(e, "msg", getattr(e, "message", str(e)))
+            if "namespace exists" in message['body'].get('msg', ""):
                 raise ErrNamespaceExists()
-            return {'status': e.message['httpcode']}, e.message['body']
+            return {'status': message['httpcode']}, message['body']
 
     def delete_tenant(self, region: str, tenant_name: str) -> Optional[Dict[str, Any]]:
         """删除组件"""
@@ -2582,7 +2583,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             res, body = self._get(url, self.default_headers, region=region_info.region_name)
             return res, body
         except RegionApiBaseHttpClient.CallApiError as e:
-            return {'status': e.message['httpcode']}, e.message['body']
+            message = getattr(e, "msg", getattr(e, "message", str(e)))
+            return {'status': message['httpcode']}, message['body']
 
     def set_tenant_resource_limit(self, enterprise_id: str, tenant_name: str, region: str,
                                   body: dict) -> Tuple[Any, Optional[Dict[str, Any]]]:

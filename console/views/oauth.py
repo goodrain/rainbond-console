@@ -103,7 +103,9 @@ class OauthService(EnterpriseAdminView):
         except Exception as e:
             logger.exception(e)
             # NOTE: py2-era Exception.message; preserved for behavior compat (backlog).
-            return Response({"msg": e.message}, status=status.HTTP_400_BAD_REQUEST)  # type: ignore[attr-defined]
+            return Response(
+                {"msg": getattr(e, "msg", getattr(e, "message", str(e)))},
+                status=status.HTTP_400_BAD_REQUEST)  # type: ignore[attr-defined]
         # NOTE: get_conosle_oauth_service may return None; legacy assumes present (backlog).
         service = oauth_repo.get_conosle_oauth_service(eid, self.user.user_id)  # type: ignore[arg-type]
         api = get_oauth_instance(service.oauth_type, service, None)  # type: ignore[union-attr]

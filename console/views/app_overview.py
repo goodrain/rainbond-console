@@ -733,7 +733,7 @@ class ImageAppView(AppBaseView):
             result = general_message(200, "success", "修改成功")
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)  # type: ignore[attr-defined]
+            result = error_message(getattr(e, "msg", getattr(e, "message", str(e))))  # type: ignore[attr-defined]
         return Response(result, status=result["code"])
 
 
