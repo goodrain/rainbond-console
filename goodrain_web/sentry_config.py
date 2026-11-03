@@ -243,7 +243,7 @@ def get_frontend_posthog_config_json(env=None):
 
 
 def sanitize_value(value, depth=0):
-    if depth > 4:
+    if depth > 10:
         return "[MaxDepth]"
     if isinstance(value, str):
         return BEARER_VALUE_RE.sub(r"\1[Filtered]", SENSITIVE_VALUE_RE.sub(r"\1[Filtered]", value))

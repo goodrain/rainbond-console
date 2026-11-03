@@ -91,6 +91,47 @@ def test_before_send_filters_sensitive_request_data():
     assert sanitized["message"] == "authorization=[Filtered] token=[Filtered] name=app"
 
 
+def test_before_send_preserves_exception_frames_and_sanitizes_frame_vars():
+    event = {
+        "exception": {
+            "values": [{
+                "type": "ValueError",
+                "value": "invalid configuration",
+                "mechanism": {
+                    "type": "generic",
+                    "handled": False,
+                },
+                "stacktrace": {
+                    "frames": [{
+                        "filename": "console/services/app.py",
+                        "function": "create_app",
+                        "lineno": 42,
+                        "vars": {
+                            "token": "secret-token",
+                            "app_name": "demo",
+                        },
+                    }],
+                },
+            }],
+        },
+    }
+
+    with mock.patch("goodrain_web.sentry_config.is_external_telemetry_enabled", return_value=True):
+        sanitized = sentry_config.before_send(event, {})
+
+    exception = sanitized["exception"]["values"][0]
+    assert exception["mechanism"]["handled"] is False
+    assert exception["stacktrace"]["frames"] == [{
+        "filename": "console/services/app.py",
+        "function": "create_app",
+        "lineno": 42,
+        "vars": {
+            "token": "[Filtered]",
+            "app_name": "demo",
+        },
+    }]
+
+
 def test_before_send_drops_events_when_platform_telemetry_is_disabled():
     with mock.patch("goodrain_web.sentry_config.is_external_telemetry_enabled", return_value=False):
         assert sentry_config.before_send({"message": "error"}, {}) is None
