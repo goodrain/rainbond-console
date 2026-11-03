@@ -695,7 +695,7 @@ class EnterpriseInfoView(RegionTenantHeaderView):
             # NOTE: response_region is a str (region name); .region_name is invalid and
             # Exception.message is py2-only — both would raise if reached (preserved).
             logger.warning("数据中心{0}不可达,无法获取相关信息: {1}".format(
-                self.response_region.region_name,
+                self.response_region.region_name,  # type: ignore[attr-defined]
                 getattr(e, "msg", getattr(e, "message", str(e)))))  # type: ignore[attr-defined]
         ent["is_enterprise"] = is_ent
         result = general_message(200, "success", "查询成功", bean=ent)

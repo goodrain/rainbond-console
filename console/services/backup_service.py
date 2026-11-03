@@ -36,6 +36,7 @@ from console.utils.timeutil import current_time_str
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import TenantServiceInfo, Tenants
 from www.utils.crypt import AuthCode, make_uuid
+from www.utils.return_message import get_exception_message
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
@@ -168,13 +169,13 @@ class GroupAppBackupService(object):
             return backup_record_repo.create_backup_records(**record_data)
         except region_api.CallApiError as e:
             logger.exception(e)
-            if getattr(e, "msg", getattr(e, "message", str(e)))["body"].get("msg",
+            if get_exception_message(e)["body"].get("msg",
                                      "") == "last backup task do not complete or have restore backup or version is exist":
                 raise ServiceHandleException(msg="backup failed", msg_show="上次备份任务未完成或有正在恢复的备份或该版本已存在", status_code=409)
             if e.status == 401:
                 raise ServiceHandleException(msg="backup failed", msg_show="有状态组件必须停止方可进行备份")
             raise ServiceHandleException(
-                msg=getattr(e, "msg", getattr(e, "message", str(e)))["body"].get("msg", "backup failed"),
+                msg=get_exception_message(e)["body"].get("msg", "backup failed"),
                 msg_show="备份失败")
 
     def get_backup_group_uuid(self, group_id: str) -> str:

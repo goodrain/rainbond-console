@@ -12,6 +12,7 @@ from console.repositories.probe_repo import probe_repo
 from www.models.main import ServiceProbe, TenantServiceInfo, Tenants
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.crypt import make_uuid
+from www.utils.return_message import get_exception_message
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
@@ -200,7 +201,7 @@ class ProbeService(object):
                 logger.debug("update probe action status {0}".format(res.status))
             except region_api.CallApiError as e:
                 logger.debug(e)
-                if getattr(e, "msg", getattr(e, "message", str(e))).get("httpcode") == 404:
+                if get_exception_message(e).get("httpcode") == 404:
                     probe.delete()
         console_probe.pop("probe_id")
         console_probe.pop("service_id")

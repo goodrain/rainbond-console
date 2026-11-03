@@ -42,6 +42,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView, set_rollback
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
 from www.models.main import TenantEnterprise, Tenants, TenantServiceInfo, ServiceGroup, Users
+from www.utils.return_message import get_exception_message
 from console.login.jwt_authentication import (JSONWebTokenAuthentication, JWTAuthenticationSafe)  # noqa: F401
 from console.services.auth.authentication import InternalTokenAuthentication
 
@@ -620,14 +621,14 @@ def custom_exception_handler(exc: Exception, context: Any) -> Optional[Response]
         data = {
             "code": 10406,
             "msg": "resource is not enough",
-            "msg_show": getattr(exc, "msg", getattr(exc, "message", str(exc))),
+            "msg_show": get_exception_message(exc),
         }  # type: ignore[attr-defined]
         return Response(data, status=412)
     elif isinstance(exc, RegionApiBaseHttpClient.CallApiFrequentError):
         data = {"code": 409, "msg": "wait a moment please", "msg_show": "操作过于频繁，请稍后再试"}
         return Response(data, status=409)
     elif isinstance(exc, RegionApiBaseHttpClient.CallApiError):
-        message = getattr(exc, "msg", getattr(exc, "message", str(exc)))
+        message = get_exception_message(exc)
         try:
             upstream_status = int(message.get("httpcode") or 0)
         except (TypeError, ValueError):
@@ -729,7 +730,7 @@ def custom_exception_handler(exc: Exception, context: Any) -> Optional[Response]
         # 处理数据为标准返回格式
         data = {
             "code": status.HTTP_400_BAD_REQUEST,
-            "msg": getattr(exc, "msg", getattr(exc, "message", str(exc))) if hasattr(exc, 'message') else '',
+            "msg": get_exception_message(exc) if hasattr(exc, 'message') else '',
             "msg_show": "{0}".format("请求参数不全")
         }
         return Response(data, status=status.HTTP_400_BAD_REQUEST)
@@ -743,7 +744,7 @@ def custom_exception_handler(exc: Exception, context: Any) -> Optional[Response]
             "error_trace": traceback.format_exc(),
             "error_details": {
                 "args": getattr(exc, 'args', None),
-                "message": getattr(exc, "msg", getattr(exc, "message", str(exc))) if hasattr(exc, 'message') else str(exc),
+                "message": get_exception_message(exc) if hasattr(exc, 'message') else str(exc),
                 "module": exc.__class__.__module__
             }
         }
