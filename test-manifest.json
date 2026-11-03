@@ -8360,6 +8360,25 @@
       "status": "active"
     },
     {
+      "id": "console.market-app.preserve-component-history",
+      "title": "Market component updates preserve identity and upgrade history",
+      "title_zh": "组件库更新保留组件身份及升级历史",
+      "interface_type": "service_method",
+      "interface": "console.repositories.service_repo.ServiceRepo.bulk_update",
+      "code_paths": [
+        "console/repositories/service_repo.py",
+        "console/services/market_app/new_app.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_version_test.py",
+          "selector": "MarketComponentHistoryPreservationTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.market-app.restore-preserves-volume-capacity-on-storage-fallback",
       "title": "Market restore preserves volume capacity when storage type falls back",
       "title_zh": "市场恢复在存储类型回退时保留卷容量",

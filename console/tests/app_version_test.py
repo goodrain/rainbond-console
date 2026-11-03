@@ -4,8 +4,8 @@ import json
 import os
 import sys
 from contextlib import nullcontext
-from datetime import datetime
-from types import ModuleType
+from datetime import datetime, timedelta
+from types import ModuleType, SimpleNamespace
 from unittest import TestCase, mock
 
 for attr in ("Mapping", "MutableMapping", "Sequence", "Iterable", "Iterator"):
@@ -39,11 +39,14 @@ if "openapi_client" not in sys.modules:
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
 
 import django  # noqa: E402
+from django.test import TestCase as DatabaseTestCase  # noqa: E402
+from django.utils import timezone  # noqa: E402
 from rest_framework.test import APIRequestFactory  # noqa: E402
 
 django.setup()
 
 from console.exception.main import ServiceHandleException  # noqa: E402
+from console.models.main import AppUpgradeRecord, ServiceSourceInfo, ServiceUpgradeRecord, UpgradeStatus  # noqa: E402
 from console.services import app_version_service as app_version_service_module  # noqa: E402
 from console.services import market_app_service as market_app_service_module  # noqa: E402
 from console.services.app_version_service import app_version_service  # noqa: E402
@@ -52,6 +55,137 @@ from console.services.market_app import market_app as market_app_module  # noqa:
 from console.services.market_app import new_app as new_app_module  # noqa: E402
 from console.views import app_version as app_version_view_module  # noqa: E402
 from console.views.app_version import AppVersionSnapshotDetailView, AppVersionSnapshotListView  # noqa: E402
+from www.models.main import TenantServiceEnvVar, TenantServiceInfo, TenantServicesPort  # noqa: E402
+
+
+# capability_id: console.market-app.preserve-component-history
+class MarketComponentHistoryPreservationTests(DatabaseTestCase):
+    def setUp(self):
+        self.component = self.make_component("web")
+        self.record, self.history = self.make_history(self.component)
+
+    @staticmethod
+    def make_component(name):
+        return TenantServiceInfo.objects.create(
+            service_id="service-" + name, tenant_id="tenant", service_key=name, service_alias=name,
+            service_cname=name, service_region="region", category="application", version="0.2",
+            image="nginx:v2", min_memory=256, cmd="run", desc="current", is_web_service=True)
+
+    @staticmethod
+    def make_history(component, record_type="upgrade", status=UpgradeStatus.UPGRADED.value):
+        record = AppUpgradeRecord.objects.create(
+            tenant_id="tenant", group_id=42, group_key="library", group_name="app",
+            version="0.2", old_version="0.1", record_type=record_type, status=status)
+        history = ServiceUpgradeRecord.objects.create(
+            app_upgrade_record=record, service=component, service_cname=component.service_cname,
+            event_id="event-" + str(record.ID), update="{}", status=status)
+        return record, history
+
+    @staticmethod
+    def snapshot_component(component):
+        return TenantServiceInfo(**component.to_dict())
+
+    def test_component_restore_preserves_upgrade_and_rollback_history_and_related_source(self):
+        rollback, rollback_history = self.make_history(
+            self.component, record_type="rollback", status=UpgradeStatus.ROLLBACK.value)
+        source = ServiceSourceInfo.objects.create(service=self.component, team_id="tenant", version="0.2")
+        restored = self.snapshot_component(self.component)
+        restored.image, restored.version, restored.min_memory = "nginx:v1", "0.1", 128
+
+        new_app_module.service_repo.bulk_update([restored])
+
+        self.component.refresh_from_db()
+        self.assertEqual((self.component.ID, self.component.image, self.component.version, self.component.min_memory),
+                         (restored.ID, "nginx:v1", "0.1", 128))
+        self.assertEqual(list(ServiceUpgradeRecord.objects.order_by("ID").values_list("ID", flat=True)),
+                         [self.history.ID, rollback_history.ID])
+        self.assertEqual(ServiceUpgradeRecord.objects.get(ID=self.history.ID).service.ID, self.component.ID)
+        self.assertTrue(ServiceSourceInfo.objects.filter(ID=source.ID, service_id=self.component.service_id).exists())
+        self.record.refresh_from_db()
+        rollback.refresh_from_db()
+        self.assertEqual((self.record.status, rollback.status), (UpgradeStatus.UPGRADED.value, UpgradeStatus.ROLLBACK.value))
+
+    def test_pending_upgrade_can_finish_after_restore_while_configuration_is_overwritten(self):
+        self.record.status = self.history.status = UpgradeStatus.UPGRADING.value
+        self.record.save()
+        self.history.save()
+        ServiceSourceInfo.objects.create(service=self.component, team_id="tenant", group_key="library", version="0.2")
+        TenantServiceEnvVar.objects.create(service_id=self.component.service_id, tenant_id="tenant",
+                                           attr_name="MODE", attr_value="v2")
+        TenantServicesPort.objects.create(service_id=self.component.service_id, container_port=80, protocol="http")
+        restored = self.snapshot_component(self.component)
+        restored.image, restored.version = "nginx:v1", "0.1"
+        new_app = new_app_module.NewApp.__new__(new_app_module.NewApp)
+        new_app.update_components = [SimpleNamespace(
+            component=restored,
+            component_source=ServiceSourceInfo(service_id=self.component.service_id, team_id="tenant",
+                                               group_key="library", version="0.1"),
+            envs=[TenantServiceEnvVar(service_id=self.component.service_id, tenant_id="tenant",
+                                      attr_name="MODE", attr_value="v1")],
+            ports=[TenantServicesPort(service_id=self.component.service_id, container_port=8080, protocol="http")],
+            volumes=[], config_files=[], probes=[], extend_info=None, monitors=[], graphs=[], labels=[], k8s_attributes=[])]
+
+        new_app._update_components()
+        with mock.patch("console.services.upgrade_services.region_api.get_tenant_events", return_value={
+                "list": [{"event_id": self.history.event_id, "status": "success"}]}):
+            result = app_version_service_module.upgrade_service.get_app_upgrade_record("team", "region", self.record.ID)
+
+        self.assertEqual(result["status"], UpgradeStatus.UPGRADED.value)
+        self.assertEqual([row["ID"] for row in result["service_record"]], [self.history.ID])
+        self.history.refresh_from_db()
+        self.assertEqual(self.history.status, UpgradeStatus.UPGRADED.value)
+        self.assertEqual(ServiceSourceInfo.objects.get(service_id=self.component.service_id).version, "0.1")
+        self.assertEqual(list(TenantServiceEnvVar.objects.filter(service_id=self.component.service_id)
+                              .values_list("attr_value", flat=True)), ["v1"])
+        self.assertEqual(list(TenantServicesPort.objects.filter(service_id=self.component.service_id)
+                              .values_list("container_port", flat=True)), [8080])
+
+    def test_multiple_updates_preserve_history_and_leave_other_components_unchanged(self):
+        second, untouched = self.make_component("api"), self.make_component("other")
+        _, second_history = self.make_history(second)
+        _, untouched_history = self.make_history(untouched)
+        restored = [self.snapshot_component(component) for component in (self.component, second)]
+        for component in restored:
+            component.image = "nginx:v1"
+
+        new_app_module.service_repo.bulk_update(restored)
+
+        self.assertEqual(TenantServiceInfo.objects.filter(image="nginx:v1").count(), 2)
+        untouched.refresh_from_db()
+        self.assertEqual(untouched.image, "nginx:v2")
+        self.assertEqual(set(ServiceUpgradeRecord.objects.values_list("ID", flat=True)),
+                         {self.history.ID, second_history.ID, untouched_history.ID})
+
+    def test_restore_writes_null_zero_and_false_values(self):
+        restored = self.snapshot_component(self.component)
+        restored.cmd, restored.desc, restored.deploy_version = None, None, None
+        restored.min_memory, restored.is_web_service = 0, False
+
+        new_app_module.service_repo.bulk_update([restored])
+
+        self.component.refresh_from_db()
+        self.assertEqual((self.component.cmd, self.component.desc, self.component.deploy_version,
+                          self.component.min_memory, self.component.is_web_service), (None, None, None, 0, False))
+
+    def test_restore_preserves_creation_time_and_refreshes_update_time(self):
+        original_time = timezone.now() - timedelta(days=1)
+        TenantServiceInfo.objects.filter(ID=self.component.ID).update(create_time=original_time, update_time=original_time)
+        self.component.refresh_from_db()
+        restored = self.snapshot_component(self.component)
+        restored.create_time = original_time - timedelta(days=1)
+        before = timezone.now()
+
+        new_app_module.service_repo.bulk_update([restored])
+
+        self.component.refresh_from_db()
+        self.assertEqual(self.component.create_time, original_time)
+        self.assertGreaterEqual(self.component.update_time, before)
+        self.assertLessEqual(self.component.update_time, timezone.now())
+
+    def test_empty_update_does_not_touch_existing_rows(self):
+        with self.assertNumQueries(0):
+            new_app_module.service_repo.bulk_update([])
+        self.assertTrue(ServiceUpgradeRecord.objects.filter(ID=self.history.ID).exists())
 
 
 # capability_id: console.app-version.view-diff
