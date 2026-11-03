@@ -1163,7 +1163,7 @@ class AppVersionService(object):
                 app_template = self._build_app_template(tenant, region, user, app, relation.app_model_id, next_version)
             app_template["source_component_groups"] = self._snapshot_source_groups(tenant, app)
             if require_complete:
-                expected = {service.service_id for service in group_service.get_group_services(app.ID)
+                expected = {service.service_id for service in group_service.get_group_services(str(app.ID))
                             if service.service_source not in ("third_party", "kubeblocks")}
                 captured = {service.get("service_id") for service in app_template.get("apps") or []}
                 if not expected or not expected.issubset(captured):

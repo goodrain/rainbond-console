@@ -91,6 +91,80 @@ def test_before_send_filters_sensitive_request_data():
     assert sanitized["message"] == "authorization=[Filtered] token=[Filtered] name=app"
 
 
+def test_before_send_preserves_exception_frames_without_frame_vars():
+    event = {
+        "exception": {
+            "values": [{
+                "type": "ValueError",
+                "value": "invalid configuration",
+                "mechanism": {
+                    "type": "generic",
+                    "handled": False,
+                },
+                "stacktrace": {
+                    "frames": [{
+                        "filename": "console/services/app.py",
+                        "function": "create_app",
+                        "lineno": 42,
+                        "vars": {
+                            "token": "secret-token",
+                            "app_name": "demo",
+                        },
+                    }],
+                },
+            }],
+        },
+    }
+
+    with mock.patch("goodrain_web.sentry_config.is_external_telemetry_enabled", return_value=True):
+        sanitized = sentry_config.before_send(event, {})
+
+    exception = sanitized["exception"]["values"][0]
+    assert exception["mechanism"]["handled"] is False
+    assert exception["stacktrace"]["frames"] == [{
+        "filename": "console/services/app.py",
+        "function": "create_app",
+        "lineno": 42,
+    }]
+
+
+def test_before_send_keeps_recent_exception_frames():
+    frames = [{"filename": "frame-{}".format(index)} for index in range(51)]
+    event = {
+        "exception": {
+            "values": [{
+                "stacktrace": {
+                    "frames": frames,
+                },
+            }],
+        },
+    }
+
+    with mock.patch("goodrain_web.sentry_config.is_external_telemetry_enabled", return_value=True):
+        sanitized = sentry_config.before_send(event, {})
+
+    sanitized_frames = sanitized["exception"]["values"][0]["stacktrace"]["frames"]
+    assert len(sanitized_frames) == 50
+    assert sanitized_frames[0]["filename"] == "frame-1"
+    assert sanitized_frames[-1]["filename"] == "frame-50"
+
+
+def test_init_sentry_disables_local_variable_collection():
+    config = {
+        "enabled": True,
+        "dsn": "https://example.invalid/1",
+        "environment": "production",
+        "release": "v6.9.1-dev",
+        "traces_sample_rate": 0.0,
+    }
+
+    with mock.patch("goodrain_web.sentry_config.get_sentry_config", return_value=config):
+        with mock.patch("sentry_sdk.init") as sentry_init:
+            assert sentry_config.init_sentry() is True
+
+    assert sentry_init.call_args.kwargs["with_locals"] is False
+
+
 def test_before_send_drops_events_when_platform_telemetry_is_disabled():
     with mock.patch("goodrain_web.sentry_config.is_external_telemetry_enabled", return_value=False):
         assert sentry_config.before_send({"message": "error"}, {}) is None

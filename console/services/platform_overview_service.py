@@ -365,14 +365,14 @@ class PlatformOverviewService(object):
                 isinstance(row, dict) and isinstance(row.get("metric"), dict) and "overview_stat" in row["metric"]
                 for row in matrix):
             return cls._finite_metric_series(matrix), None
-        roles: Dict[str, List[Any]] = {role: [] for role in ("percent", "used", "capacity")}
+        roles: dict[str, list[Any]] = {role: [] for role in ("percent", "used", "capacity")}
         for row in matrix:
             if isinstance(row, dict) and isinstance(row.get("metric"), dict):
                 role = row["metric"].get("overview_stat")
                 if isinstance(role, str) and role in roles:
                     roles[role].append(row)
         percent = cls._finite_metric_series(roles["percent"])
-        absolute: Dict[str, Any] = {"unit": "cores" if metric == "cpu" else "bytes", "samples": []}
+        absolute: dict[str, Any] = {"unit": "cores" if metric == "cpu" else "bytes", "samples": []}
         # Each aggregate must be unique: never silently merge conflicting series or timestamps.
         if any(len(rows) != 1 for rows in roles.values()):
             return percent, absolute
@@ -935,7 +935,7 @@ class PlatformOverviewService(object):
             tenant_id__in=tenant_ids, region_name=region_name).values("tenant_id").annotate(total=Count("ID")))
         namespaces = {team["namespace"] for team in teams if team.get("namespace")}
         sampled_at = int(timezone.now().timestamp())
-        measurements = {"cpu": {}, "memory": {}}
+        measurements: Dict[str, Dict[str, float]] = {"cpu": {}, "memory": {}}
         if namespaces:
             try:
                 matrix = self._query_metric_source(

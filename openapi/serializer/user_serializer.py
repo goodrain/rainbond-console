@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 # creater by: barnett
+from typing import Any
+
 from rest_framework import serializers
 
 from console.exception.main import ServiceHandleException
@@ -26,7 +28,7 @@ class ListUsersRespView(serializers.Serializer):
 
 
 class UsernameField(serializers.CharField):
-    def to_internal_value(self, data):
+    def to_internal_value(self, data: Any) -> str:
         try:
             validate_new_username(data)
         except ServiceHandleException as error:
