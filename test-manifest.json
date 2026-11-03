@@ -2454,6 +2454,24 @@
       "status": "active"
     },
     {
+      "id": "console.app-version.rollback-current-baseline",
+      "title": "Snapshot rollback history records the current baseline version",
+      "title_zh": "快照回滚历史记录当前基线版本",
+      "interface_type": "service_method",
+      "interface": "console.services.app_version_service.AppVersionService.rollback_snapshot",
+      "code_paths": [
+        "console/services/app_version_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_version_test.py",
+          "selector": "SnapshotRollbackCurrentBaselineTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.app-version.rollback-plan",
       "title": "Build rollback component plan",
       "title_zh": "生成回滚组件计划",

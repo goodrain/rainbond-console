@@ -138,6 +138,7 @@
 | console.app-version.restore-legacy-action-type | 兼容旧快照中的操作类型 | active | regression | console.services.app_version_service.AppVersionRollbackRestore._create_component | console/tests/app_version_test.py::AppVersionRollbackRestoreActionTypeTestCase.test_create_component_keeps_snapshot_action_type_for_legacy_snapshot |
 | console.app-version.restore-update-service-sources | 回滚时恢复组件来源信息 | active | regression | console.services.market_app.new_app.NewApp._update_components | console/tests/app_version_test.py::NewAppUpdateComponentsTestCase.test_update_components_overwrites_service_sources_when_snapshot_missing_source |
 | console.app-version.rollback-create-new-app | 根据快照生成回滚目标应用 | active | regression | console.services.app_version_service.AppVersionRollbackRestore._create_new_app | console/tests/app_version_test.py::AppVersionRollbackRestoreSnapshotCoverageTestCase.test_create_new_app_restores_snapshot_components_missing_from_runtime<br>console/tests/app_version_test.py::AppVersionRollbackRestoreSnapshotCoverageTestCase.test_create_new_app_marks_changed_existing_components_for_update |
+| console.app-version.rollback-current-baseline | 快照回滚历史记录当前基线版本 | active | regression | console.services.app_version_service.AppVersionService.rollback_snapshot | console/tests/app_version_test.py::SnapshotRollbackCurrentBaselineTests |
 | console.app-version.rollback-plan | 生成回滚组件计划 | active | regression | console.services.app_version_service._build_rollback_component_plan | console/tests/app_version_test.py::AppVersionServiceRollbackPlanTestCase.test_build_rollback_component_plan_marks_changed_and_restored_components |
 | console.app-version.rollback-record-detail | 查询应用版本回滚记录详情 | active | regression | console.views.app_version.AppVersionRollbackRecordDetailView.get | console/tests/app_version_test.py::AppVersionRollbackRecordViewTestCase.test_detail_returns_single_rollback_record |
 | console.app-version.rollback-record-finished-delete | 删除已完成的回滚记录 | active | regression | console.services.app_version_service.delete_rollback_record | console/tests/app_version_test.py::AppVersionRollbackRecordServiceTestCase.test_delete_rollback_record_removes_finished_record |
@@ -2064,6 +2065,16 @@
 - 业务入口: `console.services.app_version_service.AppVersionRollbackRestore._create_new_app`
 - 代码路径: `console/services/app_version_service.py`
 - 测试路径: `console/tests/app_version_test.py::AppVersionRollbackRestoreSnapshotCoverageTestCase.test_create_new_app_restores_snapshot_components_missing_from_runtime`, `console/tests/app_version_test.py::AppVersionRollbackRestoreSnapshotCoverageTestCase.test_create_new_app_marks_changed_existing_components_for_update`
+
+### 快照回滚历史记录当前基线版本
+
+- Capability ID: `console.app-version.rollback-current-baseline`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.app_version_service.AppVersionService.rollback_snapshot`
+- 代码路径: `console/services/app_version_service.py`
+- 测试路径: `console/tests/app_version_test.py::SnapshotRollbackCurrentBaselineTests`
 
 ### 生成回滚组件计划
 

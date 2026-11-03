@@ -1349,10 +1349,9 @@ class AppVersionService(object):
         from console.services.app_version_auto_snapshot import app_version_auto_snapshot_service
         app_version_auto_snapshot_service.cancel(app.ID)
 
-        latest_version = rainbond_app_repo.get_rainbond_app_versions(relation.app_model_id).filter(
-            template_type=self.SNAPSHOT_TEMPLATE_TYPE
-        ).order_by("-create_time").first()
-        current_version = latest_version.version if latest_version else ""
+        versions = self._list_snapshot_version_objects(relation.app_model_id)
+        current_baseline = self._select_current_baseline_version(app.ID, versions)  # type: ignore[arg-type]
+        current_version = current_baseline.version if current_baseline else ""
         current_template = self._build_app_template(
             tenant,
             region,

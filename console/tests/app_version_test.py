@@ -1566,13 +1566,56 @@ class SnapshotRollbackBuildVersionTests(TestCase):
                 mock.patch.object(app_version_service_module.RainbondCenterAppVersion.objects, "filter") as versions, \
                 mock.patch.object(app_version_service_module.ServiceGroup.objects, "select_for_update"), \
                 mock.patch("console.services.app_version_auto_snapshot.app_version_auto_snapshot_service.cancel"), \
-                mock.patch.object(app_version_service_module.rainbond_app_repo, "get_rainbond_app_versions"), \
+                mock.patch.object(app_version_service, "_list_snapshot_version_objects",
+                                  return_value=[mock.Mock(version="1.0.2")]), \
+                mock.patch.object(app_version_service, "_latest_successful_rollback_record", return_value=None), \
                 mock.patch.object(app_version_service, "_build_app_template", return_value=template), \
                 mock.patch.object(app_version_service_module, "AppVersionRollbackRestore") as restore_class:
             versions.return_value.first.return_value = target
             restore_class.return_value.restore.return_value = (mock.Mock(to_dict=mock.Mock(return_value={})), None)
             app_version_service.rollback_snapshot(tenant, region, mock.Mock(), app, 9)
         self.assertEqual(restore_class.call_args.kwargs["target_template"], template)
+
+
+# capability_id: console.app-version.rollback-current-baseline
+class SnapshotRollbackCurrentBaselineTests(TestCase):
+    def rollback_from(self, snapshot_time, rollback_time):
+        template = {"snapshot_id": "snapshot-id", "apps": []}
+        target = mock.Mock(version="1.0.4", app_template=json.dumps(template))
+        snapshots = [mock.Mock(version="1.0.4", create_time=snapshot_time),
+                     mock.Mock(version="1.0.3", create_time=datetime(2026, 11, 3, 13, 0))]
+        previous_rollback = mock.Mock(version="1.0.3", update_time=rollback_time) if rollback_time else None
+        with mock.patch.object(app_version_service, "get_hidden_template",
+                               return_value=(mock.Mock(app_model_id="hidden"), None)), \
+                mock.patch.object(app_version_service_module.RainbondCenterAppVersion.objects, "filter") as targets, \
+                mock.patch.object(app_version_service_module.ServiceGroup.objects, "select_for_update"), \
+                mock.patch("console.services.app_version_auto_snapshot.app_version_auto_snapshot_service.cancel"), \
+                mock.patch.object(app_version_service_module.rainbond_app_repo, "get_rainbond_app_versions",
+                                  return_value=AppVersionServiceOverviewTestCase._snapshot_versions_query(snapshots)), \
+                mock.patch.object(app_version_service, "_latest_successful_rollback_record", return_value=previous_rollback), \
+                mock.patch.object(app_version_service, "_build_app_template", return_value=template), \
+                mock.patch.object(app_version_service_module, "AppVersionRollbackRestore") as restore:
+            targets.return_value.first.return_value = target
+            restore.return_value.restore.return_value = (mock.Mock(to_dict=mock.Mock(return_value={})), None)
+            app_version_service.rollback_snapshot(mock.Mock(tenant_id="team"), mock.Mock(region_name="region"),
+                                                  mock.Mock(), mock.Mock(ID=42), 9)
+        args = restore.call_args.args
+        return args[5].old_version, args[6]
+
+    def test_next_rollback_records_the_current_baseline_after_a_previous_rollback(self):
+        recorded, passed = self.rollback_from(datetime(2026, 11, 3, 14, 0), datetime(2026, 11, 3, 15, 0))
+        self.assertEqual(recorded, "1.0.3")
+        self.assertEqual(passed, "1.0.3")
+
+    def test_new_snapshot_after_rollback_becomes_the_recorded_current_version(self):
+        recorded, passed = self.rollback_from(datetime(2026, 11, 3, 16, 0), datetime(2026, 11, 3, 15, 0))
+        self.assertEqual(recorded, "1.0.4")
+        self.assertEqual(passed, "1.0.4")
+
+    def test_first_rollback_records_the_latest_snapshot(self):
+        recorded, passed = self.rollback_from(datetime(2026, 11, 3, 14, 0), None)
+        self.assertEqual(recorded, "1.0.4")
+        self.assertEqual(passed, "1.0.4")
 
 
 class AppVersionServiceRollbackPlanTestCase(TestCase):
