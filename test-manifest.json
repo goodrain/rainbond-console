@@ -13824,6 +13824,24 @@
       ],
       "test_type": "regression",
       "status": "active"
+    },
+    {
+      "id": "console.app-version.rollback-recorded-build-version",
+      "title": "Application snapshot rollback selects each recorded component build version",
+      "title_zh": "应用快照回滚精确选择记录的组件构建版本",
+      "interface_type": "workflow",
+      "interface": "console.services.app_version_service.AppVersionRollbackRestore",
+      "code_paths": [
+        "console/services/app_version_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_version_test.py",
+          "selector": "SnapshotRollbackBuildVersionTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
     }
   ]
 }

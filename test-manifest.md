@@ -146,6 +146,7 @@
 | console.app-version.rollback-record-query | 查询应用版本回滚记录 | active | regression | console.services.app_version_service.list_rollback_records | console/tests/app_version_test.py::AppVersionRollbackRecordServiceTestCase.test_list_rollback_records_filters_app_version_records |
 | console.app-version.rollback-record-sync | 查询前同步进行中的回滚记录 | active | regression | console.services.app_version_service.get_rollback_record | console/tests/app_version_test.py::AppVersionRollbackRecordServiceTestCase.test_get_rollback_record_detail_syncs_unfinished_record |
 | console.app-version.rollback-record-update-ignore-missing | 回滚记录缺失时忽略状态更新 | active | regression | console.services.market_app.app_restore.AppRestore._update_rollback_record | console/tests/app_version_test.py::AppRestoreRollbackRecordTestCase.test_update_rollback_record_ignores_missing_record |
+| console.app-version.rollback-recorded-build-version | 应用快照回滚精确选择记录的组件构建版本 | active | regression | console.services.app_version_service.AppVersionRollbackRestore | console/tests/app_version_test.py::SnapshotRollbackBuildVersionTests |
 | console.app-version.rollback-restore-components | 应用版本回滚时恢复缺失组件 | active | regression | console.services.app_version_service.AppVersionRollbackRestore._create_new_app | console/tests/app_version_test.py::AppVersionRollbackRestoreSnapshotCoverageTestCase |
 | console.app-version.rollback-snapshot | App Version Rollback Snapshot | active | regression | console.services.mcp_query_service.call_tool[console.app-version.rollback-snapshot] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_rollback_app_version_snapshot_returns_rollback_record |
 | console.app-version.rollback-source-versions | 应用快照回滚同步恢复组件库安装版本 | active | regression | console.services.app_version_service.AppVersionRollbackRestore._restore_source_groups | console/tests/app_version_test.py::AppVersionRollbackRestoreSnapshotCoverageTestCase |
@@ -2143,6 +2144,16 @@
 - 业务入口: `console.services.market_app.app_restore.AppRestore._update_rollback_record`
 - 代码路径: `console/services/market_app/app_restore.py`
 - 测试路径: `console/tests/app_version_test.py::AppRestoreRollbackRecordTestCase.test_update_rollback_record_ignores_missing_record`
+
+### 应用快照回滚精确选择记录的组件构建版本
+
+- Capability ID: `console.app-version.rollback-recorded-build-version`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `workflow`
+- 业务入口: `console.services.app_version_service.AppVersionRollbackRestore`
+- 代码路径: `console/services/app_version_service.py`
+- 测试路径: `console/tests/app_version_test.py::SnapshotRollbackBuildVersionTests`
 
 ### 应用版本回滚时恢复缺失组件
 

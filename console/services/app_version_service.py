@@ -60,11 +60,15 @@ class AppVersionRollbackRestore(AppRestore):
             current_version: str,
             target_version: str,
             changed_component_identities: Optional[set] = None,
-            restored_component_identities: Optional[set] = None) -> None:
+            restored_component_identities: Optional[set] = None,
+            target_template: Optional[dict] = None) -> None:
         self.current_snapshot_version = current_version
         self.target_snapshot_version = target_version
         self.changed_component_identities = changed_component_identities or set()
         self.restored_component_identities = restored_component_identities or set()
+        self.target_template = target_template
+        self.snapshot_build_versions: Optional[Dict[str, str]] = None
+        self.snapshot_unversioned_components: set = set()
         super(AppVersionRollbackRestore, self).__init__(tenant, region, user, app, component_group, app_upgrade_record)
 
     def _create_component(self, snap: dict, now_volumes: dict) -> Component:
@@ -91,7 +95,54 @@ class AppVersionRollbackRestore(AppRestore):
         # NOTE: AppUpgradeRecord.snapshot_id is Optional; get_by_snapshot_id expects str.
         # Rollback records always carry a snapshot_id here, so this is invariant-safe.
         snap = app_snapshot_repo.get_by_snapshot_id(self.upgrade_record.snapshot_id)  # type: ignore[arg-type]
-        return json.loads(snap.snapshot)
+        snapshot = json.loads(snap.snapshot)
+        target_template = getattr(self, "target_template", None)
+        if target_template is not None:
+            self._bind_snapshot_build_versions(snapshot, target_template)
+        return snapshot
+
+    def _bind_snapshot_build_versions(self, snapshot: dict, target_template: dict) -> None:
+        templates = target_template.get("apps") or []
+        if not isinstance(templates, list) or any(not isinstance(item, dict) for item in templates):
+            raise ServiceHandleException(
+                "snapshot build version missing", "快照缺少组件的有效构建版本，无法安全回滚", status_code=409)
+        versions = {}
+        unversioned = set()
+        for snap in snapshot["components"]:
+            base = snap.get("service_base") or {}
+            component_id = snap.get("component_id") or base.get("service_id")
+            if snap.get("component_id") and base.get("service_id") and snap["component_id"] != base["service_id"]:
+                raise ServiceHandleException(
+                    "snapshot build version missing", "快照缺少组件的有效构建版本，无法安全回滚", status_code=409)
+            if base.get("service_source") == "third_party":
+                unversioned.add(component_id)
+                continue
+            matches = [item for item in templates if item.get("service_id") == component_id
+                       or (not item.get("service_id") and item.get("service_key") == component_id)]
+            if not matches and base.get("service_alias"):
+                matches = [item for item in templates if not item.get("service_id")
+                           and item.get("service_alias") == base["service_alias"]]
+            version = matches[0].get("deploy_version") if len(matches) == 1 else None
+            if not component_id or not isinstance(version, str) or not version.strip():
+                raise ServiceHandleException(
+                    "snapshot build version missing", "快照缺少组件的有效构建版本，无法安全回滚", status_code=409)
+            versions[component_id] = version
+        self.snapshot_build_versions = versions
+        self.snapshot_unversioned_components = unversioned
+
+    def _generate_upgrades(self) -> List[Any]:
+        upgrades = super(AppVersionRollbackRestore, self)._generate_upgrades()
+        versions = getattr(self, "snapshot_build_versions", None)
+        if versions is not None:
+            for upgrade in upgrades:
+                component_id = upgrade["service_id"]
+                version = versions.get(component_id)
+                if version:
+                    upgrade["upgrade_version"] = version
+                elif component_id not in self.snapshot_unversioned_components:
+                    raise ServiceHandleException(
+                        "snapshot build version missing", "快照缺少组件的有效构建版本，无法安全回滚", status_code=409)
+        return upgrades
 
     def _build_service_group_relation(self, component_id: str) -> ServiceGroupRelation:
         return ServiceGroupRelation(
@@ -141,7 +192,11 @@ class AppVersionRollbackRestore(AppRestore):
             component_id = component.component.component_id
             component_identity = self._snapshot_component_identity(snap)
             if component_id in current_component_ids:
-                if component_identity in self.changed_component_identities and component.action_type == ActionType.NOTHING.value:
+                if getattr(self, "snapshot_build_versions", None) is not None:
+                    component.action_type = (ActionType.UPDATE.value if component_identity in self.changed_component_identities
+                                             else ActionType.NOTHING.value)
+                elif (component_identity in self.changed_component_identities
+                      and component.action_type == ActionType.NOTHING.value):
                     component.action_type = ActionType.UPDATE.value
                 update_components.append(component)
                 continue
@@ -1350,6 +1405,7 @@ class AppVersionService(object):
             target_version.version,
             changed_component_identities=rollback_plan["changed"],
             restored_component_identities=rollback_plan["restored"],
+            target_template=target_template,
         )
         rollback_record, _ = app_restore.restore()
         return rollback_record.to_dict()  # type: ignore[union-attr]  # NOTE: rollback_record set in _save_new_app
