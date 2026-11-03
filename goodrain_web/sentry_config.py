@@ -252,6 +252,8 @@ def sanitize_value(value, depth=0):
         for key, item in value.items():
             if SENSITIVE_KEY_RE.search(str(key)):
                 result[key] = "[Filtered]"
+            elif key == "frames" and isinstance(item, (list, tuple)):
+                result[key] = [sanitize_value(frame, depth + 1) for frame in list(item)[-50:]]
             else:
                 result[key] = sanitize_value(item, depth + 1)
         return result
@@ -419,6 +421,17 @@ def before_send(event, hint):
         }
         if route:
             event["request"]["url"] = route
+    exception = event.get("exception")
+    if isinstance(exception, dict):
+        for value in exception.get("values") or []:
+            if not isinstance(value, dict):
+                continue
+            stacktrace = value.get("stacktrace")
+            if not isinstance(stacktrace, dict):
+                continue
+            for frame in stacktrace.get("frames") or []:
+                if isinstance(frame, dict):
+                    frame.pop("vars", None)
     return sanitize_value(event)
 
 
@@ -444,6 +457,7 @@ def init_sentry():
         release=config["release"] or None,
         traces_sample_rate=config["traces_sample_rate"],
         send_default_pii=False,
+        with_locals=False,
         before_send=before_send,
     )
     return True
