@@ -2,7 +2,7 @@
 import os
 import json
 import logging
-from typing import Any
+from typing import Any, cast
 from urllib.parse import urlsplit
 
 from console.exception.main import ServiceHandleException, AbortRequest
@@ -18,7 +18,7 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 from www.apiclient.regionapi import RegionInvokeApi
-from www.models.main import Tenants
+from www.models.main import Tenants, Users
 from www.utils.return_message import error_message
 from console.login.jwt_manager import JwtManager
 from console.utils.reqparse import parse_item
@@ -414,8 +414,8 @@ class OAuthUserInfo(AlowAnyApiView):
 
 class OAuthServerUserAuthorize(JWTAuthApiView):
     def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
-        login_user = request.user
-        code = request.data.get("code")
+        login_user = cast(Users, request.user)
+        code = str(request.data.get("code") or "")
         service_id = request.data.get("service_id")
         state = request.data.get("state")
 
@@ -436,13 +436,14 @@ class OAuthServerUserAuthorize(JWTAuthApiView):
 
         try:
             oauth_service = oauth_repo.get_oauth_services_by_service_id(service_id)
+            if oauth_service is None:
+                raise ValueError("OAuth service not found")
         except Exception as e:
             logger.debug(e)
             rst = {"data": {"bean": None}, "status": 404, "msg_show": "未找到oauth服务, 请检查该服务是否存在且属于开启状态"}
             return Response(rst, status=status.HTTP_200_OK)
         try:
-            # NOTE: get_oauth_services_by_service_id may return None; legacy assumes present (backlog).
-            api = get_oauth_instance(oauth_service.oauth_type, oauth_service, None)  # type: ignore[union-attr]
+            api = get_oauth_instance(oauth_service.oauth_type, oauth_service, None)
         except NoSupportOAuthType as e:
             logger.debug(e)
             rst = {"data": {"bean": None}, "status": 404, "msg_show": "未找到oauth服务"}
@@ -455,7 +456,7 @@ class OAuthServerUserAuthorize(JWTAuthApiView):
             return Response(rst, status=status.HTTP_200_OK)
         try:
             # 只有 Gitea 需要 PKCE 的 code_verifier 参数
-            if oauth_service.oauth_type == 'gitea':  # type: ignore[union-attr]
+            if oauth_service.oauth_type == 'gitea':
                 user, access_token, refresh_token = api.get_user_info(code=code, code_verifier=code_verifier)
             else:
                 user, access_token, refresh_token = api.get_user_info(code=code)

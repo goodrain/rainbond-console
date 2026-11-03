@@ -3,6 +3,7 @@ import logging
 from typing import Any, List, Optional
 
 from django.db.models import QuerySet
+from django.utils import timezone
 
 from console.repositories.app_config import port_repo
 from console.repositories.base import BaseConnection
@@ -169,8 +170,15 @@ class ServiceRepo(object):
 
     @staticmethod
     def bulk_update(components: List[TenantServiceInfo]) -> None:
-        TenantServiceInfo.objects.filter(pk__in=[cpt.ID for cpt in components]).delete()
-        TenantServiceInfo.objects.bulk_create(components)
+        if not components:
+            return
+        # Keep component identity and relations such as upgrade history intact.
+        fields = [field.name for field in TenantServiceInfo._meta.concrete_fields
+                  if not field.primary_key and field.name != "create_time"]
+        updated_at = timezone.now()
+        for component in components:
+            component.update_time = updated_at
+        TenantServiceInfo.objects.bulk_update(components, fields)
 
 
 service_repo = ServiceRepo()

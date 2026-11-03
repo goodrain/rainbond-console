@@ -2,8 +2,10 @@
 import base64
 import copy
 import datetime
+import json
 import logging
 import math
+import re
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, wait
@@ -16,8 +18,7 @@ from console.services.enterprise_services import enterprise_services
 from console.services.platform_plugin_service import platform_plugin_service
 from django.core.cache import cache
 from django.db import close_old_connections
-from django.db.models import Count, F, IntegerField, Sum
-from django.db.models.expressions import ExpressionWrapper
+from django.db.models import Count
 from django.utils import timezone
 from OpenSSL import crypto
 from www.apiclient.regionapi import RegionInvokeApi
@@ -236,7 +237,7 @@ class PlatformOverviewService(object):
 
     def get_cluster_overview(self, enterprise_id: str, region_name: str) -> dict:
         region = self._get_enterprise_region(enterprise_id, region_name)
-        cache_key = self._cache_key("snapshot", enterprise_id, region_name)
+        cache_key = self._cache_key("snapshot-team-usage-v1", enterprise_id, region_name)
         return self._cached(cache_key, self.SNAPSHOT_CACHE_SECONDS,
                             lambda: self._build_cluster_overview(enterprise_id, region_name, region))
 
@@ -247,7 +248,7 @@ class PlatformOverviewService(object):
             "nodes": self._deferred(self._fetch_nodes, region_name),
             "components": self._deferred(self._fetch_components, region_name),
             "plugins": self._deferred(self._fetch_plugins, enterprise_id, region_name),
-            "teams": self._deferred(self._database_team_ranking, enterprise_id, region_name),
+            "teams": self._deferred(self._fetch_team_ranking, enterprise_id, region_name),
             "gateway": self._deferred(self._database_gateway_summary, enterprise_id, region),
         }
         sections = self._run_sections(calls, max_workers=4)
@@ -924,20 +925,79 @@ class PlatformOverviewService(object):
                                                                        region_name,
                                                                        region_api_client=self._new_region_api())
 
-    def _database_team_ranking(self, enterprise_id: str, region_name: str) -> dict:
+    def _fetch_team_ranking(self, enterprise_id: str, region_name: str) -> dict:
         tenant_ids = list(self._tenant_ids(enterprise_id, region_name))
         if not tenant_ids:
             return self._build_team_rankings([], [], [])
-        teams = list(Tenants.objects.filter(tenant_id__in=tenant_ids).values("tenant_id", "tenant_name", "tenant_alias"))
-        cpu_expression = ExpressionWrapper(F("min_cpu") * F("min_node"), output_field=IntegerField())
-        memory_expression = ExpressionWrapper(F("min_memory") * F("min_node"), output_field=IntegerField())
-        resources = list(
-            TenantServiceInfo.objects.filter(tenant_id__in=tenant_ids, service_region=region_name).values("tenant_id").annotate(
-                cpu_millicores=Sum(cpu_expression), memory_mib=Sum(memory_expression)))
-        applications = list(
-            ServiceGroup.objects.filter(tenant_id__in=tenant_ids,
-                                        region_name=region_name).values("tenant_id").annotate(total=Count("ID")))
-        return self._build_team_rankings(teams, resources, applications)
+        teams = list(Tenants.objects.filter(tenant_id__in=tenant_ids).values(
+            "tenant_id", "tenant_name", "tenant_alias", "namespace"))
+        applications = list(ServiceGroup.objects.filter(
+            tenant_id__in=tenant_ids, region_name=region_name).values("tenant_id").annotate(total=Count("ID")))
+        namespaces = {team["namespace"] for team in teams if team.get("namespace")}
+        sampled_at = int(timezone.now().timestamp())
+        measurements: Dict[str, Dict[str, float]] = {"cpu": {}, "memory": {}}
+        if namespaces:
+            try:
+                matrix = self._query_metric_source(
+                    region_name, "", self._team_usage_query(namespaces), sampled_at, sampled_at, 60,
+                    time.monotonic() + self.SECTION_DEADLINE_SECONDS)
+                measurements = self._team_usage_values(matrix, namespaces, sampled_at)
+            except Exception:
+                logger.warning("platform overview team usage unavailable: region=%s", region_name, exc_info=True)
+        resources = [{
+            "tenant_id": team["tenant_id"],
+            "cpu_cores": measurements["cpu"].get(team.get("namespace")),
+            "memory_gib": (measurements["memory"][team["namespace"]] / 1024**3
+                           if team.get("namespace") in measurements["memory"] else None),
+        } for team in teams]
+        result = self._build_team_rankings(teams, resources, applications)
+        if any(measurements.values()):
+            result["sampled_at"] = datetime.datetime.fromtimestamp(sampled_at, datetime.timezone.utc).isoformat()
+        return result
+
+    @staticmethod
+    def _team_usage_query(namespaces: set) -> str:
+        # JSON string escaping is also required for backslashes in the PromQL regex literal.
+        namespace_pattern = json.dumps("|".join(re.escape(name) for name in sorted(namespaces)))
+        selector = ('job="cadvisor",namespace=~' + namespace_pattern + ',pod!="",container!="",container!="POD"')
+        queries = []
+        for metric, name in (("memory", "container_memory_working_set_bytes"), ("cpu", "container_cpu_usage_seconds_total")):
+            labels = selector + (',cpu=~"total|"' if metric == "cpu" else "")
+            series = name + "{" + labels + "}"
+            value = "rate({}[5m])".format(series) if metric == "cpu" else series
+            fresh = "({}) and (time() - timestamp({}) <= 120)".format(value, series)
+            aggregate = "sum by (namespace) (max by (namespace,pod,container) ({}))".format(fresh)
+            queries.append('label_replace(({}), "team_metric", "{}", "__name__", ".*")'.format(aggregate, metric))
+        # An unhealthy scrape target must not make an incomplete aggregate look like normal usage.
+        return "({}) and on () (min(up{{job=\"cadvisor\"}}) == 1)".format(" or ".join(queries))
+
+    @classmethod
+    def _team_usage_values(cls, matrix: list, namespaces: set, sampled_at: int) -> dict:
+        values: Dict[str, Dict[str, float]] = {"cpu": {}, "memory": {}}
+        seen = set()
+        for row in matrix:
+            if not isinstance(row, dict) or not isinstance(row.get("metric"), dict):
+                raise ValueError("invalid team usage series")
+            labels = row["metric"]
+            metric, namespace = labels.get("team_metric"), labels.get("namespace")
+            if (not isinstance(metric, str) or metric not in values or
+                    not isinstance(namespace, str) or namespace not in namespaces):
+                continue
+            key = (metric, namespace)
+            if key in seen:
+                values[metric].pop(namespace, None)
+                continue
+            seen.add(key)
+            points = row.get("values")
+            if not isinstance(points, list) or len(points) != 1:
+                continue
+            point = points[0]
+            if not isinstance(point, (list, tuple)) or len(point) != 2:
+                continue
+            timestamp, value = cls._optional_number(point[0]), cls._optional_number(point[1])
+            if timestamp == sampled_at and value is not None:
+                values[metric][namespace] = value
+        return values
 
     def _build_team_rankings(self, teams: list, resources: list, applications: list) -> dict:
         resource_map = {row["tenant_id"]: row for row in resources}
@@ -949,26 +1009,32 @@ class PlatformOverviewService(object):
                 "tenant_id": team["tenant_id"],
                 "tenant_name": team["tenant_name"],
                 "tenant_alias": team["tenant_alias"],
-                "cpu_cores": round(float(resource.get("cpu_millicores") or 0) / 1000, 3),
-                "memory_gib": round(float(resource.get("memory_mib") or 0) / 1024, 3),
+                "cpu_cores": self._optional_number(resource.get("cpu_cores")),
+                "memory_gib": self._optional_number(resource.get("memory_gib")),
                 "applications": int(application_map.get(team["tenant_id"], 0)),
             })
+        totals: Dict[str, Any] = {"applications": sum(item["applications"] for item in items)}
+        statuses = {}
+        for metric, field in (("cpu", "cpu_cores"), ("memory", "memory_gib")):
+            known = [item[field] for item in items if item[field] is not None]
+            statuses[metric] = "ok" if len(known) == len(items) else "partial" if known else "unavailable"
+            totals[field] = sum(known) if len(known) == len(items) else None
         return {
             "cpu": self._top_five(items, "cpu_cores"),
             "memory": self._top_five(items, "memory_gib"),
             "applications": self._top_five(items, "applications"),
-            "scope": "configured_resources",
-            "includes_inactive_components": True,
-            "totals": {
-                "cpu_cores": round(sum(item["cpu_cores"] for item in items), 3),
-                "memory_gib": round(sum(item["memory_gib"] for item in items), 3),
-                "applications": sum(item["applications"] for item in items),
-            },
+            "scope": "actual_usage",
+            "includes_inactive_components": False,
+            "metric_status": statuses,
+            "sampled_at": None,
+            "cpu_window_seconds": 300,
+            "totals": totals,
         }
 
     @staticmethod
     def _top_five(items: list, field: str) -> list:
-        return sorted(items, key=lambda item: (-item[field], item["tenant_alias"] or item["tenant_name"]))[:5]
+        return sorted(items, key=lambda item: (
+            item[field] is None, -(item[field] or 0), item["tenant_alias"] or item["tenant_name"]))[:5]
 
     def _database_gateway_summary(self, enterprise_id: str, region: RegionConfig) -> Optional[dict]:
         tenant_ids = list(self._tenant_ids(enterprise_id, region.region_name))
@@ -1031,12 +1097,11 @@ class PlatformOverviewService(object):
 
     def _certificate_status(self, certificate: ServiceDomainCertificate, now: datetime.datetime) -> Tuple[str, Optional[str]]:
         try:
-            content = base64.b64decode(certificate.certificate).decode("utf-8")
+            content = base64.b64decode(certificate.certificate)
             parsed = crypto.load_certificate(crypto.FILETYPE_PEM, content)
             not_after = parsed.get_notAfter()
-            if isinstance(not_after, bytes):
-                not_after = not_after.decode("ascii")
-            expires = datetime.datetime.strptime(not_after, "%Y%m%d%H%M%SZ").replace(tzinfo=datetime.timezone.utc)
+            expiry_text = not_after.decode("ascii") if isinstance(not_after, bytes) else str(not_after)
+            expires = datetime.datetime.strptime(expiry_text, "%Y%m%d%H%M%SZ").replace(tzinfo=datetime.timezone.utc)
             if timezone.is_naive(now):
                 now = timezone.make_aware(now, timezone.get_current_timezone())
             now = now.astimezone(datetime.timezone.utc)

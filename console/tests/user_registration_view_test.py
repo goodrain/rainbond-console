@@ -47,13 +47,13 @@ class TenantServiceRegistrationViewTests(TestCase):
         log_exception.assert_not_called()
 
     # capability_id: console.user-registration.required-username
-    def test_post_normalizes_provided_username_before_form_validation(self):
+    def test_post_preserves_numeric_username_before_form_validation(self):
         view = user_operation_module.TenantServiceView()
         request = view.initialize_request(
             APIRequestFactory().post(
                 "/console/users/register",
                 {
-                    "user_name": "Demo User",
+                    "user_name": "00123",
                     "email": "demo@example.com",
                     "password": "password",
                     "password_repeat": "password",
@@ -81,5 +81,5 @@ class TenantServiceRegistrationViewTests(TestCase):
             response = view.post(request)
 
         self.assertEqual(response.status_code, 400)
-        normalize_name.assert_called_once_with("Demo User")
-        self.assertEqual(form_class.call_args[0][0]["user_name"], "demo-user")
+        normalize_name.assert_not_called()
+        self.assertEqual(form_class.call_args[0][0]["user_name"], "00123")

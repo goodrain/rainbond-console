@@ -9,7 +9,11 @@ from console.views import app_version
 from console.views.adaptor import Appstore, Appstores, AppstoreCharts, AppstoreChart, HelmRegionInstall
 from console.views.api_gateway import AppApiGatewayView, AppApiGatewayConvertView
 from console.views.agent_access import AgentAccessView
-from console.views.agent_kubernetes import AgentKubernetesBootstrapView, AgentKubernetesEncryptionKeyView
+from console.views.agent_kubernetes import (
+    AgentKubernetesBootstrapView,
+    AgentKubernetesEncryptionKeyView,
+    AgentKubernetesEncryptionResetView,
+)
 from console.views.agent_llm_config import (AgentLLMConfigView, AgentLLMRuntimeConfigView,
                                             AgentFeishuRuntimeIdentityView,
                                             AgentMCPDelegatedCredentialsView,
@@ -17,6 +21,9 @@ from console.views.agent_llm_config import (AgentLLMConfigView, AgentLLMRuntimeC
                                             AgentMCPRuntimeCredentialsView,
                                             AgentMCPServiceCredentialsView)
 from console.views.agent_feishu_identity import AgentFeishuEligibleUsersView
+from console.views.agent_web_search_config import (AgentWebSearchConfigView,
+                                                    AgentWebSearchRuntimeConfigView)
+from console.views.agent_web_search import AgentWebSearchRuntimeView
 from console.views.rainskills_access import RainSkillsAccessView
 from console.views.app_autoscaler import (AppAutoscalerView, AppScalingRecords, ListAppAutoscalerView)
 from console.views.app_config.app_dependency import (AppDependencyManageView, AppDependencyView, AppNotDependencyView,
@@ -241,6 +248,9 @@ urlpatterns = [
     re_path(r'^agent/access$', AgentAccessView.as_view()),
     re_path(r'^rainskills/access$', RainSkillsAccessView.as_view()),
     re_path(r'^enterprise/(?P<eid>[^/]+)/agent-llm-config$', AgentLLMConfigView.as_view()),
+    re_path(r'^enterprise/(?P<eid>[^/]+)/agent-web-search-config$', AgentWebSearchConfigView.as_view()),
+    re_path(r'^internal/agent-web-search-config/runtime$', AgentWebSearchRuntimeConfigView.as_view()),
+    re_path(r'^internal/agent-web-search$', AgentWebSearchRuntimeView.as_view()),
     re_path(r'^internal/agent-llm-config/runtime$', AgentLLMRuntimeConfigView.as_view()),
     re_path(r'^internal/agent-mcp-credentials/runtime$', AgentMCPRuntimeCredentialsView.as_view()),
     re_path(r'^internal/agent-mcp-credentials/service$', AgentMCPServiceCredentialsView.as_view()),
@@ -1089,6 +1099,8 @@ urlpatterns = [
         AgentKubernetesBootstrapView.as_view()),
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/agent-kubernetes/encryption-key$',
         AgentKubernetesEncryptionKeyView.as_view()),
+    re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/agent-kubernetes/encryption/reset$',
+        AgentKubernetesEncryptionResetView.as_view()),
     re_path(r'^regions/(?P<region_name>[\w\-]+)/plugins/(?P<plugin_name>[\w\-]+)/status$', RainbondPluginStatusView.as_view()),
     re_path(r'^regions/(?P<region_name>[\w\-]+)/static/plugins/(?P<plugin_name>[\w\-]+)$', RainbondPluginStaticView.as_view()),
     # 完整代理路由 - 用于代理完整的 Web 应用（Grafana 等），保留所有 HTTP 响应头

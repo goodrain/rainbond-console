@@ -1034,6 +1034,8 @@ class AdminAddUserView(JWTAuthApiView):
                 result = general_message(200, "success", "添加用户成功")
             else:
                 result = general_message(400, "not role", "创建用户时角色不能为空")
+        except ServiceHandleException as e:
+            return Response(general_message(e.status_code, e.msg, e.msg_show), status=e.status_code)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)  # type: ignore[attr-defined]

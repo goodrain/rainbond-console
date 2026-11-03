@@ -27,6 +27,7 @@ from console.services.team_services import team_services
 from console.services.user_services import user_services
 from console.utils.perms import list_enterprise_perms_by_roles
 from console.utils.validation import normalize_name_for_k8s_namespace
+from console.services.user_identity import check_login_identifiers_available, validate_new_username
 from console.views.base import BaseApiView, JWTAuthApiView
 from django import forms
 from rest_framework import status
@@ -138,7 +139,7 @@ class TenantServiceView(BaseApiView):
             client_ip = request.META.get("REMOTE_ADDR", None)
             user_name = querydict.get("user_name")
             if user_name:
-                querydict["user_name"] = normalize_name_for_k8s_namespace(user_name)
+                validate_new_username(user_name)
             register_form = RegisterForm(querydict)
 
             if register_form.is_valid():
@@ -169,7 +170,8 @@ class TenantServiceView(BaseApiView):
                 if os.getenv("USE_SAAS"):
                     regions = region_repo.get_usable_regions(enterprise.enterprise_id)
                     # 转换nick_name为符合k8s命名空间规范的名称
-                    team = team_services.create_team(user, enterprise, None, None, nick_name)
+                    namespace = normalize_name_for_k8s_namespace(nick_name)
+                    team = team_services.create_team(user, enterprise, None, None, namespace)
                     region_services.create_tenant_on_region(enterprise.enterprise_id, team.tenant_name,
                                                             regions[0].region_name,
                                                             team.namespace)
@@ -219,6 +221,8 @@ class TenantServiceView(BaseApiView):
                 error = {"error": list(json.loads(register_form.errors.as_json()).values())[0][0].get("message", "参数错误")}
                 result = general_message(400, "failed", "{}".format(error["error"]))
                 return Response(result, status=400)
+        except ServiceHandleException as e:
+            return Response(general_message(e.status_code, e.msg, e.msg_show), status=e.status_code)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message if hasattr(e, 'message') else '')
@@ -461,6 +465,8 @@ class UserDetailsView(JWTAuthApiView):
 
     def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         try:
+            check_login_identifiers_available(
+                email=request.data.get("email"), phone=request.data.get("phone"), user_id=self.user.pk)
             # 只更新传了值的字段
             if "real_name" in request.data:
                 # NOTE: request.data.get is Optional; real_name field is non-null str (backlog).
@@ -499,6 +505,8 @@ class UserDetailsView(JWTAuthApiView):
             self.user.save()
             result = general_message(200, "success", "用户信息更新成功")
             return Response(result, status=status.HTTP_200_OK)
+        except ServiceHandleException as e:
+            return Response(general_message(e.status_code, e.msg, e.msg_show), status=e.status_code)
         except Exception as e:
             logger.exception(e)
             result = general_message(500, "update failed", "用户信息更新失败")
@@ -773,6 +781,7 @@ class RegisterByPhoneView(BaseApiView):
                 result = general_message(400, "参数错误", "参数不完整")
                 return Response(result, status=status.HTTP_400_BAD_REQUEST)
 
+            validate_new_username(nick_name)
             # 用户名格式校验
             # NOTE: request.data.get is Optional; re.match expects str (backlog).
             if not re.match(r'^[a-zA-Z0-9_-]{3,24}$', nick_name):  # type: ignore[arg-type]

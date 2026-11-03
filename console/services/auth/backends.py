@@ -1,8 +1,9 @@
 # -*- coding: utf8 -*-
 from typing import Any, Optional
 
+from django.core.exceptions import PermissionDenied
 from www.models.main import Users
-from django.db.models import Q
+from console.services.user_identity import resolve_login_user
 
 
 class ModelBackend(object):
@@ -12,9 +13,14 @@ class ModelBackend(object):
             return None
 
         try:
-            user = Users.objects.get(Q(phone=username) | Q(email=username) | Q(nick_name=username))
-            if user.check_password(password):
+            user_id = kwargs.get("user_id")
+            user = (Users.objects.filter(pk=user_id, nick_name=username).first()
+                    if user_id is not None else resolve_login_user(username))
+            if user and user.check_password(password):
                 return user
+            if user_id is not None:
+                # The login serializer already selected this identity; do not try another user store.
+                raise PermissionDenied
         except Users.DoesNotExist:
             pass
         return None
