@@ -430,6 +430,7 @@
 | console.login-security.failure-lock | Login failure lockout | active | unit | console.services.login_security_service.LoginAttemptService | console/tests/login_attempt_service_test.py::LoginAttemptServiceTests |
 | console.login-security.login-enforcement | Login CAPTCHA and lock enforcement | active | regression | console.views.jwt_token_view.JWTTokenView | console/tests/jwt_token_view_test.py::JWTTokenViewSecurityTests |
 | console.login-security.plugin-configuration | Plugin-backed login security configuration | active | regression | console.services.login_security_service.LoginSecurityConfigService | console/tests/login_security_service_test.py::LoginSecurityConfigServiceTests |
+| console.login.source-url | 登录来源地址遵循请求来源与路由模式 | active | regression | GET /console/checksource | console/tests/check_source_view_test.py::CheckSourceViewTests |
 | console.market-app.create-template-scope-name | 按发布范围和团队检查应用市场模板重名 | active | regression | console.services.market_app_service.MarketAppService.create_rainbond_app | console/tests/market_app_service_test.py::MarketAppServiceCreateRainbondAppTests |
 | console.market-app.delete-version-endpoint | 删除应用市场应用版本 | active | regression | console.views.center_pool.apps.AppVersionUDView.delete | console/tests/market_app_service_test.py::CenterPoolAppVersionViewTests |
 | console.market-app.install-default-storage-class | 应用市场安装使用平台默认存储类 | active | regression | console.services.market_app.new_components.NewComponents._template_to_volumes | console/tests/market_app_storage_test.py::MarketAppDefaultStorageClassTests.test_resolve_market_default_volume_type_prefers_configured_storage_class<br>console/tests/market_app_storage_test.py::MarketAppDefaultStorageClassTests.test_template_to_volumes_uses_configured_default_storage_class |
@@ -4986,6 +4987,16 @@
 - 业务入口: `console.services.login_security_service.LoginSecurityConfigService`
 - 代码路径: `console/services/login_security_service.py`, `console/views/logos.py`
 - 测试路径: `console/tests/login_security_service_test.py::LoginSecurityConfigServiceTests`
+
+### 登录来源地址遵循请求来源与路由模式
+
+- Capability ID: `console.login.source-url`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `view_endpoint`
+- 业务入口: `GET /console/checksource`
+- 代码路径: `console/views/user.py`
+- 测试路径: `console/tests/check_source_view_test.py::CheckSourceViewTests`
 
 ### 按发布范围和团队检查应用市场模板重名
 

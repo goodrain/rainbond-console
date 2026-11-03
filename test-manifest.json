@@ -8169,6 +8169,24 @@
       "status": "active"
     },
     {
+      "id": "console.login.source-url",
+      "title": "Login source URLs follow the request origin and routing mode",
+      "title_zh": "登录来源地址遵循请求来源与路由模式",
+      "interface_type": "view_endpoint",
+      "interface": "GET /console/checksource",
+      "code_paths": [
+        "console/views/user.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/check_source_view_test.py",
+          "selector": "CheckSourceViewTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.market-app.create-template-scope-name",
       "title": "Scope market app template name duplicate checks",
       "title_zh": "按发布范围和团队检查应用市场模板重名",
