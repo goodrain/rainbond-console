@@ -10,6 +10,10 @@ import pytest
     (0, "Success: no issues found", 0),
     (1, "www/models/main.py:1: error: legacy issue", 0),
     (1, "console/services/example.py:1: error: regression", 1),
+    (1, "ModuleNotFoundError: No module named 'corsheaders'", 1),
+    (1, "Traceback (most recent call last):\nRuntimeError: plugin initialization failed", 1),
+    (1, 'mypy.ini: error: Error constructing plugin instance', 1),
+    (1, "", 1),
     (2, "ModuleNotFoundError: No module named 'corsheaders'", 2),
     (127, "mypy: command not found", 127),
 ])

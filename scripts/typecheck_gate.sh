@@ -15,7 +15,12 @@ WHITELIST_RE='console/repositories/|console/services/|console/views/|openapi/|ww
 
 OUT=$(mypy --config-file mypy.ini console/ www/ openapi/ 2>&1)
 MYPY_STATUS=$?
-if [ "$MYPY_STATUS" -gt 1 ]; then
+if [ "$MYPY_STATUS" -gt 1 ] || {
+  [ "$MYPY_STATUS" -ne 0 ] && {
+    grep -Eq 'Traceback \(most recent call last\)|^ModuleNotFoundError:|INTERNAL ERROR|Error constructing plugin' <<< "$OUT" ||
+      ! grep -q ': error' <<< "$OUT"
+  }
+}; then
   echo "$OUT"
   echo "::error::mypy could not complete (exit $MYPY_STATUS)"
   exit "$MYPY_STATUS"
