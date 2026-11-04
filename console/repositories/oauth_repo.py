@@ -2,7 +2,7 @@
 import logging
 import os
 from functools import wraps
-from typing import Any, List, Optional, Tuple
+from typing import Any, Callable, List, Optional, ParamSpec, Tuple, TypeVar, Union
 
 from console.exception.bcode import ErrOauthServiceExists, ErrOauthUserNotFound, ErrOauthServiceNotFound
 from console.exception.main import ServiceHandleException
@@ -13,10 +13,13 @@ from django.db.models import QuerySet
 
 logger = logging.getLogger('default')
 
+P = ParamSpec("P")
+T = TypeVar("T")
 
-def oauth_name_transaction(method):
+
+def oauth_name_transaction(method: Callable[P, T]) -> Callable[P, T]:
     @wraps(method)
-    def wrapped(*args, **kwargs):
+    def wrapped(*args: P.args, **kwargs: P.kwargs) -> T:
         try:
             with transaction.atomic():
                 return method(*args, **kwargs)
@@ -101,10 +104,13 @@ class OAuthRepo(object):
         return OAuthServices.objects.filter(ID=service_id, is_deleted=False).first()
 
     @staticmethod
-    def get_by_name(name: str, user_id: str, eid: Optional[str], system: bool = False,
+    def get_by_name(name: str, user_id: Union[int, str], eid: Optional[str], system: bool = False,
                     exclude_id: Optional[int] = None, oauth_type: Optional[str] = None) -> OAuthServices:
         scope = OAuthServices.get_name_scope(eid, user_id, system, oauth_type=oauth_type)
-        return OAuthServices.objects.exclude(ID=exclude_id).get(name=name, name_scope=scope)
+        queryset: QuerySet[OAuthServices] = OAuthServices.objects.all()
+        if exclude_id is not None:
+            queryset = queryset.exclude(ID=exclude_id)
+        return queryset.get(name=name, name_scope=scope)
 
     @oauth_name_transaction
     def create_or_update_oauth_services(self, values: Any, eid: Optional[str] = None,
