@@ -6,12 +6,10 @@ import threading
 import time
 from typing import Any, Callable, Dict, Optional
 
-from django.db.models import Q
-
 from console.repositories.region_repo import region_repo
 from console.utils.cache import cache
 from www.apiclient.regionapi import RegionInvokeApi
-from www.models.main import Users
+from console.services.user_identity import resolve_login_user
 
 logger = logging.getLogger("default")
 
@@ -61,9 +59,8 @@ class LoginSecurityConfigService(object):
 
     @staticmethod
     def _resolve_enterprise_id(identifier: str) -> Optional[str]:
-        return Users.objects.filter(
-            Q(phone=identifier) | Q(email=identifier) | Q(nick_name=identifier)).values_list(
-                "enterprise_id", flat=True).first()
+        user = resolve_login_user(identifier)
+        return user.enterprise_id if user else None
 
     @staticmethod
     def _parse_plugin_config(status: int, envelope: Any, region_name: str) -> Optional[Dict[str, Any]]:
@@ -162,8 +159,8 @@ class LoginAttemptService(object):
 
     @staticmethod
     def _resolve_account_id(identifier: str) -> Optional[int]:
-        return Users.objects.filter(
-            Q(phone=identifier) | Q(email=identifier) | Q(nick_name=identifier)).values_list("user_id", flat=True).first()
+        user = resolve_login_user(identifier)
+        return user.user_id if user else None
 
     def identity(self, identifier: str) -> str:
         account_id = self.account_resolver(identifier)

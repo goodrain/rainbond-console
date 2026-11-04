@@ -61,7 +61,8 @@ class CheckSourceView(AlowAnyApiView):
             else:
                 code = 200
                 data = dict()
-                url = "https://" + request.get_host() + '/index#/user/login'
+                login_path = "/user/login" if os.getenv("ROUTE_MODE", "hash") == "history" else "/#/user/login"
+                url = request.build_absolute_uri(login_path)
                 data["url"] = url
                 data["redirect"] = "redirect to the private rainbond login page!"
                 data["is_public"] = False

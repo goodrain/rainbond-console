@@ -1,13 +1,12 @@
 # -*- coding: utf8 -*-
 import logging
 
-from django.db.models import Q
 from django.utils.translation import gettext as _
 from rest_framework import serializers
 
 from django.contrib.auth import authenticate
 from console.utils.jwt_issuer import issue_jwt
-from www.models.main import Users
+from console.services.user_identity import resolve_login_user
 
 logger = logging.getLogger("default")
 
@@ -22,14 +21,13 @@ class CustomJWTSerializer(serializers.Serializer):
         password = attrs.get("password")
         invalid_credentials = _('用户名或密码错误')
 
-        user_obj = Users.objects.filter(
-            Q(phone=attrs.get("nick_name")) | Q(email=attrs.get("nick_name")) | Q(nick_name=attrs.get("nick_name"))).first()
+        user_obj = resolve_login_user(attrs.get("nick_name"))
 
         if user_obj is not None:
-            credentials = {'username': user_obj.nick_name, 'password': password}
+            credentials = {'username': user_obj.nick_name, 'password': password, 'user_id': user_obj.pk}
             if all(credentials.values()):
                 user = authenticate(**credentials)
-                if user:
+                if user and getattr(user, "user_id", None) == user_obj.pk:
                     if not user.is_active:
                         raise serializers.ValidationError(invalid_credentials)
 

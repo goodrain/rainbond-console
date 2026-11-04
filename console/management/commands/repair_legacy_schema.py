@@ -107,6 +107,48 @@ def repair_legacy_schema(connection, app_labels, dry_run=False):
     return results
 
 
+def repair_oauth_auto_create_user_column(connection, dry_run=False):
+    """Reconcile the OAuth field without racing startup's generated AddField migration."""
+    from console.models.main import OAuthServices
+
+    table = OAuthServices._meta.db_table
+    if table not in connection.introspection.table_names():
+        return False
+    field = OAuthServices._meta.get_field("auto_create_user")
+    with connection.cursor() as cursor:
+        columns = connection.introspection.get_table_description(cursor, table)
+    existing_column = next((column for column in columns if column.name == field.column), None)
+    loader = MigrationLoader(connection, ignore_no_migrations=True)
+    pending = [
+        (key, migration) for key, migration in loader.disk_migrations.items()
+        if key[0] == "console" and key not in loader.applied_migrations
+        and any(isinstance(operation, migrations.AddField) and operation.model_name.lower() == "oauthservices"
+                and operation.name == field.name for operation in migration.operations)
+    ]
+    if pending:
+        if existing_column is None:
+            # Normal migrate owns this column; pre-adding it would fail with duplicate column.
+            return False
+        # Recover a prior startup that added the column but did not record its migration.
+        # Never mark a compound migration, a changed definition, or missing dependencies as applied.
+        for key, migration in pending:
+            operation = migration.operations[0]
+            if (len(pending) != 1 or len(migration.operations) != 1
+                    or operation.field.deconstruct()[1:] != field.deconstruct()[1:]
+                    or not set(migration.dependencies).issubset(loader.applied_migrations)
+                    or existing_column.null_ok != field.null):
+                raise CommandError("Cannot safely reconcile existing OAuth column for migration {}.{}".format(*key))
+        if not dry_run:
+            MigrationRecorder(connection).record_applied(*pending[0][0])
+        return True
+    if existing_column is not None:
+        return False
+    if not dry_run:
+        with connection.schema_editor() as schema_editor:
+            schema_editor.add_field(OAuthServices, field)
+    return True
+
+
 class Command(BaseCommand):
     help = "Repair legacy databases whose initial tables exist but django_migrations records are missing."
     requires_system_checks = []
@@ -139,6 +181,8 @@ class Command(BaseCommand):
 
         plan = bool(options["plan"])
         results = repair_legacy_schema(connections[database], app_labels, dry_run=plan)
+        if "console" in app_labels and repair_oauth_auto_create_user_column(connections[database], dry_run=plan):
+            self.stdout.write("{} console.oauth_service.auto_create_user".format("Would repair" if plan else "Repaired"))
         if not results:
             self.stdout.write("No legacy initial migrations needed repair")
             return

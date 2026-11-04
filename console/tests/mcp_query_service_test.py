@@ -3541,6 +3541,32 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
             ["start", "stop", "restart", "upgrade", "deploy"],
         )
 
+    def test_tool_descriptions_explain_upgrade_vs_deploy(self):
+        # Build the tool definitions directly so the assertion does not depend on
+        # which tools the test user is allowed to see.
+        operate_app_desc = mcp_query_service._tool_operate_app()["description"]
+        self.assertIn("upgrade applies", operate_app_desc)
+        self.assertIn("does NOT rebuild", operate_app_desc)
+        self.assertIn("deploy rebuilds", operate_app_desc)
+        self.assertIn("restart only recreates", operate_app_desc)
+
+        apply_after_change_tools = (
+            mcp_query_service._tool_manage_component_envs,
+            mcp_query_service._tool_manage_component_storage,
+            mcp_query_service._tool_manage_component_probe,
+            mcp_query_service._tool_manage_component_dependency,
+            mcp_query_service._tool_manage_component_connection_envs,
+        )
+        for tool_builder in apply_after_change_tools:
+            description = tool_builder()["description"]
+            self.assertIn(
+                "action=upgrade",
+                description,
+                "{} should tell callers how to apply the change".format(
+                    tool_builder()["name"]
+                ),
+            )
+
     @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
     @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
     @patch("console.services.mcp_query_service.group_service.get_app_by_id")

@@ -969,8 +969,22 @@ class AppService(object):
         component_k8s_attributes = self.__get_component_k8s_attributes_payload(service)
         if component_k8s_attributes:
             data["component_k8s_attributes"] = component_k8s_attributes
-        # Create in region and let region persist the current k8s attrs in the same request.
-        region_api.create_service(service.service_region, tenant.tenant_name, data)
+        # Region 侧可能已经存在同名组件（镜像创建后再切换构建源、重复触发部署、
+        # 或检查流程重置 create_status 后重跑本函数）。此时再调用 AddService 会让
+        # rbd-api 的整笔事务回滚，端口/环境变量等子资源一并丢失，最终 k8s 里没有
+        # Service、对外地址 404（2026-10-27 事故）。这里做成幂等：
+        #   已存在 → 用 update_service 同步最新配置；不存在 → 走 create_service。
+        if self.__region_service_exists(tenant, service):
+            logger.info(
+                "region service already exists, sync by update: %s/%s",
+                tenant.tenant_name,
+                service.service_alias,
+            )
+            region_api.update_service(service.service_region, tenant.tenant_name,
+                                      service.service_alias, data)
+        else:
+            # Create in region and let region persist the current k8s attrs in the same request.
+            region_api.create_service(service.service_region, tenant.tenant_name, data)
         # Legacy fallback: if the payload had no attrs, keep the old sync path.
         if not component_k8s_attributes:
             self.__sync_k8s_attributes_to_region(tenant, service)
@@ -979,6 +993,26 @@ class AppService(object):
         service.save()
         arch_service.update_affinity_by_arch(service.arch, tenant, service.service_region, service)
         return service
+
+    def __region_service_exists(self, tenant: Tenants, service: TenantServiceInfo) -> bool:
+        """判断组件是否已在 region 注册。
+
+        查不到（404）或查询失败都按「不存在」处理，保持原有创建行为；只有明确
+        查到记录才切换成 update，避免把正常创建流程变成更新。
+        """
+        try:
+            existing = region_api.get_service_info(
+                service.service_region, tenant.tenant_name, service.service_alias
+            )
+        except Exception as exc:  # noqa: BLE001 - 查询失败不应阻塞创建
+            logger.warning(
+                "check region service failed, fallback to create: %s/%s err=%s",
+                tenant.tenant_name,
+                service.service_alias,
+                exc,
+            )
+            return False
+        return bool(existing)
 
     def __sync_k8s_attributes_to_region(self, tenant: Tenants, service: TenantServiceInfo) -> None:
         """Sync k8s attributes from console DB to region DB after component is registered in region."""

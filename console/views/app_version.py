@@ -7,6 +7,7 @@ from rest_framework.request import Request
 
 from console.exception.main import ServiceHandleException
 from console.services.app_version_service import app_version_service
+from console.services.app_version_auto_snapshot import app_version_auto_snapshot_service
 from console.utils.reqparse import parse_item
 from console.utils.response import MessageResponse
 from console.views.base import ApplicationView
@@ -15,6 +16,7 @@ from console.views.base import ApplicationView
 class AppVersionOverviewView(ApplicationView):
     def get(self, request: Request, group_id: str, *args: Any, **kwargs: Any) -> MessageResponse:
         overview = app_version_service.get_overview(self.tenant, self.region, self.user, self.app)
+        overview["automatic_snapshot"] = app_version_auto_snapshot_service.status(self.app)
         return MessageResponse(msg="success", bean=overview)
 
 

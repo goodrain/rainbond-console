@@ -3,8 +3,9 @@ import collections
 import json
 import os
 import sys
-from datetime import datetime
-from types import ModuleType
+from contextlib import nullcontext
+from datetime import datetime, timedelta
+from types import ModuleType, SimpleNamespace
 from unittest import TestCase, mock
 
 for attr in ("Mapping", "MutableMapping", "Sequence", "Iterable", "Iterator"):
@@ -38,11 +39,14 @@ if "openapi_client" not in sys.modules:
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
 
 import django  # noqa: E402
+from django.test import TestCase as DatabaseTestCase  # noqa: E402
+from django.utils import timezone  # noqa: E402
 from rest_framework.test import APIRequestFactory  # noqa: E402
 
 django.setup()
 
 from console.exception.main import ServiceHandleException  # noqa: E402
+from console.models.main import AppUpgradeRecord, ServiceSourceInfo, ServiceUpgradeRecord, UpgradeStatus  # noqa: E402
 from console.services import app_version_service as app_version_service_module  # noqa: E402
 from console.services import market_app_service as market_app_service_module  # noqa: E402
 from console.services.app_version_service import app_version_service  # noqa: E402
@@ -51,6 +55,137 @@ from console.services.market_app import market_app as market_app_module  # noqa:
 from console.services.market_app import new_app as new_app_module  # noqa: E402
 from console.views import app_version as app_version_view_module  # noqa: E402
 from console.views.app_version import AppVersionSnapshotDetailView, AppVersionSnapshotListView  # noqa: E402
+from www.models.main import TenantServiceEnvVar, TenantServiceInfo, TenantServicesPort  # noqa: E402
+
+
+# capability_id: console.market-app.preserve-component-history
+class MarketComponentHistoryPreservationTests(DatabaseTestCase):
+    def setUp(self):
+        self.component = self.make_component("web")
+        self.record, self.history = self.make_history(self.component)
+
+    @staticmethod
+    def make_component(name):
+        return TenantServiceInfo.objects.create(
+            service_id="service-" + name, tenant_id="tenant", service_key=name, service_alias=name,
+            service_cname=name, service_region="region", category="application", version="0.2",
+            image="nginx:v2", min_memory=256, cmd="run", desc="current", is_web_service=True)
+
+    @staticmethod
+    def make_history(component, record_type="upgrade", status=UpgradeStatus.UPGRADED.value):
+        record = AppUpgradeRecord.objects.create(
+            tenant_id="tenant", group_id=42, group_key="library", group_name="app",
+            version="0.2", old_version="0.1", record_type=record_type, status=status)
+        history = ServiceUpgradeRecord.objects.create(
+            app_upgrade_record=record, service=component, service_cname=component.service_cname,
+            event_id="event-" + str(record.ID), update="{}", status=status)
+        return record, history
+
+    @staticmethod
+    def snapshot_component(component):
+        return TenantServiceInfo(**component.to_dict())
+
+    def test_component_restore_preserves_upgrade_and_rollback_history_and_related_source(self):
+        rollback, rollback_history = self.make_history(
+            self.component, record_type="rollback", status=UpgradeStatus.ROLLBACK.value)
+        source = ServiceSourceInfo.objects.create(service=self.component, team_id="tenant", version="0.2")
+        restored = self.snapshot_component(self.component)
+        restored.image, restored.version, restored.min_memory = "nginx:v1", "0.1", 128
+
+        new_app_module.service_repo.bulk_update([restored])
+
+        self.component.refresh_from_db()
+        self.assertEqual((self.component.ID, self.component.image, self.component.version, self.component.min_memory),
+                         (restored.ID, "nginx:v1", "0.1", 128))
+        self.assertEqual(list(ServiceUpgradeRecord.objects.order_by("ID").values_list("ID", flat=True)),
+                         [self.history.ID, rollback_history.ID])
+        self.assertEqual(ServiceUpgradeRecord.objects.get(ID=self.history.ID).service.ID, self.component.ID)
+        self.assertTrue(ServiceSourceInfo.objects.filter(ID=source.ID, service_id=self.component.service_id).exists())
+        self.record.refresh_from_db()
+        rollback.refresh_from_db()
+        self.assertEqual((self.record.status, rollback.status), (UpgradeStatus.UPGRADED.value, UpgradeStatus.ROLLBACK.value))
+
+    def test_pending_upgrade_can_finish_after_restore_while_configuration_is_overwritten(self):
+        self.record.status = self.history.status = UpgradeStatus.UPGRADING.value
+        self.record.save()
+        self.history.save()
+        ServiceSourceInfo.objects.create(service=self.component, team_id="tenant", group_key="library", version="0.2")
+        TenantServiceEnvVar.objects.create(service_id=self.component.service_id, tenant_id="tenant",
+                                           attr_name="MODE", attr_value="v2")
+        TenantServicesPort.objects.create(service_id=self.component.service_id, container_port=80, protocol="http")
+        restored = self.snapshot_component(self.component)
+        restored.image, restored.version = "nginx:v1", "0.1"
+        new_app = new_app_module.NewApp.__new__(new_app_module.NewApp)
+        new_app.update_components = [SimpleNamespace(
+            component=restored,
+            component_source=ServiceSourceInfo(service_id=self.component.service_id, team_id="tenant",
+                                               group_key="library", version="0.1"),
+            envs=[TenantServiceEnvVar(service_id=self.component.service_id, tenant_id="tenant",
+                                      attr_name="MODE", attr_value="v1")],
+            ports=[TenantServicesPort(service_id=self.component.service_id, container_port=8080, protocol="http")],
+            volumes=[], config_files=[], probes=[], extend_info=None, monitors=[], graphs=[], labels=[], k8s_attributes=[])]
+
+        new_app._update_components()
+        with mock.patch("console.services.upgrade_services.region_api.get_tenant_events", return_value={
+                "list": [{"event_id": self.history.event_id, "status": "success"}]}):
+            result = app_version_service_module.upgrade_service.get_app_upgrade_record("team", "region", self.record.ID)
+
+        self.assertEqual(result["status"], UpgradeStatus.UPGRADED.value)
+        self.assertEqual([row["ID"] for row in result["service_record"]], [self.history.ID])
+        self.history.refresh_from_db()
+        self.assertEqual(self.history.status, UpgradeStatus.UPGRADED.value)
+        self.assertEqual(ServiceSourceInfo.objects.get(service_id=self.component.service_id).version, "0.1")
+        self.assertEqual(list(TenantServiceEnvVar.objects.filter(service_id=self.component.service_id)
+                              .values_list("attr_value", flat=True)), ["v1"])
+        self.assertEqual(list(TenantServicesPort.objects.filter(service_id=self.component.service_id)
+                              .values_list("container_port", flat=True)), [8080])
+
+    def test_multiple_updates_preserve_history_and_leave_other_components_unchanged(self):
+        second, untouched = self.make_component("api"), self.make_component("other")
+        _, second_history = self.make_history(second)
+        _, untouched_history = self.make_history(untouched)
+        restored = [self.snapshot_component(component) for component in (self.component, second)]
+        for component in restored:
+            component.image = "nginx:v1"
+
+        new_app_module.service_repo.bulk_update(restored)
+
+        self.assertEqual(TenantServiceInfo.objects.filter(image="nginx:v1").count(), 2)
+        untouched.refresh_from_db()
+        self.assertEqual(untouched.image, "nginx:v2")
+        self.assertEqual(set(ServiceUpgradeRecord.objects.values_list("ID", flat=True)),
+                         {self.history.ID, second_history.ID, untouched_history.ID})
+
+    def test_restore_writes_null_zero_and_false_values(self):
+        restored = self.snapshot_component(self.component)
+        restored.cmd, restored.desc, restored.deploy_version = None, None, None
+        restored.min_memory, restored.is_web_service = 0, False
+
+        new_app_module.service_repo.bulk_update([restored])
+
+        self.component.refresh_from_db()
+        self.assertEqual((self.component.cmd, self.component.desc, self.component.deploy_version,
+                          self.component.min_memory, self.component.is_web_service), (None, None, None, 0, False))
+
+    def test_restore_preserves_creation_time_and_refreshes_update_time(self):
+        original_time = timezone.now() - timedelta(days=1)
+        TenantServiceInfo.objects.filter(ID=self.component.ID).update(create_time=original_time, update_time=original_time)
+        self.component.refresh_from_db()
+        restored = self.snapshot_component(self.component)
+        restored.create_time = original_time - timedelta(days=1)
+        before = timezone.now()
+
+        new_app_module.service_repo.bulk_update([restored])
+
+        self.component.refresh_from_db()
+        self.assertEqual(self.component.create_time, original_time)
+        self.assertGreaterEqual(self.component.update_time, before)
+        self.assertLessEqual(self.component.update_time, timezone.now())
+
+    def test_empty_update_does_not_touch_existing_rows(self):
+        with self.assertNumQueries(0):
+            new_app_module.service_repo.bulk_update([])
+        self.assertTrue(ServiceUpgradeRecord.objects.filter(ID=self.history.ID).exists())
 
 
 # capability_id: console.app-version.view-diff
@@ -1103,6 +1238,111 @@ class AppVersionRollbackRecordServiceTestCase(TestCase):
 
 
 # capability_id: console.app-version.create-snapshot
+# capability_id: console.app-version.snapshot-source-version-dedup
+class AppVersionSnapshotSourceVersionTests(TestCase):
+    def setUp(self):
+        self.tenant = mock.Mock(tenant_id="tenant")
+        self.region = mock.Mock(region_name="region")
+        self.app = mock.Mock(ID=42)
+        self.sources = [{"ID": 8, "group_key": "template", "group_version": "0.2"}]
+        self.previous = mock.Mock(
+            version="1.0.0", app_template=json.dumps({"apps": [], "source_component_groups": self.sources}))
+        patches = [
+            mock.patch("console.services.cleanup_coordination.protect_region_references", return_value=nullcontext()),
+            mock.patch.object(app_version_service_module.ServiceGroup.objects, "select_for_update"),
+            mock.patch.object(app_version_service, "get_or_create_hidden_template",
+                              return_value=(mock.Mock(app_model_id="hidden"), mock.Mock())),
+            mock.patch.object(app_version_service_module.rainbond_app_repo, "get_rainbond_app_versions"),
+            mock.patch.object(app_version_service_module.rainbond_app_repo, "get_app_version", return_value=None),
+            mock.patch.object(app_version_service, "_build_app_template", return_value={"apps": [], "arch": "amd64"}),
+            mock.patch.object(app_version_service, "_snapshot_source_groups", return_value=self.sources, create=True),
+            mock.patch.object(app_version_service, "_take_restore_snapshot", return_value=mock.Mock(snapshot_id="snapshot")),
+            mock.patch.object(app_version_service_module.RainbondCenterAppVersion.objects, "create"),
+            mock.patch.object(app_version_service, "_serialize_version", return_value={"version": "1.0.1"}),
+        ]
+        started = [patch.start() for patch in patches]
+        for patch in patches:
+            self.addCleanup(patch.stop)
+        started[3].return_value.filter.return_value.order_by.return_value.first.return_value = self.previous
+        self.save_version = started[8]
+
+    def test_same_configuration_with_changed_market_version_creates_new_snapshot(self):
+        self.previous.app_template = json.dumps({
+            "apps": [], "source_component_groups": [{"ID": 8, "group_key": "template", "group_version": "0.1"}]})
+        result = app_version_service.create_snapshot(self.tenant, self.region, mock.Mock(), self.app)
+        self.assertTrue(result["created"])
+        template = json.loads(self.save_version.call_args.kwargs["app_template"])
+        self.assertEqual(template["source_component_groups"], self.sources)
+
+    def test_same_configuration_and_sources_does_not_duplicate_snapshot(self):
+        result = app_version_service.create_snapshot(self.tenant, self.region, mock.Mock(), self.app)
+        self.assertFalse(result["created"])
+        self.save_version.assert_not_called()
+
+    def test_automatic_snapshot_rejects_missing_deployed_component(self):
+        component = mock.Mock(service_id="missing", service_source="market")
+        with mock.patch.object(app_version_service_module.group_service, "get_group_services", return_value=[component]):
+            with self.assertRaises(ServiceHandleException):
+                app_version_service.create_snapshot(self.tenant, self.region, mock.Mock(), self.app, require_complete=True)
+        self.save_version.assert_not_called()
+
+
+# capability_id: console.app-version.automatic-snapshot-api
+class AutomaticSnapshotOverviewContractTests(TestCase):
+    def test_overview_exposes_snapshot_state_without_changing_existing_fields(self):
+        view = app_version_view_module.AppVersionOverviewView()
+        view.tenant, view.region, view.user, view.app = mock.Mock(), mock.Mock(), mock.Mock(), mock.Mock()
+        with mock.patch.object(app_version_service, "get_overview", return_value={"snapshot_count": 2}), \
+                mock.patch.object(app_version_view_module.app_version_auto_snapshot_service,
+                                  "status", return_value={"status": "pending"}):
+            response = view.get(mock.Mock(), 42)
+        self.assertEqual(response.data["data"]["bean"], {
+            "snapshot_count": 2, "automatic_snapshot": {"status": "pending"}})
+
+
+# capability_id: console.app-version.market-deploy-snapshot-hook
+class MarketDeploymentSnapshotHookTests(TestCase):
+    def test_market_install_and_upgrade_register_events_after_deployment_is_dispatched(self):
+        upgrade_class = market_app_service_module.AppUpgrade
+        instance = upgrade_class.__new__(upgrade_class)
+        instance.tenant, instance.user, instance.app = mock.Mock(), mock.Mock(), mock.Mock()
+        instance.region_name, instance.app_id = "region", 42
+        events = [{"service_id": "service", "event_id": "event"}]
+        with mock.patch.object(market_app_module.MarketApp, "deploy", return_value=events), \
+                mock.patch("console.services.market_app.app_upgrade.app_version_auto_snapshot_service") as tracker:
+            for record in (None, mock.Mock(ID=1)):
+                instance.record = record
+                self.assertEqual(instance.deploy(), events)
+                self.assertEqual(tracker.track.call_args.kwargs["upgrade"], record is not None)
+                self.assertEqual(tracker.track.call_args.args[4], events)
+
+    def test_failed_dispatch_never_registers_success_snapshot(self):
+        instance = market_app_service_module.AppUpgrade.__new__(market_app_service_module.AppUpgrade)
+        with mock.patch.object(market_app_module.MarketApp, "deploy", side_effect=RuntimeError("dispatch failed")), \
+                mock.patch("console.services.market_app.app_upgrade.app_version_auto_snapshot_service") as tracker:
+            with self.assertRaises(RuntimeError):
+                instance.deploy()
+        tracker.track.assert_not_called()
+
+    def test_legacy_rollback_records_snapshot_but_application_snapshot_rollback_does_not_duplicate(self):
+        events = [{"service_id": "service", "event_id": "rollback-event"}]
+        for restore_class, should_track in ((app_restore_module.AppRestore, True),
+                                            (app_version_service_module.AppVersionRollbackRestore, False)):
+            instance = restore_class.__new__(restore_class)
+            instance.tenant, instance.user, instance.app = mock.Mock(), mock.Mock(), mock.Mock(ID=42)
+            instance.region_name = "region"
+            with mock.patch.object(market_app_module.MarketApp, "deploy", return_value=events), \
+                    mock.patch("console.services.market_app.app_restore.app_version_auto_snapshot_service") as tracker:
+                self.assertEqual(instance.deploy(), events)
+                self.assertEqual(tracker.track.called, should_track)
+
+    def test_source_template_rollback_is_not_mistaken_for_snapshot_baseline_with_same_version_number(self):
+        with mock.patch.object(app_version_service_module.AppUpgradeRecord.objects, "filter") as records:
+            app_version_service._latest_successful_rollback_record(42)
+        self.assertEqual(records.call_args.kwargs["upgrade_group_id"], 0)
+        self.assertEqual(records.call_args.kwargs["parent_id"], 0)
+
+
 class AppVersionSnapshotListViewPostTestCase(TestCase):
     def setUp(self):
         self.factory = APIRequestFactory()
@@ -1265,6 +1505,251 @@ class AppVersionRollbackRestoreActionTypeTestCase(TestCase):
             component = restore._create_component(snap, {})
 
         self.assertEqual(component.action_type, app_restore_module.ActionType.NOTHING.value)
+
+
+# capability_id: console.app-version.rollback-recorded-build-version
+class SnapshotRollbackBuildVersionTests(TestCase):
+    def make_restore(self, versions, actions=None, restore_class=None):
+        restore_class = restore_class or app_version_service_module.AppVersionRollbackRestore
+        restore = restore_class.__new__(restore_class)
+        actions = actions or {key: app_restore_module.ActionType.UPDATE.value for key in versions}
+        restore.snapshot_build_versions = versions
+        restore.snapshot_unversioned_components = set()
+        components = [mock.Mock(component=mock.Mock(component_id=key), action_type=action)
+                      for key, action in actions.items()]
+        restore.new_app = mock.Mock(components=mock.Mock(return_value=components), region_name="region")
+        restore.new_app.tenant.tenant_name = "team"
+        restore.tenant, restore.user, restore.app = mock.Mock(), mock.Mock(), mock.Mock(ID=42)
+        restore.region_name = "region"
+        return restore
+
+    def deploy_body(self, restore):
+        with mock.patch.object(market_app_module, "region_api") as api, \
+                mock.patch.object(app_restore_module, "app_version_auto_snapshot_service"):
+            api.batch_operation_service.return_value = (None, {"bean": {"batch_result": []}})
+            restore.deploy()
+        return api.batch_operation_service.call_args.args[2]
+
+    def test_rollback_selects_snapshot_build_version(self):
+        restore = self.make_restore({"service-1": "20261103095207"})
+        restore.new_app.components()[0].component.deploy_version = "20261103101403"
+        body = self.deploy_body(restore)
+        self.assertEqual(body["operation"], "upgrade")
+        self.assertEqual(body["upgrade_infos"], [
+            {"service_id": "service-1", "upgrade_version": "20261103095207"}])
+
+    def test_constructor_binds_template_before_parent_loads_snapshot_and_deploys(self):
+        template = {"apps": [{"service_id": "web", "deploy_version": "recorded-build"}]}
+        snapshot = {"components": [{"component_id": "web", "service_base": {"service_id": "web"}}]}
+
+        def prepare_parent(restore, tenant, region, user, app, group, record):
+            restore.user, restore.upgrade_record = user, record
+            restore.snapshot = restore._get_snapshot()
+            component = mock.Mock(component=mock.Mock(component_id="web"),
+                                  action_type=app_restore_module.ActionType.UPDATE.value)
+            restore.new_app = mock.Mock(components=mock.Mock(return_value=[component]), region_name=region.region_name)
+            restore.new_app.tenant.tenant_name = "team"
+
+        with mock.patch.object(app_restore_module.AppRestore, "__init__", new=prepare_parent), \
+                mock.patch.object(app_version_service_module.app_snapshot_repo, "get_by_snapshot_id",
+                                  return_value=mock.Mock(snapshot=json.dumps(snapshot))):
+            restore = app_version_service_module.AppVersionRollbackRestore(
+                mock.Mock(), mock.Mock(region_name="region"), mock.Mock(), mock.Mock(), mock.Mock(),
+                mock.Mock(snapshot_id="snapshot"), "1.0.2", "1.0.1", target_template=template)
+        self.assertEqual(self.deploy_body(restore)["upgrade_infos"], [
+            {"service_id": "web", "upgrade_version": "recorded-build"}])
+
+    def test_each_updated_component_uses_its_own_recorded_version(self):
+        restore = self.make_restore({"web": "old-web", "api": "old-api"})
+        body = self.deploy_body(restore)
+        self.assertEqual(body["upgrade_infos"], [
+            {"service_id": "web", "upgrade_version": "old-web"},
+            {"service_id": "api", "upgrade_version": "old-api"}])
+
+    def test_unchanged_components_are_not_redeployed(self):
+        restore = self.make_restore({"web": "old-web", "api": "old-api"}, {
+            "web": app_restore_module.ActionType.UPDATE.value,
+            "api": app_restore_module.ActionType.NOTHING.value})
+        body = self.deploy_body(restore)
+        self.assertEqual(body["upgrade_infos"], [{"service_id": "web", "upgrade_version": "old-web"}])
+
+    def test_missing_target_version_cannot_silently_upgrade_current_build(self):
+        restore = self.make_restore({}, {"web": app_restore_module.ActionType.UPDATE.value})
+        with mock.patch.object(market_app_module, "region_api") as api:
+            with self.assertRaises(ServiceHandleException):
+                restore.deploy()
+        api.batch_operation_service.assert_not_called()
+
+    def test_legacy_market_rollback_keeps_its_existing_request_contract(self):
+        restore = self.make_restore({"web": "old-web"}, restore_class=app_restore_module.AppRestore)
+        self.assertEqual(self.deploy_body(restore)["upgrade_infos"], [{"service_id": "web"}])
+
+    def snapshot_restore(self, template, components=None):
+        restore = app_version_service_module.AppVersionRollbackRestore.__new__(
+            app_version_service_module.AppVersionRollbackRestore)
+        restore.upgrade_record = mock.Mock(snapshot_id="snapshot-id")
+        restore.target_template = template
+        restore.snapshot_build_versions = None
+        restore.snapshot_unversioned_components = set()
+        snapshot = {"components": components or [{
+            "component_id": "web", "service_base": {"service_id": "web", "service_alias": "web-alias"}}]}
+        return restore, snapshot
+
+    def load_snapshot(self, restore, snapshot):
+        with mock.patch.object(app_version_service_module.app_snapshot_repo, "get_by_snapshot_id",
+                               return_value=mock.Mock(snapshot=json.dumps(snapshot))):
+            return restore._get_snapshot()
+
+    def test_recorded_template_version_takes_precedence_over_stale_console_backup(self):
+        restore, snapshot = self.snapshot_restore({"apps": [{"service_id": "web", "deploy_version": "recorded"}]})
+        snapshot["components"][0]["service_base"]["deploy_version"] = "stale-console-version"
+        self.load_snapshot(restore, snapshot)
+        self.assertEqual(restore.snapshot_build_versions, {"web": "recorded"})
+
+    def test_legacy_template_without_service_id_matches_stable_alias(self):
+        restore, snapshot = self.snapshot_restore({"apps": [{"service_alias": "web-alias", "deploy_version": "old"}]})
+        self.load_snapshot(restore, snapshot)
+        self.assertEqual(restore.snapshot_build_versions, {"web": "old"})
+
+    def test_missing_invalid_or_ambiguous_recorded_version_fails_during_preparation(self):
+        cases = [[], [{"service_id": "web"}], [{"service_id": "web", "deploy_version": True}],
+                 [{"service_id": "web", "deploy_version": "  "}],
+                 [{"service_id": "foreign", "service_alias": "web-alias", "deploy_version": "old"}],
+                 [{"service_id": "web", "deploy_version": "one"}, {"service_id": "web", "deploy_version": "two"}]]
+        for apps in cases:
+            with self.subTest(apps=apps):
+                restore, snapshot = self.snapshot_restore({"apps": apps})
+                with self.assertRaises(ServiceHandleException):
+                    self.load_snapshot(restore, snapshot)
+
+    def test_invalid_template_component_shape_is_rejected_as_snapshot_error(self):
+        for apps in ("not-a-list", [None], ["not-an-object"]):
+            with self.subTest(apps=apps):
+                restore, snapshot = self.snapshot_restore({"apps": apps})
+                with self.assertRaises(ServiceHandleException):
+                    self.load_snapshot(restore, snapshot)
+
+    def test_conflicting_snapshot_component_identifiers_are_rejected_before_restore(self):
+        restore, snapshot = self.snapshot_restore({"apps": [{"service_id": "foreign", "deploy_version": "old"}]})
+        snapshot["components"][0]["component_id"] = "foreign"
+        with self.assertRaises(ServiceHandleException):
+            self.load_snapshot(restore, snapshot)
+
+    def test_legacy_service_key_matches_component_id(self):
+        restore, snapshot = self.snapshot_restore({"apps": [{"service_key": "web", "deploy_version": "old"}]})
+        self.load_snapshot(restore, snapshot)
+        self.assertEqual(restore.snapshot_build_versions, {"web": "old"})
+
+    def test_legacy_restore_without_target_template_preserves_request_contract(self):
+        restore = self.make_restore(None, {"web": app_restore_module.ActionType.UPDATE.value})
+        self.assertEqual(self.deploy_body(restore)["upgrade_infos"], [{"service_id": "web"}])
+
+    def test_all_unchanged_components_do_not_dispatch_deployment(self):
+        restore = self.make_restore({"web": "old"}, {"web": app_restore_module.ActionType.NOTHING.value})
+        with mock.patch.object(market_app_module, "region_api") as api:
+            self.assertEqual(restore.deploy(), [])
+        api.batch_operation_service.assert_not_called()
+
+    def test_changed_component_with_legacy_build_action_selects_existing_artifact_instead_of_rebuilding(self):
+        restore = self.make_restore({"web": "old"})
+        restore.changed_component_identities = {"web-alias"}
+        restore.restored_component_identities = set()
+        restore.snapshot = {"components": [{
+            "component_id": "web", "service_base": {"service_id": "web", "service_alias": "web-alias"}}]}
+        restore.original_app = mock.Mock(components=mock.Mock(return_value=[
+            mock.Mock(component=mock.Mock(component_id="web", service_id="web"), volumes=[])]))
+        component = mock.Mock(component=mock.Mock(component_id="web", service_id="web"),
+                              action_type=app_restore_module.ActionType.BUILD.value)
+        restore._create_component = mock.Mock(return_value=component)
+        for name in ("_create_component_deps", "ensure_component_deps", "_create_volume_deps", "ensure_volume_deps",
+                     "list_original_plugins", "_create_plugins_deps", "_create_plugins_configs"):
+            setattr(restore, name, mock.Mock(return_value=[]))
+        restore._create_component_group = mock.Mock()
+        with mock.patch.object(app_version_service_module, "NewApp"):
+            restore._create_new_app()
+        self.assertEqual(component.action_type, app_restore_module.ActionType.UPDATE.value)
+
+    def test_snapshot_components_deleted_from_runtime_keep_their_recorded_versions(self):
+        restore, snapshot = self.snapshot_restore({"apps": [
+            {"service_id": "web", "deploy_version": "old-web"},
+            {"service_id": "deleted", "deploy_version": "old-deleted"}]}, [
+                {"component_id": "web", "service_base": {"service_id": "web"}},
+                {"component_id": "deleted", "service_base": {"service_id": "deleted"}}])
+        result = self.load_snapshot(restore, snapshot)
+        self.assertEqual(len(result["components"]), 2)
+        self.assertEqual(restore.snapshot_build_versions, {"web": "old-web", "deleted": "old-deleted"})
+
+    def test_third_party_component_does_not_require_a_build_version(self):
+        restore, snapshot = self.snapshot_restore({"apps": []}, [{
+            "component_id": "external", "service_base": {"service_id": "external", "service_source": "third_party"}}])
+        self.load_snapshot(restore, snapshot)
+        self.assertEqual(restore.snapshot_build_versions, {})
+        self.assertEqual(restore.snapshot_unversioned_components, {"external"})
+
+    def test_unversioned_third_party_update_keeps_existing_contract(self):
+        restore = self.make_restore({}, {"external": app_restore_module.ActionType.UPDATE.value})
+        restore.snapshot_unversioned_components = {"external"}
+        self.assertEqual(self.deploy_body(restore)["upgrade_infos"], [{"service_id": "external"}])
+
+    def test_rollback_service_passes_the_selected_template_to_restore(self):
+        template = {"snapshot_id": "snapshot-id", "apps": [{"service_id": "web", "deploy_version": "old"}]}
+        target = mock.Mock(version="1.0.1", app_template=json.dumps(template))
+        app, tenant, region = mock.Mock(ID=42), mock.Mock(tenant_id="tenant"), mock.Mock(region_name="region")
+        with mock.patch.object(app_version_service, "get_hidden_template",
+                               return_value=(mock.Mock(app_model_id="hidden"), None)), \
+                mock.patch.object(app_version_service_module.RainbondCenterAppVersion.objects, "filter") as versions, \
+                mock.patch.object(app_version_service_module.ServiceGroup.objects, "select_for_update"), \
+                mock.patch("console.services.app_version_auto_snapshot.app_version_auto_snapshot_service.cancel"), \
+                mock.patch.object(app_version_service, "_list_snapshot_version_objects",
+                                  return_value=[mock.Mock(version="1.0.2")]), \
+                mock.patch.object(app_version_service, "_latest_successful_rollback_record", return_value=None), \
+                mock.patch.object(app_version_service, "_build_app_template", return_value=template), \
+                mock.patch.object(app_version_service_module, "AppVersionRollbackRestore") as restore_class:
+            versions.return_value.first.return_value = target
+            restore_class.return_value.restore.return_value = (mock.Mock(to_dict=mock.Mock(return_value={})), None)
+            app_version_service.rollback_snapshot(tenant, region, mock.Mock(), app, 9)
+        self.assertEqual(restore_class.call_args.kwargs["target_template"], template)
+
+
+# capability_id: console.app-version.rollback-current-baseline
+class SnapshotRollbackCurrentBaselineTests(TestCase):
+    def rollback_from(self, snapshot_time, rollback_time):
+        template = {"snapshot_id": "snapshot-id", "apps": []}
+        target = mock.Mock(version="1.0.4", app_template=json.dumps(template))
+        snapshots = [mock.Mock(version="1.0.4", create_time=snapshot_time),
+                     mock.Mock(version="1.0.3", create_time=datetime(2026, 11, 3, 13, 0))]
+        previous_rollback = mock.Mock(version="1.0.3", update_time=rollback_time) if rollback_time else None
+        with mock.patch.object(app_version_service, "get_hidden_template",
+                               return_value=(mock.Mock(app_model_id="hidden"), None)), \
+                mock.patch.object(app_version_service_module.RainbondCenterAppVersion.objects, "filter") as targets, \
+                mock.patch.object(app_version_service_module.ServiceGroup.objects, "select_for_update"), \
+                mock.patch("console.services.app_version_auto_snapshot.app_version_auto_snapshot_service.cancel"), \
+                mock.patch.object(app_version_service_module.rainbond_app_repo, "get_rainbond_app_versions",
+                                  return_value=AppVersionServiceOverviewTestCase._snapshot_versions_query(snapshots)), \
+                mock.patch.object(app_version_service, "_latest_successful_rollback_record", return_value=previous_rollback), \
+                mock.patch.object(app_version_service, "_build_app_template", return_value=template), \
+                mock.patch.object(app_version_service_module, "AppVersionRollbackRestore") as restore:
+            targets.return_value.first.return_value = target
+            restore.return_value.restore.return_value = (mock.Mock(to_dict=mock.Mock(return_value={})), None)
+            app_version_service.rollback_snapshot(mock.Mock(tenant_id="team"), mock.Mock(region_name="region"),
+                                                  mock.Mock(), mock.Mock(ID=42), 9)
+        args = restore.call_args.args
+        return args[5].old_version, args[6]
+
+    def test_next_rollback_records_the_current_baseline_after_a_previous_rollback(self):
+        recorded, passed = self.rollback_from(datetime(2026, 11, 3, 14, 0), datetime(2026, 11, 3, 15, 0))
+        self.assertEqual(recorded, "1.0.3")
+        self.assertEqual(passed, "1.0.3")
+
+    def test_new_snapshot_after_rollback_becomes_the_recorded_current_version(self):
+        recorded, passed = self.rollback_from(datetime(2026, 11, 3, 16, 0), datetime(2026, 11, 3, 15, 0))
+        self.assertEqual(recorded, "1.0.4")
+        self.assertEqual(passed, "1.0.4")
+
+    def test_first_rollback_records_the_latest_snapshot(self):
+        recorded, passed = self.rollback_from(datetime(2026, 11, 3, 14, 0), None)
+        self.assertEqual(recorded, "1.0.4")
+        self.assertEqual(passed, "1.0.4")
 
 
 class AppVersionServiceRollbackPlanTestCase(TestCase):
@@ -1433,6 +1918,28 @@ class AppVersionRollbackRestoreSnapshotCoverageTestCase(TestCase):
             [component["component_id"] for component in result["components"]],
             ["existing-component", "restored-component"],
         )
+
+    # capability_id: console.app-version.rollback-source-versions
+    def test_restore_source_groups_restores_version_only_within_original_application(self):
+        restore = app_version_service_module.AppVersionRollbackRestore.__new__(
+            app_version_service_module.AppVersionRollbackRestore)
+        restore.tenant = mock.Mock(tenant_id="tenant-1")
+        restore.region_name = "region-1"
+        restore.app = mock.Mock(ID=42)
+        restore.snapshot = {"component_groups": [{"ID": 8, "group_key": "template", "group_version": "0.1"}]}
+        with mock.patch.object(app_version_service_module.TenantServiceGroup.objects, "filter") as groups:
+            restore._restore_source_groups()
+        groups.assert_called_once_with(
+            ID=8, tenant_id="tenant-1", region_name="region-1", service_group_id=42, group_key="template")
+        groups.return_value.update.assert_called_once_with(group_version="0.1")
+
+    def test_restore_source_groups_accepts_legacy_snapshot(self):
+        restore = app_version_service_module.AppVersionRollbackRestore.__new__(
+            app_version_service_module.AppVersionRollbackRestore)
+        restore.snapshot = {"components": []}
+        with mock.patch.object(app_version_service_module.TenantServiceGroup.objects, "filter") as groups:
+            restore._restore_source_groups()
+        groups.assert_not_called()
 
     # capability_id: console.app-version.rollback-create-new-app
     def test_create_new_app_restores_snapshot_components_missing_from_runtime(self):

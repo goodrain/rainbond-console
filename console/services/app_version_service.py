@@ -47,6 +47,8 @@ region_api = RegionInvokeApi()
 
 
 class AppVersionRollbackRestore(AppRestore):
+    CREATE_ROLLBACK_SNAPSHOT = False
+
     def __init__(
             self,
             tenant: Tenants,
@@ -58,11 +60,15 @@ class AppVersionRollbackRestore(AppRestore):
             current_version: str,
             target_version: str,
             changed_component_identities: Optional[set] = None,
-            restored_component_identities: Optional[set] = None) -> None:
+            restored_component_identities: Optional[set] = None,
+            target_template: Optional[dict] = None) -> None:
         self.current_snapshot_version = current_version
         self.target_snapshot_version = target_version
         self.changed_component_identities = changed_component_identities or set()
         self.restored_component_identities = restored_component_identities or set()
+        self.target_template = target_template
+        self.snapshot_build_versions: Optional[Dict[str, str]] = None
+        self.snapshot_unversioned_components: set = set()
         super(AppVersionRollbackRestore, self).__init__(tenant, region, user, app, component_group, app_upgrade_record)
 
     def _create_component(self, snap: dict, now_volumes: dict) -> Component:
@@ -89,7 +95,54 @@ class AppVersionRollbackRestore(AppRestore):
         # NOTE: AppUpgradeRecord.snapshot_id is Optional; get_by_snapshot_id expects str.
         # Rollback records always carry a snapshot_id here, so this is invariant-safe.
         snap = app_snapshot_repo.get_by_snapshot_id(self.upgrade_record.snapshot_id)  # type: ignore[arg-type]
-        return json.loads(snap.snapshot)
+        snapshot = json.loads(snap.snapshot)
+        target_template = getattr(self, "target_template", None)
+        if target_template is not None:
+            self._bind_snapshot_build_versions(snapshot, target_template)
+        return snapshot
+
+    def _bind_snapshot_build_versions(self, snapshot: dict, target_template: dict) -> None:
+        templates = target_template.get("apps") or []
+        if not isinstance(templates, list) or any(not isinstance(item, dict) for item in templates):
+            raise ServiceHandleException(
+                "snapshot build version missing", "快照缺少组件的有效构建版本，无法安全回滚", status_code=409)
+        versions = {}
+        unversioned = set()
+        for snap in snapshot["components"]:
+            base = snap.get("service_base") or {}
+            component_id = snap.get("component_id") or base.get("service_id")
+            if snap.get("component_id") and base.get("service_id") and snap["component_id"] != base["service_id"]:
+                raise ServiceHandleException(
+                    "snapshot build version missing", "快照缺少组件的有效构建版本，无法安全回滚", status_code=409)
+            if base.get("service_source") == "third_party":
+                unversioned.add(component_id)
+                continue
+            matches = [item for item in templates if item.get("service_id") == component_id
+                       or (not item.get("service_id") and item.get("service_key") == component_id)]
+            if not matches and base.get("service_alias"):
+                matches = [item for item in templates if not item.get("service_id")
+                           and item.get("service_alias") == base["service_alias"]]
+            version = matches[0].get("deploy_version") if len(matches) == 1 else None
+            if not component_id or not isinstance(version, str) or not version.strip():
+                raise ServiceHandleException(
+                    "snapshot build version missing", "快照缺少组件的有效构建版本，无法安全回滚", status_code=409)
+            versions[component_id] = version
+        self.snapshot_build_versions = versions
+        self.snapshot_unversioned_components = unversioned
+
+    def _generate_upgrades(self) -> List[Any]:
+        upgrades = super(AppVersionRollbackRestore, self)._generate_upgrades()
+        versions = getattr(self, "snapshot_build_versions", None)
+        if versions is not None:
+            for upgrade in upgrades:
+                component_id = upgrade["service_id"]
+                version = versions.get(component_id)
+                if version:
+                    upgrade["upgrade_version"] = version
+                elif component_id not in self.snapshot_unversioned_components:
+                    raise ServiceHandleException(
+                        "snapshot build version missing", "快照缺少组件的有效构建版本，无法安全回滚", status_code=409)
+        return upgrades
 
     def _build_service_group_relation(self, component_id: str) -> ServiceGroupRelation:
         return ServiceGroupRelation(
@@ -98,6 +151,18 @@ class AppVersionRollbackRestore(AppRestore):
             tenant_id=self.tenant.tenant_id,
             region_name=self.region_name,
         )
+
+    def _restore_source_groups(self) -> None:
+        for group in self.snapshot.get("component_groups") or []:
+            TenantServiceGroup.objects.filter(
+                ID=group["ID"], tenant_id=self.tenant.tenant_id, region_name=self.region_name,
+                service_group_id=self.app.ID, group_key=group["group_key"]
+            ).update(group_version=group["group_version"])
+
+    @transaction.atomic
+    def _save_new_app(self) -> None:
+        super(AppVersionRollbackRestore, self)._save_new_app()
+        self._restore_source_groups()
 
     @staticmethod
     def _snapshot_component_identity(snap: dict) -> Any:
@@ -127,7 +192,11 @@ class AppVersionRollbackRestore(AppRestore):
             component_id = component.component.component_id
             component_identity = self._snapshot_component_identity(snap)
             if component_id in current_component_ids:
-                if component_identity in self.changed_component_identities and component.action_type == ActionType.NOTHING.value:
+                if getattr(self, "snapshot_build_versions", None) is not None:
+                    component.action_type = (ActionType.UPDATE.value if component_identity in self.changed_component_identities
+                                             else ActionType.NOTHING.value)
+                elif (component_identity in self.changed_component_identities
+                      and component.action_type == ActionType.NOTHING.value):
                     component.action_type = ActionType.UPDATE.value
                 update_components.append(component)
                 continue
@@ -877,6 +946,8 @@ class AppVersionService(object):
     def _latest_successful_rollback_record(app_id: str) -> Optional[AppUpgradeRecord]:
         return AppUpgradeRecord.objects.filter(
             group_id=app_id,
+            upgrade_group_id=0,
+            parent_id=0,
             record_type=AppUpgradeRecordType.ROLLBACK.value,
             status__in=[
                 UpgradeStatus.ROLLBACK.value,
@@ -1070,9 +1141,11 @@ class AppVersionService(object):
 
     def create_snapshot(self, tenant: Tenants, region: RegionConfig, user: Users, app: ServiceGroup,
                         version: str = "", version_alias: str = "", app_version_info: str = "",
-                        share_info: Optional[dict] = None) -> dict:
+                        share_info: Optional[dict] = None, require_complete: bool = False) -> dict:
         from console.services.cleanup_coordination import protect_region_references
         with protect_region_references(region.region_name, tenant.tenant_name):
+            ServiceGroup.objects.select_for_update().get(
+                ID=app.ID, tenant_id=tenant.tenant_id, region_name=region.region_name)
             relation, hidden_app = self.get_or_create_hidden_template(tenant, user, app)
             latest_version = rainbond_app_repo.get_rainbond_app_versions(relation.app_model_id).filter(
                 template_type=self.SNAPSHOT_TEMPLATE_TYPE
@@ -1088,10 +1161,19 @@ class AppVersionService(object):
                 )
             else:
                 app_template = self._build_app_template(tenant, region, user, app, relation.app_model_id, next_version)
+            app_template["source_component_groups"] = self._snapshot_source_groups(tenant, app)
+            if require_complete:
+                expected = {service.service_id for service in group_service.get_group_services(str(app.ID))
+                            if service.service_source not in ("third_party", "kubeblocks")}
+                captured = {service.get("service_id") for service in app_template.get("apps") or []}
+                if not expected or not expected.issubset(captured):
+                    raise ServiceHandleException(
+                        "snapshot components incomplete", "无法获取完整的已部署组件版本，请确认部署成功后重试", status_code=409)
             if latest_version:
                 latest_template = json.loads(latest_version.app_template)
                 change_summary = self._summarize_diff(app_template, latest_template)
-                if not change_summary["has_changes"]:
+                same_sources = latest_template.get("source_component_groups", []) == app_template["source_component_groups"]
+                if not change_summary["has_changes"] and same_sources:
                     result = self._serialize_version(latest_version)
                     result["created"] = False
                     result["change_summary"] = change_summary
@@ -1134,6 +1216,12 @@ class AppVersionService(object):
             result["created"] = True
             return result
 
+    @staticmethod
+    def _snapshot_source_groups(tenant: Tenants, app: ServiceGroup) -> list:
+        return list(TenantServiceGroup.objects.filter(
+            tenant_id=tenant.tenant_id, service_group_id=app.ID, region_name=app.region_name
+        ).order_by("ID").values("ID", "group_key", "group_version"))
+
     @transaction.atomic
     def _take_restore_snapshot(self, tenant: Tenants, app: ServiceGroup,
                                version: str) -> Optional[AppUpgradeSnapshot]:
@@ -1158,6 +1246,7 @@ class AppVersionService(object):
                 snapshot_id=make_uuid(),
                 snapshot=json.dumps({
                     "components": components,
+                    "component_groups": self._snapshot_source_groups(tenant, app),
                     "component_group": {
                         "group_version": version,
                     },
@@ -1232,6 +1321,7 @@ class AppVersionService(object):
         target_version.delete()
         return True
 
+    @transaction.atomic
     def rollback_snapshot(self, tenant: Tenants, region: RegionConfig, user: Users, app: ServiceGroup,
                           version_id: str) -> Optional[dict]:
         # NOTE: app.ID is int AutoField; get_hidden_template expects a str id.
@@ -1254,10 +1344,14 @@ class AppVersionService(object):
         if not snapshot_id:
             return None
 
-        latest_version = rainbond_app_repo.get_rainbond_app_versions(relation.app_model_id).filter(
-            template_type=self.SNAPSHOT_TEMPLATE_TYPE
-        ).order_by("-create_time").first()
-        current_version = latest_version.version if latest_version else ""
+        ServiceGroup.objects.select_for_update().get(
+            ID=app.ID, tenant_id=tenant.tenant_id, region_name=region.region_name)
+        from console.services.app_version_auto_snapshot import app_version_auto_snapshot_service
+        app_version_auto_snapshot_service.cancel(app.ID)
+
+        versions = self._list_snapshot_version_objects(relation.app_model_id)
+        current_baseline = self._select_current_baseline_version(app.ID, versions)  # type: ignore[arg-type]
+        current_version = current_baseline.version if current_baseline else ""
         current_template = self._build_app_template(
             tenant,
             region,
@@ -1310,6 +1404,7 @@ class AppVersionService(object):
             target_version.version,
             changed_component_identities=rollback_plan["changed"],
             restored_component_identities=rollback_plan["restored"],
+            target_template=target_template,
         )
         rollback_record, _ = app_restore.restore()
         return rollback_record.to_dict()  # type: ignore[union-attr]  # NOTE: rollback_record set in _save_new_app

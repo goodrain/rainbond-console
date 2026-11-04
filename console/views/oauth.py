@@ -2,7 +2,7 @@
 import os
 import json
 import logging
-from typing import Any
+from typing import Any, cast
 from urllib.parse import urlsplit
 
 from console.exception.main import ServiceHandleException, AbortRequest
@@ -18,7 +18,7 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 from www.apiclient.regionapi import RegionInvokeApi
-from www.models.main import Tenants
+from www.models.main import Tenants, Users
 from www.utils.return_message import error_message
 from console.login.jwt_manager import JwtManager
 from console.utils.reqparse import parse_item
@@ -61,14 +61,13 @@ class OauthService(EnterpriseAdminView):
         # NOTE: request.user is User|AnonymousUser; auth guarantees authenticated user (backlog).
         eid = request.user.enterprise_id  # type: ignore[union-attr]
         # NOTE: user_id is int AutoField; repo signatures take str (systemic int-as-str, backlog).
-        service = oauth_repo.get_conosle_oauth_service(eid, self.user.user_id)  # type: ignore[arg-type]
         all_services = oauth_repo.get_all_oauth_services(eid, self.user.user_id)  # type: ignore[arg-type]
         svc_ids = [svc.ID for svc in all_services]
         user_oauth_list = oauth_user_repo.get_by_oauths_user_id(svc_ids, self.user.user_id)  # type: ignore[arg-type]
         user_oauth_dict = {uol.service_id: uol for uol in user_oauth_list}
         if all_services is not None:
             for l_service in all_services:
-                api = get_oauth_instance(l_service.oauth_type, service, None)
+                api = get_oauth_instance(l_service.oauth_type, l_service, None)
                 authorize_url = api.get_authorize_url()
                 all_services_list.append({
                     "service_id": l_service.ID,
@@ -84,6 +83,7 @@ class OauthService(EnterpriseAdminView):
                     "api_url": l_service.api_url,
                     "client_secret": l_service.client_secret,
                     "is_auto_login": l_service.is_auto_login,
+                    "auto_create_user": l_service.auto_create_user,
                     "is_git": l_service.is_git,
                     "authorize_url": authorize_url,
                     "enterprise_id": l_service.eid,
@@ -100,19 +100,18 @@ class OauthService(EnterpriseAdminView):
         eid = request.user.enterprise_id  # type: ignore[union-attr]
         try:
             services = oauth_repo.create_or_update_console_oauth_services(values, eid, self.user.user_id, system)  # type: ignore[arg-type]
+        except ServiceHandleException:
+            raise
         except Exception as e:
             logger.exception(e)
-            # NOTE: py2-era Exception.message; preserved for behavior compat (backlog).
             return Response(
                 {"msg": getattr(e, "msg", getattr(e, "message", str(e)))},
                 status=status.HTTP_400_BAD_REQUEST)  # type: ignore[attr-defined]
-        # NOTE: get_conosle_oauth_service may return None; legacy assumes present (backlog).
-        service = oauth_repo.get_conosle_oauth_service(eid, self.user.user_id)  # type: ignore[arg-type]
-        api = get_oauth_instance(service.oauth_type, service, None)  # type: ignore[union-attr]
-        authorize_url = api.get_authorize_url()
         data = []
         # NOTE: services may be None; legacy assumes iterable result (backlog).
         for service in services:  # type: ignore[union-attr]
+            api = get_oauth_instance(service.oauth_type, service, None)
+            authorize_url = api.get_authorize_url()
             data.append({
                 "service_id": service.ID,
                 "name": service.name,
@@ -127,6 +126,7 @@ class OauthService(EnterpriseAdminView):
                 "access_token_url": service.access_token_url,
                 "api_url": service.api_url,
                 "is_auto_login": service.is_auto_login,
+                "auto_create_user": service.auto_create_user,
                 "is_git": service.is_git,
                 "authorize_url": authorize_url,
             })
@@ -181,6 +181,7 @@ class EnterpriseOauthService(EnterpriseAdminView):
                     "api_url": l_service.api_url,
                     "client_secret": l_service.client_secret,
                     "is_auto_login": l_service.is_auto_login,
+                    "auto_create_user": l_service.auto_create_user,
                     "is_git": l_service.is_git,
                     "authorize_url": authorize_url,
                     "enterprise_id": l_service.eid,
@@ -213,6 +214,7 @@ class EnterpriseOauthService(EnterpriseAdminView):
                 "access_token_url": service.access_token_url,
                 "api_url": service.api_url,
                 "is_auto_login": service.is_auto_login,
+                "auto_create_user": service.auto_create_user,
                 "is_git": service.is_git,
                 "authorize_url": authorize_url,
             })
@@ -227,10 +229,12 @@ class EnterpriseOauthService(EnterpriseAdminView):
 class OauthServiceInfo(EnterpriseAdminView):
     def delete(self, request: Request, service_id: str, *args: Any, **kwargs: Any) -> Response:
         try:
-            oauth_repo.delete_oauth_service(service_id)
+            oauth_repo.delete_oauth_service(service_id, self.user.enterprise_id, str(self.user.user_id))
             oauth_user_repo.delete_users_by_services_id(service_id)
             rst = {"data": {"bean": None}, "status": 200}
             return Response(rst, status=status.HTTP_200_OK)
+        except ServiceHandleException:
+            raise
         except Exception as e:
             logger.debug(e)
             rst = {"data": {"bean": None}, "status": 404, "msg_show": "未找到oauth服务"}
@@ -416,8 +420,8 @@ class OAuthUserInfo(AlowAnyApiView):
 
 class OAuthServerUserAuthorize(JWTAuthApiView):
     def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
-        login_user = request.user
-        code = request.data.get("code")
+        login_user = cast(Users, request.user)
+        code = str(request.data.get("code") or "")
         service_id = request.data.get("service_id")
         state = request.data.get("state")
 
@@ -438,13 +442,14 @@ class OAuthServerUserAuthorize(JWTAuthApiView):
 
         try:
             oauth_service = oauth_repo.get_oauth_services_by_service_id(service_id)
+            if oauth_service is None:
+                raise ValueError("OAuth service not found")
         except Exception as e:
             logger.debug(e)
             rst = {"data": {"bean": None}, "status": 404, "msg_show": "未找到oauth服务, 请检查该服务是否存在且属于开启状态"}
             return Response(rst, status=status.HTTP_200_OK)
         try:
-            # NOTE: get_oauth_services_by_service_id may return None; legacy assumes present (backlog).
-            api = get_oauth_instance(oauth_service.oauth_type, oauth_service, None)  # type: ignore[union-attr]
+            api = get_oauth_instance(oauth_service.oauth_type, oauth_service, None)
         except NoSupportOAuthType as e:
             logger.debug(e)
             rst = {"data": {"bean": None}, "status": 404, "msg_show": "未找到oauth服务"}
@@ -457,7 +462,7 @@ class OAuthServerUserAuthorize(JWTAuthApiView):
             return Response(rst, status=status.HTTP_200_OK)
         try:
             # 只有 Gitea 需要 PKCE 的 code_verifier 参数
-            if oauth_service.oauth_type == 'gitea':  # type: ignore[union-attr]
+            if oauth_service.oauth_type == 'gitea':
                 user, access_token, refresh_token = api.get_user_info(code=code, code_verifier=code_verifier)
             else:
                 user, access_token, refresh_token = api.get_user_info(code=code)

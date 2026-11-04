@@ -10,6 +10,7 @@ from console.utils.jwt_issuer import issue_jwt
 from django.db.transaction import atomic
 from console.repositories.user_repo import user_repo
 from console.repositories.oauth_repo import oauth_user_repo
+from console.services.oauth_user_provisioning import provision_gitlab_user
 
 from console.services.enterprise_services import enterprise_services
 from console.services.user_services import user_services
@@ -61,6 +62,12 @@ class OAuthUserService(object):
         code: str,
         user: Any = None,
     ) -> Response:
+        if getattr(oauth_service, "auto_create_user", False) is True:
+            login_user = provision_gitlab_user(oauth_service.ID, oauth_user, access_token, refresh_token, code)
+            token = issue_jwt(login_user)
+            # Third.js owns the JS-readable cookie consumed by SecurityLayout, as in ordinary login.
+            JwtManager().set(token, login_user.user_id)
+            return Response({"data": {"bean": {"token": token}}}, status=200)
         oauth_user.id = str(oauth_user.id)
         local_user_by_email = None
         if oauth_user.email:

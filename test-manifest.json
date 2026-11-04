@@ -2454,6 +2454,24 @@
       "status": "active"
     },
     {
+      "id": "console.app-version.rollback-current-baseline",
+      "title": "Snapshot rollback history records the current baseline version",
+      "title_zh": "快照回滚历史记录当前基线版本",
+      "interface_type": "service_method",
+      "interface": "console.services.app_version_service.AppVersionService.rollback_snapshot",
+      "code_paths": [
+        "console/services/app_version_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_version_test.py",
+          "selector": "SnapshotRollbackCurrentBaselineTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.app-version.rollback-plan",
       "title": "Build rollback component plan",
       "title_zh": "生成回滚组件计划",
@@ -8151,6 +8169,24 @@
       "status": "active"
     },
     {
+      "id": "console.login.source-url",
+      "title": "Login source URLs follow the request origin and routing mode",
+      "title_zh": "登录来源地址遵循请求来源与路由模式",
+      "interface_type": "view_endpoint",
+      "interface": "GET /console/checksource",
+      "code_paths": [
+        "console/views/user.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/check_source_view_test.py",
+          "selector": "CheckSourceViewTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.market-app.create-template-scope-name",
       "title": "Scope market app template name duplicate checks",
       "title_zh": "按发布范围和团队检查应用市场模板重名",
@@ -8336,6 +8372,25 @@
         {
           "path": "console/tests/market_app_service_test.py",
           "selector": "MarketAppServicePortPersistenceTests::test_save_outer_tcp_ports_creates_gateway_rules_after_persisting_ports"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.market-app.preserve-component-history",
+      "title": "Market component updates preserve identity and upgrade history",
+      "title_zh": "组件库更新保留组件身份及升级历史",
+      "interface_type": "service_method",
+      "interface": "console.repositories.service_repo.ServiceRepo.bulk_update",
+      "code_paths": [
+        "console/repositories/service_repo.py",
+        "console/services/market_app/new_app.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_version_test.py",
+          "selector": "MarketComponentHistoryPreservationTests"
         }
       ],
       "test_type": "regression",
@@ -9200,6 +9255,27 @@
         {
           "path": "console/tests/team_resources_test.py",
           "selector": "RegionInvokeApiNsResourceTestCase.test_put_tenant_ns_resource_preserves_custom_content_type"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.oauth.gitlab-auto-provisioning",
+      "title": "Provision ordinary users on trusted GitLab OAuth first login",
+      "title_zh": "可信 GitLab OAuth 首次登录自动创建普通用户",
+      "interface_type": "service_method",
+      "interface": "console.services.oauth_user_provisioning.provision_gitlab_user",
+      "code_paths": [
+        "console/services/oauth_user_provisioning.py",
+        "console/services/oauth_service.py",
+        "console/repositories/oauth_repo.py",
+        "console/views/oauth.py",
+        "console/management/commands/repair_legacy_schema.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/oauth_auto_provisioning_test.py"
         }
       ],
       "test_type": "regression",
@@ -10238,6 +10314,32 @@
         {
           "path": "console/tests/platform_plugin_read_optimization_test.py",
           "selector": "PlatformPluginReadCacheTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.platform-plugin.monitoring-backend-registration",
+      "title": "Register bundled monitoring API on its own HTTP service",
+      "title_zh": "监控插件前后端共用自身 HTTP 服务，不误选 Grafana 或 Redis 依赖",
+      "interface_type": "service_method",
+      "interface": "console.services.rbd_plugin_sync_service.RBDPluginSyncService.reconcile",
+      "code_paths": [
+        "console/services/rbd_plugin_sync_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/rbd_plugin_sync_service_test.py",
+          "selector": "RBDPluginSyncServiceTests.test_monitoring_plugin_uses_own_api_when_depending_on_grafana_and_redis"
+        },
+        {
+          "path": "console/tests/rbd_plugin_sync_service_test.py",
+          "selector": "RBDPluginSyncServiceTests.test_monitoring_plugin_with_only_redis_dependency_registers_own_api"
+        },
+        {
+          "path": "console/tests/rbd_plugin_sync_service_test.py",
+          "selector": "RBDPluginSyncServiceTests.test_monitoring_backend_uses_selected_frontend_port_instead_of_hardcoded_port"
         }
       ],
       "test_type": "regression",
@@ -12768,7 +12870,7 @@
       "tests": [
         {
           "path": "console/tests/user_registration_view_test.py",
-          "selector": "TenantServiceRegistrationViewTests.test_post_normalizes_provided_username_before_form_validation"
+          "selector": "TenantServiceRegistrationViewTests.test_post_preserves_numeric_username_before_form_validation"
         },
         {
           "path": "console/tests/user_registration_view_test.py",
@@ -12864,6 +12966,34 @@
         {
           "path": "console/tests/password_reset_view_test.py",
           "selector": "PasswordResetViewTestCase"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.users.numeric-username",
+      "title": "Numeric username creation and unambiguous login",
+      "title_zh": "Numeric username creation and unambiguous login",
+      "interface_type": "workflow",
+      "interface": "console.services.user_identity",
+      "code_paths": [
+        "console/services/user_identity.py",
+        "console/views/user_operation.py",
+        "console/forms/users_operation.py",
+        "console/services/user_services.py",
+        "console/services/user_service.py",
+        "console/serializer.py",
+        "console/services/auth/backends.py",
+        "console/services/login_security_service.py",
+        "openapi/serializer/user_serializer.py",
+        "www/services/user.py",
+        "console/views/team.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/numeric_username_test.py",
+          "selector": "NumericUsernameTests"
         }
       ],
       "test_type": "regression",
@@ -13666,6 +13796,174 @@
         }
       ],
       "test_type": "integration",
+      "status": "active"
+    },
+    {
+      "id": "console.app-version.automatic-snapshot-api",
+      "title": "App version overview exposes automatic snapshot status",
+      "title_zh": "应用版本概览展示自动快照状态",
+      "interface_type": "view_endpoint",
+      "interface": "GET /console/teams/{team}/groups/{app}/app-versions/overview",
+      "code_paths": [
+        "console/views/app_version.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_version_test.py",
+          "selector": "AutomaticSnapshotOverviewContractTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.app-version.automatic-snapshot-readiness",
+      "title": "Automatic snapshots require complete running components",
+      "title_zh": "自动快照等待全应用组件完成部署",
+      "interface_type": "service_method",
+      "interface": "console.services.app_version_auto_snapshot.AppVersionAutoSnapshotService._ready",
+      "code_paths": [
+        "console/services/app_version_auto_snapshot.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_version_auto_snapshot_test.py",
+          "selector": "AutomaticSnapshotReadinessTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.app-version.automatic-snapshots",
+      "title": "Automatic application snapshots after successful market deployments",
+      "title_zh": "组件库部署成功后自动生成应用版本快照",
+      "interface_type": "workflow",
+      "interface": "console.services.app_version_auto_snapshot.AppVersionAutoSnapshotService",
+      "code_paths": [
+        "console/services/app_version_auto_snapshot.py",
+        "console/services/market_app/app_upgrade.py",
+        "console/services/app_actions/app_manage.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_version_auto_snapshot_test.py",
+          "selector": "AutomaticAppSnapshotTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.app-version.market-deploy-snapshot-hook",
+      "title": "Market install upgrade and legacy rollback register automatic snapshots after dispatch",
+      "title_zh": "组件库安装升级与旧入口回滚接入自动快照",
+      "interface_type": "workflow",
+      "interface": "console.services.market_app.app_upgrade.AppUpgrade.deploy",
+      "code_paths": [
+        "console/services/market_app/app_upgrade.py",
+        "console/services/market_app/app_restore.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_version_test.py",
+          "selector": "MarketDeploymentSnapshotHookTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.app-version.rollback-source-versions",
+      "title": "Application snapshot rollback restores installed source versions",
+      "title_zh": "应用快照回滚同步恢复组件库安装版本",
+      "interface_type": "service_method",
+      "interface": "console.services.app_version_service.AppVersionRollbackRestore._restore_source_groups",
+      "code_paths": [
+        "console/services/app_version_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_version_test.py",
+          "selector": "AppVersionRollbackRestoreSnapshotCoverageTestCase"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.app-version.snapshot-source-version-dedup",
+      "title": "Snapshot deduplication preserves market source version changes",
+      "title_zh": "快照去重保留组件库来源版本变化",
+      "interface_type": "service_method",
+      "interface": "console.services.app_version_service.AppVersionService.create_snapshot",
+      "code_paths": [
+        "console/services/app_version_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_version_test.py",
+          "selector": "AppVersionSnapshotSourceVersionTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.platform-overview.team-usage",
+      "title": "Team resource usage ranking from scoped monitoring",
+      "title_zh": "基于实际监控用量的团队资源排行",
+      "interface_type": "service_method",
+      "interface": "console.services.platform_overview_service.PlatformOverviewService._fetch_team_ranking",
+      "code_paths": [
+        "console/services/platform_overview_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/platform_overview_team_usage_test.py",
+          "selector": "PlatformOverviewTeamUsageTest"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.app-version.rollback-recorded-build-version",
+      "title": "Application snapshot rollback selects each recorded component build version",
+      "title_zh": "应用快照回滚精确选择记录的组件构建版本",
+      "interface_type": "workflow",
+      "interface": "console.services.app_version_service.AppVersionRollbackRestore",
+      "code_paths": [
+        "console/services/app_version_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_version_test.py",
+          "selector": "SnapshotRollbackBuildVersionTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.oauth.name-scope",
+      "title": "Scope OAuth configuration names by enterprise and personal owner",
+      "title_zh": "OAuth 配置名称按企业公共与个人范围隔离",
+      "interface_type": "workflow",
+      "interface": "POST /console/enterprise/{enterprise_id}/oauth/oauth-services",
+      "code_paths": [
+        "console/models/main.py",
+        "console/repositories/oauth_repo.py",
+        "console/management/commands/migrate_oauth_name_scope.py",
+        "entrypoint.sh",
+        "console/views/oauth.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/oauth_name_scope_test.py"
+        }
+      ],
+      "test_type": "regression",
       "status": "active"
     }
   ]

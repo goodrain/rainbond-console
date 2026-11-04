@@ -5,6 +5,8 @@ import re
 from django import forms
 from django.forms.forms import Form
 from www.models.main import Users
+from console.exception.main import ServiceHandleException
+from console.services.user_identity import check_login_identifiers_available
 
 logger = logging.getLogger("default")
 SENSITIVE_WORDS = ('root', 'goodrain', 'builder', 'app', 'tenant', 'tenants', 'service', 'services')
@@ -67,6 +69,11 @@ class RegisterForm(Form):
         password = self.cleaned_data.get('password')
         password_repeat = self.cleaned_data.get('password_repeat')
         phone = self.cleaned_data.get('phone')
+
+        try:
+            check_login_identifiers_available(nick_name=nick_name, email=email, phone=phone)
+        except ServiceHandleException as error:
+            raise forms.ValidationError(error.msg_show)
 
         try:
             Users.objects.get(nick_name=nick_name)
