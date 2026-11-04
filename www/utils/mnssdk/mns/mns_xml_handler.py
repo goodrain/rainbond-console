@@ -232,7 +232,7 @@ class DecoderBase:
                     else:
                         data_dic[node.nodeName] = ""
         except MNSClientNetworkException as e:
-            raise MNSClientNetworkException(e.type, e.message, req_id)
+            raise MNSClientNetworkException(e.type, getattr(e, "msg", getattr(e, "message", str(e))), req_id)
 
     @staticmethod
     def xml_to_listofdic(root_tagname, sec_tagname, xml_data, data_listofdic, req_id=None):
@@ -247,7 +247,7 @@ class DecoderBase:
                         data_dic[property.nodeName] = property.firstChild.data
                 data_listofdic.append(data_dic)
         except MNSClientNetworkException as e:
-            raise MNSClientNetworkException(e.type, e.message, req_id)
+            raise MNSClientNetworkException(e.type, getattr(e, "msg", getattr(e, "message", str(e))), req_id)
 
 
 class ListQueueDecoder(DecoderBase):

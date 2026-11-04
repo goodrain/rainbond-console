@@ -514,7 +514,7 @@ class ImageWebHooksTrigger(AppBaseView):
         except Exception as e:
             logger.exception(e)
             # NOTE: py2-era Exception.message; preserved for behavior compat (backlog).
-            return error_message(e.message)  # type: ignore[attr-defined]
+            return error_message(getattr(e, "msg", getattr(e, "message", str(e))))  # type: ignore[attr-defined]
         new_information = json.dumps({"组件": self.service.service_cname, "Tag触发": trigger}, ensure_ascii=False)
         comment = operation_log_service.generate_component_comment(
             operation=Operation.CHANGE,
@@ -611,7 +611,7 @@ class WebHooksStatus(AppBaseView):
                 service_alias=self.service.service_alias)
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)  # type: ignore[attr-defined]
+            result = error_message(getattr(e, "msg", getattr(e, "message", str(e))))  # type: ignore[attr-defined]
             return Response(result, status=500)
         return Response(result, status=200)
 
@@ -686,7 +686,7 @@ class UpdateSecretKey(AppBaseView):
                 return Response(result, 404)
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)  # type: ignore[attr-defined]
+            result = error_message(getattr(e, "msg", getattr(e, "message", str(e))))  # type: ignore[attr-defined]
         return Response(result, status=500)
 
 
@@ -758,5 +758,5 @@ class ImageWebHooksDeploy(AlowAnyApiView):
                 return Response(result, status=400)
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)  # type: ignore[attr-defined]
+            result = error_message(getattr(e, "msg", getattr(e, "message", str(e))))  # type: ignore[attr-defined]
             return Response(result, status=500)

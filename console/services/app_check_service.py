@@ -275,7 +275,7 @@ class AppCheckService(object):
             rt_msg["error_infos"] = [{
                 "error_type": "api invoke error",
                 "solve_advice": "重新尝试",
-                "error_info": "{}".format(e.message)
+                "error_info": "{}".format(getattr(e, "msg", getattr(e, "message", str(e))))
             }]
             rt_msg["check_status"] = "failure"
             rt_msg["service_info"] = []

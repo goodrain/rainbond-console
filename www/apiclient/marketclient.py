@@ -92,7 +92,7 @@ class MarketOpenAPI(HttpClient):
             return self._unpack(body), '', res.status
         except self.ApiSocketError as e:
             logger.exception(e)
-            msg = e.body.get('msg_show') if e.body else e.message
+            msg = e.body.get('msg_show') if e.body else getattr(e, "msg", getattr(e, "message", str(e)))
             return None, msg, e.status
 
     def buy_region_res(self, region_name, tenant_id, enterprise_id, memory, disk, rent_time):
@@ -106,7 +106,7 @@ class MarketOpenAPI(HttpClient):
             return self._unpack(body), '', res.status
         except self.ApiSocketError as e:
             logger.exception(e)
-            msg = e.body.get('msg_show') if e.body else e.message
+            msg = e.body.get('msg_show') if e.body else getattr(e, "msg", getattr(e, "message", str(e)))
             return None, msg, e.status
         except self.CallApiError as ex:
             logger.error("invoke market api error !")

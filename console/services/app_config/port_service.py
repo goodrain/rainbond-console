@@ -549,7 +549,7 @@ class AppPortService(object):
             except RegionApiBaseHttpClient.CallApiError as e:
                 logger.exception(e)
                 if e.status != 404:
-                    raise AbortRequest(msg=e.message, status_code=e.status)
+                    raise AbortRequest(msg=getattr(e, "msg", getattr(e, "message", str(e))), status_code=e.status)
 
     def delete_service_port(self, tenant: Tenants, service: TenantServiceInfo) -> None:
         port_repo.delete_service_port(tenant.tenant_id, service.service_id)

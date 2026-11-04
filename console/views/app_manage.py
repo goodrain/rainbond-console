@@ -340,7 +340,8 @@ class DeployAppView(AppBaseCloudEnterpriseCenterView):
             enterprise_first_deploy_service.safe_mark_failure(tracker, reason=getattr(e, "message", str(e)))
             logger.exception(e)
             return Response(
-                general_message(412, e.message, "无法找到云市应用的构建源"),  # type: ignore[attr-defined]
+                general_message(412, getattr(e, "msg", getattr(e, "message", str(e))),
+                                "无法找到云市应用的构建源"),  # type: ignore[attr-defined]
                 status=412)
         except ResourceNotEnoughException as re:
             enterprise_first_deploy_service.safe_mark_failure(tracker, reason=getattr(re, "message", str(re)))
@@ -945,7 +946,8 @@ class ChangeServiceTypeView(AppBaseView):
                 old_information=old_information,
                 new_information=new_information)
         except CallRegionAPIException as e:
-            result = general_message(e.code, "failure", e.message)  # type: ignore[attr-defined]
+            result = general_message(
+                e.code, "failure", getattr(e, "msg", getattr(e, "message", str(e))))  # type: ignore[attr-defined]
         return Response(result, status=result["code"])
 
 

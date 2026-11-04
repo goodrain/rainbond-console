@@ -51,7 +51,7 @@ class EnterpriseAccountInfoView(JWTAuthApiView):
         except Exception as e:
             logger.exception(e)
             # NOTE: py2 Exception.message (backlog).
-            result = error_message(e.message)  # type: ignore[attr-defined]
+            result = error_message(getattr(e, "msg", getattr(e, "message", str(e))))  # type: ignore[attr-defined]
         return Response(result, status=result["code"])
 
 
@@ -102,7 +102,7 @@ class EnterpriseTeamFeeView(JWTAuthApiView):
                 result = general_message(400, "enterprise expense account query failed.", "企业资源费用账单查询失败")
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)  # type: ignore[attr-defined]
+            result = error_message(getattr(e, "msg", getattr(e, "message", str(e))))  # type: ignore[attr-defined]
         return Response(result, status=result["code"])
 
 
@@ -152,7 +152,7 @@ class EnterpriseRechargeRecordsView(JWTAuthApiView):
 
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)  # type: ignore[attr-defined]
+            result = error_message(getattr(e, "msg", getattr(e, "message", str(e))))  # type: ignore[attr-defined]
         return Response(result, status=result["code"])
 
 
@@ -213,7 +213,7 @@ class EnterpriseAllRegionFeeView(JWTAuthApiView):
             result = general_message(200, "success", "查询成功", list=result_list)
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)  # type: ignore[attr-defined]
+            result = error_message(getattr(e, "msg", getattr(e, "message", str(e))))  # type: ignore[attr-defined]
         return Response(result, status=result["code"])
 
 
@@ -264,5 +264,5 @@ class EnterprisePurchaseDetails(JWTAuthApiView):
             result = general_message(200, "success", "查询成功", list=result_list, total=total)
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)  # type: ignore[attr-defined]
+            result = error_message(getattr(e, "msg", getattr(e, "message", str(e))))  # type: ignore[attr-defined]
         return Response(result, status=result["code"])

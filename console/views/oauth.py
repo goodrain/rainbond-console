@@ -104,8 +104,9 @@ class OauthService(EnterpriseAdminView):
             raise
         except Exception as e:
             logger.exception(e)
-            # NOTE: py2-era Exception.message; preserved for behavior compat (backlog).
-            return Response({"msg": e.message}, status=status.HTTP_400_BAD_REQUEST)  # type: ignore[attr-defined]
+            return Response(
+                {"msg": getattr(e, "msg", getattr(e, "message", str(e)))},
+                status=status.HTTP_400_BAD_REQUEST)  # type: ignore[attr-defined]
         data = []
         # NOTE: services may be None; legacy assumes iterable result (backlog).
         for service in services:  # type: ignore[union-attr]
