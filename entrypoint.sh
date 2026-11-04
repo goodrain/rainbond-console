@@ -59,6 +59,10 @@ function init_database() {
     echo -e "${RED}ERROR: failed to migrate${NC}"
     exit 1
   fi
+  if ! python manage.py migrate_oauth_name_scope; then
+    echo -e "${RED}ERROR: failed to upgrade OAuth name scope${NC}"
+    exit 1
+  fi
   if ! python manage.py verify_required_schema; then
     echo -e "${RED}ERROR: required database schema is incomplete${NC}"
     exit 1
