@@ -488,6 +488,7 @@
 | console.multi-app.incomplete-detection-guard | 拒绝不完整的多组件检测结果 | active | regression | console.services.multi_app_service.MultiAppService.create_services | console/tests/multi_app_service_test.py::MultiAppServiceTests |
 | console.ns-resource.batch-create | Ns Resource Batch Create | active | regression | console.views.team_resources | console/tests/team_resources_test.py::NsResourceDetailViewTestCase.test_post_preserves_partial_success_status_and_payload |
 | console.ns-resource.update | 通过 YAML 更新命名空间资源 | active | regression | console.views.team_resources.NsResourceDetailView.put | console/tests/team_resources_test.py::NsResourceDetailViewTestCase.test_put_accepts_yaml_media_type_and_forwards_raw_body<br>console/tests/team_resources_test.py::RegionInvokeApiNsResourceTestCase.test_put_tenant_ns_resource_preserves_custom_content_type |
+| console.oauth.gitlab-auto-provisioning | 可信 GitLab OAuth 首次登录自动创建普通用户 | active | regression | console.services.oauth_user_provisioning.provision_gitlab_user | console/tests/oauth_auto_provisioning_test.py |
 | console.oauth.gitlab-webhook-url | 规范化 GitLab OAuth Webhook 地址 | active | regression | console.utils.oauth.gitlab_api.GitlabApiV4.create_hook | console/tests/utils/gitlab_api_test.py::GitlabApiV4WebhookTests.test_create_hook_adds_https_scheme_to_bare_host<br>console/tests/utils/gitlab_api_test.py::GitlabApiV4WebhookTests.test_create_hook_supports_protocol_relative_host<br>console/tests/utils/gitlab_api_test.py::GitlabApiV4WebhookTests.test_create_hook_preserves_scheme_and_normalizes_slashes |
 | console.oauth.instance-create | 创建 OAuth helper 实例并绑定服务与用户上下文 | active | regression | console.utils.oauth.oauth_types.get_oauth_instance | console/tests/utils/oauth_types_test.py::OAuthTypeTests.test_get_oauth_instance |
 | console.oauth.kind-flags | 返回基础与 git OAuth helper 的能力标记 | active | regression | console.utils.oauth.base.git_oauth.GitOAuth2Interface.is_git_oauth | console/tests/utils/oauth_base_test.py::OAuthBaseTests.test_oauth_kind_flags |
@@ -543,6 +544,7 @@
 | console.platform-overview.absolute-metrics | Historical absolute usage in platform overview metrics | active | regression | console.services.platform_overview_service.PlatformOverviewService.get_metrics | console/tests/platform_overview_absolute_test.py |
 | console.platform-overview.aggregate | 平台总览聚合、已启用插件与真实集群版本 | active | unit | console.services.platform_overview_service.PlatformOverviewService | console/tests/platform_overview_service_test.py::PlatformOverviewServiceTest<br>console/tests/platform_overview_service_test.py::PlatformPluginInstalledOnlyTest |
 | console.platform-overview.http-api | Platform overview HTTP API | active | regression | console.views.platform_overview | console/tests/platform_overview_view_test.py::PlatformOverviewViewTest |
+| console.platform-overview.team-usage | 基于实际监控用量的团队资源排行 | active | regression | console.services.platform_overview_service.PlatformOverviewService._fetch_team_ranking | console/tests/platform_overview_team_usage_test.py::PlatformOverviewTeamUsageTest |
 | console.platform-plugin.batch-install-metadata | 批量读取插件最新安装元数据 | active | regression | console.services.platform_plugin_service.PlatformPluginService.list_platform_plugins | console/tests/platform_plugin_read_optimization_test.py::PlatformPluginInstallationBatchTests |
 | console.platform-plugin.coalesced-catalog-reads | 安全合并插件目录与架构并发读取 | active | regression | console.services.platform_plugin_service.PlatformPluginService | console/tests/platform_plugin_read_optimization_test.py::PlatformPluginReadCacheTests |
 | console.platform-plugin.scoped-component-domain-reads | 按租户应用和区域限定插件组件与域名读取 | active | integration | console.services.plugin_service.RainbondPluginService.list_plugins | console/tests/rbd_plugin_service_test.py::PluginRelationScopeTests<br>console/tests/rbd_plugin_service_test.py::PluginScopedReadIntegrationTests |
@@ -5568,6 +5570,16 @@
 - 代码路径: `console/views/team_resources.py`, `www/apiclient/regionapi.py`
 - 测试路径: `console/tests/team_resources_test.py::NsResourceDetailViewTestCase.test_put_accepts_yaml_media_type_and_forwards_raw_body`, `console/tests/team_resources_test.py::RegionInvokeApiNsResourceTestCase.test_put_tenant_ns_resource_preserves_custom_content_type`
 
+### 可信 GitLab OAuth 首次登录自动创建普通用户
+
+- Capability ID: `console.oauth.gitlab-auto-provisioning`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.oauth_user_provisioning.provision_gitlab_user`
+- 代码路径: `console/services/oauth_user_provisioning.py`, `console/services/oauth_service.py`, `console/repositories/oauth_repo.py`, `console/views/oauth.py`, `console/management/commands/repair_legacy_schema.py`
+- 测试路径: `console/tests/oauth_auto_provisioning_test.py`
+
 ### 规范化 GitLab OAuth Webhook 地址
 
 - Capability ID: `console.oauth.gitlab-webhook-url`
@@ -6117,6 +6129,16 @@
 - 业务入口: `console.views.platform_overview`
 - 代码路径: `console/views/platform_overview.py`, `console/urls/__init__.py`
 - 测试路径: `console/tests/platform_overview_view_test.py::PlatformOverviewViewTest`
+
+### 基于实际监控用量的团队资源排行
+
+- Capability ID: `console.platform-overview.team-usage`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.platform_overview_service.PlatformOverviewService._fetch_team_ranking`
+- 代码路径: `console/services/platform_overview_service.py`
+- 测试路径: `console/tests/platform_overview_team_usage_test.py::PlatformOverviewTeamUsageTest`
 
 ### 批量读取插件最新安装元数据
 

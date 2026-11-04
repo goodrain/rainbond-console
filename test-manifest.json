@@ -9261,6 +9261,27 @@
       "status": "active"
     },
     {
+      "id": "console.oauth.gitlab-auto-provisioning",
+      "title": "Provision ordinary users on trusted GitLab OAuth first login",
+      "title_zh": "可信 GitLab OAuth 首次登录自动创建普通用户",
+      "interface_type": "service_method",
+      "interface": "console.services.oauth_user_provisioning.provision_gitlab_user",
+      "code_paths": [
+        "console/services/oauth_user_provisioning.py",
+        "console/services/oauth_service.py",
+        "console/repositories/oauth_repo.py",
+        "console/views/oauth.py",
+        "console/management/commands/repair_legacy_schema.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/oauth_auto_provisioning_test.py"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.oauth.gitlab-webhook-url",
       "title": "Normalize GitLab OAuth webhook URLs",
       "title_zh": "规范化 GitLab OAuth Webhook 地址",

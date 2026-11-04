@@ -107,6 +107,24 @@ def repair_legacy_schema(connection, app_labels, dry_run=False):
     return results
 
 
+def repair_oauth_auto_create_user_column(connection, dry_run=False):
+    """Startup generates initial migrations, so upgrade existing OAuth tables explicitly."""
+    from console.models.main import OAuthServices
+
+    table = OAuthServices._meta.db_table
+    if table not in connection.introspection.table_names():
+        return False
+    field = OAuthServices._meta.get_field("auto_create_user")
+    with connection.cursor() as cursor:
+        columns = connection.introspection.get_table_description(cursor, table)
+    if any(column.name == field.column for column in columns):
+        return False
+    if not dry_run:
+        with connection.schema_editor() as schema_editor:
+            schema_editor.add_field(OAuthServices, field)
+    return True
+
+
 class Command(BaseCommand):
     help = "Repair legacy databases whose initial tables exist but django_migrations records are missing."
     requires_system_checks = []
@@ -139,6 +157,8 @@ class Command(BaseCommand):
 
         plan = bool(options["plan"])
         results = repair_legacy_schema(connections[database], app_labels, dry_run=plan)
+        if "console" in app_labels and repair_oauth_auto_create_user_column(connections[database], dry_run=plan):
+            self.stdout.write("{} console.oauth_service.auto_create_user".format("Would add" if plan else "Added"))
         if not results:
             self.stdout.write("No legacy initial migrations needed repair")
             return

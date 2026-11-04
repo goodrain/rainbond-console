@@ -84,6 +84,7 @@ class OauthService(EnterpriseAdminView):
                     "api_url": l_service.api_url,
                     "client_secret": l_service.client_secret,
                     "is_auto_login": l_service.is_auto_login,
+                    "auto_create_user": l_service.auto_create_user,
                     "is_git": l_service.is_git,
                     "authorize_url": authorize_url,
                     "enterprise_id": l_service.eid,
@@ -100,6 +101,8 @@ class OauthService(EnterpriseAdminView):
         eid = request.user.enterprise_id  # type: ignore[union-attr]
         try:
             services = oauth_repo.create_or_update_console_oauth_services(values, eid, self.user.user_id, system)  # type: ignore[arg-type]
+        except ServiceHandleException:
+            raise
         except Exception as e:
             logger.exception(e)
             # NOTE: py2-era Exception.message; preserved for behavior compat (backlog).
@@ -125,6 +128,7 @@ class OauthService(EnterpriseAdminView):
                 "access_token_url": service.access_token_url,
                 "api_url": service.api_url,
                 "is_auto_login": service.is_auto_login,
+                "auto_create_user": service.auto_create_user,
                 "is_git": service.is_git,
                 "authorize_url": authorize_url,
             })
@@ -179,6 +183,7 @@ class EnterpriseOauthService(EnterpriseAdminView):
                     "api_url": l_service.api_url,
                     "client_secret": l_service.client_secret,
                     "is_auto_login": l_service.is_auto_login,
+                    "auto_create_user": l_service.auto_create_user,
                     "is_git": l_service.is_git,
                     "authorize_url": authorize_url,
                     "enterprise_id": l_service.eid,
@@ -211,6 +216,7 @@ class EnterpriseOauthService(EnterpriseAdminView):
                 "access_token_url": service.access_token_url,
                 "api_url": service.api_url,
                 "is_auto_login": service.is_auto_login,
+                "auto_create_user": service.auto_create_user,
                 "is_git": service.is_git,
                 "authorize_url": authorize_url,
             })
@@ -225,10 +231,12 @@ class EnterpriseOauthService(EnterpriseAdminView):
 class OauthServiceInfo(EnterpriseAdminView):
     def delete(self, request: Request, service_id: str, *args: Any, **kwargs: Any) -> Response:
         try:
-            oauth_repo.delete_oauth_service(service_id)
+            oauth_repo.delete_oauth_service(service_id, self.user.enterprise_id, self.user.user_id)
             oauth_user_repo.delete_users_by_services_id(service_id)
             rst = {"data": {"bean": None}, "status": 200}
             return Response(rst, status=status.HTTP_200_OK)
+        except ServiceHandleException:
+            raise
         except Exception as e:
             logger.debug(e)
             rst = {"data": {"bean": None}, "status": 404, "msg_show": "未找到oauth服务"}

@@ -4,6 +4,7 @@ import os
 from typing import Any, List, Optional, Tuple
 
 from console.exception.bcode import ErrOauthServiceExists, ErrOauthUserNotFound, ErrOauthServiceNotFound
+from console.exception.main import ServiceHandleException
 from console.models.main import OAuthServices, UserOAuthServices
 from console.utils.oauth.oauth_types import (get_oauth_instance, support_oauth_type)
 from django.db import transaction
@@ -13,6 +14,29 @@ logger = logging.getLogger('default')
 
 
 class OAuthRepo(object):
+    @staticmethod
+    def _auto_create_user_value(value: Any, eid: Optional[str], user_id: str,
+                                service: Optional[OAuthServices] = None, system: bool = False) -> bool:
+        current = service.auto_create_user if service is not None else False
+        enabled = value.get("auto_create_user", current)
+        if not isinstance(enabled, bool):
+            raise ServiceHandleException("invalid auto_create_user", "自动创建账号开关必须为布尔值")
+        if not enabled and not current:
+            return False
+        from console.repositories.enterprise_repo import enterprise_user_perm_repo
+        from www.models.main import Users
+        actor = Users.objects.filter(user_id=user_id, enterprise_id=eid, is_active=True).first()
+        if not actor or not (actor.sys_admin or enterprise_user_perm_repo.is_admin(eid, user_id)):
+            raise ServiceHandleException("administrator required", "仅平台管理员可配置自动创建账号", status_code=403)
+        is_system = service.system if service is not None else system
+        oauth_type = service.oauth_type if service is not None else value["oauth_type"]
+        service_eid = service.eid if service is not None else value["eid"]
+        if not eid or service_eid != eid or value["eid"] != eid:
+            raise ServiceHandleException("OAuth enterprise mismatch", "不能修改其他企业的 GitLab 自动创建账号配置", status_code=403)
+        if enabled and (is_system is not True or oauth_type != "gitlab" or not value["is_console"]):
+            raise ServiceHandleException("unsupported provisioning service", "仅当前企业的平台 GitLab 服务支持自动创建账号")
+        return enabled
+
     def get_conosle_oauth_service(self, eid: str, user_id: str) -> Optional[OAuthServices]:
         return OAuthServices.objects.filter(eid=eid, is_deleted=False, is_console=True, user_id=user_id).first()
 
@@ -63,6 +87,7 @@ class OAuthRepo(object):
     def get_by_name(name: str, user_id: str) -> OAuthServices:
         return OAuthServices.objects.get(name=name, user_id=user_id)
 
+    @transaction.atomic
     def create_or_update_oauth_services(self, values: Any, eid: Optional[str] = None,
                                         user_id: str = "") -> "QuerySet[OAuthServices]":
         querysetlist = []
@@ -99,15 +124,17 @@ class OAuthRepo(object):
                         is_git=is_git,
                         user_id=user_id,
                         system=value.get("system", False),
+                        auto_create_user=self._auto_create_user_value(value, eid, user_id, system=value.get("system", False)),
                     )
                 )
             else:
                 if value.get("is_deleted"):
-                    self.delete_oauth_service(service_id=value.get("service_id"))
+                    self.delete_oauth_service(service_id=value.get("service_id"), eid=eid, user_id=user_id)
                 else:
                     old_service = self.open_get_oauth_services_by_service_id(service_id=value.get("service_id"))
                     if old_service is None:
                         raise ErrOauthServiceNotFound
+                    auto_create_user = self._auto_create_user_value(value, eid, user_id, service=old_service)
                     if old_service.home_url != value["home_url"]:
                         UserOAuthServices.objects.filter(service_id=value.get("service_id")).delete()
                     OAuthServices.objects.filter(ID=value["service_id"]).update(
@@ -120,13 +147,15 @@ class OAuthRepo(object):
                         api_url=auth_url,
                         enable=value["enable"],
                         is_auto_login=value["is_auto_login"],
-                        is_console=value["is_console"])
+                        is_console=value["is_console"],
+                        auto_create_user=auto_create_user)
             if eid is None:
                 eid = value["eid"]
         OAuthServices.objects.bulk_create(querysetlist)
         rst = OAuthServices.objects.filter(eid=eid, user_id=user_id)
         return rst
 
+    @transaction.atomic
     def create_or_update_console_oauth_services(self, values: Any, eid: str, user_id: str,
                                                  system: bool) -> Optional["QuerySet[OAuthServices]"]:
         old_oauth_service = OAuthServices.objects.filter(eid=eid, is_console=True, user_id=user_id).first()
@@ -155,8 +184,10 @@ class OAuthRepo(object):
                         is_git=is_git,
                         user_id=user_id,
                         system=system,
+                        auto_create_user=self._auto_create_user_value(value, eid, user_id, system=system),
                     )
                 elif old_oauth_service is not None and value.get("service_id") == old_oauth_service.ID:
+                    auto_create_user = self._auto_create_user_value(value, eid, user_id, service=old_oauth_service)
                     OAuthServices.objects.filter(ID=value["service_id"], user_id=user_id).update(
                         name=value["name"],
                         eid=value["eid"],
@@ -167,14 +198,20 @@ class OAuthRepo(object):
                         api_url=api_url,
                         enable=value["enable"],
                         is_auto_login=value["is_auto_login"],
-                        is_console=value["is_console"])
+                        is_console=value["is_console"],
+                        auto_create_user=auto_create_user)
             else:
                 raise Exception("未找到该OAuth类型")
             rst = OAuthServices.objects.filter(eid=eid, is_console=True, user_id=user_id)
             return rst
         return None
 
-    def delete_oauth_service(self, service_id: str) -> None:
+    def delete_oauth_service(self, service_id: str, eid: Optional[str] = None, user_id: Optional[str] = None) -> None:
+        service = OAuthServices.objects.filter(ID=service_id).first()
+        if service is not None and service.auto_create_user:
+            self._auto_create_user_value(
+                {"auto_create_user": False, "eid": service.eid, "is_console": service.is_console},
+                eid, user_id, service=service)
         OAuthServices.objects.filter(ID=service_id).delete()
 
 

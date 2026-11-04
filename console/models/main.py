@@ -1059,6 +1059,7 @@ class OAuthServices(BaseModel):
     is_console = models.BooleanField(null=True, default=False, help_text="is_console")
     is_auto_login = models.BooleanField(null=True, default=False, help_text="is_auto_login")
     is_git = models.BooleanField(default=True, help_text="是否为git仓库")
+    auto_create_user = models.BooleanField(default=False, help_text="首次登录自动创建账号")
     user_id = models.IntegerField(help_text="用户ID", default=0)
     system = models.BooleanField(default=False, help_text="是否后台创建")
 
