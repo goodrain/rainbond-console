@@ -9261,6 +9261,27 @@
       "status": "active"
     },
     {
+      "id": "console.oauth.gitlab-auto-provisioning",
+      "title": "Provision ordinary users on trusted GitLab OAuth first login",
+      "title_zh": "可信 GitLab OAuth 首次登录自动创建普通用户",
+      "interface_type": "service_method",
+      "interface": "console.services.oauth_user_provisioning.provision_gitlab_user",
+      "code_paths": [
+        "console/services/oauth_user_provisioning.py",
+        "console/services/oauth_service.py",
+        "console/repositories/oauth_repo.py",
+        "console/views/oauth.py",
+        "console/management/commands/repair_legacy_schema.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/oauth_auto_provisioning_test.py"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.oauth.gitlab-webhook-url",
       "title": "Normalize GitLab OAuth webhook URLs",
       "title_zh": "规范化 GitLab OAuth Webhook 地址",
@@ -10293,6 +10314,32 @@
         {
           "path": "console/tests/platform_plugin_read_optimization_test.py",
           "selector": "PlatformPluginReadCacheTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.platform-plugin.monitoring-backend-registration",
+      "title": "Register bundled monitoring API on its own HTTP service",
+      "title_zh": "监控插件前后端共用自身 HTTP 服务，不误选 Grafana 或 Redis 依赖",
+      "interface_type": "service_method",
+      "interface": "console.services.rbd_plugin_sync_service.RBDPluginSyncService.reconcile",
+      "code_paths": [
+        "console/services/rbd_plugin_sync_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/rbd_plugin_sync_service_test.py",
+          "selector": "RBDPluginSyncServiceTests.test_monitoring_plugin_uses_own_api_when_depending_on_grafana_and_redis"
+        },
+        {
+          "path": "console/tests/rbd_plugin_sync_service_test.py",
+          "selector": "RBDPluginSyncServiceTests.test_monitoring_plugin_with_only_redis_dependency_registers_own_api"
+        },
+        {
+          "path": "console/tests/rbd_plugin_sync_service_test.py",
+          "selector": "RBDPluginSyncServiceTests.test_monitoring_backend_uses_selected_frontend_port_instead_of_hardcoded_port"
         }
       ],
       "test_type": "regression",

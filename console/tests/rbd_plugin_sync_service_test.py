@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# capability_id: console.platform-plugin.monitoring-backend-registration
 import collections
 import os
 import sys
@@ -331,6 +332,65 @@ class RBDPluginSyncServiceTests(TestCase):
         payload = region_apply.call_args.args[2]
         self.assertEqual("reconciled", result["status"])
         self.assertEqual("ui-service.rbd-plugins.svc.cluster.local:8080", payload["backend_service"])
+
+    def test_monitoring_plugin_uses_own_api_when_depending_on_grafana_and_redis(self):
+        grafana = Obj(service_id="svc-grafana", service_cname="grafana")
+        redis = Obj(service_id="svc-redis", service_cname="redis")
+        grafana_http = Obj(protocol="http", container_port=3000, k8s_service_name="grafana-service")
+        redis_tcp = Obj(protocol="tcp", container_port=6379, k8s_service_name="redis-service")
+        for plugin_id in ("rainbond-observability", "rainbond-observability-ARM64", "rainbond-observability-AMD64"):
+            with self.subTest(plugin_id=plugin_id):
+                template = dict(self.template, platform_plugin=dict(self.template["platform_plugin"], plugin_id=plugin_id))
+                patches = self._patch_desired_state(
+                    components=[self.ui, grafana, redis],
+                    ports={
+                        "svc-ui": [self.ui_http],
+                        "svc-grafana": [grafana_http],
+                        "svc-redis": [redis_tcp]
+                    },
+                    dependencies=[Obj(dep_service_id="svc-grafana"),
+                                  Obj(dep_service_id="svc-redis")],
+                )
+                with patches[0] as relation_filter, patches[1], patches[2], patches[3], \
+                        patches[4], patches[5] as region_apply:
+                    relation_filter.return_value.values_list.return_value = ["svc-ui", "svc-grafana", "svc-redis"]
+                    result = self.service.reconcile(self.tenant, self.region, template, 23)
+
+                self.assertEqual("reconciled", result["status"])
+                payload = region_apply.call_args.args[2]
+                self.assertEqual("ui-service.rbd-plugins.svc.cluster.local:8080", payload["backend_service"])
+                self.assertEqual("ui-service.rbd-plugins.svc.cluster.local:8080/static/main.js", payload["frontend_service"])
+
+    def test_monitoring_plugin_with_only_redis_dependency_registers_own_api(self):
+        redis = Obj(service_id="svc-redis", service_cname="redis")
+        redis_tcp = Obj(protocol="tcp", container_port=6379, k8s_service_name="redis-service")
+        template = dict(self.template,
+                        platform_plugin=dict(self.template["platform_plugin"], plugin_id="rainbond-observability"))
+        patches = self._patch_desired_state(
+            components=[self.ui, redis],
+            ports={
+                "svc-ui": [self.ui_http],
+                "svc-redis": [redis_tcp]
+            },
+            dependencies=[Obj(dep_service_id="svc-redis")],
+        )
+        with patches[0] as relation_filter, patches[1], patches[2], patches[3], patches[4], patches[5] as region_apply:
+            relation_filter.return_value.values_list.return_value = ["svc-ui", "svc-redis"]
+            self.service.reconcile(self.tenant, self.region, template, 23)
+
+        self.assertEqual("ui-service.rbd-plugins.svc.cluster.local:8080", region_apply.call_args.args[2]["backend_service"])
+
+    def test_monitoring_backend_uses_selected_frontend_port_instead_of_hardcoded_port(self):
+        self.template["platform_plugin"]["plugin_id"] = "rainbond-observability"
+        self.template["apps"][0]["port_map_list"][0]["container_port"] = 8788
+        self.ui_http.container_port = 8788
+        metrics_http = Obj(protocol="http", container_port=9090, k8s_service_name="metrics-service")
+        patches = self._patch_desired_state(ports={"svc-ui": [metrics_http, self.ui_http], "svc-api": [self.api_http]})
+        with patches[0] as relation_filter, patches[1], patches[2], patches[3], patches[4], patches[5] as region_apply:
+            relation_filter.return_value.values_list.return_value = ["svc-ui", "svc-api"]
+            self.service.reconcile(self.tenant, self.region, self.template, 23)
+
+        self.assertEqual("ui-service.rbd-plugins.svc.cluster.local:8788", region_apply.call_args.args[2]["backend_service"])
 
     def test_missing_region_app_id_reports_redacted_phase(self):
         patches = self._patch_desired_state(region_app_id="")
