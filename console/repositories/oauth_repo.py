@@ -15,7 +15,7 @@ logger = logging.getLogger('default')
 
 class OAuthRepo(object):
     @staticmethod
-    def _auto_create_user_value(value: Any, eid: Optional[str], user_id: str,
+    def _auto_create_user_value(value: Any, eid: Optional[str], user_id: Optional[str],
                                 service: Optional[OAuthServices] = None, system: bool = False) -> bool:
         current = service.auto_create_user if service is not None else False
         enabled = value.get("auto_create_user", current)
@@ -23,6 +23,8 @@ class OAuthRepo(object):
             raise ServiceHandleException("invalid auto_create_user", "自动创建账号开关必须为布尔值")
         if not enabled and not current:
             return False
+        if not eid or not user_id:
+            raise ServiceHandleException("administrator required", "仅平台管理员可配置自动创建账号", status_code=403)
         from console.repositories.enterprise_repo import enterprise_user_perm_repo
         from www.models.main import Users
         actor = Users.objects.filter(user_id=user_id, enterprise_id=eid, is_active=True).first()
@@ -31,7 +33,7 @@ class OAuthRepo(object):
         is_system = service.system if service is not None else system
         oauth_type = service.oauth_type if service is not None else value["oauth_type"]
         service_eid = service.eid if service is not None else value["eid"]
-        if not eid or service_eid != eid or value["eid"] != eid:
+        if service_eid != eid or value["eid"] != eid:
             raise ServiceHandleException("OAuth enterprise mismatch", "不能修改其他企业的 GitLab 自动创建账号配置", status_code=403)
         if enabled and (is_system is not True or oauth_type != "gitlab" or not value["is_console"]):
             raise ServiceHandleException("unsupported provisioning service", "仅当前企业的平台 GitLab 服务支持自动创建账号")
