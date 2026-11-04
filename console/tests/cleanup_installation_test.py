@@ -173,15 +173,17 @@ class CleanupInstallationLifecycleTests(unittest.TestCase):
         tree = ast.parse(path.read_text())
         cls = next(n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == 'AppUpgrade')
         method = next(n for n in cls.body if isinstance(n, ast.FunctionDef) and n.name == 'upgrade')
-        namespace = {'AppUpgradeRecord': SimpleNamespace(objects=Mock()),
-                     'UpgradeStatus': SimpleNamespace(UPGRADING=SimpleNamespace(value=2))}
-        exec(compile(ast.fix_missing_locations(ast.Module(body=[method], type_ignores=[])), str(path), 'exec'), namespace)
         calls = []
+        namespace = {'AppUpgradeRecord': SimpleNamespace(objects=Mock()),
+                     'UpgradeStatus': SimpleNamespace(UPGRADING=SimpleNamespace(value=2)),
+                     'app_version_auto_snapshot_service': SimpleNamespace(
+                         before_upgrade=lambda *args: calls.append('baseline'))}
+        exec(compile(ast.fix_missing_locations(ast.Module(body=[method], type_ignores=[])), str(path), 'exec'), namespace)
         sync = ModuleType('console.services.rbd_plugin_sync_service')
         sync.rbd_plugin_sync_service = SimpleNamespace(reconcile=lambda *args: calls.append('configure'))
         obj = SimpleNamespace(install_plugins=Mock(), sync_new_app=Mock(), _save_app=Mock(), region=object(),
                               tenant=SimpleNamespace(tenant_name="team"), region_name="r",
-                              app=SimpleNamespace(ID=42), record=SimpleNamespace(ID=1),
+                              app=SimpleNamespace(ID=42), record=SimpleNamespace(ID=1), user=object(),
                               app_model_key='model', version='v2',
                               install_from_cloud=True,
                               app_template={'platform_plugin': {'plugin_id': 'rainbond-disk'}},
@@ -190,6 +192,6 @@ class CleanupInstallationLifecycleTests(unittest.TestCase):
         with patch.dict('sys.modules', {'console.services.rbd_plugin_sync_service': sync}), \
                 patch('console.services.cleanup_retirement.lock_template_use', return_value=nullcontext()) as lock_template:
             namespace['upgrade'](obj)
-        self.assertEqual(calls, ['configure', 'deploy'])
+        self.assertEqual(calls, ['baseline', 'configure', 'deploy'])
         lock_template.assert_called_once_with(
             'model', 'v2', 'r', 'team', external_template=obj.app_template)
