@@ -7,6 +7,7 @@ from console.models.main import RegionConfig
 from console.repositories.app_config import dep_relation_repo, port_repo
 from console.repositories.region_app import region_app_repo
 from console.services.share_services import share_service
+from console.utils.plugin_identity import is_gateway_monitoring_plugin
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import ServiceGroupRelation, TenantServiceInfo, Tenants
 
@@ -276,6 +277,11 @@ class RBDPluginSyncService(object):
 
     def _resolve_backend(self, tenant: Tenants, app_template: dict, frontend_component: TenantServiceInfo, frontend_port: Any,
                          components: List[TenantServiceInfo], app_id: Any, plugin_id: str) -> Any:
+        if is_gateway_monitoring_plugin(plugin_id):
+            # Gateway monitoring serves its API and embedded UI from the same HTTP server.
+            # Dependencies such as Grafana and Redis are upstreams, not the plugin API.
+            return frontend_component, frontend_port
+
         try:
             dependencies = list(dep_relation_repo.get_service_dependencies(tenant.tenant_id, frontend_component.service_id))
         except Exception as error:

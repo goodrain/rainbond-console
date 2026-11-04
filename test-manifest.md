@@ -547,6 +547,7 @@
 | console.platform-overview.team-usage | 基于实际监控用量的团队资源排行 | active | regression | console.services.platform_overview_service.PlatformOverviewService._fetch_team_ranking | console/tests/platform_overview_team_usage_test.py::PlatformOverviewTeamUsageTest |
 | console.platform-plugin.batch-install-metadata | 批量读取插件最新安装元数据 | active | regression | console.services.platform_plugin_service.PlatformPluginService.list_platform_plugins | console/tests/platform_plugin_read_optimization_test.py::PlatformPluginInstallationBatchTests |
 | console.platform-plugin.coalesced-catalog-reads | 安全合并插件目录与架构并发读取 | active | regression | console.services.platform_plugin_service.PlatformPluginService | console/tests/platform_plugin_read_optimization_test.py::PlatformPluginReadCacheTests |
+| console.platform-plugin.monitoring-backend-registration | 监控插件前后端共用自身 HTTP 服务，不误选 Grafana 或 Redis 依赖 | active | regression | console.services.rbd_plugin_sync_service.RBDPluginSyncService.reconcile | console/tests/rbd_plugin_sync_service_test.py::RBDPluginSyncServiceTests.test_monitoring_plugin_uses_own_api_when_depending_on_grafana_and_redis<br>console/tests/rbd_plugin_sync_service_test.py::RBDPluginSyncServiceTests.test_monitoring_plugin_with_only_redis_dependency_registers_own_api<br>console/tests/rbd_plugin_sync_service_test.py::RBDPluginSyncServiceTests.test_monitoring_backend_uses_selected_frontend_port_instead_of_hardcoded_port |
 | console.platform-plugin.scoped-component-domain-reads | 按租户应用和区域限定插件组件与域名读取 | active | integration | console.services.plugin_service.RainbondPluginService.list_plugins | console/tests/rbd_plugin_service_test.py::PluginRelationScopeTests<br>console/tests/rbd_plugin_service_test.py::PluginScopedReadIntegrationTests |
 | console.platform-plugin.vm-access-url-fallback | 从前端组件访问地址回填官方虚拟机插件访问前缀 | active | regression | console.services.plugin_service.RainbondPluginService.list_plugins | console/tests/rbd_plugin_service_test.py::RainbondPluginServiceTests.test_official_vm_plugin_uses_frontend_component_access_url_when_region_urls_missing |
 | console.platform-plugin.vm-runtime-status-guard | 校验虚拟机平台插件运行状态 | active | regression | console.services.platform_plugin_service.PlatformPluginService.ensure_vm_plugin_running | console/tests/platform_plugin_service_test.py::PlatformPluginServiceTests.test_ensure_vm_plugin_running_rejects_non_running_status |
@@ -6159,6 +6160,16 @@
 - 业务入口: `console.services.platform_plugin_service.PlatformPluginService`
 - 代码路径: `console/services/platform_plugin_service.py`, `console/utils/coalesced_read_cache.py`
 - 测试路径: `console/tests/platform_plugin_read_optimization_test.py::PlatformPluginReadCacheTests`
+
+### 监控插件前后端共用自身 HTTP 服务，不误选 Grafana 或 Redis 依赖
+
+- Capability ID: `console.platform-plugin.monitoring-backend-registration`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.rbd_plugin_sync_service.RBDPluginSyncService.reconcile`
+- 代码路径: `console/services/rbd_plugin_sync_service.py`
+- 测试路径: `console/tests/rbd_plugin_sync_service_test.py::RBDPluginSyncServiceTests.test_monitoring_plugin_uses_own_api_when_depending_on_grafana_and_redis`, `console/tests/rbd_plugin_sync_service_test.py::RBDPluginSyncServiceTests.test_monitoring_plugin_with_only_redis_dependency_registers_own_api`, `console/tests/rbd_plugin_sync_service_test.py::RBDPluginSyncServiceTests.test_monitoring_backend_uses_selected_frontend_port_instead_of_hardcoded_port`
 
 ### 按租户应用和区域限定插件组件与域名读取
 
