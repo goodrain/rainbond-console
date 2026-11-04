@@ -13944,6 +13944,27 @@
       ],
       "test_type": "regression",
       "status": "active"
+    },
+    {
+      "id": "console.oauth.name-scope",
+      "title": "Scope OAuth configuration names by enterprise and personal owner",
+      "title_zh": "OAuth 配置名称按企业公共与个人范围隔离",
+      "interface_type": "workflow",
+      "interface": "POST /console/enterprise/{enterprise_id}/oauth/oauth-services",
+      "code_paths": [
+        "console/models/main.py",
+        "console/repositories/oauth_repo.py",
+        "console/management/commands/migrate_oauth_name_scope.py",
+        "entrypoint.sh",
+        "console/views/oauth.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/oauth_name_scope_test.py"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
     }
   ]
 }
