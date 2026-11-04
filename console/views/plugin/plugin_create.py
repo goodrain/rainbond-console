@@ -184,7 +184,7 @@ class PluginCreateView(RegionTenantHeaderView):
                 team_name=self.tenant.tenant_name)
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)  # type: ignore[attr-defined]
+            result = error_message(getattr(e, "msg", getattr(e, "message", str(e))))  # type: ignore[attr-defined]
             if tenant_plugin:
                 plugin_service.delete_console_tenant_plugin(self.tenant.tenant_id, tenant_plugin.plugin_id)
             if plugin_build_version:

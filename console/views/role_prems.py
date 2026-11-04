@@ -98,10 +98,12 @@ class TeamAddUserView(RegionTenantHeaderView):
             logging.exception(e)
             code = 400
             # NOTE: py2-style Exception.message attribute (attr-defined backlog).
-            result = general_message(code, "params is empty", e.message)  # type: ignore[attr-defined]
+            result = general_message(
+                code, "params is empty", getattr(e, "msg", getattr(e, "message", str(e))))  # type: ignore[attr-defined]
         except UserNotExistError as e:
             code = 400
-            result = general_message(code, "user not exist", e.message)  # type: ignore[attr-defined]
+            result = general_message(
+                code, "user not exist", getattr(e, "msg", getattr(e, "message", str(e))))  # type: ignore[attr-defined]
         except Tenants.DoesNotExist as e:
             code = 400
             logger.exception(e)

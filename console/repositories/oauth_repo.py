@@ -1,21 +1,39 @@
 # -*- coding: utf-8 -*-
 import logging
 import os
-from typing import Any, List, Optional, Tuple
+from functools import wraps
+from typing import Any, Callable, List, Optional, ParamSpec, Tuple, TypeVar, Union
 
 from console.exception.bcode import ErrOauthServiceExists, ErrOauthUserNotFound, ErrOauthServiceNotFound
 from console.exception.main import ServiceHandleException
 from console.models.main import OAuthServices, UserOAuthServices
 from console.utils.oauth.oauth_types import (get_oauth_instance, support_oauth_type)
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.db.models import QuerySet
 
 logger = logging.getLogger('default')
 
+P = ParamSpec("P")
+T = TypeVar("T")
+
+
+def oauth_name_transaction(method: Callable[P, T]) -> Callable[P, T]:
+    @wraps(method)
+    def wrapped(*args: P.args, **kwargs: P.kwargs) -> T:
+        try:
+            with transaction.atomic():
+                return method(*args, **kwargs)
+        except IntegrityError as exc:
+            message = str(exc)
+            if "uk_oauth_name_scope" in message or "oauth_service.name_scope, oauth_service.name" in message:
+                raise ErrOauthServiceExists() from exc
+            raise
+    return wrapped
+
 
 class OAuthRepo(object):
     @staticmethod
-    def _auto_create_user_value(value: Any, eid: Optional[str], user_id: str,
+    def _auto_create_user_value(value: Any, eid: Optional[str], user_id: Optional[str],
                                 service: Optional[OAuthServices] = None, system: bool = False) -> bool:
         current = service.auto_create_user if service is not None else False
         enabled = value.get("auto_create_user", current)
@@ -23,6 +41,8 @@ class OAuthRepo(object):
             raise ServiceHandleException("invalid auto_create_user", "自动创建账号开关必须为布尔值")
         if not enabled and not current:
             return False
+        if not eid or not user_id:
+            raise ServiceHandleException("administrator required", "仅平台管理员可配置自动创建账号", status_code=403)
         from console.repositories.enterprise_repo import enterprise_user_perm_repo
         from www.models.main import Users
         actor = Users.objects.filter(user_id=user_id, enterprise_id=eid, is_active=True).first()
@@ -31,7 +51,7 @@ class OAuthRepo(object):
         is_system = service.system if service is not None else system
         oauth_type = service.oauth_type if service is not None else value["oauth_type"]
         service_eid = service.eid if service is not None else value["eid"]
-        if not eid or service_eid != eid or value["eid"] != eid:
+        if service_eid != eid or value["eid"] != eid:
             raise ServiceHandleException("OAuth enterprise mismatch", "不能修改其他企业的 GitLab 自动创建账号配置", status_code=403)
         if enabled and (is_system is not True or oauth_type != "gitlab" or not value["is_console"]):
             raise ServiceHandleException("unsupported provisioning service", "仅当前企业的平台 GitLab 服务支持自动创建账号")
@@ -84,10 +104,15 @@ class OAuthRepo(object):
         return OAuthServices.objects.filter(ID=service_id, is_deleted=False).first()
 
     @staticmethod
-    def get_by_name(name: str, user_id: str) -> OAuthServices:
-        return OAuthServices.objects.get(name=name, user_id=user_id)
+    def get_by_name(name: str, user_id: Union[int, str], eid: Optional[str], system: bool = False,
+                    exclude_id: Optional[int] = None, oauth_type: Optional[str] = None) -> OAuthServices:
+        scope = OAuthServices.get_name_scope(eid, user_id, system, oauth_type=oauth_type)
+        queryset: QuerySet[OAuthServices] = OAuthServices.objects.all()
+        if exclude_id is not None:
+            queryset = queryset.exclude(ID=exclude_id)
+        return queryset.get(name=name, name_scope=scope)
 
-    @transaction.atomic
+    @oauth_name_transaction
     def create_or_update_oauth_services(self, values: Any, eid: Optional[str] = None,
                                         user_id: str = "") -> "QuerySet[OAuthServices]":
         querysetlist = []
@@ -99,16 +124,20 @@ class OAuthRepo(object):
             api_url = instance.get_user_url(home_url=value["home_url"])
             is_git = instance.is_git_oauth()
             if value.get("service_id") is None:
-                # check if the name exists
-                try:
-                    self.get_by_name(value["name"], user_id)
-                    raise ErrOauthServiceExists
-                except OAuthServices.DoesNotExist:
-                    pass
+                if not value.get("is_deleted", False):
+                    try:
+                        self.get_by_name(value["name"], user_id, value["eid"], value.get("system", False),
+                                         oauth_type=value["oauth_type"])
+                        raise ErrOauthServiceExists
+                    except OAuthServices.DoesNotExist:
+                        pass
 
                 querysetlist.append(
                     OAuthServices(
                         name=value["name"],
+                        name_scope=OAuthServices.get_name_scope(
+                            value["eid"], user_id, value.get("system", False), value.get("is_deleted", False),
+                            value["oauth_type"]),
                         client_id=value["client_id"],
                         eid=value["eid"],
                         client_secret=value["client_secret"],
@@ -134,12 +163,18 @@ class OAuthRepo(object):
                     old_service = self.open_get_oauth_services_by_service_id(service_id=value.get("service_id"))
                     if old_service is None:
                         raise ErrOauthServiceNotFound
+                    try:
+                        self.get_by_name(value["name"], old_service.user_id, old_service.eid, old_service.system,
+                                         exclude_id=old_service.ID, oauth_type=old_service.oauth_type)
+                        raise ErrOauthServiceExists
+                    except OAuthServices.DoesNotExist:
+                        pass
                     auto_create_user = self._auto_create_user_value(value, eid, user_id, service=old_service)
                     if old_service.home_url != value["home_url"]:
                         UserOAuthServices.objects.filter(service_id=value.get("service_id")).delete()
                     OAuthServices.objects.filter(ID=value["service_id"]).update(
                         name=value["name"],
-                        eid=value["eid"],
+                        eid=old_service.eid,
                         redirect_uri=value["redirect_uri"],
                         home_url=value["home_url"],
                         auth_url=auth_url,
@@ -155,10 +190,11 @@ class OAuthRepo(object):
         rst = OAuthServices.objects.filter(eid=eid, user_id=user_id)
         return rst
 
-    @transaction.atomic
+    @oauth_name_transaction
     def create_or_update_console_oauth_services(self, values: Any, eid: str, user_id: str,
-                                                 system: bool) -> Optional["QuerySet[OAuthServices]"]:
-        old_oauth_service = OAuthServices.objects.filter(eid=eid, is_console=True, user_id=user_id).first()
+                                                system: bool) -> Optional["QuerySet[OAuthServices]"]:
+        old_oauth_service = OAuthServices.objects.filter(
+            eid=eid, is_console=True, user_id=user_id, system=system, is_deleted=False).first()
         for value in values[:1]:
             if value["oauth_type"] in list(support_oauth_type.keys()):
                 instance = get_oauth_instance(value["oauth_type"])
@@ -167,6 +203,11 @@ class OAuthRepo(object):
                 api_url = instance.get_user_url(home_url=value["home_url"])
                 is_git = instance.is_git_oauth()
                 if value.get("service_id") is None and old_oauth_service is None:
+                    try:
+                        self.get_by_name(value["name"], user_id, value["eid"], system, oauth_type=value["oauth_type"])
+                        raise ErrOauthServiceExists
+                    except OAuthServices.DoesNotExist:
+                        pass
                     OAuthServices.objects.create(
                         name=value["name"],
                         client_id=value["client_id"],
@@ -187,10 +228,17 @@ class OAuthRepo(object):
                         auto_create_user=self._auto_create_user_value(value, eid, user_id, system=system),
                     )
                 elif old_oauth_service is not None and value.get("service_id") == old_oauth_service.ID:
+                    try:
+                        self.get_by_name(value["name"], old_oauth_service.user_id, old_oauth_service.eid,
+                                         old_oauth_service.system, exclude_id=old_oauth_service.ID,
+                                         oauth_type=old_oauth_service.oauth_type)
+                        raise ErrOauthServiceExists
+                    except OAuthServices.DoesNotExist:
+                        pass
                     auto_create_user = self._auto_create_user_value(value, eid, user_id, service=old_oauth_service)
                     OAuthServices.objects.filter(ID=value["service_id"], user_id=user_id).update(
                         name=value["name"],
-                        eid=value["eid"],
+                        eid=old_oauth_service.eid,
                         redirect_uri=value["redirect_uri"],
                         home_url=value["home_url"],
                         auth_url=auth_url,

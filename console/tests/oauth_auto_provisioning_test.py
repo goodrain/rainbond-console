@@ -2,6 +2,7 @@
 """GitLab first-login provisioning against real ORM persistence."""
 import os
 import sys
+from contextlib import contextmanager
 from types import ModuleType, SimpleNamespace
 from unittest import TestCase, mock
 
@@ -399,6 +400,117 @@ class GitlabAutoProvisioningTests(TestCase):
 
 # capability_id: console.oauth.gitlab-auto-provisioning
 class GitlabAutoProvisioningMigrationTests(TestCase):
+    @contextmanager
+    def startup_database(self, with_column=False):
+        from pathlib import Path
+        from tempfile import TemporaryDirectory
+        from django.db import connections
+        from django.db.migrations.state import ModelState, ProjectState
+
+        after = ProjectState()
+        after.add_model(ModelState.from_model(OAuthServices))
+        before = after.clone()
+        before.remove_field("console", "oauthservices", "auto_create_user")
+        alias = "oauth_startup_migration"
+        with TemporaryDirectory(prefix="oauth-startup-") as directory:
+            connections.databases[alias] = dict(connection.settings_dict, NAME=str(Path(directory) / "migration.sqlite3"))
+            database = connections[alias]
+            try:
+                model = (after if with_column else before).apps.get_model("console", "OAuthServices")
+                with database.schema_editor() as schema:
+                    schema.create_model(model)
+                model.objects.using(alias).create(name="old-service", client_id="", client_secret="", redirect_uri="")
+                yield database, before, after
+            finally:
+                database.close()
+                del connections[alias]
+                del connections.databases[alias]
+
+    def pending_field_migration(self):
+        from django.db import migrations
+
+        migration = migrations.Migration("0003_oauthservices_auto_create_user", "console")
+        migration.dependencies = [("console", "0002_previous")]
+        migration.operations = [migrations.AddField(
+            model_name="oauthservices", name="auto_create_user",
+            field=OAuthServices._meta.get_field("auto_create_user").clone())]
+        loader = SimpleNamespace(
+            disk_migrations={("console", migration.name): migration},
+            applied_migrations={("console", "0002_previous")})
+        return migration, loader
+
+    def test_startup_leaves_pending_add_field_to_migrate(self):
+        from console.management.commands.repair_legacy_schema import repair_oauth_auto_create_user_column
+
+        migration, loader = self.pending_field_migration()
+        with self.startup_database() as (database, before, after):
+            with mock.patch("console.management.commands.repair_legacy_schema.MigrationLoader", return_value=loader):
+                self.assertFalse(repair_oauth_auto_create_user_column(database))
+            with database.schema_editor() as schema:
+                migration.operations[0].database_forwards("console", schema, before, after)
+            self.assertFalse(OAuthServices.objects.using(database.alias).get(name="old-service").auto_create_user)
+
+    def test_startup_records_only_completed_single_field_migration(self):
+        from django.db.migrations.recorder import MigrationRecorder
+        from console.management.commands.repair_legacy_schema import repair_oauth_auto_create_user_column
+
+        migration, loader = self.pending_field_migration()
+        with self.startup_database(with_column=True) as (database, _, _):
+            with mock.patch("console.management.commands.repair_legacy_schema.MigrationLoader", return_value=loader):
+                self.assertTrue(repair_oauth_auto_create_user_column(database))
+            self.assertIn(("console", migration.name), MigrationRecorder(database).applied_migrations())
+            self.assertFalse(OAuthServices.objects.using(database.alias).get(name="old-service").auto_create_user)
+
+    def test_startup_plan_does_not_record_completed_field_migration(self):
+        from django.db.migrations.recorder import MigrationRecorder
+        from console.management.commands.repair_legacy_schema import repair_oauth_auto_create_user_column
+
+        migration, loader = self.pending_field_migration()
+        with self.startup_database(with_column=True) as (database, _, _):
+            with mock.patch("console.management.commands.repair_legacy_schema.MigrationLoader", return_value=loader):
+                self.assertTrue(repair_oauth_auto_create_user_column(database, dry_run=True))
+            self.assertNotIn(("console", migration.name), MigrationRecorder(database).applied_migrations())
+
+    def test_startup_does_not_skip_other_pending_operations(self):
+        from django.core.management.base import CommandError
+        from django.db import migrations
+        from django.db.migrations.recorder import MigrationRecorder
+        from console.management.commands.repair_legacy_schema import repair_oauth_auto_create_user_column
+
+        migration, loader = self.pending_field_migration()
+        migration.operations.append(migrations.RunSQL("SELECT 1"))
+        with self.startup_database(with_column=True) as (database, _, _):
+            with mock.patch("console.management.commands.repair_legacy_schema.MigrationLoader", return_value=loader):
+                with self.assertRaises(CommandError):
+                    repair_oauth_auto_create_user_column(database)
+            self.assertNotIn(("console", migration.name), MigrationRecorder(database).applied_migrations())
+
+    def test_startup_does_not_record_migration_before_its_dependencies(self):
+        from django.core.management.base import CommandError
+        from django.db.migrations.recorder import MigrationRecorder
+        from console.management.commands.repair_legacy_schema import repair_oauth_auto_create_user_column
+
+        migration, loader = self.pending_field_migration()
+        loader.applied_migrations = set()
+        with self.startup_database(with_column=True) as (database, _, _):
+            with mock.patch("console.management.commands.repair_legacy_schema.MigrationLoader", return_value=loader):
+                with self.assertRaises(CommandError):
+                    repair_oauth_auto_create_user_column(database)
+            self.assertNotIn(("console", migration.name), MigrationRecorder(database).applied_migrations())
+
+    def test_startup_does_not_record_migration_with_different_field_definition(self):
+        from django.core.management.base import CommandError
+        from django.db.migrations.recorder import MigrationRecorder
+        from console.management.commands.repair_legacy_schema import repair_oauth_auto_create_user_column
+
+        migration, loader = self.pending_field_migration()
+        migration.operations[0].field.default = True
+        with self.startup_database(with_column=True) as (database, _, _):
+            with mock.patch("console.management.commands.repair_legacy_schema.MigrationLoader", return_value=loader):
+                with self.assertRaises(CommandError):
+                    repair_oauth_auto_create_user_column(database)
+            self.assertNotIn(("console", migration.name), MigrationRecorder(database).applied_migrations())
+
     def test_upgrade_defaults_existing_services_to_disabled_and_is_idempotent(self):
         from pathlib import Path
         from tempfile import TemporaryDirectory

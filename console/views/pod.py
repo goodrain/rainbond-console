@@ -26,5 +26,5 @@ class AppPodsView(AppBaseView):
             result = general_message(200, 'success', "查询成功", data.get("bean", None))  # type: ignore[union-attr]
         except RegionApiBaseHttpClient.CallApiError as e:
             logger.exception(e)
-            result = error_message(e.message)
+            result = error_message(getattr(e, "msg", getattr(e, "message", str(e))))
         return Response(result)

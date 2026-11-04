@@ -23,6 +23,7 @@ from www.apiclient.exception import err_region_not_found
 from www.apiclient.region_types import AppStatus, PodDetail, TenantServices
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient, Configuration
 from www.models.main import TenantRegionInfo, Tenants, ServiceGroup
+from www.utils.return_message import get_exception_message
 from console.exception.bcode import ErrNamespaceExists
 from console.repositories.k8s_resources import k8s_resources_repo
 from console.repositories.region_app import region_app_repo
@@ -331,9 +332,10 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             res, body = self._post(url, self.default_headers, region=region, body=json.dumps(data))
             return res, body
         except RegionApiBaseHttpClient.CallApiError as e:
-            if "namespace exists" in e.message['body'].get('msg', ""):
+            message = get_exception_message(e)
+            if "namespace exists" in message['body'].get('msg', ""):
                 raise ErrNamespaceExists()
-            return {'status': e.message['httpcode']}, e.message['body']
+            return {'status': message['httpcode']}, message['body']
 
     def delete_tenant(self, region: str, tenant_name: str) -> Optional[Dict[str, Any]]:
         """删除组件"""
@@ -2582,7 +2584,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             res, body = self._get(url, self.default_headers, region=region_info.region_name)
             return res, body
         except RegionApiBaseHttpClient.CallApiError as e:
-            return {'status': e.message['httpcode']}, e.message['body']
+            message = get_exception_message(e)
+            return {'status': message['httpcode']}, message['body']
 
     def set_tenant_resource_limit(self, enterprise_id: str, tenant_name: str, region: str,
                                   body: dict) -> Tuple[Any, Optional[Dict[str, Any]]]:
