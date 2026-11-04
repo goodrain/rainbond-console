@@ -151,13 +151,17 @@ class CleanupInstallationLifecycleTests(unittest.TestCase):
         from typing import Any, List
         namespace = {'Any': Any, 'List': List}
         exec(compile(ast.fix_missing_locations(ast.Module(body=[method], type_ignores=[])), str(path), 'exec'), namespace)
-        for plugin, expected in [('rainbond-disk', ['configure', 'deploy']), ('unrelated', ['deploy'])]:
+        for plugin, bundled, expected in [('rainbond-disk', False, ['configure', 'deploy']),
+                                          ('rainbond-enterprise-base', True, ['configure', 'deploy']),
+                                          ('rainbond-enterprise-base', False, ['deploy']),
+                                          ('unrelated', True, ['deploy'])]:
             calls = []
             sync = ModuleType('console.services.rbd_plugin_sync_service')
             sync.rbd_plugin_sync_service = SimpleNamespace(reconcile=lambda *args: calls.append('configure'))
             obj = SimpleNamespace(install_plugins=Mock(), sync_new_app=Mock(), save_new_app=Mock(),
                                   create_service_tcp_domains=Mock(), region=object(), tenant=object(),
-                                  app=SimpleNamespace(ID=42), app_template={'platform_plugin': {'plugin_id': plugin}},
+                                  app=SimpleNamespace(ID=42), app_template={'platform_plugin': {
+                                      'plugin_id': plugin, 'bundled_disk_cleanup': bundled}},
                                   is_deploy=True, _install_deploy=lambda: calls.append('deploy') or [])
             with patch.dict('sys.modules', {'console.services.rbd_plugin_sync_service': sync}):
                 namespace['install'](obj)
@@ -174,13 +178,14 @@ class CleanupInstallationLifecycleTests(unittest.TestCase):
         cls = next(n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == 'AppUpgrade')
         method = next(n for n in cls.body if isinstance(n, ast.FunctionDef) and n.name == 'upgrade')
         namespace = {'AppUpgradeRecord': SimpleNamespace(objects=Mock()),
+                     'app_version_auto_snapshot_service': SimpleNamespace(before_upgrade=Mock()),
                      'UpgradeStatus': SimpleNamespace(UPGRADING=SimpleNamespace(value=2))}
         exec(compile(ast.fix_missing_locations(ast.Module(body=[method], type_ignores=[])), str(path), 'exec'), namespace)
         calls = []
         sync = ModuleType('console.services.rbd_plugin_sync_service')
         sync.rbd_plugin_sync_service = SimpleNamespace(reconcile=lambda *args: calls.append('configure'))
         obj = SimpleNamespace(install_plugins=Mock(), sync_new_app=Mock(), _save_app=Mock(), region=object(),
-                              tenant=SimpleNamespace(tenant_name="team"), region_name="r",
+                              tenant=SimpleNamespace(tenant_name="team"), region_name="r", user=object(),
                               app=SimpleNamespace(ID=42), record=SimpleNamespace(ID=1),
                               app_model_key='model', version='v2',
                               install_from_cloud=True,

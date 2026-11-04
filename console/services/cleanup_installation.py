@@ -11,6 +11,28 @@ from typing import Any
 from console.services.cleanup_gateway import CleanupGatewayUnavailable
 
 
+def requires_cleanup_bootstrap(app_template: dict) -> bool:
+    plugin = app_template.get("platform_plugin") or {}
+    plugin_id = plugin.get("plugin_id")
+    return plugin_id == "rainbond-disk" or (
+        plugin_id in ("rainbond-enterprise-base", "rainbond-enterprise-base-ARM64", "rainbond-enterprise-base-AMD64")
+        and plugin.get("bundled_disk_cleanup") is True)
+
+
+def bundled_cleanup_registration(parent: dict, existing_plugins: list) -> dict | None:
+    """Register an alias within this installation without taking over a standalone app."""
+    if not all(parent.get(field) for field in ("app_id", "namespace", "frontend_service", "backend_service")):
+        raise CleanupGatewayUnavailable()
+    existing = [plugin for plugin in existing_plugins if plugin.get("name") == "rainbond-disk"]
+    if len(existing) > 1:
+        raise CleanupGatewayUnavailable()
+    if existing and (existing[0].get("region_app_id") != parent["app_id"]
+                     or existing[0].get("namespace") != parent["namespace"]):
+        return None
+    return dict(parent, plugin_id="rainbond-disk", plugin_name="磁盘清理", plugin_views=["Platform"],
+                menu_title="磁盘清理", route_path="/plugins/rainbond-disk")
+
+
 def gateway_secret_name() -> str:
     return "rainbond-disk-gateway"
 
@@ -68,7 +90,7 @@ def resolve_gateway_key(enterprise: str, region: str) -> bytes:
         raise CleanupGatewayUnavailable() from None
 
 
-def configure_installation(tenant: Any, region: Any, backend: Any) -> None:
+def configure_installation(tenant: Any, region: Any, backend: Any, bundled: bool = False) -> None:
     """Inject only non-secret scope/defaults; the plugin creates its own key."""
     from console.services.app_config import env_var_service
 
@@ -95,6 +117,8 @@ def configure_installation(tenant: Any, region: Any, backend: Any) -> None:
         "CLEANUP_CONSOLE_URL": "http://rbd-app-ui.rbd-system.svc.cluster.local:7070",
         "CLEANUP_CONSOLE_ALLOW_HTTP": "true",
     }
+    if bundled:
+        defaults["ENTERPRISE_DISK_CLEANUP"] = "true"
     for name, value in defaults.items():
         existing = env_var_service.get_env_by_attr_name(tenant, backend, name)
         if existing and name in ("CLEANUP_CONSOLE_URL", "CLEANUP_CONSOLE_ALLOW_HTTP"):

@@ -119,6 +119,47 @@ class RBDPluginSyncServiceTests(TestCase):
         self.assertEqual({"status": "skipped", "reason": "not_platform_plugin"}, result)
         region_apply.assert_not_called()
 
+    def test_enterprise_base_registers_bundled_alias_in_same_application(self):
+        self.template['platform_plugin'].update(plugin_id='rainbond-enterprise-base', bundled_disk_cleanup=True)
+        patches = self._patch_desired_state()
+        with patches[0] as relations, patches[1], patches[2], patches[3], patches[4], patches[5] as apply, \
+                mock.patch('console.services.cleanup_installation.configure_installation') as configure, \
+                mock.patch('console.services.rbd_plugin_sync_service.region_api.list_plugins',
+                           return_value=(None, {'list': []})):
+            relations.return_value.values_list.return_value = ['svc-ui', 'svc-api']
+            self.service.reconcile(self.tenant, self.region, self.template, 23)
+        configure.assert_called_once_with(self.tenant, self.region, self.ui, bundled=True)
+        self.assertEqual([call.args[2]['plugin_id'] for call in apply.call_args_list],
+                         ['rainbond-enterprise-base', 'rainbond-disk'])
+        parent, alias = [call.args[2] for call in apply.call_args_list]
+        for field in ('app_id', 'namespace', 'frontend_service', 'backend_service'):
+            self.assertEqual(parent[field], alias[field])
+        self.assertEqual(alias['backend_service'] + '/static/main.js', alias['frontend_service'])
+
+    def test_enterprise_install_preserves_existing_standalone_alias(self):
+        self.template['platform_plugin'].update(plugin_id='rainbond-enterprise-base', bundled_disk_cleanup=True)
+        patches = self._patch_desired_state()
+        with patches[0] as relations, patches[1], patches[2], patches[3], patches[4], patches[5] as apply, \
+                mock.patch('console.services.cleanup_installation.configure_installation'), \
+                mock.patch('console.services.rbd_plugin_sync_service.region_api.list_plugins', return_value=(None, {
+                    'list': [dict(name='rainbond-disk', region_app_id='standalone', namespace='rbd-plugins')]})):
+            relations.return_value.values_list.return_value = ['svc-ui', 'svc-api']
+            self.service.reconcile(self.tenant, self.region, self.template, 23)
+        self.assertEqual(apply.call_count, 1)
+        self.assertEqual(apply.call_args.args[2]['plugin_id'], 'rainbond-enterprise-base')
+
+    def test_failed_inventory_cannot_overwrite_an_existing_cleanup_installation(self):
+        self.template['platform_plugin'].update(plugin_id='rainbond-enterprise-base', bundled_disk_cleanup=True)
+        patches = self._patch_desired_state()
+        with patches[0] as relations, patches[1], patches[2], patches[3], patches[4], patches[5] as apply, \
+                mock.patch('console.services.cleanup_installation.configure_installation'), \
+                mock.patch('console.services.rbd_plugin_sync_service.region_api.list_plugins',
+                           side_effect=RuntimeError('unavailable')):
+            relations.return_value.values_list.return_value = ['svc-ui', 'svc-api']
+            with self.assertRaises(ServiceHandleException):
+                self.service.reconcile(self.tenant, self.region, self.template, 23)
+        apply.assert_not_called()
+
     def test_reconcile_scopes_components_and_selects_only_http_ports(self):
         mysql_port = Obj(protocol="stream", container_port=3306, k8s_service_name="mysql-service")
         tcp_port = Obj(protocol="tcp", container_port=9000, k8s_service_name="tcp-service")
