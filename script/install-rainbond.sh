@@ -25,6 +25,7 @@ RAINBOND_FINAL_EVENT_ENABLED=false
 RAINBOND_FINAL_STATUS_SENT=false
 RAINBOND_FINAL_FAILURE_REASON=""
 RAINBOND_PULL_OUTPUT_FILE=""
+RAINBOND_PULL_OUTPUT_DIR=""
 
 function rainbond_use_chinese_prompt() {
     case "${RAINBOND_INSTALL_LANG:-zh}" in
@@ -122,8 +123,12 @@ function rainbond_image_pull_failure_message() {
 function rainbond_cleanup_pull_output() {
     if [ -n "${RAINBOND_PULL_OUTPUT_FILE:-}" ]; then
         rm -f "${RAINBOND_PULL_OUTPUT_FILE}"
-        RAINBOND_PULL_OUTPUT_FILE=""
     fi
+    if [ -n "${RAINBOND_PULL_OUTPUT_DIR:-}" ]; then
+        find "${RAINBOND_PULL_OUTPUT_DIR}" -maxdepth 1 -type f -name "rainbond-image-pull-$$.*" -delete 2>/dev/null || :
+    fi
+    RAINBOND_PULL_OUTPUT_FILE=""
+    RAINBOND_PULL_OUTPUT_DIR=""
 }
 
 function rainbond_diag_kubectl() {
@@ -3825,7 +3830,17 @@ fi
 
 # Try to pull image with retries
 pull_success=false
-pull_output_file=$(mktemp "${TMPDIR:-/tmp}/rainbond-image-pull.XXXXXX")
+pull_output_dir="${TMPDIR:-/tmp}"
+RAINBOND_PULL_OUTPUT_DIR="${pull_output_dir}"
+if ! pull_output_file=$(mktemp "${pull_output_dir}/rainbond-image-pull-$$.XXXXXX"); then
+  RAINBOND_FINAL_FAILURE_REASON="pull_failed_other"
+  if rainbond_use_chinese_prompt; then
+    send_error "无法创建镜像拉取诊断文件，请检查临时目录和磁盘空间后重试"
+  else
+    send_error "Failed to create the image pull diagnostic file. Check the temporary directory and available disk space, then retry."
+  fi
+  exit 1
+fi
 RAINBOND_PULL_OUTPUT_FILE="${pull_output_file}"
 for retry in 1 2 3; do
   docker pull "${RBD_IMAGE}" 2>"${pull_output_file}"

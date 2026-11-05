@@ -48,7 +48,7 @@ extract_functions() {
 
 extract_pull_loop() {
   awk '
-    /^# Try to pull image with retries/ { capture = 1 }
+    /^# Pull image with retry mechanism/ { capture = 1 }
     /^if ! check_docker_network_preflight/ { capture = 0 }
     capture { print }
   ' "${INSTALL_SCRIPT}"
@@ -86,9 +86,11 @@ event_output=$(rainbond_send_final_event failed image_not_found 1)
 assert_contains "${event_output}" '"reason":"image_not_found"'
 assert_not_contains "${event_output}" 'manifest unknown'
 
-signal_tmp_file=$(mktemp)
+signal_tmp_dir=$(mktemp -d)
+signal_tmp_file=$(mktemp "${signal_tmp_dir}/rainbond-image-pull-$$.XXXXXX")
 printf 'manifest unknown: registry.private.example\n' >"${signal_tmp_file}"
-RAINBOND_PULL_OUTPUT_FILE="${signal_tmp_file}"
+RAINBOND_PULL_OUTPUT_FILE=''
+RAINBOND_PULL_OUTPUT_DIR="${signal_tmp_dir}"
 RAINBOND_FINAL_STATUS_SENT=false
 set +e
 rainbond_handle_signal INT >/dev/null
@@ -98,6 +100,7 @@ assert_equals 130 "${signal_status}"
 if [ -e "${signal_tmp_file}" ]; then
   fail 'expected signal handler to remove the pull output file'
 fi
+rmdir "${signal_tmp_dir}"
 
 IMGHUB_MIRROR='registry.private.example:5000/team'
 captured_message=''
@@ -154,6 +157,37 @@ assert_not_contains "$(cat "${tmp_dir}/messages.log")" 'registry.private.example
 if find "${tmp_dir}" -name 'rainbond-image-pull.*' -print -quit | grep -q .; then
   fail 'expected the pull output file to be removed after failure'
 fi
+rm -rf "${tmp_dir}"
+
+tmp_dir=$(mktemp -d)
+missing_tmp_dir="${tmp_dir}/missing"
+pull_loop_file="${tmp_dir}/pull-loop.sh"
+extract_pull_loop >"${pull_loop_file}"
+set +e
+TMPDIR="${missing_tmp_dir}" \
+RBD_IMAGE='registry.private.example:5000/team/rainbond:v0-k3s' \
+RAINBOND_VERSION='v0' \
+TEST_DOCKER_LOG="${tmp_dir}/docker.log" \
+TEST_MESSAGE_LOG="${tmp_dir}/messages.log" \
+bash -c '
+  source "$1"
+  rainbond_use_chinese_prompt() { return 0; }
+  send_info() { :; }
+  send_warn() { :; }
+  send_msg() { printf "%s\n" "$1" >>"${TEST_MESSAGE_LOG}"; }
+  send_error() { send_msg "$1"; }
+  sleep() { :; }
+  docker() { printf "%s\n" "$*" >>"${TEST_DOCKER_LOG}"; }
+  source "$2"
+' bash "${functions_file}" "${pull_loop_file}" >"${tmp_dir}/stdout" 2>"${tmp_dir}/stderr"
+pull_status=$?
+set -e
+assert_equals 1 "${pull_status}"
+if [ -e "${tmp_dir}/docker.log" ]; then
+  fail 'expected mktemp failure to skip docker pull'
+fi
+assert_contains "$(cat "${tmp_dir}/messages.log")" '临时目录和磁盘空间'
+assert_not_contains "$(cat "${tmp_dir}/messages.log")" 'registry.private.example:5000/team'
 rm -rf "${tmp_dir}"
 
 printf 'PASS: image pull failure classification\n'
