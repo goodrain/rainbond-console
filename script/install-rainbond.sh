@@ -78,12 +78,11 @@ function rainbond_classify_image_pull_failure() {
 
 function rainbond_image_pull_failure_message() {
     local reason="${1:-pull_failed_other}"
-    local image="${2:-}"
 
     if rainbond_use_chinese_prompt; then
         case "$reason" in
             image_not_found)
-                printf '镜像 %s 不存在或版本不可用。这是版本镜像问题，不是网络问题。请确认镜像仓库中存在对应的 -k3s 标签后，使用 VERSION=<可用版本> bash install-rainbond.sh 重新执行；如需该版本，请联系 Rainbond 支持。' "$image"
+                printf 'Rainbond 版本镜像不存在或版本不可用。这是版本镜像问题，不是网络问题。请确认镜像仓库中存在对应的 -k3s 标签后，使用 VERSION=<可用版本> bash install-rainbond.sh 重新执行；如需该版本，请联系 Rainbond 支持。'
                 ;;
             registry_unreachable)
                 printf '无法连接镜像仓库。请检查网络、DNS、TLS 证书或代理配置后重试。'
@@ -101,7 +100,7 @@ function rainbond_image_pull_failure_message() {
     else
         case "$reason" in
             image_not_found)
-                printf 'Image %s does not exist or the version is unavailable. This is a version image issue, not a network issue. Confirm that the registry has the matching -k3s tag, then rerun with VERSION=<available-version> bash install-rainbond.sh; contact Rainbond support if you need this version.' "$image"
+                printf 'The Rainbond version image does not exist or the version is unavailable. This is a version image issue, not a network issue. Confirm that the registry has the matching -k3s tag, then rerun with VERSION=<available-version> bash install-rainbond.sh; contact Rainbond support if you need this version.'
                 ;;
             registry_unreachable)
                 printf 'The image registry is unreachable. Check network, DNS, TLS certificate, or proxy settings and retry.'
@@ -3818,8 +3817,11 @@ fi
 pull_success=false
 pull_output_file=$(mktemp "${TMPDIR:-/tmp}/rainbond-image-pull.XXXXXX")
 for retry in 1 2 3; do
-  docker pull "${RBD_IMAGE}" 2>&1 | tee "${pull_output_file}"
-  pull_exit_code=${PIPESTATUS[0]}
+  docker pull "${RBD_IMAGE}" 2>"${pull_output_file}"
+  pull_exit_code=$?
+  if [ "$pull_exit_code" -ne 0 ]; then
+    cat "${pull_output_file}" >&2
+  fi
   if [ "$pull_exit_code" -eq 0 ]; then
     pull_success=true
     rbd_image_id=$(docker images | grep k3s | grep "${RAINBOND_VERSION}" | awk '{print $3}')
@@ -3845,7 +3847,7 @@ if [ "$pull_success" = false ]; then
   pull_failure_reason=$(rainbond_classify_image_pull_failure "$(cat "${pull_output_file}")")
   RAINBOND_FINAL_FAILURE_REASON="${pull_failure_reason}"
   rm -f "${pull_output_file}"
-  send_error "$(rainbond_image_pull_failure_message "${pull_failure_reason}" "${RBD_IMAGE}")"
+  send_error "$(rainbond_image_pull_failure_message "${pull_failure_reason}")"
   exit 1
 fi
 

@@ -60,11 +60,11 @@ assert_equals registry_denied "$(rainbond_classify_image_pull_failure 'unauthori
 assert_equals disk_full "$(rainbond_classify_image_pull_failure 'write /var/lib/docker: no space left on device')"
 assert_equals pull_failed_other "$(rainbond_classify_image_pull_failure 'unexpected pull failure')"
 
-zh_message=$(RAINBOND_INSTALL_LANG=zh rainbond_image_pull_failure_message image_not_found 'registry.example/rainbond:v0-k3s')
+zh_message=$(RAINBOND_INSTALL_LANG=zh rainbond_image_pull_failure_message image_not_found)
 assert_contains "${zh_message}" '版本镜像问题，不是网络问题'
 assert_contains "${zh_message}" 'VERSION=<可用版本> bash install-rainbond.sh'
 
-en_message=$(RAINBOND_INSTALL_LANG=en rainbond_image_pull_failure_message image_not_found 'registry.example/rainbond:v0-k3s')
+en_message=$(RAINBOND_INSTALL_LANG=en rainbond_image_pull_failure_message image_not_found)
 assert_contains "${en_message}" 'version image issue, not a network issue'
 assert_contains "${en_message}" 'VERSION=<available-version> bash install-rainbond.sh'
 
@@ -78,7 +78,21 @@ event_output=$(rainbond_send_final_event failed image_not_found 1)
 assert_contains "${event_output}" '"reason":"image_not_found"'
 assert_not_contains "${event_output}" 'manifest unknown'
 
-assert_contains "$(cat "${INSTALL_SCRIPT}")" 'docker pull "${RBD_IMAGE}" 2>&1 | tee "${pull_output_file}"'
+IMGHUB_MIRROR='registry.private.example:5000/team'
+captured_message=''
+send_msg() {
+  captured_message=$1
+}
+send_error() {
+  send_msg "$1"
+}
+send_error "$(rainbond_image_pull_failure_message image_not_found "${IMGHUB_MIRROR}/rainbond:v0-k3s")"
+assert_not_contains "${captured_message}" "${IMGHUB_MIRROR}"
+assert_contains "${captured_message}" 'VERSION=<可用版本> bash install-rainbond.sh'
+
+assert_contains "$(cat "${INSTALL_SCRIPT}")" 'docker pull "${RBD_IMAGE}" 2>"${pull_output_file}"'
+assert_contains "$(cat "${INSTALL_SCRIPT}")" 'cat "${pull_output_file}" >&2'
+assert_not_contains "$(cat "${INSTALL_SCRIPT}")" 'tee "${pull_output_file}"'
 assert_contains "$(cat "${INSTALL_SCRIPT}")" '"${RAINBOND_FINAL_FAILURE_REASON:-exit_nonzero}"'
 
 printf 'PASS: image pull failure classification\n'
