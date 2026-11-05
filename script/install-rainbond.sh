@@ -24,6 +24,7 @@ RAINBOND_INSTALL_METHOD=${RAINBOND_INSTALL_METHOD:-"single_node"}
 RAINBOND_FINAL_EVENT_ENABLED=false
 RAINBOND_FINAL_STATUS_SENT=false
 RAINBOND_FINAL_FAILURE_REASON=""
+RAINBOND_PULL_OUTPUT_FILE=""
 
 function rainbond_use_chinese_prompt() {
     case "${RAINBOND_INSTALL_LANG:-zh}" in
@@ -115,6 +116,13 @@ function rainbond_image_pull_failure_message() {
                 printf 'Image pull failed. Review the Docker output above and retry.'
                 ;;
         esac
+    fi
+}
+
+function rainbond_cleanup_pull_output() {
+    if [ -n "${RAINBOND_PULL_OUTPUT_FILE:-}" ]; then
+        rm -f "${RAINBOND_PULL_OUTPUT_FILE}"
+        RAINBOND_PULL_OUTPUT_FILE=""
     fi
 }
 
@@ -651,6 +659,7 @@ function rainbond_send_final_event() {
 function rainbond_handle_exit() {
     local exit_code="${1:-0}"
 
+    rainbond_cleanup_pull_output
     if [ "$exit_code" -eq 0 ]; then
         rainbond_send_final_event success exit_zero 0
     else
@@ -664,6 +673,7 @@ function rainbond_handle_signal() {
     local exit_code
 
     exit_code=$(rainbond_signal_exit_code "$signal_name")
+    rainbond_cleanup_pull_output
     rainbond_send_final_event aborted "signal_${signal_name}" "$exit_code"
     return "$exit_code"
 }
@@ -3816,6 +3826,7 @@ fi
 # Try to pull image with retries
 pull_success=false
 pull_output_file=$(mktemp "${TMPDIR:-/tmp}/rainbond-image-pull.XXXXXX")
+RAINBOND_PULL_OUTPUT_FILE="${pull_output_file}"
 for retry in 1 2 3; do
   docker pull "${RBD_IMAGE}" 2>"${pull_output_file}"
   pull_exit_code=$?
@@ -3846,12 +3857,12 @@ done
 if [ "$pull_success" = false ]; then
   pull_failure_reason=$(rainbond_classify_image_pull_failure "$(cat "${pull_output_file}")")
   RAINBOND_FINAL_FAILURE_REASON="${pull_failure_reason}"
-  rm -f "${pull_output_file}"
+  rainbond_cleanup_pull_output
   send_error "$(rainbond_image_pull_failure_message "${pull_failure_reason}")"
   exit 1
 fi
 
-rm -f "${pull_output_file}"
+rainbond_cleanup_pull_output
 
 if ! check_docker_network_preflight; then
   exit 1

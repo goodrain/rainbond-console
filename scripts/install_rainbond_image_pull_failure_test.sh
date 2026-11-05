@@ -41,7 +41,15 @@ extract_functions() {
     /^function rainbond_image_pull_failure_message\(\)/ { capture = 1 }
     /^function rainbond_json_escape\(\)/ { capture = 1 }
     /^function rainbond_send_final_event\(\)/ { capture = 1 }
-    /^function rainbond_handle_exit\(\)/ { capture = 0 }
+    /^function send_info\(\)/ { capture = 0 }
+    capture { print }
+  ' "${INSTALL_SCRIPT}"
+}
+
+extract_pull_loop() {
+  awk '
+    /^# Try to pull image with retries/ { capture = 1 }
+    /^if ! check_docker_network_preflight/ { capture = 0 }
     capture { print }
   ' "${INSTALL_SCRIPT}"
 }
@@ -78,6 +86,19 @@ event_output=$(rainbond_send_final_event failed image_not_found 1)
 assert_contains "${event_output}" '"reason":"image_not_found"'
 assert_not_contains "${event_output}" 'manifest unknown'
 
+signal_tmp_file=$(mktemp)
+printf 'manifest unknown: registry.private.example\n' >"${signal_tmp_file}"
+RAINBOND_PULL_OUTPUT_FILE="${signal_tmp_file}"
+RAINBOND_FINAL_STATUS_SENT=false
+set +e
+rainbond_handle_signal INT >/dev/null
+signal_status=$?
+set -e
+assert_equals 130 "${signal_status}"
+if [ -e "${signal_tmp_file}" ]; then
+  fail 'expected signal handler to remove the pull output file'
+fi
+
 IMGHUB_MIRROR='registry.private.example:5000/team'
 captured_message=''
 send_msg() {
@@ -94,5 +115,45 @@ assert_contains "$(cat "${INSTALL_SCRIPT}")" 'docker pull "${RBD_IMAGE}" 2>"${pu
 assert_contains "$(cat "${INSTALL_SCRIPT}")" 'cat "${pull_output_file}" >&2'
 assert_not_contains "$(cat "${INSTALL_SCRIPT}")" 'tee "${pull_output_file}"'
 assert_contains "$(cat "${INSTALL_SCRIPT}")" '"${RAINBOND_FINAL_FAILURE_REASON:-exit_nonzero}"'
+
+tmp_dir=$(mktemp -d)
+pull_loop_file="${tmp_dir}/pull-loop.sh"
+extract_pull_loop >"${pull_loop_file}"
+set +e
+TMPDIR="${tmp_dir}" \
+RBD_IMAGE='registry.private.example:5000/team/rainbond:v0-k3s' \
+RAINBOND_VERSION='v0' \
+TEST_DOCKER_LOG="${tmp_dir}/docker.log" \
+TEST_MESSAGE_LOG="${tmp_dir}/messages.log" \
+bash -c '
+  source "$1"
+  rainbond_use_chinese_prompt() { return 0; }
+  send_info() { :; }
+  send_warn() { :; }
+  send_msg() { printf "%s\n" "$1" >>"${TEST_MESSAGE_LOG}"; }
+  send_error() { send_msg "$1"; }
+  sleep() { :; }
+  docker() {
+    printf "%s\n" "$*" >>"${TEST_DOCKER_LOG}"
+    if [ "$1" = pull ]; then
+      printf "Downloading layer\n"
+      printf "manifest unknown: registry.private.example:5000/team/rainbond:v0-k3s\n" >&2
+      return 1
+    fi
+    return 0
+  }
+  source "$2"
+' bash "${functions_file}" "${pull_loop_file}" >"${tmp_dir}/stdout" 2>"${tmp_dir}/stderr"
+pull_status=$?
+set -e
+assert_equals 1 "${pull_status}"
+assert_contains "$(cat "${tmp_dir}/stdout")" 'Downloading layer'
+assert_contains "$(cat "${tmp_dir}/stderr")" 'manifest unknown'
+assert_equals 3 "$(grep -Fc 'pull registry.private.example:5000/team/rainbond:v0-k3s' "${tmp_dir}/docker.log")"
+assert_not_contains "$(cat "${tmp_dir}/messages.log")" 'registry.private.example:5000/team'
+if find "${tmp_dir}" -name 'rainbond-image-pull.*' -print -quit | grep -q .; then
+  fail 'expected the pull output file to be removed after failure'
+fi
+rm -rf "${tmp_dir}"
 
 printf 'PASS: image pull failure classification\n'
