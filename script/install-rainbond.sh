@@ -23,6 +23,7 @@ INSTALL_ATTEMPT_ID=${INSTALL_ATTEMPT_ID:-"single-$(date +%Y%m%d%H%M%S)-$$"}
 RAINBOND_INSTALL_METHOD=${RAINBOND_INSTALL_METHOD:-"single_node"}
 RAINBOND_FINAL_EVENT_ENABLED=false
 RAINBOND_FINAL_STATUS_SENT=false
+RAINBOND_FINAL_FAILURE_REASON=""
 
 function rainbond_use_chinese_prompt() {
     case "${RAINBOND_INSTALL_LANG:-zh}" in
@@ -57,6 +58,65 @@ function rainbond_json_escape() {
             printf "%s", $0
         }
     '
+}
+
+function rainbond_classify_image_pull_failure() {
+    local raw="${1:-}"
+
+    if printf '%s' "$raw" | grep -Eqi 'manifest unknown|manifest .* not found|repository( .*)? not found|image .* not found'; then
+        printf 'image_not_found'
+    elif printf '%s' "$raw" | grep -Eqi 'no space left on device'; then
+        printf 'disk_full'
+    elif printf '%s' "$raw" | grep -Eqi 'denied|unauthorized|authentication required|requested access to the resource is denied'; then
+        printf 'registry_denied'
+    elif printf '%s' "$raw" | grep -Eqi 'i/o timeout|timed out|timeout|no such host|temporary failure in name resolution|server misbehaving|tls handshake timeout|x509:|connection refused|connection reset|network is unreachable|dial tcp|lookup .* no such host'; then
+        printf 'registry_unreachable'
+    else
+        printf 'pull_failed_other'
+    fi
+}
+
+function rainbond_image_pull_failure_message() {
+    local reason="${1:-pull_failed_other}"
+    local image="${2:-}"
+
+    if rainbond_use_chinese_prompt; then
+        case "$reason" in
+            image_not_found)
+                printf '镜像 %s 不存在或版本不可用。这是版本镜像问题，不是网络问题。请确认镜像仓库中存在对应的 -k3s 标签后，使用 VERSION=<可用版本> bash install-rainbond.sh 重新执行；如需该版本，请联系 Rainbond 支持。' "$image"
+                ;;
+            registry_unreachable)
+                printf '无法连接镜像仓库。请检查网络、DNS、TLS 证书或代理配置后重试。'
+                ;;
+            registry_denied)
+                printf '镜像仓库拒绝访问。请检查镜像仓库凭据和访问权限后重试。'
+                ;;
+            disk_full)
+                printf '磁盘空间不足，无法拉取镜像。请清理磁盘空间后重试。'
+                ;;
+            *)
+                printf '镜像拉取失败。请根据上方 Docker 输出排查后重试。'
+                ;;
+        esac
+    else
+        case "$reason" in
+            image_not_found)
+                printf 'Image %s does not exist or the version is unavailable. This is a version image issue, not a network issue. Confirm that the registry has the matching -k3s tag, then rerun with VERSION=<available-version> bash install-rainbond.sh; contact Rainbond support if you need this version.' "$image"
+                ;;
+            registry_unreachable)
+                printf 'The image registry is unreachable. Check network, DNS, TLS certificate, or proxy settings and retry.'
+                ;;
+            registry_denied)
+                printf 'The image registry denied access. Check registry credentials and permissions, then retry.'
+                ;;
+            disk_full)
+                printf 'There is not enough disk space to pull the image. Free disk space and retry.'
+                ;;
+            *)
+                printf 'Image pull failed. Review the Docker output above and retry.'
+                ;;
+        esac
+    fi
 }
 
 function rainbond_diag_kubectl() {
@@ -595,7 +655,7 @@ function rainbond_handle_exit() {
     if [ "$exit_code" -eq 0 ]; then
         rainbond_send_final_event success exit_zero 0
     else
-        rainbond_send_final_event failed exit_nonzero "$exit_code"
+        rainbond_send_final_event failed "${RAINBOND_FINAL_FAILURE_REASON:-exit_nonzero}" "$exit_code"
     fi
     return "$exit_code"
 }
@@ -3756,8 +3816,11 @@ fi
 
 # Try to pull image with retries
 pull_success=false
+pull_output_file=$(mktemp "${TMPDIR:-/tmp}/rainbond-image-pull.XXXXXX")
 for retry in 1 2 3; do
-  if docker pull ${RBD_IMAGE}; then
+  docker pull "${RBD_IMAGE}" 2>&1 | tee "${pull_output_file}"
+  pull_exit_code=${PIPESTATUS[0]}
+  if [ "$pull_exit_code" -eq 0 ]; then
     pull_success=true
     rbd_image_id=$(docker images | grep k3s | grep "${RAINBOND_VERSION}" | awk '{print $3}')
     if rainbond_use_chinese_prompt; then
@@ -3779,13 +3842,14 @@ for retry in 1 2 3; do
 done
 
 if [ "$pull_success" = false ]; then
-  if rainbond_use_chinese_prompt; then
-    send_error "镜像拉取失败，请检查网络连接"
-  else
-    send_error "Image pull failed, please check network connection"
-  fi
+  pull_failure_reason=$(rainbond_classify_image_pull_failure "$(cat "${pull_output_file}")")
+  RAINBOND_FINAL_FAILURE_REASON="${pull_failure_reason}"
+  rm -f "${pull_output_file}"
+  send_error "$(rainbond_image_pull_failure_message "${pull_failure_reason}" "${RBD_IMAGE}")"
   exit 1
 fi
+
+rm -f "${pull_output_file}"
 
 if ! check_docker_network_preflight; then
   exit 1
