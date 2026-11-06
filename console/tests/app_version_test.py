@@ -261,6 +261,53 @@ class AppVersionServiceDiffSummaryTestCase(TestCase):
 
 
 class AppVersionServiceTemplateNormalizationTestCase(TestCase):
+    # capability_id: console.app-version.create-snapshot
+    def test_assemble_app_template_serializes_default_k8s_resources(self):
+        class ResourceValues(object):
+            def __init__(self, fields=()):
+                self.fields = fields
+
+            def values(self, *fields):
+                return ResourceValues(fields)
+
+            def __iter__(self):
+                resource = {
+                    "ID": 1,
+                    "app_id": "app-1",
+                    "name": "monitoring-role",
+                    "kind": "Role",
+                    "content": "kind: Role",
+                    "error_overview": "",
+                    "state": 2,
+                    "create_time": datetime(2026, 11, 6, 10, 0),
+                    "update_time": datetime(2026, 11, 6, 10, 1),
+                }
+                return iter([{key: resource[key] for key in self.fields} if self.fields else resource])
+
+        resources = ResourceValues()
+        with mock.patch.object(
+                app_version_service_module.share_service,
+                "config_groups",
+                return_value=[]), mock.patch.object(
+                    app_version_service_module.share_service,
+                    "_list_http_ingresses",
+                    return_value=[]), mock.patch(
+                        "console.services.share_services.k8s_resources_repo.list_available_resources",
+                        return_value=resources):
+            template = app_version_service._assemble_app_template(
+                mock.Mock(tenant_id="tenant-1", tenant_name="demo-team"),
+                mock.Mock(region_name="demo-region"),
+                mock.Mock(group_name="demo-app", governance_mode=None),
+                "hidden-app-id",
+                "1.0.0",
+                [],
+                [],
+                list(app_version_service_module.share_service.get_k8s_resources("app-1")),
+            )
+
+        self.assertEqual(template["k8s_resources"][0]["name"], "monitoring-role")
+        json.dumps(template)
+
     # capability_id: console.app-version.snapshot-share-image-fallback
     def test_assemble_app_template_falls_back_to_image_when_share_image_missing(self):
         services = [
