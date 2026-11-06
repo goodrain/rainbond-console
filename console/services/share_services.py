@@ -563,6 +563,7 @@ class ShareService(object):
             ),
             "menu_title": share_version_info.get("menu_title", ""),
             "route_path": share_version_info.get("route_path", ""),
+            "bundled_disk_cleanup": share_version_info.get("bundled_disk_cleanup") is True,
         }
 
     def _build_publish_template_from_snapshot(self, snapshot_template: dict, app_model_id: str, app_model_name: str,

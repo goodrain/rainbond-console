@@ -7,6 +7,7 @@ from console.models.main import RegionConfig
 from console.repositories.app_config import dep_relation_repo, port_repo
 from console.repositories.region_app import region_app_repo
 from console.services.share_services import share_service
+from console.services.cleanup_installation import requires_cleanup_bootstrap, bundled_cleanup_registration
 from console.utils.plugin_identity import is_gateway_monitoring_plugin
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import ServiceGroupRelation, TenantServiceInfo, Tenants
@@ -92,15 +93,11 @@ class RBDPluginSyncService(object):
             plugin_id,
             frontend_component.service_cname,
         )
-        backend_component, backend_port = self._resolve_backend(
-            tenant,
-            app_template,
-            frontend_component,
-            frontend_port,
-            components,
-            app_id,
-            plugin_id,
-        )
+        if plugin_id != "rainbond-disk" and requires_cleanup_bootstrap(app_template):
+            backend_component, backend_port = frontend_component, frontend_port
+        else:
+            backend_component, backend_port = self._resolve_backend(
+                tenant, app_template, frontend_component, frontend_port, components, app_id, plugin_id)
 
         try:
             region_app_id = region_app_repo.get_region_app_id(region.region_name, app_id)
@@ -120,10 +117,10 @@ class RBDPluginSyncService(object):
                 safe_context={"region_name": region.region_name},
             )
 
-        if plugin_id == "rainbond-disk":
+        if requires_cleanup_bootstrap(app_template):
             from console.services.cleanup_installation import configure_installation
             try:
-                configure_installation(tenant, region, backend_component)
+                configure_installation(tenant, region, backend_component, bundled=plugin_id != "rainbond-disk")
             except Exception as error:
                 self._fail("configure_cleanup_installation", app_id, plugin_id, error=error)
 
@@ -145,8 +142,19 @@ class RBDPluginSyncService(object):
             "backend_service": backend_service,
             "app_id": region_app_id,
         }
+        bundled_registration = None
+        if plugin_id != "rainbond-disk" and requires_cleanup_bootstrap(app_template):
+            try:
+                _, installed = region_api.list_plugins(enterprise_id, region.region_name, False)
+                if not isinstance(installed, dict) or not isinstance(installed.get("list"), list):
+                    raise ValueError("plugin inventory unavailable")
+                bundled_registration = bundled_cleanup_registration(plugin_data, installed["list"])
+            except Exception as error:
+                self._fail("resolve_bundled_cleanup", app_id, plugin_id, error=error)
         try:
             region_api.create_rbdplugin(enterprise_id, region.region_name, plugin_data)
+            if bundled_registration is not None:
+                region_api.create_rbdplugin(enterprise_id, region.region_name, bundled_registration)
         except Exception as error:
             safe_context = {
                 "region_name": region.region_name,
