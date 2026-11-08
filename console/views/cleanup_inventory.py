@@ -1,5 +1,6 @@
 """Installation-scoped, signed GET-only inventory export."""
 import os
+import json
 from typing import Any
 
 from django.db.models import Q, QuerySet
@@ -262,6 +263,25 @@ class CleanupInventoryView(APIView):
         more = len(page) > 25
         page = page[:25]
         resources = [registry_reference_resource(row, kind, region_name, key) for row in page]
+        if kind == "templates" and cursor == 0:
+            from console.models.delivery_template import DeliveryTemplateVersion, DeliveryTaskItem
+            delivery_rows = ({
+                "ID": "delivery:" + str(version.id),
+                "app_id": version.template_id.hex,
+                "version": version.version,
+                "app_template": json.dumps(version.manifest)
+            } for version in DeliveryTemplateVersion.objects.all().iterator())
+            resources.extend(registry_reference_resource(row, kind, region_name, key) for row in delivery_rows)
+            for item in DeliveryTaskItem.objects.filter(task__kind="sync").exclude(result={}):
+                component = {**item.component, "share_image": item.result.get("image_name", "")}
+                resources.append(
+                    registry_reference_resource(
+                        {
+                            "ID": "delivery-task:" + str(item.id),
+                            "app_id": item.task_id.hex,
+                            "version": "pending",
+                            "app_template": json.dumps({"apps": [component]})
+                        }, kind, region_name, key))
         failures = [row["id"] for row in resources if not row["observed"]]
         # Another Region's retained runtime versions need their own bound audit.
         # Do not silently treat that uncollected source as empty.

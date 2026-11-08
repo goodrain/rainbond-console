@@ -1940,6 +1940,17 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, None, region=region, timeout=10)
         return body
 
+    def share_delivery_artifact(self, region: str, enterprise_id: str, data: dict):
+        url, token = self.__get_region_access_info_by_enterprise_id(enterprise_id, region)
+        self._set_headers(token)
+        return self._post(url + "/v2/app/delivery-artifacts", self.default_headers, region=region,
+                          body=json.dumps(data).encode("utf-8"))
+
+    def delivery_artifact_status(self, region: str, enterprise_id: str, share_id: str):
+        url, token = self.__get_region_access_info_by_enterprise_id(enterprise_id, region)
+        self._set_headers(token)
+        return self._get(url + "/v2/app/delivery-artifacts/" + share_id, self.default_headers, region=region)
+
     def export_app(self, region: str, enterprise_id: str, data: dict) -> Tuple[Any, Optional[Dict[str, Any]]]:
         """导出应用"""
         url, token = self.__get_region_access_info_by_enterprise_id(enterprise_id, region)
