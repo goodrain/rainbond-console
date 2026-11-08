@@ -2,6 +2,8 @@
 from django.db import IntegrityError
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.http import HttpResponseRedirect
+from typing import Any
+from rest_framework.request import Request
 from rest_framework.response import Response
 from console.views.base import JWTAuthApiView
 from console.services.delivery_manifest import DeliveryError
@@ -13,14 +15,14 @@ from www.utils.return_message import general_message
 
 
 class DeliveryAPI(JWTAuthApiView):
-    def initial(self, request, *args, **kwargs):
+    def initial(self, request: Request, *args: Any, **kwargs: Any) -> None:
         self.perform_authentication(request)
         self.check_permissions(request)
         super().initial(request, *args, **kwargs)
         self.delivery = DeliveryService()
         start_delivery_worker()
 
-    def handle_exception(self, exc):
+    def handle_exception(self, exc: Exception) -> Response:
         if isinstance(exc, DeliveryError):
             return Response(general_message(exc.status, "failed", exc.message), status=exc.status)
         if isinstance(exc, (ValueError, TypeError, DjangoValidationError)):
@@ -29,77 +31,78 @@ class DeliveryAPI(JWTAuthApiView):
             return Response(general_message(409, "failed", "记录已存在或状态已变化，请刷新后重试"), status=409)
         return super().handle_exception(exc)
 
-    def reply(self, bean, status=200):
+    def reply(self, bean: Any, status: int = 200) -> Response:
         return Response(general_message(status, "success", "操作成功", bean=bean), status=status)
 
-    def scope(self, request, team_name, app_id, write=False):
-        scope = {
+    def scope(self, request: Request, team_name: str, app_id: str, write: bool = False) -> dict[str, str]:
+        region_name = request.GET.get("region_name") or request.data.get("region_name")
+        if not region_name:
+            raise DeliveryError("请选择源集群")
+        scope: dict[str, str] = {
             "enterprise_id": str(self.user.enterprise_id),
             "team_name": team_name,
             "app_id": str(app_id),
-            "region_name": request.GET.get("region_name") or request.data.get("region_name")
+            "region_name": region_name
         }
-        if not scope["region_name"]:
-            raise DeliveryError("请选择源集群")
         team_access(self.user, team_name, 310001 if write else 300002, app_id, self.is_enterprise_admin)
         from www.models.main import ServiceGroup
         if not ServiceGroup.objects.filter(ID=app_id, region_name=scope["region_name"]).exists():
             raise DeliveryError("源应用与集群不匹配", 404)
         return scope
 
-    def admin(self, enterprise_id):
+    def admin(self, enterprise_id: str) -> None:
         if not self.is_enterprise_admin or str(self.user.enterprise_id) != enterprise_id:
             raise DeliveryError("仅平台管理员可以访问", 403)
 
 
 class DeliveryTemplatesView(DeliveryAPI):
-    def get(self, request, team_name, app_id):
+    def get(self, request: Request, team_name: str, app_id: str) -> Response:
         return self.reply(self.delivery.list(self.scope(request, team_name, app_id)))
 
-    def post(self, request, team_name, app_id):
+    def post(self, request: Request, team_name: str, app_id: str) -> Response:
         scope = self.scope(request, team_name, app_id, write=True)
         version = self.delivery.publish(self.user, scope, request.data.get("sync_id"))
         return self.reply(self.delivery.version_data(version), 201)
 
 
 class DeliveryChangesView(DeliveryAPI):
-    def get(self, request, team_name, app_id):
+    def get(self, request: Request, team_name: str, app_id: str) -> Response:
         return self.reply(self.delivery.changes(self.scope(request, team_name, app_id)))
 
 
 class DeliverySourceView(DeliveryAPI):
-    def get(self, request, team_name, app_id):
+    def get(self, request: Request, team_name: str, app_id: str) -> Response:
         from console.services.delivery_manifest import public_manifest
         source, _ = self.delivery.gateway.source(self.scope(request, team_name, app_id))
         return self.reply(public_manifest(source))
 
 
 class DeliverySyncView(DeliveryAPI):
-    def post(self, request, team_name, app_id):
+    def post(self, request: Request, team_name: str, app_id: str) -> Response:
         scope = self.scope(request, team_name, app_id, write=True)
         task = self.delivery.start(self.user, scope, request.data, request.data.get("request_id"))
         return self.reply(self.delivery.sync(scope, task.id), 202)
 
 
 class DeliverySyncTaskView(DeliveryAPI):
-    def get(self, request, team_name, app_id, task_id):
+    def get(self, request: Request, team_name: str, app_id: str, task_id: str) -> Response:
         return self.reply(self.delivery.sync(self.scope(request, team_name, app_id), task_id))
 
-    def delete(self, request, team_name, app_id, task_id):
+    def delete(self, request: Request, team_name: str, app_id: str, task_id: str) -> Response:
         scope = self.scope(request, team_name, app_id, write=True)
         self.delivery.cancel(scope, task_id)
         return self.reply(self.delivery.sync(scope, task_id))
 
 
 class DeliverySyncRetryView(DeliveryAPI):
-    def post(self, request, team_name, app_id, task_id):
+    def post(self, request: Request, team_name: str, app_id: str, task_id: str) -> Response:
         scope = self.scope(request, team_name, app_id, write=True)
         self.delivery.retry(scope, task_id)
         return self.reply(self.delivery.sync(scope, task_id), 202)
 
 
 class DeliverySyncLogsView(DeliveryAPI):
-    def get(self, request, team_name, app_id, task_id, component_key):
+    def get(self, request: Request, team_name: str, app_id: str, task_id: str, component_key: str) -> Response:
         task = self.delivery.repo.task(self.scope(request, team_name, app_id), task_id)
         item = task.items.filter(key=component_key).first()
         if not item:
@@ -108,17 +111,17 @@ class DeliverySyncLogsView(DeliveryAPI):
 
 
 class DeliveryVersionView(DeliveryAPI):
-    def get(self, request, team_name, app_id, version_id):
+    def get(self, request: Request, team_name: str, app_id: str, version_id: str) -> Response:
         version = self.delivery.repo.version(self.scope(request, team_name, app_id), version_id, available=False)
         return self.reply(self.delivery.version_data(version))
 
-    def delete(self, request, team_name, app_id, version_id):
+    def delete(self, request: Request, team_name: str, app_id: str, version_id: str) -> Response:
         version = self.delivery.delete(self.user, self.scope(request, team_name, app_id, write=True), version_id)
         return self.reply({"id": str(version.id)})
 
 
 class DeliveryOperationView(DeliveryAPI):
-    def post(self, request, team_name, app_id, version_id, operation):
+    def post(self, request: Request, team_name: str, app_id: str, version_id: str, operation: str) -> Response:
         scope = self.scope(request, team_name, app_id, write=True)
         version = self.delivery.repo.version(scope, version_id)
         if operation == "listing-requests":
@@ -137,7 +140,7 @@ class DeliveryOperationView(DeliveryAPI):
 
 
 class DeliveryApplicationRecordsView(DeliveryAPI):
-    def get(self, request, team_name, app_id):
+    def get(self, request: Request, team_name: str, app_id: str) -> Response:
         scope = self.scope(request, team_name, app_id)
         templates = self.delivery.repo.templates(scope)
         listings = self.delivery.m.DeliveryListingRequest.objects.filter(
@@ -152,7 +155,7 @@ class DeliveryApplicationRecordsView(DeliveryAPI):
 
 
 class DevelopmentDeliveriesView(DeliveryAPI):
-    def get(self, request, enterprise_id):
+    def get(self, request: Request, enterprise_id: str) -> Response:
         self.admin(enterprise_id)
         rows = self.delivery.m.DeliveryListingRequest.objects.filter(
             version__template__enterprise_id=enterprise_id).select_related("version__template")
@@ -170,7 +173,7 @@ class DevelopmentDeliveriesView(DeliveryAPI):
 
 
 class DeliveryReviewView(DeliveryAPI):
-    def post(self, request, enterprise_id, request_id):
+    def post(self, request: Request, enterprise_id: str, request_id: str) -> Response:
         self.admin(enterprise_id)
         row = self.delivery.review(self.user,
                                    request_id,
@@ -181,7 +184,7 @@ class DeliveryReviewView(DeliveryAPI):
 
 
 class DeliveryTestView(DeliveryAPI):
-    def post(self, request, enterprise_id, request_id):
+    def post(self, request: Request, enterprise_id: str, request_id: str) -> Response:
         self.admin(enterprise_id)
         row = self.delivery.m.DeliveryListingRequest.objects.select_related("version__template").filter(
             id=request_id, version__template__enterprise_id=enterprise_id).first()
@@ -198,7 +201,7 @@ class DeliveryTestView(DeliveryAPI):
 
 
 class DeliveryTaskView(DeliveryAPI):
-    def get(self, request, task_id, download=False):
+    def get(self, request: Request, task_id: str, download: bool = False) -> Response | HttpResponseRedirect:
         task = self.delivery.m.DeliveryTask.objects.select_related("template", "version").filter(
             id=task_id, template__enterprise_id=self.user.enterprise_id).first()
         if not task:
@@ -218,7 +221,7 @@ class DeliveryTaskView(DeliveryAPI):
 
 
 class DeliveryTargetsView(DeliveryAPI):
-    def get(self, request):
+    def get(self, request: Request) -> Response:
         from www.models.main import Tenants, TenantRegionInfo
         from console.models.main import RegionConfig
         result = []
@@ -241,7 +244,7 @@ class DeliveryTargetsView(DeliveryAPI):
 
 
 class DeliveryTaskRetryView(DeliveryAPI):
-    def post(self, request, task_id):
+    def post(self, request: Request, task_id: str) -> Response:
         from django.db import transaction
         with transaction.atomic():
             task = self.delivery.m.DeliveryTask.objects.select_for_update().select_related("template", "version").filter(
