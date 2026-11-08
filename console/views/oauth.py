@@ -231,7 +231,7 @@ class EnterpriseOauthService(EnterpriseAdminView):
 class OauthServiceInfo(EnterpriseAdminView):
     def delete(self, request: Request, service_id: str, *args: Any, **kwargs: Any) -> Response:
         try:
-            oauth_repo.delete_oauth_service(service_id, self.user.enterprise_id, self.user.user_id)
+            oauth_repo.delete_oauth_service(service_id, self.user.enterprise_id, str(self.user.user_id))
             oauth_user_repo.delete_users_by_services_id(service_id)
             rst = {"data": {"bean": None}, "status": 200}
             return Response(rst, status=status.HTTP_200_OK)

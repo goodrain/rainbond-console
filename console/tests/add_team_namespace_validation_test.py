@@ -27,6 +27,7 @@ from console.views.team import AddTeamView  # noqa: E402
 class AddTeamInvalidNamespaceTest(TestCase):
     def test_invalid_namespace_raises_qualified_name_error_not_typeerror(self):
         view = AddTeamView()
+        view.is_enterprise_admin = True
         request = mock.Mock()
         request.user = mock.Mock(enterprise_id="ent-1", user_id="u-1")
         request.data = {

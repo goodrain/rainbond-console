@@ -153,3 +153,6 @@ local_allinone.sh
 .agents/
 .claude/knowledge/
 .worktrees/
+
+!console/migrations/0010_team_creation_application.py
+!console/migrations/0011_independent_delivery_templates.py

@@ -144,6 +144,8 @@ class AddTeamView(JWTAuthApiView):
               type: string
               paramType: body
         """
+        if not self.is_enterprise_admin:
+            return Response(general_message(403, "failed", "请通过团队申请提交，等待平台管理员审核"), status=403)
         try:
             user = request.user
             team_alias = request.data.get("team_alias", None)
@@ -485,6 +487,8 @@ class TeamRegionInitView(JWTAuthApiView):
               type: string
               paramType: form
         """
+        if not self.is_enterprise_admin:
+            return Response(general_message(403, "failed", "请通过团队申请提交，等待平台管理员审核"), status=403)
         try:
             team_alias = request.data.get("team_alias", None)
             region_name = request.data.get("region_name", None)

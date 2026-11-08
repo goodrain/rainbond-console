@@ -1,8 +1,14 @@
 # -*- coding: utf8 -*-
 
-from django.urls import include, re_path
+from django.urls import include, re_path, path
 
 import console.utils.perms_route_config as perms
+from console.views.delivery_templates import (DeliveryTemplatesView, DeliverySourceView, DeliveryChangesView, DeliverySyncView,
+                                              DeliverySyncTaskView, DeliverySyncRetryView, DeliverySyncLogsView,
+                                              DeliveryVersionView, DeliveryOperationView, DeliveryApplicationRecordsView,
+                                              DevelopmentDeliveriesView, DeliveryReviewView, DeliveryTestView, DeliveryTaskView,
+                                              DeliveryTargetsView, DeliveryTaskRetryView)
+from console.views.team_applications import TeamApplicationsView, TeamApplicationReviewView
 from console.captcha.captcha_code import CaptchaView
 from console.views import app_upgrade
 from console.views import app_version
@@ -212,6 +218,36 @@ from console.views.kubeblocks import (KubeBlocksAddonsView, KubeBlocksStorageCla
                                       KubeBlocksClusterParametersView, KubeBlocksClusterRestoreView)
 
 urlpatterns = [
+    re_path(r'^delivery-targets$', DeliveryTargetsView.as_view()),
+    # Delivery templates are independent of application snapshot routes and records.
+    re_path(r'^teams/(?P<team_name>[\w-]+)/groups/(?P<app_id>[\w-]+)/delivery-templates$', DeliveryTemplatesView.as_view()),
+    re_path(r'^teams/(?P<team_name>[\w-]+)/groups/(?P<app_id>[\w-]+)/delivery-templates/source$', DeliverySourceView.as_view()),
+    re_path(r'^teams/(?P<team_name>[\w-]+)/groups/(?P<app_id>[\w-]+)/delivery-templates/changes$',
+            DeliveryChangesView.as_view()),
+    re_path(r'^teams/(?P<team_name>[\w-]+)/groups/(?P<app_id>[\w-]+)/delivery-templates/records$',
+            DeliveryApplicationRecordsView.as_view()),
+    re_path(r'^teams/(?P<team_name>[\w-]+)/groups/(?P<app_id>[\w-]+)/delivery-templates/sync$', DeliverySyncView.as_view()),
+    re_path(r'^teams/(?P<team_name>[\w-]+)/groups/(?P<app_id>[\w-]+)/delivery-templates/sync/(?P<task_id>[\w-]+)$',
+            DeliverySyncTaskView.as_view()),
+    re_path(r'^teams/(?P<team_name>[\w-]+)/groups/(?P<app_id>[\w-]+)/delivery-templates/sync/(?P<task_id>[\w-]+)/retry$',
+            DeliverySyncRetryView.as_view()),
+    re_path(
+        r'^teams/(?P<team_name>[\w-]+)/groups/(?P<app_id>[\w-]+)/delivery-templates/sync/(?P<task_id>[\w-]+)'
+        r'/components/(?P<component_key>[\w:+-]+)/logs$', DeliverySyncLogsView.as_view()),
+    re_path(r'^teams/(?P<team_name>[\w-]+)/groups/(?P<app_id>[\w-]+)/delivery-templates/versions/(?P<version_id>[\w-]+)$',
+            DeliveryVersionView.as_view()),
+    re_path(
+        r'^teams/(?P<team_name>[\w-]+)/groups/(?P<app_id>[\w-]+)/delivery-templates/versions/(?P<version_id>[\w-]+)'
+        r'/(?P<operation>installations|exports|listing-requests)$',
+        DeliveryOperationView.as_view()),
+    re_path(r'^enterprises/(?P<enterprise_id>[\w-]+)/development-deliveries$', DevelopmentDeliveriesView.as_view()),
+    re_path(r'^enterprises/(?P<enterprise_id>[\w-]+)/listing-requests/(?P<request_id>[\w-]+)/review$',
+            DeliveryReviewView.as_view()),
+    re_path(r'^enterprises/(?P<enterprise_id>[\w-]+)/listing-requests/(?P<request_id>[\w-]+)/test-deployments$',
+            DeliveryTestView.as_view()),
+    re_path(r'^delivery-tasks/(?P<task_id>[\w-]+)/retry$', DeliveryTaskRetryView.as_view()),
+    re_path(r'^delivery-tasks/(?P<task_id>[\w-]+)$', DeliveryTaskView.as_view()),
+    re_path(r'^delivery-tasks/(?P<task_id>[\w-]+)/download$', DeliveryTaskView.as_view(), {'download': True}),
     # 升级
     re_path(r'^update$', UpgradeView.as_view()),
     re_path(r'^update/regions/(?P<region_name>[\w\-]+)/status$', UpgradeView.as_view()),
@@ -1319,4 +1355,10 @@ urlpatterns += [
     re_path(r'^', include('console.urls.platform_resources')),
     re_path(r'^', include('console.urls.team_resources')),
     re_path(r'^', include('console.urls.cleanup_inventory')),
+]
+
+
+urlpatterns += [
+    re_path(r'^enterprises/(?P<enterprise_id>[\w-]+)/team-applications$', TeamApplicationsView.as_view()),
+    path('enterprises/<str:enterprise_id>/team-applications/<uuid:request_id>/review', TeamApplicationReviewView.as_view()),
 ]

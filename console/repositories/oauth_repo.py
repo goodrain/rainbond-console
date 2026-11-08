@@ -15,7 +15,7 @@ logger = logging.getLogger('default')
 
 class OAuthRepo(object):
     @staticmethod
-    def _auto_create_user_value(value: Any, eid: Optional[str], user_id: str,
+    def _auto_create_user_value(value: Any, eid: Optional[str], user_id: Optional[str],
                                 service: Optional[OAuthServices] = None, system: bool = False) -> bool:
         current = service.auto_create_user if service is not None else False
         enabled = value.get("auto_create_user", current)
@@ -23,10 +23,12 @@ class OAuthRepo(object):
             raise ServiceHandleException("invalid auto_create_user", "自动创建账号开关必须为布尔值")
         if not enabled and not current:
             return False
+        if user_id is None:
+            raise ServiceHandleException("administrator required", "仅平台管理员可配置自动创建账号", status_code=403)
         from console.repositories.enterprise_repo import enterprise_user_perm_repo
         from www.models.main import Users
         actor = Users.objects.filter(user_id=user_id, enterprise_id=eid, is_active=True).first()
-        if not actor or not (actor.sys_admin or enterprise_user_perm_repo.is_admin(eid, user_id)):
+        if not actor or not (actor.sys_admin or enterprise_user_perm_repo.is_admin(eid or "", user_id or "")):
             raise ServiceHandleException("administrator required", "仅平台管理员可配置自动创建账号", status_code=403)
         is_system = service.system if service is not None else system
         oauth_type = service.oauth_type if service is not None else value["oauth_type"]

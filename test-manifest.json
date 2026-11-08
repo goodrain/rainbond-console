@@ -13944,6 +13944,26 @@
       ],
       "test_type": "regression",
       "status": "active"
+    },
+    {
+      "id": "console.team-application.workflow",
+      "title": "Team creation applications and review",
+      "title_zh": "团队创建申请、审核和额度生效",
+      "interface_type": "workflow",
+      "interface": "console.services.team_applications.TeamApplicationService.review",
+      "code_paths": [
+        "console/services/team_applications.py",
+        "console/services/team_application_provisioner.py",
+        "console/views/team_applications.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/team_application_workflow_test.py",
+          "selector": "TeamApplicationWorkflowTest.test_isolated_lifecycle_and_http_contract"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
     }
   ]
 }

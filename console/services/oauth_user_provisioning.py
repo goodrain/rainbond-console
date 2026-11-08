@@ -46,7 +46,8 @@ def provision_gitlab_user(service_id: int, identity: Any, access_token: str, ref
             validate_email(email)
         except ValidationError:
             raise ServiceHandleException("invalid GitLab email", "GitLab 未返回有效邮箱，请补充邮箱后重试")
-        if len(email) > Users._meta.get_field("email").max_length:
+        email_limit = Users._meta.get_field("email").max_length
+        if email_limit is not None and len(email) > email_limit:
             raise ServiceHandleException("invalid GitLab email", "GitLab 返回的邮箱过长，请联系管理员")
         # An email address alone is not proof of ownership of an existing Rainbond account.
         username = gitlab_username(service.pk, external_id)
