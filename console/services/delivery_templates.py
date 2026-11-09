@@ -334,6 +334,8 @@ class DeliveryService:
         with transaction.atomic():
             row = self.repo.version(scope, version_id)
             row = self.m.DeliveryTemplateVersion.objects.select_for_update().get(id=row.id)
+            if row.deleted_at:
+                raise DeliveryError("模板版本已删除，请刷新后重试", 409)
             row.deleted_at, row.deleted_by = timezone.now(), actor(user)
             row.save(update_fields=["deleted_at", "deleted_by"])
             row.listings.filter(status="pending").update(status="cancelled", reviewed_at=timezone.now(), comment="源版本已删除")
@@ -369,6 +371,8 @@ class DeliveryService:
         with transaction.atomic():
             version = self.repo.version(scope, version_id)
             version = self.m.DeliveryTemplateVersion.objects.select_for_update().get(id=version.id)
+            if version.deleted_at:
+                raise DeliveryError("模板版本已删除，不能申请上架", 409)
             reason = str(data.get("reason", "")).strip()
             if not reason or len(reason) > 500:
                 raise DeliveryError("请填写500字以内的上架说明")
