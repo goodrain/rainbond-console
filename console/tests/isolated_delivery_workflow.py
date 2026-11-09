@@ -510,6 +510,68 @@ class DeliveryWorkflowTest(unittest.TestCase):
         reordered["apps"][0]["extend_method_map"]["container_cpu"] = 1500
         self.assertEqual(compare(baseline(SOURCE), baseline(reordered))["status"], "changed")
 
+    def test_retirement_before_listing_lock_does_not_create_a_pending_request(self):
+        from unittest import mock
+        from django.utils import timezone
+        stale_version = self.publish()
+        models.DeliveryTemplateVersion.objects.filter(pk=stale_version.pk).update(deleted_at=timezone.now(),
+                                                                                  deleted_by="First actor")
+        # Model a read completed before another transaction retired the version.
+        with mock.patch.object(self.service.repo, "version", return_value=stale_version):
+            with self.assertRaises(DeliveryError):
+                self.service.listing(USER, SCOPE, stale_version.id, {"reason": "Release"})
+        self.assertEqual(models.DeliveryListingRequest.objects.count(), 0)
+
+    def test_concurrent_delete_preserves_the_first_retirement_actor(self):
+        from unittest import mock
+        from django.utils import timezone
+        stale_version = self.publish()
+        retired_at = timezone.now()
+        models.DeliveryTemplateVersion.objects.filter(pk=stale_version.pk).update(deleted_at=retired_at,
+                                                                                  deleted_by="First actor")
+        with mock.patch.object(self.service.repo, "version", return_value=stale_version):
+            with self.assertRaises(DeliveryError):
+                self.service.delete(USER, SCOPE, stale_version.id)
+        stale_version.refresh_from_db()
+        self.assertEqual(stale_version.deleted_by, "First actor")
+        self.assertEqual(stale_version.deleted_at, retired_at)
+
+    def test_empty_application_source_does_not_call_a_nonempty_component_endpoint(self):
+        import json
+        import sys
+        import types
+        from unittest import mock
+        from console.services.delivery_gateway import DeliveryGateway
+        main = types.ModuleType("www.models.main")
+        main.Tenants = mock.Mock()
+        main.Tenants.objects.get.return_value = SimpleNamespace(tenant_name="team", tenant_id="tenant")
+        main.ServiceGroup = mock.Mock()
+        main.ServiceGroup.objects.filter.return_value.first.return_value = SimpleNamespace(
+            ID=123, group_name="Empty application", governance_mode="KUBERNETES_NATIVE_SERVICE")
+        main.ServiceGroupRelation = mock.Mock()
+        main.ServiceGroupRelation.objects.filter.return_value.values_list.return_value = []
+        shared = types.ModuleType("console.services.share_services")
+        shared.share_service = mock.Mock()
+        shared.share_service.query_share_service_info.return_value = []
+        shared.share_service.get_group_services_used_plugins.return_value = []
+        shared.share_service.get_k8s_resources.return_value = []
+        shared.share_service.config_groups.return_value = []
+        shared.share_service._list_http_ingresses.return_value = []
+        encoder = types.ModuleType("console.services.app_import_and_export_service")
+        encoder.MyEncoder = json.JSONEncoder
+        gateway, api = DeliveryGateway(), mock.Mock()
+        api.get_team_services_deploy_version.return_value = (None, {"list": None})
+        modules = {
+            "www.models.main": main,
+            "console.services.share_services": shared,
+            "console.services.app_import_and_export_service": encoder
+        }
+        with mock.patch.dict(sys.modules, modules), mock.patch.object(gateway, "region_api", return_value=api):
+            manifest, name = gateway.source(SCOPE)
+        self.assertEqual(manifest["apps"], [])
+        self.assertEqual(name, "Empty application")
+        api.get_team_services_deploy_version.assert_not_called()
+
 
 if __name__ == "__main__":
     unittest.main()

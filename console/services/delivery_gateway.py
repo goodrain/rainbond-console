@@ -23,11 +23,13 @@ class DeliveryGateway:
             raise DeliveryError("源应用不存在", 404)
         services = share_service.query_share_service_info(tenant, app.ID, include_unbuilt=True)
         component_ids = list(ServiceGroupRelation.objects.filter(group_id=app.ID).values_list("service_id", flat=True))
-        _, response = self.region_api().get_team_services_deploy_version(scope["region_name"], tenant.tenant_name,
-                                                                         {"service_ids": component_ids})
-        if not response or not isinstance(response.get("list"), list):
-            raise DeliveryError("无法获取组件构建信息，请稍后重试", 502)
-        versions = {item["service_id"]: item for item in response["list"] if item}
+        versions = {}
+        if component_ids:
+            _, response = self.region_api().get_team_services_deploy_version(scope["region_name"], tenant.tenant_name,
+                                                                             {"service_ids": component_ids})
+            if not response or not isinstance(response.get("list"), list):
+                raise DeliveryError("无法获取组件构建信息，请稍后重试", 502)
+            versions = {item["service_id"]: item for item in response["list"] if item}
         for component in services:
             version = versions.get(component["service_id"], {})
             component["delivery_available"] = version.get("final_status") == "success"
