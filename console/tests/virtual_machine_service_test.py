@@ -42,11 +42,14 @@ import django  # noqa: E402
 django.setup()
 
 from django.test import TestCase  # noqa: E402
+from rest_framework.test import APIRequestFactory  # noqa: E402
 
 from console.models.main import ComponentK8sAttributes  # noqa: E402
 from console.repositories.virtual_machine import vm_repo  # noqa: E402
 from console.services.app import app_service  # noqa: E402
+from console.services.app_config import volume_service  # noqa: E402
 from console.services.virtual_machine import vms  # noqa: E402
+from console.views.app_config.app_domain import VirtualMachineCapabilityView  # noqa: E402
 from www.models.main import (  # noqa: E402
     TenantServiceEnvVar,
     TenantServiceInfo,
@@ -58,6 +61,8 @@ from www.models.main import (  # noqa: E402
 class VirtualMachineServiceTests(TestCase):
     # capability_id: console.virtual-machine.registry-root-disk
     # capability_id: console.vm-run.ssh-public-key-bootstrap
+    # capability_id: console.vm-capabilities.persistent-storage-options
+    # capability_id: console.vm-capabilities.persistent-storage-options
 
     def _create_vm_service(self, tenant_id, service_id, image, extend_method="vm", create_status="complete"):
         return TenantServiceInfo.objects.create(
@@ -89,6 +94,102 @@ class VirtualMachineServiceTests(TestCase):
         self.assertEqual("ssh-ed25519 AAAA", attrs["vm_ssh_authorized_key"])
         self.assertEqual("uefi", attrs["vm_boot_mode"])
         self.assertEqual("qcow2", attrs["vm_boot_source_format"])
+
+    def test_vm_persistent_storage_options_share_service_options_and_filter_unavailable_types(self):
+        tenant = SimpleNamespace(tenant_name="demo-team")
+        service = SimpleNamespace(service_region="demo-region")
+        region_options = [
+            {"volume_type": "sharedcfs", "name_show": "Shared CFS", "enable": True, "access_mode": ["RWX"]},
+            {"volume_type": "memoryfs", "name_show": "MemoryFS"},
+            {"volume_type": "config-file", "name_show": "Config file"},
+            {"volume_type": "disabled-store", "name_show": "Disabled", "enable": False},
+            {"volume_type": "local-path", "name_show": "Local path"},
+        ]
+
+        with mock.patch.dict(os.environ, {"USE_SAAS": ""}), \
+                mock.patch("console.services.app_config._volume_service_module.region_api.get_volume_options",
+                           return_value=SimpleNamespace(list=region_options)) as get_options:
+            component_options = volume_service.get_service_support_volume_options(tenant, service)
+            storage_options = volume_service.get_vm_persistent_storage_options(tenant, "demo-region")
+
+        get_options.assert_called_with("demo-region", "demo-team")
+        self.assertEqual("memoryfs", component_options[0]["volume_type"])
+        self.assertEqual("百度云", component_options[1]["name_show"])
+        self.assertIn("disabled-store", [option["volume_type"] for option in component_options])
+        self.assertEqual(["sharedcfs", "local-path"], [option["volume_type"] for option in storage_options])
+        self.assertEqual("百度云", storage_options[0]["name_show"])
+
+    def test_vm_storage_options_keep_saas_provider_override(self):
+        tenant = SimpleNamespace(tenant_name="demo-team")
+
+        with mock.patch.dict(os.environ, {"USE_SAAS": "true", "CLOUD_PROVIDER": "baidu"}), \
+                mock.patch("console.services.app_config._volume_service_module.region_api.get_volume_options") as get_options:
+            options = volume_service.get_vm_persistent_storage_options(tenant, "demo-region")
+
+        self.assertEqual([{"volume_type": "cephfs-external", "name_show": "百度云存储", "provisioner": ""}], options)
+        get_options.assert_not_called()
+
+    def test_vm_persistent_storage_options_accept_dict_and_reject_malformed_region_responses(self):
+        tenant = SimpleNamespace(tenant_name="demo-team")
+        option = {"volume_type": "ceph-block", "name_show": "Ceph block", "enable": True}
+        with mock.patch.dict(os.environ, {"USE_SAAS": ""}), \
+                mock.patch("console.services.app_config._volume_service_module.region_api.get_volume_options",
+                           return_value={"list": [option]}):
+            self.assertEqual([option], volume_service.get_vm_persistent_storage_options(tenant, "demo-region"))
+
+        malformed_responses = (None, {}, {"list": None}, {"list": "not-a-list"}, SimpleNamespace(list=None))
+        for response in malformed_responses:
+            with self.subTest(response_type=type(response).__name__), \
+                    mock.patch.dict(os.environ, {"USE_SAAS": ""}), \
+                    mock.patch("console.services.app_config._volume_service_module.region_api.get_volume_options",
+                               return_value=response), \
+                    self.assertRaises(ValueError):
+                volume_service.get_vm_persistent_storage_options(tenant, "demo-region")
+
+    def test_vm_capabilities_include_persistent_storage_options_and_failure_is_not_success(self):
+        factory = APIRequestFactory()
+        view = VirtualMachineCapabilityView()
+        view.tenant = SimpleNamespace(tenant_name="demo-team")
+        view.response_region = "demo-region"
+        request = view.initialize_request(factory.get("/console/teams/demo-team/vm/capabilities"))
+        region_capabilities = {"gpu_supported": True, "usb_supported": False}
+        options = [{"volume_type": "ceph-block", "name_show": "Persistent block"}]
+
+        with mock.patch("console.views.app_config.app_domain.vms.get_vm_capabilities",
+                        return_value=region_capabilities), \
+                mock.patch("console.views.app_config.app_domain.volume_service.get_vm_persistent_storage_options",
+                           return_value=options):
+            response = view.get(request)
+
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(region_capabilities, {
+            key: response.data["data"]["bean"][key] for key in region_capabilities
+        })
+        self.assertEqual(options, response.data["data"]["bean"]["storage_options"])
+        self.assertFalse(response.data["data"]["bean"]["storage_options_error"])
+
+        with mock.patch("console.views.app_config.app_domain.vms.get_vm_capabilities",
+                        return_value=region_capabilities), \
+                mock.patch("console.views.app_config.app_domain.volume_service.get_vm_persistent_storage_options",
+                           return_value=[]):
+            empty_response = view.get(request)
+
+        self.assertEqual([], empty_response.data["data"]["bean"]["storage_options"])
+        self.assertFalse(empty_response.data["data"]["bean"]["storage_options_error"])
+
+        with mock.patch("console.views.app_config.app_domain.vms.get_vm_capabilities",
+                        return_value=region_capabilities), \
+                mock.patch("console.views.app_config.app_domain.volume_service.get_vm_persistent_storage_options",
+                           side_effect=RuntimeError("opaque storage failure")):
+            failed_response = view.get(request)
+
+        self.assertEqual(200, failed_response.status_code)
+        self.assertEqual(region_capabilities, {
+            key: failed_response.data["data"]["bean"][key] for key in region_capabilities
+        })
+        self.assertEqual([], failed_response.data["data"]["bean"]["storage_options"])
+        self.assertTrue(failed_response.data["data"]["bean"]["storage_options_error"])
+        self.assertNotIn("opaque storage failure", json.dumps(failed_response.data))
 
     def test_init_vm_image_app_uses_4cpu_8gb_defaults(self):
         service = app_service._AppService__init_vm_image_app("demo-region")

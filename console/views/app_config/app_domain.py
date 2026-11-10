@@ -14,7 +14,7 @@ from console.repositories.group import group_repo, group_service_relation_repo
 from console.repositories.k8s_resources import k8s_resources_repo
 from console.repositories.region_app import region_app_repo
 from console.repositories.region_repo import region_repo
-from console.services.app_config import domain_service, port_service
+from console.services.app_config import domain_service, port_service, volume_service
 from console.services.config_service import EnterpriseConfigService
 from console.services.gateway_api import gateway_api
 from console.services.operation_log import operation_log_service, Operation
@@ -1553,7 +1553,15 @@ class VirtualMachineImageView(RegionTenantHeaderView):
 
 class VirtualMachineCapabilityView(RegionTenantHeaderView):
     def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
-        data = vms.get_vm_capabilities(self.response_region, self.tenant.tenant_name)
+        data = dict(vms.get_vm_capabilities(self.response_region, self.tenant.tenant_name) or {})
+        try:
+            data["storage_options"] = volume_service.get_vm_persistent_storage_options(
+                self.tenant, self.response_region)
+            data["storage_options_error"] = False
+        except Exception:
+            logger.warning("failed to load VM storage options for region %s", self.response_region)
+            data["storage_options"] = []
+            data["storage_options_error"] = True
         result = general_message(200, "success", "查询成功", bean=data)
         return Response(result, status=result["code"])
 

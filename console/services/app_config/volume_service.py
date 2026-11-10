@@ -6,7 +6,7 @@ import json
 import logging
 import os
 import re
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, List, Optional, Tuple
 
 from console.constants import AppConstants, ServiceLanguageConstants
 from console.enum.component_enum import ComponentType
@@ -99,7 +99,7 @@ class AppVolumeService(object):
                 return False
         return True
 
-    def get_service_support_volume_options(self, tenant: Tenants, service: TenantServiceInfo) -> List[dict]:
+    def get_region_volume_options(self, tenant: Tenants, region_name: str, strict: bool = False) -> List[dict]:
         base_opts = [{"volume_type": "memoryfs", "name_show": "临时存储"}]
 
         # 如果是 SAAS 环境，根据 CLOUD_PROVIDER 返回对应的云存储配置
@@ -115,15 +115,42 @@ class AppVolumeService(object):
             return base_opts
 
         # 默认情况：从 region API 获取存储选项
-        body = region_api.get_volume_options(service.service_region, tenant.tenant_name)
-        if body and hasattr(body, 'list') and body.list:
-            for opt in body.list:
+        body = region_api.get_volume_options(region_name, tenant.tenant_name)
+        if strict:
+            if isinstance(body, dict):
+                if "list" not in body:
+                    raise ValueError("invalid region volume options response")
+                region_options = body["list"]
+            elif body is not None and hasattr(body, "list"):
+                region_options = body.list
+            else:
+                raise ValueError("invalid region volume options response")
+            if not isinstance(region_options, list):
+                raise ValueError("invalid region volume options response")
+        else:
+            region_options = body.list if body and hasattr(body, "list") and body.list else []
+
+        if region_options:
+            for opt in region_options:
                 # 将 sharedcfs 类型的存储显示为"百度云"
                 if opt.get("volume_type") == "sharedcfs":
                     opt["name_show"] = "百度云"
                 base_opts.append(opt)
 
         return base_opts
+
+    def get_service_support_volume_options(self, tenant: Tenants, service: TenantServiceInfo) -> List[dict]:
+        return self.get_region_volume_options(tenant, service.service_region)
+
+    def get_vm_persistent_storage_options(self, tenant: Tenants, region_name: str) -> List[dict]:
+        excluded_types = {"memoryfs", "config-file"}
+        return [
+            option for option in self.get_region_volume_options(tenant, region_name, strict=True)
+            if isinstance(option, dict)
+            and str(option.get("volume_type") or "").strip()
+            and str(option.get("volume_type") or "").strip().lower() not in excluded_types
+            and option.get("enable", True) is not False
+        ]
 
     def normalize_volume_option_access_modes(self, option: Any) -> List[str]:
         access_modes = option.get("access_mode", []) if isinstance(option, dict) else []
@@ -193,7 +220,7 @@ class AppVolumeService(object):
         如果集群中有该类型的存储，优先使用它而不是模板中的存储类型
         例如: PREFERRED_VOLUME_TYPE=sharedcfs
         """
-        settings = {}  # type: Dict[str, Any]
+        settings = {}
         if volume_type in self.simple_volume_type:
             settings["changed"] = False
             return settings

@@ -13363,6 +13363,37 @@
       "status": "active"
     },
     {
+      "id": "console.vm-capabilities.persistent-storage-options",
+      "title": "Expose persistent storage options through VM capabilities",
+      "title_zh": "VM创建能力响应返回真实持久化存储选项",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.app_config.app_domain.VirtualMachineCapabilityView.get",
+      "code_paths": [
+        "console/services/app_config/volume_service.py",
+        "console/views/app_config/app_domain.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/virtual_machine_service_test.py",
+          "selector": "VirtualMachineServiceTests.test_vm_persistent_storage_options_share_service_options_and_filter_unavailable_types"
+        },
+        {
+          "path": "console/tests/virtual_machine_service_test.py",
+          "selector": "VirtualMachineServiceTests.test_vm_storage_options_keep_saas_provider_override"
+        },
+        {
+          "path": "console/tests/virtual_machine_service_test.py",
+          "selector": "VirtualMachineServiceTests.test_vm_persistent_storage_options_accept_dict_and_reject_malformed_region_responses"
+        },
+        {
+          "path": "console/tests/virtual_machine_service_test.py",
+          "selector": "VirtualMachineServiceTests.test_vm_capabilities_include_persistent_storage_options_and_failure_is_not_success"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.vm-storage-any-access-mode",
       "title": "Allow VM storage with any access mode",
       "title_zh": "允许虚拟机使用任意访问模式的存储",
