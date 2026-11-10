@@ -13,6 +13,7 @@ class DeliveryTemplate(models.Model):
     app_name = models.CharField(max_length=128)
     logo = models.CharField(max_length=2048, blank=True, default="")
     description = models.TextField(blank=True, default="")
+    details = models.TextField(blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

@@ -1,4 +1,4 @@
-"""Short-lived installation parameters encrypted using the Console application key."""
+"""Version defaults and installation overrides encrypted with the Console application key."""
 import base64
 import hashlib
 import json

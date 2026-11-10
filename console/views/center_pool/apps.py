@@ -51,7 +51,8 @@ def save_delivery_profile(view: JWTAuthApiView, request: Request, enterprise_id:
             RainbondCenterApp.objects.filter(enterprise_id=enterprise_id,
                                              app_id=template.id.hex).update(app_name=template.name,
                                                                             pic=template.logo,
-                                                                            describe=template.description)
+                                                                            describe=template.description,
+                                                                            details=template.details)
             new_information = market_app_service.json_rainbond_app(template.name, "team", [], template.description,
                                                                    template.logo)
             comment = operation_log_service.generate_generic_comment(operation=Operation.UPDATE if app_id else Operation.CREATE,

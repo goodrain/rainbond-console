@@ -158,3 +158,5 @@ local_allinone.sh
 !console/migrations/0011_independent_delivery_templates.py
 
 !console/migrations/0012_delivery_template_metadata.py
+
+!console/migrations/0013_delivery_template_details.py

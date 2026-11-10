@@ -6,7 +6,7 @@ from django.db import transaction
 from django.utils import timezone
 from console.repositories.delivery_template_repo import DeliveryRepository
 from console.services.delivery_manifest import (DeliveryError, baseline, compare, digest, prepare, public_manifest,
-                                                template_metadata, retain_artifacts)
+                                                freeze_manifest, template_metadata, retain_artifacts)
 
 
 def actor(user):
@@ -31,7 +31,13 @@ class DeliveryService:
             raise DeliveryError("无权访问此模板", 403)
 
     def metadata_data(self, template):
-        return {"id": str(template.id), "name": template.name, "logo": template.logo, "description": template.description}
+        return {
+            "id": str(template.id),
+            "name": template.name,
+            "logo": template.logo,
+            "description": template.description,
+            "details": template.details
+        }
 
     def create(self, user, scope, data, request_key=None):
         self._identity(user, scope)
@@ -55,9 +61,10 @@ class DeliveryService:
             version_data = {
                 **data, "template_name": template.name,
                 "logo": template.logo,
-                "template_description": template.description
+                "template_description": template.description,
+                "template_details": template.details
             }
-            manifest = public_manifest(retain_artifacts(prepare(source, version_data, template.id.hex)))
+            manifest = freeze_manifest(retain_artifacts(prepare(source, version_data, template.id.hex)))
             manifest["delivery_source_region"] = scope["region_name"]
             version = self.m.DeliveryTemplateVersion.objects.create(template=template,
                                                                     version=manifest["group_version"],
@@ -83,7 +90,8 @@ class DeliveryService:
             user, scope, {
                 "template_name": data.get("name") or "",
                 "logo": data.get("pic") or "",
-                "template_description": data.get("describe") or ""
+                "template_description": data.get("describe") or "",
+                "template_details": data.get("details", template.details if template else "") or ""
             })
 
     def update_metadata(self, user, scope, data):
@@ -92,9 +100,11 @@ class DeliveryService:
         with transaction.atomic():
             template, _ = self.m.DeliveryTemplate.objects.get_or_create(**scope, defaults={**metadata, "app_name": ""})
             template = self.m.DeliveryTemplate.objects.select_for_update().get(pk=template.pk)
+            if "template_details" not in data:
+                metadata.pop("details", None)
             for field, value in metadata.items():
                 setattr(template, field, value)
-            template.save(update_fields=["name", "description", "logo"])
+            template.save(update_fields=list(metadata))
         return template
 
     def start(self, user, scope, data, request_key=None):
@@ -110,7 +120,7 @@ class DeliveryService:
                                                                             "name": str(data.get("template_name", ""))[:64],
                                                                             "app_name": app_name
                                                                         })
-            manifest = public_manifest(prepare(source, data, template.id.hex))
+            manifest = freeze_manifest(prepare(source, data, template.id.hex))
             if template.versions.filter(version=manifest["group_version"]).exists():
                 raise DeliveryError("此模板版本号已存在，请使用新的版本号", 409)
             task = self.m.DeliveryTask.objects.create(template=template,
