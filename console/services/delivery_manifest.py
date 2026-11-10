@@ -60,11 +60,28 @@ def public_manifest(value):
         return value
     result = {}
     for key, item in value.items():
-        if key in ("service_image", "service_slug", "plugin_image", "registry_auth", "vm_image_token") or SENSITIVE.search(key):
+        if key in ("service_image", "service_slug", "plugin_image", "registry_auth", "vm_image_token",
+                   "encrypted_environment") or SENSITIVE.search(key):
             continue
         result[key] = clean_source(item) if key in ("git_url", "source") else public_manifest(item)
     if value.get("attr_name") and (sensitive_env(value)):
-        result.update(attr_value="", is_sensitive=True, required_on_install=True)
+        result.update(attr_value="", is_sensitive=True)
+        result.pop("required_on_install", None)
+    return result
+
+
+def freeze_manifest(manifest):
+    """Keep version defaults on the server while returning only masked definitions."""
+    from console.services.delivery_credentials import seal
+    environment = {}
+    for component in manifest.get("apps", []):
+        variables = component.get("service_env_map_list", []) + component.get("service_connect_info_map_list", [])
+        values = {env["attr_name"]: env.get("attr_value", "") for env in variables if sensitive_env(env)}
+        if values:
+            environment[component["service_id"]] = values
+    result = public_manifest(manifest)
+    if environment:
+        result["encrypted_environment"] = seal(environment)
     return result
 
 
@@ -137,7 +154,8 @@ def prepare(source, payload, template_id):
         "annotations": {
             "version_info": description,
             "describe": str(payload.get("template_description", "")).strip(),
-            "logo": str(payload.get("logo", "")).strip()
+            "logo": str(payload.get("logo", "")).strip(),
+            "details": str(payload.get("template_details", ""))
         }
     })
     manifest["apps"] = []
@@ -155,7 +173,8 @@ def prepare(source, payload, template_id):
         values = {env["attr_name"]: env.get("attr_value", "") for env in incoming}
         for env in variables:
             if sensitive_env(env):
-                env.update(attr_value="", is_sensitive=True, required_on_install=True)
+                env["is_sensitive"] = True
+                env.pop("required_on_install", None)
             else:
                 env["attr_value"] = str(values[env["attr_name"]])
         if not component.get("vm") and component.get("extend_method") != "vm":
@@ -166,7 +185,9 @@ def prepare(source, payload, template_id):
             fields = ("init_memory", "container_cpu") if daemonset else ("min_node", "max_node", "step_node", "init_memory",
                                                                          "container_cpu")
             for field in fields:
-                value = supplied.get(field, scale.get(field))
+                value = supplied.get(field)
+                if value is None or value == "":
+                    value = scale.get(field)
                 if type(value) is not int or value < (0 if field in ("init_memory", "container_cpu") else 1):
                     raise DeliveryError("组件资源与实例配置无效")
                 scale[field] = value
@@ -207,15 +228,18 @@ def template_metadata(payload):
     name = str(payload.get("template_name", "")).strip()
     description = str(payload.get("template_description", "")).strip()
     logo = str(payload.get("logo", "")).strip()
+    details = str(payload.get("template_details", ""))
     if not name or len(name) > 64:
         raise DeliveryError("请填写64字以内的模板名称")
     if len(description) > 400 or len(logo) > 2048:
         raise DeliveryError("应用描述不能超过400字，Logo 地址不能超过2048字符")
+    if len(details) > 20000:
+        raise DeliveryError("完整描述不能超过20000字")
     if logo:
         parts = urlsplit(logo)
         if parts.username or parts.password or not (logo.startswith("/") or parts.scheme in ("http", "https")):
             raise DeliveryError("请使用上传后的 Logo 图片地址")
-    return {"name": name, "description": description, "logo": logo}
+    return {"name": name, "description": description, "logo": logo, "details": details}
 
 
 def retain_artifacts(manifest):

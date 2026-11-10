@@ -152,7 +152,7 @@ class DeliveryGateway:
 
     def export(self, task):
         from console.services.app_import_and_export_service import export_service
-        manifest = copy.deepcopy(task.version.manifest)
+        manifest = self.version_manifest(task.version)
         manifest = export_service._AppExportService__normalize_export_template(manifest)
         manifest.setdefault("annotations", {}).update(version_info=task.version.description)
         manifest["helm_chart"] = {"image_handle": task.payload.get("image_handle", "image_save")}
@@ -214,8 +214,6 @@ class DeliveryGateway:
             environment = open_environment(task.payload.get("encrypted_environment", ""))
             values = environment.get(component["service_id"], {})
             for env in component.get("service_env_map_list", []) + component.get("service_connect_info_map_list", []):
-                if env.get("required_on_install") and not values.get(env["attr_name"]):
-                    raise DeliveryError("请填写安装时必填的环境变量")
                 if env["attr_name"] in values:
                     env["attr_value"] = str(values[env["attr_name"]])
         from console.appstore.appstore import app_store
@@ -322,6 +320,7 @@ class DeliveryGateway:
                 market, {
                     "name": task.version.manifest["group_name"],
                     "desc": task.version.manifest.get("annotations", {}).get("describe", ""),
+                    "introduction": task.version.manifest.get("annotations", {}).get("details", ""),
                     "logo": task.version.manifest.get("annotations", {}).get("logo", ""),
                     "publish_type": "private",
                     "tags": []
@@ -368,7 +367,7 @@ class DeliveryGateway:
     def publish_catalog(self, task):
         from console.models.main import RainbondCenterApp, RainbondCenterAppVersion
         from console.services.app import app_market_service
-        manifest = public_manifest(task.version.manifest)
+        manifest = self.version_manifest(task.version)
         destination = task.payload["destination"]
         results = {item.key: item.result for item in task.items.all()}
         for component in manifest["apps"]:
@@ -400,6 +399,7 @@ class DeliveryGateway:
                                                            "enterprise_id": task.template.enterprise_id,
                                                            "scope": "enterprise",
                                                            "describe": manifest.get("annotations", {}).get("describe", ""),
+                                                           "details": manifest.get("annotations", {}).get("details", ""),
                                                            "pic": manifest.get("annotations", {}).get("logo", ""),
                                                            "create_user": task.actor_id,
                                                            "create_team": task.template.team_name,
@@ -448,6 +448,32 @@ class DeliveryGateway:
             published.sort(key=lambda row: row.destination.get("type") != "local")
             for row in published:
                 if row.publication_task and row.publication_task.result.get("published_manifest"):
-                    return copy.deepcopy(row.publication_task.result["published_manifest"]), row.destination.get(
-                        "market_id", "")
-        return copy.deepcopy(task.version.manifest), ""
+                    return self.version_manifest(task.version,
+                                                 row.publication_task.result["published_manifest"]), row.destination.get(
+                                                     "market_id", "")
+        return self.version_manifest(task.version), ""
+
+    def version_manifest(self, version, published=None):
+        from console.services.delivery_credentials import open_environment
+        saved = version.manifest
+        environment = open_environment(saved.get("encrypted_environment", ""))
+        legacy = [(component["service_id"], env["attr_name"]) for component in saved.get("apps", [])
+                  for env in component.get("service_env_map_list", []) + component.get("service_connect_info_map_list", [])
+                  if env.get("required_on_install")]
+        if legacy and not saved.get("encrypted_environment"):
+            scope = {key: getattr(version.template, key) for key in ("enterprise_id", "team_name", "region_name", "app_id")}
+            source, _ = self.source(scope)
+            for component in source.get("apps", []):
+                for env in component.get("service_env_map_list", []) + component.get("service_connect_info_map_list", []):
+                    if (component["service_id"], env["attr_name"]) in legacy:
+                        environment.setdefault(component["service_id"], {})[env["attr_name"]] = env.get("attr_value", "")
+            if any(name not in environment.get(service_id, {}) for service_id, name in legacy):
+                raise DeliveryError("旧版本环境配置已丢失，请重新创建模板版本")
+        manifest = public_manifest(published if published is not None else saved)
+        for component in manifest.get("apps", []):
+            values = environment.get(component["service_id"], {})
+            for env in component.get("service_env_map_list", []) + component.get("service_connect_info_map_list", []):
+                env.pop("required_on_install", None)
+                if env["attr_name"] in values:
+                    env["attr_value"] = values[env["attr_name"]]
+        return manifest

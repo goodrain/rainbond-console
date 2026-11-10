@@ -168,7 +168,13 @@ class DeliveryWorkflowTest(unittest.TestCase):
                 Path(__file__).parents[1] / "migrations/0012_delivery_template_metadata.py")
             next_module = importlib.util.module_from_spec(next_spec)
             next_spec.loader.exec_module(next_module)
-            next_module.Migration("0012_delivery_template_metadata", "console").apply(state, editor)
+            state = next_module.Migration("0012_delivery_template_metadata", "console").apply(state, editor)
+            details_spec = importlib.util.spec_from_file_location(
+                "delivery_details_migration",
+                Path(__file__).parents[1] / "migrations/0013_delivery_template_details.py")
+            details_module = importlib.util.module_from_spec(details_spec)
+            details_spec.loader.exec_module(details_module)
+            details_module.Migration("0013_delivery_template_details", "console").apply(state, editor)
 
     def setUp(self):
         with connection.cursor() as cursor:
@@ -200,6 +206,142 @@ class DeliveryWorkflowTest(unittest.TestCase):
         self.assertEqual(self.gateway.calls, ["build-1"])
         self.assertEqual(version.id, self.service.publish(USER, SCOPE, job.id).id)
         self.assertFalse(any("snapshot" in field.name for model in self.tables for field in model._meta.fields))
+
+    def test_optional_resource_overrides_inherit_existing_defaults(self):
+        payload = copy.deepcopy(PAYLOAD)
+        payload["component_overrides"][0]["extend_method_map"] = {"max_node": None, "step_node": ""}
+        manifest = prepare(SOURCE, payload, "template")
+        self.assertEqual(manifest["apps"][0]["extend_method_map"], SOURCE["apps"][0]["extend_method_map"])
+        payload["component_overrides"][0]["extend_method_map"] = {"container_cpu": 0}
+        manifest = prepare(SOURCE, payload, "template")
+        self.assertEqual(manifest["apps"][0]["cpu"], 0)
+        self.assertEqual(manifest["apps"][0]["memory"], 128)
+        payload["component_overrides"][0]["extend_method_map"] = {"max_node": -1}
+        with self.assertRaises(DeliveryError):
+            prepare(SOURCE, payload, "template")
+
+    def test_installation_reuses_frozen_environment_without_exposing_or_requesting_values(self):
+        from unittest import mock
+        from console.services.delivery_gateway import DeliveryGateway
+        source = copy.deepcopy(SOURCE)
+        source["apps"][0]["service_env_map_list"][1]["attr_value"] = "$SOURCE_VALUE"
+        with mock.patch.object(self.gateway, "source", return_value=(source, "App")):
+            version = self.create_version(PAYLOAD)
+        public = self.service.version_data(version)
+        self.assertEqual(public["installation_parameters"], [])
+        self.assertNotIn("encrypted_environment", public["manifest"])
+        self.assertEqual(public["manifest"]["apps"][0]["service_env_map_list"][1]["attr_value"], "")
+        self.assertNotIn("$SOURCE_VALUE", str(version.manifest))
+        task = self.service.operation(USER, SCOPE, version.id, "delivery",
+                                      {"target": {
+                                          "team_name": "team",
+                                          "region_name": "region"
+                                      }})
+        gateway = DeliveryGateway()
+        with mock.patch.object(gateway, "source", side_effect=AssertionError("New versions must not read live configuration")):
+            manifest, _ = gateway.installation_manifest(task)
+        variable = manifest["apps"][0]["service_env_map_list"][1]
+        self.assertEqual(variable["attr_value"], "$SOURCE_VALUE")
+        self.assertNotIn("required_on_install", variable)
+        self.assertNotIn("encrypted_environment", manifest)
+
+    def test_legacy_installation_recovers_automatically_cleared_environment(self):
+        from unittest import mock
+        from console.services.delivery_gateway import DeliveryGateway
+        version = self.create_version(PAYLOAD)
+        version.manifest.pop("encrypted_environment", None)
+        variable = version.manifest["apps"][0]["service_env_map_list"][1]
+        variable.update(attr_value="", is_sensitive=True, required_on_install=True)
+        version.save()
+        task = self.service.operation(USER, SCOPE, version.id, "delivery",
+                                      {"target": {
+                                          "team_name": "team",
+                                          "region_name": "region"
+                                      }})
+        source = copy.deepcopy(SOURCE)
+        source["apps"][0]["service_env_map_list"][1]["attr_value"] = "$SOURCE_VALUE"
+        gateway = DeliveryGateway()
+        with mock.patch.object(gateway, "source", return_value=(source, "App")):
+            manifest, _ = gateway.installation_manifest(task)
+        self.assertEqual(manifest["apps"][0]["service_env_map_list"][1]["attr_value"], "$SOURCE_VALUE")
+        self.assertNotIn("required_on_install", manifest["apps"][0]["service_env_map_list"][1])
+
+    def test_legacy_delivery_task_reaches_existing_installer_without_environment_input(self):
+        import sys
+        import types
+        from unittest import mock
+        from console.services.delivery_gateway import DeliveryGateway
+        version = self.create_version(PAYLOAD)
+        version.manifest.pop("encrypted_environment", None)
+        version.manifest["apps"][0]["service_env_map_list"][1].update(
+            attr_value="", is_sensitive=True, required_on_install=True)
+        version.save()
+        task = self.service.operation(USER, SCOPE, version.id, "delivery", {
+            "target": {"team_name": "team", "region_name": "region", "app_name": "Delivered App"}})
+        source = copy.deepcopy(SOURCE)
+        source["apps"][0]["service_env_map_list"][1]["attr_value"] = "$SOURCE_VALUE"
+        main = types.ModuleType("www.models.main")
+        for name in ("Tenants", "ServiceGroup", "Users", "TenantServiceGroup"):
+            setattr(main, name, mock.Mock())
+        tenant = SimpleNamespace(tenant_id="target-team-id", tenant_name="team", enterprise_id="enterprise")
+        region = SimpleNamespace(region_name="region")
+        target_app = SimpleNamespace(ID=42)
+        main.Tenants.objects.get.return_value = tenant
+        main.Users.objects.get.return_value = USER
+        main.ServiceGroup.objects.filter.return_value.first.return_value = None
+        main.ServiceGroup.objects.get.return_value = target_app
+        main.TenantServiceGroup.objects.filter.return_value.first.return_value = None
+        models_main = types.ModuleType("console.models.main")
+        models_main.RegionConfig = mock.Mock()
+        models_main.RegionConfig.objects.get.return_value = region
+        group_module = types.ModuleType("console.services.group_service")
+        group_module.group_service = mock.Mock()
+        group_module.group_service.create_app.return_value = {"group_id": 42}
+        market_module = types.ModuleType("console.services.market_app_service")
+        market_module.market_app_service = mock.Mock()
+        market_module.market_app_service._extract_event_ids.return_value = ["deploy-event"]
+        upgrade = types.ModuleType("console.services.market_app.app_upgrade")
+        upgrade.AppUpgrade = mock.Mock()
+        installer = upgrade.AppUpgrade.return_value
+        installer.new_app.components.return_value = [SimpleNamespace(component=SimpleNamespace(component_id="new-web"))]
+        preflight = types.ModuleType("console.services.market_app_preflight_service")
+        preflight.market_install_preflight_service = mock.Mock()
+        preflight.market_install_preflight_service.run.return_value = {"should_block": False}
+        store = types.ModuleType("console.appstore.appstore")
+        store.app_store = mock.Mock()
+        store.app_store.get_app_hub_info.return_value = {}
+        modules = {"www.models.main": main, "console.models.main": models_main,
+                   "console.services.group_service": group_module, "console.services.market_app_service": market_module,
+                   "console.services.market_app.app_upgrade": upgrade,
+                   "console.services.market_app_preflight_service": preflight,
+                   "console.appstore.appstore": store}
+        gateway = DeliveryGateway()
+        service = DeliveryService(models=models, gateway=gateway)
+        with mock.patch.dict(sys.modules, modules), mock.patch.object(gateway, "source", return_value=(source, "App")):
+            service.advance(task.id)
+        task.refresh_from_db()
+        self.assertEqual(task.status, "running")
+        self.assertEqual(task.error, "")
+        self.assertEqual(task.result["app_id"], "42")
+        self.assertEqual(task.result["service_ids"], ["new-web"])
+        self.assertEqual(task.result["event_ids"], ["deploy-event"])
+        group_module.group_service.create_app.assert_called_once()
+        installer.install.assert_called_once_with()
+        args = upgrade.AppUpgrade.call_args
+        self.assertTrue(args.kwargs["is_deploy"])
+        self.assertEqual(args.args[7]["apps"][0]["service_env_map_list"][1]["attr_value"], "$SOURCE_VALUE")
+        self.assertNotIn("required_on_install", args.args[7]["apps"][0]["service_env_map_list"][1])
+        self.assertNotIn("encrypted_environment", args.args[7])
+        self.assertNotIn("environment", task.payload)
+        source["apps"][0]["service_env_map_list"][1]["attr_value"] = ""
+        empty_task = self.service.operation(USER, SCOPE, version.id, "delivery", {
+            "target": {"team_name": "team", "region_name": "region", "app_name": "Empty defaults"}})
+        with mock.patch.dict(sys.modules, modules), mock.patch.object(gateway, "source", return_value=(source, "App")):
+            service.advance(empty_task.id)
+        empty_task.refresh_from_db()
+        self.assertEqual(empty_task.status, "running")
+        self.assertEqual(empty_task.error, "")
+        self.assertEqual(upgrade.AppUpgrade.call_args.args[7]["apps"][0]["service_env_map_list"][1]["attr_value"], "")
 
     def test_environment_names_and_scaling_are_server_validated(self):
         invalid = copy.deepcopy(PAYLOAD)
@@ -443,7 +585,7 @@ class DeliveryWorkflowTest(unittest.TestCase):
         listing.refresh_from_db()
         self.assertEqual(listing.publication_status, "published")
 
-    def test_source_url_credentials_become_install_time_parameters(self):
+    def test_source_url_configuration_is_retained_without_install_time_parameters(self):
         source = copy.deepcopy(SOURCE)
         source["apps"][0]["service_env_map_list"][0] = {
             "attr_name": "DATABASE_URL",
@@ -453,8 +595,8 @@ class DeliveryWorkflowTest(unittest.TestCase):
         payload["component_overrides"][0]["service_env_map_list"][0] = {"attr_name": "DATABASE_URL", "attr_value": ""}
         manifest = prepare(source, payload, "template")
         variable = manifest["apps"][0]["service_env_map_list"][0]
-        self.assertEqual(variable["attr_value"], "")
-        self.assertTrue(variable["required_on_install"])
+        self.assertEqual(variable["attr_value"], source["apps"][0]["service_env_map_list"][0]["attr_value"])
+        self.assertNotIn("required_on_install", variable)
 
     def test_legacy_slug_cannot_produce_an_incomplete_successful_template(self):
         source = copy.deepcopy(SOURCE)
@@ -737,9 +879,8 @@ class DeliveryWorkflowTest(unittest.TestCase):
         store.app_store = mock.Mock()
         store.app_store.get_app_hub_info.return_value = {}
         gateway, api = DeliveryGateway(), mock.Mock()
-        with mock.patch.dict(sys.modules, {"console.services.app_import_and_export_service": encoder,
-                                          "console.appstore.appstore": store}), \
-             mock.patch.object(gateway, "region_api", return_value=api):
+        modules = {"console.services.app_import_and_export_service": encoder, "console.appstore.appstore": store}
+        with mock.patch.dict(sys.modules, modules), mock.patch.object(gateway, "region_api", return_value=api):
             for format_name in ("rainbond-app", "docker-compose", "helm-chart", "slug"):
                 task = self.service.operation(USER, SCOPE, version.id, "offline", {"format": format_name})
                 gateway.export(task)
@@ -910,6 +1051,22 @@ class DeliveryWorkflowTest(unittest.TestCase):
         data = self.service.listing_data(listing)
         self.assertEqual(data["template_profile"]["name"], "Current profile")
         self.assertEqual(data["template"]["template_name"], PAYLOAD["template_name"])
+
+    def test_full_template_introduction_is_separate_from_summary_and_frozen_for_versions(self):
+        template = self.service.save_catalog_metadata(USER, SCOPE, {
+            "name": "Application",
+            "describe": "One-line summary",
+            "details": "Full introduction\nFeatures\nUsage"
+        })
+        self.assertEqual(self.service.metadata_data(template)["details"], "Full introduction\nFeatures\nUsage")
+        version = self.service.create(USER, SCOPE, PAYLOAD)
+        self.assertEqual(version.manifest["annotations"]["details"], template.details)
+        self.assertEqual(version.manifest["annotations"]["describe"], "One-line summary")
+        self.service.save_catalog_metadata(USER, SCOPE, {"name": "Application", "describe": "Updated summary"}, template.id.hex)
+        template.refresh_from_db()
+        self.assertEqual(template.details, "Full introduction\nFeatures\nUsage")
+        version.refresh_from_db()
+        self.assertEqual(version.manifest["annotations"]["details"], "Full introduction\nFeatures\nUsage")
 
 
 if __name__ == "__main__":
