@@ -5,7 +5,8 @@ from urllib.parse import quote
 from django.db import transaction
 from django.utils import timezone
 from console.repositories.delivery_template_repo import DeliveryRepository
-from console.services.delivery_manifest import DeliveryError, baseline, compare, digest, prepare, public_manifest
+from console.services.delivery_manifest import (DeliveryError, baseline, compare, digest, prepare, public_manifest,
+                                                template_metadata, retain_artifacts)
 
 
 def actor(user):
@@ -28,6 +29,73 @@ class DeliveryService:
     def _identity(self, user, scope):
         if str(user.enterprise_id) != scope["enterprise_id"]:
             raise DeliveryError("无权访问此模板", 403)
+
+    def metadata_data(self, template):
+        return {"id": str(template.id), "name": template.name, "logo": template.logo, "description": template.description}
+
+    def create(self, user, scope, data, request_key=None):
+        self._identity(user, scope)
+        key = "create:" + str(user.user_id) + ":" + str(request_key or uuid.uuid4())
+        if len(key) > 128:
+            raise DeliveryError("请求标识过长")
+        existing = self.m.DeliveryTemplateVersion.objects.select_related("template").filter(
+            template__in=self.repo.templates(scope), creation_key=key).first()
+        if existing:
+            if existing.deleted_at:
+                raise DeliveryError("此请求创建的模板版本已删除", 409)
+            return existing
+        template = self.repo.templates(scope).first()
+        if not template:
+            raise DeliveryError("请先创建应用模板，再创建版本", 409)
+        source, app_name = self.gateway.source(scope)
+        with transaction.atomic():
+            template = self.m.DeliveryTemplate.objects.select_for_update().get(pk=template.pk)
+            if template.versions.filter(version=str(data.get("version", "")).strip()).exists():
+                raise DeliveryError("此模板版本号已存在，请使用新的版本号", 409)
+            version_data = {
+                **data, "template_name": template.name,
+                "logo": template.logo,
+                "template_description": template.description
+            }
+            manifest = public_manifest(retain_artifacts(prepare(source, version_data, template.id.hex)))
+            manifest["delivery_source_region"] = scope["region_name"]
+            version = self.m.DeliveryTemplateVersion.objects.create(template=template,
+                                                                    version=manifest["group_version"],
+                                                                    description=str(data.get("description", "")),
+                                                                    manifest=manifest,
+                                                                    source_baseline=baseline(source),
+                                                                    digest=digest(manifest),
+                                                                    creation_key=key,
+                                                                    creator_id=user.user_id,
+                                                                    creator_name=actor(user))
+            template.app_name = app_name
+            template.save(update_fields=["app_name"])
+            return version
+
+    def save_catalog_metadata(self, user, scope, data, app_id=None):
+        self._identity(user, scope)
+        template = self.repo.templates(scope).first()
+        if app_id and (not template or template.id.hex != str(app_id).replace("-", "").lower()):
+            raise DeliveryError("模板与来源应用不匹配", 404)
+        if not app_id and template:
+            raise DeliveryError("此应用的模板已存在，请刷新后编辑", 409)
+        return self.update_metadata(
+            user, scope, {
+                "template_name": data.get("name") or "",
+                "logo": data.get("pic") or "",
+                "template_description": data.get("describe") or ""
+            })
+
+    def update_metadata(self, user, scope, data):
+        self._identity(user, scope)
+        metadata = template_metadata(data)
+        with transaction.atomic():
+            template, _ = self.m.DeliveryTemplate.objects.get_or_create(**scope, defaults={**metadata, "app_name": ""})
+            template = self.m.DeliveryTemplate.objects.select_for_update().get(pk=template.pk)
+            for field, value in metadata.items():
+                setattr(template, field, value)
+            template.save(update_fields=["name", "description", "logo"])
+        return template
 
     def start(self, user, scope, data, request_key=None):
         self._identity(user, scope)
@@ -86,21 +154,15 @@ class DeliveryService:
                     else:
                         task.status = self.gateway.installation_status(task)
                 elif task.kind == "catalog_publish":
-                    if task.payload["destination"]["type"] == "market":
-                        self.gateway.prepare_catalog(task)
-                        if not task.items.exists():
-                            manifest = task.version.manifest
-                            for component in manifest["apps"]:
-                                self.m.DeliveryTaskItem.objects.create(task=task,
-                                                                       key=component["service_id"],
-                                                                       component=component)
-                            for plugin in manifest.get("plugins", []):
-                                self.m.DeliveryTaskItem.objects.create(task=task,
-                                                                       key="plugin:" + plugin["plugin_id"],
-                                                                       component=plugin)
-                        self._advance_sync(task)
-                    else:
-                        task.status = "succeeded"
+                    self.gateway.prepare_catalog(task)
+                    if not task.items.exists():
+                        for component in task.version.manifest["apps"]:
+                            self.m.DeliveryTaskItem.objects.create(task=task, key=component["service_id"], component=component)
+                        for plugin in task.version.manifest.get("plugins", []):
+                            self.m.DeliveryTaskItem.objects.create(task=task,
+                                                                   key="plugin:" + plugin["plugin_id"],
+                                                                   component=plugin)
+                    self._advance_sync(task)
                     if task.status == "succeeded":
                         task.result = self.gateway.publish_catalog(task)
             except DeliveryError as error:
@@ -227,14 +289,13 @@ class DeliveryService:
                                                                 creator_name=actor(user))
             job.version = row
             job.save(update_fields=["version", "updated_at"])
-            job.template.name = manifest["group_name"]
-            job.template.save(update_fields=["name"])
             return row
 
     def version_data(self, version):
         template = version.template
         manifest = public_manifest(version.manifest)
         scope = scope_of(template)
+        annotations = manifest.get("annotations", {})
         parameters = []
         for component in manifest["apps"]:
             variables = component.get("service_env_map_list", []) + component.get("service_connect_info_map_list", [])
@@ -254,6 +315,12 @@ class DeliveryService:
             str(version.id),
             "template_name":
             manifest["group_name"],
+            "logo":
+            annotations.get("logo", ""),
+            "export_formats": ["rainbond-app", "docker-compose", "helm-chart"] +
+            (["slug"] if any(c.get("service_source") == "source_code" for c in manifest["apps"]) else []),
+            "template_description":
+            annotations.get("describe", ""),
             "version":
             version.version,
             "description":
@@ -307,6 +374,7 @@ class DeliveryService:
         jobs = self.m.DeliveryTask.objects.filter(template__in=templates, kind="sync",
                                                   version__isnull=True).exclude(status="cancelled")
         return {
+            "template": self.metadata_data(templates.first()) if templates.exists() else None,
             "items": [self.version_data(row) for row in versions],
             "active_syncs": [{
                 "id": str(job.id),
@@ -343,6 +411,10 @@ class DeliveryService:
 
     def operation(self, user, scope, version_id, kind, data, request_key=None):
         self._identity(user, scope)
+        if kind == "offline":
+            data = {**data, "format": data.get("format", "rainbond-app")}
+            if data["format"] not in ("rainbond-app", "docker-compose", "helm-chart", "slug"):
+                raise DeliveryError("不支持的导出格式")
         if kind not in ("delivery", "test", "offline"):
             raise DeliveryError("不支持的交付操作")
         with transaction.atomic():
@@ -351,20 +423,28 @@ class DeliveryService:
             version = self.m.DeliveryTemplateVersion.objects.select_for_update().get(id=version.id)
             if version.deleted_at:
                 raise DeliveryError("版本已删除", 409)
-            task, created = self.m.DeliveryTask.objects.get_or_create(
-                request_key="operation:" + str(user.user_id) + ":" + str(request_key or uuid.uuid4()),
-                defaults={
-                    "template": version.template,
-                    "version": version,
-                    "kind": kind,
-                    "actor_id": user.user_id,
-                    "actor_name": actor(user),
-                    "payload": copy.deepcopy(data)
-                })
-            conflicts = (task.version_id != version.id, task.kind != kind, task.payload.get("target") != data.get("target"))
-            if not created and any(conflicts):
-                raise DeliveryError("此请求标识已用于其他交付操作", 409)
-            return task
+            key = "operation:" + str(user.user_id) + ":" + str(request_key or uuid.uuid4())
+            existing = self.m.DeliveryTask.objects.filter(request_key=key).first()
+            if existing:
+                conflicts = (existing.version_id != version.id, existing.kind != kind, existing.payload.get("target")
+                             != data.get("target"), kind == "offline" and existing.payload.get("format") != data.get("format"))
+                if any(conflicts):
+                    raise DeliveryError("此请求标识已用于其他交付操作", 409)
+                return existing
+            if kind == "offline":
+                if data["format"] not in self.version_data(version)["export_formats"]:
+                    raise DeliveryError("此模板不支持该导出格式")
+                running = version.tasks.filter(kind="offline", status__in=["queued", "running"],
+                                               payload__format=data["format"]).first()
+                if running:
+                    return running
+            return self.m.DeliveryTask.objects.create(template=version.template,
+                                                      version=version,
+                                                      kind=kind,
+                                                      actor_id=user.user_id,
+                                                      actor_name=actor(user),
+                                                      request_key=key,
+                                                      payload=copy.deepcopy(data))
 
     def listing(self, user, scope, version_id, data):
         self._identity(user, scope)
@@ -430,6 +510,8 @@ class DeliveryService:
             },
             "app_name":
             template.app_name,
+            "template_profile":
+            self.metadata_data(template),
             "template":
             self.version_data(row.version),
             "reason":
@@ -473,6 +555,8 @@ class DeliveryService:
             str(task.id),
             "enterprise_id":
             task.template.enterprise_id,
+            "template_group_id":
+            str(task.template_id),
             "template_id":
             str(task.version_id or ""),
             "version":
@@ -481,6 +565,8 @@ class DeliveryService:
             task.template.name,
             "kind":
             task.kind,
+            "export_format":
+            task.payload.get("format", "rainbond-app") if task.kind == "offline" else "",
             "status":
             task.status,
             "target":
@@ -496,6 +582,6 @@ class DeliveryService:
             "error":
             task.error,
             "download_url":
-            "/console/delivery-tasks/{}/download".format(task.id)
-            if task.kind == "offline" and task.status == "succeeded" and not task.version.deleted_at else ""
+            "/console/delivery-tasks/{}/download".format(task.id) if task.kind == "offline" and task.status == "succeeded"
+            and task.result.get("download_path") and not task.version.deleted_at else ""
         }

@@ -11,6 +11,8 @@ class DeliveryTemplate(models.Model):
     app_id = models.CharField(max_length=64)
     name = models.CharField(max_length=64)
     app_name = models.CharField(max_length=128)
+    logo = models.CharField(max_length=2048, blank=True, default="")
+    description = models.TextField(blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -26,11 +28,12 @@ class DeliveryTemplateVersion(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     template = models.ForeignKey(DeliveryTemplate, on_delete=models.PROTECT, related_name="versions")
     version = models.CharField(max_length=64)
-    description = models.CharField(max_length=255, blank=True)
+    description = models.TextField(blank=True)
     manifest = models.JSONField()
     source_baseline = models.JSONField()
     digest = models.CharField(max_length=64)
-    sync_id = models.UUIDField(unique=True)
+    sync_id = models.UUIDField(unique=True, null=True)
+    creation_key = models.CharField(max_length=128, unique=True, null=True)
     creator_id = models.IntegerField()
     creator_name = models.CharField(max_length=128)
     created_at = models.DateTimeField(auto_now_add=True)

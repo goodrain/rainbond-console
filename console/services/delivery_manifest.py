@@ -117,8 +117,8 @@ def prepare(source, payload, template_id):
     if not name or len(name) > 64 or not re.fullmatch(r"\d+\.\d+(?:\.\d+)?", version):
         raise DeliveryError("请填写模板名称和正确的版本号")
     description = str(payload.get("description", ""))
-    if len(description) > 255:
-        raise DeliveryError("版本说明不能超过255个字符")
+    if len(description) > 20000:
+        raise DeliveryError("版本说明不能超过20000个字符")
     ids = payload.get("service_ids", [])
     available = {item["service_id"]: item for item in source.get("apps", [])}
     if not isinstance(ids, list) or not ids or len(set(ids)) != len(ids) or any(key not in available for key in ids):
@@ -136,7 +136,8 @@ def prepare(source, payload, template_id):
         "group_version": version,
         "annotations": {
             "version_info": description,
-            "describe": description
+            "describe": str(payload.get("template_description", "")).strip(),
+            "logo": str(payload.get("logo", "")).strip()
         }
     })
     manifest["apps"] = []
@@ -199,4 +200,37 @@ def prepare(source, payload, template_id):
         if not all(plugin.get(field) for field in ("plugin_id", "plugin_name", "plugin_type", "entry_path")):
             raise DeliveryError("请填写完整的平台插件配置")
         manifest["platform_plugin"] = {**copy.deepcopy(plugin), "is_platform_plugin": True}
+    return manifest
+
+
+def template_metadata(payload):
+    name = str(payload.get("template_name", "")).strip()
+    description = str(payload.get("template_description", "")).strip()
+    logo = str(payload.get("logo", "")).strip()
+    if not name or len(name) > 64:
+        raise DeliveryError("请填写64字以内的模板名称")
+    if len(description) > 400 or len(logo) > 2048:
+        raise DeliveryError("应用描述不能超过400字，Logo 地址不能超过2048字符")
+    if logo:
+        parts = urlsplit(logo)
+        if parts.username or parts.password or not (logo.startswith("/") or parts.scheme in ("http", "https")):
+            raise DeliveryError("请使用上传后的 Logo 图片地址")
+    return {"name": name, "description": description, "logo": logo}
+
+
+def retain_artifacts(manifest):
+    """Use already-built immutable artifacts; this never queues a copy/build/snapshot job."""
+    for component in manifest["apps"]:
+        image = component.get("delivered_path")
+        if not image or component.get("delivered_type") != "image":
+            raise DeliveryError("组件缺少可引用的已构建镜像，请先完成构建")
+        component["share_image"] = image
+        for disk in (component.get("vm") or {}).get("disk_layout", []):
+            if str(disk.get("disk_role", "")).lower() == "root":
+                disk.update(image=image, source_type="http-artifact")
+                disk.pop("source_uri", None)
+    for plugin in manifest.get("plugins", []):
+        if not plugin.get("built_image") or not plugin.get("delivery_available"):
+            raise DeliveryError("所选组件的插件缺少成功构建镜像，请先完成插件构建")
+        plugin["share_image"] = plugin["built_image"]
     return manifest

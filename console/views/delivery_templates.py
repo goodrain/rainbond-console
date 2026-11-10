@@ -61,7 +61,12 @@ class DeliveryTemplatesView(DeliveryAPI):
 
     def post(self, request: Request, team_name: str, app_id: str) -> Response:
         scope = self.scope(request, team_name, app_id, write=True)
-        version = self.delivery.publish(self.user, scope, request.data.get("sync_id"))
+        if request.data.get("is_platform_plugin") and not self.is_enterprise_admin:
+            raise DeliveryError("仅平台管理员可以创建平台插件模板", 403)
+        if request.data.get("sync_id"):
+            version = self.delivery.publish(self.user, scope, request.data["sync_id"])
+        else:
+            version = self.delivery.create(self.user, scope, request.data, request.data.get("request_id"))
         return self.reply(self.delivery.version_data(version), 201)
 
 
@@ -79,9 +84,8 @@ class DeliverySourceView(DeliveryAPI):
 
 class DeliverySyncView(DeliveryAPI):
     def post(self, request: Request, team_name: str, app_id: str) -> Response:
-        scope = self.scope(request, team_name, app_id, write=True)
-        task = self.delivery.start(self.user, scope, request.data, request.data.get("request_id"))
-        return self.reply(self.delivery.sync(scope, task.id), 202)
+        self.scope(request, team_name, app_id, write=True)
+        raise DeliveryError("创建模板已无需同步，请刷新页面后重新创建", 409)
 
 
 class DeliverySyncTaskView(DeliveryAPI):
@@ -96,9 +100,8 @@ class DeliverySyncTaskView(DeliveryAPI):
 
 class DeliverySyncRetryView(DeliveryAPI):
     def post(self, request: Request, team_name: str, app_id: str, task_id: str) -> Response:
-        scope = self.scope(request, team_name, app_id, write=True)
-        self.delivery.retry(scope, task_id)
-        return self.reply(self.delivery.sync(scope, task_id), 202)
+        self.scope(request, team_name, app_id, write=True)
+        raise DeliveryError("产物同步已调整到管理员审核后执行，请重新创建模板", 409)
 
 
 class DeliverySyncLogsView(DeliveryAPI):
@@ -121,6 +124,18 @@ class DeliveryVersionView(DeliveryAPI):
 
 
 class DeliveryOperationView(DeliveryAPI):
+    def get(self, request: Request, team_name: str, app_id: str, version_id: str, operation: str) -> Response:
+        if operation != "exports":
+            raise DeliveryError("操作不存在", 404)
+        scope = self.scope(request, team_name, app_id)
+        version = self.delivery.repo.version(scope, version_id, available=False)
+        tasks = version.tasks.filter(kind="offline").select_related("template", "version")
+        return self.reply({
+            "items": [self.delivery.task_data(task) for task in tasks],
+            "formats": self.delivery.version_data(version)["export_formats"],
+            "deleted": bool(version.deleted_at)
+        })
+
     def post(self, request: Request, team_name: str, app_id: str, version_id: str, operation: str) -> Response:
         scope = self.scope(request, team_name, app_id, write=True)
         version = self.delivery.repo.version(scope, version_id)

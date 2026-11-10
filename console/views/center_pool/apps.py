@@ -2,12 +2,12 @@
 """
   Created on 18/2/1.
 """
-import datetime
 import json
 import logging
 import re
-from typing import Any
+from typing import Any, Optional
 
+from django.db import transaction
 from rest_framework.request import Request
 
 from console.cloud.services import check_account_quota
@@ -19,17 +19,59 @@ from console.services.config_service import EnterpriseConfigService
 from console.services.market_app_service import market_app_service
 from console.services.operation_log import operation_log_service, Operation, OperationModule
 from console.services.region_services import region_services
-from console.services.user_services import user_services
 from console.utils.response import MessageResponse
 from console.views.base import JWTAuthApiView, RegionTenantHeaderView
 from console.utils.cache_decorators import never_cache
 from rest_framework import status
 from rest_framework.response import Response
-from www.utils.return_message import error_message, general_message
+from www.utils.return_message import general_message
 from console.utils.validation import validate_name
 from www.utils.crypt import make_uuid
 
 logger = logging.getLogger('default')
+
+
+def save_delivery_profile(view: JWTAuthApiView, request: Request, enterprise_id: str, app_id: Optional[str] = None) -> Response:
+    from console.services.delivery_access import catalog_metadata_scope
+    from console.services.delivery_templates import DeliveryService
+    from console.services.delivery_manifest import DeliveryError
+    from console.models.main import RainbondCenterApp
+    try:
+        scope = catalog_metadata_scope(view.user, enterprise_id, request.data.get("delivery_source"), view.is_enterprise_admin)
+        name = request.data.get("name")
+        if not isinstance(name, str) or not validate_name(name):
+            raise DeliveryError("应用名称只支持中文、字母、数字和-_组合，并且必须以中文、字母、数字开始和结束")
+        service = DeliveryService()
+        with transaction.atomic():
+            previous = service.repo.templates(scope).first()
+            old_information = market_app_service.json_rainbond_app(previous.name, "team", [], previous.description,
+                                                                   previous.logo) if previous else ""
+            template = service.save_catalog_metadata(view.user, scope, request.data, app_id)
+            # Reviewed catalog copies share their identity; editing metadata never publishes a private version.
+            RainbondCenterApp.objects.filter(enterprise_id=enterprise_id,
+                                             app_id=template.id.hex).update(app_name=template.name,
+                                                                            pic=template.logo,
+                                                                            describe=template.description)
+            new_information = market_app_service.json_rainbond_app(template.name, "team", [], template.description,
+                                                                   template.logo)
+            comment = operation_log_service.generate_generic_comment(operation=Operation.UPDATE if app_id else Operation.CREATE,
+                                                                     module=OperationModule.APPMODEL,
+                                                                     module_name=template.name)
+            operation_log_service.create_component_library_log(user=view.user,
+                                                               comment=comment,
+                                                               enterprise_id=enterprise_id,
+                                                               old_information=old_information,
+                                                               new_information=new_information)
+        return Response(general_message(200,
+                                        "success",
+                                        "保存成功",
+                                        bean={
+                                            "app_id": template.id.hex,
+                                            **service.metadata_data(template)
+                                        }),
+                        status=200)
+    except DeliveryError as error:
+        return Response(general_message(error.status, "failed", error.message), status=error.status)
 
 
 class CenterAppListView(JWTAuthApiView):
@@ -249,6 +291,8 @@ class CenterAppCLView(JWTAuthApiView):
 
     @never_cache
     def post(self, request: Request, enterprise_id: str, *args: Any, **kwargs: Any) -> Response:
+        if "delivery_source" in request.data:
+            return save_delivery_profile(self, request, enterprise_id)
         name = request.data.get("name")
         describe = request.data.get("describe", 'This is a default description.')
         pic = request.data.get("pic")
@@ -307,6 +351,8 @@ class CenterAppUDView(JWTAuthApiView):
     """
 
     def put(self, request: Request, enterprise_id: str, app_id: str, *args: Any, **kwargs: Any) -> Response:
+        if "delivery_source" in request.data:
+            return save_delivery_profile(self, request, enterprise_id, app_id)
         name = request.data.get("name")
         if not validate_name(name):
             result = general_message(400, "error params", "应用名称只支持中文、字母、数字和-_组合,并且必须以中文、字母、数字开始和结束")
