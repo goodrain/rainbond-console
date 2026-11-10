@@ -488,11 +488,12 @@
 | console.multi-app.incomplete-detection-guard | 拒绝不完整的多组件检测结果 | active | regression | console.services.multi_app_service.MultiAppService.create_services | console/tests/multi_app_service_test.py::MultiAppServiceTests |
 | console.ns-resource.batch-create | Ns Resource Batch Create | active | regression | console.views.team_resources | console/tests/team_resources_test.py::NsResourceDetailViewTestCase.test_post_preserves_partial_success_status_and_payload |
 | console.ns-resource.update | 通过 YAML 更新命名空间资源 | active | regression | console.views.team_resources.NsResourceDetailView.put | console/tests/team_resources_test.py::NsResourceDetailViewTestCase.test_put_accepts_yaml_media_type_and_forwards_raw_body<br>console/tests/team_resources_test.py::RegionInvokeApiNsResourceTestCase.test_put_tenant_ns_resource_preserves_custom_content_type |
-| console.oauth.gitlab-auto-provisioning | 可信 GitLab OAuth 首次登录自动创建普通用户 | active | regression | console.services.oauth_user_provisioning.provision_gitlab_user | console/tests/oauth_auto_provisioning_test.py |
+| console.oauth.gitlab-auto-provisioning | 可信 GitLab OAuth 首次登录自动创建普通用户 | active | regression | console.services.oauth_user_provisioning.provision_gitlab_user | console/tests/oauth_auto_provisioning_test.py<br>console/tests/oauth_compound_migration_test.py::OAuthCompoundMigrationTests |
 | console.oauth.gitlab-webhook-url | 规范化 GitLab OAuth Webhook 地址 | active | regression | console.utils.oauth.gitlab_api.GitlabApiV4.create_hook | console/tests/utils/gitlab_api_test.py::GitlabApiV4WebhookTests.test_create_hook_adds_https_scheme_to_bare_host<br>console/tests/utils/gitlab_api_test.py::GitlabApiV4WebhookTests.test_create_hook_supports_protocol_relative_host<br>console/tests/utils/gitlab_api_test.py::GitlabApiV4WebhookTests.test_create_hook_preserves_scheme_and_normalizes_slashes |
 | console.oauth.instance-create | 创建 OAuth helper 实例并绑定服务与用户上下文 | active | regression | console.utils.oauth.oauth_types.get_oauth_instance | console/tests/utils/oauth_types_test.py::OAuthTypeTests.test_get_oauth_instance |
 | console.oauth.kind-flags | 返回基础与 git OAuth helper 的能力标记 | active | regression | console.utils.oauth.base.git_oauth.GitOAuth2Interface.is_git_oauth | console/tests/utils/oauth_base_test.py::OAuthBaseTests.test_oauth_kind_flags |
 | console.oauth.missing-access-key-fallback | OAuth Access Key 缺失时按预期回退仓库地址 | active | regression | console.services.app_actions.app_manage.AppManageService.deploy_services_info | console/tests/app_manage_test.py::AppManageBatchActionDeployEventTests.test_deploy_info_falls_back_without_error_log_when_oauth_access_key_is_missing |
+| console.oauth.name-scope | OAuth 配置名称按企业公共与个人范围隔离 | active | regression | POST /console/enterprise/{enterprise_id}/oauth/oauth-services | console/tests/oauth_name_scope_test.py |
 | console.oauth.reauthorization | Git OAuth 重新授权与安全账号换绑 | active | integration | console.views.oauth.OAuthServerUserAuthorize.post | console/tests/oauth_reauthorization_test.py::OAuthReauthorizationTests |
 | console.oauth.service-validation | 使用前校验 OAuth 服务引用 | active | regression | console.repositories.oauth_repo.OAuthRepo.get_oauth_services_by_service_id | console/tests/oauth_repo_validation_test.py::OAuthRepoValidationTestCase.test_get_service_rejects_non_numeric_id_as_not_found<br>console/tests/oauth_repo_validation_test.py::OAuthRepoValidationTestCase.test_update_rejects_deleted_oauth_service_before_reading_home_url |
 | console.oauth.session-retry | 创建带重试 HTTP 适配器的 OAuth 会话 | active | regression | console.utils.oauth.base.oauth.OAuth2Interface.set_session | console/tests/utils/oauth_base_test.py::OAuthBaseTests.test_set_session_builds_retrying_requests_session |
@@ -663,6 +664,7 @@
 | console.source-component.normalize-git-url | 为 Git 地址追加一次子目录参数 | active | regression | console.services.source_component_service.normalize_git_url | console/tests/source_component_service_test.py::SourceComponentServiceTests.test_normalize_git_url_appends_subdirectory_once |
 | console.source-component.prefer-dockerfile | Source Component Prefer Dockerfile | active | regression | console.services.source_component_service | console/tests/source_component_service_test.py::SourceComponentServiceTests.test_auto_create_component_prefers_dockerfile_when_requested |
 | console.source-component.prefer-dockerfile-from-dockerfiles-flag | Source Component Prefer Dockerfile From Dockerfiles Flag | active | regression | console.services.source_component_service | console/tests/source_component_service_test.py::SourceComponentServiceTests.test_auto_create_component_prefers_dockerfile_when_dockerfiles_exist |
+| console.team-application.workflow | 团队创建申请、审核和额度生效 | active | regression | console.services.team_applications.TeamApplicationService.review | console/tests/team_application_workflow_test.py::TeamApplicationWorkflowTest.test_isolated_lifecycle_and_http_contract |
 | console.team-arch.empty-region-response | 区域架构响应为空时返回空列表 | active | regression | console.views.public_areas.TeamArchView.get | console/tests/team_overview_query_scope_test.py::TeamOverviewQueryScopeTest.test_team_arch_returns_empty_list_when_region_has_no_architectures |
 | console.team-domain-monitor.time-range-validation | 校验域名监控时间范围 | active | regression | console.views.team.TeamSortDomainQueryView.get | console/tests/team_sort_domain_query_test.py::TeamSortDomainQueryTimeRangeTests |
 | console.team-events.deleted-component-metadata | Preserve deleted component metadata in team events | active | regression | console.views.public_areas._enrich_service_events | console/tests/team_overview_query_scope_test.py::TeamOverviewQueryScopeTest.test_team_events_preserve_live_and_deleted_component_targets |
@@ -5578,8 +5580,8 @@
 - 测试类型: `regression`
 - 接口类型: `service_method`
 - 业务入口: `console.services.oauth_user_provisioning.provision_gitlab_user`
-- 代码路径: `console/services/oauth_user_provisioning.py`, `console/services/oauth_service.py`, `console/repositories/oauth_repo.py`, `console/views/oauth.py`, `console/management/commands/repair_legacy_schema.py`
-- 测试路径: `console/tests/oauth_auto_provisioning_test.py`
+- 代码路径: `console/services/oauth_user_provisioning.py`, `console/services/oauth_service.py`, `console/repositories/oauth_repo.py`, `console/views/oauth.py`, `console/management/commands/repair_legacy_schema.py`, `console/utils/oauth_migration_repair.py`
+- 测试路径: `console/tests/oauth_auto_provisioning_test.py`, `console/tests/oauth_compound_migration_test.py::OAuthCompoundMigrationTests`
 
 ### 规范化 GitLab OAuth Webhook 地址
 
@@ -5620,6 +5622,16 @@
 - 业务入口: `console.services.app_actions.app_manage.AppManageService.deploy_services_info`
 - 代码路径: `console/services/app_actions/app_manage.py`
 - 测试路径: `console/tests/app_manage_test.py::AppManageBatchActionDeployEventTests.test_deploy_info_falls_back_without_error_log_when_oauth_access_key_is_missing`
+
+### OAuth 配置名称按企业公共与个人范围隔离
+
+- Capability ID: `console.oauth.name-scope`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `workflow`
+- 业务入口: `POST /console/enterprise/{enterprise_id}/oauth/oauth-services`
+- 代码路径: `console/models/main.py`, `console/repositories/oauth_repo.py`, `console/management/commands/migrate_oauth_name_scope.py`, `entrypoint.sh`, `console/views/oauth.py`
+- 测试路径: `console/tests/oauth_name_scope_test.py`
 
 ### Git OAuth 重新授权与安全账号换绑
 
@@ -7320,6 +7332,16 @@
 - 业务入口: `console.services.source_component_service`
 - 代码路径: `console/services/source_component_service.py`
 - 测试路径: `console/tests/source_component_service_test.py::SourceComponentServiceTests.test_auto_create_component_prefers_dockerfile_when_dockerfiles_exist`
+
+### 团队创建申请、审核和额度生效
+
+- Capability ID: `console.team-application.workflow`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `workflow`
+- 业务入口: `console.services.team_applications.TeamApplicationService.review`
+- 代码路径: `console/services/team_applications.py`, `console/services/team_application_provisioner.py`, `console/views/team_applications.py`
+- 测试路径: `console/tests/team_application_workflow_test.py::TeamApplicationWorkflowTest.test_isolated_lifecycle_and_http_contract`
 
 ### 区域架构响应为空时返回空列表
 

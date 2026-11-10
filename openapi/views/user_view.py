@@ -70,7 +70,8 @@ class ListUsersView(BaseOpenAPIView):
             return Response(None, status.HTTP_201_CREATED)
         except (UserExistError, EmailExistError, PhoneExistError) as e:
             # NOTE: py2-style Exception.message attr not in stubs.
-            return Response(e.message, status.HTTP_400_BAD_REQUEST)  # type: ignore[union-attr]
+            return Response(
+                getattr(e, "msg", getattr(e, "message", str(e))), status.HTTP_400_BAD_REQUEST)  # type: ignore[union-attr]
 
 
 class UserInfoView(BaseOpenAPIView):

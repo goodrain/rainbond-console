@@ -138,7 +138,7 @@ class GroupAppsBackupView(RegionTenantHeaderView):
 
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)  # type: ignore[attr-defined]
+            result = error_message(getattr(e, "msg", getattr(e, "message", str(e))))  # type: ignore[attr-defined]
         return Response(result, status=result["code"])
 
     @never_cache
@@ -205,7 +205,7 @@ class GroupAppsBackupStatusView(RegionTenantHeaderView):
 
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)  # type: ignore[attr-defined]
+            result = error_message(getattr(e, "msg", getattr(e, "message", str(e))))  # type: ignore[attr-defined]
         return Response(result, status=result["code"])
 
 
@@ -298,7 +298,7 @@ class AllTeamGroupAppsBackupView(RegionTenantHeaderView):
             result = general_message(200, "success", "查询成功", list=backup_list, total=paginator.count)
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)  # type: ignore[attr-defined]
+            result = error_message(getattr(e, "msg", getattr(e, "message", str(e))))  # type: ignore[attr-defined]
         return Response(result, status=result["code"])
 
 
@@ -363,7 +363,7 @@ class GroupAppsBackupExportView(AlowAnyApiView):
             return res
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)  # type: ignore[attr-defined]
+            result = error_message(getattr(e, "msg", getattr(e, "message", str(e))))  # type: ignore[attr-defined]
             return Response(result, status=result["code"])
 
 
@@ -403,5 +403,5 @@ class GroupAppsBackupImportView(RegionTenantHeaderView):
             operation_log_service.create_app_log(self, "导入了应用{app}的备份")
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)  # type: ignore[attr-defined]
+            result = error_message(getattr(e, "msg", getattr(e, "message", str(e))))  # type: ignore[attr-defined]
         return Response(result, status=result["code"])

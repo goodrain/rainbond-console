@@ -88,7 +88,9 @@ class GithubApiV3(GithubApiV3MiXin, GitOAuth2Interface):
                             self.oauth_user.delete()
                             raise ErrExpiredAuthnOauthService
                     elif isinstance(e, (SSLError, MaxRetryError, ReadTimeoutError)):
-                        raise ServiceHandleException(msg=e.message, msg_show="连接github不稳定, 请刷新后重试")
+                        raise ServiceHandleException(
+                            msg=getattr(e, "msg", getattr(e, "message", str(e))),
+                            msg_show="连接github不稳定, 请刷新后重试")
                     else:
                         self.oauth_user.delete()
                         raise ErrExpiredAuthnOauthService

@@ -540,7 +540,9 @@ class DeliveryWorkflowTest(unittest.TestCase):
 
         base = types.ModuleType("console.views.base")
         base.JWTAuthApiView = Base
+        from www.utils.return_message import get_exception_message
         message = types.ModuleType("www.utils.return_message")
+        message.get_exception_message = get_exception_message
         message.general_message = lambda code, msg, show, **kwargs: {"code": code, "msg_show": show, "data": kwargs}
         with mock.patch.dict(sys.modules, {"console.views.base": base, "www.utils.return_message": message}):
             path = Path(__file__).parents[1] / "views/delivery_templates.py"

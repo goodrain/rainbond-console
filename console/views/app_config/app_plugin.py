@@ -55,7 +55,7 @@ class APPPluginsView(AppBaseView):
         except Exception as e:
             logger.exception(e)
             # NOTE: legacy py2-style Exception.message attr access (backlog)
-            result = general_message(500, e.message, "查询失败")  # type: ignore[attr-defined]
+            result = general_message(500, getattr(e, "msg", getattr(e, "message", str(e))), "查询失败")  # type: ignore[attr-defined]
         return Response(result, status=result["code"])
 
 
@@ -223,7 +223,7 @@ class APPPluginInstallView(AppBaseView):
                 return Response(result, status=200)
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)  # type: ignore[attr-defined]
+            result = error_message(getattr(e, "msg", getattr(e, "message", str(e))))  # type: ignore[attr-defined]
             return Response(result, status=200)
 
 
@@ -279,7 +279,7 @@ class APPPluginOpenView(AppBaseView):
                 return Response(result, result["code"])
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)  # type: ignore[attr-defined]
+            result = error_message(getattr(e, "msg", getattr(e, "message", str(e))))  # type: ignore[attr-defined]
             return Response(result, status=result["code"])
 
 
@@ -362,7 +362,7 @@ class APPPluginConfigView(AppBaseView):
             return Response(general_message(409, "service has no dependence", "组件没有依赖其他组件，配置无效"), status=409)
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)  # type: ignore[attr-defined]
+            result = error_message(getattr(e, "msg", getattr(e, "message", str(e))))  # type: ignore[attr-defined]
             return Response(result, result["code"])
 
     def put(self, request: Request, plugin_id: str, *args: Any, **kwargs: Any) -> Response:
@@ -415,5 +415,5 @@ class APPPluginConfigView(AppBaseView):
             return Response(result, result["code"])
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)  # type: ignore[attr-defined]
+            result = error_message(getattr(e, "msg", getattr(e, "message", str(e))))  # type: ignore[attr-defined]
             return Response(result, result["code"])

@@ -61,14 +61,13 @@ class OauthService(EnterpriseAdminView):
         # NOTE: request.user is User|AnonymousUser; auth guarantees authenticated user (backlog).
         eid = request.user.enterprise_id  # type: ignore[union-attr]
         # NOTE: user_id is int AutoField; repo signatures take str (systemic int-as-str, backlog).
-        service = oauth_repo.get_conosle_oauth_service(eid, self.user.user_id)  # type: ignore[arg-type]
         all_services = oauth_repo.get_all_oauth_services(eid, self.user.user_id)  # type: ignore[arg-type]
         svc_ids = [svc.ID for svc in all_services]
         user_oauth_list = oauth_user_repo.get_by_oauths_user_id(svc_ids, self.user.user_id)  # type: ignore[arg-type]
         user_oauth_dict = {uol.service_id: uol for uol in user_oauth_list}
         if all_services is not None:
             for l_service in all_services:
-                api = get_oauth_instance(l_service.oauth_type, service, None)
+                api = get_oauth_instance(l_service.oauth_type, l_service, None)
                 authorize_url = api.get_authorize_url()
                 all_services_list.append({
                     "service_id": l_service.ID,
@@ -105,15 +104,14 @@ class OauthService(EnterpriseAdminView):
             raise
         except Exception as e:
             logger.exception(e)
-            # NOTE: py2-era Exception.message; preserved for behavior compat (backlog).
-            return Response({"msg": e.message}, status=status.HTTP_400_BAD_REQUEST)  # type: ignore[attr-defined]
-        # NOTE: get_conosle_oauth_service may return None; legacy assumes present (backlog).
-        service = oauth_repo.get_conosle_oauth_service(eid, self.user.user_id)  # type: ignore[arg-type]
-        api = get_oauth_instance(service.oauth_type, service, None)  # type: ignore[union-attr]
-        authorize_url = api.get_authorize_url()
+            return Response(
+                {"msg": getattr(e, "msg", getattr(e, "message", str(e)))},
+                status=status.HTTP_400_BAD_REQUEST)  # type: ignore[attr-defined]
         data = []
         # NOTE: services may be None; legacy assumes iterable result (backlog).
         for service in services:  # type: ignore[union-attr]
+            api = get_oauth_instance(service.oauth_type, service, None)
+            authorize_url = api.get_authorize_url()
             data.append({
                 "service_id": service.ID,
                 "name": service.name,

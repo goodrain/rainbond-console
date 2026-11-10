@@ -18,6 +18,10 @@ def error_message(en_msg=None):
         return general_message(500, en_msg, "系统异常")
 
 
+def get_exception_message(error):
+    return getattr(error, "msg", getattr(error, "message", str(error)))
+
+
 def oldResultSuitGeneralMessage(result, msgEN, data):
     if type(data) is list:
         return general_message(code=result["code"], msg=msgEN, msg_show=result["msg"], list=data)

@@ -11,7 +11,7 @@ from console.services.delivery_templates import DeliveryService, scope_of
 from console.services.delivery_access import team_access, target_access
 from console.services.delivery_credentials import seal
 from console.services.delivery_worker import start_delivery_worker
-from www.utils.return_message import general_message
+from www.utils.return_message import general_message, get_exception_message
 
 
 class DeliveryAPI(JWTAuthApiView):
@@ -24,7 +24,7 @@ class DeliveryAPI(JWTAuthApiView):
 
     def handle_exception(self, exc: Exception) -> Response:
         if isinstance(exc, DeliveryError):
-            return Response(general_message(exc.status, "failed", exc.message), status=exc.status)
+            return Response(general_message(exc.status, "failed", get_exception_message(exc)), status=exc.status)
         if isinstance(exc, (ValueError, TypeError, DjangoValidationError)):
             return Response(general_message(400, "failed", "请求参数无效"), status=400)
         if isinstance(exc, IntegrityError):

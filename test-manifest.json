@@ -9271,11 +9271,16 @@
         "console/services/oauth_service.py",
         "console/repositories/oauth_repo.py",
         "console/views/oauth.py",
-        "console/management/commands/repair_legacy_schema.py"
+        "console/management/commands/repair_legacy_schema.py",
+        "console/utils/oauth_migration_repair.py"
       ],
       "tests": [
         {
           "path": "console/tests/oauth_auto_provisioning_test.py"
+        },
+        {
+          "path": "console/tests/oauth_compound_migration_test.py",
+          "selector": "OAuthCompoundMigrationTests"
         }
       ],
       "test_type": "regression",
@@ -13960,6 +13965,27 @@
         {
           "path": "console/tests/team_application_workflow_test.py",
           "selector": "TeamApplicationWorkflowTest.test_isolated_lifecycle_and_http_contract"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.oauth.name-scope",
+      "title": "Scope OAuth configuration names by enterprise and personal owner",
+      "title_zh": "OAuth 配置名称按企业公共与个人范围隔离",
+      "interface_type": "workflow",
+      "interface": "POST /console/enterprise/{enterprise_id}/oauth/oauth-services",
+      "code_paths": [
+        "console/models/main.py",
+        "console/repositories/oauth_repo.py",
+        "console/management/commands/migrate_oauth_name_scope.py",
+        "entrypoint.sh",
+        "console/views/oauth.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/oauth_name_scope_test.py"
         }
       ],
       "test_type": "regression",
