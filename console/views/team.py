@@ -348,12 +348,12 @@ class UserDelView(RegionTenantHeaderView):
             except Exception as e:
                 logger.exception(e)
                 # NOTE: py2-era Exception.message; absent in py3 (backlog, behavior preserved).
-                result = error_message(e.message)  # type: ignore[attr-defined]
+                result = error_message(getattr(e, "msg", getattr(e, "message", str(e))))  # type: ignore[attr-defined]
             return Response(result)
         except Exception as e:
             code = 500
             logger.exception(e)
-            result = error_message(e.message)  # type: ignore[attr-defined]
+            result = error_message(getattr(e, "msg", getattr(e, "message", str(e))))  # type: ignore[attr-defined]
         return Response(result, status=code)
 
 
@@ -529,7 +529,7 @@ class TeamRegionInitView(JWTAuthApiView):
 
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)  # type: ignore[attr-defined]
+            result = error_message(getattr(e, "msg", getattr(e, "message", str(e))))  # type: ignore[attr-defined]
         return Response(result, status=result["code"])
 
 
@@ -699,7 +699,8 @@ class EnterpriseInfoView(RegionTenantHeaderView):
             # NOTE: response_region is a str (region name); .region_name is invalid and
             # Exception.message is py2-only — both would raise if reached (preserved).
             logger.warning("数据中心{0}不可达,无法获取相关信息: {1}".format(
-                self.response_region.region_name, e.message))  # type: ignore[attr-defined]
+                self.response_region.region_name,  # type: ignore[attr-defined]
+                getattr(e, "msg", getattr(e, "message", str(e)))))  # type: ignore[attr-defined]
         ent["is_enterprise"] = is_ent
         result = general_message(200, "success", "查询成功", bean=ent)
         return Response(result, status=result["code"])
@@ -737,7 +738,7 @@ class UserApplyStatusView(JWTAuthApiView):
                 result = general_message(200, "success", "查询成功", list=status_list)
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)  # type: ignore[attr-defined]
+            result = error_message(getattr(e, "msg", getattr(e, "message", str(e))))  # type: ignore[attr-defined]
         return Response(result, status=result["code"])
 
 
@@ -1042,7 +1043,7 @@ class AdminAddUserView(JWTAuthApiView):
             return Response(general_message(e.status_code, e.msg, e.msg_show), status=e.status_code)
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)  # type: ignore[attr-defined]
+            result = error_message(getattr(e, "msg", getattr(e, "message", str(e))))  # type: ignore[attr-defined]
         return Response(result)
 
 

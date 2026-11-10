@@ -90,7 +90,7 @@ class ListRegionInfo(ListAPIView):
                 return Response(None, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         except RegionExistException as e:
             logger.exception(e)
-            return Response({"msg": e.message}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"msg": getattr(e, "msg", getattr(e, "message", str(e)))}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class RegionInfo(BaseOpenAPIView):
@@ -179,5 +179,5 @@ class RegionStatusView(BaseOpenAPIView):
             return Response(fs.data, status.HTTP_404_NOT_FOUND)
         except RegionUnreachableError as e:
             # NOTE: py2-style Exception.message attribute, absent in py3.
-            fs = FailSerializer({"msg": e.message})  # type: ignore[attr-defined]
+            fs = FailSerializer({"msg": getattr(e, "msg", getattr(e, "message", str(e)))})  # type: ignore[attr-defined]
             return Response(fs.data, status.HTTP_400_BAD_REQUEST)

@@ -493,6 +493,7 @@
 | console.oauth.instance-create | 创建 OAuth helper 实例并绑定服务与用户上下文 | active | regression | console.utils.oauth.oauth_types.get_oauth_instance | console/tests/utils/oauth_types_test.py::OAuthTypeTests.test_get_oauth_instance |
 | console.oauth.kind-flags | 返回基础与 git OAuth helper 的能力标记 | active | regression | console.utils.oauth.base.git_oauth.GitOAuth2Interface.is_git_oauth | console/tests/utils/oauth_base_test.py::OAuthBaseTests.test_oauth_kind_flags |
 | console.oauth.missing-access-key-fallback | OAuth Access Key 缺失时按预期回退仓库地址 | active | regression | console.services.app_actions.app_manage.AppManageService.deploy_services_info | console/tests/app_manage_test.py::AppManageBatchActionDeployEventTests.test_deploy_info_falls_back_without_error_log_when_oauth_access_key_is_missing |
+| console.oauth.name-scope | OAuth 配置名称按企业公共与个人范围隔离 | active | regression | POST /console/enterprise/{enterprise_id}/oauth/oauth-services | console/tests/oauth_name_scope_test.py |
 | console.oauth.reauthorization | Git OAuth 重新授权与安全账号换绑 | active | integration | console.views.oauth.OAuthServerUserAuthorize.post | console/tests/oauth_reauthorization_test.py::OAuthReauthorizationTests |
 | console.oauth.service-validation | 使用前校验 OAuth 服务引用 | active | regression | console.repositories.oauth_repo.OAuthRepo.get_oauth_services_by_service_id | console/tests/oauth_repo_validation_test.py::OAuthRepoValidationTestCase.test_get_service_rejects_non_numeric_id_as_not_found<br>console/tests/oauth_repo_validation_test.py::OAuthRepoValidationTestCase.test_update_rejects_deleted_oauth_service_before_reading_home_url |
 | console.oauth.session-retry | 创建带重试 HTTP 适配器的 OAuth 会话 | active | regression | console.utils.oauth.base.oauth.OAuth2Interface.set_session | console/tests/utils/oauth_base_test.py::OAuthBaseTests.test_set_session_builds_retrying_requests_session |
@@ -5620,6 +5621,16 @@
 - 业务入口: `console.services.app_actions.app_manage.AppManageService.deploy_services_info`
 - 代码路径: `console/services/app_actions/app_manage.py`
 - 测试路径: `console/tests/app_manage_test.py::AppManageBatchActionDeployEventTests.test_deploy_info_falls_back_without_error_log_when_oauth_access_key_is_missing`
+
+### OAuth 配置名称按企业公共与个人范围隔离
+
+- Capability ID: `console.oauth.name-scope`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `workflow`
+- 业务入口: `POST /console/enterprise/{enterprise_id}/oauth/oauth-services`
+- 代码路径: `console/models/main.py`, `console/repositories/oauth_repo.py`, `console/management/commands/migrate_oauth_name_scope.py`, `entrypoint.sh`, `console/views/oauth.py`
+- 测试路径: `console/tests/oauth_name_scope_test.py`
 
 ### Git OAuth 重新授权与安全账号换绑
 

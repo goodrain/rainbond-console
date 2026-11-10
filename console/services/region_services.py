@@ -534,7 +534,8 @@ class RegionService(object):
                 # NOTE: region.token is Optional[str] on the model; regionapi expects str.
                 region_api.get_api_version(region.url, region.token, region.region_name)  # type: ignore[arg-type]
             except region_api.CallApiError as e:
-                logger.warning("数据中心{0}不可达,无法上线: {1}".format(region.region_name, e.message))
+                logger.warning("数据中心{0}不可达,无法上线: {1}".format(
+                    region.region_name, getattr(e, "msg", getattr(e, "message", str(e)))))
                 raise RegionUnreachableError("数据中心{0}不可达,无法上线".format(region.region_name))
 
         region.save()

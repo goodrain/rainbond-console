@@ -10,6 +10,7 @@ from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import (ServiceDomain, ServiceGroupRelation, TenantServiceInfo, TenantServiceRelation, TenantServicesPort,
                              ServiceGroup)
 from www.utils.crypt import make_uuid3
+from www.utils.return_message import get_exception_message
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
@@ -354,7 +355,7 @@ class TopologicalService(object):
                 enterprise_id=team.enterprise_id)
             region_data["pod_list"] = pod_list["list"]  # type: ignore[index]  # NOTE: region_api returns Any, may be None on error
         except region_api.CallApiError as e:
-            if e.message["httpcode"] == 404:
+            if get_exception_message(e)["httpcode"] == 404:
                 region_data = {"status_cn": "创建中", "cur_status": "creating"}
             elif service.create_status != "complete":
                 region_data = {"status_cn": "创建中", "cur_status": "creating"}

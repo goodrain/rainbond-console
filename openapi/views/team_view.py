@@ -226,7 +226,8 @@ class TeamInfo(TeamNoRegionAPIView):
             return Response(None, status.HTTP_200_OK)
         except Tenants.DoesNotExist as e:
             # NOTE: py2-style Exception.message attribute, absent in py3.
-            logger.exception("failed to delete tenant: {}".format(e.message))  # type: ignore[attr-defined]
+            logger.exception("failed to delete tenant: {}".format(
+                getattr(e, "msg", getattr(e, "message", str(e)))))  # type: ignore[attr-defined]
             return Response(None, status=status.HTTP_404_NOT_FOUND)
 
     @swagger_auto_schema(
@@ -278,7 +279,9 @@ class TeamUserInfoView(TeamAPIView):
             user_services.batch_delete_users(team_id, [user_id])
             return Response(None, status.HTTP_200_OK)
         except UserNotExistError as e:
-            return Response({"msg": e.message}, status.HTTP_404_NOT_FOUND)  # type: ignore[attr-defined]
+            return Response(
+                {"msg": getattr(e, "msg", getattr(e, "message", str(e)))},
+                status.HTTP_404_NOT_FOUND)  # type: ignore[attr-defined]
         except Tenants.DoesNotExist:
             return Response({"msg": "团队不存在"}, status.HTTP_404_NOT_FOUND)
 

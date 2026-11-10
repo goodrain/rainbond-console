@@ -14,7 +14,7 @@ from console.views.base import RegionTenantHeaderView, ApplicationView
 from console.utils.cache_decorators import never_cache
 from rest_framework.response import Response
 from www.apiclient.baseclient import HttpClient
-from www.utils.return_message import general_message
+from www.utils.return_message import general_message, get_exception_message
 
 logger = logging.getLogger('default')
 
@@ -76,15 +76,15 @@ class GroupAppsCopyView(ApplicationView):
         except HttpClient.CallApiError as e:
             logger.exception(e)
             if e.status == 403:
-                result = general_message(10407, "no cloud permission", e.message)
+                result = general_message(10407, "no cloud permission", get_exception_message(e))
                 status = e.status
             elif e.status == 400:
-                if "is exist" in e.message.get("body", ""):
+                if "is exist" in get_exception_message(e).get("body", ""):
                     result = general_message(400, "the service is exist in region", "组件名称在数据中心已存在")
                 else:
-                    result = general_message(400, "call cloud api failure", e.message)
+                    result = general_message(400, "call cloud api failure", get_exception_message(e))
                 status = e.status
             else:
-                result = general_message(500, "call cloud api failure", e.message)
+                result = general_message(500, "call cloud api failure", get_exception_message(e))
                 status = 500
         return Response(result, status=status)

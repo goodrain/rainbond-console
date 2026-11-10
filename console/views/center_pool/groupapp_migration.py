@@ -185,7 +185,8 @@ class GroupAppsView(RegionTenantHeaderView):
             result = general_message(200, "success", "操作成功")
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)  # type: ignore[attr-defined] # NOTE: py2 Exception.message
+            result = error_message(
+                getattr(e, "msg", getattr(e, "message", str(e))))  # type: ignore[attr-defined] # NOTE: py2 Exception.message
         return Response(result, status=result["code"])
 
 

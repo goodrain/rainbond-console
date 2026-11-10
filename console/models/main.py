@@ -1043,8 +1043,10 @@ class AutoscalerRuleMetrics(BaseModel):
 class OAuthServices(BaseModel):
     class Meta:
         db_table = "oauth_service"
+        constraints = [models.UniqueConstraint(fields=("name_scope", "name"), name="uk_oauth_name_scope")]
 
-    name = models.CharField(max_length=32, null=False, unique=True, help_text="oauth服务名称")
+    name = models.CharField(max_length=32, null=False, help_text="oauth服务名称")
+    name_scope = models.CharField(max_length=96, null=True, editable=False)
     client_id = models.CharField(max_length=255, null=False, help_text="client_id")
     client_secret = models.CharField(max_length=255, null=False, help_text="client_secret")
     redirect_uri = models.CharField(max_length=255, null=False, help_text="redirect_uri")
@@ -1062,6 +1064,26 @@ class OAuthServices(BaseModel):
     auto_create_user = models.BooleanField(default=False, help_text="首次登录自动创建账号")
     user_id = models.IntegerField(help_text="用户ID", default=0)
     system = models.BooleanField(default=False, help_text="是否后台创建")
+
+    @staticmethod
+    def get_name_scope(eid, user_id, system=False, is_deleted=False, oauth_type=None):
+        # Legacy enterprise-center integrations resolve their service globally by name.
+        if oauth_type == "enterprisecenter":
+            return "enterprisecenter"
+        if is_deleted:
+            return None
+        if system:
+            return "enterprise:{}".format(eid or "")
+        return "user:{}:{}".format(eid or "", user_id)
+
+    def save(self, *args, **kwargs):
+        update_fields = kwargs.get("update_fields")
+        ownership_fields = {"eid", "user_id", "system", "is_deleted", "oauth_type"}
+        if update_fields is None or ownership_fields.intersection(update_fields):
+            self.name_scope = self.get_name_scope(self.eid, self.user_id, self.system, self.is_deleted, self.oauth_type)
+            if update_fields is not None:
+                kwargs["update_fields"] = set(update_fields) | {"name_scope"}
+        return super().save(*args, **kwargs)
 
 
 class UserOAuthServices(BaseModel):
