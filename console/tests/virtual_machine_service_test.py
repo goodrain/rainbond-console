@@ -47,11 +47,17 @@ from console.models.main import ComponentK8sAttributes  # noqa: E402
 from console.repositories.virtual_machine import vm_repo  # noqa: E402
 from console.services.app import app_service  # noqa: E402
 from console.services.virtual_machine import vms  # noqa: E402
-from www.models.main import TenantServiceInfo, VirtualMachineImage  # noqa: E402
+from www.models.main import (  # noqa: E402
+    TenantServiceEnvVar,
+    TenantServiceInfo,
+    TenantServicesPort,
+    VirtualMachineImage,
+)
 
 
 class VirtualMachineServiceTests(TestCase):
     # capability_id: console.virtual-machine.registry-root-disk
+    # capability_id: console.vm-run.ssh-public-key-bootstrap
 
     def _create_vm_service(self, tenant_id, service_id, image, extend_method="vm", create_status="complete"):
         return TenantServiceInfo.objects.create(
@@ -68,6 +74,21 @@ class VirtualMachineServiceTests(TestCase):
             create_status=create_status,
             k8s_component_name="{}-k8s".format(service_id)
         )
+
+    def test_build_vm_runtime_attrs_maps_ssh_inputs_and_preserves_uefi_firmware_mode(self):
+        attrs = vms._build_vm_runtime_attrs({
+            "os_name": "Ubuntu 24.04",
+            "ssh_username": "ubuntu",
+            "ssh_public_key": "ssh-ed25519 AAAA",
+            "boot_mode": "uefi",
+            "boot_source_format": "qcow2",
+        })
+
+        self.assertEqual("Ubuntu 24.04", attrs["vm_os_name"])
+        self.assertEqual("ubuntu", attrs["vm_ssh_username"])
+        self.assertEqual("ssh-ed25519 AAAA", attrs["vm_ssh_authorized_key"])
+        self.assertEqual("uefi", attrs["vm_boot_mode"])
+        self.assertEqual("qcow2", attrs["vm_boot_source_format"])
 
     def test_init_vm_image_app_uses_4cpu_8gb_defaults(self):
         service = app_service._AppService__init_vm_image_app("demo-region")
@@ -532,6 +553,95 @@ class VirtualMachineServiceTests(TestCase):
                 for item in create_payload["component_k8s_attributes"]
             }
         )
+        create_attr.assert_not_called()
+
+    def test_create_region_service_includes_ssh_attrs_and_internal_port_without_exposing_key_in_profile(self):
+        service = TenantServiceInfo.objects.create(
+            service_id="service-region-ssh",
+            tenant_id="tenant-a",
+            service_key="service-region-ssh",
+            service_alias="service-region-ssh",
+            service_cname="service-region-ssh",
+            service_region="demo-region",
+            category="application",
+            version="v1",
+            image="tenant-a:ubuntu",
+            extend_method="vm",
+            min_cpu=1000,
+            min_memory=1024,
+            min_node=1,
+            create_status="creating",
+            service_source="vm_run",
+            code_from="image_manual",
+            namespace="default",
+            service_type="application",
+            k8s_component_name="service-region-ssh-k8s"
+        )
+        public_key = "ssh-ed25519 AAAA-public-key"
+        for name, value in (
+                ("vm_os_name", "Ubuntu 24.04"),
+                ("vm_ssh_username", "ubuntu"),
+                ("vm_ssh_authorized_key", public_key),
+                ("vm_boot_mode", "uefi"),
+                ("vm_boot_source_format", "qcow2")):
+            ComponentK8sAttributes.objects.create(
+                tenant_id="tenant-a",
+                component_id=service.service_id,
+                name=name,
+                save_type="string",
+                attribute_value=value
+            )
+        TenantServicesPort.objects.create(
+            tenant_id="tenant-a",
+            service_id=service.service_id,
+            container_port=22,
+            mapping_port=22,
+            protocol="tcp",
+            port_alias="SERVICE_REGION_SSH22",
+            is_inner_service=True,
+            is_outer_service=False,
+            k8s_service_name=service.service_alias
+        )
+        TenantServiceEnvVar.objects.create(
+            tenant_id="tenant-a", service_id=service.service_id, container_port=22,
+            name="连接地址", attr_name="SERVICE_REGION_SSH22_HOST", attr_value=service.service_alias,
+            is_change=False, scope="outer")
+        TenantServiceEnvVar.objects.create(
+            tenant_id="tenant-a", service_id=service.service_id, container_port=22,
+            name="端口", attr_name="SERVICE_REGION_SSH22_PORT", attr_value="22",
+            is_change=False, scope="outer")
+
+        tenant = SimpleNamespace(tenant_id="tenant-a", tenant_name="tenant-a", enterprise_id="enterprise-a")
+        with mock.patch("console.services.app.service_group_relation_repo.get_group_id_by_service", return_value=1), \
+                mock.patch("console.services.app.region_app_repo.get_region_app_id", return_value="region-app-1"), \
+                mock.patch("console.services.app.region_api.create_service") as create_service_mock, \
+                mock.patch("console.services.app.region_api.create_component_k8s_attribute", create=True) as create_attr, \
+                mock.patch("console.services.app.arch_service.update_affinity_by_arch"):
+            app_service.create_region_service(tenant, service, "tester")
+
+        payload = create_service_mock.call_args[0][2]
+        attrs = {item["name"]: item["attribute_value"] for item in payload["component_k8s_attributes"]}
+        self.assertEqual("Ubuntu 24.04", attrs["vm_os_name"])
+        self.assertEqual("ubuntu", attrs["vm_ssh_username"])
+        self.assertEqual(public_key, attrs["vm_ssh_authorized_key"])
+        self.assertEqual("uefi", attrs["vm_boot_mode"])
+        self.assertEqual("qcow2", attrs["vm_boot_source_format"])
+        self.assertEqual([{
+            "container_port": 22,
+            "mapping_port": 22,
+            "protocol": "tcp",
+            "port_alias": "SERVICE_REGION_SSH22",
+            "is_inner_service": True,
+            "is_outer_service": False,
+            "k8s_service_name": service.service_alias,
+        }], payload["ports_info"])
+        self.assertEqual(
+            {"SERVICE_REGION_SSH22_HOST", "SERVICE_REGION_SSH22_PORT"},
+            {item["attr_name"] for item in payload["envs_info"] if item["container_port"] == 22})
+        runtime_profile = vms.get_vm_runtime_config(service.service_id)
+        self.assertNotIn("ssh_username", runtime_profile)
+        self.assertNotIn("ssh_public_key", runtime_profile)
+        self.assertNotIn(public_key, json.dumps(runtime_profile))
         create_attr.assert_not_called()
 
     def test_save_vm_runtime_config_preserves_non_vm_attrs_and_refreshes_vm_extension_keys(self):

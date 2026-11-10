@@ -1,9 +1,11 @@
-import logging
 import json
+import logging
+import re
 
 from datetime import datetime
 from typing import Any, Optional, Tuple
 
+from cryptography.hazmat.primitives.serialization import load_ssh_public_key
 from console.exception.main import ServiceHandleException
 from console.models.main import ComponentK8sAttributes
 from console.repositories.k8s_attribute import k8s_attribute_repo
@@ -29,6 +31,8 @@ INTERNAL_REGISTRY_HOSTS = ("goodrain.me", "rbd-hub:5000")
 
 VM_RUNTIME_ATTR_SPECS = {
     "vm_os_name": "string",
+    "vm_ssh_username": "string",
+    "vm_ssh_authorized_key": "string",
     "vm_gpu_enabled": "string",
     "vm_gpu_resources": "json",
     "vm_gpu_count": "string",
@@ -42,6 +46,20 @@ VM_RUNTIME_ATTR_SPECS = {
 }
 VM_RUNTIME_MANAGED_KEYS = set(VM_RUNTIME_ATTR_SPECS.keys())
 VM_RUNTIME_LIST_KEYS = ("vm_gpu_resources", "vm_usb_resources")
+VM_SSH_USERNAME_RE = re.compile(r"^[a-z_][a-z0-9_-]{0,31}$")
+VM_SSH_PUBLIC_KEY_TYPES = {
+    "ssh-ed25519",
+    "ssh-rsa",
+    "ecdsa-sha2-nistp256",
+    "ecdsa-sha2-nistp384",
+    "ecdsa-sha2-nistp521",
+}
+VM_SSH_PUBLIC_KEY_MAX_BYTES = 16 * 1024
+VM_SSH_DISK_FORMATS = {"qcow2", "raw", "img"}
+VM_LINUX_OS_MARKERS = (
+    "linux", "ubuntu", "debian", "centos", "fedora", "rhel", "red hat", "rocky", "almalinux",
+    "opensuse", "suse", "oracle linux", "alpine", "arch", "kylin", "uos", "anolis",
+)
 VM_DISK_IMPORT_ATTR_NAME = "vm_disk_imports"
 VM_DISK_ASSET_KIND = "disk"
 VM_DISK_ROLE_ROOT = "root"
@@ -63,6 +81,39 @@ VM_DISK_PATH_TO_DEVICE_TYPE = {
 
 
 class VirtualMachineService(object):
+    def validate_vm_ssh_bootstrap(self, username: Any, public_key: Any, os_name: Any = "",
+                                  os_family: Any = "", boot_source_format: Any = "") -> Tuple[str, str]:
+        if username in (None, "") and public_key in (None, ""):
+            return "", ""
+        if not isinstance(username, str) or not isinstance(public_key, str):
+            raise ValueError("invalid VM SSH bootstrap configuration")
+
+        username = username.strip()
+        public_key = public_key.strip()
+        os_label = os_name.strip().lower() if isinstance(os_name, str) else ""
+        family = os_family.strip().lower() if isinstance(os_family, str) else ""
+        source_format = boot_source_format.strip().lower() if isinstance(boot_source_format, str) else ""
+        if (not username or not public_key or not VM_SSH_USERNAME_RE.fullmatch(username) or
+                family != "linux" or source_format not in VM_SSH_DISK_FORMATS or
+                not any(marker in os_label for marker in VM_LINUX_OS_MARKERS)):
+            raise ValueError("SSH public-key bootstrap requires a Linux disk image")
+        if (len(public_key.encode("utf-8")) > VM_SSH_PUBLIC_KEY_MAX_BYTES or
+                "\r" in public_key or "\n" in public_key or "PRIVATE KEY" in public_key or
+                any((ord(char) < 32 and char != "\t") or ord(char) == 127 for char in public_key)):
+            raise ValueError("invalid VM SSH public key")
+
+        fields = public_key.split(None, 2)
+        if len(fields) < 2 or fields[0] not in VM_SSH_PUBLIC_KEY_TYPES:
+            raise ValueError("invalid VM SSH public key")
+        if len(fields) == 3 and fields[2].startswith(("ssh-ed25519 ", "ssh-rsa ", "ecdsa-sha2-", "-----BEGIN")):
+            raise ValueError("invalid VM SSH public key")
+        try:
+            normalized_key = "{} {}".format(fields[0], fields[1]).encode("ascii")
+            load_ssh_public_key(normalized_key)
+        except (ValueError, TypeError, UnicodeError):
+            raise ValueError("invalid VM SSH public key")
+        return username, public_key
+
     def ensure_vm_platform_running(self, enterprise_id: Optional[str], region_name: str) -> None:
         from console.services.platform_plugin_service import platform_plugin_service
 
@@ -682,6 +733,12 @@ class VirtualMachineService(object):
         os_name = runtime_config.get("os_name")
         if os_name not in (None, ""):
             attrs["vm_os_name"] = str(os_name)
+
+        ssh_username = runtime_config.get("ssh_username")
+        ssh_authorized_key = runtime_config.get("ssh_public_key")
+        if ssh_username not in (None, "") and ssh_authorized_key not in (None, ""):
+            attrs["vm_ssh_username"] = str(ssh_username)
+            attrs["vm_ssh_authorized_key"] = str(ssh_authorized_key)
 
         gpu_enabled = self._as_bool(runtime_config.get("gpu_enabled"))
         gpu_resources = self._as_list(runtime_config.get("gpu_resources"))
