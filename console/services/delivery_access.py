@@ -1,4 +1,5 @@
 """Source and target authorization using the existing team/application permission codes."""
+from typing import Any
 from console.services.delivery_manifest import DeliveryError
 
 
@@ -22,6 +23,21 @@ def team_access(user, team_name, code, app_id=None, admin=False):
     if code not in codes:
         raise DeliveryError("没有执行此操作的权限", 403)
     return team
+
+
+def catalog_metadata_scope(user: Any, enterprise_id: str, source: Any, admin: bool = False) -> dict[str, str]:
+    if str(user.enterprise_id) != enterprise_id:
+        raise DeliveryError("无权修改此企业的应用模板", 403)
+    if not isinstance(source, dict) or not all(source.get(key) for key in ("team_name", "region_name", "app_id")):
+        raise DeliveryError("请选择来源应用")
+    scope = {"enterprise_id": enterprise_id, **{key: str(source[key]) for key in ("team_name", "region_name", "app_id")}}
+    if not scope["app_id"].isdigit():
+        raise DeliveryError("来源应用参数无效")
+    team_access(user, scope["team_name"], 310001, scope["app_id"], admin)
+    from www.models.main import ServiceGroup
+    if not ServiceGroup.objects.filter(ID=scope["app_id"], region_name=scope["region_name"]).exists():
+        raise DeliveryError("来源应用与集群不匹配", 404)
+    return scope
 
 
 def target_access(user, target, source, version, kind, admin=False):

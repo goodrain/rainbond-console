@@ -45,6 +45,10 @@ SOURCE = {
         "web",
         "deploy_version":
         "build-1",
+        "delivered_path":
+        "registry.test/source:web-build-1",
+        "delivered_type":
+        "image",
         "extend_method":
         "stateless",
         "service_source":
@@ -148,8 +152,23 @@ class DeliveryWorkflowTest(unittest.TestCase):
         migration_spec = importlib.util.spec_from_file_location("isolated_delivery_migration", migration_path)
         migration_module = importlib.util.module_from_spec(migration_spec)
         migration_spec.loader.exec_module(migration_module)
+        from django.db import migrations, models as fields
+        legacy = migrations.Migration("catalog_note_baseline", "console")
+        legacy.operations = [
+            migrations.CreateModel(name="RainbondCenterAppVersion",
+                                   fields=[("ID", fields.AutoField(primary_key=True)),
+                                           ("app_version_info", fields.CharField(max_length=255))],
+                                   options={"db_table": "rainbond_center_app_version"})
+        ]
         with connection.schema_editor() as editor:
-            migration_module.Migration("0011_independent_delivery_templates", "console").apply(ProjectState(), editor)
+            state = legacy.apply(ProjectState(), editor)
+            state = migration_module.Migration("0011_independent_delivery_templates", "console").apply(state, editor)
+            next_spec = importlib.util.spec_from_file_location(
+                "delivery_metadata_migration",
+                Path(__file__).parents[1] / "migrations/0012_delivery_template_metadata.py")
+            next_module = importlib.util.module_from_spec(next_spec)
+            next_spec.loader.exec_module(next_module)
+            next_module.Migration("0012_delivery_template_metadata", "console").apply(state, editor)
 
     def setUp(self):
         with connection.cursor() as cursor:
@@ -157,6 +176,11 @@ class DeliveryWorkflowTest(unittest.TestCase):
                 cursor.execute('DELETE FROM "{}"'.format(table._meta.db_table))
         self.gateway = Gateway()
         self.service = DeliveryService(models=models, gateway=self.gateway)
+
+    def create_version(self, data, request_key=None):
+        if not self.service.repo.templates(SCOPE).exists():
+            self.service.update_metadata(USER, SCOPE, data)
+        return self.service.create(USER, SCOPE, data, request_key)
 
     def publish(self):
         job = self.service.start(USER, SCOPE, PAYLOAD, "request-1")
@@ -235,6 +259,9 @@ class DeliveryWorkflowTest(unittest.TestCase):
         listing.refresh_from_db()
         self.assertEqual(listing.status, "approved")
         self.assertNotEqual(listing.publication_status, "published")
+        self.service.advance(listing.publication_task_id)
+        listing.refresh_from_db()
+        self.assertEqual(listing.publication_status, "publishing")
         self.service.advance(listing.publication_task_id)
         listing.refresh_from_db()
         self.assertEqual(listing.publication_status, "published")
@@ -454,6 +481,9 @@ class DeliveryWorkflowTest(unittest.TestCase):
                 delivery_access.target_access(USER, target, SCOPE, version, "delivery")
             listing.refresh_from_db()
             self.service.advance(listing.publication_task_id)
+            with self.assertRaises(DeliveryError):
+                delivery_access.target_access(USER, target, SCOPE, version, "delivery")
+            self.service.advance(listing.publication_task_id)
             delivery_access.target_access(USER, target, SCOPE, version, "delivery")
             with self.assertRaises(DeliveryError):
                 delivery_access.target_access(USER, target, SCOPE, version, "test", admin=False)
@@ -571,6 +601,313 @@ class DeliveryWorkflowTest(unittest.TestCase):
         self.assertEqual(manifest["apps"], [])
         self.assertEqual(name, "Empty application")
         api.get_team_services_deploy_version.assert_not_called()
+
+    def test_direct_creation_saves_fixed_artifacts_without_a_sync_job(self):
+        version = self.create_version(PAYLOAD, "direct-1")
+        self.assertEqual(version.manifest["apps"][0]["share_image"], "registry.test/source:web-build-1")
+        self.assertEqual(models.DeliveryTask.objects.count(), 0)
+        self.assertEqual(self.gateway.calls, [])
+        self.assertIsNone(version.sync_id)
+        duplicate = self.create_version(PAYLOAD, "direct-1")
+        self.assertEqual(duplicate.id, version.id)
+
+    def test_long_release_notes_and_template_metadata_are_preserved(self):
+        notes = "新增功能与修复记录\n" * 300
+        version = self.create_version(
+            {
+                **PAYLOAD, "description": notes,
+                "template_description": "应用用途简介",
+                "logo": "/media/uploads/app.png"
+            }, "metadata-1")
+        self.assertEqual(version.description, notes)
+        self.assertEqual(version.manifest["annotations"]["describe"], "应用用途简介")
+        self.assertEqual(version.manifest["annotations"]["version_info"], notes)
+        self.assertEqual(self.service.version_data(version)["logo"], "/media/uploads/app.png")
+
+    def test_metadata_edit_does_not_rewrite_existing_version(self):
+        version = self.create_version(PAYLOAD, "edit-1")
+        before = copy.deepcopy(version.manifest)
+        self.service.update_metadata(USER, SCOPE, {
+            "template_name": "New name",
+            "template_description": "New overview",
+            "logo": "/media/uploads/new.png"
+        })
+        version.refresh_from_db()
+        self.assertEqual(version.manifest, before)
+        self.assertEqual(self.service.list(SCOPE)["template"]["name"], "New name")
+        self.assertEqual(models.DeliveryTask.objects.count(), 0)
+
+    def test_local_catalog_sync_starts_only_after_review(self):
+        version = self.create_version(PAYLOAD, "review-sync-1")
+        listing = self.service.listing(USER, SCOPE, version.id, {"reason": "Release"})
+        self.assertEqual(self.gateway.calls, [])
+        self.service.review(USER, listing.id, "approved", "", admin=True)
+        listing.refresh_from_db()
+        self.assertEqual(self.gateway.calls, [])
+        self.service.advance(listing.publication_task_id)
+        listing.refresh_from_db()
+        self.assertEqual(listing.publication_status, "publishing")
+        self.assertEqual(self.gateway.calls, ["build-1"])
+        self.service.advance(listing.publication_task_id)
+        listing.refresh_from_db()
+        self.assertEqual(listing.publication_status, "published")
+
+    def test_direct_version_can_install_and_export_without_listing(self):
+        version = self.create_version(PAYLOAD, "private-use-1")
+        install = self.service.operation(USER, SCOPE, version.id, "delivery",
+                                         {"target": {
+                                             "team_name": "team",
+                                             "region_name": "region",
+                                             "app_name": "Private"
+                                         }})
+        export = self.service.operation(USER, SCOPE, version.id, "offline", {"format": "docker-compose"})
+        self.assertEqual(install.kind, "delivery")
+        self.assertEqual(self.service.task_data(export)["export_format"], "docker-compose")
+        self.assertEqual(models.DeliveryListingRequest.objects.count(), 0)
+        with self.assertRaises(DeliveryError):
+            self.service.operation(USER, SCOPE, version.id, "offline", {"format": "unsupported"})
+
+    def test_export_reuses_active_format_and_retains_completed_records(self):
+        version = self.create_version(PAYLOAD)
+        first = self.service.operation(USER, SCOPE, version.id, "offline", {"format": "helm-chart"}, "export-one")
+        second = self.service.operation(USER, SCOPE, version.id, "offline", {"format": "helm-chart"}, "export-two")
+        self.assertEqual(first.id, second.id)
+        different = self.service.operation(USER, SCOPE, version.id, "offline", {"format": "docker-compose"})
+        self.assertNotEqual(first.id, different.id)
+        self.service.advance(first.id)
+        self.service.advance(first.id)
+        first.refresh_from_db()
+        self.assertTrue(self.service.task_data(first)["download_url"])
+        next_export = self.service.operation(USER, SCOPE, version.id, "offline", {"format": "helm-chart"}, "export-three")
+        self.assertNotEqual(first.id, next_export.id)
+        self.assertEqual(version.tasks.filter(kind="offline").count(), 3)
+        with self.assertRaises(DeliveryError):
+            self.service.operation(USER, SCOPE, version.id, "offline", {"format": "docker-compose"}, "export-one")
+
+    def test_local_catalog_gateway_publishes_copied_artifacts_and_frozen_metadata(self):
+        import sys
+        import types
+        import json
+        from unittest import mock
+        from console.services.delivery_gateway import DeliveryGateway
+        version = self.create_version({**PAYLOAD, "logo": "/uploads/logo.png", "template_description": "Application summary"})
+        task = models.DeliveryTask.objects.create(template=version.template,
+                                                  version=version,
+                                                  kind="catalog_publish",
+                                                  actor_id=1,
+                                                  actor_name="Reviewer",
+                                                  request_key="local-catalog",
+                                                  payload={"destination": {
+                                                      "type": "local"
+                                                  }})
+        models.DeliveryTaskItem.objects.create(task=task,
+                                               key="web",
+                                               component=version.manifest["apps"][0],
+                                               result={"image_name": "catalog.test/web:1.0.0"},
+                                               status="succeeded")
+        main, app = types.ModuleType("console.models.main"), types.ModuleType("console.services.app")
+        main.RainbondCenterApp = mock.Mock()
+        main.RainbondCenterAppVersion = mock.Mock()
+        app.app_market_service = mock.Mock()
+        with mock.patch.dict(sys.modules, {"console.models.main": main, "console.services.app": app}):
+            result = DeliveryGateway().publish_catalog(task)
+        saved = main.RainbondCenterAppVersion.objects.get_or_create.call_args.kwargs["defaults"]
+        manifest = json.loads(saved["app_template"])
+        self.assertEqual(manifest["apps"][0]["share_image"], "catalog.test/web:1.0.0")
+        self.assertEqual(result["published_manifest"]["apps"][0]["share_image"], "catalog.test/web:1.0.0")
+        metadata = main.RainbondCenterApp.objects.update_or_create.call_args.kwargs["defaults"]
+        self.assertEqual(metadata["pic"], "/uploads/logo.png")
+        self.assertEqual(metadata["describe"], "Application summary")
+        self.assertEqual(version.manifest["apps"][0]["share_image"], "registry.test/source:web-build-1")
+        app.app_market_service.create_market_app_model_version.assert_not_called()
+
+    def test_export_gateway_preserves_selected_formats_and_existing_image_references(self):
+        import sys
+        import types
+        import json
+        from unittest import mock
+        from console.services.delivery_gateway import DeliveryGateway
+        version = self.create_version(PAYLOAD)
+        encoder = types.ModuleType("console.services.app_import_and_export_service")
+        encoder.export_service = mock.Mock()
+        encoder.export_service._AppExportService__normalize_export_template.side_effect = copy.deepcopy
+        store = types.ModuleType("console.appstore.appstore")
+        store.app_store = mock.Mock()
+        store.app_store.get_app_hub_info.return_value = {}
+        gateway, api = DeliveryGateway(), mock.Mock()
+        with mock.patch.dict(sys.modules, {"console.services.app_import_and_export_service": encoder,
+                                          "console.appstore.appstore": store}), \
+             mock.patch.object(gateway, "region_api", return_value=api):
+            for format_name in ("rainbond-app", "docker-compose", "helm-chart", "slug"):
+                task = self.service.operation(USER, SCOPE, version.id, "offline", {"format": format_name})
+                gateway.export(task)
+                body = api.export_app.call_args.args[2]
+                self.assertEqual(body["format"], format_name)
+                manifest = json.loads(body["group_metadata"])
+                self.assertEqual(manifest["apps"][0]["share_image"], "registry.test/source:web-build-1")
+                self.assertEqual(manifest["helm_chart"]["image_handle"], "image_save")
+
+    def test_install_manifest_uses_private_artifact_until_cross_team_publication(self):
+        from console.services.delivery_gateway import DeliveryGateway
+        version = self.create_version(PAYLOAD)
+        task = self.service.operation(USER, SCOPE, version.id, "delivery",
+                                      {"target": {
+                                          "team_name": "team",
+                                          "region_name": "region"
+                                      }})
+        gateway = DeliveryGateway()
+        self.assertEqual(gateway.installation_manifest(task)[0]["apps"][0]["share_image"], "registry.test/source:web-build-1")
+        listing = self.service.listing(USER, SCOPE, version.id, {"reason": "List"})
+        listing = self.service.review(USER, listing.id, "approved", "", admin=True)
+        published = copy.deepcopy(version.manifest)
+        published["apps"][0]["share_image"] = "catalog.test/web:1.0.0"
+        publication = listing.publication_task
+        publication.result = {"published_manifest": published}
+        publication.save()
+        listing.publication_status = "published"
+        listing.save()
+        task.payload["target"]["team_name"] = "another-team"
+        self.assertEqual(gateway.installation_manifest(task)[0]["apps"][0]["share_image"], "catalog.test/web:1.0.0")
+
+    def test_market_application_metadata_is_separate_from_long_release_notes(self):
+        import sys
+        import types
+        from unittest import mock
+        from console.services.delivery_gateway import DeliveryGateway
+        version = self.create_version({
+            **PAYLOAD, "logo": "/uploads/logo.png",
+            "template_description": "Application summary",
+            "description": "Release notes\n" * 300
+        })
+        task = models.DeliveryTask.objects.create(template=version.template,
+                                                  version=version,
+                                                  kind="catalog_publish",
+                                                  actor_id=1,
+                                                  actor_name="Reviewer",
+                                                  request_key="market-metadata",
+                                                  payload={"destination": {
+                                                      "type": "market",
+                                                      "market_id": "store"
+                                                  }})
+        app, store = types.ModuleType("console.services.app"), types.ModuleType("console.appstore.appstore")
+        app.app_market_service, store.app_store = mock.Mock(), mock.Mock()
+        store.app_store.create_app.return_value = {"app_id": "remote-app"}
+        with mock.patch.dict(sys.modules, {
+                "console.services.app": app,
+                "console.appstore.appstore": store,
+                "console.models.delivery_template": models
+        }):
+            DeliveryGateway().prepare_catalog(task)
+        metadata = store.app_store.create_app.call_args.args[1]
+        self.assertEqual(metadata["desc"], "Application summary")
+        self.assertEqual(metadata["logo"], "/uploads/logo.png")
+        self.assertEqual(task.result["market_app_id"], "remote-app")
+
+    def test_template_can_be_created_before_any_version_or_component_sync(self):
+        self.service.gateway.source = lambda scope: self.fail("Metadata creation must not read component build artifacts")
+        template = self.service.update_metadata(USER, SCOPE, {
+            "template_name": "Team template",
+            "logo": "/uploads/team.png",
+            "template_description": "Purpose"
+        })
+        self.assertEqual(self.service.list(SCOPE)["template"]["id"], str(template.id))
+        self.assertEqual(self.service.list(SCOPE)["items"], [])
+        self.assertEqual(models.DeliveryTask.objects.count(), 0)
+
+    def test_version_creation_requires_an_existing_template(self):
+        with self.assertRaises(DeliveryError):
+            self.service.create(USER, SCOPE, {"version": "1.0.0", "service_ids": ["web"]})
+        self.assertFalse(models.DeliveryTemplate.objects.exists())
+
+    def test_publishing_version_uses_current_metadata_without_modifying_it(self):
+        template = self.service.update_metadata(USER, SCOPE, {
+            "template_name": "Current template",
+            "logo": "/uploads/current.png",
+            "template_description": "Current description"
+        })
+        version = self.service.create(USER, SCOPE, {
+            **PAYLOAD, "template_name": "Stale name",
+            "logo": "/uploads/stale.png",
+            "template_description": "Stale description"
+        })
+        template.refresh_from_db()
+        self.assertEqual(template.name, "Current template")
+        self.assertEqual(template.logo, "/uploads/current.png")
+        self.assertEqual(version.manifest["group_name"], "Current template")
+        self.assertEqual(version.manifest["annotations"]["describe"], "Current description")
+        self.assertEqual(version.manifest["annotations"]["logo"], "/uploads/current.png")
+
+    def test_metadata_edits_apply_to_new_versions_while_old_versions_remain_frozen(self):
+        first = self.create_version(PAYLOAD)
+        self.service.update_metadata(USER, SCOPE, {
+            "template_name": "Updated template",
+            "logo": "/uploads/updated.png",
+            "template_description": "Updated purpose"
+        })
+        second = self.service.create(
+            USER, SCOPE, {
+                "version": "1.0.1",
+                "description": "New release",
+                "service_ids": PAYLOAD["service_ids"],
+                "component_overrides": PAYLOAD["component_overrides"]
+            })
+        first.refresh_from_db()
+        self.assertEqual(first.manifest["group_name"], PAYLOAD["template_name"])
+        self.assertEqual(second.manifest["group_name"], "Updated template")
+        self.assertEqual(second.manifest["annotations"]["logo"], "/uploads/updated.png")
+        self.assertEqual(first.template_id, second.template_id)
+        self.assertEqual(second.template.versions.count(), 2)
+
+    def test_catalog_profile_payload_creates_and_edits_only_private_template_information(self):
+        template = self.service.save_catalog_metadata(USER, SCOPE, {
+            "name": "Private template",
+            "pic": "/uploads/private.png",
+            "describe": "Purpose"
+        })
+        self.assertEqual(template.logo, "/uploads/private.png")
+        self.assertFalse(template.versions.exists())
+        self.assertEqual(models.DeliveryTask.objects.count(), 0)
+        updated = self.service.save_catalog_metadata(USER, SCOPE, {
+            "name": "Updated template",
+            "describe": "New purpose"
+        }, template.id.hex)
+        self.assertEqual(updated.id, template.id)
+        self.assertEqual(updated.name, "Updated template")
+        with self.assertRaises(DeliveryError):
+            self.service.save_catalog_metadata(USER, SCOPE, {"name": "Wrong app"}, "0" * 32)
+        with self.assertRaises(DeliveryError):
+            self.service.save_catalog_metadata(USER, SCOPE, {"name": "Duplicate"})
+
+    def test_catalog_metadata_source_requires_same_enterprise_and_application_permission(self):
+        import sys
+        import types
+        from unittest import mock
+        from console.services.delivery_access import catalog_metadata_scope
+        main = types.ModuleType("www.models.main")
+        main.ServiceGroup = mock.Mock()
+        main.ServiceGroup.objects.filter.return_value.exists.return_value = True
+        source = {"team_name": "team", "region_name": "region", "app_id": "123"}
+        with mock.patch.dict(sys.modules, {"www.models.main": main}), \
+             mock.patch("console.services.delivery_access.team_access") as access:
+            self.assertEqual(catalog_metadata_scope(USER, "enterprise", source), SCOPE)
+            access.assert_called_once_with(USER, "team", 310001, "123", False)
+            with self.assertRaises(DeliveryError):
+                catalog_metadata_scope(USER, "another-enterprise", source)
+            main.ServiceGroup.objects.filter.return_value.exists.return_value = False
+            with self.assertRaises(DeliveryError):
+                catalog_metadata_scope(USER, "enterprise", source)
+
+    def test_listing_exposes_current_profile_separately_from_the_frozen_version(self):
+        version = self.create_version(PAYLOAD)
+        listing = self.service.listing(USER, SCOPE, version.id, {"reason": "Review"})
+        self.service.update_metadata(USER, SCOPE, {
+            "template_name": "Current profile",
+            "template_description": "Current purpose"
+        })
+        listing = models.DeliveryListingRequest.objects.select_related("version__template").get(id=listing.id)
+        data = self.service.listing_data(listing)
+        self.assertEqual(data["template_profile"]["name"], "Current profile")
+        self.assertEqual(data["template"]["template_name"], PAYLOAD["template_name"])
 
 
 if __name__ == "__main__":

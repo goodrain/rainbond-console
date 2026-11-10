@@ -3,6 +3,7 @@ import copy
 import json
 import uuid
 from types import SimpleNamespace
+from urllib.parse import urlsplit
 from django.utils import timezone
 from console.services.delivery_manifest import DeliveryError, public_manifest
 
@@ -43,6 +44,12 @@ class DeliveryGateway:
             component["code_version"] = version.get("code_version", "")
         plugins = share_service.get_group_services_used_plugins(app.ID)
         shared_plugins = share_service.get_plugins_group_items(plugins) if plugins else []
+        for plugin in shared_plugins:
+            build = self.region_api().get_build_status(scope["region_name"], tenant.tenant_name, plugin["plugin_id"],
+                                                       plugin["build_version"])
+            info = (build or {}).get("bean", {})
+            plugin["built_image"] = info.get("build_local_image", "")
+            plugin["delivery_available"] = info.get("status") == "success" and bool(plugin["built_image"])
         for component in services:
             component["service_related_plugin_config"] = share_service.wrapper_service_plugin_config(
                 component.get("service_related_plugin_config", []), shared_plugins)
@@ -55,6 +62,11 @@ class DeliveryGateway:
             "k8s_resources": list(share_service.get_k8s_resources(app.ID)),
             "app_config_groups": share_service.config_groups(scope["region_name"], keys),
             "ingress_http_routes": share_service._list_http_ingresses(tenant, keys),
+            "application": {
+                "name": app.group_name,
+                "logo": getattr(app, "logo", "") or "",
+                "description": getattr(app, "note", "") or ""
+            },
             "arch": "&".join(sorted({c.get("arch", "amd64")
                                      for c in services}))
         }
@@ -143,20 +155,29 @@ class DeliveryGateway:
         manifest = copy.deepcopy(task.version.manifest)
         manifest = export_service._AppExportService__normalize_export_template(manifest)
         manifest.setdefault("annotations", {}).update(version_info=task.version.description)
-        manifest["helm_chart"] = {"image_handle": "none"}
+        manifest["helm_chart"] = {"image_handle": task.payload.get("image_handle", "image_save")}
         from console.appstore.appstore import app_store
         image_auth = app_store.get_app_hub_info(None, task.template_id.hex, task.template.enterprise_id)
         for component in manifest["apps"]:
-            component["service_image"] = image_auth
+            component["service_image"] = self.auth_for_image(component.get("share_image", ""), image_auth)
         for plugin in manifest.get("plugins", []):
-            plugin["plugin_image"] = image_auth
+            plugin["plugin_image"] = self.auth_for_image(plugin.get("share_image", ""), image_auth)
+        logo = manifest.get("annotations", {}).get("logo", "")
+        logo_path = urlsplit(logo).path
+        if "/uploads/" in logo_path and logo_path.startswith("/"):
+            try:
+                encoded = export_service.encode_image(logo_path)
+            except OSError:
+                encoded = ""
+            if encoded:
+                manifest["annotations"].update(image_base64_string=encoded, suffix=logo_path.rsplit(".", 1)[-1])
         event_id = uuid.uuid4().hex
         self.region_api().export_app(
             task.template.region_name, task.template.enterprise_id, {
                 "event_id": event_id,
                 "group_key": task.template_id.hex,
                 "version": task.version.version,
-                "format": "rainbond-app",
+                "format": task.payload.get("format", "rainbond-app"),
                 "group_metadata": json.dumps(manifest)
             })
         return {"event_id": event_id}
@@ -174,8 +195,8 @@ class DeliveryGateway:
         from console.services.market_app_service import market_app_service
         from console.services.market_app.app_upgrade import AppUpgrade
         from console.services.market_app_preflight_service import market_install_preflight_service
-        manifest = copy.deepcopy(task.version.manifest)
         target = task.payload["target"]
+        manifest, market_name = self.installation_manifest(task)
         tenant = Tenants.objects.get(tenant_name=target["team_name"], enterprise_id=task.template.enterprise_id)
         region = RegionConfig.objects.get(region_name=target["region_name"], enterprise_id=tenant.enterprise_id)
         user = Users.objects.get(user_id=task.actor_id)
@@ -198,11 +219,19 @@ class DeliveryGateway:
                 if env["attr_name"] in values:
                     env["attr_value"] = str(values[env["attr_name"]])
         from console.appstore.appstore import app_store
-        image_auth = app_store.get_app_hub_info(None, task.template_id.hex, task.template.enterprise_id)
+        template_key = manifest.get("group_key") or task.template_id.hex
+        market = None
+        if market_name:
+            from console.services.app import app_market_service
+            market = app_market_service.get_app_market_by_name(task.template.enterprise_id,
+                                                               market_name,
+                                                               user_id=str(task.actor_id),
+                                                               raise_exception=True)
+        image_auth = app_store.get_app_hub_info(market, template_key, task.template.enterprise_id)
         for component in manifest["apps"]:
-            component["service_image"] = image_auth
+            component["service_image"] = self.auth_for_image(component.get("share_image", ""), image_auth)
         for plugin_info in manifest.get("plugins", []):
-            plugin_info["plugin_image"] = image_auth
+            plugin_info["plugin_image"] = self.auth_for_image(plugin_info.get("share_image", ""), image_auth)
         market_app_service._ensure_vm_template_allowed(tenant, region.region_name, manifest)
         preflight = market_install_preflight_service.run(tenant, region, manifest, check_images=False)
         if preflight.get("should_block"):
@@ -214,18 +243,20 @@ class DeliveryGateway:
             result = group_service.create_app(tenant,
                                               region.region_name,
                                               target["app_name"],
+                                              note=manifest.get("annotations", {}).get("describe", ""),
+                                              logo=manifest.get("annotations", {}).get("logo", ""),
                                               username=task.actor_name,
                                               eid=tenant.enterprise_id,
                                               k8s_app=k8s_app)
             app = ServiceGroup.objects.get(ID=result["group_id"])
         from www.models.main import TenantServiceGroup
         group = TenantServiceGroup.objects.filter(service_group_id=app.ID,
-                                                  group_key=task.template_id.hex,
+                                                  group_key=template_key,
                                                   group_version=task.version.version).first()
         group = group or market_app_service._create_tenant_service_group(region.region_name,
                                                                          tenant.tenant_id,
                                                                          app.ID,
-                                                                         task.template_id.hex,
+                                                                         template_key,
                                                                          task.version.version,
                                                                          task.template.name,
                                                                          external_template=manifest)
@@ -237,8 +268,8 @@ class DeliveryGateway:
                                task.version.version,
                                group,
                                manifest,
-                               True,
-                               "",
+                               bool(market_name),
+                               market_name,
                                is_deploy=True)
         events = installer.install()
         if manifest.get("platform_plugin"):
@@ -273,6 +304,8 @@ class DeliveryGateway:
         from console.appstore.appstore import app_store
         from console.models.delivery_template import DeliveryTask
         destination = task.payload["destination"]
+        if destination["type"] == "local":
+            return
         if task.result.get("market_app_id"):
             return
         remote_id = None
@@ -285,12 +318,14 @@ class DeliveryGateway:
                                                                destination["market_id"],
                                                                user_id=str(task.actor_id),
                                                                raise_exception=True)
-            remote = app_store.create_app(market, {
-                "name": task.template.name,
-                "desc": task.version.description,
-                "publish_type": "private",
-                "tags": []
-            })
+            remote = app_store.create_app(
+                market, {
+                    "name": task.version.manifest["group_name"],
+                    "desc": task.version.manifest.get("annotations", {}).get("describe", ""),
+                    "logo": task.version.manifest.get("annotations", {}).get("logo", ""),
+                    "publish_type": "private",
+                    "tags": []
+                })
             data = remote.to_dict() if hasattr(remote, "to_dict") else remote
             remote_id = data.get("app_key_id") or data.get("app_id") if isinstance(data, dict) else None
             if not remote_id:
@@ -300,12 +335,16 @@ class DeliveryGateway:
     def dispatch_catalog_artifact(self, task, item):
         from console.appstore.appstore import app_store
         from console.services.app import app_market_service
-        remote_id = task.result["market_app_id"]
-        market = app_market_service.get_app_market_by_name(task.template.enterprise_id,
-                                                           task.payload["destination"]["market_id"],
-                                                           user_id=str(task.actor_id),
-                                                           raise_exception=True)
+        destination = task.payload["destination"]
+        remote_id = task.result.get("market_app_id", task.template_id.hex)
+        market = None
+        if destination["type"] == "market":
+            market = app_market_service.get_app_market_by_name(task.template.enterprise_id,
+                                                               destination["market_id"],
+                                                               user_id=str(task.actor_id),
+                                                               raise_exception=True)
         source = app_store.get_app_hub_info(None, task.template_id.hex, task.template.enterprise_id)
+        source_auth = self.auth_for_image(item.component.get("share_image", ""), source)
         data = {
             "service_key": task.template_id.hex + "-" + str(item.id).replace("-", "")[:16],
             "version": task.version.version,
@@ -314,8 +353,8 @@ class DeliveryGateway:
             "source_image": item.component.get("share_image", ""),
             "source_slug": item.component.get("share_slug_path", ""),
             "source_auth": {
-                "user": source.get("hub_user"),
-                "password": source.get("hub_password")
+                "user": source_auth.get("hub_user", ""),
+                "password": source_auth.get("hub_password", "")
             },
             "image_info": app_store.get_app_hub_info(market, remote_id, task.template.enterprise_id),
             "slug_info": app_store.get_slug_hub_info(market, remote_id, task.template.enterprise_id)
@@ -331,14 +370,14 @@ class DeliveryGateway:
         from console.services.app import app_market_service
         manifest = public_manifest(task.version.manifest)
         destination = task.payload["destination"]
+        results = {item.key: item.result for item in task.items.all()}
+        for component in manifest["apps"]:
+            self.apply_artifact_result(component, results[component["service_id"]])
+        for plugin in manifest.get("plugins", []):
+            self.apply_artifact_result(plugin, results["plugin:" + plugin["plugin_id"]])
         if destination["type"] == "market":
             remote_id = task.result["market_app_id"]
             manifest["group_key"] = remote_id
-            results = {item.key: item.result for item in task.items.all()}
-            for component in manifest["apps"]:
-                self.apply_artifact_result(component, results[component["service_id"]])
-            for plugin in manifest.get("plugins", []):
-                self.apply_artifact_result(plugin, results["plugin:" + plugin["plugin_id"]])
             market = app_market_service.get_app_market_by_name(task.template.enterprise_id,
                                                                destination["market_id"],
                                                                user_id=str(task.actor_id),
@@ -355,17 +394,18 @@ class DeliveryGateway:
                 })
         else:
             # Only reviewed copies enter the existing enterprise catalog. Private versions never enter it.
-            RainbondCenterApp.objects.get_or_create(app_id=task.template_id.hex,
-                                                    defaults={
-                                                        "app_name": task.template.name,
-                                                        "enterprise_id": task.template.enterprise_id,
-                                                        "scope": "enterprise",
-                                                        "describe": task.version.description,
-                                                        "create_user": task.actor_id,
-                                                        "create_team": task.template.team_name,
-                                                        "arch": manifest.get("arch", "amd64"),
-                                                        "is_version": True
-                                                    })
+            RainbondCenterApp.objects.update_or_create(app_id=task.template_id.hex,
+                                                       defaults={
+                                                           "app_name": manifest["group_name"],
+                                                           "enterprise_id": task.template.enterprise_id,
+                                                           "scope": "enterprise",
+                                                           "describe": manifest.get("annotations", {}).get("describe", ""),
+                                                           "pic": manifest.get("annotations", {}).get("logo", ""),
+                                                           "create_user": task.actor_id,
+                                                           "create_team": task.template.team_name,
+                                                           "arch": manifest.get("arch", "amd64"),
+                                                           "is_version": True
+                                                       })
             RainbondCenterAppVersion.objects.get_or_create(app_id=task.template_id.hex,
                                                            version=task.version.version,
                                                            defaults={
@@ -383,7 +423,7 @@ class DeliveryGateway:
                                                                "template_version": manifest.get("template_version", "v2"),
                                                                "arch": manifest.get("arch", "amd64")
                                                            })
-        return {**task.result, "catalog_id": task.template_id.hex, "destination": destination}
+        return {**task.result, "catalog_id": task.template_id.hex, "destination": destination, "published_manifest": manifest}
 
     @staticmethod
     def apply_artifact_result(component, result):
@@ -395,3 +435,19 @@ class DeliveryGateway:
                     disk.pop("source_uri", None)
         if result.get("slug_path"):
             component["share_slug_path"] = result["slug_path"]
+
+    @staticmethod
+    def auth_for_image(image, registry):
+        host = urlsplit("//" + str(registry.get("hub_url") or "").split("://")[-1]).netloc
+        return registry if host and image.startswith(host + "/") else {}
+
+    def installation_manifest(self, task):
+        target = task.payload["target"]
+        if target["team_name"] != task.template.team_name or target["region_name"] != task.template.region_name:
+            published = list(task.version.listings.filter(publication_status="published").select_related("publication_task"))
+            published.sort(key=lambda row: row.destination.get("type") != "local")
+            for row in published:
+                if row.publication_task and row.publication_task.result.get("published_manifest"):
+                    return copy.deepcopy(row.publication_task.result["published_manifest"]), row.destination.get(
+                        "market_id", "")
+        return copy.deepcopy(task.version.manifest), ""
