@@ -1052,6 +1052,21 @@ class DeliveryWorkflowTest(unittest.TestCase):
         self.assertEqual(data["template_profile"]["name"], "Current profile")
         self.assertEqual(data["template"]["template_name"], PAYLOAD["template_name"])
 
+    def test_listing_response_retains_publication_task_for_failed_publication_retry(self):
+        version = self.create_version(PAYLOAD)
+        listing = self.service.listing(USER, SCOPE, version.id, {"reason": "Release"})
+        self.assertEqual(self.service.listing_data(listing).get("publication_task_id"), "")
+        listing = self.service.review(USER, listing.id, "approved", "Ready", admin=True)
+        task = listing.publication_task
+        task.status = "failed"
+        task.save(update_fields=["status"])
+        listing.publication_status = "failed"
+        listing.save(update_fields=["publication_status"])
+        response = self.service.listing_data(listing)
+        self.assertEqual(response["publication_status"], "failed")
+        self.assertEqual(response["publication_task_id"], str(task.id))
+        self.assertNotIn("payload", response)
+
     def test_full_template_introduction_is_separate_from_summary_and_frozen_for_versions(self):
         template = self.service.save_catalog_metadata(USER, SCOPE, {
             "name": "Application",
