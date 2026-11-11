@@ -31,6 +31,7 @@ from console.repositories.app_config import domain_repo, configuration_repo, por
 from console.repositories.label_repo import service_label_repo
 from console.repositories.label_repo import label_repo
 from console.repositories.k8s_attribute import k8s_attribute_repo
+from console.services.vm_login_security import filter_vm_login_transfer_attributes
 from console.repositories.k8s_resources import k8s_resources_repo
 from console.services.app import app_market_service
 from console.services.app_config import component_service_monitor
@@ -2039,7 +2040,7 @@ class ShareService(object):
 
     @staticmethod
     def list_component_k8s_attributes(component_ids: list) -> dict:
-        attrs = k8s_attribute_repo.list_by_component_ids(component_ids)
+        attrs = filter_vm_login_transfer_attributes(k8s_attribute_repo.list_by_component_ids(component_ids))
         result: Dict[Any, Any] = {}
         for attr in attrs:
             if not result.get(attr.component_id):

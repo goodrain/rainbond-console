@@ -31,6 +31,7 @@ from console.repositories.app_config import dep_relation_repo
 from console.repositories.app_config import domain_repo as http_rule_repo
 from console.repositories.app_config import (env_var_repo, mnt_repo, port_repo, service_endpoints_repo, tcp_domain, volume_repo)
 from console.repositories.k8s_attribute import k8s_attribute_repo
+from console.services.vm_login_security import is_vm_login_log_redacted_attribute_name
 from console.repositories.probe_repo import probe_repo
 from console.repositories.region_app import region_app_repo
 from console.repositories.service_group_relation_repo import \
@@ -1022,8 +1023,9 @@ class AppService(object):
                 service.service_id, attrs.count()))
             for attr in attrs:
                 body = {"name": attr.name, "save_type": attr.save_type, "attribute_value": attr.attribute_value}
+                log_value = "<redacted>" if is_vm_login_log_redacted_attribute_name(attr.name) else attr.attribute_value
                 logger.info("[compose-debug] syncing k8s attribute to region: name={0}, value={1}".format(
-                    attr.name, attr.attribute_value))
+                    attr.name, log_value))
                 try:
                     region_api.create_component_k8s_attribute(
                         tenant.tenant_name, service.service_region, service.service_alias, body)

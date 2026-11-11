@@ -8,6 +8,10 @@ from django.db.models import QuerySet
 
 from console.exception.main import ServiceHandleException
 from console.repositories.k8s_attribute import k8s_attribute_repo
+from console.services.vm_login_security import (
+    VM_LOGIN_SECRET_ATTRIBUTE_NAMES,
+    is_vm_login_secret_attribute,
+)
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import TenantServiceInfo, Tenants
 
@@ -83,6 +87,8 @@ class ComponentK8sAttributeService(object):
 
     def get_by_component_ids_and_name(self, component_id: str, name: str) -> QuerySet:
         attributes = k8s_attribute_repo.get_by_component_id_name(component_id, name)
+        if name in VM_LOGIN_SECRET_ATTRIBUTE_NAMES:
+            return attributes.none()
         if attributes and attributes[0].save_type == "json" and attributes[0].attribute_value:
             try:
                 attributes[0].attribute_value = json.loads(attributes[0].attribute_value)
@@ -94,6 +100,8 @@ class ComponentK8sAttributeService(object):
         result: List[Dict[str, Any]] = []
         attributes = k8s_attribute_repo.list_by_component_ids(component_ids)
         for attribute in attributes:
+            if is_vm_login_secret_attribute(attribute):
+                continue
             if attribute.save_type == "json" and attribute.attribute_value:
                 try:
                     parsed = json.loads(attribute.attribute_value)
@@ -114,6 +122,7 @@ class ComponentK8sAttributeService(object):
     @transaction.atomic
     def create_k8s_attribute(self, tenant: Tenants, component: TenantServiceInfo, region_name: str,
                              attribute: Dict[str, Any], user_name: str) -> None:
+        self._reject_managed_login_attribute(attribute.get("name", ""))
         attribute = self._normalize_attribute_payload(attribute)
         if attribute["save_type"] == "json":
             attribute["attribute_value"] = self._serialize_json_attribute_value(attribute.get("attribute_value", []))
@@ -129,6 +138,7 @@ class ComponentK8sAttributeService(object):
     @transaction.atomic
     def update_k8s_attribute(self, tenant: Tenants, component: TenantServiceInfo, region_name: str,
                              attribute: Dict[str, Any]) -> None:
+        self._reject_managed_login_attribute(attribute.get("name", ""))
         data: Dict[str, Any] = {"attribute_value": attribute.get("attribute_value", "")}
         attribute = self._normalize_attribute_payload(attribute)
         if attribute.get("name") in SEQUENCE_ATTRIBUTE_NAMES:
@@ -151,11 +161,21 @@ class ComponentK8sAttributeService(object):
     @transaction.atomic
     def delete_k8s_attribute(self, tenant: Tenants, component: TenantServiceInfo, region_name: str, name: str,
                              operator: str) -> None:
+        self._reject_managed_login_attribute(name)
         k8s_attribute_repo.delete(component.service_id, name)
         region_api.delete_component_k8s_attribute(tenant.tenant_name, region_name, component.service_alias, {
             "name": name,
             "operator": operator
         })
+
+    @staticmethod
+    def _reject_managed_login_attribute(name: str) -> None:
+        if name in VM_LOGIN_SECRET_ATTRIBUTE_NAMES:
+            raise ServiceHandleException(
+                msg="VM login credentials are managed by the server",
+                msg_show="虚拟机登录凭据由系统管理，不能通过此接口修改",
+                status_code=403,
+            )
 
 
 k8s_attribute_service = ComponentK8sAttributeService()

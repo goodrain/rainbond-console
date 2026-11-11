@@ -12,6 +12,7 @@ from .app_template import AppTemplate
 from console.services.market_app.component import Component
 # service
 from console.services.app_config import port_service
+from console.services.vm_login_security import filter_vm_login_transfer_attributes
 from console.services.app_config import volume_service
 from console.services.app_config import probe_service
 from console.services.app_config.promql_service import promql_service
@@ -704,7 +705,7 @@ class NewComponents(object):
         new_attributes = []
         seen = set()
         is_vm_component = self._is_vm_template_component(component_tmpl)
-        for attribute in attributes or []:
+        for attribute in filter_vm_login_transfer_attributes(attributes):
             if is_vm_component and attribute.get("name") in VM_FIXED_POD_IP_ATTRIBUTES:
                 continue
             attr = ComponentK8sAttributes(

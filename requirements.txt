@@ -41,6 +41,7 @@ validators==0.14.2
 deprecated==1.2.10
 redis==3.5.3
 cryptography==3.3
+passlib==1.7.4
 kubernetes==30.1.0
 django-postgrespool2==2.0.5
 ruamel.yaml==0.18.6

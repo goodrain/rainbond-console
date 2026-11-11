@@ -13394,6 +13394,34 @@
       "status": "active"
     },
     {
+      "id": "console.vm-example.password-login-bootstrap",
+      "title": "Ubuntu VM example login bootstrap and credential redaction",
+      "title_zh": "Ubuntu VM 示例登录初始化与凭据脱敏",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.app_create.vm_run.VMRunCreateView.post",
+      "code_paths": [
+        "console/views/app_create/vm_run.py",
+        "console/services/virtual_machine.py",
+        "console/services/vm_login_security.py",
+        "console/services/k8s_attribute.py",
+        "console/services/share_services.py",
+        "console/services/market_app/market_app.py",
+        "console/services/market_app/new_components.py",
+        "console/services/market_app/component.py",
+        "console/services/app_check_service.py",
+        "console/services/app.py",
+        "console/views/app_config/app_domain.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/vm_example_password_login_test.py",
+          "selector": "VMExamplePasswordLoginTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.vm-storage-any-access-mode",
       "title": "Allow VM storage with any access mode",
       "title_zh": "允许虚拟机使用任意访问模式的存储",

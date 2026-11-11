@@ -1,11 +1,13 @@
 import json
 import logging
 import re
+import unicodedata
 
 from datetime import datetime
 from typing import Any, Optional, Tuple
 
 from cryptography.hazmat.primitives.serialization import load_ssh_public_key
+from passlib.hash import sha512_crypt
 from console.exception.main import ServiceHandleException
 from console.models.main import ComponentK8sAttributes
 from console.repositories.k8s_attribute import k8s_attribute_repo
@@ -33,6 +35,7 @@ VM_RUNTIME_ATTR_SPECS = {
     "vm_os_name": "string",
     "vm_ssh_username": "string",
     "vm_ssh_authorized_key": "string",
+    "vm_login_password_hash": "string",
     "vm_gpu_enabled": "string",
     "vm_gpu_resources": "json",
     "vm_gpu_count": "string",
@@ -56,6 +59,14 @@ VM_SSH_PUBLIC_KEY_TYPES = {
 }
 VM_SSH_PUBLIC_KEY_MAX_BYTES = 16 * 1024
 VM_SSH_DISK_FORMATS = {"qcow2", "raw", "img"}
+VM_UBUNTU_NOBLE_QCOW2_URL = (
+    "https://cloud-images.ubuntu.com/minimal/releases/noble/release/"
+    "ubuntu-24.04-minimal-cloudimg-amd64.img"
+)
+VM_LOGIN_PASSWORD_MIN_LENGTH = 12
+VM_LOGIN_PASSWORD_MAX_LENGTH = 128
+VM_LOGIN_PASSWORD_ROUNDS = 500000
+VM_LOGIN_PASSWORD_SALT_SIZE = 16
 VM_LINUX_OS_MARKERS = (
     "linux", "ubuntu", "debian", "centos", "fedora", "rhel", "red hat", "rocky", "almalinux",
     "opensuse", "suse", "oracle linux", "alpine", "arch", "kylin", "uos", "anolis",
@@ -81,6 +92,102 @@ VM_DISK_PATH_TO_DEVICE_TYPE = {
 
 
 class VirtualMachineService(object):
+    def validate_vm_login_password(self, password: Any) -> str:
+        if not isinstance(password, str):
+            raise ValueError("invalid VM login password")
+        if not VM_LOGIN_PASSWORD_MIN_LENGTH <= len(password) <= VM_LOGIN_PASSWORD_MAX_LENGTH:
+            raise ValueError("invalid VM login password")
+        if (password.isspace() or
+                any(unicodedata.category(char) == "Cc" or char in "\u2028\u2029" for char in password)):
+            raise ValueError("invalid VM login password")
+        return password
+
+    def hash_vm_login_password(self, password: Any) -> str:
+        password = self.validate_vm_login_password(password)
+        try:
+            encoded = sha512_crypt.using(
+                rounds=VM_LOGIN_PASSWORD_ROUNDS,
+                salt_size=VM_LOGIN_PASSWORD_SALT_SIZE,
+            ).hash(password)
+        except Exception:
+            raise ValueError("VM password bootstrap is unavailable") from None
+        if not encoded.startswith("$6$rounds=500000$"):
+            raise ValueError("VM password bootstrap is unavailable")
+        return encoded
+
+    def prepare_vm_login_bootstrap(self, login_method: Any = None, ssh_username: Any = "",
+                                   ssh_public_key: Any = "", login_password: Any = "", source_type: Any = "",
+                                   vm_url: Any = "", image_format: Any = "", arch: Any = "", boot_mode: Any = "",
+                                   os_name: Any = "", os_family: Any = "",
+                                   password_bootstrap_supported: Any = False) -> dict:
+        if login_method is not None and not isinstance(login_method, str):
+            raise ValueError("invalid VM login bootstrap configuration")
+        ssh_username = "" if ssh_username is None else ssh_username
+        ssh_public_key = "" if ssh_public_key is None else ssh_public_key
+        login_password = "" if login_password is None else login_password
+        if any(not isinstance(value, str) for value in (ssh_username, ssh_public_key, login_password)):
+            raise ValueError("invalid VM login bootstrap configuration")
+        metadata = (source_type, vm_url, image_format, arch, boot_mode, os_name, os_family)
+        if any(not isinstance(value, str) for value in metadata):
+            raise ValueError("invalid VM login bootstrap configuration")
+
+        method = login_method or ""
+        if method not in ("", "ssh_key", "password"):
+            raise ValueError("invalid VM login bootstrap configuration")
+        has_username = bool(ssh_username)
+        has_key = bool(ssh_public_key)
+        has_password = bool(login_password)
+
+        if not method:
+            if not (has_username or has_key or has_password):
+                return {
+                    "login_method": "",
+                    "ssh_username": "",
+                    "ssh_public_key": "",
+                    "login_password_hash": "",
+                }
+            if has_username and has_key and not has_password:
+                method = "ssh_key"
+            else:
+                raise ValueError("invalid VM login bootstrap configuration")
+
+        if method == "ssh_key":
+            if has_password or not (has_username and has_key):
+                raise ValueError("invalid VM login bootstrap configuration")
+            username, public_key = self.validate_vm_ssh_bootstrap(
+                ssh_username,
+                ssh_public_key,
+                os_name=os_name,
+                os_family=os_family,
+                boot_source_format=image_format,
+            )
+            return {
+                "login_method": "ssh_key",
+                "ssh_username": username,
+                "ssh_public_key": public_key,
+                "login_password_hash": "",
+            }
+
+        if has_key or not (has_username and has_password):
+            raise ValueError("invalid VM login bootstrap configuration")
+        if password_bootstrap_supported is not True:
+            raise ValueError("VM password bootstrap is unavailable")
+        username = ssh_username.strip()
+        os_label = os_name.strip().lower()
+        if (not VM_SSH_USERNAME_RE.fullmatch(username) or username.lower() == "root" or
+                os_family.strip().lower() != "linux" or
+                not any(marker in os_label for marker in VM_LINUX_OS_MARKERS) or
+                source_type != "url" or vm_url != VM_UBUNTU_NOBLE_QCOW2_URL or
+                image_format.strip().lower() != "qcow2" or arch.strip().lower() != "amd64" or
+                boot_mode.strip().lower() != "uefi"):
+            raise ValueError("password login is limited to the Ubuntu 24.04 QCOW2 example")
+        return {
+            "login_method": "password",
+            "ssh_username": username,
+            "ssh_public_key": "",
+            "login_password_hash": self.hash_vm_login_password(login_password),
+        }
+
     def validate_vm_ssh_bootstrap(self, username: Any, public_key: Any, os_name: Any = "",
                                   os_family: Any = "", boot_source_format: Any = "") -> Tuple[str, str]:
         if username in (None, "") and public_key in (None, ""):
@@ -736,9 +843,13 @@ class VirtualMachineService(object):
 
         ssh_username = runtime_config.get("ssh_username")
         ssh_authorized_key = runtime_config.get("ssh_public_key")
-        if ssh_username not in (None, "") and ssh_authorized_key not in (None, ""):
+        login_password_hash = runtime_config.get("login_password_hash")
+        if ssh_username not in (None, ""):
             attrs["vm_ssh_username"] = str(ssh_username)
+        if ssh_authorized_key not in (None, ""):
             attrs["vm_ssh_authorized_key"] = str(ssh_authorized_key)
+        if login_password_hash not in (None, ""):
+            attrs["vm_login_password_hash"] = str(login_password_hash)
 
         gpu_enabled = self._as_bool(runtime_config.get("gpu_enabled"))
         gpu_resources = self._as_list(runtime_config.get("gpu_resources"))

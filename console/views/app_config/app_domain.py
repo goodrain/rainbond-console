@@ -1554,6 +1554,9 @@ class VirtualMachineImageView(RegionTenantHeaderView):
 class VirtualMachineCapabilityView(RegionTenantHeaderView):
     def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         data = dict(vms.get_vm_capabilities(self.response_region, self.tenant.tenant_name) or {})
+        data["login_methods"] = (
+            ["ssh_key", "password"] if data.get("password_bootstrap_supported") is True else ["ssh_key"]
+        )
         try:
             data["storage_options"] = volume_service.get_vm_persistent_storage_options(
                 self.tenant, self.response_region)

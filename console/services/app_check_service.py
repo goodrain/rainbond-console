@@ -18,6 +18,10 @@ from console.repositories.k8s_attribute import k8s_attribute_repo
 from console.repositories.oauth_repo import oauth_repo, oauth_user_repo
 from console.services.app_config import compile_env_service, env_var_service, label_service, port_service, volume_service
 from console.services.source_build_state_service import source_build_state_service
+from console.services.vm_login_security import (
+    VM_LOGIN_SECRET_ATTRIBUTE_NAMES,
+    is_vm_login_log_redacted_attribute_name,
+)
 from console.services.region_services import region_services
 from console.utils import cnb_build as cnb_build_utils
 from console.utils.source_build_state import (
@@ -588,11 +592,18 @@ class AppCheckService(object):
     def __save_k8s_attribute(self, tenant: Tenants, service: TenantServiceInfo, name: str, value: Any,
                              save_type: str = "json") -> None:
         """Save a K8s attribute to console DB only. Region sync happens later in create_region_service."""
+        if name in VM_LOGIN_SECRET_ATTRIBUTE_NAMES:
+            raise ServiceHandleException(
+                msg="VM login credentials are managed by the server",
+                msg_show="虚拟机登录凭据由系统管理，不能通过此接口修改",
+                status_code=403,
+            )
         if name in K8S_SEQUENCE_ATTRIBUTE_NAMES:
             save_type = "yaml"
             value = self.__serialize_k8s_sequence_attribute(value)
+        log_value = "<redacted>" if is_vm_login_log_redacted_attribute_name(name) else value
         logger.info("[compose-debug] __save_k8s_attribute called: service={0}, name={1}, value={2}".format(
-            service.service_id, name, value))
+            service.service_id, name, log_value))
         try:
             existing = k8s_attribute_repo.get_by_component_id_name(service.service_id, name)
             if existing.exists():

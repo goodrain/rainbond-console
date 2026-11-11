@@ -96,6 +96,8 @@ class VMRunCreateView(RegionTenantHeaderView):
         boot_mode = request.data.get("boot_mode", "")
         requested_os_name = request.data.get("os_name", "")
         os_family = request.data.get("os_family", "")
+        login_method = request.data.get("login_method")
+        login_password = request.data.get("login_password", "")
         ssh_username = request.data.get("ssh_username", "")
         ssh_public_key = request.data.get("ssh_public_key", "")
         gpu_enabled = request.data.get("gpu_enabled", False)
@@ -153,21 +155,58 @@ class VMRunCreateView(RegionTenantHeaderView):
             image_url=vm_url,
             source_uri=vm_url or ("/grdata/package_build/temp/events/{}".format(event_id) if event_id else "")
         )
+        password_bootstrap_supported = False
+        if login_method == "password":
+            try:
+                capabilities = vms.get_vm_capabilities(self.response_region, self.tenant.tenant_name)
+            except Exception:
+                return Response(
+                    general_message(
+                        409,
+                        "VM password bootstrap unavailable",
+                        "当前数据中心尚未启用 Ubuntu 密码登录方式",
+                    ),
+                    status=409,
+                )
+            password_bootstrap_supported = (
+                isinstance(capabilities, dict) and capabilities.get("password_bootstrap_supported") is True
+            )
+            if not password_bootstrap_supported:
+                return Response(
+                    general_message(
+                        409,
+                        "VM password bootstrap unavailable",
+                        "当前数据中心尚未启用 Ubuntu 密码登录方式",
+                    ),
+                    status=409,
+                )
         try:
-            ssh_username, ssh_public_key = vms.validate_vm_ssh_bootstrap(
-                ssh_username,
-                ssh_public_key,
+            login_bootstrap = vms.prepare_vm_login_bootstrap(
+                login_method=login_method,
+                ssh_username=ssh_username,
+                ssh_public_key=ssh_public_key,
+                login_password=login_password,
+                source_type=source_type,
+                vm_url=vm_url,
+                image_format=validation_format,
+                arch=arch,
+                boot_mode=boot_mode,
                 os_name=requested_os_name,
                 os_family=os_family,
-                boot_source_format=validation_format,
+                password_bootstrap_supported=password_bootstrap_supported,
             )
         except ValueError as err:
-            return Response(general_message(400, "invalid VM SSH bootstrap", str(err)), status=400)
+            return Response(general_message(400, "invalid VM login bootstrap", str(err)), status=400)
+        ssh_username = login_bootstrap["ssh_username"]
+        ssh_public_key = login_bootstrap["ssh_public_key"]
+        login_password_hash = login_bootstrap["login_password_hash"]
         runtime_config = {
             **runtime_config,
             "ssh_username": ssh_username,
             "ssh_public_key": ssh_public_key,
+            "login_password_hash": login_password_hash,
         }
+        del login_password
         tracker = enterprise_first_deploy_service.safe_begin_deploy_tracking(
             enterprise_id=getattr(self.tenant, "enterprise_id", ""),
             tenant_name=getattr(self.tenant, "tenant_name", ""),
@@ -357,7 +396,8 @@ class VMRunCreateView(RegionTenantHeaderView):
                 )
             code, msg_show = group_service.add_service_to_group(self.tenant, self.response_region, group_id,
                                                                 new_service.service_id)  # type: ignore[union-attr]
-            if code != 200 and ssh_public_key:
+            needs_ssh_port = bool(ssh_public_key or login_password_hash)
+            if code != 200 and needs_ssh_port:
                 transaction.set_rollback(True)
                 enterprise_first_deploy_service.safe_mark_failure(
                     tracker,
@@ -367,7 +407,7 @@ class VMRunCreateView(RegionTenantHeaderView):
                                 status=400)
             if code != 200:
                 logger.debug("service.create", msg_show)
-            if ssh_public_key:
+            if needs_ssh_port:
                 port_code, _, _ = port_service.add_service_port(
                     self.tenant,
                     new_service,  # type: ignore[arg-type]
