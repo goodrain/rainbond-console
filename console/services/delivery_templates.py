@@ -530,6 +530,8 @@ class DeliveryService:
             row.status,
             "publication_status":
             row.publication_status,
+            "publication_task_id":
+            str(row.publication_task_id) if row.publication_task_id else "",
             "destination":
             row.destination,
             "applicant_id":
