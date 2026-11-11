@@ -1139,6 +1139,16 @@ class AppVersionService(object):
             "component_diff_details": component_diff_details,
         }
 
+    @staticmethod
+    def _acknowledge_manual_snapshot(app: ServiceGroup, app_template: dict, require_complete: bool) -> None:
+        if require_complete:
+            return
+        captured = {item.get("service_id") for item in app_template.get("apps") or []
+                    if isinstance(item, dict) and item.get("service_id")}
+        if captured:
+            from console.services.app_version_auto_snapshot import app_version_auto_snapshot_service
+            app_version_auto_snapshot_service.acknowledge_manual_snapshot(app, captured)
+
     def create_snapshot(self, tenant: Tenants, region: RegionConfig, user: Users, app: ServiceGroup,
                         version: str = "", version_alias: str = "", app_version_info: str = "",
                         share_info: Optional[dict] = None, require_complete: bool = False) -> dict:
@@ -1177,6 +1187,7 @@ class AppVersionService(object):
                     result = self._serialize_version(latest_version)
                     result["created"] = False
                     result["change_summary"] = change_summary
+                    self._acknowledge_manual_snapshot(app, app_template, require_complete)
                     return result
             snapshot = self._take_restore_snapshot(tenant, app, next_version)
             app_template["snapshot_id"] = snapshot.snapshot_id if snapshot else None
@@ -1214,6 +1225,7 @@ class AppVersionService(object):
             hidden_app.save()
             result = self._serialize_version(snapshot_version)
             result["created"] = True
+            self._acknowledge_manual_snapshot(app, app_template, require_complete)
             return result
 
     @staticmethod

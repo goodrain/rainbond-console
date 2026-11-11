@@ -66,6 +66,7 @@ class AutomaticAppSnapshotTests(TestCase):
         self.create_snapshot.assert_called_once()
         self.assertFalse(self.row().enable)
         self.assertEqual(json.loads(self.row().value)["status"], "success")
+        self.ready.assert_called_once_with(self.tenant, self.app, {"s1", "s2"})
 
     def test_waits_for_every_event_and_for_runtime(self):
         self.track()
@@ -233,6 +234,36 @@ class AutomaticAppSnapshotTests(TestCase):
 
 # capability_id: console.app-version.automatic-snapshot-readiness
 class AutomaticSnapshotReadinessTests(TestCase):
+    def check_readiness(self, statuses, required, closed_version="v1"):
+        service = snapshot_module.AppVersionAutoSnapshotService()
+        tenant = SimpleNamespace(tenant_id="tenant", tenant_name="team", enterprise_id="enterprise")
+        app = SimpleNamespace(ID=1, tenant_id="tenant", region_name="region")
+        components = [SimpleNamespace(service_id=service_id, tenant_id="tenant", service_region="region",
+                                      create_status="complete", service_source="market", deploy_version=closed_version)
+                      for service_id in ("active", "optional")]
+        with mock.patch.object(service, "_components", return_value=components), \
+                mock.patch.object(snapshot_module, "region_api") as api:
+            api.service_status.return_value = {"list": [
+                {"service_id": service_id, "status": status} for service_id, status in statuses.items()]}
+            return service._ready(tenant, app, required)
+
+    def test_unchanged_closed_component_with_build_history_does_not_block(self):
+        self.assertTrue(self.check_readiness({"active": "running", "optional": "closed"}, {"active"}))
+
+    def test_operated_closed_component_still_blocks(self):
+        self.assertFalse(self.check_readiness({"active": "running", "optional": "closed"}, {"active", "optional"}))
+
+    def test_closed_component_without_build_history_still_blocks(self):
+        self.assertFalse(self.check_readiness({"active": "running", "optional": "closed"}, {"active"}, closed_version=""))
+
+    def test_abnormal_missing_or_waiting_unchanged_component_still_blocks(self):
+        for status in ("abnormal", "waiting", None):
+            with self.subTest(status=status):
+                self.assertFalse(self.check_readiness({"active": "running", "optional": status}, {"active"}))
+
+    def test_removed_operated_component_still_blocks(self):
+        self.assertFalse(self.check_readiness({"active": "running", "optional": "running"}, {"removed"}))
+
     def test_incomplete_or_missing_runtime_component_prevents_snapshot(self):
         service = snapshot_module.AppVersionAutoSnapshotService()
         tenant = SimpleNamespace(tenant_id="tenant", tenant_name="team", enterprise_id="enterprise")
@@ -247,3 +278,68 @@ class AutomaticSnapshotReadinessTests(TestCase):
             self.assertTrue(service._ready(tenant, app))
             component.create_status = "creating"
             self.assertFalse(service._ready(tenant, app))
+
+
+# capability_id: console.app-version.manual-snapshot-acknowledgement
+class ManualSnapshotAcknowledgementTests(TestCase):
+    track = AutomaticAppSnapshotTests.track
+    row = AutomaticAppSnapshotTests.row
+
+    def setUp(self):
+        AutomaticAppSnapshotTests.setUp(self)
+        self.components_patch = mock.patch.object(self.service, "_components", return_value=[
+            SimpleNamespace(service_id="s1", service_source="market"),
+            SimpleNamespace(service_id="s2", service_source="market"),
+        ])
+        self.components_patch.start()
+        self.addCleanup(self.components_patch.stop)
+
+    def set_terminal_task(self, status="expired"):
+        self.track()
+        row = self.row()
+        payload = json.loads(row.value)
+        payload["status"] = status
+        row.enable = False
+        row.value = json.dumps(payload)
+        row.save()
+
+    def test_full_manual_snapshot_clears_terminal_warning(self):
+        for status in ("failure", "expired"):
+            with self.subTest(status=status):
+                self.set_terminal_task(status)
+                self.service.acknowledge_manual_snapshot(self.app, {"s1", "s2"})
+                self.assertEqual(self.service.status(self.app), {})
+
+    def test_partial_snapshot_does_not_clear_warning(self):
+        self.set_terminal_task()
+        self.service.acknowledge_manual_snapshot(self.app, {"s1"})
+        self.assertEqual(self.service.status(self.app), {"status": "expired"})
+
+    def test_manual_snapshot_does_not_cancel_active_task(self):
+        self.track()
+        self.service.acknowledge_manual_snapshot(self.app, {"s1", "s2"})
+        self.assertTrue(self.row().enable)
+        self.assertEqual(self.service.status(self.app), {"status": "pending"})
+
+    def test_manual_snapshot_does_not_acknowledge_another_scope(self):
+        self.set_terminal_task()
+        row = self.row()
+        payload = json.loads(row.value)
+        payload["tenant_id"] = "another-tenant"
+        row.value = json.dumps(payload)
+        row.save()
+        self.service.acknowledge_manual_snapshot(self.app, {"s1", "s2"})
+        self.assertEqual(json.loads(self.row().value)["status"], "expired")
+
+    def test_manual_snapshot_preserves_successful_automatic_task(self):
+        self.set_terminal_task("success")
+        self.service.acknowledge_manual_snapshot(self.app, {"s1", "s2"})
+        self.assertEqual(self.service.status(self.app), {"status": "success"})
+
+    def test_invalid_task_payload_is_not_overwritten(self):
+        self.set_terminal_task()
+        row = self.row()
+        row.value = "invalid"
+        row.save()
+        self.service.acknowledge_manual_snapshot(self.app, {"s1", "s2"})
+        self.assertEqual(self.row().value, "invalid")

@@ -2120,6 +2120,24 @@
       "status": "active"
     },
     {
+      "id": "console.app-upgrade.runtime-readiness",
+      "title": "Upgrade details distinguish operation success from runtime readiness",
+      "title_zh": "Upgrade details distinguish operation success from runtime readiness",
+      "interface_type": "service_method",
+      "interface": "console.services.upgrade_services.UpgradeService.get_app_upgrade_record",
+      "code_paths": [
+        "console/services/upgrade_services.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/upgrade_services_test.py",
+          "selector": "UpgradeRuntimeReadinessTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.app-version.component-diff-details",
       "title": "Build application version component diff details",
       "title_zh": "生成应用版本组件差异明细",
@@ -2305,6 +2323,29 @@
         {
           "path": "console/tests/app_version_test.py",
           "selector": "AppVersionServiceHiddenTemplateTestCase"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.app-version.manual-snapshot-acknowledgement",
+      "title": "Full manual snapshots clear only stale scoped automatic snapshot warnings",
+      "title_zh": "Full manual snapshots clear only stale scoped automatic snapshot warnings",
+      "interface_type": "service_method",
+      "interface": "console.services.app_version_auto_snapshot.AppVersionAutoSnapshotService.acknowledge_manual_snapshot",
+      "code_paths": [
+        "console/services/app_version_auto_snapshot.py",
+        "console/services/app_version_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_version_auto_snapshot_test.py",
+          "selector": "ManualSnapshotAcknowledgementTests"
+        },
+        {
+          "path": "console/tests/app_version_test.py",
+          "selector": "AppVersionSnapshotSourceVersionTests"
         }
       ],
       "test_type": "regression",

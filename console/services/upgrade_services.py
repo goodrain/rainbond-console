@@ -370,7 +370,42 @@ class UpgradeService(object):
         record = upgrade_repo.get_by_record_id(record_id)  # type: ignore[arg-type]
         if not record.is_finished():
             self.sync_record(tenant_name, region_name, record)
-        return self.serialized_upgrade_record(record)
+        result = self.serialized_upgrade_record(record)
+        result["runtime_state"] = self.get_upgrade_runtime_state(tenant_name, region_name, record, result["service_record"])
+        return result
+
+    @staticmethod
+    def get_upgrade_runtime_state(tenant_name: str, region_name: str, record: AppUpgradeRecord,
+                                  component_records: list) -> dict:
+        components = [{"service_id": item["service_id"], "service_cname": item["service_cname"], "status": "unknown"}
+                      for item in component_records]
+        result = {"status": "unknown", "components": components}
+        if not components:
+            return result
+        try:
+            tenant = Tenants.objects.get(tenant_id=record.tenant_id, tenant_name=tenant_name)
+            body = region_api.service_status(region_name, tenant_name, {
+                "service_ids": [item["service_id"] for item in components], "enterprise_id": tenant.enterprise_id,
+            }) or {}
+            statuses = {item.get("service_id"): item.get("status") for item in body.get("list") or []}
+        except Exception:
+            logger.warning("could not query runtime status for application upgrade record %s", record.ID)
+            return result
+        states = []
+        waiting = {"building", "waiting", "starting", "upgrade", "stopping", "closed", "undeploy"}
+        for component, operation in zip(components, component_records):
+            status = statuses.get(component["service_id"]) or "unknown"
+            component["status"] = status
+            if status == "running" or (status == "closed" and not operation.get("event_id")):
+                states.append("ready")
+            elif status in ("abnormal", "some_abnormal"):
+                states.append("abnormal")
+            elif status in waiting:
+                states.append("pending")
+            else:
+                states.append("unknown")
+        result["status"] = next((state for state in ("abnormal", "unknown", "pending") if state in states), "ready")
+        return result
 
     @staticmethod
     def list_rollback_record(upgrade_record: AppUpgradeRecord) -> list:

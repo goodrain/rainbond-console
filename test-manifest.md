@@ -117,6 +117,7 @@
 | console.app-upgrade.remote-offline-market-guard | 离线升级流程阻断远程应用市场访问 | active | regression | console.services.upgrade_services.UpgradeService.get_property_changes | console/tests/app_upgrade_offline_test.py::AppUpgradeOfflineTests::test_remote_upgrade_details_skip_market_lookup_when_offline<br>console/tests/market_app_service_test.py::MarketAppServiceOfflineUpgradeTests::test_remote_component_versions_skip_market_lookup_when_offline<br>console/tests/market_app_service_test.py::MarketAppServiceOfflineUpgradeTests::test_remote_model_versions_skip_market_lookup_when_offline<br>console/tests/market_app_service_test.py::MarketAppServiceOfflineUpgradeTests::test_remote_record_versions_skip_market_lookup_when_offline |
 | console.app-upgrade.rollback | App Upgrade Rollback | active | regression | console.services.mcp_query_service.call_tool[console.app-upgrade.rollback] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_rollback_app_upgrade_record_calls_restore |
 | console.app-upgrade.rollback-records | App Upgrade Rollback Records | active | regression | console.services.mcp_query_service.call_tool[console.app-upgrade.rollback-records] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_get_app_rollback_records_returns_items |
+| console.app-upgrade.runtime-readiness | Upgrade details distinguish operation success from runtime readiness | active | regression | console.services.upgrade_services.UpgradeService.get_app_upgrade_record | console/tests/upgrade_services_test.py::UpgradeRuntimeReadinessTests |
 | console.app-version.automatic-snapshot-api | 应用版本概览展示自动快照状态 | active | regression | GET /console/teams/{team}/groups/{app}/app-versions/overview | console/tests/app_version_test.py::AutomaticSnapshotOverviewContractTests |
 | console.app-version.automatic-snapshot-readiness | 自动快照等待全应用组件完成部署 | active | regression | console.services.app_version_auto_snapshot.AppVersionAutoSnapshotService._ready | console/tests/app_version_auto_snapshot_test.py::AutomaticSnapshotReadinessTests |
 | console.app-version.automatic-snapshots | 组件库部署成功后自动生成应用版本快照 | active | regression | console.services.app_version_auto_snapshot.AppVersionAutoSnapshotService | console/tests/app_version_auto_snapshot_test.py::AutomaticAppSnapshotTests |
@@ -130,6 +131,7 @@
 | console.app-version.diff-summary | 汇总应用版本差异 | active | regression | console.services.app_version_service._summarize_diff | console/tests/app_version_test.py::AppVersionServiceDiffSummaryTestCase.test_summarize_diff_keeps_real_component_changes |
 | console.app-version.hidden-template-cleanup | 清理应用版本隐藏模板记录 | active | regression | console.services.market_app.market_app_service.delete_rainbond_app_all_info_by_id | console/tests/app_version_test.py::AppVersionTemplateDeleteTestCase.test_delete_rainbond_app_all_info_by_id_cleans_snapshot_relation |
 | console.app-version.hidden-template-create | 创建应用版本隐藏模板 | active | regression | console.services.app_version_service.get_or_create_hidden_template | console/tests/app_version_test.py::AppVersionServiceHiddenTemplateTestCase |
+| console.app-version.manual-snapshot-acknowledgement | Full manual snapshots clear only stale scoped automatic snapshot warnings | active | regression | console.services.app_version_auto_snapshot.AppVersionAutoSnapshotService.acknowledge_manual_snapshot | console/tests/app_version_auto_snapshot_test.py::ManualSnapshotAcknowledgementTests<br>console/tests/app_version_test.py::AppVersionSnapshotSourceVersionTests |
 | console.app-version.market-deploy-snapshot-hook | 组件库安装升级与旧入口回滚接入自动快照 | active | regression | console.services.market_app.app_upgrade.AppUpgrade.deploy | console/tests/app_version_test.py::MarketDeploymentSnapshotHookTests |
 | console.app-version.overview | 查看应用版本概览 | active | regression | console.services.app_version_service.get_overview | console/tests/app_version_test.py::AppVersionServiceOverviewTestCase.test_get_overview_promotes_latest_successful_rollback_target_to_current_version<br>console/tests/app_version_test.py::AppVersionServiceOverviewTestCase.test_get_overview_keeps_latest_snapshot_as_current_version_when_newer_than_rollback<br>console/tests/app_version_test.py::AppVersionServiceOverviewTestCase.test_get_overview_promotes_partial_rollback_target_to_current_version<br>console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_get_app_version_overview_returns_version_center_overview |
 | console.app-version.restore-builds | 回滚后生成构建任务 | active | regression | console.services.market_app.market_app.MarketApp._generate_builds | console/tests/app_version_test.py::MarketAppBuildGenerationTestCase.test_generate_builds_allows_components_without_source_metadata |
@@ -1866,6 +1868,16 @@
 - 代码路径: `console/services/mcp_query_service.py`
 - 测试路径: `console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_get_app_rollback_records_returns_items`
 
+### Upgrade details distinguish operation success from runtime readiness
+
+- Capability ID: `console.app-upgrade.runtime-readiness`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.upgrade_services.UpgradeService.get_app_upgrade_record`
+- 代码路径: `console/services/upgrade_services.py`
+- 测试路径: `console/tests/upgrade_services_test.py::UpgradeRuntimeReadinessTests`
+
 ### 应用版本概览展示自动快照状态
 
 - Capability ID: `console.app-version.automatic-snapshot-api`
@@ -1995,6 +2007,16 @@
 - 业务入口: `console.services.app_version_service.get_or_create_hidden_template`
 - 代码路径: `console/services/app_version_service.py`
 - 测试路径: `console/tests/app_version_test.py::AppVersionServiceHiddenTemplateTestCase`
+
+### Full manual snapshots clear only stale scoped automatic snapshot warnings
+
+- Capability ID: `console.app-version.manual-snapshot-acknowledgement`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.app_version_auto_snapshot.AppVersionAutoSnapshotService.acknowledge_manual_snapshot`
+- 代码路径: `console/services/app_version_auto_snapshot.py`, `console/services/app_version_service.py`
+- 测试路径: `console/tests/app_version_auto_snapshot_test.py::ManualSnapshotAcknowledgementTests`, `console/tests/app_version_test.py::AppVersionSnapshotSourceVersionTests`
 
 ### 组件库安装升级与旧入口回滚接入自动快照
 
