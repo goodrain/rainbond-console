@@ -6,6 +6,108 @@ from pathlib import Path
 
 
 class DeliveryWorkflowTest(unittest.TestCase):
+    def test_private_delivery_source_appears_in_the_existing_upgrade_list_without_a_market_copy(self):
+        from datetime import datetime
+        from types import SimpleNamespace
+        from unittest import mock
+        from console.services import market_app_service as module
+        key = "112530304174481d91398b63d845401e"
+        model = SimpleNamespace(app_name="Private delivery", create_user=1, create_team="source",
+                                app_id=key, pic="", source="local", describe="Private application",
+                                is_official=False, details="Introduction")
+        tenant = SimpleNamespace(enterprise_id="enterprise", tenant_id="tenant", tenant_name="source")
+        source = mock.Mock(team_id="tenant")
+        source.is_install_from_cloud.return_value = False
+        source.get_market_name.return_value = None
+        source.get_template_update_time.return_value = None
+        versions = [SimpleNamespace(version=version, update_time=datetime(2026, 11, 12))
+                    for version in ("2.0.0", "1.0.0")]
+        with mock.patch.object(module, "delivery_upgrade_source") as delivery, \
+                mock.patch.object(module.rainbond_app_repo, "get_rainbond_app_and_version") as catalog, \
+                mock.patch.object(module.upgrade_service, "get_app_not_upgrade_record",
+                                  return_value=SimpleNamespace(ID=0, status=0)):
+            delivery.model.return_value = model
+            delivery.version_options.return_value = versions
+            rows = list(module.market_app_service.yield_app_info({key + "-73": {
+                "version": "1.0.0", "component_source": source}}, tenant, "42"))
+        self.assertEqual(rows[0]["group_name"], "Private delivery")
+        self.assertEqual(rows[0]["current_version"], "1.0.0")
+        self.assertEqual(rows[0]["upgrade_versions"], {"2.0.0"})
+        catalog.assert_not_called()
+        delivery.version_options.assert_called_once_with("enterprise", key, "source")
+
+    def test_upgrade_comparison_loads_the_frozen_private_version_for_the_target_team(self):
+        from unittest import mock
+        from console.services import upgrade_services as module
+        manifest = {"group_version": "2.0.0", "apps": [{"service_id": "frozen-component"}]}
+        source = mock.Mock(team_id="tenant")
+        source.is_install_from_cloud.return_value = False
+        with mock.patch.object(module, "delivery_upgrade_source") as delivery, \
+                mock.patch.object(module, "target_team_name", return_value="source"), \
+                mock.patch.object(module.rainbond_app_repo, "get_rainbond_app_and_version") as catalog:
+            delivery.template.return_value = mock.Mock()
+            delivery.manifest.return_value = manifest
+            result = module.UpgradeService._app_template("enterprise", "private-key", "2.0.0", source)
+        self.assertIs(result, manifest)
+        delivery.manifest.assert_called_once_with("enterprise", "private-key", "2.0.0", "source")
+        catalog.assert_not_called()
+
+    def test_online_publish_retry_uses_source_permission_but_local_retry_requires_admin(self):
+        from contextlib import nullcontext
+        from types import SimpleNamespace
+        from unittest import mock
+        from console.views.delivery_templates import DeliveryTaskRetryView
+        from console.services.delivery_manifest import DeliveryError
+        view = DeliveryTaskRetryView()
+        view.user, view.is_enterprise_admin = SimpleNamespace(enterprise_id="enterprise"), False
+        view.admin = mock.Mock(side_effect=DeliveryError("仅管理员", 403))
+        task = mock.Mock(status="failed",
+                         kind="catalog_publish",
+                         version=SimpleNamespace(deleted_at=None),
+                         template=SimpleNamespace(team_name="source", app_id="11"),
+                         payload={"destination": {
+                             "type": "market",
+                             "market_id": "store"
+                         }})
+        view.delivery = mock.Mock()
+        selected = view.delivery.m.DeliveryTask.objects.select_for_update.return_value.select_related.return_value
+        selected.filter.return_value.first.return_value = task
+        view.delivery.task_data.return_value = {"id": "task", "status": "queued"}
+        with mock.patch("django.db.transaction.atomic", return_value=nullcontext()), \
+                mock.patch("console.views.delivery_templates.team_access") as access:
+            response = view.post(SimpleNamespace(), "task")
+            self.assertEqual(response.status_code, 202)
+            access.assert_called_once_with(view.user, "source", 310001, "11", False)
+            view.admin.assert_not_called()
+            task.status = "failed"
+            task.payload = {"destination": {"type": "local"}}
+            with self.assertRaises(DeliveryError):
+                view.post(SimpleNamespace(), "task")
+            view.admin.assert_called_once_with("enterprise")
+
+    def test_upgrade_availability_checks_source_access_and_uses_target_gateway(self):
+        from types import SimpleNamespace
+        from unittest import mock
+        from console.views.delivery_templates import DeliveryTaskUpgradeView
+        from console.services.delivery_manifest import DeliveryError
+        view = DeliveryTaskUpgradeView()
+        view.user = SimpleNamespace(enterprise_id="enterprise")
+        view.is_enterprise_admin = False
+        task = SimpleNamespace(template=SimpleNamespace(team_name="source-team", app_id="11"))
+        view.delivery = mock.Mock()
+        view.delivery.m.DeliveryTask.objects.select_related.return_value.filter.return_value.first.return_value = task
+        view.delivery.gateway.upgrade_info.return_value = {"available": False}
+        with mock.patch("console.views.delivery_templates.team_access") as permission:
+            response = view.get(SimpleNamespace(), "task-id")
+            permission.assert_called_once_with(view.user, "source-team", 300002, "11", False)
+            view.delivery.gateway.upgrade_info.assert_called_once_with(task, view.user, False)
+            self.assertEqual(response.status_code, 200)
+            permission.side_effect = DeliveryError("无权访问", 403)
+            view.delivery.gateway.upgrade_info.reset_mock()
+            with self.assertRaises(DeliveryError):
+                view.get(SimpleNamespace(), "task-id")
+            view.delivery.gateway.upgrade_info.assert_not_called()
+
     def test_independent_delivery_workflow(self):
         result = subprocess.run([sys.executable, "-m", "console.tests.isolated_delivery_workflow"],
                                 cwd=Path(__file__).parents[2],

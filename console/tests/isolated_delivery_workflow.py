@@ -136,6 +136,9 @@ class Gateway:
     def prepare_catalog(self, task):
         task.result["market_app_id"] = "store-app"
 
+    def validate_market(self, enterprise_id, market_id, actor_id):
+        return SimpleNamespace(name=market_id)
+
     def publish_catalog(self, task):
         return {"catalog_id": "catalog"}
 
@@ -576,7 +579,7 @@ class DeliveryWorkflowTest(unittest.TestCase):
                 "market_id": "store"
             }
         })
-        self.service.review(USER, listing.id, "approved", "", admin=True)
+        self.assertEqual(listing.status, "not_required")
         listing.refresh_from_db()
         self.service.advance(listing.publication_task_id)
         listing.refresh_from_db()
@@ -796,6 +799,71 @@ class DeliveryWorkflowTest(unittest.TestCase):
         listing.refresh_from_db()
         self.assertEqual(listing.publication_status, "published")
 
+    def test_online_market_publishes_without_review_or_fabricated_audit(self):
+        version = self.create_version(PAYLOAD)
+        listing = self.service.listing(USER, SCOPE, version.id, {
+            "destination": {"type": "market", "market_id": "store"}})
+        self.assertEqual(listing.status, "not_required")
+        self.assertEqual(listing.publication_status, "publishing")
+        self.assertIsNone(listing.reviewed_at)
+        self.assertEqual(listing.reviewer_name, "")
+        self.assertEqual(listing.publication_task.actor_id, USER.user_id)
+        self.assertFalse(self.service.listing_data(listing)["review_required"])
+        with self.assertRaises(DeliveryError):
+            self.service.review(USER, listing.id, "approved", "", admin=True)
+        with self.assertRaises(DeliveryError):
+            self.service.listing(USER, SCOPE, version.id, {"destination": listing.destination})
+        self.service.advance(listing.publication_task_id)
+        self.service.advance(listing.publication_task_id)
+        listing.refresh_from_db()
+        self.assertEqual(listing.publication_status, "published")
+        self.assertEqual(listing.status, "not_required")
+        self.assertIsNone(listing.reviewed_at)
+
+    def test_market_authorization_matches_legacy_status_token_and_write_rules(self):
+        import sys
+        import types
+        from unittest import mock
+        from console.services.delivery_gateway import DeliveryGateway
+        app = types.ModuleType("console.services.app")
+        app.app_market_service = mock.Mock()
+        market = SimpleNamespace(access_key="$MARKET_ACCESS_KEY")
+        gateway = DeliveryGateway()
+        with mock.patch.dict(sys.modules, {"console.services.app": app}), \
+                mock.patch("console.utils.offline.is_cloud_market_disabled", return_value=False):
+            for info, key in [({"status": 1, "access_actions": ["ReadInstall", "OnlyRead"]}, "$MARKET_ACCESS_KEY"),
+                              ({"status": 0, "access_actions": ["Write"]}, "$MARKET_ACCESS_KEY"),
+                              ({"status": 1, "access_actions": ["Write"]}, "")]:
+                market.access_key = key
+                app.app_market_service.get_app_market.return_value = info, market
+                with self.assertRaises(DeliveryError):
+                    gateway.validate_market("enterprise", "store", 1)
+            market.access_key = "$MARKET_ACCESS_KEY"
+            app.app_market_service.get_app_market.return_value = {"status": 1, "access_actions": ["Write"]}, market
+            self.assertIs(gateway.validate_market("enterprise", "store", 1), market)
+            app.app_market_service.get_app_market.assert_called_with(
+                "enterprise", "store", user_id="1", extend="true", raise_exception=True)
+
+    def test_unauthorized_online_market_does_not_create_a_publication_task(self):
+        from unittest import mock
+        version = self.create_version(PAYLOAD)
+        with mock.patch.object(self.gateway, "validate_market", side_effect=DeliveryError("没有发布权限", 403)):
+            with self.assertRaises(DeliveryError):
+                self.service.listing(USER, SCOPE, version.id, {"destination": {"type": "market", "market_id": "readonly"}})
+        self.assertEqual(models.DeliveryListingRequest.objects.count(), 0)
+        self.assertEqual(models.DeliveryTask.objects.count(), 0)
+
+    def test_legacy_pending_online_request_can_resume_direct_sync_without_an_admin(self):
+        version = self.create_version(PAYLOAD)
+        listing = models.DeliveryListingRequest.objects.create(
+            version=version, destination={"type": "market", "market_id": "store"}, reason="Old request",
+            applicant_id=USER.user_id, applicant_name="Publisher")
+        resumed = self.service.listing(USER, SCOPE, version.id, {"destination": listing.destination})
+        self.assertEqual(resumed.id, listing.id)
+        self.assertEqual(resumed.status, "not_required")
+        self.assertIsNotNone(resumed.publication_task_id)
+        self.assertIsNone(resumed.reviewed_at)
+
     def test_direct_version_can_install_and_export_without_listing(self):
         version = self.create_version(PAYLOAD, "private-use-1")
         install = self.service.operation(USER, SCOPE, version.id, "delivery",
@@ -934,6 +1002,8 @@ class DeliveryWorkflowTest(unittest.TestCase):
                                                   }})
         app, store = types.ModuleType("console.services.app"), types.ModuleType("console.appstore.appstore")
         app.app_market_service, store.app_store = mock.Mock(), mock.Mock()
+        app.app_market_service.get_app_market.return_value = (
+            {"status": 1, "access_actions": ["Write"]}, SimpleNamespace(access_key="$MARKET_ACCESS_KEY"))
         store.app_store.create_app.return_value = {"app_id": "remote-app"}
         with mock.patch.dict(sys.modules, {
                 "console.services.app": app,
@@ -1066,6 +1136,86 @@ class DeliveryWorkflowTest(unittest.TestCase):
         self.assertEqual(response["publication_status"], "failed")
         self.assertEqual(response["publication_task_id"], str(task.id))
         self.assertNotIn("payload", response)
+
+    def test_delivered_app_upgrade_uses_actual_target_group_and_current_version(self):
+        import sys
+        import types
+        from unittest import mock
+        from console.services.delivery_gateway import DeliveryGateway
+        main = types.ModuleType("www.models.main")
+        main.TenantServiceInfo, main.TenantServiceGroup = mock.Mock(), mock.Mock()
+        main.ServiceGroup = mock.Mock()
+        main.ServiceGroup.objects.filter.return_value.exists.return_value = True
+        main.TenantServiceInfo.objects.filter.return_value.values_list.return_value = [73]
+        group = SimpleNamespace(ID=73, group_key="actual-market-key", group_version="1.0.0")
+        main.TenantServiceGroup.objects.filter.return_value = [group]
+        market = types.ModuleType("console.services.market_app_service")
+        market.market_app_service = mock.Mock()
+        market.market_app_service.get_models_upgradeable_version.return_value = ["2.0.0", "1.1.0"]
+        tenant = SimpleNamespace(tenant_id="target-tenant", tenant_name="target", enterprise_id="enterprise")
+        task = SimpleNamespace(kind="delivery", status="succeeded", template=SimpleNamespace(enterprise_id="enterprise"),
+                               payload={"target": {"team_name": "target", "region_name": "production", "app_name": "App"}},
+                               result={"app_id": "42", "service_ids": ["installed-component"]})
+        with mock.patch.dict(sys.modules, {"www.models.main": main, "console.services.market_app_service": market}), \
+             mock.patch("console.services.delivery_access.team_access", return_value=tenant) as permission:
+            result = DeliveryGateway().upgrade_info(task, USER)
+            permission.assert_called_once_with(USER, "target", 330003, "42", False)
+            self.assertTrue(result["available"])
+            self.assertEqual(result["current_version"], "1.0.0")
+            self.assertEqual(result["latest_version"], "2.0.0")
+            self.assertEqual(result["upgrade_group_id"], "73")
+            self.assertEqual(result["app_model_id"], "actual-market-key")
+            self.assertEqual(result["target"]["app_id"], "42")
+            market.market_app_service.get_models_upgradeable_version.assert_called_with(
+                "enterprise", "actual-market-key", "42", "73")
+            group.group_version = "2.0.0"
+            market.market_app_service.get_models_upgradeable_version.return_value = []
+            self.assertFalse(DeliveryGateway().upgrade_info(task, USER)["available"])
+            main.TenantServiceGroup.objects.filter.return_value = []
+            self.assertFalse(DeliveryGateway().upgrade_info(task, USER)["available"])
+            permission.side_effect = DeliveryError("无权升级", 403)
+            with self.assertRaises(DeliveryError):
+                DeliveryGateway().upgrade_info(task, USER)
+
+    def test_upgrade_entry_excludes_exports_tests_and_unsuccessful_deliveries(self):
+        from console.services.delivery_gateway import DeliveryGateway
+        for kind, status in [("test", "succeeded"), ("offline", "succeeded"), ("delivery", "queued"),
+                             ("delivery", "running"), ("delivery", "failed")]:
+            task = SimpleNamespace(kind=kind, status=status, result={"app_id": "42"})
+            self.assertEqual(DeliveryGateway().upgrade_info(task, USER), {"available": False})
+
+    def test_private_delivery_versions_are_upgrade_sources_without_market_or_snapshot_records(self):
+        from console.services.delivery_upgrade_source import DeliveryUpgradeSource
+        first = self.create_version(PAYLOAD)
+        second = self.create_version({**PAYLOAD, "version": "2.0.0", "description": "Second release"})
+        source = DeliveryUpgradeSource(models=models, gateway=self.gateway)
+        key = first.template.id.hex
+        self.assertEqual(source.model("enterprise", key).app_name, first.template.name)
+        self.assertEqual([row.version for row in source.version_options("enterprise", key, "team")], ["2.0.0", "1.0.0"])
+        self.assertEqual(source.version_options("enterprise", key, "another-team"), [])
+        self.assertIsNone(source.version_options("another-enterprise", key, "team"))
+        self.assertIsNone(source.model("enterprise", "legacy-market-model"))
+        self.gateway.upgrade_manifest = lambda version, published=None: {
+            "group_version": version.version, "apps": version.manifest["apps"]}
+        self.assertEqual(source.manifest("enterprise", key, "2.0.0", "team")["group_version"], "2.0.0")
+        with self.assertRaises(DeliveryError):
+            source.manifest("enterprise", key, "2.0.0", "another-team")
+        self.service.delete(USER, SCOPE, second.id)
+        self.assertEqual([row.version for row in source.version_options("enterprise", key, "team")], ["1.0.0"])
+        self.assertEqual(models.DeliveryListingRequest.objects.count(), 0)
+
+    def test_cross_team_upgrade_sources_only_include_published_local_versions(self):
+        from console.services.delivery_upgrade_source import DeliveryUpgradeSource
+        version = self.create_version(PAYLOAD)
+        listing = self.service.listing(USER, SCOPE, version.id, {"reason": "Publish"})
+        source = DeliveryUpgradeSource(models=models, gateway=self.gateway)
+        key = version.template.id.hex
+        self.assertEqual(source.version_options("enterprise", key, "another-team"), [])
+        self.service.review(USER, listing.id, "approved", "", admin=True)
+        listing.refresh_from_db()
+        self.service.advance(listing.publication_task_id)
+        self.service.advance(listing.publication_task_id)
+        self.assertEqual([row.version for row in source.version_options("enterprise", key, "another-team")], ["1.0.0"])
 
     def test_full_template_introduction_is_separate_from_summary_and_frozen_for_versions(self):
         template = self.service.save_catalog_metadata(USER, SCOPE, {

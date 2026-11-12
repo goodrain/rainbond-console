@@ -43,6 +43,7 @@ from console.services.enterprise_first_deploy_service import enterprise_first_de
 from console.services.group_service import group_service
 from console.services.license import license_service
 from console.services.market_app.app_upgrade import AppUpgrade
+from console.services.delivery_upgrade_source import delivery_upgrade_source, target_team_name
 from console.services.market_app.utils import apply_hostname_remap, collect_install_hostname_remap, resolve_none_placeholders
 from console.services.market_app_preflight_service import market_install_preflight_service
 from console.services.rbd_plugin_sync_service import rbd_plugin_sync_service
@@ -1685,8 +1686,10 @@ class MarketAppService(object):
                 if market:
                     app_model, _ = app_market_service.cloud_app_model_to_db_model(market, app_model_key, version=None)
             else:
-                app_model, _ = rainbond_app_repo.get_rainbond_app_and_version(
-                    tenant.enterprise_id, app_model_key, version)  # type: ignore[arg-type]
+                app_model = delivery_upgrade_source.model(str(tenant.enterprise_id), app_model_key)
+                if app_model is None:
+                    app_model, _ = rainbond_app_repo.get_rainbond_app_and_version(
+                        tenant.enterprise_id, app_model_key, version)  # type: ignore[arg-type]
             if not app_model:
                 continue
             dat = {
@@ -1706,9 +1709,11 @@ class MarketAppService(object):
                 'is_official': app_model.is_official,
                 'details': app_model.details
             }
+            dat['is_delivery_source'] = bool(getattr(app_model, 'is_delivery_source', False))
             not_upgrade_record = upgrade_service.get_app_not_upgrade_record(tenant.tenant_id, app_id, app_model_key)
             versions = self.__get_upgradeable_versions(tenant.enterprise_id, app_model_key, version,  # type: ignore[arg-type]
-                                                       component_source.get_template_update_time(), install_from_cloud, market)
+                                                       component_source.get_template_update_time(), install_from_cloud, market,
+                                                       tenant.tenant_name)
 
             # Add gray release information
             gray_info = gray_release_info.get(upgrade_key, {})
@@ -1732,7 +1737,8 @@ class MarketAppService(object):
                                    current_version: Optional[str],
                                    current_version_time: Any,
                                    install_from_cloud: bool = False,
-                                   market: Optional[AppMarket] = None) -> Optional[list]:
+                                   market: Optional[AppMarket] = None,
+                                   team_name: Optional[str] = None) -> Optional[list]:
         # Simply determine if there is a version that can be upgraded, not attribute changes.
         if install_from_cloud and is_cloud_market_disabled():
             return []
@@ -1740,7 +1746,9 @@ class MarketAppService(object):
         if install_from_cloud and market:
             app_version_list = app_market_service.get_market_app_model_versions(market, app_model_key)
         else:
-            app_version_list = rainbond_app_repo.get_rainbond_app_versions(app_model_key)  # type: ignore[assignment]
+            delivery_versions = delivery_upgrade_source.version_options(enterprise_id, app_model_key, team_name)
+            app_version_list = (delivery_versions if delivery_versions is not None else
+                                rainbond_app_repo.get_rainbond_app_versions(app_model_key))  # type: ignore[assignment]
         if not app_version_list:
             return None
         for version in app_version_list:
@@ -1789,8 +1797,12 @@ class MarketAppService(object):
                                        upgrade_group_id: str) -> Optional[list]:
         current_version, current_version_update_time, install_from_cloud, market = self.get_current_version(
             enterprise_id, app_model_key, app_id, upgrade_group_id)
+        team_name = None
+        if not install_from_cloud and delivery_upgrade_source.template(enterprise_id, app_model_key):
+            app = ServiceGroup.objects.filter(ID=app_id).first()
+            team_name = target_team_name(enterprise_id, app.tenant_id) if app else None
         return self.__get_upgradeable_versions(enterprise_id, app_model_key, current_version, current_version_update_time,
-                                               install_from_cloud, market)
+                                               install_from_cloud, market, team_name)
 
     def list_app_upgradeable_versions(self, enterprise_id: str,
                                       record: AppUpgradeRecord) -> Optional[list]:
@@ -1805,9 +1817,12 @@ class MarketAppService(object):
             market_name = app_template_source.get_market_name()
             if market_name:
                 market = app_market_repo.get_app_market_by_name(enterprise_id, market_name)
+        team_name = None
+        if not install_from_cloud and delivery_upgrade_source.template(enterprise_id, component_group.app_model_key):
+            team_name = target_team_name(enterprise_id, record.tenant_id)
         return self.__get_upgradeable_versions(enterprise_id, component_group.app_model_key, component_group.version,
                                                app_template_source.get_template_update_time(),
-                                               install_from_cloud, market)
+                                               install_from_cloud, market, team_name)
 
     def delete_rainbond_app_all_info_by_id(self, enterprise_id: str, app_id: str) -> None:
         sid = transaction.savepoint()
@@ -2119,7 +2134,12 @@ class MarketAppService(object):
             versions = app_market_service.get_market_app_model_versions(
                 market, component_source.group_key)  # type: ignore[arg-type]
         else:
-            versions = rainbond_app_repo.get_rainbond_app_versions(component_source.group_key)  # type: ignore[assignment]
+            delivery_versions = None
+            if delivery_upgrade_source.template(enterprise_id, component_source.group_key):
+                delivery_versions = delivery_upgrade_source.version_options(
+                    enterprise_id, component_source.group_key, target_team_name(enterprise_id, component_source.team_id))
+            versions = (delivery_versions if delivery_versions is not None else
+                        rainbond_app_repo.get_rainbond_app_versions(component_source.group_key))  # type: ignore[assignment]
         return versions
 
 

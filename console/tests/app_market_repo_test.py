@@ -1,3 +1,4 @@
+import os
 from unittest import TestCase, mock
 
 from console.exception.main import ServiceHandleException
@@ -8,6 +9,21 @@ from console.repositories.app import (
     app_market_repo,
 )
 from console.repositories.market_app_repo import RainbondCenterAppRepository
+
+
+class AppMarketPublishScopeTests(TestCase):
+    def test_non_saas_publish_uses_platform_bindings_like_actual_market_resolution(self):
+        with mock.patch.dict(os.environ, {"USE_SAAS": ""}), \
+                mock.patch("console.repositories.app.AppMarket.objects.filter") as markets:
+            app_market_repo.get_app_markets("enterprise", "actor", for_publish=True)
+        markets.assert_called_once_with(enterprise_id="enterprise")
+        markets.return_value.filter.assert_called_once_with(is_personal=False)
+
+    def test_saas_publish_keeps_the_current_users_market_authorization(self):
+        with mock.patch.dict(os.environ, {"USE_SAAS": "1"}), \
+                mock.patch("console.repositories.app.AppMarket.objects.filter") as markets:
+            app_market_repo.get_app_markets("enterprise", "actor", for_publish=True)
+        markets.return_value.filter.assert_called_once_with(user_id="actor")
 
 
 class AppMarketRepoPlatformPluginMarketTests(TestCase):

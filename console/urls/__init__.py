@@ -7,7 +7,7 @@ from console.views.delivery_templates import (DeliveryTemplatesView, DeliverySou
                                               DeliverySyncTaskView, DeliverySyncRetryView, DeliverySyncLogsView,
                                               DeliveryVersionView, DeliveryOperationView, DeliveryApplicationRecordsView,
                                               DevelopmentDeliveriesView, DeliveryReviewView, DeliveryTestView, DeliveryTaskView,
-                                              DeliveryTargetsView, DeliveryTaskRetryView)
+                                              DeliveryTargetsView, DeliveryTaskRetryView, DeliveryTaskUpgradeView)
 from console.views.team_applications import TeamApplicationsView, TeamApplicationReviewView
 from console.captcha.captcha_code import CaptchaView
 from console.views import app_upgrade
@@ -246,6 +246,7 @@ urlpatterns = [
     re_path(r'^enterprises/(?P<enterprise_id>[\w-]+)/listing-requests/(?P<request_id>[\w-]+)/test-deployments$',
             DeliveryTestView.as_view()),
     re_path(r'^delivery-tasks/(?P<task_id>[\w-]+)/retry$', DeliveryTaskRetryView.as_view()),
+    re_path(r'^delivery-tasks/(?P<task_id>[\w-]+)/upgrade$', DeliveryTaskUpgradeView.as_view()),
     re_path(r'^delivery-tasks/(?P<task_id>[\w-]+)$', DeliveryTaskView.as_view()),
     re_path(r'^delivery-tasks/(?P<task_id>[\w-]+)/download$', DeliveryTaskView.as_view(), {'download': True}),
     # 升级
