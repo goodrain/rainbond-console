@@ -595,7 +595,7 @@ class MarketAppServiceOfflineUpgradeTests(SimpleTestCase):
         from console.services.market_app_service import market_app_service
 
         installed_at = datetime.datetime(2026, 8, 14, 9, 0, 0)
-        tenant = Obj(tenant_id="tenant-1", enterprise_id="enterprise-1")
+        tenant = Obj(tenant_id="tenant-1", tenant_name="team-1", enterprise_id="enterprise-1")
         application = Obj(ID=23)
         component_group = Obj(ID=7, group_version="1.0.2")
         component = Obj(service_id="service-1", tenant_service_group_id=7)
