@@ -1152,11 +1152,20 @@ class DeliveryWorkflowTest(unittest.TestCase):
         market = types.ModuleType("console.services.market_app_service")
         market.market_app_service = mock.Mock()
         market.market_app_service.get_models_upgradeable_version.return_value = ["2.0.0", "1.1.0"]
+        upgrade_models = types.ModuleType("console.models.main")
+        upgrade_models.AppUpgradeRecord = mock.Mock()
+        pending = upgrade_models.AppUpgradeRecord.objects.filter.return_value.order_by.return_value.first
+        pending.return_value = None
+        states = {"UPGRADING": 2, "PARTIAL_UPGRADED": 6, "UPGRADE_FAILED": 8, "DEPLOY_FAILED": 10}
+        upgrade_models.UpgradeStatus = SimpleNamespace(
+            **{name: SimpleNamespace(value=value) for name, value in states.items()})
         tenant = SimpleNamespace(tenant_id="target-tenant", tenant_name="target", enterprise_id="enterprise")
         task = SimpleNamespace(kind="delivery", status="succeeded", template=SimpleNamespace(enterprise_id="enterprise"),
                                payload={"target": {"team_name": "target", "region_name": "production", "app_name": "App"}},
                                result={"app_id": "42", "service_ids": ["installed-component"]})
-        with mock.patch.dict(sys.modules, {"www.models.main": main, "console.services.market_app_service": market}), \
+        with mock.patch.dict(sys.modules, {
+                "www.models.main": main, "console.services.market_app_service": market,
+                "console.models.main": upgrade_models}), \
              mock.patch("console.services.delivery_access.team_access", return_value=tenant) as permission:
             result = DeliveryGateway().upgrade_info(task, USER)
             permission.assert_called_once_with(USER, "target", 330003, "42", False)
@@ -1171,6 +1180,14 @@ class DeliveryWorkflowTest(unittest.TestCase):
             group.group_version = "2.0.0"
             market.market_app_service.get_models_upgradeable_version.return_value = []
             self.assertFalse(DeliveryGateway().upgrade_info(task, USER)["available"])
+            pending.return_value = SimpleNamespace(ID=33, status=6, version="2.0.0")
+            resume = DeliveryGateway().upgrade_info(task, USER)
+            self.assertTrue(resume["available"])
+            self.assertEqual(resume["resume_record_id"], "33")
+            self.assertEqual(resume["latest_version"], "2.0.0")
+            pending.return_value = SimpleNamespace(ID=34, status=3, version="2.0.0")
+            self.assertFalse(DeliveryGateway().upgrade_info(task, USER)["available"])
+            pending.return_value = None
             main.TenantServiceGroup.objects.filter.return_value = []
             self.assertFalse(DeliveryGateway().upgrade_info(task, USER)["available"])
             permission.side_effect = DeliveryError("无权升级", 403)

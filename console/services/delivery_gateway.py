@@ -308,14 +308,22 @@ class DeliveryGateway:
         if len(groups) != 1:
             return {"available": False}
         group = groups[0]
-        versions = market_app_service.get_models_upgradeable_version(
+        from console.models.main import AppUpgradeRecord, UpgradeStatus
+        last = AppUpgradeRecord.objects.filter(tenant_id=tenant.tenant_id, group_id=app_id,
+                                               upgrade_group_id=group.ID, group_key=group.group_key,
+                                               record_type="upgrade").order_by("-ID").first()
+        resume = last if last and last.version and last.status in (
+            UpgradeStatus.UPGRADING.value, UpgradeStatus.PARTIAL_UPGRADED.value,
+            UpgradeStatus.UPGRADE_FAILED.value, UpgradeStatus.DEPLOY_FAILED.value) else None
+        versions = [] if resume else market_app_service.get_models_upgradeable_version(
             task.template.enterprise_id, group.group_key, app_id, str(group.ID)) or []
-        if not versions:
+        if not versions and not resume:
             return {"available": False}
         return {
             "available": True,
             "current_version": group.group_version,
-            "latest_version": sorted_versions(list(versions))[0],
+            "latest_version": resume.version if resume else sorted_versions(list(versions))[0],
+            **({"resume_record_id": str(resume.ID)} if resume else {}),
             "upgrade_group_id": str(group.ID),
             "app_model_id": group.group_key,
             "target": {"team_name": target["team_name"], "region_name": target["region_name"], "app_id": app_id}
