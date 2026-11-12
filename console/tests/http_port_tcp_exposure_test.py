@@ -11,6 +11,7 @@ import django  # noqa: E402
 django.setup()
 
 from django.test import RequestFactory  # noqa: E402
+from rest_framework.test import APIRequestFactory  # noqa: E402
 from www.models.main import TenantServicesPort  # noqa: E402
 
 view_module = importlib.import_module("console.views.app_config.app_port")
@@ -61,6 +62,45 @@ class HTTPPortTCPExposureTests(unittest.TestCase):
         view.service = self.service
         view.region = self.region
         return view.get(RequestFactory().get("/ports")).data["data"]["list"][0]
+
+    # capability_id: console.component.port-add-invalid-alias
+    def test_add_invalid_alias_returns_400_before_port_lookup(self):
+        view = view_module.AppPortView()
+        view.tenant = self.tenant
+        view.service = self.service
+        view.user = SimpleNamespace(nick_name="operator")
+        add_port = self.patch(view_module.port_service, "add_service_port", return_value=(400, "invalid alias", None))
+        get_port = self.patch(view_module.port_service, "get_service_port_by_port", return_value=None)
+
+        request = view.initialize_request(APIRequestFactory().post("/ports", {
+            "port": 22,
+            "protocol": "tcp",
+            "port_alias": "ssh",
+            "is_inner_service": True,
+            "is_outer_service": False,
+        }, format="json"))
+        response = view.post(request)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data["code"], 400)
+        add_port.assert_called_once()
+        get_port.assert_not_called()
+
+    # capability_id: console.component.port-detail-not-found
+    def test_get_missing_port_returns_404_before_loading_variables(self):
+        view = view_module.AppPortManageView()
+        view.tenant = self.tenant
+        view.service = self.service
+        get_port = self.patch(view_module.port_service, "get_service_port_by_port", return_value=None)
+        get_variables = self.patch(
+            view_module.port_service, "get_port_variables", side_effect=AssertionError("missing port variables were queried"))
+
+        response = view.get(RequestFactory().get("/ports/22"), port="22")
+
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.data["code"], 404)
+        get_port.assert_called_once_with(self.service, 22)
+        get_variables.assert_not_called()
 
     def close_port(self):
         return service_module.AppPortService()._AppPortService__close_outer(

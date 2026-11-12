@@ -5392,12 +5392,17 @@
       "interface_type": "workflow",
       "interface": "console.services.mcp_query_service.call_tool[console.component.port-add-invalid-alias]",
       "code_paths": [
-        "console/services/mcp_query_service.py"
+        "console/services/mcp_query_service.py",
+        "console/views/app_config/app_port.py"
       ],
       "tests": [
         {
           "path": "console/tests/mcp_query_service_test.py",
           "selector": "MCPQueryServiceApplicationToolTests.test_handle_component_ports_add_exposes_structured_alias_validation"
+        },
+        {
+          "path": "console/tests/http_port_tcp_exposure_test.py",
+          "selector": "HTTPPortTCPExposureTests.test_add_invalid_alias_returns_400_before_port_lookup"
         }
       ],
       "test_type": "regression",
@@ -14125,6 +14130,24 @@
       "tests": [
         {
           "path": "console/tests/oauth_name_scope_test.py"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.component.port-detail-not-found",
+      "title": "Return 404 for missing component port detail",
+      "title_zh": "查询不存在的组件端口时返回 404",
+      "interface_type": "view_endpoint",
+      "interface": "GET /console/teams/{tenantName}/apps/{serviceAlias}/ports/{port}",
+      "code_paths": [
+        "console/views/app_config/app_port.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/http_port_tcp_exposure_test.py",
+          "selector": "HTTPPortTCPExposureTests.test_get_missing_port_returns_404_before_loading_variables"
         }
       ],
       "test_type": "regression",

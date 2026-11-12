@@ -293,11 +293,12 @@
 | console.component.mount-request-validation | Reject empty or malformed component mount requests | active | regression | POST /console/teams/{tenantName}/apps/{serviceAlias}/mnt | console/tests/app_mnt_consistency_test.py::AppMntViewConsistencyTests::test_post_rejects_empty_mount_list<br>console/tests/app_mnt_consistency_test.py::AppMntViewConsistencyTests::test_post_rejects_mount_without_volume_id<br>console/tests/app_mnt_consistency_test.py::AppMntViewConsistencyTests::test_post_rejects_malformed_mount_json |
 | console.component.operation-aliases | 规范化组件操作别名 | active | regression | console.services.mcp_query_service._normalize_component_operation | console/tests/mcp_query_service_test.py::MCPQueryServiceToolVisibilityTests.test_normalize_component_operation_aliases |
 | console.component.pods | Component Pods | active | regression | console.services.mcp_query_service.call_tool[console.component.pods] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_get_component_pods_returns_normalized_runtime_instances |
-| console.component.port-add-invalid-alias | Component Port Add Invalid Alias | active | regression | console.services.mcp_query_service.call_tool[console.component.port-add-invalid-alias] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_handle_component_ports_add_exposes_structured_alias_validation |
+| console.component.port-add-invalid-alias | Component Port Add Invalid Alias | active | regression | console.services.mcp_query_service.call_tool[console.component.port-add-invalid-alias] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_handle_component_ports_add_exposes_structured_alias_validation<br>console/tests/http_port_tcp_exposure_test.py::HTTPPortTCPExposureTests.test_add_invalid_alias_returns_400_before_port_lookup |
 | console.component.port-batch-add | manage_component_ports 批量新增委托给批量服务 | active | regression | console.services.mcp_query_service.call_tool[console.component.port-batch-add] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_manage_component_ports_batch_add_delegates_to_batch_service |
 | console.component.port-batch-enable-inner | manage_component_ports 批量开启内网端口只加载一次上下文 | active | regression | console.services.mcp_query_service.call_tool[console.component.port-batch-enable-inner] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_manage_component_ports_batch_enable_inner_loads_context_once |
 | console.component.port-batch-enable-outer | manage_component_ports 批量开启外网端口接受整数项 | active | regression | console.services.mcp_query_service.call_tool[console.component.port-batch-enable-outer] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_manage_component_ports_batch_enable_outer_accepts_integer_items |
 | console.component.port-batch-protocol | manage_component_ports 批量修改协议时归一化每一项 | active | regression | console.services.mcp_query_service.call_tool[rainbond_manage_component_ports#update_protocol] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_manage_component_ports_batch_update_protocol_passes_each_normalized_protocol |
+| console.component.port-detail-not-found | 查询不存在的组件端口时返回 404 | active | regression | GET /console/teams/{tenantName}/apps/{serviceAlias}/ports/{port} | console/tests/http_port_tcp_exposure_test.py::HTTPPortTCPExposureTests.test_get_missing_port_returns_404_before_loading_variables |
 | console.component.port-list | 查询组件端口列表 | active | regression | console.services.mcp_query_service.call_tool[rainbond_handle_component_ports#list] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_handle_component_ports_list_returns_ports |
 | console.component.port-open-inner | 开放组件内网端口 | active | regression | console.services.mcp_query_service.call_tool[rainbond_manage_component_ports#enable_inner] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_manage_component_ports_enable_inner_maps_to_open_inner |
 | console.component.port-open-outer-only | 仅开放组件公网端口 | active | regression | console.services.mcp_query_service.call_tool[rainbond_manage_component_ports#enable_outer_only] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_manage_component_ports_enable_outer_only_maps_to_only_open_outer |
@@ -3635,8 +3636,8 @@
 - 测试类型: `regression`
 - 接口类型: `workflow`
 - 业务入口: `console.services.mcp_query_service.call_tool[console.component.port-add-invalid-alias]`
-- 代码路径: `console/services/mcp_query_service.py`
-- 测试路径: `console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_handle_component_ports_add_exposes_structured_alias_validation`
+- 代码路径: `console/services/mcp_query_service.py`, `console/views/app_config/app_port.py`
+- 测试路径: `console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_handle_component_ports_add_exposes_structured_alias_validation`, `console/tests/http_port_tcp_exposure_test.py::HTTPPortTCPExposureTests.test_add_invalid_alias_returns_400_before_port_lookup`
 
 ### manage_component_ports 批量新增委托给批量服务
 
@@ -3677,6 +3678,16 @@
 - 业务入口: `console.services.mcp_query_service.call_tool[rainbond_manage_component_ports#update_protocol]`
 - 代码路径: `console/services/mcp_query_service.py`
 - 测试路径: `console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_manage_component_ports_batch_update_protocol_passes_each_normalized_protocol`
+
+### 查询不存在的组件端口时返回 404
+
+- Capability ID: `console.component.port-detail-not-found`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `view_endpoint`
+- 业务入口: `GET /console/teams/{tenantName}/apps/{serviceAlias}/ports/{port}`
+- 代码路径: `console/views/app_config/app_port.py`
+- 测试路径: `console/tests/http_port_tcp_exposure_test.py::HTTPPortTCPExposureTests.test_get_missing_port_returns_404_before_loading_variables`
 
 ### 查询组件端口列表
 
