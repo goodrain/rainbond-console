@@ -458,25 +458,51 @@ class DeliveryService:
 
     def listing(self, user, scope, version_id, data):
         self._identity(user, scope)
+        self.repo.version(scope, version_id)
+        destination = data.get("destination") or {"type": "local"}
+        if (destination.get("type") not in ("local", "market") or
+                destination.get("type") == "market" and not destination.get("market_id")):
+            raise DeliveryError("请选择上架位置")
+        if destination["type"] == "market":
+            self.gateway.validate_market(scope["enterprise_id"], destination["market_id"], user.user_id)
         with transaction.atomic():
             version = self.repo.version(scope, version_id)
             version = self.m.DeliveryTemplateVersion.objects.select_for_update().get(id=version.id)
             if version.deleted_at:
                 raise DeliveryError("模板版本已删除，不能申请上架", 409)
             reason = str(data.get("reason", "")).strip()
-            if not reason or len(reason) > 500:
+            online = destination["type"] == "market"
+            if len(reason) > 500 or not online and not reason:
                 raise DeliveryError("请填写500字以内的上架说明")
-            destination = data.get("destination") or {"type": "local"}
-            if version.listings.filter(status__in=["pending", "approved"], destination=destination).exists():
+            existing = version.listings.filter(
+                status__in=["pending", "approved", "not_required"], destination=destination).first()
+            if existing:
+                if online and existing.status == "pending" and not existing.publication_task_id:
+                    existing.status = "not_required"
+                    self._start_publication(existing, user)
+                    existing.save()
+                    return existing
                 raise DeliveryError("此版本已申请上架", 409)
-            if destination.get("type") not in (
-                    "local", "market") or destination.get("type") == "market" and not destination.get("market_id"):
-                raise DeliveryError("请选择上架位置")
-            return self.m.DeliveryListingRequest.objects.create(version=version,
-                                                                destination=destination,
-                                                                reason=reason,
-                                                                applicant_id=user.user_id,
-                                                                applicant_name=actor(user))
+            row = self.m.DeliveryListingRequest.objects.create(version=version,
+                                                               destination=destination,
+                                                               reason=reason,
+                                                               status="not_required" if online else "pending",
+                                                               applicant_id=user.user_id,
+                                                               applicant_name=actor(user))
+            if online:
+                self._start_publication(row, user)
+                row.save()
+            return row
+
+    def _start_publication(self, row, user):
+        row.publication_task = self.m.DeliveryTask.objects.create(template=row.version.template,
+                                                                  version=row.version,
+                                                                  kind="catalog_publish",
+                                                                  actor_id=user.user_id,
+                                                                  actor_name=actor(user),
+                                                                  request_key="listing:" + str(row.id),
+                                                                  payload={"destination": row.destination})
+        row.publication_status = "publishing"
 
     def review(self, user, request_id, decision, comment, admin=False):
         if not admin:
@@ -486,20 +512,13 @@ class DeliveryService:
                 id=request_id, version__template__enterprise_id=user.enterprise_id).first()
             if not row:
                 raise DeliveryError("上架申请不存在", 404)
-            if row.status != "pending" or row.version.deleted_at:
+            if row.destination.get("type") == "market" or row.status != "pending" or row.version.deleted_at:
                 raise DeliveryError("此申请已处理或版本已删除", 409)
             if decision not in ("approved", "rejected") or len(comment) > 500 or decision == "rejected" and not comment.strip():
                 raise DeliveryError("驳回需要填写原因")
             row.status, row.comment, row.reviewer_name, row.reviewed_at = decision, comment.strip(), actor(user), timezone.now()
             if decision == "approved":
-                row.publication_task = self.m.DeliveryTask.objects.create(template=row.version.template,
-                                                                          version=row.version,
-                                                                          kind="catalog_publish",
-                                                                          actor_id=user.user_id,
-                                                                          actor_name=actor(user),
-                                                                          request_key="listing:" + str(row.id),
-                                                                          payload={"destination": row.destination})
-                row.publication_status = "publishing"
+                self._start_publication(row, user)
             row.save()
         return row
 
@@ -528,6 +547,8 @@ class DeliveryService:
             row.reason,
             "status":
             row.status,
+            "review_required":
+            row.destination.get("type") != "market",
             "publication_status":
             row.publication_status,
             "publication_task_id":
@@ -547,7 +568,7 @@ class DeliveryService:
             "reviewed_at":
             row.reviewed_at.isoformat() if row.reviewed_at else "",
             "actions": [{
-                "action": "submit",
+                "action": "publish" if row.destination.get("type") == "market" else "submit",
                 "user_name": row.applicant_name,
                 "time": row.submitted_at.isoformat()
             }] + ([{

@@ -274,9 +274,51 @@ class DeliveryGateway:
             market_app_service._create_rbdplugin_if_needed(tenant, region, manifest, app.ID)
         return {
             "app_id": str(app.ID),
+            "app_model_id": template_key,
+            "upgrade_group_id": str(group.ID),
             "region_name": region.region_name,
             "event_ids": market_app_service._extract_event_ids(events),
             "service_ids": [component.component.component_id for component in installer.new_app.components()]
+        }
+
+    def upgrade_info(self, task, user, admin=False):
+        if task.kind != "delivery" or task.status != "succeeded" or not task.result.get("app_id"):
+            return {"available": False}
+        from www.models.main import ServiceGroup, TenantServiceGroup, TenantServiceInfo
+        from console.services.delivery_access import team_access
+        from console.services.market_app_service import market_app_service
+        from console.utils.version import sorted_versions
+        target = task.payload["target"]
+        app_id = str(task.result["app_id"])
+        tenant = team_access(user, target["team_name"], 330003, app_id, admin)
+        if not ServiceGroup.objects.filter(ID=app_id, tenant_id=tenant.tenant_id,
+                                           region_name=target["region_name"]).exists():
+            return {"available": False}
+        # New tasks retain the installed source. Existing tasks resolve it from their real component IDs.
+        if task.result.get("upgrade_group_id"):
+            filters = {"ID": task.result["upgrade_group_id"], "group_key": task.result["app_model_id"]}
+        else:
+            ids = TenantServiceInfo.objects.filter(
+                tenant_id=tenant.tenant_id, service_region=target["region_name"],
+                service_id__in=task.result.get("service_ids", [])).values_list("tenant_service_group_id", flat=True)
+            filters = {"ID__in": ids}
+        groups = list(TenantServiceGroup.objects.filter(tenant_id=tenant.tenant_id,
+                                                        service_group_id=app_id, region_name=target["region_name"],
+                                                        **filters))
+        if len(groups) != 1:
+            return {"available": False}
+        group = groups[0]
+        versions = market_app_service.get_models_upgradeable_version(
+            task.template.enterprise_id, group.group_key, app_id, str(group.ID)) or []
+        if not versions:
+            return {"available": False}
+        return {
+            "available": True,
+            "current_version": group.group_version,
+            "latest_version": sorted_versions(list(versions))[0],
+            "upgrade_group_id": str(group.ID),
+            "app_model_id": group.group_key,
+            "target": {"team_name": target["team_name"], "region_name": target["region_name"], "app_id": app_id}
         }
 
     def installation_status(self, task):
@@ -297,13 +339,24 @@ class DeliveryGateway:
             return "failed"
         return "succeeded" if all(states.get(key) == "success" for key in events) else "running"
 
-    def prepare_catalog(self, task):
+    def validate_market(self, enterprise_id, market_id, actor_id):
         from console.services.app import app_market_service
+        from console.utils.offline import is_cloud_market_disabled
+        if is_cloud_market_disabled():
+            raise DeliveryError("当前环境未启用在线应用市场", 403)
+        info, market = app_market_service.get_app_market(
+            enterprise_id, market_id, user_id=str(actor_id), extend="true", raise_exception=True)
+        if not market.access_key or info.get("status") != 1 or "Write" not in info.get("access_actions", []):
+            raise DeliveryError("该应用市场没有发布权限，请使用具有写入权限的市场授权", 403)
+        return market
+
+    def prepare_catalog(self, task):
         from console.appstore.appstore import app_store
         from console.models.delivery_template import DeliveryTask
         destination = task.payload["destination"]
         if destination["type"] == "local":
             return
+        market = self.validate_market(task.template.enterprise_id, destination["market_id"], task.actor_id)
         if task.result.get("market_app_id"):
             return
         remote_id = None
@@ -312,10 +365,6 @@ class DeliveryGateway:
                 remote_id = previous.result["market_app_id"]
                 break
         if not remote_id:
-            market = app_market_service.get_app_market_by_name(task.template.enterprise_id,
-                                                               destination["market_id"],
-                                                               user_id=str(task.actor_id),
-                                                               raise_exception=True)
             remote = app_store.create_app(
                 market, {
                     "name": task.version.manifest["group_name"],
@@ -452,6 +501,17 @@ class DeliveryGateway:
                                                  row.publication_task.result["published_manifest"]), row.destination.get(
                                                      "market_id", "")
         return self.version_manifest(task.version), ""
+
+    def upgrade_manifest(self, version, published=None):
+        from console.appstore.appstore import app_store
+        manifest = self.version_manifest(version, published)
+        registry = app_store.get_app_hub_info(None, version.template_id.hex, version.template.enterprise_id)
+        for component in manifest["apps"]:
+            component["service_image"] = self.auth_for_image(component.get("share_image", ""), registry)
+        for plugin in manifest.get("plugins", []):
+            plugin["plugin_image"] = self.auth_for_image(plugin.get("plugin_image", plugin.get("share_image", "")), registry)
+        manifest["update_time"] = version.created_at
+        return manifest
 
     def version_manifest(self, version, published=None):
         from console.services.delivery_credentials import open_environment

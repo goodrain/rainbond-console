@@ -47,7 +47,6 @@ region_api = RegionInvokeApi()
 
 
 class AppVersionRollbackRestore(AppRestore):
-    CREATE_ROLLBACK_SNAPSHOT = False
 
     def __init__(
             self,
@@ -1041,23 +1040,7 @@ class AppVersionService(object):
         relation, hidden_app = self.get_hidden_template(app.ID)  # type: ignore[arg-type]
         latest_publish = share_repo.get_last_shared_app_version_by_group_id(
             app.ID, tenant.tenant_name)  # type: ignore[arg-type]
-        upgradeable_sources = []
-        try:
-            apps = market_app_service.get_market_apps_in_app(region, tenant, app)
-            for source in apps:
-                current_version = source.get("current_version")
-                versions = source.get("upgrade_versions", []) or []
-                latest_version = versions[0] if versions else None
-                if source.get("can_upgrade") or (latest_version and str(latest_version) != str(current_version)):
-                    upgradeable_sources.append({
-                        "group_key": source.get("group_key"),
-                        "upgrade_group_id": source.get("upgrade_group_id"),
-                        "template_name": source.get("group_name") or source.get("app_model_name"),
-                        "current_version": current_version,
-                        "latest_version": latest_version,
-                    })
-        except Exception:
-            upgradeable_sources = []
+        upgradeable_sources: List[Dict[str, Any]] = []
 
         if not relation or not hidden_app:
             return {
@@ -1346,8 +1329,6 @@ class AppVersionService(object):
 
         ServiceGroup.objects.select_for_update().get(
             ID=app.ID, tenant_id=tenant.tenant_id, region_name=region.region_name)
-        from console.services.app_version_auto_snapshot import app_version_auto_snapshot_service
-        app_version_auto_snapshot_service.cancel(app.ID)
 
         versions = self._list_snapshot_version_objects(relation.app_model_id)
         current_baseline = self._select_current_baseline_version(app.ID, versions)  # type: ignore[arg-type]

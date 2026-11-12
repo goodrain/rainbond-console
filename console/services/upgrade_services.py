@@ -21,6 +21,8 @@ from www.models.main import TenantServiceInfo
 from console.repositories.app import service_repo
 from console.repositories.group import tenant_service_group_repo
 from console.repositories.market_app_repo import rainbond_app_repo
+from console.services.delivery_upgrade_source import delivery_upgrade_source, target_team_name
+from console.services.delivery_manifest import DeliveryError
 from console.repositories.app import app_market_repo
 from console.repositories.app import service_source_repo
 from console.repositories.upgrade_repo import (component_upgrade_record_repo, upgrade_repo)
@@ -104,7 +106,8 @@ class UpgradeService(object):
             app_template_source.get_market_name(),
             record,
             component_keys,
-            is_deploy=True)
+            is_deploy=True,
+            is_delivery_source=bool(delivery_upgrade_source.template(str(tenant.enterprise_id), component_group.group_key)))
         record = app_upgrade.upgrade()
         self._reconcile_rbd_plugin(tenant, region, app_template, app.ID, record)
         app_template_name = component_group.group_alias
@@ -200,6 +203,15 @@ class UpgradeService(object):
     @staticmethod
     def _app_template(enterprise_id: str, app_model_key: str, version: str, app_template_source: Any) -> dict:
         if not app_template_source.is_install_from_cloud():
+            if delivery_upgrade_source.template(enterprise_id, app_model_key):
+                try:
+                    manifest = delivery_upgrade_source.manifest(
+                        enterprise_id, app_model_key, version, target_team_name(enterprise_id, app_template_source.team_id))
+                except DeliveryError as error:
+                    raise AbortRequest("delivery version unavailable", error.message, status_code=error.status,
+                                       error_code=error.status)
+                if manifest is not None:
+                    return manifest
             _, app_version = rainbond_app_repo.get_rainbond_app_and_version(enterprise_id, app_model_key, version)
         else:
             market = app_market_repo.get_app_market_by_name(

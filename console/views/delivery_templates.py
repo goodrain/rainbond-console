@@ -215,6 +215,16 @@ class DeliveryTestView(DeliveryAPI):
         return self.reply(self.delivery.task_data(task), 202)
 
 
+class DeliveryTaskUpgradeView(DeliveryAPI):
+    def get(self, request: Request, task_id: str) -> Response:
+        task = self.delivery.m.DeliveryTask.objects.select_related("template", "version").filter(
+            id=task_id, template__enterprise_id=self.user.enterprise_id).first()
+        if not task:
+            raise DeliveryError("交付任务不存在", 404)
+        team_access(self.user, task.template.team_name, 300002, task.template.app_id, self.is_enterprise_admin)
+        return self.reply(self.delivery.gateway.upgrade_info(task, self.user, self.is_enterprise_admin))
+
+
 class DeliveryTaskView(DeliveryAPI):
     def get(self, request: Request, task_id: str, download: bool = False) -> Response | HttpResponseRedirect:
         task = self.delivery.m.DeliveryTask.objects.select_related("template", "version").filter(
@@ -267,7 +277,10 @@ class DeliveryTaskRetryView(DeliveryAPI):
             if not task or task.status != "failed" or not task.version or task.version.deleted_at:
                 raise DeliveryError("此任务不可重试", 409)
             if task.kind == "catalog_publish":
-                self.admin(str(self.user.enterprise_id))
+                if task.payload.get("destination", {}).get("type") == "market":
+                    team_access(self.user, task.template.team_name, 310001, task.template.app_id, self.is_enterprise_admin)
+                else:
+                    self.admin(str(self.user.enterprise_id))
                 task.items.filter(status="failed").update(status="queued", result={}, remote_id="", event_id="", error="")
                 self.delivery.m.DeliveryListingRequest.objects.filter(publication_task=task).update(
                     publication_status="publishing")

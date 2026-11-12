@@ -596,6 +596,9 @@ class AppMarketRepository(object):
             if os.getenv("USE_SAAS") and user_id:
                 # SAAS模式下只返回用户相关的市场
                 queryset = queryset.filter(user_id=user_id)
+            else:
+                # Match get_app_market_by_name: non-SaaS publishing uses platform bindings.
+                queryset = queryset.filter(is_personal=False)
         else:
             # 非发布用途，查询is_personal为false的第一条
             queryset = queryset.filter(is_personal=False)
