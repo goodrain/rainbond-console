@@ -2,6 +2,7 @@
 import copy
 import importlib.util
 import unittest
+from unittest import mock
 from pathlib import Path
 from types import SimpleNamespace
 from django.conf import settings
@@ -209,6 +210,79 @@ class DeliveryWorkflowTest(unittest.TestCase):
         self.assertEqual(self.gateway.calls, ["build-1"])
         self.assertEqual(version.id, self.service.publish(USER, SCOPE, job.id).id)
         self.assertFalse(any("snapshot" in field.name for model in self.tables for field in model._meta.fields))
+
+    def test_snapshot_publication_copies_frozen_content_without_reading_runtime(self):
+        frozen = copy.deepcopy(SOURCE)
+        frozen['source_snapshot'] = {'version_id': '51', 'version': '0.0.3'}
+        frozen['apps'][0]['delivered_path'] = 'registry.test/saved:old-build'
+        frozen['apps'][0]['service_env_map_list'][0]['attr_value'] = 'snapshot-default'
+        payload = {**PAYLOAD, 'snapshot_id': '51', 'component_overrides': []}
+        with mock.patch.object(self.gateway, 'snapshot_source', create=True, return_value=(frozen, 'Saved app')) as saved, \
+                mock.patch.object(self.gateway, 'source', side_effect=AssertionError('Must not read current app')):
+            version = self.create_version(payload, 'snapshot-publication')
+            retry = self.create_version(payload, 'snapshot-publication')
+            self.assertEqual(retry.id, version.id)
+            saved.assert_called_once_with(SCOPE, '51')
+            with self.assertRaises(DeliveryError):
+                self.create_version({**payload, 'snapshot_id': '52'}, 'snapshot-publication')
+        self.assertEqual(version.manifest['apps'][0]['share_image'], 'registry.test/saved:old-build')
+        self.assertEqual(version.manifest['apps'][0]['service_env_map_list'][0]['attr_value'], 'snapshot-default')
+        self.assertEqual(version.manifest['source_snapshot']['version_id'], '51')
+        self.assertEqual(version.source_baseline, baseline({key: value for key, value in frozen.items()
+                                                           if key != 'source_snapshot'}))
+        self.assertEqual(models.DeliveryListingRequest.objects.count(), 0)
+        self.assertEqual(models.DeliveryTask.objects.count(), 0)
+        self.assertEqual(frozen['group_version'] if 'group_version' in frozen else None, None)
+
+    def test_invalid_snapshot_cannot_fall_back_to_current_application(self):
+        with mock.patch.object(self.gateway, 'snapshot_source', create=True,
+                               side_effect=DeliveryError('快照不存在', 404)), \
+                mock.patch.object(self.gateway, 'source', side_effect=AssertionError('Must not read current app')):
+            with self.assertRaises(DeliveryError):
+                self.create_version({**PAYLOAD, 'snapshot_id': '9999'})
+        self.assertEqual(models.DeliveryTemplateVersion.objects.count(), 0)
+
+    def test_snapshot_normalization_uses_saved_artifacts_and_does_not_mutate_history(self):
+        from console.services.delivery_snapshot import snapshot_source
+        saved = copy.deepcopy(SOURCE)
+        component = saved['apps'][0]
+        component.pop('delivered_type')
+        component.pop('delivered_path')
+        component['share_image'] = 'registry.test/saved:build-0'
+        component['service_env_map_list'][0]['attr_value'] = 'saved'
+        saved['snapshot_id'] = 17
+        original = copy.deepcopy(saved)
+        record = SimpleNamespace(ID=51, version='0.0.3', app_template=__import__('json').dumps(saved))
+        result = snapshot_source(record)
+        self.assertEqual(result['apps'][0]['delivered_path'], 'registry.test/saved:build-0')
+        self.assertTrue(result['apps'][0]['delivery_available'])
+        self.assertNotIn('snapshot_id', result)
+        self.assertEqual(__import__('json').loads(record.app_template), original)
+        component.pop('share_image')
+        component['image'] = 'registry.test/upstream:latest'
+        record.app_template = __import__('json').dumps(saved)
+        self.assertFalse(snapshot_source(record)['apps'][0]['delivery_available'])
+
+    def test_snapshot_sensitive_defaults_stay_frozen_on_server_and_missing_artifacts_are_rejected(self):
+        import json
+        from console.services.delivery_snapshot import snapshot_source
+        from console.services.delivery_manifest import public_manifest
+        from console.services.delivery_credentials import open_environment
+        saved = copy.deepcopy(SOURCE)
+        saved['apps'][0]['service_env_map_list'][1]['attr_value'] = '$SAVED_DEFAULT'
+        record = SimpleNamespace(ID=51, version='0.0.3', app_template=json.dumps(saved))
+        frozen = snapshot_source(record)
+        with mock.patch.object(self.gateway, 'snapshot_source', create=True, return_value=(frozen, 'Saved app')):
+            version = self.create_version({**PAYLOAD, 'snapshot_id': '51', 'component_overrides': []})
+        self.assertEqual(public_manifest(version.manifest)['apps'][0]['service_env_map_list'][1]['attr_value'], '')
+        self.assertEqual(open_environment(version.manifest['encrypted_environment'])['web']['PASSWORD'], '$SAVED_DEFAULT')
+        saved['apps'][0].pop('delivered_path')
+        saved['apps'][0].pop('delivered_type')
+        record.app_template = json.dumps(saved)
+        with mock.patch.object(self.gateway, 'snapshot_source', create=True,
+                               return_value=(snapshot_source(record), 'Saved app')):
+            with self.assertRaises(DeliveryError):
+                self.create_version({**PAYLOAD, 'snapshot_id': '51', 'version': '2.0.0'})
 
     def test_optional_resource_overrides_inherit_existing_defaults(self):
         payload = copy.deepcopy(PAYLOAD)

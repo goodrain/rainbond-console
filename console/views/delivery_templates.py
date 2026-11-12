@@ -78,7 +78,9 @@ class DeliveryChangesView(DeliveryAPI):
 class DeliverySourceView(DeliveryAPI):
     def get(self, request: Request, team_name: str, app_id: str) -> Response:
         from console.services.delivery_manifest import public_manifest
-        source, _ = self.delivery.gateway.source(self.scope(request, team_name, app_id))
+        scope = self.scope(request, team_name, app_id)
+        source, _ = (self.delivery.gateway.snapshot_source(scope, request.GET["snapshot_id"])
+                     if "snapshot_id" in request.GET else self.delivery.gateway.source(scope))
         return self.reply(public_manifest(source))
 
 

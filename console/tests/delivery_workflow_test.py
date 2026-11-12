@@ -6,6 +6,63 @@ from pathlib import Path
 
 
 class DeliveryWorkflowTest(unittest.TestCase):
+    def test_snapshot_source_is_scoped_to_the_same_team_application_and_snapshot_type(self):
+        from types import SimpleNamespace
+        from unittest import mock
+        from console.models import main as models
+        from www.models import main as legacy
+        from console.services.delivery_gateway import DeliveryGateway
+        from console.services.delivery_manifest import DeliveryError
+        scope = dict(enterprise_id='enterprise', team_name='source', region_name='region', app_id='42')
+        gateway = DeliveryGateway()
+        with mock.patch.object(legacy, 'Tenants') as tenants, mock.patch.object(legacy, 'ServiceGroup') as apps, \
+                mock.patch.object(models, 'AppVersionTemplateRelation') as relations, \
+                mock.patch.object(models, 'RainbondCenterAppVersion') as versions:
+            tenants.objects.filter.return_value.first.return_value = SimpleNamespace(tenant_id='tenant')
+            apps.objects.filter.return_value.first.return_value = SimpleNamespace(ID=42, group_name='Source')
+            relations.objects.filter.return_value.first.return_value = SimpleNamespace(app_model_id='hidden-model')
+            versions.objects.filter.return_value.first.return_value = SimpleNamespace(
+                ID=51, version='0.0.3', app_template='{"apps": []}')
+            source, name = gateway.snapshot_source(scope, '51')
+            self.assertEqual(name, 'Source')
+            self.assertEqual(source['source_snapshot']['version'], '0.0.3')
+            tenants.objects.filter.assert_called_once_with(tenant_name='source', enterprise_id='enterprise')
+            apps.objects.filter.assert_called_once_with(ID='42', tenant_id='tenant', region_name='region')
+            relations.objects.filter.assert_called_once_with(
+                group_id=42, tenant_id='tenant', template_type='application_version')
+            versions.objects.filter.assert_called_once_with(
+                ID='51', app_id='hidden-model', template_type='application_version')
+            versions.objects.filter.return_value.first.return_value = None
+            with self.assertRaises(DeliveryError) as failure:
+                gateway.snapshot_source(scope, '52')
+            self.assertEqual(failure.exception.status, 404)
+            for invalid in ('', None, [], True, 'runtime'):
+                with self.assertRaises(DeliveryError):
+                    gateway.snapshot_source(scope, invalid)
+            apps.objects.filter.return_value.first.return_value = None
+            with self.assertRaises(DeliveryError):
+                gateway.snapshot_source(scope, '51')
+
+    def test_snapshot_source_endpoint_reuses_application_scope_and_masks_private_defaults(self):
+        from types import SimpleNamespace
+        from unittest import mock
+        from console.views.delivery_templates import DeliverySourceView
+        view = DeliverySourceView()
+        scope = dict(enterprise_id='enterprise', team_name='source', region_name='region', app_id='42')
+        view.scope = mock.Mock(return_value=scope)
+        view.reply = lambda bean: bean
+        view.delivery = mock.Mock()
+        view.delivery.gateway.snapshot_source.return_value = ({
+            'source_snapshot': {'version_id': '51', 'version': '0.0.3'},
+            'apps': [{'service_env_map_list': [{'attr_name': 'PASSWORD', 'attr_value': '$SAVED_DEFAULT'}]}]
+        }, 'Source')
+        request = SimpleNamespace(GET={'snapshot_id': '51'})
+        result = view.get(request, 'source', '42')
+        view.scope.assert_called_once_with(request, 'source', '42')
+        view.delivery.gateway.snapshot_source.assert_called_once_with(scope, '51')
+        view.delivery.gateway.source.assert_not_called()
+        self.assertEqual(result['apps'][0]['service_env_map_list'][0]['attr_value'], '')
+
     def test_private_delivery_source_appears_in_the_existing_upgrade_list_without_a_market_copy(self):
         from datetime import datetime
         from types import SimpleNamespace
