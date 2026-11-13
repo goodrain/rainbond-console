@@ -1594,6 +1594,7 @@ class MCPQueryService(object):
                 service.git_full_name = arguments.get("full_name", "") or getattr(service, "git_full_name", "")
             else:
                 service.code_from = ""
+                service.oauth_service_id = None
             if normalized_git_url:
                 service.git_url = normalized_git_url
             service.code_version = normalized_code_version

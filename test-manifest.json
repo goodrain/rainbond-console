@@ -13965,6 +13965,54 @@
       ],
       "test_type": "regression",
       "status": "active"
+    },
+    {
+      "id": "console.build-source.clear-stale-oauth",
+      "title": "Clear stale OAuth association when saving manual source authentication",
+      "title_zh": "保存手动源码认证时清除旧OAuth关联",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.app_overview.BuildSourceinfo.put",
+      "code_paths": [
+        "console/views/app_overview.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/buildsource_update_test.py",
+          "selector": "BuildSourceUpdateTests.test_manual_git_save_clears_oauth_even_when_resaving_stale_manual_source"
+        },
+        {
+          "path": "console/tests/buildsource_update_test.py",
+          "selector": "BuildSourceUpdateTests.test_manual_source_can_switch_back_to_oauth"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.component.build-source-clear-stale-oauth",
+      "title": "MCP source authentication switches clear stale OAuth associations",
+      "title_zh": "MCP切换源码认证时清除旧OAuth关联",
+      "interface_type": "service_method",
+      "interface": "console.services.mcp_query_service.MCPQueryService.update_component_build_source",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_update_component_build_source_updates_source_code_fields"
+        },
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_manual_git_resave_repairs_stale_oauth_without_replacing_source_credentials"
+        },
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_source_switch_back_to_oauth_retains_validated_oauth_association"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
     }
   ]
 }
