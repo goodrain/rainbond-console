@@ -1,11 +1,83 @@
 """Keep delivery SQLite settings isolated from the rest of the Django suite."""
 import subprocess
+import os
 import sys
 import unittest
 from pathlib import Path
 
 
 class DeliveryWorkflowTest(unittest.TestCase):
+    @unittest.skipUnless(os.environ.get("RAINBOND_TEST_MYSQL_SOCKET"), "Requires an isolated MySQL test socket")
+    def test_mysql_mixed_collations_preserve_catalog_visibility(self):
+        from django.db import connections
+        from console.models.main import RainbondCenterApp, RainbondCenterAppVersion
+        from console.models.delivery_template import (DeliveryTemplate, DeliveryTemplateVersion, DeliveryListingRequest,
+                                                      DeliveryTask)
+        from console.services.delivery_catalog import visible_catalog_apps, visible_catalog_versions
+        import tempfile
+        socket = Path(os.environ["RAINBOND_TEST_MYSQL_SOCKET"]).resolve()
+        self.assertTrue(socket.parent.name.startswith("rainbond-collation-"))
+        self.assertIn(socket.parent.parent, (Path("/tmp").resolve(), Path(tempfile.gettempdir()).resolve()))
+        alias = "catalog_collation_mysql"
+        connections.databases[alias] = {
+            **connections.databases["default"], "ENGINE": "django.db.backends.mysql",
+            "NAME": "rainbond_collation_regression", "HOST": str(socket), "USER": "root",
+            "OPTIONS": {"charset": "utf8mb4"}, "AUTOCOMMIT": True
+        }
+        connection = connections[alias]
+        tables = [DeliveryTemplate, DeliveryTemplateVersion, DeliveryTask, DeliveryListingRequest,
+                  RainbondCenterApp, RainbondCenterAppVersion]
+        created = []
+        try:
+            with connection.schema_editor() as editor:
+                for model in tables:
+                    editor.create_model(model)
+                    created.append(model)
+            with connection.cursor() as cursor:
+                for model in (RainbondCenterApp, RainbondCenterAppVersion):
+                    cursor.execute("ALTER TABLE " + connection.ops.quote_name(model._meta.db_table) +
+                                   " CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci")
+            profile = DeliveryTemplate.objects.using(alias).create(
+                enterprise_id="collation-test", team_name="source", region_name="region", app_id="42",
+                name="Template", app_name="Application")
+            RainbondCenterApp.objects.using(alias).create(
+                app_id=profile.id.hex, enterprise_id="collation-test", app_name="Template", scope="enterprise")
+            version = DeliveryTemplateVersion.objects.using(alias).create(
+                template=profile, version="1.0.0", creator_id=1, creator_name="Tester", manifest={},
+                source_baseline={}, digest="test")
+            RainbondCenterAppVersion.objects.using(alias).create(
+                app_id=profile.id.hex, version="1.0.0", record_id=0, share_user=1, share_team="source", is_complete=True)
+            row = DeliveryListingRequest.objects.using(alias).create(
+                version=version, reason="Publish", applicant_id=1, applicant_name="Tester", status="approved",
+                publication_status="published", destination={"type": "local"})
+            apps = visible_catalog_apps(RainbondCenterApp.objects.using(alias).all())
+            versions = visible_catalog_versions(RainbondCenterAppVersion.objects.using(alias).all())
+            self.assertEqual(apps.count(), 1)
+            self.assertEqual(versions.count(), 1)
+            import uuid
+            legacy_id = uuid.uuid4().hex
+            RainbondCenterApp.objects.using(alias).create(
+                app_id=legacy_id, enterprise_id="collation-test", app_name="Legacy template", scope="enterprise")
+            RainbondCenterAppVersion.objects.using(alias).create(
+                app_id=legacy_id, version="0.1.0", record_id=0, share_user=1, share_team="source", is_complete=True)
+            self.assertEqual(apps.count(), 2)
+            self.assertEqual(versions.count(), 2)
+            row.publication_status = "unlisted"
+            row.save(using=alias)
+            self.assertEqual(apps.count(), 1)
+            self.assertEqual(versions.count(), 1)
+            row.publication_status = "published"
+            row.save(using=alias)
+            self.assertEqual(apps.count(), 2)
+            self.assertEqual(versions.count(), 2)
+        finally:
+            with connection.schema_editor() as editor:
+                for model in reversed(created):
+                    editor.delete_model(model)
+            connection.close()
+            del connections[alias]
+            connections.databases.pop(alias, None)
+
     def test_unlisted_delivery_catalog_versions_are_hidden_but_legacy_templates_and_other_versions_remain_visible(self):
         from django.db import transaction
         from console.models.main import RainbondCenterApp, RainbondCenterAppVersion
