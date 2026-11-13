@@ -190,6 +190,7 @@
 | console.app.upgrade | 升级应用版本 | active | regression | console.services.mcp_query_service.call_tool[rainbond_upgrade_app] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_upgrade_app_calls_upgrade_service_and_returns_latest_items |
 | console.auth.get-user-no-legacy-middleware | 解析会话用户时不访问已废弃的 MIDDLEWARE_CLASSES | active | regression | console.services.auth.get_user | console/tests/auth_get_user_test.py::GetUserNoLegacyMiddlewareTests.test_returns_user_without_touching_middleware_classes<br>console/tests/auth_get_user_test.py::GetUserNoLegacyMiddlewareTests.test_returns_anonymous_user_when_no_session |
 | console.build-env.duplicate-update | 重复构建环境变量统一更新 | active | regression | console.repositories.app_config.TenantServiceEnvVarRepository.update_or_create_env_var | console/tests/app_config_test.py::TenantServiceEnvVarRepositoryTests.test_update_or_create_env_var_updates_all_duplicate_rows<br>console/tests/app_config_test.py::TenantServiceEnvVarRepositoryTests.test_update_or_create_env_var_creates_row_when_no_match_exists |
+| console.build-source.clear-stale-oauth | 保存手动源码认证时清除旧OAuth关联 | active | regression | console.views.app_overview.BuildSourceinfo.put | console/tests/buildsource_update_test.py::BuildSourceUpdateTests.test_manual_git_save_clears_oauth_even_when_resaving_stale_manual_source<br>console/tests/buildsource_update_test.py::BuildSourceUpdateTests.test_manual_source_can_switch_back_to_oauth |
 | console.build-source.preserve-source-type | OAuth构建源更新保持Git类型并兼容普通源码 | active | regression | console.views.app_overview.BuildSourceinfo.put | console/tests/buildsource_update_test.py::BuildSourceUpdateTests |
 | console.build-source.single-transaction-boundary | 构建源更新使用单一事务边界 | active | regression | console.views.app_overview.BuildSourceinfo.put | console/tests/buildsource_transaction_test.py::BuildSourceTransactionTests.test_build_source_update_uses_atomic_rollback_without_manual_savepoints |
 | console.cache.atomic-increment | Atomic expiring cache increment | active | regression | console.utils.cache.Cache.increment | console/tests/utils/cache_test.py::CacheAtomicIncrementTests |
@@ -246,6 +247,7 @@
 | console.component.build-component-schema | Component Build Component Schema | active | regression | console.services.mcp_query_service.call_tool[console.component.build-component-schema] | console/tests/mcp_query_service_test.py::MCPQueryServiceToolVisibilityTests.test_build_component_tool_schema_exposes_build_info_guidance |
 | console.component.build-env-preserve-source-build-state | Component Build Env Preserve Source Build State | active | regression | console.services.mcp_query_service.call_tool[console.component.build-env-preserve-source-build-state] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_manage_component_envs_replace_build_envs_preserves_source_build_state |
 | console.component.build-logs | Component Build Logs | active | regression | console.services.mcp_query_service.call_tool[console.component.build-logs] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_get_component_build_logs_returns_event_log_items |
+| console.component.build-source-clear-stale-oauth | MCP切换源码认证时清除旧OAuth关联 | active | regression | console.services.mcp_query_service.MCPQueryService.update_component_build_source | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_update_component_build_source_updates_source_code_fields<br>console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_manual_git_resave_repairs_stale_oauth_without_replacing_source_credentials<br>console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_source_switch_back_to_oauth_retains_validated_oauth_association |
 | console.component.build-source-get | Component Build Source Get | active | regression | console.services.mcp_query_service.call_tool[console.component.build-source-get] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_get_component_build_source_returns_sanitized_summary |
 | console.component.build-source-update | Component Build Source Update | active | regression | console.services.mcp_query_service.call_tool[console.component.build-source-update] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_update_component_build_source_updates_source_code_fields |
 | console.component.build-source-update-image-cmd | 构建源更新保留/设置镜像启动命令 | active | regression | console.services.mcp_query_service.call_tool[console.component.build-source-update-image-cmd] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_update_component_build_source_keeps_cmd_when_omitted_on_image_update<br>console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_update_component_build_source_sets_cmd_and_syncs_docker_cmd |
@@ -2592,6 +2594,16 @@
 - 代码路径: `console/repositories/app_config.py`
 - 测试路径: `console/tests/app_config_test.py::TenantServiceEnvVarRepositoryTests.test_update_or_create_env_var_updates_all_duplicate_rows`, `console/tests/app_config_test.py::TenantServiceEnvVarRepositoryTests.test_update_or_create_env_var_creates_row_when_no_match_exists`
 
+### 保存手动源码认证时清除旧OAuth关联
+
+- Capability ID: `console.build-source.clear-stale-oauth`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `view_endpoint`
+- 业务入口: `console.views.app_overview.BuildSourceinfo.put`
+- 代码路径: `console/views/app_overview.py`
+- 测试路径: `console/tests/buildsource_update_test.py::BuildSourceUpdateTests.test_manual_git_save_clears_oauth_even_when_resaving_stale_manual_source`, `console/tests/buildsource_update_test.py::BuildSourceUpdateTests.test_manual_source_can_switch_back_to_oauth`
+
 ### OAuth构建源更新保持Git类型并兼容普通源码
 
 - Capability ID: `console.build-source.preserve-source-type`
@@ -3151,6 +3163,16 @@
 - 业务入口: `console.services.mcp_query_service.call_tool[console.component.build-logs]`
 - 代码路径: `console/services/mcp_query_service.py`
 - 测试路径: `console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_get_component_build_logs_returns_event_log_items`
+
+### MCP切换源码认证时清除旧OAuth关联
+
+- Capability ID: `console.component.build-source-clear-stale-oauth`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.mcp_query_service.MCPQueryService.update_component_build_source`
+- 代码路径: `console/services/mcp_query_service.py`
+- 测试路径: `console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_update_component_build_source_updates_source_code_fields`, `console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_manual_git_resave_repairs_stale_oauth_without_replacing_source_credentials`, `console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_source_switch_back_to_oauth_retains_validated_oauth_association`
 
 ### Component Build Source Get
 

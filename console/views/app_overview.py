@@ -820,6 +820,8 @@ class BuildSourceinfo(AppBaseView):
                 else:
                     self.service.code_version = "master"
                 self.service.code_from = ""
+                if not is_oauth:
+                    self.service.oauth_service_id = None
                 if git_url:
                     if is_oauth:
                         try:
