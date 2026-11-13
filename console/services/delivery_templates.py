@@ -49,16 +49,11 @@ class DeliveryService:
         if existing:
             if existing.deleted_at:
                 raise DeliveryError("此请求创建的模板版本已删除", 409)
-            saved_snapshot = existing.manifest.get("source_snapshot", {}).get("version_id")
-            if str(saved_snapshot or "") != str(data.get("snapshot_id") or ""):
-                raise DeliveryError("请求对应的来源已变更，请重新创建版本", 409)
             return existing
         template = self.repo.templates(scope).first()
         if not template:
             raise DeliveryError("请先创建应用模板，再创建版本", 409)
-        source, app_name = (self.gateway.snapshot_source(scope, data["snapshot_id"])
-                            if "snapshot_id" in data else self.gateway.source(scope))
-        source_baseline = baseline({key: value for key, value in source.items() if key != "source_snapshot"})
+        source, app_name = self.gateway.source(scope)
         with transaction.atomic():
             template = self.m.DeliveryTemplate.objects.select_for_update().get(pk=template.pk)
             if template.versions.filter(version=str(data.get("version", "")).strip()).exists():
@@ -75,7 +70,7 @@ class DeliveryService:
                                                                     version=manifest["group_version"],
                                                                     description=str(data.get("description", "")),
                                                                     manifest=manifest,
-                                                                    source_baseline=source_baseline,
+                                                                    source_baseline=baseline(source),
                                                                     digest=digest(manifest),
                                                                     creation_key=key,
                                                                     creator_id=user.user_id,

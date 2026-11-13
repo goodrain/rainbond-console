@@ -1,4 +1,4 @@
-"""Adapters for artifact, installer and export executors, with explicit snapshot import."""
+"""Adapters for existing artifact, installer and export executors; no snapshot source."""
 import copy
 import json
 import uuid
@@ -9,25 +9,6 @@ from console.services.delivery_manifest import DeliveryError, public_manifest
 
 
 class DeliveryGateway:
-    def snapshot_source(self, scope, snapshot_id):
-        from www.models.main import Tenants, ServiceGroup
-        from console.models.main import AppVersionTemplateRelation, RainbondCenterAppVersion
-        from console.services.delivery_snapshot import snapshot_source
-        if not isinstance(snapshot_id, (str, int)) or isinstance(snapshot_id, bool) or not str(snapshot_id).isdigit():
-            raise DeliveryError("请选择已保存的快照")
-        tenant = Tenants.objects.filter(tenant_name=scope["team_name"], enterprise_id=scope["enterprise_id"]).first()
-        app = ServiceGroup.objects.filter(ID=scope["app_id"], tenant_id=tenant.tenant_id,
-                                          region_name=scope["region_name"]).first() if tenant else None
-        if not app:
-            raise DeliveryError("源应用不存在", 404)
-        relation = AppVersionTemplateRelation.objects.filter(group_id=app.ID, tenant_id=tenant.tenant_id,
-                                                             template_type="application_version").first()
-        version = RainbondCenterAppVersion.objects.filter(
-            ID=snapshot_id, app_id=relation.app_model_id, template_type="application_version").first() if relation else None
-        if not version:
-            raise DeliveryError("此应用的快照不存在或已删除", 404)
-        return snapshot_source(version), app.group_name
-
     @staticmethod
     def region_api():
         from www.apiclient.regionapi import RegionInvokeApi
