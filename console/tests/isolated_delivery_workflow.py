@@ -210,6 +210,69 @@ class DeliveryWorkflowTest(unittest.TestCase):
         self.assertEqual(version.id, self.service.publish(USER, SCOPE, job.id).id)
         self.assertFalse(any("snapshot" in field.name for model in self.tables for field in model._meta.fields))
 
+    def test_pending_listing_can_be_cancelled_and_reapplication_requires_a_new_review(self):
+        version = self.create_version(PAYLOAD)
+        row = self.service.listing(USER, SCOPE, version.id, {"reason": "Review this version"})
+        result = self.service.withdraw_listing(USER, SCOPE, version.id, row.id, "cancel")
+        self.assertEqual(result.status, "cancelled")
+        self.assertEqual(result.publication_status, "cancelled")
+        self.service.withdraw_listing(USER, SCOPE, version.id, row.id, "cancel")
+        self.assertEqual(models.DeliveryTask.objects.filter(kind="listing_withdrawal").count(), 1)
+        with self.assertRaises(DeliveryError):
+            self.service.review(USER, row.id, "approved", "", admin=True)
+        new = self.service.listing(USER, SCOPE, version.id, {"reason": "Request again"})
+        self.assertNotEqual(new.id, row.id)
+        self.assertEqual(new.status, "pending")
+        self.assertIsNone(new.publication_task_id)
+
+    def test_completed_local_listing_can_be_unlisted_without_changing_review_or_delivery_history(self):
+        version = self.create_version(PAYLOAD)
+        row = self.service.listing(USER, SCOPE, version.id, {"reason": "Publish this version"})
+        self.service.review(USER, row.id, "approved", "Approved", admin=True)
+        row.refresh_from_db()
+        self.service.advance(row.publication_task_id)
+        self.service.advance(row.publication_task_id)
+        row.refresh_from_db()
+        self.assertEqual(row.publication_status, "published")
+        with self.assertRaises(DeliveryError):
+            self.service.withdraw_listing(USER, SCOPE, version.id, row.id, "cancel")
+        installed = models.DeliveryTask.objects.create(
+            template=version.template, version=version, kind="delivery", status="succeeded", actor_id=1,
+            actor_name="Installer", request_key="existing-install", payload={"target": {"app_id": "production"}},
+            result={"service_ids": ["existing-component"]})
+        result = self.service.withdraw_listing(USER, SCOPE, version.id, row.id, "unlist")
+        self.assertEqual(result.status, "approved")
+        self.assertEqual(result.publication_status, "unlisted")
+        self.assertEqual(result.comment, "Approved")
+        version.refresh_from_db()
+        self.assertIsNone(version.deleted_at)
+        installed.refresh_from_db()
+        self.assertEqual(installed.status, "succeeded")
+        self.assertEqual(installed.result, {"service_ids": ["existing-component"]})
+        self.assertEqual(version.tasks.filter(kind="delivery").count(), 1)
+        actions = self.service.listing_data(result)["actions"]
+        self.assertEqual([item["action"] for item in actions], ["submit", "approved", "unlist"])
+        self.assertEqual(actions[-1]["user_name"], USER.nick_name)
+        new = self.service.listing(USER, SCOPE, version.id, {"reason": "Publish again"})
+        self.assertEqual(new.status, "pending")
+        self.assertNotEqual(new.id, row.id)
+
+    def test_cancelled_publication_worker_cannot_publish_later_and_wrong_scope_is_rejected(self):
+        version = self.create_version(PAYLOAD)
+        row = self.service.listing(USER, SCOPE, version.id, {"reason": "Publish this version"})
+        self.service.review(USER, row.id, "approved", "", admin=True)
+        row.refresh_from_db()
+        self.service.advance(row.publication_task_id)
+        for scope in ({**SCOPE, "app_id": "other"}, {**SCOPE, "enterprise_id": "other"}):
+            with self.assertRaises(DeliveryError):
+                self.service.withdraw_listing(USER, scope, version.id, row.id, "cancel")
+        self.service.withdraw_listing(USER, SCOPE, version.id, row.id, "cancel")
+        self.service.advance(row.publication_task_id)
+        row.refresh_from_db()
+        self.assertEqual(row.publication_status, "cancelled")
+        self.assertEqual(row.publication_task.status, "cancelled")
+        self.assertNotIn("catalog_id", row.publication_task.result)
+
     def test_optional_resource_overrides_inherit_existing_defaults(self):
         payload = copy.deepcopy(PAYLOAD)
         payload["component_overrides"][0]["extend_method_map"] = {"max_node": None, "step_node": ""}
@@ -923,7 +986,7 @@ class DeliveryWorkflowTest(unittest.TestCase):
         app.app_market_service = mock.Mock()
         with mock.patch.dict(sys.modules, {"console.models.main": main, "console.services.app": app}):
             result = DeliveryGateway().publish_catalog(task)
-        saved = main.RainbondCenterAppVersion.objects.get_or_create.call_args.kwargs["defaults"]
+        saved = main.RainbondCenterAppVersion.objects.update_or_create.call_args.kwargs["defaults"]
         manifest = json.loads(saved["app_template"])
         self.assertEqual(manifest["apps"][0]["share_image"], "catalog.test/web:1.0.0")
         self.assertEqual(result["published_manifest"]["apps"][0]["share_image"], "catalog.test/web:1.0.0")

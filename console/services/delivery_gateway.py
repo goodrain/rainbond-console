@@ -463,23 +463,23 @@ class DeliveryGateway:
                                                            "arch": manifest.get("arch", "amd64"),
                                                            "is_version": True
                                                        })
-            RainbondCenterAppVersion.objects.get_or_create(app_id=task.template_id.hex,
-                                                           version=task.version.version,
-                                                           defaults={
-                                                               "enterprise_id": task.template.enterprise_id,
-                                                               "scope": "enterprise",
-                                                               "source": "local",
-                                                               "app_template": json.dumps(manifest),
-                                                               "app_version_info": task.version.description,
-                                                               "record_id": 0,
-                                                               "share_user": str(task.actor_id),
-                                                               "share_team": task.template.team_name,
-                                                               "template_type": "application_template",
-                                                               "is_complete": True,
-                                                               "update_time": timezone.now(),
-                                                               "template_version": manifest.get("template_version", "v2"),
-                                                               "arch": manifest.get("arch", "amd64")
-                                                           })
+            RainbondCenterAppVersion.objects.update_or_create(app_id=task.template_id.hex,
+                                                              version=task.version.version,
+                                                              defaults={
+                                                                  "enterprise_id": task.template.enterprise_id,
+                                                                  "scope": "enterprise",
+                                                                  "source": "local",
+                                                                  "app_template": json.dumps(manifest),
+                                                                  "app_version_info": task.version.description,
+                                                                  "record_id": 0,
+                                                                  "share_user": str(task.actor_id),
+                                                                  "share_team": task.template.team_name,
+                                                                  "template_type": "application_template",
+                                                                  "is_complete": True,
+                                                                  "update_time": timezone.now(),
+                                                                  "template_version": manifest.get("template_version", "v2"),
+                                                                  "arch": manifest.get("arch", "amd64")
+                                                              })
         return {**task.result, "catalog_id": task.template_id.hex, "destination": destination, "published_manifest": manifest}
 
     @staticmethod

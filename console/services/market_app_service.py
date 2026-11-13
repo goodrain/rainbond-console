@@ -255,6 +255,10 @@ class MarketAppService(object):
             raise AbortRequest("market app not found", "应用市场应用不存在", status_code=404, error_code=404)
         if not app_version:
             raise AbortRequest("app version not found", "应用市场应用版本不存在", status_code=404, error_code=404)
+        if not install_from_cloud:
+            from console.services.delivery_catalog import catalog_version_available
+            if not catalog_version_available(app_model_key, version):
+                raise AbortRequest("app version not listed", "此模板版本尚未上架或已取消上架", status_code=409)
         app_template = json.loads(app_version.app_template)
         app_template["update_time"] = app_version.update_time
         app_template["arch"] = app_version.arch
