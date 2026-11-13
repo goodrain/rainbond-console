@@ -70,6 +70,13 @@ class DeliveryTemplatesView(DeliveryAPI):
         return self.reply(self.delivery.version_data(version), 201)
 
 
+class DeliveryListingWithdrawalView(DeliveryAPI):
+    def post(self, request: Request, team_name: str, app_id: str, version_id: str, request_id: str) -> Response:
+        scope = self.scope(request, team_name, app_id, write=True)
+        row = self.delivery.withdraw_listing(self.user, scope, version_id, request_id, request.data.get("action"))
+        return self.reply(self.delivery.listing_data(row))
+
+
 class DeliveryChangesView(DeliveryAPI):
     def get(self, request: Request, team_name: str, app_id: str) -> Response:
         return self.reply(self.delivery.changes(self.scope(request, team_name, app_id)))
@@ -272,6 +279,10 @@ class DeliveryTaskRetryView(DeliveryAPI):
     def post(self, request: Request, task_id: str) -> Response:
         from django.db import transaction
         with transaction.atomic():
+            hint = self.delivery.m.DeliveryTask.objects.filter(
+                id=task_id, template__enterprise_id=self.user.enterprise_id).first()
+            if hint and hint.kind == "catalog_publish" and hint.version_id:
+                self.delivery.m.DeliveryTemplateVersion.objects.select_for_update().get(id=hint.version_id)
             task = self.delivery.m.DeliveryTask.objects.select_for_update().select_related("template", "version").filter(
                 id=task_id, template__enterprise_id=self.user.enterprise_id).first()
             if not task or task.status != "failed" or not task.version or task.version.deleted_at:

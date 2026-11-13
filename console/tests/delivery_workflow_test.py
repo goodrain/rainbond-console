@@ -6,6 +6,104 @@ from pathlib import Path
 
 
 class DeliveryWorkflowTest(unittest.TestCase):
+    def test_unlisted_delivery_catalog_versions_are_hidden_but_legacy_templates_and_other_versions_remain_visible(self):
+        from django.db import transaction
+        from console.models.main import RainbondCenterApp, RainbondCenterAppVersion
+        from console.models.delivery_template import DeliveryTemplate, DeliveryTemplateVersion, DeliveryListingRequest
+        from console.services.delivery_catalog import visible_catalog_apps, visible_catalog_versions, catalog_version_available
+        import uuid
+        with transaction.atomic():
+            profile = DeliveryTemplate.objects.create(enterprise_id="test-visibility",
+                                                      team_name="source",
+                                                      region_name="region",
+                                                      app_id="42",
+                                                      name="Template",
+                                                      app_name="App")
+            app = RainbondCenterApp.objects.create(app_id=profile.id.hex,
+                                                   enterprise_id="test-visibility",
+                                                   app_name="Template",
+                                                   scope="enterprise",
+                                                   is_version=True)
+            first = DeliveryTemplateVersion.objects.create(template=profile,
+                                                           version="1.0.0",
+                                                           creator_id=1,
+                                                           creator_name="User",
+                                                           manifest={},
+                                                           source_baseline={},
+                                                           digest="test")
+            listing = DeliveryListingRequest.objects.create(version=first,
+                                                            reason="Publish",
+                                                            applicant_id=1,
+                                                            applicant_name="User",
+                                                            status="approved",
+                                                            publication_status="published",
+                                                            destination={"type": "local"})
+            catalog = RainbondCenterAppVersion.objects.create(app_id=profile.id.hex,
+                                                              version="1.0.0",
+                                                              record_id=0,
+                                                              share_user=1,
+                                                              share_team="source",
+                                                              is_complete=True)
+            legacy = RainbondCenterAppVersion.objects.create(app_id=uuid.uuid4().hex,
+                                                             version="0.1.0",
+                                                             record_id=0,
+                                                             share_user=1,
+                                                             share_team="source",
+                                                             is_complete=True)
+            self.assertTrue(visible_catalog_versions(RainbondCenterAppVersion.objects.filter(pk=catalog.pk)).exists())
+            listing.publication_status = "unlisted"
+            listing.save()
+            self.assertFalse(visible_catalog_versions(RainbondCenterAppVersion.objects.filter(pk=catalog.pk)).exists())
+            self.assertFalse(visible_catalog_apps(RainbondCenterApp.objects.filter(pk=app.pk)).exists())
+            DeliveryListingRequest.objects.create(version=first,
+                                                  reason="Sync",
+                                                  applicant_id=1,
+                                                  applicant_name="User",
+                                                  status="not_required",
+                                                  publication_status="published",
+                                                  destination={
+                                                      "type": "market",
+                                                      "market_id": "store"
+                                                  })
+            self.assertFalse(visible_catalog_apps(RainbondCenterApp.objects.filter(pk=app.pk)).exists())
+            self.assertFalse(catalog_version_available(profile.id.hex, "1.0.0"))
+            self.assertTrue(catalog_version_available(legacy.app_id, "0.1.0"))
+            self.assertTrue(visible_catalog_versions(RainbondCenterAppVersion.objects.filter(pk=legacy.pk)).exists())
+            second = DeliveryTemplateVersion.objects.create(template=profile,
+                                                            version="2.0.0",
+                                                            creator_id=1,
+                                                            creator_name="User",
+                                                            manifest={},
+                                                            source_baseline={},
+                                                            digest="test")
+            DeliveryListingRequest.objects.create(version=second,
+                                                  reason="Publish",
+                                                  applicant_id=1,
+                                                  applicant_name="User",
+                                                  status="approved",
+                                                  publication_status="published",
+                                                  destination={"type": "local"})
+            self.assertTrue(visible_catalog_apps(RainbondCenterApp.objects.filter(pk=app.pk)).exists())
+            self.assertFalse(visible_catalog_versions(RainbondCenterAppVersion.objects.filter(pk=catalog.pk)).exists())
+            listing.publication_status = "published"
+            listing.save()
+            self.assertTrue(visible_catalog_versions(RainbondCenterAppVersion.objects.filter(pk=catalog.pk)).exists())
+            transaction.set_rollback(True)
+
+    def test_listing_withdrawal_endpoint_requires_application_write_scope_and_exact_version(self):
+        from types import SimpleNamespace
+        from unittest import mock
+        from console.views.delivery_templates import DeliveryListingWithdrawalView
+        view = DeliveryListingWithdrawalView()
+        view.user = SimpleNamespace(user_id=1)
+        view.scope = mock.Mock(return_value={"app_id": "42"})
+        view.delivery = mock.Mock()
+        view.reply = lambda bean: bean
+        request = SimpleNamespace(data={"action": "cancel"})
+        view.post(request, "source", "42", "version-1", "request-1")
+        view.scope.assert_called_once_with(request, "source", "42", write=True)
+        view.delivery.withdraw_listing.assert_called_once_with(view.user, {"app_id": "42"}, "version-1", "request-1", "cancel")
+
     def test_private_delivery_source_appears_in_the_existing_upgrade_list_without_a_market_copy(self):
         from datetime import datetime
         from types import SimpleNamespace

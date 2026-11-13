@@ -352,7 +352,8 @@ class UpgradeService(object):
         failed_component_records = {
             record.event_id: record
             for record in component_records if record.status in
-            [UpgradeStatus.PARTIAL_UPGRADED.value, UpgradeStatus.PARTIAL_ROLLBACK.value, UpgradeStatus.DEPLOY_FAILED.value]
+            [UpgradeStatus.UPGRADE_FAILED.value, UpgradeStatus.ROLLBACK_FAILED.value,
+             UpgradeStatus.PARTIAL_UPGRADED.value, UpgradeStatus.PARTIAL_ROLLBACK.value, UpgradeStatus.DEPLOY_FAILED.value]
         }
 
         component_ids = [record.service_id for record in failed_component_records.values()]

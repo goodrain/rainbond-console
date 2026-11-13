@@ -7,7 +7,8 @@ from console.views.delivery_templates import (DeliveryTemplatesView, DeliverySou
                                               DeliverySyncTaskView, DeliverySyncRetryView, DeliverySyncLogsView,
                                               DeliveryVersionView, DeliveryOperationView, DeliveryApplicationRecordsView,
                                               DevelopmentDeliveriesView, DeliveryReviewView, DeliveryTestView, DeliveryTaskView,
-                                              DeliveryTargetsView, DeliveryTaskRetryView, DeliveryTaskUpgradeView)
+                                              DeliveryTargetsView, DeliveryTaskRetryView, DeliveryTaskUpgradeView,
+                                              DeliveryListingWithdrawalView)
 from console.views.team_applications import TeamApplicationsView, TeamApplicationReviewView
 from console.captcha.captcha_code import CaptchaView
 from console.views import app_upgrade
@@ -226,6 +227,8 @@ urlpatterns = [
             DeliveryChangesView.as_view()),
     re_path(r'^teams/(?P<team_name>[\w-]+)/groups/(?P<app_id>[\w-]+)/delivery-templates/records$',
             DeliveryApplicationRecordsView.as_view()),
+    re_path(r'^teams/(?P<team_name>[\w-]+)/groups/(?P<app_id>[\w-]+)/delivery-templates/versions/(?P<version_id>[\w-]+)'
+            r'/listing-requests/(?P<request_id>[\w-]+)/withdraw$', DeliveryListingWithdrawalView.as_view()),
     re_path(r'^teams/(?P<team_name>[\w-]+)/groups/(?P<app_id>[\w-]+)/delivery-templates/sync$', DeliverySyncView.as_view()),
     re_path(r'^teams/(?P<team_name>[\w-]+)/groups/(?P<app_id>[\w-]+)/delivery-templates/sync/(?P<task_id>[\w-]+)$',
             DeliverySyncTaskView.as_view()),
