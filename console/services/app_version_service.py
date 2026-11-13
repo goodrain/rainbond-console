@@ -1041,6 +1041,8 @@ class AppVersionService(object):
         latest_publish = share_repo.get_last_shared_app_version_by_group_id(
             app.ID, tenant.tenant_name)  # type: ignore[arg-type]
         upgradeable_sources: List[Dict[str, Any]] = []
+        source_template_count = TenantServiceGroup.objects.filter(
+            tenant_id=tenant.tenant_id, region_name=region.region_name, service_group_id=app.ID).count()
 
         if not relation or not hidden_app:
             return {
@@ -1052,7 +1054,7 @@ class AppVersionService(object):
                 "latest_snapshot_version_id": None,
                 "latest_publish_time": latest_publish.create_time.strftime('%Y-%m-%d %H:%M:%S') if latest_publish else None,
                 "snapshot_count": 0,
-                "source_template_count": len(upgradeable_sources),
+                "source_template_count": source_template_count,
                 "upgradeable_sources": upgradeable_sources,
                 "has_changes": False,
                 "change_summary": {
@@ -1079,7 +1081,7 @@ class AppVersionService(object):
                 "latest_snapshot_version_id": None,
                 "latest_publish_time": latest_publish.create_time.strftime('%Y-%m-%d %H:%M:%S') if latest_publish else None,
                 "snapshot_count": 0,
-                "source_template_count": len(upgradeable_sources),
+                "source_template_count": source_template_count,
                 "upgradeable_sources": upgradeable_sources,
                 "has_changes": False,
                 "change_summary": {
@@ -1115,7 +1117,7 @@ class AppVersionService(object):
             "latest_snapshot_version_id": latest_version.ID,
             "latest_publish_time": latest_publish.create_time.strftime('%Y-%m-%d %H:%M:%S') if latest_publish else None,
             "snapshot_count": len(versions),
-            "source_template_count": len(upgradeable_sources),
+            "source_template_count": source_template_count,
             "upgradeable_sources": upgradeable_sources,
             "has_changes": change_summary["has_changes"],
             "change_summary": change_summary,

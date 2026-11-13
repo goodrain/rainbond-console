@@ -312,6 +312,13 @@ class ServiceShareDeleteView(RegionTenantHeaderView):
             if share_record.is_success or share_record.step >= 3:
                 result = general_message(400, "share record is complete", "分享流程已经完成，无法放弃")
                 return Response(result, status=400)
+            if share_record.app_id and not share_record.scope and not share_record.share_version:
+                relation = app_version_service.get_relation(str(share_record.group_id))
+                if (relation and relation.template_type == app_version_service.SNAPSHOT_TEMPLATE_TYPE
+                        and relation.app_model_id == share_record.app_id):
+                    # A snapshot configuration record is not a market publication draft.
+                    share_service.delete_record(share_record)
+                    return Response(general_message(200, "delete success", "配置草稿已关闭"), status=200)
             share_service.get_app_version_by_app_id(app_id=share_record.app_id, is_complete=False).delete()
             app = share_service.get_app_by_key(key=share_record.app_id)
             if app:
