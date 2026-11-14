@@ -259,4 +259,5 @@ class AppVersionAutoSnapshotService:
                 connections.close_all()
 
 
-app_version_auto_snapshot_service = AppVersionAutoSnapshotService(start_worker=True)
+# Retain the legacy service for compatibility without resuming template-triggered snapshot jobs.
+app_version_auto_snapshot_service = AppVersionAutoSnapshotService()

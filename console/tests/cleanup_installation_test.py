@@ -174,10 +174,11 @@ class CleanupInstallationLifecycleTests(unittest.TestCase):
         cls = next(n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == 'AppUpgrade')
         method = next(n for n in cls.body if isinstance(n, ast.FunctionDef) and n.name == 'upgrade')
         calls = []
+        automatic_snapshot = Mock(side_effect=AssertionError('Template upgrades must not create application snapshots'))
         namespace = {'AppUpgradeRecord': SimpleNamespace(objects=Mock()),
                      'UpgradeStatus': SimpleNamespace(UPGRADING=SimpleNamespace(value=2)),
                      'app_version_auto_snapshot_service': SimpleNamespace(
-                         before_upgrade=lambda *args: calls.append('snapshot'))}
+                         before_upgrade=automatic_snapshot)}
         exec(compile(ast.fix_missing_locations(ast.Module(body=[method], type_ignores=[])), str(path), 'exec'), namespace)
         sync = ModuleType('console.services.rbd_plugin_sync_service')
         sync.rbd_plugin_sync_service = SimpleNamespace(reconcile=lambda *args: calls.append('configure'))
@@ -192,6 +193,7 @@ class CleanupInstallationLifecycleTests(unittest.TestCase):
         with patch.dict('sys.modules', {'console.services.rbd_plugin_sync_service': sync}), \
                 patch('console.services.cleanup_retirement.lock_template_use', return_value=nullcontext()) as lock_template:
             namespace['upgrade'](obj)
-        self.assertEqual(calls, ['snapshot', 'configure', 'deploy'])
+        self.assertEqual(calls, ['configure', 'deploy'])
+        automatic_snapshot.assert_not_called()
         lock_template.assert_called_once_with(
             'model', 'v2', 'r', 'team', external_template=obj.app_template)

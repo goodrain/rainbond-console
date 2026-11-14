@@ -1332,48 +1332,76 @@ class AutomaticSnapshotOverviewContractTests(TestCase):
         view = app_version_view_module.AppVersionOverviewView()
         view.tenant, view.region, view.user, view.app = mock.Mock(), mock.Mock(), mock.Mock(), mock.Mock()
         with mock.patch.object(app_version_service, "get_overview", return_value={"snapshot_count": 2}), \
-                mock.patch.object(app_version_view_module.app_version_auto_snapshot_service,
-                                  "status", return_value={"status": "pending"}):
+                mock.patch.object(app_version_view_module, "app_version_auto_snapshot_service", create=True) as tracker:
             response = view.get(mock.Mock(), 42)
         self.assertEqual(response.data["data"]["bean"], {
-            "snapshot_count": 2, "automatic_snapshot": {"status": "pending"}})
+            "snapshot_count": 2, "automatic_snapshot": {}})
+        tracker.status.assert_not_called()
 
 
 # capability_id: console.app-version.market-deploy-snapshot-hook
 class MarketDeploymentSnapshotHookTests(TestCase):
-    def test_market_install_and_upgrade_register_events_after_deployment_is_dispatched(self):
+    def test_runtime_does_not_start_legacy_automatic_snapshot_jobs(self):
+        import runpy
+        from console.services import app_version_auto_snapshot as automatic_module
+        with mock.patch.object(automatic_module.threading, "Thread") as worker, \
+                mock.patch.dict(os.environ, {"DISABLE_APP_SNAPSHOT_WORKER": "0"}):
+            runpy.run_path(automatic_module.__file__)
+        worker.assert_not_called()
+
+    def test_template_install_and_upgrade_do_not_create_application_snapshots(self):
         upgrade_class = market_app_service_module.AppUpgrade
         instance = upgrade_class.__new__(upgrade_class)
         instance.tenant, instance.user, instance.app = mock.Mock(), mock.Mock(), mock.Mock()
         instance.region_name, instance.app_id = "region", 42
         events = [{"service_id": "service", "event_id": "event"}]
         with mock.patch.object(market_app_module.MarketApp, "deploy", return_value=events), \
-                mock.patch("console.services.market_app.app_upgrade.app_version_auto_snapshot_service") as tracker:
+                mock.patch("console.services.market_app.app_upgrade.app_version_auto_snapshot_service", create=True) as tracker:
             for record in (None, mock.Mock(ID=1)):
                 instance.record = record
                 self.assertEqual(instance.deploy(), events)
-                self.assertEqual(tracker.track.call_args.kwargs["upgrade"], record is not None)
-                self.assertEqual(tracker.track.call_args.args[4], events)
+                tracker.track.assert_not_called()
 
     def test_failed_dispatch_never_registers_success_snapshot(self):
         instance = market_app_service_module.AppUpgrade.__new__(market_app_service_module.AppUpgrade)
         with mock.patch.object(market_app_module.MarketApp, "deploy", side_effect=RuntimeError("dispatch failed")), \
-                mock.patch("console.services.market_app.app_upgrade.app_version_auto_snapshot_service") as tracker:
+                mock.patch("console.services.market_app.app_upgrade.app_version_auto_snapshot_service", create=True) as tracker:
             with self.assertRaises(RuntimeError):
                 instance.deploy()
         tracker.track.assert_not_called()
 
-    def test_legacy_rollback_records_snapshot_but_application_snapshot_rollback_does_not_duplicate(self):
+    def test_template_and_snapshot_rollbacks_do_not_enqueue_application_snapshots(self):
         events = [{"service_id": "service", "event_id": "rollback-event"}]
-        for restore_class, should_track in ((app_restore_module.AppRestore, True),
+        for restore_class, should_track in ((app_restore_module.AppRestore, False),
                                             (app_version_service_module.AppVersionRollbackRestore, False)):
             instance = restore_class.__new__(restore_class)
             instance.tenant, instance.user, instance.app = mock.Mock(), mock.Mock(), mock.Mock(ID=42)
             instance.region_name = "region"
             with mock.patch.object(market_app_module.MarketApp, "deploy", return_value=events), \
-                    mock.patch("console.services.market_app.app_restore.app_version_auto_snapshot_service") as tracker:
+                    mock.patch("console.services.market_app.app_restore.app_version_auto_snapshot_service",
+                               create=True) as tracker:
                 self.assertEqual(instance.deploy(), events)
                 self.assertEqual(tracker.track.called, should_track)
+
+    def test_template_upgrade_does_not_wait_for_application_snapshot_creation(self):
+        from console.services.market_app import app_upgrade as upgrade_module
+        instance = upgrade_module.AppUpgrade.__new__(upgrade_module.AppUpgrade)
+        instance.app_model_key, instance.version, instance.region_name = "model", "2.0", "region"
+        instance.tenant, instance.region, instance.user, instance.app = mock.Mock(), mock.Mock(), mock.Mock(), mock.Mock()
+        instance.record, instance.app_template, instance.install_from_cloud = mock.Mock(ID=9), {}, False
+        instance.is_delivery_source = True
+        for method in ("install_plugins", "sync_new_app", "_save_app", "_deploy"):
+            setattr(instance, method, mock.Mock())
+        with mock.patch("console.services.cleanup_retirement.lock_template_use", return_value=nullcontext()) as admission, \
+                mock.patch.object(upgrade_module.AppUpgradeRecord.objects, "filter") as records, \
+                mock.patch.object(upgrade_module, "app_version_auto_snapshot_service", create=True) as tracker:
+            tracker.before_upgrade.side_effect = AssertionError("Application snapshots must not block template upgrades")
+            self.assertEqual(instance.upgrade(), instance.record)
+            tracker.before_upgrade.assert_not_called()
+            instance._deploy.assert_called_once_with(instance.record)
+            records.return_value.update.assert_called_once_with(
+                version="2.0", status=UpgradeStatus.UPGRADING.value)
+            self.assertIs(admission.call_args.kwargs["external_template"], instance.app_template)
 
     def test_source_template_rollback_is_not_mistaken_for_snapshot_baseline_with_same_version_number(self):
         with mock.patch.object(app_version_service_module.AppUpgradeRecord.objects, "filter") as records:
@@ -1564,7 +1592,7 @@ class SnapshotRollbackBuildVersionTests(TestCase):
 
     def deploy_body(self, restore):
         with mock.patch.object(market_app_module, "region_api") as api, \
-                mock.patch.object(app_restore_module, "app_version_auto_snapshot_service"):
+                mock.patch.object(app_restore_module, "app_version_auto_snapshot_service", create=True):
             api.batch_operation_service.return_value = (None, {"bean": {"batch_result": []}})
             restore.deploy()
         return api.batch_operation_service.call_args.args[2]

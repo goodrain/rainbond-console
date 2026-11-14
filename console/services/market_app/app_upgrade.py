@@ -21,7 +21,6 @@ from console.services.market_app.component import Component
 # service
 from console.services.backup_service import groupapp_backup_service
 from console.services.app_config import label_service
-from console.services.app_version_auto_snapshot import app_version_auto_snapshot_service
 # repo
 from console.repositories.upgrade_repo import component_upgrade_record_repo
 from console.repositories.app_snapshot import app_snapshot_repo
@@ -73,7 +72,8 @@ class AppUpgrade(MarketApp):
                  record: Optional[AppUpgradeRecord] = None,
                  component_keys: Optional[Any] = None,
                  is_deploy: bool = False,
-                 is_upgrade_one: bool = False) -> None:
+                 is_upgrade_one: bool = False,
+                 is_delivery_source: bool = False) -> None:
         """
         components_keys: component keys that the user select.
         """
@@ -95,6 +95,7 @@ class AppUpgrade(MarketApp):
         self.component_keys = component_keys if component_keys else None
         self.is_deploy = is_deploy
         self.is_upgrade_one = is_upgrade_one
+        self.is_delivery_source = is_delivery_source
 
         # app template
         self.app_template = app_template
@@ -228,11 +229,10 @@ class AppUpgrade(MarketApp):
                     self.version,
                     self.region_name,
                     self.tenant.tenant_name,
-                    external_template=self.app_template if self.install_from_cloud else None):
+                    external_template=self.app_template if self.install_from_cloud or getattr(self, "is_delivery_source", False)
+                    else None):
                 if self.record is None or not self.record.ID:
                     raise RetirementConflict()
-                # Persist the complete baseline before changing Region or Console configuration.
-                app_version_auto_snapshot_service.before_upgrade(self.tenant, self.region, self.user, self.app)
                 AppUpgradeRecord.objects.filter(ID=self.record.ID).update(
                     version=self.version, status=UpgradeStatus.UPGRADING.value)
         except CoordinationUnavailable:
@@ -270,17 +270,6 @@ class AppUpgrade(MarketApp):
         self._deploy(self.record)  # type: ignore[arg-type]
         # NOTE: self.record can be None; caller must pass record for upgrade() to work correctly
         return self.record  # type: ignore[return-value]
-
-    def deploy(self) -> List[Any]:
-        events = super(AppUpgrade, self).deploy()
-        try:
-            is_upgrade = self.record is not None
-            description = "组件库升级成功，自动创建快照" if is_upgrade else "组件库安装部署成功，自动创建快照"
-            app_version_auto_snapshot_service.track(
-                self.tenant, self.region_name, self.user, self.app, events, description, upgrade=is_upgrade)
-        except Exception:
-            logger.exception("could not register automatic snapshot for application %s", self.app_id)
-        return events
 
     def changes(self) -> List[Dict[str, Any]]:
         templates: List[Any] = list()
@@ -672,11 +661,6 @@ class AppUpgrade(MarketApp):
         return config_groups
 
     def _update_upgrade_record(self, status: int, snapshot: Optional[Any] = None) -> None:
-        if status in (UpgradeStatus.UPGRADE_FAILED.value, UpgradeStatus.DEPLOY_FAILED.value):
-            try:
-                app_version_auto_snapshot_service.cancel(self.app.ID)
-            except Exception:
-                logger.exception("could not cancel automatic snapshot for application %s", self.app_id)
         if self.is_upgrade_one:
             return
         self.record.status = status  # type: ignore[union-attr]

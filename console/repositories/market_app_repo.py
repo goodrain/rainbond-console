@@ -39,7 +39,8 @@ class RainbondCenterAppRepository(object):
             apps = apps.filter(create_team=team_name)
             if scope:
                 apps = apps.filter(scope=scope)
-        return apps.order_by("-create_time")
+        from console.services.delivery_catalog import visible_catalog_apps
+        return visible_catalog_apps(apps).order_by("-create_time")
 
     def delete_helm_shared_apps(self, source: str) -> Tuple[int, dict]:
         return RainbondCenterApp.objects.filter(source=source).delete()
@@ -67,7 +68,8 @@ class RainbondCenterAppRepository(object):
         RainbondCenterAppVersion.objects.bulk_create(rainbond_app_versions)
 
     def get_app_versions_by_app_id(self, app_id: str, is_complete: bool) -> QuerySet:
-        return self.get_rainbond_app_versions(app_id=app_id).filter(is_complete=is_complete)
+        from console.services.delivery_catalog import visible_catalog_versions
+        return visible_catalog_versions(self.get_rainbond_app_versions(app_id=app_id).filter(is_complete=is_complete))
 
     def add_basic_app_info(self, **kwargs: Any) -> RainbondCenterApp:
         app = RainbondCenterApp(**kwargs)
@@ -85,7 +87,8 @@ class RainbondCenterAppRepository(object):
         q = Q(app_id__in=app_ids)
         if is_complete:
             q = q & Q(is_complete=is_complete)
-        return RainbondCenterAppVersion.objects.filter(q)
+        from console.services.delivery_catalog import visible_catalog_versions
+        return visible_catalog_versions(RainbondCenterAppVersion.objects.filter(q))
 
     def get_rainbond_app_version_by_record_id(self, record_id: str) -> Optional[RainbondCenterAppVersion]:
         return RainbondCenterAppVersion.objects.filter(record_id=record_id).last()
@@ -109,6 +112,8 @@ class RainbondCenterAppRepository(object):
         else:
             app = RainbondCenterApp.objects.filter(Q(scope="enterprise") | Q(scope="team", create_team__in=teams))
         app = app.exclude(source=self.HIDDEN_APP_VERSION_SOURCE)
+        from console.services.delivery_catalog import visible_catalog_apps
+        app = visible_catalog_apps(app)
         if need_install:
             app = app.filter(is_version=True)
         if arch:

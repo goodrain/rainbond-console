@@ -69,7 +69,6 @@ from console.services.app_config.service_monitor import service_monitor_repo
 from console.services.exception import ErrChangeServiceType
 from console.services.group_service import group_service
 from console.services.source_build_state_service import source_build_state_service
-from console.services.app_version_auto_snapshot import app_version_auto_snapshot_service
 from console.services.service_services import base_service
 from console.utils.cnb_build import (
     sanitize_build_env_dict_for_language,
@@ -432,11 +431,6 @@ class AppManageService(AppManageBase):
         except region_api.CallApiFrequentError as e:
             logger.exception(e)
             return 409, "操作过于频繁，请稍后再试", ""
-        app_version_auto_snapshot_service.safe_track_components(tenant, service.service_region, user, [service],
-                                                                [{
-                                                                    "service_id": service.service_id,
-                                                                    "event_id": event_id
-                                                                }])
         return 200, "操作成功", event_id
 
     def __delete_envs(self, tenant: Tenants, service: TenantServiceInfo) -> Tuple[int, str]:
@@ -585,11 +579,6 @@ class AppManageService(AppManageBase):
             # NOTE: region_api.upgrade_service returns Optional body; body["bean"] is present on
             # success at runtime, and any failure is caught by the except clauses below.
             event_id = body["bean"].get("event_id", "")
-            app_version_auto_snapshot_service.safe_track_components(tenant, service.service_region, user, [service],
-                                                                    [{
-                                                                        "service_id": service.service_id,
-                                                                        "event_id": event_id
-                                                                    }])
             return 200, "操作成功", event_id
         except region_api.CallApiError as e:
             logger.exception(e)
@@ -750,8 +739,6 @@ class AppManageService(AppManageBase):
                     except Exception as e:
                         logger.exception("KubeBlocks批量%s集群状态同步异常: service_ids=%s, error=%s", action, kb_service_ids, str(e))
 
-            if action in ("deploy", "upgrade"):
-                app_version_auto_snapshot_service.safe_track_components(tenant, region_name, user, services, events)
             return events
         except region_api.CallApiError as e:
             logger.exception(e)

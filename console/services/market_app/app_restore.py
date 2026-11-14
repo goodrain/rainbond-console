@@ -11,11 +11,9 @@ from .original_app import OriginalApp
 from .new_app import NewApp
 from .component import Component
 from .component_group import ComponentGroup
-
 # service
 from console.utils.vm_restore_attributes import public_vm_attributes, public_attribute_fields
 from console.services.app_config import label_service
-from console.services.app_version_auto_snapshot import app_version_auto_snapshot_service
 # repository
 from console.repositories.app_snapshot import app_snapshot_repo
 from console.repositories.upgrade_repo import upgrade_repo
@@ -58,7 +56,6 @@ class AppRestore(MarketApp):
     3. AppRestore will not restore components that were deleted after the upgrade.
     4. AppRestore will not be rolled back that k8s resources under the application
     """
-    CREATE_ROLLBACK_SNAPSHOT = True
 
     def __init__(self, tenant: Any, region: RegionConfig, user: Any, app: ServiceGroup, component_group: TenantServiceGroup,
                  app_upgrade_record: AppUpgradeRecord) -> None:
@@ -80,7 +77,6 @@ class AppRestore(MarketApp):
         super(AppRestore, self).__init__(self.original_app, self.new_app, self.user)
 
     def restore(self) -> Tuple[Optional[AppUpgradeRecord], TenantServiceGroup]:
-        app_version_auto_snapshot_service.cancel(self.app.ID)
         # Sync the new application to the data center first
         # TODO(huangrh): rollback on api timeout
         self.sync_new_app()
@@ -96,21 +92,6 @@ class AppRestore(MarketApp):
         self._deploy()
 
         return self.rollback_record, self.component_group
-
-    def deploy(self) -> List[Any]:
-        events = super(AppRestore, self).deploy()
-        if self.CREATE_ROLLBACK_SNAPSHOT:
-            try:
-                app_version_auto_snapshot_service.track(self.tenant,
-                                                        self.region_name,
-                                                        self.user,
-                                                        self.app,
-                                                        events,
-                                                        "组件库回滚成功，自动创建快照",
-                                                        upgrade=True)
-            except Exception:
-                logger.exception("could not register rollback snapshot for application %s", self.app.ID)
-        return events
 
     def _save_new_app(self) -> None:
         # save new app

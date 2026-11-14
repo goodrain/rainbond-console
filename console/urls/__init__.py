@@ -22,6 +22,8 @@ from console.views.delivery_templates import (
     DeliveryTaskView,
     DeliveryTargetsView,
     DeliveryTaskRetryView,
+    DeliveryTaskUpgradeView,
+    DeliveryListingWithdrawalView,
 )
 from console.views.team_applications import TeamApplicationsView, TeamApplicationReviewView
 from console.captcha.captcha_code import CaptchaView
@@ -648,6 +650,8 @@ urlpatterns = [
             DeliveryChangesView.as_view()),
     re_path(r'^teams/(?P<team_name>[\w-]+)/groups/(?P<app_id>[\w-]+)/delivery-templates/records$',
             DeliveryApplicationRecordsView.as_view()),
+    re_path(r'^teams/(?P<team_name>[\w-]+)/groups/(?P<app_id>[\w-]+)/delivery-templates/versions/(?P<version_id>[\w-]+)'
+            r'/listing-requests/(?P<request_id>[\w-]+)/withdraw$', DeliveryListingWithdrawalView.as_view()),
     re_path(r'^teams/(?P<team_name>[\w-]+)/groups/(?P<app_id>[\w-]+)/delivery-templates/sync$', DeliverySyncView.as_view()),
     re_path(r'^teams/(?P<team_name>[\w-]+)/groups/(?P<app_id>[\w-]+)/delivery-templates/sync/(?P<task_id>[\w-]+)$',
             DeliverySyncTaskView.as_view()),
@@ -667,6 +671,7 @@ urlpatterns = [
     re_path(r'^enterprises/(?P<enterprise_id>[\w-]+)/listing-requests/(?P<request_id>[\w-]+)/test-deployments$',
             DeliveryTestView.as_view()),
     re_path(r'^delivery-tasks/(?P<task_id>[\w-]+)/retry$', DeliveryTaskRetryView.as_view()),
+    re_path(r'^delivery-tasks/(?P<task_id>[\w-]+)/upgrade$', DeliveryTaskUpgradeView.as_view()),
     re_path(r'^delivery-tasks/(?P<task_id>[\w-]+)$', DeliveryTaskView.as_view()),
     re_path(r'^delivery-tasks/(?P<task_id>[\w-]+)/download$', DeliveryTaskView.as_view(), {'download': True}),
     # 升级

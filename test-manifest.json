@@ -2139,8 +2139,8 @@
     },
     {
       "id": "console.app-version.automatic-snapshot-api",
-      "title": "App version overview exposes automatic snapshot status",
-      "title_zh": "应用版本概览展示自动快照状态",
+      "title": "Snapshot overview excludes template deployment jobs",
+      "title_zh": "快照概览不关联模板部署任务",
       "interface_type": "view_endpoint",
       "interface": "GET /console/teams/{team}/groups/{app}/app-versions/overview",
       "code_paths": [
@@ -2180,9 +2180,7 @@
       "interface_type": "workflow",
       "interface": "console.services.app_version_auto_snapshot.AppVersionAutoSnapshotService",
       "code_paths": [
-        "console/services/app_version_auto_snapshot.py",
-        "console/services/market_app/app_upgrade.py",
-        "console/services/app_actions/app_manage.py"
+        "console/services/app_version_auto_snapshot.py"
       ],
       "tests": [
         {
@@ -2191,7 +2189,7 @@
         }
       ],
       "test_type": "regression",
-      "status": "active"
+      "status": "retired"
     },
     {
       "id": "console.app-version.component-diff-details",
@@ -2409,10 +2407,10 @@
     },
     {
       "id": "console.app-version.market-deploy-snapshot-hook",
-      "title": "Market install upgrade and legacy rollback register automatic snapshots after dispatch",
-      "title_zh": "组件库安装升级与旧入口回滚接入自动快照",
+      "title": "Template installation upgrades and rollback stay independent of application snapshots",
+      "title_zh": "模板安装升级与回滚独立于应用快照",
       "interface_type": "workflow",
-      "interface": "console.services.market_app.app_upgrade.AppUpgrade.deploy",
+      "interface": "console.services.market_app.app_upgrade.AppUpgrade.upgrade",
       "code_paths": [
         "console/services/market_app/app_upgrade.py",
         "console/services/market_app/app_restore.py"
