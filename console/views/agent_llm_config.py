@@ -12,7 +12,7 @@ from console.services.auth.authentication import AgentRuntimeAuthentication
 from console.login.jwt_authentication import JSONWebTokenAuthentication
 from console.models.main import EnterpriseUserPerm
 from console.utils import jwt_issuer
-from console.views.base import EnterpriseAdminView, JWTAuthApiView
+from console.views.base import JWTAuthApiView
 from www.models.main import TenantEnterprise, Users
 from www.utils.return_message import general_message
 
@@ -40,7 +40,6 @@ def _require_agent_service_token(request: Request) -> Optional[Response]:
 
 
 class AgentLLMConfigView(JWTAuthApiView):
-
     def _ensure_enterprise_admin(self) -> Optional[Response]:
         if not self.is_enterprise_admin:
             return Response(general_message(403, "forbidden", "无权限操作 AI 助手配置"), status=403)
@@ -103,9 +102,9 @@ class AgentMCPServiceCredentialsView(APIView):
         enterprise_id = str(request.META.get("HTTP_X_INTERNAL_TOKEN") or "").strip()
         if not enterprise_id or not TenantEnterprise.objects.filter(enterprise_id=enterprise_id).exists():
             return Response(general_message(403, "forbidden", "企业范围无效"), status=403)
-        token = jwt_issuer.issue_agent_service_jwt(
-            request.user, enterprise_id=enterprise_id,
-            lifetime_seconds=FEISHU_MCP_CREDENTIAL_TTL_SECONDS)
+        token = jwt_issuer.issue_agent_service_jwt(request.user,
+                                                   enterprise_id=enterprise_id,
+                                                   lifetime_seconds=FEISHU_MCP_CREDENTIAL_TTL_SECONDS)
         data = {
             "authorization": "{} {}".format(jwt_issuer.JWT_AUTH_HEADER_PREFIX, token),
             "cookie": "{}={}".format(jwt_issuer.JWT_AUTH_COOKIE, token),
@@ -133,8 +132,7 @@ class AgentMCPDelegatedCredentialsView(APIView):
             except ValueError:
                 user_id = 0
         if not enterprise_id or user_id <= 0:
-            return Response(
-                general_message(400, "invalid_request", "enterprise_id 和 user_id 必填"), status=400)
+            return Response(general_message(400, "invalid_request", "enterprise_id 和 user_id 必填"), status=400)
 
         caller_enterprise_id = str(_decode_agent_service_token(request).get("enterprise_id") or "")
         if caller_enterprise_id != enterprise_id:
@@ -149,16 +147,14 @@ class AgentMCPDelegatedCredentialsView(APIView):
                 enterprise_id=enterprise_id, user_id=caller_user_id, identity="admin").exists():
             return Response(general_message(403, "forbidden", "Agent 服务身份无企业管理权限"), status=403)
 
-        permission = EnterpriseUserPerm.objects.filter(
-            enterprise_id=enterprise_id, user_id=user_id, identity="admin").first()
+        permission = EnterpriseUserPerm.objects.filter(enterprise_id=enterprise_id, user_id=user_id, identity="admin").first()
         if not permission:
             return Response(general_message(403, "forbidden", "用户不再具备企业管理员权限"), status=403)
         delegated_user = Users.objects.filter(user_id=user_id).first()
         if not delegated_user:
             return Response(general_message(404, "user_not_found", "用户不存在"), status=404)
 
-        token = jwt_issuer.issue_short_lived_jwt(
-            delegated_user, lifetime_seconds=FEISHU_MCP_CREDENTIAL_TTL_SECONDS)
+        token = jwt_issuer.issue_short_lived_jwt(delegated_user, lifetime_seconds=FEISHU_MCP_CREDENTIAL_TTL_SECONDS)
         data = {
             "authorization": "{} {}".format(jwt_issuer.JWT_AUTH_HEADER_PREFIX, token),
             "cookie": "{}={}".format(jwt_issuer.JWT_AUTH_COOKIE, token),
@@ -180,8 +176,12 @@ class AgentMCPGroupDelegatedCredentialsView(APIView):
         if denied:
             return denied
         allowed_keys = {
-            "enterprise_id", "operator_user_id", "delegated_by_user_id",
-            "group_policy_id", "member_grant_id", "policy_revision",
+            "enterprise_id",
+            "operator_user_id",
+            "delegated_by_user_id",
+            "group_policy_id",
+            "member_grant_id",
+            "policy_revision",
         }
         if set(request.data.keys()) != allowed_keys:
             return Response(general_message(400, "invalid_request", "群委托参数不完整"), status=400)
@@ -199,11 +199,10 @@ class AgentMCPGroupDelegatedCredentialsView(APIView):
             return Response(general_message(403, "forbidden", "企业范围不匹配"), status=403)
         if not TenantEnterprise.objects.filter(enterprise_id=enterprise_id).exists():
             return Response(general_message(403, "forbidden", "企业不存在"), status=403)
-        if not EnterpriseUserPerm.objects.filter(
-                enterprise_id=enterprise_id, user_id=delegated_by_user_id, identity="admin").exists():
+        if not EnterpriseUserPerm.objects.filter(enterprise_id=enterprise_id, user_id=delegated_by_user_id,
+                                                 identity="admin").exists():
             return Response(general_message(403, "forbidden", "群授权签发人不再是企业管理员"), status=403)
-        operator = Users.objects.filter(
-            user_id=operator_user_id, enterprise_id=enterprise_id, is_active=True).first()
+        operator = Users.objects.filter(user_id=operator_user_id, enterprise_id=enterprise_id, is_active=True).first()
         if not operator:
             return Response(general_message(403, "forbidden", "群操作人不存在或已停用"), status=403)
         token = jwt_issuer.issue_group_mcp_jwt(
@@ -247,8 +246,7 @@ class AgentFeishuRuntimeIdentityView(APIView):
             return Response(general_message(400, "invalid_request", "员工身份参数无效"), status=400)
         if service_enterprise_id != enterprise_id:
             return Response(general_message(403, "forbidden", "企业范围不匹配"), status=403)
-        employee = Users.objects.filter(
-            user_id=user_id, enterprise_id=enterprise_id, is_active=True).first()
+        employee = Users.objects.filter(user_id=user_id, enterprise_id=enterprise_id, is_active=True).first()
         if not employee:
             return Response(general_message(404, "user_not_found", "员工不存在或已停用"), status=404)
         is_admin = bool(getattr(employee, "sys_admin", False)) or EnterpriseUserPerm.objects.filter(

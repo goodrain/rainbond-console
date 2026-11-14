@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from typing import TYPE_CHECKING
 import os
 import sys
 from types import ModuleType, SimpleNamespace
@@ -8,13 +9,35 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..",
 sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
 
-import django
-from django.test import SimpleTestCase
-from rest_framework.test import APIRequestFactory
 
-django.setup()
+def _load_test_dependencies():
+    """Keep the existing post-Django-setup import order and module bindings."""
+    import django
+    from django.test import SimpleTestCase
+    from rest_framework.test import APIRequestFactory
 
-from console.views.agent_feishu_identity import AgentFeishuEligibleUsersView
+    django.setup()
+
+    from console.views.agent_feishu_identity import AgentFeishuEligibleUsersView
+    return (
+        django,
+        SimpleTestCase,
+        APIRequestFactory,
+        AgentFeishuEligibleUsersView,
+    )
+
+
+(
+    django,
+    _RuntimeSimpleTestCase,
+    APIRequestFactory,
+    AgentFeishuEligibleUsersView,
+) = _load_test_dependencies()
+
+if TYPE_CHECKING:
+    from django.test import SimpleTestCase
+else:
+    SimpleTestCase = _RuntimeSimpleTestCase
 
 
 class AgentFeishuEligibleUsersViewTests(SimpleTestCase):
@@ -26,12 +49,9 @@ class AgentFeishuEligibleUsersViewTests(SimpleTestCase):
         view.is_enterprise_admin = True
         view.user = SimpleNamespace(enterprise_id="eid")
         request = self.factory.get("/console/enterprise/eid/agent/feishu/eligible-users?query=dev")
-        users = [SimpleNamespace(
-            user_id=7, nick_name="dev", real_name="Developer", is_active=True)]
+        users = [SimpleNamespace(user_id=7, nick_name="dev", real_name="Developer", is_active=True)]
 
-        with mock.patch(
-                "console.views.agent_feishu_identity.user_services.get_user_by_eid",
-                return_value=(users, 1)):
+        with mock.patch("console.views.agent_feishu_identity.user_services.get_user_by_eid", return_value=(users, 1)):
             response = view.get(request, enterprise_id="eid")
 
         self.assertEqual(response.status_code, 200)

@@ -9,6 +9,7 @@ from www.models.main import Users
 
 logger = logging.getLogger("default")
 
+
 class UserService(object):
     def register_by_phone(self, enterprise_id: str, phone: str, code: str, nick_name: str) -> Users:
         """手机号注册"""
@@ -16,18 +17,10 @@ class UserService(object):
         # 校验验证码
         valid_code = sms_repo.get_valid_code(phone, "register")
         if not valid_code:
-            raise ServiceHandleException(
-                msg="verification code expired",
-                msg_show="验证码已过期",
-                status_code=400
-            )
-        
+            raise ServiceHandleException(msg="verification code expired", msg_show="验证码已过期", status_code=400)
+
         if valid_code.code != code:
-            raise ServiceHandleException(
-                msg="wrong verification code", 
-                msg_show="验证码错误",
-                status_code=400
-            )
+            raise ServiceHandleException(msg="wrong verification code", msg_show="验证码错误", status_code=400)
 
         # 检查手机号是否已注册
         if user_repo.get_user_by_phone(phone):
@@ -67,18 +60,10 @@ class UserService(object):
         # 校验验证码
         valid_code = sms_repo.get_valid_code(phone, "login")
         if not valid_code:
-            raise ServiceHandleException(
-                msg="verification code expired",
-                msg_show="验证码已过期",
-                status_code=400
-            )
-        
+            raise ServiceHandleException(msg="verification code expired", msg_show="验证码已过期", status_code=400)
+
         if valid_code.code != code:
-            raise ServiceHandleException(
-                msg="wrong verification code", 
-                msg_show="验证码错误",
-                status_code=400
-            )
+            raise ServiceHandleException(msg="wrong verification code", msg_show="验证码错误", status_code=400)
 
         # 获取用户
         user = user_repo.get_user_by_phone(phone)
@@ -93,4 +78,5 @@ class UserService(object):
         valid_code.delete()
         return user
 
-user_service = UserService() 
+
+user_service = UserService()

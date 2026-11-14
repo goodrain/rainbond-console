@@ -2,13 +2,12 @@
 该文件主要用于openapi调用，返回组件内存桑吉图数据，展示组件内存分配情况的层级关系。
 """
 import logging
-from functools import reduce
+
 from typing import Any, Dict, List, Tuple
 
-from console.repositories.app import service_repo
 from console.services.region_services import region_services
 from www.apiclient.regionapi import RegionInvokeApi
-from www.models.main import TenantRegionInfo, Tenants, ServiceGroup, TenantServiceInfo
+from www.models.main import TenantRegionInfo, Tenants, TenantServiceInfo
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
@@ -51,7 +50,8 @@ class Component_memory_processing(object):
             logger.info(f"成功获取到 {len(regions) if regions else 0} 个集群")
 
             for region in regions:
-                region_data = self.monitor_handle(0, [region["region_name"], region["region_alias"]], region["region_id"], 0, "nil", "nil")
+                region_data = self.monitor_handle(0, [region["region_name"], region["region_alias"]], region["region_id"], 0,
+                                                  "nil", "nil")
                 self.region_list.append(region_data)
 
             logger.info(f"集群信息获取完成，共 {len(self.region_list)} 个集群")
@@ -73,7 +73,8 @@ class Component_memory_processing(object):
 
                 for tenant_region in tenant_regions:
                     region_name = tenant_region.region_name
-                    tenant_data = self.monitor_handle(1, [tenant.tenant_name, tenant.tenant_alias], tenant.tenant_id, 0, region_name, tenant.tenant_name)
+                    tenant_data = self.monitor_handle(1, [tenant.tenant_name, tenant.tenant_alias], tenant.tenant_id, 0,
+                                                      region_name, tenant.tenant_name)
                     self.tenant_list.append(tenant_data)
 
             logger.info(f"租户信息获取完成，共 {len(self.tenant_list)} 个租户区域关系")
@@ -97,10 +98,8 @@ class Component_memory_processing(object):
             logger.info(f"处理租户 {tenant_name} 在区域 {region_name} 的组件")
 
             # 获取该租户在该区域的所有组件
-            components = TenantServiceInfo.objects.filter(
-                tenant_id=tenant_id,
-                service_region=region_name
-            ).exclude(service_source="market").all()
+            components = TenantServiceInfo.objects.filter(tenant_id=tenant_id,
+                                                          service_region=region_name).exclude(service_source="market").all()
 
             logger.info(f"租户 {tenant_name} 在区域 {region_name} 有 {len(components)} 个组件")
 
@@ -119,11 +118,11 @@ class Component_memory_processing(object):
                             component.service_id,
                             allocated_memory,  # 使用分配的内存值
                             [tenant["resource_id"], tenant["resource_name"], tenant["resource_parent"]],
-                            tenant["resource_namespace"]
-                        )
+                            tenant["resource_namespace"])
                         self.component_list.append(component_data)
                         successful_components += 1
-                        logger.info(f"成功添加组件: {component.service_cname or component.service_alias}, 分配内存: {allocated_memory} MB")
+                        logger.info(
+                            f"成功添加组件: {component.service_cname or component.service_alias}, 分配内存: {allocated_memory} MB")
 
                 except Exception as e:
                     logger.warning(f"获取组件 {component.service_alias} 内存信息失败: {e}")
@@ -150,7 +149,6 @@ class Component_memory_processing(object):
         links = []  # type: List[Dict[str, Any]]
 
         # 用于存储组件到租户和租户到区域的关系及内存分配值
-        component_tenant_relations = {}  # type: Dict[str, Any]
         tenant_region_relations = {}  # type: Dict[str, Tuple[Any, Any]]
 
         # 遍历组件列表，构建节点和链接数据
@@ -158,7 +156,7 @@ class Component_memory_processing(object):
             # 从组件数据中提取信息
             component_name = component["resource_name"]
             component_memory = component["resource_memory"]
-            tenant_id = component["resource_parent"][0]
+            _ = component["resource_parent"][0]
             tenant_name_list = component["resource_parent"][1]
             region_name = component["resource_parent"][2]
 
@@ -183,7 +181,7 @@ class Component_memory_processing(object):
             # 累计租户的内存分配量（使用tenant_alias作为键）
             if tenant_alias in tenant_region_relations:
                 tenant_region_relations[tenant_alias] = (tenant_region_relations[tenant_alias][0],
-                                                      tenant_region_relations[tenant_alias][1] + component_memory)
+                                                         tenant_region_relations[tenant_alias][1] + component_memory)
             else:
                 tenant_region_relations[tenant_alias] = (region_name, component_memory)
 
@@ -195,4 +193,4 @@ class Component_memory_processing(object):
             links.append({"source": tenant_alias, "target": region_name, "value": total_memory})
 
         logger.info(f"模板数据处理完成，返回 {len(nodes)} 个节点和 {len(links)} 个链接")
-        return nodes, links 
+        return nodes, links

@@ -112,16 +112,17 @@ class BuildSourceInfoServiceTests(TestCase):
 
         build_infos = service_module.base_service.get_build_infos(DummyTenant(), ["svc-1"])
 
-        self.assertEqual(build_infos["svc-1"]["cnb_version_policy"], {
-            "python": {
+        self.assertEqual(
+            build_infos["svc-1"]["cnb_version_policy"],
+            {"python": {
                 "cpython": {
                     "visible_versions": ["3.11"],
                     "allowed_versions": ["3.11"],
                     "default_version": "3.11"
                 }
-            }
-        })
-        self.assertEqual(build_infos["svc-1"]["builder_image"], "registry.cn-hangzhou.aliyuncs.com/goodrain/ubuntu-noble-builder:0.0.72")
+            }})
+        self.assertEqual(build_infos["svc-1"]["builder_image"],
+                         "registry.cn-hangzhou.aliyuncs.com/goodrain/ubuntu-noble-builder:0.0.72")
         self.assertEqual(build_infos["svc-1"]["start_command_source"], "buildpack-default")
         self.assertEqual(build_infos["svc-1"]["yaml_observable"]["annotations"]["rainbond.io/cnb-language"], "python")
         self.assertNotIn("build_migration_status", build_infos["svc-1"])
@@ -153,11 +154,35 @@ class BuildSourceInfoServiceTests(TestCase):
         install_stub("www.db.base", BaseConnection=object)
         install_stub(
             "console.services.region_lang_version",
-            region_lang_version=types.SimpleNamespace(show_long_version=MagicMock(return_value={"list": [
-                {"lang": "openJDK", "version": "1.8", "build_strategy": "cnb", "show": True, "is_allowed": True, "first_choice": False},
-                {"lang": "openJDK", "version": "17.0.12", "build_strategy": "cnb", "show": True, "is_allowed": True, "first_choice": True},
-                {"lang": "openJDK", "version": "21.0.4", "build_strategy": "cnb", "show": True, "is_allowed": True, "first_choice": False},
-            ]})),
+            region_lang_version=types.SimpleNamespace(show_long_version=MagicMock(
+                return_value={
+                    "list": [
+                        {
+                            "lang": "openJDK",
+                            "version": "1.8",
+                            "build_strategy": "cnb",
+                            "show": True,
+                            "is_allowed": True,
+                            "first_choice": False
+                        },
+                        {
+                            "lang": "openJDK",
+                            "version": "17.0.12",
+                            "build_strategy": "cnb",
+                            "show": True,
+                            "is_allowed": True,
+                            "first_choice": True
+                        },
+                        {
+                            "lang": "openJDK",
+                            "version": "21.0.4",
+                            "build_strategy": "cnb",
+                            "show": True,
+                            "is_allowed": True,
+                            "first_choice": False
+                        },
+                    ]
+                })),
         )
         service_module = importlib.import_module("console.services.service_services")
         service_module.service_source_repo = service_source_repo

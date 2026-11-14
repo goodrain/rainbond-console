@@ -21,7 +21,6 @@ class LogProxyView(JWTAuthApiView):
     日志代理接口
     前端传递接口地址和请求参数，后端代理请求并返回结果
     """
-    
     def post(self, request: Request) -> Response:
         try:
             # 获取前端传递的参数
@@ -76,8 +75,9 @@ class LogProxyView(JWTAuthApiView):
             if headers:
                 default_headers.update(headers)
 
-            logger.info("Log proxy request - target URL: %s, data keys: %s", target_url, list(request_data.keys()) if request_data else [])
-            
+            logger.info("Log proxy request - target URL: %s, data keys: %s", target_url,
+                        list(request_data.keys()) if request_data else [])
+
             # Send proxy request
             response = requests.post(
                 url=target_url,
@@ -87,22 +87,21 @@ class LogProxyView(JWTAuthApiView):
             )
 
             # Get response data
-            response_data = response.json() if response.headers.get('content-type', '').startswith('application/json') else response.text
+            response_data = response.json() if response.headers.get('content-type',
+                                                                    '').startswith('application/json') else response.text
 
             # Log response status
             logger.info("Log proxy response - status code: %s, data length: %s", response.status_code, len(str(response_data)))
 
             # Return response result
-            result = general_message(
-                200,
-                "success",
-                "Proxy request successful",
-                bean=response_data,
-                list=response_data if isinstance(response_data, list) else None
-            )
-            
+            result = general_message(200,
+                                     "success",
+                                     "Proxy request successful",
+                                     bean=response_data,
+                                     list=response_data if isinstance(response_data, list) else None)
+
             return Response(result, status=status.HTTP_200_OK)
-            
+
         except requests.exceptions.Timeout:
             logger.error("Log proxy request timeout - URL: %s", target_url)
             result = general_message(408, "Request Timeout", "Target server response timeout")

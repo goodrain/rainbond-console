@@ -166,7 +166,8 @@ class NewComponents(object):
             extend_info = self._template_to_extend_info(  # type: ignore[union-attr]
                 cpt, component_tmpl.get("extend_method_map"), component_tmpl.get("cpu"))  # type: ignore[union-attr]
             # service monitors
-            monitors = self._template_to_service_monitors(cpt, component_tmpl.get("component_monitors"))  # type: ignore[union-attr]
+            monitors = self._template_to_service_monitors(cpt,
+                                                          component_tmpl.get("component_monitors"))  # type: ignore[union-attr]
             # graphs
             graphs = self._template_to_component_graphs(  # type: ignore[union-attr]
                 cpt, component_tmpl.get("component_graphs"), cpt.arch or "")  # type: ignore[union-attr]
@@ -485,7 +486,8 @@ class NewComponents(object):
             result.append(probe_service.create_probe(self.tenant, component, probe))
         return result
 
-    def _template_to_extend_info(self, component: TenantServiceInfo, extend_info: Any, cpu: Any) -> Optional[ServiceExtendMethod]:
+    def _template_to_extend_info(self, component: TenantServiceInfo, extend_info: Any,
+                                 cpu: Any) -> Optional[ServiceExtendMethod]:
         if not extend_info:
             return None
         version = component.version if component.version else "alpine"
@@ -545,8 +547,9 @@ class NewComponents(object):
             new_graphs[new_graph.title] = new_graph
         return new_graphs.values()
 
-    def _template_to_service_domain(self, component: TenantServiceInfo,
-                                    ports: List[TenantServicesPort]) -> Tuple[List[ServiceDomain], List[GatewayCustomConfiguration]]:
+    def _template_to_service_domain(
+            self, component: TenantServiceInfo,
+            ports: List[TenantServicesPort]) -> Tuple[List[ServiceDomain], List[GatewayCustomConfiguration]]:
         new_ports = {port.container_port: port for port in ports}
         ingress_http_routes = self.app_template.list_ingress_http_routes_by_component_key(component.service_key)
 

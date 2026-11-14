@@ -20,7 +20,8 @@ region_api = RegionInvokeApi()
 
 
 class HelmAppService(object):
-    def list_components(self, tenant: Tenants, region_name: str, user: Any, app: ServiceGroup) -> Tuple[List[Any], Dict[str, Any]]:
+    def list_components(self, tenant: Tenants, region_name: str, user: Any,
+                        app: ServiceGroup) -> Tuple[List[Any], Dict[str, Any]]:
         # list kubernetes service
         services = self.list_services(tenant.tenant_name, region_name, app.app_id)
         # list components

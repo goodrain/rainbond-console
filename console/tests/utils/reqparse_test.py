@@ -10,23 +10,51 @@ try:
     import mock
 except ImportError:
     from unittest import mock
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "src", "openapi-client")))
 sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
 
-import django
-from django.http import QueryDict
-from rest_framework.request import Request
 
-django.setup()
+def _load_test_dependencies():
+    """Keep the existing post-Django-setup import order and module bindings."""
+    import django
+    from django.http import QueryDict
+    from rest_framework.request import Request
 
-from console.exception.main import AbortRequest
-from console.utils.reqparse import parse_args
-from console.utils.reqparse import parse_argument
-from console.utils.reqparse import bool_argument
-from console.utils.reqparse import parse_date
-from console.utils.reqparse import parse_item
+    django.setup()
+
+    from console.exception.main import AbortRequest
+    from console.utils.reqparse import parse_args
+    from console.utils.reqparse import parse_argument
+    from console.utils.reqparse import bool_argument
+    from console.utils.reqparse import parse_date
+    from console.utils.reqparse import parse_item
+    return (
+        django,
+        QueryDict,
+        Request,
+        AbortRequest,
+        parse_args,
+        parse_argument,
+        bool_argument,
+        parse_date,
+        parse_item,
+    )
+
+
+(
+    django,
+    QueryDict,
+    Request,
+    AbortRequest,
+    parse_args,
+    parse_argument,
+    bool_argument,
+    parse_date,
+    parse_item,
+) = _load_test_dependencies()
 
 
 class ParseArgumentTestCase(TestCase):

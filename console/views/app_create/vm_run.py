@@ -415,7 +415,7 @@ class VMRunCreateView(RegionTenantHeaderView):
                     protocol="tcp",
                     is_inner_service=True,
                     is_outer_service=False,
-                    user_name=self.user.nick_name,
+                    user_name=self.user.nick_name or "",
                 )
                 if port_code != 200:
                     transaction.set_rollback(True)

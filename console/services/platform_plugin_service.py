@@ -97,8 +97,10 @@ class PlatformPluginService(object):
         失败 fallback 为全集 {amd64, arm64}, 避免单点接口异常导致 ARM 集群
         看不到 ARM 版本插件. 同 region 60s 内缓存, 避免顶栏轮询打爆 region API.
         """
-        return self._region_arch_cache.get(region_name, self._get_region_arch_cache_ttl_seconds(),
-                                           lambda: self._read_region_arches(region_name), now=now)
+        return self._region_arch_cache.get(region_name,
+                                           self._get_region_arch_cache_ttl_seconds(),
+                                           lambda: self._read_region_arches(region_name),
+                                           now=now)
 
     @staticmethod
     def _read_region_arches(region_name: str) -> Set[str]:
@@ -215,7 +217,8 @@ class PlatformPluginService(object):
     def _get_market_platform_plugins(self, enterprise_id: str) -> Tuple[AppMarket, List[Any]]:
         market = self._build_platform_market(enterprise_id)
         if is_cloud_market_disabled():
-            logger.debug("platform plugin market fetch skipped because cloud market is disabled enterprise_id=%s", enterprise_id)
+            logger.debug("platform plugin market fetch skipped because cloud market is disabled enterprise_id=%s",
+                         enterprise_id)
             return market, []
         logger.debug(
             "platform plugin market fetch enterprise_id=%s market_url=%s market_domain=%s has_access_key=%s",
@@ -233,31 +236,36 @@ class PlatformPluginService(object):
         )
         return market, plugins
 
-    def _get_market_platform_plugins_cached(self, enterprise_id: str, now: Optional[float] = None) -> Tuple[AppMarket, List[Any]]:
-        return self._market_plugin_cache.get(enterprise_id, self._get_market_plugin_cache_ttl_seconds(),
-                                             lambda: self._get_market_platform_plugins(enterprise_id), now=now)
+    def _get_market_platform_plugins_cached(self,
+                                            enterprise_id: str,
+                                            now: Optional[float] = None) -> Tuple[AppMarket, List[Any]]:
+        return self._market_plugin_cache.get(enterprise_id,
+                                             self._get_market_plugin_cache_ttl_seconds(),
+                                             lambda: self._get_market_platform_plugins(enterprise_id),
+                                             now=now)
 
     def _get_installed_plugins(self, enterprise_id: str, region_name: str) -> Dict[str, Any]:
         installed_plugins = {}
         try:
             _, body = region_api.list_plugins(enterprise_id, region_name, False)
-            plugins = body.get("list") or []  # type: ignore[union-attr]  # NOTE: body is dict|None; callers already wrap in try/except
+            plugins = body.get("list") or [  # type: ignore[union-attr]
+            ]  # type: ignore[union-attr]  # NOTE: body is dict|None; callers already wrap in try/except
             for plugin in plugins:
                 installed_plugins[plugin.get("name", "")] = plugin
         except Exception as e:
             logger.warning("Failed to list region plugins: %s", e)
         return installed_plugins
 
-    def _get_installed_plugins_strict(self, enterprise_id: str, region_name: str,
+    def _get_installed_plugins_strict(self,
+                                      enterprise_id: str,
+                                      region_name: str,
                                       region_api_client: Any = None) -> Dict[str, Any]:
         try:
             client = region_api_client if region_api_client is not None else region_api
-            response, body = client.list_plugins(
-                enterprise_id, region_name, False, connect_timeout=2, timeout=3, retries=0)
+            response, body = client.list_plugins(enterprise_id, region_name, False, connect_timeout=2, timeout=3, retries=0)
             valid_response = isinstance(response, dict) and response.get("status") == 200
             plugin_list = body.get("list") if isinstance(body, dict) else None
-            valid_body = (isinstance(body, dict) and "list" in body and
-                          (plugin_list is None or isinstance(plugin_list, list)))
+            valid_body = (isinstance(body, dict) and "list" in body and (plugin_list is None or isinstance(plugin_list, list)))
             if not valid_response or not valid_body:
                 raise ServiceHandleException(
                     msg="platform plugin state unavailable",
@@ -399,8 +407,8 @@ class PlatformPluginService(object):
         return None
 
     def _build_plugin_info(self, plugin_id: str, selected: Any, display_sku: Any, installed_sku: Optional[Any],
-                           installed_plugins: Dict[str, Any], region_app_id_map: Dict[str, Any],
-                           candidates: List[Any], installation_by_app_id: Dict[int, Any]) -> Dict[str, Any]:
+                           installed_plugins: Dict[str, Any], region_app_id_map: Dict[str, Any], candidates: List[Any],
+                           installation_by_app_id: Dict[int, Any]) -> Dict[str, Any]:
         """构造单条 plugin 返回 dict. display_sku 决定 latest_version 等版本类字段,
         selected 决定 app_level/路由/前端组件等运行时字段.
         """
@@ -430,7 +438,8 @@ class PlatformPluginService(object):
             "author": "Rainbond 官方",
             "selected_arch": self._get_plugin_arch(selected),
             "installed_arch": self._get_plugin_arch(installed_sku) if installed_sku else None,
-            "available_arches": sorted({self._get_plugin_arch(c) for c in candidates}),
+            "available_arches": sorted({self._get_plugin_arch(c)
+                                        for c in candidates}),
         }
         if plugin_id in installed_plugins:
             plugin_info["installed"] = True
@@ -542,9 +551,12 @@ class PlatformPluginService(object):
                 logger.debug(
                     "platform plugin filtered by arch enterprise_id=%s region_name=%s "
                     "plugin_id=%s region_arches=%s candidate_arches=%s",
-                    enterprise_id, region_name, plugin_id,
+                    enterprise_id,
+                    region_name,
+                    plugin_id,
                     sorted(region_arches),
-                    sorted({self._get_plugin_arch(c) for c in candidates}),
+                    sorted({self._get_plugin_arch(c)
+                            for c in candidates}),
                 )
                 continue
 
@@ -561,12 +573,14 @@ class PlatformPluginService(object):
 
             # 4. license 过滤 (按 plugin_id 基名)
             app_level = self._normalize_app_level(selected)
-            if has_valid_license and app_level != "free" and not self._is_plugin_authorized(
-                    plugin_mapping, plugin_id):
+            if has_valid_license and app_level != "free" and not self._is_plugin_authorized(plugin_mapping, plugin_id):
                 logger.debug(
                     "platform plugin filtered by license enterprise_id=%s region_name=%s "
                     "plugin_id=%s app_level=%s mapping_keys=%s",
-                    enterprise_id, region_name, plugin_id, app_level,
+                    enterprise_id,
+                    region_name,
+                    plugin_id,
+                    app_level,
                     list(plugin_mapping.keys()),
                 )
                 continue
@@ -585,8 +599,8 @@ class PlatformPluginService(object):
             # 5. installed SKU 锚定 latest_version
             installed_sku = None
             if plugin_id in installed_plugins:
-                installed_sku = self._resolve_installed_sku(
-                    installed_plugins[plugin_id], region_app_id_map, candidates, installation_by_app_id)
+                installed_sku = self._resolve_installed_sku(installed_plugins[plugin_id], region_app_id_map, candidates,
+                                                            installation_by_app_id)
             display_sku = installed_sku or selected
 
             plugin_info = self._build_plugin_info(
@@ -661,9 +675,14 @@ class PlatformPluginService(object):
         logger.info(
             "platform plugin install request enterprise_id=%s region_name=%s plugin_id=%s "
             "license_valid=%s mapping_keys=%s region_arches=%s arch_matched=%s/%s",
-            enterprise_id, region_name, plugin_id,
-            bool(bean.get("valid")), list(plugin_mapping.keys()),
-            sorted(region_arches), len(candidates), len(candidates_all),
+            enterprise_id,
+            region_name,
+            plugin_id,
+            bool(bean.get("valid")),
+            list(plugin_mapping.keys()),
+            sorted(region_arches),
+            len(candidates),
+            len(candidates_all),
         )
         logger.info(
             "platform plugin install market candidates plugin_id=%s candidates=%s",
@@ -677,8 +696,7 @@ class PlatformPluginService(object):
         if candidates_all and not candidates:
             raise ServiceHandleException(
                 msg="no arch-matched plugin",
-                msg_show="当前集群架构({})没有匹配的{}版本".format(
-                    ",".join(sorted(region_arches)), plugin_id),
+                msg_show="当前集群架构({})没有匹配的{}版本".format(",".join(sorted(region_arches)), plugin_id),
                 status_code=404,
             )
         market_plugin = self._select_market_plugin(candidates, plugin_id, plugin_mapping)
@@ -741,8 +759,10 @@ class PlatformPluginService(object):
         # 4. Find or create the "rbd-plugins" team
         tenant = self._ensure_plugin_team(enterprise_id, region_name, user)
         # 5. Get app template from market
-        market_app, app_version = app_market_service.cloud_app_model_to_db_model(
-            market, app_key, latest_version, for_install=True)
+        market_app, app_version = app_market_service.cloud_app_model_to_db_model(market,
+                                                                                 app_key,
+                                                                                 latest_version,
+                                                                                 for_install=True)
         if not app_version:
             raise ServiceHandleException(msg="app version not found", msg_show="未找到插件版本模板")
 
@@ -750,8 +770,7 @@ class PlatformPluginService(object):
         app_template["update_time"] = app_version.update_time
         app_template["arch"] = app_version.arch
 
-        preflight = market_install_preflight_service.run(
-            tenant, region, app_template, check_images=False)
+        preflight = market_install_preflight_service.run(tenant, region, app_template, check_images=False)
         if preflight.get("should_block"):
             raise ServiceHandleException(
                 msg="platform plugin preflight blocked",
@@ -768,15 +787,32 @@ class PlatformPluginService(object):
 
         # 7. Create component group and install
         component_group = market_app_service._create_tenant_service_group(
-            region_name, tenant.tenant_id, app.ID, market_app.app_id,  # type: ignore[union-attr, arg-type]  # NOTE: app is Optional[ServiceGroup]; _ensure_plugin_app only returns None when get_group_by_id returns None (pk lookup, should not happen post-create); app.ID is int but _create_tenant_service_group expects str (pre-existing callers pass int)
-            latest_version, market_app.app_name, external_template=app_template)
+            region_name,
+            tenant.tenant_id,
+            app.ID,  # type: ignore[arg-type]
+            market_app.
+            # NOTE: app is Optional[ServiceGroup]; _ensure_plugin_app only returns None when get_group_by_id returns None
+            # (pk lookup, should not happen post-create); app.ID is int but _create_tenant_service_group expects str (pre-
+            # existing callers pass int)
+            app_id,  # type: ignore[union-attr, arg-type]
+            latest_version,
+            market_app.app_name,
+            external_template=app_template)
 
         app_upgrade = AppUpgrade(
-            enterprise_id, tenant, region, user, app,  # type: ignore[arg-type]  # NOTE: app is Optional[ServiceGroup]; see above
-            latest_version, component_group, app_template,
-            True, PLATFORM_PLUGIN_MARKET_NAME, is_deploy=True)
-        app_context = enterprise_first_deploy_service.build_market_app_context(
-            app, market_app, app_key, latest_version, PLATFORM_PLUGIN_MARKET_NAME, True, app_template)
+            enterprise_id,
+            tenant,
+            region,
+            user,
+            app,  # type: ignore[arg-type]  # NOTE: app is Optional[ServiceGroup]; see above
+            latest_version,
+            component_group,
+            app_template,
+            True,
+            PLATFORM_PLUGIN_MARKET_NAME,
+            is_deploy=True)
+        app_context = enterprise_first_deploy_service.build_market_app_context(app, market_app, app_key, latest_version,
+                                                                               PLATFORM_PLUGIN_MARKET_NAME, True, app_template)
         app_context.update({
             "plugin_id": plugin_id,
             "plugin_name": plugin_name,
@@ -798,8 +834,7 @@ class PlatformPluginService(object):
             raise
         new_components = app_upgrade.new_app.components() or []
         component_service_ids = [
-            cpt.component.component_id for cpt in new_components
-            if getattr(cpt.component, "component_id", None)
+            cpt.component.component_id for cpt in new_components if getattr(cpt.component, "component_id", None)
         ]
         component_service_alias = ""
         component_service_aliases = []
@@ -809,12 +844,11 @@ class PlatformPluginService(object):
             component_service_aliases = [
                 a for a in (getattr(cpt.component, "service_alias", "") or "" for cpt in new_components) if a
             ]
-        enterprise_first_deploy_service.safe_bind_events(
-            tracker,
-            market_app_service._extract_event_ids(events),
-            service_ids=component_service_ids,
-            service_alias=component_service_alias,
-            service_aliases=component_service_aliases)
+        enterprise_first_deploy_service.safe_bind_events(tracker,
+                                                         market_app_service._extract_event_ids(events),
+                                                         service_ids=component_service_ids,
+                                                         service_alias=component_service_alias,
+                                                         service_aliases=component_service_aliases)
 
         # 8. Create RBDPlugin CR if template has platform_plugin info
         market_app_service._create_rbdplugin_if_needed(
@@ -825,11 +859,9 @@ class PlatformPluginService(object):
         if plugin_id == AGENT_PLATFORM_PLUGIN_ID:
             credential_encryption_bootstrap = self.bootstrap_agent_credential_encryption_key(
                 tenant, app, region_name, new_components, user)
-            service_mcp_bootstrap = self.bootstrap_agent_service_mcp_credentials(
-                tenant, app, region_name, new_components, user)
+            service_mcp_bootstrap = self.bootstrap_agent_service_mcp_credentials(tenant, app, region_name, new_components, user)
             if credential_encryption_bootstrap.get("status") in ("synced", "already_configured"):
-                credential_bootstrap = self.bootstrap_agent_kubernetes_credentials(
-                    enterprise_id, region_name, user)
+                credential_bootstrap = self.bootstrap_agent_kubernetes_credentials(enterprise_id, region_name, user)
 
         result = {
             "plugin_id": plugin_id,
@@ -846,8 +878,8 @@ class PlatformPluginService(object):
             result["kubernetes_credential_bootstrap"] = credential_bootstrap
         return result
 
-    def bootstrap_agent_service_mcp_credentials(self, tenant: Tenants, app: ServiceGroup, region_name: str,
-                                                components: Any, user: Any) -> Dict[str, Any]:
+    def bootstrap_agent_service_mcp_credentials(self, tenant: Tenants, app: ServiceGroup, region_name: str, components: Any,
+                                                user: Any) -> Dict[str, Any]:
         """Inject service-state Rainbond MCP credentials into rainbond-agent api.
 
         The token is generated by console and written to the component as
@@ -870,19 +902,22 @@ class PlatformPluginService(object):
             service_alias = getattr(service, "service_alias", "") or ""
             logger.info(
                 "rainbond-agent service mcp credentials injected region_name=%s service_alias=%s",
-                region_name, service_alias,
+                region_name,
+                service_alias,
             )
             return {"status": "synced", "service_alias": service_alias}
         except ServiceHandleException as e:
             logger.warning(
                 "rainbond-agent service mcp credential injection deferred region_name=%s reason=%s",
-                region_name, e.msg,
+                region_name,
+                e.msg,
             )
             return {"status": "deferred", "region_name": region_name, "message": e.msg_show or e.msg}
         except Exception as e:
             logger.warning(
                 "rainbond-agent service mcp credential injection deferred region_name=%s error_type=%s",
-                region_name, e.__class__.__name__,
+                region_name,
+                e.__class__.__name__,
             )
             return {
                 "status": "deferred",
@@ -895,11 +930,12 @@ class PlatformPluginService(object):
         app_id = getattr(app, "ID", None)
         if not isinstance(app_id, int):
             return None
-        service_ids = list(ServiceGroupRelation.objects.filter(
-            tenant_id=tenant.tenant_id,
-            region_name=region_name,
-            group_id=app_id,
-        ).values_list("service_id", flat=True))
+        service_ids = list(
+            ServiceGroupRelation.objects.filter(
+                tenant_id=tenant.tenant_id,
+                region_name=region_name,
+                group_id=app_id,
+            ).values_list("service_id", flat=True))
         if not service_ids:
             return None
         allowed_service_ids = set(service_ids)
@@ -940,8 +976,8 @@ class PlatformPluginService(object):
             return components[0]
         return None
 
-    def _upsert_agent_service_envs(self, tenant: Tenants, service: TenantServiceInfo,
-                                   values: Dict[str, str], user: Any) -> None:
+    def _upsert_agent_service_envs(self, tenant: Tenants, service: TenantServiceInfo, values: Dict[str, str],
+                                   user: Any) -> None:
         user_name = ""
         if hasattr(user, "get_username"):
             user_name = user.get_username()
@@ -952,8 +988,8 @@ class PlatformPluginService(object):
             name = attr_name
             existing = env_var_service.get_env_by_attr_name(tenant, service, attr_name)
             if existing:
-                code, msg, _ = env_var_service.update_env_by_env_id(
-                    tenant, service, str(existing.ID), name, attr_value, user_name)
+                code, msg, _ = env_var_service.update_env_by_env_id(tenant, service, str(existing.ID), name, attr_value,
+                                                                    user_name)
             else:
                 code, msg, _ = env_var_service.add_service_env_var(
                     tenant=tenant,
@@ -1018,8 +1054,7 @@ class PlatformPluginService(object):
             return legacy, "legacy"
         return None, None
 
-    def get_agent_credential_encryption_key_status(self, enterprise_id: str,
-                                                   region_name: str) -> Dict[str, Any]:
+    def get_agent_credential_encryption_key_status(self, enterprise_id: str, region_name: str) -> Dict[str, Any]:
         tenant, _, service = self._resolve_installed_agent_context(enterprise_id, region_name)
         _, key_source = self._read_agent_encryption_env(tenant, service)
         return {
@@ -1029,23 +1064,20 @@ class PlatformPluginService(object):
             "service_alias": getattr(service, "service_alias", "") or "",
         }
 
-    def get_agent_credential_encryption_key_value(self, enterprise_id: str,
-                                                  region_name: str) -> Optional[str]:
+    def get_agent_credential_encryption_key_value(self, enterprise_id: str, region_name: str) -> Optional[str]:
         """Return the persisted key material for host-internal hot installation."""
         tenant, _, service = self._resolve_installed_agent_context(enterprise_id, region_name)
         env, _ = self._read_agent_encryption_env(tenant, service)
         value = str(getattr(env, "attr_value", "") or "").strip()
         return value or None
 
-    def store_agent_credential_encryption_key(self, enterprise_id: str, region_name: str,
-                                              key: str, user: Any) -> None:
+    def store_agent_credential_encryption_key(self, enterprise_id: str, region_name: str, key: str, user: Any) -> None:
         """Persist the key without restarting the Agent; the Agent hot-loads it."""
         tenant, _, service = self._resolve_installed_agent_context(enterprise_id, region_name)
-        self._upsert_agent_service_envs(
-            tenant, service, {AGENT_CREDENTIAL_ENCRYPTION_ENV: key}, user)
+        self._upsert_agent_service_envs(tenant, service, {AGENT_CREDENTIAL_ENCRYPTION_ENV: key}, user)
 
-    def ensure_agent_credential_encryption_key(self, enterprise_id: str, region_name: str,
-                                               user: Any, agent_status: Dict[str, Any]) -> Dict[str, Any]:
+    def ensure_agent_credential_encryption_key(self, enterprise_id: str, region_name: str, user: Any,
+                                               agent_status: Dict[str, Any]) -> Dict[str, Any]:
         from django.db import transaction
 
         status = str(agent_status.get("status") or "")
@@ -1110,8 +1142,7 @@ class PlatformPluginService(object):
             result["key_source"] = key_source
         return result
 
-    def bootstrap_agent_credential_encryption_key(self, tenant: Tenants, app: ServiceGroup,
-                                                  region_name: str, components: Any,
+    def bootstrap_agent_credential_encryption_key(self, tenant: Tenants, app: ServiceGroup, region_name: str, components: Any,
                                                   user: Any) -> Dict[str, Any]:
         try:
             service = self._resolve_agent_api_component(tenant, app, region_name, components)
@@ -1189,17 +1220,19 @@ class PlatformPluginService(object):
                 "service_account": bean.get("service_account") or bootstrap_payload["service_account"],
                 "context_id": bean.get("context_id") or bootstrap_payload["context_id"],
             }
-            region_api.bootstrap_agent_plugin_credential(
-                enterprise_id, region_name, agent_payload, user)
+            region_api.bootstrap_agent_plugin_credential(enterprise_id, region_name, agent_payload, user)
             logger.info(
                 "rainbond-agent kubernetes credential bootstrap succeeded enterprise_id=%s region_name=%s",
-                enterprise_id, region_name,
+                enterprise_id,
+                region_name,
             )
             return {"status": "synced", "region_name": region_name}
         except Exception as e:
             logger.warning(
                 "rainbond-agent kubernetes credential bootstrap deferred enterprise_id=%s region_name=%s error=%s",
-                enterprise_id, region_name, e,
+                enterprise_id,
+                region_name,
+                e,
             )
             return {"status": "deferred", "region_name": region_name, "message": str(e)}
 
@@ -1210,13 +1243,13 @@ class PlatformPluginService(object):
         except Tenants.DoesNotExist:
             from www.models.main import TenantEnterprise
             enterprise = TenantEnterprise.objects.get(enterprise_id=enterprise_id)
-            tenant = team_services.create_team(
-                user, enterprise, team_alias=PLUGIN_TEAM_ALIAS, namespace=PLUGIN_TEAM_NAME)
+            tenant = team_services.create_team(user, enterprise, team_alias=PLUGIN_TEAM_ALIAS, namespace=PLUGIN_TEAM_NAME)
         # Ensure tenant is initialized on the region
         region_services.create_tenant_on_region(enterprise_id, tenant.tenant_name, region_name, PLUGIN_TEAM_NAME)
         return tenant
 
-    def _ensure_plugin_app(self, tenant: Tenants, region_name: str, plugin_name: str, eid: str, plugin_id: str) -> Optional[ServiceGroup]:
+    def _ensure_plugin_app(self, tenant: Tenants, region_name: str, plugin_name: str, eid: str,
+                           plugin_id: str) -> Optional[ServiceGroup]:
         """Find or create an app group for the plugin under the rbd-plugins team."""
         apps = group_repo.get_tenant_region_groups(tenant.tenant_id, region_name)
         for app in apps:

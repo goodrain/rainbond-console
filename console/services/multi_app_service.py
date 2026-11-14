@@ -110,8 +110,11 @@ class MultiAppService(object):
         git_service = None
         if service.oauth_service_id:
             try:
-                oauth_service = oauth_repo.get_oauth_services_by_service_id(service_id=service.oauth_service_id)  # type: ignore[arg-type]
-                oauth_user = oauth_user_repo.get_user_oauth_by_user_id(service_id=service.oauth_service_id, user_id=user.pk)  # type: ignore[arg-type]
+                oauth_service = oauth_repo.get_oauth_services_by_service_id(
+                    service_id=service.oauth_service_id)  # type: ignore[arg-type]
+                oauth_user = oauth_user_repo.get_user_oauth_by_user_id(  # type: ignore[arg-type]
+                    service_id=service.oauth_service_id,  # type: ignore[arg-type]
+                    user_id=user.pk)  # type: ignore[arg-type]
             except Exception as e:
                 logger.debug(e)
                 rst = {"data": {"bean": None}, "status": 400, "msg_show": "未找到OAuth服务, 请检查该服务是否存在且属于开启状态"}
@@ -148,12 +151,15 @@ class MultiAppService(object):
 
             # 添加hook
             if service.open_webhooks:
-                service_webhook = service_webhooks_repo.create_service_webhooks(new_service.service_id, "code_webhooks")  # type: ignore[union-attr]
+                service_webhook = service_webhooks_repo.create_service_webhooks(  # type: ignore[union-attr]
+                    new_service.service_id,  # type: ignore[union-attr]
+                    "code_webhooks")  # type: ignore[union-attr]
                 service_webhook.state = True
                 service_webhook.deploy_keyword = "deploy"
                 service_webhook.save()
                 try:
-                    git_service.create_hook(host, service.git_full_name, endpoint='console/webhooks/' + new_service.service_id)  # type: ignore[union-attr]
+                    git_service.create_hook(host, service.git_full_name,  # type: ignore[union-attr]
+                                            endpoint='console/webhooks/' + new_service.service_id)  # type: ignore[union-attr]
                     new_service.open_webhooks = True  # type: ignore[union-attr]
                 except Exception as e:
                     logger.exception(e)
@@ -164,9 +170,11 @@ class MultiAppService(object):
                 git_password = service_source.password
                 git_user_name = service_source.user_name
                 if git_password or git_user_name:
-                    app_service.create_service_source_info(tenant, new_service, git_user_name, git_password)  # type: ignore[arg-type]
+                    app_service.create_service_source_info(tenant, new_service, git_user_name,  # type: ignore[arg-type]
+                                                           git_password)  # type: ignore[arg-type]
             #  add group
-            code, msg_show = group_service.add_service_to_group(tenant, region_name, group_id, new_service.service_id)  # type: ignore[arg-type, union-attr]
+            code, msg_show = group_service.add_service_to_group(tenant, region_name, group_id,
+                                                                new_service.service_id)  # type: ignore[arg-type, union-attr]
             if code != 200:
                 logger.debug("Group ID: {0}; Service ID: {1}; error adding service to group".format(
                     group_id, new_service.service_id))  # type: ignore[union-attr]

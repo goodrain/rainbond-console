@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from typing import Any, List, Optional, Tuple
 
-from django.db.models import Q, QuerySet
+from django.db.models import QuerySet
 from console.models.main import ServiceShareRecord, RainbondCenterPlugin
 from www.models.main import ServiceGroupRelation, TenantServiceInfo, TenantServicesPort, TenantServiceRelation, \
     TenantServiceEnvVar, TenantServiceVolume, ServiceProbe
@@ -62,15 +62,18 @@ class ShareRepo(object):
         probes = ServiceProbe.objects.filter(service_id__in=service_ids).all()
         return probes or []
 
-    def get_last_shared_app_version_by_group_id(self, group_id: str, team_name: Optional[str] = None,
+    def get_last_shared_app_version_by_group_id(self,
+                                                group_id: str,
+                                                team_name: Optional[str] = None,
                                                 scope: Optional[str] = None) -> Optional[ServiceShareRecord]:
         if scope == "goodrain":
-            return ServiceShareRecord.objects.filter(
-                group_id=group_id, scope=scope, is_success=True).order_by("-create_time").first()
+            return ServiceShareRecord.objects.filter(group_id=group_id, scope=scope,
+                                                     is_success=True).order_by("-create_time").first()
         else:
-            return ServiceShareRecord.objects.filter(
-                group_id=group_id, scope__in=["team", "enterprise"], team_name=team_name,
-                is_success=True).order_by("-create_time").first()
+            return ServiceShareRecord.objects.filter(group_id=group_id,
+                                                     scope__in=["team", "enterprise"],
+                                                     team_name=team_name,
+                                                     is_success=True).order_by("-create_time").first()
 
     def get_last_app_versions_by_app_id(self, app_id: str) -> Any:
         conn = BaseConnection()
@@ -151,10 +154,13 @@ class ShareRepo(object):
         else:
             return share_record[0]
 
-    def get_service_share_records_by_groupid(self, team_name: str, group_id: str, page: int = 1,
+    def get_service_share_records_by_groupid(self,
+                                             team_name: str,
+                                             group_id: str,
+                                             page: int = 1,
                                              page_size: int = 10) -> Tuple[int, Any]:
-        query = ServiceShareRecord.objects.filter(
-            group_id=group_id, team_name=team_name, status__in=[0, 1, 2]).order_by("-create_time")
+        query = ServiceShareRecord.objects.filter(group_id=group_id, team_name=team_name,
+                                                  status__in=[0, 1, 2]).order_by("-create_time")
         ptr = Paginator(query, page_size)
         return ptr.count, ptr.page(page)
 

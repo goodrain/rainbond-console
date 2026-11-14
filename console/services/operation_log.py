@@ -15,8 +15,7 @@ from console.repositories.team_repo import team_repo
 from console.views.app_config.base import AppBaseView
 from deprecated import deprecated
 from django.core.paginator import Paginator
-from django.db.models import Q, QuerySet
-from www.models.main import ServiceGroup, TenantServiceInfo
+from django.db.models import Q
 
 logger = logging.getLogger("default")
 
@@ -264,15 +263,14 @@ class OperationLogService(object):
                               old_information: str = "",
                               new_information: str = "") -> None:
         information_type = self.type_log(old_information=old_information, new_information=new_information)
-        self.create_log(
-            user,
-            operation_type=OperationType.ENTERPRISE_MANAGE,
-            comment=comment,
-            enterprise_id=enterprise_id,
-            is_openapi=is_openapi,
-            old_information=old_information,
-            new_information=new_information,
-            information_type=information_type.value)
+        self.create_log(user,
+                        operation_type=OperationType.ENTERPRISE_MANAGE,
+                        comment=comment,
+                        enterprise_id=enterprise_id,
+                        is_openapi=is_openapi,
+                        old_information=old_information,
+                        new_information=new_information,
+                        information_type=information_type.value)
 
     def create_component_library_log(self,
                                      user: Any,
@@ -282,15 +280,14 @@ class OperationLogService(object):
                                      old_information: str = "",
                                      new_information: str = "") -> None:
         information_type = self.type_log(old_information=old_information, new_information=new_information)
-        self.create_log(
-            user,
-            operation_type=OperationType.COMPONENT_LIBRARY_MANAGE,
-            comment=comment,
-            enterprise_id=enterprise_id,
-            is_openapi=is_openapi,
-            new_information=new_information,
-            old_information=old_information,
-            information_type=information_type.value)
+        self.create_log(user,
+                        operation_type=OperationType.COMPONENT_LIBRARY_MANAGE,
+                        comment=comment,
+                        enterprise_id=enterprise_id,
+                        is_openapi=is_openapi,
+                        new_information=new_information,
+                        old_information=old_information,
+                        information_type=information_type.value)
 
     def create_cluster_log(self,
                            user: Any,
@@ -300,14 +297,13 @@ class OperationLogService(object):
                            new_information: str = "",
                            old_information: str = "") -> None:
         information_type = self.type_log(old_information=old_information, new_information=new_information)
-        self.create_log(
-            user,
-            operation_type=OperationType.CLUSTER_MANAGE,
-            comment=comment,
-            enterprise_id=enterprise_id,
-            is_openapi=is_openapi,
-            new_information=new_information,
-            information_type=information_type.value)
+        self.create_log(user,
+                        operation_type=OperationType.CLUSTER_MANAGE,
+                        comment=comment,
+                        enterprise_id=enterprise_id,
+                        is_openapi=is_openapi,
+                        new_information=new_information,
+                        information_type=information_type.value)
 
     def create_team_log(self,
                         user: Any,
@@ -318,16 +314,15 @@ class OperationLogService(object):
                         old_information: str = "",
                         new_information: str = "") -> None:
         information_type = self.type_log(old_information=old_information, new_information=new_information)
-        self.create_log(
-            user,
-            operation_type=OperationType.TEAM_MANAGE,
-            comment=comment,
-            enterprise_id=enterprise_id,
-            team_name=team_name,
-            is_openapi=is_openapi,
-            new_information=new_information,
-            old_information=old_information,
-            information_type=information_type.value)
+        self.create_log(user,
+                        operation_type=OperationType.TEAM_MANAGE,
+                        comment=comment,
+                        enterprise_id=enterprise_id,
+                        team_name=team_name,
+                        is_openapi=is_openapi,
+                        new_information=new_information,
+                        old_information=old_information,
+                        information_type=information_type.value)
 
     def create_app_log(self,
                        ctx: Any,
@@ -346,18 +341,17 @@ class OperationLogService(object):
         if format_app:
             app = self.process_app_name(ctx.app.group_name, ctx.region_name, ctx.tenant_name, ctx.app.app_id)
             comment = comment.format(app=app)
-        self.create_log(
-            ctx.user,
-            operation_type=OperationType.APPLICATION_MANAGE,
-            comment=comment,
-            enterprise_id=ctx.user.enterprise_id,
-            team_name=ctx.tenant_name,
-            app_id=ctx.app.app_id,
-            app_name=ctx.app.app_name,
-            is_openapi=is_openapi,
-            old_information=old_information,
-            new_information=new_information,
-            information_type=information_type.value)
+        self.create_log(ctx.user,
+                        operation_type=OperationType.APPLICATION_MANAGE,
+                        comment=comment,
+                        enterprise_id=ctx.user.enterprise_id,
+                        team_name=ctx.tenant_name,
+                        app_id=ctx.app.app_id,
+                        app_name=ctx.app.app_name,
+                        is_openapi=is_openapi,
+                        old_information=old_information,
+                        new_information=new_information,
+                        information_type=information_type.value)
 
     @deprecated
     def create_component_log(self,
@@ -371,8 +365,11 @@ class OperationLogService(object):
                              service_cname: str = '',
                              new_information: str = '',
                              old_information: str = '') -> None:
-        app = group_repo.get_app_by_pk(app_id)  # type: ignore[arg-type]  # NOTE: app_id is int but repo signature expects str; existing callers pass int
-        app_name = self.process_app_name(app.app_name, app.region_name, team_name, app_id)  # type: ignore[union-attr]  # NOTE: app could be None if app_id not found; existing callers assume it exists
+        app = group_repo.get_app_by_pk(
+            app_id)  # type: ignore[arg-type]  # NOTE: app_id is int but repo signature expects str; existing callers pass int
+        app_name = self.process_app_name(
+            app.app_name, app.region_name, team_name, app_id  # type: ignore[union-attr]
+        )  # type: ignore[union-attr]  # NOTE: app could be None if app_id not found; existing callers assume it exists
         information_type = self.type_log(old_information=old_information, new_information=new_information)
         self.create_log(
             user,
@@ -399,19 +396,26 @@ class OperationLogService(object):
             logger.warning("ctx is not instance of AppBaseView: {}".format(ctx))
             return
         information_type = self.type_log(new_information=new_information, old_information=old_information)
-        comment = comment.format(
-            component=self.process_component_name(
-                ctx.component.service_cname,  # type: ignore[union-attr]  # NOTE: component is None until initial() runs; runtime guarantees non-None here
-                ctx.region_name,  # type: ignore[arg-type]  # NOTE: region_name may be None before initial(); runtime guarantees str here
-                ctx.team_name,  # type: ignore[arg-type]  # NOTE: team_name may be None before initial(); runtime guarantees str here
-                ctx.component.service_alias))  # type: ignore[union-attr]  # NOTE: same as above for component
+        comment = comment.format(component=self.process_component_name(
+            ctx.component.
+            # NOTE: component is None until initial() runs; runtime guarantees non-None here
+            service_cname,  # type: ignore[union-attr]
+            ctx.
+            region_name,  # type: ignore[arg-type]  # NOTE: region_name may be None before initial(); runtime guarantees str here
+            ctx.
+            team_name,  # type: ignore[arg-type]  # NOTE: team_name may be None before initial(); runtime guarantees str here
+            ctx.component.service_alias))  # type: ignore[union-attr]  # NOTE: same as above for component
         self.create_log(
             ctx.user,
             operation_type=OperationType.COMPONENT_MANAGE,
             comment=comment,
-            enterprise_id=ctx.user.enterprise_id,  # type: ignore[arg-type]  # NOTE: Users.enterprise_id nullable but create_log expects str (systemic, backlog)
-            team_name=ctx.team_name,  # type: ignore[arg-type]  # NOTE: team_name may be None before initial(); runtime guarantees str here
-            app_id=ctx.app.app_id,  # type: ignore[union-attr]  # NOTE: app is None until initial() runs; runtime guarantees non-None here
+            enterprise_id=ctx.user.
+            # NOTE: Users.enterprise_id nullable but create_log expects str (systemic, backlog)
+            enterprise_id,  # type: ignore[arg-type]
+            team_name=ctx.
+            team_name,  # type: ignore[arg-type]  # NOTE: team_name may be None before initial(); runtime guarantees str here
+            app_id=ctx.app.
+            app_id,  # type: ignore[union-attr]  # NOTE: app is None until initial() runs; runtime guarantees non-None here
             service_alias=ctx.component.service_alias,  # type: ignore[union-attr]  # NOTE: same as above for component
             is_openapi=is_openapi,
             new_information=new_information,
@@ -439,12 +443,18 @@ class OperationLogService(object):
         return self.process_name(region=region, name=name, view_type=OperationViewType.APP, team_name=team_name, app_id=app_id)
 
     def process_component_name(self, name: Any, region: str, team_name: str, service_alias: str) -> str:
-        return self.process_name(
-            region=region, name=name, view_type=OperationViewType.COMPONENT, team_name=team_name, service_alias=service_alias)
+        return self.process_name(region=region,
+                                 name=name,
+                                 view_type=OperationViewType.COMPONENT,
+                                 team_name=team_name,
+                                 service_alias=service_alias)
 
     def process_plugin_name(self, name: Any, region: str, team_name: str, plugin_id: str) -> str:
-        return self.process_name(
-            region=region, name=name, view_type=OperationViewType.PLUGIN, team_name=team_name, plugin_id=plugin_id)
+        return self.process_name(region=region,
+                                 name=name,
+                                 view_type=OperationViewType.PLUGIN,
+                                 team_name=team_name,
+                                 plugin_id=plugin_id)
 
     def generate_team_comment(self,
                               operation: Any,

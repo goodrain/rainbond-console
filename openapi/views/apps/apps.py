@@ -7,7 +7,7 @@ import os
 import pickle
 import re
 import time
-import uuid
+
 from typing import Any
 
 from django.db import transaction
@@ -21,6 +21,7 @@ from console.repositories.app_config import port_repo
 from console.repositories.group import group_service_relation_repo
 from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.region_app import region_app_repo
+from console.repositories.team_repo import team_repo
 from console.repositories.upgrade_repo import upgrade_repo
 from console.services.app import app_service as console_app_service
 from console.services.app_actions import app_manage_service, event_service
@@ -46,18 +47,15 @@ from console.views.app_config.app_volume import ensure_volume_mode
 from openapi.serializer.app_serializer import (
     AppBaseInfoSerializer, AppInfoSerializer, AppPostInfoSerializer, AppServiceEventsSerializer,
     AppServiceTelescopicHorizontalSerializer, AppServiceTelescopicVerticalSerializer, ComponentBuildReqSerializers,
-    ComponentEnvsSerializers, ComponentEventSerializers, ComponentMonitorSerializers,
-    CreateThirdComponentResponseSerializer,
-    CreateThirdComponentSerializer, ListServiceEventsResponse, ServiceBaseInfoSerializer,
-    ServiceGroupOperationsSerializer,
+    ComponentEnvsSerializers, ComponentEventSerializers, ComponentMonitorSerializers, CreateThirdComponentResponseSerializer,
+    CreateThirdComponentSerializer, ListServiceEventsResponse, ServiceBaseInfoSerializer, ServiceGroupOperationsSerializer,
     TeamAppsCloseSerializers, DeployAppSerializer, ServicePortSerializer, ComponentUpdatePortReqSerializers,
     ComponentPortReqSerializers, UpdateAppAuthorizationPolicy, ServiceVolumeSerializer, ChangeDeploySourceSerializer,
     HelmChartSerializer, UpdateAppPeerAuthentications, SmartDeployAppSerializer)
 from openapi.serializer.base_serializer import (FailSerializer, SuccessSerializer)
 from openapi.services.app_service import app_service
 from openapi.services.component_action import component_action_service
-from openapi.views.base import (EnterpriseServiceOauthView, TeamAPIView, TeamAppAPIView, TeamAppServiceAPIView,
-                                BaseOpenAPIView)
+from openapi.views.base import (EnterpriseServiceOauthView, TeamAPIView, TeamAppAPIView, TeamAppServiceAPIView, BaseOpenAPIView)
 from openapi.views.exceptions import ErrAppNotFound
 from rest_framework import status
 from rest_framework.request import Request
@@ -198,15 +196,14 @@ class AppInfoView(TeamAppAPIView):
         service_ids = app_service.get_group_services_by_id(self.app.ID)
         services = service_repo.get_services_by_service_ids(service_ids)
         if services:
-            status_list = base_service.status_multi_service(
-                region=self.app.region_name,
-                tenant_name=self.team.tenant_name,
-                service_ids=service_ids,
-                enterprise_id=self.team.enterprise_id)  # type: ignore[arg-type]
+            status_list = base_service.status_multi_service(region=self.app.region_name,
+                                                            tenant_name=self.team.tenant_name,
+                                                            service_ids=service_ids,
+                                                            enterprise_id=self.team.enterprise_id)  # type: ignore[arg-type]
             status_list = [x for x in [x["status"] for x in status_list] if x not in ["closed", "undeploy"]]
             if len(status_list) > 0:
-                raise ServiceHandleException(
-                    msg="There are running components under the current application", msg_show="当前应用下有运行态的组件，不可删除")
+                raise ServiceHandleException(msg="There are running components under the current application",
+                                             msg_show="当前应用下有运行态的组件，不可删除")
             else:
                 code_status = 200
                 for service in services:
@@ -261,8 +258,9 @@ class APPOperationsView(TeamAppAPIView):
             self.has_perms([300007])
         if action == "deploy":
             self.has_perms([300008])
-        app_manage_service.batch_operations(
-            self.team, self.region_name, request.user, action, service_ids, None)  # type: ignore[arg-type]
+        app_manage_service.batch_operations(  # type: ignore[arg-type]
+            self.team, self.region_name, request.user, action, service_ids,  # type: ignore[arg-type]
+            None)  # type: ignore[arg-type]
         result = {"msg": "操作成功"}
         rst_serializer = SuccessSerializer(data=result)
         rst_serializer.is_valid()
@@ -309,33 +307,39 @@ class ListAppServicesView(TeamAppAPIView):
             tenant = app_service.get_tenant_by_group_id(group_id)
 
             code, msg_show, new_service = console_app_service.create_docker_run_app(
-                region_name, tenant, self.user, service_cname, "",  # type: ignore[arg-type]
-                image_type, k8s_component_name, image)
+                region_name,
+                tenant,  # type: ignore[arg-type]
+                self.user,
+                service_cname,  # type: ignore[arg-type]
+                "",  # type: ignore[arg-type]
+                image_type,
+                k8s_component_name,
+                image)
             if code != 200:
                 return Response(general_message(code, "service create fail", msg_show), status=code)
 
             # 添加username,password信息
             if docker_password or docker_user_name:
-                console_app_service.create_service_source_info(
-                    tenant, new_service, docker_user_name, docker_password)  # type: ignore[arg-type]
+                console_app_service.create_service_source_info(tenant, new_service, docker_user_name,  # type: ignore[arg-type]
+                                                               docker_password)  # type: ignore[arg-type]
 
-            code, msg_show = group_service.add_service_to_group(
-                tenant, region_name, group_id, new_service.service_id)  # type: ignore[union-attr]
+            code, msg_show = group_service.add_service_to_group(tenant, region_name, group_id,
+                                                                new_service.service_id)  # type: ignore[union-attr]
             if code != 200:
                 logger.debug("service.create", msg_show)
 
         except AccountOverdueException as re:
             logger.exception(re)
             # NOTE: py2 Exception.message attribute; absent on py3 Exception (backlog).
-            return Response(
-                general_message(10410, "resource is not enough", re.message), status=412)  # type: ignore[attr-defined]
+            return Response(general_message(10410, "resource is not enough", re.message),  # type: ignore[attr-defined]
+                            status=412)  # type: ignore[attr-defined]
 
         # 创建成功后是否构建
         is_deploy = request.data.get("is_deploy", True)
         try:
             # 数据中心创建组件
-            region_new_service = console_app_service.create_region_service(
-                tenant, new_service, self.user.nick_name)  # type: ignore[arg-type]
+            region_new_service = console_app_service.create_region_service(tenant, new_service,  # type: ignore[arg-type]
+                                                                           self.user.nick_name)  # type: ignore[arg-type]
 
             if is_deploy:
                 try:
@@ -375,14 +379,15 @@ class CreateThirdComponentView(TeamAppAPIView):
         # add component to app
         code, msg_show = group_service.add_service_to_group(self.team, self.region_name, app_id, new_component.service_id)
         if code != 200:
-            raise ServiceHandleException(
-                msg="add component to app failure", msg_show=msg_show, status_code=code, error_code=code)
+            raise ServiceHandleException(msg="add component to app failure",
+                                         msg_show=msg_show,
+                                         status_code=code,
+                                         error_code=code)
         endpoints_type = req_date["endpoints_type"]
         bean = new_component.to_dict()
         if endpoints_type == "api":
             # 生成秘钥
-            deploy = deploy_repo.get_deploy_relation_by_service_id(
-                service_id=new_component.service_id)
+            deploy = deploy_repo.get_deploy_relation_by_service_id(service_id=new_component.service_id)
             api_secret_key = pickle.loads(base64.b64decode(deploy)).get("secret_key")
             # 从环境变量中获取域名，没有在从请求中获取
             host = os.environ.get('DEFAULT_DOMAIN', "http://" + request.get_host())
@@ -403,11 +408,10 @@ class AppServicesView(TeamAppServiceAPIView):
         tags=['openapi-apps'],
     )
     def get(self, req: Request, app_id: str, service_id: str, *args: Any, **kwargs: Any) -> Response:
-        status_list = base_service.status_multi_service(
-            region=self.app.region_name,
-            tenant_name=self.team.tenant_name,
-            service_ids=[self.service.service_id],
-            enterprise_id=self.team.enterprise_id)  # type: ignore[arg-type]
+        status_list = base_service.status_multi_service(region=self.app.region_name,
+                                                        tenant_name=self.team.tenant_name,
+                                                        service_ids=[self.service.service_id],
+                                                        enterprise_id=self.team.enterprise_id)  # type: ignore[arg-type]
         data = self.service.to_dict()
         data["status"] = status_list[0]["status"]
         data["access_infos"] = domain_service.get_component_access_infos(self.region_name, self.service.service_id)
@@ -509,8 +513,11 @@ class AppServiceTelescopicHorizontalView(TeamAppServiceAPIView, EnterpriseServic
         serializer = AppServiceTelescopicHorizontalSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         new_node = serializer.data.get("new_node")
-        app_manage_service.horizontal_upgrade(
-            self.team, self.service, self.user, int(new_node), oauth_instance=self.oauth_instance)  # type: ignore[arg-type]
+        app_manage_service.horizontal_upgrade(self.team,
+                                              self.service,
+                                              self.user,
+                                              int(new_node),  # type: ignore[arg-type]
+                                              oauth_instance=self.oauth_instance)  # type: ignore[arg-type]
         return Response(None, status=200)
 
 
@@ -531,8 +538,8 @@ class TeamAppsCloseView(TeamAPIView, EnterpriseServiceOauthView):
         service_ids: Any = services.values_list("service_id", flat=True)
         if service_id_list:
             service_ids = list(set(service_ids) & set(service_id_list))
-        code, msg, _ = app_manage_service.batch_action(self.region_name, self.team, self.user, "stop",
-                                                       service_ids, None, self.oauth_instance)
+        code, msg, _ = app_manage_service.batch_action(self.region_name, self.team, self.user, "stop", service_ids, None,
+                                                       self.oauth_instance)
         if code != 200:
             raise ServiceHandleException(status_code=code, msg="batch manage error", msg_show=msg)
         return Response(None, status=200)
@@ -543,8 +550,11 @@ class TeamAppsMonitorQueryView(TeamAppAPIView):
         operation_description="应用下组件实时监控",
         manual_parameters=[
             openapi.Parameter("app_id", openapi.IN_PATH, description="应用id", type=openapi.TYPE_INTEGER),
-            openapi.Parameter(
-                "is_outer", openapi.IN_QUERY, description="是否只获取对外组件监控", type=openapi.TYPE_STRING, enum=["false", "true"]),
+            openapi.Parameter("is_outer",
+                              openapi.IN_QUERY,
+                              description="是否只获取对外组件监控",
+                              type=openapi.TYPE_STRING,
+                              enum=["false", "true"]),
         ],
         responses={200: ComponentMonitorSerializers(many=True)},
         tags=['openapi-apps'],
@@ -608,8 +618,11 @@ class TeamAppsMonitorQueryRangeView(TeamAppAPIView):
             openapi.Parameter("start", openapi.IN_PATH, description="起始时间戳", type=openapi.TYPE_NUMBER),
             openapi.Parameter("end", openapi.IN_PATH, description="结束时间戳", type=openapi.TYPE_NUMBER),
             openapi.Parameter("step", openapi.IN_PATH, description="步长（默认60）", type=openapi.TYPE_NUMBER),
-            openapi.Parameter(
-                "is_outer", openapi.IN_QUERY, description="是否只获取对外组件监控", type=openapi.TYPE_STRING, enum=["false", "true"]),
+            openapi.Parameter("is_outer",
+                              openapi.IN_QUERY,
+                              description="是否只获取对外组件监控",
+                              type=openapi.TYPE_STRING,
+                              enum=["false", "true"]),
         ],
         responses={200: ComponentMonitorSerializers(many=True)},
         tags=['openapi-apps'],
@@ -655,8 +668,7 @@ class TeamAppsMonitorQueryRangeView(TeamAppAPIView):
                         try:
                             # NOTE: regionapi result may be None; legacy assumes dict (backlog).
                             res, body = region_api.get_query_range_data(  # type: ignore[assignment]
-                                self.region_name, self.team.tenant_name,
-                                v % (service.service_id, start, end, step))
+                                self.region_name, self.team.tenant_name, v % (service.service_id, start, end, step))
                         except Exception as e:
                             logger.debug(e)
                         if body.get("data"):
@@ -715,8 +727,8 @@ class ComponentPortsChangeView(TeamAppServiceAPIView):
         container_port = kwargs.get("port")
         if not container_port:
             raise AbortRequest("container_port not specify", "端口变量名未指定")
-        data = port_service.delete_port_by_container_port(
-            self.team, self.service, int(container_port), self.user.nick_name)  # type: ignore[arg-type]
+        data = port_service.delete_port_by_container_port(self.team, self.service, int(container_port),
+                                                          self.user.nick_name)  # type: ignore[arg-type]
         re = ServicePortSerializer(data)
         result = general_message(200, "success", "删除成功", bean=re.data)
         return Response(result, status=status.HTTP_200_OK)
@@ -751,8 +763,15 @@ class ComponentPortsChangeView(TeamAppServiceAPIView):
                 return Response(general_message(code, msg, msg_show), status=code)
 
         code, msg, data = port_service.manage_port(
-            self.team, self.service, self.region_name, int(container_port), action,  # type: ignore[arg-type]
-            protocol, port_alias, k8s_service_name, self.user.nick_name)  # type: ignore[arg-type]
+            self.team,
+            self.service,
+            self.region_name,
+            int(container_port),
+            action,  # type: ignore[arg-type]
+            protocol,
+            port_alias,
+            k8s_service_name,
+            self.user.nick_name)  # type: ignore[arg-type]
         if code != 200:
             return Response(general_message(code, "change port fail", msg), status=code)
 
@@ -804,9 +823,9 @@ class ComponentPortsShowView(TeamAppServiceAPIView):
             return Response(general_message(400, "params error", "缺少协议参数"), status=400)
         if not port_alias:
             port_alias = self.service.service_alias.upper().replace("-", "_") + str(port)
-        code, msg, port_info = port_service.add_service_port(
-            self.team, self.service, port, protocol, port_alias,
-            is_inner_service, False, None, self.user.nick_name)  # type: ignore[arg-type]
+        code, msg, port_info = port_service.add_service_port(self.team, self.service, port, protocol, port_alias,
+                                                             is_inner_service, False, None,
+                                                             self.user.nick_name)  # type: ignore[arg-type]
         if code != 200:
             return Response(general_message(code, "add port error", msg), status=code)
         re = ServicePortSerializer(port_info)
@@ -940,8 +959,8 @@ class AppModelImportEvent(TeamAPIView):
             new = True
         if new:
             try:
-                r = import_service.create_app_import_record_2_enterprise(
-                    self.enterprise.enterprise_id, self.user.nick_name)  # type: ignore[arg-type]
+                r = import_service.create_app_import_record_2_enterprise(self.enterprise.enterprise_id,
+                                                                         self.user.nick_name)  # type: ignore[arg-type]
             except RegionNotFound:
                 return Response(general_message(200, "success", "查询成功", bean={"region_name": ''}), status=200)
         upload_url = import_service.get_upload_url(r.region, r.event_id)  # type: ignore[union-attr]
@@ -1062,25 +1081,25 @@ class AppDeployView(TeamAPIView):
                 # 走安装模版的逻辑
                 app_version = req_date["group_version"]
                 app_key = req_date["group_key"]
-                market_app_service.install_app(
-                    self.team,
-                    self.region,
-                    self.user,
-                    req_date["app_id"],
-                    app_key,
-                    app_version,
-                    "",
-                    False,
-                    is_deploy=True,
-                    dry_run=False)
+                market_app_service.install_app(self.team,
+                                               self.region,
+                                               self.user,
+                                               req_date["app_id"],
+                                               app_key,
+                                               app_version,
+                                               "",
+                                               False,
+                                               is_deploy=True,
+                                               dry_run=False)
                 return Response(general_message(200, "success", "安装应用成功"), status=200)
             elif req_date["action"] == "upgrade":
                 # 走更新的逻辑
                 try:
-                    group = group_service.get_app_by_id(
-                        tenant=self.team, region=self.region.region_name, app_id=req_date["app_id"])
-                    apps = market_app_service.get_market_apps_in_app(
-                        self.region_name, self.team, group)  # type: ignore[arg-type]
+                    group = group_service.get_app_by_id(tenant=self.team,
+                                                        region=self.region.region_name,
+                                                        app_id=req_date["app_id"])
+                    apps = market_app_service.get_market_apps_in_app(self.region_name, self.team,
+                                                                     group)  # type: ignore[arg-type]
                     app_enable_upgrade_map = {app["app_model_id"]: app["can_upgrade"] for app in apps}
                     app_upgrade_group_id_map = {app["app_model_id"]: app["upgrade_group_id"] for app in apps}
 
@@ -1094,7 +1113,9 @@ class AppDeployView(TeamAPIView):
                         ram_model_info = json.loads(rainbond_app.app_template)  # type: ignore[union-attr]
                         component_keys = [cpt["service_key"] for cpt in ram_model_info["apps"]]
                         record = upgrade_service.create_upgrade_record(
-                            self.user.enterprise_id, self.team, group,  # type: ignore[arg-type]
+                            self.user.enterprise_id,  # type: ignore[arg-type]
+                            self.team,
+                            group,  # type: ignore[arg-type]
                             app_upgrade_group_id)
                         app_upgrade_record = upgrade_repo.get_by_record_id(record["ID"])
                         record, _ = upgrade_service.upgrade(
@@ -1132,9 +1153,12 @@ class AppDeployView(TeamAPIView):
             if code != 200:
                 return Response(general_message(code, "parse yaml error", msg), status=code)
             # 创建组
-            group_info = group_service.create_app(
-                self.team, self.region_name, group_name, group_note,
-                self.user.get_username(), k8s_app=k8s_app)  # type: ignore[arg-type]
+            group_info = group_service.create_app(self.team,
+                                                  self.region_name,
+                                                  group_name,
+                                                  group_note,
+                                                  self.user.get_username(),
+                                                  k8s_app=k8s_app)  # type: ignore[arg-type]
             code, msg, group_compose = compose_service.create_group_compose(self.team, self.region_name, group_info["group_id"],
                                                                             yaml_content, hub_user, hub_pass)
             if code != 200:
@@ -1171,8 +1195,8 @@ class AppDeployView(TeamAPIView):
                 # 数据中心创建组件
                 new_app_list = []
                 for service in services:
-                    new_service = console_app_service.create_region_service(
-                        self.team, service, self.user.nick_name)  # type: ignore[arg-type]
+                    new_service = console_app_service.create_region_service(self.team, service,
+                                                                            self.user.nick_name)  # type: ignore[arg-type]
                     new_app_list.append(new_service)
                 group_compose.create_status = "complete"
                 group_compose.save()
@@ -1234,8 +1258,16 @@ class AppChartInfo(TeamAPIView):
             helm_center_app = helm_app_service.create_center_app_by_chart(self.enterprise.enterprise_id, name)
 
             helm_app_service.generate_template(
-                cvdata, helm_center_app, version, self.team, name, self.region_name,  # type: ignore[arg-type]
-                self.enterprise.enterprise_id, self.user.user_id, "", group_id)
+                cvdata,
+                helm_center_app,  # type: ignore[arg-type]
+                version,
+                self.team,
+                name,
+                self.region_name,  # type: ignore[arg-type]
+                self.enterprise.enterprise_id,
+                self.user.user_id,
+                "",
+                group_id)
             helm_app_service.parse_chart_record(event_id)
         except Exception as e:
             logger.error(e)
@@ -1273,7 +1305,9 @@ class AppChartInfo(TeamAPIView):
                     ram_model_info = json.loads(rainbond_app.app_template)  # type: ignore[union-attr]
                     component_keys = [cpt["service_key"] for cpt in ram_model_info["apps"]]
                     record = upgrade_service.create_upgrade_record(
-                        self.user.enterprise_id, self.team, group,  # type: ignore[arg-type]
+                        self.user.enterprise_id,  # type: ignore[arg-type]
+                        self.team,
+                        group,  # type: ignore[arg-type]
                         app_upgrade_group_id)
                     app_upgrade_record = upgrade_repo.get_by_record_id(record["ID"])
                     record, _ = upgrade_service.upgrade(
@@ -1323,8 +1357,7 @@ class GetServiceInfoView(BaseOpenAPIView):
         res = []
         services = service_repo.get_service_by_region(enterprise_id, region_name)
         service_team_map = {service.service_id: service.tenant_id for service in services}
-        # NOTE: BUG—team_repo is not imported/defined in this module; runtime NameError.
-        teams = team_repo.get_team_by_enterprise_id(enterprise_id).all()  # type: ignore[name-defined]
+        teams = team_repo.get_team_by_enterprise_id(enterprise_id).all()
         team_map = {team.tenant_id: team.tenant_alias for team in teams}
         for service in services:
             tenant_id = service_team_map[service.service_id]
@@ -1399,7 +1432,8 @@ class AppAuthorizationPolicy(TeamAppAPIView):
         result = general_message(200, "success", "更新成功", bean={"operating_mode": operating_mode})
         return Response(result, status=200)
 
-class HelmChart(TeamAPIView):
+
+class _LegacyHelmChart(TeamAPIView):
     @swagger_auto_schema(
         operation_description="安装helm应用",
         manual_parameters=[
@@ -1420,8 +1454,14 @@ class HelmChart(TeamAPIView):
         overrides: list = []
         print(name, chart_name, repo_name, version)
         _, data = helm_app_service.check_helm_app(
-            name, repo_name, chart_name, version, overrides, self.region_name,  # type: ignore[arg-type]
-            self.team.tenant_name, self.team)
+            name,  # type: ignore[arg-type]
+            repo_name,  # type: ignore[arg-type]
+            chart_name,  # type: ignore[arg-type]
+            version,  # type: ignore[arg-type]
+            overrides,
+            self.region_name,  # type: ignore[arg-type]
+            self.team.tenant_name,
+            self.team)
         result = general_message(200, "success", "获取成功", bean=data)
         return Response(result, status=result["code"])
 
@@ -1453,21 +1493,45 @@ class HelmChart(TeamAPIView):
             data["app_model_id"] = app_model_id
         overrides_list = overrides.split(",")
         cvdata = helm_app_service.yaml_conversion(
-            name, repo_name, chart_name, version, overrides_list, self.region_name,  # type: ignore[arg-type]
-            self.team.tenant_name, self.team, self.enterprise.enterprise_id,
-                                                  self.region.region_id)
+            name,  # type: ignore[arg-type]
+            repo_name,  # type: ignore[arg-type]
+            chart_name,  # type: ignore[arg-type]
+            version,  # type: ignore[arg-type]
+            overrides_list,
+            self.region_name,  # type: ignore[arg-type]
+            self.team.tenant_name,
+            self.team,
+            self.enterprise.enterprise_id,
+            self.region.region_id)
         helm_center_app = rainbond_app_repo.get_rainbond_app_by_app_id(app_model_id)
         chart = repo_name + "/" + chart_name  # type: ignore[operator]
         helm_app_service.generate_template(
-            cvdata, helm_center_app, version, self.team, chart, self.region_name,  # type: ignore[arg-type]
-            self.enterprise.enterprise_id, self.user.user_id, overrides_list, app_id)
+            cvdata,
+            helm_center_app,  # type: ignore[arg-type]
+            version,  # type: ignore[arg-type]
+            self.team,
+            chart,
+            self.region_name,  # type: ignore[arg-type]
+            self.enterprise.enterprise_id,
+            self.user.user_id,
+            overrides_list,
+            app_id)
 
         market_app_service.install_app(
-            self.team, self.region, self.user, app_id, app_model_id, version, "localApplication",  # type: ignore[arg-type]
-            False, True, False)
+            self.team,
+            self.region,
+            self.user,
+            app_id,
+            app_model_id,
+            version,  # type: ignore[arg-type]
+            "localApplication",  # type: ignore[arg-type]
+            False,
+            True,
+            False)
 
         result = general_message(200, "success", "成功")
         return Response(result, status=result["code"])
+
 
 # NOTE: BUG—HelmChart is defined twice; this redefinition shadows the earlier class.
 class HelmChart(TeamAPIView):  # type: ignore[no-redef]
@@ -1491,8 +1555,14 @@ class HelmChart(TeamAPIView):  # type: ignore[no-redef]
         overrides: list = []
         print(name, chart_name, repo_name, version)
         _, data = helm_app_service.check_helm_app(
-            name, repo_name, chart_name, version, overrides, self.region_name,  # type: ignore[arg-type]
-            self.team.tenant_name, self.team)
+            name,  # type: ignore[arg-type]
+            repo_name,  # type: ignore[arg-type]
+            chart_name,  # type: ignore[arg-type]
+            version,  # type: ignore[arg-type]
+            overrides,
+            self.region_name,  # type: ignore[arg-type]
+            self.team.tenant_name,
+            self.team)
         result = general_message(200, "success", "获取成功", bean=data)
         return Response(result, status=result["code"])
 
@@ -1525,14 +1595,29 @@ class HelmChart(TeamAPIView):  # type: ignore[no-redef]
             data["app_model_id"] = app_model_id
         overrides_list = overrides.split(",")
         cvdata = helm_app_service.yaml_conversion(
-            name, repo_name, chart_name, version, overrides_list, self.region_name,  # type: ignore[arg-type]
-            self.team.tenant_name, self.team, self.enterprise.enterprise_id,
-                                                  self.region.region_id)
+            name,  # type: ignore[arg-type]
+            repo_name,  # type: ignore[arg-type]
+            chart_name,  # type: ignore[arg-type]
+            version,  # type: ignore[arg-type]
+            overrides_list,
+            self.region_name,  # type: ignore[arg-type]
+            self.team.tenant_name,
+            self.team,
+            self.enterprise.enterprise_id,
+            self.region.region_id)
         helm_center_app = rainbond_app_repo.get_rainbond_app_by_app_id(app_model_id)
         chart = repo_name + "/" + chart_name  # type: ignore[operator]
         helm_app_service.generate_template(
-            cvdata, helm_center_app, version, self.team, chart, self.region_name,  # type: ignore[arg-type]
-            self.enterprise.enterprise_id, self.user.user_id, overrides_list, app_id)
+            cvdata,
+            helm_center_app,  # type: ignore[arg-type]
+            version,  # type: ignore[arg-type]
+            self.team,
+            chart,
+            self.region_name,  # type: ignore[arg-type]
+            self.enterprise.enterprise_id,
+            self.user.user_id,
+            overrides_list,
+            app_id)
 
     @swagger_auto_schema(
         operation_description="更新授权认证",
@@ -1565,7 +1650,8 @@ class SmartDeployTemplateView(TeamAPIView):
         operation_description="智能部署应用模板（自动创建/安装/升级，使用最新版本）。支持从本地企业组件库或云端应用市场获取模板。",
         request_body=SmartDeployAppSerializer(),
         responses={
-            200: openapi.Response(
+            200:
+            openapi.Response(
                 description="操作成功",
                 examples={
                     "application/json": {
@@ -1581,10 +1667,11 @@ class SmartDeployTemplateView(TeamAPIView):
                             "market_name": ""  # 空表示本地库，否则为云端市场名称
                         }
                     }
-                }
-            ),
-            400: openapi.Response(description="参数错误"),
-            404: openapi.Response(description="模板不存在"),
+                }),
+            400:
+            openapi.Response(description="参数错误"),
+            404:
+            openapi.Response(description="模板不存在"),
         },
         tags=['openapi-apps'],
     )
@@ -1607,11 +1694,7 @@ class SmartDeployTemplateView(TeamAPIView):
 
         # 1. 检查应用名称是否存在
         from console.repositories.group import group_repo
-        existing_app = group_repo.get_group_by_unique_key(
-            self.team.tenant_id,
-            self.region.region_name,
-            app_name
-        )
+        existing_app = group_repo.get_group_by_unique_key(self.team.tenant_id, self.region.region_name, app_name)
 
         if existing_app:
             # 应用已存在，检查是否已安装该模板
@@ -1619,28 +1702,16 @@ class SmartDeployTemplateView(TeamAPIView):
             app_id = existing_app.ID
 
             # 检查模板是否已经安装
-            apps_in_app = market_app_service.get_market_apps_in_app(
-                self.region_name,
-                self.team,
-                existing_app
-            )
+            apps_in_app = market_app_service.get_market_apps_in_app(self.region_name, self.team, existing_app)
 
             # 构建已安装模板的映射
-            installed_templates = {
-                app_info["app_model_id"]: app_info
-                for app_info in apps_in_app
-            }
+            installed_templates = {app_info["app_model_id"]: app_info for app_info in apps_in_app}
 
             if template_id in installed_templates:
                 # 已安装，执行升级逻辑
                 logger.info("Template already installed in app, checking for upgrade: template_id={}".format(template_id))
-                return self._upgrade_template(
-                    existing_app,
-                    template_id,
-                    installed_templates[template_id],
-                    install_from_cloud,
-                    market_name
-                )
+                return self._upgrade_template(existing_app, template_id, installed_templates[template_id], install_from_cloud,
+                                              market_name)
             else:
                 # 未安装，在现有应用中安装
                 logger.info("Template not installed in app, installing: template_id={}".format(template_id))
@@ -1650,15 +1721,11 @@ class SmartDeployTemplateView(TeamAPIView):
                     template_id,
                     market_name,
                     install_from_cloud,
-                    is_deploy
-                )
+                    is_deploy)
         else:
             # 应用不存在，先尝试查找，再创建
             # 先查找是否已存在同名应用（包括已删除的）
-            existing_apps = group_repo.get_tenant_region_groups(
-                self.team.tenant_id,
-                self.region.region_name
-            )
+            existing_apps = group_repo.get_tenant_region_groups(self.team.tenant_id, self.region.region_name)
             existing_app = None
             for app in existing_apps:
                 if app.group_name == app_name:
@@ -1677,8 +1744,7 @@ class SmartDeployTemplateView(TeamAPIView):
                             tenant=self.team,
                             region_name=self.region.region_name,
                             app=existing_app,
-                            user=self.user
-                        )
+                            user=self.user)
                         logger.info(f"Recovered deleted app: {app_name}")
                     except Exception as recover_error:
                         logger.exception(f"Failed to recover app: {recover_error}")
@@ -1691,8 +1757,7 @@ class SmartDeployTemplateView(TeamAPIView):
                         app_name=app_name,
                         note="通过智能部署模板创建",
                         username=self.user.nick_name,  # type: ignore[arg-type]
-                        k8s_app=app_name
-                    )
+                        k8s_app=app_name)
                     app_id = app_data["app_id"]
                 except ServiceHandleException as e:
                     # 检查是否是 k8s app name exists 错误
@@ -1709,8 +1774,7 @@ class SmartDeployTemplateView(TeamAPIView):
                                     app_name=new_app_name,
                                     note="通过智能部署模板创建",
                                     username=self.user.nick_name,  # type: ignore[arg-type]
-                                    k8s_app=new_app_name
-                                )
+                                    k8s_app=new_app_name)
                                 app_id = app_data["app_id"]
                                 app_name = new_app_name
                                 logger.info(f"Created app '{app_name}' with suffix")
@@ -1723,19 +1787,14 @@ class SmartDeployTemplateView(TeamAPIView):
                                     raise create_error
                         else:
                             # 尝试了100次都失败，返回错误
-                            raise ServiceHandleException(
-                                msg="failed to create app after 100 attempts",
-                                msg_show="创建应用失败：K8s中存在大量同名应用，请手动清理",
-                                status_code=500
-                            )
+                            raise ServiceHandleException(msg="failed to create app after 100 attempts",
+                                                         msg_show="创建应用失败：K8s中存在大量同名应用，请手动清理",
+                                                         status_code=500)
                     else:
                         raise
                 except Exception as e:
                     logger.exception("Failed to create app: {}".format(e))
-                    return Response(
-                        general_message(500, "create app failed", "创建应用失败: {}".format(str(e))),
-                        status=500
-                    )
+                    return Response(general_message(500, "create app failed", "创建应用失败: {}".format(str(e))), status=500)
 
             # 安装模板
             return self._install_template(
@@ -1744,8 +1803,7 @@ class SmartDeployTemplateView(TeamAPIView):
                 template_id,
                 market_name,
                 install_from_cloud,
-                is_deploy
-            )
+                is_deploy)
 
     def _get_latest_version(self, template_id: str, install_from_cloud: bool, market_name: str) -> Any:
         """
@@ -1755,13 +1813,15 @@ class SmartDeployTemplateView(TeamAPIView):
             if install_from_cloud and market_name:
                 # 从云端市场获取最新版本
                 market = app_market_service.get_app_market_by_name(
-                    self.team.enterprise_id, market_name, raise_exception=True  # type: ignore[arg-type]
+                    self.team.enterprise_id,  # type: ignore[arg-type]
+                    market_name,
+                    raise_exception=True  # type: ignore[arg-type]
                 )
                 versions = app_market_service.get_market_app_model_versions(market, template_id)
             else:
                 # 从本地获取最新版本
-                versions = rainbond_app_repo.get_rainbond_app_versions(
-                    template_id).order_by('-update_time')  # type: ignore[assignment]
+                versions = rainbond_app_repo.get_rainbond_app_versions(template_id).order_by(
+                    '-update_time')  # type: ignore[assignment]
 
             if not versions:
                 return None
@@ -1772,8 +1832,8 @@ class SmartDeployTemplateView(TeamAPIView):
             logger.exception("Failed to get latest version: {}".format(e))
             return None
 
-    def _install_template(self, app_id: str, app_name: str, template_id: str, market_name: str,
-                          install_from_cloud: bool, is_deploy: bool) -> Response:
+    def _install_template(self, app_id: str, app_name: str, template_id: str, market_name: str, install_from_cloud: bool,
+                          is_deploy: bool) -> Response:
         """
         安装模板到应用（使用最新版本）
         """
@@ -1781,45 +1841,33 @@ class SmartDeployTemplateView(TeamAPIView):
             # 获取最新版本
             latest_version = self._get_latest_version(template_id, install_from_cloud, market_name)
             if not latest_version:
-                return Response(
-                    general_message(404, "template not found", "模板不存在"),
-                    status=404
-                )
+                return Response(general_message(404, "template not found", "模板不存在"), status=404)
 
-            market_app_service.install_app(
-                self.team,
-                self.region,
-                self.user,
-                app_id,
-                template_id,
-                latest_version,
-                market_name,
-                install_from_cloud,
-                is_deploy=is_deploy,
-                dry_run=False
-            )
+            market_app_service.install_app(self.team,
+                                           self.region,
+                                           self.user,
+                                           app_id,
+                                           template_id,
+                                           latest_version,
+                                           market_name,
+                                           install_from_cloud,
+                                           is_deploy=is_deploy,
+                                           dry_run=False)
 
-            return Response(
-                general_message(
-                    200,
-                    "success",
-                    "模板安装成功",
-                    bean={
-                        "action": "install",
-                        "app_id": app_id,
-                        "app_name": app_name,
-                        "template_id": template_id,
-                        "template_version": latest_version
-                    }
-                ),
-                status=200
-            )
+            return Response(general_message(200,
+                                            "success",
+                                            "模板安装成功",
+                                            bean={
+                                                "action": "install",
+                                                "app_id": app_id,
+                                                "app_name": app_name,
+                                                "template_id": template_id,
+                                                "template_version": latest_version
+                                            }),
+                            status=200)
         except Exception as e:
             logger.exception("Failed to install template: {}".format(e))
-            return Response(
-                general_message(500, "install failed", "模板安装失败: {}".format(str(e))),
-                status=500
-            )
+            return Response(general_message(500, "install failed", "模板安装失败: {}".format(str(e))), status=500)
 
     def _upgrade_template(self, app: Any, template_id: str, template_info: dict, install_from_cloud: bool,
                           market_name: str) -> Response:
@@ -1830,10 +1878,7 @@ class SmartDeployTemplateView(TeamAPIView):
             # 获取最新版本
             latest_version = self._get_latest_version(template_id, install_from_cloud, market_name)
             if not latest_version:
-                return Response(
-                    general_message(404, "template not found", "模板不存在"),
-                    status=404
-                )
+                return Response(general_message(404, "template not found", "模板不存在"), status=404)
 
             current_version = template_info.get("current_version")
 
@@ -1842,29 +1887,22 @@ class SmartDeployTemplateView(TeamAPIView):
 
             # 检查最新版本与当前版本是否相同
             if latest_version == current_version:
-                return Response(
-                    general_message(
-                        200,
-                        "success",
-                        "当前已是最新版本，无需升级",
-                        bean={
-                            "action": "skip",
-                            "template_id": template_id,
-                            "current_version": current_version,
-                            "latest_version": latest_version
-                        }
-                    ),
-                    status=200
-                )
+                return Response(general_message(200,
+                                                "success",
+                                                "当前已是最新版本，无需升级",
+                                                bean={
+                                                    "action": "skip",
+                                                    "template_id": template_id,
+                                                    "current_version": current_version,
+                                                    "latest_version": latest_version
+                                                }),
+                                status=200)
 
             # 获取升级组ID
             app_upgrade_group_id = template_info.get("upgrade_group_id")
 
             # 获取模板信息
-            rainbond_app = rainbond_app_repo.get_rainbond_app_by_key_version(
-                group_key=template_id,
-                version=latest_version
-            )
+            rainbond_app = rainbond_app_repo.get_rainbond_app_by_key_version(group_key=template_id, version=latest_version)
             ram_model_info = json.loads(rainbond_app.app_template)  # type: ignore[union-attr]
             component_keys = [cpt["service_key"] for cpt in ram_model_info["apps"]]
 
@@ -1891,32 +1929,22 @@ class SmartDeployTemplateView(TeamAPIView):
             logger.info("Template upgraded successfully: app_id={}, template_id={}, current_version={}, new_version={}".format(
                 app.ID, template_id, current_version, latest_version))
 
-            return Response(
-                general_message(
-                    200,
-                    "success",
-                    "模板升级成功",
-                    bean={
-                        "action": "upgrade",
-                        "template_id": template_id,
-                        "current_version": current_version,
-                        "template_version": latest_version,
-                        "upgrade_record_id": record["ID"]
-                    }
-                ),
-                status=200
-            )
+            return Response(general_message(200,
+                                            "success",
+                                            "模板升级成功",
+                                            bean={
+                                                "action": "upgrade",
+                                                "template_id": template_id,
+                                                "current_version": current_version,
+                                                "template_version": latest_version,
+                                                "upgrade_record_id": record["ID"]
+                                            }),
+                            status=200)
         except ServiceHandleException as e:
             logger.exception("Failed to upgrade template: {}".format(e))
             if e.status_code == 404:
-                return Response(
-                    general_message(404, "template not found", "模板版本不存在"),
-                    status=404
-                )
+                return Response(general_message(404, "template not found", "模板版本不存在"), status=404)
             raise e
         except Exception as e:
             logger.exception("Failed to upgrade template: {}".format(e))
-            return Response(
-                general_message(500, "upgrade failed", "模板升级失败: {}".format(str(e))),
-                status=500
-            )
+            return Response(general_message(500, "upgrade failed", "模板升级失败: {}".format(str(e))), status=500)

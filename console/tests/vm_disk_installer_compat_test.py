@@ -11,19 +11,29 @@ for attr in ("Mapping", "MutableMapping", "Sequence", "Iterable", "Iterator"):
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
 
-import sys
 
-sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
+def _load_test_dependencies():
+    """Keep the existing post-Django-setup import order and module bindings."""
+    import sys
 
-import django
+    sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
 
-django.setup()
+    import django
 
-from console.services.virtual_machine import vms
+    django.setup()
+
+    from console.services.virtual_machine import vms
+    return (
+        sys,
+        django,
+        vms,
+    )
+
+
+sys, django, vms = _load_test_dependencies()
 
 
 class VMInstallerMediaCompatUnitTests(unittest.TestCase):
-
     def test_get_vm_runtime_config_includes_boot_source_format(self):
         attrs = [
             SimpleNamespace(name="vm_boot_source_format", attribute_value="iso"),
@@ -45,33 +55,33 @@ class VMInstallerMediaCompatUnitTests(unittest.TestCase):
             "volume_capacity": 40,
             "status": "mounted"
         }]
-        asset = SimpleNamespace(
-            format="iso",
-            source_uri="/tmp/windows-server.iso",
-            image_url="tenant-ns:windows-installer",
-            name="windows-installer",
-            os_name="Windows Server"
-        )
+        asset = SimpleNamespace(format="iso",
+                                source_uri="/tmp/windows-server.iso",
+                                image_url="tenant-ns:windows-installer",
+                                name="windows-installer",
+                                os_name="Windows Server")
 
-        with mock.patch.object(vms, "get_vm_runtime_config", return_value={
-            "asset_id": 9,
-            "asset_clone_source": "",
-            "boot_mode": "",
-            "boot_source_format": "",
-            "disk_layout": [],
-            "network_mode": "random",
-            "network_name": "",
-            "fixed_ip": "",
-            "gateway": "",
-            "dns_servers": "",
-            "os_family": "windows",
-            "os_name": "Windows Server",
-            "gpu_enabled": False,
-            "gpu_resources": [],
-            "gpu_count": 0,
-            "usb_enabled": False,
-            "usb_resources": [],
-        }), mock.patch.object(vms, "get_vm_asset_for_service", return_value=asset):
+        with mock.patch.object(vms,
+                               "get_vm_runtime_config",
+                               return_value={
+                                   "asset_id": 9,
+                                   "asset_clone_source": "",
+                                   "boot_mode": "",
+                                   "boot_source_format": "",
+                                   "disk_layout": [],
+                                   "network_mode": "random",
+                                   "network_name": "",
+                                   "fixed_ip": "",
+                                   "gateway": "",
+                                   "dns_servers": "",
+                                   "os_family": "windows",
+                                   "os_name": "Windows Server",
+                                   "gpu_enabled": False,
+                                   "gpu_resources": [],
+                                   "gpu_count": 0,
+                                   "usb_enabled": False,
+                                   "usb_resources": [],
+                               }), mock.patch.object(vms, "get_vm_asset_for_service", return_value=asset):
             disks = vms.list_vm_disks(service, volumes)
 
         self.assertEqual(2, len(disks))

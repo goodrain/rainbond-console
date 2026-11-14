@@ -2138,6 +2138,62 @@
       "status": "active"
     },
     {
+      "id": "console.app-version.automatic-snapshot-api",
+      "title": "App version overview exposes automatic snapshot status",
+      "title_zh": "应用版本概览展示自动快照状态",
+      "interface_type": "view_endpoint",
+      "interface": "GET /console/teams/{team}/groups/{app}/app-versions/overview",
+      "code_paths": [
+        "console/views/app_version.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_version_test.py",
+          "selector": "AutomaticSnapshotOverviewContractTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.app-version.automatic-snapshot-readiness",
+      "title": "Automatic snapshots require complete running components",
+      "title_zh": "自动快照等待全应用组件完成部署",
+      "interface_type": "service_method",
+      "interface": "console.services.app_version_auto_snapshot.AppVersionAutoSnapshotService._ready",
+      "code_paths": [
+        "console/services/app_version_auto_snapshot.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_version_auto_snapshot_test.py",
+          "selector": "AutomaticSnapshotReadinessTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.app-version.automatic-snapshots",
+      "title": "Automatic application snapshots after successful market deployments",
+      "title_zh": "组件库部署成功后自动生成应用版本快照",
+      "interface_type": "workflow",
+      "interface": "console.services.app_version_auto_snapshot.AppVersionAutoSnapshotService",
+      "code_paths": [
+        "console/services/app_version_auto_snapshot.py",
+        "console/services/market_app/app_upgrade.py",
+        "console/services/app_actions/app_manage.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_version_auto_snapshot_test.py",
+          "selector": "AutomaticAppSnapshotTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.app-version.component-diff-details",
       "title": "Build application version component diff details",
       "title_zh": "生成应用版本组件差异明细",
@@ -2346,6 +2402,25 @@
         {
           "path": "console/tests/app_version_test.py",
           "selector": "AppVersionSnapshotSourceVersionTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.app-version.market-deploy-snapshot-hook",
+      "title": "Market install upgrade and legacy rollback register automatic snapshots after dispatch",
+      "title_zh": "组件库安装升级与旧入口回滚接入自动快照",
+      "interface_type": "workflow",
+      "interface": "console.services.market_app.app_upgrade.AppUpgrade.deploy",
+      "code_paths": [
+        "console/services/market_app/app_upgrade.py",
+        "console/services/market_app/app_restore.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_version_test.py",
+          "selector": "MarketDeploymentSnapshotHookTests"
         }
       ],
       "test_type": "regression",
@@ -2659,6 +2734,24 @@
       "status": "active"
     },
     {
+      "id": "console.app-version.rollback-recorded-build-version",
+      "title": "Application snapshot rollback selects each recorded component build version",
+      "title_zh": "应用快照回滚精确选择记录的组件构建版本",
+      "interface_type": "workflow",
+      "interface": "console.services.app_version_service.AppVersionRollbackRestore",
+      "code_paths": [
+        "console/services/app_version_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_version_test.py",
+          "selector": "SnapshotRollbackBuildVersionTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.app-version.rollback-restore-components",
       "title": "Restore missing components during app version rollback",
       "title_zh": "应用版本回滚时恢复缺失组件",
@@ -2690,6 +2783,24 @@
         {
           "path": "console/tests/mcp_query_service_test.py",
           "selector": "MCPQueryServiceApplicationToolTests.test_rollback_app_version_snapshot_returns_rollback_record"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.app-version.rollback-source-versions",
+      "title": "Application snapshot rollback restores installed source versions",
+      "title_zh": "应用快照回滚同步恢复组件库安装版本",
+      "interface_type": "service_method",
+      "interface": "console.services.app_version_service.AppVersionRollbackRestore._restore_source_groups",
+      "code_paths": [
+        "console/services/app_version_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_version_test.py",
+          "selector": "AppVersionRollbackRestoreSnapshotCoverageTestCase"
         }
       ],
       "test_type": "regression",
@@ -2800,6 +2911,24 @@
         {
           "path": "console/tests/app_version_test.py",
           "selector": "AppVersionServiceTemplateNormalizationTestCase.test_assemble_app_template_falls_back_to_image_when_share_image_missing"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.app-version.snapshot-source-version-dedup",
+      "title": "Snapshot deduplication preserves market source version changes",
+      "title_zh": "快照去重保留组件库来源版本变化",
+      "interface_type": "service_method",
+      "interface": "console.services.app_version_service.AppVersionService.create_snapshot",
+      "code_paths": [
+        "console/services/app_version_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_version_test.py",
+          "selector": "AppVersionSnapshotSourceVersionTests"
         }
       ],
       "test_type": "regression",
@@ -3662,6 +3791,24 @@
       "status": "active"
     },
     {
+      "id": "console.captcha.rendering",
+      "title": "Render valid CAPTCHA PNG with private session and no cache",
+      "title_zh": "Render valid CAPTCHA PNG with private session and no cache",
+      "interface_type": "view_endpoint",
+      "interface": "console.captcha.captcha_code.CaptchaView.get",
+      "code_paths": [
+        "console/captcha/captcha_code.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/jwt_token_view_test.py",
+          "selector": "CaptchaViewSecurityTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.cert.expired-reject",
       "title": "Reject expired certificates during certificate effectiveness checks",
       "title_zh": "在证书有效性检查中拒绝已过期证书",
@@ -3692,6 +3839,28 @@
         {
           "path": "console/tests/utils/certutil_test.py",
           "selector": "CertUtilTests.test_cert_is_effective_rejects_invalid_private_key"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.cert.key-format-compatibility",
+      "title": "Match equivalent private key encodings and reject public-only input",
+      "title_zh": "Match equivalent private key encodings and reject public-only input",
+      "interface_type": "workflow",
+      "interface": "console.utils.certutil.cert_is_effective",
+      "code_paths": [
+        "console/utils/certutil.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/utils/certutil_test.py",
+          "selector": "CertUtilTests.test_cert_is_effective_matches_equivalent_private_key_encodings"
+        },
+        {
+          "path": "console/tests/utils/certutil_test.py",
+          "selector": "CertUtilTests.test_cert_is_effective_rejects_a_public_key_without_private_material"
         }
       ],
       "test_type": "regression",
@@ -5481,6 +5650,24 @@
       "status": "active"
     },
     {
+      "id": "console.component.port-detail-not-found",
+      "title": "Return 404 for missing component port detail",
+      "title_zh": "查询不存在的组件端口时返回 404",
+      "interface_type": "view_endpoint",
+      "interface": "GET /console/teams/{tenantName}/apps/{serviceAlias}/ports/{port}",
+      "code_paths": [
+        "console/views/app_config/app_port.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/http_port_tcp_exposure_test.py",
+          "selector": "HTTPPortTCPExposureTests.test_get_missing_port_returns_404_before_loading_variables"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.component.port-list",
       "title": "List component ports",
       "title_zh": "查询组件端口列表",
@@ -6844,6 +7031,24 @@
         {
           "path": "console/tests/first_deploy_repo_test.py",
           "selector": "EnterpriseFirstDeployRepositoryConcurrencyTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.first-deploy.vm-create-tracking",
+      "title": "VM create tracking preserves the real database transaction",
+      "title_zh": "VM create tracking preserves the real database transaction",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.app_create.vm_run.VMRunCreateView.post",
+      "code_paths": [
+        "console/views/app_create/vm_run.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/deploy_diagnostics_extended_entrypoints_test.py",
+          "selector": "ExtendedDeployDiagnosticsEntrypointTests.test_vm_create_tracks_and_marks_success_without_deploy_event"
         }
       ],
       "test_type": "regression",
@@ -9413,6 +9618,46 @@
       "status": "active"
     },
     {
+      "id": "console.oauth.name-scope",
+      "title": "Scope OAuth configuration names by enterprise and personal owner",
+      "title_zh": "OAuth 配置名称按企业公共与个人范围隔离",
+      "interface_type": "workflow",
+      "interface": "POST /console/enterprise/{enterprise_id}/oauth/oauth-services",
+      "code_paths": [
+        "console/models/main.py",
+        "console/repositories/oauth_repo.py",
+        "console/management/commands/migrate_oauth_name_scope.py",
+        "entrypoint.sh",
+        "console/views/oauth.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/oauth_name_scope_test.py"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.oauth.reauthorization",
+      "title": "Refresh Git OAuth credentials and safely switch linked accounts",
+      "title_zh": "Git OAuth 重新授权与安全账号换绑",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.oauth.OAuthServerUserAuthorize.post",
+      "code_paths": [
+        "console/views/oauth.py",
+        "console/repositories/oauth_repo.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/oauth_reauthorization_test.py",
+          "selector": "OAuthReauthorizationTests"
+        }
+      ],
+      "test_type": "integration",
+      "status": "active"
+    },
+    {
       "id": "console.oauth.service-validation",
       "title": "Validate OAuth service references before use",
       "title_zh": "使用前校验 OAuth 服务引用",
@@ -9537,6 +9782,24 @@
         {
           "path": "console/tests/openapi_swagger_test.py",
           "selector": "OpenAPISwaggerMetadataTests.test_helm_chart_get_declares_query_serializer_without_request_body"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.openapi.region-service-inspection",
+      "title": "Region services resolve enterprise team aliases",
+      "title_zh": "Region services resolve enterprise team aliases",
+      "interface_type": "view_endpoint",
+      "interface": "openapi.views.apps.apps.GetServiceInfoView.get",
+      "code_paths": [
+        "openapi/views/apps/apps.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/quality_gate_regression_test.py",
+          "selector": "RegionServiceInspectionTests"
         }
       ],
       "test_type": "regression",
@@ -10327,6 +10590,24 @@
         {
           "path": "console/tests/platform_overview_view_test.py",
           "selector": "PlatformOverviewViewTest"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.platform-overview.team-usage",
+      "title": "Team resource usage ranking from scoped monitoring",
+      "title_zh": "基于实际监控用量的团队资源排行",
+      "interface_type": "service_method",
+      "interface": "console.services.platform_overview_service.PlatformOverviewService._fetch_team_ranking",
+      "code_paths": [
+        "console/services/platform_overview_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/platform_overview_team_usage_test.py",
+          "selector": "PlatformOverviewTeamUsageTest"
         }
       ],
       "test_type": "regression",
@@ -11347,6 +11628,24 @@
         {
           "path": "console/tests/registry_service_test.py",
           "selector": "AliyunEnterpriseRegistryTestCase"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.registry.official-image-name",
+      "title": "Official library image name retains tag",
+      "title_zh": "Official library image name retains tag",
+      "interface_type": "service_method",
+      "interface": "console.services.team_services.TeamService.get_full_image_name",
+      "code_paths": [
+        "console/services/team_services.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/quality_gate_regression_test.py",
+          "selector": "OfficialRegistryImageNameTests"
         }
       ],
       "test_type": "regression",
@@ -12581,6 +12880,26 @@
       "status": "active"
     },
     {
+      "id": "console.team-application.workflow",
+      "title": "Team creation applications and review",
+      "title_zh": "团队创建申请、审核和额度生效",
+      "interface_type": "workflow",
+      "interface": "console.services.team_applications.TeamApplicationService.review",
+      "code_paths": [
+        "console/services/team_applications.py",
+        "console/services/team_application_provisioner.py",
+        "console/views/team_applications.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/team_application_workflow_test.py",
+          "selector": "TeamApplicationWorkflowTest.test_isolated_lifecycle_and_http_contract"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.team-arch.empty-region-response",
       "title": "Return an empty architecture list for empty region responses",
       "title_zh": "区域架构响应为空时返回空列表",
@@ -12683,6 +13002,42 @@
         {
           "path": "scripts/validate_test_manifest_test.py",
           "selector": "ValidateTestManifestTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.test-manifest.nonempty-marker-control",
+      "title": "Unexpected empty marker scans fail closed",
+      "title_zh": "Unexpected empty marker scans fail closed",
+      "interface_type": "package_function",
+      "interface": "scripts.validate_test_manifest.validate_manifest",
+      "code_paths": [
+        "scripts/validate_test_manifest.py"
+      ],
+      "tests": [
+        {
+          "path": "scripts/validate_test_manifest_test.py",
+          "selector": "ManifestScanCompletenessTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.test-manifest.repo-relative-scan",
+      "title": "Manifest scan ignores only repository internal excluded directories",
+      "title_zh": "Manifest scan ignores only repository internal excluded directories",
+      "interface_type": "package_function",
+      "interface": "scripts.validate_test_manifest.collect_marked_tests",
+      "code_paths": [
+        "scripts/validate_test_manifest.py"
+      ],
+      "tests": [
+        {
+          "path": "scripts/validate_test_manifest_test.py",
+          "selector": "ManifestRootBoundaryTests"
         }
       ],
       "test_type": "regression",
@@ -13271,6 +13626,83 @@
       "status": "active"
     },
     {
+      "id": "console.vm-capabilities.persistent-storage-options",
+      "title": "Expose persistent storage options through VM capabilities",
+      "title_zh": "VM创建能力响应返回真实持久化存储选项",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.app_config.app_domain.VirtualMachineCapabilityView.get",
+      "code_paths": [
+        "console/services/app_config/volume_service.py",
+        "console/views/app_config/app_domain.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/virtual_machine_service_test.py",
+          "selector": "VirtualMachineServiceTests.test_vm_persistent_storage_options_share_service_options_and_filter_unavailable_types"
+        },
+        {
+          "path": "console/tests/virtual_machine_service_test.py",
+          "selector": "VirtualMachineServiceTests.test_vm_storage_options_keep_saas_provider_override"
+        },
+        {
+          "path": "console/tests/virtual_machine_service_test.py",
+          "selector": "VirtualMachineServiceTests.test_vm_persistent_storage_options_accept_dict_and_reject_malformed_region_responses"
+        },
+        {
+          "path": "console/tests/virtual_machine_service_test.py",
+          "selector": "VirtualMachineServiceTests.test_vm_capabilities_include_persistent_storage_options_and_failure_is_not_success"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.vm-create.port-operator",
+      "title": "VM SSH port uses a string operator when the display name is absent",
+      "title_zh": "VM SSH port uses a string operator when the display name is absent",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.app_create.vm_run.VMRunCreateView.post",
+      "code_paths": [
+        "console/views/app_create/vm_run.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/vm_example_password_login_test.py",
+          "selector": "VMExamplePasswordLoginTests.test_missing_display_name_keeps_ssh_port_operator_a_string"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.vm-example.password-login-bootstrap",
+      "title": "Ubuntu VM example login bootstrap and credential redaction",
+      "title_zh": "Ubuntu VM 示例登录初始化与凭据脱敏",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.app_create.vm_run.VMRunCreateView.post",
+      "code_paths": [
+        "console/views/app_create/vm_run.py",
+        "console/services/virtual_machine.py",
+        "console/services/vm_login_security.py",
+        "console/services/k8s_attribute.py",
+        "console/services/share_services.py",
+        "console/services/market_app/market_app.py",
+        "console/services/market_app/new_components.py",
+        "console/services/market_app/component.py",
+        "console/services/app_check_service.py",
+        "console/services/app.py",
+        "console/views/app_config/app_domain.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/vm_example_password_login_test.py",
+          "selector": "VMExamplePasswordLoginTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.vm-overview.vnc-url-plugin-fallback",
       "title": "Build VM overview VNC URL from plugin fallback",
       "title_zh": "在缺少查询参数时从插件回填虚拟机概览 VNC 地址",
@@ -13409,65 +13841,6 @@
       "status": "active"
     },
     {
-      "id": "console.vm-capabilities.persistent-storage-options",
-      "title": "Expose persistent storage options through VM capabilities",
-      "title_zh": "VM创建能力响应返回真实持久化存储选项",
-      "interface_type": "view_endpoint",
-      "interface": "console.views.app_config.app_domain.VirtualMachineCapabilityView.get",
-      "code_paths": [
-        "console/services/app_config/volume_service.py",
-        "console/views/app_config/app_domain.py"
-      ],
-      "tests": [
-        {
-          "path": "console/tests/virtual_machine_service_test.py",
-          "selector": "VirtualMachineServiceTests.test_vm_persistent_storage_options_share_service_options_and_filter_unavailable_types"
-        },
-        {
-          "path": "console/tests/virtual_machine_service_test.py",
-          "selector": "VirtualMachineServiceTests.test_vm_storage_options_keep_saas_provider_override"
-        },
-        {
-          "path": "console/tests/virtual_machine_service_test.py",
-          "selector": "VirtualMachineServiceTests.test_vm_persistent_storage_options_accept_dict_and_reject_malformed_region_responses"
-        },
-        {
-          "path": "console/tests/virtual_machine_service_test.py",
-          "selector": "VirtualMachineServiceTests.test_vm_capabilities_include_persistent_storage_options_and_failure_is_not_success"
-        }
-      ],
-      "test_type": "regression",
-      "status": "active"
-    },
-    {
-      "id": "console.vm-example.password-login-bootstrap",
-      "title": "Ubuntu VM example login bootstrap and credential redaction",
-      "title_zh": "Ubuntu VM 示例登录初始化与凭据脱敏",
-      "interface_type": "view_endpoint",
-      "interface": "console.views.app_create.vm_run.VMRunCreateView.post",
-      "code_paths": [
-        "console/views/app_create/vm_run.py",
-        "console/services/virtual_machine.py",
-        "console/services/vm_login_security.py",
-        "console/services/k8s_attribute.py",
-        "console/services/share_services.py",
-        "console/services/market_app/market_app.py",
-        "console/services/market_app/new_components.py",
-        "console/services/market_app/component.py",
-        "console/services/app_check_service.py",
-        "console/services/app.py",
-        "console/views/app_config/app_domain.py"
-      ],
-      "tests": [
-        {
-          "path": "console/tests/vm_example_password_login_test.py",
-          "selector": "VMExamplePasswordLoginTests"
-        }
-      ],
-      "test_type": "regression",
-      "status": "active"
-    },
-    {
       "id": "console.vm-storage-any-access-mode",
       "title": "Allow VM storage with any access mode",
       "title_zh": "允许虚拟机使用任意访问模式的存储",
@@ -13543,6 +13916,24 @@
         }
       ],
       "test_type": "unit",
+      "status": "active"
+    },
+    {
+      "id": "console.volume.exact-integer-mode",
+      "title": "Volume mode preserves exact integer policy",
+      "title_zh": "Volume mode preserves exact integer policy",
+      "interface_type": "package_function",
+      "interface": "console.views.app_config.app_volume.ensure_volume_mode",
+      "code_paths": [
+        "console/views/app_config/app_volume.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/quality_gate_regression_test.py",
+          "selector": "ExactVolumeModeTests"
+        }
+      ],
+      "test_type": "regression",
       "status": "active"
     },
     {
@@ -13923,231 +14314,6 @@
       "tests": [
         {
           "path": "console/tests/vm_asset_instantiation_test.py"
-        }
-      ],
-      "test_type": "regression",
-      "status": "active"
-    },
-    {
-      "id": "console.oauth.reauthorization",
-      "title": "Refresh Git OAuth credentials and safely switch linked accounts",
-      "title_zh": "Git OAuth 重新授权与安全账号换绑",
-      "interface_type": "view_endpoint",
-      "interface": "console.views.oauth.OAuthServerUserAuthorize.post",
-      "code_paths": [
-        "console/views/oauth.py",
-        "console/repositories/oauth_repo.py"
-      ],
-      "tests": [
-        {
-          "path": "console/tests/oauth_reauthorization_test.py",
-          "selector": "OAuthReauthorizationTests"
-        }
-      ],
-      "test_type": "integration",
-      "status": "active"
-    },
-    {
-      "id": "console.app-version.automatic-snapshot-api",
-      "title": "App version overview exposes automatic snapshot status",
-      "title_zh": "应用版本概览展示自动快照状态",
-      "interface_type": "view_endpoint",
-      "interface": "GET /console/teams/{team}/groups/{app}/app-versions/overview",
-      "code_paths": [
-        "console/views/app_version.py"
-      ],
-      "tests": [
-        {
-          "path": "console/tests/app_version_test.py",
-          "selector": "AutomaticSnapshotOverviewContractTests"
-        }
-      ],
-      "test_type": "regression",
-      "status": "active"
-    },
-    {
-      "id": "console.app-version.automatic-snapshot-readiness",
-      "title": "Automatic snapshots require complete running components",
-      "title_zh": "自动快照等待全应用组件完成部署",
-      "interface_type": "service_method",
-      "interface": "console.services.app_version_auto_snapshot.AppVersionAutoSnapshotService._ready",
-      "code_paths": [
-        "console/services/app_version_auto_snapshot.py"
-      ],
-      "tests": [
-        {
-          "path": "console/tests/app_version_auto_snapshot_test.py",
-          "selector": "AutomaticSnapshotReadinessTests"
-        }
-      ],
-      "test_type": "regression",
-      "status": "active"
-    },
-    {
-      "id": "console.app-version.automatic-snapshots",
-      "title": "Automatic application snapshots after successful market deployments",
-      "title_zh": "组件库部署成功后自动生成应用版本快照",
-      "interface_type": "workflow",
-      "interface": "console.services.app_version_auto_snapshot.AppVersionAutoSnapshotService",
-      "code_paths": [
-        "console/services/app_version_auto_snapshot.py",
-        "console/services/market_app/app_upgrade.py",
-        "console/services/app_actions/app_manage.py"
-      ],
-      "tests": [
-        {
-          "path": "console/tests/app_version_auto_snapshot_test.py",
-          "selector": "AutomaticAppSnapshotTests"
-        }
-      ],
-      "test_type": "regression",
-      "status": "active"
-    },
-    {
-      "id": "console.app-version.market-deploy-snapshot-hook",
-      "title": "Market install upgrade and legacy rollback register automatic snapshots after dispatch",
-      "title_zh": "组件库安装升级与旧入口回滚接入自动快照",
-      "interface_type": "workflow",
-      "interface": "console.services.market_app.app_upgrade.AppUpgrade.deploy",
-      "code_paths": [
-        "console/services/market_app/app_upgrade.py",
-        "console/services/market_app/app_restore.py"
-      ],
-      "tests": [
-        {
-          "path": "console/tests/app_version_test.py",
-          "selector": "MarketDeploymentSnapshotHookTests"
-        }
-      ],
-      "test_type": "regression",
-      "status": "active"
-    },
-    {
-      "id": "console.app-version.rollback-source-versions",
-      "title": "Application snapshot rollback restores installed source versions",
-      "title_zh": "应用快照回滚同步恢复组件库安装版本",
-      "interface_type": "service_method",
-      "interface": "console.services.app_version_service.AppVersionRollbackRestore._restore_source_groups",
-      "code_paths": [
-        "console/services/app_version_service.py"
-      ],
-      "tests": [
-        {
-          "path": "console/tests/app_version_test.py",
-          "selector": "AppVersionRollbackRestoreSnapshotCoverageTestCase"
-        }
-      ],
-      "test_type": "regression",
-      "status": "active"
-    },
-    {
-      "id": "console.app-version.snapshot-source-version-dedup",
-      "title": "Snapshot deduplication preserves market source version changes",
-      "title_zh": "快照去重保留组件库来源版本变化",
-      "interface_type": "service_method",
-      "interface": "console.services.app_version_service.AppVersionService.create_snapshot",
-      "code_paths": [
-        "console/services/app_version_service.py"
-      ],
-      "tests": [
-        {
-          "path": "console/tests/app_version_test.py",
-          "selector": "AppVersionSnapshotSourceVersionTests"
-        }
-      ],
-      "test_type": "regression",
-      "status": "active"
-    },
-    {
-      "id": "console.platform-overview.team-usage",
-      "title": "Team resource usage ranking from scoped monitoring",
-      "title_zh": "基于实际监控用量的团队资源排行",
-      "interface_type": "service_method",
-      "interface": "console.services.platform_overview_service.PlatformOverviewService._fetch_team_ranking",
-      "code_paths": [
-        "console/services/platform_overview_service.py"
-      ],
-      "tests": [
-        {
-          "path": "console/tests/platform_overview_team_usage_test.py",
-          "selector": "PlatformOverviewTeamUsageTest"
-        }
-      ],
-      "test_type": "regression",
-      "status": "active"
-    },
-    {
-      "id": "console.app-version.rollback-recorded-build-version",
-      "title": "Application snapshot rollback selects each recorded component build version",
-      "title_zh": "应用快照回滚精确选择记录的组件构建版本",
-      "interface_type": "workflow",
-      "interface": "console.services.app_version_service.AppVersionRollbackRestore",
-      "code_paths": [
-        "console/services/app_version_service.py"
-      ],
-      "tests": [
-        {
-          "path": "console/tests/app_version_test.py",
-          "selector": "SnapshotRollbackBuildVersionTests"
-        }
-      ],
-      "test_type": "regression",
-      "status": "active"
-    },
-    {
-      "id": "console.team-application.workflow",
-      "title": "Team creation applications and review",
-      "title_zh": "团队创建申请、审核和额度生效",
-      "interface_type": "workflow",
-      "interface": "console.services.team_applications.TeamApplicationService.review",
-      "code_paths": [
-        "console/services/team_applications.py",
-        "console/services/team_application_provisioner.py",
-        "console/views/team_applications.py"
-      ],
-      "tests": [
-        {
-          "path": "console/tests/team_application_workflow_test.py",
-          "selector": "TeamApplicationWorkflowTest.test_isolated_lifecycle_and_http_contract"
-        }
-      ],
-      "test_type": "regression",
-      "status": "active"
-    },
-    {
-      "id": "console.oauth.name-scope",
-      "title": "Scope OAuth configuration names by enterprise and personal owner",
-      "title_zh": "OAuth 配置名称按企业公共与个人范围隔离",
-      "interface_type": "workflow",
-      "interface": "POST /console/enterprise/{enterprise_id}/oauth/oauth-services",
-      "code_paths": [
-        "console/models/main.py",
-        "console/repositories/oauth_repo.py",
-        "console/management/commands/migrate_oauth_name_scope.py",
-        "entrypoint.sh",
-        "console/views/oauth.py"
-      ],
-      "tests": [
-        {
-          "path": "console/tests/oauth_name_scope_test.py"
-        }
-      ],
-      "test_type": "regression",
-      "status": "active"
-    },
-    {
-      "id": "console.component.port-detail-not-found",
-      "title": "Return 404 for missing component port detail",
-      "title_zh": "查询不存在的组件端口时返回 404",
-      "interface_type": "view_endpoint",
-      "interface": "GET /console/teams/{tenantName}/apps/{serviceAlias}/ports/{port}",
-      "code_paths": [
-        "console/views/app_config/app_port.py"
-      ],
-      "tests": [
-        {
-          "path": "console/tests/http_port_tcp_exposure_test.py",
-          "selector": "HTTPPortTCPExposureTests.test_get_missing_port_returns_404_before_loading_variables"
         }
       ],
       "test_type": "regression",

@@ -28,17 +28,25 @@ from console.repositories.share_repo import share_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.upgrade_repo import upgrade_repo
 from console.services.app import app_service as console_app_service, app_market_service
-from console.services.app_actions import app_manage_service, event_service, log_service
+from console.services.app_actions import app_manage_service, event_service
 from console.services.app_check_service import app_check_service
 from console.services.application_delete_service import application_delete_service
 from console.services.app_version_service import app_version_service
-from console.services.app_config import domain_service, env_var_service, port_service, volume_service, mnt_service, probe_service, dependency_service
+from console.services.app_config import (
+    domain_service,
+    env_var_service,
+    port_service,
+    volume_service,
+    mnt_service,
+    probe_service,
+    dependency_service,
+)
 from console.services.autoscaler_service import autoscaler_service, scaling_records_service
 from console.services.app_config.arch_service import arch_service
 from console.services.compose_service import compose_service
 from console.services.deployment_invocation import is_rainskills_invocation
 from console.services.enterprise_services import enterprise_services
-from console.services.gateway_api import gateway_api
+
 from console.services.group_service import group_service
 from console.services.groupcopy_service import groupapp_copy_service
 from console.services.helm_app_yaml import helm_app_service
@@ -55,7 +63,11 @@ from console.services.share_services import share_service
 from console.services.source_component_service import source_component_service
 from console.services.team_services import team_services
 from console.services.upgrade_services import upgrade_service
-from console.utils.source_build_state import build_compile_env_payload, is_java_maven_language, read_compile_env_state
+from console.utils.source_build_state import (
+    build_compile_env_payload,
+    is_java_maven_language,
+    read_compile_env_state,
+)
 from console.utils.oauth.oauth_types import get_oauth_instance
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.crypt import make_uuid
@@ -86,51 +98,33 @@ class MCPQueryService(object):
     })
     DISPLAY_APP_NAME_PATTERN = r"^[a-zA-Z0-9_\.\-\u4e00-\u9fa5]+$"
     DISPLAY_APP_NAME_MAX_LENGTH = 128
-    DISPLAY_APP_NAME_DESCRIPTION = (
-        "应用展示名称。支持中文、英文、数字、下划线、中划线和点；"
-        "长度不超过128个字符；"
-        "不支持空格、斜杠、括号、emoji 等其他特殊字符。"
-    )
-    SERVER_LOCAL_PATH_DESCRIPTION = (
-        "本地文件或目录路径。该路径必须能被 rainbond-console 进程所在机器或容器直接访问；"
-        "若传目录，会先压缩为 zip 后再上传；"
-        "这里的 local_path 不是 MCP 客户端本机路径。"
-    )
+    DISPLAY_APP_NAME_DESCRIPTION = ("应用展示名称。支持中文、英文、数字、下划线、中划线和点；"
+                                    "长度不超过128个字符；"
+                                    "不支持空格、斜杠、括号、emoji 等其他特殊字符。")
+    SERVER_LOCAL_PATH_DESCRIPTION = ("本地文件或目录路径。该路径必须能被 rainbond-console 进程所在机器或容器直接访问；"
+                                     "若传目录，会先压缩为 zip 后再上传；"
+                                     "这里的 local_path 不是 MCP 客户端本机路径。")
     PORT_ALIAS_PATTERN = r"^[A-Z][A-Z0-9_]*$"
-    PORT_ALIAS_DESCRIPTION = (
-        "端口别名。新增端口时通常不必传，留空由系统自动生成；"
-        "若手动填写，必须以大写字母开头，"
-        "只能包含大写字母、数字和下划线，例如 WEB、P80、METRICS_8080。"
-    )
+    PORT_ALIAS_DESCRIPTION = ("端口别名。新增端口时通常不必传，留空由系统自动生成；"
+                              "若手动填写，必须以大写字母开头，"
+                              "只能包含大写字母、数字和下划线，例如 WEB、P80、METRICS_8080。")
     K8S_SERVICE_NAME_PATTERN = r"^[a-z]([-a-z0-9]*[a-z0-9])?$"
-    K8S_SERVICE_NAME_DESCRIPTION = (
-        "内部域名。若手动填写，必须以小写字母开头，只能包含小写字母、数字和连字符，"
-        "且长度不超过63，"
-        "例如 web、api-80。"
-    )
+    K8S_SERVICE_NAME_DESCRIPTION = ("内部域名。若手动填写，必须以小写字母开头，只能包含小写字母、数字和连字符，"
+                                    "且长度不超过63，"
+                                    "例如 web、api-80。")
     K8S_APP_NAME_PATTERN = r"^[a-z]([-a-z0-9]*[a-z0-9])?$"
-    K8S_APP_NAME_DESCRIPTION = (
-        "应用英文名 / K8s app name。默认建议不传，由系统生成或在后端回填；"
-        "若手动填写，必须以小写字母开头，只能包含小写字母、数字和连字符，"
-        "并且在同团队同集群下唯一，例如 demo-app。"
-    )
-    IMAGE_COMPONENT_DEFAULT_RESOURCE_DESCRIPTION = (
-        "默认资源规范：镜像创建组件在生成时默认使用 512MB 内存和 0m CPU；"
-        "若后续未做手动调整，构建和部署阶段继续沿用该默认资源。"
-    )
-    SOURCE_PACKAGE_COMPONENT_DEFAULT_RESOURCE_DESCRIPTION = (
-        "默认资源规范：源码/软件包组件在生成时默认使用 128MB 内存，"
-        "CPU 按 memory/128*20 计算；检测成功后，默认资源会规范化为"
-        "“检测内存值向下对齐到 32MB 整数倍 + 500m CPU”。"
-    )
-    BUILD_COMPONENT_DEFAULT_RESOURCE_DESCRIPTION = (
-        "默认资源说明：本步骤不会重新计算默认资源，"
-        "而是沿用组件当前的 min_memory/min_cpu。"
-    )
-    PORT_ACTION_ENUM = (
-        "open_outer", "only_open_outer", "close_outer", "open_inner",
-        "close_inner", "change_protocol", "change_port_alias"
-    )
+    K8S_APP_NAME_DESCRIPTION = ("应用英文名 / K8s app name。默认建议不传，由系统生成或在后端回填；"
+                                "若手动填写，必须以小写字母开头，只能包含小写字母、数字和连字符，"
+                                "并且在同团队同集群下唯一，例如 demo-app。")
+    IMAGE_COMPONENT_DEFAULT_RESOURCE_DESCRIPTION = ("默认资源规范：镜像创建组件在生成时默认使用 512MB 内存和 0m CPU；"
+                                                    "若后续未做手动调整，构建和部署阶段继续沿用该默认资源。")
+    SOURCE_PACKAGE_COMPONENT_DEFAULT_RESOURCE_DESCRIPTION = ("默认资源规范：源码/软件包组件在生成时默认使用 128MB 内存，"
+                                                             "CPU 按 memory/128*20 计算；检测成功后，默认资源会规范化为"
+                                                             "“检测内存值向下对齐到 32MB 整数倍 + 500m CPU”。")
+    BUILD_COMPONENT_DEFAULT_RESOURCE_DESCRIPTION = ("默认资源说明：本步骤不会重新计算默认资源，"
+                                                    "而是沿用组件当前的 min_memory/min_cpu。")
+    PORT_ACTION_ENUM = ("open_outer", "only_open_outer", "close_outer", "open_inner", "close_inner", "change_protocol",
+                        "change_port_alias")
     PORT_PROTOCOL_ENUM = ("http", "https", "stream", "grpc")
     PORT_PROTOCOL_DESCRIPTION = "端口协议，仅支持小写: http、https、stream、grpc。"
     PORT_ACTION_ALIASES = {
@@ -273,63 +267,118 @@ class MCPQueryService(object):
 
     def list_tools(self, user: Any = None) -> List[dict]:
         tools = [
-            self._tool_get_current_user(), self._tool_get_app_detail(), self._tool_get_app_health_overview(),
+            self._tool_get_current_user(),
+            self._tool_get_app_detail(),
+            self._tool_get_app_health_overview(),
             self._tool_create_app(),
-            self._tool_get_component_summary(), self._tool_get_component_detail(),
-            self._tool_get_component_pods(), self._tool_get_pod_detail(),
-            self._tool_get_component_logs(), self._tool_exec_component(), self._tool_get_config_file(),
+            self._tool_get_component_summary(),
+            self._tool_get_component_detail(),
+            self._tool_get_component_pods(),
+            self._tool_get_pod_detail(),
+            self._tool_get_component_logs(),
+            self._tool_exec_component(),
+            self._tool_get_config_file(),
             self._tool_analyze_env_conflicts(),
-            self._tool_get_component_events(), self._tool_get_component_build_logs(),
+            self._tool_get_component_events(),
+            self._tool_get_component_build_logs(),
             self._tool_get_operation_failure_context(),
-            self._tool_get_component_build_source(), self._tool_update_component_build_source(),
+            self._tool_get_component_build_source(),
+            self._tool_update_component_build_source(),
             self._tool_create_component(),
-            self._tool_delete_component(), self._tool_operate_app(), self._tool_wait_for_build_completion(),
+            self._tool_delete_component(),
+            self._tool_operate_app(),
+            self._tool_wait_for_build_completion(),
             self._tool_manage_component_envs(),
             self._tool_manage_component_connection_envs(),
-            self._tool_change_component_image(), self._tool_manage_component_ports(),
+            self._tool_change_component_image(),
+            self._tool_manage_component_ports(),
             self._tool_manage_component_storage(),
-            self._tool_manage_component_autoscaler(), self._tool_manage_component_probe(),
-            self._tool_manage_component_dependency(), self._tool_horizontal_scale_component(),
-            self._tool_vertical_scale_component(), self._tool_close_apps(), self._tool_get_team_apps(),
-            self._tool_get_app_version_overview(), self._tool_list_app_version_snapshots(),
-            self._tool_get_app_version_snapshot_detail(), self._tool_create_app_version_snapshot(),
-            self._tool_delete_app_version_snapshot(), self._tool_rewrite_snapshot_images(),
-            self._tool_publish_snapshot_to_store(), self._tool_rollback_app_version_snapshot(),
-            self._tool_list_app_version_rollback_records(), self._tool_get_app_version_rollback_record_detail(),
-            self._tool_delete_app_version_rollback_record(), self._tool_create_app_from_snapshot_version(),
+            self._tool_manage_component_autoscaler(),
+            self._tool_manage_component_probe(),
+            self._tool_manage_component_dependency(),
+            self._tool_horizontal_scale_component(),
+            self._tool_vertical_scale_component(),
+            self._tool_close_apps(),
+            self._tool_get_team_apps(),
+            self._tool_get_app_version_overview(),
+            self._tool_list_app_version_snapshots(),
+            self._tool_get_app_version_snapshot_detail(),
+            self._tool_create_app_version_snapshot(),
+            self._tool_delete_app_version_snapshot(),
+            self._tool_rewrite_snapshot_images(),
+            self._tool_publish_snapshot_to_store(),
+            self._tool_rollback_app_version_snapshot(),
+            self._tool_list_app_version_rollback_records(),
+            self._tool_get_app_version_rollback_record_detail(),
+            self._tool_delete_app_version_rollback_record(),
+            self._tool_create_app_from_snapshot_version(),
             self._tool_get_app_publish_candidates(),
-            self._tool_create_app_share_record(), self._tool_list_app_share_records(),
-            self._tool_get_app_share_record(), self._tool_delete_app_share_record(),
-            self._tool_get_app_share_info(), self._tool_submit_app_share_info(),
-            self._tool_list_app_share_events(), self._tool_start_app_share_event(),
-            self._tool_get_app_share_event(), self._tool_complete_app_share(),
+            self._tool_create_app_share_record(),
+            self._tool_list_app_share_records(),
+            self._tool_get_app_share_record(),
+            self._tool_delete_app_share_record(),
+            self._tool_get_app_share_info(),
+            self._tool_submit_app_share_info(),
+            self._tool_list_app_share_events(),
+            self._tool_start_app_share_event(),
+            self._tool_get_app_share_event(),
+            self._tool_complete_app_share(),
             self._tool_giveup_app_share(),
-            self._tool_build_component(), self._tool_get_app_last_upgrade_record(),
-            self._tool_query_app_upgrade_records(), self._tool_create_app_upgrade_record(),
-            self._tool_get_app_upgrade_record(), self._tool_get_app_upgrade_detail(),
-            self._tool_get_app_upgrade_changes(), self._tool_execute_app_upgrade_record(),
-            self._tool_deploy_app_upgrade_record(), self._tool_get_app_rollback_records(),
-            self._tool_rollback_app_upgrade_record(), self._tool_get_app_upgrade_info(), self._tool_upgrade_app(),
-            self._tool_get_copy_app_info(), self._tool_copy_app(), self._tool_install_app_by_market(),
-            self._tool_query_cloud_markets(), self._tool_query_local_app_models(), self._tool_query_cloud_app_models(),
-            self._tool_query_app_model_versions(), self._tool_install_app_model(),
-            self._tool_create_component_from_source(), self._tool_create_component_from_package(),
+            self._tool_build_component(),
+            self._tool_get_app_last_upgrade_record(),
+            self._tool_query_app_upgrade_records(),
+            self._tool_create_app_upgrade_record(),
+            self._tool_get_app_upgrade_record(),
+            self._tool_get_app_upgrade_detail(),
+            self._tool_get_app_upgrade_changes(),
+            self._tool_execute_app_upgrade_record(),
+            self._tool_deploy_app_upgrade_record(),
+            self._tool_get_app_rollback_records(),
+            self._tool_rollback_app_upgrade_record(),
+            self._tool_get_app_upgrade_info(),
+            self._tool_upgrade_app(),
+            self._tool_get_copy_app_info(),
+            self._tool_copy_app(),
+            self._tool_install_app_by_market(),
+            self._tool_query_cloud_markets(),
+            self._tool_query_local_app_models(),
+            self._tool_query_cloud_app_models(),
+            self._tool_query_app_model_versions(),
+            self._tool_install_app_model(),
+            self._tool_create_component_from_source(),
+            self._tool_create_component_from_package(),
             self._tool_replace_component_package(),
-            self._tool_init_package_upload(), self._tool_upload_package_file(),
-            self._tool_get_package_upload_status(), self._tool_delete_package_upload(),
+            self._tool_init_package_upload(),
+            self._tool_upload_package_file(),
+            self._tool_get_package_upload_status(),
+            self._tool_delete_package_upload(),
             self._tool_create_component_from_local_package(),
-            self._tool_check_component(), self._tool_get_component_check_result(),
+            self._tool_check_component(),
+            self._tool_get_component_check_result(),
             self._tool_create_component_from_image(),
-            self._tool_create_app_from_yaml(), self._tool_check_yaml_app(), self._tool_get_yaml_app_check_result(),
-            self._tool_query_app_monitor(), self._tool_query_app_monitor_range(),
-            self._tool_create_gateway_rules(), self._tool_check_helm_app(), self._tool_build_helm_app(),
-            self._tool_query_teams(), self._tool_query_apps(), self._tool_query_components(), self._tool_delete_app()
+            self._tool_create_app_from_yaml(),
+            self._tool_check_yaml_app(),
+            self._tool_get_yaml_app_check_result(),
+            self._tool_query_app_monitor(),
+            self._tool_query_app_monitor_range(),
+            self._tool_create_gateway_rules(),
+            self._tool_check_helm_app(),
+            self._tool_build_helm_app(),
+            self._tool_query_teams(),
+            self._tool_query_apps(),
+            self._tool_query_components(),
+            self._tool_delete_app()
         ]
         if self._is_enterprise_admin(user):
             tools = [
-                self._tool_query_enterprises(), self._tool_query_regions(), self._tool_get_region_detail(),
-                self._tool_create_region(), self._tool_update_region(), self._tool_delete_region(),
-                self._tool_query_region_nodes(), self._tool_get_region_node_detail(),
+                self._tool_query_enterprises(),
+                self._tool_query_regions(),
+                self._tool_get_region_detail(),
+                self._tool_create_region(),
+                self._tool_update_region(),
+                self._tool_delete_region(),
+                self._tool_query_region_nodes(),
+                self._tool_get_region_node_detail(),
                 self._tool_query_region_rbd_components()
             ] + tools
         tools.extend(mcp_platform_plugin_tools.list_tools(user))
@@ -338,8 +387,7 @@ class MCPQueryService(object):
             tools = [tool for tool in tools if tool["name"] not in self.RAINSKILLS_HIDDEN_TOOL_NAMES]
         return tools
 
-    def resolve_deployment_service_sources(self, user: Any, tool_name: str,
-                                           arguments: Any) -> list:
+    def resolve_deployment_service_sources(self, user: Any, tool_name: str, arguments: Any) -> list:
         arguments = arguments if isinstance(arguments, dict) else {}
         if tool_name == "rainbond_build_component":
             _, _, service = self._get_team_app_service_context(
@@ -350,9 +398,8 @@ class MCPQueryService(object):
                 self._require_string(arguments, "service_id"),
             )
             return [service]
-        if tool_name != "rainbond_operate_app" or str(
-                arguments.get("action") or "").strip().lower() not in (
-                    "deploy", "upgrade"):
+        if tool_name != "rainbond_operate_app" or str(arguments.get("action")
+                                                      or "").strip().lower() not in ("deploy", "upgrade"):
             return []
         team, app = self._get_team_app_context(
             user,
@@ -360,18 +407,14 @@ class MCPQueryService(object):
             self._require_string(arguments, "region_name"),
             self._require_int(arguments, "app_id"),
         )
-        service_ids = arguments.get("service_ids") or self._get_app_service_ids(
-            app)
+        service_ids = arguments.get("service_ids") or self._get_app_service_ids(app)
         if not isinstance(service_ids, list):
-            raise ServiceHandleException(
-                msg="invalid service_ids", msg_show="参数service_ids无效", status_code=400)
+            raise ServiceHandleException(msg="invalid service_ids", msg_show="参数service_ids无效", status_code=400)
         services = []
         for service_id in dict.fromkeys(service_ids):
             if not isinstance(service_id, str) or not service_id.strip():
-                raise ServiceHandleException(
-                    msg="invalid service_ids", msg_show="参数service_ids无效", status_code=400)
-            services.append(
-                self._get_service_in_team_app(team, app, service_id))
+                raise ServiceHandleException(msg="invalid service_ids", msg_show="参数service_ids无效", status_code=400)
+            services.append(self._get_service_in_team_app(team, app, service_id))
         return services
 
     def call_tool(self, user: Any, name: str, arguments: Optional[dict] = None) -> Any:
@@ -758,9 +801,7 @@ class MCPQueryService(object):
             self._require_int(arguments, "app_id"),
             self._require_string(arguments, "service_id"),
         )
-        data = region_api.get_service_pods(
-            app.region_name, team.tenant_name, service.service_alias, team.enterprise_id
-        )
+        data = region_api.get_service_pods(app.region_name, team.tenant_name, service.service_alias, team.enterprise_id)
         pods = self._extract_component_pods(data)
         items = []
         for pod in pods:
@@ -787,13 +828,9 @@ class MCPQueryService(object):
         )
         pod_name = self._require_string(arguments, "pod_name")
         if getattr(service, "extend_method", "") == "kubeblocks_component":
-            data = region_api.kubeblocks_cluster_pod_detail(
-                app.region_name, service.service_id, pod_name
-            )
+            data = region_api.kubeblocks_cluster_pod_detail(app.region_name, service.service_id, pod_name)
         else:
-            data = region_api.pod_detail(
-                app.region_name, team.tenant_name, service.service_alias, pod_name
-            )
+            data = region_api.pod_detail(app.region_name, team.tenant_name, service.service_alias, pod_name)
         pod_detail = self._extract_region_pod_detail(data)
         if not pod_detail:
             raise ServiceHandleException(msg="pod not found", msg_show="Pod 不存在", status_code=404)
@@ -825,9 +862,8 @@ class MCPQueryService(object):
         mnts, mnt_total = mnt_service.get_service_mnt_details(team, service, None, page=1, page_size=100)
         autoscaler_rules = autoscaler_service.list_autoscaler_rules(service.service_id)
         probe_code, _, probe = probe_service.get_service_probe(service)
-        events, total, has_next = event_service.get_target_events(
-            "service", service.service_id, team, service.service_region, 1, event_limit
-        )
+        events, total, has_next = event_service.get_target_events("service", service.service_id, team, service.service_region,
+                                                                  1, event_limit)
         resource = self._get_component_resource(team, service)
 
         port_items = [self._serialize_model_item(port) for port in ports]
@@ -839,17 +875,32 @@ class MCPQueryService(object):
             "app_id": app.ID,
             "service_id": service.service_id,
             "service": service_data,
-            "status": {"status": service_data["status"]},
+            "status": {
+                "status": service_data["status"]
+            },
             "resource": resource,
             "summary_metrics": summary_metrics,
-            "ports": {"items": port_items, "total": len(ports)},
-            "envs": {"items": [self._serialize_model_item(env) for env in envs], "total": len(envs)},
+            "ports": {
+                "items": port_items,
+                "total": len(ports)
+            },
+            "envs": {
+                "items": [self._serialize_model_item(env) for env in envs],
+                "total": len(envs)
+            },
             "build_envs": {
                 "items": [self._serialize_model_item(env) for env in build_envs],
                 "total": len(build_envs),
             },
-            "volumes": {"items": [self._serialize_model_item(volume) for volume in volumes], "total": len(volumes)},
-            "mnts": {"items": mnts, "total": mnt_total, "truncated": len(mnts) < mnt_total},
+            "volumes": {
+                "items": [self._serialize_model_item(volume) for volume in volumes],
+                "total": len(volumes)
+            },
+            "mnts": {
+                "items": mnts,
+                "total": mnt_total,
+                "truncated": len(mnts) < mnt_total
+            },
             "probe": self._serialize_model_item(probe) if probe_code == 200 else None,
             "autoscaler_rules": {
                 "items": [self._serialize_model_item(rule) for rule in autoscaler_rules],
@@ -874,7 +925,7 @@ class MCPQueryService(object):
         )
         action = arguments.get("action", "service") or "service"
         lines = self._parse_int_with_default(arguments.get("lines"), 100)
-        follow = bool(arguments.get("follow", False))
+        _ = bool(arguments.get("follow", False))
         previous = self._parse_bool_with_default(arguments.get("previous"), False)
         fallback = None
         if action == "container":
@@ -898,9 +949,13 @@ class MCPQueryService(object):
                     "pod_name": pod_name,
                     "container_name": container_name,
                 }
-        log_list = self._read_component_pod_logs(
-            team, app.region_name, service.service_alias, pod_name, lines, container_name, previous=previous
-        )
+        log_list = self._read_component_pod_logs(team,
+                                                 app.region_name,
+                                                 service.service_alias,
+                                                 pod_name,
+                                                 lines,
+                                                 container_name,
+                                                 previous=previous)
         return {
             "team_name": team.tenant_name,
             "region_name": app.region_name,
@@ -925,9 +980,7 @@ class MCPQueryService(object):
         pod_name = self._require_string(arguments, "pod_name")
         container_name = arguments.get("container_name", "") or ""
         command = self._require_command(arguments)
-        timeout_seconds = self._parse_optional_positive_int(
-            arguments.get("timeout_seconds"), "timeout_seconds"
-        ) or 30
+        timeout_seconds = self._parse_optional_positive_int(arguments.get("timeout_seconds"), "timeout_seconds") or 30
         try:
             body = region_api.exec_component_pod(
                 team.tenant_name,
@@ -943,18 +996,23 @@ class MCPQueryService(object):
             # 此处不直接抛出，而是返回一个对 AI/用户友好的结果，引导改用 previous 日志。
             if e.msg == "container not running":
                 return {
-                    "team_name": team.tenant_name,
-                    "region_name": app.region_name,
-                    "app_id": app.ID,
-                    "service_id": service.service_id,
-                    "pod_name": pod_name,
-                    "container_name": container_name,
-                    "container_running": False,
-                    "message": (
-                        "目标容器未处于运行状态，无法 exec。"
-                        "请改用 rainbond_get_component_logs 并设置 previous=true 读取上一次退出前的日志进行排查；"
-                        "若需确认配置文件内容，可使用 rainbond_get_config_file。"
-                    ),
+                    "team_name":
+                    team.tenant_name,
+                    "region_name":
+                    app.region_name,
+                    "app_id":
+                    app.ID,
+                    "service_id":
+                    service.service_id,
+                    "pod_name":
+                    pod_name,
+                    "container_name":
+                    container_name,
+                    "container_running":
+                    False,
+                    "message": ("目标容器未处于运行状态，无法 exec。"
+                                "请改用 rainbond_get_component_logs 并设置 previous=true 读取上一次退出前的日志进行排查；"
+                                "若需确认配置文件内容，可使用 rainbond_get_config_file。"),
                 }
             raise
         detail = self._extract_region_pod_detail(body) if isinstance(body, dict) else {}
@@ -1065,10 +1123,7 @@ class MCPQueryService(object):
             if len(distinct_values) < 2:
                 # same name, same value from multiple sources: harmless
                 continue
-            masked_sources = [
-                {**s, "value": self._mask_env_value(attr_name, s["value"])}
-                for s in sources
-            ]
+            masked_sources = [{**s, "value": self._mask_env_value(attr_name, s["value"])} for s in sources]
             conflicts.append({"attr_name": attr_name, "sources": masked_sources})
 
         return {
@@ -1090,9 +1145,8 @@ class MCPQueryService(object):
             self._require_int(arguments, "app_id"),
             self._require_string(arguments, "service_id"),
         )
-        events, total, has_next = event_service.get_target_events(
-            "service", service.service_id, team, service.service_region, page, page_size
-        )
+        events, total, has_next = event_service.get_target_events("service", service.service_id, team, service.service_region,
+                                                                  page, page_size)
         return {
             "events": events,
             "total": total,
@@ -1174,10 +1228,9 @@ class MCPQueryService(object):
     # bare values. Known accepted limitation: keys whose secret word is glued
     # to a prefix by an underscore (e.g. db_password) miss the \b word boundary
     # and are not masked.
-    _FAILURE_CONTEXT_SECRET_RE = re.compile(
-        r"(?i)\b(password|passwd|pwd|token|secret|access[_-]?key|api[_-]?key|authorization)"
-        r"(\s*[:=]\s*)"
-        r"(bearer\s+\S+|\"[^\"]*\"|'[^']*'|[^\s,;\"'&]+)")
+    _FAILURE_CONTEXT_SECRET_RE = re.compile(r"(?i)\b(password|passwd|pwd|token|secret|access[_-]?key|api[_-]?key|authorization)"
+                                            r"(\s*[:=]\s*)"
+                                            r"(bearer\s+\S+|\"[^\"]*\"|'[^']*'|[^\s,;\"'&]+)")
 
     def get_operation_failure_context(self, user: Any, arguments: dict) -> dict:
         team, app, service = self._get_team_app_service_context(
@@ -1187,8 +1240,7 @@ class MCPQueryService(object):
             self._require_int(arguments, "app_id"),
             self._require_string(arguments, "service_id"),
         )
-        log_tail_lines = self._parse_int_with_default(
-            arguments.get("log_tail_lines"), self.FAILURE_CONTEXT_DEFAULT_LOG_TAIL)
+        log_tail_lines = self._parse_int_with_default(arguments.get("log_tail_lines"), self.FAILURE_CONTEXT_DEFAULT_LOG_TAIL)
         if log_tail_lines <= 0:
             log_tail_lines = self.FAILURE_CONTEXT_DEFAULT_LOG_TAIL
         log_tail_lines = min(log_tail_lines, self.FAILURE_CONTEXT_MAX_LOG_TAIL)
@@ -1204,8 +1256,7 @@ class MCPQueryService(object):
 
         event_log_tail = []
         if event_id:
-            event_log_tail = self._read_failure_event_log_tail(
-                team, app.region_name, event_id, log_tail_lines)
+            event_log_tail = self._read_failure_event_log_tail(team, app.region_name, event_id, log_tail_lines)
 
         pod_warnings = self._collect_pod_warnings(team, app.region_name, service)
 
@@ -1242,14 +1293,19 @@ class MCPQueryService(object):
         aborting.
         """
         if requested_event_id:
-            return {"event_id": requested_event_id, "opt_type": "", "status": "",
-                    "message": "", "start_time": "", "end_time": ""}
+            return {
+                "event_id": requested_event_id,
+                "opt_type": "",
+                "status": "",
+                "message": "",
+                "start_time": "",
+                "end_time": ""
+            }
 
         events = []  # type: List[Any]
         try:
-            res, body = region_api.get_target_events_list(
-                app.region_name, team.tenant_name, "service", service.service_id,
-                1, self.FAILURE_CONTEXT_EVENT_QUERY_SIZE)
+            res, body = region_api.get_target_events_list(app.region_name, team.tenant_name, "service", service.service_id, 1,
+                                                          self.FAILURE_CONTEXT_EVENT_QUERY_SIZE)
             if int(res.status) == 200 and isinstance(body, dict):
                 events = body.get("list") or []
         except Exception as e:
@@ -1276,8 +1332,7 @@ class MCPQueryService(object):
             "end_time": item.get("end_time") or "",
         }
 
-    def _read_failure_event_log_tail(self, team: Any, region_name: str, event_id: str,
-                                     log_tail_lines: int) -> List[str]:
+    def _read_failure_event_log_tail(self, team: Any, region_name: str, event_id: str, log_tail_lines: int) -> List[str]:
         try:
             res, body = region_api.get_events_log(team.tenant_name, region_name, event_id)
             items = body.get("list") or [] if (int(res.status) == 200 and isinstance(body, dict)) else []
@@ -1300,9 +1355,8 @@ class MCPQueryService(object):
 
     # Env var names whose value must be masked in analyze_env_conflicts output:
     # the AI only needs to know the values differ, never the secret itself.
-    _SENSITIVE_ENV_NAME_RE = re.compile(
-        r"(?i)(password|passwd|pwd|token|secret|access[_-]?key|api[_-]?key|"
-        r"authorization|private[_-]?key|credential)")
+    _SENSITIVE_ENV_NAME_RE = re.compile(r"(?i)(password|passwd|pwd|token|secret|access[_-]?key|api[_-]?key|"
+                                        r"authorization|private[_-]?key|credential)")
 
     @classmethod
     def _mask_env_value(cls, attr_name: str, value: Any) -> Any:
@@ -1324,7 +1378,7 @@ class MCPQueryService(object):
     # component. Kept separate from FAILURE_CONTEXT_EVENT_QUERY_SIZE.
     WAIT_BUILD_EVENT_QUERY_SIZE = 100
     # Event terminal statuses: success -> "success"; failure/timeout -> "failure".
-    _WAIT_BUILD_SUCCESS_STATUSES = ("success",)
+    _WAIT_BUILD_SUCCESS_STATUSES = ("success", )
     _WAIT_BUILD_FAILURE_STATUSES = ("failure", "timeout")
 
     def wait_for_build_completion(self, user: Any, arguments: dict) -> dict:
@@ -1368,9 +1422,8 @@ class MCPQueryService(object):
         Best-effort: any sub-query failure returns None (treated as still running)
         rather than aborting the poll."""
         try:
-            res, body = region_api.get_target_events_list(
-                app.region_name, team.tenant_name, "service", service.service_id,
-                1, self.WAIT_BUILD_EVENT_QUERY_SIZE)
+            res, body = region_api.get_target_events_list(app.region_name, team.tenant_name, "service", service.service_id, 1,
+                                                          self.WAIT_BUILD_EVENT_QUERY_SIZE)
             items = body.get("list") or [] if (int(res.status) == 200 and isinstance(body, dict)) else []
         except Exception as e:
             logger.warning("wait_build: list events failed for %s: %s", service.service_id, e)
@@ -1380,13 +1433,13 @@ class MCPQueryService(object):
                 return item
         return None
 
-    def _wait_build_result(self, team: Any, app: Any, service: Any, event_id: str,
-                           status: str, timeout: int, event_status: str) -> dict:
+    def _wait_build_result(self, team: Any, app: Any, service: Any, event_id: str, status: str, timeout: int,
+                           event_status: str) -> dict:
         error_summary = []  # type: List[str]
         classified_reason = None
         if status == "failure":
-            error_summary = self._read_failure_event_log_tail(
-                team, app.region_name, event_id, self.FAILURE_CONTEXT_DEFAULT_LOG_TAIL)
+            error_summary = self._read_failure_event_log_tail(team, app.region_name, event_id,
+                                                              self.FAILURE_CONTEXT_DEFAULT_LOG_TAIL)
             # Image-pull / crash-loop signals live in pod warnings, not the event
             # log; the log tail only carries the k8s_api_rejected fallback. Gather
             # both so the build failure classifies the same way as
@@ -1410,8 +1463,7 @@ class MCPQueryService(object):
         """Pull Warning events from up to N abnormal pods. Best-effort: any
         failure returns an empty list so aggregation can degrade gracefully."""
         try:
-            pods_data = region_api.get_service_pods(
-                region_name, team.tenant_name, service.service_alias, team.enterprise_id)
+            pods_data = region_api.get_service_pods(region_name, team.tenant_name, service.service_alias, team.enterprise_id)
         except Exception as e:
             logger.warning("failure_context: list pods failed for %s: %s", service.service_id, e)
             return []
@@ -1433,11 +1485,9 @@ class MCPQueryService(object):
             warnings.extend(self._extract_pod_warning_events(team, region_name, service, pod_name))
         return warnings
 
-    def _extract_pod_warning_events(self, team: Any, region_name: str, service: Any,
-                                    pod_name: str) -> List[dict]:
+    def _extract_pod_warning_events(self, team: Any, region_name: str, service: Any, pod_name: str) -> List[dict]:
         try:
-            detail_payload = region_api.pod_detail(
-                region_name, team.tenant_name, service.service_alias, pod_name)
+            detail_payload = region_api.pod_detail(region_name, team.tenant_name, service.service_alias, pod_name)
         except Exception as e:
             logger.warning("failure_context: pod_detail failed for %s/%s: %s", service.service_id, pod_name, e)
             return []
@@ -1577,8 +1627,8 @@ class MCPQueryService(object):
                 try:
                     # NOTE: oauth_service may be None (repo returns Optional); guarded by
                     # the surrounding try/except which converts AttributeError into a 400.
-                    instance = get_oauth_instance(
-                        oauth_service.oauth_type, oauth_service, oauth_user)  # type: ignore[union-attr]
+                    instance = get_oauth_instance(oauth_service.oauth_type, oauth_service,  # type: ignore[union-attr]
+                                                  oauth_user)  # type: ignore[union-attr]
                 except Exception:
                     raise ServiceHandleException(msg="oauth service invalid", msg_show="未找到OAuth服务", status_code=400)
                 if not instance.is_git_oauth():
@@ -1663,8 +1713,7 @@ class MCPQueryService(object):
             raise ServiceHandleException(msg="component name exists", msg_show="组件英文名称已存在", status_code=400)
 
         code, msg_show, new_service = console_app_service.create_docker_run_app(
-            app.region_name, team, user, service_cname, docker_cmd, "docker_image", k8s_component_name, image
-        )
+            app.region_name, team, user, service_cname, docker_cmd, "docker_image", k8s_component_name, image)
         if code != 200:
             raise ServiceHandleException(msg="service create fail", msg_show=msg_show, status_code=code)
         # NOTE: new_service is non-None past this point (create_docker_run_app only
@@ -1682,16 +1731,16 @@ class MCPQueryService(object):
             new_service.save()  # type: ignore[union-attr]
 
         if docker_password or docker_user_name:
-            console_app_service.create_service_source_info(
-                team, new_service, docker_user_name, docker_password)  # type: ignore[arg-type]
+            console_app_service.create_service_source_info(team, new_service, docker_user_name,  # type: ignore[arg-type]
+                                                           docker_password)  # type: ignore[arg-type]
 
-        code, msg_show = group_service.add_service_to_group(
-            team, app.region_name, app.ID, new_service.service_id)  # type: ignore[union-attr]
+        code, msg_show = group_service.add_service_to_group(team, app.region_name, app.ID,
+                                                            new_service.service_id)  # type: ignore[union-attr]
         if code != 200:
             raise ServiceHandleException(msg="add component to app failure", msg_show=msg_show, status_code=code)
 
-        region_new_service = console_app_service.create_region_service(
-            team, new_service, user.nick_name)  # type: ignore[arg-type]
+        region_new_service = console_app_service.create_region_service(team, new_service,  # type: ignore[arg-type]
+                                                                       user.nick_name)  # type: ignore[arg-type]
         event_id = ""
         if is_deploy:
             code, msg_show, event_id = app_manage_service.deploy(team, region_new_service, user)
@@ -1769,15 +1818,13 @@ class MCPQueryService(object):
         action = self._require_string(arguments, "action")
         supported_actions = ("start", "stop", "restart", "upgrade", "deploy")
         if action not in supported_actions:
-            raise ServiceHandleException(
-                msg="unsupported action", msg_show="不支持的应用操作: {}".format(action), status_code=400)
+            raise ServiceHandleException(msg="unsupported action", msg_show="不支持的应用操作: {}".format(action), status_code=400)
         service_ids = arguments.get("service_ids") or self._get_app_service_ids(app)
         event_ids = []
         if action == "restart":
             # The restart path returns serialized services and carries no
             # per-component event_id; event_ids stays empty but present.
-            code, msg, result = app_manage_service.batch_action(
-                app.region_name, team, user, action, service_ids, None, None)
+            code, msg, result = app_manage_service.batch_action(app.region_name, team, user, action, service_ids, None, None)
             if code != 200:
                 raise ServiceHandleException(msg="batch restart error", msg_show=msg, status_code=code)
             result = [self._serialize_model_item(service) for service in result]
@@ -1803,8 +1850,7 @@ class MCPQueryService(object):
         """
         if not isinstance(batch_result, list):
             return []
-        service_ids = [item.get("service_id") for item in batch_result
-                       if isinstance(item, dict) and item.get("service_id")]
+        service_ids = [item.get("service_id") for item in batch_result if isinstance(item, dict) and item.get("service_id")]
         alias_map = {}
         if service_ids:
             try:
@@ -1828,15 +1874,12 @@ class MCPQueryService(object):
         return event_ids
 
     @staticmethod
-    def _standard_deployment_event_fields(events: Any,
-                                          fallback_service_ids: Any = None
-                                          ) -> Dict[str, List[str]]:
+    def _standard_deployment_event_fields(events: Any, fallback_service_ids: Any = None) -> Dict[str, List[str]]:
         event_ids: List[str] = []
         service_ids: List[str] = []
         event_values: Iterable[Any]
         if isinstance(events, dict):
-            event_ids.extend(str(event_id) for event_id in events.keys()
-                             if event_id)
+            event_ids.extend(str(event_id) for event_id in events.keys() if event_id)
             event_values = events.values()
         elif isinstance(events, (list, tuple)):
             event_values = events
@@ -1856,9 +1899,7 @@ class MCPQueryService(object):
                 event_ids.append(str(event_id))
             if service_id:
                 service_ids.append(str(service_id))
-        service_ids.extend(
-            str(service_id) for service_id in (fallback_service_ids or [])
-            if service_id)
+        service_ids.extend(str(service_id) for service_id in (fallback_service_ids or []) if service_id)
         return {
             "event_ids": list(dict.fromkeys(event_ids)),
             "service_ids": list(dict.fromkeys(service_ids)),
@@ -1909,12 +1950,18 @@ class MCPQueryService(object):
             build_envs = env_var_service.get_service_build_envs(service)
             return {
                 "service_id": service.service_id,
-                "custom_envs": {"items": [self._serialize_model_item(env) for env in envs], "total": len(envs)},
+                "custom_envs": {
+                    "items": [self._serialize_model_item(env) for env in envs],
+                    "total": len(envs)
+                },
                 "connection_envs": {
                     "items": [self._serialize_model_item(env) for env in connection_envs],
                     "total": len(connection_envs),
                 },
-                "build_envs": {"items": [self._serialize_model_item(env) for env in build_envs], "total": len(build_envs)},
+                "build_envs": {
+                    "items": [self._serialize_model_item(env) for env in build_envs],
+                    "total": len(build_envs)
+                },
             }
         if operation == "upsert":
             envs = self._resolve_upsert_envs(arguments)
@@ -1930,9 +1977,8 @@ class MCPQueryService(object):
             name = arguments.get("name", "") or ""
             scope = self._normalize_env_scope(arguments.get("scope"))
             is_change = arguments.get("is_change", True)
-            code, msg, env = env_var_service.add_service_env_var(
-                team, service, 0, name, attr_name, attr_value, is_change, scope, user.nick_name
-            )
+            code, msg, env = env_var_service.add_service_env_var(team, service, 0, name, attr_name, attr_value, is_change,
+                                                                 scope, user.nick_name)
             if code != 200:
                 raise ServiceHandleException(msg="add env error", msg_show=msg, status_code=code)
             return {"created": True, "env": self._serialize_model_item(env)}
@@ -1965,9 +2011,8 @@ class MCPQueryService(object):
                 build_env.delete()
             if build_env_dict:
                 cnb_params = [
-                    "CNB_FRAMEWORK", "CNB_BUILD_SCRIPT", "CNB_OUTPUT_DIR", "CNB_NODE_VERSION",
-                    "CNB_NODE_ENV", "CNB_MIRROR_SOURCE", "CNB_MIRROR_NPMRC", "CNB_MIRROR_YARNRC",
-                    "CNB_START_SCRIPT"
+                    "CNB_FRAMEWORK", "CNB_BUILD_SCRIPT", "CNB_OUTPUT_DIR", "CNB_NODE_VERSION", "CNB_NODE_ENV",
+                    "CNB_MIRROR_SOURCE", "CNB_MIRROR_NPMRC", "CNB_MIRROR_YARNRC", "CNB_START_SCRIPT"
                 ]
                 has_cnb_params = any(key in build_env_dict for key in cnb_params)
                 if has_cnb_params and "BUILD_TYPE" not in build_env_dict:
@@ -2014,15 +2059,17 @@ class MCPQueryService(object):
             envs = env_var_service.get_service_outer_env(service)
             return {
                 "service_id": service.service_id,
-                "connection_envs": {"items": [self._serialize_model_item(env) for env in envs], "total": len(envs)},
+                "connection_envs": {
+                    "items": [self._serialize_model_item(env) for env in envs],
+                    "total": len(envs)
+                },
             }
         if operation == "create":
             attr_name = self._require_string(arguments, "attr_name")
             attr_value = self._require_string(arguments, "attr_value")
             name = arguments.get("name", "") or ""
-            code, msg, env = env_var_service.add_service_env_var(
-                team, service, 0, name, attr_name, attr_value, False, "outer", user.nick_name
-            )
+            code, msg, env = env_var_service.add_service_env_var(team, service, 0, name, attr_name, attr_value, False, "outer",
+                                                                 user.nick_name)
             if code != 200:
                 raise ServiceHandleException(msg="add env error", msg_show=msg, status_code=code)
             return {"created": True, "env": self._serialize_model_item(env)}
@@ -2090,9 +2137,8 @@ class MCPQueryService(object):
             protocol = self._require_string(arguments, "protocol")
             port_alias = arguments.get("port_alias", "") or ""
             is_inner_service = bool(arguments.get("is_inner_service", False))
-            code, msg, port_info = port_service.add_service_port(
-                team, service, port, protocol, port_alias, is_inner_service, False, None, user.nick_name
-            )
+            code, msg, port_info = port_service.add_service_port(team, service, port, protocol, port_alias, is_inner_service,
+                                                                 False, None, user.nick_name)
             if code != 200:
                 self._raise_port_tool_error("add port error", msg, code)
             return self._serialize_model_item(port_info)
@@ -2133,11 +2179,8 @@ class MCPQueryService(object):
         operation = self._normalize_component_operation(
             self._require_string(arguments, "operation"),
             self.HIGH_LEVEL_PORT_OPERATION_ALIASES,
-            (
-                "summary", "add", "update", "delete",
-                "enable_inner", "disable_inner", "enable_outer", "disable_outer",
-                "enable_outer_only", "update_protocol", "update_alias"
-            ),
+            ("summary", "add", "update", "delete", "enable_inner", "disable_inner", "enable_outer", "disable_outer",
+             "enable_outer_only", "update_protocol", "update_alias"),
             "端口",
         )
         if operation == "summary":
@@ -2224,8 +2267,16 @@ class MCPQueryService(object):
                     )
                 protocol = self._normalize_port_protocol(item.get("protocol"))
             code, msg, port_info = port_service.manage_port(
-                team, service, app.region_name, port_num, action,
-                protocol, None, "", user.nick_name, app=app,
+                team,
+                service,
+                app.region_name,
+                port_num,
+                action,
+                protocol,
+                None,
+                "",
+                user.nick_name,
+                app=app,
             )
             if code != 200:
                 self._raise_port_tool_error("port operation failed", msg, code)
@@ -2286,18 +2337,12 @@ class MCPQueryService(object):
             if not self._has_value(arguments, correct_field) and self._has_value(arguments, wrong_field):
                 raise ServiceHandleException(
                     msg="create_volume expects {0}, got {1}".format(correct_field, wrong_field),
-                    msg_show=(
-                        "create_volume 请使用 {0}（你传的是 {1}，那是 update_volume 的参数）".format(
-                            correct_field, wrong_field
-                        )
-                    ),
+                    msg_show=("create_volume 请使用 {0}（你传的是 {1}，那是 update_volume 的参数）".format(correct_field, wrong_field)),
                     status_code=400,
                 )
 
     def _mcp_assert_volume_path_available(self, service: Any, new_volume_path: str) -> None:
-        existing_rows = volume_repo.get_service_volumes_with_config_file(
-            service.service_id
-        ).values("volume_path")
+        existing_rows = volume_repo.get_service_volumes_with_config_file(service.service_id).values("volume_path")
         for row in existing_rows:
             existing = row["volume_path"]
             if existing == new_volume_path:
@@ -2365,12 +2410,26 @@ class MCPQueryService(object):
             # volumes from AI assistants.
             volume_options = volume_service.get_service_support_volume_options(team, service)
             volumes = volume_service.get_all_service_volumes_with_status(team, service)
-            mnts, total = mnt_service.get_service_mnt_details(team, service, arguments.get("volume_types"), page=1, page_size=100)
+            mnts, total = mnt_service.get_service_mnt_details(team,
+                                                              service,
+                                                              arguments.get("volume_types"),
+                                                              page=1,
+                                                              page_size=100)
             return {
                 "service_id": service.service_id,
-                "volume_options": {"items": volume_options, "total": len(volume_options)},
-                "volumes": {"items": [self._serialize_model_item(v) for v in volumes], "total": len(volumes)},
-                "mnts": {"items": mnts, "total": total, "truncated": len(mnts) < total},
+                "volume_options": {
+                    "items": volume_options,
+                    "total": len(volume_options)
+                },
+                "volumes": {
+                    "items": [self._serialize_model_item(v) for v in volumes],
+                    "total": len(volumes)
+                },
+                "mnts": {
+                    "items": mnts,
+                    "total": total,
+                    "truncated": len(mnts) < total
+                },
             }
         if operation == "list_unmounted":
             page = self._parse_int_with_default(arguments.get("page"), 1)
@@ -2381,9 +2440,8 @@ class MCPQueryService(object):
             is_config = bool(arguments.get("is_config", False))
             services = console_app_service.get_app_list(team.tenant_id, service.service_region, dep_app_name)
             service_ids = [item.service_id for item in services]
-            items, total = mnt_service.get_service_unmount_volume_list(
-                team, service, service_ids, page, page_size, is_config, dep_app_group, config_name
-            )
+            items, total = mnt_service.get_service_unmount_volume_list(team, service, service_ids, page, page_size, is_config,
+                                                                       dep_app_group, config_name)
             return {"items": items, "total": total, "page": page, "page_size": page_size}
         if operation == "create_volume":
             self._assert_create_volume_param_names(arguments)
@@ -2442,7 +2500,8 @@ class MCPQueryService(object):
                 }
                 if volume.volume_type != "config-file":
                     data["volume_capacity"] = target_volume_capacity
-                res, _ = region_api.upgrade_service_volumes(service.service_region, team.tenant_name, service.service_alias, data)
+                res, _ = region_api.upgrade_service_volumes(service.service_region, team.tenant_name, service.service_alias,
+                                                            data)
                 if res.status != 200:
                     raise ServiceHandleException(msg="update failed", msg_show="修改失败", status_code=405)
             volume.volume_path = new_volume_path
@@ -2464,14 +2523,11 @@ class MCPQueryService(object):
             else:
                 volume = self._resolve_component_volume_target(service, arguments)
                 volume_id = self._require_positive_int_value(
-                    getattr(volume, "ID", None) or getattr(volume, "volume_id", None), "volume_id"
-                )
+                    getattr(volume, "ID", None) or getattr(volume, "volume_id", None), "volume_id")
             force = None
             if "force" in arguments:
                 force = "1" if bool(arguments.get("force")) else "0"
-            code, msg, volume = volume_service.delete_service_volume_by_id(
-                team, service, volume_id, user.nick_name, force
-            )
+            code, msg, volume = volume_service.delete_service_volume_by_id(team, service, volume_id, user.nick_name, force)
             if code == 202:
                 return {"deleted": False, "requires_force": True, "message": msg, "dependents": volume}
             if code != 200:
@@ -2507,10 +2563,14 @@ class MCPQueryService(object):
         )
         if operation == "summary":
             rules = autoscaler_service.list_autoscaler_rules(service.service_id)
-            records = scaling_records_service.list_scaling_records(app.region_name, team.tenant_name, service.service_alias, 1, 10)
+            records = scaling_records_service.list_scaling_records(app.region_name, team.tenant_name, service.service_alias, 1,
+                                                                   10)
             return {
                 "service_id": service.service_id,
-                "rules": {"items": [self._serialize_model_item(rule) for rule in rules], "total": len(rules)},
+                "rules": {
+                    "items": [self._serialize_model_item(rule) for rule in rules],
+                    "total": len(rules)
+                },
                 "records": {
                     "items": records.get("list", []) if isinstance(records, dict) else [],
                     "total": records.get("total", 0) if isinstance(records, dict) else 0,
@@ -2526,14 +2586,14 @@ class MCPQueryService(object):
         if operation == "update_rule":
             rule_id = self._require_string(arguments, "rule_id")
             data = self._build_autoscaler_payload(service, arguments)
-            result = autoscaler_service.update_autoscaler_rule(
-                app.region_name, team.tenant_name, service.service_alias, rule_id, data, user.nick_name
-            )
+            result = autoscaler_service.update_autoscaler_rule(app.region_name, team.tenant_name, service.service_alias,
+                                                               rule_id, data, user.nick_name)
             return {"updated": True, "rule": result}
         if operation == "records":
             page = self._parse_int_with_default(arguments.get("page"), 1)
             page_size = self._parse_int_with_default(arguments.get("page_size"), 10)
-            records = scaling_records_service.list_scaling_records(app.region_name, team.tenant_name, service.service_alias, page, page_size)
+            records = scaling_records_service.list_scaling_records(app.region_name, team.tenant_name, service.service_alias,
+                                                                   page, page_size)
             return records
         raise ServiceHandleException(msg="invalid autoscaler operation", msg_show="不支持的自动伸缩操作类型", status_code=400)
 
@@ -2561,7 +2621,8 @@ class MCPQueryService(object):
             }
         if operation == "get":
             mode = arguments.get("mode")
-            code, msg, probe = probe_service.get_service_probe_by_mode(service, mode) if mode else probe_service.get_service_probe(service)
+            code, msg, probe = probe_service.get_service_probe_by_mode(
+                service, mode) if mode else probe_service.get_service_probe(service)
             if code != 200:
                 raise ServiceHandleException(msg="get probe error", msg_show=msg, status_code=code)
             if isinstance(probe, list):
@@ -2623,9 +2684,9 @@ class MCPQueryService(object):
                 return {"created": True, "dep_service_ids": dep_service_ids}
             if not dep_service_id:
                 raise ServiceHandleException(msg="dependency service not specify", msg_show="请指明需要依赖的组件", status_code=400)
-            code, msg, data = dependency_service.add_service_dependency(
-                team, service, dep_service_id, arguments.get("open_inner", False), arguments.get("container_port"), user.nick_name
-            )
+            code, msg, data = dependency_service.add_service_dependency(team, service, dep_service_id,
+                                                                        arguments.get("open_inner", False),
+                                                                        arguments.get("container_port"), user.nick_name)
             if code == 201:
                 return {"created": False, "requires_open_inner": True, "message": msg, "port_list": data}
             if code != 200:
@@ -2634,10 +2695,11 @@ class MCPQueryService(object):
         if operation == "add_reverse":
             be_dep_service_ids = arguments.get("be_dep_service_ids")
             if not isinstance(be_dep_service_ids, list) or not be_dep_service_ids:
-                raise ServiceHandleException(msg="invalid be_dep_service_ids", msg_show="参数be_dep_service_ids无效", status_code=400)
-            data = dependency_service.patch_add_service_reverse_dependency(
-                team, service, ",".join(be_dep_service_ids), user.nick_name
-            )
+                raise ServiceHandleException(msg="invalid be_dep_service_ids",
+                                             msg_show="参数be_dep_service_ids无效",
+                                             status_code=400)
+            data = dependency_service.patch_add_service_reverse_dependency(team, service, ",".join(be_dep_service_ids),
+                                                                           user.nick_name)
             return {"created": True, "items": data, "total": len(data)}
         if operation == "delete":
             dep_service_id = self._require_string(arguments, "dep_service_id")
@@ -2819,25 +2881,18 @@ class MCPQueryService(object):
         logo = arguments.get("logo", "") or ""
         store_app_id = arguments.get("store_app_id", "") or ""
         arch = arguments.get("arch", "") or ""
-        rewrite_images = self._parse_bool_with_default(
-            arguments.get("rewrite_images"), True)
+        rewrite_images = self._parse_bool_with_default(arguments.get("rewrite_images"), True)
 
         enterprise_id = team.enterprise_id
-        market = app_market_repo.get_app_market(
-            enterprise_id, str(market_id), raise_exception=True)
+        market = app_market_repo.get_app_market(enterprise_id, str(market_id), raise_exception=True)
         if not market:
-            raise ServiceHandleException(
-                msg="market not found", msg_show="应用市场不存在",
-                status_code=404)
+            raise ServiceHandleException(msg="market not found", msg_show="应用市场不存在", status_code=404)
         detail = app_version_service.get_snapshot_detail(app.ID, version_id)
         if not detail:
-            raise ServiceHandleException(
-                msg="snapshot not found", msg_show="快照版本不存在",
-                status_code=404)
+            raise ServiceHandleException(msg="snapshot not found", msg_show="快照版本不存在", status_code=404)
         app_template = detail.get("template", {})
         if rewrite_images:
-            app_template = app_version_service._rewrite_template_images_to_upstream(
-                app_template)
+            app_template = app_version_service._rewrite_template_images_to_upstream(app_template)
         if not arch:
             arch = app_template.get("arch", "amd64")
 
@@ -2861,10 +2916,9 @@ class MCPQueryService(object):
                 timeout=30,
             )
             if resp.status_code != 200:
-                raise ServiceHandleException(
-                    msg=f"app-store create app failed: {resp.text}",
-                    msg_show=f"应用市场创建应用失败: {resp.status_code}",
-                    status_code=resp.status_code)
+                raise ServiceHandleException(msg=f"app-store create app failed: {resp.text}",
+                                             msg_show=f"应用市场创建应用失败: {resp.status_code}",
+                                             status_code=resp.status_code)
             store_app_id = resp.json().get("appKeyID", "")
 
         app_template["group_key"] = store_app_id
@@ -2884,10 +2938,9 @@ class MCPQueryService(object):
             timeout=60,
         )
         if resp.status_code != 200:
-            raise ServiceHandleException(
-                msg=f"app-store create version failed: {resp.text}",
-                msg_show=f"应用市场创建版本失败: {resp.status_code}",
-                status_code=resp.status_code)
+            raise ServiceHandleException(msg=f"app-store create version failed: {resp.text}",
+                                         msg_show=f"应用市场创建版本失败: {resp.status_code}",
+                                         status_code=resp.status_code)
         version_data = resp.json()
         return {
             "app_id": app.ID,
@@ -2993,11 +3046,8 @@ class MCPQueryService(object):
             username=self._get_username(user),
             k8s_app=k8s_app,
         )
-        target_app_id = (
-            self._value(created_app, "ID") or
-            self._value(created_app, "app_id") or
-            self._value(created_app, "group_id")
-        )
+        target_app_id = (self._value(created_app, "ID") or self._value(created_app, "app_id")
+                         or self._value(created_app, "group_id"))
         if not target_app_id:
             raise ServiceHandleException(msg="create target app failed", msg_show="创建目标应用失败", status_code=500)
 
@@ -3093,7 +3143,9 @@ class MCPQueryService(object):
         if scope == "goodrain":
             market_name = self._value(target, "store_id") or self._value(target, "market_id")
             if not market_name:
-                raise ServiceHandleException(msg="target.store_id is null", msg_show="发布到应用市场时必须提供 target.store_id", status_code=400)
+                raise ServiceHandleException(msg="target.store_id is null",
+                                             msg_show="发布到应用市场时必须提供 target.store_id",
+                                             status_code=400)
 
         share_check = share_service.check_service_source(team, team.tenant_name, app.ID, app.region_name)
         if share_check and share_check.get("code") == 400:
@@ -3201,7 +3253,9 @@ class MCPQueryService(object):
             "share_id": share_record.ID,
             "publish_mode": "runtime",
             "share_info": {
-                "share_service_list": share_service.query_share_service_info(team=team, group_id=share_record.group_id, scope=scope),
+                "share_service_list": share_service.query_share_service_info(team=team,
+                                                                             group_id=share_record.group_id,
+                                                                             scope=scope),
                 "share_plugin_list": share_service.get_group_services_used_plugins(group_id=share_record.group_id),
                 "share_k8s_resources": share_service.get_k8s_resources(share_record.group_id),
             },
@@ -3222,7 +3276,9 @@ class MCPQueryService(object):
             value = arguments.get(field)
             if value is not None:
                 if not isinstance(value, list):
-                    raise ServiceHandleException(msg="invalid {}".format(field), msg_show="参数{}无效".format(field), status_code=400)
+                    raise ServiceHandleException(msg="invalid {}".format(field),
+                                                 msg_show="参数{}无效".format(field),
+                                                 status_code=400)
                 share_info[field] = value
         code, msg, bean = share_service.create_share_info(
             tenant=team,
@@ -3273,7 +3329,11 @@ class MCPQueryService(object):
             if not record_event:
                 raise ServiceHandleException(msg="event not found", msg_show="分享事件不存在", status_code=404)
             bean = share_service.sync_service_plugin_event(user, region_name, team.tenant_name, share_record.ID, record_event)
-            return {"share_id": share_record.ID, "event_type": "plugin", "event": self._serialize_model_item(bean) if bean else None}
+            return {
+                "share_id": share_record.ID,
+                "event_type": "plugin",
+                "event": self._serialize_model_item(bean) if bean else None
+            }
         # NOTE: plugin branch always returns above, so this reuse of record_event
         # for the service event type is unreachable when event_type == "plugin";
         # mypy unifies both branches' types. Invariant, not a bug.
@@ -3314,8 +3374,10 @@ class MCPQueryService(object):
         region_name = self._require_string(arguments, "region_name")
         self._get_region_by_name_context(user, region_name)
         share_record = self._get_app_share_record_context(team, self._require_int(arguments, "share_id"))
-        pending_count = ServiceShareRecordEvent.objects.filter(record_id=share_record.ID).exclude(event_status="success").count()
-        pending_plugin_count = PluginShareRecordEvent.objects.filter(record_id=share_record.ID).exclude(event_status="success").count()
+        pending_count = ServiceShareRecordEvent.objects.filter(record_id=share_record.ID).exclude(
+            event_status="success").count()
+        pending_plugin_count = PluginShareRecordEvent.objects.filter(record_id=share_record.ID).exclude(
+            event_status="success").count()
         if pending_count > 0 or pending_plugin_count > 0:
             raise ServiceHandleException(msg="share incomplete", msg_show="组件或插件同步未全部完成", status_code=415)
         app_market_url = share_service.complete(
@@ -3385,7 +3447,10 @@ class MCPQueryService(object):
                 # OR-guard above guarantees at least one is set). Latent: a None
                 # username/password reaches a str-typed param. Pre-existing behavior.
                 console_app_service.create_service_source_info(
-                    team, service, build_info.get("username"), build_info.get("password")  # type: ignore[arg-type]
+                    team,
+                    service,
+                    build_info.get("username"),  # type: ignore[arg-type]
+                    build_info.get("password")  # type: ignore[arg-type]
                 )
         is_deploy = bool(arguments.get("is_deploy", True))
         if service.create_status != "complete":
@@ -3544,9 +3609,7 @@ class MCPQueryService(object):
                     status_code=400,
                 )
             component_keys.append(service_key)
-        upgraded_record, app_template_name = upgrade_service.upgrade(
-            team, region, user, app, version, record, component_keys
-        )
+        upgraded_record, app_template_name = upgrade_service.upgrade(team, region, user, app, version, record, component_keys)
         return {
             "app_id": app.ID,
             "record_id": self._value(upgraded_record, "ID"),
@@ -3635,13 +3698,12 @@ class MCPQueryService(object):
         update_versions = arguments.get("update_versions")
         if not isinstance(update_versions, list) or not update_versions:
             raise ServiceHandleException(msg="invalid update_versions", msg_show="参数update_versions无效", status_code=400)
-        app_records = upgrade_service.openapi_upgrade_app_models(user, team, app.region_name, None, app.ID, {
-            "update_versions": update_versions
-        })
+        app_records = upgrade_service.openapi_upgrade_app_models(user, team, app.region_name, None, app.ID,
+                                                                 {"update_versions": update_versions})
         event_ids = self._extract_upgrade_event_ids(app_records)
-        service_ids = list(dict.fromkeys(
-            event.get("service_id") for event in event_ids
-            if isinstance(event, dict) and event.get("service_id")))
+        service_ids = list(
+            dict.fromkeys(
+                event.get("service_id") for event in event_ids if isinstance(event, dict) and event.get("service_id")))
         items = market_app_service.get_market_apps_in_app(app.region_name, team, app)
         return {
             "app_id": app.ID,
@@ -3707,12 +3769,10 @@ class MCPQueryService(object):
         services = arguments.get("services") or []
         if not isinstance(services, list):
             raise ServiceHandleException(msg="invalid services", msg_show="参数services无效", status_code=400)
-        target_team, target_group = groupapp_copy_service.check_and_get_team_group(
-            user, target_team_name, target_region_name, target_app_id
-        )
-        copied_services = groupapp_copy_service.copy_group_services(
-            user, team, app.region_name, target_team, target_region_name, target_group, app.ID, services
-        )
+        target_team, target_group = groupapp_copy_service.check_and_get_team_group(user, target_team_name, target_region_name,
+                                                                                   target_app_id)
+        copied_services = groupapp_copy_service.copy_group_services(user, team, app.region_name, target_team,
+                                                                    target_region_name, target_group, app.ID, services)
         copied_services = domain_service.get_components_that_contains_gateway_rules(target_region_name, copied_services)
         items = [self._serialize_service_with_gateway_rules(service) for service in copied_services]
         return {
@@ -3752,9 +3812,10 @@ class MCPQueryService(object):
             })
             _, market = app_market_service.get_app_market(team.enterprise_id, market_name, raise_exception=True)
 
-        market_app, app_version_info = app_market_service.cloud_app_model_to_db_model(
-            market, app_model_id, app_model_version, for_install=True
-        )
+        market_app, app_version_info = app_market_service.cloud_app_model_to_db_model(market,
+                                                                                      app_model_id,
+                                                                                      app_model_version,
+                                                                                      for_install=True)
         if not market_app:
             raise ServiceHandleException(status_code=404, msg="not found", msg_show="云端应用不存在")
         if not app_version_info:
@@ -3762,19 +3823,23 @@ class MCPQueryService(object):
 
         existing_service_ids = {
             getattr(service, "service_id", "")
-            for service in group_service.get_group_services(app.ID)
-            if getattr(service, "service_id", "")
+            for service in group_service.get_group_services(app.ID) if getattr(service, "service_id", "")
         }
-        _, events = market_app_service.install_service(
-            team, app.region_name, user, app.ID, market_app, app_version_info, is_deploy, True, market_name=market.name
-        )
+        _, events = market_app_service.install_service(team,
+                                                       app.region_name,
+                                                       user,
+                                                       app.ID,
+                                                       market_app,
+                                                       app_version_info,
+                                                       is_deploy,
+                                                       True,
+                                                       market_name=market.name)
         services = group_service.get_group_services(app.ID)
         created_service_ids = [
             getattr(service, "service_id", "") for service in services
             if getattr(service, "service_id", "") not in existing_service_ids
         ]
-        deployment_fields = self._standard_deployment_event_fields(
-            events, created_service_ids)
+        deployment_fields = self._standard_deployment_event_fields(events, created_service_ids)
         return {
             "installed": True,
             "app_id": app.ID,
@@ -3811,7 +3876,15 @@ class MCPQueryService(object):
         # None when neither key is supplied; get_visiable_apps types it as str.
         # Latent: None reaches a str-typed param. Pre-existing behavior.
         apps, total, _ = market_app_service.get_visiable_apps(
-            scope, query, True, page, page_size, "", arch, tenant_name, is_plugin  # type: ignore[arg-type]
+            scope,
+            query,  # type: ignore[arg-type]
+            True,
+            page,
+            page_size,
+            "",
+            arch,
+            tenant_name,
+            is_plugin  # type: ignore[arg-type]
         )
         items = []
         for app_model in apps:
@@ -3839,13 +3912,20 @@ class MCPQueryService(object):
         is_plugin = self._parse_bool_with_default(arguments.get("is_plugin"), False)
         _, market = app_market_service.get_app_market(enterprise_id, market_name, raise_exception=True)
         if is_plugin:
-            items, page, page_size, total = app_market_service.get_market_plugins_apps(
-                market, page, page_size, query=query, query_all=query_all, extend=True
-            )
+            items, page, page_size, total = app_market_service.get_market_plugins_apps(market,
+                                                                                       page,
+                                                                                       page_size,
+                                                                                       query=query,
+                                                                                       query_all=query_all,
+                                                                                       extend=True)
         else:
-            items, page, page_size, total = app_market_service.get_market_app_list(
-                market, page, page_size, query=query, query_all=query_all, extend=True, arch=arch
-            )
+            items, page, page_size, total = app_market_service.get_market_app_list(market,
+                                                                                   page,
+                                                                                   page_size,
+                                                                                   query=query,
+                                                                                   query_all=query_all,
+                                                                                   extend=True,
+                                                                                   arch=arch)
         return {
             "enterprise_id": enterprise_id,
             "market_name": market_name,
@@ -3864,8 +3944,7 @@ class MCPQueryService(object):
         if source == "local":
             page, page_size = self._parse_pagination(arguments)
             app_model, versions, total = market_app_service.get_rainbond_app_and_versions(
-                enterprise_id, app_model_id, page, page_size
-            )
+                enterprise_id, app_model_id, page, page_size)
             return {
                 "enterprise_id": enterprise_id,
                 "source": source,
@@ -3879,9 +3958,11 @@ class MCPQueryService(object):
         market_name = self._require_string(arguments, "market_name")
         _, market = app_market_service.get_app_market(enterprise_id, market_name, raise_exception=True)
         app_model = app_market_service.get_market_app_model(market, app_model_id, extend=True)
-        items = app_market_service.get_market_app_model_versions(
-            market, app_model_id, query_all=self._parse_bool_with_default(arguments.get("query_all"), False), extend=True
-        )
+        items = app_market_service.get_market_app_model_versions(market,
+                                                                 app_model_id,
+                                                                 query_all=self._parse_bool_with_default(
+                                                                     arguments.get("query_all"), False),
+                                                                 extend=True)
         serialized_items = [self._serialize_model_item(item) for item in (items or [])]
         page, page_size = self._parse_pagination(arguments)
         result = self._paginate_data(serialized_items, page, page_size)
@@ -3905,9 +3986,7 @@ class MCPQueryService(object):
         source = self._normalize_app_model_source(arguments.get("source"))
         market_name = (arguments.get("market_name") or "").strip()
         if source == "cloud" and not market_name:
-            raise ServiceHandleException(
-                msg="invalid market_name", msg_show="云市场安装时必须提供market_name", status_code=400
-            )
+            raise ServiceHandleException(msg="invalid market_name", msg_show="云市场安装时必须提供market_name", status_code=400)
 
         install_details = market_app_service.install_app(
             team,
@@ -4136,9 +4215,7 @@ class MCPQueryService(object):
                     # language is CNB-classified but ships a Dockerfile persists as
                     # a Dockerfile build (build_strategy="") instead of dead-ending
                     # on CNB (e.g. .NET 7 rejected by the CNB version policy).
-                    service_info_list[0] = source_component_service._select_service_info(
-                        service_info_list[0], True
-                    )
+                    service_info_list[0] = source_component_service._select_service_info(service_info_list[0], True)
                     data["service_info"] = service_info_list
                     selected_language = (service_info_list[0].get("language") or "").strip()
                     dockerfile_preference_applied = selected_language == "dockerfile"
@@ -4148,21 +4225,28 @@ class MCPQueryService(object):
             check_brief_info = app_check_service.wrap_service_check_info(service, data)
 
         return {
-            "prefer_dockerfile_when_detected": prefer_dockerfile_when_detected,
-            "dockerfile_preference_applied": dockerfile_preference_applied,
-            "build_mode_note": build_mode_note,
-            "app_id": app.ID,
-            "service_id": service.service_id,
-            "check_uuid": check_uuid,
-            "create_status": service.create_status,
-            "workflow_stage": "checked" if check_brief_info.get("check_status") == "success" else check_brief_info.get(
-                "check_status"
-            ),
-            "can_build": check_brief_info.get("check_status") == "success" and service.create_status in (
-                "checked", "complete"
-            ),
-            "next_action": "rainbond_build_component" if check_brief_info.get("check_status") == "success" else None,
-            "check_result": check_brief_info,
+            "prefer_dockerfile_when_detected":
+            prefer_dockerfile_when_detected,
+            "dockerfile_preference_applied":
+            dockerfile_preference_applied,
+            "build_mode_note":
+            build_mode_note,
+            "app_id":
+            app.ID,
+            "service_id":
+            service.service_id,
+            "check_uuid":
+            check_uuid,
+            "create_status":
+            service.create_status,
+            "workflow_stage":
+            "checked" if check_brief_info.get("check_status") == "success" else check_brief_info.get("check_status"),
+            "can_build":
+            check_brief_info.get("check_status") == "success" and service.create_status in ("checked", "complete"),
+            "next_action":
+            "rainbond_build_component" if check_brief_info.get("check_status") == "success" else None,
+            "check_result":
+            check_brief_info,
         }
 
     def create_component_from_image(self, user: Any, arguments: dict) -> Any:
@@ -4224,9 +4308,8 @@ class MCPQueryService(object):
         code, msg, data = app_check_service.get_service_check_info(team, app.region_name, check_uuid)
         if code != 200:
             raise ServiceHandleException(msg="check info failure", msg_show=msg, status_code=code)
-        save_code, save_msg, service_list = compose_service.save_compose_services(
-            team, user, app.region_name, group_compose, data, arguments.get("arch", "amd64")
-        )
+        save_code, save_msg, service_list = compose_service.save_compose_services(team, user, app.region_name, group_compose,
+                                                                                  data, arguments.get("arch", "amd64"))
         if save_code != 200:
             raise ServiceHandleException(msg="save compose info error", msg_show=save_msg, status_code=save_code)
         compose_check_brief = compose_service.wrap_compose_check_info(data)
@@ -4285,9 +4368,8 @@ class MCPQueryService(object):
         for service in services:
             monitors = []
             for key, query in list(monitor_query_range_items.items()):
-                _, body = region_api.get_query_range_data(
-                    app.region_name, team.tenant_name, query % (service.service_id, start, end, step)
-                )
+                _, body = region_api.get_query_range_data(app.region_name, team.tenant_name,
+                                                          query % (service.service_id, start, end, step))
                 # NOTE: region_api.get_query_range_data may return body=None; the
                 # code below dereferences it unguarded. Latent NoneType bug: a None
                 # body raises AttributeError here. Pre-existing behavior, not changed.
@@ -4334,9 +4416,8 @@ class MCPQueryService(object):
             httpdomain["domain_type"] = "www"
             httpdomain["protocol"] = "https" if httpdomain.get("certificate_id") else "http"
             service = self._get_service_in_team_app(team, app, service_id)
-            if domain_service.check_domain_exist(
-                    service_id, container_port, domain_name,
-                    httpdomain["protocol"], httpdomain.get("domain_path"), httpdomain.get("rule_extensions")):
+            if domain_service.check_domain_exist(service_id, container_port, domain_name, httpdomain["protocol"],
+                                                 httpdomain.get("domain_path"), httpdomain.get("rule_extensions")):
                 raise ServiceHandleException(msg="exist", msg_show="策略已存在", status_code=400)
             if service.service_source == "third_party":
                 msg, msg_show, code = port_service.check_domain_thirdpart(team, service)
@@ -4345,12 +4426,10 @@ class MCPQueryService(object):
             if httpdomain.get("whether_open", True):
                 tenant_service_port = port_service.get_service_port_by_port(service, container_port)
                 if not tenant_service_port:
-                    raise ServiceHandleException(
-                        msg="component port not found", msg_show="组件端口不存在", status_code=400)
-                code, msg, _ = port_service.manage_port(
-                    team, service, service.service_region, int(tenant_service_port.container_port), "only_open_outer",
-                    tenant_service_port.protocol, tenant_service_port.port_alias
-                )
+                    raise ServiceHandleException(msg="component port not found", msg_show="组件端口不存在", status_code=400)
+                code, msg, _ = port_service.manage_port(team, service, service.service_region,
+                                                        int(tenant_service_port.container_port), "only_open_outer",
+                                                        tenant_service_port.protocol, tenant_service_port.port_alias)
                 if code != 200:
                     raise ServiceHandleException(msg="change port fail", msg_show=msg, status_code=code)
             tenant_service_port = port_service.get_service_port_by_port(service, container_port)
@@ -4358,9 +4437,8 @@ class MCPQueryService(object):
                 raise ServiceHandleException(msg="port not open", msg_show="没有开启对外端口", status_code=400)
             data = domain_service.bind_httpdomain(team, user, service, httpdomain, True)
             try:
-                region_api.api_gateway_bind_http_domain(
-                    service.service_alias, app.region_name, team.tenant_name, [domain_name],
-                    tenant_service_port, app.ID)
+                region_api.api_gateway_bind_http_domain(service.service_alias, app.region_name, team.tenant_name, [domain_name],
+                                                        tenant_service_port, app.ID)
             except Exception as e:
                 logger.warning("create apisix route failed: %s", str(e))
             return self._serialize_model_item(data)
@@ -4384,18 +4462,14 @@ class MCPQueryService(object):
                     raise ServiceHandleException(msg=msg, msg_show=msg_show, status_code=code)
             tenant_service_port = port_service.get_service_port_by_port(service, container_port)
             if not tenant_service_port:
-                raise ServiceHandleException(
-                    msg="component port not found", msg_show="组件端口不存在", status_code=400)
-            code, msg, _ = port_service.manage_port(
-                team, service, service.service_region, int(tenant_service_port.container_port), "only_open_outer",
-                tenant_service_port.protocol, tenant_service_port.port_alias
-            )
+                raise ServiceHandleException(msg="component port not found", msg_show="组件端口不存在", status_code=400)
+            code, msg, _ = port_service.manage_port(team, service, service.service_region,
+                                                    int(tenant_service_port.container_port), "only_open_outer",
+                                                    tenant_service_port.protocol, tenant_service_port.port_alias)
             if code != 200:
                 raise ServiceHandleException(msg="change port fail", msg_show="open port failure", status_code=code)
-            data = domain_service.bind_tcpdomain(
-                team, user, service, end_point, container_port, default_port,
-                tcpdomain.get("rule_extensions"), tcpdomain.get("default_ip")
-            )
+            data = domain_service.bind_tcpdomain(team, user, service, end_point, container_port, default_port,
+                                                 tcpdomain.get("rule_extensions"), tcpdomain.get("default_ip"))
             return data
         raise ServiceHandleException(msg="error parameters: protocol", msg_show="错误参数: protocol", status_code=400)
 
@@ -4408,9 +4482,8 @@ class MCPQueryService(object):
         chart_name = self._require_string(arguments, "chart_name")
         version = self._require_string(arguments, "version")
         overrides = arguments.get("overrides") or []
-        _, data = helm_app_service.check_helm_app(
-            name, repo_name, chart_name, version, overrides, region_name, team.tenant_name, team
-        )
+        _, data = helm_app_service.check_helm_app(name, repo_name, chart_name, version, overrides, region_name,
+                                                  team.tenant_name, team)
         return data
 
     def build_helm_app(self, user: Any, arguments: dict) -> dict:
@@ -4433,15 +4506,21 @@ class MCPQueryService(object):
         elif isinstance(overrides, list):
             overrides_list = overrides
         cvdata = helm_app_service.yaml_conversion(
-            name, repo_name, chart_name, version, overrides_list, app.region_name, team.tenant_name, team,
-            team.enterprise_id, self._value(self._get_region_by_name_context(user, app.region_name), "region_id")
-        )
+            name, repo_name, chart_name, version, overrides_list, app.region_name, team.tenant_name, team, team.enterprise_id,
+            self._value(self._get_region_by_name_context(user, app.region_name), "region_id"))
         helm_center_app = rainbond_app_repo.get_rainbond_app_by_app_id(app_model_id)
         chart = repo_name + "/" + chart_name
         helm_app_service.generate_template(
-            cvdata, helm_center_app, version, team, chart, app.region_name, team.enterprise_id, user.user_id,  # type: ignore[arg-type]  # NOTE: helm_center_app Optional, latent None (backlog)
-            overrides_list, app.ID
-        )
+            cvdata,
+            helm_center_app,  # type: ignore[arg-type]
+            version,
+            team,
+            chart,
+            app.region_name,
+            team.enterprise_id,
+            user.user_id,  # type: ignore[arg-type]  # NOTE: helm_center_app Optional, latent None (backlog)
+            overrides_list,
+            app.ID)
         return {
             "built": True,
             "app_id": app.ID,
@@ -4627,11 +4706,8 @@ class MCPQueryService(object):
             service_cname = getattr(service, "service_cname", "") or ""
             service_alias = getattr(service, "service_alias", "") or ""
             service_id = getattr(service, "service_id", "") or ""
-            if query and (
-                query not in service_cname.lower()
-                and query not in service_alias.lower()
-                and query != service_id.lower()
-            ):
+            if query and (query not in service_cname.lower() and query not in service_alias.lower()
+                          and query != service_id.lower()):
                 continue
             items.append(self._serialize_component(service, app, tenant))
 
@@ -4686,9 +4762,7 @@ class MCPQueryService(object):
             raise ServiceHandleException(msg="confirmation token required", msg_show="缺少确认令牌", status_code=400)
 
         try:
-            token_payload = signing.loads(
-                confirmation_token, salt=self.CONFIRM_SALT, max_age=self.CONFIRM_MAX_AGE_SECONDS
-            )
+            token_payload = signing.loads(confirmation_token, salt=self.CONFIRM_SALT, max_age=self.CONFIRM_MAX_AGE_SECONDS)
         except signing.SignatureExpired:
             raise ServiceHandleException(msg="confirmation token expired", msg_show="确认令牌已过期，请重新确认", status_code=400)
         except signing.BadSignature:
@@ -4730,7 +4804,8 @@ class MCPQueryService(object):
         # NOTE: check_status passes "yes"/"no" strings to a param declared bool
         # (latent type mismatch in RegionService.get_enterprise_region).
         region = region_services.get_enterprise_region(
-            getattr(user, "enterprise_id", None), region_id,  # type: ignore[arg-type]
+            getattr(user, "enterprise_id", None),  # type: ignore[arg-type]
+            region_id,  # type: ignore[arg-type]
             check_status="yes" if check_status else "no"  # type: ignore[arg-type]
         )
         if not region:
@@ -4765,15 +4840,16 @@ class MCPQueryService(object):
         self._require_string(arguments, "region_id")
 
     def _get_region_by_name_context(self, user: Any, region_name: str) -> Any:
-        region = region_services.get_enterprise_region_by_region_name(
-            getattr(user, "enterprise_id", None), region_name)  # type: ignore[arg-type]
+        region = region_services.get_enterprise_region_by_region_name(  # type: ignore[arg-type]
+            getattr(user, "enterprise_id", None),  # type: ignore[arg-type]
+            region_name)  # type: ignore[arg-type]
         if not region:
             raise ServiceHandleException(msg="region not found", msg_show="集群不存在", status_code=404)
         return region
 
     def _get_team_context(self, user: Any, team_name: str) -> Any:
-        team = team_services.get_enterprise_tenant_by_tenant_name(
-            getattr(user, "enterprise_id", None), team_name)  # type: ignore[arg-type]
+        team = team_services.get_enterprise_tenant_by_tenant_name(getattr(user, "enterprise_id", None),  # type: ignore[arg-type]
+                                                                  team_name)  # type: ignore[arg-type]
         if not team:
             raise ServiceHandleException(msg="team not found", msg_show="团队不存在", status_code=404)
         self._ensure_team_access(user, team)
@@ -4898,16 +4974,13 @@ class MCPQueryService(object):
         value = MCPQueryService._require_string(arguments, field)
         parts = value.split(":")
         if len(parts) != 2 or not parts[0]:
-            raise ServiceHandleException(
-                msg="invalid {}".format(field), msg_show="参数{}无效".format(field), status_code=400)
+            raise ServiceHandleException(msg="invalid {}".format(field), msg_show="参数{}无效".format(field), status_code=400)
         try:
             port = int(parts[1])
         except (TypeError, ValueError):
-            raise ServiceHandleException(
-                msg="invalid {}".format(field), msg_show="参数{}无效".format(field), status_code=400)
+            raise ServiceHandleException(msg="invalid {}".format(field), msg_show="参数{}无效".format(field), status_code=400)
         if port <= 0 or port > 65535:
-            raise ServiceHandleException(
-                msg="invalid {}".format(field), msg_show="参数{}无效".format(field), status_code=400)
+            raise ServiceHandleException(msg="invalid {}".format(field), msg_show="参数{}无效".format(field), status_code=400)
         return value
 
     @staticmethod
@@ -4924,17 +4997,13 @@ class MCPQueryService(object):
     def _require_command(arguments: dict) -> list:
         value = arguments.get("command")
         if not isinstance(value, list) or not value:
-            raise ServiceHandleException(
-                msg="invalid command",
-                msg_show="参数command无效，必须是非空字符串数组，如 [\"cat\", \"/app/config.yml\"]",
-                status_code=400)
+            raise ServiceHandleException(msg="invalid command",
+                                         msg_show="参数command无效，必须是非空字符串数组，如 [\"cat\", \"/app/config.yml\"]",
+                                         status_code=400)
         command = []
         for item in value:
             if not isinstance(item, str) or item == "":
-                raise ServiceHandleException(
-                    msg="invalid command",
-                    msg_show="参数command无效，数组元素必须是非空字符串",
-                    status_code=400)
+                raise ServiceHandleException(msg="invalid command", msg_show="参数command无效，数组元素必须是非空字符串", status_code=400)
             command.append(item)
         return command
 
@@ -5049,9 +5118,7 @@ class MCPQueryService(object):
                 "reason": "duplicate",
                 "expected_pattern": self.K8S_APP_NAME_PATTERN,
                 "provided_value": k8s_app or None,
-                "suggestion": (
-                    "默认建议不传 k8s_app；若必须指定，请换一个在同团队同集群下唯一的英文名。"
-                ),
+                "suggestion": ("默认建议不传 k8s_app；若必须指定，请换一个在同团队同集群下唯一的英文名。"),
                 "retryable": False,
             }
         if "应用英文名称只能由小写字母" in msg_show or "集群内应用名称只能由小写字母" in msg_show:
@@ -5092,8 +5159,13 @@ class MCPQueryService(object):
             candidate = "{}-{}".format(base, make_uuid()[:6])
         return candidate
 
-    def _create_app_with_mcp_error_details(self, team: Any, region_name: str, app_name: str, app_note: str,
-                                           username: str, k8s_app: str = "") -> Any:
+    def _create_app_with_mcp_error_details(self,
+                                           team: Any,
+                                           region_name: str,
+                                           app_name: str,
+                                           app_note: str,
+                                           username: str,
+                                           k8s_app: str = "") -> Any:
         auto_generated = not k8s_app
         if auto_generated:
             k8s_app = self._generate_k8s_app(team, region_name, app_name)
@@ -5216,10 +5288,8 @@ class MCPQueryService(object):
                 "reason": "pattern_mismatch",
                 "expected_pattern": self.PORT_ALIAS_PATTERN,
                 "examples": ["WEB", "P80", "METRICS_8080"],
-                "suggestion": (
-                    "新增端口时可省略 port_alias，由系统自动生成；"
-                    "若手动填写，请使用全大写别名。"
-                ),
+                "suggestion": ("新增端口时可省略 port_alias，由系统自动生成；"
+                               "若手动填写，请使用全大写别名。"),
                 "retryable": False,
             }
         if msg_show == "端口别名不能为空":
@@ -5227,10 +5297,8 @@ class MCPQueryService(object):
                 "field": "port_alias",
                 "reason": "required",
                 "expected_pattern": self.PORT_ALIAS_PATTERN,
-                "suggestion": (
-                    "新增端口时可省略 port_alias；"
-                    "修改别名时必须提供符合规则的全大写别名。"
-                ),
+                "suggestion": ("新增端口时可省略 port_alias；"
+                               "修改别名时必须提供符合规则的全大写别名。"),
                 "retryable": False,
             }
         if msg_show == "内部域名格式不正确":
@@ -5334,15 +5402,13 @@ class MCPQueryService(object):
         env_attr_names = {env.attr_name: env for env in inner_envs}
         for env in envs:
             if env["name"] in env_attr_names:
-                code, msg, _ = env_var_service.update_env_by_env_id(
-                    team, service, str(env_attr_names[env["name"]].ID), env["note"], env["value"], user_name
-                )
+                code, msg, _ = env_var_service.update_env_by_env_id(team, service, str(env_attr_names[env["name"]].ID),
+                                                                    env["note"], env["value"], user_name)
                 if code != 200:
                     raise ServiceHandleException(status_code=code, msg="update or create envs error", msg_show=msg)
             else:
-                code, msg, _ = env_var_service.add_service_env_var(
-                    team, service, 0, env["note"], env["name"], env["value"], env["is_change"], "inner", user_name
-                )
+                code, msg, _ = env_var_service.add_service_env_var(team, service, 0, env["note"], env["name"], env["value"],
+                                                                   env["is_change"], "inner", user_name)
                 if code != 200:
                     raise ServiceHandleException(status_code=code, msg="update or create envs error", msg_show=msg)
         total_envs = env_var_service.get_service_inner_env(service)
@@ -5359,9 +5425,8 @@ class MCPQueryService(object):
 
     def _get_component_resource(self, team: Any, service: Any) -> dict:
         try:
-            body = region_api.get_service_resources(team.tenant_name, service.service_region, {
-                "service_ids": [service.service_id]
-            })
+            body = region_api.get_service_resources(team.tenant_name, service.service_region,
+                                                    {"service_ids": [service.service_id]})
             # NOTE: region_api may return None body; potential latent None-bug
             # (here guarded by the surrounding try/except returning defaults).
             bean = body.get("bean", {})  # type: ignore[union-attr]
@@ -5392,7 +5457,7 @@ class MCPQueryService(object):
         if not isinstance(metrics, list) or not metrics:
             raise ServiceHandleException(msg="invalid metrics", msg_show="参数metrics无效", status_code=400)
         xpa_type = arguments.get("xpa_type", "hpa")
-        if xpa_type not in ("hpa",):
+        if xpa_type not in ("hpa", ):
             raise ServiceHandleException(msg="invalid xpa_type", msg_show="参数xpa_type无效", status_code=400)
         min_replicas = self._require_int(arguments, "min_replicas")
         max_replicas = self._require_int(arguments, "max_replicas")
@@ -5412,7 +5477,7 @@ class MCPQueryService(object):
                 metric_target_value = int(metric.get("metric_target_value"))  # type: ignore[arg-type]
             except (TypeError, ValueError):
                 raise ServiceHandleException(msg="invalid metrics", msg_show="参数metrics无效", status_code=400)
-            if metric_type not in ("resource_metrics",):
+            if metric_type not in ("resource_metrics", ):
                 raise ServiceHandleException(msg="invalid metrics", msg_show="参数metrics无效", status_code=400)
             if metric_name not in ("cpu", "memory"):
                 raise ServiceHandleException(msg="invalid metrics", msg_show="参数metrics无效", status_code=400)
@@ -5440,10 +5505,8 @@ class MCPQueryService(object):
             "mode": self._require_string(arguments, "mode"),
             "port": self._require_int(arguments, "port"),
         }
-        optional_keys = (
-            "scheme", "path", "cmd", "http_header", "initial_delay_second", "period_second",
-            "timeout_second", "failure_threshold", "success_threshold", "is_used"
-        )
+        optional_keys = ("scheme", "path", "cmd", "http_header", "initial_delay_second", "period_second", "timeout_second",
+                         "failure_threshold", "success_threshold", "is_used")
         for key in optional_keys:
             if key in arguments:
                 payload[key] = arguments.get(key)
@@ -5464,18 +5527,29 @@ class MCPQueryService(object):
                 item["ports_list"] = [port.container_port for port in ports]
         return {"items": items, "total": len(items)}
 
-    def _read_component_pod_logs(self, team: Any, region_name: str, service_alias: str, pod_name: str, lines: int,
-                                 container_name: str = "", previous: bool = False) -> list:
+    def _read_component_pod_logs(self,
+                                 team: Any,
+                                 region_name: str,
+                                 service_alias: str,
+                                 pod_name: str,
+                                 lines: int,
+                                 container_name: str = "",
+                                 previous: bool = False) -> list:
         # read_timeout governs how long urllib3 waits for the next chunk
         # (or the initial HTTP response). 3s was tight enough that
         # rbd-api regularly took longer than that to send the response
         # headers, surfacing as 500 -> ReadTimeoutError to MCP clients.
         # Bumping to 30s keeps streaming responsive for healthy pods
         # while tolerating a slow-to-respond region service.
-        resp = region_api.get_component_pod_log(
-            team.tenant_name, region_name, service_alias, pod_name, lines, container_name,
-            read_timeout=30, follow=False, previous=previous
-        )
+        resp = region_api.get_component_pod_log(team.tenant_name,
+                                                region_name,
+                                                service_alias,
+                                                pod_name,
+                                                lines,
+                                                container_name,
+                                                read_timeout=30,
+                                                follow=False,
+                                                previous=previous)
         log_list = []
         buffer = ""
         try:
@@ -6061,7 +6135,9 @@ class MCPQueryService(object):
             value = arguments.get(field)
             if value is not None:
                 if not isinstance(value, list):
-                    raise ServiceHandleException(msg="invalid {}".format(field), msg_show="参数{}无效".format(field), status_code=400)
+                    raise ServiceHandleException(msg="invalid {}".format(field),
+                                                 msg_show="参数{}无效".format(field),
+                                                 status_code=400)
                 share_info[field] = value
         return share_info
 
@@ -6167,9 +6243,16 @@ class MCPQueryService(object):
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1}
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    }
                 },
                 "required": ["team_name", "region_name", "app_id"]
             }
@@ -6177,19 +6260,25 @@ class MCPQueryService(object):
 
     def _tool_get_app_health_overview(self) -> dict:
         return {
-            "name": "rainbond_get_app_health_overview",
-            "description": (
-                "一次性返回应用下全部组件的运行状态与每个异常组件的 critical_blocker，"
-                "用于排障 loop 的健康总览，免去逐个组件调用 get_component_summary。"
-                "全绿组件 critical_blocker 为 null；非 running 组件会自动深挖 pod 告警并归类阻滞原因"
-                "（如 image_pull_failed / crash_loop / config_file_configmap_missing / unknown）。"
-            ),
+            "name":
+            "rainbond_get_app_health_overview",
+            "description": ("一次性返回应用下全部组件的运行状态与每个异常组件的 critical_blocker，"
+                            "用于排障 loop 的健康总览，免去逐个组件调用 get_component_summary。"
+                            "全绿组件 critical_blocker 为 null；非 running 组件会自动深挖 pod 告警并归类阻滞原因"
+                            "（如 image_pull_failed / crash_loop / config_file_configmap_missing / unknown）。"),
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1},
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
                 },
                 "required": ["team_name", "region_name", "app_id"],
             },
@@ -6202,15 +6291,21 @@ class MCPQueryService(object):
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
                     "app_name": {
                         "type": "string",
                         "description": self.DISPLAY_APP_NAME_DESCRIPTION,
                         "pattern": self.DISPLAY_APP_NAME_PATTERN,
                         "maxLength": self.DISPLAY_APP_NAME_MAX_LENGTH,
                     },
-                    "app_note": {"type": "string"},
+                    "app_note": {
+                        "type": "string"
+                    },
                     "k8s_app": {
                         "type": "string",
                         "pattern": self.K8S_APP_NAME_PATTERN,
@@ -6223,16 +6318,30 @@ class MCPQueryService(object):
 
     def _tool_get_component_summary(self) -> dict:
         return {
-            "name": "rainbond_get_component_summary",
-            "description": "Get an aggregated summary of the component, including status, resources, ports, envs, build envs, storage, autoscaler rules, and recent events. Logs are excluded.",
+            "name":
+            "rainbond_get_component_summary",
+            "description": ('Get an aggregated summary of the component, including status, resources, ports, envs, build envs, '
+                            'storage, autoscaler rules, and recent events. Logs are excluded.'),
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1},
-                    "service_id": {"type": "string"},
-                    "event_limit": {"type": "integer", "minimum": 1}
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "service_id": {
+                        "type": "string"
+                    },
+                    "event_limit": {
+                        "type": "integer",
+                        "minimum": 1
+                    }
                 },
                 "required": ["team_name", "region_name", "app_id", "service_id"]
             }
@@ -6241,20 +6350,50 @@ class MCPQueryService(object):
     def _tool_get_component_logs(self) -> dict:
         return {
             "name": "rainbond_get_component_logs",
-            "description": "获取组件日志。推荐优先使用 action=container 查询指定 pod/container 的容器日志；action=service 为组件普通日志，并在失败时自动回退到首个 pod/container。",
+            "description":
+            "获取组件日志。推荐优先使用 action=container 查询指定 pod/container 的容器日志；action=service 为组件普通日志，并在失败时自动回退到首个 pod/container。",
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1},
-                    "service_id": {"type": "string"},
-                    "action": {"type": "string", "enum": ["service", "container"], "description": "service=组件普通日志；container=指定 Pod 容器日志"},
-                    "lines": {"type": "integer", "minimum": 1, "description": "仅 action=service 时使用，默认 100"},
-                    "pod_name": {"type": "string", "description": "仅 action=container 时必填"},
-                    "container_name": {"type": "string", "description": "仅 action=container 时必填"},
-                    "follow": {"type": "boolean", "description": "仅 action=container 时使用，是否跟随日志输出"},
-                    "previous": {"type": "boolean", "description": "是否读取容器上一次（崩溃退出前）的日志。当容器处于 CrashLoopBackOff 或刚重启、当前实例无有效输出时，设为 true 可获取退出前的日志用于排查"}
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "service_id": {
+                        "type": "string"
+                    },
+                    "action": {
+                        "type": "string",
+                        "enum": ["service", "container"],
+                        "description": "service=组件普通日志；container=指定 Pod 容器日志"
+                    },
+                    "lines": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "description": "仅 action=service 时使用，默认 100"
+                    },
+                    "pod_name": {
+                        "type": "string",
+                        "description": "仅 action=container 时必填"
+                    },
+                    "container_name": {
+                        "type": "string",
+                        "description": "仅 action=container 时必填"
+                    },
+                    "follow": {
+                        "type": "boolean",
+                        "description": "仅 action=container 时使用，是否跟随日志输出"
+                    },
+                    "previous": {
+                        "type": "boolean",
+                        "description": "是否读取容器上一次（崩溃退出前）的日志。当容器处于 CrashLoopBackOff 或刚重启、当前实例无有效输出时，设为 true 可获取退出前的日志用于排查"
+                    }
                 },
                 "required": ["team_name", "region_name", "app_id", "service_id"]
             }
@@ -6262,31 +6401,52 @@ class MCPQueryService(object):
 
     def _tool_exec_component(self) -> dict:
         return {
-            "name": "rainbond_exec",
-            "description": (
-                "在指定 Pod 容器内一次性执行命令（one-shot exec），返回 stdout/stderr/exit_code。"
-                "仅适用于处于 Running 状态的容器，用于在线排查（例如 cat 配置文件、env、ls、ps、curl 健康检查等）。"
-                "目标容器若正在崩溃重启（CrashLoopBackOff）或尚未运行，exec 无法连接，"
-                "此时请改用 rainbond_get_component_logs（设置 previous=true 读取上一次退出前日志）排查；"
-                "若需在 Pod 宕机时确认配置文件内容，请使用 rainbond_get_config_file。"
-                "command 必须是字符串数组（如 [\"cat\", \"/app/config.yml\"]），不要传单个字符串。这是调试工具，stdout 会原样返回。"
-            ),
+            "name":
+            "rainbond_exec",
+            "description": ("在指定 Pod 容器内一次性执行命令（one-shot exec），返回 stdout/stderr/exit_code。"
+                            "仅适用于处于 Running 状态的容器，用于在线排查（例如 cat 配置文件、env、ls、ps、curl 健康检查等）。"
+                            "目标容器若正在崩溃重启（CrashLoopBackOff）或尚未运行，exec 无法连接，"
+                            "此时请改用 rainbond_get_component_logs（设置 previous=true 读取上一次退出前日志）排查；"
+                            "若需在 Pod 宕机时确认配置文件内容，请使用 rainbond_get_config_file。"
+                            "command 必须是字符串数组（如 [\"cat\", \"/app/config.yml\"]），不要传单个字符串。这是调试工具，stdout 会原样返回。"),
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1},
-                    "service_id": {"type": "string"},
-                    "pod_name": {"type": "string", "description": "目标 Pod 名称，可通过 rainbond_get_component_pods 获取"},
-                    "container_name": {"type": "string", "description": "目标容器名，缺省时由 region 选择 Pod 的默认容器"},
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "service_id": {
+                        "type": "string"
+                    },
+                    "pod_name": {
+                        "type": "string",
+                        "description": "目标 Pod 名称，可通过 rainbond_get_component_pods 获取"
+                    },
+                    "container_name": {
+                        "type": "string",
+                        "description": "目标容器名，缺省时由 region 选择 Pod 的默认容器"
+                    },
                     "command": {
                         "type": "array",
-                        "items": {"type": "string"},
+                        "items": {
+                            "type": "string"
+                        },
                         "minItems": 1,
-                        "description": "要执行的命令及参数，字符串数组形式，如 [\"cat\", \"/app/config.yml\"] 或 [\"sh\", \"-c\", \"env | grep DB\"]"
+                        "description":
+                        "要执行的命令及参数，字符串数组形式，如 [\"cat\", \"/app/config.yml\"] 或 [\"sh\", \"-c\", \"env | grep DB\"]"
                     },
-                    "timeout_seconds": {"type": "integer", "minimum": 1, "description": "命令执行超时时间（秒），默认 30"}
+                    "timeout_seconds": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "description": "命令执行超时时间（秒），默认 30"
+                    }
                 },
                 "required": ["team_name", "region_name", "app_id", "service_id", "pod_name", "command"]
             }
@@ -6294,21 +6454,35 @@ class MCPQueryService(object):
 
     def _tool_get_config_file(self) -> dict:
         return {
-            "name": "rainbond_get_config_file",
-            "description": (
-                "读取组件的配置文件类（config-file）存储卷的内容。配置文件内容由平台持久化存储，"
-                "即使 Pod 处于宕机/崩溃状态也可读取，适合在排查时确认实际下发到容器的配置（如 config.yml 是否被覆盖）。"
-                "默认返回该组件全部 config-file 存储卷；可用 volume_name 或 volume_path 精确定位某个挂载。"
-            ),
+            "name":
+            "rainbond_get_config_file",
+            "description": ("读取组件的配置文件类（config-file）存储卷的内容。配置文件内容由平台持久化存储，"
+                            "即使 Pod 处于宕机/崩溃状态也可读取，适合在排查时确认实际下发到容器的配置（如 config.yml 是否被覆盖）。"
+                            "默认返回该组件全部 config-file 存储卷；可用 volume_name 或 volume_path 精确定位某个挂载。"),
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1},
-                    "service_id": {"type": "string"},
-                    "volume_name": {"type": "string", "description": "可选，配置文件存储卷名称，用于只返回某个配置文件"},
-                    "volume_path": {"type": "string", "description": "可选，配置文件在容器内的挂载路径，用于按路径定位某个配置文件"}
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "service_id": {
+                        "type": "string"
+                    },
+                    "volume_name": {
+                        "type": "string",
+                        "description": "可选，配置文件存储卷名称，用于只返回某个配置文件"
+                    },
+                    "volume_path": {
+                        "type": "string",
+                        "description": "可选，配置文件在容器内的挂载路径，用于按路径定位某个配置文件"
+                    }
                 },
                 "required": ["team_name", "region_name", "app_id", "service_id"]
             }
@@ -6316,19 +6490,27 @@ class MCPQueryService(object):
 
     def _tool_analyze_env_conflicts(self) -> dict:
         return {
-            "name": "rainbond_analyze_env_conflicts",
-            "description": (
-                "检测组件环境变量的多源冲突：同一 attr_name 由多个来源（组件自身定义 vs 依赖注入的连接变量/"
-                "端口别名自动生成变量）提供且取值不一致时判定为冲突。用于排障 loop 在改 env 前规避 M0 实测的"
-                "<ALIAS>_PORT 同名 412 类问题。同名同值不算冲突。"
-            ),
+            "name":
+            "rainbond_analyze_env_conflicts",
+            "description": ("检测组件环境变量的多源冲突：同一 attr_name 由多个来源（组件自身定义 vs 依赖注入的连接变量/"
+                            "端口别名自动生成变量）提供且取值不一致时判定为冲突。用于排障 loop 在改 env 前规避 M0 实测的"
+                            "<ALIAS>_PORT 同名 412 类问题。同名同值不算冲突。"),
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1},
-                    "service_id": {"type": "string"},
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "service_id": {
+                        "type": "string"
+                    },
                 },
                 "required": ["team_name", "region_name", "app_id", "service_id"],
             },
@@ -6336,55 +6518,83 @@ class MCPQueryService(object):
 
     def _tool_manage_component_envs(self) -> dict:
         return {
-            "name": "rainbond_manage_component_envs",
-            "description": "高层自定义环境变量管理工具。只用于组件自身环境变量（custom envs, inner）和构建环境变量（build envs），不要用于组件连接信息（outer）。"
-                           "运行时变量变更后需调用 rainbond_operate_app(action=upgrade) 才作用于运行实例；"
-                           "replace_build_envs 是构建参数，下次构建生效，不是 upgrade。",
+            "name":
+            "rainbond_manage_component_envs",
+            "description":
+            "高层自定义环境变量管理工具。只用于组件自身环境变量（custom envs, inner）和构建环境变量（build envs），不要用于组件连接信息（outer）。"
+            "运行时变量变更后需调用 rainbond_operate_app(action=upgrade) 才作用于运行实例；"
+            "replace_build_envs 是构建参数，下次构建生效，不是 upgrade。",
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1},
-                    "service_id": {"type": "string"},
-                    "operation": {"type": "string", "enum": ["summary", "upsert", "create", "update", "delete", "patch_scope", "replace_build_envs"]},
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "service_id": {
+                        "type": "string"
+                    },
+                    "operation": {
+                        "type": "string",
+                        "enum": ["summary", "upsert", "create", "update", "delete", "patch_scope", "replace_build_envs"]
+                    },
                     "envs": {
                         "type": "array",
-                        "items": {"type": "object"},
+                        "items": {
+                            "type": "object"
+                        },
                         "description": "用于 upsert 的批量环境变量列表。若只 upsert 单条，也兼容直接传 attr_name/attr_value/name/is_change/scope。"
                     },
-                    "env_id": {"type": "string"},
-                    "name": {"type": "string", "description": "单条 upsert/create/update 时的人类可读名称；upsert 单条时可与 attr_name 相同。"},
-                    "attr_name": {"type": "string", "description": "单条 upsert/create 时的环境变量名。"},
-                    "attr_value": {"type": "string", "description": "单条 upsert/create/update 时的环境变量值。"},
+                    "env_id": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "单条 upsert/create/update 时的人类可读名称；upsert 单条时可与 attr_name 相同。"
+                    },
+                    "attr_name": {
+                        "type": "string",
+                        "description": "单条 upsert/create 时的环境变量名。"
+                    },
+                    "attr_value": {
+                        "type": "string",
+                        "description": "单条 upsert/create/update 时的环境变量值。"
+                    },
                     "scope": {
                         "type": "string",
                         "description": "环境变量范围，默认 inner。该工具只支持 inner，也支持别名 local/self/runtime"
                     },
-                    "is_change": {"type": "boolean"},
+                    "is_change": {
+                        "type": "boolean"
+                    },
                     "build_env_dict": {
-                        "type": "object",
-                        "description": (
-                            "全量替换源码构建参数字典。适合 replace_build_envs；不要把普通运行时环境变量放到这里。"
-                            "常见键：通用 BUILD_TYPE=cnb、BUILD_NO_CACHE=true、BUILD_PROCFILE；"
-                            "Node.js/static 用 CNB_FRAMEWORK、CNB_NODE_VERSION、CNB_NODE_ENV、CNB_BUILD_SCRIPT、"
-                            "CNB_OUTPUT_DIR、CNB_START_SCRIPT、CNB_PACKAGE_TOOL、CNB_MIRROR_SOURCE、"
-                            "CNB_MIRROR_NPMRC/CNB_MIRROR_YARNRC/CNB_MIRROR_PNPMRC；"
-                            "Java 用 BP_JVM_VERSION、BP_JVM_TYPE、BP_MAVEN_SETTINGS_PATH、"
-                            "BP_MAVEN_BUILD_ARGUMENTS、BP_MAVEN_ADDITIONAL_BUILD_ARGUMENTS、"
-                            "BP_MAVEN_BUILT_MODULE、BP_MAVEN_BUILT_ARTIFACT、"
-                            "BP_GRADLE_BUILD_ARGUMENTS、BP_GRADLE_ADDITIONAL_BUILD_ARGUMENTS，"
-                            "兼容键 BUILD_MAVEN_SETTING_NAME；"
-                            "Python 用 BP_CPYTHON_VERSION、BUILD_PIP_INDEX_URL、BUILD_PIP_TRUSTED_HOST、"
-                            "BUILD_CONDA_SOLVER、BUILD_PROCFILE；"
-                            "Golang 用 BP_GO_VERSION、GOPROXY、GOPRIVATE、BP_GO_TARGETS、"
-                            "BP_GO_BUILD_FLAGS、BP_GO_BUILD_LDFLAGS、BUILD_PROCFILE；"
-                            "PHP 用 BP_PHP_VERSION、BP_COMPOSER_INSTALL_OPTIONS、BP_PHP_WEB_DIR、BUILD_PROCFILE；"
-                            ".NET 用 BP_DOTNET_FRAMEWORK_VERSION、BP_DOTNET_PROJECT_PATH、"
-                            "BP_DOTNET_PUBLISH_FLAGS、BUILD_NUGET_CONFIG_NAME、BUILD_PROCFILE。"
-                            "敏感认证如 COMPOSER_AUTH、运行期变量如 NODE_OPTIONS/JAVA_TOOL_OPTIONS "
-                            "建议改用普通环境变量工具。"
-                        )
+                        "type":
+                        "object",
+                        "description": ("全量替换源码构建参数字典。适合 replace_build_envs；不要把普通运行时环境变量放到这里。"
+                                        "常见键：通用 BUILD_TYPE=cnb、BUILD_NO_CACHE=true、BUILD_PROCFILE；"
+                                        "Node.js/static 用 CNB_FRAMEWORK、CNB_NODE_VERSION、CNB_NODE_ENV、CNB_BUILD_SCRIPT、"
+                                        "CNB_OUTPUT_DIR、CNB_START_SCRIPT、CNB_PACKAGE_TOOL、CNB_MIRROR_SOURCE、"
+                                        "CNB_MIRROR_NPMRC/CNB_MIRROR_YARNRC/CNB_MIRROR_PNPMRC；"
+                                        "Java 用 BP_JVM_VERSION、BP_JVM_TYPE、BP_MAVEN_SETTINGS_PATH、"
+                                        "BP_MAVEN_BUILD_ARGUMENTS、BP_MAVEN_ADDITIONAL_BUILD_ARGUMENTS、"
+                                        "BP_MAVEN_BUILT_MODULE、BP_MAVEN_BUILT_ARTIFACT、"
+                                        "BP_GRADLE_BUILD_ARGUMENTS、BP_GRADLE_ADDITIONAL_BUILD_ARGUMENTS，"
+                                        "兼容键 BUILD_MAVEN_SETTING_NAME；"
+                                        "Python 用 BP_CPYTHON_VERSION、BUILD_PIP_INDEX_URL、BUILD_PIP_TRUSTED_HOST、"
+                                        "BUILD_CONDA_SOLVER、BUILD_PROCFILE；"
+                                        "Golang 用 BP_GO_VERSION、GOPROXY、GOPRIVATE、BP_GO_TARGETS、"
+                                        "BP_GO_BUILD_FLAGS、BP_GO_BUILD_LDFLAGS、BUILD_PROCFILE；"
+                                        "PHP 用 BP_PHP_VERSION、BP_COMPOSER_INSTALL_OPTIONS、BP_PHP_WEB_DIR、BUILD_PROCFILE；"
+                                        ".NET 用 BP_DOTNET_FRAMEWORK_VERSION、BP_DOTNET_PROJECT_PATH、"
+                                        "BP_DOTNET_PUBLISH_FLAGS、BUILD_NUGET_CONFIG_NAME、BUILD_PROCFILE。"
+                                        "敏感认证如 COMPOSER_AUTH、运行期变量如 NODE_OPTIONS/JAVA_TOOL_OPTIONS "
+                                        "建议改用普通环境变量工具。")
                     }
                 },
                 "required": ["team_name", "region_name", "app_id", "service_id", "operation"]
@@ -6395,20 +6605,43 @@ class MCPQueryService(object):
         return {
             "name": "rainbond_manage_component_connection_envs",
             "description": "高层组件连接信息管理工具。只用于组件连接信息（connection envs, outer），不要用于自定义环境变量（inner）。"
-                           "连接信息变更后，依赖该组件的 consumer 需要 rainbond_operate_app(action=upgrade) 才会拿到新值。",
+            "连接信息变更后，依赖该组件的 consumer 需要 rainbond_operate_app(action=upgrade) 才会拿到新值。",
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1},
-                    "service_id": {"type": "string"},
-                    "operation": {"type": "string", "enum": ["summary", "create", "update", "delete", "patch_scope"]},
-                    "env_id": {"type": "string"},
-                    "name": {"type": "string"},
-                    "attr_name": {"type": "string"},
-                    "attr_value": {"type": "string"},
-                    "scope": {"type": "string", "description": "仅在 patch_scope 时使用。inner 表示迁移到自定义环境变量，outer 表示保持为组件连接信息"}
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "service_id": {
+                        "type": "string"
+                    },
+                    "operation": {
+                        "type": "string",
+                        "enum": ["summary", "create", "update", "delete", "patch_scope"]
+                    },
+                    "env_id": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "attr_name": {
+                        "type": "string"
+                    },
+                    "attr_value": {
+                        "type": "string"
+                    },
+                    "scope": {
+                        "type": "string",
+                        "description": "仅在 patch_scope 时使用。inner 表示迁移到自定义环境变量，outer 表示保持为组件连接信息"
+                    }
                 },
                 "required": ["team_name", "region_name", "app_id", "service_id", "operation"]
             }
@@ -6421,10 +6654,19 @@ class MCPQueryService(object):
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1},
-                    "service_id": {"type": "string"}
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "service_id": {
+                        "type": "string"
+                    }
                 },
                 "required": ["team_name", "region_name", "app_id", "service_id"]
             }
@@ -6437,10 +6679,19 @@ class MCPQueryService(object):
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1},
-                    "service_id": {"type": "string"}
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "service_id": {
+                        "type": "string"
+                    }
                 },
                 "required": ["team_name", "region_name", "app_id", "service_id"]
             }
@@ -6448,20 +6699,28 @@ class MCPQueryService(object):
 
     def _tool_get_pod_detail(self) -> dict:
         return {
-            "name": "rainbond_get_pod_detail",
-            "description": (
-                "Get runtime diagnostic detail of a specified pod under the component. "
-                "pod_name MUST come from a prior rainbond_get_component_pods response — "
-                "do not guess, construct, or recall pod names. Pods outside the given "
-                "service_id (including platform-internal pods such as rbd-*) are not accessible."
-            ),
+            "name":
+            "rainbond_get_pod_detail",
+            "description": ("Get runtime diagnostic detail of a specified pod under the component. "
+                            "pod_name MUST come from a prior rainbond_get_component_pods response — "
+                            "do not guess, construct, or recall pod names. Pods outside the given "
+                            "service_id (including platform-internal pods such as rbd-*) are not accessible."),
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1},
-                    "service_id": {"type": "string"},
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "service_id": {
+                        "type": "string"
+                    },
                     "pod_name": {
                         "type": "string",
                         "description": "Pod 名称。必须来自最近一次 rainbond_get_component_pods 的返回结果，禁止凭空构造。"
@@ -6478,12 +6737,27 @@ class MCPQueryService(object):
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1},
-                    "service_id": {"type": "string"},
-                    "page": {"type": "integer", "minimum": 1},
-                    "page_size": {"type": "integer", "minimum": 1}
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "service_id": {
+                        "type": "string"
+                    },
+                    "page": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "page_size": {
+                        "type": "integer",
+                        "minimum": 1
+                    }
                 },
                 "required": ["team_name", "region_name", "app_id", "service_id"]
             }
@@ -6491,27 +6765,35 @@ class MCPQueryService(object):
 
     def _tool_get_operation_failure_context(self) -> dict:
         return {
-            "name": "rainbond_get_operation_failure_context",
-            "description": (
-                "Aggregate structured failure context for a component after a mutating operation "
-                "(rainbond_operate_app / rainbond_upgrade_app / build / deploy) reports failure, or "
-                "when a component becomes abnormal right after such an operation. Returns the failing "
-                "operation event, the tail of its event log, deduplicated K8s pod Warning events, and a "
-                "machine-readable classified_reason "
-                "(config_file_configmap_missing / volume_mount_failed / image_pull_failed / crash_loop / "
-                "probe_failed / unschedulable / k8s_api_rejected / unknown). Call this BEFORE deciding to "
-                "retry: route by classified_reason to the matching root-cause fix; on 'unknown' fall back "
-                "to the normal evidence workflow. event_id is optional — when omitted the most recent "
-                "non-success operation event is used. verification_level reports evidence strength "
-                "(pod_evidence > event_only > no_evidence)."
-            ),
+            "name":
+            "rainbond_get_operation_failure_context",
+            "description": ("Aggregate structured failure context for a component after a mutating operation "
+                            "(rainbond_operate_app / rainbond_upgrade_app / build / deploy) reports failure, or "
+                            "when a component becomes abnormal right after such an operation. Returns the failing "
+                            "operation event, the tail of its event log, deduplicated K8s pod Warning events, and a "
+                            "machine-readable classified_reason "
+                            "(config_file_configmap_missing / volume_mount_failed / image_pull_failed / crash_loop / "
+                            "probe_failed / unschedulable / k8s_api_rejected / unknown). Call this BEFORE deciding to "
+                            "retry: route by classified_reason to the matching root-cause fix; on 'unknown' fall back "
+                            "to the normal evidence workflow. event_id is optional — when omitted the most recent "
+                            "non-success operation event is used. verification_level reports evidence strength "
+                            "(pod_evidence > event_only > no_evidence)."),
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1},
-                    "service_id": {"type": "string"},
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "service_id": {
+                        "type": "string"
+                    },
                     "event_id": {
                         "type": "string",
                         "description": "可选。要定位的操作事件 ID。缺省时自动取该组件最近一次非 success 的操作事件。"
@@ -6528,25 +6810,57 @@ class MCPQueryService(object):
 
     def _tool_get_component_build_logs(self) -> dict:
         return {
-            "name": "rainbond_get_component_build_logs",
-            "description": (
-                "Get build event logs for a component by event_id. The event_id usually comes from build/create/deploy "
-                "responses. For large projects (Maven monorepo, multi-stage Node.js builds, etc.) prefer narrowing the "
-                "response with tail/grep/offset/limit — without them the upstream LLM client may middle-truncate the "
-                "response and drop the real error which is usually near the tail."
-            ),
+            "name":
+            "rainbond_get_component_build_logs",
+            "description":
+            ("Get build event logs for a component by event_id. The event_id usually comes from build/create/deploy "
+             "responses. For large projects (Maven monorepo, multi-stage Node.js builds, etc.) prefer narrowing the "
+             "response with tail/grep/offset/limit — without them the upstream LLM client may middle-truncate the "
+             "response and drop the real error which is usually near the tail."),
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1},
-                    "service_id": {"type": "string"},
-                    "event_id": {"type": "string", "description": "构建事件 ID，一般来自构建、创建或部署操作的返回值。**必须**通过 rainbond_get_component_events 等只读工具拿到真实 UUID；不要从其它工具返回的 DB 行号（如 summary.recent_events[*].ID）当成 event_id 传入。"},
-                    "tail": {"type": "integer", "minimum": 1, "description": "只返回末尾 N 条日志。构建失败时错误几乎总在尾部，优先用 tail（例如 tail=500）而不是拉全量再截断。与 offset/limit 同传时 tail 优先。"},
-                    "offset": {"type": "integer", "minimum": 0, "description": "起始偏移（从 0 开始）。与 limit 搭配做翻页。"},
-                    "limit": {"type": "integer", "minimum": 1, "description": "返回最多 N 条。与 offset 搭配做翻页。"},
-                    "grep": {"type": "string", "description": "按 substring 匹配每条日志的 message 字段，常用于过滤 ERROR / BUILD FAILURE / Caused by 等关键行。grep 在 tail/offset/limit 之前生效。"}
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "service_id": {
+                        "type": "string"
+                    },
+                    "event_id": {
+                        "type":
+                        "string",
+                        "description":
+                        ('构建事件 ID，一般来自构建、创建或部署操作的返回值。**必须**通过 rainbond_get_component_events 等只读工具拿到真实 UUID；不要从其它工具返回的 '
+                         'DB 行号（如 summary.recent_events[*].ID）当成 event_id 传入。')
+                    },
+                    "tail": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "description": "只返回末尾 N 条日志。构建失败时错误几乎总在尾部，优先用 tail（例如 tail=500）而不是拉全量再截断。与 offset/limit 同传时 tail 优先。"
+                    },
+                    "offset": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "description": "起始偏移（从 0 开始）。与 limit 搭配做翻页。"
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "description": "返回最多 N 条。与 offset 搭配做翻页。"
+                    },
+                    "grep": {
+                        "type":
+                        "string",
+                        "description": ('按 substring 匹配每条日志的 message 字段，常用于过滤 ERROR / BUILD FAILURE / Caused by 等关键行。grep 在 '
+                                        'tail/offset/limit 之前生效。')
+                    }
                 },
                 "required": ["team_name", "region_name", "app_id", "service_id", "event_id"]
             }
@@ -6554,15 +6868,26 @@ class MCPQueryService(object):
 
     def _tool_get_component_build_source(self) -> dict:
         return {
-            "name": "rainbond_get_component_build_source",
-            "description": "Get current build source summary for a component, including source type, repo/image info, build strategy, build envs, and available arch options. Passwords are not returned.",
+            "name":
+            "rainbond_get_component_build_source",
+            "description": ('Get current build source summary for a component, including source type, repo/image info, build '
+                            'strategy, build envs, and available arch options. Passwords are not returned.'),
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1},
-                    "service_id": {"type": "string"},
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "service_id": {
+                        "type": "string"
+                    },
                 },
                 "required": ["team_name", "region_name", "app_id", "service_id"]
             }
@@ -6570,37 +6895,84 @@ class MCPQueryService(object):
 
     def _tool_update_component_build_source(self) -> dict:
         return {
-            "name": "rainbond_update_component_build_source",
-            "description": "Update the component build source. Use this for switching between source_code and docker_run/image-manual style inputs; do not use it for build_env_dict updates.",
+            "name":
+            "rainbond_update_component_build_source",
+            "description": ('Update the component build source. Use this for switching between source_code and '
+                            'docker_run/image-manual style inputs; do not use it for build_env_dict updates.'),
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1},
-                    "service_id": {"type": "string"},
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "service_id": {
+                        "type": "string"
+                    },
                     "service_source": {
                         "type": "string",
                         "enum": ["source_code", "docker_run", "docker_image"],
                         "description": "目标构建源类型。source_code=源码构建；docker_run/docker_image=镜像构建。"
                     },
-                    "git_url": {"type": "string", "description": "源码仓库地址或对象存储制品地址。"},
-                    "subdirectories": {"type": "string", "description": "源码子目录，会标准化追加到 git_url，例如 ?dir=services/api。"},
-                    "code_version": {"type": "string", "description": "源码分支、提交或标签名。"},
-                    "version_type": {"type": "string", "description": "源码版本类型；tag 会被标准化为 tag:<name>。"},
+                    "git_url": {
+                        "type": "string",
+                        "description": "源码仓库地址或对象存储制品地址。"
+                    },
+                    "subdirectories": {
+                        "type": "string",
+                        "description": "源码子目录，会标准化追加到 git_url，例如 ?dir=services/api。"
+                    },
+                    "code_version": {
+                        "type": "string",
+                        "description": "源码分支、提交或标签名。"
+                    },
+                    "version_type": {
+                        "type": "string",
+                        "description": "源码版本类型；tag 会被标准化为 tag:<name>。"
+                    },
                     "server_type": {
                         "type": "string",
                         "enum": ["git", "svn", "oss"],
                         "description": "源码地址类型：git=Git仓库，svn=SVN仓库，oss=对象存储制品地址。"
                     },
-                    "username": {"type": "string", "description": "源码仓库或镜像仓库用户名。"},
-                    "password": {"type": "string", "description": "源码仓库或镜像仓库密码/令牌。"},
-                    "is_oauth": {"type": "boolean", "description": "为 true 时按 OAuth 代码仓库处理。"},
-                    "oauth_service_id": {"type": "string", "description": "仅 is_oauth=true 时使用。"},
-                    "full_name": {"type": "string", "description": "仅 OAuth 代码仓库时使用的仓库全名。"},
-                    "image": {"type": "string", "description": "镜像地址；目标为 docker_run/docker_image 时使用。"},
-                    "cmd": {"type": "string", "description": "镜像启动命令；目标为 docker_run/docker_image 时使用。"},
-                    "arch": {"type": "string", "description": "目标架构，例如 amd64、arm64。"},
+                    "username": {
+                        "type": "string",
+                        "description": "源码仓库或镜像仓库用户名。"
+                    },
+                    "password": {
+                        "type": "string",
+                        "description": "源码仓库或镜像仓库密码/令牌。"
+                    },
+                    "is_oauth": {
+                        "type": "boolean",
+                        "description": "为 true 时按 OAuth 代码仓库处理。"
+                    },
+                    "oauth_service_id": {
+                        "type": "string",
+                        "description": "仅 is_oauth=true 时使用。"
+                    },
+                    "full_name": {
+                        "type": "string",
+                        "description": "仅 OAuth 代码仓库时使用的仓库全名。"
+                    },
+                    "image": {
+                        "type": "string",
+                        "description": "镜像地址；目标为 docker_run/docker_image 时使用。"
+                    },
+                    "cmd": {
+                        "type": "string",
+                        "description": "镜像启动命令；目标为 docker_run/docker_image 时使用。"
+                    },
+                    "arch": {
+                        "type": "string",
+                        "description": "目标架构，例如 amd64、arm64。"
+                    },
                 },
                 "required": ["team_name", "region_name", "app_id", "service_id", "service_source"]
             }
@@ -6608,24 +6980,44 @@ class MCPQueryService(object):
 
     def _tool_create_component(self) -> dict:
         return {
-            "name": "rainbond_create_component",
-            "description": (
-                "Create a component from image in the specified application. "
-                + self.IMAGE_COMPONENT_DEFAULT_RESOURCE_DESCRIPTION
-            ),
+            "name":
+            "rainbond_create_component",
+            "description": ("Create a component from image in the specified application. " +
+                            self.IMAGE_COMPONENT_DEFAULT_RESOURCE_DESCRIPTION),
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1},
-                    "service_cname": {"type": "string"},
-                    "image": {"type": "string"},
-                    "docker_cmd": {"type": "string"},
-                    "k8s_component_name": {"type": "string"},
-                    "user_name": {"type": "string"},
-                    "password": {"type": "string"},
-                    "is_deploy": {"type": "boolean"}
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "service_cname": {
+                        "type": "string"
+                    },
+                    "image": {
+                        "type": "string"
+                    },
+                    "docker_cmd": {
+                        "type": "string"
+                    },
+                    "k8s_component_name": {
+                        "type": "string"
+                    },
+                    "user_name": {
+                        "type": "string"
+                    },
+                    "password": {
+                        "type": "string"
+                    },
+                    "is_deploy": {
+                        "type": "boolean"
+                    }
                 },
                 "required": ["team_name", "region_name", "app_id", "service_cname", "image"]
             }
@@ -6641,10 +7033,19 @@ class MCPQueryService(object):
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1},
-                    "service_id": {"type": "string"}
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "service_id": {
+                        "type": "string"
+                    }
                 },
                 "required": ["team_name", "region_name", "app_id", "service_id"]
             }
@@ -6652,28 +7053,39 @@ class MCPQueryService(object):
 
     def _tool_operate_app(self) -> dict:
         return {
-            "name": "rainbond_operate_app",
-            "description": "Batch operate application components. Supported actions: start, stop, restart, upgrade, deploy. "
-                           "upgrade applies already-saved configuration (envs, dependencies, storage, probes, connection envs) "
-                           "to running instances via rolling update and does NOT rebuild. "
-                           "deploy rebuilds from source code or image before deploying; use it only when the code/image "
-                           "changed or for the first deployment. "
-                           "restart only recreates instances: it neither rebuilds nor applies pending configuration changes. "
-                           "Response includes event_ids ([{service_id, service_alias, event_id}]); after a failed "
-                           "operation pass an event_id to rainbond_get_operation_failure_context for diagnosis.",
+            "name":
+            "rainbond_operate_app",
+            "description":
+            "Batch operate application components. Supported actions: start, stop, restart, upgrade, deploy. "
+            "upgrade applies already-saved configuration (envs, dependencies, storage, probes, connection envs) "
+            "to running instances via rolling update and does NOT rebuild. "
+            "deploy rebuilds from source code or image before deploying; use it only when the code/image "
+            "changed or for the first deployment. "
+            "restart only recreates instances: it neither rebuilds nor applies pending configuration changes. "
+            "Response includes event_ids ([{service_id, service_alias, event_id}]); after a failed "
+            "operation pass an event_id to rainbond_get_operation_failure_context for diagnosis.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1},
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
                     "action": {
                         "type": "string",
                         "enum": ["start", "stop", "restart", "upgrade", "deploy"]
                     },
                     "service_ids": {
                         "type": "array",
-                        "items": {"type": "string"}
+                        "items": {
+                            "type": "string"
+                        }
                     }
                 },
                 "required": ["team_name", "region_name", "app_id", "action"]
@@ -6682,24 +7094,38 @@ class MCPQueryService(object):
 
     def _tool_wait_for_build_completion(self) -> dict:
         return {
-            "name": "rainbond_wait_for_build_completion",
-            "description": (
-                "有界阻塞轮询某次构建/部署操作事件直到终态，用于排障 loop 在部署后获取统一就绪信号，"
-                "免去客户端 for+sleep+curl 自旋。返回 status=success/failure/running："
-                "success/failure 在事件终态时立即返回，failure 附带脱敏后的关键错误摘要(error_summary)"
-                "与归类原因(classified_reason)；若在超时(默认 60s，最大 120s)内仍未终态，返回 status=running 与 event_id，"
-                "调用方可携带同一 event_id 再次调用以续等。event_id 来自 operate_app/build_component 的返回。"
-            ),
+            "name":
+            "rainbond_wait_for_build_completion",
+            "description": ("有界阻塞轮询某次构建/部署操作事件直到终态，用于排障 loop 在部署后获取统一就绪信号，"
+                            "免去客户端 for+sleep+curl 自旋。返回 status=success/failure/running："
+                            "success/failure 在事件终态时立即返回，failure 附带脱敏后的关键错误摘要(error_summary)"
+                            "与归类原因(classified_reason)；若在超时(默认 60s，最大 120s)内仍未终态，返回 status=running 与 event_id，"
+                            "调用方可携带同一 event_id 再次调用以续等。event_id 来自 operate_app/build_component 的返回。"),
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1},
-                    "service_id": {"type": "string"},
-                    "event_id": {"type": "string", "description": "构建/部署操作事件 ID，来自 operate_app/build_component 返回"},
-                    "timeout": {"type": "integer", "minimum": 1,
-                                "description": "阻塞等待上限秒数，默认 60，超过 120 按 120 截断"},
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "service_id": {
+                        "type": "string"
+                    },
+                    "event_id": {
+                        "type": "string",
+                        "description": "构建/部署操作事件 ID，来自 operate_app/build_component 返回"
+                    },
+                    "timeout": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "description": "阻塞等待上限秒数，默认 60，超过 120 按 120 截断"
+                    },
                 },
                 "required": ["team_name", "region_name", "app_id", "service_id", "event_id"],
             },
@@ -6712,20 +7138,39 @@ class MCPQueryService(object):
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1},
-                    "service_id": {"type": "string"},
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "service_id": {
+                        "type": "string"
+                    },
                     "envs": {
                         "type": "array",
                         "items": {
                             "type": "object",
                             "properties": {
-                                "note": {"type": "string"},
-                                "name": {"type": "string"},
-                                "value": {"type": "string"},
-                                "is_change": {"type": "boolean"},
-                                "scope": {"type": "string"}
+                                "note": {
+                                    "type": "string"
+                                },
+                                "name": {
+                                    "type": "string"
+                                },
+                                "value": {
+                                    "type": "string"
+                                },
+                                "is_change": {
+                                    "type": "boolean"
+                                },
+                                "scope": {
+                                    "type": "string"
+                                }
                             },
                             "required": ["name", "value", "is_change", "scope"]
                         }
@@ -6742,11 +7187,22 @@ class MCPQueryService(object):
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1},
-                    "service_id": {"type": "string"},
-                    "image": {"type": "string"}
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "service_id": {
+                        "type": "string"
+                    },
+                    "image": {
+                        "type": "string"
+                    }
                 },
                 "required": ["team_name", "region_name", "app_id", "service_id", "image"]
             }
@@ -6759,9 +7215,15 @@ class MCPQueryService(object):
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "query": {"type": "string"}
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "query": {
+                        "type": "string"
+                    }
                 },
                 "required": ["team_name", "region_name"]
             }
@@ -6770,13 +7232,21 @@ class MCPQueryService(object):
     def _tool_get_app_version_overview(self) -> dict:
         return {
             "name": "rainbond_get_app_version_overview",
-            "description": "Get the overview data used by the app version center, including current baseline snapshot and change summary.",
+            "description":
+            "Get the overview data used by the app version center, including current baseline snapshot and change summary.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1}
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    }
                 },
                 "required": ["team_name", "region_name", "app_id"]
             }
@@ -6789,9 +7259,16 @@ class MCPQueryService(object):
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1}
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    }
                 },
                 "required": ["team_name", "region_name", "app_id"]
             }
@@ -6804,10 +7281,20 @@ class MCPQueryService(object):
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1},
-                    "version_id": {"type": "integer", "minimum": 1}
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "version_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    }
                 },
                 "required": ["team_name", "region_name", "app_id", "version_id"]
             }
@@ -6815,20 +7302,51 @@ class MCPQueryService(object):
 
     def _tool_create_app_version_snapshot(self) -> dict:
         return {
-            "name": "rainbond_create_app_version_snapshot",
-            "description": "Create a new snapshot version for the app. Optional share payload lets you persist the exact draft content from the snapshot configuration page.",
+            "name":
+            "rainbond_create_app_version_snapshot",
+            "description":
+            ('Create a new snapshot version for the app. Optional share payload lets you persist the exact draft '
+             'content from the snapshot configuration page.'),
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1},
-                    "version": {"type": "string"},
-                    "version_alias": {"type": "string"},
-                    "app_version_info": {"type": "string"},
-                    "share_service_list": {"type": "array", "items": {"type": "object"}},
-                    "share_plugin_list": {"type": "array", "items": {"type": "object"}},
-                    "share_k8s_resources": {"type": "array", "items": {"type": "object"}}
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "version": {
+                        "type": "string"
+                    },
+                    "version_alias": {
+                        "type": "string"
+                    },
+                    "app_version_info": {
+                        "type": "string"
+                    },
+                    "share_service_list": {
+                        "type": "array",
+                        "items": {
+                            "type": "object"
+                        }
+                    },
+                    "share_plugin_list": {
+                        "type": "array",
+                        "items": {
+                            "type": "object"
+                        }
+                    },
+                    "share_k8s_resources": {
+                        "type": "array",
+                        "items": {
+                            "type": "object"
+                        }
+                    }
                 },
                 "required": ["team_name", "region_name", "app_id"]
             }
@@ -6841,10 +7359,20 @@ class MCPQueryService(object):
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1},
-                    "version_id": {"type": "integer", "minimum": 1}
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "version_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    }
                 },
                 "required": ["team_name", "region_name", "app_id", "version_id"]
             }
@@ -6852,29 +7380,39 @@ class MCPQueryService(object):
 
     def _tool_rewrite_snapshot_images(self) -> dict:
         return {
-            "name": "rainbond_rewrite_snapshot_images",
-            "description": (
-                "Rewrite a snapshot template's component images from internal registry "
-                "(goodrain.me) back to upstream originals. Each component's share_image and "
-                "service_image are set to the upstream image field. Arch-specific nodeAffinity "
-                "attributes are removed. Use this before publishing a template to the app store "
-                "so that end-users pull directly from upstream multi-arch registries."
-            ),
+            "name":
+            "rainbond_rewrite_snapshot_images",
+            "description": ("Rewrite a snapshot template's component images from internal registry "
+                            "(goodrain.me) back to upstream originals. Each component's share_image and "
+                            "service_image are set to the upstream image field. Arch-specific nodeAffinity "
+                            "attributes are removed. Use this before publishing a template to the app store "
+                            "so that end-users pull directly from upstream multi-arch registries."),
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1},
-                    "version_id": {"type": "integer", "minimum": 1},
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "version_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
                     "image_overrides": {
-                        "type": "object",
-                        "description": (
-                            "Optional mapping of component_name -> upstream_image to override "
-                            "the default (which uses each component's existing 'image' field). "
-                            "Use when the upstream image differs from what was deployed."
-                        ),
-                        "additionalProperties": {"type": "string"}
+                        "type":
+                        "object",
+                        "description": ("Optional mapping of component_name -> upstream_image to override "
+                                        "the default (which uses each component's existing 'image' field). "
+                                        "Use when the upstream image differs from what was deployed."),
+                        "additionalProperties": {
+                            "type": "string"
+                        }
                     }
                 },
                 "required": ["team_name", "region_name", "app_id", "version_id"]
@@ -6883,34 +7421,38 @@ class MCPQueryService(object):
 
     def _tool_publish_snapshot_to_store(self) -> dict:
         return {
-            "name": "rainbond_publish_snapshot_to_store",
-            "description": (
-                "Publish a snapshot version's template to a cloud app store. "
-                "Creates the app in the store if store_app_id is not provided, "
-                "then creates a version with the snapshot template. By default "
-                "rewrites component images to upstream originals (skipping "
-                "internal registry references). Use rainbond_query_cloud_markets "
-                "to find available market_id values."
-            ),
+            "name":
+            "rainbond_publish_snapshot_to_store",
+            "description": ("Publish a snapshot version's template to a cloud app store. "
+                            "Creates the app in the store if store_app_id is not provided, "
+                            "then creates a version with the snapshot template. By default "
+                            "rewrites component images to upstream originals (skipping "
+                            "internal registry references). Use rainbond_query_cloud_markets "
+                            "to find available market_id values."),
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
                     "app_id": {
-                        "type": "integer", "minimum": 1,
+                        "type": "integer",
+                        "minimum": 1,
                         "description": "Rainbond app ID (source app)"
                     },
                     "version_id": {
-                        "type": "integer", "minimum": 1,
+                        "type": "integer",
+                        "minimum": 1,
                         "description": "Snapshot version ID to publish"
                     },
                     "market_id": {
-                        "type": "integer", "minimum": 1,
-                        "description": (
-                            "ID of the target cloud market "
-                            "(from rainbond_query_cloud_markets)"
-                        )
+                        "type": "integer",
+                        "minimum": 1,
+                        "description": ("ID of the target cloud market "
+                                        "(from rainbond_query_cloud_markets)")
                     },
                     "app_name": {
                         "type": "string",
@@ -6918,46 +7460,39 @@ class MCPQueryService(object):
                     },
                     "version": {
                         "type": "string",
-                        "description": (
-                            "Version string (e.g. '1.14.2')"
-                        )
+                        "description": ("Version string (e.g. '1.14.2')")
                     },
-                    "version_alias": {"type": "string"},
-                    "description": {"type": "string"},
+                    "version_alias": {
+                        "type": "string"
+                    },
+                    "description": {
+                        "type": "string"
+                    },
                     "publish_type": {
                         "type": "string",
-                        "enum": [
-                            "public", "private", "integral", "show"
-                        ],
+                        "enum": ["public", "private", "integral", "show"],
                         "description": "Visibility (default: public)"
                     },
-                    "logo": {"type": "string"},
+                    "logo": {
+                        "type": "string"
+                    },
                     "store_app_id": {
                         "type": "string",
-                        "description": (
-                            "Existing app-store appKeyID to add a "
-                            "version to. Omit to create a new app."
-                        )
+                        "description": ("Existing app-store appKeyID to add a "
+                                        "version to. Omit to create a new app.")
                     },
                     "arch": {
                         "type": "string",
-                        "description": (
-                            "CPU architecture (e.g. 'amd64', "
-                            "'amd64&arm64'). Auto-detected if omitted."
-                        )
+                        "description": ("CPU architecture (e.g. 'amd64', "
+                                        "'amd64&arm64'). Auto-detected if omitted.")
                     },
                     "rewrite_images": {
                         "type": "boolean",
-                        "description": (
-                            "Rewrite component images to upstream "
-                            "originals (default: true)"
-                        )
+                        "description": ("Rewrite component images to upstream "
+                                        "originals (default: true)")
                     }
                 },
-                "required": [
-                    "team_name", "region_name", "app_id",
-                    "version_id", "market_id", "app_name", "version"
-                ]
+                "required": ["team_name", "region_name", "app_id", "version_id", "market_id", "app_name", "version"]
             }
         }
 
@@ -6968,10 +7503,20 @@ class MCPQueryService(object):
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1},
-                    "version_id": {"type": "integer", "minimum": 1}
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "version_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    }
                 },
                 "required": ["team_name", "region_name", "app_id", "version_id"]
             }
@@ -6984,9 +7529,16 @@ class MCPQueryService(object):
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1}
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    }
                 },
                 "required": ["team_name", "region_name", "app_id"]
             }
@@ -6999,10 +7551,20 @@ class MCPQueryService(object):
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1},
-                    "record_id": {"type": "integer", "minimum": 1}
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "record_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    }
                 },
                 "required": ["team_name", "region_name", "app_id", "record_id"]
             }
@@ -7015,10 +7577,20 @@ class MCPQueryService(object):
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1},
-                    "record_id": {"type": "integer", "minimum": 1}
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "record_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    }
                 },
                 "required": ["team_name", "region_name", "app_id", "record_id"]
             }
@@ -7026,28 +7598,45 @@ class MCPQueryService(object):
 
     def _tool_create_app_from_snapshot_version(self) -> dict:
         return {
-            "name": "rainbond_create_app_from_snapshot_version",
-            "description": "Create a new app directly from a snapshot-generated hidden template without publishing it to the local library first.",
+            "name":
+            "rainbond_create_app_from_snapshot_version",
+            "description":
+            ('Create a new app directly from a snapshot-generated hidden template without publishing it to the local '
+             'library first.'),
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "source_app_id": {"type": "integer", "minimum": 1},
-                    "version_id": {"type": "integer", "minimum": 1},
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "source_app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "version_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
                     "target_app_name": {
                         "type": "string",
                         "description": self.DISPLAY_APP_NAME_DESCRIPTION,
                         "pattern": self.DISPLAY_APP_NAME_PATTERN,
                         "maxLength": self.DISPLAY_APP_NAME_MAX_LENGTH,
                     },
-                    "target_app_note": {"type": "string"},
+                    "target_app_note": {
+                        "type": "string"
+                    },
                     "k8s_app": {
                         "type": "string",
                         "pattern": self.K8S_APP_NAME_PATTERN,
                         "description": self.K8S_APP_NAME_DESCRIPTION
                     },
-                    "is_deploy": {"type": "boolean"}
+                    "is_deploy": {
+                        "type": "boolean"
+                    }
                 },
                 "required": ["team_name", "region_name", "source_app_id", "version_id", "target_app_name"]
             }
@@ -7055,18 +7644,37 @@ class MCPQueryService(object):
 
     def _tool_get_app_publish_candidates(self) -> dict:
         return {
-            "name": "rainbond_get_app_publish_candidates",
-            "description": "Get publish candidate app models for the version publish page. Use scope=local for local component library or scope=goodrain for cloud app market.",
+            "name":
+            "rainbond_get_app_publish_candidates",
+            "description":
+            ('Get publish candidate app models for the version publish page. Use scope=local for local component '
+             'library or scope=goodrain for cloud app market.'),
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1},
-                    "scope": {"type": "string", "enum": ["local", "goodrain"]},
-                    "market_name": {"type": "string"},
-                    "preferred_app_id": {"type": "string"},
-                    "preferred_version": {"type": "string"}
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "scope": {
+                        "type": "string",
+                        "enum": ["local", "goodrain"]
+                    },
+                    "market_name": {
+                        "type": "string"
+                    },
+                    "preferred_app_id": {
+                        "type": "string"
+                    },
+                    "preferred_version": {
+                        "type": "string"
+                    }
                 },
                 "required": ["team_name", "region_name", "app_id"]
             }
@@ -7074,19 +7682,41 @@ class MCPQueryService(object):
 
     def _tool_create_app_share_record(self) -> dict:
         return {
-            "name": "rainbond_create_app_share_record",
-            "description": "Create a draft share record for publish or snapshot configuration. For local publish keep scope empty; for cloud publish set scope=goodrain and target.store_id. Set snapshot_mode=true to enter the snapshot creation flow.",
+            "name":
+            "rainbond_create_app_share_record",
+            "description":
+            ('Create a draft share record for publish or snapshot configuration. For local publish keep scope empty; '
+             'for cloud publish set scope=goodrain and target.store_id. Set snapshot_mode=true to enter the snapshot '
+             'creation flow.'),
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1},
-                    "scope": {"type": "string", "enum": ["", "goodrain"]},
-                    "target": {"type": "object"},
-                    "snapshot_mode": {"type": "boolean"},
-                    "snapshot_app_id": {"type": "string"},
-                    "snapshot_version": {"type": "string"}
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "scope": {
+                        "type": "string",
+                        "enum": ["", "goodrain"]
+                    },
+                    "target": {
+                        "type": "object"
+                    },
+                    "snapshot_mode": {
+                        "type": "boolean"
+                    },
+                    "snapshot_app_id": {
+                        "type": "string"
+                    },
+                    "snapshot_version": {
+                        "type": "string"
+                    }
                 },
                 "required": ["team_name", "region_name", "app_id"]
             }
@@ -7099,11 +7729,26 @@ class MCPQueryService(object):
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1},
-                    "page": {"type": "integer", "minimum": 1, "maximum": self.MAX_PAGE_SIZE},
-                    "page_size": {"type": "integer", "minimum": 1, "maximum": self.MAX_PAGE_SIZE}
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "page": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": self.MAX_PAGE_SIZE
+                    },
+                    "page_size": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": self.MAX_PAGE_SIZE
+                    }
                 },
                 "required": ["team_name", "region_name", "app_id"]
             }
@@ -7116,10 +7761,20 @@ class MCPQueryService(object):
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1},
-                    "record_id": {"type": "integer", "minimum": 1}
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "record_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    }
                 },
                 "required": ["team_name", "region_name", "app_id", "record_id"]
             }
@@ -7132,10 +7787,20 @@ class MCPQueryService(object):
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1},
-                    "record_id": {"type": "integer", "minimum": 1}
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "record_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    }
                 },
                 "required": ["team_name", "region_name", "app_id", "record_id"]
             }
@@ -7143,15 +7808,27 @@ class MCPQueryService(object):
 
     def _tool_get_app_share_info(self) -> dict:
         return {
-            "name": "rainbond_get_app_share_info",
-            "description": "Get the draft share content for share step one. Returns publish_mode=snapshot when the draft is based on a snapshot version, otherwise publish_mode=runtime.",
+            "name":
+            "rainbond_get_app_share_info",
+            "description":
+            ('Get the draft share content for share step one. Returns publish_mode=snapshot when the draft is based '
+             'on a snapshot version, otherwise publish_mode=runtime.'),
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "share_id": {"type": "integer", "minimum": 1},
-                    "scope": {"type": "string"}
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "share_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "scope": {
+                        "type": "string"
+                    }
                 },
                 "required": ["team_name", "region_name", "share_id"]
             }
@@ -7159,20 +7836,50 @@ class MCPQueryService(object):
 
     def _tool_submit_app_share_info(self) -> dict:
         return {
-            "name": "rainbond_submit_app_share_info",
-            "description": "Submit share step one data. app_version_info is required; runtime publish may also include share_service_list, share_plugin_list, and share_k8s_resources.",
+            "name":
+            "rainbond_submit_app_share_info",
+            "description": ('Submit share step one data. app_version_info is required; runtime publish may also include '
+                            'share_service_list, share_plugin_list, and share_k8s_resources.'),
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "share_id": {"type": "integer", "minimum": 1},
-                    "use_force": {"type": "boolean"},
-                    "is_plugin": {"type": "boolean"},
-                    "app_version_info": {"type": "object"},
-                    "share_service_list": {"type": "array", "items": {"type": "object"}},
-                    "share_plugin_list": {"type": "array", "items": {"type": "object"}},
-                    "share_k8s_resources": {"type": "array", "items": {"type": "object"}}
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "share_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "use_force": {
+                        "type": "boolean"
+                    },
+                    "is_plugin": {
+                        "type": "boolean"
+                    },
+                    "app_version_info": {
+                        "type": "object"
+                    },
+                    "share_service_list": {
+                        "type": "array",
+                        "items": {
+                            "type": "object"
+                        }
+                    },
+                    "share_plugin_list": {
+                        "type": "array",
+                        "items": {
+                            "type": "object"
+                        }
+                    },
+                    "share_k8s_resources": {
+                        "type": "array",
+                        "items": {
+                            "type": "object"
+                        }
+                    }
                 },
                 "required": ["team_name", "region_name", "share_id", "app_version_info"]
             }
@@ -7185,8 +7892,13 @@ class MCPQueryService(object):
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "share_id": {"type": "integer", "minimum": 1}
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "share_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    }
                 },
                 "required": ["team_name", "share_id"]
             }
@@ -7194,16 +7906,32 @@ class MCPQueryService(object):
 
     def _tool_start_app_share_event(self) -> dict:
         return {
-            "name": "rainbond_start_app_share_event",
-            "description": "Trigger a share step two event. Use event_type=service for component media sync or event_type=plugin for plugin sync.",
+            "name":
+            "rainbond_start_app_share_event",
+            "description":
+            ('Trigger a share step two event. Use event_type=service for component media sync or event_type=plugin '
+             'for plugin sync.'),
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "share_id": {"type": "integer", "minimum": 1},
-                    "event_id": {"type": "integer", "minimum": 1},
-                    "event_type": {"type": "string", "enum": ["service", "plugin"]}
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "share_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "event_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "event_type": {
+                        "type": "string",
+                        "enum": ["service", "plugin"]
+                    }
                 },
                 "required": ["team_name", "region_name", "share_id", "event_id"]
             }
@@ -7216,11 +7944,24 @@ class MCPQueryService(object):
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "share_id": {"type": "integer", "minimum": 1},
-                    "event_id": {"type": "integer", "minimum": 1},
-                    "event_type": {"type": "string", "enum": ["service", "plugin"]}
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "share_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "event_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "event_type": {
+                        "type": "string",
+                        "enum": ["service", "plugin"]
+                    }
                 },
                 "required": ["team_name", "region_name", "share_id", "event_id"]
             }
@@ -7233,10 +7974,19 @@ class MCPQueryService(object):
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "share_id": {"type": "integer", "minimum": 1},
-                    "is_plugin": {"type": "boolean"}
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "share_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "is_plugin": {
+                        "type": "boolean"
+                    }
                 },
                 "required": ["team_name", "region_name", "share_id"]
             }
@@ -7249,8 +7999,13 @@ class MCPQueryService(object):
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "share_id": {"type": "integer", "minimum": 1}
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "share_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    }
                 },
                 "required": ["team_name", "share_id"]
             }
@@ -7258,34 +8013,56 @@ class MCPQueryService(object):
 
     def _tool_build_component(self) -> dict:
         return {
-            "name": "rainbond_build_component",
-            "description": (
-                "Step 4 of component creation: confirm creation and build or deploy the component. "
-                + self.BUILD_COMPONENT_DEFAULT_RESOURCE_DESCRIPTION
-            ),
+            "name":
+            "rainbond_build_component",
+            "description": ("Step 4 of component creation: confirm creation and build or deploy the component. " +
+                            self.BUILD_COMPONENT_DEFAULT_RESOURCE_DESCRIPTION),
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1},
-                    "service_id": {"type": "string"},
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "service_id": {
+                        "type": "string"
+                    },
                     "build_info": {
-                        "type": "object",
-                        "description": (
-                            "构建确认阶段使用的少量结构化参数。支持 repo_url、branch、username、password。"
-                            "repo_url=源码仓库地址或镜像地址；branch=源码分支或标签（源码构建时生效）；"
-                            "username/password=仓库或镜像仓库凭据。构建参数请不要放在 build_info 中，"
-                            "应改用 rainbond_manage_component_envs(operation=replace_build_envs, build_env_dict=...)."
-                        ),
+                        "type":
+                        "object",
+                        "description":
+                        ("构建确认阶段使用的少量结构化参数。支持 repo_url、branch、username、password。"
+                         "repo_url=源码仓库地址或镜像地址；branch=源码分支或标签（源码构建时生效）；"
+                         "username/password=仓库或镜像仓库凭据。构建参数请不要放在 build_info 中，"
+                         "应改用 rainbond_manage_component_envs(operation=replace_build_envs, build_env_dict=...)."),
                         "properties": {
-                            "repo_url": {"type": "string", "description": "源码仓库地址或镜像地址。"},
-                            "branch": {"type": "string", "description": "源码分支或标签；仅源码构建组件生效。"},
-                            "username": {"type": "string", "description": "源码仓库或镜像仓库用户名。"},
-                            "password": {"type": "string", "description": "源码仓库或镜像仓库密码/令牌。"},
+                            "repo_url": {
+                                "type": "string",
+                                "description": "源码仓库地址或镜像地址。"
+                            },
+                            "branch": {
+                                "type": "string",
+                                "description": "源码分支或标签；仅源码构建组件生效。"
+                            },
+                            "username": {
+                                "type": "string",
+                                "description": "源码仓库或镜像仓库用户名。"
+                            },
+                            "password": {
+                                "type": "string",
+                                "description": "源码仓库或镜像仓库密码/令牌。"
+                            },
                         }
                     },
-                    "is_deploy": {"type": "boolean"}
+                    "is_deploy": {
+                        "type": "boolean"
+                    }
                 },
                 "required": ["team_name", "region_name", "app_id", "service_id"]
             }
@@ -7298,11 +8075,24 @@ class MCPQueryService(object):
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1},
-                    "upgrade_group_id": {"type": "integer", "minimum": 1},
-                    "record_type": {"type": "string", "enum": ["upgrade", "rollback"]}
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "upgrade_group_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "record_type": {
+                        "type": "string",
+                        "enum": ["upgrade", "rollback"]
+                    }
                 },
                 "required": ["team_name", "region_name", "app_id"]
             }
@@ -7315,12 +8105,30 @@ class MCPQueryService(object):
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1},
-                    "record_type": {"type": "string", "enum": ["upgrade", "rollback"]},
-                    "page": {"type": "integer", "minimum": 1, "maximum": self.MAX_PAGE_SIZE},
-                    "page_size": {"type": "integer", "minimum": 1, "maximum": self.MAX_PAGE_SIZE}
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "record_type": {
+                        "type": "string",
+                        "enum": ["upgrade", "rollback"]
+                    },
+                    "page": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": self.MAX_PAGE_SIZE
+                    },
+                    "page_size": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": self.MAX_PAGE_SIZE
+                    }
                 },
                 "required": ["team_name", "region_name", "app_id"]
             }
@@ -7333,10 +8141,20 @@ class MCPQueryService(object):
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1},
-                    "upgrade_group_id": {"type": "integer", "minimum": 1}
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "upgrade_group_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    }
                 },
                 "required": ["team_name", "region_name", "app_id", "upgrade_group_id"]
             }
@@ -7349,10 +8167,20 @@ class MCPQueryService(object):
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1},
-                    "record_id": {"type": "integer", "minimum": 1}
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "record_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    }
                 },
                 "required": ["team_name", "region_name", "app_id", "record_id"]
             }
@@ -7365,10 +8193,20 @@ class MCPQueryService(object):
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1},
-                    "record_id": {"type": "integer", "minimum": 1}
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "record_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    }
                 },
                 "required": ["team_name", "region_name", "app_id", "record_id"]
             }
@@ -7381,11 +8219,23 @@ class MCPQueryService(object):
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1},
-                    "version": {"type": "string"},
-                    "upgrade_group_id": {"type": "integer", "minimum": 1}
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "version": {
+                        "type": "string"
+                    },
+                    "upgrade_group_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    }
                 },
                 "required": ["team_name", "region_name", "app_id", "version"]
             }
@@ -7398,14 +8248,28 @@ class MCPQueryService(object):
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1},
-                    "record_id": {"type": "integer", "minimum": 1},
-                    "version": {"type": "string"},
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "record_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "version": {
+                        "type": "string"
+                    },
                     "services": {
                         "type": "array",
-                        "items": {"type": "object"}
+                        "items": {
+                            "type": "object"
+                        }
                     }
                 },
                 "required": ["team_name", "region_name", "app_id", "record_id", "version"]
@@ -7419,10 +8283,20 @@ class MCPQueryService(object):
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1},
-                    "record_id": {"type": "integer", "minimum": 1}
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "record_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    }
                 },
                 "required": ["team_name", "region_name", "app_id", "record_id"]
             }
@@ -7435,10 +8309,20 @@ class MCPQueryService(object):
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1},
-                    "record_id": {"type": "integer", "minimum": 1}
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "record_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    }
                 },
                 "required": ["team_name", "region_name", "app_id", "record_id"]
             }
@@ -7451,10 +8335,20 @@ class MCPQueryService(object):
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1},
-                    "record_id": {"type": "integer", "minimum": 1}
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "record_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    }
                 },
                 "required": ["team_name", "region_name", "app_id", "record_id"]
             }
@@ -7467,9 +8361,16 @@ class MCPQueryService(object):
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1}
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    }
                 },
                 "required": ["team_name", "region_name", "app_id"]
             }
@@ -7477,19 +8378,30 @@ class MCPQueryService(object):
 
     def _tool_upgrade_app(self) -> dict:
         return {
-            "name": "rainbond_upgrade_app",
-            "description": "Upgrade an application using the direct high-level console upgrade flow. "
-                           "Response includes event_ids ([{service_alias, event_id}]); after a failed upgrade "
-                           "pass an event_id to rainbond_get_operation_failure_context for diagnosis.",
+            "name":
+            "rainbond_upgrade_app",
+            "description":
+            "Upgrade an application using the direct high-level console upgrade flow. "
+            "Response includes event_ids ([{service_alias, event_id}]); after a failed upgrade "
+            "pass an event_id to rainbond_get_operation_failure_context for diagnosis.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1},
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
                     "update_versions": {
                         "type": "array",
-                        "items": {"type": "object"}
+                        "items": {
+                            "type": "object"
+                        }
                     }
                 },
                 "required": ["team_name", "region_name", "app_id", "update_versions"]
@@ -7503,9 +8415,16 @@ class MCPQueryService(object):
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1}
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    }
                 },
                 "required": ["team_name", "region_name", "app_id"]
             }
@@ -7518,15 +8437,31 @@ class MCPQueryService(object):
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1},
-                    "target_team_name": {"type": "string"},
-                    "target_region_name": {"type": "string"},
-                    "target_app_id": {"type": "integer", "minimum": 1},
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "target_team_name": {
+                        "type": "string"
+                    },
+                    "target_region_name": {
+                        "type": "string"
+                    },
+                    "target_app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
                     "services": {
                         "type": "array",
-                        "items": {"type": "object"}
+                        "items": {
+                            "type": "object"
+                        }
                     }
                 },
                 "required": ["team_name", "region_name", "app_id", "target_team_name", "target_region_name", "target_app_id"]
@@ -7540,8 +8475,13 @@ class MCPQueryService(object):
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "enterprise_id": {"type": "string"},
-                    "extend": {"type": "boolean", "description": "Whether to include extended market metadata."}
+                    "enterprise_id": {
+                        "type": "string"
+                    },
+                    "extend": {
+                        "type": "boolean",
+                        "description": "Whether to include extended market metadata."
+                    }
                 },
                 "required": ["enterprise_id"]
             }
@@ -7554,15 +8494,38 @@ class MCPQueryService(object):
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "enterprise_id": {"type": "string"},
-                    "scope": {"type": "string", "enum": ["enterprise", "team", ""]},
-                    "query": {"type": "string"},
-                    "app_name": {"type": "string"},
-                    "arch": {"type": "string"},
-                    "tenant_name": {"type": "string"},
-                    "is_plugin": {"type": "boolean"},
-                    "page": {"type": "integer", "minimum": 1, "maximum": self.MAX_PAGE_SIZE},
-                    "page_size": {"type": "integer", "minimum": 1, "maximum": self.MAX_PAGE_SIZE}
+                    "enterprise_id": {
+                        "type": "string"
+                    },
+                    "scope": {
+                        "type": "string",
+                        "enum": ["enterprise", "team", ""]
+                    },
+                    "query": {
+                        "type": "string"
+                    },
+                    "app_name": {
+                        "type": "string"
+                    },
+                    "arch": {
+                        "type": "string"
+                    },
+                    "tenant_name": {
+                        "type": "string"
+                    },
+                    "is_plugin": {
+                        "type": "boolean"
+                    },
+                    "page": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": self.MAX_PAGE_SIZE
+                    },
+                    "page_size": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": self.MAX_PAGE_SIZE
+                    }
                 },
                 "required": ["enterprise_id"]
             }
@@ -7575,14 +8538,34 @@ class MCPQueryService(object):
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "enterprise_id": {"type": "string"},
-                    "market_name": {"type": "string"},
-                    "query": {"type": "string"},
-                    "query_all": {"type": "boolean"},
-                    "arch": {"type": "string"},
-                    "is_plugin": {"type": "boolean"},
-                    "page": {"type": "integer", "minimum": 1, "maximum": self.MAX_PAGE_SIZE},
-                    "page_size": {"type": "integer", "minimum": 1, "maximum": self.MAX_PAGE_SIZE}
+                    "enterprise_id": {
+                        "type": "string"
+                    },
+                    "market_name": {
+                        "type": "string"
+                    },
+                    "query": {
+                        "type": "string"
+                    },
+                    "query_all": {
+                        "type": "boolean"
+                    },
+                    "arch": {
+                        "type": "string"
+                    },
+                    "is_plugin": {
+                        "type": "boolean"
+                    },
+                    "page": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": self.MAX_PAGE_SIZE
+                    },
+                    "page_size": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": self.MAX_PAGE_SIZE
+                    }
                 },
                 "required": ["enterprise_id", "market_name"]
             }
@@ -7595,13 +8578,33 @@ class MCPQueryService(object):
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "enterprise_id": {"type": "string"},
-                    "source": {"type": "string", "enum": ["local", "cloud"]},
-                    "market_name": {"type": "string", "description": "Required when source=cloud."},
-                    "app_model_id": {"type": "string"},
-                    "query_all": {"type": "boolean"},
-                    "page": {"type": "integer", "minimum": 1, "maximum": self.MAX_PAGE_SIZE},
-                    "page_size": {"type": "integer", "minimum": 1, "maximum": self.MAX_PAGE_SIZE}
+                    "enterprise_id": {
+                        "type": "string"
+                    },
+                    "source": {
+                        "type": "string",
+                        "enum": ["local", "cloud"]
+                    },
+                    "market_name": {
+                        "type": "string",
+                        "description": "Required when source=cloud."
+                    },
+                    "app_model_id": {
+                        "type": "string"
+                    },
+                    "query_all": {
+                        "type": "boolean"
+                    },
+                    "page": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": self.MAX_PAGE_SIZE
+                    },
+                    "page_size": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": self.MAX_PAGE_SIZE
+                    }
                 },
                 "required": ["enterprise_id", "source", "app_model_id"]
             }
@@ -7614,15 +8617,37 @@ class MCPQueryService(object):
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1},
-                    "source": {"type": "string", "enum": ["local", "cloud"]},
-                    "market_name": {"type": "string", "description": "Required when source=cloud."},
-                    "app_model_id": {"type": "string"},
-                    "app_model_name": {"type": "string", "description": "Optional display-only template name."},
-                    "app_model_version": {"type": "string"},
-                    "is_deploy": {"type": "boolean"}
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "source": {
+                        "type": "string",
+                        "enum": ["local", "cloud"]
+                    },
+                    "market_name": {
+                        "type": "string",
+                        "description": "Required when source=cloud."
+                    },
+                    "app_model_id": {
+                        "type": "string"
+                    },
+                    "app_model_name": {
+                        "type": "string",
+                        "description": "Optional display-only template name."
+                    },
+                    "app_model_version": {
+                        "type": "string"
+                    },
+                    "is_deploy": {
+                        "type": "boolean"
+                    }
                 },
                 "required": ["team_name", "region_name", "app_id", "source", "app_model_id", "app_model_version"]
             }
@@ -7633,79 +8658,136 @@ class MCPQueryService(object):
             "name": "rainbond_install_app_by_market",
             "description": "Install application components from market into an existing app.",
             "inputSchema": {
-                "type": "object",
+                "type":
+                "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1},
-                    "market_url": {"type": "string"},
-                    "market_domain": {"type": "string"},
-                    "market_type": {"type": "string"},
-                    "market_access_key": {"type": "string"},
-                    "app_model_id": {"type": "string"},
-                    "app_model_version": {"type": "string"},
-                    "is_deploy": {"type": "boolean"}
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "market_url": {
+                        "type": "string"
+                    },
+                    "market_domain": {
+                        "type": "string"
+                    },
+                    "market_type": {
+                        "type": "string"
+                    },
+                    "market_access_key": {
+                        "type": "string"
+                    },
+                    "app_model_id": {
+                        "type": "string"
+                    },
+                    "app_model_version": {
+                        "type": "string"
+                    },
+                    "is_deploy": {
+                        "type": "boolean"
+                    }
                 },
                 "required": [
-                    "team_name", "region_name", "app_id", "market_url", "market_domain", "market_type",
-                    "market_access_key", "app_model_id", "app_model_version"
+                    "team_name", "region_name", "app_id", "market_url", "market_domain", "market_type", "market_access_key",
+                    "app_model_id", "app_model_version"
                 ]
             }
         }
 
     def _tool_create_component_from_source(self) -> dict:
         return {
-            "name": "rainbond_create_component_from_source",
-            "description": (
-                "Create a source-code component with automatic detection and default configuration, then build it in one flow. "
-                + self.SOURCE_PACKAGE_COMPONENT_DEFAULT_RESOURCE_DESCRIPTION
-            ),
+            "name":
+            "rainbond_create_component_from_source",
+            "description":
+            ("Create a source-code component with automatic detection and default configuration, then build it in one flow. " +
+             self.SOURCE_PACKAGE_COMPONENT_DEFAULT_RESOURCE_DESCRIPTION),
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1},
-                    "code_from": {
-                        "type": "string",
-                        "description": (
-                            "源码来源标识。推荐优先使用 git/github/oauth_xxx："
-                            "git（通用 Git/Gitee/GitLab 仓库）、"
-                            "github（GitHub 仓库）、oauth_xxx（OAuth 代码仓库，如 oauth_github）。"
-                            "也兼容 gitlab_manual、gitlab_self、gitlab_new、gitlab_exit、gitlab_demo；"
-                            "若不确定，优先传 git。"
-                        )
+                    "team_name": {
+                        "type": "string"
                     },
-                    "service_cname": {"type": "string"},
-                    "git_url": {"type": "string", "description": "源码仓库地址或对象存储制品地址。"},
-                    "git_project_id": {"type": "string"},
-                    "code_version": {"type": "string"},
-                    "username": {"type": "string"},
-                    "password": {"type": "string"},
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "code_from": {
+                        "type":
+                        "string",
+                        "description": ("源码来源标识。推荐优先使用 git/github/oauth_xxx："
+                                        "git（通用 Git/Gitee/GitLab 仓库）、"
+                                        "github（GitHub 仓库）、oauth_xxx（OAuth 代码仓库，如 oauth_github）。"
+                                        "也兼容 gitlab_manual、gitlab_self、gitlab_new、gitlab_exit、gitlab_demo；"
+                                        "若不确定，优先传 git。")
+                    },
+                    "service_cname": {
+                        "type": "string"
+                    },
+                    "git_url": {
+                        "type": "string",
+                        "description": "源码仓库地址或对象存储制品地址。"
+                    },
+                    "git_project_id": {
+                        "type": "string"
+                    },
+                    "code_version": {
+                        "type": "string"
+                    },
+                    "username": {
+                        "type": "string"
+                    },
+                    "password": {
+                        "type": "string"
+                    },
                     "server_type": {
                         "type": "string",
                         "enum": ["git", "svn", "oss"],
                         "description": "源码地址类型：git=Git仓库，svn=SVN仓库，oss=对象存储制品地址"
                     },
-                    "version_type": {"type": "string", "description": "源码版本类型；tag 会被标准化为 tag:<name>。"},
+                    "version_type": {
+                        "type": "string",
+                        "description": "源码版本类型；tag 会被标准化为 tag:<name>。"
+                    },
                     "subdirectories": {
                         "type": "string",
                         "description": "源码子目录。MCP 会把它标准化追加到 git_url，例如 ?dir=services/api。"
                     },
-                    "check_uuid": {"type": "string"},
-                    "event_id": {"type": "string"},
-                    "oauth_service_id": {"type": "string"},
-                    "full_name": {"type": "string"},
-                    "k8s_component_name": {"type": "string"},
-                    "arch": {"type": "string"},
-                    "is_deploy": {"type": "boolean"},
+                    "check_uuid": {
+                        "type": "string"
+                    },
+                    "event_id": {
+                        "type": "string"
+                    },
+                    "oauth_service_id": {
+                        "type": "string"
+                    },
+                    "full_name": {
+                        "type": "string"
+                    },
+                    "k8s_component_name": {
+                        "type": "string"
+                    },
+                    "arch": {
+                        "type": "string"
+                    },
+                    "is_deploy": {
+                        "type": "boolean"
+                    },
                     "prefer_dockerfile_when_detected": {
-                        "type": "boolean",
-                        "description": (
-                            "仅 MCP 使用。若检测结果同时命中 Dockerfile 和语言型构建方式（如 Node.js），"
-                            "优先选择 Dockerfile。默认 false，不影响前端默认流程。"
-                            "当前 MCP 仅支持布尔偏好，不支持指定具体 dockerfile_path。"
-                        )
+                        "type":
+                        "boolean",
+                        "description": ("仅 MCP 使用。若检测结果同时命中 Dockerfile 和语言型构建方式（如 Node.js），"
+                                        "优先选择 Dockerfile。默认 false，不影响前端默认流程。"
+                                        "当前 MCP 仅支持布尔偏好，不支持指定具体 dockerfile_path。")
                     }
                 },
                 "required": ["team_name", "region_name", "app_id", "code_from", "service_cname", "git_url"]
@@ -7714,22 +8796,40 @@ class MCPQueryService(object):
 
     def _tool_create_component_from_package(self) -> dict:
         return {
-            "name": "rainbond_create_component_from_package",
-            "description": (
-                "Create a component from an uploaded software package event in one flow after upload is complete. "
-                + self.SOURCE_PACKAGE_COMPONENT_DEFAULT_RESOURCE_DESCRIPTION
-            ),
+            "name":
+            "rainbond_create_component_from_package",
+            "description":
+            ("Create a component from an uploaded software package event in one flow after upload is complete. " +
+             self.SOURCE_PACKAGE_COMPONENT_DEFAULT_RESOURCE_DESCRIPTION),
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1},
-                    "event_id": {"type": "string", "description": "上传软件包后返回的 event_id"},
-                    "service_cname": {"type": "string"},
-                    "k8s_component_name": {"type": "string"},
-                    "arch": {"type": "string"},
-                    "is_deploy": {"type": "boolean"}
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "event_id": {
+                        "type": "string",
+                        "description": "上传软件包后返回的 event_id"
+                    },
+                    "service_cname": {
+                        "type": "string"
+                    },
+                    "k8s_component_name": {
+                        "type": "string"
+                    },
+                    "arch": {
+                        "type": "string"
+                    },
+                    "is_deploy": {
+                        "type": "boolean"
+                    }
                 },
                 "required": ["team_name", "region_name", "app_id", "event_id", "service_cname"]
             }
@@ -7737,19 +8837,27 @@ class MCPQueryService(object):
 
     def _tool_replace_component_package(self) -> dict:
         return {
-            "name": "rainbond_replace_component_package",
-            "description": (
-                "Replace the uploaded package build source of an existing package-based component, preserve its "
-                "service_id and runtime configuration, and optionally trigger a build and rolling upgrade. "
-                "Use the returned build event_id with rainbond_wait_for_build_completion."
-            ),
+            "name":
+            "rainbond_replace_component_package",
+            "description": ("Replace the uploaded package build source of an existing package-based component, preserve its "
+                            "service_id and runtime configuration, and optionally trigger a build and rolling upgrade. "
+                            "Use the returned build event_id with rainbond_wait_for_build_completion."),
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1},
-                    "service_id": {"type": "string"},
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "service_id": {
+                        "type": "string"
+                    },
                     "event_id": {
                         "type": "string",
                         "description": "新软件包上传事件 ID。"
@@ -7769,19 +8877,26 @@ class MCPQueryService(object):
 
     def _tool_init_package_upload(self) -> dict:
         return {
-            "name": "rainbond_init_package_upload",
-            "description": (
-                "Initialize a package upload event. Use the returned upload_request contract to send the package "
-                "as multipart/form-data, then call rainbond_get_package_upload_status. For a missing component call "
-                "rainbond_create_component_from_package; for an existing package component call "
-                "rainbond_replace_component_package with the same service_id."
-            ),
+            "name":
+            "rainbond_init_package_upload",
+            "description":
+            ("Initialize a package upload event. Use the returned upload_request contract to send the package "
+             "as multipart/form-data, then call rainbond_get_package_upload_status. For a missing component call "
+             "rainbond_create_component_from_package; for an existing package component call "
+             "rainbond_replace_component_package with the same service_id."),
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "component_id": {"type": "string", "description": "可选。已有组件重传时用于关联历史上传记录。"}
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "component_id": {
+                        "type": "string",
+                        "description": "可选。已有组件重传时用于关联历史上传记录。"
+                    }
                 },
                 "required": ["team_name", "region_name"]
             }
@@ -7789,14 +8904,23 @@ class MCPQueryService(object):
 
     def _tool_upload_package_file(self) -> dict:
         return {
-            "name": "rainbond_upload_package_file",
-            "description": "Upload a local package file or directory to an initialized package upload event; directories are zipped automatically.",
+            "name":
+            "rainbond_upload_package_file",
+            "description":
+            ('Upload a local package file or directory to an initialized package upload event; directories are zipped '
+             'automatically.'),
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "event_id": {"type": "string"},
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "event_id": {
+                        "type": "string"
+                    },
                     "local_path": {
                         "type": "string",
                         "description": self.SERVER_LOCAL_PATH_DESCRIPTION
@@ -7817,9 +8941,15 @@ class MCPQueryService(object):
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "event_id": {"type": "string"}
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "event_id": {
+                        "type": "string"
+                    }
                 },
                 "required": ["team_name", "region_name", "event_id"]
             }
@@ -7828,13 +8958,20 @@ class MCPQueryService(object):
     def _tool_delete_package_upload(self) -> dict:
         return {
             "name": "rainbond_delete_package_upload",
-            "description": "Delete uploaded package artifacts for a package upload event and mark the upload record as deleted.",
+            "description":
+            "Delete uploaded package artifacts for a package upload event and mark the upload record as deleted.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "event_id": {"type": "string"}
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "event_id": {
+                        "type": "string"
+                    }
                 },
                 "required": ["team_name", "region_name", "event_id"]
             }
@@ -7842,17 +8979,24 @@ class MCPQueryService(object):
 
     def _tool_create_component_from_local_package(self) -> dict:
         return {
-            "name": "rainbond_create_component_from_local_package",
-            "description": (
-                "Create a component from a local package file or directory in one flow: zip if needed, upload, detect, build, and optionally deploy. "
-                + self.SOURCE_PACKAGE_COMPONENT_DEFAULT_RESOURCE_DESCRIPTION
-            ),
+            "name":
+            "rainbond_create_component_from_local_package",
+            "description":
+            (('Create a component from a local package file or directory in one flow: zip if needed, upload, detect, '
+              'build, and optionally deploy. ') + self.SOURCE_PACKAGE_COMPONENT_DEFAULT_RESOURCE_DESCRIPTION),
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1},
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
                     "local_path": {
                         "type": "string",
                         "description": self.SERVER_LOCAL_PATH_DESCRIPTION
@@ -7861,10 +9005,18 @@ class MCPQueryService(object):
                         "type": "string",
                         "description": "可选。目录压缩时使用的 zip 文件名；未传则默认使用目录名。"
                     },
-                    "service_cname": {"type": "string"},
-                    "k8s_component_name": {"type": "string"},
-                    "arch": {"type": "string"},
-                    "is_deploy": {"type": "boolean"}
+                    "service_cname": {
+                        "type": "string"
+                    },
+                    "k8s_component_name": {
+                        "type": "string"
+                    },
+                    "arch": {
+                        "type": "string"
+                    },
+                    "is_deploy": {
+                        "type": "boolean"
+                    }
                 },
                 "required": ["team_name", "region_name", "app_id", "local_path", "service_cname"]
             }
@@ -7877,12 +9029,25 @@ class MCPQueryService(object):
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1},
-                    "service_id": {"type": "string"},
-                    "event_id": {"type": "string"},
-                    "is_again": {"type": "boolean"}
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "service_id": {
+                        "type": "string"
+                    },
+                    "event_id": {
+                        "type": "string"
+                    },
+                    "is_again": {
+                        "type": "boolean"
+                    }
                 },
                 "required": ["team_name", "region_name", "app_id", "service_id"]
             }
@@ -7895,21 +9060,31 @@ class MCPQueryService(object):
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1},
-                    "service_id": {"type": "string"},
-                    "check_uuid": {"type": "string"},
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "service_id": {
+                        "type": "string"
+                    },
+                    "check_uuid": {
+                        "type": "string"
+                    },
                     "prefer_dockerfile_when_detected": {
-                        "type": "boolean",
-                        "description": (
-                            "仅 MCP 使用。重新检测后若结果同时命中 Dockerfile 和语言型构建方式，"
-                            "优先选择 Dockerfile（与 create 时同名参数一致）。用于恢复路径强制 Dockerfile，"
-                            "避免 CNB 不支持的语言/版本（如 .NET 7）卡死。默认 false。"
-                            "若 create 时已传 prefer_dockerfile_when_detected=true 且检测超时，"
-                            "偏好已持久化并自动应用，无需重传。响应中的 dockerfile_preference_applied/build_mode_note "
-                            "会说明偏好是否生效。"
-                        )
+                        "type":
+                        "boolean",
+                        "description": ("仅 MCP 使用。重新检测后若结果同时命中 Dockerfile 和语言型构建方式，"
+                                        "优先选择 Dockerfile（与 create 时同名参数一致）。用于恢复路径强制 Dockerfile，"
+                                        "避免 CNB 不支持的语言/版本（如 .NET 7）卡死。默认 false。"
+                                        "若 create 时已传 prefer_dockerfile_when_detected=true 且检测超时，"
+                                        "偏好已持久化并自动应用，无需重传。响应中的 dockerfile_preference_applied/build_mode_note "
+                                        "会说明偏好是否生效。")
                     }
                 },
                 "required": ["team_name", "region_name", "app_id", "service_id"]
@@ -7918,24 +9093,44 @@ class MCPQueryService(object):
 
     def _tool_create_component_from_image(self) -> dict:
         return {
-            "name": "rainbond_create_component_from_image",
-            "description": (
-                "Create a component from image in the specified application. "
-                + self.IMAGE_COMPONENT_DEFAULT_RESOURCE_DESCRIPTION
-            ),
+            "name":
+            "rainbond_create_component_from_image",
+            "description": ("Create a component from image in the specified application. " +
+                            self.IMAGE_COMPONENT_DEFAULT_RESOURCE_DESCRIPTION),
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1},
-                    "service_cname": {"type": "string"},
-                    "image": {"type": "string"},
-                    "docker_cmd": {"type": "string"},
-                    "k8s_component_name": {"type": "string"},
-                    "user_name": {"type": "string"},
-                    "password": {"type": "string"},
-                    "is_deploy": {"type": "boolean"}
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "service_cname": {
+                        "type": "string"
+                    },
+                    "image": {
+                        "type": "string"
+                    },
+                    "docker_cmd": {
+                        "type": "string"
+                    },
+                    "k8s_component_name": {
+                        "type": "string"
+                    },
+                    "user_name": {
+                        "type": "string"
+                    },
+                    "password": {
+                        "type": "string"
+                    },
+                    "is_deploy": {
+                        "type": "boolean"
+                    }
                 },
                 "required": ["team_name", "region_name", "app_id", "service_cname", "image"]
             }
@@ -7948,13 +9143,28 @@ class MCPQueryService(object):
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1},
-                    "event_id": {"type": "string"},
-                    "compose_file_path": {"type": "string"},
-                    "user_name": {"type": "string"},
-                    "password": {"type": "string"}
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "event_id": {
+                        "type": "string"
+                    },
+                    "compose_file_path": {
+                        "type": "string"
+                    },
+                    "user_name": {
+                        "type": "string"
+                    },
+                    "password": {
+                        "type": "string"
+                    }
                 },
                 "required": ["team_name", "region_name", "app_id", "event_id"]
             }
@@ -7967,10 +9177,19 @@ class MCPQueryService(object):
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1},
-                    "compose_id": {"type": "string"}
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "compose_id": {
+                        "type": "string"
+                    }
                 },
                 "required": ["team_name", "region_name", "app_id", "compose_id"]
             }
@@ -7983,12 +9202,25 @@ class MCPQueryService(object):
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1},
-                    "compose_id": {"type": "string"},
-                    "check_uuid": {"type": "string"},
-                    "arch": {"type": "string"}
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "compose_id": {
+                        "type": "string"
+                    },
+                    "check_uuid": {
+                        "type": "string"
+                    },
+                    "arch": {
+                        "type": "string"
+                    }
                 },
                 "required": ["team_name", "region_name", "app_id", "compose_id", "check_uuid"]
             }
@@ -8001,10 +9233,19 @@ class MCPQueryService(object):
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1},
-                    "is_outer": {"type": "boolean"}
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "is_outer": {
+                        "type": "boolean"
+                    }
                 },
                 "required": ["team_name", "region_name", "app_id"]
             }
@@ -8017,13 +9258,29 @@ class MCPQueryService(object):
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1},
-                    "start": {"type": "string"},
-                    "end": {"type": "string"},
-                    "step": {"type": "integer", "minimum": 1},
-                    "is_outer": {"type": "boolean"}
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "start": {
+                        "type": "string"
+                    },
+                    "end": {
+                        "type": "string"
+                    },
+                    "step": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "is_outer": {
+                        "type": "boolean"
+                    }
                 },
                 "required": ["team_name", "region_name", "app_id", "start", "end"]
             }
@@ -8036,30 +9293,70 @@ class MCPQueryService(object):
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1},
-                    "protocol": {"type": "string", "enum": ["http", "tcp"]},
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "protocol": {
+                        "type": "string",
+                        "enum": ["http", "tcp"]
+                    },
                     "http": {
                         "type": "object",
                         "properties": {
-                            "service_id": {"type": "string", "minLength": 1},
-                            "container_port": {"type": "integer", "minimum": 1},
-                            "domain_name": {"type": "string", "minLength": 1},
-                            "domain_path": {"type": "string", "default": "/"},
-                            "domain_header": {"type": "string"},
-                            "certificate_id": {"type": "integer", "default": 0},
-                            "whether_open": {"type": "boolean", "default": True},
-                            "auto_ssl": {"type": "boolean", "default": False},
-                            "auto_ssl_config": {"type": ["string", "null"], "default": None},
+                            "service_id": {
+                                "type": "string",
+                                "minLength": 1
+                            },
+                            "container_port": {
+                                "type": "integer",
+                                "minimum": 1
+                            },
+                            "domain_name": {
+                                "type": "string",
+                                "minLength": 1
+                            },
+                            "domain_path": {
+                                "type": "string",
+                                "default": "/"
+                            },
+                            "domain_header": {
+                                "type": "string"
+                            },
+                            "certificate_id": {
+                                "type": "integer",
+                                "default": 0
+                            },
+                            "whether_open": {
+                                "type": "boolean",
+                                "default": True
+                            },
+                            "auto_ssl": {
+                                "type": "boolean",
+                                "default": False
+                            },
+                            "auto_ssl_config": {
+                                "type": ["string", "null"],
+                                "default": None
+                            },
                             "rule_extensions": {
                                 "type": "array",
                                 "default": [],
                                 "items": {
                                     "type": "object",
                                     "properties": {
-                                        "key": {"type": "string"},
-                                        "value": {"type": "string"}
+                                        "key": {
+                                            "type": "string"
+                                        },
+                                        "value": {
+                                            "type": "string"
+                                        }
                                     },
                                     "required": ["key", "value"]
                                 }
@@ -8070,18 +9367,36 @@ class MCPQueryService(object):
                     "tcp": {
                         "type": "object",
                         "properties": {
-                            "service_id": {"type": "string", "minLength": 1},
-                            "container_port": {"type": "integer", "minimum": 1},
-                            "end_point": {"type": "string", "pattern": "^[^:]+:[0-9]+$"},
-                            "default_port": {"type": "integer", "minimum": 1},
-                            "default_ip": {"type": "string"},
+                            "service_id": {
+                                "type": "string",
+                                "minLength": 1
+                            },
+                            "container_port": {
+                                "type": "integer",
+                                "minimum": 1
+                            },
+                            "end_point": {
+                                "type": "string",
+                                "pattern": "^[^:]+:[0-9]+$"
+                            },
+                            "default_port": {
+                                "type": "integer",
+                                "minimum": 1
+                            },
+                            "default_ip": {
+                                "type": "string"
+                            },
                             "rule_extensions": {
                                 "type": "array",
                                 "items": {
                                     "type": "object",
                                     "properties": {
-                                        "key": {"type": "string"},
-                                        "value": {"type": "string"}
+                                        "key": {
+                                            "type": "string"
+                                        },
+                                        "value": {
+                                            "type": "string"
+                                        }
                                     },
                                     "required": ["key", "value"]
                                 }
@@ -8101,15 +9416,29 @@ class MCPQueryService(object):
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "name": {"type": "string"},
-                    "repo_name": {"type": "string"},
-                    "chart_name": {"type": "string"},
-                    "version": {"type": "string"},
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "repo_name": {
+                        "type": "string"
+                    },
+                    "chart_name": {
+                        "type": "string"
+                    },
+                    "version": {
+                        "type": "string"
+                    },
                     "overrides": {
                         "type": "array",
-                        "items": {"type": "string"}
+                        "items": {
+                            "type": "string"
+                        }
                     }
                 },
                 "required": ["team_name", "region_name", "name", "repo_name", "chart_name", "version"]
@@ -8123,17 +9452,37 @@ class MCPQueryService(object):
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1},
-                    "name": {"type": "string"},
-                    "repo_name": {"type": "string"},
-                    "chart_name": {"type": "string"},
-                    "version": {"type": "string"},
-                    "app_model_id": {"type": "string"},
-                    "overrides": {"type": "object"}
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "repo_name": {
+                        "type": "string"
+                    },
+                    "chart_name": {
+                        "type": "string"
+                    },
+                    "version": {
+                        "type": "string"
+                    },
+                    "app_model_id": {
+                        "type": "string"
+                    },
+                    "overrides": {
+                        "type": "object"
+                    }
                 },
-                "required": ["team_name", "region_name", "app_id", "name", "repo_name", "chart_name", "version", "app_model_id"]
+                "required":
+                ["team_name", "region_name", "app_id", "name", "repo_name", "chart_name", "version", "app_model_id"]
             }
         }
 
@@ -8144,23 +9493,39 @@ class MCPQueryService(object):
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1},
-                    "service_id": {"type": "string"},
-                    "operation": {"type": "string"},
-                    "port": {"type": "integer", "minimum": 1},
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "service_id": {
+                        "type": "string"
+                    },
+                    "operation": {
+                        "type": "string"
+                    },
+                    "port": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
                     "protocol": self._port_protocol_schema(),
                     "port_alias": self._port_alias_schema(),
-                    "is_inner_service": {"type": "boolean"},
+                    "is_inner_service": {
+                        "type": "boolean"
+                    },
                     "action": {
-                        "type": "string",
-                        "enum": list(self.PORT_ACTION_ENUM),
-                        "description": (
-                            "端口更新动作。可选值: open_outer=开启对外访问, only_open_outer=仅开启对外访问, "
-                            "close_outer=关闭对外访问, open_inner=开启对内访问, close_inner=关闭对内访问, "
-                            "change_protocol=修改协议, change_port_alias=修改端口别名。"
-                        )
+                        "type":
+                        "string",
+                        "enum":
+                        list(self.PORT_ACTION_ENUM),
+                        "description": ("端口更新动作。可选值: open_outer=开启对外访问, only_open_outer=仅开启对外访问, "
+                                        "close_outer=关闭对外访问, open_inner=开启对内访问, close_inner=关闭对内访问, "
+                                        "change_protocol=修改协议, change_port_alias=修改端口别名。")
                     },
                     "k8s_service_name": self._k8s_service_name_schema(),
                 },
@@ -8170,59 +9535,75 @@ class MCPQueryService(object):
 
     def _tool_manage_component_ports(self) -> dict:
         return {
-            "name": "rainbond_manage_component_ports",
-            "description": (
-                "高层端口管理工具。明确区分对内服务和对外服务：对内服务用于组件间访问，对外服务用于外部访问。"
-                "推荐优先使用 enable_inner / enable_outer / disable_inner / disable_outer / enable_outer_only 这些显式动作。"
-                "批量操作：operation=add 时可传 ports 数组一次创建多个端口；"
-                "enable_inner/disable_inner/enable_outer/disable_outer 时可传 ports 数组批量开关服务。"
-            ),
+            "name":
+            "rainbond_manage_component_ports",
+            "description": ("高层端口管理工具。明确区分对内服务和对外服务：对内服务用于组件间访问，对外服务用于外部访问。"
+                            "推荐优先使用 enable_inner / enable_outer / disable_inner / disable_outer / enable_outer_only 这些显式动作。"
+                            "批量操作：operation=add 时可传 ports 数组一次创建多个端口；"
+                            "enable_inner/disable_inner/enable_outer/disable_outer 时可传 ports 数组批量开关服务。"),
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1},
-                    "service_id": {"type": "string"},
-                    "operation": {
-                        "type": "string",
-                        "enum": [
-                            "summary", "add", "delete",
-                            "enable_inner", "disable_inner",
-                            "enable_outer", "disable_outer",
-                            "enable_outer_only",
-                            "update_protocol", "update_alias",
-                            "update"
-                        ],
-                        "description": (
-                            "推荐动作：summary=查看端口；add=新增端口（支持 ports 数组批量）；"
-                            "enable_inner=开启对内服务（支持 ports 数组批量）；"
-                            "disable_inner=关闭对内服务（支持 ports 数组批量）；"
-                            "enable_outer=开启对外服务，要求已开启对内服务（支持 ports 数组批量）；"
-                            "disable_outer=关闭对外服务（支持 ports 数组批量）；"
-                            "enable_outer_only=仅开启对外服务；"
-                            "update_protocol=修改协议；update_alias=修改端口别名。"
-                        )
+                    "team_name": {
+                        "type": "string"
                     },
-                    "port": {"type": "integer", "minimum": 1},
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "service_id": {
+                        "type": "string"
+                    },
+                    "operation": {
+                        "type":
+                        "string",
+                        "enum": [
+                            "summary", "add", "delete", "enable_inner", "disable_inner", "enable_outer", "disable_outer",
+                            "enable_outer_only", "update_protocol", "update_alias", "update"
+                        ],
+                        "description": ("推荐动作：summary=查看端口；add=新增端口（支持 ports 数组批量）；"
+                                        "enable_inner=开启对内服务（支持 ports 数组批量）；"
+                                        "disable_inner=关闭对内服务（支持 ports 数组批量）；"
+                                        "enable_outer=开启对外服务，要求已开启对内服务（支持 ports 数组批量）；"
+                                        "disable_outer=关闭对外服务（支持 ports 数组批量）；"
+                                        "enable_outer_only=仅开启对外服务；"
+                                        "update_protocol=修改协议；update_alias=修改端口别名。")
+                    },
+                    "port": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
                     "ports": {
-                        "type": "array",
-                        "description": (
-                            "批量端口列表，与 operation 配合使用。"
-                            "operation=add 时每项需含 port(int) 和 protocol(str)，可选 is_inner_service/enable_inner(bool)、port_alias(str)；"
-                            "enable_inner/disable_inner/enable_outer/disable_outer 时每项为 {\"port\": <int>} 或直接为整数。"
-                            "传入 ports 时忽略顶层 port 字段。"
-                        ),
+                        "type":
+                        "array",
+                        "description":
+                        ("批量端口列表，与 operation 配合使用。"
+                         "operation=add 时每项需含 port(int) 和 protocol(str)，可选 is_inner_service/enable_inner(bool)、port_alias(str)；"
+                         "enable_inner/disable_inner/enable_outer/disable_outer 时每项为 {\"port\": <int>} 或直接为整数。"
+                         "传入 ports 时忽略顶层 port 字段。"),
                         "items": {
                             "oneOf": [
-                                {"type": "integer", "minimum": 1},
+                                {
+                                    "type": "integer",
+                                    "minimum": 1
+                                },
                                 {
                                     "type": "object",
                                     "properties": {
-                                        "port": {"type": "integer", "minimum": 1},
+                                        "port": {
+                                            "type": "integer",
+                                            "minimum": 1
+                                        },
                                         "protocol": self._port_protocol_schema(),
-                                        "is_inner_service": {"type": "boolean"},
-                                        "enable_inner": {"type": "boolean"},
+                                        "is_inner_service": {
+                                            "type": "boolean"
+                                        },
+                                        "enable_inner": {
+                                            "type": "boolean"
+                                        },
                                         "port_alias": self._port_alias_schema(),
                                     },
                                     "required": ["port"],
@@ -8232,8 +9613,14 @@ class MCPQueryService(object):
                     },
                     "protocol": self._port_protocol_schema(),
                     "port_alias": self._port_alias_schema(),
-                    "is_inner_service": {"type": "boolean", "description": "新增端口时是否默认开启对内服务"},
-                    "enable_inner": {"type": "boolean", "description": "新增端口时更推荐用这个字段表达是否开启对内服务"},
+                    "is_inner_service": {
+                        "type": "boolean",
+                        "description": "新增端口时是否默认开启对内服务"
+                    },
+                    "enable_inner": {
+                        "type": "boolean",
+                        "description": "新增端口时更推荐用这个字段表达是否开启对内服务"
+                    },
                     "action": {
                         "type": "string",
                         "enum": list(self.PORT_ACTION_ENUM),
@@ -8252,22 +9639,56 @@ class MCPQueryService(object):
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1},
-                    "service_id": {"type": "string"},
-                    "volume_name": {"type": "string"},
-                    "volume_type": {"type": "string"},
-                    "volume_path": {"type": "string"},
-                    "volume_capacity": {"type": "integer", "minimum": 0},
-                    "provider_name": {"type": "string"},
-                    "access_mode": {"type": "string"},
-                    "share_policy": {"type": "string"},
-                    "back_policy": {"type": "string"},
-                    "reclaim_policy": {"type": "string"},
-                    "allow_expansion": {"type": "boolean"},
-                    "file_content": {"type": "string"},
-                    "mode": {"type": "integer"}
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "service_id": {
+                        "type": "string"
+                    },
+                    "volume_name": {
+                        "type": "string"
+                    },
+                    "volume_type": {
+                        "type": "string"
+                    },
+                    "volume_path": {
+                        "type": "string"
+                    },
+                    "volume_capacity": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "provider_name": {
+                        "type": "string"
+                    },
+                    "access_mode": {
+                        "type": "string"
+                    },
+                    "share_policy": {
+                        "type": "string"
+                    },
+                    "back_policy": {
+                        "type": "string"
+                    },
+                    "reclaim_policy": {
+                        "type": "string"
+                    },
+                    "allow_expansion": {
+                        "type": "boolean"
+                    },
+                    "file_content": {
+                        "type": "string"
+                    },
+                    "mode": {
+                        "type": "integer"
+                    }
                 },
                 "required": ["team_name", "region_name", "app_id", "service_id", "volume_name", "volume_type", "volume_path"]
             }
@@ -8275,102 +9696,156 @@ class MCPQueryService(object):
 
     def _tool_manage_component_storage(self) -> dict:
         return {
-            "name": "rainbond_manage_component_storage",
-            "description": (
-                "高层存储管理工具，统一处理组件 volume 和挂载关系 mnt。"
-                "各 operation 必填/常用参数组合（注意 create 与 update 使用不同的参数名，不要混用）："
-                "create_volume 必填 volume_name + volume_type + volume_path（config-file 类型还需 file_content）；"
-                "update_volume 推荐先 summary 获取 volume_id，也可用当前组件已有的 volume_path 或 volume_name 定位；"
-                "new_volume_path 仅在修改路径时传，config-file 类型用 new_file_content 改内容，可选 volume_capacity 改容量；"
-                "改存储用 new_volume_path / new_file_content，不是 volume_path / file_content；"
-                "delete_volume 推荐先 summary 获取 volume_id，也可用当前组件已有的 volume_path 或 volume_name 定位（被共享挂载时不允许删除）；"
-                "create_mnt 必填 mounts 数组（每项含 dep_vol_id + mount_path）；"
-                "delete_mnt 必填 dep_vol_id。"
-                "存储或挂载变更写入后，需调用 rainbond_operate_app(action=upgrade) 才会进入运行实例。"
-            ),
+            "name":
+            "rainbond_manage_component_storage",
+            "description": ("高层存储管理工具，统一处理组件 volume 和挂载关系 mnt。"
+                            "各 operation 必填/常用参数组合（注意 create 与 update 使用不同的参数名，不要混用）："
+                            "create_volume 必填 volume_name + volume_type + volume_path（config-file 类型还需 file_content）；"
+                            "update_volume 推荐先 summary 获取 volume_id，也可用当前组件已有的 volume_path 或 volume_name 定位；"
+                            "new_volume_path 仅在修改路径时传，config-file 类型用 new_file_content 改内容，可选 volume_capacity 改容量；"
+                            "改存储用 new_volume_path / new_file_content，不是 volume_path / file_content；"
+                            "delete_volume 推荐先 summary 获取 volume_id，也可用当前组件已有的 volume_path 或 volume_name 定位（被共享挂载时不允许删除）；"
+                            "create_mnt 必填 mounts 数组（每项含 dep_vol_id + mount_path）；"
+                            "delete_mnt 必填 dep_vol_id。"
+                            "存储或挂载变更写入后，需调用 rainbond_operate_app(action=upgrade) 才会进入运行实例。"),
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1},
-                    "service_id": {"type": "string"},
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "service_id": {
+                        "type": "string"
+                    },
                     "operation": {
-                        "type": "string",
+                        "type":
+                        "string",
                         "enum": [
-                            "summary", "list_unmounted", "create_volume", "update_volume",
-                            "delete_volume", "create_mnt", "delete_mnt"
+                            "summary", "list_unmounted", "create_volume", "update_volume", "delete_volume", "create_mnt",
+                            "delete_mnt"
                         ]
                     },
-                    "is_config": {"type": "boolean"},
-                    "volume_types": {"type": "array", "items": {"type": "string"}},
-                    "page": {"type": "integer", "minimum": 1},
-                    "page_size": {"type": "integer", "minimum": 1},
-                    "dep_app_name": {"type": "string"},
-                    "dep_app_group": {"type": "string"},
-                    "config_name": {"type": "string"},
-                    "volume_id": {"type": "integer", "minimum": 1},
+                    "is_config": {
+                        "type": "boolean"
+                    },
+                    "volume_types": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "page": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "page_size": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "dep_app_name": {
+                        "type": "string"
+                    },
+                    "dep_app_group": {
+                        "type": "string"
+                    },
+                    "config_name": {
+                        "type": "string"
+                    },
+                    "volume_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
                     "new_volume_path": {
-                        "type": "string",
-                        "description": (
-                            "仅用于 update_volume：修改已存在存储的挂载路径（config-file 类型即容器内文件完整路径）；"
-                            "如果只改容量、权限或配置文件内容，可不传，系统会沿用当前 volume_path。"
-                            "create_volume 不要用这个字段，应使用 volume_path。"
-                        ),
+                        "type":
+                        "string",
+                        "description": ("仅用于 update_volume：修改已存在存储的挂载路径（config-file 类型即容器内文件完整路径）；"
+                                        "如果只改容量、权限或配置文件内容，可不传，系统会沿用当前 volume_path。"
+                                        "create_volume 不要用这个字段，应使用 volume_path。"),
                     },
                     "new_file_content": {
-                        "type": "string",
-                        "description": (
-                            "仅用于 update_volume 且 volume_type=config-file：修改配置文件的新全文内容。"
-                            "create_volume 不要用这个字段，应使用 file_content。"
-                        ),
+                        "type":
+                        "string",
+                        "description": ("仅用于 update_volume 且 volume_type=config-file：修改配置文件的新全文内容。"
+                                        "create_volume 不要用这个字段，应使用 file_content。"),
                     },
-                    "force": {"type": "boolean"},
+                    "force": {
+                        "type": "boolean"
+                    },
                     "volume_name": {
                         "type": "string",
                         "description": "create_volume 必填：存储名称（组件内唯一标识，如 nginx-conf）。",
                     },
                     "volume_type": {
-                        "type": "string",
-                        "description": (
-                            "create_volume 必填：存储类型。常见值 config-file（配置文件，需配合 volume_path 填文件完整路径 + file_content 填文件全文）、"
-                            "share-file（共享存储）、memoryfs（内存）、local（本地）、nas 等。"
-                        ),
+                        "type":
+                        "string",
+                        "description":
+                        ("create_volume 必填：存储类型。常见值 config-file（配置文件，需配合 volume_path 填文件完整路径 + file_content 填文件全文）、"
+                         "share-file（共享存储）、memoryfs（内存）、local（本地）、nas 等。"),
                     },
                     "volume_path": {
-                        "type": "string",
-                        "description": (
-                            "create_volume 必填：容器内挂载路径。volume_type=config-file 时填容器内文件的完整路径，"
-                            "例如 /etc/nginx/conf.d/default.conf；其它类型填挂载目录如 /data。"
-                            "update_volume/delete_volume 时也可填当前组件已有 volume_path 来定位目标；修改路径请改用 new_volume_path。"
-                        ),
+                        "type":
+                        "string",
+                        "description": ("create_volume 必填：容器内挂载路径。volume_type=config-file 时填容器内文件的完整路径，"
+                                        "例如 /etc/nginx/conf.d/default.conf；其它类型填挂载目录如 /data。"
+                                        "update_volume/delete_volume 时也可填当前组件已有 volume_path 来定位目标；修改路径请改用 new_volume_path。"),
                     },
-                    "volume_capacity": {"type": "integer", "minimum": 0},
-                    "provider_name": {"type": "string"},
-                    "access_mode": {"type": "string"},
-                    "share_policy": {"type": "string"},
-                    "back_policy": {"type": "string"},
-                    "reclaim_policy": {"type": "string"},
-                    "allow_expansion": {"type": "boolean"},
+                    "volume_capacity": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "provider_name": {
+                        "type": "string"
+                    },
+                    "access_mode": {
+                        "type": "string"
+                    },
+                    "share_policy": {
+                        "type": "string"
+                    },
+                    "back_policy": {
+                        "type": "string"
+                    },
+                    "reclaim_policy": {
+                        "type": "string"
+                    },
+                    "allow_expansion": {
+                        "type": "boolean"
+                    },
                     "file_content": {
-                        "type": "string",
-                        "description": (
-                            "仅用于 create_volume 且 volume_type=config-file：配置文件的全文内容。"
-                            "修改已存在配置文件请改用 update_volume + new_file_content。"
-                        ),
+                        "type":
+                        "string",
+                        "description": ("仅用于 create_volume 且 volume_type=config-file：配置文件的全文内容。"
+                                        "修改已存在配置文件请改用 update_volume + new_file_content。"),
                     },
-                    "mode": {"type": "integer"},
+                    "mode": {
+                        "type": "integer"
+                    },
                     "mounts": {
                         "type": "array",
                         "items": {
                             "type": "object",
                             "properties": {
-                                "id": {"type": "integer", "minimum": 1},
-                                "path": {"type": "string"}
+                                "id": {
+                                    "type": "integer",
+                                    "minimum": 1
+                                },
+                                "path": {
+                                    "type": "string"
+                                }
                             }
                         }
                     },
-                    "dep_vol_id": {"type": "integer", "minimum": 1}
+                    "dep_vol_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    }
                 },
                 "required": ["team_name", "region_name", "app_id", "service_id", "operation"]
             }
@@ -8383,31 +9858,75 @@ class MCPQueryService(object):
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1},
-                    "service_id": {"type": "string"},
-                    "operation": {"type": "string", "enum": ["summary", "get_rule", "create_rule", "update_rule", "records"]},
-                    "rule_id": {"type": "string"},
-                    "xpa_type": {"type": "string", "enum": ["hpa"]},
-                    "enable": {"type": "boolean"},
-                    "min_replicas": {"type": "integer", "minimum": 1},
-                    "max_replicas": {"type": "integer", "minimum": 1},
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "service_id": {
+                        "type": "string"
+                    },
+                    "operation": {
+                        "type": "string",
+                        "enum": ["summary", "get_rule", "create_rule", "update_rule", "records"]
+                    },
+                    "rule_id": {
+                        "type": "string"
+                    },
+                    "xpa_type": {
+                        "type": "string",
+                        "enum": ["hpa"]
+                    },
+                    "enable": {
+                        "type": "boolean"
+                    },
+                    "min_replicas": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "max_replicas": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
                     "metrics": {
                         "type": "array",
                         "items": {
                             "type": "object",
                             "properties": {
-                                "metric_type": {"type": "string", "enum": ["resource_metrics"]},
-                                "metric_name": {"type": "string", "enum": ["cpu", "memory"]},
-                                "metric_target_type": {"type": "string", "enum": ["utilization", "average_value"]},
-                                "metric_target_value": {"type": "integer", "minimum": 0, "maximum": 65535}
+                                "metric_type": {
+                                    "type": "string",
+                                    "enum": ["resource_metrics"]
+                                },
+                                "metric_name": {
+                                    "type": "string",
+                                    "enum": ["cpu", "memory"]
+                                },
+                                "metric_target_type": {
+                                    "type": "string",
+                                    "enum": ["utilization", "average_value"]
+                                },
+                                "metric_target_value": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 65535
+                                }
                             },
                             "required": ["metric_type", "metric_name", "metric_target_type", "metric_target_value"]
                         }
                     },
-                    "page": {"type": "integer", "minimum": 1},
-                    "page_size": {"type": "integer", "minimum": 1}
+                    "page": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "page_size": {
+                        "type": "integer",
+                        "minimum": 1
+                    }
                 },
                 "required": ["team_name", "region_name", "app_id", "service_id", "operation"]
             }
@@ -8417,28 +9936,73 @@ class MCPQueryService(object):
         return {
             "name": "rainbond_manage_component_probe",
             "description": "高层探针管理工具，统一处理组件健康探针的查看、新增、修改、删除。"
-                           "探针变更写入后，需调用 rainbond_operate_app(action=upgrade) 才会作用于运行实例。",
+            "探针变更写入后，需调用 rainbond_operate_app(action=upgrade) 才会作用于运行实例。",
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1},
-                    "service_id": {"type": "string"},
-                    "operation": {"type": "string", "enum": ["summary", "get", "create", "update", "delete"]},
-                    "probe_id": {"type": "string"},
-                    "mode": {"type": "string", "enum": ["readiness", "liveness", "ignore"]},
-                    "port": {"type": "integer", "minimum": 1},
-                    "scheme": {"type": "string"},
-                    "path": {"type": "string"},
-                    "cmd": {"type": "string"},
-                    "http_header": {"type": "string"},
-                    "initial_delay_second": {"type": "integer", "minimum": 1},
-                    "period_second": {"type": "integer", "minimum": 1},
-                    "timeout_second": {"type": "integer", "minimum": 1},
-                    "failure_threshold": {"type": "integer", "minimum": 1},
-                    "success_threshold": {"type": "integer", "minimum": 1},
-                    "is_used": {"type": "boolean"}
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "service_id": {
+                        "type": "string"
+                    },
+                    "operation": {
+                        "type": "string",
+                        "enum": ["summary", "get", "create", "update", "delete"]
+                    },
+                    "probe_id": {
+                        "type": "string"
+                    },
+                    "mode": {
+                        "type": "string",
+                        "enum": ["readiness", "liveness", "ignore"]
+                    },
+                    "port": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "scheme": {
+                        "type": "string"
+                    },
+                    "path": {
+                        "type": "string"
+                    },
+                    "cmd": {
+                        "type": "string"
+                    },
+                    "http_header": {
+                        "type": "string"
+                    },
+                    "initial_delay_second": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "period_second": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "timeout_second": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "failure_threshold": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "success_threshold": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "is_used": {
+                        "type": "boolean"
+                    }
                 },
                 "required": ["team_name", "region_name", "app_id", "service_id", "operation"]
             }
@@ -8448,19 +10012,44 @@ class MCPQueryService(object):
         return {
             "name": "rainbond_manage_component_dependency",
             "description": "高层依赖管理工具，统一处理组件依赖、反向依赖及可依赖组件查询。"
-                           "建立或删除依赖只写入元数据；consumer 需要调用 rainbond_operate_app(action=upgrade) "
-                           "才会注入或移除依赖变量。",
+            "建立或删除依赖只写入元数据；consumer 需要调用 rainbond_operate_app(action=upgrade) "
+            "才会注入或移除依赖变量。",
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1},
-                    "service_id": {"type": "string"},
-                    "operation": {"type": "string", "enum": ["summary", "add", "add_reverse", "delete"]},
-                    "dep_service_id": {"type": "string", "description": "要依赖的目标组件 ID。"},
-                    "dep_service_ids": {"type": "array", "items": {"type": "string"}},
-                    "be_dep_service_ids": {"type": "array", "items": {"type": "string"}},
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "service_id": {
+                        "type": "string"
+                    },
+                    "operation": {
+                        "type": "string",
+                        "enum": ["summary", "add", "add_reverse", "delete"]
+                    },
+                    "dep_service_id": {
+                        "type": "string",
+                        "description": "要依赖的目标组件 ID。"
+                    },
+                    "dep_service_ids": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "be_dep_service_ids": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
                     "open_inner": {
                         "type": "boolean",
                         "description": "为 true 时，自动开启被依赖组件的对内端口。若目标组件尚未开启对内端口，推荐优先让系统返回可选端口列表后再决定。"
@@ -8482,11 +10071,23 @@ class MCPQueryService(object):
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1},
-                    "service_id": {"type": "string"},
-                    "new_node": {"type": "integer", "minimum": 0}
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "service_id": {
+                        "type": "string"
+                    },
+                    "new_node": {
+                        "type": "integer",
+                        "minimum": 0
+                    }
                 },
                 "required": ["team_name", "region_name", "app_id", "service_id", "new_node"]
             }
@@ -8499,13 +10100,31 @@ class MCPQueryService(object):
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1},
-                    "service_id": {"type": "string"},
-                    "new_memory": {"type": "integer", "minimum": 0},
-                    "new_gpu": {"type": "integer", "minimum": 0},
-                    "new_cpu": {"type": "integer", "minimum": 0}
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "service_id": {
+                        "type": "string"
+                    },
+                    "new_memory": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "new_gpu": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "new_cpu": {
+                        "type": "integer",
+                        "minimum": 0
+                    }
                 },
                 "required": ["team_name", "region_name", "app_id", "service_id", "new_memory"]
             }
@@ -8518,11 +10137,17 @@ class MCPQueryService(object):
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
                     "service_ids": {
                         "type": "array",
-                        "items": {"type": "string"}
+                        "items": {
+                            "type": "string"
+                        }
                     }
                 },
                 "required": ["team_name", "region_name"]
@@ -8536,9 +10161,18 @@ class MCPQueryService(object):
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "query": {"type": "string"},
-                    "page": {"type": "integer", "minimum": 1},
-                    "page_size": {"type": "integer", "minimum": 1, "maximum": self.MAX_PAGE_SIZE}
+                    "query": {
+                        "type": "string"
+                    },
+                    "page": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "page_size": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": self.MAX_PAGE_SIZE
+                    }
                 }
             }
         }
@@ -8546,14 +10180,26 @@ class MCPQueryService(object):
     def _tool_query_regions(self) -> dict:
         return {
             "name": "rainbond_query_regions",
-            "description": "Query cluster regions under the specified enterprise. Only available for enterprise administrators.",
+            "description":
+            "Query cluster regions under the specified enterprise. Only available for enterprise administrators.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "enterprise_id": {"type": "string"},
-                    "query": {"type": "string"},
-                    "page": {"type": "integer", "minimum": 1},
-                    "page_size": {"type": "integer", "minimum": 1, "maximum": self.MAX_PAGE_SIZE}
+                    "enterprise_id": {
+                        "type": "string"
+                    },
+                    "query": {
+                        "type": "string"
+                    },
+                    "page": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "page_size": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": self.MAX_PAGE_SIZE
+                    }
                 }
             }
         }
@@ -8565,14 +10211,21 @@ class MCPQueryService(object):
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "region_id": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "extend_info": {"type": "boolean"}
+                    "region_id": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "extend_info": {
+                        "type": "boolean"
+                    }
                 },
-                "anyOf": [
-                    {"required": ["region_id"]},
-                    {"required": ["region_name"]}
-                ]
+                "anyOf": [{
+                    "required": ["region_id"]
+                }, {
+                    "required": ["region_name"]
+                }]
             }
         }
 
@@ -8583,19 +10236,45 @@ class MCPQueryService(object):
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "region_name": {"type": "string"},
-                    "region_alias": {"type": "string"},
-                    "url": {"type": "string"},
-                    "token": {"type": "string"},
-                    "wsurl": {"type": "string"},
-                    "httpdomain": {"type": "string"},
-                    "tcpdomain": {"type": "string"},
-                    "scope": {"type": "string"},
-                    "ssl_ca_cert": {"type": "string"},
-                    "cert_file": {"type": "string"},
-                    "key_file": {"type": "string"},
-                    "status": {"type": "string"},
-                    "desc": {"type": "string"}
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "region_alias": {
+                        "type": "string"
+                    },
+                    "url": {
+                        "type": "string"
+                    },
+                    "token": {
+                        "type": "string"
+                    },
+                    "wsurl": {
+                        "type": "string"
+                    },
+                    "httpdomain": {
+                        "type": "string"
+                    },
+                    "tcpdomain": {
+                        "type": "string"
+                    },
+                    "scope": {
+                        "type": "string"
+                    },
+                    "ssl_ca_cert": {
+                        "type": "string"
+                    },
+                    "cert_file": {
+                        "type": "string"
+                    },
+                    "key_file": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "type": "string"
+                    },
+                    "desc": {
+                        "type": "string"
+                    }
                 },
                 "required": ["region_name", "region_alias", "url", "wsurl", "httpdomain", "tcpdomain"]
             }
@@ -8608,19 +10287,45 @@ class MCPQueryService(object):
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "region_id": {"type": "string"},
-                    "region_alias": {"type": "string"},
-                    "url": {"type": "string"},
-                    "token": {"type": "string"},
-                    "wsurl": {"type": "string"},
-                    "httpdomain": {"type": "string"},
-                    "tcpdomain": {"type": "string"},
-                    "scope": {"type": "string"},
-                    "ssl_ca_cert": {"type": "string"},
-                    "cert_file": {"type": "string"},
-                    "key_file": {"type": "string"},
-                    "status": {"type": "string"},
-                    "desc": {"type": "string"}
+                    "region_id": {
+                        "type": "string"
+                    },
+                    "region_alias": {
+                        "type": "string"
+                    },
+                    "url": {
+                        "type": "string"
+                    },
+                    "token": {
+                        "type": "string"
+                    },
+                    "wsurl": {
+                        "type": "string"
+                    },
+                    "httpdomain": {
+                        "type": "string"
+                    },
+                    "tcpdomain": {
+                        "type": "string"
+                    },
+                    "scope": {
+                        "type": "string"
+                    },
+                    "ssl_ca_cert": {
+                        "type": "string"
+                    },
+                    "cert_file": {
+                        "type": "string"
+                    },
+                    "key_file": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "type": "string"
+                    },
+                    "desc": {
+                        "type": "string"
+                    }
                 },
                 "required": ["region_id"]
             }
@@ -8636,7 +10341,9 @@ class MCPQueryService(object):
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "region_id": {"type": "string"}
+                    "region_id": {
+                        "type": "string"
+                    }
                 },
                 "required": ["region_id"]
             }
@@ -8649,7 +10356,9 @@ class MCPQueryService(object):
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "region_name": {"type": "string"}
+                    "region_name": {
+                        "type": "string"
+                    }
                 },
                 "required": ["region_name"]
             }
@@ -8662,8 +10371,12 @@ class MCPQueryService(object):
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "region_name": {"type": "string"},
-                    "node_name": {"type": "string"}
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "node_name": {
+                        "type": "string"
+                    }
                 },
                 "required": ["region_name", "node_name"]
             }
@@ -8676,7 +10389,9 @@ class MCPQueryService(object):
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "region_name": {"type": "string"}
+                    "region_name": {
+                        "type": "string"
+                    }
                 },
                 "required": ["region_name"]
             }
@@ -8703,8 +10418,8 @@ class MCPQueryService(object):
 
     def _build_update_region_data(self, arguments: dict) -> dict:
         allowed_fields = [
-            "region_alias", "url", "token", "wsurl", "httpdomain", "tcpdomain", "scope", "ssl_ca_cert", "cert_file",
-            "key_file", "status", "desc"
+            "region_alias", "url", "token", "wsurl", "httpdomain", "tcpdomain", "scope", "ssl_ca_cert", "cert_file", "key_file",
+            "status", "desc"
         ]
         update_data = {}
         for field in allowed_fields:
@@ -8740,10 +10455,21 @@ class MCPQueryService(object):
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "enterprise_id": {"type": "string"},
-                    "query": {"type": "string"},
-                    "page": {"type": "integer", "minimum": 1},
-                    "page_size": {"type": "integer", "minimum": 1, "maximum": self.MAX_PAGE_SIZE}
+                    "enterprise_id": {
+                        "type": "string"
+                    },
+                    "query": {
+                        "type": "string"
+                    },
+                    "page": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "page_size": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": self.MAX_PAGE_SIZE
+                    }
                 },
                 "required": ["enterprise_id"]
             }
@@ -8756,10 +10482,21 @@ class MCPQueryService(object):
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "enterprise_id": {"type": "string"},
-                    "query": {"type": "string"},
-                    "page": {"type": "integer", "minimum": 1},
-                    "page_size": {"type": "integer", "minimum": 1, "maximum": self.MAX_PAGE_SIZE}
+                    "enterprise_id": {
+                        "type": "string"
+                    },
+                    "query": {
+                        "type": "string"
+                    },
+                    "page": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "page_size": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": self.MAX_PAGE_SIZE
+                    }
                 },
                 "required": ["enterprise_id"]
             }
@@ -8772,11 +10509,25 @@ class MCPQueryService(object):
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "enterprise_id": {"type": "string"},
-                    "app_id": {"type": "integer", "minimum": 1},
-                    "query": {"type": "string"},
-                    "page": {"type": "integer", "minimum": 1},
-                    "page_size": {"type": "integer", "minimum": 1, "maximum": self.MAX_PAGE_SIZE}
+                    "enterprise_id": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "query": {
+                        "type": "string"
+                    },
+                    "page": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "page_size": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": self.MAX_PAGE_SIZE
+                    }
                 },
                 "required": ["enterprise_id", "app_id"]
             }
@@ -8792,12 +10543,25 @@ class MCPQueryService(object):
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "app_id": {"type": "integer", "minimum": 1},
-                    "enterprise_id": {"type": "string"},
-                    "team_name": {"type": "string"},
-                    "region_name": {"type": "string"},
-                    "confirm": {"type": "boolean"},
-                    "confirmation_token": {"type": "string"}
+                    "app_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "enterprise_id": {
+                        "type": "string"
+                    },
+                    "team_name": {
+                        "type": "string"
+                    },
+                    "region_name": {
+                        "type": "string"
+                    },
+                    "confirm": {
+                        "type": "boolean"
+                    },
+                    "confirmation_token": {
+                        "type": "string"
+                    }
                 },
                 "required": ["app_id"]
             }

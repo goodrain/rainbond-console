@@ -258,8 +258,8 @@ class ListAppGatewayRuleView(TeamAppAPIView):
                 tenant_service_port = port_service.get_service_port_by_port(service, container_port)
                 # 仅打开对外端口
                 code, msg, port_data = port_service.manage_port(self.team, service, service.service_region,
-                                                               int(tenant_service_port.container_port), "only_open_outer",
-                                                               tenant_service_port.protocol, tenant_service_port.port_alias)
+                                                                int(tenant_service_port.container_port), "only_open_outer",
+                                                                tenant_service_port.protocol, tenant_service_port.port_alias)
                 if code != 200:
                     raise ServiceHandleException(status_code=code, msg="change port fail", msg_show=msg)
             except Exception as e:
@@ -298,8 +298,8 @@ class ListAppGatewayRuleView(TeamAppAPIView):
                 tenant_service_port = port_service.get_service_port_by_port(service, httpdomain["container_port"])
                 # 仅开启对外端口
                 code, msg, port_data = port_service.manage_port(self.team, service, service.service_region,
-                                                               int(tenant_service_port.container_port), "only_open_outer",
-                                                               tenant_service_port.protocol, tenant_service_port.port_alias)
+                                                                int(tenant_service_port.container_port), "only_open_outer",
+                                                                tenant_service_port.protocol, tenant_service_port.port_alias)
                 if code != 200:
                     return Response({"msg": "change port fail"}, status=code)
             tenant_service_port = port_service.get_service_port_by_port(service, httpdomain["container_port"])

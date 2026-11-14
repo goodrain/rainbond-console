@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from typing import TYPE_CHECKING
 import json
 import os
 import sys
@@ -10,22 +11,56 @@ sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
 
-import django
-from django.test import SimpleTestCase, override_settings
-from rest_framework.test import APIRequestFactory, force_authenticate
 
-django.setup()
+def _load_test_dependencies():
+    """Keep the existing post-Django-setup import order and module bindings."""
+    import django
+    from django.test import SimpleTestCase, override_settings
+    from rest_framework.test import APIRequestFactory, force_authenticate
 
-from console.views.agent_llm_config import (AgentLLMConfigView, AgentLLMRuntimeConfigView,
-                                            AgentFeishuRuntimeIdentityView,
-                                            AgentMCPDelegatedCredentialsView,
-                                            AgentMCPGroupDelegatedCredentialsView,
-                                            AgentMCPRuntimeCredentialsView,
-                                            AgentMCPServiceCredentialsView)
+    django.setup()
+
+    from console.views.agent_llm_config import (AgentLLMConfigView, AgentLLMRuntimeConfigView, AgentFeishuRuntimeIdentityView,
+                                                AgentMCPDelegatedCredentialsView, AgentMCPGroupDelegatedCredentialsView,
+                                                AgentMCPRuntimeCredentialsView, AgentMCPServiceCredentialsView)
+    return (
+        django,
+        SimpleTestCase,
+        override_settings,
+        APIRequestFactory,
+        force_authenticate,
+        AgentLLMConfigView,
+        AgentLLMRuntimeConfigView,
+        AgentFeishuRuntimeIdentityView,
+        AgentMCPDelegatedCredentialsView,
+        AgentMCPGroupDelegatedCredentialsView,
+        AgentMCPRuntimeCredentialsView,
+        AgentMCPServiceCredentialsView,
+    )
+
+
+(
+    django,
+    _RuntimeSimpleTestCase,
+    override_settings,
+    APIRequestFactory,
+    force_authenticate,
+    AgentLLMConfigView,
+    AgentLLMRuntimeConfigView,
+    AgentFeishuRuntimeIdentityView,
+    AgentMCPDelegatedCredentialsView,
+    AgentMCPGroupDelegatedCredentialsView,
+    AgentMCPRuntimeCredentialsView,
+    AgentMCPServiceCredentialsView,
+) = _load_test_dependencies()
+
+if TYPE_CHECKING:
+    from django.test import SimpleTestCase
+else:
+    SimpleTestCase = _RuntimeSimpleTestCase
 
 
 class AgentLLMConfigViewTests(SimpleTestCase):
-
     def setUp(self):
         self.factory = APIRequestFactory()
         self.manage_view = AgentLLMConfigView.as_view()
@@ -37,8 +72,7 @@ class AgentLLMConfigViewTests(SimpleTestCase):
         self.feishu_identity_view = AgentFeishuRuntimeIdentityView.as_view()
 
     def _admin_user(self):
-        return SimpleNamespace(
-            user_id=1, nick_name="admin", enterprise_id="eid", is_authenticated=True, sys_admin=False)
+        return SimpleNamespace(user_id=1, nick_name="admin", enterprise_id="eid", is_authenticated=True, sys_admin=False)
 
     def _normal_user(self):
         return SimpleNamespace(user_id=2, nick_name="user", enterprise_id="eid", is_authenticated=True)
@@ -224,8 +258,7 @@ class AgentLLMConfigViewTests(SimpleTestCase):
         self.assertEqual("token=service-jwt", response.data["data"]["bean"]["cookie"])
         self.assertEqual("eid", response.data["data"]["bean"]["enterprise_id"])
         self.assertEqual(1800, response.data["data"]["bean"]["expires_in"])
-        issue_jwt.assert_called_once_with(
-            self._admin_user(), enterprise_id="eid", lifetime_seconds=1800)
+        issue_jwt.assert_called_once_with(self._admin_user(), enterprise_id="eid", lifetime_seconds=1800)
 
     def test_service_credentials_reject_public_gateway_request(self):
         request = self.factory.get(
@@ -243,7 +276,10 @@ class AgentLLMConfigViewTests(SimpleTestCase):
     def test_delegated_credentials_use_bound_enterprise_admin_identity(self):
         request = self.factory.post(
             "/console/internal/agent-mcp-credentials/delegated",
-            data=json.dumps({"enterprise_id": "eid", "user_id": "7"}),
+            data=json.dumps({
+                "enterprise_id": "eid",
+                "user_id": "7"
+            }),
             content_type="application/json",
             HTTP_AUTHORIZATION="GRJWT service-token",
         )
@@ -294,9 +330,12 @@ class AgentLLMConfigViewTests(SimpleTestCase):
             HTTP_AUTHORIZATION="GRJWT service-token",
         )
         force_authenticate(request, user=self._admin_user(), token="service-token")
-        operator = SimpleNamespace(
-            user_id=7, nick_name="employee", email="employee@example.com",
-            enterprise_id="eid", is_active=True, is_authenticated=True)
+        operator = SimpleNamespace(user_id=7,
+                                   nick_name="employee",
+                                   email="employee@example.com",
+                                   enterprise_id="eid",
+                                   is_active=True,
+                                   is_authenticated=True)
 
         with mock.patch("console.views.agent_llm_config.jwt_issuer.decode_jwt",
                         return_value={"token_purpose": "agent_service", "enterprise_id": "eid"}), \
@@ -326,14 +365,20 @@ class AgentLLMConfigViewTests(SimpleTestCase):
     def test_feishu_runtime_identity_returns_current_employee_without_elevating_roles(self):
         request = self.factory.post(
             "/console/internal/agent-feishu/identity",
-            data=json.dumps({"enterprise_id": "eid", "user_id": "7"}),
+            data=json.dumps({
+                "enterprise_id": "eid",
+                "user_id": "7"
+            }),
             content_type="application/json",
             HTTP_AUTHORIZATION="GRJWT service-token",
         )
         force_authenticate(request, user=self._admin_user(), token="service-token")
-        employee = SimpleNamespace(
-            user_id=7, nick_name="employee", real_name="Employee",
-            enterprise_id="eid", is_active=True, sys_admin=False)
+        employee = SimpleNamespace(user_id=7,
+                                   nick_name="employee",
+                                   real_name="Employee",
+                                   enterprise_id="eid",
+                                   is_active=True,
+                                   sys_admin=False)
         with mock.patch("console.views.agent_llm_config.jwt_issuer.decode_jwt",
                         return_value={"token_purpose": "agent_service", "enterprise_id": "eid"}), \
                 mock.patch("console.views.agent_llm_config.Users.objects.filter") as users_filter, \
@@ -348,7 +393,10 @@ class AgentLLMConfigViewTests(SimpleTestCase):
     def test_delegated_credentials_accept_real_authorization_header_bytes(self):
         request = self.factory.post(
             "/console/internal/agent-mcp-credentials/delegated",
-            data=json.dumps({"enterprise_id": "eid", "user_id": "7"}),
+            data=json.dumps({
+                "enterprise_id": "eid",
+                "user_id": "7"
+            }),
             content_type="application/json",
             HTTP_AUTHORIZATION="GRJWT service-token",
         )
@@ -397,7 +445,10 @@ class AgentLLMConfigViewTests(SimpleTestCase):
     def test_delegated_credentials_reject_cross_enterprise_and_non_admin(self):
         cross_enterprise = self.factory.post(
             "/console/internal/agent-mcp-credentials/delegated",
-            data=json.dumps({"enterprise_id": "other", "user_id": "7"}),
+            data=json.dumps({
+                "enterprise_id": "other",
+                "user_id": "7"
+            }),
             content_type="application/json",
             HTTP_X_INTERNAL_TOKEN="eid",
         )
@@ -406,7 +457,10 @@ class AgentLLMConfigViewTests(SimpleTestCase):
 
         non_admin = self.factory.post(
             "/console/internal/agent-mcp-credentials/delegated",
-            data=json.dumps({"enterprise_id": "eid", "user_id": "7"}),
+            data=json.dumps({
+                "enterprise_id": "eid",
+                "user_id": "7"
+            }),
             content_type="application/json",
             HTTP_X_INTERNAL_TOKEN="eid",
         )
@@ -421,7 +475,10 @@ class AgentLLMConfigViewTests(SimpleTestCase):
     def test_delegated_credentials_reject_enterprise_id_as_service_token(self):
         request = self.factory.post(
             "/console/internal/agent-mcp-credentials/delegated",
-            data=json.dumps({"enterprise_id": "eid", "user_id": "7"}),
+            data=json.dumps({
+                "enterprise_id": "eid",
+                "user_id": "7"
+            }),
             content_type="application/json",
             HTTP_X_INTERNAL_TOKEN="eid",
         )
@@ -443,12 +500,18 @@ class AgentLLMConfigViewTests(SimpleTestCase):
         for invalid_user_id in (None, [], {}, True, "not-a-number"):
             request = self.factory.post(
                 "/console/internal/agent-mcp-credentials/delegated",
-                data=json.dumps({"enterprise_id": "eid", "user_id": invalid_user_id}),
+                data=json.dumps({
+                    "enterprise_id": "eid",
+                    "user_id": invalid_user_id
+                }),
                 content_type="application/json",
                 HTTP_AUTHORIZATION="GRJWT service-token",
             )
             force_authenticate(request, user=self._admin_user(), token="service-token")
             with mock.patch("console.views.agent_llm_config.jwt_issuer.decode_jwt",
-                            return_value={"token_purpose": "agent_service", "enterprise_id": "eid"}):
+                            return_value={
+                                "token_purpose": "agent_service",
+                                "enterprise_id": "eid"
+                            }):
                 response = self.delegated_credentials_view(request)
             self.assertEqual(response.status_code, 400)

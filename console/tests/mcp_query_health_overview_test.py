@@ -19,7 +19,14 @@ sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
 django.setup()
 
-from console.services.mcp_query_service import mcp_query_service
+
+def _load_test_dependencies():
+    """Keep the existing post-Django-setup import order and module bindings."""
+    from console.services.mcp_query_service import mcp_query_service
+    return (mcp_query_service, )
+
+
+mcp_query_service, = _load_test_dependencies()
 
 
 class Obj(object):
@@ -44,8 +51,11 @@ class _Svc(object):
         self.service_region = "rg"
 
     def to_dict(self):
-        return {"service_id": self.service_id, "service_cname": self.service_cname,
-                "k8s_component_name": self.k8s_component_name}
+        return {
+            "service_id": self.service_id,
+            "service_cname": self.service_cname,
+            "k8s_component_name": self.k8s_component_name
+        }
 
 
 class HealthOverviewTests(SimpleTestCase):
@@ -54,14 +64,10 @@ class HealthOverviewTests(SimpleTestCase):
     def test_all_running_no_blocker_no_deepdive(self):
         args = {"team_name": "team1", "region_name": "rg", "app_id": "7"}
         services = [_Svc("a", "api", "api"), _Svc("b", "db", "db-postgres")]
-        status_list = [{"service_id": "a", "status": "running"},
-                       {"service_id": "b", "status": "running"}]
-        with patch.object(mcp_query_service, "_get_team_app_context",
-                          return_value=(_team(), _app())):
-            with patch("console.services.mcp_query_service.group_service.get_group_services",
-                       return_value=services):
-                with patch("console.services.mcp_query_service.base_service.status_multi_service",
-                           return_value=status_list):
+        status_list = [{"service_id": "a", "status": "running"}, {"service_id": "b", "status": "running"}]
+        with patch.object(mcp_query_service, "_get_team_app_context", return_value=(_team(), _app())):
+            with patch("console.services.mcp_query_service.group_service.get_group_services", return_value=services):
+                with patch("console.services.mcp_query_service.base_service.status_multi_service", return_value=status_list):
                     with patch.object(mcp_query_service, "_collect_pod_warnings") as deep:
                         result = mcp_query_service.get_app_health_overview(Obj(nick_name="t"), args)
         # all running => app_status running, no per-component deep-dive at all
@@ -75,17 +81,12 @@ class HealthOverviewTests(SimpleTestCase):
     def test_abnormal_component_deepdived_for_blocker(self):
         args = {"team_name": "team1", "region_name": "rg", "app_id": "7"}
         services = [_Svc("a", "api", "api"), _Svc("b", "db", "db-postgres")]
-        status_list = [{"service_id": "a", "status": "running"},
-                       {"service_id": "b", "status": "abnormal"}]
+        status_list = [{"service_id": "a", "status": "running"}, {"service_id": "b", "status": "abnormal"}]
         warnings = [{"reason": "ImagePullBackOff", "message": "Back-off pulling image"}]
-        with patch.object(mcp_query_service, "_get_team_app_context",
-                          return_value=(_team(), _app())):
-            with patch("console.services.mcp_query_service.group_service.get_group_services",
-                       return_value=services):
-                with patch("console.services.mcp_query_service.base_service.status_multi_service",
-                           return_value=status_list):
-                    with patch.object(mcp_query_service, "_collect_pod_warnings",
-                                      return_value=warnings) as deep:
+        with patch.object(mcp_query_service, "_get_team_app_context", return_value=(_team(), _app())):
+            with patch("console.services.mcp_query_service.group_service.get_group_services", return_value=services):
+                with patch("console.services.mcp_query_service.base_service.status_multi_service", return_value=status_list):
+                    with patch.object(mcp_query_service, "_collect_pod_warnings", return_value=warnings) as deep:
                         result = mcp_query_service.get_app_health_overview(Obj(nick_name="t"), args)
         # only the abnormal component is deep-dived
         self.assertEqual(deep.call_count, 1)
@@ -99,14 +100,10 @@ class HealthOverviewTests(SimpleTestCase):
         args = {"team_name": "team1", "region_name": "rg", "app_id": "7"}
         services = [_Svc("b", "db", "db-postgres")]
         status_list = [{"service_id": "b", "status": "abnormal"}]
-        with patch.object(mcp_query_service, "_get_team_app_context",
-                          return_value=(_team(), _app())):
-            with patch("console.services.mcp_query_service.group_service.get_group_services",
-                       return_value=services):
-                with patch("console.services.mcp_query_service.base_service.status_multi_service",
-                           return_value=status_list):
-                    with patch.object(mcp_query_service, "_collect_pod_warnings",
-                                      side_effect=Exception("region down")):
+        with patch.object(mcp_query_service, "_get_team_app_context", return_value=(_team(), _app())):
+            with patch("console.services.mcp_query_service.group_service.get_group_services", return_value=services):
+                with patch("console.services.mcp_query_service.base_service.status_multi_service", return_value=status_list):
+                    with patch.object(mcp_query_service, "_collect_pod_warnings", side_effect=Exception("region down")):
                         result = mcp_query_service.get_app_health_overview(Obj(nick_name="t"), args)
         # deep-dive failure must not break aggregation
         self.assertEqual(result["components"][0]["critical_blocker"], "unknown")
@@ -114,10 +111,8 @@ class HealthOverviewTests(SimpleTestCase):
     # capability_id: console.mcp.app-health-overview
     def test_empty_app(self):
         args = {"team_name": "team1", "region_name": "rg", "app_id": "7"}
-        with patch.object(mcp_query_service, "_get_team_app_context",
-                          return_value=(_team(), _app())):
-            with patch("console.services.mcp_query_service.group_service.get_group_services",
-                       return_value=[]):
+        with patch.object(mcp_query_service, "_get_team_app_context", return_value=(_team(), _app())):
+            with patch("console.services.mcp_query_service.group_service.get_group_services", return_value=[]):
                 result = mcp_query_service.get_app_health_overview(Obj(nick_name="t"), args)
         self.assertEqual(result["components"], [])
         self.assertEqual(result["total"], 0)

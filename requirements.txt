@@ -8,7 +8,7 @@ simplejson==3.8.0
 urllib3==1.25.10
 certifi~=2023.5.7
 whitenoise==6.9.0
-pillow==8.1.0
+pillow==11.3.0
 djangorestframework==3.16.0
 markdown==2.6.2
 requests==2.25.1

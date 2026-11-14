@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from typing import TYPE_CHECKING
 import json
 import os
 import sys
@@ -11,15 +12,52 @@ sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
 
-import django
-from django.test import SimpleTestCase
-from rest_framework.test import APIRequestFactory, force_authenticate
 
-django.setup()
+def _load_test_dependencies():
+    """Keep the existing post-Django-setup import order and module bindings."""
+    import django
+    from django.test import SimpleTestCase
+    from rest_framework.test import APIRequestFactory, force_authenticate
 
-from console.exception.exceptions import AuthenticationInfoHasExpiredError
-from console.exception.main import ServiceHandleException
-from console.views.mcp_query import (
+    django.setup()
+
+    from console.exception.exceptions import AuthenticationInfoHasExpiredError
+    from console.exception.main import ServiceHandleException
+    from console.views.mcp_query import (
+        MCPJSONWebTokenAuthentication,
+        MCPQueryHTTPView,
+        MCPQueryMessageView,
+        MCPQuerySSEView,
+        _get_mcp_sse_session,
+        _load_mcp_http_session,
+        _remove_mcp_sse_session,
+    )
+    from console.login.jwt_authentication import JSONWebTokenAuthentication
+    return (
+        django,
+        SimpleTestCase,
+        APIRequestFactory,
+        force_authenticate,
+        AuthenticationInfoHasExpiredError,
+        ServiceHandleException,
+        MCPJSONWebTokenAuthentication,
+        MCPQueryHTTPView,
+        MCPQueryMessageView,
+        MCPQuerySSEView,
+        _get_mcp_sse_session,
+        _load_mcp_http_session,
+        _remove_mcp_sse_session,
+        JSONWebTokenAuthentication,
+    )
+
+
+(
+    django,
+    _RuntimeSimpleTestCase,
+    APIRequestFactory,
+    force_authenticate,
+    AuthenticationInfoHasExpiredError,
+    ServiceHandleException,
     MCPJSONWebTokenAuthentication,
     MCPQueryHTTPView,
     MCPQueryMessageView,
@@ -27,8 +65,13 @@ from console.views.mcp_query import (
     _get_mcp_sse_session,
     _load_mcp_http_session,
     _remove_mcp_sse_session,
-)
-from console.login.jwt_authentication import JSONWebTokenAuthentication
+    JSONWebTokenAuthentication,
+) = _load_test_dependencies()
+
+if TYPE_CHECKING:
+    from django.test import SimpleTestCase
+else:
+    SimpleTestCase = _RuntimeSimpleTestCase
 
 
 def _decode_chunk(chunk):
@@ -45,7 +88,6 @@ def _parse_sse_data(chunk):
 
 
 class MCPQuerySSEViewTests(SimpleTestCase):
-
     def setUp(self):
         self.factory = APIRequestFactory()
         self.http_view = MCPQueryHTTPView.as_view()
@@ -62,9 +104,11 @@ class MCPQuerySSEViewTests(SimpleTestCase):
             "member_grant_id": "fgg-1",
             "policy_revision": 2,
         }
-        user = SimpleNamespace(
-            user_id=7, username="employee", enterprise_id="eid-1", is_authenticated=True,
-            is_enterprise_admin=False)
+        user = SimpleNamespace(user_id=7,
+                               username="employee",
+                               enterprise_id="eid-1",
+                               is_authenticated=True,
+                               is_enterprise_admin=False)
         request = self.factory.get("/console/mcp/query", HTTP_AUTHORIZATION="GRJWT group-token")
 
         with patch("console.login.jwt_authentication.jwt_issuer.decode_jwt", return_value=payload), \
@@ -75,8 +119,7 @@ class MCPQuerySSEViewTests(SimpleTestCase):
         self.assertTrue(authenticated.is_enterprise_admin)
         self.assertEqual(authenticated.agent_group_mcp_context["operator_user_id"], "7")
 
-        regular_request = self.factory.get("/console/enterprise/eid-1/info",
-                                           HTTP_AUTHORIZATION="GRJWT group-token")
+        regular_request = self.factory.get("/console/enterprise/eid-1/info", HTTP_AUTHORIZATION="GRJWT group-token")
         with patch("console.login.jwt_authentication.jwt_issuer.decode_jwt", return_value=payload), \
                 patch.object(JSONWebTokenAuthentication, "authenticate_credentials", return_value=user):
             with self.assertRaises(Exception):

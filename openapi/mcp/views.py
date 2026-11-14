@@ -1,4 +1,3 @@
-import time
 from typing import Any, Optional, Tuple
 
 from rest_framework.request import Request
@@ -9,10 +8,8 @@ from drf_yasg import openapi
 
 from console.repositories.group import group_repo
 from console.repositories.service_repo import service_repo
-from console.services.app import app_service, port_service
-from console.services.app_actions import app_manage_service
-from console.services.app_check_service import app_check_service
-from console.services.app_config.arch_service import arch_service
+from console.services.app import port_service
+
 from console.services.app_config import env_var_service
 from console.services.app_config import volume_service
 from console.services.app_config import domain_service
@@ -21,7 +18,7 @@ from console.services.source_component_service import source_component_service
 from console.services.team_services import team_services
 from console.services.group_service import group_service
 from console.services.app_config.component_logs import component_log_service
-from default_region import make_uuid
+
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.return_message import general_message
 from openapi.views.base import BaseOpenAPIView
@@ -31,7 +28,6 @@ from .serializers import (
     TeamSerializer,
     AppSerializer,
     ComponentBaseSerializer,
-    ComponentStatusSerializer,
     ComponentLogSerializer,
     CreateAppRequestSerializer,
     CreateAppResponseSerializer,
@@ -47,18 +43,16 @@ region_api = RegionInvokeApi()
 class McpRegionsView(BaseOpenAPIView):
     """
     集群管理接口
-    
+
     提供集群相关的操作接口，包括：
     - 获取企业下的集群列表
     """
-    @swagger_auto_schema(
-        operation_description="获取集群列表",
-        responses={
-            200: openapi.Response('获取成功', RegionSerializer(many=True)),
-            500: openapi.Response('内部错误'),
-        },
-        tags=['集群管理']
-    )
+    @swagger_auto_schema(operation_description="获取集群列表",
+                         responses={
+                             200: openapi.Response('获取成功', RegionSerializer(many=True)),
+                             500: openapi.Response('内部错误'),
+                         },
+                         tags=['集群管理'])
     def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """获取集群列表"""
         try:
@@ -74,22 +68,24 @@ class McpRegionsView(BaseOpenAPIView):
 class McpTeamsView(BaseOpenAPIView):
     """
     团队管理接口
-    
+
     提供团队相关的操作接口，包括：
     - 获取企业下的团队列表
     - 支持按团队名称搜索
     """
-    @swagger_auto_schema(
-        operation_description="获取团队列表",
-        manual_parameters=[
-            openapi.Parameter('name', openapi.IN_QUERY, description='团队名称搜索', type=openapi.TYPE_STRING, required=False),
-        ],
-        responses={
-            200: openapi.Response('获取成功', TeamSerializer(many=True)),
-            500: openapi.Response('内部错误'),
-        },
-        tags=['团队管理']
-    )
+    @swagger_auto_schema(operation_description="获取团队列表",
+                         manual_parameters=[
+                             openapi.Parameter('name',
+                                               openapi.IN_QUERY,
+                                               description='团队名称搜索',
+                                               type=openapi.TYPE_STRING,
+                                               required=False),
+                         ],
+                         responses={
+                             200: openapi.Response('获取成功', TeamSerializer(many=True)),
+                             500: openapi.Response('内部错误'),
+                         },
+                         tags=['团队管理'])
     def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """获取团队列表"""
         try:
@@ -97,8 +93,7 @@ class McpTeamsView(BaseOpenAPIView):
                 enterprise_id=self.enterprise.enterprise_id,
                 # NOTE: request.user typed User|AnonymousUser; expected Users (arg-type).
                 user=request.user,  # type: ignore[arg-type]
-                name=request.GET.get('name', None)
-            )
+                name=request.GET.get('name', None))
             serializer = TeamSerializer(teams, many=True)
             result = general_message(200, "success", "获取成功", list=serializer.data)
             return Response(result, status=http_status.HTTP_200_OK)
@@ -109,27 +104,25 @@ class McpTeamsView(BaseOpenAPIView):
 class McpAppsView(BaseOpenAPIView):
     """
     应用列表管理接口
-    
+
     提供团队下应用相关的操作接口，包括：
     - 获取团队下的应用列表
     - 支持按区域筛选应用
     """
-    @swagger_auto_schema(
-        operation_description="获取团队下的应用列表",
-        responses={
-            200: openapi.Response('获取成功', AppSerializer(many=True)),
-            404: openapi.Response('团队不存在'),
-            500: openapi.Response('内部错误'),
-        },
-        tags=['应用管理']
-    )
+    @swagger_auto_schema(operation_description="获取团队下的应用列表",
+                         responses={
+                             200: openapi.Response('获取成功', AppSerializer(many=True)),
+                             404: openapi.Response('团队不存在'),
+                             500: openapi.Response('内部错误'),
+                         },
+                         tags=['应用管理'])
     def get(self, request: Request, team_alias: str, region_name: str, *args: Any, **kwargs: Any) -> Response:
         """获取团队下的应用列表"""
         try:
             team = team_services.get_team_by_team_alias(team_alias)
             if not team:
                 return Response(general_message(404, "team not found", "团队不存在"), status=http_status.HTTP_404_NOT_FOUND)
-            
+
             apps = group_service.get_tenant_groups_by_region(team, region_name)
             serializer = AppSerializer(apps, many=True)
             result = general_message(200, "success", "获取成功", list=serializer.data)
@@ -141,22 +134,20 @@ class McpAppsView(BaseOpenAPIView):
 class McpAppView(BaseOpenAPIView):
     """
     应用管理接口
-    
+
     提供应用相关的操作接口，包括：
     - 创建新的应用
     - 支持设置应用名称、英文标识等信息
     """
-    @swagger_auto_schema(
-        operation_description="创建应用",
-        request_body=CreateAppRequestSerializer,
-        responses={
-            200: CreateAppResponseSerializer,
-            404: openapi.Response('团队不存在'),
-            400: openapi.Response('参数错误'),
-            500: openapi.Response('内部错误'),
-        },
-        tags=['应用管理']
-    )
+    @swagger_auto_schema(operation_description="创建应用",
+                         request_body=CreateAppRequestSerializer,
+                         responses={
+                             200: CreateAppResponseSerializer,
+                             404: openapi.Response('团队不存在'),
+                             400: openapi.Response('参数错误'),
+                             500: openapi.Response('内部错误'),
+                         },
+                         tags=['应用管理'])
     def post(self, request: Request, team_alias: str, region_name: str, *args: Any, **kwargs: Any) -> Response:
         """创建应用"""
         try:
@@ -170,22 +161,15 @@ class McpAppView(BaseOpenAPIView):
                 return Response(general_message(400, "params error", "参数错误"), status=http_status.HTTP_400_BAD_REQUEST)
 
             # 创建应用
-            app = group_service.create_app(
-                tenant=team,
-                region_name=region_name,
-                app_name=serializer.validated_data["app_name"],
-                username=request.user.get_username(),
-                k8s_app=serializer.validated_data.get("app_name", ""),
-                eid=self.enterprise.enterprise_id
-            )
+            app = group_service.create_app(tenant=team,
+                                           region_name=region_name,
+                                           app_name=serializer.validated_data["app_name"],
+                                           username=request.user.get_username(),
+                                           k8s_app=serializer.validated_data.get("app_name", ""),
+                                           eid=self.enterprise.enterprise_id)
 
             # 序列化响应数据
-            response_serializer = CreateAppResponseSerializer({
-                "bean": app,
-                "code": 200,
-                "msg": "success",
-                "msg_show": "创建成功"
-            })
+            response_serializer = CreateAppResponseSerializer({"bean": app, "code": 200, "msg": "success", "msg_show": "创建成功"})
             return Response(response_serializer.data, status=http_status.HTTP_200_OK)
         except ServiceHandleException as e:
             return Response(general_message(e.status_code, e.msg, e.msg_show), status=e.status_code)
@@ -196,20 +180,18 @@ class McpAppView(BaseOpenAPIView):
 class McpComponentsView(BaseOpenAPIView):
     """
     组件列表管理接口
-    
+
     提供应用下组件相关的操作接口，包括：
     - 获取应用下的组件列表
     - 支持查看组件的基本信息（如内存、CPU等资源配置）
     """
-    @swagger_auto_schema(
-        operation_description="获取应用下的组件列表",
-        responses={
-            200: openapi.Response('获取成功', ComponentBaseSerializer(many=True)),
-            404: openapi.Response('团队不存在'),
-            500: openapi.Response('内部错误'),
-        },
-        tags=['组件管理']
-    )
+    @swagger_auto_schema(operation_description="获取应用下的组件列表",
+                         responses={
+                             200: openapi.Response('获取成功', ComponentBaseSerializer(many=True)),
+                             404: openapi.Response('团队不存在'),
+                             500: openapi.Response('内部错误'),
+                         },
+                         tags=['组件管理'])
     def get(self, request: Request, team_alias: str, app_id: int, *args: Any, **kwargs: Any) -> Response:
         """获取应用下的组件列表"""
         try:
@@ -237,23 +219,21 @@ class McpComponentsView(BaseOpenAPIView):
 class McpComponentView(BaseOpenAPIView):
     """
     组件管理接口
-    
+
     提供组件创建相关的操作接口，包括：
     - 基于源码创建组件
     - 自动进行代码检测
     - 支持自动构建和部署
     """
-    @swagger_auto_schema(
-        operation_description="创建组件",
-        request_body=CreateComponentRequestSerializer,
-        responses={
-            200: ComponentBaseSerializer,
-            404: openapi.Response('团队或应用不存在'),
-            400: openapi.Response('参数错误'),
-            500: openapi.Response('内部错误'),
-        },
-        tags=['组件管理']
-    )
+    @swagger_auto_schema(operation_description="创建组件",
+                         request_body=CreateComponentRequestSerializer,
+                         responses={
+                             200: ComponentBaseSerializer,
+                             404: openapi.Response('团队或应用不存在'),
+                             400: openapi.Response('参数错误'),
+                             500: openapi.Response('内部错误'),
+                         },
+                         tags=['组件管理'])
     def post(self, request: Request, team_alias: str, app_id: int, *args: Any, **kwargs: Any) -> Response:
         """创建组件"""
         try:
@@ -300,46 +280,36 @@ class McpComponentView(BaseOpenAPIView):
 class McpComponentDetailView(BaseOpenAPIView):
     """
     组件详情管理接口
-    
+
     提供组件详细信息的操作接口，包括：
     - 获取组件的运行状态
     - 查看组件的详细配置信息
     - 查看组件的运行实例（Pod）信息
     """
-    
     def _get_team_and_component(self, team_alias: str, component_id: str) -> Tuple[Any, Any, Optional[Response]]:
         """获取团队和组件信息"""
         team = team_services.get_team_by_team_alias(team_alias)
         if not team:
-            return None, None, Response(
-                general_message(404, "team not found", "团队不存在"), 
-                status=http_status.HTTP_404_NOT_FOUND
-            )
-        
+            return None, None, Response(general_message(404, "team not found", "团队不存在"), status=http_status.HTTP_404_NOT_FOUND)
+
         component = service_repo.get_service_by_tenant_and_alias(team.tenant_id, service_id=component_id)
         if not component:
-            return team, None, Response(
-                general_message(404, "component not found", "组件不存在"), 
-                status=http_status.HTTP_404_NOT_FOUND
-            )
-        
+            return team, None, Response(general_message(404, "component not found", "组件不存在"),
+                                        status=http_status.HTTP_404_NOT_FOUND)
+
         return team, component, None
-    
+
     def _get_component_status(self, component: Any, team: Any) -> Any:
         """获取组件状态"""
         try:
-            status_info = region_api.check_service_status(
-                component.service_region,
-                team.tenant_name,
-                component.service_alias,
-                team.enterprise_id
-            )
+            status_info = region_api.check_service_status(component.service_region, team.tenant_name, component.service_alias,
+                                                          team.enterprise_id)
             # NOTE: regionapi return typed dict|None by stubs; may be None (backlog).
             return status_info.get("bean", {}).get("status_cn", "未知")  # type: ignore[union-attr]
         except Exception as e:
             print(f"获取组件状态失败：{e}")
             return "未知"
-    
+
     def _build_access_url(self, domain: Any) -> Any:
         """构建访问 URL"""
         if hasattr(domain, 'domain_name'):  # HTTP 域名
@@ -350,25 +320,25 @@ class McpComponentDetailView(BaseOpenAPIView):
             return url
         else:  # TCP 域名
             return domain.end_point
-    
+
     def _merge_access_urls_to_ports(self, ports: Any, http_domains: Any, tcp_domains: Any) -> list:
         """将访问地址信息合并到端口中"""
         # 创建端口到域名的映射，提高查询效率
         http_domain_map: dict = {}
         tcp_domain_map: dict = {}
-        
+
         for domain in http_domains:
             port = domain.container_port
             if port not in http_domain_map:
                 http_domain_map[port] = []
             http_domain_map[port].append(domain)
-        
+
         for domain in tcp_domains:
             port = domain.container_port
             if port not in tcp_domain_map:
                 tcp_domain_map[port] = []
             tcp_domain_map[port].append(domain)
-        
+
         # 构建端口列表
         port_list = []
         for port in ports:
@@ -379,33 +349,30 @@ class McpComponentDetailView(BaseOpenAPIView):
                 "is_inner_service": port.is_inner_service,
                 "access_urls": []
             }
-            
+
             # 添加该端口的所有访问地址
             port_number = port.container_port
-            
+
             # 添加 HTTP 访问地址
             for domain in http_domain_map.get(port_number, []):
                 port_info["access_urls"].append(self._build_access_url(domain))
-            
+
             # 添加 TCP 访问地址
             for domain in tcp_domain_map.get(port_number, []):
                 port_info["access_urls"].append(self._build_access_url(domain))
-            
+
             port_list.append(port_info)
-        
+
         return port_list
-    
-    @swagger_auto_schema(
-        operation_description="获取组件详情",
-        responses={
-            200: openapi.Response('获取成功', ComponentDetailSerializer),
-            404: openapi.Response('团队或组件不存在'),
-            500: openapi.Response('内部错误'),
-        },
-        tags=['组件管理']
-    )
-    def get(self, request: Request, team_alias: str, app_id: int, component_id: str,
-            *args: Any, **kwargs: Any) -> Response:
+
+    @swagger_auto_schema(operation_description="获取组件详情",
+                         responses={
+                             200: openapi.Response('获取成功', ComponentDetailSerializer),
+                             404: openapi.Response('团队或组件不存在'),
+                             500: openapi.Response('内部错误'),
+                         },
+                         tags=['组件管理'])
+    def get(self, request: Request, team_alias: str, app_id: int, component_id: str, *args: Any, **kwargs: Any) -> Response:
         """获取组件详情"""
         try:
             # 获取团队和组件信息
@@ -439,10 +406,10 @@ class McpComponentDetailView(BaseOpenAPIView):
                 "envs": env_vars,
                 "volumes": volumes
             }
-            
+
             serializer = ComponentDetailSerializer(result)
             return Response(general_message(200, "success", "获取成功", bean=serializer.data), status=http_status.HTTP_200_OK)
-            
+
         except Exception as e:
             return Response(general_message(500, "error", str(e)), status=http_status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -450,47 +417,56 @@ class McpComponentDetailView(BaseOpenAPIView):
 class McpComponentLogsView(BaseOpenAPIView):
     """
     组件日志管理接口
-    
+
     提供组件日志相关的操作接口，包括：
     - 获取组件容器的运行日志
     - 支持实时日志流式输出
     - 支持指定Pod和容器查看日志
     - 支持日志跟随（follow）模式
     """
-    @swagger_auto_schema(
-        operation_description="获取组件日志",
-        manual_parameters=[
-            openapi.Parameter('pod_name', openapi.IN_QUERY, description='Pod名称', type=openapi.TYPE_STRING, required=True),
-            openapi.Parameter('container_name', openapi.IN_QUERY, description='容器名称', type=openapi.TYPE_STRING, required=True),
-            openapi.Parameter('follow', openapi.IN_QUERY, description='是否跟随日志', type=openapi.TYPE_BOOLEAN, required=False),
-        ],
-        responses={
-            200: openapi.Response('获取成功', ComponentLogSerializer),
-            404: openapi.Response('团队或组件不存在'),
-            400: openapi.Response('参数错误'),
-            500: openapi.Response('内部错误'),
-        },
-        tags=['组件管理']
-    )
-    def get(self, request: Request, team_alias: str, app_id: int, component_id: str,
-            *args: Any, **kwargs: Any) -> Response:
+    @swagger_auto_schema(operation_description="获取组件日志",
+                         manual_parameters=[
+                             openapi.Parameter('pod_name',
+                                               openapi.IN_QUERY,
+                                               description='Pod名称',
+                                               type=openapi.TYPE_STRING,
+                                               required=True),
+                             openapi.Parameter('container_name',
+                                               openapi.IN_QUERY,
+                                               description='容器名称',
+                                               type=openapi.TYPE_STRING,
+                                               required=True),
+                             openapi.Parameter('follow',
+                                               openapi.IN_QUERY,
+                                               description='是否跟随日志',
+                                               type=openapi.TYPE_BOOLEAN,
+                                               required=False),
+                         ],
+                         responses={
+                             200: openapi.Response('获取成功', ComponentLogSerializer),
+                             404: openapi.Response('团队或组件不存在'),
+                             400: openapi.Response('参数错误'),
+                             500: openapi.Response('内部错误'),
+                         },
+                         tags=['组件管理'])
+    def get(self, request: Request, team_alias: str, app_id: int, component_id: str, *args: Any, **kwargs: Any) -> Response:
         """获取组件日志"""
         try:
             team = team_services.get_team_by_team_alias(team_alias)
             if not team:
                 return Response(general_message(404, "team not found", "团队不存在"), status=http_status.HTTP_404_NOT_FOUND)
-            
+
             component = service_repo.get_service_by_tenant_and_alias(team.tenant_id, service_id=component_id)
             if not component:
                 return Response(general_message(404, "component not found", "组件不存在"), status=http_status.HTTP_404_NOT_FOUND)
-            
+
             pod_name = request.GET.get('pod_name')
             container_name = request.GET.get('container_name')
             follow = request.GET.get('follow', False)
-            
+
             if not pod_name or not container_name:
                 return Response(general_message(400, "params error", "缺少必要参数"), status=http_status.HTTP_400_BAD_REQUEST)
-            
+
             log_stream = component_log_service.get_component_log_stream(
                 tenant_name=team.tenant_name,
                 region_name=component.service_region,
@@ -499,7 +475,7 @@ class McpComponentLogsView(BaseOpenAPIView):
                 container_name=container_name,
                 follow=follow  # type: ignore[arg-type]
             )
-            
+
             return Response(log_stream, status=http_status.HTTP_200_OK)
         except Exception as e:
             return Response(general_message(500, "error", str(e)), status=http_status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -508,28 +484,25 @@ class McpComponentLogsView(BaseOpenAPIView):
 class McpComponentPortsView(BaseOpenAPIView):
     """
     组件端口管理接口
-    
+
     提供组件端口相关的操作接口，包括：
     - 获取组件的端口列表
     - 添加组件端口
     """
-    @swagger_auto_schema(
-        operation_description="获取组件端口列表",
-        responses={
-            200: openapi.Response('获取成功', PortBaseSerializer(many=True)),
-            404: openapi.Response('团队或组件不存在'),
-            500: openapi.Response('内部错误'),
-        },
-        tags=['组件管理']
-    )
-    def get(self, request: Request, team_alias: str, app_id: int, component_id: str,
-            *args: Any, **kwargs: Any) -> Response:
+    @swagger_auto_schema(operation_description="获取组件端口列表",
+                         responses={
+                             200: openapi.Response('获取成功', PortBaseSerializer(many=True)),
+                             404: openapi.Response('团队或组件不存在'),
+                             500: openapi.Response('内部错误'),
+                         },
+                         tags=['组件管理'])
+    def get(self, request: Request, team_alias: str, app_id: int, component_id: str, *args: Any, **kwargs: Any) -> Response:
         """获取组件端口列表"""
         try:
             team = team_services.get_team_by_team_alias(team_alias)
             if not team:
                 return Response(general_message(404, "team not found", "团队不存在"), status=http_status.HTTP_404_NOT_FOUND)
-            
+
             component = service_repo.get_service_by_tenant_and_alias(team.tenant_id, service_id=component_id)
             if not component:
                 return Response(general_message(404, "component not found", "组件不存在"), status=http_status.HTTP_404_NOT_FOUND)
@@ -541,25 +514,22 @@ class McpComponentPortsView(BaseOpenAPIView):
         except Exception as e:
             return Response(general_message(500, "error", str(e)), status=http_status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    @swagger_auto_schema(
-        operation_description="添加组件端口",
-        request_body=AddPortRequestSerializer,
-        responses={
-            200: openapi.Response('添加成功', PortBaseSerializer),
-            400: openapi.Response('参数错误'),
-            404: openapi.Response('团队或组件不存在'),
-            500: openapi.Response('内部错误'),
-        },
-        tags=['组件管理']
-    )
-    def post(self, request: Request, team_alias: str, app_id: int, component_id: str,
-             *args: Any, **kwargs: Any) -> Response:
+    @swagger_auto_schema(operation_description="添加组件端口",
+                         request_body=AddPortRequestSerializer,
+                         responses={
+                             200: openapi.Response('添加成功', PortBaseSerializer),
+                             400: openapi.Response('参数错误'),
+                             404: openapi.Response('团队或组件不存在'),
+                             500: openapi.Response('内部错误'),
+                         },
+                         tags=['组件管理'])
+    def post(self, request: Request, team_alias: str, app_id: int, component_id: str, *args: Any, **kwargs: Any) -> Response:
         """添加组件端口"""
         try:
             team = team_services.get_team_by_team_alias(team_alias)
             if not team:
                 return Response(general_message(404, "team not found", "团队不存在"), status=http_status.HTTP_404_NOT_FOUND)
-            
+
             component = service_repo.get_service_by_tenant_and_alias(team.tenant_id, service_id=component_id)
             if not component:
                 return Response(general_message(404, "component not found", "组件不存在"), status=http_status.HTTP_404_NOT_FOUND)
@@ -597,15 +567,16 @@ class McpComponentPortsView(BaseOpenAPIView):
             if is_outer_service:
                 from console.repositories.region_repo import region_repo
                 from console.repositories.group import group_repo
-                
+
                 region = region_repo.get_region_by_region_name(component.service_region)
                 app = group_repo.get_app_by_pk(app_id)  # type: ignore[arg-type]
-                
+
                 # 获取刚添加的端口对象
                 deal_port = port_service.get_service_port_by_port(component, port)
                 if not deal_port:
-                    return Response(general_message(500, "get port failed", "获取端口信息失败"), status=http_status.HTTP_500_INTERNAL_SERVER_ERROR)
-                
+                    return Response(general_message(500, "get port failed", "获取端口信息失败"),
+                                    status=http_status.HTTP_500_INTERNAL_SERVER_ERROR)
+
                 # 调用默认开启对外服务的方法
                 code, msg = port_service.defalut_open_outer(team, component, region, deal_port, app)
                 if code != 200:
@@ -615,12 +586,13 @@ class McpComponentPortsView(BaseOpenAPIView):
             ports = port_service.get_service_ports(component)
             new_port = next((p for p in ports if p.container_port == port), None)
             if not new_port:
-                return Response(general_message(500, "get port failed", "获取端口信息失败"), status=http_status.HTTP_500_INTERNAL_SERVER_ERROR)
+                return Response(general_message(500, "get port failed", "获取端口信息失败"),
+                                status=http_status.HTTP_500_INTERNAL_SERVER_ERROR)
 
             port_serializer = PortBaseSerializer(new_port)
             result = general_message(200, "success", "端口添加成功", bean=port_serializer.data)
             return Response(result, status=http_status.HTTP_200_OK)
-        except region_api.CallApiError as e:
+        except region_api.CallApiError:
             return Response(general_message(500, "region error", "集群接口调用失败"), status=http_status.HTTP_500_INTERNAL_SERVER_ERROR)
         except Exception as e:
             return Response(general_message(500, "error", str(e)), status=http_status.HTTP_500_INTERNAL_SERVER_ERROR)

@@ -41,9 +41,11 @@ def check_account_quota(user_id, region_name, operation_type):
         resp.raise_for_status()
         data = resp.json()
         if not data.get("allowed", True):
-            logger.warning("Account quota check failed - user_id: %s, message: %s", 
-                         user_id, data.get("message"))
-            raise ServiceHandleException(msg_show=data.get("message", "账户配额不足"), msg="Account quota not enough", error_code=20002, status_code=409)
+            logger.warning("Account quota check failed - user_id: %s, message: %s", user_id, data.get("message"))
+            raise ServiceHandleException(msg_show=data.get("message", "账户配额不足"),
+                                         msg="Account quota not enough",
+                                         error_code=20002,
+                                         status_code=409)
         return True
     except requests.exceptions.RequestException as e:
         logger.error("Failed to check account quota - error: %s", e)

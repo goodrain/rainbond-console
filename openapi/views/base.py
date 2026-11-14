@@ -85,7 +85,8 @@ class BaseOpenAPIView(APIView):
         request.user.is_ = False  # type: ignore[union-attr]
         # NOTE: request.user is User|AnonymousUser per stubs; runtime carries enterprise_id etc.
         if hasattr(request.user, "enterprise_id"):
-            self.enterprise = enterprise_services.get_enterprise_by_id(request.user.enterprise_id)  # type: ignore[assignment,union-attr]
+            self.enterprise = enterprise_services.get_enterprise_by_id(
+                request.user.enterprise_id)  # type: ignore[assignment,union-attr]
         if not self.enterprise:
             raise ErrEnterpriseNotFound
         self.region_name = kwargs.get("region_name")  # type: ignore[assignment]
@@ -95,7 +96,8 @@ class BaseOpenAPIView(APIView):
             self.region = region_services.get_enterprise_region_by_region_name(  # type: ignore[assignment]
                 enterprise_id=self.enterprise.enterprise_id, region_name=self.region_name)
             if not self.region:
-                self.region = region_repo.get_region_by_id(self.enterprise.enterprise_id, self.region_name)  # type: ignore[assignment]
+                self.region = region_repo.get_region_by_id(self.enterprise.enterprise_id,
+                                                           self.region_name)  # type: ignore[assignment]
         # Temporary logic
         if self.enterprise.ID == 1:
             request.user.is_administrator = True  # type: ignore[union-attr]
@@ -139,7 +141,8 @@ class TeamNoRegionAPIView(BaseOpenAPIView):
     def initial(self, request: Request, *args: Any, **kwargs: Any) -> None:
         request.user.is_administrator = False  # type: ignore[union-attr]
         if hasattr(request.user, "enterprise_id"):
-            self.enterprise = enterprise_services.get_enterprise_by_id(request.user.enterprise_id)  # type: ignore[assignment,union-attr]
+            self.enterprise = enterprise_services.get_enterprise_by_id(
+                request.user.enterprise_id)  # type: ignore[assignment,union-attr]
         if not self.enterprise:
             raise ErrEnterpriseNotFound
         if self.enterprise.ID == 1:
@@ -148,18 +151,21 @@ class TeamNoRegionAPIView(BaseOpenAPIView):
         self.is_team_owner = False
         team_id = kwargs.get("team_id")
         if team_id:
-            self.team = team_services.get_team_by_team_id_and_eid(team_id, self.enterprise.enterprise_id)  # type: ignore[assignment]
+            self.team = team_services.get_team_by_team_id_and_eid(team_id,
+                                                                  self.enterprise.enterprise_id)  # type: ignore[assignment]
         if not self.team:
-            self.team = team_services.get_enterprise_tenant_by_tenant_name(self.enterprise.enterprise_id, team_id)  # type: ignore[assignment,arg-type]
+            self.team = team_services.get_enterprise_tenant_by_tenant_name(self.enterprise.enterprise_id,
+                                                                           team_id)  # type: ignore[assignment,arg-type]
         if not self.team:
             raise ServiceHandleException(msg_show="团队不存在", msg="no found team", status_code=404)
         self.team_regions = region_services.get_team_usable_regions(self.team.tenant_name, self.enterprise.enterprise_id)
         if self.user.user_id == self.team.creater:
             self.is_team_owner = True
-        self.enterprise = TenantEnterprise.objects.filter(enterprise_id=self.team.enterprise_id).first()  # type: ignore[assignment]
+        self.enterprise = TenantEnterprise.objects.filter(
+            enterprise_id=self.team.enterprise_id).first()  # type: ignore[assignment]
         self.is_enterprise_admin = False
-        enterprise_user_perms = EnterpriseUserPerm.objects.filter(
-            enterprise_id=self.team.enterprise_id, user_id=self.user.user_id).first()
+        enterprise_user_perms = EnterpriseUserPerm.objects.filter(enterprise_id=self.team.enterprise_id,
+                                                                  user_id=self.user.user_id).first()
         if enterprise_user_perms:
             self.is_enterprise_admin = True
         self.get_perms()
@@ -213,11 +219,13 @@ class TeamAppServiceAPIView(TeamAppAPIView):
     def initial(self, request: Request, *args: Any, **kwargs: Any) -> None:
         super(TeamAppServiceAPIView, self).initial(request, *args, **kwargs)
         service_id = kwargs.get("service_id")
-        self.service = TenantServiceInfo.objects.filter(
-            tenant_id=self.team.tenant_id, service_region=self.region_name, service_id=service_id).first()  # type: ignore[assignment]
+        self.service = TenantServiceInfo.objects.filter(tenant_id=self.team.tenant_id,
+                                                        service_region=self.region_name,
+                                                        service_id=service_id).first()  # type: ignore[assignment]
         if not self.service:
-            self.service = TenantServiceInfo.objects.filter(
-                tenant_id=self.team.tenant_id, service_region=self.region_name, service_alias=service_id).first()  # type: ignore[assignment]
+            self.service = TenantServiceInfo.objects.filter(tenant_id=self.team.tenant_id,
+                                                            service_region=self.region_name,
+                                                            service_alias=service_id).first()  # type: ignore[assignment]
         if not self.service:
             raise ServiceHandleException(msg_show="组件不存在", msg="no found component", status_code=404)
         gsr = group_service_relation_repo.get_services_by_group(self.app.ID)
@@ -237,14 +245,19 @@ class EnterpriseServiceOauthView(APIView):
     def initial(self, request: Request, *args: Any, **kwargs: Any) -> None:
         super(EnterpriseServiceOauthView, self).initial(request, *args, **kwargs)
         try:
-            oauth_service = OAuthServices.objects.get(oauth_type="enterprisecenter", ID=1, user_id=request.user.user_id)  # type: ignore[union-attr]
+            oauth_service = OAuthServices.objects.get(oauth_type="enterprisecenter", ID=1,
+                                                      user_id=request.user.user_id)  # type: ignore[union-attr]
             pre_enterprise_center = os.getenv("PRE_ENTERPRISE_CENTER", None)
             if pre_enterprise_center:
-                oauth_service = OAuthServices.objects.get(name=pre_enterprise_center, oauth_type="enterprisecenter", user_id=request.user.user_id)  # type: ignore[union-attr]
-            oauth_user = UserOAuthServices.objects.get(service_id=oauth_service.ID, user_id=request.user.user_id)  # type: ignore[union-attr]
+                oauth_service = OAuthServices.objects.get(name=pre_enterprise_center,
+                                                          oauth_type="enterprisecenter",
+                                                          user_id=request.user.user_id)  # type: ignore[union-attr]
+            oauth_user = UserOAuthServices.objects.get(service_id=oauth_service.ID,
+                                                       user_id=request.user.user_id)  # type: ignore[union-attr]
         except OAuthServices.DoesNotExist:
-            raise ServiceHandleException(
-                msg="not found enterprise center oauth server config", msg_show="未找到企业中心OAuth配置", status_code=404)
+            raise ServiceHandleException(msg="not found enterprise center oauth server config",
+                                         msg_show="未找到企业中心OAuth配置",
+                                         status_code=404)
         except UserOAuthServices.DoesNotExist:
             raise ServiceHandleException(msg="user not authorize in enterprise center oauth", msg_show="用户身份未在企业中心认证")
         self.oauth_instance = get_oauth_instance(oauth_service.oauth_type, oauth_service, oauth_user)

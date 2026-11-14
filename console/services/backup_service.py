@@ -95,7 +95,9 @@ class GroupAppBackupService(object):
             "service_ids": service_ids,
             "enterprise_id": tenant.enterprise_id
         })
-        status_list = body["list"]  # type: ignore[index]  # NOTE: region_api returns dict|None; None would raise at runtime but original code doesn't guard
+        status_list = body[
+            # NOTE: region_api returns dict|None; None would raise at runtime but original code doesn't guard
+            "list"]  # type: ignore[index]
         service_status_map = {status_map["service_id"]: status_map["status"] for status_map in status_list}
         # 处于运行中的有状态
         running_state_services = []
@@ -124,9 +126,17 @@ class GroupAppBackupService(object):
 
         return use_custom_svc
 
-    def backup_group_apps(self, tenant: Tenants, user: Any, region_name: str, group_id: str, mode: str, note: str,
+    def backup_group_apps(self,
+                          tenant: Tenants,
+                          user: Any,
+                          region_name: str,
+                          group_id: str,
+                          mode: str,
+                          note: str,
                           force: bool = False) -> GroupAppBackupRecord:
-        s3_config = EnterpriseConfigService(tenant.enterprise_id, user.user_id).get_cloud_obj_storage_info()  # type: ignore[arg-type]  # NOTE: tenant.enterprise_id may be str|None; original code does not guard
+        s3_config = EnterpriseConfigService(  # type: ignore[arg-type]
+            tenant.enterprise_id, user.user_id).get_cloud_obj_storage_info(  # type: ignore[arg-type]
+        )  # type: ignore[arg-type]  # NOTE: tenant.enterprise_id may be str|None; original code does not guard
         if mode == "full-online" and not s3_config:
             raise ErrObjectStorageInfoNotFound
         services = self._get_effective_group_services(tenant, region_name, group_id)
@@ -148,7 +158,9 @@ class GroupAppBackupService(object):
         # 向数据中心发起备份任务
         try:
             body = region_api.backup_group_apps(region_name, tenant.tenant_name, data)
-            bean = body["bean"]  # type: ignore[index]  # NOTE: region_api returns dict|None; None raises at runtime but original code doesn't guard
+            bean = body[
+                # NOTE: region_api returns dict|None; None raises at runtime but original code doesn't guard
+                "bean"]  # type: ignore[index]
             record_data = {
                 "group_id": group_id,
                 "event_id": event_id,
@@ -169,30 +181,31 @@ class GroupAppBackupService(object):
             return backup_record_repo.create_backup_records(**record_data)
         except region_api.CallApiError as e:
             logger.exception(e)
-            if get_exception_message(e)["body"].get("msg",
-                                     "") == "last backup task do not complete or have restore backup or version is exist":
+            if get_exception_message(e)["body"].get(
+                    "msg", "") == "last backup task do not complete or have restore backup or version is exist":
                 raise ServiceHandleException(msg="backup failed", msg_show="上次备份任务未完成或有正在恢复的备份或该版本已存在", status_code=409)
             if e.status == 401:
                 raise ServiceHandleException(msg="backup failed", msg_show="有状态组件必须停止方可进行备份")
-            raise ServiceHandleException(
-                msg=get_exception_message(e)["body"].get("msg", "backup failed"),
-                msg_show="备份失败")
+            raise ServiceHandleException(msg=get_exception_message(e)["body"].get("msg", "backup failed"), msg_show="备份失败")
 
     def get_backup_group_uuid(self, group_id: str) -> str:
         backup_record = backup_record_repo.get_record_by_group_id(group_id)
         if backup_record:
-            return backup_record[0].group_uuid  # type: ignore[return-value]  # NOTE: group_uuid field is str|None on the model; original code returns it directly
+            return backup_record[
+                # NOTE: group_uuid field is str|None on the model; original code returns it directly
+                0].group_uuid  # type: ignore[return-value]
         return make_uuid()
 
-    def get_groupapp_backup_status_by_backup_id(
-            self, tenant: Tenants, region: str,
-            backup_id: str) -> Tuple[int, str, Optional[GroupAppBackupRecord]]:
+    def get_groupapp_backup_status_by_backup_id(self, tenant: Tenants, region: str,
+                                                backup_id: str) -> Tuple[int, str, Optional[GroupAppBackupRecord]]:
         backup_record = backup_record_repo.get_record_by_backup_id(tenant.tenant_id, backup_id)
         if not backup_record:
             return 404, "不存在该备份记录", None
         if backup_record.status == "starting":
             body = region_api.get_backup_status_by_backup_id(region, tenant.tenant_name, backup_id)
-            bean = body["bean"]  # type: ignore[index]  # NOTE: region_api returns dict|None; None raises at runtime but original code doesn't guard
+            bean = body[
+                # NOTE: region_api returns dict|None; None raises at runtime but original code doesn't guard
+                "bean"]  # type: ignore[index]
             backup_record.status = bean["status"]
             backup_record.source_dir = bean["source_dir"]
             backup_record.source_type = bean["source_type"]
@@ -215,15 +228,19 @@ class GroupAppBackupService(object):
 
         backup_record_repo.delete_record_by_backup_id(tenant.tenant_id, backup_id)
 
-    def get_group_backup_status_by_group_id(self, tenant: Tenants, region: str,
-                                            group_id: str) -> Tuple[int, str, Any]:
+    def get_group_backup_status_by_group_id(self, tenant: Tenants, region: str, group_id: str) -> Tuple[int, str, Any]:
         backup_records = backup_record_repo.get_record_by_group_id(group_id)
         if not backup_records:
             return 404, "该组没有任何备份记录", None
         group_uuid = backup_records[0].group_uuid
         event_id_record_map = {record.event_id: record for record in backup_records}
-        body = region_api.get_backup_status_by_group_id(region, tenant.tenant_name, group_uuid)  # type: ignore[arg-type]  # NOTE: group_uuid is str|None; None would be a runtime error but original code doesn't guard
-        res_list = body["list"]  # type: ignore[index]  # NOTE: region_api returns dict|None; None raises at runtime but original code doesn't guard
+        body = region_api.get_backup_status_by_group_id(
+            region, tenant.tenant_name, group_uuid
+            # NOTE: group_uuid is str|None; None would be a runtime error but original code doesn't guard
+        )  # type: ignore[arg-type]
+        res_list = body[
+            # NOTE: region_api returns dict|None; None raises at runtime but original code doesn't guard
+            "list"]  # type: ignore[index]
         for data in res_list:
             backup_record = event_id_record_map.get(data["event_id"], None)
             if backup_record and backup_record.status == "starting":
@@ -289,7 +306,9 @@ class GroupAppBackupService(object):
             if pcis:
                 plugin_config_items.extend([p.to_dict() for p in pcis])
         all_data["plugin_info"] = {}
-        all_data["plugin_info"]["plugins"] = plugins  # type: ignore[index]  # NOTE: mypy can't prove all_data["plugin_info"] is a dict after assignment; original code is correct
+        all_data["plugin_info"][
+            # NOTE: mypy can't prove all_data["plugin_info"] is a dict after assignment; original code is correct
+            "plugins"] = plugins  # type: ignore[index]
         all_data["plugin_info"]["plugin_build_versions"] = plugin_build_versions  # type: ignore[index]  # NOTE: same as above
         all_data["plugin_info"]["plugin_config_groups"] = plugin_config_groups  # type: ignore[index]  # NOTE: same as above
         all_data["plugin_info"]["plugin_config_items"] = plugin_config_items  # type: ignore[index]  # NOTE: same as above
@@ -372,8 +391,7 @@ class GroupAppBackupService(object):
         data_str = AuthCode.encode(json.dumps(backup_record.to_dict()), KEY)
         return 200, "success", data_str
 
-    def import_group_backup(self, tenant: Tenants, region: str, group_id: str,
-                            upload_file: Any) -> Tuple[int, str, Any]:
+    def import_group_backup(self, tenant: Tenants, region: str, group_id: str, upload_file: Any) -> Tuple[int, str, Any]:
         group = group_repo.get_group_by_id(group_id)
         if not group:
             return 404, "需要导入的组不存在", None
@@ -399,7 +417,9 @@ class GroupAppBackupService(object):
         }
         body = region_api.copy_backup_data(region, tenant.tenant_name, params)
 
-        bean = body["bean"]  # type: ignore[index]  # NOTE: region_api returns dict|None; None raises at runtime but original code doesn't guard
+        bean = body[
+            # NOTE: region_api returns dict|None; None raises at runtime but original code doesn't guard
+            "bean"]  # type: ignore[index]
         record_data = {
             "group_id": group.ID,
             "event_id": event_id,

@@ -46,7 +46,8 @@ class FileUploadService(object):
         configs = custom_settings.configs()
         oss_conf = configs.get("OSS_CONFIG", None)
         if not oss_conf:
-            return settings.OSS_CONFIG  # type: ignore[misc]  # NOTE: OSS_CONFIG is a project-local settings attr absent from django-stubs
+            # NOTE: OSS_CONFIG is a project-local settings attr absent from django-stubs
+            return settings.OSS_CONFIG  # type: ignore[misc]
         return oss_conf
 
     def get_bucket(self) -> Any:
@@ -59,7 +60,9 @@ class FileUploadService(object):
     def is_upload_to_oss(self) -> bool:
         oss_config = ConsoleSysConfig.objects.filter(key='OSS_CONFIG').first()
         if oss_config:
-            data = json.loads(oss_config.value)  # type: ignore[arg-type]  # NOTE: CharField stub types value as str|None but value is always str here
+            data = json.loads(
+                oss_config.value  # type: ignore[arg-type]
+            )  # type: ignore[arg-type]  # NOTE: CharField stub types value as str|None but value is always str here
             enable = data.get('enable', False)
             return enable
         return False

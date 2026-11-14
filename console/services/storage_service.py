@@ -3,8 +3,7 @@ import logging
 import os
 from typing import Dict, Any
 import requests
-from console.repositories.app import service_repo
-from console.repositories.group import group_service_relation_repo
+
 from console.repositories.region_app import region_app_repo
 
 logger = logging.getLogger("default")
@@ -29,8 +28,9 @@ class StorageService(object):
                 return 0.0
             total_used_bytes: float = 0
             query = f'rainbond_storage_usage_bytes{{service_id="{service_id}"}}'
-            response = requests.get(
-                f"{self.prometheus_url}/api/v1/query", params={"query": query}, timeout=self.prometheus_timeout)
+            response = requests.get(f"{self.prometheus_url}/api/v1/query",
+                                    params={"query": query},
+                                    timeout=self.prometheus_timeout)
             result = response.json()
             if result['status'] == 'success' and result['data']['result']:
                 total_used_bytes += float(result['data']['result'][0]['value'][1])
@@ -45,8 +45,9 @@ class StorageService(object):
                 return 0.0
             total_used_bytes: float = 0
             query = f'sum(rainbond_storage_usage_bytes{{tenant_id="{tenant_id}"}}) by (tenant_id)'
-            response = requests.get(
-                f"{self.prometheus_url}/api/v1/query", params={"query": query}, timeout=self.prometheus_timeout)
+            response = requests.get(f"{self.prometheus_url}/api/v1/query",
+                                    params={"query": query},
+                                    timeout=self.prometheus_timeout)
             result = response.json()
             if result['status'] == 'success' and result['data']['result']:
                 total_used_bytes += float(result['data']['result'][0]['value'][1])
@@ -62,8 +63,9 @@ class StorageService(object):
             total_used_bytes: float = 0
             region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
             query = f'sum(rainbond_storage_usage_bytes{{app_id="{region_app_id}"}}) by (app_id)'
-            response = requests.get(
-                f"{self.prometheus_url}/api/v1/query", params={"query": query}, timeout=self.prometheus_timeout)
+            response = requests.get(f"{self.prometheus_url}/api/v1/query",
+                                    params={"query": query},
+                                    timeout=self.prometheus_timeout)
             result = response.json()
             if result['status'] == 'success' and result['data']['result']:
                 total_used_bytes += float(result['data']['result'][0]['value'][1])
@@ -86,10 +88,7 @@ class StorageService(object):
             size /= 1024
             unit_index += 1
 
-        return {
-            "value": round(size, 2),
-            "unit": units[unit_index]
-        }
+        return {"value": round(size, 2), "unit": units[unit_index]}
 
 
 storage_service = StorageService()

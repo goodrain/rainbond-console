@@ -14,7 +14,7 @@ import hashlib
 from pathlib import Path
 from urllib.parse import urljoin
 from urllib.parse import urlparse
-import re
+
 from typing import Any, Optional
 
 from console.repositories.helm import helm_repo, region_event
@@ -23,6 +23,8 @@ from console.views.base import JWTAuthApiView
 from rest_framework.request import Request
 from rest_framework.response import Response
 from console.utils.cache import cache
+
+
 def _dockerhub_get_bearer_token(repository: str, username: Optional[str] = None, password: Optional[str] = None) -> Any:
     """获取 Docker Hub 的匿名/Basic 授权 token。"""
     auth_url = "https://auth.docker.io/token"
@@ -58,15 +60,19 @@ def _oci_pull_chart_to_tempfile(oci_url: str, username: Optional[str] = None, pa
             repository = f"library/{repository}"
         token = _dockerhub_get_bearer_token(repository, username, password)
         headers = {
-            "Authorization": f"Bearer {token}",
-            "Accept": ", ".join([
+            "Authorization":
+            f"Bearer {token}",
+            "Accept":
+            ", ".join([
                 "application/vnd.oci.image.manifest.v1+json",
                 "application/vnd.oci.image.index.v1+json",
                 "application/vnd.docker.distribution.manifest.v2+json",
                 "application/vnd.docker.distribution.manifest.list.v2+json",
             ]),
-            "User-Agent": "Rainbond-Console/1.0",
+            "User-Agent":
+            "Rainbond-Console/1.0",
         }
+
         # 拉取 manifest 或 manifest list
         def fetch_manifest(ref_or_digest: str) -> Any:
             murl = f"https://registry-1.docker.io/v2/{repository}/manifests/{ref_or_digest}"
@@ -115,6 +121,7 @@ def _oci_pull_chart_to_tempfile(oci_url: str, username: Optional[str] = None, pa
                 break
         # 兜底：如果未找到，尝试逐层探测
         try_layers = [] if chart_digest else layers
+
         # 下载 blob 层
         def download_blob(digest: str) -> str:
             burl = f"https://registry-1.docker.io/v2/{repository}/blobs/{digest}"
@@ -148,7 +155,6 @@ def _oci_pull_chart_to_tempfile(oci_url: str, username: Optional[str] = None, pa
 
     # 其它 OCI registry（未实现通用挑战流程）
     raise ValueError("暂不支持的 OCI registry")
-
 
 
 class Appstores(JWTAuthApiView):
@@ -250,25 +256,26 @@ class AppstoreCharts(JWTAuthApiView):
             index_cache_dir = cache_root / "index"
             index_cache_dir.mkdir(parents=True, exist_ok=True)
             index_cache_file = index_cache_dir / (hashlib.sha1(repo_index_url.encode('utf-8')).hexdigest() + ".cache")
-            disk_hit = False
             if not index_text and index_cache_file.exists():
                 try:
                     mtime = index_cache_file.stat().st_mtime
                     if time.time() - mtime < disk_cache_ttl:
                         index_text = index_cache_file.read_text(encoding='utf-8')
-                        disk_hit = True
                 except Exception as e:
                     logger.warning(f"读取 index.yaml 磁盘缓存异常 path={str(index_cache_file)} err={e}")
 
             if not index_text:
-                response = requests.get(
-                    repo_index_url,
-                    auth=HTTPBasicAuth(app_store.get("username"), app_store.get("password")),
-                    timeout=15
-                )
+                response = requests.get(repo_index_url,
+                                        auth=HTTPBasicAuth(app_store.get("username"), app_store.get("password")),
+                                        timeout=15)
                 if response.status_code != 200:
                     logger.warning(f"拉取 index.yaml 失败，状态={response.status_code} url={repo_index_url}")
-                    return Response({"code": response.status_code, "msg": "failed", "msg_show": "仓库访问失败"}, status=response.status_code)
+                    return Response({
+                        "code": response.status_code,
+                        "msg": "failed",
+                        "msg_show": "仓库访问失败"
+                    },
+                                    status=response.status_code)
                 index_text = response.text
                 # 缓存 5 分钟
                 cache.set(cache_key, index_text, 300)
@@ -313,10 +320,7 @@ class AppstoreCharts(JWTAuthApiView):
             for chart_name in paged_chart_names:
                 versions = charts.get(chart_name, [])
                 limited_versions = versions[:versions_limit] if versions_limit > 0 else versions
-                chart_info = {
-                    "name": chart_name,
-                    "versions": []
-                }
+                chart_info = {"name": chart_name, "versions": []}
                 for version_info in limited_versions:
                     version_data = {
                         "name": chart_name,
@@ -335,7 +339,16 @@ class AppstoreCharts(JWTAuthApiView):
                     }
                     chart_info["versions"].append(version_data)
                 charts_data.append(chart_info)
-            result = {"code": 200, "msg": "success", "msg_show": "查询成功", "data": charts_data, "page": page, "page_size": page_size, "total": total, "query": query_kw}
+            result = {
+                "code": 200,
+                "msg": "success",
+                "msg_show": "查询成功",
+                "data": charts_data,
+                "page": page,
+                "page_size": page_size,
+                "total": total,
+                "query": query_kw
+            }
             # 写入分页结果缓存（300s）
             try:
                 payload_text = json.dumps(result, ensure_ascii=False)
@@ -365,18 +378,13 @@ class AppstoreChart(JWTAuthApiView):
         chart_url = f"{base_repo_url}/charts/{chart_name}-{version}.tgz"
         try:
             # 下载 tgz 文件
-            headers = {
-                'User-Agent': 'Rainbond-Console/1.0 (+https://www.rainbond.com) Mozilla/5.0',
-                'Accept': '*/*'
-            }
-            response = requests.get(
-                chart_url,
-                stream=True,
-                auth=HTTPBasicAuth(app_store.get("username"), app_store.get("password")),
-                timeout=20,
-                headers=headers,
-                allow_redirects=True
-            )
+            headers = {'User-Agent': 'Rainbond-Console/1.0 (+https://www.rainbond.com) Mozilla/5.0', 'Accept': '*/*'}
+            response = requests.get(chart_url,
+                                    stream=True,
+                                    auth=HTTPBasicAuth(app_store.get("username"), app_store.get("password")),
+                                    timeout=20,
+                                    headers=headers,
+                                    allow_redirects=True)
             response.raise_for_status()
 
             # 创建临时文件来保存下载的 .tgz 包
@@ -400,13 +408,12 @@ class AppstoreChart(JWTAuthApiView):
                     # 提取 questions.yaml 并编码为 base64
                     elif "questions.yaml" in member.name and questions_content is None:
                         questions_file = tar.extractfile(member)
-                        questions_content = base64.b64encode(questions_file.read()).decode(
-                            "utf-8") if questions_file else None
+                        questions_content = base64.b64encode(questions_file.read()).decode("utf-8") if questions_file else None
                     # 提取所有 values.yaml 并编码为 base64
                     elif member.name.endswith("values.yaml"):
                         values_file = tar.extractfile(member)
-                        values_content[member.name] = base64.b64encode(values_file.read()).decode(
-                            "utf-8") if values_file else ""
+                        values_content[member.name] = base64.b64encode(
+                            values_file.read()).decode("utf-8") if values_file else ""
 
             # 删除临时文件
             os.remove(temp_file_path)
@@ -461,18 +468,18 @@ class AppstoreChart(JWTAuthApiView):
                             u = urls[0]
                             if u.startswith('oci://'):
                                 try:
-                                    temp_file_path = _oci_pull_chart_to_tempfile(
-                                        u,
-                                        username=os.getenv('DOCKERHUB_USERNAME'),
-                                        password=os.getenv('DOCKERHUB_PASSWORD')
-                                    )
+                                    temp_file_path = _oci_pull_chart_to_tempfile(u,
+                                                                                 username=os.getenv('DOCKERHUB_USERNAME'),
+                                                                                 password=os.getenv('DOCKERHUB_PASSWORD'))
                                 except Exception as eoci:
                                     logger.warning(f"OCI chart 拉取失败 url={u} err={eoci}")
-                                    return Response({
-                                        "code": 400,
-                                        "msg": "oci pull failed",
-                                        "msg_show": "OCI chart 拉取失败，请检查仓库访问与权限，或配置 HTTP chart 仓库",
-                                    }, status=400)
+                                    return Response(
+                                        {
+                                            "code": 400,
+                                            "msg": "oci pull failed",
+                                            "msg_show": "OCI chart 拉取失败，请检查仓库访问与权限，或配置 HTTP chart 仓库",
+                                        },
+                                        status=400)
                                 # 直接解析返回
                                 readme_content = None
                                 questions_content = None
@@ -481,13 +488,16 @@ class AppstoreChart(JWTAuthApiView):
                                     for member in tar.getmembers():
                                         if "README.md" in member.name and readme_content is None:
                                             readme_file = tar.extractfile(member)
-                                            readme_content = base64.b64encode(readme_file.read()).decode("utf-8") if readme_file else None
+                                            readme_content = base64.b64encode(
+                                                readme_file.read()).decode("utf-8") if readme_file else None
                                         elif "questions.yaml" in member.name and questions_content is None:
                                             questions_file = tar.extractfile(member)
-                                            questions_content = base64.b64encode(questions_file.read()).decode("utf-8") if questions_file else None
+                                            questions_content = base64.b64encode(
+                                                questions_file.read()).decode("utf-8") if questions_file else None
                                         elif member.name.endswith("values.yaml"):
                                             values_file = tar.extractfile(member)
-                                            values_content[member.name] = base64.b64encode(values_file.read()).decode("utf-8") if values_file else ""
+                                            values_content[member.name] = base64.b64encode(
+                                                values_file.read()).decode("utf-8") if values_file else ""
                                 os.remove(temp_file_path)
                                 data = {
                                     "readme": readme_content or "",
@@ -498,14 +508,12 @@ class AppstoreChart(JWTAuthApiView):
                             if not u.startswith('http://') and not u.startswith('https://'):
                                 u = urljoin(base_repo_url + '/', u)
                             try:
-                                resp2 = requests.get(
-                                    u,
-                                    stream=True,
-                                    auth=HTTPBasicAuth(app_store.get("username"), app_store.get("password")),
-                                    timeout=20,
-                                    headers=headers,
-                                    allow_redirects=True
-                                )
+                                resp2 = requests.get(u,
+                                                     stream=True,
+                                                     auth=HTTPBasicAuth(app_store.get("username"), app_store.get("password")),
+                                                     timeout=20,
+                                                     headers=headers,
+                                                     allow_redirects=True)
                                 resp2.raise_for_status()
                                 with tempfile.NamedTemporaryFile(delete=False, suffix=".tgz") as temp_file:
                                     for chunk in resp2.iter_content(chunk_size=8192):
@@ -518,13 +526,16 @@ class AppstoreChart(JWTAuthApiView):
                                     for member in tar.getmembers():
                                         if "README.md" in member.name and readme_content is None:
                                             readme_file = tar.extractfile(member)
-                                            readme_content = base64.b64encode(readme_file.read()).decode("utf-8") if readme_file else None
+                                            readme_content = base64.b64encode(
+                                                readme_file.read()).decode("utf-8") if readme_file else None
                                         elif "questions.yaml" in member.name and questions_content is None:
                                             questions_file = tar.extractfile(member)
-                                            questions_content = base64.b64encode(questions_file.read()).decode("utf-8") if questions_file else None
+                                            questions_content = base64.b64encode(
+                                                questions_file.read()).decode("utf-8") if questions_file else None
                                         elif member.name.endswith("values.yaml"):
                                             values_file = tar.extractfile(member)
-                                            values_content[member.name] = base64.b64encode(values_file.read()).decode("utf-8") if values_file else ""
+                                            values_content[member.name] = base64.b64encode(
+                                                values_file.read()).decode("utf-8") if values_file else ""
                                 os.remove(temp_file_path)
                                 data = {
                                     "readme": readme_content or "",
@@ -562,7 +573,7 @@ class HelmRegionInstall(JWTAuthApiView):
                         "token": event_data.get("token"),
                         "api_host": event_data.get("api_host")
                     }
-                except json.JSONDecodeError as e:
+                except json.JSONDecodeError:
                     return Response({"detail": "Error decoding event message"}, status=status.HTTP_400_BAD_REQUEST)
             else:
                 response_data = {"create_status": False}

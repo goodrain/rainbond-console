@@ -37,7 +37,7 @@ from console.services.storage_service import storage_service
 from www.apiclient.regionapi import RegionInvokeApi
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
 from www.models.main import (PermRelTenant, Tenants, TenantServiceInfo, TenantRegionInfo, ServiceGroup, RegionApp,
-                              ServiceGroupRelation, Users)
+                             ServiceGroupRelation, Users)
 from www.utils.crypt import make_uuid
 
 logger = logging.getLogger("default")
@@ -48,8 +48,7 @@ class TeamService(object):
     USER_REGISTRY_SCOPE = "user"
     ENTERPRISE_REGISTRY_SCOPE = "enterprise"
     REGISTRY_METADATA_MAX_WORKERS = 20
-    SUPPORTED_REGISTRY_HUB_TYPES = (
-        "Docker", "Harbor", "AliyunACR", "TencentTCR", "HuaweiSWR", "VolcanoCR")
+    SUPPORTED_REGISTRY_HUB_TYPES = ("Docker", "Harbor", "AliyunACR", "TencentTCR", "HuaweiSWR", "VolcanoCR")
     LEGACY_REGISTRY_HUB_TYPE_ALIASES = {
         "Aliyun": "AliyunACR",
         "Tencent": "TencentTCR",
@@ -66,7 +65,8 @@ class TeamService(object):
         "hkccr.ccs.tencentyun.com": "ap-hongkong",
     }
     HUAWEI_SWR_DOMAIN_RE = re.compile(r"^swr\.(?P<region>[^.]+)\.myhuaweicloud\.com$")
-    VOLCANO_CR_DOMAIN_RE = re.compile(r"^(?P<registry>[a-zA-Z0-9][a-zA-Z0-9-]{1,28}[a-zA-Z0-9])-(?P<region>cn-[^.]+)\.cr\.volces\.com$")
+    VOLCANO_CR_DOMAIN_RE = re.compile(
+        r"^(?P<registry>[a-zA-Z0-9][a-zA-Z0-9-]{1,28}[a-zA-Z0-9])-(?P<region>cn-[^.]+)\.cr\.volces\.com$")
     TENCENT_TCR_DISCOVERY_REGION = "ap-guangzhou"
     REGISTRY_MANIFEST_ACCEPT_TYPES = (
         "application/vnd.oci.image.index.v1+json",
@@ -127,9 +127,8 @@ class TeamService(object):
         if exist_team_user:
             raise ServiceHandleException(msg="user exist", msg_show="用户已经加入此团队")
         # enterprise is non-None: get_enterprise_by_enterprise_id defaults exception=True (raises if missing)
-        PermRelTenant.objects.create(
-            tenant_id=tenant.ID, user_id=user.user_id, identity="",
-            enterprise_id=enterprise.ID)  # type: ignore[union-attr]
+        PermRelTenant.objects.create(tenant_id=tenant.ID, user_id=user.user_id, identity="",
+                                     enterprise_id=enterprise.ID)  # type: ignore[union-attr]
         if role_ids:
             user_kind_role_service.update_user_roles(kind="team", kind_id=tenant.tenant_id, user=user, role_ids=role_ids)
 
@@ -159,15 +158,15 @@ class TeamService(object):
     def get_user_perms_in_permtenant(self, user_id: str, tenant_name: str) -> Any:
         tenant = self.get_tenant_by_tenant_name(tenant_name=tenant_name)
         # NOTE: get_tenant_by_tenant_name defaults exception=True -> non-None; ID is int PK vs str sig.
-        user_perms = team_repo.get_user_perms_in_permtenant(
-            user_id=user_id, tenant_id=tenant.ID)  # type: ignore[union-attr, arg-type]
+        user_perms = team_repo.get_user_perms_in_permtenant(user_id=user_id,
+                                                            tenant_id=tenant.ID)  # type: ignore[union-attr, arg-type]
         return user_perms
 
     def get_not_join_users(
-            self,
-            enterprise: Any,
-            tenant: Tenants,
-            query: str,
+        self,
+        enterprise: Any,
+        tenant: Tenants,
+        query: str,
     ) -> Any:
         return team_repo.get_not_join_users(enterprise, tenant, query)
 
@@ -178,8 +177,8 @@ class TeamService(object):
         """
         tenant = self.get_tenant_by_tenant_name(tenant_name=tenant_name)
         # NOTE: get_tenant_by_tenant_name defaults exception=True -> non-None; ID is int PK vs str sig.
-        user_perms_list = team_repo.get_user_perms_in_permtenant_list(
-            user_id=user_id, tenant_id=tenant.ID)  # type: ignore[union-attr, arg-type]
+        user_perms_list = team_repo.get_user_perms_in_permtenant_list(user_id=user_id,
+                                                                      tenant_id=tenant.ID)  # type: ignore[union-attr, arg-type]
         return user_perms_list
 
     def get_user_perm_identitys_in_permtenant(self, user_id: str, tenant_name: str) -> dict:
@@ -191,7 +190,9 @@ class TeamService(object):
             tenant = self.get_team_by_team_id(tenant_name)
             if tenant is None:
                 raise Tenants.DoesNotExist()
-        user_roles = user_kind_role_service.get_user_roles(kind_id=tenant.ID, kind="team", user=user)  # type: ignore[arg-type]  # NOTE: tenant.ID int vs str kind_id (systemic)
+        user_roles = user_kind_role_service.get_user_roles(
+            kind_id=tenant.ID, kind="team",  # type: ignore[arg-type]
+            user=user)  # type: ignore[arg-type]  # NOTE: tenant.ID int vs str kind_id (systemic)
         if tenant.creater == user_id:
             user_roles["roles"].append("owner")
         return user_roles
@@ -205,8 +206,7 @@ class TeamService(object):
             if tenant is None:
                 raise Tenants.DoesNotExist()
         # NOTE: Tenants.ID is the int PK; repo annotates tenant_id as str (signature mismatch).
-        user_perms = team_repo.get_user_perms_in_permtenant(
-            user_id=user_id, tenant_id=tenant.ID)  # type: ignore[arg-type]
+        user_perms = team_repo.get_user_perms_in_permtenant(user_id=user_id, tenant_id=tenant.ID)  # type: ignore[arg-type]
         if not user_perms:
             return []
         role_id_list = []
@@ -245,7 +245,8 @@ class TeamService(object):
         # NOTE: role_repo has no update_user_role_in_tenant_by_user_id_tenant_id_role_id; deprecated
         # method (# todo 废弃) that would AttributeError at runtime -- latent bug, left as-is.
         user_role = role_repo.update_user_role_in_tenant_by_user_id_tenant_id_role_id(  # type: ignore[attr-defined]
-            user_id=user_id, tenant_id=tenant.pk,
+            user_id=user_id,
+            tenant_id=tenant.pk,
             enterprise_id=enterprise.pk,  # type: ignore[union-attr]  # exception=True -> non-None
             role_id_list=role_id_list)
         return user_role
@@ -303,16 +304,17 @@ class TeamService(object):
         for region in tenant_regions:
             try:
                 # NOTE: tenant.enterprise_id is Optional[str]; delete_tenant_on_region declares enterprise_id: str
-                region_config = region_services.delete_tenant_on_region(
-                    tenant.enterprise_id, tenant.tenant_name, region.region_name, user)  # type: ignore[arg-type]
+                region_config = region_services.delete_tenant_on_region(  # type: ignore[arg-type]
+                    tenant.enterprise_id, tenant.tenant_name,  # type: ignore[arg-type]
+                    region.region_name, user)  # type: ignore[arg-type]
                 # region_config is non-None: delete_tenant_on_region raises ServiceHandleException instead of returning None
                 region_list.append(region_config.region_alias)  # type: ignore[union-attr]
             except ServiceHandleException as e:
                 raise e
             except Exception as e:
                 logger.exception(e)
-                raise ServiceHandleException(
-                    msg_show="{}集群自动卸载失败，请手动卸载后重新删除团队".format(region.region_name), msg="delete tenant failure")
+                raise ServiceHandleException(msg_show="{}集群自动卸载失败，请手动卸载后重新删除团队".format(region.region_name),
+                                             msg="delete tenant failure")
         sid = None
         try:
             sid = transaction.savepoint()
@@ -324,7 +326,6 @@ class TeamService(object):
             logger.exception(e)
         return region_list
 
-
     def get_current_user_tenants(self, user_id: str, team_name: str = "") -> Any:
         tenants = team_repo.get_tenants_by_user_id(user_id=user_id, team_name=team_name)
         return tenants
@@ -335,11 +336,11 @@ class TeamService(object):
         try:
             tenant = self.get_tenant_by_tenant_name(tenant_name=team_name)
             # NOTE: exception=True default -> non-None; ID is int PK vs str sig; perms QuerySet non-None.
-            team_repo.get_user_perms_in_permtenant(
-                user_id=user_id, tenant_id=tenant.ID).delete()  # type: ignore[union-attr, arg-type]
+            team_repo.get_user_perms_in_permtenant(user_id=user_id,
+                                                   tenant_id=tenant.ID).delete()  # type: ignore[union-attr, arg-type]
             user = user_repo.get_by_user_id(user_id)
-            user_kind_role_service.delete_user_roles(
-                kind="team", kind_id=tenant.tenant_id, user=user)  # type: ignore[union-attr]
+            user_kind_role_service.delete_user_roles(kind="team", kind_id=tenant.tenant_id,  # type: ignore[union-attr]
+                                                     user=user)  # type: ignore[union-attr]
             transaction.savepoint_commit(s_id)
             return 200, "退出团队成功"
         except Exception as e:
@@ -359,8 +360,13 @@ class TeamService(object):
         return team
 
     @transaction.atomic
-    def create_team(self, user: Users, enterprise: Any, region_list: Any = None, team_alias: Optional[str] = None,
-                    namespace: str = "", logo: str = "") -> Tenants:
+    def create_team(self,
+                    user: Users,
+                    enterprise: Any,
+                    region_list: Any = None,
+                    team_alias: Optional[str] = None,
+                    namespace: str = "",
+                    logo: str = "") -> Tenants:
         if not team_alias and namespace == "default":
             team_name = "default"
         else:
@@ -387,7 +393,9 @@ class TeamService(object):
         # init default roles
         role_kind_services.init_default_roles(kind="team", kind_id=team.tenant_id)
         admin_role = role_kind_services.get_role_by_name(kind="team", kind_id=team.tenant_id, name="管理员")
-        user_kind_role_service.update_user_roles(kind="team", kind_id=team.tenant_id, user=user, role_ids=[admin_role.ID])  # type: ignore[union-attr]  # NOTE: admin_role Optional (latent)
+        user_kind_role_service.update_user_roles(
+            kind="team", kind_id=team.tenant_id, user=user,
+            role_ids=[admin_role.ID])  # type: ignore[union-attr]  # NOTE: admin_role Optional (latent)
         return team
 
     def delete_team_region(self, team_id: str, region_name: str) -> None:
@@ -404,7 +412,10 @@ class TeamService(object):
 
         tenant_region.delete()
 
-    def get_enterprise_teams_fenye(self, enterprise_id: str, query: Optional[str] = None, page: Optional[int] = None,
+    def get_enterprise_teams_fenye(self,
+                                   enterprise_id: str,
+                                   query: Optional[str] = None,
+                                   page: Optional[int] = None,
                                    page_size: Optional[int] = None) -> Tuple[Any, int]:
         tall = team_repo.get_teams_by_enterprise_id(enterprise_id, query=query)
         total = tall.count()
@@ -433,8 +444,8 @@ class TeamService(object):
         team_database_ids = [team.ID for team in teams]
         tenant_IDs = {ten.ID: ten.tenant_id for ten in teams}
         user_id_dict: Dict[Any, int] = dict()
-        permission_counts = PermRelTenant.objects.filter(
-            tenant_id__in=team_database_ids).values("tenant_id").annotate(user_number=Count("user_id"))
+        permission_counts = PermRelTenant.objects.filter(tenant_id__in=team_database_ids).values("tenant_id").annotate(
+            user_number=Count("user_id"))
         for relation in permission_counts:
             tenant_id = tenant_IDs.get(relation["tenant_id"])
             if tenant_id:
@@ -455,8 +466,7 @@ class TeamService(object):
         team_region_names: Dict[str, List[str]] = {tenant_id: [] for tenant_id in tenant_ids}
         requested_region_names: List[str] = []
         region_name_seen = set()
-        region_relations = TenantRegionInfo.objects.filter(
-            tenant_id__in=tenant_ids).values("tenant_id", "region_name")
+        region_relations = TenantRegionInfo.objects.filter(tenant_id__in=tenant_ids).values("tenant_id", "region_name")
         for relation in region_relations:
             tenant_id = relation["tenant_id"]
             region_name = relation["region_name"]
@@ -465,8 +475,7 @@ class TeamService(object):
                 region_name_seen.add(region_name)
                 requested_region_names.append(region_name)
 
-        region_infos = list(
-            region_repo.get_region_by_region_names(requested_region_names)) if requested_region_names else []
+        region_infos = list(region_repo.get_region_by_region_names(requested_region_names)) if requested_region_names else []
         region_names = [region.region_name for region in region_infos]
         region_info_by_name = {region.region_name: region for region in region_infos}
 
@@ -507,8 +516,7 @@ class TeamService(object):
             region_tenants: List[Any] = list()
             for region_name in region_names:
                 region_tenant_ids = [
-                    tenant_id for tenant_id in tenant_ids
-                    if region_name in team_region_names.get(tenant_id, [])
+                    tenant_id for tenant_id in tenant_ids if region_name in team_region_names.get(tenant_id, [])
                 ]
                 region_tenants += self.get_region_tenant(eid, region_name, region_tenant_ids)
             for region_tenant in region_tenants:
@@ -533,8 +541,12 @@ class TeamService(object):
                 return tenants
         return []
 
-    def get_enterprise_teams(self, enterprise_id: str, query: Optional[str] = None, page: Optional[int] = None,
-                             page_size: Optional[int] = None, user: Optional[Users] = None) -> Tuple[list, int]:
+    def get_enterprise_teams(self,
+                             enterprise_id: str,
+                             query: Optional[str] = None,
+                             page: Optional[int] = None,
+                             page_size: Optional[int] = None,
+                             user: Optional[Users] = None) -> Tuple[list, int]:
         tall = team_repo.get_teams_by_enterprise_id(enterprise_id, query=query)
         total = tall.count()
         raw_tenants: Any
@@ -548,7 +560,10 @@ class TeamService(object):
             raw_tenants = tall
         return self.teams_with_region_info(list(raw_tenants), user), total
 
-    def list_teams_v2(self, eid: str, query: Optional[str] = None, page: Optional[int] = None,
+    def list_teams_v2(self,
+                      eid: str,
+                      query: Optional[str] = None,
+                      page: Optional[int] = None,
                       page_size: Optional[int] = None) -> Tuple[Any, int]:
         if query:
             total = Tenants.objects.filter(tenant_alias__contains=query).count()
@@ -564,7 +579,11 @@ class TeamService(object):
     def list_by_team_names(self, team_names: Any) -> QuerySet:
         return Tenants.objects.filter(tenant_name__in=team_names)
 
-    def list_teams_by_user_id(self, eid: str, user_id: str, query: Optional[str] = None, page: Optional[int] = None,
+    def list_teams_by_user_id(self,
+                              eid: str,
+                              user_id: str,
+                              query: Optional[str] = None,
+                              page: Optional[int] = None,
                               page_size: Optional[int] = None) -> Tuple[Any, int]:
         # NOTE: query may be None; repos annotate query as str (handle falsy at runtime).
         tenants = team_repo.list_by_user_id(eid, user_id, query, page, page_size)  # type: ignore[arg-type]
@@ -577,12 +596,10 @@ class TeamService(object):
             tenant["role_infos"] = roles["roles"]
         return tenants, total
 
-    def team_with_region_info(self, tenant: Tenants, request_user: Optional[Users] = None,
-                              get_region: bool = True) -> dict:
+    def team_with_region_info(self, tenant: Tenants, request_user: Optional[Users] = None, get_region: bool = True) -> dict:
         return self.teams_with_region_info([tenant], request_user, get_region=get_region)[0]
 
-    def teams_with_region_info(self, tenants: Any, request_user: Optional[Users] = None,
-                               get_region: bool = True) -> list:
+    def teams_with_region_info(self, tenants: Any, request_user: Optional[Users] = None, get_region: bool = True) -> list:
         tenants = list(tenants)
         if not tenants:
             return []
@@ -599,8 +616,7 @@ class TeamService(object):
             role_names = {str(role.ID): role.name for role in role_infos}
             role_ids = [role.ID for role in role_infos]
             if role_ids:
-                user_roles = UserRole.objects.filter(
-                    role_id__in=role_ids, user_id=request_user.user_id).order_by("ID")
+                user_roles = UserRole.objects.filter(role_id__in=role_ids, user_id=request_user.user_id).order_by("ID")
                 for user_role in user_roles:
                     role_id = str(user_role.role_id)
                     tenant_id = role_tenants.get(role_id)
@@ -610,8 +626,7 @@ class TeamService(object):
 
         regions_by_tenant: Dict[str, List[dict]] = {tenant_id: [] for tenant_id in tenant_ids}
         if get_region:
-            region_relations = TenantRegionInfo.objects.filter(
-                tenant_id__in=tenant_ids).values("tenant_id", "region_name")
+            region_relations = TenantRegionInfo.objects.filter(tenant_id__in=tenant_ids).values("tenant_id", "region_name")
             region_names_by_tenant: Dict[str, set] = {tenant_id: set() for tenant_id in tenant_ids}
             region_names = []
             region_name_seen = set()
@@ -631,13 +646,12 @@ class TeamService(object):
 
         service_counts = {
             row["tenant_id"]: row["total"]
-            for row in TenantServiceInfo.objects.filter(
-                tenant_id__in=tenant_ids).values("tenant_id").annotate(total=Count("ID"))
+            for row in TenantServiceInfo.objects.filter(tenant_id__in=tenant_ids).values("tenant_id").annotate(
+                total=Count("ID"))
         }
         app_counts = {
             row["tenant_id"]: row["total"]
-            for row in ServiceGroup.objects.filter(
-                tenant_id__in=tenant_ids).values("tenant_id").annotate(total=Count("ID"))
+            for row in ServiceGroup.objects.filter(tenant_id__in=tenant_ids).values("tenant_id").annotate(total=Count("ID"))
         }
 
         result = []
@@ -666,13 +680,16 @@ class TeamService(object):
             result.append(info)
         return result
 
-    def get_teams_region_by_user_id(self, enterprise_id: str, user: Users, name: Optional[str] = None,
-                                    get_region: bool = True, use_region: bool = False) -> list:
+    def get_teams_region_by_user_id(self,
+                                    enterprise_id: str,
+                                    user: Users,
+                                    name: Optional[str] = None,
+                                    get_region: bool = True,
+                                    use_region: bool = False) -> list:
         teams_list_no_region = list()
         teams_list_use_region = list()
         # NOTE: user.user_id is int; get_enterprise_user_teams annotates user_id as str (sig mismatch).
-        tenants = enterprise_repo.get_enterprise_user_teams(
-            enterprise_id, user.user_id, name)  # type: ignore[arg-type]
+        tenants = enterprise_repo.get_enterprise_user_teams(enterprise_id, user.user_id, name)  # type: ignore[arg-type]
         if tenants:
             tenant_list = list(tenants)
             for team in self.teams_with_region_info(tenant_list, user, get_region=get_region):
@@ -687,8 +704,7 @@ class TeamService(object):
     def list_user_teams(self, enterprise_id: str, user: Optional[Users], name: Optional[str]) -> list:
         # User joined team
         # NOTE: get_teams_region_by_user_id deref's user.user_id; passing None would fail there.
-        teams = self.get_teams_region_by_user_id(
-            enterprise_id, user, name, get_region=True)  # type: ignore[arg-type]
+        teams = self.get_teams_region_by_user_id(enterprise_id, user, name, get_region=True)  # type: ignore[arg-type]
         # The team that the user did not join
         user_id = user.user_id if user else ""
         # NOTE: user_id is int|str; get_user_notjoin_teams annotates user_id as str (sig mismatch).
@@ -696,8 +712,7 @@ class TeamService(object):
         teams.extend(self.teams_with_region_info(nojoin_teams, get_region=False))
         return teams
 
-    def check_and_get_user_team_by_name_and_region(self, user_id: str, tenant_name: str,
-                                                   region_name: str) -> Optional[Tenants]:
+    def check_and_get_user_team_by_name_and_region(self, user_id: str, tenant_name: str, region_name: str) -> Optional[Tenants]:
         tenant = team_repo.get_user_tenant_by_name(user_id, tenant_name)
         if not tenant:
             return tenant
@@ -768,8 +783,7 @@ class TeamService(object):
             return data
         return None
 
-    def get_tenant_list_by_region(self, eid: str, region_id: str, page: int = 1,
-                                  page_size: int = 10) -> Tuple[list, int]:
+    def get_tenant_list_by_region(self, eid: str, region_id: str, page: int = 1, page_size: int = 10) -> Tuple[list, int]:
         teams = team_repo.get_team_by_enterprise_id(eid)
         team_maps = {}
         tenant_ids = []
@@ -788,8 +802,8 @@ class TeamService(object):
             if tenants:
                 for tenant in tenants:
                     # NOTE: team_maps.get(...) is None if UUID absent; guarded by trailing else ''.
-                    tenant_alias = team_maps.get(
-                        tenant["UUID"]).tenant_alias if team_maps.get(tenant["UUID"]) else ''  # type: ignore[union-attr]
+                    tenant_alias = team_maps.get(tenant["UUID"]).tenant_alias if team_maps.get(  # type: ignore[union-attr]
+                        tenant["UUID"]) else ''  # type: ignore[union-attr]
                     tenant_list.append({
                         "tenant_id": tenant["UUID"],
                         "team_name": tenant_alias,
@@ -862,12 +876,11 @@ class TeamService(object):
         config_service = EnterpriseConfigService(enterprise_id, None)
         config = config_service.get_config_by_key("GLOBAL_IMAGE_REGISTRY")
         if not config:
-            config = config_service.add_config(
-                key="GLOBAL_IMAGE_REGISTRY",
-                default_value=None,
-                type="string",
-                enable=False,
-                desc="全局容器镜像仓库开关")
+            config = config_service.add_config(key="GLOBAL_IMAGE_REGISTRY",
+                                               default_value=None,
+                                               type="string",
+                                               enable=False,
+                                               desc="全局容器镜像仓库开关")
         return bool(config.enable)
 
     def normalize_registry_hub_type(self, hub_type: str) -> str:
@@ -894,7 +907,10 @@ class TeamService(object):
         challenge = header[len("Bearer "):]
         return dict((key, value) for key, value in re.findall(r'(\w+)="([^"]*)"', challenge))
 
-    def _get_registry_bearer_token(self, challenge: Dict[str, str], username: str, password: str,
+    def _get_registry_bearer_token(self,
+                                   challenge: Dict[str, str],
+                                   username: str,
+                                   password: str,
                                    session: Optional[Any] = None) -> Optional[str]:
         realm = challenge.get("realm")
         if not realm:
@@ -915,14 +931,17 @@ class TeamService(object):
         if response.status_code != 200:
             detail = self._registry_error_detail(response)
             logger.warning("failed to get registry bearer token: %s", detail)
-            raise ServiceHandleException(
-                msg="failed to get registry bearer token, {}".format(detail),
-                msg_show="镜像仓库认证失败({})".format(detail),
-                status_code=response.status_code)
+            raise ServiceHandleException(msg="failed to get registry bearer token, {}".format(detail),
+                                         msg_show="镜像仓库认证失败({})".format(detail),
+                                         status_code=response.status_code)
         data = response.json()
         return data.get("token") or data.get("access_token")
 
-    def _registry_v2_get(self, url: str, username: str, password: str, headers: Optional[Dict[str, str]] = None,
+    def _registry_v2_get(self,
+                         url: str,
+                         username: str,
+                         password: str,
+                         headers: Optional[Dict[str, str]] = None,
                          session: Optional[Any] = None,
                          bearer_token_cache: Optional[Dict[str, str]] = None) -> Any:
         request_headers = self._registry_v2_headers(username, password)
@@ -1046,19 +1065,13 @@ class TeamService(object):
         host = self._registry_domain_host(domain)
         match = self.ALIYUN_ACR_DOMAIN_RE.match(host) or self.ALIYUN_ACR_ENTERPRISE_DOMAIN_RE.match(host)
         if not match:
-            raise ServiceHandleException(
-                msg="invalid aliyun acr domain",
-                msg_show="阿里云ACR地址格式错误",
-                status_code=400)
+            raise ServiceHandleException(msg="invalid aliyun acr domain", msg_show="阿里云ACR地址格式错误", status_code=400)
         return match.group("region")
 
     def _parse_tencent_tcr_domain(self, domain: str) -> str:
         host = self._registry_domain_host(domain)
         if not self.TENCENT_TCR_DOMAIN_RE.match(host) and host not in self.TENCENT_TCR_PERSONAL_REGIONS:
-            raise ServiceHandleException(
-                msg="invalid tencent tcr domain",
-                msg_show="腾讯云TCR地址格式错误",
-                status_code=400)
+            raise ServiceHandleException(msg="invalid tencent tcr domain", msg_show="腾讯云TCR地址格式错误", status_code=400)
         return host
 
     def _is_tencent_tcr_personal_domain(self, domain: str) -> bool:
@@ -1073,20 +1086,14 @@ class TeamService(object):
         host = self._registry_domain_host(domain)
         match = self.HUAWEI_SWR_DOMAIN_RE.match(host)
         if not match:
-            raise ServiceHandleException(
-                msg="invalid huawei swr domain",
-                msg_show="华为云SWR地址格式错误",
-                status_code=400)
+            raise ServiceHandleException(msg="invalid huawei swr domain", msg_show="华为云SWR地址格式错误", status_code=400)
         return match.group("region")
 
     def _parse_volcano_cr_domain(self, domain: str) -> Tuple[str, str]:
         host = self._registry_domain_host(domain)
         match = self.VOLCANO_CR_DOMAIN_RE.match(host)
         if not match:
-            raise ServiceHandleException(
-                msg="invalid volcano cr domain",
-                msg_show="火山云CR地址格式错误",
-                status_code=400)
+            raise ServiceHandleException(msg="invalid volcano cr domain", msg_show="火山云CR地址格式错误", status_code=400)
         return match.group("registry"), match.group("region")
 
     def _volcano_cr_api(self, access_key: str, access_secret: str, region: str) -> Any:
@@ -1105,10 +1112,9 @@ class TeamService(object):
         from alibabacloud_cr20160607.client import Client as AcrClient
         from alibabacloud_tea_openapi import models as open_api_models
 
-        config = open_api_models.Config(
-            access_key_id=access_key,
-            access_key_secret=access_secret,
-            endpoint="cr.{}.aliyuncs.com".format(region))
+        config = open_api_models.Config(access_key_id=access_key,
+                                        access_key_secret=access_secret,
+                                        endpoint="cr.{}.aliyuncs.com".format(region))
         return AcrClient(config)
 
     def _tencent_tcr_client(self, access_key: str, access_secret: str, region: str) -> Any:
@@ -1136,15 +1142,13 @@ class TeamService(object):
     def _handle_cloud_registry_exception(self, action: str, provider: str, e: Exception) -> NoReturn:
         logger.warning("failed to %s %s registry: %s", action, provider, e)
         if self._is_cloud_registry_auth_error(e):
-            raise ServiceHandleException(
-                msg="cloud registry credential unauthorized",
-                msg_show="云厂商镜像仓库认证失败，请检查 Access Key、Access Secret 是否正确并确认已授予镜像仓库访问权限",
-                status_code=401)
+            raise ServiceHandleException(msg="cloud registry credential unauthorized",
+                                         msg_show="云厂商镜像仓库认证失败，请检查 Access Key、Access Secret 是否正确并确认已授予镜像仓库访问权限",
+                                         status_code=401)
         detail = self._cloud_registry_exception_detail(e)
-        raise ServiceHandleException(
-            msg="failed to {} {} registry: {}".format(action, provider, detail),
-            msg_show="获取镜像仓库信息失败({})".format(detail),
-            status_code=500)
+        raise ServiceHandleException(msg="failed to {} {} registry: {}".format(action, provider, detail),
+                                     msg_show="获取镜像仓库信息失败({})".format(detail),
+                                     status_code=500)
 
     def _is_cloud_registry_auth_error(self, e: Exception) -> bool:
         status = getattr(e, "status", None)
@@ -1238,9 +1242,16 @@ class TeamService(object):
         except (IndexError, TypeError, ValueError):
             return default
 
-    def _cloud_registry_image(self, name: str, namespace: str, hub_type: str, description: Any = "",
-                              is_public: Any = False, pull_count: Any = 0, created_at: Any = "",
-                              updated_at: Any = "", status: Any = "active") -> Dict[str, Any]:
+    def _cloud_registry_image(self,
+                              name: str,
+                              namespace: str,
+                              hub_type: str,
+                              description: Any = "",
+                              is_public: Any = False,
+                              pull_count: Any = 0,
+                              created_at: Any = "",
+                              updated_at: Any = "",
+                              status: Any = "active") -> Dict[str, Any]:
         if name and namespace and name.startswith(namespace + "/"):
             name = name.split("/", 1)[1]
         if isinstance(status, bool):
@@ -1260,33 +1271,37 @@ class TeamService(object):
             "registry_type": hub_type,
         }
 
-    def _aliyun_acr_call_api(self, client: Any, action: str, pathname: str,
-                             query: Optional[Dict[str, Any]] = None, enterprise: bool = False) -> Any:
+    def _aliyun_acr_call_api(self,
+                             client: Any,
+                             action: str,
+                             pathname: str,
+                             query: Optional[Dict[str, Any]] = None,
+                             enterprise: bool = False) -> Any:
         from alibabacloud_tea_openapi import models as open_api_models
         from alibabacloud_openapi_util.client import Client as OpenApiUtilClient
         from alibabacloud_tea_util import models as util_models
 
-        request = open_api_models.OpenApiRequest(
-            query=OpenApiUtilClient.query(query or {}))
-        params = open_api_models.Params(
-            action=action,
-            version="2018-12-01" if enterprise else "2016-06-07",
-            protocol="HTTPS",
-            pathname=pathname,
-            method="GET",
-            auth_type="AK",
-            style="RPC" if enterprise else "ROA",
-            req_body_type="json",
-            body_type="json")
+        request = open_api_models.OpenApiRequest(query=OpenApiUtilClient.query(query or {}))
+        params = open_api_models.Params(action=action,
+                                        version="2018-12-01" if enterprise else "2016-06-07",
+                                        protocol="HTTPS",
+                                        pathname=pathname,
+                                        method="GET",
+                                        auth_type="AK",
+                                        style="RPC" if enterprise else "ROA",
+                                        req_body_type="json",
+                                        body_type="json")
         return client.call_api(params, request, util_models.RuntimeOptions())
 
-    def _aliyun_acr_enterprise_list(self, client: Any, action: str, key: str,
+    def _aliyun_acr_enterprise_list(self,
+                                    client: Any,
+                                    action: str,
+                                    key: str,
                                     query: Optional[Dict[str, Any]] = None) -> List[Any]:
         items = []
         page = 1
         while True:
-            data = self._aliyun_acr_enterprise_request(
-                client, action, dict(query or {}, PageNo=page, PageSize=100))
+            data = self._aliyun_acr_enterprise_request(client, action, dict(query or {}, PageNo=page, PageSize=100))
             batch = self._cloud_list(data, key)
             items.extend(batch)
             if not batch or len(items) >= self._cloud_total(data, len(items)):
@@ -1297,10 +1312,9 @@ class TeamService(object):
         response = self._aliyun_acr_call_api(client, action, "/", query, enterprise=True)
         data = self._cloud_response_data(response)
         if self._cloud_attr(data, "IsSuccess") is False:
-            raise ServiceHandleException(
-                msg="aliyun acr enterprise request failed",
-                msg_show="阿里云ACR企业版接口调用失败，请检查访问权限及实例状态",
-                status_code=400)
+            raise ServiceHandleException(msg="aliyun acr enterprise request failed",
+                                         msg_show="阿里云ACR企业版接口调用失败，请检查访问权限及实例状态",
+                                         status_code=400)
         return data
 
     def _aliyun_acr_instance_id(self, client: Any, domain: str) -> Optional[str]:
@@ -1308,27 +1322,23 @@ class TeamService(object):
         if not match:
             return None
         instance_name = match.group("instance")
-        instances = self._aliyun_acr_enterprise_list(
-            client, "ListInstance", "Instances", {"InstanceName": instance_name})
+        instances = self._aliyun_acr_enterprise_list(client, "ListInstance", "Instances", {"InstanceName": instance_name})
         for instance in instances:
             if self._cloud_attr(instance, "InstanceName") == instance_name:
                 instance_id = self._cloud_attr(instance, "InstanceId")
                 if instance_id:
                     return instance_id
-        raise ServiceHandleException(
-            msg="aliyun acr enterprise instance not found",
-            msg_show="未找到地址对应的阿里云ACR企业版实例，请检查实例地址和访问权限",
-            status_code=400)
+        raise ServiceHandleException(msg="aliyun acr enterprise instance not found",
+                                     msg_show="未找到地址对应的阿里云ACR企业版实例，请检查实例地址和访问权限",
+                                     status_code=400)
 
     def _get_aliyun_acr_namespaces(self, domain: str, access_key: str, access_secret: str) -> List[str]:
         region = self._parse_aliyun_acr_domain(domain)
         client = self._aliyun_acr_client(access_key, access_secret, region)
         instance_id = self._aliyun_acr_instance_id(client, domain)
         if instance_id:
-            namespaces = self._aliyun_acr_enterprise_list(
-                client, "ListNamespace", "Namespaces", {"InstanceId": instance_id})
-            return [self._cloud_attr(item, "NamespaceName") for item in namespaces
-                    if self._cloud_attr(item, "NamespaceName")]
+            namespaces = self._aliyun_acr_enterprise_list(client, "ListNamespace", "Namespaces", {"InstanceId": instance_id})
+            return [self._cloud_attr(item, "NamespaceName") for item in namespaces if self._cloud_attr(item, "NamespaceName")]
         response = self._aliyun_acr_call_api(client, "GetNamespaceList", "/namespace")
         data = self._cloud_response_data(response)
         items = self._cloud_list(data, "namespaces", "Namespaces", "namespaceList", "NamespaceList")
@@ -1338,8 +1348,13 @@ class TeamService(object):
             if self._cloud_item_value(item, "namespace", "Namespace", "namespaceName", "NamespaceName", "name", "Name")
         ]
 
-    def _get_aliyun_acr_images(self, domain: str, access_key: str, access_secret: str, namespace: str,
-                               page: int = 1, page_size: int = 10,
+    def _get_aliyun_acr_images(self,
+                               domain: str,
+                               access_key: str,
+                               access_secret: str,
+                               namespace: str,
+                               page: int = 1,
+                               page_size: int = 10,
                                search_key: Optional[str] = None) -> Dict[str, Any]:
         region = self._parse_aliyun_acr_domain(domain)
         client = self._aliyun_acr_client(access_key, access_secret, region)
@@ -1348,16 +1363,20 @@ class TeamService(object):
 
         def list_repositories(request_page: int, request_page_size: int) -> Tuple[List[Any], int]:
             if instance_id:
-                data = self._aliyun_acr_enterprise_request(client, "ListRepository", {
-                    "InstanceId": instance_id, "RepoNamespaceName": namespace,
-                    "PageNo": request_page, "PageSize": request_page_size})
+                data = self._aliyun_acr_enterprise_request(
+                    client, "ListRepository", {
+                        "InstanceId": instance_id,
+                        "RepoNamespaceName": namespace,
+                        "PageNo": request_page,
+                        "PageSize": request_page_size
+                    })
                 repositories = self._cloud_list(data, "Repositories")
                 return repositories, self._cloud_total(data, len(repositories))
-            response = self._aliyun_acr_call_api(
-                client,
-                "GetRepoListByNamespace",
-                "/repos/{}".format(quote(namespace, safe="")),
-                {"Page": request_page, "PageSize": request_page_size})
+            response = self._aliyun_acr_call_api(client, "GetRepoListByNamespace",
+                                                 "/repos/{}".format(quote(namespace, safe="")), {
+                                                     "Page": request_page,
+                                                     "PageSize": request_page_size
+                                                 })
             data = self._cloud_response_data(response)
             repositories = self._cloud_list(data, "repos", "Repos", "repositories", "Repositories", "repoList", "RepoList")
             return repositories, self._cloud_total(data, len(repositories))
@@ -1385,16 +1404,17 @@ class TeamService(object):
             is_public = self._cloud_attr(repo, "isPublic", "IsPublic")
             if is_public is None:
                 is_public = str(repo_type).lower() == "public"
-            images.append(self._cloud_registry_image(
-                repo_name,
-                self._cloud_attr(
-                    repo, "repoNamespace", "RepoNamespace", "RepoNamespaceName", "namespace", "Namespace") or namespace,
-                "AliyunACR",
-                description=self._cloud_attr(repo, "summary", "Summary", "description", "Description"),
-                is_public=is_public,
-                created_at=self._cloud_attr(repo, "gmtCreate", "GmtCreate", "creationTime", "CreationTime", "CreateTime"),
-                updated_at=self._cloud_attr(
-                    repo, "gmtModified", "GmtModified", "updateTime", "UpdateTime", "ModifiedTime")))
+            images.append(
+                self._cloud_registry_image(
+                    repo_name,
+                    self._cloud_attr(repo, "repoNamespace", "RepoNamespace", "RepoNamespaceName", "namespace", "Namespace")
+                    or namespace,
+                    "AliyunACR",
+                    description=self._cloud_attr(repo, "summary", "Summary", "description", "Description"),
+                    is_public=is_public,
+                    created_at=self._cloud_attr(repo, "gmtCreate", "GmtCreate", "creationTime", "CreationTime", "CreateTime"),
+                    updated_at=self._cloud_attr(repo, "gmtModified", "GmtModified", "updateTime", "UpdateTime",
+                                                "ModifiedTime")))
         if search_key:
             total = len(images)
             start = (page - 1) * page_size
@@ -1440,10 +1460,9 @@ class TeamService(object):
             if not registries or offset + limit >= total:
                 break
             offset += limit
-        raise ServiceHandleException(
-            msg="tencent tcr registry not found for domain {}".format(host),
-            msg_show="腾讯云TCR实例未找到，请确认仓库地址与Access Key权限",
-            status_code=404)
+        raise ServiceHandleException(msg="tencent tcr registry not found for domain {}".format(host),
+                                     msg_show="腾讯云TCR实例未找到，请确认仓库地址与Access Key权限",
+                                     status_code=404)
 
     def _get_tencent_tcr_namespaces(self, domain: str, access_key: str, access_secret: str) -> List[str]:
         from tencentcloud.tcr.v20190924 import models as tcr_models
@@ -1460,8 +1479,7 @@ class TeamService(object):
         response = client.DescribeNamespaces(request)
         items = self._cloud_list(response, "NamespaceList")
         return [
-            self._cloud_item_value(item, "Name", "Namespace", "name", "namespace")
-            for item in items
+            self._cloud_item_value(item, "Name", "Namespace", "name", "namespace") for item in items
             if self._cloud_item_value(item, "Name", "Namespace", "name", "namespace")
         ]
 
@@ -1476,19 +1494,23 @@ class TeamService(object):
         response = client.DescribeNamespacePersonal(request)
         items = self._cloud_list(response, "NamespaceInfo")
         return [
-            self._cloud_item_value(item, "Namespace", "Name", "namespace", "name")
-            for item in items
+            self._cloud_item_value(item, "Namespace", "Name", "namespace", "name") for item in items
             if self._cloud_item_value(item, "Namespace", "Name", "namespace", "name")
         ]
 
-    def _get_tencent_tcr_images(self, domain: str, access_key: str, access_secret: str, namespace: str,
-                                page: int = 1, page_size: int = 10,
+    def _get_tencent_tcr_images(self,
+                                domain: str,
+                                access_key: str,
+                                access_secret: str,
+                                namespace: str,
+                                page: int = 1,
+                                page_size: int = 10,
                                 search_key: Optional[str] = None) -> Dict[str, Any]:
         from tencentcloud.tcr.v20190924 import models as tcr_models
 
         if self._is_tencent_tcr_personal_domain(domain):
-            return self._get_tencent_tcr_personal_images(
-                domain, access_key, access_secret, namespace, page, page_size, search_key)
+            return self._get_tencent_tcr_personal_images(domain, access_key, access_secret, namespace, page, page_size,
+                                                         search_key)
         registry_id, region = self._resolve_tencent_tcr_registry(domain, access_key, access_secret)
         client = self._tencent_tcr_client(access_key, access_secret, region)
         request = tcr_models.DescribeRepositoriesRequest()
@@ -1505,21 +1527,27 @@ class TeamService(object):
             repo_name = self._cloud_item_value(repo, "Name", "name")
             if search_key and search_key.lower() not in repo_name.lower():
                 continue
-            images.append(self._cloud_registry_image(
-                repo_name,
-                self._cloud_attr(repo, "Namespace", "namespace") or namespace,
-                "TencentTCR",
-                description=self._cloud_attr(repo, "Description", "BriefDescription", "description", "briefDescription"),
-                is_public=self._cloud_attr(repo, "Public", "public"),
-                created_at=self._cloud_attr(repo, "CreationTime", "creationTime"),
-                updated_at=self._cloud_attr(repo, "UpdateTime", "updateTime")))
+            images.append(
+                self._cloud_registry_image(repo_name,
+                                           self._cloud_attr(repo, "Namespace", "namespace") or namespace,
+                                           "TencentTCR",
+                                           description=self._cloud_attr(repo, "Description", "BriefDescription", "description",
+                                                                        "briefDescription"),
+                                           is_public=self._cloud_attr(repo, "Public", "public"),
+                                           created_at=self._cloud_attr(repo, "CreationTime", "creationTime"),
+                                           updated_at=self._cloud_attr(repo, "UpdateTime", "updateTime")))
         total = self._cloud_total(response, len(images))
         if search_key:
             total = len(images)
         return {"images": images, "total": total, "page": page, "page_size": page_size}
 
-    def _get_tencent_tcr_personal_images(self, domain: str, access_key: str, access_secret: str, namespace: str,
-                                         page: int = 1, page_size: int = 10,
+    def _get_tencent_tcr_personal_images(self,
+                                         domain: str,
+                                         access_key: str,
+                                         access_secret: str,
+                                         namespace: str,
+                                         page: int = 1,
+                                         page_size: int = 10,
                                          search_key: Optional[str] = None) -> Dict[str, Any]:
         from tencentcloud.tcr.v20190924 import models as tcr_models
 
@@ -1540,15 +1568,16 @@ class TeamService(object):
             is_public = self._cloud_attr(repo, "Public", "public")
             if isinstance(is_public, int):
                 is_public = bool(is_public)
-            images.append(self._cloud_registry_image(
-                repo_name,
-                namespace,
-                "TencentTCR",
-                description=self._cloud_attr(repo, "Description", "BriefDescription", "description", "briefDescription"),
-                is_public=is_public,
-                pull_count=self._cloud_attr(repo, "PullCount", "pullCount") or 0,
-                created_at=self._cloud_attr(repo, "CreationTime", "creationTime"),
-                updated_at=self._cloud_attr(repo, "UpdateTime", "updateTime")))
+            images.append(
+                self._cloud_registry_image(repo_name,
+                                           namespace,
+                                           "TencentTCR",
+                                           description=self._cloud_attr(repo, "Description", "BriefDescription", "description",
+                                                                        "briefDescription"),
+                                           is_public=is_public,
+                                           pull_count=self._cloud_attr(repo, "PullCount", "pullCount") or 0,
+                                           created_at=self._cloud_attr(repo, "CreationTime", "creationTime"),
+                                           updated_at=self._cloud_attr(repo, "UpdateTime", "updateTime")))
         total = self._cloud_total(response, len(images))
         return {"images": images, "total": total, "page": page, "page_size": page_size}
 
@@ -1560,13 +1589,17 @@ class TeamService(object):
         response = client.list_namespaces(swr_models.ListNamespacesRequest())
         items = self._cloud_list(response, "namespaces", "Namespaces")
         return [
-            self._cloud_item_value(item, "name", "Name", "namespace", "Namespace")
-            for item in items
+            self._cloud_item_value(item, "name", "Name", "namespace", "Namespace") for item in items
             if self._cloud_item_value(item, "name", "Name", "namespace", "Namespace")
         ]
 
-    def _get_huawei_swr_images(self, domain: str, access_key: str, access_secret: str, namespace: str,
-                               page: int = 1, page_size: int = 10,
+    def _get_huawei_swr_images(self,
+                               domain: str,
+                               access_key: str,
+                               access_secret: str,
+                               namespace: str,
+                               page: int = 1,
+                               page_size: int = 10,
                                search_key: Optional[str] = None) -> Dict[str, Any]:
         from huaweicloudsdkswr.v2 import model as swr_models
 
@@ -1585,19 +1618,17 @@ class TeamService(object):
             repo_name = self._cloud_item_value(repo, "name", "Name")
             if search_key and search_key.lower() not in repo_name.lower():
                 continue
-            images.append(self._cloud_registry_image(
-                repo_name,
-                self._cloud_attr(repo, "namespace", "Namespace") or namespace,
-                "HuaweiSWR",
-                description=self._cloud_attr(repo, "description", "Description"),
-                is_public=self._cloud_attr(repo, "is_public", "isPublic", "IsPublic"),
-                pull_count=self._cloud_attr(repo, "num_download", "numDownload", "NumDownload"),
-                created_at=self._cloud_attr(repo, "created_at", "createdAt", "CreatedAt"),
-                updated_at=self._cloud_attr(repo, "updated_at", "updatedAt", "UpdatedAt"),
-                status=self._cloud_attr(repo, "status", "Status")))
-        total = self._cloud_total_from_content_range(
-            self._cloud_attr(response, "content_range", "ContentRange"),
-            len(images))
+            images.append(
+                self._cloud_registry_image(repo_name,
+                                           self._cloud_attr(repo, "namespace", "Namespace") or namespace,
+                                           "HuaweiSWR",
+                                           description=self._cloud_attr(repo, "description", "Description"),
+                                           is_public=self._cloud_attr(repo, "is_public", "isPublic", "IsPublic"),
+                                           pull_count=self._cloud_attr(repo, "num_download", "numDownload", "NumDownload"),
+                                           created_at=self._cloud_attr(repo, "created_at", "createdAt", "CreatedAt"),
+                                           updated_at=self._cloud_attr(repo, "updated_at", "updatedAt", "UpdatedAt"),
+                                           status=self._cloud_attr(repo, "status", "Status")))
+        total = self._cloud_total_from_content_range(self._cloud_attr(response, "content_range", "ContentRange"), len(images))
         if search_key:
             total = len(images)
         return {"images": images, "total": total, "page": page, "page_size": page_size}
@@ -1611,10 +1642,7 @@ class TeamService(object):
         page = 1
         page_size = 100
         while True:
-            request = volcenginesdkcr.ListNamespacesRequest(
-                registry=registry,
-                page_number=page,
-                page_size=page_size)
+            request = volcenginesdkcr.ListNamespacesRequest(registry=registry, page_number=page, page_size=page_size)
             response = api.list_namespaces(request)
             items = getattr(response, "items", None) or []
             namespaces.extend([item.name for item in items if getattr(item, "name", None)])
@@ -1624,8 +1652,13 @@ class TeamService(object):
             page += 1
         return namespaces
 
-    def _get_volcano_cr_images(self, domain: str, access_key: str, access_secret: str, namespace: str,
-                               page: int = 1, page_size: int = 10,
+    def _get_volcano_cr_images(self,
+                               domain: str,
+                               access_key: str,
+                               access_secret: str,
+                               namespace: str,
+                               page: int = 1,
+                               page_size: int = 10,
                                search_key: Optional[str] = None) -> Dict[str, Any]:
         import volcenginesdkcr
 
@@ -1643,21 +1676,27 @@ class TeamService(object):
             repo_name = getattr(repo, "name", "")
             if search_key and search_key.lower() not in repo_name.lower():
                 continue
-            images.append(self._cloud_registry_image(
-                repo_name,
-                getattr(repo, "namespace", namespace),
-                "VolcanoCR",
-                description=getattr(repo, "description", "") or "",
-                is_public=getattr(repo, "access_level", "") == "Public",
-                created_at=getattr(repo, "create_time", "") or "",
-                updated_at=getattr(repo, "update_time", "") or ""))
+            images.append(
+                self._cloud_registry_image(repo_name,
+                                           getattr(repo, "namespace", namespace),
+                                           "VolcanoCR",
+                                           description=getattr(repo, "description", "") or "",
+                                           is_public=getattr(repo, "access_level", "") == "Public",
+                                           created_at=getattr(repo, "create_time", "") or "",
+                                           updated_at=getattr(repo, "update_time", "") or ""))
         total = getattr(response, "total_count", len(images)) or len(images)
         if search_key:
             total = len(images)
         return {"images": images, "total": total, "page": page, "page_size": page_size}
 
-    def _get_volcano_cr_tags(self, domain: str, access_key: str, access_secret: str, namespace: str, name: str,
-                             page: int = 1, page_size: int = 10,
+    def _get_volcano_cr_tags(self,
+                             domain: str,
+                             access_key: str,
+                             access_secret: str,
+                             namespace: str,
+                             name: str,
+                             page: int = 1,
+                             page_size: int = 10,
                              search_key: Optional[str] = None) -> Dict[str, Any]:
         import volcenginesdkcr
 
@@ -1672,12 +1711,11 @@ class TeamService(object):
             return ",".join(result)
 
         def list_tags(request_page: int, request_page_size: int) -> Tuple[List[Dict[str, Any]], int]:
-            request = volcenginesdkcr.ListTagsRequest(
-                namespace=namespace,
-                page_number=request_page,
-                page_size=request_page_size,
-                registry=registry,
-                repository=name)
+            request = volcenginesdkcr.ListTagsRequest(namespace=namespace,
+                                                      page_number=request_page,
+                                                      page_size=request_page_size,
+                                                      registry=registry,
+                                                      repository=name)
             response = api.list_tags(request)
             items = getattr(response, "items", None) or []
             tags = []
@@ -1732,10 +1770,9 @@ class TeamService(object):
         }
         handler = handlers.get(hub_type)
         if not handler:
-            raise ServiceHandleException(
-                msg="cloud registry api not supported for {}".format(hub_type),
-                msg_show="当前云厂商镜像仓库暂未支持自动获取命名空间",
-                status_code=400)
+            raise ServiceHandleException(msg="cloud registry api not supported for {}".format(hub_type),
+                                         msg_show="当前云厂商镜像仓库暂未支持自动获取命名空间",
+                                         status_code=400)
         try:
             return handler(domain, access_key, access_secret)
         except ServiceHandleException:
@@ -1743,8 +1780,14 @@ class TeamService(object):
         except Exception as e:
             self._handle_cloud_registry_exception("list namespaces from", hub_type, e)
 
-    def get_cloud_registry_images(self, domain: str, access_key: str, access_secret: str, hub_type: str,
-                                  namespace: str, page: int = 1, page_size: int = 10,
+    def get_cloud_registry_images(self,
+                                  domain: str,
+                                  access_key: str,
+                                  access_secret: str,
+                                  hub_type: str,
+                                  namespace: str,
+                                  page: int = 1,
+                                  page_size: int = 10,
                                   search_key: Optional[str] = None) -> Dict[str, Any]:
         hub_type = self.normalize_registry_hub_type(hub_type)
         handlers = {
@@ -1755,10 +1798,9 @@ class TeamService(object):
         }
         handler = handlers.get(hub_type)
         if not handler:
-            raise ServiceHandleException(
-                msg="cloud registry api not supported for {}".format(hub_type),
-                msg_show="当前云厂商镜像仓库暂未支持自动获取镜像列表",
-                status_code=400)
+            raise ServiceHandleException(msg="cloud registry api not supported for {}".format(hub_type),
+                                         msg_show="当前云厂商镜像仓库暂未支持自动获取镜像列表",
+                                         status_code=400)
         try:
             return handler(domain, access_key, access_secret, namespace, page, page_size, search_key)
         except ServiceHandleException:
@@ -1766,8 +1808,17 @@ class TeamService(object):
         except Exception as e:
             self._handle_cloud_registry_exception("list images from", hub_type, e)
 
-    def get_cloud_registry_tags(self, domain: str, username: str, password: str, access_key: str, access_secret: str,
-                                hub_type: str, namespace: str, name: str, page: int = 1, page_size: int = 10,
+    def get_cloud_registry_tags(self,
+                                domain: str,
+                                username: str,
+                                password: str,
+                                access_key: str,
+                                access_secret: str,
+                                hub_type: str,
+                                namespace: str,
+                                name: str,
+                                page: int = 1,
+                                page_size: int = 10,
                                 search_key: Optional[str] = None) -> Dict[str, Any]:
         hub_type = self.normalize_registry_hub_type(hub_type)
         handlers = {
@@ -1783,8 +1834,13 @@ class TeamService(object):
                 self._handle_cloud_registry_exception("list tags from", hub_type, e)
         return self.get_registry_tags(domain, username, password, hub_type, namespace, name, page, page_size, search_key)
 
-    def check_registry_connection(self, domain: str, username: str, password: str, hub_type: str,
-                                  access_key: str = "", access_secret: str = "") -> bool:
+    def check_registry_connection(self,
+                                  domain: str,
+                                  username: str,
+                                  password: str,
+                                  hub_type: str,
+                                  access_key: str = "",
+                                  access_secret: str = "") -> bool:
         self.validate_registry_hub_type(hub_type)
         hub_type = self.normalize_registry_hub_type(hub_type)
         if hub_type in self.CLOUD_REGISTRY_HUB_TYPES:
@@ -1795,15 +1851,13 @@ class TeamService(object):
             response = self._registry_v2_get("{}/v2/".format(base_url), username, password)
         except requests.exceptions.RequestException as e:
             logger.exception(e)
-            raise ServiceHandleException(
-                msg="failed to connect registry: {}".format(e), msg_show="连接镜像仓库失败", status_code=500)
+            raise ServiceHandleException(msg="failed to connect registry: {}".format(e), msg_show="连接镜像仓库失败", status_code=500)
         if response.status_code != 200:
             detail = self._registry_error_detail(response)
             logger.warning("failed to connect registry %s, hub_type=%s, %s", base_url, hub_type, detail)
-            raise ServiceHandleException(
-                msg="failed to connect registry, {}".format(detail),
-                msg_show="镜像仓库连接测试失败({})".format(detail),
-                status_code=response.status_code)
+            raise ServiceHandleException(msg="failed to connect registry, {}".format(detail),
+                                         msg_show="镜像仓库连接测试失败({})".format(detail),
+                                         status_code=response.status_code)
         return True
 
     def _get_registry_v2_namespaces(self, base_url: str, username: str, password: str) -> List[str]:
@@ -1811,10 +1865,9 @@ class TeamService(object):
         if response.status_code != 200:
             detail = self._registry_error_detail(response)
             logger.warning("failed to get registry namespaces %s, %s", base_url, detail)
-            raise ServiceHandleException(
-                msg="failed to get registry namespaces, {}".format(detail),
-                msg_show="获取镜像仓库命名空间失败({})".format(detail),
-                status_code=response.status_code)
+            raise ServiceHandleException(msg="failed to get registry namespaces, {}".format(detail),
+                                         msg_show="获取镜像仓库命名空间失败({})".format(detail),
+                                         status_code=response.status_code)
         namespaces = set()
         for repo in repositories:
             if "/" in repo:
@@ -1823,16 +1876,22 @@ class TeamService(object):
                 namespaces.add("library")
         return list(namespaces) or ["library"]
 
-    def _get_registry_v2_images(self, base_url: str, username: str, password: str, hub_type: str, namespace: str,
-                                page: int = 1, page_size: int = 10, search_key: Optional[str] = None) -> Dict[str, Any]:
+    def _get_registry_v2_images(self,
+                                base_url: str,
+                                username: str,
+                                password: str,
+                                hub_type: str,
+                                namespace: str,
+                                page: int = 1,
+                                page_size: int = 10,
+                                search_key: Optional[str] = None) -> Dict[str, Any]:
         repositories, response = self._get_registry_v2_catalog(base_url, username, password)
         if response.status_code != 200:
             detail = self._registry_error_detail(response)
             logger.warning("failed to get registry images %s, hub_type=%s, %s", base_url, hub_type, detail)
-            raise ServiceHandleException(
-                msg="failed to get registry images, {}".format(detail),
-                msg_show="获取镜像列表失败({})".format(detail),
-                status_code=response.status_code)
+            raise ServiceHandleException(msg="failed to get registry images, {}".format(detail),
+                                         msg_show="获取镜像列表失败({})".format(detail),
+                                         status_code=response.status_code)
         if namespace == "library":
             filtered_repos = [repo for repo in repositories if "/" not in repo]
         else:
@@ -1856,8 +1915,7 @@ class TeamService(object):
         } for repo in filtered_repos[start:end]]
         return {"images": images, "total": total, "page": page, "page_size": page_size}
 
-    def _get_registry_image_metadata(self, base_url: str, repo_name: str, username: str,
-                                     password: str) -> Dict[str, str]:
+    def _get_registry_image_metadata(self, base_url: str, repo_name: str, username: str, password: str) -> Dict[str, str]:
         bearer_token_cache: Dict[str, str] = {}
         with requests.Session() as session:
             tags_url = "{}/v2/{}/tags/list".format(base_url, repo_name)
@@ -1890,10 +1948,11 @@ class TeamService(object):
             return []
         max_workers = min(self.REGISTRY_METADATA_MAX_WORKERS, len(repo_names))
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            return list(executor.map(
-                lambda repo_name: self._get_registry_image_metadata(base_url, repo_name, username, password),
-                repo_names,
-            ))
+            return list(
+                executor.map(
+                    lambda repo_name: self._get_registry_image_metadata(base_url, repo_name, username, password),
+                    repo_names,
+                ))
 
     def _registry_tag_info_to_payload(self, tag: str, tag_info: Dict[str, Any]) -> Dict[str, Any]:
         created_at = tag_info.get("created_at") or tag_info.get("updated_at") or ""
@@ -1909,17 +1968,23 @@ class TeamService(object):
             "status": tag_info.get("status") or "active",
         }
 
-    def _get_registry_v2_tags(self, base_url: str, username: str, password: str, namespace: str, name: str,
-                              page: int = 1, page_size: int = 10, search_key: Optional[str] = None) -> Dict[str, Any]:
+    def _get_registry_v2_tags(self,
+                              base_url: str,
+                              username: str,
+                              password: str,
+                              namespace: str,
+                              name: str,
+                              page: int = 1,
+                              page_size: int = 10,
+                              search_key: Optional[str] = None) -> Dict[str, Any]:
         repo_name = name if namespace == "library" else "{}/{}".format(namespace, name)
         response = self._registry_v2_get("{}/v2/{}/tags/list".format(base_url, repo_name), username, password)
         if response.status_code != 200:
             detail = self._registry_error_detail(response)
             logger.warning("failed to get registry tags %s/%s, %s", base_url, repo_name, detail)
-            raise ServiceHandleException(
-                msg="failed to get registry tags, {}".format(detail),
-                msg_show="获取镜像标签失败({})".format(detail),
-                status_code=response.status_code)
+            raise ServiceHandleException(msg="failed to get registry tags, {}".format(detail),
+                                         msg_show="获取镜像标签失败({})".format(detail),
+                                         status_code=response.status_code)
         all_tags = response.json().get("tags", []) or []
         if search_key:
             all_tags = [tag for tag in all_tags if search_key.lower() in tag.lower()]
@@ -1933,13 +1998,20 @@ class TeamService(object):
         return {"tags": tags, "total": total, "page": page, "page_size": page_size}
 
     @transaction.atomic()
-    def create_registry_auth(self, tenant: Tenants, region_name: str, domain: str, username: str, password: str,
-                             hub_type: str = "Docker", user_id: int = 0) -> None:
+    def create_registry_auth(self,
+                             tenant: Tenants,
+                             region_name: str,
+                             domain: str,
+                             username: str,
+                             password: str,
+                             hub_type: str = "Docker",
+                             user_id: int = 0) -> None:
         hub_type = self.normalize_registry_hub_type(hub_type)
         auth = team_registry_auth_repo.get_by_team_id_domain(tenant.tenant_id, region_name, domain)
         if auth:
-            raise ServiceHandleException(
-                status_code=409, msg="The image warehouse address already exists", msg_show="该镜像仓库地址已存在")
+            raise ServiceHandleException(status_code=409,
+                                         msg="The image warehouse address already exists",
+                                         msg_show="该镜像仓库地址已存在")
         params = {
             "tenant_id": tenant.tenant_id,
             "secret_id": make_uuid(),
@@ -1978,8 +2050,8 @@ class TeamService(object):
         hub_type = self.normalize_registry_hub_type(hub_type)
         try:
             base_url = self._registry_base_url(domain)
-            parsed_url = urlparse(domain)
-            
+            _ = urlparse(domain)
+
             if hub_type == "Harbor":
                 # Harbor API
                 current_page = 1
@@ -1987,14 +2059,8 @@ class TeamService(object):
                 namespaces = []
 
                 while True:
-                    api_url = "{}/api/v2.0/projects?page={}&page_size={}".format(
-                        base_url, current_page, fetch_page_size)
-                    response = requests.get(
-                        api_url,
-                        auth=(username, password),
-                        verify=False,
-                        timeout=10
-                    )
+                    api_url = "{}/api/v2.0/projects?page={}&page_size={}".format(base_url, current_page, fetch_page_size)
+                    response = requests.get(api_url, auth=(username, password), verify=False, timeout=10)
                     if response.status_code != 200:
                         break
 
@@ -2009,16 +2075,14 @@ class TeamService(object):
                     if not total_count and len(projects) < fetch_page_size:
                         return namespaces
                     current_page += 1
-                    
+
             elif hub_type == "Docker":
                 if "docker.io" in domain:
                     # Docker Hub API
                     api_url = "https://hub.docker.com/v2/repositories/{}/".format(username)
-                    response = requests.get(
-                        api_url,
-                        headers={"Authorization": "JWT " + self._get_dockerhub_token(username, password)},
-                        timeout=10
-                    )
+                    response = requests.get(api_url,
+                                            headers={"Authorization": "JWT " + self._get_dockerhub_token(username, password)},
+                                            timeout=10)
                     if response.status_code == 200:
                         namespaces = response.json().get("namespaces", [])
                         if username not in namespaces:
@@ -2037,53 +2101,52 @@ class TeamService(object):
                             else:
                                 namespace_set.add("library")
                         return list(namespace_set) or ["library"]
-                    
+
             elif hub_type in self.CLOUD_REGISTRY_HUB_TYPES:
                 return self._get_registry_v2_namespaces(base_url, username, password)
 
-            raise ServiceHandleException(
-                msg="failed to get registry namespaces, status:{}".format(response.status_code),
-                msg_show="获取镜像仓库命名空间失败",
-                status_code=response.status_code)
-            
+            raise ServiceHandleException(msg="failed to get registry namespaces, status:{}".format(response.status_code),
+                                         msg_show="获取镜像仓库命名空间失败",
+                                         status_code=response.status_code)
+
         except requests.exceptions.RequestException as e:
             logger.exception(e)
-            raise ServiceHandleException(
-                msg="failed to connect registry: {}".format(e),
-                msg_show="连接镜像仓库失败",
-                status_code=500)
+            raise ServiceHandleException(msg="failed to connect registry: {}".format(e), msg_show="连接镜像仓库失败", status_code=500)
 
     def _get_dockerhub_token(self, username: str, password: str) -> Any:
         """获取Docker Hub的JWT token"""
         try:
-            response = requests.post(
-                "https://hub.docker.com/v2/users/login/",
-                json={
-                    "username": username,
-                    "password": password
-                },
-                timeout=10
-            )
+            response = requests.post("https://hub.docker.com/v2/users/login/",
+                                     json={
+                                         "username": username,
+                                         "password": password
+                                     },
+                                     timeout=10)
             if response.status_code == 200:
                 return response.json().get("token")
-            raise ServiceHandleException(
-                msg="failed to get docker hub token",
-                msg_show="Docker Hub认证失败",
-                status_code=response.status_code)
+            raise ServiceHandleException(msg="failed to get docker hub token",
+                                         msg_show="Docker Hub认证失败",
+                                         status_code=response.status_code)
         except requests.exceptions.RequestException as e:
             logger.exception(e)
-            raise ServiceHandleException(
-                msg="failed to connect docker hub: {}".format(e),
-                msg_show="连接Docker Hub失败", 
-                status_code=500)
+            raise ServiceHandleException(msg="failed to connect docker hub: {}".format(e),
+                                         msg_show="连接Docker Hub失败",
+                                         status_code=500)
 
-    def get_registry_images(self, domain: str, username: str, password: str, hub_type: str, namespace: str, page: int = 1,
-                            page_size: int = 10, search_key: Optional[str] = None) -> dict:
+    def get_registry_images(self,
+                            domain: str,
+                            username: str,
+                            password: str,
+                            hub_type: str,
+                            namespace: str,
+                            page: int = 1,
+                            page_size: int = 10,
+                            search_key: Optional[str] = None) -> dict:
         """获取指定命名空间下的镜像列表,支持分页和搜索
-        
+
         Args:
             search_key (str): 搜索关键字,用于过滤镜像名称
-            
+
         Returns:
             dict: 包含镜像详细信息的字典
         """
@@ -2092,26 +2155,22 @@ class TeamService(object):
         try:
             base_url = self._registry_base_url(domain)
             if hub_type in self.CLOUD_REGISTRY_HUB_TYPES:
-                return self._get_registry_v2_images(base_url, username, password, hub_type, namespace, page, page_size, search_key)
-            parsed_url = urlparse(domain)
-            
+                return self._get_registry_v2_images(base_url, username, password, hub_type, namespace, page, page_size,
+                                                    search_key)
+            _ = urlparse(domain)
+
             if hub_type == "Harbor":
                 # Harbor API 支持搜索
                 api_url = "{}/api/v2.0/projects/{}/repositories?page={}&page_size={}".format(
                     base_url, namespace, page, page_size)
                 if search_key:
                     api_url += "&q=name=~{}".format(search_key)
-                    
-                response = requests.get(
-                    api_url,
-                    auth=(username, password),
-                    verify=False,
-                    timeout=10
-                )
+
+                response = requests.get(api_url, auth=(username, password), verify=False, timeout=10)
                 if response.status_code == 200:
                     repositories = response.json()
                     total = int(response.headers.get('X-Total-Count', 0))
-                    
+
                     images = []
                     for repo in repositories:
                         # 使用 split("/", 1)[1] 保留完整的相对路径（如 zq/zq-ng）
@@ -2121,21 +2180,16 @@ class TeamService(object):
                             "namespace": namespace,
                             "description": repo.get("description", ""),
                             "is_public": not repo.get("private", True),
-                            "pull_count": repo.get("pull_count", 0), 
+                            "pull_count": repo.get("pull_count", 0),
                             "star_count": 0,
                             "created_at": repo.get("creation_time", ""),
                             "updated_at": repo.get("update_time", ""),
                             "status": "active" if repo.get("status", "") == "active" else "inactive",
                             "registry_type": "Harbor"
                         })
-                    
-                    return {
-                        "images": images,
-                        "total": total,
-                        "page": page,
-                        "page_size": page_size
-                    }
-                    
+
+                    return {"images": images, "total": total, "page": page, "page_size": page_size}
+
             elif hub_type == "Docker":
                 if "docker.io" in domain:
                     # Docker Hub API 支持搜索
@@ -2143,12 +2197,10 @@ class TeamService(object):
                         namespace, page, page_size)
                     if search_key:
                         api_url += "&name={}".format(search_key)
-                    
-                    response = requests.get(
-                        api_url,
-                        headers={"Authorization": "JWT " + self._get_dockerhub_token(username, password)},
-                        timeout=10
-                    )
+
+                    response = requests.get(api_url,
+                                            headers={"Authorization": "JWT " + self._get_dockerhub_token(username, password)},
+                                            timeout=10)
                     if response.status_code == 200:
                         data = response.json()
                         repositories = data.get("results", [])
@@ -2166,13 +2218,8 @@ class TeamService(object):
                                 "status": repo.get("status", "active"),
                                 "registry_type": "Docker"
                             })
-                        
-                        return {
-                            "images": images,
-                            "total": data.get("count", 0),
-                            "page": page,
-                            "page_size": page_size
-                        }
+
+                        return {"images": images, "total": data.get("count", 0), "page": page, "page_size": page_size}
                 else:
                     # 自建 Docker Registry API v2
                     repositories, response = self._get_registry_v2_catalog(base_url, username, password)
@@ -2182,21 +2229,19 @@ class TeamService(object):
                             filtered_repos = [r for r in repositories if "/" not in r]
                         else:
                             filtered_repos = [r.split("/", 1)[1] for r in repositories if r.startswith(namespace + "/")]
-                        
+
                         # 搜索过滤
                         if search_key:
                             filtered_repos = [r for r in filtered_repos if search_key.lower() in r.lower()]
-                        
+
                         total = len(filtered_repos)
                         start = (page - 1) * page_size
                         end = start + page_size
                         paginated_repos = filtered_repos[start:end]
                         repo_names = [
-                            repo if namespace == "library" else "{}/{}".format(namespace, repo)
-                            for repo in paginated_repos
+                            repo if namespace == "library" else "{}/{}".format(namespace, repo) for repo in paginated_repos
                         ]
-                        metadata = self._get_registry_images_metadata(
-                            base_url, repo_names, username, password)
+                        metadata = self._get_registry_images_metadata(base_url, repo_names, username, password)
 
                         images = []
                         for repo, repo_metadata in zip(paginated_repos, metadata):
@@ -2212,33 +2257,32 @@ class TeamService(object):
                                 "status": "active",
                                 "registry_type": "Docker"
                             })
-                        
-                        return {
-                            "images": images,
-                            "total": total,
-                            "page": page,
-                            "page_size": page_size
-                        }
 
-            raise ServiceHandleException(
-                msg="failed to get registry images, status:{}".format(response.status_code),
-                msg_show="获取镜像列表失败",
-                status_code=response.status_code)
-            
+                        return {"images": images, "total": total, "page": page, "page_size": page_size}
+
+            raise ServiceHandleException(msg="failed to get registry images, status:{}".format(response.status_code),
+                                         msg_show="获取镜像列表失败",
+                                         status_code=response.status_code)
+
         except requests.exceptions.RequestException as e:
             logger.exception(e)
-            raise ServiceHandleException(
-                msg="failed to connect registry: {}".format(e),
-                msg_show="连接镜像仓库失败",
-                status_code=500)
+            raise ServiceHandleException(msg="failed to connect registry: {}".format(e), msg_show="连接镜像仓库失败", status_code=500)
 
-    def get_registry_tags(self, domain: str, username: str, password: str, hub_type: str, namespace: str, name: str,
-                           page: int = 1, page_size: int = 10, search_key: Optional[str] = None) -> dict:
+    def get_registry_tags(self,
+                          domain: str,
+                          username: str,
+                          password: str,
+                          hub_type: str,
+                          namespace: str,
+                          name: str,
+                          page: int = 1,
+                          page_size: int = 10,
+                          search_key: Optional[str] = None) -> dict:
         """获取指定镜像的标签列表,支持分页和搜索
-        
+
         Args:
             search_key (str): 标签名称搜索关键字
-            
+
         Returns:
             dict: 包含标签详细信息的字典
         """
@@ -2248,8 +2292,8 @@ class TeamService(object):
             base_url = self._registry_base_url(domain)
             if hub_type in self.CLOUD_REGISTRY_HUB_TYPES:
                 return self._get_registry_v2_tags(base_url, username, password, namespace, name, page, page_size, search_key)
-            parsed_url = urlparse(domain)
-            
+            _ = urlparse(domain)
+
             if hub_type == "Docker":
                 if "docker.io" in domain:
                     # Docker Hub API
@@ -2257,16 +2301,14 @@ class TeamService(object):
                         namespace, name, page, page_size)
                     if search_key:
                         api_url += "&name={}".format(search_key)
-                    
-                    response = requests.get(
-                        api_url,
-                        headers={"Authorization": "JWT " + self._get_dockerhub_token(username, password)},
-                        timeout=10
-                    )
+
+                    response = requests.get(api_url,
+                                            headers={"Authorization": "JWT " + self._get_dockerhub_token(username, password)},
+                                            timeout=10)
                     if response.status_code == 200:
                         data = response.json()
                         tags = []
-                        
+
                         for tag in data.get("results", []):
                             image_detail = tag.get("images", [{}])[0] if tag.get("images") else {}
                             tags.append({
@@ -2279,13 +2321,8 @@ class TeamService(object):
                                 "architecture": image_detail.get("architecture", ""),
                                 "status": tag.get("status", "active")
                             })
-                        
-                        return {
-                            "tags": tags,
-                            "total": data.get("count", 0),
-                            "page": page,
-                            "page_size": page_size
-                        }
+
+                        return {"tags": tags, "total": data.get("count", 0), "page": page, "page_size": page_size}
                 else:
                     # 自建 Docker Registry API v2
                     repo_name = name if namespace == "library" else f"{namespace}/{name}"
@@ -2294,17 +2331,17 @@ class TeamService(object):
                         all_tags = response.json().get("tags", [])
                         if search_key:
                             all_tags = [t for t in all_tags if search_key.lower() in t.lower()]
-                        
+
                         total = len(all_tags)
                         start = (page - 1) * page_size
                         end = start + page_size
                         paginated_tags = all_tags[start:end]
-                        
+
                         tags = []
                         for tag_name in paginated_tags:
                             # 获取标签详细信息
                             tag_info = self._get_registry_tag_info(base_url, repo_name, tag_name, username, password)
-                            
+
                             tags.append({
                                 "name": tag_name,
                                 "size": tag_info["size"],
@@ -2315,13 +2352,8 @@ class TeamService(object):
                                 "architecture": tag_info["architecture"],
                                 "status": "active"
                             })
-                        
-                        return {
-                            "tags": tags,
-                            "total": total,
-                            "page": page,
-                            "page_size": page_size
-                        }
+
+                        return {"tags": tags, "total": total, "page": page, "page_size": page_size}
             elif hub_type == "Harbor":
                 # Harbor API v2.0
                 # 先获取所有 artifacts，然后在客户端进行 tag 过滤和分页
@@ -2338,26 +2370,22 @@ class TeamService(object):
 
                 first_request = True
                 while True:
-                    api_url = "{}/api/v2.0/projects/{}/repositories/{}/artifacts?page={}&page_size={}&with_tag=true&with_label=false".format(
-                        base_url, namespace, encoded_name, current_page, fetch_page_size)
+                    api_url = (
+                        '{}/api/v2.0/projects/{}/repositories/{}/artifacts?page={}&page_size={}&with_tag=true&with_label='
+                        'false').format(base_url, namespace, encoded_name, current_page, fetch_page_size)
 
                     logger.debug("Harbor API request: {}".format(api_url))
-                    response = requests.get(
-                        api_url,
-                        headers=headers,
-                        verify=False,
-                        timeout=10
-                    )
+                    response = requests.get(api_url, headers=headers, verify=False, timeout=10)
 
                     if response.status_code != 200:
                         # 第一次请求就失败，说明仓库或镜像不存在
                         if first_request:
                             logger.warning("Harbor API failed: status={}, url={}, response={}".format(
                                 response.status_code, api_url, response.text[:500] if response.text else ""))
-                            raise ServiceHandleException(
-                                msg="failed to get registry tags, status:{}".format(response.status_code),
-                                msg_show="获取镜像标签失败，请检查镜像是否存在",
-                                status_code=response.status_code)
+                            raise ServiceHandleException(msg="failed to get registry tags, status:{}".format(
+                                response.status_code),
+                                                         msg_show="获取镜像标签失败，请检查镜像是否存在",
+                                                         status_code=response.status_code)
                         break
                     first_request = False
 
@@ -2402,37 +2430,33 @@ class TeamService(object):
                 end = start + page_size
                 paginated_tags = all_tags[start:end]
 
-                return {
-                    "tags": paginated_tags,
-                    "total": total,
-                    "page": page,
-                    "page_size": page_size
-                }
+                return {"tags": paginated_tags, "total": total, "page": page, "page_size": page_size}
 
-            raise ServiceHandleException(
-                msg="failed to get registry tags, status:{}".format(response.status_code),
-                msg_show="获取镜像标签失败",
-                status_code=response.status_code)
-            
+            raise ServiceHandleException(msg="failed to get registry tags, status:{}".format(response.status_code),
+                                         msg_show="获取镜像标签失败",
+                                         status_code=response.status_code)
+
         except requests.exceptions.RequestException as e:
             logger.exception(e)
-            raise ServiceHandleException(
-                msg="failed to connect registry: {}".format(e),
-                msg_show="连接镜像仓库失败",
-                status_code=500)
+            raise ServiceHandleException(msg="failed to connect registry: {}".format(e), msg_show="连接镜像仓库失败", status_code=500)
 
-    def _get_registry_tag_info(self, base_url: str, repo_name: str, tag_name: str,
-                               username: str, password: str, session: Optional[Any] = None,
+    def _get_registry_tag_info(self,
+                               base_url: str,
+                               repo_name: str,
+                               tag_name: str,
+                               username: str,
+                               password: str,
+                               session: Optional[Any] = None,
                                bearer_token_cache: Optional[Dict[str, str]] = None) -> dict:
         """获取 Docker Registry 标签的详细信息
-        
+
         Args:
             base_url: 仓库基础URL
             repo_name: 仓库名称
             tag_name: 标签名称
             username: 仓库用户名
             password: 仓库密码
-            
+
         Returns:
             dict: 包含标签详细信息的字典
         """
@@ -2446,7 +2470,7 @@ class TeamService(object):
                 session=session,
                 bearer_token_cache=bearer_token_cache,
             )
-            
+
             if manifest_response.status_code == 200:
                 manifest = manifest_response.json()
                 manifest_digest = manifest_response.headers.get("Docker-Content-Digest", "")
@@ -2486,49 +2510,40 @@ class TeamService(object):
                         }
         except requests.exceptions.RequestException as e:
             logger.exception(e)
-        
-        return {
-            "updated_at": "",
-            "created_at": "",
-            "digest": "",
-            "os": "",
-            "architecture": "",
-            "size": 0
-        }
+
+        return {"updated_at": "", "created_at": "", "digest": "", "os": "", "architecture": "", "size": 0}
 
     def get_full_image_name(self, domain: str, hub_type: str, namespace: str, name: str, tag: str) -> str:
         """获取完整的镜像地址
-        
+
         Args:
             domain: 镜像仓库域名
             hub_type: 仓库类型
             namespace: 命名空间
             name: 镜像名称
             tag: 标签
-            
+
         Returns:
             str: 完整的镜像地址
         """
         try:
             parsed_url = urlparse(domain)
             registry = parsed_url.netloc
-            
+
             if hub_type == "Docker" and registry == "hub.docker.com":
                 # Docker Hub的特殊处理
                 if namespace == "library":
-                    # NOTE: format string has 3 placeholders but only 2 args -> IndexError at runtime; latent bug.
-                    return "{}/{}:{}".format(name, tag)  # type: ignore[str-format]
+                    return "{}:{}".format(name, tag)
                 return "{}/{}:{}".format(namespace, name, tag)
-            
+
             # 其他类型仓库
             return "{}/{}/{}:{}".format(registry, namespace, name, tag)
-            
+
         except Exception as e:
             logger.exception(e)
-            raise ServiceHandleException(
-                msg="failed to generate full image name: {}".format(e),
-                msg_show="生成完整镜像地址失败",
-                status_code=500)
+            raise ServiceHandleException(msg="failed to generate full image name: {}".format(e),
+                                         msg_show="生成完整镜像地址失败",
+                                         status_code=500)
 
     def get_user_team_details(self, user: Users) -> list:
         """
@@ -2536,18 +2551,15 @@ class TeamService(object):
         """
         # 获取所有启用状态的集群
         regions = RegionConfig.objects.filter(status='1')
-        
+
         # 获取用户创建的团队
         teams = Tenants.objects.filter(creater=user.user_id)
-        
+
         # 获取团队与集群的关联关系
         team_region_map: Dict[Any, List[Any]] = {}
         team_ids = [t.tenant_id for t in teams]
-        team_regions = TenantRegionInfo.objects.filter(
-            tenant_id__in=team_ids,
-            is_active=True
-        )
-        
+        team_regions = TenantRegionInfo.objects.filter(tenant_id__in=team_ids, is_active=True)
+
         # 构建团队和集群的映射关系
         for tr in team_regions:
             if tr.region_name not in team_region_map:
@@ -2556,7 +2568,7 @@ class TeamService(object):
 
         # 获取所有相关的应用信息
         service_groups = ServiceGroup.objects.filter(tenant_id__in=team_ids)
-        
+
         # 获取应用与region_app的映射关系
         app_ids = [sg.ID for sg in service_groups]
         region_apps = RegionApp.objects.filter(app_id__in=app_ids)
@@ -2566,11 +2578,11 @@ class TeamService(object):
         group_service_map: Dict[Any, List[Any]] = {}
         group_relations = ServiceGroupRelation.objects.filter(group_id__in=app_ids)
         service_ids = [gr.service_id for gr in group_relations]
-        
+
         # 获取组件信息
         services = TenantServiceInfo.objects.filter(service_id__in=service_ids)
         service_map = {s.service_id: s for s in services}
-        
+
         # 构建应用与组件的映射关系
         for relation in group_relations:
             if relation.group_id not in group_service_map:
@@ -2600,7 +2612,7 @@ class TeamService(object):
         for region in regions:
             team_ids = team_region_map.get(region.region_name, [])
             region_teams = [t for t in teams if t.tenant_id in team_ids]
-            
+
             namespaces = []
             for team in region_teams:
                 namespaces.append({
@@ -2615,7 +2627,7 @@ class TeamService(object):
                 "region_alias": region.region_alias,
                 "namespaces": namespaces
             })
-            
+
         return region_list
 
     @staticmethod

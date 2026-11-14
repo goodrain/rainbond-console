@@ -14,8 +14,18 @@ sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
 django.setup()
 
-from console.exception.main import ServiceHandleException
-from console.services.mcp_query_service import mcp_query_service
+
+def _load_test_dependencies():
+    """Keep the existing post-Django-setup import order and module bindings."""
+    from console.exception.main import ServiceHandleException
+    from console.services.mcp_query_service import mcp_query_service
+    return (
+        ServiceHandleException,
+        mcp_query_service,
+    )
+
+
+ServiceHandleException, mcp_query_service = _load_test_dependencies()
 
 
 class Obj(object):
@@ -59,12 +69,12 @@ class ManageComponentStorageTests(SimpleTestCase):
         empty_query.values.return_value = []
         with patch.object(mcp_query_service, "_get_team_app_service_context", return_value=(team, app, service)):
             with patch(
-                "console.services.mcp_query_service.volume_repo.get_service_volumes_with_config_file",
-                return_value=empty_query,
+                    "console.services.mcp_query_service.volume_repo.get_service_volumes_with_config_file",
+                    return_value=empty_query,
             ):
                 with patch(
-                    "console.services.mcp_query_service.volume_service.add_service_volume",
-                    return_value=volume,
+                        "console.services.mcp_query_service.volume_service.add_service_volume",
+                        return_value=volume,
                 ) as mock_add:
                     result = mcp_query_service.manage_component_storage(user, arguments)
 
@@ -96,8 +106,8 @@ class ManageComponentStorageTests(SimpleTestCase):
         }
         with patch.object(mcp_query_service, "_get_team_app_service_context", return_value=(team, app, service)):
             with patch(
-                "console.services.mcp_query_service.volume_service.delete_service_volume_by_id",
-                return_value=(202, "has dependents", ["dep-1"]),
+                    "console.services.mcp_query_service.volume_service.delete_service_volume_by_id",
+                    return_value=(202, "has dependents", ["dep-1"]),
             ) as mock_delete:
                 result = mcp_query_service.manage_component_storage(user, arguments)
 
@@ -120,12 +130,12 @@ class ManageComponentStorageTests(SimpleTestCase):
             "volume_id": 8,
         }
         volume = Obj(volume_id=55, volume_name="bulk-vol", volume_path="/data", volume_type="nas")
-        with patch.object(
-            mcp_query_service, "_get_team_app_service_context", return_value=(context_team, context_app, context_service)
-        ):
+        with patch.object(mcp_query_service,
+                          "_get_team_app_service_context",
+                          return_value=(context_team, context_app, context_service)):
             with patch(
-                "console.services.mcp_query_service.volume_service.delete_service_volume_by_id",
-                return_value=(200, "deleted", volume),
+                    "console.services.mcp_query_service.volume_service.delete_service_volume_by_id",
+                    return_value=(200, "deleted", volume),
             ) as mock_delete:
                 result = mcp_query_service.manage_component_storage(user, arguments)
 
@@ -139,7 +149,14 @@ class ManageComponentStorageTests(SimpleTestCase):
         team, app, service = self._make_context()
         service.service_alias = "service-1"
         user = self._make_user()
-        volume = Obj(ID=11, volume_id=11, service_id="service-1", volume_name="data-vol", volume_path="/data", volume_type="nas", volume_capacity=10, mode=None)
+        volume = Obj(ID=11,
+                     volume_id=11,
+                     service_id="service-1",
+                     volume_name="data-vol",
+                     volume_path="/data",
+                     volume_type="nas",
+                     volume_capacity=10,
+                     mode=None)
         volume.save = mock.Mock()
         arguments = {
             "team_name": "team-1",
@@ -156,8 +173,8 @@ class ManageComponentStorageTests(SimpleTestCase):
                 with patch("console.services.mcp_query_service.volume_repo.get_service_volume_by_pk", return_value=volume):
                     with patch("console.services.mcp_query_service.volume_repo.get_service_config_file", return_value=None):
                         with patch(
-                            "console.services.mcp_query_service.region_api.upgrade_service_volumes",
-                            return_value=(Obj(status=200), {}),
+                                "console.services.mcp_query_service.region_api.upgrade_service_volumes",
+                                return_value=(Obj(status=200), {}),
                         ) as mock_region:
                             result = mcp_query_service.manage_component_storage(user, arguments)
 
@@ -171,7 +188,13 @@ class ManageComponentStorageTests(SimpleTestCase):
         team, app, service = self._make_context()
         service.service_alias = "service-1"
         user = self._make_user()
-        volume = Obj(ID=11, service_id="service-1", volume_name="data-vol", volume_path="/data", volume_type="nas", volume_capacity=10, mode=None)
+        volume = Obj(ID=11,
+                     service_id="service-1",
+                     volume_name="data-vol",
+                     volume_path="/data",
+                     volume_type="nas",
+                     volume_capacity=10,
+                     mode=None)
         volume.save = mock.Mock()
         arguments = {
             "team_name": "team-1",
@@ -210,8 +233,8 @@ class ManageComponentStorageTests(SimpleTestCase):
         with patch.object(mcp_query_service, "_get_team_app_service_context", return_value=(team, app, service)):
             with patch("console.services.mcp_query_service.volume_repo.get_service_volume_by_name", return_value=volume):
                 with patch(
-                    "console.services.mcp_query_service.volume_service.delete_service_volume_by_id",
-                    return_value=(200, "deleted", deleted_volume),
+                        "console.services.mcp_query_service.volume_service.delete_service_volume_by_id",
+                        return_value=(200, "deleted", deleted_volume),
                 ) as mock_delete:
                     result = mcp_query_service.manage_component_storage(user, arguments)
 
@@ -256,8 +279,12 @@ class ManageComponentStorageTests(SimpleTestCase):
         with patch.object(mcp_query_service, "_get_team_app_service_context", return_value=(team, app, service)):
             with patch("console.services.mcp_query_service.mnt_service.batch_mnt_serivce_volume") as mock_batch:
                 with patch(
-                    "console.services.mcp_query_service.mnt_service.get_service_mnt_details_byid",
-                    return_value=[{"dep_vol_id": 101}, {"dep_vol_id": 102}],
+                        "console.services.mcp_query_service.mnt_service.get_service_mnt_details_byid",
+                        return_value=[{
+                            "dep_vol_id": 101
+                        }, {
+                            "dep_vol_id": 102
+                        }],
                 ) as mock_details:
                     result = mcp_query_service.manage_component_storage(user, arguments)
 
@@ -280,21 +307,31 @@ class ManageComponentStorageTests(SimpleTestCase):
             "operation": "summary",
         }
         all_volumes = [
-            {"volume_id": 21, "volume_name": "cfg", "volume_type": "config-file", "volume_path": "/etc/app/conf.json"},
-            {"volume_id": 22, "volume_name": "data", "volume_type": "nas", "volume_path": "/data"},
+            {
+                "volume_id": 21,
+                "volume_name": "cfg",
+                "volume_type": "config-file",
+                "volume_path": "/etc/app/conf.json"
+            },
+            {
+                "volume_id": 22,
+                "volume_name": "data",
+                "volume_type": "nas",
+                "volume_path": "/data"
+            },
         ]
         with patch.object(mcp_query_service, "_get_team_app_service_context", return_value=(team, app, service)):
             with patch(
-                "console.services.mcp_query_service.volume_service.get_service_support_volume_options",
-                return_value=[],
+                    "console.services.mcp_query_service.volume_service.get_service_support_volume_options",
+                    return_value=[],
             ):
                 with patch(
-                    "console.services.mcp_query_service.volume_service.get_all_service_volumes_with_status",
-                    return_value=all_volumes,
+                        "console.services.mcp_query_service.volume_service.get_all_service_volumes_with_status",
+                        return_value=all_volumes,
                 ) as mock_all:
                     with patch(
-                        "console.services.mcp_query_service.mnt_service.get_service_mnt_details",
-                        return_value=([], 0),
+                            "console.services.mcp_query_service.mnt_service.get_service_mnt_details",
+                            return_value=([], 0),
                     ):
                         result = mcp_query_service.manage_component_storage(user, arguments)
 
@@ -321,12 +358,10 @@ class ManageComponentStorageTests(SimpleTestCase):
         existing_query.values.return_value = [{"volume_path": "/etc/app/config.json"}]
         with patch.object(mcp_query_service, "_get_team_app_service_context", return_value=(team, app, service)):
             with patch(
-                "console.services.mcp_query_service.volume_repo.get_service_volumes_with_config_file",
-                return_value=existing_query,
+                    "console.services.mcp_query_service.volume_repo.get_service_volumes_with_config_file",
+                    return_value=existing_query,
             ):
-                with patch(
-                    "console.services.mcp_query_service.volume_service.add_service_volume"
-                ) as mock_add:
+                with patch("console.services.mcp_query_service.volume_service.add_service_volume") as mock_add:
                     with self.assertRaises(ServiceHandleException) as ctx:
                         mcp_query_service.manage_component_storage(user, arguments)
 
@@ -350,9 +385,7 @@ class ManageComponentStorageTests(SimpleTestCase):
             "new_file_content": "server {}",
         }
         with patch.object(mcp_query_service, "_get_team_app_service_context", return_value=(team, app, service)):
-            with patch(
-                "console.services.mcp_query_service.volume_service.add_service_volume"
-            ) as mock_add:
+            with patch("console.services.mcp_query_service.volume_service.add_service_volume") as mock_add:
                 with self.assertRaises(ServiceHandleException) as ctx:
                     mcp_query_service.manage_component_storage(user, arguments)
 
@@ -378,9 +411,7 @@ class ManageComponentStorageTests(SimpleTestCase):
             "new_file_content": "server {}",
         }
         with patch.object(mcp_query_service, "_get_team_app_service_context", return_value=(team, app, service)):
-            with patch(
-                "console.services.mcp_query_service.volume_service.add_service_volume"
-            ) as mock_add:
+            with patch("console.services.mcp_query_service.volume_service.add_service_volume") as mock_add:
                 with self.assertRaises(ServiceHandleException) as ctx:
                     mcp_query_service.manage_component_storage(user, arguments)
 
@@ -402,9 +433,8 @@ class ManageComponentStorageTests(SimpleTestCase):
             "dep_vol_id": 77,
         }
         with patch.object(mcp_query_service, "_get_team_app_service_context", return_value=(team, app, service)):
-            with patch(
-                "console.services.mcp_query_service.mnt_service.delete_service_mnt_relation", return_value=(200, "ok")
-            ) as mock_delete:
+            with patch("console.services.mcp_query_service.mnt_service.delete_service_mnt_relation",
+                       return_value=(200, "ok")) as mock_delete:
                 result = mcp_query_service.manage_component_storage(user, arguments)
 
         mock_delete.assert_called_once_with(team, service, 77, user.nick_name)

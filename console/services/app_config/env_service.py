@@ -58,13 +58,13 @@ class AppEnvVarService(object):
             raise InvalidEnvName(msg)
 
     def create_env_var(self,
-                        service: Any,
-                        container_port: int,
-                        name: str,
-                        attr_name: str,
-                        attr_value: Any,
-                        is_change: bool = False,
-                        scope: str = "outer") -> TenantServiceEnvVar:
+                       service: Any,
+                       container_port: int,
+                       name: str,
+                       attr_name: str,
+                       attr_value: Any,
+                       is_change: bool = False,
+                       scope: str = "outer") -> TenantServiceEnvVar:
         """
         raise: EnvAlreadyExist
         raise: InvalidEnvName
@@ -194,17 +194,20 @@ class AppEnvVarService(object):
             return env_var_repo.get_service_env(service.tenant_id, service.service_id).exclude(container_port=-1, scope="outer")
         return None
 
-    def get_service_inner_env(self, service: Any) -> Any:  # true type QuerySet|None; callers iterate directly (see get_self_define_env)
+    def get_service_inner_env(
+            self, service: Any) -> Any:  # true type QuerySet|None; callers iterate directly (see get_self_define_env)
         if service:
             return env_var_repo.get_service_env(service.tenant_id, service.service_id).filter(scope="inner")
         return None
 
-    def get_service_outer_env(self, service: Any) -> Any:  # true type QuerySet|None; callers iterate directly (see get_self_define_env)
+    def get_service_outer_env(
+            self, service: Any) -> Any:  # true type QuerySet|None; callers iterate directly (see get_self_define_env)
         if service:
             return env_var_repo.get_service_env(service.tenant_id, service.service_id).filter(scope__in=("outer", "both"))
         return None
 
-    def get_service_build_envs(self, service: Any) -> Any:  # true type QuerySet|None; callers iterate directly (see get_self_define_env)
+    def get_service_build_envs(
+            self, service: Any) -> Any:  # true type QuerySet|None; callers iterate directly (see get_self_define_env)
         if service:
             return env_var_repo.get_service_env_by_scope(service.tenant_id, service.service_id, scope="build")
         return None
@@ -242,7 +245,8 @@ class AppEnvVarService(object):
         new_env = env_var_repo.add_service_env(**tenant_service_env_var)
         return 200, 'success', new_env
 
-    def get_changeable_env(self, service: Any) -> Any:  # true type QuerySet|None; callers iterate directly (see get_self_define_env)
+    def get_changeable_env(self,
+                           service: Any) -> Any:  # true type QuerySet|None; callers iterate directly (see get_self_define_env)
         if service:
             return env_var_repo.get_service_env(service.tenant_id, service.service_id).exclude(is_change=False)
         return None

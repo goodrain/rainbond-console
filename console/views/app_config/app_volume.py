@@ -25,7 +25,7 @@ logger = logging.getLogger("default")
 
 
 def ensure_volume_mode(mode: Any) -> Any:
-    if type(mode) != int:
+    if type(mode) is not int:
         raise AbortRequest("mode be a number between 0 and 777 (octal)", msg_show="权限必须是在0和777之间的八进制数")
     regex = re.compile(r"^[0-7]{1,3}$")
     if not regex.match(str(mode)):

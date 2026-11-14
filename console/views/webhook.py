@@ -210,7 +210,8 @@ class WebHooksDeploy(AlowAnyApiView):
                 git_http_url = repository.get("git_http_url")
                 gitlab_ssh_url = repository.get("git_ssh_url")
 
-                code, msg, msg_show = self._check_warehouse(service_obj.git_url, git_http_url, gitlab_ssh_url)  # type: ignore[arg-type]
+                code, msg, msg_show = self._check_warehouse(service_obj.git_url, git_http_url,  # type: ignore[arg-type]
+                                                            gitlab_ssh_url)  # type: ignore[arg-type]
                 if code != 200:
                     return Response(general_message(200, msg, msg_show), status=200)
 

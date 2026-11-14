@@ -10,12 +10,23 @@ sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
 
-import django
 
-django.setup()
+def _load_test_dependencies():
+    """Keep the existing post-Django-setup import order and module bindings."""
+    import django
 
-from console.utils.urlutil import is_path_legal
-from console.utils.urlutil import set_get_url
+    django.setup()
+
+    from console.utils.urlutil import is_path_legal
+    from console.utils.urlutil import set_get_url
+    return (
+        django,
+        is_path_legal,
+        set_get_url,
+    )
+
+
+django, is_path_legal, set_get_url = _load_test_dependencies()
 
 
 class UrlUtilTests(TestCase):

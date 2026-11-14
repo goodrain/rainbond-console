@@ -2,7 +2,7 @@
 该文件主要是对管理端构建语言版本的操作，包括创建、更新、删除、展示等操作。
 """
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from console.repositories.app_config import compile_env_repo
 
@@ -70,12 +70,7 @@ class RegionLongVersion(object):
         build_strategy: Optional[str] = None,
         is_allowed: Optional[bool] = None,
     ) -> Any:
-        data: Dict[str, Any] = {
-            "lang": lang,
-            "version": version,
-            "show": show,
-            "first_choice": first_choice
-        }
+        data: Dict[str, Any] = {"lang": lang, "version": version, "show": show, "first_choice": first_choice}
         if build_strategy:
             data["build_strategy"] = build_strategy
         if is_allowed is not None:

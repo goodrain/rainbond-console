@@ -34,7 +34,8 @@ class ComponentGroup(object):
         """
         Optimization: the component group should save the source of the app template itself.
         """
-        components = group_service.get_rainbond_services(self.app_id, self.app_model_key, self.upgrade_group_id)  # type: ignore[arg-type]
+        components = group_service.get_rainbond_services(self.app_id, self.app_model_key,  # type: ignore[arg-type]
+                                                         self.upgrade_group_id)  # type: ignore[arg-type]
         # NOTE: get_rainbond_services annotated as str params but called with int IDs
         if not components:
             raise AbortRequest("components not found", "找不到组件", status_code=404, error_code=404)

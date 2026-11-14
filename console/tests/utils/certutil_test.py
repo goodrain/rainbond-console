@@ -5,23 +5,50 @@ import os
 import sys
 from types import ModuleType
 
+from cryptography.hazmat.primitives import serialization
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "src", "openapi-client")))
 sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
 
-import django
 
-django.setup()
+def _load_test_dependencies():
+    """Keep the existing post-Django-setup import order and module bindings."""
+    import django
 
-from OpenSSL import crypto
+    django.setup()
 
-from console.exception.main import ServiceHandleException
-from console.utils.certutil import analyze_cert
-from console.utils.certutil import cert_is_effective
-from console.utils.certutil import parse_subject_alt_names
-from console.utils.certutil import utc2local
-from console.utils.certutil import validate_ca_certificate  # noqa: E402
+    from OpenSSL import crypto
+
+    from console.exception.main import ServiceHandleException
+    from console.utils.certutil import analyze_cert
+    from console.utils.certutil import cert_is_effective
+    from console.utils.certutil import parse_subject_alt_names
+    from console.utils.certutil import utc2local
+    from console.utils.certutil import validate_ca_certificate  # noqa: E402
+    return (
+        django,
+        crypto,
+        ServiceHandleException,
+        analyze_cert,
+        cert_is_effective,
+        parse_subject_alt_names,
+        utc2local,
+        validate_ca_certificate,
+    )
+
+
+(
+    django,
+    crypto,
+    ServiceHandleException,
+    analyze_cert,
+    cert_is_effective,
+    parse_subject_alt_names,
+    utc2local,
+    validate_ca_certificate,
+) = _load_test_dependencies()
 
 
 class CertUtilTests(TestCase):
@@ -95,6 +122,23 @@ class CertUtilTests(TestCase):
         wrong_key_pem = crypto.dump_privatekey(crypto.FILETYPE_PEM, wrong_key)
         with self.assertRaises(ServiceHandleException):
             cert_is_effective(cert_pem, wrong_key_pem)
+
+    # capability_id: console.cert.key-format-compatibility
+    def test_cert_is_effective_matches_equivalent_private_key_encodings(self):
+        cert_pem, key_pem = self._generate_cert_and_key()
+        key = serialization.load_pem_private_key(key_pem, password=None)
+        for encoding in (serialization.PrivateFormat.PKCS8, serialization.PrivateFormat.TraditionalOpenSSL):
+            encoded = key.private_bytes(serialization.Encoding.PEM, encoding, serialization.NoEncryption())
+            self.assertTrue(cert_is_effective(cert_pem, encoded))
+            self.assertTrue(cert_is_effective(cert_pem, encoded.decode("ascii")))
+
+    # capability_id: console.cert.key-format-compatibility
+    def test_cert_is_effective_rejects_a_public_key_without_private_material(self):
+        cert_pem, key_pem = self._generate_cert_and_key()
+        key = crypto.load_privatekey(crypto.FILETYPE_PEM, key_pem)
+        public_pem = crypto.dump_publickey(crypto.FILETYPE_PEM, key)
+        with self.assertRaises(ServiceHandleException):
+            cert_is_effective(cert_pem, public_pem)
 
     # capability_id: console.cert.expired-reject
     def test_cert_is_effective_rejects_expired_cert(self):

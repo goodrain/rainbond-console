@@ -69,7 +69,12 @@ class PackageUploadToolService(object):
             },
         }
 
-    def upload_package(self, team_name: str, region_name: str, event_id: str, local_path: str, archive_name: str = "") -> Dict[str, Any]:
+    def upload_package(self,
+                       team_name: str,
+                       region_name: str,
+                       event_id: str,
+                       local_path: str,
+                       archive_name: str = "") -> Dict[str, Any]:
         upload_record = package_upload_service.get_upload_record(team_name, region_name, event_id)
         if not upload_record:
             raise ServiceHandleException(
@@ -116,7 +121,9 @@ class PackageUploadToolService(object):
                 msg_show="查询软件包上传状态失败",
                 status_code=getattr(e, "status", 500) or 500,
             )
-        packages = body.get("bean", {}).get("packages", []) or []  # type: ignore[union-attr]  # NOTE: body may be None if region_api returns (status, None); caller guards via CallApiError
+        packages = body.get("bean", {}).get("packages", []) or [  # type: ignore[union-attr]
+            # NOTE: body may be None if region_api returns (status, None); caller guards via CallApiError
+        ]  # type: ignore[union-attr]
         package_upload_service.update_upload_record(team_name, event_id, source_dir=packages)
         return {
             "event_id": event_id,
@@ -140,17 +147,16 @@ class PackageUploadToolService(object):
             "deleted": True,
         }
 
-    def auto_create_component_from_local_path(
-            self,
-            team: Any,
-            app: Any,
-            user: Any,
-            local_path: str,
-            service_cname: str,
-            k8s_component_name: str = "",
-            arch: str = "amd64",
-            is_deploy: bool = True,
-            archive_name: str = "") -> Dict[str, Any]:
+    def auto_create_component_from_local_path(self,
+                                              team: Any,
+                                              app: Any,
+                                              user: Any,
+                                              local_path: str,
+                                              service_cname: str,
+                                              k8s_component_name: str = "",
+                                              arch: str = "amd64",
+                                              is_deploy: bool = True,
+                                              archive_name: str = "") -> Dict[str, Any]:
         upload_info = self.init_upload(team.tenant_name, app.region_name, "")
         event_id = upload_info["event_id"]
         self.upload_package(team.tenant_name, app.region_name, event_id, local_path, archive_name)
@@ -216,8 +222,7 @@ class PackageUploadToolService(object):
 
     def _zip_directory(self, directory_path: str, archive_name: str = "") -> Tuple[str, bool]:
         archive_basename = os.path.basename(archive_name.strip()) if archive_name else os.path.basename(
-            os.path.normpath(directory_path)
-        )
+            os.path.normpath(directory_path))
         archive_basename = archive_basename or "package"
         if not archive_basename.endswith(".zip"):
             archive_basename = "{0}.zip".format(archive_basename)

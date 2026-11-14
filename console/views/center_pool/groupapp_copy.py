@@ -10,7 +10,7 @@ from rest_framework.request import Request
 from console.exception.main import ServiceHandleException
 from console.services.groupcopy_service import groupapp_copy_service
 from console.services.operation_log import operation_log_service, OperationType
-from console.views.base import RegionTenantHeaderView, ApplicationView
+from console.views.base import ApplicationView
 from console.utils.cache_decorators import never_cache
 from rest_framework.response import Response
 from www.apiclient.baseclient import HttpClient
@@ -54,22 +54,23 @@ class GroupAppsCopyView(ApplicationView):
         tar_team, tar_group = groupapp_copy_service.check_and_get_team_group(request.user, tar_team_name, tar_region_name,
                                                                              tar_group_id)
         try:
-            services = groupapp_copy_service.copy_group_services(request.user, self.tenant, self.region_name, tar_team, tar_region_name,
-                                                      tar_group, group_id, services)
-            result = general_message(
-                200,
-                "success",
-                "复制成功",
-                bean={
-                    "tar_team_name": tar_team_name,
-                    "tar_region_name": tar_region_name,
-                    "tar_group_id": tar_group_id
-                })
+            services = groupapp_copy_service.copy_group_services(request.user, self.tenant, self.region_name, tar_team,
+                                                                 tar_region_name, tar_group, group_id, services)
+            result = general_message(200,
+                                     "success",
+                                     "复制成功",
+                                     bean={
+                                         "tar_team_name": tar_team_name,
+                                         "tar_region_name": tar_region_name,
+                                         "tar_group_id": tar_group_id
+                                     })
             status = 200
             comment = groupapp_copy_service.generate_comment(self.app, self.region_name, self.tenant_name, tar_group,
                                                              tar_region_name, tar_team_name, services)
             operation_log_service.create_log(
-                self.user, OperationType.APPLICATION_MANAGE, comment,
+                self.user,
+                OperationType.APPLICATION_MANAGE,
+                comment,
                 self.user.enterprise_id,  # type: ignore[arg-type] # NOTE: enterprise_id is str|None
                 self.tenant_name,
                 self.app.app_id)

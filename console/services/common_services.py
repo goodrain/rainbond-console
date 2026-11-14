@@ -17,7 +17,10 @@ class CommonServices(object):
         tenant_region_list = TenantRegionInfo.objects.filter(tenant_id=tenant.tenant_id, is_active=True, is_init=True)
         for tenant_region in tenant_region_list:
             data = {"tenant_name": [tenant.tenant_name]}
-            res = region_api.get_region_tenants_resources(tenant_region.region_name, data, tenant.enterprise_id)  # type: ignore[arg-type]  # NOTE: enterprise_id is Optional[str] on Tenants model but API always receives str at runtime
+            res = region_api.get_region_tenants_resources(
+                tenant_region.region_name, data, tenant.enterprise_id  # type: ignore[arg-type]
+                # NOTE: enterprise_id is Optional[str] on Tenants model but API always receives str at runtime
+            )  # type: ignore[arg-type]
             d_list = res["list"]  # type: ignore[index]  # NOTE: res is Optional[Dict]; caller guarantees non-None here
             memory = 0
             disk = 0
@@ -29,10 +32,17 @@ class CommonServices(object):
             totalDisk += disk
         return totalMemory, totalDisk
 
-    def get_current_region_used_resource(self, tenant: Tenants, region_name: str) -> Optional[Any]:  # type: ignore[return]  # NOTE: implicit None return when d_list is falsy (no exception) is intentional original behaviour
+    def get_current_region_used_resource(  # type: ignore[return]
+        self, tenant: Tenants, region_name: str
+    ) -> Optional[
+            # NOTE: implicit None return when d_list is falsy (no exception) is intentional original behaviour
+            Any]:  # type: ignore[return]
         data = {"tenant_name": [tenant.tenant_name]}
         try:
-            res = region_api.get_region_tenants_resources(region_name, data, tenant.enterprise_id)  # type: ignore[arg-type]  # NOTE: enterprise_id is Optional[str] on Tenants model but API always receives str at runtime
+            res = region_api.get_region_tenants_resources(
+                region_name, data, tenant.enterprise_id  # type: ignore[arg-type]
+                # NOTE: enterprise_id is Optional[str] on Tenants model but API always receives str at runtime
+            )  # type: ignore[arg-type]
             d_list = res["list"]  # type: ignore[index]  # NOTE: res is Optional[Dict]; exception handler covers None path
             if d_list:
                 resource = d_list[0]

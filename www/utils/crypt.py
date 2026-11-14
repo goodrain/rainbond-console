@@ -58,7 +58,7 @@ class AuthCode(object):
 
     @staticmethod
     def _md5(source_string):
-        if type(source_string) == str:
+        if type(source_string) is str:
             return hashlib.md5(source_string.encode('UTF-8')).hexdigest()
         return hashlib.md5(source_string).hexdigest()
 
@@ -132,7 +132,7 @@ class AuthCode(object):
             tmp = box[a]
             box[a] = box[j]
             box[j] = tmp
-            if type(handled_string[i]) == str:
+            if type(handled_string[i]) is str:
                 result += chr(ord(handled_string[i]) ^ (box[(box[a] + box[j]) % 256]))
                 continue
             result += chr(handled_string[i] ^ (box[(box[a] + box[j]) % 256]))

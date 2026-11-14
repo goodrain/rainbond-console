@@ -98,8 +98,10 @@ class ServiceShareRecordView(RegionTenantHeaderView):
                     if not mkt:
                         user_id = self.user.user_id if os.getenv("USE_SAAS") else None
                         # NOTE: enterprise_id nullable & user_id int AutoField; service takes str (systemic, backlog).
-                        mkt = app_market_service.get_app_market_by_name(
-                            self.tenant.enterprise_id, share_record.share_app_market_name, user_id=user_id, raise_exception=True)  # type: ignore[arg-type]
+                        mkt = app_market_service.get_app_market_by_name(self.tenant.enterprise_id,  # type: ignore[arg-type]
+                                                                        share_record.share_app_market_name,
+                                                                        user_id=user_id,  # type: ignore[arg-type]
+                                                                        raise_exception=True)  # type: ignore[arg-type]
                         market[share_record.share_app_market_name] = mkt
 
                     c_app = cloud_app.get(share_record.app_id, None)
@@ -214,7 +216,8 @@ class ServiceShareRecordInfoView(RegionTenantHeaderView):
     def get(self, request: Request, team_name: str, group_id: str, record_id: str, *args: Any, **kwargs: Any) -> Response:
         data = None
         # NOTE: record_id path param is str; repo expects int (systemic str-as-int, backlog).
-        share_record = share_repo.get_service_share_record_by_id(group_id=group_id, record_id=record_id)  # type: ignore[arg-type]
+        share_record = share_repo.get_service_share_record_by_id(group_id=group_id,
+                                                                 record_id=record_id)  # type: ignore[arg-type]
         if share_record:
             app_model_name = None
             app_model_id = None
@@ -228,8 +231,11 @@ class ServiceShareRecordInfoView(RegionTenantHeaderView):
             if store_id:
                 user_id = self.user.user_id if os.getenv("USE_SAAS") else None
                 # NOTE: enterprise_id/market_name nullable & user_id int AutoField; service takes str (systemic, backlog).
-                extend, market = app_market_service.get_app_market(
-                    self.tenant.enterprise_id, share_record.share_app_market_name, user_id=user_id, extend="true", raise_exception=True)  # type: ignore[arg-type]
+                extend, market = app_market_service.get_app_market(self.tenant.enterprise_id,  # type: ignore[arg-type]
+                                                                   share_record.share_app_market_name,  # type: ignore[arg-type]
+                                                                   user_id=user_id,  # type: ignore[arg-type]
+                                                                   extend="true",
+                                                                   raise_exception=True)  # type: ignore[arg-type]
                 if market:
                     store_name = market.name
                     store_version = extend.get("version", store_version)
@@ -271,7 +277,8 @@ class ServiceShareRecordInfoView(RegionTenantHeaderView):
             self, request: Request, team_name: str, group_id: str, record_id: str, *args: Any, **kwargs: Any) -> Response:
         status = request.data.get("status")
         # NOTE: record_id path param is str; repo expects int (systemic str-as-int, backlog).
-        share_record = share_repo.get_service_share_record_by_id(group_id=group_id, record_id=record_id)  # type: ignore[arg-type]
+        share_record = share_repo.get_service_share_record_by_id(group_id=group_id,
+                                                                 record_id=record_id)  # type: ignore[arg-type]
         if share_record and status:
             share_record.status = status
             share_record.save()
@@ -279,7 +286,8 @@ class ServiceShareRecordInfoView(RegionTenantHeaderView):
             return Response(result, status=200)
 
     def delete(self, request: Request, team_name: str, group_id: str, record_id: str, *args: Any, **kwargs: Any) -> Response:
-        share_record = share_repo.get_service_share_record_by_id(group_id=group_id, record_id=record_id)  # type: ignore[arg-type]
+        share_record = share_repo.get_service_share_record_by_id(group_id=group_id,
+                                                                 record_id=record_id)  # type: ignore[arg-type]
         if share_record:
             share_record.status = 3
             share_record.save()
@@ -609,7 +617,9 @@ class ServiceShareCompleteView(RegionTenantHeaderView):
             return Response(result, status=415)
         user_id = self.user.user_id if os.getenv("USE_SAAS") else None
         # NOTE: user_id int AutoField; complete takes str (systemic int-as-str, backlog).
-        app_market_url = share_service.complete(self.tenant, self.user, share_record, is_plugin, user_id, self.response_region)  # type: ignore[arg-type]
+        app_market_url = share_service.complete(  # type: ignore[arg-type]
+            self.tenant, self.user, share_record, is_plugin, user_id,  # type: ignore[arg-type]
+            self.response_region)  # type: ignore[arg-type]
         rainbond_app = share_service.get_app_by_app_id(share_record.app_id)
         result = general_message(200, "share complete", "应用分享完成", bean=share_record.to_dict(), app_market_url=app_market_url)
         app = group_repo.get_app_by_pk(share_record.group_id)
@@ -649,8 +659,10 @@ class ShareRecordView(RegionTenantHeaderView):
                 200, "the current application does not confirm sharing", "当前应用未确认分享", bean=share_record.to_dict())
             return Response(result, status=200)
         # NOTE: share_record may be None; legacy assumes present on the fall-through path (backlog).
-        result = general_message(
-            200, "the current application is not Shared or Shared", "当前应用未分享或已分享", bean=share_record.to_dict())  # type: ignore[union-attr]
+        result = general_message(200,
+                                 "the current application is not Shared or Shared",
+                                 "当前应用未分享或已分享",
+                                 bean=share_record.to_dict())  # type: ignore[union-attr]
         return Response(result, status=200)
 
 
@@ -662,10 +674,20 @@ class ServiceGroupSharedApps(RegionTenantHeaderView):
         preferred_version = request.GET.get("preferred_version", None)
         user_id = self.user.user_id if os.getenv("USE_SAAS") else None
         # NOTE: enterprise_id/scope nullable & user_id int AutoField; service takes str (systemic, backlog).
-        data = share_service.get_last_shared_app_and_app_list(self.tenant.enterprise_id, self.tenant, group_id, scope,  # type: ignore[arg-type]
-                                                              market_name, user_id, preferred_app_id, preferred_version)  # type: ignore[arg-type]
-        result = general_message(
-            200, "get shared apps list complete", None, bean=data["last_shared_app"], list=data["app_model_list"])
+        data = share_service.get_last_shared_app_and_app_list(
+            self.tenant.enterprise_id,  # type: ignore[arg-type]
+            self.tenant,
+            group_id,
+            scope,  # type: ignore[arg-type]
+            market_name,  # type: ignore[arg-type]
+            user_id,  # type: ignore[arg-type]
+            preferred_app_id,
+            preferred_version)  # type: ignore[arg-type]
+        result = general_message(200,
+                                 "get shared apps list complete",
+                                 None,
+                                 bean=data["last_shared_app"],
+                                 list=data["app_model_list"])
         return Response(result, status=200)
 
 
@@ -755,13 +777,15 @@ class AppMarketRUDView(JWTAuthApiView):
         extend = request.GET.get("extend", "false")
         user_id = self.user.user_id if os.getenv("USE_SAAS") else None
         # NOTE: user_id int AutoField; service takes str (systemic int-as-str, backlog).
-        market, _ = app_market_service.get_app_market(enterprise_id, market_name, user_id, extend, raise_exception=True)  # type: ignore[arg-type]
+        market, _ = app_market_service.get_app_market(enterprise_id, market_name, user_id, extend,  # type: ignore[arg-type]
+                                                      raise_exception=True)  # type: ignore[arg-type]
         result = general_message(200, "success", None, list=market)
         return Response(result, status=200)
 
     def put(self, request: Request, enterprise_id: str, market_name: str, *args: Any, **kwargs: Any) -> Response:
         user_id = self.user.user_id if os.getenv("USE_SAAS") else None
-        _, market_model = app_market_service.get_app_market(enterprise_id, market_name, user_id, raise_exception=True)  # type: ignore[arg-type]
+        _, market_model = app_market_service.get_app_market(enterprise_id, market_name, user_id,  # type: ignore[arg-type]
+                                                            raise_exception=True)  # type: ignore[arg-type]
         request.data["enterprise_id"] = enterprise_id
         request.data["market_name"] = market_name
         new_market = app_market_service.update_app_market(market_model, request.data)
@@ -780,7 +804,8 @@ class AppMarketRUDView(JWTAuthApiView):
 
     def delete(self, request: Request, enterprise_id: str, market_name: str, *args: Any, **kwargs: Any) -> Response:
         user_id = self.user.user_id if os.getenv("USE_SAAS") else None
-        _, market_model = app_market_service.get_app_market(enterprise_id, market_name, user_id, raise_exception=True)  # type: ignore[arg-type]
+        _, market_model = app_market_service.get_app_market(enterprise_id, market_name, user_id,  # type: ignore[arg-type]
+                                                            raise_exception=True)  # type: ignore[arg-type]
         market_model.delete()
         result = general_message(200, "success", None)
         try:
@@ -808,10 +833,20 @@ class AppMarketAppModelLView(JWTAuthApiView):
         if is_plugin == "true":
             # NOTE: query_all from query params is str|bool; service expects bool (backlog).
             data, page, page_size, total = app_market_service.get_market_plugins_apps(
-                market_model, page, page_size, query=query, query_all=query_all, extend=True)  # type: ignore[arg-type]
+                market_model,
+                page,
+                page_size,
+                query=query,
+                query_all=query_all,  # type: ignore[arg-type]
+                extend=True)  # type: ignore[arg-type]
         else:
-            data, page, page_size, total = app_market_service.get_market_app_list(
-                market_model, page, page_size, query=query, query_all=query_all, extend=True, arch=arch)  # type: ignore[arg-type]
+            data, page, page_size, total = app_market_service.get_market_app_list(market_model,
+                                                                                  page,
+                                                                                  page_size,
+                                                                                  query=query,
+                                                                                  query_all=query_all,  # type: ignore[arg-type]
+                                                                                  extend=True,
+                                                                                  arch=arch)  # type: ignore[arg-type]
         result = general_message(200, msg="success", msg_show=None, list=data, page=page, page_size=page_size, total=total)
         return Response(result, status=200)
 
@@ -841,7 +876,8 @@ class AppMarketAppModelLView(JWTAuthApiView):
         }
         user_id = self.user.user_id if os.getenv("USE_SAAS") else None
         # NOTE: user_id int AutoField; service takes str (systemic int-as-str, backlog).
-        market = app_market_service.get_app_market_by_name(enterprise_id, market_name, user_id, raise_exception=True)  # type: ignore[arg-type]
+        market = app_market_service.get_app_market_by_name(enterprise_id, market_name, user_id,  # type: ignore[arg-type]
+                                                           raise_exception=True)  # type: ignore[arg-type]
         rst = app_market_service.create_market_app_model(market, body=dt)
         result = general_message(200, msg="success", msg_show=None, bean=(rst.to_dict() if rst else None))
         return Response(result, status=200)
@@ -852,9 +888,12 @@ class AppMarketAppModelVersionsLView(JWTAuthApiView):
         query_all = request.GET.get("query_all", False)
         user_id = self.user.user_id if os.getenv("USE_SAAS") else None
         # NOTE: user_id int AutoField; service takes str (systemic int-as-str, backlog).
-        market_model = app_market_service.get_app_market_by_name(enterprise_id, market_name, user_id, raise_exception=True)  # type: ignore[arg-type]
+        market_model = app_market_service.get_app_market_by_name(enterprise_id, market_name, user_id,  # type: ignore[arg-type]
+                                                                 raise_exception=True)  # type: ignore[arg-type]
         # NOTE: query_all from query params is str|bool; service expects bool (backlog).
-        data = app_market_service.get_market_app_model_versions(market_model, app_id, query_all=query_all, extend=True)  # type: ignore[arg-type]
+        data = app_market_service.get_market_app_model_versions(  # type: ignore[arg-type]
+            market_model, app_id, query_all=query_all,  # type: ignore[arg-type]
+            extend=True)  # type: ignore[arg-type]
         result = general_message(200, "success", None, list=data)
         return Response(result, status=200)
 
@@ -864,7 +903,8 @@ class AppMarketAppModelVersionsRView(JWTAuthApiView):
             **kwargs: Any) -> Response:
         user_id = self.user.user_id if os.getenv("USE_SAAS") else None
         # NOTE: user_id int AutoField; service takes str (systemic int-as-str, backlog).
-        _, market_model = app_market_service.get_app_market(enterprise_id, market_name, user_id, raise_exception=True)  # type: ignore[arg-type]
+        _, market_model = app_market_service.get_app_market(enterprise_id, market_name, user_id,  # type: ignore[arg-type]
+                                                            raise_exception=True)  # type: ignore[arg-type]
         data = app_market_service.get_market_app_model_version(market_model, app_id, version, extend=True)
         result = general_message(200, "success", None, bean=data)
         return Response(result, status=200)
@@ -874,7 +914,8 @@ class AppMarketOrgModelLView(JWTAuthApiView):
     def get(self, request: Request, enterprise_id: str, market_name: str) -> Response:
         user_id = self.user.user_id if os.getenv("USE_SAAS") else None
         # NOTE: user_id int AutoField; service takes str (systemic int-as-str, backlog).
-        market_model = app_market_service.get_app_market_by_name(enterprise_id, market_name, user_id, raise_exception=True)  # type: ignore[arg-type]
+        market_model = app_market_service.get_app_market_by_name(enterprise_id, market_name, user_id,  # type: ignore[arg-type]
+                                                                 raise_exception=True)  # type: ignore[arg-type]
         orgs = app_market_service.get_market_orgs(market_model)
         result = general_message(200, msg="success", msg_show=None, list=orgs)
         return Response(result, status=200)

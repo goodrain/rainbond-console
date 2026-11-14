@@ -10,12 +10,23 @@ sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
 
-import django
 
-django.setup()
+def _load_test_dependencies():
+    """Keep the existing post-Django-setup import order and module bindings."""
+    import django
 
-from console.utils.runner_util import is_runner
-from console.utils.slug_util import is_slug
+    django.setup()
+
+    from console.utils.runner_util import is_runner
+    from console.utils.slug_util import is_slug
+    return (
+        django,
+        is_runner,
+        is_slug,
+    )
+
+
+django, is_runner, is_slug = _load_test_dependencies()
 
 
 class ImageClassifyTests(TestCase):

@@ -22,7 +22,6 @@ logger = logging.getLogger("default")
 
 class GrayReleaseService(object):
     """Service for managing application-level gray releases"""
-
     def __init__(self) -> None:
         self.domain_service = DomainService()
         self.app_manage = app_manage_service
@@ -30,23 +29,19 @@ class GrayReleaseService(object):
     def validate_gray_ratio(self, gray_ratio: int) -> None:
         """Validate gray ratio is between 0 and 100"""
         if not isinstance(gray_ratio, int):
-            raise ServiceHandleException(
-                msg="gray_ratio must be integer",
-                msg_show="灰度比例必须为整数",
-                status_code=400
-            )
+            raise ServiceHandleException(msg="gray_ratio must be integer", msg_show="灰度比例必须为整数", status_code=400)
         if gray_ratio < 0 or gray_ratio > 100:
-            raise ServiceHandleException(
-                msg="gray_ratio must be between 0 and 100",
-                msg_show="灰度比例必须在0-100之间",
-                status_code=400
-            )
+            raise ServiceHandleException(msg="gray_ratio must be between 0 and 100", msg_show="灰度比例必须在0-100之间", status_code=400)
 
-    def _update_apisix_route_weights(self, team: Tenants, region: RegionConfig,
-                                     app: ServiceGroup, domain: dict,
+    def _update_apisix_route_weights(self,
+                                     team: Tenants,
+                                     region: RegionConfig,
+                                     app: ServiceGroup,
+                                     domain: dict,
                                      original_service: TenantServiceInfo,
                                      new_service: TenantServiceInfo,
-                                     original_weight: int, new_weight: int,
+                                     original_weight: int,
+                                     new_weight: int,
                                      is_full_release: bool = False) -> None:
         """
         Update ApisixRoute to configure weighted backends for gray release
@@ -61,7 +56,7 @@ class GrayReleaseService(object):
 
             region_api = RegionInvokeApi()
 
-            logger.info(f"[GrayRelease] Updating ApisixRoute for weighted traffic distribution")
+            logger.info('[GrayRelease] Updating ApisixRoute for weighted traffic distribution')
 
             # 获取新服务的端口信息
             new_port = TenantServicesPort.objects.filter(
@@ -72,11 +67,7 @@ class GrayReleaseService(object):
 
             if not new_port:
                 logger.error(f"[GrayRelease] No outer port found for new service: {new_service.service_id}")
-                raise ServiceHandleException(
-                    msg="new service has no outer port",
-                    msg_show="新服务没有对外端口",
-                    status_code=400
-                )
+                raise ServiceHandleException(msg="new service has no outer port", msg_show="新服务没有对外端口", status_code=400)
 
             route_sync_port = new_port.container_port
             original_port = None
@@ -91,7 +82,8 @@ class GrayReleaseService(object):
                     "servicePort": new_port.container_port,
                     "weight": new_weight
                 })
-                logger.info(f"[GrayRelease] Added new backend: {new_port.k8s_service_name}:{new_port.container_port} (weight={new_weight})")
+                logger.info((f"[GrayRelease] Added new backend: {new_port.k8s_service_name}:{new_port.container_port} "
+                             f"(weight={new_weight})"))
 
             # 如果不是全量发布，添加原始服务 backend
             if not is_full_release and original_weight > 0:
@@ -109,18 +101,18 @@ class GrayReleaseService(object):
                         "servicePort": original_port.container_port,
                         "weight": original_weight
                     })
-                    logger.info(f"[GrayRelease] Added original backend: {original_port.k8s_service_name}:{original_port.container_port} (weight={original_weight})")
+                    logger.info((f"[GrayRelease] Added original backend: "
+                                 f"{original_port.k8s_service_name}:{original_port.container_port} (weight={original_weight})"))
                 else:
-                    logger.warning(f"[GrayRelease] Original service port not found, skipping original backend: {original_service.service_id}")
+                    logger.warning((f"[GrayRelease] Original service port not found, skipping original backend: "
+                                    f"{original_service.service_id}"))
 
             if original_port:
                 route_sync_port = original_port.container_port
             else:
-                original_route_port = TenantServicesPort.objects.filter(
-                    tenant_id=team.tenant_id,
-                    service_id=original_service.service_id,
-                    is_outer_service=True
-                ).first()
+                original_route_port = TenantServicesPort.objects.filter(tenant_id=team.tenant_id,
+                                                                        service_id=original_service.service_id,
+                                                                        is_outer_service=True).first()
                 if original_route_port:
                     route_sync_port = original_route_port.container_port
 
@@ -128,11 +120,7 @@ class GrayReleaseService(object):
             original_name = domain.get("name", "")
             if not original_name:
                 logger.error(f"[GrayRelease] Domain name not found in domain object: {domain}")
-                raise ServiceHandleException(
-                    msg="route name not found",
-                    msg_show="路由名称未找到",
-                    status_code=500
-                )
+                raise ServiceHandleException(msg="route name not found", msg_show="路由名称未找到", status_code=500)
 
             # 解析路由名称：去掉前面的数字ID和后面的服务标识
             # 格式：41gre50f92-5000-default-172.31.16.5.nip.io-ps-s-gre50f92
@@ -151,11 +139,7 @@ class GrayReleaseService(object):
 
             if not route_name:
                 logger.error(f"[GrayRelease] Failed to parse route name from: {original_name}")
-                raise ServiceHandleException(
-                    msg="failed to parse route name",
-                    msg_show="路由名称解析失败",
-                    status_code=500
-                )
+                raise ServiceHandleException(msg="failed to parse route name", msg_show="路由名称解析失败", status_code=500)
 
             region_app_id = str(app.ID)
 
@@ -163,7 +147,7 @@ class GrayReleaseService(object):
             logger.info(f"[GrayRelease] Updating route: {route_name}")
 
             # 使用 console API 更新域名权重
-            logger.info(f"[GrayRelease] Updating route via console API")
+            logger.info('[GrayRelease] Updating route via console API')
             logger.info(f"[GrayRelease] Route name: {route_name}")
 
             # 获取 region_app_id (需要转换回内部 app_id)
@@ -192,11 +176,9 @@ class GrayReleaseService(object):
 
             # 调用 RegionAPI 更新路由 - 使用正确的 ApisixRoute 接口
             # 构建请求路径 - 添加 appID 查询参数
-            path = (
-                f"/api-gateway/v1/{team.tenant_name}/routes/http"
-                f"?appID={app.app_id}&service_alias={original_service.service_alias}"
-                f"&port={route_sync_port}"
-            )
+            path = (f"/api-gateway/v1/{team.tenant_name}/routes/http"
+                    f"?appID={app.app_id}&service_alias={original_service.service_alias}"
+                    f"&port={route_sync_port}")
             # 构建请求体 - 使用后端期望的格式
             put_body = {
                 "name": route_name,
@@ -217,31 +199,26 @@ class GrayReleaseService(object):
             logger.info(f"[GrayRelease] Request body: {put_body}")
 
             # 使用 api_gateway_post_proxy 方法调用后端 API (POST 方法)
-            result = region_api.api_gateway_post_proxy(
-                region,
-                team.tenant_name,
-                path,
-                put_body,
-                app.app_id,
-                service_alias=original_service.service_alias,
-                port=str(route_sync_port)
-            )
+            result = region_api.api_gateway_post_proxy(region,
+                                                       team.tenant_name,
+                                                       path,
+                                                       put_body,
+                                                       app.app_id,
+                                                       service_alias=original_service.service_alias,
+                                                       port=str(route_sync_port))
 
-            logger.info(f"[GrayRelease] Successfully updated route via console API")
+            logger.info('[GrayRelease] Successfully updated route via console API')
             logger.info(f"[GrayRelease] Result: {result}")
 
         except ServiceHandleException:
             raise
         except Exception as e:
             logger.exception(f"[GrayRelease] Failed to update ApisixRoute weights: {e}")
-            raise ServiceHandleException(
-                msg=f"failed to update apisix route: {str(e)}",
-                msg_show=f"更新网关路由失败: {str(e)}",
-                status_code=500
-            )
+            raise ServiceHandleException(msg=f"failed to update apisix route: {str(e)}",
+                                         msg_show=f"更新网关路由失败: {str(e)}",
+                                         status_code=500)
 
-    def get_domain_by_name(self, team: Tenants, region: RegionConfig, app_id: str,
-                           route_name: str) -> dict:
+    def get_domain_by_name(self, team: Tenants, region: RegionConfig, app_id: str, route_name: str) -> dict:
         """
         Get domain from API Gateway by route name
         通过路由名称查找（而不是域名）
@@ -283,49 +260,36 @@ class GrayReleaseService(object):
                     logger.info(f"[GrayRelease] Found matching route with original name: {route_name}")
 
             if not matched_routes:
-                logger.error(f"[GrayRelease] Route not found. Tried: {route_name}, {parsed_route_name}. Available: {all_route_names}")
+                logger.error(
+                    f"[GrayRelease] Route not found. Tried: {route_name}, {parsed_route_name}. Available: {all_route_names}")
                 raise ServiceHandleException(
                     msg="route not found in api gateway",
-                    msg_show=f"API网关中未找到路由: {route_name}。当前应用可用路由: {', '.join(all_route_names[:5])}{'...' if len(all_route_names) > 5 else ''}",
-                    status_code=404
-                )
+                    msg_show=(f"API网关中未找到路由: {route_name}。当前应用可用路由: "
+                              f"{', '.join(all_route_names[:5])}{'...' if len(all_route_names) > 5 else ''}"),
+                    status_code=404)
 
             if len(matched_routes) > 1:
                 logger.warning(f"[GrayRelease] Found {len(matched_routes)} routes with same name, using first one")
 
-            logger.info(f"[GrayRelease] Successfully found route")
+            logger.info('[GrayRelease] Successfully found route')
             return matched_routes[0]
 
         except Exception as e:
             if isinstance(e, ServiceHandleException):
                 raise e
             logger.exception(f"[GrayRelease] Failed to get domain from API gateway: {e}")
-            raise ServiceHandleException(
-                msg=f"failed to get domain: {str(e)}",
-                msg_show=f"获取域名失败: {str(e)}",
-                status_code=500
-            )
+            raise ServiceHandleException(msg=f"failed to get domain: {str(e)}", msg_show=f"获取域名失败: {str(e)}", status_code=500)
 
     def validate_app(self, team: Tenants, region_name: str, app: ServiceGroup) -> None:
         """Validate application exists and belongs to team"""
         if not app:
-            raise ServiceHandleException(
-                msg="app not found",
-                msg_show="应用不存在",
-                status_code=404
-            )
+            raise ServiceHandleException(msg="app not found", msg_show="应用不存在", status_code=404)
         if app.tenant_id != team.tenant_id:
-            raise ServiceHandleException(
-                msg="app does not belong to this team",
-                msg_show="应用不属于该团队",
-                status_code=403
-            )
+            raise ServiceHandleException(msg="app does not belong to this team", msg_show="应用不属于该团队", status_code=403)
         logger.info("Validated app {0} with ID {1}".format(app.group_name, app.ID))
 
-    def install_template_to_app(self, team: Tenants, region_name: str, user: Users,
-                                app: ServiceGroup, template_id: str,
-                                market_name: Optional[str],
-                                install_from_cloud: bool) -> Tuple[Any, Any]:
+    def install_template_to_app(self, team: Tenants, region_name: str, user: Users, app: ServiceGroup, template_id: str,
+                                market_name: Optional[str], install_from_cloud: bool) -> Tuple[Any, Any]:
         """
         Install application template to the original app (for gray release, skip domain creation)
 
@@ -333,46 +297,44 @@ class GrayReleaseService(object):
             tuple: (tenant_service_group, events) - The created service group and deployment events
         """
         try:
-            logger.info(f"[GrayRelease] install_template_to_app called: template_id={template_id}, install_from_cloud={install_from_cloud}")
+            logger.info((f"[GrayRelease] install_template_to_app called: template_id={template_id}, "
+                         f"install_from_cloud={install_from_cloud}"))
 
             if install_from_cloud:
                 # Install from cloud market
                 if not market_name:
-                    raise ServiceHandleException(
-                        msg="market_name is required when install_from_cloud is True",
-                        msg_show="从云端安装时必须指定市场名称",
-                        status_code=400
-                    )
+                    raise ServiceHandleException(msg="market_name is required when install_from_cloud is True",
+                                                 msg_show="从云端安装时必须指定市场名称",
+                                                 status_code=400)
 
                 # Get market and app version info
                 # NOTE: invariant — market_name guarded non-None above (line ~459).
-                market = app_market_service.get_app_market_by_name(
-                    team.enterprise_id, market_name)  # type: ignore[arg-type]
+                market = app_market_service.get_app_market_by_name(team.enterprise_id, market_name)  # type: ignore[arg-type]
                 if not market:
-                    raise ServiceHandleException(
-                        msg="market not found",
-                        msg_show="应用市场不存在",
-                        status_code=404
-                    )
+                    raise ServiceHandleException(msg="market not found", msg_show="应用市场不存在", status_code=404)
 
-                app_model, app_version_info = app_market_service.cloud_app_model_to_db_model(
-                    market, template_id, "", for_install=True
-                )
+                app_model, app_version_info = app_market_service.cloud_app_model_to_db_model(market,
+                                                                                             template_id,
+                                                                                             "",
+                                                                                             for_install=True)
 
                 if not app_model:
-                    raise ServiceHandleException(
-                        msg="template not found",
-                        msg_show="应用模板不存在",
-                        status_code=404
-                    )
+                    raise ServiceHandleException(msg="template not found", msg_show="应用模板不存在", status_code=404)
 
                 # Install the template to the original app
                 # For gray release: skip_create_domain=True to avoid creating duplicate domains
                 logger.info("[GrayRelease] Calling install_service with is_deploy=True for cloud installation")
                 # NOTE: install_service group_id typed str; app.ID is model int PK.
                 tenant_service_group, events = market_app_service.install_service(
-                    team, region_name, user, app.ID, app_model, app_version_info,  # type: ignore[arg-type]
-                    is_deploy=True, install_from_cloud=True, market_name=market_name,
+                    team,
+                    region_name,
+                    user,
+                    app.ID,  # type: ignore[arg-type]
+                    app_model,
+                    app_version_info,  # type: ignore[arg-type]
+                    is_deploy=True,
+                    install_from_cloud=True,
+                    market_name=market_name,
                     skip_create_domain=True  # Gray release: don't create new domains
                 )
                 logger.info(f"[GrayRelease] install_service returned: events={events}")
@@ -385,20 +347,12 @@ class GrayReleaseService(object):
                 app_model = rainbond_app_repo.get_rainbond_app_by_app_id(  # type: ignore[assignment]
                     template_id)
                 if not app_model:
-                    raise ServiceHandleException(
-                        msg="template not found",
-                        msg_show="应用模板不存在",
-                        status_code=404
-                    )
+                    raise ServiceHandleException(msg="template not found", msg_show="应用模板不存在", status_code=404)
 
                 # Get app version (use the latest version)
                 app_versions = rainbond_app_repo.get_rainbond_app_versions(template_id).order_by('-update_time')
                 if not app_versions:
-                    raise ServiceHandleException(
-                        msg="template version not found",
-                        msg_show="应用模板版本不存在",
-                        status_code=404
-                    )
+                    raise ServiceHandleException(msg="template version not found", msg_show="应用模板版本不存在", status_code=404)
                 app_version_info = app_versions[0]
 
                 # Install from local template to the original app
@@ -406,14 +360,21 @@ class GrayReleaseService(object):
                 logger.info("[GrayRelease] Calling install_service with is_deploy=True for local installation")
                 # NOTE: install_service group_id typed str; app.ID is model int PK.
                 tenant_service_group, events = market_app_service.install_service(
-                    team, region_name, user, app.ID, app_model, app_version_info,  # type: ignore[arg-type]
-                    is_deploy=True, install_from_cloud=False,
+                    team,
+                    region_name,
+                    user,
+                    app.ID,  # type: ignore[arg-type]
+                    app_model,
+                    app_version_info,  # type: ignore[arg-type]
+                    is_deploy=True,
+                    install_from_cloud=False,
                     skip_create_domain=True  # Gray release: don't create new domains
                 )
                 logger.info(f"[GrayRelease] install_service returned: events={events}")
 
             logger.info("[GrayRelease] Installed template {0} to app {1}, events count={2}".format(
-                template_id, app.group_name, len(events) if events else 0))
+                template_id, app.group_name,
+                len(events) if events else 0))
 
             return tenant_service_group, events
 
@@ -421,14 +382,12 @@ class GrayReleaseService(object):
             raise
         except Exception as e:
             logger.error("Failed to install template to app: {0}".format(traceback.format_exc()))
-            raise ServiceHandleException(
-                msg="failed to install template: {0}".format(str(e)),
-                msg_show="安装应用模板失败",
-                status_code=500
-            )
+            raise ServiceHandleException(msg="failed to install template: {0}".format(str(e)),
+                                         msg_show="安装应用模板失败",
+                                         status_code=500)
 
-    def setup_domain_weights(self, team: Tenants, region: RegionConfig, app: ServiceGroup,
-                             domain_name: str, gray_ratio: int) -> dict:
+    def setup_domain_weights(self, team: Tenants, region: RegionConfig, app: ServiceGroup, domain_name: str,
+                             gray_ratio: int) -> dict:
         """Setup domain weights for gray release - all services in the same app"""
         try:
             logger.info("[GrayRelease] Starting setup_domain_weights: app_id={0}, domain={1}, gray_ratio={2}%".format(
@@ -443,60 +402,43 @@ class GrayReleaseService(object):
             logger.info(f"[GrayRelease] Found {len(backends)} backends for domain")
             if not backends:
                 logger.error(f"[GrayRelease] No backend service found for domain: {domain_name}")
-                raise ServiceHandleException(
-                    msg="no backend service found for domain",
-                    msg_show="域名未配置后端服务",
-                    status_code=400
-                )
+                raise ServiceHandleException(msg="no backend service found for domain", msg_show="域名未配置后端服务", status_code=400)
 
             # Get k8s service name from first backend
             k8s_service_name = backends[0].get("serviceName", "")
             logger.info(f"[GrayRelease] k8s_service_name: {k8s_service_name}")
             if not k8s_service_name:
-                logger.error(f"[GrayRelease] Backend service name is empty")
-                raise ServiceHandleException(
-                    msg="backend service name is empty",
-                    msg_show="后端服务名称为空",
-                    status_code=400
-                )
+                logger.error('[GrayRelease] Backend service name is empty')
+                raise ServiceHandleException(msg="backend service name is empty", msg_show="后端服务名称为空", status_code=400)
 
             # k8s_service_name 存储在端口表中，需要通过端口查找组件
-            from console.repositories.app_config import port_repo
+
             from www.models.main import TenantServicesPort
 
             logger.info(f"[GrayRelease] Searching for port with k8s_service_name: {k8s_service_name}")
 
             # 查找对应的端口记录
-            port = TenantServicesPort.objects.filter(
-                tenant_id=team.tenant_id,
-                k8s_service_name=k8s_service_name
-            ).first()
+            port = TenantServicesPort.objects.filter(tenant_id=team.tenant_id, k8s_service_name=k8s_service_name).first()
 
             if not port:
                 logger.error(f"[GrayRelease] Port not found for k8s service: {k8s_service_name}")
-                raise ServiceHandleException(
-                    msg=f"port not found for k8s service: {k8s_service_name}",
-                    msg_show=f"未找到对应的端口配置: {k8s_service_name}",
-                    status_code=404
-                )
+                raise ServiceHandleException(msg=f"port not found for k8s service: {k8s_service_name}",
+                                             msg_show=f"未找到对应的端口配置: {k8s_service_name}",
+                                             status_code=404)
 
             logger.info(f"[GrayRelease] Found port: service_id={port.service_id}, container_port={port.container_port}")
 
             # 通过端口的 service_id 获取组件
             logger.info(f"[GrayRelease] Looking for original service: service_id={port.service_id}")
-            original_service = TenantServiceInfo.objects.filter(
-                tenant_id=team.tenant_id,
-                service_id=port.service_id
-            ).first()
+            original_service = TenantServiceInfo.objects.filter(tenant_id=team.tenant_id, service_id=port.service_id).first()
             if not original_service:
                 logger.error(f"[GrayRelease] Original service not found: {port.service_id}")
-                raise ServiceHandleException(
-                    msg=f"original service not found: {port.service_id}",
-                    msg_show=f"未找到对应的组件: {port.service_id}",
-                    status_code=404
-                )
+                raise ServiceHandleException(msg=f"original service not found: {port.service_id}",
+                                             msg_show=f"未找到对应的组件: {port.service_id}",
+                                             status_code=404)
 
-            logger.info(f"[GrayRelease] Found original service: {original_service.service_cname} ({original_service.service_alias})")
+            logger.info(
+                f"[GrayRelease] Found original service: {original_service.service_cname} ({original_service.service_alias})")
 
             # Verify the service belongs to the app
             # NOTE: app.ID is model int PK; get_group_services group_id typed str.
@@ -504,12 +446,10 @@ class GrayReleaseService(object):
             service_ids = [s.service_id for s in service_group_relations]
             logger.info(f"[GrayRelease] App has {len(service_ids)} services")
             if original_service.service_id not in service_ids:
-                logger.error(f"[GrayRelease] Domain does not belong to the app: service_id={original_service.service_id} not in app services")
-                raise ServiceHandleException(
-                    msg="domain does not belong to the app",
-                    msg_show="域名不属于该应用",
-                    status_code=400
-                )
+                logger.error(
+                    (f"[GrayRelease] Domain does not belong to the app: service_id={original_service.service_id} not in "
+                     f"app services"))
+                raise ServiceHandleException(msg="domain does not belong to the app", msg_show="域名不属于该应用", status_code=400)
 
             # Get the service_cname to find the new service version
             service_cname = original_service.service_cname
@@ -521,10 +461,7 @@ class GrayReleaseService(object):
             for svc in service_group_relations:
                 if svc.service_id == original_service.service_id:
                     continue  # Skip the original service
-                svc_obj = TenantServiceInfo.objects.filter(
-                    tenant_id=team.tenant_id,
-                    service_id=svc.service_id
-                ).first()
+                svc_obj = TenantServiceInfo.objects.filter(tenant_id=team.tenant_id, service_id=svc.service_id).first()
                 if svc_obj:
                     logger.info(f"[GrayRelease] Checking service: {svc_obj.service_cname} (service_id={svc_obj.service_id})")
                     if svc_obj.service_cname == service_cname:
@@ -533,12 +470,11 @@ class GrayReleaseService(object):
                         break
 
             if not new_service:
-                logger.error(f"[GrayRelease] New service version not found. service_cname={service_cname}, checked {len(service_group_relations)} services")
-                raise ServiceHandleException(
-                    msg="new service version not found in app",
-                    msg_show=f"应用中未找到新版本服务（service_cname={service_cname}）。请确保已安装新版本并且新旧版本的组件名称相同。",
-                    status_code=404
-                )
+                logger.error((f"[GrayRelease] New service version not found. service_cname={service_cname}, checked "
+                              f"{len(service_group_relations)} services"))
+                raise ServiceHandleException(msg="new service version not found in app",
+                                             msg_show=f"应用中未找到新版本服务（service_cname={service_cname}）。请确保已安装新版本并且新旧版本的组件名称相同。",
+                                             status_code=404)
 
             # Calculate weights
             original_weight = 100 - gray_ratio
@@ -552,11 +488,8 @@ class GrayReleaseService(object):
                 new_service.service_cname, new_service.service_alias, new_service.service_id))
 
             # 更新 ApisixRoute 配置权重
-            self._update_apisix_route_weights(
-                team, region, app, domain,
-                original_service, new_service,
-                original_weight, new_weight
-            )
+            self._update_apisix_route_weights(team, region, app, domain, original_service, new_service, original_weight,
+                                              new_weight)
 
             logger.info("[GrayRelease] Successfully completed setup_domain_weights")
 
@@ -577,34 +510,35 @@ class GrayReleaseService(object):
             logger.error("[GrayRelease] Failed to setup domain weights: {0}".format(stack_trace))
             logger.error("[GrayRelease] Context: app_id={0}, domain_name={1}, gray_ratio={2}".format(
                 app.ID, domain_name, gray_ratio))
-            raise ServiceHandleException(
-                msg="failed to setup domain weights: {0}".format(str(e)),
-                msg_show="设置域名权重失败: {0}".format(str(e)),
-                status_code=500
-            )
+            raise ServiceHandleException(msg="failed to setup domain weights: {0}".format(str(e)),
+                                         msg_show="设置域名权重失败: {0}".format(str(e)),
+                                         status_code=500)
 
-    def start_new_services(self, team: Tenants, region_name: str, app: ServiceGroup,
-                           user: Users, service_ids: List[str]) -> None:
+    def start_new_services(self, team: Tenants, region_name: str, app: ServiceGroup, user: Users,
+                           service_ids: List[str]) -> None:
         """Start newly installed services in app"""
         try:
             for service_id in service_ids:
-                service = TenantServiceInfo.objects.filter(
-                    tenant_id=team.tenant_id,
-                    service_id=service_id
-                ).first()
+                service = TenantServiceInfo.objects.filter(tenant_id=team.tenant_id, service_id=service_id).first()
                 if service:
                     self.app_manage.start(team, service, user, None)
                     logger.info("Started new service {0}".format(service.service_cname))
 
-        except Exception as e:
+        except Exception:
             logger.error("Failed to start new services: {0}".format(traceback.format_exc()))
             # Don't raise exception here, just log it
             # The services will be started eventually
 
     @transaction.atomic
-    def create_gray_release(self, team: Tenants, region_name: str, user: Users,
-                            app: ServiceGroup, template_id: str, domain_name: str,
-                            gray_ratio: int, market_name: Optional[str] = None,
+    def create_gray_release(self,
+                            team: Tenants,
+                            region_name: str,
+                            user: Users,
+                            app: ServiceGroup,
+                            template_id: str,
+                            domain_name: str,
+                            gray_ratio: int,
+                            market_name: Optional[str] = None,
                             install_from_cloud: bool = False) -> dict:
         """
         Create a gray release for an application
@@ -638,14 +572,14 @@ class GrayReleaseService(object):
 
             # Step 2: Install template to the app
             logger.info("[GrayRelease] Installing template {0} to app".format(template_id))
-            logger.info(f"[GrayRelease] Install parameters: template_id={template_id}, market_name={market_name}, install_from_cloud={install_from_cloud}")
+            logger.info((f"[GrayRelease] Install parameters: template_id={template_id}, market_name={market_name}, "
+                         f"install_from_cloud={install_from_cloud}"))
 
-            tenant_service_group, events = self.install_template_to_app(
-                team, region_name, user, app,
-                template_id, market_name, install_from_cloud
-            )
+            tenant_service_group, events = self.install_template_to_app(team, region_name, user, app, template_id, market_name,
+                                                                        install_from_cloud)
 
-            logger.info(f"[GrayRelease] Template installation returned: tenant_service_group={tenant_service_group}, events={events}")
+            logger.info(
+                f"[GrayRelease] Template installation returned: tenant_service_group={tenant_service_group}, events={events}")
             logger.info(f"[GrayRelease] Number of deployment events created: {len(events) if events else 0}")
 
             # Get newly installed service IDs
@@ -662,16 +596,9 @@ class GrayReleaseService(object):
             from console.repositories.region_repo import region_repo
             region = region_repo.get_region_by_region_name(region_name)
             if not region:
-                raise ServiceHandleException(
-                    msg="region not found",
-                    msg_show="数据中心不存在",
-                    status_code=404
-                )
+                raise ServiceHandleException(msg="region not found", msg_show="数据中心不存在", status_code=404)
 
-            weight_info = self.setup_domain_weights(
-                team, region, app,
-                domain_name, gray_ratio
-            )
+            weight_info = self.setup_domain_weights(team, region, app, domain_name, gray_ratio)
 
             # Step 4: Check deployment events
             logger.info("[GrayRelease] Deployment events status:")
@@ -692,14 +619,10 @@ class GrayReleaseService(object):
 
             # Step 5: Create gray release record
             logger.info("Creating gray release record")
-            original_service = TenantServiceInfo.objects.filter(
-                tenant_id=team.tenant_id,
-                service_id=weight_info["original_service_id"]
-            ).first()
-            gray_service = TenantServiceInfo.objects.filter(
-                tenant_id=team.tenant_id,
-                service_id=weight_info["new_service_id"]
-            ).first()
+            original_service = TenantServiceInfo.objects.filter(tenant_id=team.tenant_id,
+                                                                service_id=weight_info["original_service_id"]).first()
+            gray_service = TenantServiceInfo.objects.filter(tenant_id=team.tenant_id,
+                                                            service_id=weight_info["new_service_id"]).first()
 
             # Get upgrade_group_id for both services
             original_group_id = original_service.tenant_service_group_id if original_service else None
@@ -714,10 +637,7 @@ class GrayReleaseService(object):
             # Create a map of service_cname to service for both groups
             original_services_map = {}
             for svc in original_group_services:
-                svc_obj = TenantServiceInfo.objects.filter(
-                    tenant_id=team.tenant_id,
-                    service_id=svc.service_id
-                ).first()
+                svc_obj = TenantServiceInfo.objects.filter(tenant_id=team.tenant_id, service_id=svc.service_id).first()
                 if svc_obj:
                     original_services_map[svc_obj.service_cname] = {
                         'service_id': svc_obj.service_id,
@@ -727,10 +647,7 @@ class GrayReleaseService(object):
 
             gray_services_map = {}
             for svc in gray_group_services:
-                svc_obj = TenantServiceInfo.objects.filter(
-                    tenant_id=team.tenant_id,
-                    service_id=svc.service_id
-                ).first()
+                svc_obj = TenantServiceInfo.objects.filter(tenant_id=team.tenant_id, service_id=svc.service_id).first()
                 if svc_obj:
                     gray_services_map[svc_obj.service_cname] = {
                         'service_id': svc_obj.service_id,
@@ -752,7 +669,7 @@ class GrayReleaseService(object):
                         'gray_service_alias': gray_svc['service_alias']
                     })
                     logger.info(f"Service mapping: {original_svc['service_cname']} -> "
-                               f"original={original_svc['service_id']}, gray={gray_svc['service_id']}")
+                                f"original={original_svc['service_id']}, gray={gray_svc['service_id']}")
 
             import json
             service_mappings_json = json.dumps(service_mappings)
@@ -775,7 +692,9 @@ class GrayReleaseService(object):
                     # NOTE: enterprise_id / template_version are nullable model fields;
                     # template_version set from source.version inside this `if source` block.
                     app_model, _ = rainbond_app_repo.get_rainbond_app_and_version(
-                        team.enterprise_id, template_id, template_version  # type: ignore[arg-type]
+                        team.enterprise_id,  # type: ignore[arg-type]
+                        template_id,
+                        template_version  # type: ignore[arg-type]
                     )
                     if app_model:
                         template_name = app_model.app_name
@@ -784,28 +703,26 @@ class GrayReleaseService(object):
                 template_version = "unknown"
                 template_name = "unknown"
 
-            gray_release_record = gray_release_repo.create(
-                tenant_id=team.tenant_id,
-                region_name=region_name,
-                app_id=app.ID,
-                app_name=app.group_name,
-                template_id=template_id,
-                template_name=template_name or "unknown",
-                template_version=template_version or "unknown",
-                original_upgrade_group_id=original_group_id,
-                gray_upgrade_group_id=gray_group_id,
-                original_service_id=weight_info["original_service_id"],
-                original_service_cname=weight_info["original_service_cname"],
-                gray_service_id=weight_info["new_service_id"],
-                gray_service_cname=weight_info["new_service_cname"],
-                service_mappings=service_mappings_json,
-                domain_name=domain_name,
-                gray_ratio=gray_ratio,
-                status=GrayReleaseStatus.ACTIVE
-            )
+            gray_release_record = gray_release_repo.create(tenant_id=team.tenant_id,
+                                                           region_name=region_name,
+                                                           app_id=app.ID,
+                                                           app_name=app.group_name,
+                                                           template_id=template_id,
+                                                           template_name=template_name or "unknown",
+                                                           template_version=template_version or "unknown",
+                                                           original_upgrade_group_id=original_group_id,
+                                                           gray_upgrade_group_id=gray_group_id,
+                                                           original_service_id=weight_info["original_service_id"],
+                                                           original_service_cname=weight_info["original_service_cname"],
+                                                           gray_service_id=weight_info["new_service_id"],
+                                                           gray_service_cname=weight_info["new_service_cname"],
+                                                           service_mappings=service_mappings_json,
+                                                           domain_name=domain_name,
+                                                           gray_ratio=gray_ratio,
+                                                           status=GrayReleaseStatus.ACTIVE)
 
             logger.info(f"Gray release record created: ID={gray_release_record.ID}, "
-                       f"service_mappings count={len(service_mappings)}")
+                        f"service_mappings count={len(service_mappings)}")
 
             return {
                 "app_id": app.ID,
@@ -825,14 +742,16 @@ class GrayReleaseService(object):
             raise
         except Exception as e:
             logger.error("Failed to create gray release: {0}".format(traceback.format_exc()))
-            raise ServiceHandleException(
-                msg="failed to create gray release: {0}".format(str(e)),
-                msg_show="创建灰度发布失败",
-                status_code=500
-            )
+            raise ServiceHandleException(msg="failed to create gray release: {0}".format(str(e)),
+                                         msg_show="创建灰度发布失败",
+                                         status_code=500)
 
-    def update_gray_ratio_by_record(self, team: Tenants, region_name: str, user: Users,
-                                    app: ServiceGroup, record: GrayReleaseRecord,
+    def update_gray_ratio_by_record(self,
+                                    team: Tenants,
+                                    region_name: str,
+                                    user: Users,
+                                    app: ServiceGroup,
+                                    record: GrayReleaseRecord,
                                     new_gray_ratio: int,
                                     is_full_release: bool = False) -> dict:
         """
@@ -855,22 +774,13 @@ class GrayReleaseService(object):
             self.validate_gray_ratio(new_gray_ratio)
 
             # Get services from record
-            original_service = TenantServiceInfo.objects.filter(
-                tenant_id=team.tenant_id,
-                service_id=record.original_service_id
-            ).first()
+            original_service = TenantServiceInfo.objects.filter(tenant_id=team.tenant_id,
+                                                                service_id=record.original_service_id).first()
 
-            new_service = TenantServiceInfo.objects.filter(
-                tenant_id=team.tenant_id,
-                service_id=record.gray_service_id
-            ).first()
+            new_service = TenantServiceInfo.objects.filter(tenant_id=team.tenant_id, service_id=record.gray_service_id).first()
 
             if not original_service or not new_service:
-                raise ServiceHandleException(
-                    msg="services not found in record",
-                    msg_show="灰度发布记录中的服务不存在",
-                    status_code=404
-                )
+                raise ServiceHandleException(msg="services not found in record", msg_show="灰度发布记录中的服务不存在", status_code=404)
 
             # Calculate new weights
             original_weight = 100 - new_gray_ratio
@@ -879,17 +789,13 @@ class GrayReleaseService(object):
             logger.info(f"Updating gray ratio via record: original={original_weight}%, new={new_weight}%")
 
             if is_full_release:
-                logger.info(f"[GrayRelease] Full release detected, will only use new backend")
+                logger.info('[GrayRelease] Full release detected, will only use new backend')
 
             # Get region object first
             from console.repositories.region_repo import region_repo
             region = region_repo.get_region_by_region_name(region_name)
             if not region:
-                raise ServiceHandleException(
-                    msg="region not found",
-                    msg_show="数据中心不存在",
-                    status_code=404
-                )
+                raise ServiceHandleException(msg="region not found", msg_show="数据中心不存在", status_code=404)
 
             # Get domain configuration from API Gateway
             # Domain configuration is not stored in database, need to get from API Gateway
@@ -899,12 +805,15 @@ class GrayReleaseService(object):
             logger.info(f"[GrayRelease] Got domain configuration: {domain.get('name')}")
 
             # Update ApisixRoute weights
-            self._update_apisix_route_weights(
-                team, region, app, domain,
-                original_service, new_service,
-                original_weight, new_weight,
-                is_full_release=is_full_release
-            )
+            self._update_apisix_route_weights(team,
+                                              region,
+                                              app,
+                                              domain,
+                                              original_service,
+                                              new_service,
+                                              original_weight,
+                                              new_weight,
+                                              is_full_release=is_full_release)
 
             # Update record
             gray_release_repo.update_gray_ratio(record, new_gray_ratio)
@@ -927,14 +836,12 @@ class GrayReleaseService(object):
             raise
         except Exception as e:
             logger.error("Failed to update gray ratio: {0}".format(traceback.format_exc()))
-            raise ServiceHandleException(
-                msg="failed to update gray ratio: {0}".format(str(e)),
-                msg_show="更新灰度比例失败",
-                status_code=500
-            )
+            raise ServiceHandleException(msg="failed to update gray ratio: {0}".format(str(e)),
+                                         msg_show="更新灰度比例失败",
+                                         status_code=500)
 
-    def update_gray_ratio(self, team: Tenants, region_name: str, user: Users,
-                          app: ServiceGroup, domain_name: str, gray_ratio: int) -> dict:
+    def update_gray_ratio(self, team: Tenants, region_name: str, user: Users, app: ServiceGroup, domain_name: str,
+                          gray_ratio: int) -> dict:
         """
         Update gray ratio for an existing gray release
 
@@ -954,10 +861,7 @@ class GrayReleaseService(object):
             self.validate_gray_ratio(gray_ratio)
 
             # Get all domains with this domain name for the app
-            domains = ServiceDomain.objects.filter(
-                domain_name=domain_name,
-                tenant_id=team.tenant_id
-            )
+            domains = ServiceDomain.objects.filter(domain_name=domain_name, tenant_id=team.tenant_id)
 
             # Get all services in the app
             # NOTE: app.ID is model int PK; get_group_services group_id typed str.
@@ -968,19 +872,14 @@ class GrayReleaseService(object):
             app_domains = [d for d in domains if d.service_id in app_service_ids]
 
             if len(app_domains) < 2:
-                raise ServiceHandleException(
-                    msg="need at least 2 services with the same domain for gray release",
-                    msg_show="灰度发布需要至少2个服务绑定同一域名",
-                    status_code=400
-                )
+                raise ServiceHandleException(msg="need at least 2 services with the same domain for gray release",
+                                             msg_show="灰度发布需要至少2个服务绑定同一域名",
+                                             status_code=400)
 
             # Find the two services with the same service_cname (original and new version)
             service_cname_map: Dict[Any, list] = {}
             for domain in app_domains:
-                service = TenantServiceInfo.objects.filter(
-                    tenant_id=team.tenant_id,
-                    service_id=domain.service_id
-                ).first()
+                service = TenantServiceInfo.objects.filter(tenant_id=team.tenant_id, service_id=domain.service_id).first()
                 if service:
                     if service.service_cname not in service_cname_map:
                         service_cname_map[service.service_cname] = []
@@ -994,11 +893,7 @@ class GrayReleaseService(object):
                     break
 
             if not gray_service_pair:
-                raise ServiceHandleException(
-                    msg="no gray release service pair found",
-                    msg_show="未找到灰度发布服务对",
-                    status_code=404
-                )
+                raise ServiceHandleException(msg="no gray release service pair found", msg_show="未找到灰度发布服务对", status_code=404)
 
             # Sort by create_time to determine original and new
             gray_service_pair.sort(key=lambda x: x[0].create_time)
@@ -1061,16 +956,16 @@ class GrayReleaseService(object):
                 logger.info("Successfully updated APISIX routes for domain {0}".format(domain_name))
             except Exception as e:
                 logger.error("Failed to update APISIX routes: {0}".format(traceback.format_exc()))
-                raise ServiceHandleException(
-                    msg="failed to update APISIX routes: {0}".format(str(e)),
-                    msg_show="更新APISIX路由失败",
-                    status_code=500
-                )
+                raise ServiceHandleException(msg="failed to update APISIX routes: {0}".format(str(e)),
+                                             msg_show="更新APISIX路由失败",
+                                             status_code=500)
 
             # Update gray release record
             # NOTE: app.ID is model int PK; repo app_id typed str.
             record = gray_release_repo.get_active_record_by_domain(
-                team.tenant_id, app.ID, domain_name  # type: ignore[arg-type]
+                team.tenant_id,
+                app.ID,  # type: ignore[arg-type]
+                domain_name  # type: ignore[arg-type]
             )
             if record:
                 gray_release_repo.update_gray_ratio(record, gray_ratio)
@@ -1095,15 +990,11 @@ class GrayReleaseService(object):
             raise
         except Exception as e:
             logger.error("Failed to update gray ratio: {0}".format(traceback.format_exc()))
-            raise ServiceHandleException(
-                msg="failed to update gray ratio: {0}".format(str(e)),
-                msg_show="更新灰度比例失败",
-                status_code=500
-            )
+            raise ServiceHandleException(msg="failed to update gray ratio: {0}".format(str(e)),
+                                         msg_show="更新灰度比例失败",
+                                         status_code=500)
 
-
-    def rollback_gray_release(self, team: Tenants, region_name: str, user: Users,
-                              app: ServiceGroup, template_id: str) -> dict:
+    def rollback_gray_release(self, team: Tenants, region_name: str, user: Users, app: ServiceGroup, template_id: str) -> dict:
         """
         Rollback gray release: switch all traffic to original services and delete new services
 
@@ -1121,46 +1012,33 @@ class GrayReleaseService(object):
             # Find active gray release record
             # NOTE: app.ID is model int PK; repo app_id typed str.
             record = gray_release_repo.get_active_record_by_app_and_template(
-                team.tenant_id, app.ID, template_id  # type: ignore[arg-type]
+                team.tenant_id,
+                app.ID,  # type: ignore[arg-type]
+                template_id  # type: ignore[arg-type]
             )
 
             if not record:
-                raise ServiceHandleException(
-                    msg="no active gray release found",
-                    msg_show=f"未找到应用 {app.ID} 模板 {template_id} 的活跃灰度发布记录",
-                    status_code=404
-                )
+                raise ServiceHandleException(msg="no active gray release found",
+                                             msg_show=f"未找到应用 {app.ID} 模板 {template_id} 的活跃灰度发布记录",
+                                             status_code=404)
 
             logger.info(f"[GrayRollback] Found gray release record: ID={record.ID}, "
-                       f"domain={record.domain_name}, gray_ratio={record.gray_ratio}")
+                        f"domain={record.domain_name}, gray_ratio={record.gray_ratio}")
 
             # Get services from record
-            original_service = TenantServiceInfo.objects.filter(
-                tenant_id=team.tenant_id,
-                service_id=record.original_service_id
-            ).first()
+            original_service = TenantServiceInfo.objects.filter(tenant_id=team.tenant_id,
+                                                                service_id=record.original_service_id).first()
 
-            new_service = TenantServiceInfo.objects.filter(
-                tenant_id=team.tenant_id,
-                service_id=record.gray_service_id
-            ).first()
+            new_service = TenantServiceInfo.objects.filter(tenant_id=team.tenant_id, service_id=record.gray_service_id).first()
 
             if not original_service:
-                raise ServiceHandleException(
-                    msg="original service not found",
-                    msg_show="原始服务不存在",
-                    status_code=404
-                )
+                raise ServiceHandleException(msg="original service not found", msg_show="原始服务不存在", status_code=404)
 
             # Get region object
             from console.repositories.region_repo import region_repo
             region = region_repo.get_region_by_region_name(region_name)
             if not region:
-                raise ServiceHandleException(
-                    msg="region not found",
-                    msg_show="数据中心不存在",
-                    status_code=404
-                )
+                raise ServiceHandleException(msg="region not found", msg_show="数据中心不存在", status_code=404)
 
             # Step 1: Switch all traffic back to original service (100% to original, 0% to new)
             logger.info("[GrayRollback] Switching all traffic back to original service")
@@ -1172,8 +1050,12 @@ class GrayReleaseService(object):
             if new_service:
                 # Update route to remove new service backend (only keep original)
                 self._update_apisix_route_weights(
-                    team, region, app, domain,
-                    original_service, new_service,
+                    team,
+                    region,
+                    app,
+                    domain,
+                    original_service,
+                    new_service,
                     original_weight=100,
                     new_weight=0,
                     is_full_release=False  # Use False so original service backend is added
@@ -1187,10 +1069,8 @@ class GrayReleaseService(object):
 
             if record.gray_upgrade_group_id:
                 # Get all services in gray upgrade group
-                gray_services = TenantServiceInfo.objects.filter(
-                    tenant_id=team.tenant_id,
-                    tenant_service_group_id=record.gray_upgrade_group_id
-                )
+                gray_services = TenantServiceInfo.objects.filter(tenant_id=team.tenant_id,
+                                                                 tenant_service_group_id=record.gray_upgrade_group_id)
 
                 if gray_services:
                     logger.info(f"[GrayRollback] Found {len(gray_services)} services in gray upgrade group")
@@ -1199,14 +1079,13 @@ class GrayReleaseService(object):
                     for service in gray_services:
                         logger.info(f"[GrayRollback] Deleting gray service: {service.service_cname} ({service.service_id})")
                         try:
-                            code, msg = self.app_manage.batch_delete(
-                                user, team, service, is_force=True
-                            )
+                            code, msg = self.app_manage.batch_delete(user, team, service, is_force=True)
                             if code == 200:
                                 deleted_count += 1
                                 logger.info(f"[GrayRollback] Successfully deleted service: {service.service_cname}")
                             else:
-                                logger.warning(f"[GrayRollback] Failed to delete service {service.service_id}: code={code}, msg={msg}")
+                                logger.warning(
+                                    f"[GrayRollback] Failed to delete service {service.service_id}: code={code}, msg={msg}")
                         except Exception as e:
                             logger.error(f"[GrayRollback] Error deleting service {service.service_id}: {e}")
 
@@ -1232,11 +1111,9 @@ class GrayReleaseService(object):
             raise
         except Exception as e:
             logger.error("Failed to rollback gray release: {0}".format(traceback.format_exc()))
-            raise ServiceHandleException(
-                msg="failed to rollback gray release: {0}".format(str(e)),
-                msg_show="灰度回滚失败",
-                status_code=500
-            )
+            raise ServiceHandleException(msg="failed to rollback gray release: {0}".format(str(e)),
+                                         msg_show="灰度回滚失败",
+                                         status_code=500)
 
 
 gray_release_service = GrayReleaseService()

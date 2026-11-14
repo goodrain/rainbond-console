@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from typing import TYPE_CHECKING
 import os
 import sys
 from types import ModuleType
@@ -9,12 +10,32 @@ sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
 
-import django
-from django.test import SimpleTestCase
 
-django.setup()
+def _load_test_dependencies():
+    """Keep the existing post-Django-setup import order and module bindings."""
+    import django
+    from django.test import SimpleTestCase
 
-from console.services.app_config.network_policy_dependency_sync_service import NetworkPolicyDependencySyncService
+    django.setup()
+
+    from console.services.app_config.network_policy_dependency_sync_service import NetworkPolicyDependencySyncService
+    return (
+        django,
+        SimpleTestCase,
+        NetworkPolicyDependencySyncService,
+    )
+
+
+(
+    django,
+    _RuntimeSimpleTestCase,
+    NetworkPolicyDependencySyncService,
+) = _load_test_dependencies()
+
+if TYPE_CHECKING:
+    from django.test import SimpleTestCase
+else:
+    SimpleTestCase = _RuntimeSimpleTestCase
 
 SYNC_SERVICE_PATH = "console.services.app_config.network_policy_dependency_sync_service"
 
@@ -25,19 +46,18 @@ class Obj(object):
 
 
 class NetworkPolicyDependencySyncServiceTests(SimpleTestCase):
-
     @patch(SYNC_SERVICE_PATH + ".region_api.sync_security_center_network_policy_dependencies")
     @patch(SYNC_SERVICE_PATH + ".port_repo.list_inner_ports")
     @patch(SYNC_SERVICE_PATH + ".service_repo.get_services_by_service_ids")
     @patch(SYNC_SERVICE_PATH + ".dep_relation_repo.get_service_reverse_dependencies")
     @patch(SYNC_SERVICE_PATH + ".dep_relation_repo.get_service_dependencies")
     def test_sync_component_builds_dependency_rules_from_current_relations(
-            self,
-            mock_get_dependencies,
-            mock_get_reverse_dependencies,
-            mock_get_services_by_ids,
-            mock_list_inner_ports,
-            mock_sync,
+        self,
+        mock_get_dependencies,
+        mock_get_reverse_dependencies,
+        mock_get_services_by_ids,
+        mock_list_inner_ports,
+        mock_sync,
     ):
         tenant = Obj(tenant_id="team-1", tenant_name="demo-team")
         service = Obj(
@@ -91,13 +111,13 @@ class NetworkPolicyDependencySyncServiceTests(SimpleTestCase):
     @patch(SYNC_SERVICE_PATH + ".dep_relation_repo.get_service_reverse_dependencies", return_value=[])
     @patch(SYNC_SERVICE_PATH + ".dep_relation_repo.get_service_dependencies", return_value=[])
     def test_sync_after_dependency_change_logs_and_does_not_raise_when_plugin_unavailable(
-            self,
-            _mock_get_dependencies,
-            _mock_get_reverse_dependencies,
-            _mock_get_services_by_ids,
-            _mock_list_inner_ports,
-            mock_sync,
-            mock_logger,
+        self,
+        _mock_get_dependencies,
+        _mock_get_reverse_dependencies,
+        _mock_get_services_by_ids,
+        _mock_list_inner_ports,
+        mock_sync,
+        mock_logger,
     ):
         tenant = Obj(tenant_id="team-1", tenant_name="demo-team")
         service = Obj(

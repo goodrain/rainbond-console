@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import json
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 from urllib.parse import urlsplit, urlunsplit
 
 from www.models.main import TenantServiceInfo, Tenants
@@ -11,10 +11,8 @@ from console.repositories.app import service_source_repo, service_repo
 from console.repositories.app_config import env_var_repo
 from console.utils.cnb_build import (build_cnb_version_policy, get_cnb_policy_definition, summarize_build_env,
                                      sanitize_build_env_dict_for_language, resolve_build_strategy,
-                                     normalize_java_cnb_env_dict_for_response,
-                                     normalize_python_cnb_env_dict_for_response,
-                                     normalize_php_cnb_env_dict_for_response,
-                                     normalize_golang_cnb_env_dict_for_response,
+                                     normalize_java_cnb_env_dict_for_response, normalize_python_cnb_env_dict_for_response,
+                                     normalize_php_cnb_env_dict_for_response, normalize_golang_cnb_env_dict_for_response,
                                      normalize_dotnet_cnb_env_dict_for_response)
 from console.utils.oauth.oauth_types import support_oauth_type
 from www.apiclient.regionapi import RegionInvokeApi
@@ -52,7 +50,8 @@ class BaseService(object):
         records: list = []
         try:
             response = region_lang_version.show_long_version(
-                tenant.enterprise_id, service.service_region, definition["lang_key"], "cnb")  # type: ignore[arg-type]  # NOTE: Optional region_name (latent)
+                tenant.enterprise_id, service.service_region, definition["lang_key"],  # type: ignore[arg-type]
+                "cnb")  # type: ignore[arg-type]  # NOTE: Optional region_name (latent)
             records = response.get("list", []) if isinstance(response, dict) else []
         except Exception as err:
             logger.debug("load enterprise cnb version policy failed: %s", err)
@@ -86,8 +85,7 @@ class BaseService(object):
                 AND t.service_region = "{region_name}"
             ORDER BY
                 t.update_time DESC;
-        '''.format(
-            team_id=team_id, region_name=region_name)
+        '''.format(team_id=team_id, region_name=region_name)
         services = dsn.query(query_sql)
         return services
 
@@ -116,8 +114,7 @@ class BaseService(object):
                 AND t.service_cname like "%{service_cname}%"
             ORDER BY
                 t.update_time DESC;
-        '''.format(
-            team_id=team_id, region_name=region_name, group_id=group_id, service_cname=query)
+        '''.format(team_id=team_id, region_name=region_name, group_id=group_id, service_cname=query)
         services = dsn.query(query_sql)
         return services
 
@@ -145,8 +142,7 @@ class BaseService(object):
                 AND r.group_id IS NULL
             ORDER BY
                 t.update_time DESC;
-        '''.format(
-            team_id=team_id, region_name=region_name)
+        '''.format(team_id=team_id, region_name=region_name)
         services = dsn.query(query_sql)
         return services
 
@@ -179,8 +175,7 @@ class BaseService(object):
                 AND t.service_cname LIKE "%{query_key}%"
             ORDER BY
                 t.{fields} {order};
-        '''.format(
-            team_id=team_id, region_name=region_name, query_key=query_key, fields=fields, order=order)
+        '''.format(team_id=team_id, region_name=region_name, query_key=query_key, fields=fields, order=order)
         services = dsn.query(query_sql)
         return services
 
@@ -189,29 +184,29 @@ class BaseService(object):
             body = region_api.service_status(region, tenant_name, {"service_ids": service_ids, "enterprise_id": enterprise_id})
             # NOTE: service_status may return None; a None index raises and is caught below (returns []).
             status_list = body["list"]  # type: ignore[index]
-            
+
             # 处理 KubeBlocks 组件状态和资源替换
             status_list = self._process_kubeblocks_status(status_list, service_ids, region)
-            
+
             return status_list
         except Exception as e:
             logger.exception(e)
             return []
-    
+
     def _process_kubeblocks_status(self, status_list: list, service_ids: Any, region: str) -> list:
         """处理 KubeBlocks 组件状态和资源信息替换"""
         try:
             from console.enum.component_enum import is_kubeblocks
             from console.services.kubeblocks_service import kubeblocks_service
-            
+
             services = service_repo.get_services_by_service_ids(service_ids)
             kubeblocks_services = [s for s in services if is_kubeblocks(s.extend_method)]
-            
+
             if not kubeblocks_services:
                 return status_list
-                
-            kb_status_map = kubeblocks_service.get_kubeblocks_components_info(
-                region, [s.service_id for s in kubeblocks_services])
+
+            kb_status_map = kubeblocks_service.get_kubeblocks_components_info(region,
+                                                                              [s.service_id for s in kubeblocks_services])
             # 替换状态列表中的 KubeBlocks 组件信息
             for i, status in enumerate(status_list):
                 if status["service_id"] in kb_status_map:
@@ -222,7 +217,7 @@ class BaseService(object):
                         "status_cn": kb_info.get("status_cn", "获取状态失败"),
                         "used_mem": kb_info.get("used_mem", 0)
                     }
-            
+
             return status_list
         except Exception as e:
             logger.exception(f"处理 KubeBlocks 状态失败: {str(e)}")
@@ -288,9 +283,7 @@ class BaseService(object):
             if code_from in oauth_type:
                 service.git_url = strip_url_userinfo(service.git_url)
             build_env_dict = sanitize_build_env_dict_for_language(
-                env_var_repo.get_build_envs(tenant.tenant_id, service.service_id),
-                service.language
-            )
+                env_var_repo.get_build_envs(tenant.tenant_id, service.service_id), service.language)
             build_strategy = resolve_build_strategy(getattr(service, "build_strategy", ""), build_env_dict)
             build_env_dict = normalize_java_cnb_env_dict_for_response(build_env_dict, service.language, build_strategy)
             build_env_dict = normalize_python_cnb_env_dict_for_response(build_env_dict, service.language, build_strategy)
@@ -343,14 +336,17 @@ class BaseService(object):
                             if not market:
                                 market = app_market_service.get_app_market_by_name(
                                     # NOTE: tenant.enterprise_id is Optional[str]; potential None passed as str
-                                    tenant.enterprise_id, market_name, raise_exception=True)  # type: ignore[arg-type]
+                                    tenant.enterprise_id,  # type: ignore[arg-type]
+                                    market_name,
+                                    raise_exception=True)  # type: ignore[arg-type]
                                 markets[market_name] = market
 
                             app = apps.get(service_source.group_key, None)
                             if not app:
                                 # NOTE: service_source.group_key is Optional[str]; potential None passed as app_id str
-                                app, _ = app_market_service.cloud_app_model_to_db_model(
-                                    market, service_source.group_key, None)  # type: ignore[arg-type]
+                                app, _ = app_market_service.cloud_app_model_to_db_model(  # type: ignore[arg-type]
+                                    market, service_source.group_key,  # type: ignore[arg-type]
+                                    None)  # type: ignore[arg-type]
                                 apps[service_source.group_key] = app
 
                             bean["market_error_code"] = 200
@@ -369,8 +365,8 @@ class BaseService(object):
                 if not app:
                     try:
                         # tenant.enterprise_id / service_source.group_key are Optional[str]; get_rainbond_app declares str
-                        app = market_app_service.get_rainbond_app(
-                            tenant.enterprise_id, service_source.group_key)  # type: ignore[arg-type]
+                        app = market_app_service.get_rainbond_app(tenant.enterprise_id,  # type: ignore[arg-type]
+                                                                  service_source.group_key)  # type: ignore[arg-type]
                     except RbdAppNotFound:
                         logger.warning("not found app {0} version {1} in local market".format(
                             service_source.group_key, service_source.version))

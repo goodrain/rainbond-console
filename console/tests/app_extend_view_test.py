@@ -27,28 +27,30 @@ class AppExtendViewVMLiveUpdateCapabilityTests(TestCase):
         self.factory = APIRequestFactory()
         self.view = AppExtendView()
         self.view.tenant = SimpleNamespace(tenant_name="demo-team")
-        self.view.service = SimpleNamespace(
-            service_alias="demo-vm",
-            service_region="demo-region",
-            extend_method="vm",
-            create_status="complete",
-            min_node=1,
-            min_memory=12288,
-            container_gpu=0,
-            min_cpu=6000
-        )
+        self.view.service = SimpleNamespace(service_alias="demo-vm",
+                                            service_region="demo-region",
+                                            extend_method="vm",
+                                            create_status="complete",
+                                            min_node=1,
+                                            min_memory=12288,
+                                            container_gpu=0,
+                                            min_cpu=6000)
 
     def test_get_includes_vm_live_update_capability_for_vm(self):
         request = self.factory.get("/console/teams/demo-team/apps/demo-vm/extend_method")
 
-        with mock.patch("console.views.app_config.app_extend.extend_service.get_app_extend_method", return_value=([1], [12288])), \
-                mock.patch("console.views.app_config.app_extend.region_api.get_vm_live_update_capability", return_value=(None, {
-                    "bean": {
-                        "cpu_hot_update_supported": True,
-                        "memory_hot_update_supported": True,
-                        "hot_update_reason": ""
-                    }
-                })) as capability_mock:
+        with (
+                mock.patch('console.views.app_config.app_extend.extend_service.get_app_extend_method',
+                           return_value=([1], [12288])),
+                mock.patch('console.views.app_config.app_extend.region_api.get_vm_live_update_capability',
+                           return_value=(None, {
+                               'bean': {
+                                   'cpu_hot_update_supported': True,
+                                   'memory_hot_update_supported': True,
+                                   'hot_update_reason': ''
+                               }
+                           })) as capability_mock,
+        ):
             response = self.view.get(request)
 
         self.assertEqual(200, response.status_code)
@@ -76,8 +78,12 @@ class AppExtendViewVMLiveUpdateCapabilityTests(TestCase):
     def test_get_returns_fallback_reason_when_capability_lookup_fails(self):
         request = self.factory.get("/console/teams/demo-team/apps/demo-vm/extend_method")
 
-        with mock.patch("console.views.app_config.app_extend.extend_service.get_app_extend_method", return_value=([1], [12288])), \
-                mock.patch("console.views.app_config.app_extend.region_api.get_vm_live_update_capability", side_effect=Exception("boom")):
+        with (
+                mock.patch('console.views.app_config.app_extend.extend_service.get_app_extend_method',
+                           return_value=([1], [12288])),
+                mock.patch('console.views.app_config.app_extend.region_api.get_vm_live_update_capability',
+                           side_effect=Exception('boom')),
+        ):
             response = self.view.get(request)
 
         self.assertEqual(200, response.status_code)

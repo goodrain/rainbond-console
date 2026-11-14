@@ -11,13 +11,10 @@ from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from openapi.auth.authentication import OpenAPIAuthentication
 from openapi.auth.permissions import OpenAPIPermissions
-from openapi.serializer.app_serializer import (
-    GrayReleaseSerializer, GrayReleaseResponseSerializer,
-    UpdateGrayRatioSerializer, UpdateGrayRatioResponseSerializer,
-    GrayReleaseListItemSerializer, GrayRollbackSerializer,
-    GrayRollbackResponseSerializer
-)
-from openapi.views.base import TeamAPIView, TeamAppAPIView
+from openapi.serializer.app_serializer import (GrayReleaseSerializer, GrayReleaseResponseSerializer, UpdateGrayRatioSerializer,
+                                               UpdateGrayRatioResponseSerializer, GrayReleaseListItemSerializer,
+                                               GrayRollbackSerializer, GrayRollbackResponseSerializer)
+from openapi.views.base import TeamAppAPIView
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.views import APIView
@@ -61,11 +58,8 @@ class GrayReleaseView(TeamAppAPIView):
             market_name = data.get("market_name", "")
             install_from_cloud = data.get("install_from_cloud", False)
 
-            logger.info(
-                "Creating gray release for app {0}: template={1}, domain={2}, ratio={3}".format(
-                    app_id, template_id, domain_name, gray_ratio
-                )
-            )
+            logger.info("Creating gray release for app {0}: template={1}, domain={2}, ratio={3}".format(
+                app_id, template_id, domain_name, gray_ratio))
 
             # Create gray release
             result = gray_release_service.create_gray_release(
@@ -78,8 +72,7 @@ class GrayReleaseView(TeamAppAPIView):
                 domain_name=domain_name,  # type: ignore[arg-type]
                 gray_ratio=gray_ratio,  # type: ignore[arg-type]
                 market_name=market_name,
-                install_from_cloud=install_from_cloud
-            )
+                install_from_cloud=install_from_cloud)
 
             logger.info("Gray release created successfully: {0}".format(result))
 
@@ -102,19 +95,12 @@ class GrayReleaseView(TeamAppAPIView):
 
         except ServiceHandleException as e:
             logger.error("Failed to create gray release: {0}".format(e))
-            result_msg = general_message(
-                e.status_code if hasattr(e, 'status_code') else 500,
-                "failed",
-                e.msg_show if hasattr(e, 'msg_show') else "灰度发布创建失败"
-            )
+            result_msg = general_message(e.status_code if hasattr(e, 'status_code') else 500, "failed",
+                                         e.msg_show if hasattr(e, 'msg_show') else "灰度发布创建失败")
             return Response(result_msg, status=e.status_code if hasattr(e, 'status_code') else 500)
         except Exception as e:
             logger.exception("Unexpected error creating gray release")
-            result_msg = general_message(
-                500,
-                "failed",
-                "灰度发布创建失败: {0}".format(str(e))
-            )
+            result_msg = general_message(500, "failed", "灰度发布创建失败: {0}".format(str(e)))
             return Response(result_msg, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
@@ -149,28 +135,22 @@ class UpdateGrayRatioView(TeamAppAPIView):
             template_id = data.get("template_id")
             gray_ratio = data.get("gray_ratio")
 
-            logger.info(
-                "Updating gray ratio for app {0}, template {1}: ratio={2}".format(
-                    app_id, template_id, gray_ratio
-                )
-            )
+            logger.info("Updating gray ratio for app {0}, template {1}: ratio={2}".format(app_id, template_id, gray_ratio))
 
             # Find active gray release record by app_id and template_id
             record = gray_release_repo.get_active_record_by_app_and_template(
-                self.team.tenant_id, app_id, template_id  # type: ignore[arg-type]
+                self.team.tenant_id,
+                app_id,
+                template_id  # type: ignore[arg-type]
             )
 
             if not record:
                 logger.error(f"No active gray release found for app {app_id}, template {template_id}")
-                result_msg = general_message(
-                    404,
-                    "not_found",
-                    f"未找到应用 {app_id} 模板 {template_id} 的活跃灰度发布记录"
-                )
+                result_msg = general_message(404, "not_found", f"未找到应用 {app_id} 模板 {template_id} 的活跃灰度发布记录")
                 return Response(result_msg, status=status.HTTP_404_NOT_FOUND)
 
             logger.info(f"Found gray release record: ID={record.ID}, domain={record.domain_name}, "
-                       f"current_ratio={record.gray_ratio}")
+                        f"current_ratio={record.gray_ratio}")
 
             # Check if this is a full release (gray_ratio=100)
             is_full_release = (gray_ratio == 100)
@@ -185,8 +165,7 @@ class UpdateGrayRatioView(TeamAppAPIView):
                 app=self.app,
                 record=record,
                 new_gray_ratio=gray_ratio,  # type: ignore[arg-type]
-                is_full_release=is_full_release
-            )
+                is_full_release=is_full_release)
 
             logger.info("Gray ratio updated successfully: {0}".format(result))
 
@@ -199,21 +178,18 @@ class UpdateGrayRatioView(TeamAppAPIView):
 
                     # Get all services in original upgrade group by tenant_service_group_id
                     original_services = TenantServiceInfo.objects.filter(
-                        tenant_id=self.team.tenant_id,
-                        tenant_service_group_id=record.original_upgrade_group_id
-                    )
+                        tenant_id=self.team.tenant_id, tenant_service_group_id=record.original_upgrade_group_id)
 
                     if original_services:
-                        logger.info(f"Found {len(original_services)} services in upgrade group {record.original_upgrade_group_id}")
+                        logger.info(
+                            f"Found {len(original_services)} services in upgrade group {record.original_upgrade_group_id}")
 
                         # Batch delete services
                         success_count = 0
                         for service in original_services:
                             logger.info(f"Deleting original service: {service.service_cname} ({service.service_id})")
                             try:
-                                code, msg = app_manage_service.batch_delete(
-                                    self.user, self.team, service, is_force=True
-                                )
+                                code, msg = app_manage_service.batch_delete(self.user, self.team, service, is_force=True)
                                 if code == 200:
                                     success_count += 1
                                     logger.info(f"Successfully deleted service: {service.service_cname} ({service.service_id})")
@@ -226,7 +202,6 @@ class UpdateGrayRatioView(TeamAppAPIView):
 
                         # Update gray release record status to completed
                         from console.repositories.gray_release_repo import gray_release_repo
-                        from console.models.main import GrayReleaseStatus
                         gray_release_repo.update_status(record, GrayReleaseStatus.COMPLETED)
                         logger.info(f"Gray release marked as completed: record_id={record.ID}")
                     else:
@@ -255,19 +230,12 @@ class UpdateGrayRatioView(TeamAppAPIView):
 
         except ServiceHandleException as e:
             logger.error("Failed to update gray ratio: {0}".format(e))
-            result_msg = general_message(
-                e.status_code if hasattr(e, 'status_code') else 500,
-                "failed",
-                e.msg_show if hasattr(e, 'msg_show') else "灰度比例更新失败"
-            )
+            result_msg = general_message(e.status_code if hasattr(e, 'status_code') else 500, "failed",
+                                         e.msg_show if hasattr(e, 'msg_show') else "灰度比例更新失败")
             return Response(result_msg, status=e.status_code if hasattr(e, 'status_code') else 500)
         except Exception as e:
             logger.exception("Unexpected error updating gray ratio")
-            result_msg = general_message(
-                500,
-                "failed",
-                "灰度比例更新失败: {0}".format(str(e))
-            )
+            result_msg = general_message(500, "failed", "灰度比例更新失败: {0}".format(str(e)))
             return Response(result_msg, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
@@ -297,11 +265,7 @@ class GrayRollbackView(TeamAppAPIView):
 
             template_id = data.get("template_id")
 
-            logger.info(
-                "Rolling back gray release for app {0}, template {1}".format(
-                    app_id, template_id
-                )
-            )
+            logger.info("Rolling back gray release for app {0}, template {1}".format(app_id, template_id))
 
             # Perform rollback
             result = gray_release_service.rollback_gray_release(
@@ -327,19 +291,12 @@ class GrayRollbackView(TeamAppAPIView):
 
         except ServiceHandleException as e:
             logger.error("Failed to rollback gray release: {0}".format(e))
-            result_msg = general_message(
-                e.status_code if hasattr(e, 'status_code') else 500,
-                "failed",
-                e.msg_show if hasattr(e, 'msg_show') else "灰度回滚失败"
-            )
+            result_msg = general_message(e.status_code if hasattr(e, 'status_code') else 500, "failed",
+                                         e.msg_show if hasattr(e, 'msg_show') else "灰度回滚失败")
             return Response(result_msg, status=e.status_code if hasattr(e, 'status_code') else 500)
         except Exception as e:
             logger.exception("Unexpected error rolling back gray release")
-            result_msg = general_message(
-                500,
-                "failed",
-                "灰度回滚失败: {0}".format(str(e))
-            )
+            result_msg = general_message(500, "failed", "灰度回滚失败: {0}".format(str(e)))
             return Response(result_msg, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
@@ -350,7 +307,11 @@ class GrayReleaseListView(APIView):
     @swagger_auto_schema(
         operation_description="查询平台下的灰度发布列表",
         manual_parameters=[
-            openapi.Parameter("status", openapi.IN_QUERY, description="状态筛选: active-灰度中, completed-已完成, cancelled-已取消", type=openapi.TYPE_STRING, required=False),
+            openapi.Parameter("status",
+                              openapi.IN_QUERY,
+                              description="状态筛选: active-灰度中, completed-已完成, cancelled-已取消",
+                              type=openapi.TYPE_STRING,
+                              required=False),
         ],
         responses={200: GrayReleaseListItemSerializer(many=True)},
         tags=['openapi-apps'],
@@ -363,7 +324,6 @@ class GrayReleaseListView(APIView):
         - status: Filter by status (active, completed, cancelled)
         """
         try:
-            from console.repositories.gray_release_repo import gray_release_repo
             from console.models.main import GrayReleaseRecord
 
             status_filter = request.GET.get('status', None)
@@ -391,19 +351,32 @@ class GrayReleaseListView(APIView):
                         service_mappings = []
 
                 result_list.append({
-                    'id': record.ID,
-                    'app_id': record.app_id,
-                    'team_id': record.tenant_id,
-                    'app_name': record.app_name,
-                    'template_id': record.template_id,
-                    'template_name': record.template_name,
-                    'template_version': record.template_version,
-                    'domain_name': record.domain_name,
-                    'gray_ratio': record.gray_ratio,
-                    'status': record.status,
-                    'service_mappings': service_mappings,
-                    'create_time': record.create_time.strftime('%Y-%m-%d %H:%M:%S') if record.create_time else '',
-                    'update_time': record.update_time.strftime('%Y-%m-%d %H:%M:%S') if record.update_time else '',
+                    'id':
+                    record.ID,
+                    'app_id':
+                    record.app_id,
+                    'team_id':
+                    record.tenant_id,
+                    'app_name':
+                    record.app_name,
+                    'template_id':
+                    record.template_id,
+                    'template_name':
+                    record.template_name,
+                    'template_version':
+                    record.template_version,
+                    'domain_name':
+                    record.domain_name,
+                    'gray_ratio':
+                    record.gray_ratio,
+                    'status':
+                    record.status,
+                    'service_mappings':
+                    service_mappings,
+                    'create_time':
+                    record.create_time.strftime('%Y-%m-%d %H:%M:%S') if record.create_time else '',
+                    'update_time':
+                    record.update_time.strftime('%Y-%m-%d %H:%M:%S') if record.update_time else '',
                 })
 
             result_msg = general_message(200, "success", "查询成功", list=result_list)
@@ -411,9 +384,5 @@ class GrayReleaseListView(APIView):
 
         except Exception as e:
             logger.exception("Failed to get gray release list")
-            result_msg = general_message(
-                500,
-                "failed",
-                "查询失败: {0}".format(str(e))
-            )
+            result_msg = general_message(500, "failed", "查询失败: {0}".format(str(e)))
             return Response(result_msg, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

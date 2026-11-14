@@ -63,9 +63,9 @@ class EnterpriseConfigView(EnterpriseAdminView):
         if login_image:
             config_service.update_config_value(ConfigKeyEnum.LOGIN_IMAGE.name, login_image)
             ent_config_service.update_config_value(ConfigKeyEnum.LOGIN_IMAGE.name, login_image)
-        if type(show_k8s) == bool:
+        if type(show_k8s) is bool:
             ent_config_service.update_config_enable_status(ConfigKeyEnum.SHOW_K8S.name, show_k8s)
-        if type(show_langue) == bool:
+        if type(show_langue) is bool:
             ent_config_service.update_config_enable_status(ConfigKeyEnum.SHOW_LANGUE.name, show_langue)
         if security_restrictions is not None:
             ent_config_service.update_config_enable_status(ConfigKeyEnum.SECURITY_RESTRICTIONS.name, security_restrictions)

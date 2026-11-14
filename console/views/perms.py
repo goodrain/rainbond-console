@@ -6,7 +6,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from console.models.main import EnterpriseUserPerm
-from console.repositories.enterprise_repo import enterprise_repo
+
 from console.repositories.region_repo import region_repo
 from console.services.operation_log import operation_log_service, Operation
 from console.services.perm_services import perm_services
@@ -52,7 +52,9 @@ class TeamRolesLCView(TenantHeaderView):
             suffix=" 中创建了角色 {}".format(name))
         operation_log_service.create_team_log(
             # NOTE: enterprise_id is nullable; service expects str (systemic, backlog).
-            user=self.user, comment=comment, enterprise_id=self.user.enterprise_id,  # type: ignore[arg-type]
+            user=self.user,
+            comment=comment,
+            enterprise_id=self.user.enterprise_id,  # type: ignore[arg-type]
             team_name=tenant.tenant_name)
         return Response(result, status=200)
 
@@ -81,7 +83,9 @@ class TeamRolesRUDView(RegionTenantHeaderView):
             team_name=self.tenant.tenant_name,
             suffix=" 中编辑了角色 {}".format(role.name))
         operation_log_service.create_team_log(
-            user=self.user, comment=comment, enterprise_id=self.user.enterprise_id,  # type: ignore[arg-type]
+            user=self.user,
+            comment=comment,
+            enterprise_id=self.user.enterprise_id,  # type: ignore[arg-type]
             team_name=self.tenant.tenant_name)
         return Response(result, status=200)
 
@@ -96,7 +100,9 @@ class TeamRolesRUDView(RegionTenantHeaderView):
             team_name=self.tenant.tenant_name,
             suffix=" 中删除了角色 {}".format(role.name))  # type: ignore[union-attr]
         operation_log_service.create_team_log(
-            user=self.user, comment=comment, enterprise_id=self.user.enterprise_id,  # type: ignore[arg-type]
+            user=self.user,
+            comment=comment,
+            enterprise_id=self.user.enterprise_id,  # type: ignore[arg-type]
             team_name=self.tenant.tenant_name)
         return Response(result, status=200)
 
@@ -130,22 +136,22 @@ class TeamUsersRolesLView(RegionTenantHeaderView):
     def get(self, request: Request, team_name: str, *args: Any, **kwargs: Any) -> Response:
         # 获取团队所有用户
         team_users = team_services.get_team_users(self.tenant)
-        
+
         # 获取企业管理员列表（除了团队创建者）
         admin_users = EnterpriseUserPerm.objects.filter()
         admin_user_ids = set(admin_users.values_list('user_id', flat=True))
-        
+
         # 过滤用户列表，排除企业管理员（除非是团队创建者）
-        filtered_users = [user for user in team_users if user.user_id not in admin_user_ids or user.user_id == self.tenant.creater]
-        
+        filtered_users = [
+            user for user in team_users if user.user_id not in admin_user_ids or user.user_id == self.tenant.creater
+        ]
+
         # 获取用户角色信息
-        data = user_kind_role_service.get_users_roles(
-            kind="team", 
-            kind_id=self.tenant.tenant_id, 
-            users=filtered_users, 
-            creater_id=self.tenant.creater
-        )
-        
+        data = user_kind_role_service.get_users_roles(kind="team",
+                                                      kind_id=self.tenant.tenant_id,
+                                                      users=filtered_users,
+                                                      creater_id=self.tenant.creater)
+
         result = general_message(200, "success", None, list=data)
         return Response(result, status=200)
 
@@ -173,7 +179,9 @@ class TeamUserRolesRUDView(TenantHeaderView):
             team_name=self.tenant.tenant_name,
             suffix=" 中修改了用户 {} 的角色".format(user.get_name()))
         operation_log_service.create_team_log(
-            user=self.user, comment=comment, enterprise_id=self.user.enterprise_id,  # type: ignore[arg-type]
+            user=self.user,
+            comment=comment,
+            enterprise_id=self.user.enterprise_id,  # type: ignore[arg-type]
             team_name=self.tenant.tenant_name)
         return Response(result, status=200)
 
@@ -190,11 +198,10 @@ class TeamUserPermsLView(RegionTenantHeaderView):
     def get(self, request: Request, team_name: str, user_id: str, *args: Any, **kwargs: Any) -> Response:
         team_users = team_services.get_team_users(self.tenant)
         user = team_users.filter(user_id=user_id).first()
-        data = user_kind_perm_service.get_user_perms(
-            kind="team",
-            kind_id=self.tenant.tenant_id,
-            user=user,
-            is_owner=self.is_team_owner,
-            is_ent_admin=self.is_enterprise_admin)
+        data = user_kind_perm_service.get_user_perms(kind="team",
+                                                     kind_id=self.tenant.tenant_id,
+                                                     user=user,
+                                                     is_owner=self.is_team_owner,
+                                                     is_ent_admin=self.is_enterprise_admin)
         result = general_message(200, "success", None, bean=data)
         return Response(result, status=200)

@@ -16,10 +16,20 @@ from django.db.models import QuerySet
 from console.constants import ServicePortConstants
 from console.enum.app import GovernanceModeEnum
 from console.exception.bcode import (ErrComponentPortExists, ErrK8sServiceNameExists)
-from console.exception.main import (AbortRequest, CheckThirdpartEndpointFailed, ServiceHandleException)
+from console.exception.main import (
+    AbortRequest,
+    CheckThirdpartEndpointFailed,
+    ServiceHandleException,
+)
 # repository
 from console.repositories.app import service_repo
-from console.repositories.app_config import (domain_repo, env_var_repo, port_repo, service_endpoints_repo, tcp_domain)
+from console.repositories.app_config import (
+    domain_repo,
+    env_var_repo,
+    port_repo,
+    service_endpoints_repo,
+    tcp_domain,
+)
 from console.repositories.group import group_repo
 from console.repositories.probe_repo import probe_repo
 from console.repositories.region_app import region_app_repo
@@ -57,8 +67,8 @@ PORT_OPERATION_LABELS = {
 }
 
 
-def build_port_operation_error_msg_show(action: str, container_port: int, protocol: Any,
-                                        error_body: Any, status_code: int) -> str:
+def build_port_operation_error_msg_show(action: str, container_port: int, protocol: Any, error_body: Any,
+                                        status_code: int) -> str:
     action_label = PORT_OPERATION_LABELS.get(action, "操作端口")
     body = error_body if isinstance(error_body, dict) else {}
     core_message = str(body.get("msg") or "")
@@ -67,8 +77,7 @@ def build_port_operation_error_msg_show(action: str, container_port: int, protoc
     if action in ("open_outer", "only_open_outer"):
         if "protocol is not supported by the component port" in normalized_message:
             protocol_name = str(protocol or "目标协议").upper()
-            return "组件对内服务的 {} 端口协议尚未同步为 {}，请关闭并重新开启对内服务后，再开启对外服务".format(
-                container_port, protocol_name)
+            return "组件对内服务的 {} 端口协议尚未同步为 {}，请关闭并重新开启对内服务后，再开启对外服务".format(container_port, protocol_name)
         if "backend service is unavailable for protocol validation" in normalized_message:
             return "组件对内服务尚未就绪，请关闭并重新开启对内服务后，再开启对外服务"
 
@@ -98,7 +107,6 @@ class AppPortService(object):
         service_port_dict["别名"] = service_port.port_alias
         service_port_dict["内部域名"] = service_port.k8s_service_name
         return json.dumps(service_port_dict, ensure_ascii=False)
-
 
     @staticmethod
     def check_port(service: TenantServiceInfo, container_port: int) -> None:
@@ -197,11 +205,10 @@ class AppPortService(object):
         self.sync_ports(tenant.tenant_name, region_name, region_app_id, components, ports, new_envs)
 
     @staticmethod
-    def sync_ports(tenant_name: str, region_name: str, region_app_id: str, components: Any, ports: Any,
-                   envs: Any) -> None:
+    def sync_ports(tenant_name: str, region_name: str, region_app_id: str, components: Any, ports: Any, envs: Any) -> None:
         # make sure attr_value is string.
         for env in envs:
-            if type(env.attr_value) != str:
+            if type(env.attr_value) is not str:
                 env.attr_value = str(env.attr_value)
 
         new_components = []
@@ -231,11 +238,18 @@ class AppPortService(object):
         }
         region_api.sync_components(tenant_name, region_name, region_app_id, body)
 
-    def create_internal_port(self, tenant: Tenants, component: TenantServiceInfo, container_port: int,
+    def create_internal_port(self,
+                             tenant: Tenants,
+                             component: TenantServiceInfo,
+                             container_port: int,
                              user_name: str = '') -> None:
         try:
-            self.add_service_port(
-                tenant, component, container_port, protocol="http", is_inner_service=True, user_name=user_name)
+            self.add_service_port(tenant,
+                                  component,
+                                  container_port,
+                                  protocol="http",
+                                  is_inner_service=True,
+                                  user_name=user_name)
         except ErrComponentPortExists:
             # make sure port is internal
             port = port_repo.get_service_port_by_port(tenant.tenant_id, component.service_id, container_port)
@@ -255,8 +269,7 @@ class AppPortService(object):
                          is_outer_service: bool = False,
                          k8s_service_name: Optional[str] = None,
                          user_name: str = '',
-                         app: Optional[ServiceGroup] = None
-                         ) -> Tuple[int, str, Optional[TenantServicesPort]]:
+                         app: Optional[ServiceGroup] = None) -> Tuple[int, str, Optional[TenantServicesPort]]:
 
         ports = port_repo.get_service_ports(service.tenant_id, service.service_id)
         if ports:
@@ -290,16 +303,28 @@ class AppPortService(object):
                 host_value = k8s_service_name
             else:
                 host_value = "127.0.0.1"
-            code, msg, env = env_var_service.add_service_env_var(
-                tenant, service, container_port, "连接地址", env_prefix + "_HOST", host_value, False, scope="outer")
+            code, msg, env = env_var_service.add_service_env_var(tenant,
+                                                                 service,
+                                                                 container_port,
+                                                                 "连接地址",
+                                                                 env_prefix + "_HOST",
+                                                                 host_value,
+                                                                 False,
+                                                                 scope="outer")
             if code != 200:
                 if code == 412 and env:
                     env.container_port = container_port
                     env.save()
                 else:
                     return code, msg, None
-            code, msg, env = env_var_service.add_service_env_var(
-                tenant, service, container_port, "端口", env_prefix + "_PORT", mapping_port, False, scope="outer")
+            code, msg, env = env_var_service.add_service_env_var(tenant,
+                                                                 service,
+                                                                 container_port,
+                                                                 "端口",
+                                                                 env_prefix + "_PORT",
+                                                                 mapping_port,
+                                                                 False,
+                                                                 scope="outer")
             if code != 200:
                 if code == 412 and env:
                     env.container_port = container_port
@@ -353,8 +378,12 @@ class AppPortService(object):
         return 200, "success", new_port
 
     @transaction.atomic
-    def batch_add_service_ports(self, tenant: Tenants, service: TenantServiceInfo, ports_data: Any,
-                                user_name: str = '', app: Optional[ServiceGroup] = None) -> List[TenantServicesPort]:
+    def batch_add_service_ports(self,
+                                tenant: Tenants,
+                                service: TenantServiceInfo,
+                                ports_data: Any,
+                                user_name: str = '',
+                                app: Optional[ServiceGroup] = None) -> List[TenantServicesPort]:
         """Batch-add ports with a single region API call and bulk DB write.
 
         ports_data: list of dicts, each with:
@@ -422,16 +451,28 @@ class AppPortService(object):
             })
 
         for container_port, env_prefix, host_value in inner_env_specs:
-            code, msg, env = env_var_service.add_service_env_var(
-                tenant, service, container_port, "连接地址", env_prefix + "_HOST", host_value, False, scope="outer")
+            code, msg, env = env_var_service.add_service_env_var(tenant,
+                                                                 service,
+                                                                 container_port,
+                                                                 "连接地址",
+                                                                 env_prefix + "_HOST",
+                                                                 host_value,
+                                                                 False,
+                                                                 scope="outer")
             if code != 200:
                 if code == 412 and env:
                     env.container_port = container_port
                     env.save()
                 else:
                     raise ServiceHandleException(msg=msg, msg_show=msg, status_code=code)
-            code, msg, env = env_var_service.add_service_env_var(
-                tenant, service, container_port, "端口", env_prefix + "_PORT", container_port, False, scope="outer")
+            code, msg, env = env_var_service.add_service_env_var(tenant,
+                                                                 service,
+                                                                 container_port,
+                                                                 "端口",
+                                                                 env_prefix + "_PORT",
+                                                                 container_port,
+                                                                 False,
+                                                                 scope="outer")
             if code != 200:
                 if code == 412 and env:
                     env.container_port = container_port
@@ -465,8 +506,7 @@ class AppPortService(object):
             return port_repo.get_service_port_by_port(service.tenant_id, service.service_id, port)
         return None
 
-    def get_port_variables(self, tenant: Tenants, service: TenantServiceInfo,
-                           port_info: TenantServicesPort) -> Dict[str, Any]:
+    def get_port_variables(self, tenant: Tenants, service: TenantServiceInfo, port_info: TenantServicesPort) -> Dict[str, Any]:
         data: Dict[str, Any] = {"environment": []}
         if port_info.is_inner_service:
             envs = env_var_service.get_env_by_container_port(tenant, service, port_info.container_port)
@@ -506,7 +546,10 @@ class AppPortService(object):
         return data
 
     @transaction.atomic
-    def delete_port_by_container_port(self, tenant: Tenants, service: TenantServiceInfo, container_port: int,
+    def delete_port_by_container_port(self,
+                                      tenant: Tenants,
+                                      service: TenantServiceInfo,
+                                      container_port: int,
                                       user_name: str = '') -> TenantServicesPort:
         service_domains = domain_repo.get_service_domain_by_container_port(service.service_id, container_port)
         active_service_domains = [domain for domain in service_domains if getattr(domain, "is_outer_service", True)]
@@ -562,8 +605,7 @@ class AppPortService(object):
                 try:
                     # NOTE: Tenants.enterprise_id is nullable (str | None); callee expects str.
                     region_api.delete_service_port(service.service_region, tenant.tenant_name, service.service_alias,
-                                                   port.container_port,
-                                                   tenant.enterprise_id)  # type: ignore[arg-type]
+                                                   port.container_port, tenant.enterprise_id)  # type: ignore[arg-type]
                 except Exception as e:
                     logger.exception(e)
 
@@ -604,8 +646,7 @@ class AppPortService(object):
                     port_alias: Any,
                     k8s_service_name: str = "",
                     user_name: str = '',
-                    app: Optional[ServiceGroup] = None
-                    ) -> Tuple[int, str, Optional[TenantServicesPort]]:
+                    app: Optional[ServiceGroup] = None) -> Tuple[int, str, Optional[TenantServicesPort]]:
         # NOTE: protocol/port_alias typed Any — callers (other strict modules) pass
         # Optional[str]/None; relaxing here clears the caller cascade without behavior change.
         if port_alias:
@@ -652,34 +693,36 @@ class AppPortService(object):
                 status_code = 400
             error_body = getattr(error, "body", {})
             message = get_region_error_message(error)
-            msg_show = build_port_operation_error_msg_show(
-                action, container_port, deal_port.protocol, error_body, status_code)
-            logger.exception(
-                "component port operation failed: action=%s service_id=%s port=%s region_error=%s",
-                action, service.service_id, container_port, message)
-            raise ServiceHandleException(
-                msg=message, msg_show=msg_show, status_code=status_code, error_code=status_code)
+            msg_show = build_port_operation_error_msg_show(action, container_port, deal_port.protocol, error_body, status_code)
+            logger.exception("component port operation failed: action=%s service_id=%s port=%s region_error=%s", action,
+                             service.service_id, container_port, message)
+            raise ServiceHandleException(msg=message, msg_show=msg_show, status_code=status_code, error_code=status_code)
         except ServiceHandleException as error:
             current_msg = str(error.msg or "")
             current_msg_show = str(error.msg_show or "")
             if current_msg_show and current_msg_show != current_msg and "数据中心" not in current_msg_show:
                 raise
             status_code = error.status_code if isinstance(error.status_code, int) else 400
-            msg_show = build_port_operation_error_msg_show(
-                action, container_port, deal_port.protocol, {"msg": current_msg}, status_code)
-            logger.warning(
-                "component port operation returned an unfriendly error: action=%s service_id=%s port=%s error=%s",
-                action, service.service_id, container_port, current_msg)
-            raise ServiceHandleException(
-                msg=current_msg, msg_show=msg_show, status_code=status_code, error_code=error.error_code)
+            msg_show = build_port_operation_error_msg_show(action, container_port, deal_port.protocol, {"msg": current_msg},
+                                                           status_code)
+            logger.warning("component port operation returned an unfriendly error: action=%s service_id=%s port=%s error=%s",
+                           action, service.service_id, container_port, current_msg)
+            raise ServiceHandleException(msg=current_msg,
+                                         msg_show=msg_show,
+                                         status_code=status_code,
+                                         error_code=error.error_code)
 
         new_port = port_repo.get_service_port_by_port(tenant.tenant_id, service.service_id, container_port)
         if code != 200:
             return code, msg, None
         return 200, "操作成功", new_port
 
-    def __sync_outer_port_to_region(self, tenant: Tenants, service: TenantServiceInfo,
-                                    deal_port: TenantServicesPort, operation: str, user_name: str = '') -> None:
+    def __sync_outer_port_to_region(self,
+                                    tenant: Tenants,
+                                    service: TenantServiceInfo,
+                                    deal_port: TenantServicesPort,
+                                    operation: str,
+                                    user_name: str = '') -> None:
         if service.create_status != "complete":
             return
         region_api.manage_outer_port(service.service_region, tenant.tenant_name, service.service_alias,
@@ -692,12 +735,17 @@ class AppPortService(object):
     # NOTE: region/deal_port typed Any — callers (other strict modules) pass
     # Optional[RegionConfig]/Optional[TenantServicesPort]; relaxing clears the caller
     # cascade without behavior change. Body derefs their attrs unguarded as before.
-    def defalut_open_outer(self, tenant: Tenants, service: TenantServiceInfo, region: Any,
-                           deal_port: Any, app: Optional[ServiceGroup] = None) -> Tuple[int, str]:
+    def defalut_open_outer(self,
+                           tenant: Tenants,
+                           service: TenantServiceInfo,
+                           region: Any,
+                           deal_port: Any,
+                           app: Optional[ServiceGroup] = None) -> Tuple[int, str]:
         if deal_port.protocol == "http":
             service_name = service.service_alias
             container_port = deal_port.container_port
-            domain_name = str(service_name) + "-" + str(container_port) + "-" + str(tenant.tenant_name) + "." + str(region.httpdomain)
+            domain_name = str(service_name) + "-" + str(container_port) + "-" + str(tenant.tenant_name) + "." + str(
+                region.httpdomain)
             protocol = "http"
             service_id = service.service_id
             http_rule_id = make_uuid(domain_name)
@@ -731,15 +779,15 @@ class AppPortService(object):
                     # 给数据中心发请求添加默认域名
                     try:
                         svc = port_repo.get_service_port_by_port(tenant.tenant_id, service.service_id, container_port)
-                        region_api.api_gateway_bind_http_domain(service_name, region, tenant.tenant_name,
-                                                                [domain_name], svc,
+                        region_api.api_gateway_bind_http_domain(service_name, region, tenant.tenant_name, [domain_name], svc,
                                                                 app.app_id)  # type: ignore[union-attr,arg-type]
                     except Exception as e:
                         logger.exception(e)
                         domain_repo.delete_http_domains(http_rule_id)
                         return 412, "创建默认访问地址失败，请稍后重试"
 
-            path = "/api-gateway/v1/" + tenant.tenant_name + "/routes/http/port?act=opeo&service_alias=" + service.service_alias +"&port="+str(container_port)
+            path = ("/api-gateway/v1/" + tenant.tenant_name + "/routes/http/port?act=opeo&service_alias=" +
+                    service.service_alias + "&port=" + str(container_port))
             region_api.api_gateway_get_proxy(region, tenant.tenant_id, path, None)
 
         else:
@@ -803,13 +851,18 @@ class AppPortService(object):
             app_plugin_service.update_config_if_have_entrance_plugin(tenant, service)
         return 200, "success"
 
-    def __open_outer(self, tenant: Tenants, service: TenantServiceInfo, region: RegionConfig,
-                     deal_port: TenantServicesPort, app: Optional[ServiceGroup] = None,
+    def __open_outer(self,
+                     tenant: Tenants,
+                     service: TenantServiceInfo,
+                     region: RegionConfig,
+                     deal_port: TenantServicesPort,
+                     app: Optional[ServiceGroup] = None,
                      user_name: str = '') -> Tuple[int, str]:
         if deal_port.protocol == "http":
             service_name = service.service_alias
             container_port = deal_port.container_port
-            domain_name = str(service_name) + "-" + str(container_port) + "-" + str(tenant.tenant_name) + "." + str(region.httpdomain)
+            domain_name = str(service_name) + "-" + str(container_port) + "-" + str(tenant.tenant_name) + "." + str(
+                region.httpdomain)
             protocol = "http"
             service_id = service.service_id
             http_rule_id = make_uuid(domain_name)
@@ -843,15 +896,15 @@ class AppPortService(object):
                     # 给数据中心发请求添加默认域名
                     try:
                         svc = port_repo.get_service_port_by_port(tenant.tenant_id, service.service_id, container_port)
-                        region_api.api_gateway_bind_http_domain(service_name, region, tenant.tenant_name,
-                                                                [domain_name], svc,
+                        region_api.api_gateway_bind_http_domain(service_name, region, tenant.tenant_name, [domain_name], svc,
                                                                 app.app_id)  # type: ignore[union-attr,arg-type]
                     except Exception as e:
                         logger.exception(e)
                         domain_repo.delete_http_domains(http_rule_id)
                         return 412, "创建默认访问地址失败，请稍后重试"
 
-            path = "/api-gateway/v1/" + tenant.tenant_name + "/routes/http/port?act=opeo&service_alias=" + service.service_alias +"&port="+str(container_port)
+            path = ("/api-gateway/v1/" + tenant.tenant_name + "/routes/http/port?act=opeo&service_alias=" +
+                    service.service_alias + "&port=" + str(container_port))
             region_api.api_gateway_get_proxy(region, tenant.tenant_id, path, None)
 
         else:
@@ -915,8 +968,12 @@ class AppPortService(object):
             app_plugin_service.update_config_if_have_entrance_plugin(tenant, service)
         return 200, "success"
 
-    def __only_open_outer(self, tenant: Tenants, service: TenantServiceInfo, region: RegionConfig,
-                          deal_port: TenantServicesPort, user_name: str = '') -> Tuple[int, str]:
+    def __only_open_outer(self,
+                          tenant: Tenants,
+                          service: TenantServiceInfo,
+                          region: RegionConfig,
+                          deal_port: TenantServicesPort,
+                          user_name: str = '') -> Tuple[int, str]:
         deal_port.is_outer_service = True
         if service.create_status == "complete":
             body = region_api.manage_outer_port(service.service_region, tenant.tenant_name, service.service_alias,
@@ -960,19 +1017,23 @@ class AppPortService(object):
             logger.exception(e)
             raise ServiceHandleException(msg="close outer port failed", msg_show="关闭对外服务失败")
 
-    def __close_outer(self, tenant: Tenants, service: TenantServiceInfo, region: RegionConfig,
-                      deal_port: TenantServicesPort, user_name: str = '') -> Tuple[int, str]:
+    def __close_outer(self,
+                      tenant: Tenants,
+                      service: TenantServiceInfo,
+                      region: RegionConfig,
+                      deal_port: TenantServicesPort,
+                      user_name: str = '') -> Tuple[int, str]:
         app = group_repo.get_by_service_id(tenant.tenant_id, service.service_id)
         http_domains = []
         if deal_port.protocol == "http":
-            path = ("/api-gateway/v1/" + tenant.tenant_name + "/routes/http/domains?service_alias=" +
-                    service.service_alias + "&port=" + str(deal_port.container_port))
+            path = ("/api-gateway/v1/" + tenant.tenant_name + "/routes/http/domains?service_alias=" + service.service_alias +
+                    "&port=" + str(deal_port.container_port))
             body = region_api.api_gateway_get_proxy(region, tenant.tenant_id, path, app.app_id)
             if not isinstance(body, dict) or not isinstance(body.get("list"), list):
                 raise ServiceHandleException(msg="HTTP routes unavailable", msg_show="获取端口访问策略失败", status_code=503)
             http_domains = body["list"]
-        path = ("/api-gateway/v1/" + tenant.tenant_name + "/routes/tcp/domains?service_alias=" +
-                service.service_alias + "&port=" + str(deal_port.container_port) + "&details=true")
+        path = ("/api-gateway/v1/" + tenant.tenant_name + "/routes/tcp/domains?service_alias=" + service.service_alias +
+                "&port=" + str(deal_port.container_port) + "&details=true")
         body = region_api.api_gateway_get_proxy(region, tenant.tenant_id, path, app.app_id)
         if not isinstance(body, dict) or not isinstance(body.get("list"), list):
             raise ServiceHandleException(msg="TCP routes unavailable", msg_show="获取端口访问策略失败", status_code=503)
@@ -991,8 +1052,8 @@ class AppPortService(object):
             except Exception as exc:
                 errors.append(exc)
         for rule in body["list"]:
-            path = ("/v2/proxy-pass/gateway/" + tenant.tenant_name + "/routes/tcp/" +
-                    rule["service_name"] + "?service_id=" + service.service_id)
+            path = ("/v2/proxy-pass/gateway/" + tenant.tenant_name + "/routes/tcp/" + rule["service_name"] + "?service_id=" +
+                    service.service_id)
             try:
                 region_api.delete_proxy(region.region_name, path)
             except Exception as exc:
@@ -1012,7 +1073,10 @@ class AppPortService(object):
         return 200, "success"
 
     @transaction.atomic
-    def __open_inner(self, tenant: Tenants, service: TenantServiceInfo, deal_port: TenantServicesPort,
+    def __open_inner(self,
+                     tenant: Tenants,
+                     service: TenantServiceInfo,
+                     deal_port: TenantServicesPort,
                      user_name: str = '') -> Tuple[int, str]:
         if not deal_port.port_alias:
             return 409, "请先为端口设置别名"
@@ -1030,12 +1094,24 @@ class AppPortService(object):
             host_value = deal_port.k8s_service_name if deal_port.k8s_service_name else service.service_alias
         else:
             host_value = "127.0.0.1"
-        code, msg, data = env_var_service.add_service_env_var(
-            tenant, service, deal_port.container_port, "连接地址", env_prefix + "_HOST", host_value, False, scope="outer")
+        code, msg, data = env_var_service.add_service_env_var(tenant,
+                                                              service,
+                                                              deal_port.container_port,
+                                                              "连接地址",
+                                                              env_prefix + "_HOST",
+                                                              host_value,
+                                                              False,
+                                                              scope="outer")
         if code != 200 and code != 412:
             return code, msg
-        code, msg, data = env_var_service.add_service_env_var(
-            tenant, service, deal_port.container_port, "端口", env_prefix + "_PORT", mapping_port, False, scope="outer")
+        code, msg, data = env_var_service.add_service_env_var(tenant,
+                                                              service,
+                                                              deal_port.container_port,
+                                                              "端口",
+                                                              env_prefix + "_PORT",
+                                                              mapping_port,
+                                                              False,
+                                                              scope="outer")
         if code != 200 and code != 412:
             return code, msg
 
@@ -1055,7 +1131,10 @@ class AppPortService(object):
             app_plugin_service.update_config_if_have_entrance_plugin(tenant, service)
         return 200, "success"
 
-    def __close_inner(self, tenant: Tenants, service: TenantServiceInfo, deal_port: TenantServicesPort,
+    def __close_inner(self,
+                      tenant: Tenants,
+                      service: TenantServiceInfo,
+                      deal_port: TenantServicesPort,
                       user_name: str = '') -> Tuple[int, str]:
         deal_port.is_inner_service = False
         if service.create_status == "complete":
@@ -1072,8 +1151,12 @@ class AppPortService(object):
             app_plugin_service.update_config_if_have_entrance_plugin(tenant, service)
         return 200, "success"
 
-    def __change_protocol(self, tenant: Tenants, service: TenantServiceInfo, deal_port: TenantServicesPort,
-                          protocol: str, user_name: str = '') -> Tuple[int, str]:
+    def __change_protocol(self,
+                          tenant: Tenants,
+                          service: TenantServiceInfo,
+                          deal_port: TenantServicesPort,
+                          protocol: str,
+                          user_name: str = '') -> Tuple[int, str]:
         if deal_port.protocol == protocol:
             return 200, "协议未发生变化"
         deal_port.protocol = protocol
@@ -1090,8 +1173,13 @@ class AppPortService(object):
 
         return 200, "success"
 
-    def change_port_alias(self, tenant: Tenants, service: TenantServiceInfo, deal_port: TenantServicesPort,
-                          new_port_alias: str, k8s_service_name: str, user_name: str = '') -> None:
+    def change_port_alias(self,
+                          tenant: Tenants,
+                          service: TenantServiceInfo,
+                          deal_port: TenantServicesPort,
+                          new_port_alias: str,
+                          k8s_service_name: str,
+                          user_name: str = '') -> None:
         app = group_repo.get_by_service_id(tenant.tenant_id, service.service_id)
 
         old_port_alias = deal_port.port_alias
@@ -1143,8 +1231,7 @@ class AppPortService(object):
         port_repo.bulk_create_or_update(ports)
 
     @staticmethod
-    def update_service_port(tenant: Tenants, region_name: str, service_alias: str, body: Any,
-                            user_name: str = '') -> None:
+    def update_service_port(tenant: Tenants, region_name: str, service_alias: str, body: Any, user_name: str = '') -> None:
         region_api.update_service_port(region_name, tenant.tenant_name, service_alias, {
             "port": body,
             "enterprise_id": tenant.enterprise_id,
@@ -1213,8 +1300,11 @@ class AppPortService(object):
             accesses[svc.service_id] = {"access_type": ServicePortConstants.NO_PORT, "access_info": []}
         return accesses
 
-    def get_access_info(self, tenant: Tenants, service: TenantServiceInfo,
-                        service_ports: Optional[Any] = None, context: Optional[Dict[Any, Any]] = None) -> Tuple[Any, Any]:
+    def get_access_info(self,
+                        tenant: Tenants,
+                        service: TenantServiceInfo,
+                        service_ports: Optional[Any] = None,
+                        context: Optional[Dict[Any, Any]] = None) -> Tuple[Any, Any]:
         access_type = ""
         data: Any = []
         if service_ports is None:
@@ -1246,12 +1336,24 @@ class AppPortService(object):
                     stream_inner_port.append(port)
             if not port.is_outer_service and (not port.is_inner_service):
                 unopened_port.append(port)
-        access_type, data = self.__handle_port_info(tenant, service, unopened_port, http_outer_port, http_inner_port,
-                                                    stream_outer_port, stream_inner_port, context=context)
+        access_type, data = self.__handle_port_info(tenant,
+                                                    service,
+                                                    unopened_port,
+                                                    http_outer_port,
+                                                    http_inner_port,
+                                                    stream_outer_port,
+                                                    stream_inner_port,
+                                                    context=context)
         return access_type, data
 
-    def __handle_port_info(self, tenant: Tenants, service: TenantServiceInfo, unopened_port: Any, http_outer_port: Any,
-                           http_inner_port: Any, stream_outer_port: Any, stream_inner_port: Any,
+    def __handle_port_info(self,
+                           tenant: Tenants,
+                           service: TenantServiceInfo,
+                           unopened_port: Any,
+                           http_outer_port: Any,
+                           http_inner_port: Any,
+                           stream_outer_port: Any,
+                           stream_inner_port: Any,
                            context: Optional[Dict[Any, Any]] = None) -> Any:
         # 有http对外访问端口
         if http_outer_port:
@@ -1310,8 +1412,11 @@ class AppPortService(object):
             access_type = ServicePortConstants.NO_PORT
             return access_type, []
 
-    def __get_stream_outer_url(self, tenant: Tenants, service: TenantServiceInfo,
-                               port: TenantServicesPort, context: Optional[Dict[Any, Any]] = None) -> Optional[str]:
+    def __get_stream_outer_url(self,
+                               tenant: Tenants,
+                               service: TenantServiceInfo,
+                               port: TenantServicesPort,
+                               context: Optional[Dict[Any, Any]] = None) -> Optional[str]:
         key = ("region", service.service_region)
         if context is None:
             region = region_repo.get_region_by_region_name(service.service_region)
@@ -1331,8 +1436,7 @@ class AppPortService(object):
                 return None
         return None
 
-    def __list_stream_outer_urls(self, region_all: Any, tcp_domain_all: Any,
-                                 component: Any) -> Optional[Dict[Any, Any]]:
+    def __list_stream_outer_urls(self, region_all: Any, tcp_domain_all: Any, component: Any) -> Optional[Dict[Any, Any]]:
         region = region_all.filter(region_name=component.service_region)
         if not region:
             return None
@@ -1359,21 +1463,24 @@ class AppPortService(object):
             env_list.append({"name": e.name, "attr_name": e.attr_name, "attr_value": e.attr_value})
         return env_list
 
-    def __get_port_access_url(self, tenant: Tenants, service: TenantServiceInfo, port: int,
+    def __get_port_access_url(self,
+                              tenant: Tenants,
+                              service: TenantServiceInfo,
+                              port: int,
                               context: Optional[Dict[Any, Any]] = None) -> List[str]:
         urls: List[str] = []
         # NOTE: Tenants.enterprise_id is nullable (str | None); callee expects str.
         key = ("enterprise-region", tenant.enterprise_id, service.service_region)
         if context is None:
-            region_info = region_services.get_enterprise_region_by_region_name(
-                tenant.enterprise_id, service.service_region)  # type: ignore[arg-type]
+            region_info = region_services.get_enterprise_region_by_region_name(tenant.enterprise_id,  # type: ignore[arg-type]
+                                                                               service.service_region)  # type: ignore[arg-type]
         else:
             if key not in context:
                 context[key] = region_services.get_enterprise_region_by_region_name(
                     tenant.enterprise_id, service.service_region)  # type: ignore[arg-type]
             region_info = context[key]
-        path = ("/api-gateway/v1/" + tenant.tenant_name + "/routes/http/domains?service_alias=" +
-                service.service_alias + "&port=" + str(port))
+        path = ("/api-gateway/v1/" + tenant.tenant_name + "/routes/http/domains?service_alias=" + service.service_alias +
+                "&port=" + str(port))
         # NOTE: region_info may be None (Optional region lookup); api_gateway_get_proxy
         # derefs region attrs unguarded — potential latent None-bug.
         body = region_api.api_gateway_get_proxy(region_info, tenant.tenant_id, path, None)  # type: ignore[arg-type]
@@ -1397,8 +1504,7 @@ class AppPortService(object):
                 port_domains[d.container_port].insert(0, "http://{0}{1}".format(d.domain_name, domain_path))
         return port_domains
 
-    def get_team_region_usable_tcp_ports(self, tenant: Tenants,
-                                         service: TenantServiceInfo) -> QuerySet:
+    def get_team_region_usable_tcp_ports(self, tenant: Tenants, service: TenantServiceInfo) -> QuerySet:
         services = service_repo.get_service_by_tenant(tenant.tenant_id)
         current_service_tcp_ports = port_repo.get_service_ports(
             tenant.tenant_id, service.service_id).filter(is_outer_service=True).exclude(protocol__in=("http", "https"))

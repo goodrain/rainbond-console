@@ -10,16 +10,39 @@ sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
 
-import django
 
-django.setup()
+def _load_test_dependencies():
+    """Keep the existing post-Django-setup import order and module bindings."""
+    import django
 
-from console.exception.main import ServiceHandleException
-from console.utils.validation import is_qualified_name
-from console.utils.validation import normalize_name_for_k8s_namespace
-from console.utils.validation import validate_name
-from console.utils.validation import validate_endpoint_address
-from console.utils.validation import validate_endpoints_info
+    django.setup()
+
+    from console.exception.main import ServiceHandleException
+    from console.utils.validation import is_qualified_name
+    from console.utils.validation import normalize_name_for_k8s_namespace
+    from console.utils.validation import validate_name
+    from console.utils.validation import validate_endpoint_address
+    from console.utils.validation import validate_endpoints_info
+    return (
+        django,
+        ServiceHandleException,
+        is_qualified_name,
+        normalize_name_for_k8s_namespace,
+        validate_name,
+        validate_endpoint_address,
+        validate_endpoints_info,
+    )
+
+
+(
+    django,
+    ServiceHandleException,
+    is_qualified_name,
+    normalize_name_for_k8s_namespace,
+    validate_name,
+    validate_endpoint_address,
+    validate_endpoints_info,
+) = _load_test_dependencies()
 
 
 class EndpointValidationTests(TestCase):

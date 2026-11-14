@@ -108,7 +108,8 @@ class AllServiceInfo(RegionTenantHeaderView):
                 region=self.response_region,
                 tenant_name=self.team_name,
                 service_ids=service_ids,
-                enterprise_id=self.team.enterprise_id)  # type: ignore[arg-type]  # NOTE: enterprise_id nullable; str expected (backlog).
+                enterprise_id=self.team.enterprise_id  # type: ignore[arg-type]
+            )  # type: ignore[arg-type]  # NOTE: enterprise_id nullable; str expected (backlog).
         result = general_message(code, "success", "批量获取状态成功", list=status_list)
         return Response(result, status=code)
 
@@ -138,10 +139,11 @@ class TeamOverView(RegionTenantHeaderView):
         if users:
             user_nums = len(users)
             overview_detail["user_nums"] = user_nums
-            team_service_num = service_repo.get_team_service_num_by_team_id(
-                team_id=self.team.tenant_id, region_name=self.response_region)
+            team_service_num = service_repo.get_team_service_num_by_team_id(team_id=self.team.tenant_id,
+                                                                            region_name=self.response_region)
             source = common_services.get_current_region_used_resource(self.team, self.response_region)
-            team = team_services.get_team_by_team_id_and_eid(self.team.tenant_id, self.team.enterprise_id)  # type: ignore[arg-type]
+            team = team_services.get_team_by_team_id_and_eid(self.team.tenant_id,
+                                                             self.team.enterprise_id)  # type: ignore[arg-type]
             # NOTE: get_team_by_team_id_and_eid may return None; legacy assumes present (backlog).
             overview_detail["logo"] = team.logo  # type: ignore[union-attr]
             region = region_repo.get_region_by_region_name(self.response_region)
@@ -281,7 +283,8 @@ class GroupOperatorManagedView(RegionTenantHeaderView):
             group_id = None
         code = 200
         # NOTE: group_id may be None; get_watch_managed_data expects str (backlog).
-        operator_managed = group_service.get_watch_managed_data(self.tenant, self.region_name, group_id)  # type: ignore[arg-type]
+        operator_managed = group_service.get_watch_managed_data(self.tenant, self.region_name,
+                                                                group_id)  # type: ignore[arg-type]
         result = general_message(code, "success", "获取成功", list=operator_managed)
         return Response(result, status=code)
 
@@ -672,11 +675,14 @@ class TenantServiceEnvsView(RegionTenantHeaderView):
 class AccessTokenView(JWTAuthApiView):
     def get(self, request: Request, team_name: str, token_note: str, **kwargs: Any) -> Response:
         # NOTE: request.user is User|AnonymousUser; auth guarantees authenticated user (backlog).
-        access_key = user_access_services.get_user_access_key_by_note(request.user.user_id, token_note).first()  # type: ignore[union-attr]
+        access_key = user_access_services.get_user_access_key_by_note(request.user.user_id,  # type: ignore[union-attr]
+                                                                      token_note).first()  # type: ignore[union-attr]
         if not access_key:
             try:
                 # NOTE: create_user_access_key expects int|None for 3rd arg; legacy passes "" (backlog).
-                access_key = user_access_services.create_user_access_key(token_note, request.user.user_id, "")  # type: ignore[arg-type, union-attr]
+                access_key = user_access_services.create_user_access_key(  # type: ignore[union-attr]
+                    token_note, request.user.user_id,  # type: ignore[union-attr]
+                    "")  # type: ignore[arg-type, union-attr]
             except ValueError as e:
                 logger.exception(e)
                 raise e

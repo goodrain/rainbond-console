@@ -1,15 +1,9 @@
 # -*- coding: utf8 -*-
-import datetime
-import json
-import logging
-from functools import reduce
 
-from console.repositories.region_app import region_app_repo
-from console.repositories.service_group_relation_repo import \
-    service_group_relation_repo
-from dateutil.relativedelta import relativedelta
+import logging
+
 from django.conf import settings
-from django.forms import model_to_dict
+
 from goodrain_web.custom_config import custom_config
 from www.apiclient.regionapi import RegionInvokeApi
 from www.github_http import GitHubApi
@@ -46,8 +40,8 @@ class ServicePluginResource(object):
         tprs = TenantServicePluginRelation.objects.filter(service_id__in=service_ids, plugin_status=True)
         service_plugin_map = {}
         for tpr in tprs:
-            pbv = PluginBuildVersion.objects.filter(
-                plugin_id=tpr.plugin_id, build_version=tpr.build_version).values("min_memory")
+            pbv = PluginBuildVersion.objects.filter(plugin_id=tpr.plugin_id,
+                                                    build_version=tpr.build_version).values("min_memory")
             if pbv:
                 p = pbv[0]
                 if service_plugin_map.get(tpr.service_id, None):
@@ -110,4 +104,3 @@ class CodeRepositoriesService(object):
         if custom_config.GITHUB:
             return gitHubClient.getReposRefs(user, repos, token)
         return ""
-

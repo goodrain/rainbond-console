@@ -3,16 +3,35 @@
 from django.urls import include, re_path, path
 
 import console.utils.perms_route_config as perms
-from console.views.delivery_templates import (DeliveryTemplatesView, DeliverySourceView, DeliveryChangesView, DeliverySyncView,
-                                              DeliverySyncTaskView, DeliverySyncRetryView, DeliverySyncLogsView,
-                                              DeliveryVersionView, DeliveryOperationView, DeliveryApplicationRecordsView,
-                                              DevelopmentDeliveriesView, DeliveryReviewView, DeliveryTestView, DeliveryTaskView,
-                                              DeliveryTargetsView, DeliveryTaskRetryView)
+from console.views.delivery_templates import (
+    DeliveryTemplatesView,
+    DeliverySourceView,
+    DeliveryChangesView,
+    DeliverySyncView,
+    DeliverySyncTaskView,
+    DeliverySyncRetryView,
+    DeliverySyncLogsView,
+    DeliveryVersionView,
+    DeliveryOperationView,
+    DeliveryApplicationRecordsView,
+    DevelopmentDeliveriesView,
+    DeliveryReviewView,
+    DeliveryTestView,
+    DeliveryTaskView,
+    DeliveryTargetsView,
+    DeliveryTaskRetryView,
+)
 from console.views.team_applications import TeamApplicationsView, TeamApplicationReviewView
 from console.captcha.captcha_code import CaptchaView
 from console.views import app_upgrade
 from console.views import app_version
-from console.views.adaptor import Appstore, Appstores, AppstoreCharts, AppstoreChart, HelmRegionInstall
+from console.views.adaptor import (
+    Appstore,
+    Appstores,
+    AppstoreCharts,
+    AppstoreChart,
+    HelmRegionInstall,
+)
 from console.views.api_gateway import AppApiGatewayView, AppApiGatewayConvertView
 from console.views.agent_access import AgentAccessView
 from console.views.agent_kubernetes import (
@@ -20,142 +39,425 @@ from console.views.agent_kubernetes import (
     AgentKubernetesEncryptionKeyView,
     AgentKubernetesEncryptionResetView,
 )
-from console.views.agent_llm_config import (AgentLLMConfigView, AgentLLMRuntimeConfigView,
-                                            AgentFeishuRuntimeIdentityView,
-                                            AgentMCPDelegatedCredentialsView,
-                                            AgentMCPGroupDelegatedCredentialsView,
-                                            AgentMCPRuntimeCredentialsView,
-                                            AgentMCPServiceCredentialsView)
+from console.views.agent_llm_config import (
+    AgentLLMConfigView,
+    AgentLLMRuntimeConfigView,
+    AgentFeishuRuntimeIdentityView,
+    AgentMCPDelegatedCredentialsView,
+    AgentMCPGroupDelegatedCredentialsView,
+    AgentMCPRuntimeCredentialsView,
+    AgentMCPServiceCredentialsView,
+)
 from console.views.agent_feishu_identity import AgentFeishuEligibleUsersView
-from console.views.agent_web_search_config import (AgentWebSearchConfigView,
-                                                    AgentWebSearchRuntimeConfigView)
+from console.views.agent_web_search_config import (
+    AgentWebSearchConfigView,
+    AgentWebSearchRuntimeConfigView,
+)
 from console.views.agent_web_search import AgentWebSearchRuntimeView
 from console.views.rainskills_access import RainSkillsAccessView
-from console.views.app_autoscaler import (AppAutoscalerView, AppScalingRecords, ListAppAutoscalerView)
-from console.views.app_config.app_dependency import (AppDependencyManageView, AppDependencyView, AppNotDependencyView,
-                                                     AppDependencyReverseView, AppDependencyViewList)
+from console.views.app_autoscaler import (
+    AppAutoscalerView,
+    AppScalingRecords,
+    ListAppAutoscalerView,
+)
+from console.views.app_config.app_dependency import (
+    AppDependencyManageView,
+    AppDependencyView,
+    AppNotDependencyView,
+    AppDependencyReverseView,
+    AppDependencyViewList,
+)
 from console.views.app_config.app_domain import (
-    AppServiceDomainQueryView, AppServiceTcpDomainQueryView, DomainQueryView, DomainView, GatewayCustomConfigurationView,
-    GetPortView, GetSeniorUrlView, HttpStrategyView, SecondLevelDomainView, ServiceDomainView, ServiceTcpDomainQueryView,
-    ServiceTcpDomainView, TenantCertificateManageView, TenantCertificateView, GatewayRouteBatch, GatewayRoute, TenantService,
-    VirtualMachineImageView, VirtualMachineCapabilityView, VirtualMachineAssetListView,
-    VirtualMachineAssetManageView, CalibrationCertificate)
+    AppServiceDomainQueryView,
+    AppServiceTcpDomainQueryView,
+    DomainQueryView,
+    DomainView,
+    GatewayCustomConfigurationView,
+    GetPortView,
+    GetSeniorUrlView,
+    HttpStrategyView,
+    SecondLevelDomainView,
+    ServiceDomainView,
+    ServiceTcpDomainQueryView,
+    ServiceTcpDomainView,
+    TenantCertificateManageView,
+    TenantCertificateView,
+    GatewayRouteBatch,
+    GatewayRoute,
+    TenantService,
+    VirtualMachineImageView,
+    VirtualMachineCapabilityView,
+    VirtualMachineAssetListView,
+    VirtualMachineAssetManageView,
+    CalibrationCertificate,
+)
 from console.views.app_config.app_env import (AppBuildEnvView, AppEnvManageView, AppEnvView)
 from console.views.app_config.app_extend import AppExtendView
 from console.views.app_config.app_label import (AppLabelAvailableView, AppLabelView)
 from console.views.app_config.app_mnt import AppMntManageView, AppMntView
-from console.views.app_config.app_port import (AppPortManageView, AppPortView, AppTcpOuterManageView, TopologicalPortView)
+from console.views.app_config.app_port import (
+    AppPortManageView,
+    AppPortView,
+    AppTcpOuterManageView,
+    TopologicalPortView,
+)
 from console.views.app_config.app_probe import AppProbeView
-from console.views.app_config.app_volume import (AppVolumeManageView, AppVolumeOptionsView, AppVolumeView,
-                                                  AppVolumeFileUploadView)
-from console.views.app_config.graph import (ComponentExchangeGraphsView, ComponentGraphListView, ComponentGraphView,
-                                            ComponentInternalGraphsView)
-from console.views.app_config.service_monitor import (ComponentMetricsView, ComponentServiceMonitorEditView,
-                                                      ComponentServiceMonitorView)
+from console.views.app_config.app_volume import (
+    AppVolumeManageView,
+    AppVolumeOptionsView,
+    AppVolumeView,
+    AppVolumeFileUploadView,
+)
+from console.views.app_config.graph import (
+    ComponentExchangeGraphsView,
+    ComponentGraphListView,
+    ComponentGraphView,
+    ComponentInternalGraphsView,
+)
+from console.views.app_config.service_monitor import (
+    ComponentMetricsView,
+    ComponentServiceMonitorEditView,
+    ComponentServiceMonitorView,
+)
 from console.views.app_config.app_log import ComponentLogView
 from console.views.app_config_group import (AppConfigGroupView, ListAppConfigGroupView)
 from console.views.app_create.app_build import AppBuild, ComposeBuildView, CodeBuildLangVersionView
 from console.views.app_create.app_check import (AppCheck, AppCheckUpdate, GetCheckUUID, LangUpdate)
-from console.views.app_create.docker_compose import (ComposeCheckUpdate, ComposeCheckView, ComposeContentView,
-                                                     ComposeDeleteView, ComposeServicesView, DockerComposeCreateView,
-                                                     GetComposeCheckUUID)
+from console.views.app_create.docker_compose import (
+    ComposeCheckUpdate,
+    ComposeCheckView,
+    ComposeContentView,
+    ComposeDeleteView,
+    ComposeServicesView,
+    DockerComposeCreateView,
+    GetComposeCheckUUID,
+)
 from console.views.app_create.available_resources import AvailableResourcesView
 from console.views.app_create.docker_run import DockerRunCreateView
 from console.views.app_create.image_repositories import TenantImageRepositories, TenantImageTags
 from console.views.app_create.multi_app import (MultiAppCheckView, MultiAppCreateView)
-from console.views.app_create.source_code import (AppCompileEnvView, SourceCodeCreateView, UploadRecordLastView,
-                                                  PackageUploadRecordView, PackageCreateView, TarImageLoadView,
-                                                  TarImageLoadResultView)
-from console.views.app_create.source_outer import (ThirdPartyAppPodsView, ThirdPartyHealthzView, ThirdPartyServiceApiView,
-                                                   ThirdPartyServiceCreateView, ThirdPartyUpdateSecretKeyView)
+from console.views.app_create.source_code import (
+    AppCompileEnvView,
+    SourceCodeCreateView,
+    UploadRecordLastView,
+    PackageUploadRecordView,
+    PackageCreateView,
+    TarImageLoadView,
+    TarImageLoadResultView,
+)
+from console.views.app_create.source_outer import (
+    ThirdPartyAppPodsView,
+    ThirdPartyHealthzView,
+    ThirdPartyServiceApiView,
+    ThirdPartyServiceCreateView,
+    ThirdPartyUpdateSecretKeyView,
+)
 from console.views.app_create.vm_run import VMRunCreateView
 from console.views.app_create.kubeblocks_create import KubeBlocksComponentCreateView
-from console.views.app_event import (AppEventLogView, AppEventsLogView, AppEventsView, AppEventView, AppHistoryLogView,
-                                     AppLogInstanceView, AppLogView)
-from console.views.app_manage import (AgainDelete, BatchActionView, BatchDelete, ChangeServiceNameView, ChangeServiceTypeView,
-                                      ChangeServiceUpgradeView, DeleteAppView, DeployAppView, HorizontalExtendAppView,
-                                      MarketServiceUpgradeView, ReStartAppView, RollBackAppView, StartAppView, StopAppView,
-                                      TeamAppsCloseView, UpgradeAppView, VerticalExtendAppView, PackageToolView, PauseAppView,
-                                      UNPauseAppView, TarImageView, AppsPorConsoletView, ScalingAppView)
+from console.views.app_event import (
+    AppEventLogView,
+    AppEventsLogView,
+    AppEventsView,
+    AppEventView,
+    AppHistoryLogView,
+    AppLogInstanceView,
+    AppLogView,
+)
+from console.views.app_manage import (
+    AgainDelete,
+    BatchActionView,
+    BatchDelete,
+    ChangeServiceNameView,
+    ChangeServiceTypeView,
+    ChangeServiceUpgradeView,
+    DeleteAppView,
+    DeployAppView,
+    HorizontalExtendAppView,
+    MarketServiceUpgradeView,
+    ReStartAppView,
+    RollBackAppView,
+    StartAppView,
+    StopAppView,
+    TeamAppsCloseView,
+    UpgradeAppView,
+    VerticalExtendAppView,
+    PackageToolView,
+    PauseAppView,
+    UNPauseAppView,
+    TarImageView,
+    AppsPorConsoletView,
+    ScalingAppView,
+)
 from console.views.app_market import BindableMarketsView
-from console.views.app_monitor import (AppMonitorQueryRangeView, AppMonitorQueryView, AppResourceQueryView,
-                                       AppTraceView,
-                                       BatchAppMonitorQueryView, MonitorQueryOverConsoleView, MonitorQueryView)
-from console.views.app_overview import (AppAnalyzePluginView, AppBriefView, AppDetailView, AppGroupView,
-                                        AppVMFixedIPView, AppVMDiskView, AppVMProfileView,
-                                        AppGroupVisitView,
-                                        AppKeywordView, AppPluginsBriefView, AppStatusView, AppVisitView,
-                                        BuildSourceinfo,
-                                        ImageAppView, ListAppPodsView, JobStrategy, ManageFile)
-from console.views.backup_data import (BackupDataCView, BackupDateDownload, BackupRecoverCView, BackupUploadCView)
+from console.views.app_monitor import (
+    AppMonitorQueryRangeView,
+    AppMonitorQueryView,
+    AppResourceQueryView,
+    AppTraceView,
+    BatchAppMonitorQueryView,
+    MonitorQueryOverConsoleView,
+    MonitorQueryView,
+)
+from console.views.app_overview import (
+    AppAnalyzePluginView,
+    AppBriefView,
+    AppDetailView,
+    AppGroupView,
+    AppVMFixedIPView,
+    AppVMDiskView,
+    AppVMProfileView,
+    AppGroupVisitView,
+    AppKeywordView,
+    AppPluginsBriefView,
+    AppStatusView,
+    AppVisitView,
+    BuildSourceinfo,
+    ImageAppView,
+    ListAppPodsView,
+    JobStrategy,
+    ManageFile,
+)
+from console.views.backup_data import (
+    BackupDataCView,
+    BackupDateDownload,
+    BackupRecoverCView,
+    BackupUploadCView,
+)
 from console.views.center_pool.app_export import CenterAppExportView
-from console.views.center_pool.app_import import (CenterAppImportView, CenterAppTarballDirView, EnterpriseAppImportInitView)
-from console.views.center_pool.apps import (AppTagCDView, AppVersionUDView, CenterAppCLView, CenterAppUDView, CenterAppView,
-                                            LocalComponentLibraryConfigCheck, TagCLView, TagUDView, CenterPluginAppView,
-                                            CmdInstallAppView, CenterAppPreflightView)
-from console.views.center_pool.groupapp_backup import (AllTeamGroupAppsBackupView, GroupAppsBackupExportView,
-                                                       GroupAppsBackupImportView, GroupAppsBackupStatusView,
-                                                       GroupAppsBackupView, TeamGroupAppsBackupView)
+from console.views.center_pool.app_import import (
+    CenterAppImportView,
+    CenterAppTarballDirView,
+    EnterpriseAppImportInitView,
+)
+from console.views.center_pool.apps import (
+    AppTagCDView,
+    AppVersionUDView,
+    CenterAppCLView,
+    CenterAppUDView,
+    CenterAppView,
+    LocalComponentLibraryConfigCheck,
+    TagCLView,
+    TagUDView,
+    CenterPluginAppView,
+    CmdInstallAppView,
+    CenterAppPreflightView,
+)
+from console.views.center_pool.groupapp_backup import (
+    AllTeamGroupAppsBackupView,
+    GroupAppsBackupExportView,
+    GroupAppsBackupImportView,
+    GroupAppsBackupStatusView,
+    GroupAppsBackupView,
+    TeamGroupAppsBackupView,
+)
 from console.views.center_pool.groupapp_copy import GroupAppsCopyView
-from console.views.center_pool.groupapp_migration import (GroupAppsMigrateView, GroupAppsView, MigrateRecordView)
+from console.views.center_pool.groupapp_migration import (
+    GroupAppsMigrateView,
+    GroupAppsView,
+    MigrateRecordView,
+)
 from console.views.code_repo import ServiceCodeBranch
 from console.views.custom_configs import CustomConfigsCLView, CustomConfigsUserCLView
-from console.views.enterprise import (MyEventsView, ServiceAlarm, GetNodes, GetNode, NodeAction, NodeLabelsOperate,
-                                      NodeTaintOperate, RainbondComponents, ContainerDisk, EnterpriseMenuManage,
-                                      EnterpriseRegionGatewayBatch, EnterpriseTeamNames, EnterpriseRegionLangVersion,
-                                      EnterpriseRegionCNBFrameworks)
-from console.views.enterprise import (EnterpriseRegionNamespace, EnterpriseNamespaceResource, EnterpriseConvertResource,
-                                      RbdPods, RbdPodLog, RbdComponentLogs, Goodrainlog, Downlodlog, RbdLogFiles, ShellPod,
-                                      UploadLongVersion)
 from console.views.enterprise import (
-    EnterpriseAppComponentsLView, EnterpriseAppOverView, EnterpriseAppsLView, EnterpriseMonitor, EnterpriseMyTeams,
-    EnterpriseOverview, EnterpriseRegionDashboard, EnterpriseRegionsLCView, EnterpriseRegionsRUDView,
-    EnterpriseRegionTenantLimitView, EnterpriseRegionTenantRUDView, EnterpriseRUDView, Enterprises, EnterpriseTeamOverView,
-    EnterpriseTeams, EnterpriseUserTeamRoleView, EnterpriseUserTeams, HelmTokenView, HelmAddReginInfo, HelmInstallStatus, EnterpriseInfoFileView)
-from console.views.enterprise_active import (BindMarketEnterpriseAccessTokenView, BindMarketEnterpriseOptimizAccessTokenView)
-from console.views.enterprise_config import (EnterpriseAppStoreImageHubView, EnterpriseObjectStorageView,
-                                             EnterpriseVisualMonitorView, EnterpriseAlertsView, EnterpriseConfigView)
+    MyEventsView,
+    ServiceAlarm,
+    GetNodes,
+    GetNode,
+    NodeAction,
+    NodeLabelsOperate,
+    NodeTaintOperate,
+    RainbondComponents,
+    ContainerDisk,
+    EnterpriseMenuManage,
+    EnterpriseRegionGatewayBatch,
+    EnterpriseTeamNames,
+    EnterpriseRegionLangVersion,
+    EnterpriseRegionCNBFrameworks,
+)
+from console.views.enterprise import (
+    EnterpriseRegionNamespace,
+    EnterpriseNamespaceResource,
+    EnterpriseConvertResource,
+    RbdPods,
+    RbdPodLog,
+    RbdComponentLogs,
+    Goodrainlog,
+    Downlodlog,
+    RbdLogFiles,
+    ShellPod,
+    UploadLongVersion,
+)
+from console.views.enterprise import (
+    EnterpriseAppComponentsLView,
+    EnterpriseAppOverView,
+    EnterpriseAppsLView,
+    EnterpriseMonitor,
+    EnterpriseMyTeams,
+    EnterpriseOverview,
+    EnterpriseRegionDashboard,
+    EnterpriseRegionsLCView,
+    EnterpriseRegionsRUDView,
+    EnterpriseRegionTenantLimitView,
+    EnterpriseRegionTenantRUDView,
+    EnterpriseRUDView,
+    Enterprises,
+    EnterpriseTeamOverView,
+    EnterpriseTeams,
+    EnterpriseUserTeamRoleView,
+    EnterpriseUserTeams,
+    HelmTokenView,
+    HelmAddReginInfo,
+    HelmInstallStatus,
+    EnterpriseInfoFileView,
+)
+from console.views.enterprise_active import (
+    BindMarketEnterpriseAccessTokenView,
+    BindMarketEnterpriseOptimizAccessTokenView,
+)
+from console.views.enterprise_config import (
+    EnterpriseAppStoreImageHubView,
+    EnterpriseObjectStorageView,
+    EnterpriseVisualMonitorView,
+    EnterpriseAlertsView,
+    EnterpriseConfigView,
+)
 from console.views.errlog import ErrLogView
 from console.views.file_upload import ConsoleUploadFileView
 from console.views.group import (
-    AppGovernanceModeView, AppKubernetesServiceView, ApplicationStatusView, GroupStatusView, TenantGroupCommonOperationView,
-    TenantGroupOperationView, TenantGroupView, ApplicationInstallView, ApplicationPodView, ApplicationHelmAppComponentView,
-    ApplicationParseServicesView, ApplicationReleasesView, ApplicationIngressesView, TenantAppUpgradableNumView,
-    AppGovernanceModeCheckView, ApplicationVolumesView, AppGovernanceModeCRView, TenantGroupHandleView, AppComponentNameView)
-from console.views.helm_app import HelmAppView, HelmRepo, HelmCenterApp, HelmChart, CommandInstallHelm, HelmList, \
-    HelmRepoAdd, UploadHelmChart, UploadHelmChartValueResource, UploadHelmChartValue
+    AppGovernanceModeView,
+    AppKubernetesServiceView,
+    ApplicationStatusView,
+    GroupStatusView,
+    TenantGroupCommonOperationView,
+    TenantGroupOperationView,
+    TenantGroupView,
+    ApplicationInstallView,
+    ApplicationPodView,
+    ApplicationHelmAppComponentView,
+    ApplicationParseServicesView,
+    ApplicationReleasesView,
+    ApplicationIngressesView,
+    TenantAppUpgradableNumView,
+    AppGovernanceModeCheckView,
+    ApplicationVolumesView,
+    AppGovernanceModeCRView,
+    TenantGroupHandleView,
+    AppComponentNameView,
+)
+from console.views.helm_app import (
+    HelmAppView,
+    HelmRepo,
+    HelmCenterApp,
+    HelmChart,
+    CommandInstallHelm,
+    HelmList,
+    HelmRepoAdd,
+    UploadHelmChart,
+    UploadHelmChartValueResource,
+    UploadHelmChartValue,
+)
 from console.views.jwt_token_view import JWTTokenView
-from console.views.license import LicenseLView, LicenseClusterIDView, LicenseActivateView, LicenseStatusView
+from console.views.license import (
+    LicenseLView,
+    LicenseClusterIDView,
+    LicenseActivateView,
+    LicenseStatusView,
+)
 from console.views.k8s_attribute import ComponentK8sAttributeView, ComponentK8sAttributeListView
 from console.views.k8s_resource import (
-    AppK8ResourceView, AppK8sResourceDeletionImpactView, AppK8sResourceListView, AppK8sResourceReconcileView,
-    LegacyAppK8sResourceDeletionImpactView, LegacyAppK8sResourceReconcileView)
+    AppK8ResourceView,
+    AppK8sResourceDeletionImpactView,
+    AppK8sResourceListView,
+    AppK8sResourceReconcileView,
+    LegacyAppK8sResourceDeletionImpactView,
+    LegacyAppK8sResourceReconcileView,
+)
 from console.views.log_proxy import LogProxyView
 from console.views.login_event import LoginEventView
-from console.views.logos import ConfigRUDView, InitPerms, PhpConfigView, ConfigOSSView, UserSourceView
+from console.views.logos import (
+    ConfigRUDView,
+    InitPerms,
+    PhpConfigView,
+    ConfigOSSView,
+    UserSourceView,
+)
 from console.views.message import UserMessageView
-from console.views.oauth import (EnterpriseOauthService, OauthConfig, OAuthGitCodeDetection, OAuthGitUserRepositories,
-                                 OAuthGitUserRepository, OAuthGitUserRepositoryBranches, OAuthServerAuthorize,
-                                 OAuthServerUserAuthorize, OauthService, OauthServiceInfo, OAuthServiceRedirect,
-                                 OauthType,
-                                 OAuthUserInfo, UserOAuthLink, OauthUserLogoutView, OverScore)
+from console.views.oauth import (
+    EnterpriseOauthService,
+    OauthConfig,
+    OAuthGitCodeDetection,
+    OAuthGitUserRepositories,
+    OAuthGitUserRepository,
+    OAuthGitUserRepositoryBranches,
+    OAuthServerAuthorize,
+    OAuthServerUserAuthorize,
+    OauthService,
+    OauthServiceInfo,
+    OAuthServiceRedirect,
+    OauthType,
+    OAuthUserInfo,
+    UserOAuthLink,
+    OauthUserLogoutView,
+    OverScore,
+)
 from console.views.operation_log import OperationLogView, TeamOperationLogView, AppOperationLogView
-from console.views.platform_overview import (PlatformOverviewMetricsView, PlatformOverviewRuntimeView,
-                                             PlatformOverviewShellView, PlatformOverviewSnapshotView)
-from console.views.perms import (PermsInfoLView, TeamRolePermsRUDView, TeamRolesLCView, TeamRolesPermsLView, TeamRolesRUDView,
-                                 TeamUserPermsLView, TeamUserRolesRUDView, TeamUsersRolesLView)
-from console.views.plugin.plugin_config import (ConfigPluginManageView, ConfigPreviewView, PluginVolumeOptionsView)
+from console.views.platform_overview import (
+    PlatformOverviewMetricsView,
+    PlatformOverviewRuntimeView,
+    PlatformOverviewShellView,
+    PlatformOverviewSnapshotView,
+)
+from console.views.perms import (
+    PermsInfoLView,
+    TeamRolePermsRUDView,
+    TeamRolesLCView,
+    TeamRolesPermsLView,
+    TeamRolesRUDView,
+    TeamUserPermsLView,
+    TeamUserRolesRUDView,
+    TeamUsersRolesLView,
+)
+from console.views.plugin.plugin_config import (
+    ConfigPluginManageView,
+    ConfigPreviewView,
+    PluginVolumeOptionsView,
+)
 from console.views.plugin.plugin_create import (DefaultPluginCreateView, PluginCreateView)
-from console.views.plugin.plugin_info import (AllPluginBaseInfoView, AllPluginVersionInfoView, PluginBaseInfoView,
-                                              PluginEventLogView, PluginUsedServiceView, PluginVersionInfoView)
-from console.views.plugin.plugin_manage import (CreatePluginVersionView, PluginBuildStatusView, PluginBuildView)
-from console.views.plugin.plugin_market import (InstallableInteralPluginsView, InstallMarketPlugin, InternalMarketPluginsView,
-                                                MarketPluginsView, SyncMarketPluginsView, SyncMarketPluginTemplatesView,
-                                                UninstallPluginTemplateView)
-from console.views.plugin.plugin_share import (PluginShareCompletionView, PluginShareEventsView, PluginShareEventView,
-                                               PluginShareInfoView, PluginShareRecordView)
-from console.views.plugin.service_plugin import (ServicePluginConfigView, ServicePluginInstallView, ServicePluginOperationView,
-                                                 ServicePluginsView)
+from console.views.plugin.plugin_info import (
+    AllPluginBaseInfoView,
+    AllPluginVersionInfoView,
+    PluginBaseInfoView,
+    PluginEventLogView,
+    PluginUsedServiceView,
+    PluginVersionInfoView,
+)
+from console.views.plugin.plugin_manage import (
+    CreatePluginVersionView,
+    PluginBuildStatusView,
+    PluginBuildView,
+)
+from console.views.plugin.plugin_market import (
+    InstallableInteralPluginsView,
+    InstallMarketPlugin,
+    InternalMarketPluginsView,
+    MarketPluginsView,
+    SyncMarketPluginsView,
+    SyncMarketPluginTemplatesView,
+    UninstallPluginTemplateView,
+)
+from console.views.plugin.plugin_share import (
+    PluginShareCompletionView,
+    PluginShareEventsView,
+    PluginShareEventView,
+    PluginShareInfoView,
+    PluginShareRecordView,
+)
+from console.views.plugin.service_plugin import (
+    ServicePluginConfigView,
+    ServicePluginInstallView,
+    ServicePluginOperationView,
+    ServicePluginsView,
+)
 from console.views.pod import AppPodsView
 from console.views.protocols import RegionProtocolView
 from console.views.posthog_proxy import PostHogProxyView
@@ -167,55 +469,173 @@ from console.views.internal_rainskills_audit import (
     InternalRainSkillsAuditEventsView,
     InternalRainSkillsSkillSnapshotView,
 )
-from console.views.mcp_device_authorization import (MCPDeviceAuthorizeView, MCPDeviceCodeView, MCPDeviceInspectView,
-                                                     MCPDeviceTokenView)
-from console.views.public_areas import (AllServiceInfo, GroupServiceView, ServiceEventsView, ServiceGroupView,
-                                        TeamAppSortViewView, TeamOverView, TeamServiceOverViewView, TenantServiceEnvsView,
-                                        GroupOperatorManagedView, AccessTokenView, TeamArchView, TeamAppNamesView)
+from console.views.mcp_device_authorization import (
+    MCPDeviceAuthorizeView,
+    MCPDeviceCodeView,
+    MCPDeviceInspectView,
+    MCPDeviceTokenView,
+)
+from console.views.public_areas import (
+    AllServiceInfo,
+    GroupServiceView,
+    ServiceEventsView,
+    ServiceGroupView,
+    TeamAppSortViewView,
+    TeamOverView,
+    TeamServiceOverViewView,
+    TenantServiceEnvsView,
+    GroupOperatorManagedView,
+    AccessTokenView,
+    TeamArchView,
+    TeamAppNamesView,
+)
 from console.views.rbd_ability import RainbondAbilityRUDView, RainbondAbilityLView
-from console.views.rbd_plugin import RainbondPluginLView, RainbondOfficialPluginLView, RainbondPluginStaticView, RainbondPluginBackendView, RainbondPluginStatusView, RainbondPluginFullProxyView
+from console.views.rbd_plugin import (
+    RainbondPluginLView,
+    RainbondOfficialPluginLView,
+    RainbondPluginStaticView,
+    RainbondPluginBackendView,
+    RainbondPluginStatusView,
+    RainbondPluginFullProxyView,
+)
 from console.views.platform_plugin import PlatformPluginLView, PlatformPluginInstallView
-from console.views.region import (GetRegionFeature, GetRegionPublicKeyView, MavenSettingRUDView, MavenSettingView,
-                                  OpenRegionView, QyeryRegionView, RegQuyView, RegUnopenView, RegionMonitor)
+from console.views.region import (
+    GetRegionFeature,
+    GetRegionPublicKeyView,
+    MavenSettingRUDView,
+    MavenSettingView,
+    OpenRegionView,
+    QyeryRegionView,
+    RegQuyView,
+    RegUnopenView,
+    RegionMonitor,
+)
 from console.views.registry import HubRegistryView, HubRegistryImageView, EnterpriseHubRegistryView
-from console.views.rke2 import ClusterRKE, ClusterRKENode, ClusterNodeIP, ClusterRKEInstallRB, \
-    ClusterRKERBStatus, ClusterRKERBEvent, ClusterRKEUNInstallInstallRB, InstallRKECluster, RKERegionConfig, \
-    ClusterRBComponentLogSSE
+from console.views.rke2 import (
+    ClusterRKE,
+    ClusterRKENode,
+    ClusterNodeIP,
+    ClusterRKEInstallRB,
+    ClusterRKERBStatus,
+    ClusterRKERBEvent,
+    ClusterRKEUNInstallInstallRB,
+    InstallRKECluster,
+    RKERegionConfig,
+    ClusterRBComponentLogSSE,
+)
 from console.views.role_prems import TeamAddUserView
 from console.views.service_docker import DockerContainerView
-from console.views.service_share import ServiceShareRecordView, ShareRecordView, ServiceGroupSharedApps, \
-    ServiceShareInfoView, ServiceShareDeleteView, ServiceShareEventList, ServiceShareCompleteView, \
-    ServiceShareEventPost, ServiceShareRecordInfoView, ServicePluginShareEventPost, AppMarketAppModelVersionsRView, \
-    AppMarketOrgModelLView, AppMarketAppModelVersionsLView, AppMarketAppModelLView, AppMarketCLView, AppMarketRUDView, \
-    AppMarketBatchCView
+from console.views.service_share import (
+    ServiceShareRecordView,
+    ShareRecordView,
+    ServiceGroupSharedApps,
+    ServiceShareInfoView,
+    ServiceShareDeleteView,
+    ServiceShareEventList,
+    ServiceShareCompleteView,
+    ServiceShareEventPost,
+    ServiceShareRecordInfoView,
+    ServicePluginShareEventPost,
+    AppMarketAppModelVersionsRView,
+    AppMarketOrgModelLView,
+    AppMarketAppModelVersionsLView,
+    AppMarketAppModelLView,
+    AppMarketCLView,
+    AppMarketRUDView,
+    AppMarketBatchCView,
+)
 from console.views.service_version import AppVersionsView, AppVersionManageView
-from console.views.services_toplogical import TopologicalGraphView, GroupServiceDetView, TopologicalInternetView
+from console.views.services_toplogical import (
+    TopologicalGraphView,
+    GroupServiceDetView,
+    TopologicalInternetView,
+)
 from console.views.storage_statistics import StorageStatistics
 from console.views.task_guidance import BaseGuidance
-from console.views.team import UserFuzSerView, TeamUserDetaislView, TeamCheckResourceName, TeamSortServiceQueryView, \
-    TeamCheckKubernetesServiceName, TeamRegistryAuthLView, TeamRegistryAuthRUDView, AddTeamView, TeamUserView, \
-    NotJoinTeamUserView, UserDelView, TeamNameModView, TeamSortDomainQueryView, TeamDelView, TeamExitView, \
-    TeamRegionInitView, ApplicantsView, RegisterStatusView, MonitorAlarmStatusView, EnterpriseInfoView, \
-    InitDefaultInfoView, AdminAddUserView, CertificateView, TeamUserCanJoin, TeamsPermissionCreateApp, JoinTeamView, \
-    UserApplyStatusView, ClusterNamespacesView
-from console.views.upgrade import UpgradeView, UpgradeVersionLView, UpgradeVersionRView, UpgradeVersionImagesView
-from console.views.user import CheckSourceView, UserLogoutView, UserPemTraView, AdministratorJoinTeamView, \
-    EnterPriseUsersCLView, EnterPriseUsersUDView, AdminUserView, AdminUserLCView, \
-    AdminRolesView
+from console.views.team import (
+    UserFuzSerView,
+    TeamUserDetaislView,
+    TeamCheckResourceName,
+    TeamSortServiceQueryView,
+    TeamCheckKubernetesServiceName,
+    TeamRegistryAuthLView,
+    TeamRegistryAuthRUDView,
+    AddTeamView,
+    TeamUserView,
+    NotJoinTeamUserView,
+    UserDelView,
+    TeamNameModView,
+    TeamSortDomainQueryView,
+    TeamDelView,
+    TeamExitView,
+    TeamRegionInitView,
+    ApplicantsView,
+    RegisterStatusView,
+    MonitorAlarmStatusView,
+    EnterpriseInfoView,
+    InitDefaultInfoView,
+    AdminAddUserView,
+    CertificateView,
+    TeamUserCanJoin,
+    TeamsPermissionCreateApp,
+    JoinTeamView,
+    UserApplyStatusView,
+    ClusterNamespacesView,
+)
+from console.views.upgrade import (
+    UpgradeView,
+    UpgradeVersionLView,
+    UpgradeVersionRView,
+    UpgradeVersionImagesView,
+)
+from console.views.user import (
+    CheckSourceView,
+    UserLogoutView,
+    UserPemTraView,
+    AdministratorJoinTeamView,
+    EnterPriseUsersCLView,
+    EnterPriseUsersUDView,
+    AdminUserView,
+    AdminUserLCView,
+    AdminRolesView,
+)
 from console.views.user_accesstoken import UserAccessTokenCLView, UserAccessTokenRUDView
-from console.views.user_operation import TenantServiceView, SendResetEmail, PasswordResetBegin, ChangeLoginPassword, \
-    UserDetailsView, UserFavoriteLCView, UserFavoriteUDView, UserInviteView, UserInviteJoinView
-from console.views.webhook import WebHooksDeploy, ImageWebHooksDeploy, CustomWebHooksDeploy, GetWebHooksUrl, \
-    ImageWebHooksTrigger, WebHooksStatus, UpdateSecretKey
+from console.views.user_operation import (
+    TenantServiceView,
+    SendResetEmail,
+    PasswordResetBegin,
+    ChangeLoginPassword,
+    UserDetailsView,
+    UserFavoriteLCView,
+    UserFavoriteUDView,
+    UserInviteView,
+    UserInviteJoinView,
+)
+from console.views.webhook import (
+    WebHooksDeploy,
+    ImageWebHooksDeploy,
+    CustomWebHooksDeploy,
+    GetWebHooksUrl,
+    ImageWebHooksTrigger,
+    WebHooksStatus,
+    UpdateSecretKey,
+)
 from console.views.yaml_resource import YamlResourceName, YamlResourceDetailed
 from console.views.platform_settings import PlatformSettingsView, PlatformSettingsUpdateView
 from console.views.team_overview import UserTeamDetailsView
 from console.views.sms_config import SMSConfigView
 from console.views.sms_verification import SMSVerificationView
 from console.views.user_operation import RegisterByPhoneView, LoginByPhoneView
-from console.views.kubeblocks import (KubeBlocksAddonsView, KubeBlocksStorageClassesView, KubeBlocksBackupReposView,
-                                      KubeBlocksClusterDetailView, KubeBlocksClusterBackupView, KubeBlocksClusterBackupListView,
-                                      KubeBlocksClusterParametersView, KubeBlocksClusterRestoreView)
+from console.views.kubeblocks import (
+    KubeBlocksAddonsView,
+    KubeBlocksStorageClassesView,
+    KubeBlocksBackupReposView,
+    KubeBlocksClusterDetailView,
+    KubeBlocksClusterBackupView,
+    KubeBlocksClusterBackupListView,
+    KubeBlocksClusterParametersView,
+    KubeBlocksClusterRestoreView,
+)
 
 urlpatterns = [
     re_path(r'^delivery-targets$', DeliveryTargetsView.as_view()),
@@ -238,8 +658,7 @@ urlpatterns = [
             DeliveryVersionView.as_view()),
     re_path(
         r'^teams/(?P<team_name>[\w-]+)/groups/(?P<app_id>[\w-]+)/delivery-templates/versions/(?P<version_id>[\w-]+)'
-        r'/(?P<operation>installations|exports|listing-requests)$',
-        DeliveryOperationView.as_view()),
+        r'/(?P<operation>installations|exports|listing-requests)$', DeliveryOperationView.as_view()),
     re_path(r'^enterprises/(?P<enterprise_id>[\w-]+)/development-deliveries$', DevelopmentDeliveriesView.as_view()),
     re_path(r'^enterprises/(?P<enterprise_id>[\w-]+)/listing-requests/(?P<request_id>[\w-]+)/review$',
             DeliveryReviewView.as_view()),
@@ -271,12 +690,10 @@ urlpatterns = [
     re_path(r'^mcp/device/authorize$', MCPDeviceAuthorizeView.as_view()),
     re_path(r'^mcp/query$', MCPQueryHTTPView.as_view()),
     re_path(r'^mcp/query/$', MCPQueryHTTPView.as_view()),
-    re_path(r'^mcp/rainskills/codex/query$',
-            MCPQueryHTTPView.as_view(deploy_origin="rainskills", deploy_client="codex")),
+    re_path(r'^mcp/rainskills/codex/query$', MCPQueryHTTPView.as_view(deploy_origin="rainskills", deploy_client="codex")),
     re_path(r'^mcp/rainskills/claude-code/query$',
             MCPQueryHTTPView.as_view(deploy_origin="rainskills", deploy_client="claude_code")),
-    re_path(r'^mcp/rainskills/api/query$',
-            MCPQueryHTTPView.as_view(deploy_origin="rainskills", deploy_client="api")),
+    re_path(r'^mcp/rainskills/api/query$', MCPQueryHTTPView.as_view(deploy_origin="rainskills", deploy_client="api")),
     re_path(r'^mcp/query/sse$', MCPQuerySSEView.as_view()),
     re_path(r'^mcp/query/sse/$', MCPQuerySSEView.as_view()),
     re_path(r'^mcp/query/message$', MCPQueryMessageView.as_view()),
@@ -301,7 +718,6 @@ urlpatterns = [
 
     # record error logs
     re_path(r'^errlog$', ErrLogView.as_view()),
-
     re_path(r'^user_source$', UserSourceView.as_view()),
 
     # 获取云帮Logo、标题、github、gitlab配置信息
@@ -312,9 +728,12 @@ urlpatterns = [
     re_path(r'^perms$', PermsInfoLView.as_view()),
     re_path(r'^custom_configs$', CustomConfigsCLView.as_view()),
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/licenses$', LicenseLView.as_view()),
-    re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/license/cluster-id$', LicenseClusterIDView.as_view()),
-    re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/license/activate$', LicenseActivateView.as_view()),
-    re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/license/status$', LicenseStatusView.as_view()),
+    re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/license/cluster-id$',
+            LicenseClusterIDView.as_view()),
+    re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/license/activate$',
+            LicenseActivateView.as_view()),
+    re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/license/status$',
+            LicenseStatusView.as_view()),
     # 超分比例
     re_path(r"^over_score$", OverScore.as_view()),
     # OAuth
@@ -330,7 +749,7 @@ urlpatterns = [
     re_path(r"^oauth/user/link$", UserOAuthLink.as_view()),
     re_path(r"^oauth/service/(?P<service_id>[\w\-]+)/user/repositories$", OAuthGitUserRepositories.as_view()),
     re_path(r"^oauth/service/(?P<service_id>[\w\-]+)/user/repository/(?P<path>[\w\-]+)/(?P<name>.*)$",
-        OAuthGitUserRepository.as_view()),
+            OAuthGitUserRepository.as_view()),
     re_path(r"^oauth/service/(?P<service_id>[\w\-]+)/user/repository/branches$", OAuthGitUserRepositoryBranches.as_view()),
     re_path(r"^oauth/service/(?P<service_id>[\w\-]+)/user/repository/code_detection$", OAuthGitCodeDetection.as_view()),
 
@@ -371,7 +790,8 @@ urlpatterns = [
     re_path(r'^hub/registry$', HubRegistryView.as_view()),
     re_path(r'^hub/registry/image$', HubRegistryImageView.as_view()),
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/hub/registry$', EnterpriseHubRegistryView.as_view()),
-    re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/hub/registry/(?P<secret_id>[\w\-]+)$', EnterpriseHubRegistryView.as_view()),
+    re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/hub/registry/(?P<secret_id>[\w\-]+)$',
+            EnterpriseHubRegistryView.as_view()),
     # 我的详情
     re_path(r'^users/details$', UserDetailsView.as_view()),
     # 模糊查询用户
@@ -384,24 +804,24 @@ urlpatterns = [
 
     # 团队中用户详情页
     re_path(r'^teams/(?P<team_name>[\w\-]+)/(?P<user_name>[\w\-]+)/details$', TeamUserDetaislView.as_view(),
-        perms.TEAM_MEMBER_PERMS),
+            perms.TEAM_MEMBER_PERMS),
     # 团队角色权限管理
     re_path(r'^teams/(?P<team_name>[\w\-]+)/roles/perms$', TeamRolesPermsLView.as_view(), perms.TEAM_ROLE_PERMS),
     re_path(r'^teams/(?P<team_name>[\w\-]+)/roles/(?P<role_id>[\w\-]+)/perms$', TeamRolePermsRUDView.as_view(),
-        perms.TEAM_ROLE_PERMS),
+            perms.TEAM_ROLE_PERMS),
     # 团队角色管理
     re_path(r'^teams/(?P<team_name>[\w\-]+)/roles$', TeamRolesLCView.as_view(), perms.TEAM_ROLE_PERMS),
     re_path(r'^teams/(?P<team_name>[\w\-]+)/roles/(?P<role_id>[\w\-]+)$', TeamRolesRUDView.as_view(), perms.TEAM_ROLE_PERMS),
     # 团队成员角色管理
     re_path(r'^teams/(?P<team_name>[\w\-]+)/users/roles', TeamUsersRolesLView.as_view(), perms.TEAM_MEMBER_PERMS),
     re_path(r'^teams/(?P<team_name>[\w\-]+)/users/(?P<user_id>[\w\-]+)/roles', TeamUserRolesRUDView.as_view(),
-        perms.TEAM_MEMBER_PERMS),
+            perms.TEAM_MEMBER_PERMS),
     re_path(r'^teams/(?P<team_name>[\w\-]+)/users/(?P<user_id>[\w\-]+)/perms', TeamUserPermsLView.as_view(),
-        perms.TEAM_MEMBER_PERMS),
+            perms.TEAM_MEMBER_PERMS),
     # 团队镜像仓库授权管理
     re_path(r'^teams/(?P<team_name>[\w\-]+)/registry/auth$', TeamRegistryAuthLView.as_view(), perms.TEAM_REGISTRY_AUTH),
     re_path(r'^teams/(?P<team_name>[\w\-]+)/registry/auth/(?P<secret_id>[\w\-]+)$', TeamRegistryAuthRUDView.as_view(),
-        perms.TEAM_REGISTRY_AUTH),
+            perms.TEAM_REGISTRY_AUTH),
 
     # 移交团队管理权
     re_path(r'^teams/(?P<team_name>[\w\-]+)/pemtransfer$', UserPemTraView.as_view(), perms.TEAM_MEMBER_PERMS),
@@ -427,10 +847,10 @@ urlpatterns = [
     re_path(r'^teams/(?P<team_name>[\w\-]+)/checkK8sServiceName$', TeamCheckKubernetesServiceName.as_view()),
     # 获取团队下域名访问量排序
     re_path(r'^teams/(?P<team_name>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/sort_domain/query$',
-        TeamSortDomainQueryView.as_view()),
+            TeamSortDomainQueryView.as_view()),
     # 获取团队下组件访问量排序
     re_path(r'^teams/(?P<team_name>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/sort_service/query$',
-        TeamSortServiceQueryView.as_view()),
+            TeamSortServiceQueryView.as_view()),
     # 获取当前租户已开通的数据中心(详细)
     re_path(r'^teams/(?P<team_name>[\w\-]+)/region/query$', RegQuyView.as_view(), perms.TEAM_REGION_DESCRIBE),
     # 获取当前团队未开通的数据中心
@@ -445,7 +865,8 @@ urlpatterns = [
     re_path(r'^teams/(?P<team_name>[\w\-]+)/operation-logs$', TeamOperationLogView.as_view()),
 
     # 总览 获取应用状态
-    re_path(r'^teams/(?P<team_name>[\w\-]+)/overview/services/status$', AllServiceInfo.as_view(), perms.TEAM_OVERVIEW_APP_DESCRIBE),
+    re_path(r'^teams/(?P<team_name>[\w\-]+)/overview/services/status$', AllServiceInfo.as_view(),
+            perms.TEAM_OVERVIEW_APP_DESCRIBE),
     # 上传yaml文件
     re_path(r'^teams/(?P<team_name>[\w\-]+)/resource-name$', YamlResourceName.as_view(), perms.APP_OVERVIEW_CREATE),
     re_path(r'^teams/(?P<team_name>[\w\-]+)/resource-detailed$', YamlResourceDetailed.as_view(), perms.APP_OVERVIEW_CREATE),
@@ -457,13 +878,15 @@ urlpatterns = [
     re_path(r'^teams/(?P<team_name>[\w\-]+)/helm_list$', HelmList.as_view(), perms.APP_OVERVIEW_CREATE),
     re_path(r'^teams/(?P<team_name>[\w\-]+)/helm_cmd_add$', HelmRepoAdd.as_view(), perms.APP_OVERVIEW_CREATE),
     re_path(r'^teams/(?P<team_name>[\w\-]+)/helm_center_app$', HelmCenterApp.as_view(), perms.APP_OVERVIEW_CREATE),
-    re_path(r'^teams/(?P<team_name>[\w\-]+)/get_upload_chart_information$', UploadHelmChart.as_view(), perms.APP_OVERVIEW_CREATE),
+    re_path(r'^teams/(?P<team_name>[\w\-]+)/get_upload_chart_information$', UploadHelmChart.as_view(),
+            perms.APP_OVERVIEW_CREATE),
     re_path(r'^teams/(?P<team_name>[\w\-]+)/check_upload_chart$', UploadHelmChart.as_view(), perms.APP_OVERVIEW_CREATE),
-    re_path(r'^teams/(?P<team_name>[\w\-]+)/get_upload_chart_value$', UploadHelmChartValue.as_view(), perms.APP_OVERVIEW_CREATE),
+    re_path(r'^teams/(?P<team_name>[\w\-]+)/get_upload_chart_value$', UploadHelmChartValue.as_view(),
+            perms.APP_OVERVIEW_CREATE),
     re_path(r'^teams/(?P<team_name>[\w\-]+)/get_upload_chart_resource$', UploadHelmChartValueResource.as_view(),
-        perms.APP_OVERVIEW_CREATE),
+            perms.APP_OVERVIEW_CREATE),
     re_path(r'^teams/(?P<team_name>[\w\-]+)/import_upload_chart_resource$', UploadHelmChartValueResource.as_view(),
-        perms.APP_OVERVIEW_CREATE),
+            perms.APP_OVERVIEW_CREATE),
 
     # 获取生成令牌
     re_path(r'^teams/(?P<team_name>[\w\-]+)/access-token/(?P<token_note>[\w\-]+)$', AccessTokenView.as_view()),
@@ -473,9 +896,9 @@ urlpatterns = [
     re_path(r'^teams/(?P<team_name>[\w\-]+)/app_names$', TeamAppNamesView.as_view(), perms.TEAM_OVERVIEW_APP_DESCRIBE),
     # 团队应用信息
     re_path(r'^teams/(?P<team_name>[\w\-]+)/overview/service/over$', TeamServiceOverViewView.as_view(),
-        perms.TEAM_OVERVIEW_APP_DESCRIBE),
+            perms.TEAM_OVERVIEW_APP_DESCRIBE),
     re_path(r'^teams/(?P<team_name>[\w\-]+)/check-resource-name$', TeamCheckResourceName.as_view(),
-        perms.TEAM_OVERVIEW_APP_DESCRIBE),
+            perms.TEAM_OVERVIEW_APP_DESCRIBE),
 
     # 应用事件动态
     re_path(r'teams/(?P<team_name>[\w\-]+)/services/event$', ServiceEventsView.as_view()),
@@ -490,280 +913,277 @@ urlpatterns = [
     re_path(r'^teams/(?P<team_name>[\w\-]+)/operator-managed$', GroupOperatorManagedView.as_view(), perms.APP_OVERVIEW_PERMS),
     # 应用拓扑图
     re_path(r'^teams/(?P<team_name>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/topological$', TopologicalGraphView.as_view(),
-        perms.APP_OVERVIEW_PERMS),
+            perms.APP_OVERVIEW_PERMS),
     # 拓扑图中应用详情
     re_path(r'^teams/(?P<team_name>[\w\-]+)/topological/services/(?P<serviceAlias>[\w\-]+)$', GroupServiceDetView.as_view(),
-        perms.APP_OVERVIEW_PERMS),
+            perms.APP_OVERVIEW_PERMS),
     # Internet 拓扑详情
     re_path(r'^teams/(?P<team_name>[\w\-]+)/(?P<group_id>\d+)/outer-service$', TopologicalInternetView.as_view(),
-        perms.APP_OVERVIEW_PERMS),
+            perms.APP_OVERVIEW_PERMS),
 
     # 云市分享应用
     re_path(r'^teams/(?P<team_name>[\w\-]+)/groups/(?P<group_id>[\w\-]+)/share/record$', ServiceShareRecordView.as_view(),
-        perms.APP_RELEASE_PERMS),
+            perms.APP_RELEASE_PERMS),
     re_path(r'^teams/(?P<team_name>[\w\-]+)/groups/(?P<group_id>[\w\-]+)/share/record/(?P<record_id>[\w\-]+)$',
-        ServiceShareRecordInfoView.as_view(), perms.APP_RELEASE_PERMS),
+            ServiceShareRecordInfoView.as_view(), perms.APP_RELEASE_PERMS),
     re_path(r'^teams/(?P<team_name>[\w\-]+)/groups/(?P<group_id>[\w\-]+)/share/step$', ShareRecordView.as_view(),
-        perms.APP_RELEASE_PERMS),
+            perms.APP_RELEASE_PERMS),
     re_path(r'^teams/(?P<team_name>[\w\-]+)/groups/(?P<group_id>\d+)/shared/apps$', ServiceGroupSharedApps.as_view(),
-        perms.APP_RELEASE_PERMS),
+            perms.APP_RELEASE_PERMS),
     re_path(r'^teams/(?P<team_name>[\w\-]+)/share/(?P<share_id>[\w\-]+)/info$', ServiceShareInfoView.as_view()),
     re_path(r'^teams/(?P<team_name>[\w\-]+)/share/(?P<share_id>[\w\-]+)/giveup$', ServiceShareDeleteView.as_view()),
     re_path(r'^teams/(?P<team_name>[\w\-]+)/share/(?P<share_id>[\w\-]+)/events$', ServiceShareEventList.as_view()),
     re_path(r'^teams/(?P<team_name>[\w\-]+)/share/(?P<share_id>[\w\-]+)/events/(?P<event_id>[\w\-]+)$',
-        ServiceShareEventPost.as_view()),
+            ServiceShareEventPost.as_view()),
     re_path(r'^teams/(?P<team_name>[\w\-]+)/share/(?P<share_id>[\w\-]+)/events/(?P<event_id>[\w\-]+)/plugin$',
-        ServicePluginShareEventPost.as_view()),
+            ServicePluginShareEventPost.as_view()),
     re_path(r'^teams/(?P<team_name>[\w\-]+)/share/(?P<share_id>[\w\-]+)/complete$', ServiceShareCompleteView.as_view()),
     # 租户数据中心组信息
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/groups$', TenantGroupView.as_view(), perms.APP_CREATE_PERMS),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>\d+)$', TenantGroupOperationView.as_view(),
-        perms.APP_OVERVIEW_PERMS),
+            perms.APP_OVERVIEW_PERMS),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/handle$', TenantGroupHandleView.as_view(),
-        perms.APP_OVERVIEW_PERMS),
+            perms.APP_OVERVIEW_PERMS),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/install$', ApplicationInstallView.as_view(),
-        perms.APP_OVERVIEW_PERMS),
+            perms.APP_OVERVIEW_PERMS),
     # 批量修改该应用下有状态组件的存储路径
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/volumes$', ApplicationVolumesView.as_view(),
-        perms.APP_OVERVIEW_PERMS),
-    re_path(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/pods/(?P<pod_name>[\w\-]+)$', ApplicationPodView.as_view(),
-        perms.APP_OVERVIEW_PERMS),
+            perms.APP_OVERVIEW_PERMS),
+    re_path(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/pods/(?P<pod_name>[\w\-]+)$',
+            ApplicationPodView.as_view(), perms.APP_OVERVIEW_PERMS),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/upgradable_num$', TenantAppUpgradableNumView.as_view(),
-        perms.APP_OVERVIEW_PERMS),
+            perms.APP_OVERVIEW_PERMS),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/governancemode$', AppGovernanceModeView.as_view(),
-        perms.APP_OVERVIEW_PERMS),
+            perms.APP_OVERVIEW_PERMS),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/governancemode-cr$', AppGovernanceModeCRView.as_view(),
-        perms.APP_OVERVIEW_PERMS),
-    re_path(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/governancemode/check', AppGovernanceModeCheckView.as_view(),
-        perms.APP_OVERVIEW_PERMS),
+            perms.APP_OVERVIEW_PERMS),
+    re_path(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/governancemode/check',
+            AppGovernanceModeCheckView.as_view(), perms.APP_OVERVIEW_PERMS),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/component_names', AppComponentNameView.as_view(),
-        perms.APP_OVERVIEW_PERMS),
+            perms.APP_OVERVIEW_PERMS),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/k8sservices', AppKubernetesServiceView.as_view()),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/k8s-resources$', AppK8sResourceListView.as_view(),
-        perms.APP_RESOURCE_PERMS),
-    re_path(
-        r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/k8s-resources/actions/deletion-impact$',
-        AppK8sResourceDeletionImpactView.as_view(),
-        perms.APP_RESOURCE_DELETE_PREVIEW_PERMS),
-    re_path(
-        r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/k8s-resources/actions/reconcile$',
-        AppK8sResourceReconcileView.as_view(),
-        perms.APP_RESOURCE_RECONCILE_PERMS),
-    re_path(
-        r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/k8s-resources/(?P<name>deletion-impact)$',
-        LegacyAppK8sResourceDeletionImpactView.as_view(),
-        perms.APP_RESOURCE_LEGACY_DELETE_PREVIEW_PERMS),
-    re_path(
-        r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/k8s-resources/(?P<name>reconcile)$',
-        LegacyAppK8sResourceReconcileView.as_view(),
-        perms.APP_RESOURCE_LEGACY_RECONCILE_PERMS),
+            perms.APP_RESOURCE_PERMS),
+    re_path(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/k8s-resources/actions/deletion-impact$',
+            AppK8sResourceDeletionImpactView.as_view(), perms.APP_RESOURCE_DELETE_PREVIEW_PERMS),
+    re_path(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/k8s-resources/actions/reconcile$',
+            AppK8sResourceReconcileView.as_view(), perms.APP_RESOURCE_RECONCILE_PERMS),
+    re_path(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/k8s-resources/(?P<name>deletion-impact)$',
+            LegacyAppK8sResourceDeletionImpactView.as_view(), perms.APP_RESOURCE_LEGACY_DELETE_PREVIEW_PERMS),
+    re_path(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/k8s-resources/(?P<name>reconcile)$',
+            LegacyAppK8sResourceReconcileView.as_view(), perms.APP_RESOURCE_LEGACY_RECONCILE_PERMS),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/k8s-resources/(?P<name>[\w\-\.]+)$',
-        AppK8ResourceView.as_view(), perms.APP_RESOURCE_PERMS),
+            AppK8ResourceView.as_view(), perms.APP_RESOURCE_PERMS),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/status', ApplicationStatusView.as_view(),
-        perms.APP_OVERVIEW_PERMS),
-
+            perms.APP_OVERVIEW_PERMS),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<app_id>[\w\-]+)/operation-logs$', AppOperationLogView.as_view()),
 
     # 应用状态（应用）
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>\d+)$', GroupStatusView.as_view(), perms.APP_OVERVIEW_PERMS),
     # 应用(组)常见操作
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[\w\-]+)/common_operation$',
-        TenantGroupCommonOperationView.as_view(), perms.APP_OVERVIEW_PERMS),
+            TenantGroupCommonOperationView.as_view(), perms.APP_OVERVIEW_PERMS),
     # Application Config Group
     re_path(r'^teams/(?P<team_name>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/configgroups$', ListAppConfigGroupView.as_view(),
-        perms.APP_CONFIG_GROUP),
+            perms.APP_CONFIG_GROUP),
     re_path(r'^teams/(?P<team_name>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/configgroups/(?P<name>[\w\-]+)$',
-        AppConfigGroupView.as_view(), perms.APP_CONFIG_GROUP),
+            AppConfigGroupView.as_view(), perms.APP_CONFIG_GROUP),
     re_path(r'^teams/(?P<team_name>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/helmapp-components$',
-        ApplicationHelmAppComponentView.as_view(), perms.APP_OVERVIEW_PERMS),
+            ApplicationHelmAppComponentView.as_view(), perms.APP_OVERVIEW_PERMS),
     re_path(r'^teams/(?P<team_name>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/parse-services$', ApplicationParseServicesView.as_view(),
-        perms.APP_OVERVIEW_PERMS),
+            perms.APP_OVERVIEW_PERMS),
     re_path(r'^teams/(?P<team_name>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/releases$', ApplicationReleasesView.as_view(),
-        perms.APP_OVERVIEW_PERMS),
+            perms.APP_OVERVIEW_PERMS),
     re_path(r'^teams/(?P<team_name>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/visit$', ApplicationIngressesView.as_view(),
-        perms.APP_OVERVIEW_PERMS),
+            perms.APP_OVERVIEW_PERMS),
 
     # 代码仓库
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/code/branch$', ServiceCodeBranch.as_view(),
-        perms.APP_OVERVIEW_CREATE),
+            perms.APP_OVERVIEW_CREATE),
     # 文件上传最近一次记录
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/package_build/last-record$', UploadRecordLastView.as_view(),
-        perms.APP_OVERVIEW_CREATE),
+            perms.APP_OVERVIEW_CREATE),
     # 本地文件上传记录
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/package_build/record$', PackageUploadRecordView.as_view()),
     # 开始解析tar包镜像
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/package_build/tar-image/load$', TarImageLoadView.as_view(),
-        perms.APP_OVERVIEW_CREATE),
+            perms.APP_OVERVIEW_CREATE),
     # 查询tar包解析结果(包含镜像列表)
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/package_build/tar-image/load/(?P<load_id>[\w\-]+)$',
-        TarImageLoadResultView.as_view(), perms.APP_OVERVIEW_CREATE),
+            TarImageLoadResultView.as_view(), perms.APP_OVERVIEW_CREATE),
     # 本地文件创建组件
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/package_build$', PackageCreateView.as_view(), perms.APP_OVERVIEW_CREATE),
     # 查询集群可用资源
     re_path(
-        r'^teams/(?P<tenantName>[\w\-]+)/apps/available_resources$', AvailableResourcesView.as_view(),
+        r'^teams/(?P<tenantName>[\w\-]+)/apps/available_resources$',
+        AvailableResourcesView.as_view(),
         perms.APP_CREATE_PERMS),
     # 源码创建
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/source_code$', SourceCodeCreateView.as_view(), perms.APP_OVERVIEW_CREATE),
     # 第三方组件创建
-    re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/third_party$', ThirdPartyServiceCreateView.as_view(), perms.APP_OVERVIEW_CREATE),
+    re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/third_party$', ThirdPartyServiceCreateView.as_view(),
+            perms.APP_OVERVIEW_CREATE),
     # 第三方组件api注册方式回调地址
     re_path(r'^third_party/(?P<service_id>[\w\-]+)', ThirdPartyServiceApiView.as_view()),
     # 第三方组件api注册方式重置秘钥
     re_path(r"^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/third_party/updatekey$",
-        ThirdPartyUpdateSecretKeyView.as_view()),
+            ThirdPartyUpdateSecretKeyView.as_view()),
     # 第三方组件健康检测
     re_path(r"^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/3rd-party/health$", ThirdPartyHealthzView.as_view(),
-        perms.APP_OVERVIEW_OTHER_SETTING),
+            perms.APP_OVERVIEW_OTHER_SETTING),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/image_repositories$', TenantImageRepositories.as_view(),
-        perms.APP_OVERVIEW_CREATE),
+            perms.APP_OVERVIEW_CREATE),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/image_tags$', TenantImageTags.as_view(), perms.APP_OVERVIEW_CREATE),
     # docker镜像创建
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/docker_run$', DockerRunCreateView.as_view(), perms.APP_OVERVIEW_CREATE),
     # docker-compose文件创建
-    re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/docker_compose$', DockerComposeCreateView.as_view(), perms.APP_OVERVIEW_CREATE),
+    re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/docker_compose$', DockerComposeCreateView.as_view(),
+            perms.APP_OVERVIEW_CREATE),
     # 虚拟机镜像创建
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/vm_run$', VMRunCreateView.as_view(), perms.APP_OVERVIEW_CREATE),
     # KubeBlocks组件创建
-    re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/kubeblocks$', KubeBlocksComponentCreateView.as_view(), perms.APP_OVERVIEW_CREATE),
+    re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/kubeblocks$', KubeBlocksComponentCreateView.as_view(),
+            perms.APP_OVERVIEW_CREATE),
     # 应用检测
-    re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/check$', AppCheck.as_view(), perms.APP_OVERVIEW_CREATE),
+    re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/check$', AppCheck.as_view(),
+            perms.APP_OVERVIEW_CREATE),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/lang-update$', LangUpdate.as_view()),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/get_check_uuid$', GetCheckUUID.as_view(),
-        perms.APP_OVERVIEW_CREATE),
+            perms.APP_OVERVIEW_CREATE),
     # multiple services check
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/multi/check$', MultiAppCheckView.as_view()),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/multi/create$', MultiAppCreateView.as_view(),
-        perms.APP_OVERVIEW_CREATE),
+            perms.APP_OVERVIEW_CREATE),
     # 应用检测修改
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/check_update$', AppCheckUpdate.as_view(),
-        perms.APP_OVERVIEW_CREATE),
+            perms.APP_OVERVIEW_CREATE),
     # compose文件检测更新
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[\w\-]+)/compose_update$', ComposeCheckUpdate.as_view(),
-        perms.APP_OVERVIEW_CREATE),
+            perms.APP_OVERVIEW_CREATE),
     # compose文件检测
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[\w\-]+)/check$', ComposeCheckView.as_view(),
-        perms.APP_OVERVIEW_CREATE),
+            perms.APP_OVERVIEW_CREATE),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[\w\-]+)/get_check_uuid$', GetComposeCheckUUID.as_view(),
-        perms.APP_OVERVIEW_CREATE),
+            perms.APP_OVERVIEW_CREATE),
     # compose应用构建
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[\w\-]+)/compose_build$', ComposeBuildView.as_view(),
-        perms.APP_OVERVIEW_CONSTRUCT),
+            perms.APP_OVERVIEW_CONSTRUCT),
     # 放弃compose创建应用
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[\w\-]+)/delete$', ComposeDeleteView.as_view(),
-        perms.APP_OVERVIEW_CREATE),
+            perms.APP_OVERVIEW_CREATE),
     # 查询compose下的应用
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/compose/(?P<compose_id>[\w\-]+)/services$', ComposeServicesView.as_view(),
-        perms.APP_OVERVIEW_CREATE),
+            perms.APP_OVERVIEW_CREATE),
     # 获取compose文件内容
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/compose/(?P<compose_id>[\w\-]+)/content$', ComposeContentView.as_view(),
-        perms.APP_OVERVIEW_CREATE),
+            perms.APP_OVERVIEW_CREATE),
     # 应用构建
-    re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/lang_version$',
-        CodeBuildLangVersionView.as_view(), perms.APP_OVERVIEW_CONSTRUCT),
+    re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/lang_version$', CodeBuildLangVersionView.as_view(),
+            perms.APP_OVERVIEW_CONSTRUCT),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/build$', AppBuild.as_view(),
-        perms.APP_OVERVIEW_CONSTRUCT),
+            perms.APP_OVERVIEW_CONSTRUCT),
     # 应用编译环境信息
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/compile_env$', AppCompileEnvView.as_view(),
-        perms.APP_OVERVIEW_CREATE),
+            perms.APP_OVERVIEW_CREATE),
 
     # 应用删除
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/delete$', DeleteAppView.as_view(),
-        perms.APP_OVERVIEW_CREATE),
+            perms.APP_OVERVIEW_CREATE),
 
     # 应用详情
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/detail', AppDetailView.as_view(),
-        perms.APP_OVERVIEW_CREATE),
+            perms.APP_OVERVIEW_CREATE),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/vm-profile$', AppVMProfileView.as_view(),
-        perms.APP_OVERVIEW_CREATE),
-    re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/vm-network/fixed-ip$',
-        AppVMFixedIPView.as_view(), perms.APP_OVERVIEW_CREATE),
+            perms.APP_OVERVIEW_CREATE),
+    re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/vm-network/fixed-ip$', AppVMFixedIPView.as_view(),
+            perms.APP_OVERVIEW_CREATE),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/vm-disks$', AppVMDiskView.as_view(),
-        perms.APP_OVERVIEW_CREATE),
+            perms.APP_OVERVIEW_CREATE),
     # 是否安装性能分析插件
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/analyze_plugins', AppAnalyzePluginView.as_view()),
     # 应用简要信息
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/brief', AppBriefView.as_view(),
-        perms.APP_OVERVIEW_CREATE),
+            perms.APP_OVERVIEW_CREATE),
     # 触发应用自动部署关键字
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/keyword$', AppKeywordView.as_view(),
-        perms.APP_OVERVIEW_CREATE),
+            perms.APP_OVERVIEW_CREATE),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/status', AppStatusView.as_view(),
-        perms.APP_OVERVIEW_CREATE),
+            perms.APP_OVERVIEW_CREATE),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/plugins$', AppPluginsBriefView.as_view(),
-        perms.APP_OVERVIEW_PLUGIN),
+            perms.APP_OVERVIEW_PLUGIN),
     # 应用信息修改
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/group', AppGroupView.as_view(),
-        perms.APP_OVERVIEW_CREATE),
+            perms.APP_OVERVIEW_CREATE),
     # 应用pod信息
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/pods$', ListAppPodsView.as_view(),
-        perms.APP_OVERVIEW_CREATE),
+            perms.APP_OVERVIEW_CREATE),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/pods/(?P<pod_name>[\w\-]+)/detail$',
-        AppPodsView.as_view(), perms.APP_OVERVIEW_CREATE),
+            AppPodsView.as_view(), perms.APP_OVERVIEW_CREATE),
     # 第三方应用pod信息
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/third_party/pods', ThirdPartyAppPodsView.as_view(),
-        perms.APP_OVERVIEW_CREATE),
+            perms.APP_OVERVIEW_CREATE),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/docker_console', DockerContainerView.as_view(),
-        perms.APP_OVERVIEW_CREATE),
+            perms.APP_OVERVIEW_CREATE),
     # 应用访问
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/visit', AppVisitView.as_view(),
-        perms.APP_OVERVIEW_CREATE),
+            perms.APP_OVERVIEW_CREATE),
     # 环境变量配置
-    re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/envs$', AppEnvView.as_view(), perms.APP_OVERVIEW_ENV),
-    re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/envs/(?P<env_id>[\w\-]+)$', AppEnvManageView.as_view(),
-        perms.APP_OVERVIEW_ENV),
+    re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/envs$', AppEnvView.as_view(),
+            perms.APP_OVERVIEW_ENV),
+    re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/envs/(?P<env_id>[\w\-]+)$',
+            AppEnvManageView.as_view(), perms.APP_OVERVIEW_ENV),
     # 构建运行时环境变量配置
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/build_envs$', AppBuildEnvView.as_view(),
-        perms.APP_OVERVIEW_SOURCE),
+            perms.APP_OVERVIEW_SOURCE),
     # 端口配置
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/ports$', AppPortView.as_view(),
-        perms.APP_OVERVIEW_PORT),
-    re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/ports/(?P<port>[\w\-]+)$', AppPortManageView.as_view(),
-        perms.APP_OVERVIEW_PORT),
+            perms.APP_OVERVIEW_PORT),
+    re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/ports/(?P<port>[\w\-]+)$',
+            AppPortManageView.as_view(), perms.APP_OVERVIEW_PORT),
     # 拓扑图打开对外端口
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/topological/ports$', TopologicalPortView.as_view(),
-        perms.APP_OVERVIEW_PORT),
+            perms.APP_OVERVIEW_PORT),
     # 对外访问tcp端口修改
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/tcp-ports/(?P<port>[\w\-]+)$',
-        AppTcpOuterManageView.as_view(), perms.APP_OVERVIEW_PORT),
+            AppTcpOuterManageView.as_view(), perms.APP_OVERVIEW_PORT),
     # 组件支持的存储列表
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/volume-opts$', AppVolumeOptionsView.as_view(),
-        perms.APP_OVERVIEW_STORAGE),
+            perms.APP_OVERVIEW_STORAGE),
     # 持久化路径配置
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/volumes$', AppVolumeView.as_view(),
-        perms.APP_OVERVIEW_STORAGE),
-    re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/volumes/upload$',
-        AppVolumeFileUploadView.as_view(), perms.APP_OVERVIEW_STORAGE),
+            perms.APP_OVERVIEW_STORAGE),
+    re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/volumes/upload$', AppVolumeFileUploadView.as_view(),
+            perms.APP_OVERVIEW_STORAGE),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/volumes/(?P<volume_id>[\w\-]+)$',
-        AppVolumeManageView.as_view(), perms.APP_OVERVIEW_STORAGE),
+            AppVolumeManageView.as_view(), perms.APP_OVERVIEW_STORAGE),
     # 组件依赖
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/dependency$', AppDependencyView.as_view(),
-        perms.APP_OVERVIEW_RELY),
+            perms.APP_OVERVIEW_RELY),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/dependency-list$', AppDependencyViewList.as_view(),
-        perms.APP_OVERVIEW_RELY),
+            perms.APP_OVERVIEW_RELY),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/dependency-list$', AppDependencyViewList.as_view(),
-        perms.APP_OVERVIEW_RELY),
+            perms.APP_OVERVIEW_RELY),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/dependency-reverse$',
-        AppDependencyReverseView.as_view(), perms.APP_OVERVIEW_RELY),
+            AppDependencyReverseView.as_view(), perms.APP_OVERVIEW_RELY),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/dependency/(?P<dep_service_id>[\w\-]+)$',
-        AppDependencyManageView.as_view(), perms.APP_OVERVIEW_RELY),
+            AppDependencyManageView.as_view(), perms.APP_OVERVIEW_RELY),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/un_dependency$', AppNotDependencyView.as_view(),
-        perms.APP_OVERVIEW_RELY),
+            perms.APP_OVERVIEW_RELY),
     # 组件挂载
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/mnt$', AppMntView.as_view(),
-        perms.APP_OVERVIEW_STORAGE),
+            perms.APP_OVERVIEW_STORAGE),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/mnt/(?P<dep_vol_id>[\w\-]+)$',
-        AppMntManageView.as_view(), perms.APP_OVERVIEW_STORAGE),
+            AppMntManageView.as_view(), perms.APP_OVERVIEW_STORAGE),
     # 域名证书
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/certificates$', TenantCertificateView.as_view(), perms.TEAM_CERTIFICATE),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/certificates/(?P<certificate_id>[\w\-]+)$', TenantCertificateManageView.as_view(),
-        perms.TEAM_CERTIFICATE),
+            perms.TEAM_CERTIFICATE),
 
     # Component k8s attribute
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/components/(?P<serviceAlias>[\w\-]+)/k8s-attributes$',
-        ComponentK8sAttributeListView.as_view(), perms.APP_OVERVIEW_OTHER_SETTING),
+            ComponentK8sAttributeListView.as_view(), perms.APP_OVERVIEW_OTHER_SETTING),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/components/(?P<serviceAlias>[\w\-]+)/k8s-attributes/(?P<name>[\w\-]+)$',
-        ComponentK8sAttributeView.as_view(), perms.APP_OVERVIEW_OTHER_SETTING),
+            ComponentK8sAttributeView.as_view(), perms.APP_OVERVIEW_OTHER_SETTING),
 
     # 组件域名操作
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/domain$', ServiceDomainView.as_view()),
@@ -794,40 +1214,43 @@ urlpatterns = [
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/tcpdomain$', ServiceTcpDomainView.as_view()),
     # 查询应用层面tcp/udp策略（含模糊搜索）
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/team/(?P<team_name>[\w\-]+)/app/(?P<app_id>[\w\-]+)/tcpdomain$',
-        AppServiceTcpDomainQueryView.as_view()),
+            AppServiceTcpDomainQueryView.as_view()),
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/team/(?P<team_name>[\w\-]+)/app/(?P<app_id>[\w\-]+)/domain$',
-        AppServiceDomainQueryView.as_view()),
+            AppServiceDomainQueryView.as_view()),
 
     # 5.1网关自定义参数
-    re_path(r'^teams/(?P<tenantName>[\w\-]+)/domain/(?P<rule_id>[\w\-]+)/put_gateway$', GatewayCustomConfigurationView.as_view()),
+    re_path(r'^teams/(?P<tenantName>[\w\-]+)/domain/(?P<rule_id>[\w\-]+)/put_gateway$',
+            GatewayCustomConfigurationView.as_view()),
 
     # 组件操作
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/apps_port$', AppsPorConsoletView.as_view()),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/start$', StartAppView.as_view(),
-        perms.APP_OVERVIEW_START),
-    re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/stop$', StopAppView.as_view(), perms.APP_OVERVIEW_STOP),
+            perms.APP_OVERVIEW_START),
+    re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/stop$', StopAppView.as_view(),
+            perms.APP_OVERVIEW_STOP),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/pause$', PauseAppView.as_view()),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/unpause$', UNPauseAppView.as_view()),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/vm_web$', UNPauseAppView.as_view()),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/restart$', ReStartAppView.as_view(),
-        perms.APP_OVERVIEW_UPDATE),
+            perms.APP_OVERVIEW_UPDATE),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/deploy$', DeployAppView.as_view(),
-        perms.APP_OVERVIEW_CONSTRUCT),
+            perms.APP_OVERVIEW_CONSTRUCT),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/rollback$', RollBackAppView.as_view(),
-        perms.APP_ROLLBACK),
-    re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/upgrade$', UpgradeAppView.as_view(), perms.APP_UPGRADE),
+            perms.APP_ROLLBACK),
+    re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/upgrade$', UpgradeAppView.as_view(),
+            perms.APP_UPGRADE),
     # 设置组件构建后是否升级属性
-    re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/set/is_upgrade$', ChangeServiceUpgradeView.as_view(),
-        perms.APP_OVERVIEW_CONSTRUCT),
+    re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/set/is_upgrade$',
+            ChangeServiceUpgradeView.as_view(), perms.APP_OVERVIEW_CONSTRUCT),
     # 查询云市安装的应用是否有（小版本，大版本）更新
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/market_service/upgrade$',
-        MarketServiceUpgradeView.as_view(), perms.APP_UPGRADE),
+            MarketServiceUpgradeView.as_view(), perms.APP_UPGRADE),
     # 组件设置语言和安装依赖
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/package_tool$', PackageToolView.as_view(),
-        perms.APP_OVERVIEW_PERMS),
+            perms.APP_OVERVIEW_PERMS),
     # tar包设置镜像
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/tar_image$', TarImageView.as_view(),
-        perms.APP_OVERVIEW_PERMS),
+            perms.APP_OVERVIEW_PERMS),
     # 批量操作
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/batch_actions$', BatchActionView.as_view()),
     # 批量删除应用
@@ -837,9 +1260,9 @@ urlpatterns = [
 
     # 某个组件的event
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/events$', AppEventView.as_view(),
-        perms.APP_OVERVIEW_PERMS),
+            perms.APP_OVERVIEW_PERMS),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/event_log$', AppEventLogView.as_view(),
-        perms.APP_OVERVIEW_PERMS),
+            perms.APP_OVERVIEW_PERMS),
     # 某个组件的日志
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/log$', AppLogView.as_view()),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/log_instance$', AppLogInstanceView.as_view()),
@@ -847,63 +1270,63 @@ urlpatterns = [
 
     # 组件探针
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/probe$', AppProbeView.as_view(),
-        perms.APP_OVERVIEW_OTHER_SETTING),
+            perms.APP_OVERVIEW_OTHER_SETTING),
 
     # 组件扩容操作
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/horizontal$', HorizontalExtendAppView.as_view(),
-        perms.APP_OVERVIEW_TELESCOPIC),
+            perms.APP_OVERVIEW_TELESCOPIC),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/vertical$', VerticalExtendAppView.as_view(),
-        perms.APP_OVERVIEW_TELESCOPIC),
+            perms.APP_OVERVIEW_TELESCOPIC),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/scaling$', ScalingAppView.as_view(),
-        perms.APP_OVERVIEW_TELESCOPIC),
+            perms.APP_OVERVIEW_TELESCOPIC),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/extend_method$', AppExtendView.as_view(),
-        perms.APP_OVERVIEW_TELESCOPIC),
+            perms.APP_OVERVIEW_TELESCOPIC),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/xparules$', ListAppAutoscalerView.as_view(),
-        perms.APP_OVERVIEW_TELESCOPIC),
+            perms.APP_OVERVIEW_TELESCOPIC),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/xparules/(?P<rule_id>[\w\-]+)$',
-        AppAutoscalerView.as_view(), perms.APP_OVERVIEW_TELESCOPIC),
+            AppAutoscalerView.as_view(), perms.APP_OVERVIEW_TELESCOPIC),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/xparecords$', AppScalingRecords.as_view(),
-        perms.APP_OVERVIEW_TELESCOPIC),
+            perms.APP_OVERVIEW_TELESCOPIC),
 
     # 修改组件应用类型标签
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/deploytype$', ChangeServiceTypeView.as_view(),
-        perms.APP_OVERVIEW_OTHER_SETTING),
+            perms.APP_OVERVIEW_OTHER_SETTING),
 
     # 修改组件名称
-    re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/change/service_name$', ChangeServiceNameView.as_view(),
-        perms.APP_OVERVIEW_PERMS),
+    re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/change/service_name$',
+            ChangeServiceNameView.as_view(), perms.APP_OVERVIEW_PERMS),
 
     # 组件监控
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/monitor/query_range$',
-        AppMonitorQueryRangeView.as_view(), perms.APP_OVERVIEW_MONITOR),
+            AppMonitorQueryRangeView.as_view(), perms.APP_OVERVIEW_MONITOR),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/monitor/query$', AppMonitorQueryView.as_view(),
-        perms.APP_OVERVIEW_MONITOR),
-    re_path(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[\w\-]+)/monitor/batch_query$', BatchAppMonitorQueryView.as_view(),
-        perms.APP_OVERVIEW_MONITOR),
+            perms.APP_OVERVIEW_MONITOR),
+    re_path(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[\w\-]+)/monitor/batch_query$',
+            BatchAppMonitorQueryView.as_view(), perms.APP_OVERVIEW_MONITOR),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/trace$', AppTraceView.as_view(),
-        perms.APP_OVERVIEW_MONITOR),
+            perms.APP_OVERVIEW_MONITOR),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/service_monitor$',
-        ComponentServiceMonitorView.as_view(), perms.APP_OVERVIEW_MONITOR),
+            ComponentServiceMonitorView.as_view(), perms.APP_OVERVIEW_MONITOR),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/service_monitor/(?P<name>[\w\-]+)$',
-        ComponentServiceMonitorEditView.as_view(), perms.APP_OVERVIEW_MONITOR),
+            ComponentServiceMonitorEditView.as_view(), perms.APP_OVERVIEW_MONITOR),
     # 组件标签
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/labels$', AppLabelView.as_view(),
-        perms.APP_OVERVIEW_OTHER_SETTING),
+            perms.APP_OVERVIEW_OTHER_SETTING),
     # 添加特性获取可用标签
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/labels/available$', AppLabelAvailableView.as_view(),
-        perms.APP_OVERVIEW_OTHER_SETTING),
+            perms.APP_OVERVIEW_OTHER_SETTING),
     # 应用资源
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/resource$', AppResourceQueryView.as_view(),
-        perms.APP_OVERVIEW_PERMS),
+            perms.APP_OVERVIEW_PERMS),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/internal-graphs$',
-        ComponentInternalGraphsView.as_view()),
+            ComponentInternalGraphsView.as_view()),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/exchange-graphs$',
-        ComponentExchangeGraphsView.as_view()),
+            ComponentExchangeGraphsView.as_view()),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/graphs$', ComponentGraphListView.as_view()),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/graphs/(?P<graph_id>[\w\-]+)$',
-        ComponentGraphView.as_view()),
+            ComponentGraphView.as_view()),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/metrics$', ComponentMetricsView.as_view(),
-        perms.APP_OVERVIEW_MONITOR),
+            perms.APP_OVERVIEW_MONITOR),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/logs$', ComponentLogView.as_view()),
 
     # 获取当前可用全部数据中心
@@ -924,56 +1347,56 @@ urlpatterns = [
             perms.TEAM_PLUGIN_MANAGE),
     # 查询某个插件的基础信息
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/plugins/(?P<plugin_id>[\w\-]+)$', PluginBaseInfoView.as_view(),
-        perms.TEAM_PLUGIN_MANAGE),
+            perms.TEAM_PLUGIN_MANAGE),
     # 查询当前插件被使用的组件
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/plugins/(?P<plugin_id>[\w\-]+)/used_services$', PluginUsedServiceView.as_view(),
-        perms.TEAM_PLUGIN_MANAGE),
+            perms.TEAM_PLUGIN_MANAGE),
     # 插件历史版本信息查询
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/plugins/(?P<plugin_id>[\w\-]+)/build-history$', AllPluginVersionInfoView.as_view(),
-        perms.TEAM_PLUGIN_MANAGE),
+            perms.TEAM_PLUGIN_MANAGE),
     # 创建新版本
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/plugins/(?P<plugin_id>[\w\-]+)/new-version$', CreatePluginVersionView.as_view(),
-        perms.TEAM_PLUGIN_MANAGE),
+            perms.TEAM_PLUGIN_MANAGE),
     # 构建日志
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/plugins/(?P<plugin_id>[\w\-]+)/version/(?P<build_version>[\w\-]+)/event-log$',
-        PluginEventLogView.as_view(), perms.TEAM_PLUGIN_MANAGE),
+            PluginEventLogView.as_view(), perms.TEAM_PLUGIN_MANAGE),
     # 某个插件的某个版本查询，删除，修改
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/plugins/(?P<plugin_id>[\w\-]+)/version/(?P<build_version>[\w\-]+)$',
-        PluginVersionInfoView.as_view(), perms.TEAM_PLUGIN_MANAGE),
+            PluginVersionInfoView.as_view(), perms.TEAM_PLUGIN_MANAGE),
     # 插件配置的增删改查
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/plugins/(?P<plugin_id>[\w\-]+)/version/(?P<build_version>[\w\-]+)/config$',
-        ConfigPluginManageView.as_view(), perms.TEAM_PLUGIN_MANAGE),
+            ConfigPluginManageView.as_view(), perms.TEAM_PLUGIN_MANAGE),
     # 配置预览
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/plugins/(?P<plugin_id>[\w\-]+)/version/(?P<build_version>[\w\-]+)/preview$',
-        ConfigPreviewView.as_view(), perms.TEAM_PLUGIN_MANAGE),
+            ConfigPreviewView.as_view(), perms.TEAM_PLUGIN_MANAGE),
     # 构建插件
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/plugins/(?P<plugin_id>[\w\-]+)/version/(?P<build_version>[\w\-]+)/build$',
-        PluginBuildView.as_view(), perms.TEAM_PLUGIN_MANAGE),
+            PluginBuildView.as_view(), perms.TEAM_PLUGIN_MANAGE),
     # 获取插件构建状态
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/plugins/(?P<plugin_id>[\w\-]+)/version/(?P<build_version>[\w\-]+)/status$',
-        PluginBuildStatusView.as_view(), perms.TEAM_PLUGIN_MANAGE),
+            PluginBuildStatusView.as_view(), perms.TEAM_PLUGIN_MANAGE),
 
     # 插件与应用相关API
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/pluginlist$', ServicePluginsView.as_view(),
-        perms.TEAM_PLUGIN_MANAGE),
+            perms.TEAM_PLUGIN_MANAGE),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/plugins/(?P<plugin_id>[\w\-]+)/install$',
-        ServicePluginInstallView.as_view(), perms.TEAM_PLUGIN_MANAGE),
+            ServicePluginInstallView.as_view(), perms.TEAM_PLUGIN_MANAGE),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/plugins/(?P<plugin_id>[\w\-]+)/open$',
-        ServicePluginOperationView.as_view(), perms.TEAM_PLUGIN_MANAGE),
+            ServicePluginOperationView.as_view(), perms.TEAM_PLUGIN_MANAGE),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/plugins/(?P<plugin_id>[\w\-]+)/configs$',
-        ServicePluginConfigView.as_view(), perms.TEAM_PLUGIN_MANAGE),
+            ServicePluginConfigView.as_view(), perms.TEAM_PLUGIN_MANAGE),
 
     # 插件分享
     re_path(r'^teams/(?P<team_name>[\w\-]+)/plugins/(?P<plugin_id>[\w\-]+)/share/record$', PluginShareRecordView.as_view(),
-        perms.TEAM_PLUGIN_MANAGE),
+            perms.TEAM_PLUGIN_MANAGE),
     re_path(r'^teams/(?P<team_name>[\w\-]+)/plugin-share/(?P<share_id>[\w\-]+)$', PluginShareInfoView.as_view(),
-        perms.TEAM_PLUGIN_MANAGE),
+            perms.TEAM_PLUGIN_MANAGE),
     re_path(r'^teams/(?P<team_name>[\w\-]+)/plugin-share/(?P<share_id>[\w\-]+)/events$', PluginShareEventsView.as_view(),
-        perms.TEAM_PLUGIN_MANAGE),
+            perms.TEAM_PLUGIN_MANAGE),
     re_path(r'^teams/(?P<team_name>[\w\-]+)/plugin-share/(?P<share_id>[\w\-]+)/events/(?P<event_id>[\w\-]+)',
-        PluginShareEventView.as_view(), perms.TEAM_PLUGIN_MANAGE),
+            PluginShareEventView.as_view(), perms.TEAM_PLUGIN_MANAGE),
     re_path(r'^teams/(?P<team_name>[\w\-]+)/plugin-share/(?P<share_id>[\w\-]+)/complete$', PluginShareCompletionView.as_view(),
-        perms.TEAM_PLUGIN_MANAGE),
+            perms.TEAM_PLUGIN_MANAGE),
 
     # 插件市场
     re_path(r'^market/plugins$', MarketPluginsView.as_view(), perms.TEAM_PLUGIN_MANAGE),
@@ -1006,13 +1429,15 @@ urlpatterns = [
     # 一组应用备份
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/groupapp/(?P<group_id>[\w\-]+)/backup$', GroupAppsBackupView.as_view()),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/groupapp/(?P<group_id>[\w\-]+)/backup/all_status$',
-        GroupAppsBackupStatusView.as_view()),
-    re_path(r'^teams/(?P<tenantName>[\w\-]+)/groupapp/(?P<group_id>[\w\-]+)/backup/export$', GroupAppsBackupExportView.as_view()),
-    re_path(r'^teams/(?P<tenantName>[\w\-]+)/groupapp/(?P<group_id>[\w\-]+)/backup/import$', GroupAppsBackupImportView.as_view()),
+            GroupAppsBackupStatusView.as_view()),
+    re_path(r'^teams/(?P<tenantName>[\w\-]+)/groupapp/(?P<group_id>[\w\-]+)/backup/export$',
+            GroupAppsBackupExportView.as_view()),
+    re_path(r'^teams/(?P<tenantName>[\w\-]+)/groupapp/(?P<group_id>[\w\-]+)/backup/import$',
+            GroupAppsBackupImportView.as_view()),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/groupapp/backup$', TeamGroupAppsBackupView.as_view()),
     # 应用复制
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/groupapp/(?P<group_id>[\w\-]+)/copy$', GroupAppsCopyView.as_view(),
-        perms.APP_OVERVIEW_COPY),
+            perms.APP_OVERVIEW_COPY),
     # 获取团队下的所有备份记录
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/all/groupapp/backup$', AllTeamGroupAppsBackupView.as_view()),
     # 应用迁移恢复
@@ -1023,7 +1448,7 @@ urlpatterns = [
 
     # 应用数据删除
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/groupapp/(?P<group_id>[\w\-]+)/delete$', GroupAppsView.as_view(),
-        perms.APP_OVERVIEW_PERMS),
+            perms.APP_OVERVIEW_PERMS),
 
     # 源码仓库webhooks回调地址
     re_path(r'^webhooks/(?P<service_id>[\w\-]+)', WebHooksDeploy.as_view()),
@@ -1046,7 +1471,7 @@ urlpatterns = [
     # 应用版本管理
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/version$', AppVersionsView.as_view()),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/version/(?P<version_id>[\w\-]+)$',
-        AppVersionManageView.as_view()),
+            AppVersionManageView.as_view()),
     # 获取当前团队所有的申请者
     re_path(r'^teams/(?P<team_name>[\w\-]+)/applicants$', ApplicantsView.as_view()),
     # enterprise configuration
@@ -1073,7 +1498,6 @@ urlpatterns = [
 
     # Get Operation log
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/operation-logs$', OperationLogView.as_view()),
-
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/platform-info$', EnterpriseInfoFileView.as_view()),
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/backups$', BackupDataCView.as_view()),
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/backups/(?P<backup_name>[\w\-\.]+)$', BackupDateDownload.as_view()),
@@ -1084,12 +1508,10 @@ urlpatterns = [
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/overview$', EnterpriseOverview.as_view()),
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/platform-overview/runtime\Z', PlatformOverviewRuntimeView.as_view()),
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/platform-overview\Z', PlatformOverviewShellView.as_view()),
-    re_path(
-        r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/platform-overview/metrics\Z',
-        PlatformOverviewMetricsView.as_view()),
-    re_path(
-        r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/platform-overview\Z',
-        PlatformOverviewSnapshotView.as_view()),
+    re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/platform-overview/metrics\Z',
+            PlatformOverviewMetricsView.as_view()),
+    re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/platform-overview\Z',
+            PlatformOverviewSnapshotView.as_view()),
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/overview/app$', EnterpriseAppOverView.as_view()),
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/overview/team$', EnterpriseTeamOverView.as_view()),
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/monitor$', EnterpriseMonitor.as_view()),
@@ -1111,73 +1533,80 @@ urlpatterns = [
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_id>[\w\-]+)$', EnterpriseRegionsRUDView.as_view()),
     re_path(r'^enterprise/lg_pack_operate$', UploadLongVersion.as_view()),
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_id>[\w\-]+)/lang_version',
-        EnterpriseRegionLangVersion.as_view()),
+            EnterpriseRegionLangVersion.as_view()),
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_id>[\w\-]+)/cnb/frameworks',
-        EnterpriseRegionCNBFrameworks.as_view()),
+            EnterpriseRegionCNBFrameworks.as_view()),
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_id>[\w\-]+)/namespace',
-        EnterpriseRegionNamespace.as_view()),
+            EnterpriseRegionNamespace.as_view()),
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_id>[\w\-]+)/resource',
-        EnterpriseNamespaceResource.as_view()),
+            EnterpriseNamespaceResource.as_view()),
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_id>[\w\-]+)/convert-resource',
-        EnterpriseConvertResource.as_view()),
+            EnterpriseConvertResource.as_view()),
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_id>[\w\-]+)/tenants$',
-        EnterpriseRegionTenantRUDView.as_view()),
+            EnterpriseRegionTenantRUDView.as_view()),
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_id>[\w\-]+)/tenants/(?P<tenant_name>[\w\-]+)/limit$',
-        EnterpriseRegionTenantLimitView.as_view()),
+            EnterpriseRegionTenantLimitView.as_view()),
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_id>[\w\-]+)/dashboard/(?P<path>.*)',
-        EnterpriseRegionDashboard.as_view()),
+            EnterpriseRegionDashboard.as_view()),
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/batch-gateway',
-        EnterpriseRegionGatewayBatch.as_view()),
+            EnterpriseRegionGatewayBatch.as_view()),
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/plugins$', RainbondPluginLView.as_view()),
-    re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/platform-plugins$', PlatformPluginLView.as_view()),
-    re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/platform-plugins/(?P<plugin_id>[\w\-]+)/install$', PlatformPluginInstallView.as_view()),
+    re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/platform-plugins$',
+            PlatformPluginLView.as_view()),
+    re_path(('^enterprise/(?P<enterprise_id>[\\w\\-]+)/regions/(?P<region_name>[\\w\\-]+)/platform-plugins/(?P<plugin_id>['
+             '\\w\\-]+)/install$'), PlatformPluginInstallView.as_view()),
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/agent-kubernetes/bootstrap$',
-        AgentKubernetesBootstrapView.as_view()),
+            AgentKubernetesBootstrapView.as_view()),
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/agent-kubernetes/encryption-key$',
-        AgentKubernetesEncryptionKeyView.as_view()),
+            AgentKubernetesEncryptionKeyView.as_view()),
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/agent-kubernetes/encryption/reset$',
-        AgentKubernetesEncryptionResetView.as_view()),
+            AgentKubernetesEncryptionResetView.as_view()),
     re_path(r'^regions/(?P<region_name>[\w\-]+)/plugins/(?P<plugin_name>[\w\-]+)/status$', RainbondPluginStatusView.as_view()),
     re_path(r'^regions/(?P<region_name>[\w\-]+)/static/plugins/(?P<plugin_name>[\w\-]+)$', RainbondPluginStaticView.as_view()),
     # 完整代理路由 - 用于代理完整的 Web 应用（Grafana 等），保留所有 HTTP 响应头
-    re_path(r'^regions/(?P<region_name>[\w\-]+)/proxy/plugins/(?P<plugin_name>[\w\-]+)/(?P<file_path>.*)$', RainbondPluginFullProxyView.as_view()),
+    re_path(r'^regions/(?P<region_name>[\w\-]+)/proxy/plugins/(?P<plugin_name>[\w\-]+)/(?P<file_path>.*)$',
+            RainbondPluginFullProxyView.as_view()),
     # 原有的 backend 路由 - 用于 JSON API 代理（保留向后兼容）
-    re_path(r'^regions/(?P<region_name>[\w\-]+)/backend/plugins/(?P<plugin_name>[\w\-]+)/(?P<file_path>.*)$', RainbondPluginBackendView.as_view()),
-    re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/abilities$', RainbondAbilityLView.as_view()),
+    re_path(r'^regions/(?P<region_name>[\w\-]+)/backend/plugins/(?P<plugin_name>[\w\-]+)/(?P<file_path>.*)$',
+            RainbondPluginBackendView.as_view()),
+    re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/abilities$',
+            RainbondAbilityLView.as_view()),
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/abilities/(?P<ability_id>.*)$',
-        RainbondAbilityRUDView.as_view()),
+            RainbondAbilityRUDView.as_view()),
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/officialplugins$',
-        RainbondOfficialPluginLView.as_view()),
-    re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/mavensettings$', MavenSettingView.as_view()),
+            RainbondOfficialPluginLView.as_view()),
+    re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/mavensettings$',
+            MavenSettingView.as_view()),
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/mavensettings/(?P<name>[\w\-]+)$',
-        MavenSettingRUDView.as_view()),
+            MavenSettingRUDView.as_view()),
     # 获取节点下rainbond组件
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/rbd-components$',
-        RainbondComponents.as_view()),
+            RainbondComponents.as_view()),
     # 获取集群节点列表
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/nodes$', GetNodes.as_view()),
     # 获取节点详情
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/nodes/(?P<node_name>[\w\-.]+)$',
-        GetNode.as_view()),
+            GetNode.as_view()),
     # 操作节点
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/nodes/(?P<node_name>[\w\-.]+)/action$',
-        NodeAction.as_view()),
+            NodeAction.as_view()),
     # 节点标签操作
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/nodes/(?P<node_name>[\w\-.]+)/labels$',
-        NodeLabelsOperate.as_view()),
+            NodeLabelsOperate.as_view()),
     # 节点污点操作
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/nodes/(?P<node_name>[\w\-.]+)/taints$',
-        NodeTaintOperate.as_view()),
+            NodeTaintOperate.as_view()),
     # 容器存储
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/nodes/(?P<node_name>[\w\-.]+)/container$',
-        ContainerDisk.as_view()),
-    re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app/(?P<app_id>[\w\-]+)/components$', EnterpriseAppComponentsLView.as_view()),
+            ContainerDisk.as_view()),
+    re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app/(?P<app_id>[\w\-]+)/components$',
+            EnterpriseAppComponentsLView.as_view()),
     re_path(r'^enterprise/(?P<eid>[\w\-]+)/base-guidance$', BaseGuidance.as_view()),
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/storehub-check$', LocalComponentLibraryConfigCheck.as_view()),
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models$', CenterAppCLView.as_view()),
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-model/(?P<app_id>[\w\-]+)$', CenterAppUDView.as_view()),
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-model/(?P<app_id>[\w\-]+)/version/(?P<version>.*)',
-        AppVersionUDView.as_view()),
+            AppVersionUDView.as_view()),
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models/tag$', TagCLView.as_view()),
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models/tag/(?P<tag_id>[\w\-]+)$', TagUDView.as_view()),
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-model/(?P<app_id>[\w\-]+)/tag$', AppTagCDView.as_view()),
@@ -1185,7 +1614,7 @@ urlpatterns = [
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/cloud/bind-markets$', AppMarketBatchCView.as_view()),
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/cloud/markets/(?P<market_name>[\w\-]+)$', AppMarketRUDView.as_view()),
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/cloud/markets/(?P<market_name>[\w\-]+)/app-models$',
-        AppMarketAppModelLView.as_view()),
+            AppMarketAppModelLView.as_view()),
     re_path(
         r'^enterprise/(?P<enterprise_id>[\w\-]+)/cloud/markets/(?P<market_name>[\w\-]+)/app-models/(?P<app_id>[\w\-]+)'
         r'/versions$', AppMarketAppModelVersionsLView.as_view()),
@@ -1194,7 +1623,7 @@ urlpatterns = [
         r'/versions/(?P<version>[\w\-.]+)$', AppMarketAppModelVersionsRView.as_view()),
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/cloud/bindable-markets$', BindableMarketsView.as_view()),
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/cloud/markets/(?P<market_name>[\w\-]+)/organizations$',
-        AppMarketOrgModelLView.as_view()),
+            AppMarketOrgModelLView.as_view()),
 
     # 应用导出
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models/export$', CenterAppExportView.as_view()),
@@ -1205,10 +1634,10 @@ urlpatterns = [
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models/import/(?P<event_id>[\w\-]+)$', CenterAppImportView.as_view()),
     # 应用包目录查询
     re_path(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models/import/(?P<event_id>[\w\-]+)/dir$',
-        CenterAppTarballDirView.as_view()),
+            CenterAppTarballDirView.as_view()),
     re_path(r"^enterprise/(?P<enterprise_id>[\w\-]+)/oauth/oauth-services$", EnterpriseOauthService.as_view()),
     re_path(r"^enterprise/(?P<eid>[\w\-]+)/users/(?P<user_id>[\w\-]+)/teams/(?P<tenant_name>[\w\-]+)/roles$",
-        EnterpriseUserTeamRoleView.as_view(), perms.TEAM_ROLE_PERMS),
+            EnterpriseUserTeamRoleView.as_view(), perms.TEAM_ROLE_PERMS),
     # 查询登录用户可以加入哪些团队
     re_path(r"^enterprise/(?P<enterprise_id>[\w\-]+)/jointeams$", TeamUserCanJoin.as_view()),
     re_path(r"^enterprise/(?P<enterprise_id>[\w\-]+)/create-app-teams$", TeamsPermissionCreateApp.as_view()),
@@ -1261,26 +1690,34 @@ urlpatterns = [
     # 用户登录（手机号）
     re_path(r'^users/login-by-phone$', LoginByPhoneView.as_view()),
 
-    # KubeBlocks 
+    # KubeBlocks
     # 支持的数据库类型
-    re_path(r'^teams/(?P<team_name>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/kubeblocks/supported_databases$', KubeBlocksAddonsView.as_view()),
+    re_path(r'^teams/(?P<team_name>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/kubeblocks/supported_databases$',
+            KubeBlocksAddonsView.as_view()),
     # 获取 StorageClass
-    re_path(r'^teams/(?P<team_name>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/kubeblocks/storage_classes$', KubeBlocksStorageClassesView.as_view()),
+    re_path(r'^teams/(?P<team_name>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/kubeblocks/storage_classes$',
+            KubeBlocksStorageClassesView.as_view()),
     # 获取 BackupRepo
-    re_path(r'^teams/(?P<team_name>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/kubeblocks/backup_repos$', KubeBlocksBackupReposView.as_view()),
+    re_path(r'^teams/(?P<team_name>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/kubeblocks/backup_repos$',
+            KubeBlocksBackupReposView.as_view()),
     # 管理 BackupRepo
-    re_path(r'^teams/(?P<team_name>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/kubeblocks/backup_repos/(?P<repo_name>[\w\-]+)$', KubeBlocksBackupReposView.as_view()),
+    re_path(r'^teams/(?P<team_name>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/kubeblocks/backup_repos/(?P<repo_name>[\w\-]+)$',
+            KubeBlocksBackupReposView.as_view()),
     # Cluster detail and expansion (AppBaseView)
-    re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/kubeblocks/detail$', KubeBlocksClusterDetailView.as_view()),
+    re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/kubeblocks/detail$',
+            KubeBlocksClusterDetailView.as_view()),
     # 设置备份策略
-    re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/kubeblocks/backup-config$', KubeBlocksClusterBackupView.as_view()),
+    re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/kubeblocks/backup-config$',
+            KubeBlocksClusterBackupView.as_view()),
     # 备份创建/获取/删除 (AppBaseView)
-    re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/kubeblocks/backups$', KubeBlocksClusterBackupListView.as_view()),
+    re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/kubeblocks/backups$',
+            KubeBlocksClusterBackupListView.as_view()),
     # KubeBlocks 集群参数管理（获取/更新）
-    re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/kubeblocks/parameters$', KubeBlocksClusterParametersView.as_view()),
+    re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/kubeblocks/parameters$',
+            KubeBlocksClusterParametersView.as_view()),
     # KubeBlocks 集群从备份恢复（基于 AppBaseView 的 serviceAlias，前端统一使用此路由）
-    re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/kubeblocks/restores$', KubeBlocksClusterRestoreView.as_view()),
-
+    re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/kubeblocks/restores$',
+            KubeBlocksClusterRestoreView.as_view()),
 ]
 
 # 云市应用升级相关接口
@@ -1289,60 +1726,60 @@ urlpatterns += [
     re_path(r'teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[0-9]+)/apps$', app_upgrade.GroupAppView.as_view()),
     # 查询某个升级应用的详情
     re_path(r'teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[0-9]+)/apps/(?P<upgrade_group_id>[0-9]+)$',
-        app_upgrade.AppUpgradeDetailView.as_view()),
+            app_upgrade.AppUpgradeDetailView.as_view()),
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[\w\-]+)/apps/(?P<upgrade_group_id>[\w\-]+)/components',
-        app_upgrade.AppUpgradeComponentListView.as_view()),
+            app_upgrade.AppUpgradeComponentListView.as_view()),
     # 查询当前组下某云市应用的更新版本
     re_path(r'teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[0-9]+)/upgrade-versions$',
-        app_upgrade.AppUpgradeVersion.as_view()),
+            app_upgrade.AppUpgradeVersion.as_view()),
     re_path(r'teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[0-9]+)/last-upgrade-record$',
-        app_upgrade.AppLastUpgradeRecordView.as_view()),
+            app_upgrade.AppLastUpgradeRecordView.as_view()),
     # 升级记录集合
     re_path(r'teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[0-9]+)/upgrade-records$',
-        app_upgrade.AppUpgradeRecordsView.as_view()),
-    re_path(r'teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[0-9]+)/upgrade-records/(?P<upgrade_record_id>[0-9]+)' + \
-        '/rollback-records$', app_upgrade.AppRollbackRecordsView.as_view()),
+            app_upgrade.AppUpgradeRecordsView.as_view()),
+    re_path(r'teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[0-9]+)/upgrade-records/(?P<upgrade_record_id>[0-9]+)' +
+            '/rollback-records$', app_upgrade.AppRollbackRecordsView.as_view()),
     # 某一条升级记录
     re_path(r'teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[0-9]+)/upgrade-records/(?P<record_id>[0-9]+)$',
-        app_upgrade.AppUpgradeRecordDetailView.as_view()),
+            app_upgrade.AppUpgradeRecordDetailView.as_view()),
     # 查询某云市应用下组件的更新信息
     re_path(r'teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[0-9]+)/upgrade-info$',
-        app_upgrade.AppUpgradeInfoView.as_view()),
+            app_upgrade.AppUpgradeInfoView.as_view()),
     # upgrade application
     re_path(r'teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[0-9]+)/upgrade-records/(?P<record_id>[0-9]+)/upgrade$',
-        app_upgrade.AppUpgradeView.as_view()),
+            app_upgrade.AppUpgradeView.as_view()),
     # 回滚某一条升级
     re_path(r'teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[0-9]+)/upgrade-records/(?P<record_id>[0-9]+)/rollback$',
-        app_upgrade.AppUpgradeRollbackView.as_view()),
+            app_upgrade.AppUpgradeRollbackView.as_view()),
     re_path(r'teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[0-9]+)/upgrade-records/(?P<record_id>[0-9]+)/deploy$',
-        app_upgrade.AppUpgradeDeployView.as_view())
+            app_upgrade.AppUpgradeDeployView.as_view())
 ]
 
 urlpatterns += [
     re_path(r'teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[0-9]+)/app-versions/overview$',
-        app_version.AppVersionOverviewView.as_view()),
+            app_version.AppVersionOverviewView.as_view()),
     re_path(r'teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[0-9]+)/app-versions$',
-        app_version.AppVersionSnapshotListView.as_view()),
+            app_version.AppVersionSnapshotListView.as_view()),
     re_path(r'teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[0-9]+)/app-versions/(?P<version_id>[0-9]+)$',
-        app_version.AppVersionSnapshotDetailView.as_view()),
+            app_version.AppVersionSnapshotDetailView.as_view()),
     re_path(r'teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[0-9]+)/app-versions/(?P<version_id>[0-9]+)/rollback$',
-        app_version.AppVersionSnapshotRollbackView.as_view()),
+            app_version.AppVersionSnapshotRollbackView.as_view()),
     re_path(r'teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[0-9]+)/app-version-rollback-records$',
-        app_version.AppVersionRollbackRecordListView.as_view()),
+            app_version.AppVersionRollbackRecordListView.as_view()),
     re_path(r'teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[0-9]+)/app-version-rollback-records/(?P<record_id>[0-9]+)$',
-        app_version.AppVersionRollbackRecordDetailView.as_view()),
+            app_version.AppVersionRollbackRecordDetailView.as_view()),
 ]
 
 urlpatterns += [
     re_path(r"proxy/enterprise-server/api/v1/enterprises/(?P<enterprise_id>[\w\-]+)/appstores$", Appstores.as_view()),
     re_path(r"proxy/enterprise-server/api/v1/enterprises/(?P<enterprise_id>[\w\-]+)/appstores/(?P<name>[\w\-]+)$",
-        Appstore.as_view()),
+            Appstore.as_view()),
     re_path(r"proxy/enterprise-server/api/v1/enterprises/(?P<enterprise_id>[\w\-]+)/appstores/(?P<name>[\w\-]+)/apps$",
-        AppstoreCharts.as_view()),
-    re_path(r"proxy/enterprise-server/api/v1/enterprises/(?P<enterprise_id>[\w\-]+)/appstores/(?P<name>[\w\-]+)/templates/(?P<chart_name>[\w\-]+)/versions/(?P<version>[\d\.]+)$",
-        AppstoreChart.as_view()),
+            AppstoreCharts.as_view()),
+    re_path(('proxy/enterprise-server/api/v1/enterprises/(?P<enterprise_id>[\\w\\-]+)/appstores/(?P<name>[\\w\\-]+)/templa'
+             'tes/(?P<chart_name>[\\w\\-]+)/versions/(?P<version>[\\d\\.]+)$'), AppstoreChart.as_view()),
     re_path(r"proxy/enterprise-server/api/v1/enterprises/(?P<enterprise_id>[\w\-]+)/tasks/helm_region_install$",
-        HelmRegionInstall.as_view()),
+            HelmRegionInstall.as_view()),
 ]
 
 urlpatterns += [
@@ -1356,7 +1793,6 @@ urlpatterns += [
     re_path(r'^', include('console.urls.team_resources')),
     re_path(r'^', include('console.urls.cleanup_inventory')),
 ]
-
 
 urlpatterns += [
     re_path(r'^enterprises/(?P<enterprise_id>[\w-]+)/team-applications$', TeamApplicationsView.as_view()),

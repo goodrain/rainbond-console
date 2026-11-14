@@ -9,8 +9,7 @@ from addict import Dict
 from console.exception.exceptions import AuthenticationInfoHasExpiredError, ConfigExistError
 from console.exception.main import (BusinessException, NoPermissionsError, ResourceNotEnoughException, ServiceHandleException,
                                     AbortRequest)
-from console.models.main import (EnterpriseUserPerm, OAuthServices, PermsInfo, RoleInfo, RolePerms, UserOAuthServices, UserRole,
-                                  RegionConfig)
+from console.models.main import EnterpriseUserPerm, OAuthServices, PermsInfo, UserOAuthServices, RegionConfig
 # repository
 from console.repositories.enterprise_repo import (enterprise_repo, enterprise_user_perm_repo)
 from console.repositories.group import group_repo
@@ -149,8 +148,10 @@ class JWTAuthApiView(APIView):
 
     def initial(self, request: Request, *args: Any, **kwargs: Any) -> None:
         self.user = request.user  # type: ignore[assignment]
-        self.enterprise = TenantEnterprise.objects.filter(enterprise_id=self.user.enterprise_id).first()  # type: ignore[assignment]
-        self.is_enterprise_admin = enterprise_user_perm_repo.is_admin(self.user.enterprise_id, self.user.user_id)  # type: ignore[arg-type]
+        self.enterprise = TenantEnterprise.objects.filter(
+            enterprise_id=self.user.enterprise_id).first()  # type: ignore[assignment]
+        self.is_enterprise_admin = enterprise_user_perm_repo.is_admin(self.user.enterprise_id,  # type: ignore[arg-type]
+                                                                      self.user.user_id)  # type: ignore[arg-type]
         self.get_perms()
         self.check_perms(request, *args, **kwargs)
         self.tenant_name = kwargs.get("tenantName", None)  # type: ignore[assignment]
@@ -194,7 +195,9 @@ class CloudEnterpriseCenterView(JWTAuthApiView):
             oauth_service = OAuthServices.objects.get(oauth_type="enterprisecenter", ID=1, user_id=self.user.user_id)
             pre_enterprise_center = os.getenv("PRE_ENTERPRISE_CENTER", None)
             if pre_enterprise_center:
-                oauth_service = OAuthServices.objects.get(name=pre_enterprise_center, oauth_type="enterprisecenter", user_id=self.user.user_id)
+                oauth_service = OAuthServices.objects.get(name=pre_enterprise_center,
+                                                          oauth_type="enterprisecenter",
+                                                          user_id=self.user.user_id)
             oauth_user = UserOAuthServices.objects.get(service_id=oauth_service.ID, user_id=self.user.user_id)
         except OAuthServices.DoesNotExist:
             raise NotFound("enterprise center oauth server not found")
@@ -257,8 +260,7 @@ class TenantHeaderView(JWTAuthApiView):
             # 一次性获取用户在团队中的所有权限（全局 + 应用）
             all_perms = optimized_role_perm_repo.get_user_team_all_perms(
                 user_id=self.user.user_id,  # type: ignore[arg-type]
-                tenant_id=self.tenant.tenant_id
-            )
+                tenant_id=self.tenant.tenant_id)
 
             # 添加全局团队权限（app_id = -1）
             global_perm_codes = all_perms.get('global_perms', [])
@@ -284,10 +286,7 @@ class TenantHeaderView(JWTAuthApiView):
             if not self.perm_apps:
                 # 收集所有有 300002 权限的应用
                 app_perms_dict = all_perms.get('app_perms', {})
-                self.perm_apps = [
-                    app_id for app_id, perm_codes in app_perms_dict.items()
-                    if 300002 in perm_codes
-                ]
+                self.perm_apps = [app_id for app_id, perm_codes in app_perms_dict.items() if 300002 in perm_codes]
                 # 添加用户创建的应用
                 created_app_ids = ServiceGroup.objects.filter(tenant_id=self.tenant.tenant_id,
                                                               username=self.user.nick_name).values_list("ID", flat=True)
@@ -313,11 +312,12 @@ class TenantHeaderView(JWTAuthApiView):
         self.user = request.user  # type: ignore[assignment]
 
         # 根据用户的enterprise_id获取企业信息
-        self.enterprise = TenantEnterprise.objects.filter(enterprise_id=self.user.enterprise_id).first()  # type: ignore[assignment]
+        self.enterprise = TenantEnterprise.objects.filter(
+            enterprise_id=self.user.enterprise_id).first()  # type: ignore[assignment]
 
         # 根据企业ID和用户ID获取用户权限信息，设置企业管理员标识
-        enterprise_user_perms = EnterpriseUserPerm.objects.filter(
-            enterprise_id=self.user.enterprise_id, user_id=self.user.user_id).first()
+        enterprise_user_perms = EnterpriseUserPerm.objects.filter(enterprise_id=self.user.enterprise_id,
+                                                                  user_id=self.user.user_id).first()
         if enterprise_user_perms:
             self.is_enterprise_admin = True
 
@@ -351,8 +351,7 @@ class TenantHeaderView(JWTAuthApiView):
                 self.tenant = Tenants.objects.get(tenant_id=self.tenant_name)
                 self.team = self.tenant
             except Tenants.DoesNotExist:
-                raise AbortRequest(msg="tenant {0} not found".format(self.tenant_name), msg_show="团队不存在",
-                                   status_code=404)
+                raise AbortRequest(msg="tenant {0} not found".format(self.tenant_name), msg_show="团队不存在", status_code=404)
 
         if is_resource_center_log_request:
             logger.info(
@@ -367,22 +366,22 @@ class TenantHeaderView(JWTAuthApiView):
         if kwargs.get("app_id"):
             try:
                 self.perm_app_id = int(kwargs.get("app_id"))  # type: ignore[arg-type]
-            except Exception as e:
+            except Exception:
                 self.perm_app_id = -1
         if request.GET.get("group_id"):
             try:
                 self.perm_app_id = int(request.GET.get("group_id"))  # type: ignore[arg-type]
-            except Exception as e:
+            except Exception:
                 self.perm_app_id = -1
         if request.GET.get("app_id"):
             try:
                 self.perm_app_id = int(request.GET.get("app_id"))  # type: ignore[arg-type]
-            except Exception as e:
+            except Exception:
                 self.perm_app_id = -1
         if kwargs.get("group_id"):
             try:
                 self.perm_app_id = int(kwargs.get("group_id"))  # type: ignore[arg-type]
-            except Exception as e:
+            except Exception:
                 self.perm_app_id = -1
         request_data = None
         try:
@@ -395,12 +394,12 @@ class TenantHeaderView(JWTAuthApiView):
             else:
                 try:
                     self.perm_app_id = int(request_data.get("group_id"))  # type: ignore[arg-type]
-                except Exception as e:
+                except Exception:
                     self.perm_app_id = -1
         if isinstance(request_data, dict) and request_data.get("app_id"):
             try:
                 self.perm_app_id = int(request_data.get("app_id"))  # type: ignore[arg-type]
-            except Exception as e:
+            except Exception:
                 self.perm_app_id = -1
         # 根据服务别名获取服务信息，并设置权限应用ID
         if kwargs.get("serviceAlias"):
@@ -413,10 +412,11 @@ class TenantHeaderView(JWTAuthApiView):
 
         if self.user.user_id == self.tenant.creater:
             self.is_team_owner = True
-        self.enterprise = TenantEnterprise.objects.filter(enterprise_id=self.tenant.enterprise_id).first()  # type: ignore[assignment]
+        self.enterprise = TenantEnterprise.objects.filter(
+            enterprise_id=self.tenant.enterprise_id).first()  # type: ignore[assignment]
         self.is_enterprise_admin = False
-        enterprise_user_perms = EnterpriseUserPerm.objects.filter(
-            enterprise_id=self.tenant.enterprise_id, user_id=self.user.user_id).first()
+        enterprise_user_perms = EnterpriseUserPerm.objects.filter(enterprise_id=self.tenant.enterprise_id,
+                                                                  user_id=self.user.user_id).first()
         if enterprise_user_perms:
             self.is_enterprise_admin = True
         self.get_perms()
@@ -478,14 +478,16 @@ class ApplicationView(RegionTenantHeaderView):
         app_id = app_id if app_id else request.data.get("group_id")
 
         if app_id == "源码构建示例":
-            groups = ServiceGroup.objects.filter(
-                tenant_id=self.tenant.tenant_id, region_name=self.region_name, group_name="源码构建示例")
+            groups = ServiceGroup.objects.filter(tenant_id=self.tenant.tenant_id,
+                                                 region_name=self.region_name,
+                                                 group_name="源码构建示例")
             k8s_app_name = "sourcecode-demo"
             if groups:
                 app_id = groups[0].ID
             else:
-                k8s_apps = ServiceGroup.objects.filter(
-                    tenant_id=self.tenant.tenant_id, region_name=self.region_name, k8s_app="sourcecode-demo")
+                k8s_apps = ServiceGroup.objects.filter(tenant_id=self.tenant.tenant_id,
+                                                       region_name=self.region_name,
+                                                       k8s_app="sourcecode-demo")
                 if k8s_apps:
                     k8s_app_name += make_uuid()[:6]
                 # NOTE: demo path passes None for several create_app str params and a
@@ -588,7 +590,10 @@ def custom_exception_handler(exc: Exception, context: Any) -> Optional[Response]
             msg_show="数据库暂不可用，请稍后重试",
             status_code=503,
             error_code=503,
-            details={"retryable": True, "reason": "database_connection"},
+            details={
+                "retryable": True,
+                "reason": "database_connection"
+            },
         )
         response = error.response
         response["Retry-After"] = "3"
@@ -607,7 +612,10 @@ def custom_exception_handler(exc: Exception, context: Any) -> Optional[Response]
             msg_show="外部服务暂不可用，请稍后重试",
             status_code=502,
             error_code=502,
-            details={"retryable": True, "reason": "external_http"},
+            details={
+                "retryable": True,
+                "reason": "external_http"
+            },
         )
         response = error.response
         response["Retry-After"] = "3"
@@ -660,12 +668,14 @@ def custom_exception_handler(exc: Exception, context: Any) -> Optional[Response]
         return Response(data, status=data["code"])  # type: ignore[arg-type]
     elif isinstance(exc, ValidationError):
         logger.debug(exc)
-        return Response({
-            "detail": "参数错误",
-            "err": _normalize_error_detail(exc.detail),
-            "code": 20400,
-            "error_type": exc.__class__.__name__,
-        }, status=exc.status_code)
+        return Response(
+            {
+                "detail": "参数错误",
+                "err": _normalize_error_detail(exc.detail),
+                "code": 20400,
+                "error_type": exc.__class__.__name__,
+            },
+            status=exc.status_code)
     elif isinstance(exc, exceptions.APIException):
         headers = {}
         if getattr(exc, 'auth_header', None):
@@ -695,33 +705,21 @@ def custom_exception_handler(exc: Exception, context: Any) -> Optional[Response]
         msg = trans('Not found.')
         data = {'detail': str(msg)}
         # 处理数据为标准返回格式
-        data.update({
-            "code": status.HTTP_404_NOT_FOUND,
-            "msg": "{0}".format(str(msg)),
-            "msg_show": "{0}".format(str(msg))
-        })
+        data.update({"code": status.HTTP_404_NOT_FOUND, "msg": "{0}".format(str(msg)), "msg_show": "{0}".format(str(msg))})
         set_rollback()
         return Response(data, status=status.HTTP_404_NOT_FOUND)
     elif isinstance(exc, PermissionDenied):
         msg = trans('Permission denied.')
         data = {'detail': str(msg)}
         # 处理数据为标准返回格式
-        data.update({
-            "code": status.HTTP_403_FORBIDDEN,
-            "msg": "{0}".format(str(msg)),
-            "msg_show": "{0}".format("不允许的操作")
-        })
+        data.update({"code": status.HTTP_403_FORBIDDEN, "msg": "{0}".format(str(msg)), "msg_show": "{0}".format("不允许的操作")})
         set_rollback()
         return Response(data, status=status.HTTP_403_FORBIDDEN)
     elif isinstance(exc, errors.PermissionDenied):
         msg = trans('Permission denied.')
         data = {'detail': str(msg)}
         # 处理数据为标准返回格式
-        data.update({
-            "code": status.HTTP_403_FORBIDDEN,
-            "msg": "{0}".format(str(msg)),
-            "msg_show": "{0}".format("您无权限执行此操作")
-        })
+        data.update({"code": status.HTTP_403_FORBIDDEN, "msg": "{0}".format(str(msg)), "msg_show": "{0}".format("您无权限执行此操作")})
         set_rollback()
         return Response(data, status=status.HTTP_403_FORBIDDEN)
     elif isinstance(exc, BusinessException):

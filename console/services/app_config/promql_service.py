@@ -27,7 +27,9 @@ class PromQLService(object):
                              env={'PROMQL': promql})
         new_promql, err = c.communicate()
         if not new_promql:
-            logger.warning("ensure service id for promql({}): {}".format(promql, err))  # type: ignore[str-bytes-safe]  # NOTE: err is bytes from stderr; pre-existing format, no runtime change
+            logger.warning("ensure service id for promql({}): {}".format(
+                promql,
+                err))  # type: ignore[str-bytes-safe]  # NOTE: err is bytes from stderr; pre-existing format, no runtime change
             raise AbortRequest("invalid promql", "非法的 prometheus 查询语句")
         return new_promql.decode('UTF-8')
 

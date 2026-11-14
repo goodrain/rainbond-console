@@ -20,7 +20,14 @@ sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
 django.setup()
 
-from console.services.mcp_query_service import mcp_query_service
+
+def _load_test_dependencies():
+    """Keep the existing post-Django-setup import order and module bindings."""
+    from console.services.mcp_query_service import mcp_query_service
+    return (mcp_query_service, )
+
+
+mcp_query_service, = _load_test_dependencies()
 
 
 class Obj(object):
@@ -41,8 +48,7 @@ def _service():
 
 
 def _env(attr_name, attr_value, service_id, scope="inner"):
-    return Obj(attr_name=attr_name, attr_value=attr_value, service_id=service_id,
-               scope=scope, name=attr_name, container_port=0)
+    return Obj(attr_name=attr_name, attr_value=attr_value, service_id=service_id, scope=scope, name=attr_name, container_port=0)
 
 
 class EnvConflictTests(SimpleTestCase):
@@ -50,10 +56,8 @@ class EnvConflictTests(SimpleTestCase):
     # capability_id: console.mcp.env-conflicts
     def test_same_name_diff_value_is_conflict(self):
         args = {"team_name": "team1", "region_name": "rg", "app_id": "7", "service_id": "svc-self"}
-        envs = [_env("SANDBOX_PORT", "8194", "svc-self"),
-                _env("SANDBOX_PORT", "9999", "svc-self")]
-        with patch.object(mcp_query_service, "_get_team_app_service_context",
-                          return_value=(_team(), _app(), _service())):
+        envs = [_env("SANDBOX_PORT", "8194", "svc-self"), _env("SANDBOX_PORT", "9999", "svc-self")]
+        with patch.object(mcp_query_service, "_get_team_app_service_context", return_value=(_team(), _app(), _service())):
             with patch("console.services.mcp_query_service.env_var_service.get_all_envs_incloud_depend_env",
                        return_value=iter(envs)):
                 result = mcp_query_service.analyze_env_conflicts(Obj(nick_name="t"), args)
@@ -65,10 +69,8 @@ class EnvConflictTests(SimpleTestCase):
     # capability_id: console.mcp.env-conflicts
     def test_self_vs_dependency_cross_source_conflict(self):
         args = {"team_name": "team1", "region_name": "rg", "app_id": "7", "service_id": "svc-self"}
-        envs = [_env("DB_HOST", "db-postgres", "svc-self"),
-                _env("DB_HOST", "old-host", "svc-dep")]
-        with patch.object(mcp_query_service, "_get_team_app_service_context",
-                          return_value=(_team(), _app(), _service())):
+        envs = [_env("DB_HOST", "db-postgres", "svc-self"), _env("DB_HOST", "old-host", "svc-dep")]
+        with patch.object(mcp_query_service, "_get_team_app_service_context", return_value=(_team(), _app(), _service())):
             with patch("console.services.mcp_query_service.env_var_service.get_all_envs_incloud_depend_env",
                        return_value=iter(envs)):
                 result = mcp_query_service.analyze_env_conflicts(Obj(nick_name="t"), args)
@@ -79,10 +81,8 @@ class EnvConflictTests(SimpleTestCase):
     # capability_id: console.mcp.env-conflicts
     def test_same_name_same_value_not_conflict(self):
         args = {"team_name": "team1", "region_name": "rg", "app_id": "7", "service_id": "svc-self"}
-        envs = [_env("REDIS_HOST", "redis", "svc-self"),
-                _env("REDIS_HOST", "redis", "svc-dep")]
-        with patch.object(mcp_query_service, "_get_team_app_service_context",
-                          return_value=(_team(), _app(), _service())):
+        envs = [_env("REDIS_HOST", "redis", "svc-self"), _env("REDIS_HOST", "redis", "svc-dep")]
+        with patch.object(mcp_query_service, "_get_team_app_service_context", return_value=(_team(), _app(), _service())):
             with patch("console.services.mcp_query_service.env_var_service.get_all_envs_incloud_depend_env",
                        return_value=iter(envs)):
                 result = mcp_query_service.analyze_env_conflicts(Obj(nick_name="t"), args)
@@ -94,10 +94,8 @@ class EnvConflictTests(SimpleTestCase):
         # A SECRET_KEY/DB_PASSWORD conflict must still be reported, but the raw
         # secret values must NOT leak into the AI-facing response.
         args = {"team_name": "team1", "region_name": "rg", "app_id": "7", "service_id": "svc-self"}
-        envs = [_env("DB_PASSWORD", "supersecret-A", "svc-self"),
-                _env("DB_PASSWORD", "supersecret-B", "svc-dep")]
-        with patch.object(mcp_query_service, "_get_team_app_service_context",
-                          return_value=(_team(), _app(), _service())):
+        envs = [_env("DB_PASSWORD", "supersecret-A", "svc-self"), _env("DB_PASSWORD", "supersecret-B", "svc-dep")]
+        with patch.object(mcp_query_service, "_get_team_app_service_context", return_value=(_team(), _app(), _service())):
             with patch("console.services.mcp_query_service.env_var_service.get_all_envs_incloud_depend_env",
                        return_value=iter(envs)):
                 result = mcp_query_service.analyze_env_conflicts(Obj(nick_name="t"), args)
@@ -112,8 +110,7 @@ class EnvConflictTests(SimpleTestCase):
     def test_no_conflict_unique_names(self):
         args = {"team_name": "team1", "region_name": "rg", "app_id": "7", "service_id": "svc-self"}
         envs = [_env("A", "1", "svc-self"), _env("B", "2", "svc-self")]
-        with patch.object(mcp_query_service, "_get_team_app_service_context",
-                          return_value=(_team(), _app(), _service())):
+        with patch.object(mcp_query_service, "_get_team_app_service_context", return_value=(_team(), _app(), _service())):
             with patch("console.services.mcp_query_service.env_var_service.get_all_envs_incloud_depend_env",
                        return_value=iter(envs)):
                 result = mcp_query_service.analyze_env_conflicts(Obj(nick_name="t"), args)

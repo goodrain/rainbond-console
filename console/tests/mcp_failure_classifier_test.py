@@ -13,7 +13,14 @@ from types import ModuleType
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "src", "openapi-client")))
 sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
 
-from console.services.mcp_failure_classifier import classify_failure
+
+def _load_test_dependencies():
+    """Keep the existing post-Django-setup import order and module bindings."""
+    from console.services.mcp_failure_classifier import classify_failure
+    return (classify_failure, )
+
+
+classify_failure, = _load_test_dependencies()
 
 
 def _warn(reason, message="", count=1):
@@ -29,16 +36,12 @@ class ClassifyFailureEnumTests(object):
 
     # capability_id: console.mcp.operation-failure-classifier
     def test_config_file_configmap_missing(self):
-        warnings = [_warn(
-            "FailedMount",
-            'MountVolume.SetUp failed for volume "config" : configmap "app-conf" not found')]
+        warnings = [_warn("FailedMount", 'MountVolume.SetUp failed for volume "config" : configmap "app-conf" not found')]
         assert classify_failure(warnings, []) == "config_file_configmap_missing"
 
     # capability_id: console.mcp.operation-failure-classifier
     def test_volume_mount_failed_non_configmap(self):
-        warnings = [_warn(
-            "FailedMount",
-            "Unable to attach or mount volumes: timed out waiting for the condition")]
+        warnings = [_warn("FailedMount", "Unable to attach or mount volumes: timed out waiting for the condition")]
         assert classify_failure(warnings, []) == "volume_mount_failed"
 
     # capability_id: console.mcp.operation-failure-classifier

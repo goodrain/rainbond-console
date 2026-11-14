@@ -9,11 +9,21 @@ sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
 
-import django
 
-django.setup()
+def _load_test_dependencies():
+    """Keep the existing post-Django-setup import order and module bindings."""
+    import django
 
-from console.repositories.init_cluster import Cluster
+    django.setup()
+
+    from console.repositories.init_cluster import Cluster
+    return (
+        django,
+        Cluster,
+    )
+
+
+django, Cluster = _load_test_dependencies()
 
 
 class ClusterRepositoryTests(TestCase):
@@ -21,7 +31,8 @@ class ClusterRepositoryTests(TestCase):
     @patch("console.repositories.init_cluster.uuid")
     @patch("console.repositories.init_cluster.RKECluster.objects")
     # capability_id: console.init-cluster.recycle-empty-interconnected
-    def test_get_rke_cluster_exclude_integrated_recycles_blank_cluster(self, mock_cluster_objects, mock_uuid, mock_node_objects):
+    def test_get_rke_cluster_exclude_integrated_recycles_blank_cluster(self, mock_cluster_objects, mock_uuid,
+                                                                       mock_node_objects):
         pending_queryset = MagicMock()
         pending_queryset.order_by.return_value.first.return_value = None
         mock_cluster_objects.exclude.return_value = pending_queryset

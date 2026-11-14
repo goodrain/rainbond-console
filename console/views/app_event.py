@@ -61,10 +61,14 @@ class AppEventView(AppBaseView):
         # kubeblocks_component 需要独立获取 event 并合并至 rainbond event
         try:
             if self.service.extend_method == 'kubeblocks_component':
-                events, total, has_next = kubeblocks_service.merge_region_and_kb_events(
-                    'service', self.service.service_id, self.tenant, 
-                    self.service.service_region, self.service, int(page), int(page_size), polling=True
-                )
+                events, total, has_next = kubeblocks_service.merge_region_and_kb_events('service',
+                                                                                        self.service.service_id,
+                                                                                        self.tenant,
+                                                                                        self.service.service_region,
+                                                                                        self.service,
+                                                                                        int(page),
+                                                                                        int(page_size),
+                                                                                        polling=True)
                 result = general_message(200, "success", "查询成功", list=events, total=total, has_next=has_next)
                 return Response(result, status=result["code"])
         except Exception as e:
@@ -261,10 +265,14 @@ class AppEventsView(RegionTenantHeaderView):
                 self.service = services[0]
                 target_id = self.service.service_id
                 if self.service.extend_method == 'kubeblocks_component':
-                    events, total, has_next = kubeblocks_service.merge_region_and_kb_events(
-                        target, target_id, self.tenant, self.service.service_region, 
-                        self.service, int(page), int(page_size), polling=True
-                    )
+                    events, total, has_next = kubeblocks_service.merge_region_and_kb_events(target,
+                                                                                            target_id,
+                                                                                            self.tenant,
+                                                                                            self.service.service_region,
+                                                                                            self.service,
+                                                                                            int(page),
+                                                                                            int(page_size),
+                                                                                            polling=True)
                     result = general_message(200, "success", "查询成功", list=events, total=total, has_next=has_next)
                 else:
                     events, total, has_next = event_service.get_target_events(

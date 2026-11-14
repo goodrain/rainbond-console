@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from typing import TYPE_CHECKING
 import os
 import shutil
 import sys
@@ -12,12 +13,32 @@ sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
 
-import django
-from django.test import SimpleTestCase
 
-django.setup()
+def _load_test_dependencies():
+    """Keep the existing post-Django-setup import order and module bindings."""
+    import django
+    from django.test import SimpleTestCase
 
-from console.exception.main import ServiceHandleException
+    django.setup()
+
+    from console.exception.main import ServiceHandleException
+    return (
+        django,
+        SimpleTestCase,
+        ServiceHandleException,
+    )
+
+
+(
+    django,
+    _RuntimeSimpleTestCase,
+    ServiceHandleException,
+) = _load_test_dependencies()
+
+if TYPE_CHECKING:
+    from django.test import SimpleTestCase
+else:
+    SimpleTestCase = _RuntimeSimpleTestCase
 
 
 class Obj(object):
@@ -95,23 +116,17 @@ class PackageUploadToolServiceTests(SimpleTestCase):
     @patch("console.services.package_upload_tool_service.region_api.create_upload_file_dir")
     @patch("console.services.package_upload_tool_service.make_uuid")
     # capability_id: console.package-upload.init-flow
-    def test_init_upload_creates_remote_dir_and_record(
-            self,
-            mock_make_uuid,
-            mock_create_dir,
-            mock_create_record,
-            mock_get_upload_url):
+    def test_init_upload_creates_remote_dir_and_record(self, mock_make_uuid, mock_create_dir, mock_create_record,
+                                                       mock_get_upload_url):
         from console.services.package_upload_tool_service import package_upload_tool_service
 
         mock_make_uuid.return_value = "evt-upload-1"
         mock_create_dir.return_value = (None, {"bean": {"path": "/grdata/package_build/temp/events/evt-upload-1"}})
-        mock_create_record.return_value = Obj(
-            event_id="evt-upload-1",
-            status="unfinished",
-            team_name="demo-team",
-            region="rainbond",
-            component_id=""
-        )
+        mock_create_record.return_value = Obj(event_id="evt-upload-1",
+                                              status="unfinished",
+                                              team_name="demo-team",
+                                              region="rainbond",
+                                              component_id="")
         expected_upload_url = "http://region-ws/package_build/component/events/evt-upload-1"
         mock_get_upload_url.return_value = expected_upload_url
 
@@ -135,12 +150,8 @@ class PackageUploadToolServiceTests(SimpleTestCase):
     @patch("console.services.package_upload_tool_service.package_upload_service.get_upload_record")
     @patch("console.services.package_upload_tool_service.import_service.get_upload_package_url")
     # capability_id: console.package-upload.upload-flow
-    def test_upload_package_uploads_archive_and_returns_status(
-            self,
-            mock_get_upload_url,
-            mock_get_upload_record,
-            mock_requests_post,
-            mock_get_upload_status):
+    def test_upload_package_uploads_archive_and_returns_status(self, mock_get_upload_url, mock_get_upload_record,
+                                                               mock_requests_post, mock_get_upload_status):
         from console.services.package_upload_tool_service import package_upload_tool_service
 
         temp_dir = tempfile.mkdtemp(prefix="pkg-upload-")
@@ -157,9 +168,8 @@ class PackageUploadToolServiceTests(SimpleTestCase):
                 "uploaded": True,
             }
 
-            result = package_upload_tool_service.upload_package(
-                "demo-team", "rainbond", "evt-upload-1", temp_dir, "demo-package"
-            )
+            result = package_upload_tool_service.upload_package("demo-team", "rainbond", "evt-upload-1", temp_dir,
+                                                                "demo-package")
 
             self.assertTrue(result["uploaded"])
             self.assertEqual(
@@ -203,12 +213,8 @@ class PackageUploadToolServiceTests(SimpleTestCase):
     @patch("console.services.package_upload_tool_service.package_upload_tool_service.upload_package")
     @patch("console.services.package_upload_tool_service.package_upload_tool_service.init_upload")
     # capability_id: console.package-upload.local-package-flow
-    def test_auto_create_component_from_local_path_runs_full_flow(
-            self,
-            mock_init_upload,
-            mock_upload_package,
-            mock_get_upload_status,
-            mock_create_component):
+    def test_auto_create_component_from_local_path_runs_full_flow(self, mock_init_upload, mock_upload_package,
+                                                                  mock_get_upload_status, mock_create_component):
         from console.services.package_upload_tool_service import package_upload_tool_service
 
         user = Obj(user_id=1, pk=1, nick_name="admin")

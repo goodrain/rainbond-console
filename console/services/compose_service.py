@@ -44,8 +44,14 @@ class ComposeService(object):
         except yaml.YAMLError:
             return 400, "yaml内容格式不正确", {}
 
-    def create_group_compose(self, tenant: Tenants, region: str, group_id: int, event_id: str,
-                             compose_file_path: str, hub_user: str = "", hub_pass: str = "") -> Tuple[int, str, ComposeGroup]:
+    def create_group_compose(self,
+                             tenant: Tenants,
+                             region: str,
+                             group_id: int,
+                             event_id: str,
+                             compose_file_path: str,
+                             hub_user: str = "",
+                             hub_pass: str = "") -> Tuple[int, str, ComposeGroup]:
         # 存储上传事件ID和compose文件路径
         group_compose_data = {
             "hub_user": hub_user,
@@ -73,10 +79,16 @@ class ComposeService(object):
         body = dict()
         body["tenant_id"] = tenant.tenant_id
         body["source_type"] = "docker-compose"
-        body["event_id"] = group_compose.compose_content  # type: ignore[assignment]  # NOTE: compose_content is Optional[str] but dict value is Any
+        body[
+            # NOTE: compose_content is Optional[str] but dict value is Any
+            "event_id"] = group_compose.compose_content  # type: ignore[assignment]
         body["compose_file_path"] = getattr(group_compose, 'compose_file_path', 'docker-compose.yml')
-        body["username"] = group_compose.hub_user  # type: ignore[assignment]  # NOTE: hub_user is Optional[str] but dict value is Any
-        body["password"] = group_compose.hub_pass  # type: ignore[assignment]  # NOTE: hub_pass is Optional[str] but dict value is Any
+        body[
+            # NOTE: hub_user is Optional[str] but dict value is Any
+            "username"] = group_compose.hub_user  # type: ignore[assignment]
+        body[
+            # NOTE: hub_pass is Optional[str] but dict value is Any
+            "password"] = group_compose.hub_pass  # type: ignore[assignment]
         body["namespace"] = tenant.namespace
         res, body = region_api.service_source_check(region, tenant.tenant_name, body)
         bean = body["bean"]  # type: ignore[index]  # NOTE: region_api returns untyped dict, body may be dict|None at mypy level
@@ -84,7 +96,9 @@ class ComposeService(object):
         group_compose.check_event_id = bean["event_id"]
         group_compose.create_status = "checking"
         group_compose.save()
-        group = group_repo.get_group_by_pk(tenant.tenant_id, region, group_compose.group_id)  # type: ignore[arg-type]  # NOTE: group_id is IntegerField(int) but get_group_by_pk expects str
+        group = group_repo.get_group_by_pk(
+            tenant.tenant_id, region, group_compose.group_id  # type: ignore[arg-type]
+        )  # type: ignore[arg-type]  # NOTE: group_id is IntegerField(int) but get_group_by_pk expects str
         compose_bean = group_compose.to_dict()
         if group:
             compose_bean["group_name"] = group.group_name
@@ -94,7 +108,8 @@ class ComposeService(object):
         return compose_repo.get_group_compose_by_compose_id(compose_id)
 
     def get_group_compose_by_group_id(self, group_id: int) -> Optional[ComposeGroup]:
-        return compose_repo.get_group_compose_by_group_id(group_id)  # type: ignore[arg-type]  # NOTE: repo signature uses str but model field is IntegerField(int)
+        return compose_repo.get_group_compose_by_group_id(
+            group_id)  # type: ignore[arg-type]  # NOTE: repo signature uses str but model field is IntegerField(int)
 
     def _resolve_compose_arch(self, region: str, arch: Optional[str] = None) -> str:
         arch = (arch or "").strip()
@@ -103,7 +118,8 @@ class ComposeService(object):
 
         try:
             _, body = region_api.get_cluster_nodes_arch(region)
-            arches = [item for item in set(body.get("list", [])) if item]  # type: ignore[union-attr]  # NOTE: region_api returns untyped; body typed as dict|None by stubs
+            arches = [item for item in set(body.get("list", []))  # type: ignore[union-attr]
+                      if item]  # type: ignore[union-attr]  # NOTE: region_api returns untyped; body typed as dict|None by stubs
             if len(arches) == 1:
                 return arches[0]
         except Exception as e:
@@ -111,8 +127,13 @@ class ComposeService(object):
         return "amd64"
 
     @transaction.atomic
-    def save_compose_services(self, tenant: Tenants, user: Any, region: str, group_compose: ComposeGroup,
-                              data: dict, arch: Optional[str] = None) -> Tuple[int, str, List[TenantServiceInfo]]:
+    def save_compose_services(self,
+                              tenant: Tenants,
+                              user: Any,
+                              region: str,
+                              group_compose: ComposeGroup,
+                              data: dict,
+                              arch: Optional[str] = None) -> Tuple[int, str, List[TenantServiceInfo]]:
         # 开启保存点
         sid = transaction.savepoint()
         service_list: List[TenantServiceInfo] = []
@@ -169,7 +190,10 @@ class ComposeService(object):
                                 hub_user = env.get("value")
                             if env.get("name", "") == "HUB_PASSWORD":
                                 hub_password = env.get("value")
-                        app_service.create_service_source_info(tenant, service, hub_user, hub_password)  # type: ignore[arg-type]  # NOTE: hub_user/hub_password may be str|None after env.get("value") which returns Optional[str]
+                        app_service.create_service_source_info(
+                            tenant, service, hub_user, hub_password  # type: ignore[arg-type]
+                            # NOTE: hub_user/hub_password may be str|None after env.get("value") which returns Optional[str]
+                        )  # type: ignore[arg-type]
 
                         dependencies = service_info.get("depends", None)
                         if dependencies:
@@ -203,8 +227,10 @@ class ComposeService(object):
                     if not dep_service:
                         logger.warning("Dependency service {} not found for service {}, skip".format(dep_name, key))
                         continue
-                    code, msg, d = app_relation_service.add_service_dependency(
-                        tenant, s, dep_service.service_id, open_inner=True)
+                    code, msg, d = app_relation_service.add_service_dependency(tenant,
+                                                                               s,
+                                                                               dep_service.service_id,
+                                                                               open_inner=True)
                     if code != 200:
                         logger.error("compose add service error {0}".format(msg))
 

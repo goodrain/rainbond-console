@@ -5,20 +5,19 @@
 import logging
 from typing import Any
 
-from django.shortcuts import redirect
 from rest_framework.request import Request
-from console.utils.cache_decorators import never_cache
+
 from rest_framework.response import Response
 
 from console.services.git_service import GitCodeService
-from console.services.user_services import user_services
+
 from console.views.app_config.base import AppBaseView
-from console.views.base import RegionTenantHeaderView, JWTAuthApiView
+
 from www.utils.return_message import general_message
-from www.utils.url import get_redirect_url
 
 logger = logging.getLogger("default")
 git_service = GitCodeService()
+
 
 class ServiceCodeBranch(AppBaseView):
     def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:

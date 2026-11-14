@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from typing import TYPE_CHECKING
 import os
 import sys
 from types import ModuleType, SimpleNamespace
@@ -8,28 +9,56 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..",
 sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
 
-import django
-from django.test import SimpleTestCase
 
-django.setup()
+def _load_test_dependencies():
+    """Keep the existing post-Django-setup import order and module bindings."""
+    import django
+    from django.test import SimpleTestCase
 
-from rest_framework.test import APIRequestFactory, force_authenticate
+    django.setup()
 
-from console.exception.main import ServiceHandleException
-from console.services.agent_web_search_config_service import AgentWebSearchConfigService
-from console.services.agent_web_search_service import AgentWebSearchService, agent_web_search_service
+    from rest_framework.test import APIRequestFactory, force_authenticate
+
+    from console.exception.main import ServiceHandleException
+    from console.services.agent_web_search_config_service import AgentWebSearchConfigService
+    from console.services.agent_web_search_service import AgentWebSearchService, agent_web_search_service
+    return (
+        django,
+        SimpleTestCase,
+        APIRequestFactory,
+        force_authenticate,
+        ServiceHandleException,
+        AgentWebSearchConfigService,
+        AgentWebSearchService,
+        agent_web_search_service,
+    )
+
+
+(
+    django,
+    _RuntimeSimpleTestCase,
+    APIRequestFactory,
+    force_authenticate,
+    ServiceHandleException,
+    AgentWebSearchConfigService,
+    AgentWebSearchService,
+    agent_web_search_service,
+) = _load_test_dependencies()
+
+if TYPE_CHECKING:
+    from django.test import SimpleTestCase
+else:
+    SimpleTestCase = _RuntimeSimpleTestCase
 
 
 class AgentWebSearchConfigServiceTests(SimpleTestCase):
-
     def setUp(self):
         self.service = AgentWebSearchConfigService()
 
     def test_rejects_missing_api_key_when_enabled(self):
         with mock.patch.object(self.service, "_load_config", return_value={}):
             with self.assertRaises(ServiceHandleException) as context:
-                self.service.update_config(
-                    {"enabled": True, "provider": "deepseek", "max_results": 5})
+                self.service.update_config({"enabled": True, "provider": "deepseek", "max_results": 5})
         self.assertIn("API Key", context.exception.msg_show)
 
     def test_defaults_to_disabled_when_config_missing(self):
@@ -48,16 +77,14 @@ class AgentWebSearchConfigServiceTests(SimpleTestCase):
     def test_masks_api_key_without_encrypting_plain_text(self):
         with mock.patch.object(self.service, "_load_config", return_value={}), \
                 mock.patch.object(self.service, "_save_config") as save:
-            result = self.service.update_config(
-                {"provider": "deepseek", "api_key": "ds-123456789", "max_results": 3})
+            result = self.service.update_config({"provider": "deepseek", "api_key": "ds-123456789", "max_results": 3})
         self.assertTrue(result["api_key_set"])
         self.assertNotIn("ds-123456789", str(result))
         stored = save.call_args[0][0]
         self.assertTrue(stored["api_key"].startswith("fernet:v1:"))
 
     def test_normalizes_legacy_provider_to_deepseek(self):
-        with mock.patch.object(self.service, "_load_config",
-                               return_value={"provider": "exa", "api_key": ""}):
+        with mock.patch.object(self.service, "_load_config", return_value={"provider": "exa", "api_key": ""}):
             runtime = self.service.get_runtime_config()
             masked = self.service.get_masked_config()
         self.assertEqual("deepseek", runtime["provider"])
@@ -66,27 +93,23 @@ class AgentWebSearchConfigServiceTests(SimpleTestCase):
     def test_rejects_non_deepseek_provider(self):
         with mock.patch.object(self.service, "_load_config", return_value={}):
             with self.assertRaises(ServiceHandleException) as context:
-                self.service.update_config(
-                    {"provider": "exa", "api_key": "k", "max_results": 5})
+                self.service.update_config({"provider": "exa", "api_key": "k", "max_results": 5})
         self.assertIn("deepseek", context.exception.msg_show)
 
     def test_allows_disabled_search_without_api_key(self):
         with mock.patch.object(self.service, "_load_config", return_value={}), \
                 mock.patch.object(self.service, "_save_config"):
-            result = self.service.update_config(
-                {"enabled": False, "provider": "deepseek", "max_results": 5})
+            result = self.service.update_config({"enabled": False, "provider": "deepseek", "max_results": 5})
         self.assertFalse(result["enabled"])
 
     def test_accepts_deepseek_provider(self):
         with mock.patch.object(self.service, "_load_config", return_value={}), \
                 mock.patch.object(self.service, "_save_config"):
-            result = self.service.update_config(
-                {"provider": "deepseek", "api_key": "ds-key", "max_results": 5})
+            result = self.service.update_config({"provider": "deepseek", "api_key": "ds-key", "max_results": 5})
         self.assertEqual("deepseek", result["provider"])
 
 
 class AgentWebSearchServiceTests(SimpleTestCase):
-
     def test_exports_module_singleton_for_views(self):
         self.assertIsInstance(agent_web_search_service, AgentWebSearchService)
 
@@ -151,21 +174,19 @@ class AgentWebSearchServiceTests(SimpleTestCase):
 
 
 class AgentWebSearchRuntimeConfigViewTests(SimpleTestCase):
-
     def test_runtime_view_does_not_expose_api_key(self):
         from console.views.agent_web_search_config import AgentWebSearchRuntimeConfigView
 
         factory = APIRequestFactory()
         request = factory.get("/console/internal/agent-web-search-config/runtime")
         force_authenticate(request, user=SimpleNamespace(is_authenticated=True))
-        with mock.patch(
-                "console.views.agent_web_search_config.agent_web_search_config_service.get_runtime_config",
-                return_value={
-                    "enabled": True,
-                    "provider": "deepseek",
-                    "api_key": "secret-key",
-                    "max_results": 5,
-                }):
+        with mock.patch("console.views.agent_web_search_config.agent_web_search_config_service.get_runtime_config",
+                        return_value={
+                            "enabled": True,
+                            "provider": "deepseek",
+                            "api_key": "secret-key",
+                            "max_results": 5,
+                        }):
             response = AgentWebSearchRuntimeConfigView.as_view()(request)
 
         self.assertEqual(200, response.status_code)

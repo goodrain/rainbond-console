@@ -67,15 +67,15 @@ class AppDependencyReverseView(AppBaseView):
         un_dependencies = dependency_service.get_reverse_undependencies(self.tenant, self.service)
         service_ids = [s.service_id for s in un_dependencies]
         service_group_map = group_service.get_services_group_name(service_ids)
-        
+
         # 获取当前组件所属的应用ID
         current_relation = group_service_relation_repo.get_group_by_service_id(self.service.service_id)
         current_group_id = current_relation.group_id if current_relation else -1
-        
+
         # 分别收集本应用和其他应用的组件
         current_app_list = []
         other_app_list = []
-        
+
         for un_dep in un_dependencies:
             dep_service_info = {
                 "service_cname": un_dep.service_cname,
@@ -85,7 +85,7 @@ class AppDependencyReverseView(AppBaseView):
                 "group_name": service_group_map[un_dep.service_id]["group_name"],
                 "group_id": service_group_map[un_dep.service_id]["group_id"]
             }
-            
+
             # 根据搜索条件过滤
             should_include = False
             if search_key is not None and condition:
@@ -100,7 +100,7 @@ class AppDependencyReverseView(AppBaseView):
                     should_include = True
             elif search_key is None and not condition:
                 should_include = True
-            
+
             if should_include:
                 # 判断是否为本应用的组件，优先展示本应用的组件
                 if service_group_map[un_dep.service_id]["group_id"] == current_group_id:
@@ -168,15 +168,15 @@ class AppDependencyViewList(AppBaseView):
         dependencies = dependency_service.get_service_dependencies_reverse(self.service)
         service_ids = [s.service_id for s in dependencies]
         service_group_map = group_service.get_services_group_name(service_ids)
-        
+
         # 获取当前组件所属的应用ID
         current_relation = group_service_relation_repo.get_group_by_service_id(self.service.service_id)
         current_group_id = current_relation.group_id if current_relation else -1
-        
+
         # 分别收集本应用和其他应用的组件
         current_app_list = []
         other_app_list = []
-        
+
         for dep in dependencies:
             tenant_service_ports = port_service.get_service_ports(dep)
             ports_list = []
@@ -192,16 +192,16 @@ class AppDependencyViewList(AppBaseView):
                 "group_id": service_group_map[dep.service_id]["group_id"],
                 "ports_list": ports_list
             }
-            
+
             # 判断是否为本应用的组件，优先展示本应用的组件
             if service_group_map[dep.service_id]["group_id"] == current_group_id:
                 current_app_list.append(dep_service_info)
             else:
                 other_app_list.append(dep_service_info)
-        
+
         # 合并列表：本应用组件在前，其他应用组件在后
         dep_list = current_app_list + other_app_list
-        
+
         start = (page_num - 1) * page_size
         end = page_num * page_size
         if start >= len(dep_list):
@@ -254,15 +254,15 @@ class AppDependencyView(AppBaseView):
         dependencies = dependency_service.get_service_dependencies(self.tenant, self.service)
         service_ids = [s.service_id for s in dependencies]
         service_group_map = group_service.get_services_group_name(service_ids)
-        
+
         # 获取当前组件所属的应用ID
         current_relation = group_service_relation_repo.get_group_by_service_id(self.service.service_id)
         current_group_id = current_relation.group_id if current_relation else -1
-        
+
         # 分别收集本应用和其他应用的组件
         current_app_list = []
         other_app_list = []
-        
+
         for dep in dependencies:
             tenant_service_ports = port_service.get_service_ports(dep)
             ports_list = []
@@ -278,16 +278,16 @@ class AppDependencyView(AppBaseView):
                 "group_id": service_group_map[dep.service_id]["group_id"],
                 "ports_list": ports_list
             }
-            
+
             # 判断是否为本应用的组件，优先展示本应用的组件
             if service_group_map[dep.service_id]["group_id"] == current_group_id:
                 current_app_list.append(dep_service_info)
             else:
                 other_app_list.append(dep_service_info)
-        
+
         # 合并列表：本应用组件在前，其他应用组件在后
         dep_list = current_app_list + other_app_list
-        
+
         start = (page_num - 1) * page_size
         end = page_num * page_size
         if start >= len(dep_list):
@@ -478,15 +478,15 @@ class AppNotDependencyView(AppBaseView):
         un_dependencies = dependency_service.get_undependencies(self.tenant, self.service)
         service_ids = [s.service_id for s in un_dependencies]
         service_group_map = group_service.get_services_group_name(service_ids)
-        
+
         # 获取当前组件所属的应用ID
         current_relation = group_service_relation_repo.get_group_by_service_id(self.service.service_id)
         current_group_id = current_relation.group_id if current_relation else -1
-        
+
         # 分别收集本应用和其他应用的组件
         current_app_list = []
         other_app_list = []
-        
+
         for un_dep in un_dependencies:
             dep_service_info = {
                 "service_cname": un_dep.service_cname,

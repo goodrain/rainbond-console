@@ -7,7 +7,10 @@ from console.services.user_identity import resolve_login_user
 
 
 class ModelBackend(object):
-    def authenticate(self, request: Any, username: Optional[str] = None, password: Optional[str] = None,
+    def authenticate(self,
+                     request: Any,
+                     username: Optional[str] = None,
+                     password: Optional[str] = None,
                      **kwargs: Any) -> Optional[Users]:
         if username is None or password is None:
             return None
@@ -33,8 +36,14 @@ class ModelBackend(object):
 
 
 class PartnerModelBackend(ModelBackend):
-    def authenticate(self, request: Any, username: Optional[str] = None, source: Optional[str] = None,  # type: ignore[override]  # NOTE: intentionally replaces 'password' with 'source'; both are **kwargs in practice
-                     **kwargs: Any) -> Optional[Users]:
+    def authenticate(  # type: ignore[override]
+            self,
+            request: Any,
+            username: Optional[str] = None,
+            source: Optional[
+                # NOTE: intentionally replaces 'password' with 'source'; both are **kwargs in practice
+                str] = None,  # type: ignore[override]
+            **kwargs: Any) -> Optional[Users]:
         if username is None or source is None:
             return None
 

@@ -2,13 +2,13 @@
 该文件主要用于openapi调用，返回全局资源的之间的关系，资源信息概览，交由前端展示。
 """
 import logging
-from functools import reduce
+
 from typing import Any, Dict, List, Tuple
 
 from console.repositories.app import service_repo
 from console.services.region_services import region_services
 from www.apiclient.regionapi import RegionInvokeApi
-from www.models.main import TenantRegionInfo, Tenants, ServiceGroup, ServiceDomain, ServiceGroupRelation
+from www.models.main import TenantRegionInfo, Tenants, ServiceGroup, ServiceGroupRelation
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
@@ -97,37 +97,30 @@ class Global_resource_processing(object):
         """
         logger.info("开始获取网关流量数据")
         time_range = "1h"  # 查询最近1小时的数据
-        
+
         total_processed_tenants = 0
         total_domains_found = 0
         total_valid_routes = 0
-        
+
         for tenant in self.tenant_list:
             total_processed_tenants += 1
-            
+
             # APISIX HTTP状态码指标查询
             # route的命名规则是: 命名空间_组件名称_xxx
-            query = (
-                "?query=sort_desc(sum(ceil(increase("
-                + "apisix_http_status%7Broute%3D~%22{0}_.*%22%7D%5B{1}%5D)))"
-                + "%20by%20(route))"
-            )
-            
+            query = ("?query=sort_desc(sum(ceil(increase(" + "apisix_http_status%7Broute%3D~%22{0}_.*%22%7D%5B{1}%5D)))" +
+                     "%20by%20(route))")
+
             suffix = query.format(tenant["resource_namespace"], time_range)
-            
+
             try:
                 # 调用区域API获取域访问数据
-                res, body = region_api.get_query_domain_access(
-                    tenant["resource_parent"][0], 
-                    tenant["resource_name"], 
-                    suffix
-                )
-                
+                res, body = region_api.get_query_domain_access(tenant["resource_parent"][0], tenant["resource_name"], suffix)
+
                 # 确保返回了有效数据
                 if not body or "data" not in body or "result" not in body["data"]:
                     logger.warning(f"无法获取租户 {tenant['resource_name']} 的网关访问数据")
                     continue
-                    
+
                 domains = body["data"]["result"]
                 total_domains_found += len(domains)
 
@@ -136,9 +129,9 @@ class Global_resource_processing(object):
                     route = domain["metric"].get("route", "")
                     if not route:
                         continue
-                        
+
                     domain_route = domain["metric"].get("matched_host", "")
-                    
+
                     # 如果matched_host为空，使用route的简化版本作为显示名称
                     if not domain_route:
                         # 从路由名称中提取域名信息
@@ -146,13 +139,13 @@ class Global_resource_processing(object):
                         # 1. 删除 "default_" (下划线及前面的部分)
                         # 2. 删除 "p-ps-s_478ad582" (从单独的p开始到末尾)
                         # 得到：grf634aa-8080-default-14.103.232.255.ip.goodrain.net
-                        
+
                         # 步骤1：删除下划线及前面的部分
                         if "_" in route:
                             route_without_prefix = route.split("_", 1)[1]  # 取下划线后面的部分
                         else:
                             route_without_prefix = route
-                        
+
                         # 步骤2：删除从单独的'p'开始的后缀部分
                         # 查找 "netp-" 模式，将netp替换为net并删除后面的部分
                         if "netp-" in route_without_prefix:
@@ -175,47 +168,47 @@ class Global_resource_processing(object):
                                     domain_route = f"{component_part}:{port_part}"
                                 else:
                                     domain_route = route_without_prefix
-                    
+
                     # 从路由名称中提取组件信息
                     # 实际格式例如: "zqhh_gr1a56e3-5000-zs6bcf8j-14.103.232.255.ip.goodrain.netp-ps-s_a4d2683f"
                     # 其中zqhh是命名空间，gr1a56e3是组件别名
-                    
+
                     # 首先按第一个下划线分割获取命名空间
                     parts = route.split("_", 1)
                     if len(parts) < 2:
                         continue
-                    
+
                     namespace = parts[0]
                     rest = parts[1]
-                    
+
                     # 然后从剩余部分提取组件别名（到第一个连字符为止）
                     service_alias_parts = rest.split("-", 1)
                     service_alias = service_alias_parts[0]  # 组件的service_alias
 
                     # 获取HTTP请求数量
                     request_count = domain["value"][1]
-                    
+
                     # 调整阈值：包含请求量为0的记录，用于显示完整的网络拓扑
                     # 对于请求量为0的记录，设置一个最小值1以便在桑基图中显示
                     if not request_count:
                         request_count = "1"  # 设置最小值
                     elif int(float(request_count)) == 0:
                         request_count = "1"  # 设置最小值
-                    
+
                     # 查找对应的租户
                     tenant_obj = None
                     for t in self.tenant_list:
                         if t["resource_namespace"] == namespace:
                             tenant_obj = t
                             break
-                            
+
                     if not tenant_obj:
                         continue
-                    
+
                     service_info = service_repo.get_service_by_service_alias(service_alias)
                     if not service_info:
                         continue
-                        
+
                     host_service_id = service_info.service_id
 
                     # 查找服务对应的应用组
@@ -223,22 +216,21 @@ class Global_resource_processing(object):
                     if not service_relations.exists():
                         continue
                     app_id = service_relations[0].group_id
-                    
+
                     # 添加到主机列表
                     host_data = self.monitor_handle(
-                        3, 
+                        3,
                         domain_route,  # 使用处理后的域名作为资源名称
                         service_info.ID,  # 使用服务ID作为资源ID
                         int(float(request_count)),  # 使用HTTP请求数量作为资源请求量
                         [app_id, tenant_obj["resource_name"], tenant_obj["resource_parent"][1]],
-                        tenant_obj["resource_namespace"]
-                    )
+                        tenant_obj["resource_namespace"])
                     self.host_list.append(host_data)
                     total_valid_routes += 1
-                    
+
             except Exception as e:
                 logger.error(f"获取租户 {tenant['resource_name']} 的网关访问数据失败: {str(e)}")
-        
+
         logger.info(f"流量数据获取完成: 处理了 {total_processed_tenants} 个租户, 找到 {total_domains_found} 个域名记录, 有效路由 {total_valid_routes} 个")
 
     def template_handle(self) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
@@ -246,57 +238,57 @@ class Global_resource_processing(object):
         按照指定格式对数据进行排序并返回给前端
         """
         logger.info("开始构建桑基图数据")
-        
+
         # 降序排序，显示请求量最多的域名
         self.host_list = sorted(self.host_list, key=lambda x: x["resource_requests"], reverse=True)
-        
+
         # 限制返回结果数量
         original_length = len(self.host_list)
         if len(self.host_list) > 20:
             self.host_list = self.host_list[:20]
             logger.info(f"限制结果数量: 从 {original_length} 减少到 {len(self.host_list)}")
-            
+
         nodes = []
         links = []
-        
+
         # 用于存储应用到租户和租户到区域的关系及值
         app_tenant_relations: Dict[Tuple[str, str], int] = {}
         tenant_region_relations: Dict[Tuple[str, str], int] = {}
-        
+
         # 遍历主机列表，构建节点和链接数据
         for host in self.host_list:
             # 从主机数据中提取信息
             this_tenant_name = host["resource_parent"][1]
             this_region_name = host["resource_parent"][2]
             host_requests = host["resource_requests"]
-            
+
             # 添加主机节点
             nodes.append({"id": host["resource_name"], "level": 0})
-            
+
             # 获取应用信息
             this_app = self.app_dict.get(host["resource_parent"][0])
             if not this_app:
                 logger.warning(f"找不到应用ID: {host['resource_parent'][0]}")
                 continue
-                
+
             # 构建应用名称
             this_app_name = f"{this_app['resource_name']}({this_app['resource_id']})"
-            
+
             # 添加应用、租户和区域节点
             nodes.append({"id": this_app_name, "level": 1})
             nodes.append({"id": this_tenant_name, "level": 2})
             nodes.append({"id": this_region_name, "level": 3})
-            
+
             # 添加主机到应用的链接
             links.append({"source": host["resource_name"], "target": this_app_name, "value": host_requests})
-            
+
             # 累计应用到租户的值
             app_tenant_key = (this_app_name, this_tenant_name)
             if app_tenant_key in app_tenant_relations:
                 app_tenant_relations[app_tenant_key] += int(host_requests)
             else:
                 app_tenant_relations[app_tenant_key] = int(host_requests)
-            
+
             # 累计租户到区域的值
             tenant_region_key = (this_tenant_name, this_region_name)
             if tenant_region_key in tenant_region_relations:
@@ -306,15 +298,15 @@ class Global_resource_processing(object):
 
         # 删除重复节点
         nodes = list({node["id"]: node for node in nodes}.values())
-        
+
         # 添加应用到租户的链接
         for (app, tenant), value in app_tenant_relations.items():
             links.append({"source": app, "target": tenant, "value": value})
-            
+
         # 添加租户到区域的链接
         for (tenant, region), value in tenant_region_relations.items():
             links.append({"source": tenant, "target": region, "value": value})
-        
+
         logger.info(f"桑基图数据构建完成: {len(nodes)} 个节点, {len(links)} 个链接")
-            
+
         return nodes, links

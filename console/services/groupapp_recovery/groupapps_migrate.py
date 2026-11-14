@@ -26,7 +26,7 @@ from console.repositories.region_app import region_app_repo
 from console.services.app import app_service
 from console.services.app_config import port_service, volume_service
 from console.services.app_config.component_graph import component_graph_service
-from console.services.app_config.port_service import port_repo
+
 from console.services.app_config.service_monitor import service_monitor_repo
 from console.services.app_config_group import app_config_group_service
 from console.exception.bcode import ErrK8sServiceNameExists
@@ -38,10 +38,9 @@ from console.services.group_service import group_service
 from django.db import transaction
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.label import ServiceLabels
-from www.models.main import (ServiceDomain, ServiceEvent, ServiceProbe, TenantServiceAuth,
-                             TenantServiceConfigurationFile, TenantServiceEnv, TenantServiceEnvVar, TenantServiceInfo,
-                             TenantServiceMountRelation, TenantServiceRelation, TenantServicesPort, TenantServiceVolume,
-                             ThirdPartyServiceEndpoints)
+from www.models.main import (ServiceDomain, ServiceEvent, ServiceProbe, TenantServiceAuth, TenantServiceConfigurationFile,
+                             TenantServiceEnv, TenantServiceEnvVar, TenantServiceInfo, TenantServiceMountRelation,
+                             TenantServiceRelation, TenantServicesPort, TenantServiceVolume, ThirdPartyServiceEndpoints)
 from www.models.plugin import (ServicePluginConfigVar, TenantServicePluginRelation)
 from www.utils.crypt import make_uuid
 
@@ -50,8 +49,7 @@ logger = logging.getLogger("default")
 
 
 class GroupappsMigrateService(object):
-    def __get_restore_type(self, current_tenant: Any, current_region: str, migrate_team: Any,
-                           migrate_region: str) -> str:
+    def __get_restore_type(self, current_tenant: Any, current_region: str, migrate_team: Any, migrate_region: str) -> str:
         """获取恢复的类型"""
         if current_region != migrate_region:
             return AppMigrateType.OTHER_REGION
@@ -59,9 +57,8 @@ class GroupappsMigrateService(object):
             return AppMigrateType.CURRENT_REGION_OTHER_TENANT
         return AppMigrateType.CURRENT_REGION_CURRENT_TENANT
 
-    def __copy_backup_record(self, restore_mode: str, origin_backup_record: Any, current_team: Any,
-                             current_region: str, migrate_team: Any, migrate_region: str,
-                             migrate_type: str) -> Tuple[Any, Any]:
+    def __copy_backup_record(self, restore_mode: str, origin_backup_record: Any, current_team: Any, current_region: str,
+                             migrate_team: Any, migrate_region: str, migrate_type: str) -> Tuple[Any, Any]:
         """拷贝备份数据"""
         services = group_service.get_group_services(origin_backup_record.group_id)
         if not services and migrate_type == "recover":
@@ -78,7 +75,8 @@ class GroupappsMigrateService(object):
 
             new_event_id = make_uuid()
             new_group_uuid = make_uuid()
-            new_data = original_data["bean"]  # type: ignore[index]  # NOTE: get_backup_status_by_backup_id may return None; runtime assumes non-None
+            new_data = original_data[
+                "bean"]  # type: ignore[index]  # NOTE: get_backup_status_by_backup_id may return None; runtime assumes non-None
             new_data["event_id"] = new_event_id
             new_data["group_id"] = new_group_uuid
             # 存入其他数据中心
@@ -104,7 +102,8 @@ class GroupappsMigrateService(object):
         return new_app
 
     def create_new_group(self, tenant: Any, region: str, old_group_id: int) -> Any:
-        old_group = group_repo.get_group_by_id(old_group_id)  # type: ignore[arg-type]  # NOTE: old_group_id is int; repo expects str; ORM coerces
+        old_group = group_repo.get_group_by_id(
+            old_group_id)  # type: ignore[arg-type]  # NOTE: old_group_id is int; repo expects str; ORM coerces
         if old_group:
             new_group_name = '_'.join([old_group.group_name, make_uuid()[-4:]])
             k8s_app = old_group.k8s_app + "-" + make_uuid()[-4:]
@@ -149,33 +148,54 @@ class GroupappsMigrateService(object):
 
         if event_id:
             migrate_record = migrate_repo.get_by_event_id(event_id)
-            data = region_api.get_apps_migrate_status(migrate_record.migrate_region, migrate_record.migrate_team,  # type: ignore[union-attr, assignment, arg-type]  # NOTE: migrate_record may be None; data type widened; args Optional
-                                                      migrate_record.backup_id, restore_id)  # type: ignore[union-attr, arg-type]  # NOTE: backup_id Optional
+            data = region_api.get_apps_migrate_status(
+                migrate_record.migrate_region,  # type: ignore[arg-type,union-attr]
+                migrate_record.
+                # NOTE: migrate_record may be None; data type widened; args Optional
+                migrate_team,  # type: ignore[union-attr, assignment, arg-type]
+                migrate_record.backup_id,  # type: ignore[arg-type,union-attr]
+                restore_id)  # type: ignore[union-attr, arg-type]  # NOTE: backup_id Optional
             bean = data["bean"]  # type: ignore[index]  # NOTE: get_apps_migrate_status may return None
             migrate_record.status = bean["status"]  # type: ignore[union-attr]  # NOTE: migrate_record may be None
             migrate_record.save()  # type: ignore[union-attr]  # NOTE: same
         else:
             # 创建迁移记录
             params = {
-                "group_id": new_group.ID,
-                "group_uuid": new_backup_record.group_uuid,
-                "event_id": make_uuid(),
-                "version": backup_record.version,
-                "backup_id": new_backup_record.backup_id,
-                "migrate_team": migrate_team.tenant_name,
-                "migrate_region": migrate_region,
-                "status": "starting",
-                "user": user.nick_name,
-                "restore_id": body["bean"]["restore_id"],  # type: ignore[index]  # NOTE: body from star_apps_migrate_task may be None; runtime assumes non-None
-                "original_group_id": backup_record.group_id,
-                "original_group_uuid": backup_record.group_uuid,
-                "migrate_type": migrate_type
+                "group_id":
+                new_group.ID,
+                "group_uuid":
+                new_backup_record.group_uuid,
+                "event_id":
+                make_uuid(),
+                "version":
+                backup_record.version,
+                "backup_id":
+                new_backup_record.backup_id,
+                "migrate_team":
+                migrate_team.tenant_name,
+                "migrate_region":
+                migrate_region,
+                "status":
+                "starting",
+                "user":
+                user.nick_name,
+                "restore_id":
+                body["bean"]  # type: ignore[index]
+                # NOTE: body from star_apps_migrate_task may be None; runtime assumes non-None
+                ["restore_id"],  # type: ignore[index]
+                "original_group_id":
+                backup_record.group_id,
+                "original_group_uuid":
+                backup_record.group_uuid,
+                "migrate_type":
+                migrate_type
             }
             migrate_record = migrate_repo.create_migrate_record(**params)
         return migrate_record
 
     def __check_group_service_status(self, region: str, tenant: Any, group_id: int) -> bool:
-        services = group_service.get_group_services(group_id)  # type: ignore[arg-type]  # NOTE: group_id is int; service expects str; handled at runtime
+        services = group_service.get_group_services(
+            group_id)  # type: ignore[arg-type]  # NOTE: group_id is int; service expects str; handled at runtime
         service_ids = [s.service_id for s in services]
         if not service_ids:
             return True
@@ -189,36 +209,62 @@ class GroupappsMigrateService(object):
                 return False
         return True
 
-    def get_and_save_migrate_status(self, user: Any, restore_id: str, current_team_name: str,
-                                    current_region: str) -> Any:
+    def get_and_save_migrate_status(self, user: Any, restore_id: str, current_team_name: str, current_region: str) -> Any:
         migrate_record = migrate_repo.get_by_restore_id(restore_id)
         if not migrate_record:
             return None
         if migrate_record.status == "starting":
-            data = region_api.get_apps_migrate_status(migrate_record.migrate_region, migrate_record.migrate_team,  # type: ignore[arg-type]  # NOTE: migrate_region/migrate_team are Optional[str]; runtime assumes non-None
-                                                      migrate_record.backup_id, restore_id)  # type: ignore[arg-type]  # NOTE: backup_id is Optional[str]
+            data = region_api.get_apps_migrate_status(
+                migrate_record.migrate_region,  # type: ignore[arg-type]
+                migrate_record.
+                # NOTE: migrate_region/migrate_team are Optional[str]; runtime assumes non-None
+                migrate_team,  # type: ignore[arg-type]
+                migrate_record.backup_id,  # type: ignore[arg-type]
+                restore_id)  # type: ignore[arg-type]  # NOTE: backup_id is Optional[str]
             bean = data["bean"]  # type: ignore[index]  # NOTE: data may be None; runtime assumes non-None
             status = bean["status"]
             if status == "success":
                 service_change = bean["service_change"]
                 logger.debug("service change : {0}".format(service_change))
                 metadata = bean["metadata"]
-                migrate_team = team_repo.get_tenant_by_tenant_name(migrate_record.migrate_team)  # type: ignore[arg-type]  # NOTE: migrate_team is Optional[str]
+                migrate_team = team_repo.get_tenant_by_tenant_name(
+                    migrate_record.migrate_team)  # type: ignore[arg-type]  # NOTE: migrate_team is Optional[str]
                 try:
                     with transaction.atomic():
-                        self.save_data(migrate_team, migrate_record.migrate_region, user, service_change, json.loads(metadata),  # type: ignore[arg-type]  # NOTE: migrate_region is Optional[str]; migrate_team may be None
-                                       migrate_record.group_id, migrate_record.migrate_team == current_team_name,
-                                       migrate_record.migrate_region == current_region, True)
+                        self.save_data(
+                            migrate_team,
+                            migrate_record.migrate_region,  # type: ignore[arg-type]
+                            user,
+                            service_change,
+                            json.loads(
+                                metadata
+                            ),  # type: ignore[arg-type]  # NOTE: migrate_region is Optional[str]; migrate_team may be None
+                            migrate_record.group_id,
+                            migrate_record.migrate_team == current_team_name,
+                            migrate_record.migrate_region == current_region,
+                            True)
                         if migrate_record.migrate_type == "recover":
                             # 如果为恢复操作，将原有备份和迁移的记录的组信息修改
-                            backup_record_repo.get_record_by_group_id(
-                                migrate_record.original_group_id).update(group_id=migrate_record.group_id)  # type: ignore[arg-type]  # NOTE: original_group_id is int; repo expects str
+                            backup_record_repo.get_record_by_group_id(  # type: ignore[arg-type]
+                                migrate_record.original_group_id).update(  # type: ignore[arg-type]
+                                group_id=migrate_record.group_id
+                            )  # type: ignore[arg-type]  # NOTE: original_group_id is int; repo expects str
                             self.update_migrate_original_group_id(migrate_record.original_group_id, migrate_record.group_id)
-                        region_app_id = region_app_repo.get_region_app_id(migrate_record.migrate_region,  # type: ignore[arg-type]
-                                                                          migrate_record.group_id)  # type: ignore[arg-type]  # NOTE: group_id is int but repo expects str; repo does str coercion internally
-                        group_service.sync_app_services(migrate_team, migrate_record.migrate_region, migrate_record.group_id)  # type: ignore[arg-type]  # NOTE: migrate_team may be None if team not found; group_id int vs str; repo handles internally
-                        region_api.change_application_volumes(migrate_team.tenant_name, migrate_record.migrate_region,  # type: ignore[union-attr, arg-type]  # NOTE: migrate_team can be None; migrate_region is Optional[str]
-                                                              region_app_id)
+                        region_app_id = region_app_repo.get_region_app_id(
+                            migrate_record.migrate_region,  # type: ignore[arg-type]
+                            migrate_record.group_id  # type: ignore[arg-type]
+                            # NOTE: group_id is int but repo expects str; repo does str coercion internally
+                        )  # type: ignore[arg-type]
+                        group_service.sync_app_services(
+                            migrate_team, migrate_record.migrate_region, migrate_record.group_id  # type: ignore[arg-type]
+                            # NOTE: migrate_team may be None if team not found; group_id int vs str; repo handles internally
+                        )  # type: ignore[arg-type]
+                        region_api.change_application_volumes(
+                            migrate_team.tenant_name,  # type: ignore[union-attr]
+                            migrate_record.
+                            # NOTE: migrate_team can be None; migrate_region is Optional[str]
+                            migrate_region,  # type: ignore[union-attr, arg-type]
+                            region_app_id)
                 except Exception as e:
                     logger.exception(e)
                     status = "failed"
@@ -227,19 +273,20 @@ class GroupappsMigrateService(object):
         return migrate_record
 
     def save_data(
-            self,
-            migrate_tenant: Any,
-            migrate_region: str,
-            user: Any,
-            changed_service_map: Dict[str, Any],
-            metadata: Dict[str, Any],
-            group_id: int,
-            same_team: bool,
-            same_region: bool,
-            sync_flag: bool = False,
+        self,
+        migrate_tenant: Any,
+        migrate_region: str,
+        user: Any,
+        changed_service_map: Dict[str, Any],
+        metadata: Dict[str, Any],
+        group_id: int,
+        same_team: bool,
+        same_region: bool,
+        sync_flag: bool = False,
     ) -> None:
         from console.services.groupcopy_service import groupapp_copy_service
-        group = group_repo.get_group_by_id(group_id)  # type: ignore[arg-type]  # NOTE: group_id is int, repo expects str; works at runtime via ORM coercion
+        group = group_repo.get_group_by_id(
+            group_id)  # type: ignore[arg-type]  # NOTE: group_id is int, repo expects str; works at runtime via ORM coercion
         services = group_service.get_group_services(group_id)  # type: ignore[arg-type]  # NOTE: same int/str mismatch
         tar_group_k8s_component_names = [service.k8s_component_name for service in services]
         apps = metadata["apps"]
@@ -266,12 +313,20 @@ class GroupappsMigrateService(object):
             ts = self.__init_app(app["service_base"], new_service_id, new_service_alias, new_k8s_component_name, user,
                                  migrate_region, migrate_tenant, app["service_base"].get("arch"))
             old_new_service_id_map[app["service_base"]["service_id"]] = ts.service_id
-            group_service.add_service_to_group(migrate_tenant, migrate_region, group.ID, ts.service_id)  # type: ignore[union-attr]  # NOTE: group may be None if group not found
+            group_service.add_service_to_group(
+                migrate_tenant, migrate_region, group.ID,  # type: ignore[union-attr]
+                ts.service_id)  # type: ignore[union-attr]  # NOTE: group may be None if group not found
             governance_mode = group.governance_mode  # type: ignore[union-attr]  # NOTE: group may be None
             port_k8s_service_names = port_name_map.get(app["service_base"]["service_id"], {})
-            port_failures = self.__save_port(migrate_region, migrate_tenant, ts, app["service_ports"],
-                                             governance_mode, app["service_env_vars"],  # type: ignore[arg-type]  # NOTE: governance_mode may be None if group not found
-                                             port_k8s_service_names, sync_flag)
+            port_failures = self.__save_port(
+                migrate_region,
+                migrate_tenant,
+                ts,
+                app["service_ports"],
+                governance_mode,  # type: ignore[arg-type]
+                app["service_env_vars"],  # type: ignore[arg-type]  # NOTE: governance_mode may be None if group not found
+                port_k8s_service_names,
+                sync_flag)
             if port_failures:
                 failed_gateway_ports.extend(port_failures)
             self.__save_env(migrate_tenant, ts, app["service_env_vars"], hostname_remap, migrate_region, sync_flag)
@@ -342,14 +397,16 @@ class GroupappsMigrateService(object):
             new_service_id = old_new_service_id_map[app["service_base"]["service_id"]]
             # plugin
             if app.get("service_plugin_relation", None):
-                self.__save_plugin_relations(new_service_id, app["service_plugin_relation"], versions)  # type: ignore[arg-type]  # NOTE: versions may be None if plugin_build_versions is empty
+                self.__save_plugin_relations(
+                    new_service_id, app["service_plugin_relation"],
+                    versions)  # type: ignore[arg-type]  # NOTE: versions may be None if plugin_build_versions is empty
             if app.get("service_plugin_config", None):
                 self.__save_service_plugin_config(new_service_id, app["service_plugin_config"])
         self.__save_service_relations(migrate_tenant, service_relations_list, old_new_service_id_map, same_team, same_region)
         self.__save_service_mnt_relation(migrate_tenant, service_mnt_list, old_new_service_id_map, same_team, same_region)
         # restore application config group
-        self.__save_app_config_groups(
-            metadata.get("app_config_group_info"), migrate_tenant, migrate_region, group_id, changed_service_map)
+        self.__save_app_config_groups(metadata.get("app_config_group_info"), migrate_tenant, migrate_region, group_id,
+                                      changed_service_map)
         # Surface any gateway-bind failures encountered during port restore.
         # Migration stays best-effort and is NOT marked failed for these.
         if failed_gateway_ports:
@@ -357,8 +414,14 @@ class GroupappsMigrateService(object):
             logger.warning("migrate: %d port(s) failed to bind gateway entry during restore "
                            "(group_id=%s): %s", len(failed_gateway_ports), group_id, summary)
 
-    def __init_app(self, service_base_info: Dict[str, Any], new_service_id: str, new_servie_alias: str,
-                   new_k8s_component_name: str, user: Any, region: str, tenant: Any,
+    def __init_app(self,
+                   service_base_info: Dict[str, Any],
+                   new_service_id: str,
+                   new_servie_alias: str,
+                   new_k8s_component_name: str,
+                   user: Any,
+                   region: str,
+                   tenant: Any,
                    arch: Optional[str] = None) -> TenantServiceInfo:
         service_base_info.pop("ID")
         ts = TenantServiceInfo(**service_base_info)
@@ -449,10 +512,14 @@ class GroupappsMigrateService(object):
             env["attr_value"] = apply_hostname_remap(origin_attr_value, hostname_remap or {},
                                                      is_host_env_name(env.get("attr_name")))
             if sync_flag and origin_attr_value != env["attr_value"]:
-                region_api.update_service_env(region_name, tenant.tenant_name, service.service_alias, {  # type: ignore[arg-type]  # NOTE: region_name always provided when sync_flag is True
-                    "env_name": env["attr_name"],
-                    "env_value": env["attr_value"]
-                })
+                region_api.update_service_env(
+                    region_name,  # type: ignore[arg-type]
+                    tenant.tenant_name,
+                    service.service_alias,
+                    {  # type: ignore[arg-type]  # NOTE: region_name always provided when sync_flag is True
+                        "env_name": env["attr_name"],
+                        "env_value": env["attr_value"]
+                    })
             new_env = TenantServiceEnvVar(**env)
             new_env.tenant_id = tenant.tenant_id
             new_env.service_id = service.service_id
@@ -460,7 +527,10 @@ class GroupappsMigrateService(object):
         if env_list:
             TenantServiceEnvVar.objects.bulk_create(env_list)
 
-    def __save_volume(self, tenant: Any, service: TenantServiceInfo, tenant_service_volumes: List[Dict[str, Any]],
+    def __save_volume(self,
+                      tenant: Any,
+                      service: TenantServiceInfo,
+                      tenant_service_volumes: List[Dict[str, Any]],
                       service_config_file: Optional[List[Dict[str, Any]]],
                       hostname_remap: Optional[Dict[str, str]] = None) -> None:
         volume_list = []
@@ -507,7 +577,10 @@ class GroupappsMigrateService(object):
                     volume_id_relations[old_volume_id] = new_volume_id
             for config in config_list:
                 if volume_id_relations.get(config.volume_id):
-                    config.volume_id = volume_id_relations.get(config.volume_id)  # type: ignore[assignment]  # NOTE: Django field assignment; get() returns Optional but value is guaranteed present by the if-guard
+                    config.volume_id = volume_id_relations.get(
+                        config.volume_id
+                        # NOTE: Django field assignment; get() returns Optional but value is guaranteed present by the if-guard
+                    )  # type: ignore[assignment]
             TenantServiceConfigurationFile.objects.bulk_create(config_list)
 
     def __save_port(self,
@@ -530,7 +603,9 @@ class GroupappsMigrateService(object):
                 continue
             envs = port_2_envs.get(container_port) if port_2_envs.get(container_port) else []
             envs.append(env)  # type: ignore[union-attr]  # NOTE: envs is guaranteed non-None by the ternary else []
-            port_2_envs[container_port] = envs  # type: ignore[assignment]  # NOTE: envs is list[Any] from else branch; compatible at runtime
+            port_2_envs[
+                # NOTE: envs is list[Any] from else branch; compatible at runtime
+                container_port] = envs  # type: ignore[assignment]
 
         port_list: List[TenantServicesPort] = []
         for port in tenant_service_ports:
@@ -571,8 +646,12 @@ class GroupappsMigrateService(object):
         if port_list:
             TenantServicesPort.objects.bulk_create(port_list)
             region = region_repo.get_region_by_region_name(service.service_region)
-            for port in port_list:  # type: ignore[assignment]  # NOTE: loop var 'port' previously typed as dict from tenant_service_ports loop; port_list holds TenantServicesPort
-                if port.is_outer_service:  # type: ignore[attr-defined]  # NOTE: mypy narrows port to dict due to same-name loop var above; port_list contains TenantServicesPort at runtime
+            # NOTE: loop var 'port' previously typed as dict from tenant_service_ports loop; port_list holds
+            # TenantServicesPort
+            for port in port_list:  # type: ignore[assignment]
+                # NOTE: mypy narrows port to dict due to same-name loop var above; port_list contains TenantServicesPort at
+                # runtime
+                if port.is_outer_service:  # type: ignore[attr-defined]
                     if port.protocol == "http":  # type: ignore[attr-defined]  # NOTE: same
                         service_domains = domain_repo.get_service_domain_by_container_port(
                             service.service_id, port.container_port)  # type: ignore[attr-defined]  # NOTE: same
@@ -585,9 +664,12 @@ class GroupappsMigrateService(object):
                             # 在service_domain表中保存数据
                             service_id = service.service_id
                             service_name = service.service_alias
-                            container_port = port.container_port  # type: ignore[attr-defined]  # NOTE: same loop var narrowing issue
+                            # NOTE: same loop var narrowing issue
+                            container_port = port.container_port  # type: ignore[attr-defined]
                             domain_name = str(service_name) + "-" + str(container_port) + "-" + str(
-                                tenant.tenant_name) + "." + str(region.httpdomain)  # type: ignore[union-attr]  # NOTE: region may be None if region name not found
+                                tenant.tenant_name) + "." + str(
+                                    region.httpdomain  # type: ignore[union-attr]
+                                )  # type: ignore[union-attr]  # NOTE: region may be None if region name not found
                             create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                             protocol = "http"
                             http_rule_id = make_uuid(domain_name)
@@ -604,16 +686,20 @@ class GroupappsMigrateService(object):
                             data["tenant_id"] = tenant.tenant_id
                             data["tenant_name"] = tenant.tenant_name
                             data["protocol"] = protocol
-                            data["container_port"] = int(container_port)  # type: ignore[assignment]  # NOTE: data is inferred as dict[str,str] but int value is valid at runtime
+                            data["container_port"] = int(
+                                container_port
+                                # NOTE: data is inferred as dict[str,str] but int value is valid at runtime
+                            )  # type: ignore[assignment]
                             data["http_rule_id"] = http_rule_id
                             try:
                                 region_api.bind_http_domain(service.service_region, tenant.tenant_name, data)
                             except Exception as e:
                                 logger.exception(e)
                                 domain_repo.delete_http_domains(http_rule_id)
-                                logger.warning("migrate: bind http gateway failed, service_id=%s service_alias=%s "
-                                               "container_port=%s domain=%s", service.service_id,
-                                               service.service_alias, container_port, domain_name)
+                                logger.warning(
+                                    "migrate: bind http gateway failed, service_id=%s service_alias=%s "
+                                    "container_port=%s domain=%s", service.service_id, service.service_alias, container_port,
+                                    domain_name)
                                 failed_ports.append({
                                     "service_id": service.service_id,
                                     "service_alias": service.service_alias,
@@ -624,7 +710,8 @@ class GroupappsMigrateService(object):
                                 continue
                     else:
                         service_tcp_domains = tcp_domain.get_service_tcp_domains_by_service_id_and_port(
-                            service.service_id, port.container_port)  # type: ignore[attr-defined]  # NOTE: same loop var narrowing issue
+                            service.service_id,
+                            port.container_port)  # type: ignore[attr-defined]  # NOTE: same loop var narrowing issue
                         if service_tcp_domains:
                             for service_tcp_domain in service_tcp_domains:
                                 # 改变tcpdomain表中状态
@@ -632,14 +719,18 @@ class GroupappsMigrateService(object):
                                 service_tcp_domain.save()
                         else:
                             # 在service_tcp_domain表中保存数据
-                            res, data = region_api.get_port(region.region_name, tenant.tenant_name, True)  # type: ignore[union-attr, assignment]  # NOTE: region may be None; data reassigned with different type
+                            res, data = region_api.get_port(  # type: ignore[assignment,union-attr]
+                                region.region_name, tenant.tenant_name, True  # type: ignore[assignment,union-attr]
+                                # NOTE: region may be None; data reassigned with different type
+                            )  # type: ignore[union-attr, assignment]
                             if int(res.status) != 200:
                                 continue
                             end_point = "0.0.0.0:" + str(data["bean"])
                             service_id = service.service_id
                             service_name = service.service_alias
                             create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                            container_port = port.container_port  # type: ignore[attr-defined]  # NOTE: same loop var narrowing issue
+                            # NOTE: same loop var narrowing issue
+                            container_port = port.container_port  # type: ignore[attr-defined]
                             protocol = port.protocol  # type: ignore[attr-defined]  # NOTE: same
                             service_alias = service.service_cname
                             tcp_rule_id = make_uuid(end_point)
@@ -651,7 +742,9 @@ class GroupappsMigrateService(object):
                             port_str = end_point.split(":")[1]  # renamed from port to avoid type reassignment collision
                             data = dict()
                             data["service_id"] = service.service_id
-                            data["container_port"] = int(container_port)  # type: ignore[assignment]  # NOTE: data inferred as dict[str,str]; int value valid at runtime
+                            data["container_port"] = int(
+                                container_port
+                            )  # type: ignore[assignment]  # NOTE: data inferred as dict[str,str]; int value valid at runtime
                             data["ip"] = "0.0.0.0"
                             data["port"] = int(port_str)  # type: ignore[assignment]  # NOTE: same as above
                             data["tcp_rule_id"] = tcp_rule_id
@@ -661,9 +754,10 @@ class GroupappsMigrateService(object):
                             except Exception as e:
                                 logger.exception(e)
                                 tcp_domain.delete_tcp_domain(tcp_rule_id)
-                                logger.warning("migrate: bind tcp gateway failed, service_id=%s service_alias=%s "
-                                               "container_port=%s end_point=%s", service.service_id,
-                                               service.service_alias, container_port, end_point)
+                                logger.warning(
+                                    "migrate: bind tcp gateway failed, service_id=%s service_alias=%s "
+                                    "container_port=%s end_point=%s", service.service_id, service.service_alias, container_port,
+                                    end_point)
                                 failed_ports.append({
                                     "service_id": service.service_id,
                                     "service_alias": service.service_alias,
@@ -692,7 +786,9 @@ class GroupappsMigrateService(object):
             new_service_label.region = region
             service_label_list.append(new_service_label)
         if service_label_list:
-            ServiceLabels.objects.bulk_create(service_label_list)  # type: ignore[attr-defined]  # NOTE: ServiceLabels from www.models.label lacks django-stubs Manager stub
+            ServiceLabels.objects.bulk_create(  # type: ignore[attr-defined]
+                service_label_list
+            )  # type: ignore[attr-defined]  # NOTE: ServiceLabels from www.models.label lacks django-stubs Manager stub
 
     def __save_service_domain(self, service: TenantServiceInfo, service_domains: List[Dict[str, Any]]) -> None:
         service_domain_list = []
@@ -735,14 +831,15 @@ class GroupappsMigrateService(object):
         if service_probe_list:
             ServiceProbe.objects.bulk_create(service_probe_list)
 
-    def __save_service_source(self, tenant: Any, service: TenantServiceInfo,
-                              service_source: Optional[Dict[str, Any]]) -> None:
+    def __save_service_source(self, tenant: Any, service: TenantServiceInfo, service_source: Optional[Dict[str, Any]]) -> None:
         if service_source:
             service_source.pop("ID")
             if "service" in service_source:
                 service_source["service_id"] = service_source.pop("service")
             new_service_source = ServiceSourceInfo(**service_source)
-            new_service_source.service_id = service.service_id  # type: ignore[attr-defined]  # NOTE: ServiceSourceInfo Django field is named 'service'; the model may have 'service_id' as the underlying DB column accessor
+            # NOTE: ServiceSourceInfo Django field is named 'service'; the model may have 'service_id' as the underlying DB
+            # column accessor
+            new_service_source.service_id = service.service_id  # type: ignore[attr-defined]
             new_service_source.team_id = tenant.tenant_id
             new_service_source.save()
 
@@ -794,7 +891,9 @@ class GroupappsMigrateService(object):
             TenantServiceMountRelation.objects.bulk_create(new_service_mnt_relation_list)
 
     def update_migrate_original_group_id(self, old_original_group_id: int, new_original_group_id: int) -> None:
-        migrate_repo.get_by_original_group_id(old_original_group_id).update(original_group_id=new_original_group_id)  # type: ignore[arg-type]  # NOTE: repo expects str but int passed; ORM handles coercion
+        migrate_repo.get_by_original_group_id(old_original_group_id).update(  # type: ignore[arg-type]
+            original_group_id=new_original_group_id
+        )  # type: ignore[arg-type]  # NOTE: repo expects str but int passed; ORM handles coercion
 
     # def __save_service_endpoints(self, tenant, service, service_endpoints):
     #     endpoints_list = []
@@ -825,7 +924,8 @@ class GroupappsMigrateService(object):
                         new_pr.min_cpu = plugin_version.min_cpu
                         break
             new_plugin_relations.append(new_pr)
-        TenantServicePluginRelation.objects.bulk_create(new_plugin_relations)  # type: ignore[attr-defined]  # NOTE: www.models.plugin lacks django-stubs Manager stub
+        TenantServicePluginRelation.objects.bulk_create(  # type: ignore[attr-defined]
+            new_plugin_relations)  # type: ignore[attr-defined]  # NOTE: www.models.plugin lacks django-stubs Manager stub
 
     def __save_service_plugin_config(self, sid: str, service_plugin_configs: Optional[List[Dict[str, Any]]]) -> None:
         if not service_plugin_configs:
@@ -836,7 +936,8 @@ class GroupappsMigrateService(object):
             new_cfg = ServicePluginConfigVar(**cfg)
             new_cfg.service_id = sid
             new_configs.append(new_cfg)
-        ServicePluginConfigVar.objects.bulk_create(new_configs)  # type: ignore[attr-defined]  # NOTE: www.models.plugin lacks django-stubs Manager stub
+        ServicePluginConfigVar.objects.bulk_create(  # type: ignore[attr-defined]
+            new_configs)  # type: ignore[attr-defined]  # NOTE: www.models.plugin lacks django-stubs Manager stub
 
     def __save_plugin_config_items(self, plugin_config_items: Optional[List[Dict[str, Any]]]) -> None:
         if not plugin_config_items:
@@ -852,7 +953,8 @@ class GroupappsMigrateService(object):
             group.pop("ID")
             plugin_config_group_repo.create_if_not_exist(**group)
 
-    def __save_plugin_build_versions(self, tenant: Any, plugin_build_versions: Optional[List[Dict[str, Any]]]) -> Optional[List[Any]]:
+    def __save_plugin_build_versions(self, tenant: Any,
+                                     plugin_build_versions: Optional[List[Dict[str, Any]]]) -> Optional[List[Any]]:
         if not plugin_build_versions:
             return None
         create_version_list = []
@@ -871,7 +973,8 @@ class GroupappsMigrateService(object):
             plugin.pop("ID")
             plugin["tenant_id"] = tenant.tenant_id
             plugin["region"] = region_name
-            plugin_obj = plugin_repo.create_if_not_exist(**plugin)  # type: ignore[assignment]  # NOTE: renamed to avoid reassigning dict var with model instance
+            plugin_obj = plugin_repo.create_if_not_exist(
+                **plugin)  # type: ignore[assignment]  # NOTE: renamed to avoid reassigning dict var with model instance
             if plugin_obj:
                 create_plugins.append(plugin_obj)
         return create_plugins
@@ -895,7 +998,9 @@ class GroupappsMigrateService(object):
             return
         for cgroup in config_groups:
             service_ids = []
-            is_exists = app_config_group_repo.is_exists(region_name, app_id, cgroup["config_group_name"])  # type: ignore[arg-type]  # NOTE: app_id is int; repo signature expects str
+            is_exists = app_config_group_repo.is_exists(
+                region_name, app_id,  # type: ignore[arg-type]
+                cgroup["config_group_name"])  # type: ignore[arg-type]  # NOTE: app_id is int; repo signature expects str
             if is_exists:
                 cgroup["config_group_name"] = "-".join([cgroup["config_group_name"], make_uuid()[-4:]])
             for service in cgroup["services"]:
@@ -904,9 +1009,15 @@ class GroupappsMigrateService(object):
                 except KeyError:
                     continue
 
-            app_config_group_service.create_config_group(app_id, cgroup["config_group_name"], cgroup["config_items"],  # type: ignore[arg-type]  # NOTE: app_id int vs str (systemic)
-                                                         cgroup["deploy_type"], cgroup["enable"], service_ids, region_name,
-                                                         tenant.tenant_name)
+            app_config_group_service.create_config_group(
+                app_id,  # type: ignore[arg-type]
+                cgroup["config_group_name"],
+                cgroup["config_items"],  # type: ignore[arg-type]  # NOTE: app_id int vs str (systemic)
+                cgroup["deploy_type"],
+                cgroup["enable"],
+                service_ids,
+                region_name,
+                tenant.tenant_name)
 
     def __save_service_monitors(self, tenant: Any, service: TenantServiceInfo,
                                 service_monitors: Optional[List[Dict[str, Any]]]) -> None:
@@ -917,7 +1028,8 @@ class GroupappsMigrateService(object):
     def __save_component_graphs(self, service: TenantServiceInfo, component_graphs: Optional[List[Dict[str, Any]]]) -> None:
         if not component_graphs:
             return
-        component_graph_service.bulk_create(service.service_id, component_graphs, service.arch)  # type: ignore[arg-type]  # NOTE: service.arch Optional (latent)
+        component_graph_service.bulk_create(service.service_id, component_graphs,
+                                            service.arch)  # type: ignore[arg-type]  # NOTE: service.arch Optional (latent)
 
 
 migrate_service = GroupappsMigrateService()

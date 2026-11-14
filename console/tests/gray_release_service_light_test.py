@@ -40,7 +40,10 @@ def _build_stub_modules():
     console_exception.main = console_exception_main
 
     console_models = _package("console.models")
-    console_models_main = _module("console.models.main", GrayReleaseStatus=object(), GrayReleaseRecord=object(), RegionConfig=object())
+    console_models_main = _module("console.models.main",
+                                  GrayReleaseStatus=object(),
+                                  GrayReleaseRecord=object(),
+                                  RegionConfig=object())
     console_models.main = console_models_main
 
     console_repositories = _package("console.repositories")

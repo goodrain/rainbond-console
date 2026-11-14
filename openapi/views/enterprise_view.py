@@ -15,16 +15,16 @@ from console.services.performance_overview import performance_overview
 from console.services.region_services import region_services
 from console.services.service_overview import service_overview
 from console.services.global_resource_processing import Global_resource_processing
-from console.services.region_services import region_services
+
 from console.utils.timeutil import time_to_str
 from django.db import connection
 from drf_yasg.utils import swagger_auto_schema
 from openapi.serializer.config_serializers import (
     EnterpriseConfigSeralizer, EnterpriseOverviewSeralizer, VisualMonitorSeralizer, AppRankOverviewSeralizer,
     MonitorMessageOverviewSeralizer, MonitorQueryOverviewSeralizer, RegionMonitorOverviewSeralizer,
-    InstancesMonitorOverviewSeralizer, ResourceOverviewSeralizer, ServieOveriewSeralizer, PerformanceOverviewSeralizer, ComponentMemoryOverviewSeralizer)
-from openapi.serializer.ent_serializers import (EnterpriseInfoSerializer, EnterpriseSourceSerializer,
-                                                UpdEntReqSerializer)
+    InstancesMonitorOverviewSeralizer, ResourceOverviewSeralizer, ServieOveriewSeralizer, PerformanceOverviewSeralizer,
+    ComponentMemoryOverviewSeralizer)
+from openapi.serializer.ent_serializers import (EnterpriseInfoSerializer, EnterpriseSourceSerializer, UpdEntReqSerializer)
 from openapi.views.base import BaseOpenAPIView
 from rest_framework import status
 from rest_framework.request import Request
@@ -146,20 +146,21 @@ class EnterpriseConfigView(BaseOpenAPIView):
         if ent is None:
             return Response({"msg": "企业不存在"}, status=status.HTTP_404_NOT_FOUND)
         # NOTE: user_id is int AutoField; service expects str|None (backlog).
-        ent_config = EnterpriseConfigService(
-            self.enterprise.enterprise_id, self.user.user_id).initialization_or_get_config  # type: ignore[arg-type]
+        ent_config = EnterpriseConfigService(self.enterprise.enterprise_id,
+                                             self.user.user_id).initialization_or_get_config  # type: ignore[arg-type]
         if key is None:
             serializer = EnterpriseConfigSeralizer(data=ent_config)
         elif key in list(ent_config.keys()):
             serializer = EnterpriseConfigSeralizer(data={key: ent_config[key]})
         else:
-            raise ServiceHandleException(
-                status_code=404, msg="no found config key {}".format(key), msg_show="企业没有 {} 配置".format(key))
+            raise ServiceHandleException(status_code=404,
+                                         msg="no found config key {}".format(key),
+                                         msg_show="企业没有 {} 配置".format(key))
         serializer.is_valid(raise_exception=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-class ResourceOverview(BaseOpenAPIView):
+class _LegacyResourceOverview(BaseOpenAPIView):
     @swagger_auto_schema(
         operation_description="资源信息总览",
         responses={200: ResourceOverviewSeralizer},
@@ -176,6 +177,7 @@ class ResourceOverview(BaseOpenAPIView):
         serializer = ResourceOverviewSeralizer(data=result, many=True)
         serializer.is_valid()
         return Response(serializer.data, status=status.HTTP_200_OK)
+
 
 class EnterpriseOverview(BaseOpenAPIView):
     @swagger_auto_schema(
@@ -238,8 +240,8 @@ class AppRankOverview(BaseOpenAPIView):
     def get(self, req: Request, *args: Any, **kwargs: Any) -> Response:
         team_name = req.GET.get("team_name", "")
         # NOTE: enterprise_id is str|None; service expects str (backlog).
-        regions = region_services.get_enterprise_regions(
-            self.user.enterprise_id, level="", check_status="no")  # type: ignore[arg-type]
+        regions = region_services.get_enterprise_regions(self.user.enterprise_id, level="",  # type: ignore[arg-type]
+                                                         check_status="no")  # type: ignore[arg-type]
         tenants, _ = team_services.get_enterprise_teams(self.user.enterprise_id)  # type: ignore[arg-type]
         # NOTE: BUG—EnterpriseServices has no get_app_ranking; runtime AttributeError.
         result = enterprise_services.get_app_ranking(regions, tenants, team_name)  # type: ignore[attr-defined]
@@ -257,12 +259,15 @@ class MonitorMessageOverview(BaseOpenAPIView):
     def get(self, req: Request, *args: Any, **kwargs: Any) -> Response:
         team_name = req.GET.get("team_name", "")
         interval = req.GET.get("interval", 60)
-        regions = region_services.get_enterprise_regions(
-            self.user.enterprise_id, level="", check_status="no")  # type: ignore[arg-type]
+        regions = region_services.get_enterprise_regions(self.user.enterprise_id, level="",  # type: ignore[arg-type]
+                                                         check_status="no")  # type: ignore[arg-type]
         tenants, _ = team_services.get_enterprise_teams(self.user.enterprise_id)  # type: ignore[arg-type]
         # NOTE: BUG—EnterpriseServices has no get_monitor_message; runtime AttributeError.
-        result = enterprise_services.get_monitor_message(regions, tenants, team_name,  # type: ignore[attr-defined]
-                                                         interval)
+        result = enterprise_services.get_monitor_message(  # type: ignore[attr-defined]
+            regions,
+            tenants,
+            team_name,  # type: ignore[attr-defined]
+            interval)
         serializer = MonitorMessageOverviewSeralizer(data=result, many=True)
         serializer.is_valid()
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -290,10 +295,8 @@ class ServiceOverview(BaseOpenAPIView):
     def get(self, req: Request, *args: Any, **kwargs: Any) -> Response:
         region_name = req.GET.get("region_name")
         run_count, abnormal_count, closed_count = service_overview.get_service_overview(
-            enterprise_id=self.enterprise.enterprise_id,
-            region_name=region_name)  # type: ignore[arg-type]
-        result = {"abnormal_service_num": abnormal_count, "closed_service_num": closed_count,
-                  "started_service_num": run_count}
+            enterprise_id=self.enterprise.enterprise_id, region_name=region_name)  # type: ignore[arg-type]
+        result = {"abnormal_service_num": abnormal_count, "closed_service_num": closed_count, "started_service_num": run_count}
         serializer = ServieOveriewSeralizer(data=result)
         serializer.is_valid()
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -400,8 +403,8 @@ class RegionsMonitorOverview(BaseOpenAPIView):
         tags=['openapi-entreprise'],
     )
     def get(self, req: Request, *args: Any, **kwargs: Any) -> Response:
-        regions = region_services.get_enterprise_regions(
-            self.user.enterprise_id, level="", check_status="no")  # type: ignore[arg-type]
+        regions = region_services.get_enterprise_regions(self.user.enterprise_id, level="",  # type: ignore[arg-type]
+                                                         check_status="no")  # type: ignore[arg-type]
         # NOTE: BUG—EnterpriseServices has no get_exception_nodes_info; runtime AttributeError.
         data = enterprise_services.get_exception_nodes_info(regions)  # type: ignore[attr-defined]
         serializer = RegionMonitorOverviewSeralizer(data=data, many=True)
@@ -415,8 +418,7 @@ class InstancesMonitorOverview(BaseOpenAPIView):
         manual_parameters=[
             openapi.Parameter("region_name", openapi.IN_QUERY, description="集群名称", type=openapi.TYPE_STRING),
             openapi.Parameter("node_name", openapi.IN_QUERY, description="节点名", type=openapi.TYPE_STRING),
-            openapi.Parameter("query", openapi.IN_QUERY, description="区分查询全部或不健康的实例, unhealthy",
-                              type=openapi.TYPE_STRING),
+            openapi.Parameter("query", openapi.IN_QUERY, description="区分查询全部或不健康的实例, unhealthy", type=openapi.TYPE_STRING),
         ],
         responses={200: InstancesMonitorOverviewSeralizer(many=True)},
         tags=['openapi-entreprise'],
@@ -425,12 +427,16 @@ class InstancesMonitorOverview(BaseOpenAPIView):
         region_name = req.GET.get("region_name", "")
         node_name = req.GET.get("node_name", "")
         query = req.GET.get("query", "")
-        regions = region_services.get_enterprise_regions(
-            self.user.enterprise_id, level="", check_status="no")  # type: ignore[arg-type]
+        regions = region_services.get_enterprise_regions(self.user.enterprise_id, level="",  # type: ignore[arg-type]
+                                                         check_status="no")  # type: ignore[arg-type]
         tenants, _ = team_services.get_enterprise_teams(self.user.enterprise_id)  # type: ignore[arg-type]
         # NOTE: BUG—EnterpriseServices has no get_instances_monitor; runtime AttributeError.
-        result = enterprise_services.get_instances_monitor(regions, tenants,  # type: ignore[attr-defined]
-                                                           region_name, node_name, query)
+        result = enterprise_services.get_instances_monitor(  # type: ignore[attr-defined]
+            regions,
+            tenants,  # type: ignore[attr-defined]
+            region_name,
+            node_name,
+            query)
         serializer = InstancesMonitorOverviewSeralizer(data=result, many=True)
         serializer.is_valid()
         return Response(serializer.data, status=status.HTTP_200_OK)

@@ -51,14 +51,15 @@ class AgentLLMConfigService(object):
             "OPENAI_MODEL": self._read_string(data.get("openai_model")),
             "OPENAI_BASE_URL": self._read_string(data.get("openai_base_url")),
             "LLM_PROVIDER": stored_provider,
-            "LLM_THINKING_ENABLED": self._read_bool(data.get("llm_thinking_enabled"),
-                                                    False),
+            "LLM_THINKING_ENABLED": self._read_bool(data.get("llm_thinking_enabled"), False),
             "LLM_REASONING_EFFORT": self._read_string(data.get("llm_reasoning_effort")).lower(),
             "updated_by": updated_by or "",
             "updated_at": timezone.now().isoformat(),
         }
         self._save_config(next_config)
-        api_key = self._decrypt_api_key(next_config.get("OPENAI_API_KEY", ""))  # type: ignore[arg-type]  # NOTE: next_config is dict[str, Any]; .get() returns Any here, safe at runtime
+        api_key = self._decrypt_api_key(next_config.get(
+            "OPENAI_API_KEY",
+            ""))  # type: ignore[arg-type]  # NOTE: next_config is dict[str, Any]; .get() returns Any here, safe at runtime
         return self._to_masked_config(next_config, api_key)
 
     def get_runtime_config(self) -> dict:

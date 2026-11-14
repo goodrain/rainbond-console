@@ -18,6 +18,7 @@ logger = logging.getLogger("default")
 github_proxy = os.environ.get("GITHUB_PROXY")
 proxies = {"http": github_proxy, "https": github_proxy} if github_proxy else None
 
+
 class GithubApiV3MiXin(object):
     def set_api(self, access_token):
         self.api = Github(access_token, per_page=10)
@@ -109,7 +110,7 @@ class GithubApiV3(GithubApiV3MiXin, GitOAuth2Interface):
                 user_login = user.login
                 user_id = user.id
                 user_email = user.email
-                
+
                 # 如果email为空，尝试获取用户的所有邮箱地址
                 if not user_email:
                     try:
@@ -138,14 +139,14 @@ class GithubApiV3(GithubApiV3MiXin, GitOAuth2Interface):
                     except Exception as e:
                         logger.warning(f"Failed to get user emails: {e}")
                         user_email = None
-                
+
                 logger.info(f"获取到用户信息: login={user_login}, id={user_id}, email={user_email}")
                 return OAuth2User(user_login, user_id, user_email), access_token, refresh_token
-                
+
             except Exception as e:
                 logger.error(f"获取用户信息失败: {e}")
                 raise ServiceHandleException(msg=f"获取用户信息失败: {str(e)}", msg_show="无法获取完整的用户信息")
-                
+
         raise ServiceHandleException(msg="can not get user info, api not set", msg_show="无法获取用户信息")
 
     def get_authorize_url(self):

@@ -13,17 +13,35 @@ settings.configure(INSTALLED_APPS=[],
                    }},
                    SECRET_KEY="test-placeholder",
                    USE_TZ=True)
-import django
 
-django.setup()
-from django.db import connection
-from console.services.delivery_manifest import DeliveryError, baseline, compare, prepare
 
-spec = importlib.util.spec_from_file_location("isolated_delivery_models",
-                                              Path(__file__).parents[1] / "models/delivery_template.py")
-models = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(models)
-from console.services.delivery_templates import DeliveryService
+def _load_test_dependencies():
+    """Keep the existing post-Django-setup import order and module bindings."""
+    import django
+
+    django.setup()
+    from django.db import connection
+    from console.services.delivery_manifest import DeliveryError, baseline, compare, prepare
+
+    spec = importlib.util.spec_from_file_location("isolated_delivery_models",
+                                                  Path(__file__).parents[1] / "models/delivery_template.py")
+    models = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(models)
+    from console.services.delivery_templates import DeliveryService
+    return (
+        django,
+        connection,
+        DeliveryError,
+        baseline,
+        compare,
+        prepare,
+        spec,
+        models,
+        DeliveryService,
+    )
+
+
+django, connection, DeliveryError, baseline, compare, prepare, spec, models, DeliveryService = _load_test_dependencies()
 
 USER = SimpleNamespace(user_id=1, nick_name="Publisher", enterprise_id="enterprise")
 SCOPE = dict(enterprise_id="enterprise", team_name="team", region_name="region", app_id="123")
@@ -273,11 +291,16 @@ class DeliveryWorkflowTest(unittest.TestCase):
         from console.services.delivery_gateway import DeliveryGateway
         version = self.create_version(PAYLOAD)
         version.manifest.pop("encrypted_environment", None)
-        version.manifest["apps"][0]["service_env_map_list"][1].update(
-            attr_value="", is_sensitive=True, required_on_install=True)
+        version.manifest["apps"][0]["service_env_map_list"][1].update(attr_value="",
+                                                                      is_sensitive=True,
+                                                                      required_on_install=True)
         version.save()
-        task = self.service.operation(USER, SCOPE, version.id, "delivery", {
-            "target": {"team_name": "team", "region_name": "region", "app_name": "Delivered App"}})
+        task = self.service.operation(USER, SCOPE, version.id, "delivery",
+                                      {"target": {
+                                          "team_name": "team",
+                                          "region_name": "region",
+                                          "app_name": "Delivered App"
+                                      }})
         source = copy.deepcopy(SOURCE)
         source["apps"][0]["service_env_map_list"][1]["attr_value"] = "$SOURCE_VALUE"
         main = types.ModuleType("www.models.main")
@@ -310,11 +333,15 @@ class DeliveryWorkflowTest(unittest.TestCase):
         store = types.ModuleType("console.appstore.appstore")
         store.app_store = mock.Mock()
         store.app_store.get_app_hub_info.return_value = {}
-        modules = {"www.models.main": main, "console.models.main": models_main,
-                   "console.services.group_service": group_module, "console.services.market_app_service": market_module,
-                   "console.services.market_app.app_upgrade": upgrade,
-                   "console.services.market_app_preflight_service": preflight,
-                   "console.appstore.appstore": store}
+        modules = {
+            "www.models.main": main,
+            "console.models.main": models_main,
+            "console.services.group_service": group_module,
+            "console.services.market_app_service": market_module,
+            "console.services.market_app.app_upgrade": upgrade,
+            "console.services.market_app_preflight_service": preflight,
+            "console.appstore.appstore": store
+        }
         gateway = DeliveryGateway()
         service = DeliveryService(models=models, gateway=gateway)
         with mock.patch.dict(sys.modules, modules), mock.patch.object(gateway, "source", return_value=(source, "App")):
@@ -334,8 +361,13 @@ class DeliveryWorkflowTest(unittest.TestCase):
         self.assertNotIn("encrypted_environment", args.args[7])
         self.assertNotIn("environment", task.payload)
         source["apps"][0]["service_env_map_list"][1]["attr_value"] = ""
-        empty_task = self.service.operation(USER, SCOPE, version.id, "delivery", {
-            "target": {"team_name": "team", "region_name": "region", "app_name": "Empty defaults"}})
+        empty_task = self.service.operation(
+            USER, SCOPE, version.id, "delivery",
+            {"target": {
+                "team_name": "team",
+                "region_name": "region",
+                "app_name": "Empty defaults"
+            }})
         with mock.patch.dict(sys.modules, modules), mock.patch.object(gateway, "source", return_value=(source, "App")):
             service.advance(empty_task.id)
         empty_task.refresh_from_db()

@@ -12,6 +12,7 @@ class MonitorQueryOverviewSeralizer(serializers.Serializer):
     data = serializers.DictField(help_text="查询数据")  # type: ignore[assignment]
     status = serializers.CharField(help_text="查询状态", max_length=64)
 
+
 class AppRankOverviewSeralizer(serializers.Serializer):
     visits = serializers.IntegerField(help_text="实时访问数[每5分钟]", default=0)
     memory = serializers.IntegerField(help_text="使用内存", default=0)
@@ -27,6 +28,7 @@ class MonitorMessageOverviewSeralizer(serializers.Serializer):
     app_name = serializers.CharField(help_text="应用名", max_length=64)
     component_name = serializers.CharField(help_text="组件名", max_length=64)
     region_alias = serializers.CharField(help_text="集群名", max_length=64)
+
 
 class AppStoreImageHubRespSerializer(serializers.Serializer):
     namespace = serializers.CharField(max_length=255, allow_null=True, allow_blank=True, required=False)
@@ -146,7 +148,6 @@ class EnterpriseOverviewSeralizer(serializers.Serializer):
     instances = serializers.IntegerField(help_text="实例数", default=0)
     nodes = serializers.IntegerField(help_text="节点数", default=0)
     visual_monitor = VisualMonitorSeralizer()
-
 
 
 class ResourceOverviewSeralizer(serializers.Serializer):

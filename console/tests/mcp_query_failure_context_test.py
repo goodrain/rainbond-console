@@ -19,7 +19,14 @@ sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
 django.setup()
 
-from console.services.mcp_query_service import mcp_query_service
+
+def _load_test_dependencies():
+    """Keep the existing post-Django-setup import order and module bindings."""
+    from console.services.mcp_query_service import mcp_query_service
+    return (mcp_query_service, )
+
+
+mcp_query_service, = _load_test_dependencies()
 
 
 class Obj(object):
@@ -36,8 +43,11 @@ def _app():
 
 
 def _service():
-    return Obj(service_id="svc-1", service_alias="gr1234", service_region="rg",
-               tenant_id="tid-1", extend_method="stateless_multiple")
+    return Obj(service_id="svc-1",
+               service_alias="gr1234",
+               service_region="rg",
+               tenant_id="tid-1",
+               extend_method="stateless_multiple")
 
 
 def _resp(status):
@@ -58,17 +68,32 @@ class FailureContextHappyPathTests(SimpleTestCase):
     def test_configmap_missing_pod_evidence(self):
         args = {"team_name": "team1", "region_name": "rg", "app_id": "7", "service_id": "svc-1"}
         events_list = [
-            {"event_id": "ev-fail", "opt_type": "upgrade", "status": "failure",
-             "message": "升级服务失败", "start_time": "s", "end_time": "e"},
+            {
+                "event_id": "ev-fail",
+                "opt_type": "upgrade",
+                "status": "failure",
+                "message": "升级服务失败",
+                "start_time": "s",
+                "end_time": "e"
+            },
         ]
-        pod_events = [{"reason": "FailedMount", "count": 12,
-                       "message": 'MountVolume.SetUp failed: configmap "app-conf" not found'}]
-        with patch.object(mcp_query_service, "_get_team_app_service_context",
-                          return_value=(_team(), _app(), _service())):
+        pod_events = [{
+            "reason": "FailedMount",
+            "count": 12,
+            "message": 'MountVolume.SetUp failed: configmap "app-conf" not found'
+        }]
+        with patch.object(mcp_query_service, "_get_team_app_service_context", return_value=(_team(), _app(), _service())):
             with patch("console.services.mcp_query_service.region_api.get_target_events_list",
-                       return_value=(_resp(200), {"list": events_list, "number": 1})):
+                       return_value=(_resp(200), {
+                           "list": events_list,
+                           "number": 1
+                       })):
                 with patch("console.services.mcp_query_service.region_api.get_events_log",
-                           return_value=(_resp(200), {"list": [{"message": "configmap app-conf not found"}]})):
+                           return_value=(_resp(200), {
+                               "list": [{
+                                   "message": "configmap app-conf not found"
+                               }]
+                           })):
                     with patch("console.services.mcp_query_service.region_api.get_service_pods",
                                return_value=_pods_payload(["pod-a"])):
                         with patch("console.services.mcp_query_service.region_api.pod_detail",
@@ -84,13 +109,13 @@ class FailureContextHappyPathTests(SimpleTestCase):
 
     # capability_id: console.mcp.operation-failure-context
     def test_explicit_event_id_skips_event_lookup(self):
-        args = {"team_name": "team1", "region_name": "rg", "app_id": "7",
-                "service_id": "svc-1", "event_id": "given-ev"}
-        with patch.object(mcp_query_service, "_get_team_app_service_context",
-                          return_value=(_team(), _app(), _service())):
+        args = {"team_name": "team1", "region_name": "rg", "app_id": "7", "service_id": "svc-1", "event_id": "given-ev"}
+        with patch.object(mcp_query_service, "_get_team_app_service_context", return_value=(_team(), _app(), _service())):
             with patch("console.services.mcp_query_service.region_api.get_target_events_list") as mock_list:
                 with patch("console.services.mcp_query_service.region_api.get_events_log",
-                           return_value=(_resp(200), {"list": []})):
+                           return_value=(_resp(200), {
+                               "list": []
+                           })):
                     with patch("console.services.mcp_query_service.region_api.get_service_pods",
                                return_value=_pods_payload([])):
                         result = mcp_query_service.get_operation_failure_context(Obj(nick_name="t"), args)
@@ -103,16 +128,33 @@ class FailureContextHappyPathTests(SimpleTestCase):
     def test_picks_most_recent_non_success_event(self):
         args = {"team_name": "team1", "region_name": "rg", "app_id": "7", "service_id": "svc-1"}
         events_list = [
-            {"event_id": "ev-ok", "opt_type": "start", "status": "success"},
-            {"event_id": "ev-bad", "opt_type": "upgrade", "status": "failure", "message": "x"},
-            {"event_id": "ev-ok2", "opt_type": "stop", "status": "success"},
+            {
+                "event_id": "ev-ok",
+                "opt_type": "start",
+                "status": "success"
+            },
+            {
+                "event_id": "ev-bad",
+                "opt_type": "upgrade",
+                "status": "failure",
+                "message": "x"
+            },
+            {
+                "event_id": "ev-ok2",
+                "opt_type": "stop",
+                "status": "success"
+            },
         ]
-        with patch.object(mcp_query_service, "_get_team_app_service_context",
-                          return_value=(_team(), _app(), _service())):
+        with patch.object(mcp_query_service, "_get_team_app_service_context", return_value=(_team(), _app(), _service())):
             with patch("console.services.mcp_query_service.region_api.get_target_events_list",
-                       return_value=(_resp(200), {"list": events_list, "number": 3})):
+                       return_value=(_resp(200), {
+                           "list": events_list,
+                           "number": 3
+                       })):
                 with patch("console.services.mcp_query_service.region_api.get_events_log",
-                           return_value=(_resp(200), {"list": []})):
+                           return_value=(_resp(200), {
+                               "list": []
+                           })):
                     with patch("console.services.mcp_query_service.region_api.get_service_pods",
                                return_value=_pods_payload([])):
                         result = mcp_query_service.get_operation_failure_context(Obj(nick_name="t"), args)
@@ -125,12 +167,18 @@ class FailureContextDegradationTests(SimpleTestCase):
     def test_event_only_when_no_pods(self):
         args = {"team_name": "team1", "region_name": "rg", "app_id": "7", "service_id": "svc-1"}
         events_list = [{"event_id": "ev", "opt_type": "upgrade", "status": "failure", "message": "m"}]
-        with patch.object(mcp_query_service, "_get_team_app_service_context",
-                          return_value=(_team(), _app(), _service())):
+        with patch.object(mcp_query_service, "_get_team_app_service_context", return_value=(_team(), _app(), _service())):
             with patch("console.services.mcp_query_service.region_api.get_target_events_list",
-                       return_value=(_resp(200), {"list": events_list, "number": 1})):
+                       return_value=(_resp(200), {
+                           "list": events_list,
+                           "number": 1
+                       })):
                 with patch("console.services.mcp_query_service.region_api.get_events_log",
-                           return_value=(_resp(200), {"list": [{"message": "apply configmap failure"}]})):
+                           return_value=(_resp(200), {
+                               "list": [{
+                                   "message": "apply configmap failure"
+                               }]
+                           })):
                     with patch("console.services.mcp_query_service.region_api.get_service_pods",
                                return_value=_pods_payload([])):
                         result = mcp_query_service.get_operation_failure_context(Obj(nick_name="t"), args)
@@ -142,12 +190,16 @@ class FailureContextDegradationTests(SimpleTestCase):
     # capability_id: console.mcp.operation-failure-context
     def test_no_evidence_when_all_empty(self):
         args = {"team_name": "team1", "region_name": "rg", "app_id": "7", "service_id": "svc-1"}
-        with patch.object(mcp_query_service, "_get_team_app_service_context",
-                          return_value=(_team(), _app(), _service())):
+        with patch.object(mcp_query_service, "_get_team_app_service_context", return_value=(_team(), _app(), _service())):
             with patch("console.services.mcp_query_service.region_api.get_target_events_list",
-                       return_value=(_resp(200), {"list": [], "number": 0})):
+                       return_value=(_resp(200), {
+                           "list": [],
+                           "number": 0
+                       })):
                 with patch("console.services.mcp_query_service.region_api.get_events_log",
-                           return_value=(_resp(200), {"list": []})):
+                           return_value=(_resp(200), {
+                               "list": []
+                           })):
                     with patch("console.services.mcp_query_service.region_api.get_service_pods",
                                return_value=_pods_payload([])):
                         result = mcp_query_service.get_operation_failure_context(Obj(nick_name="t"), args)
@@ -158,12 +210,18 @@ class FailureContextDegradationTests(SimpleTestCase):
     def test_pod_query_failure_does_not_break_aggregation(self):
         args = {"team_name": "team1", "region_name": "rg", "app_id": "7", "service_id": "svc-1"}
         events_list = [{"event_id": "ev", "opt_type": "upgrade", "status": "failure", "message": "m"}]
-        with patch.object(mcp_query_service, "_get_team_app_service_context",
-                          return_value=(_team(), _app(), _service())):
+        with patch.object(mcp_query_service, "_get_team_app_service_context", return_value=(_team(), _app(), _service())):
             with patch("console.services.mcp_query_service.region_api.get_target_events_list",
-                       return_value=(_resp(200), {"list": events_list, "number": 1})):
+                       return_value=(_resp(200), {
+                           "list": events_list,
+                           "number": 1
+                       })):
                 with patch("console.services.mcp_query_service.region_api.get_events_log",
-                           return_value=(_resp(200), {"list": [{"message": "ImagePullBackOff"}]})):
+                           return_value=(_resp(200), {
+                               "list": [{
+                                   "message": "ImagePullBackOff"
+                               }]
+                           })):
                     with patch("console.services.mcp_query_service.region_api.get_service_pods",
                                side_effect=Exception("region down")):
                         result = mcp_query_service.get_operation_failure_context(Obj(nick_name="t"), args)
@@ -176,10 +234,12 @@ class FailureContextDegradationTests(SimpleTestCase):
         args = {"team_name": "team1", "region_name": "rg", "app_id": "7", "service_id": "svc-1"}
         events_list = [{"event_id": "ev", "opt_type": "upgrade", "status": "failure", "message": "m"}]
         pod_events = [{"reason": "ImagePullBackOff", "message": "Back-off pulling image; ImagePullBackOff"}]
-        with patch.object(mcp_query_service, "_get_team_app_service_context",
-                          return_value=(_team(), _app(), _service())):
+        with patch.object(mcp_query_service, "_get_team_app_service_context", return_value=(_team(), _app(), _service())):
             with patch("console.services.mcp_query_service.region_api.get_target_events_list",
-                       return_value=(_resp(200), {"list": events_list, "number": 1})):
+                       return_value=(_resp(200), {
+                           "list": events_list,
+                           "number": 1
+                       })):
                 with patch("console.services.mcp_query_service.region_api.get_events_log",
                            side_effect=Exception("log unavailable")):
                     with patch("console.services.mcp_query_service.region_api.get_service_pods",
@@ -199,12 +259,16 @@ class FailureContextRedactionTests(SimpleTestCase):
         args = {"team_name": "team1", "region_name": "rg", "app_id": "7", "service_id": "svc-1"}
         events_list = [{"event_id": "ev", "opt_type": "deploy", "status": "failure", "message": "m"}]
         secret_log = [{"message": "starting with password=hunter2 and token=abc123 ok"}]
-        with patch.object(mcp_query_service, "_get_team_app_service_context",
-                          return_value=(_team(), _app(), _service())):
+        with patch.object(mcp_query_service, "_get_team_app_service_context", return_value=(_team(), _app(), _service())):
             with patch("console.services.mcp_query_service.region_api.get_target_events_list",
-                       return_value=(_resp(200), {"list": events_list, "number": 1})):
+                       return_value=(_resp(200), {
+                           "list": events_list,
+                           "number": 1
+                       })):
                 with patch("console.services.mcp_query_service.region_api.get_events_log",
-                           return_value=(_resp(200), {"list": secret_log})):
+                           return_value=(_resp(200), {
+                               "list": secret_log
+                           })):
                     with patch("console.services.mcp_query_service.region_api.get_service_pods",
                                return_value=_pods_payload([])):
                         result = mcp_query_service.get_operation_failure_context(Obj(nick_name="t"), args)
@@ -225,16 +289,19 @@ class FailureContextRedactionTests(SimpleTestCase):
 
     # capability_id: console.mcp.operation-failure-context
     def test_log_tail_lines_limit_respected(self):
-        args = {"team_name": "team1", "region_name": "rg", "app_id": "7",
-                "service_id": "svc-1", "log_tail_lines": 3}
+        args = {"team_name": "team1", "region_name": "rg", "app_id": "7", "service_id": "svc-1", "log_tail_lines": 3}
         events_list = [{"event_id": "ev", "opt_type": "deploy", "status": "failure", "message": "m"}]
         log = [{"message": "line-%d" % i} for i in range(20)]
-        with patch.object(mcp_query_service, "_get_team_app_service_context",
-                          return_value=(_team(), _app(), _service())):
+        with patch.object(mcp_query_service, "_get_team_app_service_context", return_value=(_team(), _app(), _service())):
             with patch("console.services.mcp_query_service.region_api.get_target_events_list",
-                       return_value=(_resp(200), {"list": events_list, "number": 1})):
+                       return_value=(_resp(200), {
+                           "list": events_list,
+                           "number": 1
+                       })):
                 with patch("console.services.mcp_query_service.region_api.get_events_log",
-                           return_value=(_resp(200), {"list": log})):
+                           return_value=(_resp(200), {
+                               "list": log
+                           })):
                     with patch("console.services.mcp_query_service.region_api.get_service_pods",
                                return_value=_pods_payload([])):
                         result = mcp_query_service.get_operation_failure_context(Obj(nick_name="t"), args)

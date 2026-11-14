@@ -1,4 +1,3 @@
-import datetime
 import uuid
 from typing import Any, Optional, Tuple
 
@@ -36,8 +35,7 @@ class Cluster(object):
             return self.recycle_cluster(cluster)
         return self.init_cluster()
 
-    def get_rke_cluster(self, event_id: str = "", cluster_id: str = "",
-                        cluster_name: str = "") -> Optional[RKECluster]:
+    def get_rke_cluster(self, event_id: str = "", cluster_id: str = "", cluster_name: str = "") -> Optional[RKECluster]:
         if event_id:
             return RKECluster.objects.filter(event_id=event_id).first()
         if cluster_id:
@@ -69,8 +67,7 @@ class Cluster(object):
         )
         return cluster
 
-    def update_cluster(self, create_status: str = "", cluster_name: str = "",
-                       cluster_id: str = "") -> RKECluster:
+    def update_cluster(self, create_status: str = "", cluster_name: str = "", cluster_id: str = "") -> RKECluster:
         cluster = self.get_rke_cluster_exclude_integrated()
         if create_status:
             cluster.create_status = create_status
@@ -96,8 +93,7 @@ class Cluster(object):
 
 
 class ClusterNode(object):
-    def create_node(self, cluster_id: str, node_name: str, node_role: str, node_ip: str,
-                    is_server: bool) -> RKEClusterNode:
+    def create_node(self, cluster_id: str, node_name: str, node_role: str, node_ip: str, is_server: bool) -> RKEClusterNode:
         node = RKEClusterNode.objects.filter(cluster_id=cluster_id, node_name=node_name)
         if node.exists():
             return node[0]
@@ -118,9 +114,7 @@ class ClusterNode(object):
         return cluster_node
 
     def get_cluster_nodes(self, cluster_id: str) -> QuerySet:
-        cluster_nodes = RKEClusterNode.objects.filter(
-            cluster_id=cluster_id,
-        )
+        cluster_nodes = RKEClusterNode.objects.filter(cluster_id=cluster_id, )
         return cluster_nodes
 
     def delete_cluster_nodes(self, cluster_id: str, node_name: str) -> None:

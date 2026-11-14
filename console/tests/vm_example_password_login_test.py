@@ -399,6 +399,14 @@ class VMExamplePasswordLoginTests(TestCase):
         self.assertFalse(password in logs.getvalue(), "logs included plaintext")
 
     def test_password_create_stores_hash_only_and_registers_inner_port(self):
+        self._assert_password_create_stores_hash_and_registers_inner_port()
+
+    # capability_id: console.vm-create.port-operator
+    def test_missing_display_name_keeps_ssh_port_operator_a_string(self):
+        self.vm_view.user.nick_name = None
+        self._assert_password_create_stores_hash_and_registers_inner_port()
+
+    def _assert_password_create_stores_hash_and_registers_inner_port(self):
         password = self._runtime_password()
         payload = self._base_password_request(password)
         service = SimpleNamespace(
@@ -460,6 +468,7 @@ class VMExamplePasswordLoginTests(TestCase):
         self.assertTrue(port_kwargs["protocol"] == "tcp", "SSH port protocol mismatch")
         self.assertTrue(port_kwargs["is_inner_service"], "SSH port is not internal")
         self.assertFalse(port_kwargs["is_outer_service"], "SSH port was exposed externally")
+        self.assertEqual(port_kwargs["user_name"], self.vm_view.user.nick_name or "")
 
     def test_password_create_rolls_back_component_attrs_group_and_port_on_registration_failure(self):
         password = self._runtime_password()

@@ -119,19 +119,15 @@ class AgentAccessService(object):
         return False
 
     def get_initial_enterprise_admin_marker(self, enterprise_id: str) -> Optional[EnterpriseUserPerm]:
-        return EnterpriseUserPerm.objects.filter(
-            enterprise_id=enterprise_id,
-            is_initial_enterprise_admin=True).first()
+        return EnterpriseUserPerm.objects.filter(enterprise_id=enterprise_id, is_initial_enterprise_admin=True).first()
 
     def ensure_initial_enterprise_admin_marker(self, enterprise_id: str) -> Optional[EnterpriseUserPerm]:
         if not enterprise_id:
             return None
 
         with transaction.atomic():
-            markers = list(
-                EnterpriseUserPerm.objects.select_for_update().filter(
-                    enterprise_id=enterprise_id,
-                    is_initial_enterprise_admin=True))
+            markers = list(EnterpriseUserPerm.objects.select_for_update().filter(enterprise_id=enterprise_id,
+                                                                                 is_initial_enterprise_admin=True))
             if markers:
                 marker = self._normalize_markers(enterprise_id, markers)
                 return marker
@@ -169,10 +165,8 @@ class AgentAccessService(object):
         return marker
 
     def _select_existing_admin_perm(self, enterprise_id: str) -> Optional[EnterpriseUserPerm]:
-        admin_perms = list(
-            EnterpriseUserPerm.objects.select_for_update().filter(
-                enterprise_id=enterprise_id,
-                identity__contains=EnterpriseRolesEnum.admin.name))
+        admin_perms = list(EnterpriseUserPerm.objects.select_for_update().filter(
+            enterprise_id=enterprise_id, identity__contains=EnterpriseRolesEnum.admin.name))
         if not admin_perms:
             return None
         user_order = self._get_user_order(enterprise_id, [perm.user_id for perm in admin_perms])
@@ -188,7 +182,9 @@ class AgentAccessService(object):
             return perm
         token = user_services.generate_key()
         return enterprise_user_perm_repo.create_enterprise_user_perm(
-            user_id, enterprise_id, EnterpriseRolesEnum.admin.name, token)  # type: ignore[arg-type]  # NOTE: repo stub declares user_id as str but callers pass int; mismatch pre-dates this annotation pass
+            user_id, enterprise_id, EnterpriseRolesEnum.admin.name, token  # type: ignore[arg-type]
+            # NOTE: repo stub declares user_id as str but callers pass int; mismatch pre-dates this annotation pass
+        )  # type: ignore[arg-type]
 
     def _mark_initial_admin(self, enterprise_id: str, target_perm: EnterpriseUserPerm) -> None:
         EnterpriseUserPerm.objects.filter(enterprise_id=enterprise_id).exclude(ID=target_perm.ID).update(

@@ -272,7 +272,11 @@ class ShareService(object):
         logger.debug("======>get services deploy version failure")
         return None
 
-    def query_share_service_info(self, team: Any, group_id: Any, scope: Optional[str] = None, include_unbuilt: bool = False) -> list:
+    def query_share_service_info(self,
+                                 team: Any,
+                                 group_id: Any,
+                                 scope: Optional[str] = None,
+                                 include_unbuilt: bool = False) -> list:
         service_list = share_repo.get_service_list_by_group_id(team=team, group_id=group_id)
         # 过滤掉 kubeblocks 类型的组件
         service_list = [s for s in service_list if not is_kubeblocks(s.extend_method)]

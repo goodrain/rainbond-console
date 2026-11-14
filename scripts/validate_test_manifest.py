@@ -5,10 +5,9 @@ import re
 import sys
 from pathlib import Path
 
-
 CAPABILITY_RE = re.compile(r"capability_id\s*:\s*([A-Za-z0-9_.-]+)")
 PYTHON_TEST_PATTERNS = ("test_*.py", "*_test.py", "*_tests.py", "tests.py")
-GO_TEST_PATTERNS = ("*_test.go",)
+GO_TEST_PATTERNS = ("*_test.go", )
 ALLOWED_INTERFACE_TYPES = {
     "service_method",
     "view_endpoint",
@@ -48,7 +47,7 @@ def collect_marked_tests(repo_root):
     patterns = list(PYTHON_TEST_PATTERNS) + list(GO_TEST_PATTERNS)
     for pattern in patterns:
         for file_path in repo_root.rglob(pattern):
-            if IGNORED_PATH_PARTS.intersection(file_path.parts):
+            if ignored_repository_path(file_path, repo_root):
                 continue
             matches = CAPABILITY_RE.findall(read_text(file_path))
             if matches:
@@ -56,12 +55,17 @@ def collect_marked_tests(repo_root):
     return marked
 
 
+def ignored_repository_path(file_path, repo_root):
+    """Repository exclusions never apply to names outside this repository."""
+    return bool(IGNORED_PATH_PARTS.intersection(file_path.relative_to(repo_root).parts))
+
+
 def ensure(condition, message, errors):
     if not condition:
         errors.append(message)
 
 
-def validate_manifest(repo_root, manifest_path):
+def validate_manifest(repo_root, manifest_path, stats=None):
     errors = []
     manifest = load_manifest(manifest_path)
 
@@ -142,6 +146,22 @@ def validate_manifest(repo_root, manifest_path):
             capability_test_paths[capability_id] = normalized_test_paths
 
     marked = collect_marked_tests(repo_root)
+    if stats is not None:
+        stats.update(marked_test_files=len(marked), capabilities=len(capabilities))
+    if not marked:
+        for test_paths in capability_test_paths.values():
+            for test_path in test_paths:
+                relative_path = Path(test_path)
+                if relative_path.is_absolute() or ".." in relative_path.parts:
+                    continue
+                candidate = repo_root / relative_path
+                if (candidate.is_file() and not ignored_repository_path(candidate, repo_root)
+                        and CAPABILITY_RE.search(read_text(candidate))):
+                    errors.append("managed markers exist but scan returned no files")
+                    break
+            else:
+                continue
+            break
     manifest_ids = set(capability_test_paths.keys())
 
     for test_path, capability_ids in marked.items():
@@ -184,7 +204,8 @@ def main():
         return 1
 
     try:
-        errors = validate_manifest(repo_root, manifest_path)
+        stats = {}
+        errors = validate_manifest(repo_root, manifest_path, stats)
     except json.JSONDecodeError as exc:
         print("invalid manifest json: {0}".format(exc), file=sys.stderr)
         return 1
@@ -194,7 +215,8 @@ def main():
             print("ERROR: {0}".format(error), file=sys.stderr)
         return 1
 
-    print("test manifest validation passed for {0}".format(repo_root.name))
+    print("test manifest validation passed for {0} (marked test files: {1}, capabilities: {2})".format(
+        repo_root.name, stats.get("marked_test_files", 0), stats.get("capabilities", 0)))
     return 0
 
 

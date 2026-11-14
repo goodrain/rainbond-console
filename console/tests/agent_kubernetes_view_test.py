@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from typing import TYPE_CHECKING
 import json
 import os
 import sys
@@ -11,22 +12,51 @@ sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
 
-import django
-from django.test import SimpleTestCase
-from rest_framework.response import Response
-from rest_framework.test import APIRequestFactory, force_authenticate
 
-django.setup()
+def _load_test_dependencies():
+    """Keep the existing post-Django-setup import order and module bindings."""
+    import django
+    from django.test import SimpleTestCase
+    from rest_framework.response import Response
+    from rest_framework.test import APIRequestFactory, force_authenticate
 
-from console.views.agent_kubernetes import (
+    django.setup()
+
+    from console.views.agent_kubernetes import (
+        AgentKubernetesBootstrapView,
+        AgentKubernetesEncryptionKeyView,
+        AgentKubernetesEncryptionResetView,
+    )
+    return (
+        django,
+        SimpleTestCase,
+        Response,
+        APIRequestFactory,
+        force_authenticate,
+        AgentKubernetesBootstrapView,
+        AgentKubernetesEncryptionKeyView,
+        AgentKubernetesEncryptionResetView,
+    )
+
+
+(
+    django,
+    _RuntimeSimpleTestCase,
+    Response,
+    APIRequestFactory,
+    force_authenticate,
     AgentKubernetesBootstrapView,
     AgentKubernetesEncryptionKeyView,
     AgentKubernetesEncryptionResetView,
-)
+) = _load_test_dependencies()
+
+if TYPE_CHECKING:
+    from django.test import SimpleTestCase
+else:
+    SimpleTestCase = _RuntimeSimpleTestCase
 
 
 class AgentKubernetesBootstrapViewTests(SimpleTestCase):
-
     def setUp(self):
         self.factory = APIRequestFactory()
         self.view = AgentKubernetesBootstrapView.as_view()
@@ -108,12 +138,13 @@ class AgentKubernetesBootstrapViewTests(SimpleTestCase):
             response = self.view(request, enterprise_id="eid", region_name="rainbond")
 
         self.assertEqual(200, response.status_code)
-        bootstrap.assert_called_once_with("eid", "rainbond", {
-            "credential_profile": "readonly",
-            "region_name": "rainbond",
-            "context_id": "rainbond:readonly",
-            "service_account": "rainbond-agent-reader",
-        })
+        bootstrap.assert_called_once_with(
+            "eid", "rainbond", {
+                "credential_profile": "readonly",
+                "region_name": "rainbond",
+                "context_id": "rainbond:readonly",
+                "service_account": "rainbond-agent-reader",
+            })
         agent_payload = json.loads(proxy.call_args.kwargs["requests_args"]["body"])
         self.assertEqual("readonly", agent_payload["credential_profile"])
         self.assertEqual("rainbond-agent-reader", agent_payload["service_account"])
@@ -164,12 +195,13 @@ class AgentKubernetesBootstrapViewTests(SimpleTestCase):
             response = self.view(request, enterprise_id="eid", region_name="rainbond")
 
         self.assertEqual(200, response.status_code)
-        bootstrap.assert_called_once_with("eid", "rainbond", {
-            "credential_profile": "readonly",
-            "context_id": "rainbond:readonly",
-            "region_name": "rainbond",
-            "service_account": "rainbond-agent-reader",
-        })
+        bootstrap.assert_called_once_with(
+            "eid", "rainbond", {
+                "credential_profile": "readonly",
+                "context_id": "rainbond:readonly",
+                "region_name": "rainbond",
+                "service_account": "rainbond-agent-reader",
+            })
         proxy.assert_called_once()
 
     def test_post_rejects_unknown_credential_profile(self):
@@ -214,7 +246,6 @@ class AgentKubernetesBootstrapViewTests(SimpleTestCase):
 
 
 class AgentKubernetesEncryptionKeyViewTests(SimpleTestCase):
-
     def setUp(self):
         self.factory = APIRequestFactory()
         self.view = AgentKubernetesEncryptionKeyView.as_view()
@@ -254,10 +285,11 @@ class AgentKubernetesEncryptionKeyViewTests(SimpleTestCase):
             "key_source": "shared",
             "service_alias": "rainbond-agent-api",
         }
-        status = stack.enter_context(mock.patch(
-            "console.views.agent_kubernetes.platform_plugin_service.get_agent_credential_encryption_key_status",
-            return_value=expected,
-        ))
+        status = stack.enter_context(
+            mock.patch(
+                "console.views.agent_kubernetes.platform_plugin_service.get_agent_credential_encryption_key_status",
+                return_value=expected,
+            ))
         with stack:
             response = self.view(request, enterprise_id="eid", region_name="rainbond")
 
@@ -267,8 +299,8 @@ class AgentKubernetesEncryptionKeyViewTests(SimpleTestCase):
 
     def test_get_rejects_non_admin(self):
         request, stack = self._request(is_admin=False)
-        status = stack.enter_context(mock.patch(
-            "console.views.agent_kubernetes.platform_plugin_service.get_agent_credential_encryption_key_status"))
+        status = stack.enter_context(
+            mock.patch("console.views.agent_kubernetes.platform_plugin_service.get_agent_credential_encryption_key_status"))
         with stack:
             response = self.view(request, enterprise_id="eid", region_name="rainbond")
 
@@ -284,22 +316,31 @@ class AgentKubernetesEncryptionKeyViewTests(SimpleTestCase):
 
     def test_post_hot_installs_a_generated_key_without_restart(self):
         request, stack = self._request("post", {"confirm_create": True})
-        stack.enter_context(mock.patch(
-            "console.views.agent_kubernetes.region_api.get_agent_plugin_encryption_status",
-            return_value=(None, {"data": {"status": "missing"}}),
-        ))
-        stack.enter_context(mock.patch(
-            "console.views.agent_kubernetes.platform_plugin_service.get_agent_credential_encryption_key_value",
-            return_value=None,
-        ))
-        store = stack.enter_context(mock.patch(
-            "console.views.agent_kubernetes.platform_plugin_service.store_agent_credential_encryption_key"))
-        proxy = stack.enter_context(mock.patch(
-            "console.views.agent_kubernetes.region_api.proxy",
-            return_value=Response({"data": {"status": "ready"}}, status=200),
-        ))
-        ensure = stack.enter_context(mock.patch(
-            "console.views.agent_kubernetes.platform_plugin_service.ensure_agent_credential_encryption_key"))
+        stack.enter_context(
+            mock.patch(
+                "console.views.agent_kubernetes.region_api.get_agent_plugin_encryption_status",
+                return_value=(None, {
+                    "data": {
+                        "status": "missing"
+                    }
+                }),
+            ))
+        stack.enter_context(
+            mock.patch(
+                "console.views.agent_kubernetes.platform_plugin_service.get_agent_credential_encryption_key_value",
+                return_value=None,
+            ))
+        store = stack.enter_context(
+            mock.patch("console.views.agent_kubernetes.platform_plugin_service.store_agent_credential_encryption_key"))
+        proxy = stack.enter_context(
+            mock.patch(
+                "console.views.agent_kubernetes.region_api.proxy",
+                return_value=Response({"data": {
+                    "status": "ready"
+                }}, status=200),
+            ))
+        ensure = stack.enter_context(
+            mock.patch("console.views.agent_kubernetes.platform_plugin_service.ensure_agent_credential_encryption_key"))
         with stack:
             response = self.view(request, enterprise_id="eid", region_name="rainbond")
 
@@ -318,20 +359,29 @@ class AgentKubernetesEncryptionKeyViewTests(SimpleTestCase):
 
     def test_post_reinstalls_the_persisted_key_after_restart(self):
         request, stack = self._request("post", {"confirm_create": True})
-        stack.enter_context(mock.patch(
-            "console.views.agent_kubernetes.region_api.get_agent_plugin_encryption_status",
-            return_value=(None, {"data": {"status": "recovery_required"}}),
-        ))
-        stack.enter_context(mock.patch(
-            "console.views.agent_kubernetes.platform_plugin_service.get_agent_credential_encryption_key_value",
-            return_value="persisted-key",
-        ))
-        proxy = stack.enter_context(mock.patch(
-            "console.views.agent_kubernetes.region_api.proxy",
-            return_value=Response({"data": {"status": "ready"}}, status=200),
-        ))
-        ensure = stack.enter_context(mock.patch(
-            "console.views.agent_kubernetes.platform_plugin_service.ensure_agent_credential_encryption_key"))
+        stack.enter_context(
+            mock.patch(
+                "console.views.agent_kubernetes.region_api.get_agent_plugin_encryption_status",
+                return_value=(None, {
+                    "data": {
+                        "status": "recovery_required"
+                    }
+                }),
+            ))
+        stack.enter_context(
+            mock.patch(
+                "console.views.agent_kubernetes.platform_plugin_service.get_agent_credential_encryption_key_value",
+                return_value="persisted-key",
+            ))
+        proxy = stack.enter_context(
+            mock.patch(
+                "console.views.agent_kubernetes.region_api.proxy",
+                return_value=Response({"data": {
+                    "status": "ready"
+                }}, status=200),
+            ))
+        ensure = stack.enter_context(
+            mock.patch("console.views.agent_kubernetes.platform_plugin_service.ensure_agent_credential_encryption_key"))
         with stack:
             response = self.view(request, enterprise_id="eid", region_name="rainbond")
 
@@ -342,18 +392,23 @@ class AgentKubernetesEncryptionKeyViewTests(SimpleTestCase):
 
     def test_post_blocks_recovery_required_without_a_persisted_key(self):
         request, stack = self._request("post", {"confirm_create": True})
-        stack.enter_context(mock.patch(
-            "console.views.agent_kubernetes.region_api.get_agent_plugin_encryption_status",
-            return_value=(None, {"data": {"status": "recovery_required"}}),
-        ))
-        stack.enter_context(mock.patch(
-            "console.views.agent_kubernetes.platform_plugin_service.get_agent_credential_encryption_key_value",
-            return_value=None,
-        ))
-        proxy = stack.enter_context(mock.patch(
-            "console.views.agent_kubernetes.region_api.proxy"))
-        ensure = stack.enter_context(mock.patch(
-            "console.views.agent_kubernetes.platform_plugin_service.ensure_agent_credential_encryption_key"))
+        stack.enter_context(
+            mock.patch(
+                "console.views.agent_kubernetes.region_api.get_agent_plugin_encryption_status",
+                return_value=(None, {
+                    "data": {
+                        "status": "recovery_required"
+                    }
+                }),
+            ))
+        stack.enter_context(
+            mock.patch(
+                "console.views.agent_kubernetes.platform_plugin_service.get_agent_credential_encryption_key_value",
+                return_value=None,
+            ))
+        proxy = stack.enter_context(mock.patch("console.views.agent_kubernetes.region_api.proxy"))
+        ensure = stack.enter_context(
+            mock.patch("console.views.agent_kubernetes.platform_plugin_service.ensure_agent_credential_encryption_key"))
         with stack:
             response = self.view(request, enterprise_id="eid", region_name="rainbond")
 
@@ -364,24 +419,35 @@ class AgentKubernetesEncryptionKeyViewTests(SimpleTestCase):
 
     def test_post_falls_back_to_restart_when_hot_install_fails(self):
         request, stack = self._request("post", {"confirm_create": True})
-        stack.enter_context(mock.patch(
-            "console.views.agent_kubernetes.region_api.get_agent_plugin_encryption_status",
-            return_value=(None, {"data": {"status": "missing"}}),
-        ))
-        stack.enter_context(mock.patch(
-            "console.views.agent_kubernetes.platform_plugin_service.get_agent_credential_encryption_key_value",
-            return_value=None,
-        ))
-        stack.enter_context(mock.patch(
-            "console.views.agent_kubernetes.platform_plugin_service.store_agent_credential_encryption_key"))
-        stack.enter_context(mock.patch(
-            "console.views.agent_kubernetes.region_api.proxy",
-            side_effect=RuntimeError("agent endpoint unavailable"),
-        ))
-        ensure = stack.enter_context(mock.patch(
-            "console.views.agent_kubernetes.platform_plugin_service.ensure_agent_credential_encryption_key",
-            return_value={"status": "generated", "restart_requested": True},
-        ))
+        stack.enter_context(
+            mock.patch(
+                "console.views.agent_kubernetes.region_api.get_agent_plugin_encryption_status",
+                return_value=(None, {
+                    "data": {
+                        "status": "missing"
+                    }
+                }),
+            ))
+        stack.enter_context(
+            mock.patch(
+                "console.views.agent_kubernetes.platform_plugin_service.get_agent_credential_encryption_key_value",
+                return_value=None,
+            ))
+        stack.enter_context(
+            mock.patch("console.views.agent_kubernetes.platform_plugin_service.store_agent_credential_encryption_key"))
+        stack.enter_context(
+            mock.patch(
+                "console.views.agent_kubernetes.region_api.proxy",
+                side_effect=RuntimeError("agent endpoint unavailable"),
+            ))
+        ensure = stack.enter_context(
+            mock.patch(
+                "console.views.agent_kubernetes.platform_plugin_service.ensure_agent_credential_encryption_key",
+                return_value={
+                    "status": "generated",
+                    "restart_requested": True
+                },
+            ))
         with stack:
             response = self.view(request, enterprise_id="eid", region_name="rainbond")
 
@@ -390,12 +456,13 @@ class AgentKubernetesEncryptionKeyViewTests(SimpleTestCase):
 
     def test_post_returns_503_when_agent_status_is_unavailable(self):
         request, stack = self._request("post", {"confirm_create": True})
-        stack.enter_context(mock.patch(
-            "console.views.agent_kubernetes.region_api.get_agent_plugin_encryption_status",
-            side_effect=RuntimeError("connection failed"),
-        ))
-        ensure = stack.enter_context(mock.patch(
-            "console.views.agent_kubernetes.platform_plugin_service.ensure_agent_credential_encryption_key"))
+        stack.enter_context(
+            mock.patch(
+                "console.views.agent_kubernetes.region_api.get_agent_plugin_encryption_status",
+                side_effect=RuntimeError("connection failed"),
+            ))
+        ensure = stack.enter_context(
+            mock.patch("console.views.agent_kubernetes.platform_plugin_service.ensure_agent_credential_encryption_key"))
         with stack:
             response = self.view(request, enterprise_id="eid", region_name="rainbond")
 
@@ -405,7 +472,6 @@ class AgentKubernetesEncryptionKeyViewTests(SimpleTestCase):
 
 
 class AgentKubernetesEncryptionResetViewTests(SimpleTestCase):
-
     def setUp(self):
         self.factory = APIRequestFactory()
         self.view = AgentKubernetesEncryptionResetView.as_view()
@@ -416,8 +482,8 @@ class AgentKubernetesEncryptionResetViewTests(SimpleTestCase):
             data=json.dumps({"confirm_reset": confirm}),
             content_type="application/json",
         )
-        force_authenticate(request, user=SimpleNamespace(
-            user_id=1, nick_name="admin", enterprise_id="eid", is_authenticated=True))
+        force_authenticate(request,
+                           user=SimpleNamespace(user_id=1, nick_name="admin", enterprise_id="eid", is_authenticated=True))
         stack = ExitStack()
         enterprise_filter = stack.enter_context(mock.patch("console.views.base.TenantEnterprise.objects.filter"))
         enterprise_filter.return_value.first.return_value = SimpleNamespace(enterprise_id="eid")
@@ -428,12 +494,16 @@ class AgentKubernetesEncryptionResetViewTests(SimpleTestCase):
 
     def test_reset_clears_data_then_hot_installs_a_new_key(self):
         request, stack = self._request()
-        proxy = stack.enter_context(mock.patch(
-            "console.views.agent_kubernetes.region_api.proxy",
-            side_effect=[Response({}, status=200), Response({"data": {"status": "ready"}}, status=200)],
-        ))
-        store = stack.enter_context(mock.patch(
-            "console.views.agent_kubernetes.platform_plugin_service.store_agent_credential_encryption_key"))
+        proxy = stack.enter_context(
+            mock.patch(
+                "console.views.agent_kubernetes.region_api.proxy",
+                side_effect=[Response({}, status=200),
+                             Response({"data": {
+                                 "status": "ready"
+                             }}, status=200)],
+            ))
+        store = stack.enter_context(
+            mock.patch("console.views.agent_kubernetes.platform_plugin_service.store_agent_credential_encryption_key"))
         with stack:
             response = self.view(request, enterprise_id="eid", region_name="rainbond")
 

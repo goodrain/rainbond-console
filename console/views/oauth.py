@@ -10,7 +10,11 @@ from console.repositories.oauth_repo import oauth_repo, oauth_user_repo
 from console.services.config_service import EnterpriseConfigService
 from console.services.oauth_service import oauth_sev_user_service
 from console.services.operation_log import Operation, operation_log_service, OperationModule
-from console.utils.oauth.oauth_types import (NoSupportOAuthType, get_oauth_instance, support_oauth_type)
+from console.utils.oauth.oauth_types import (
+    NoSupportOAuthType,
+    get_oauth_instance,
+    support_oauth_type,
+)
 from console.views.base import (AlowAnyApiView, EnterpriseAdminView, JWTAuthApiView)
 from console.models.main import OAuthServices
 from django.http import HttpResponseRedirect
@@ -44,11 +48,14 @@ class OauthConfig(EnterpriseAdminView):
         # NOTE: request.data.get may return None; legacy assumes present (backlog).
         enable = data.get("enable")  # type: ignore[union-attr]
         # NOTE: user_id int AutoField (systemic str); request.user is User|AnonymousUser, auth guarantees user (backlog).
-        EnterpriseConfigService(request.user.enterprise_id, self.user.user_id).update_config_enable_status(key="OAUTH_SERVICES", enable=enable)  # type: ignore[arg-type, union-attr]
+        EnterpriseConfigService(  # type: ignore[arg-type,union-attr]
+            request.user.enterprise_id, self.user.user_id).update_config_enable_status(  # type: ignore[arg-type,union-attr]
+            key="OAUTH_SERVICES", enable=enable)  # type: ignore[arg-type, union-attr]
         rst = {"data": {"bean": {"oauth_services": data}}}
         op = Operation.ENABLE if enable else Operation.DISABLE
-        comment = operation_log_service.generate_generic_comment(
-            operation=op, module=OperationModule.OAUTHCONNECT, module_name="")
+        comment = operation_log_service.generate_generic_comment(operation=op,
+                                                                 module=OperationModule.OAUTHCONNECT,
+                                                                 module_name="")
         # NOTE: enterprise_id nullable; create_enterprise_log takes str (systemic, backlog).
         operation_log_service.create_enterprise_log(user=self.user, comment=comment,
                                                     enterprise_id=self.user.enterprise_id)  # type: ignore[arg-type]
@@ -70,26 +77,47 @@ class OauthService(EnterpriseAdminView):
                 api = get_oauth_instance(l_service.oauth_type, l_service, None)
                 authorize_url = api.get_authorize_url()
                 all_services_list.append({
-                    "service_id": l_service.ID,
-                    "enable": l_service.enable,
-                    "name": l_service.name,
-                    "client_id": l_service.client_id,
-                    "auth_url": l_service.auth_url,
-                    "redirect_uri": l_service.redirect_uri,
-                    "oauth_type": l_service.oauth_type,
-                    "home_url": l_service.home_url,
-                    "eid": l_service.eid,
-                    "access_token_url": l_service.access_token_url,
-                    "api_url": l_service.api_url,
-                    "client_secret": l_service.client_secret,
-                    "is_auto_login": l_service.is_auto_login,
-                    "auto_create_user": l_service.auto_create_user,
-                    "is_git": l_service.is_git,
-                    "authorize_url": authorize_url,
-                    "enterprise_id": l_service.eid,
+                    "service_id":
+                    l_service.ID,
+                    "enable":
+                    l_service.enable,
+                    "name":
+                    l_service.name,
+                    "client_id":
+                    l_service.client_id,
+                    "auth_url":
+                    l_service.auth_url,
+                    "redirect_uri":
+                    l_service.redirect_uri,
+                    "oauth_type":
+                    l_service.oauth_type,
+                    "home_url":
+                    l_service.home_url,
+                    "eid":
+                    l_service.eid,
+                    "access_token_url":
+                    l_service.access_token_url,
+                    "api_url":
+                    l_service.api_url,
+                    "client_secret":
+                    l_service.client_secret,
+                    "is_auto_login":
+                    l_service.is_auto_login,
+                    "auto_create_user":
+                    l_service.auto_create_user,
+                    "is_git":
+                    l_service.is_git,
+                    "authorize_url":
+                    authorize_url,
+                    "enterprise_id":
+                    l_service.eid,
                     # NOTE: dict.get may return None; ternary guards it but mypy can't narrow (backlog).
-                    "is_authenticated": user_oauth_dict.get(l_service.ID).is_authenticated if user_oauth_dict.get(l_service.ID) else False,  # type: ignore[union-attr]
-                    "is_expired": user_oauth_dict.get(l_service.ID).is_expired if user_oauth_dict.get(l_service.ID) else False,  # type: ignore[union-attr]
+                    "is_authenticated":
+                    user_oauth_dict.get(l_service.ID).is_authenticated  # type: ignore[union-attr]
+                    if user_oauth_dict.get(l_service.ID) else False,  # type: ignore[union-attr]
+                    "is_expired":
+                    user_oauth_dict.get(l_service.ID).is_expired  # type: ignore[union-attr]
+                    if user_oauth_dict.get(l_service.ID) else False,  # type: ignore[union-attr]
                 })
         rst = {"data": {"list": all_services_list}}
         return Response(rst, status=status.HTTP_200_OK)
@@ -99,14 +127,15 @@ class OauthService(EnterpriseAdminView):
         system = request.data.get("system")
         eid = request.user.enterprise_id  # type: ignore[union-attr]
         try:
-            services = oauth_repo.create_or_update_console_oauth_services(values, eid, self.user.user_id, system)  # type: ignore[arg-type]
+            services = oauth_repo.create_or_update_console_oauth_services(  # type: ignore[arg-type]
+                values, eid, self.user.user_id,  # type: ignore[arg-type]
+                system)  # type: ignore[arg-type]
         except ServiceHandleException:
             raise
         except Exception as e:
             logger.exception(e)
-            return Response(
-                {"msg": getattr(e, "msg", getattr(e, "message", str(e)))},
-                status=status.HTTP_400_BAD_REQUEST)  # type: ignore[attr-defined]
+            return Response({"msg": getattr(e, "msg", getattr(e, "message", str(e)))},
+                            status=status.HTTP_400_BAD_REQUEST)  # type: ignore[attr-defined]
         data = []
         # NOTE: services may be None; legacy assumes iterable result (backlog).
         for service in services:  # type: ignore[union-attr]
@@ -131,8 +160,9 @@ class OauthService(EnterpriseAdminView):
                 "authorize_url": authorize_url,
             })
         rst = {"data": {"bean": {"oauth_services": data}}}
-        comment = operation_log_service.generate_generic_comment(
-            operation=Operation.UPDATE, module=OperationModule.OAUTHCONFIG, module_name="")
+        comment = operation_log_service.generate_generic_comment(operation=Operation.UPDATE,
+                                                                 module=OperationModule.OAUTHCONFIG,
+                                                                 module_name="")
         operation_log_service.create_enterprise_log(user=self.user, comment=comment,
                                                     enterprise_id=self.user.enterprise_id)  # type: ignore[arg-type]
         return Response(rst, status=status.HTTP_200_OK)
@@ -151,12 +181,13 @@ class EnterpriseOauthService(EnterpriseAdminView):
             private_services = oauth_repo.get_all_oauth_services(enterprise_id, self.user.user_id)  # type: ignore[arg-type]
             # Combine both querysets
             all_services = public_services | private_services
-        
+
         if all_services is not None:
             svc_ids = [svc.ID for svc in all_services]
-            user_oauth_list = [] if public_only else oauth_user_repo.get_by_oauths_user_id(svc_ids, self.user.user_id)  # type: ignore[arg-type]
+            user_oauth_list = [] if public_only else oauth_user_repo.get_by_oauths_user_id(
+                svc_ids, self.user.user_id)  # type: ignore[arg-type]
             user_oauth_dict = {uol.service_id: uol for uol in user_oauth_list}
-            
+
             for l_service in all_services:
                 api = get_oauth_instance(l_service.oauth_type, l_service, None)
                 authorize_url = api.get_authorize_url()
@@ -164,9 +195,10 @@ class EnterpriseOauthService(EnterpriseAdminView):
                 is_expired = False
                 if not public_only and user_oauth_dict.get(l_service.ID):
                     # NOTE: dict.get may return None; guard above, mypy can't narrow (backlog).
-                    is_authenticated = user_oauth_dict.get(l_service.ID).is_authenticated  # type: ignore[union-attr, assignment]
+                    is_authenticated = user_oauth_dict.get(
+                        l_service.ID).is_authenticated  # type: ignore[union-attr, assignment]
                     is_expired = user_oauth_dict.get(l_service.ID).is_expired  # type: ignore[union-attr, assignment]
-                
+
                 all_services_list.append({
                     "service_id": l_service.ID,
                     "enable": l_service.enable,
@@ -194,7 +226,8 @@ class EnterpriseOauthService(EnterpriseAdminView):
 
     def post(self, request: Request, enterprise_id: str, *args: Any, **kwargs: Any) -> Response:
         values = request.data.get("oauth_services")
-        services = oauth_repo.create_or_update_oauth_services(values, enterprise_id, self.user.user_id)  # type: ignore[arg-type]
+        services = oauth_repo.create_or_update_oauth_services(values, enterprise_id,
+                                                              self.user.user_id)  # type: ignore[arg-type]
 
         data = []
         for service in services:
@@ -219,8 +252,9 @@ class EnterpriseOauthService(EnterpriseAdminView):
                 "authorize_url": authorize_url,
             })
         rst = {"data": {"bean": {"oauth_services": data}}}
-        comment = operation_log_service.generate_generic_comment(
-            operation=Operation.UPDATE, module=OperationModule.OAUTHCONFIG, module_name="")
+        comment = operation_log_service.generate_generic_comment(operation=Operation.UPDATE,
+                                                                 module=OperationModule.OAUTHCONFIG,
+                                                                 module_name="")
         operation_log_service.create_enterprise_log(user=self.user, comment=comment,
                                                     enterprise_id=self.user.enterprise_id)  # type: ignore[arg-type]
         return Response(rst, status=status.HTTP_200_OK)
@@ -304,7 +338,7 @@ class OAuthServerAuthorize(AlowAnyApiView):
                 if state.startswith('%7B') or state.startswith('%7b'):
                     from urllib.parse import unquote
                     state = unquote(state)
-                    logger.debug(f"Decoded URL-encoded state")
+                    logger.debug('Decoded URL-encoded state')
 
                 state_data = json.loads(state)
                 code_verifier = state_data.get("code_verifier")
@@ -318,11 +352,12 @@ class OAuthServerAuthorize(AlowAnyApiView):
         try:
             oauth_service = OAuthServices.objects.get(ID=service_id)  # type: ignore[misc]
             if not oauth_service.enable:
-                 raise ServiceHandleException(msg="OAuth service disabled", msg_show="该 OAuth 服务已被禁用")
+                raise ServiceHandleException(msg="OAuth service disabled", msg_show="该 OAuth 服务已被禁用")
             if oauth_service.oauth_type == "enterprisecenter" and domain:
                 home_split_url = urlsplit(oauth_service.home_url)
                 # NOTE: proxy_home_url is a dynamic attr; urlsplit may yield bytes (legacy, backlog).
-                oauth_service.proxy_home_url = home_split_url.scheme + "://" + domain + home_split_url.path  # type: ignore[attr-defined, operator]
+                oauth_service.proxy_home_url = (  # type: ignore[attr-defined]
+                    home_split_url.scheme + "://" + domain + home_split_url.path)  # type: ignore[attr-defined, operator]
         except OAuthServices.DoesNotExist:
             logger.debug(f"OAuth service with ID {service_id} not found.")
             rst = {"data": {"bean": None}, "status": 404, "msg_show": "未找到oauth服务, 请检查该服务是否存在且属于开启状态"}
@@ -358,7 +393,8 @@ class OAuthServerAuthorize(AlowAnyApiView):
                 raise ServiceHandleException(msg="Domain Inconsistent", msg_show="登录失败", status_code=401, error_code=10405)
             oauth_sev_user_service.get_or_create_user_and_enterprise(oauth_user)
         # NOTE: code from query params may be None; set_oauth_user_relation takes str (backlog).
-        return oauth_sev_user_service.set_oauth_user_relation(api, oauth_service, oauth_user, access_token, refresh_token, code)  # type: ignore[arg-type]
+        return oauth_sev_user_service.set_oauth_user_relation(api, oauth_service, oauth_user, access_token, refresh_token,
+                                                              code)  # type: ignore[arg-type]
 
 
 class OauthUserLogoutView(AlowAnyApiView):
@@ -433,7 +469,7 @@ class OAuthServerUserAuthorize(JWTAuthApiView):
                 if state.startswith('%7B') or state.startswith('%7b'):
                     from urllib.parse import unquote
                     state = unquote(state)
-                    logger.debug(f"Decoded URL-encoded state")
+                    logger.debug('Decoded URL-encoded state')
 
                 state_data = json.loads(state)
                 code_verifier = state_data.get("code_verifier")
@@ -455,9 +491,9 @@ class OAuthServerUserAuthorize(JWTAuthApiView):
             rst = {"data": {"bean": None}, "status": 404, "msg_show": "未找到oauth服务"}
             return Response(rst, status=status.HTTP_200_OK)
         # NOTE: oauth_service may be None & login_user is User|AnonymousUser; legacy assumes both present (backlog).
-        if api.is_git_oauth() and (
-                oauth_service.eid != login_user.enterprise_id or  # type: ignore[union-attr]
-                (not oauth_service.system and oauth_service.user_id != login_user.user_id)):  # type: ignore[union-attr]
+        if api.is_git_oauth() and (oauth_service.eid != login_user.enterprise_id or  # type: ignore[union-attr]
+                                   (not oauth_service.system
+                                    and oauth_service.user_id != login_user.user_id)):  # type: ignore[union-attr]
             rst = {"data": {"bean": None}, "status": 403, "msg_show": "无权访问该 OAuth 服务"}
             return Response(rst, status=status.HTTP_200_OK)
         try:
@@ -476,8 +512,14 @@ class OAuthServerUserAuthorize(JWTAuthApiView):
         user_email = user.email
         if api.is_git_oauth():
             updated = oauth_user_repo.reauthorize_git_user(
-                oauth_service.pk, login_user.user_id, user_id, user_name, user_email,  # type: ignore[union-attr]
-                access_token, refresh_token, code)  # type: ignore[arg-type]
+                oauth_service.pk,
+                login_user.user_id,
+                user_id,
+                user_name,
+                user_email,  # type: ignore[union-attr]
+                access_token,
+                refresh_token,
+                code)  # type: ignore[arg-type]
             if not updated:
                 rst = {"data": {"bean": None}, "status": 400, "msg_show": "该 Git 账号已被其他用户绑定"}
                 return Response(rst, status=status.HTTP_200_OK)
@@ -485,8 +527,10 @@ class OAuthServerUserAuthorize(JWTAuthApiView):
             return Response(rst, status=status.HTTP_200_OK)
 
         # NOTE: service_id is str|None & login_user is User|AnonymousUser; legacy assumes str/user (backlog).
-        authenticated_user = oauth_user_repo.user_oauth_exists(service_id=service_id, oauth_user_id=user_id)  # type: ignore[arg-type]
-        link_user = oauth_user_repo.get_user_oauth_by_user_id(service_id=service_id, user_id=login_user.user_id)  # type: ignore[arg-type, union-attr]
+        authenticated_user = oauth_user_repo.user_oauth_exists(service_id=service_id,  # type: ignore[arg-type]
+                                                               oauth_user_id=user_id)  # type: ignore[arg-type]
+        link_user = oauth_user_repo.get_user_oauth_by_user_id(service_id=service_id,  # type: ignore[arg-type]
+                                                              user_id=login_user.user_id)  # type: ignore[arg-type, union-attr]
         if link_user is not None and link_user.oauth_user_id != user_id:
             rst = {"data": {"bean": None}, "status": 400, "msg_show": "该用户已绑定其他账号"}
             return Response(rst, status=status.HTTP_200_OK)
@@ -533,7 +577,8 @@ class UserOAuthLink(JWTAuthApiView):
         # NOTE: request.user is User|AnonymousUser; auth guarantees authenticated user (backlog).
         user_id = request.user.user_id  # type: ignore[union-attr]
         # NOTE: service_id is str|None; repo expects str (backlog).
-        oauth_user = oauth_user_repo.user_oauth_exists(service_id=service_id, oauth_user_id=oauth_user_id)  # type: ignore[arg-type]
+        oauth_user = oauth_user_repo.user_oauth_exists(service_id=service_id,  # type: ignore[arg-type]
+                                                       oauth_user_id=oauth_user_id)  # type: ignore[arg-type]
         link_user = oauth_user_repo.get_user_oauth_by_user_id(service_id=service_id, user_id=user_id)  # type: ignore[arg-type]
         if link_user is not None and link_user.oauth_user_id != oauth_user_id:
             rst = {"data": {"bean": None}, "status": 400, "msg_show": "绑定失败， 该用户已绑定其他账号"}
@@ -765,35 +810,30 @@ class OverScore(EnterpriseAdminView):
     def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         # 获取超分比例配置
         # NOTE: user_id int AutoField; EnterpriseConfigService takes str (systemic int-as-str, backlog).
-        ss_config = EnterpriseConfigService(request.user.enterprise_id, self.user.user_id).get_config_by_key(  # type: ignore[arg-type, union-attr]
-            key="OVER_SCORE")
+        ss_config = EnterpriseConfigService(request.user.enterprise_id,  # type: ignore[union-attr]
+                                            self.user.user_id).get_config_by_key(  # type: ignore[arg-type, union-attr]
+                                                key="OVER_SCORE")
         over_score_rate = {"CPU": 1.0, "MEMORY": 1.0}
 
         # 如果配置不存在，则初始化
         if not ss_config:
-            EnterpriseConfigService(request.user.enterprise_id, self.user.user_id).add_config(  # type: ignore[arg-type, union-attr]
-                key="OVER_SCORE",
-                default_value=json.dumps({"CPU": 1.0, "MEMORY": 1.0}),
-                type="json",
-                desc="超分比例",
-                enable=True
-            )
+            EnterpriseConfigService(request.user.enterprise_id,  # type: ignore[union-attr]
+                                    self.user.user_id).add_config(  # type: ignore[arg-type, union-attr]
+                                        key="OVER_SCORE",
+                                        default_value=json.dumps({
+                                            "CPU": 1.0,
+                                            "MEMORY": 1.0
+                                        }),
+                                        type="json",
+                                        desc="超分比例",
+                                        enable=True)
             region_api.set_over_score_rate({"over_score_rate": json.dumps(over_score_rate)})
         else:
             # NOTE: ss_config.value may be None; legacy assumes str (backlog).
             over_score_rate = json.loads(ss_config.value)  # type: ignore[arg-type]
 
         # 返回规范化结构
-        rst = {
-            "code": 200,
-            "msg": "",
-            "msg_show": "获取超分比例成功",
-            "data": {
-                "bean": {
-                    "over_score_rate": over_score_rate
-                }
-            }
-        }
+        rst = {"code": 200, "msg": "", "msg_show": "获取超分比例成功", "data": {"bean": {"over_score_rate": over_score_rate}}}
         return Response(rst, status=status.HTTP_200_OK)
 
     def put(self, request: Request, *args: Any, **kwargs: Any) -> Response:
@@ -801,10 +841,9 @@ class OverScore(EnterpriseAdminView):
         over_score_rate = request.data.get("over_score_rate")
 
         # 更新超分比例配置
-        EnterpriseConfigService(request.user.enterprise_id, self.user.user_id).update_config_value(  # type: ignore[arg-type, union-attr]
-            key="OVER_SCORE",
-            value=over_score_rate
-        )
+        EnterpriseConfigService(request.user.enterprise_id,  # type: ignore[union-attr]
+                                self.user.user_id).update_config_value(  # type: ignore[arg-type, union-attr]
+                                    key="OVER_SCORE", value=over_score_rate)
         region_api.set_over_score_rate({"over_score_rate": over_score_rate})
         # 返回规范化结构
         rst = {

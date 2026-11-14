@@ -75,7 +75,8 @@ class OriginalApp(object):
         return self._components
 
     def _component_ids(self) -> List[str]:
-        components = group_service.list_components_by_upgrade_group_id(self.app_id, self.upgrade_group_id)  # type: ignore[arg-type]
+        components = group_service.list_components_by_upgrade_group_id(self.app_id,
+                                                                       self.upgrade_group_id)  # type: ignore[arg-type]
         # NOTE: list_components_by_upgrade_group_id is annotated str but called with int IDs
         return [cpt.component_id for cpt in components]
 

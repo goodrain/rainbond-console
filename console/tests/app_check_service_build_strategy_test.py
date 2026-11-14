@@ -16,12 +16,23 @@ sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
 
-import django
 
-django.setup()
+def _load_test_dependencies():
+    """Keep the existing post-Django-setup import order and module bindings."""
+    import django
 
-from console.services import app_check_service as app_check_service_module
-from console.services.app_check_service import AppCheckService
+    django.setup()
+
+    from console.services import app_check_service as app_check_service_module
+    from console.services.app_check_service import AppCheckService
+    return (
+        django,
+        app_check_service_module,
+        AppCheckService,
+    )
+
+
+django, app_check_service_module, AppCheckService = _load_test_dependencies()
 
 
 class DummyTenant(object):
@@ -92,7 +103,9 @@ class AppCheckServiceBuildStrategyTests(TestCase):
         service = DummyService()
         data = {
             "check_status": "success",
-            "service_info": [{"language": "Java-maven"}],
+            "service_info": [{
+                "language": "Java-maven"
+            }],
         }
 
         with patch.object(self.service_helper, "upgrade_service_env_info"), \
@@ -116,9 +129,7 @@ class AppCheckServiceBuildStrategyTests(TestCase):
                 patch.object(app_check_service_module.logger, "error") as error_log:
             self.service_helper.update_service_check_info(self.tenant, service, data)
 
-        info_log.assert_called_once_with(
-            "skip duplicate component port while applying source check result"
-        )
+        info_log.assert_called_once_with("skip duplicate component port while applying source check result")
         error_log.assert_not_called()
 
     def test_save_service_info_defaults_supported_language_to_cnb(self):
@@ -285,12 +296,8 @@ class AppCheckServiceBuildStrategyTests(TestCase):
 
     def test_resolve_lang_update_build_strategy_falls_back_when_helper_symbol_is_missing(self):
         with patch.object(app_check_service_module.cnb_build_utils, "resolve_lang_update_build_strategy", None):
-            self.assertEqual(
-                app_check_service_module.resolve_lang_update_build_strategy("Java-maven", ""),
-                "cnb")
-            self.assertEqual(
-                app_check_service_module.resolve_lang_update_build_strategy("java-maven", "slug"),
-                "slug")
+            self.assertEqual(app_check_service_module.resolve_lang_update_build_strategy("Java-maven", ""), "cnb")
+            self.assertEqual(app_check_service_module.resolve_lang_update_build_strategy("java-maven", "slug"), "slug")
 
     @patch.object(app_check_service_module, "service_source_repo")
     @patch.object(app_check_service_module, "region_api")
@@ -298,7 +305,12 @@ class AppCheckServiceBuildStrategyTests(TestCase):
         service = DummyService(build_strategy="cnb")
         region_api.service_source_check.return_value = (
             None,
-            {"bean": {"check_uuid": "chk-1", "event_id": "evt-1"}},
+            {
+                "bean": {
+                    "check_uuid": "chk-1",
+                    "event_id": "evt-1"
+                }
+            },
         )
         service_source_repo.get_service_source.return_value = None
 
@@ -318,7 +330,12 @@ class AppCheckServiceBuildStrategyTests(TestCase):
         service = DummyService(build_strategy="")
         region_api.service_source_check.return_value = (
             None,
-            {"bean": {"check_uuid": "chk-1", "event_id": "evt-1"}},
+            {
+                "bean": {
+                    "check_uuid": "chk-1",
+                    "event_id": "evt-1"
+                }
+            },
         )
         service_source_repo.get_service_source.return_value = None
 
@@ -336,7 +353,12 @@ class AppCheckServiceBuildStrategyTests(TestCase):
         service = DummyService(build_strategy="")
         region_api.service_source_check.return_value = (
             None,
-            {"bean": {"check_uuid": "chk-1", "event_id": "evt-1"}},
+            {
+                "bean": {
+                    "check_uuid": "chk-1",
+                    "event_id": "evt-1"
+                }
+            },
         )
         service_source_repo.get_service_source.return_value = None
 
@@ -353,9 +375,8 @@ class AppCheckServiceBuildStrategyTests(TestCase):
     @patch.object(app_check_service_module, "region_services")
     @patch.object(app_check_service_module, "port_service")
     @patch.object(app_check_service_module, "group_repo")
-    def test_save_port_adds_visible_port_env_for_php_default_port(
-        self, group_repo, port_service, region_services, domain_service, env_var_service
-    ):
+    def test_save_port_adds_visible_port_env_for_php_default_port(self, group_repo, port_service, region_services,
+                                                                  domain_service, env_var_service):
         service = DummyService()
         service.language = "php"
         group_repo.get_by_service_id.return_value = Mock(app_id=1)
@@ -367,18 +388,22 @@ class AppCheckServiceBuildStrategyTests(TestCase):
 
         self.assertEqual(code, 200)
         self.assertEqual(msg, "success")
-        env_var_service.add_service_env_var.assert_called_once_with(
-            self.tenant, service, 5000, "端口", "PORT", 5000, False, scope="outer"
-        )
+        env_var_service.add_service_env_var.assert_called_once_with(self.tenant,
+                                                                    service,
+                                                                    5000,
+                                                                    "端口",
+                                                                    "PORT",
+                                                                    5000,
+                                                                    False,
+                                                                    scope="outer")
 
     @patch.object(app_check_service_module, "env_var_service")
     @patch.object(app_check_service_module, "domain_service", create=True)
     @patch.object(app_check_service_module, "region_services")
     @patch.object(app_check_service_module, "port_service")
     @patch.object(app_check_service_module, "group_repo")
-    def test_save_port_skips_visible_port_env_for_non_php_default_port(
-        self, group_repo, port_service, region_services, domain_service, env_var_service
-    ):
+    def test_save_port_skips_visible_port_env_for_non_php_default_port(self, group_repo, port_service, region_services,
+                                                                       domain_service, env_var_service):
         service = DummyService()
         service.language = "python"
         group_repo.get_by_service_id.return_value = Mock(app_id=1)
@@ -396,9 +421,8 @@ class AppCheckServiceBuildStrategyTests(TestCase):
     @patch.object(app_check_service_module, "region_services")
     @patch.object(app_check_service_module, "port_service")
     @patch.object(app_check_service_module, "group_repo")
-    def test_save_port_delegates_default_gateway_creation_to_default_open_outer(
-        self, group_repo, port_service, region_services, domain_service, env_var_service
-    ):
+    def test_save_port_delegates_default_gateway_creation_to_default_open_outer(self, group_repo, port_service, region_services,
+                                                                                domain_service, env_var_service):
         service = DummyService()
         app = Mock(app_id=1)
         region = Mock()
@@ -426,18 +450,22 @@ class AppCheckServiceBuildStrategyTests(TestCase):
         env_var_service.get_service_build_envs.return_value = [existing_cnb_env, existing_build_type]
 
         self.service_helper.sync_cnb_build_envs(
-            self.tenant,
-            service,
-            {
+            self.tenant, service, {
                 "language": "Node.js",
                 "runtime_info": {
                     "language": "nodejs",
-                    "framework": {"name": "react"},
-                    "package_manager": {"name": "npm"},
-                    "config_files": {"has_npmrc": False, "has_yarnrc": False}
+                    "framework": {
+                        "name": "react"
+                    },
+                    "package_manager": {
+                        "name": "npm"
+                    },
+                    "config_files": {
+                        "has_npmrc": False,
+                        "has_yarnrc": False
+                    }
                 }
-            }
-        )
+            })
 
         existing_cnb_env.delete.assert_called_once_with()
         existing_build_type.delete.assert_not_called()

@@ -292,7 +292,8 @@ class ComposeCheckView(ComposeGroupBaseView):
         except AccountOverdueException as re:
             logger.exception(re)
             # NOTE: py2-style Exception.message
-            return Response(general_message(10410, "resource is not enough", re.message), status=412)  # type: ignore[attr-defined]
+            return Response(general_message(10410, "resource is not enough", re.message),  # type: ignore[attr-defined]
+                            status=412)  # type: ignore[attr-defined]
         return Response(result, status=result["code"])
 
 
@@ -370,7 +371,7 @@ class ComposeDeleteView(ComposeGroupBaseView):
         """
         compose_id = request.data.get("compose_id", None)
         group_id = kwargs.get("group_id", None)
-        app_name = request.data.get("app_name", "")
+        _ = request.data.get("app_name", "")
         try:
             group_id = int(group_id)  # type: ignore[arg-type]
         except ValueError:

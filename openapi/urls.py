@@ -9,26 +9,61 @@ from drf_yasg.views import get_schema_view
 from openapi.auth.authentication import OpenAPIAuthentication
 from openapi.auth.permissions import OpenAPIPermissions
 from openapi.views.admin_view import AdminInfoView, ListAdminsView
-from openapi.views.apps.apps import ListAppsView, AppModelImportEvent, AppTarballDirView, \
-    AppImportView, AppDeployView, AppChartInfo, DeleteApp, AppsPortView, HelmChart, SmartDeployTemplateView
-from openapi.views.apps.gray_release import GrayReleaseView, UpdateGrayRatioView, GrayReleaseListView, GrayRollbackView
+from openapi.views.apps.apps import (
+    ListAppsView,
+    AppModelImportEvent,
+    AppTarballDirView,
+    AppImportView,
+    AppDeployView,
+    AppChartInfo,
+    DeleteApp,
+    AppsPortView,
+    HelmChart,
+    SmartDeployTemplateView,
+)
+from openapi.views.apps.gray_release import (
+    GrayReleaseView,
+    UpdateGrayRatioView,
+    GrayReleaseListView,
+    GrayRollbackView,
+)
 from openapi.views.enterprise_view import ResourceOverview
 
-from openapi.views.apps.apps import ListAppsView
-from openapi.views.enterprise_view import (EnterpriseConfigView, EnterpriseOverview, AppRankOverview,
-                                           MonitorMessageOverview,
-                                           MonitorQueryOverview, MonitorQueryRangeOverview, MonitorSeriesOverview,
-                                           RegionsMonitorOverview, InstancesMonitorOverview, ResourceOverview,
-                                           ServiceOverview, Performance_overview, ComponentMemoryOverview)
-from openapi.views.enterprise_view import EnterpriseConfigView, EnterpriseOverview
+from openapi.views.enterprise_view import (
+    EnterpriseOverview,
+    MonitorQueryOverview,
+    MonitorQueryRangeOverview,
+    MonitorSeriesOverview,
+    InstancesMonitorOverview,
+    ServiceOverview,
+    Performance_overview,
+    ComponentMemoryOverview,
+)
+
 from openapi.views.gateway.gateway import ListEnterpriseAppGatewayHTTPRuleView
 from openapi.views.region_view import ListRegionInfo, RegionInfo, ReplaceRegionIP
-from openapi.views.team_view import (ListRegionsView, ListTeamInfo, TeamAppsResourceView, TeamCertificatesLCView,
-                                     TeamCertificatesRUDView, TeamEventLogView, TeamInfo, TeamOverviewView,
-                                     TeamsResourceView, EntAppModelView)
+from openapi.views.team_view import (
+    ListRegionsView,
+    ListTeamInfo,
+    TeamAppsResourceView,
+    TeamCertificatesLCView,
+    TeamCertificatesRUDView,
+    TeamEventLogView,
+    TeamInfo,
+    TeamOverviewView,
+    TeamsResourceView,
+    EntAppModelView,
+)
 from openapi.views.ai_engine_proxy import AIEnginePublicProxyView
-from openapi.views.user_view import (ChangePassword, ChangeUserPassword, ListUsersView, UserInfoView, CurrentUsersView,
-                                     UserTenantClose, UserTenantDelete)
+from openapi.views.user_view import (
+    ChangePassword,
+    ChangeUserPassword,
+    ListUsersView,
+    UserInfoView,
+    CurrentUsersView,
+    UserTenantClose,
+    UserTenantDelete,
+)
 
 schema_view = get_schema_view(
     openapi.Info(
@@ -73,7 +108,7 @@ urlpatterns = [
     re_path(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/resource', TeamAppsResourceView.as_view()),
     re_path(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/overview', TeamOverviewView.as_view()),
     re_path(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/events/(?P<event_id>[\w\-]+)/logs',
-        TeamEventLogView.as_view()),
+            TeamEventLogView.as_view()),
     # apps
     re_path(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/apps$', ListAppsView.as_view()),
     re_path(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/apps/', include('openapi.sub_urls.app_url')),
@@ -87,32 +122,37 @@ urlpatterns = [
     # 应用部署
     re_path(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/app-model/deploy$', AppDeployView.as_view()),
     # 智能部署模板（自动判断安装或升级）
-    re_path(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/app-model/smart-deploy$', SmartDeployTemplateView.as_view()),
+    re_path(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/app-model/smart-deploy$',
+            SmartDeployTemplateView.as_view()),
     # 应用灰度发布
-    re_path(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/apps/(?P<app_id>[\d\-]+)/gray-release$', GrayReleaseView.as_view()),
+    re_path(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/apps/(?P<app_id>[\d\-]+)/gray-release$',
+            GrayReleaseView.as_view()),
     # 调整灰度比例
-    re_path(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/apps/(?P<app_id>[\d\-]+)/gray-ratio$', UpdateGrayRatioView.as_view()),
+    re_path(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/apps/(?P<app_id>[\d\-]+)/gray-ratio$',
+            UpdateGrayRatioView.as_view()),
     # 灰度回滚
-    re_path(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/apps/(?P<app_id>[\d\-]+)/gray-rollback$', GrayRollbackView.as_view()),
+    re_path(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/apps/(?P<app_id>[\d\-]+)/gray-rollback$',
+            GrayRollbackView.as_view()),
     # 查询平台下的灰度发布列表
     re_path(r'^v1/gray-releases$', GrayReleaseListView.as_view()),
 
     # 创建应用导入记录
-    re_path(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/app-model/import$', AppModelImportEvent.as_view()),
+    re_path(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/app-model/import$',
+            AppModelImportEvent.as_view()),
     # 应用包目录查询
     re_path(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/app-model/import/(?P<event_id>[\w\-]+)/dir$',
-        AppTarballDirView.as_view()),
+            AppTarballDirView.as_view()),
     # 应用包生成本地组件库模版
     re_path(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/app-model/import/(?P<event_id>[\w\-]+)$',
-        AppImportView.as_view()),
+            AppImportView.as_view()),
     # 获取chart包信息
     re_path(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/app-model/import/(?P<event_id>[\w\-]+)/chart$',
-        AppChartInfo.as_view()),
+            AppChartInfo.as_view()),
     # 删除应用及所有资源
     re_path(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/app/(?P<app_id>[\w\-]+)/delete$',
-        DeleteApp.as_view()),
+            DeleteApp.as_view()),
     re_path(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/app/(?P<app_id>[\w\-]+)/helm_chart$',
-        HelmChart.as_view()),
+            HelmChart.as_view()),
     # 资源监控
     re_path(r'^v1/monitor/resource_over_view$', ResourceOverview.as_view()),
     re_path(r'^v1/monitor/service_overview$', ServiceOverview.as_view()),

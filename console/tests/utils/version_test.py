@@ -10,13 +10,25 @@ sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
 
-import django
 
-django.setup()
+def _load_test_dependencies():
+    """Keep the existing post-Django-setup import order and module bindings."""
+    import django
 
-from console.utils.version import compare_version
-from console.utils.version import get_new_versions
-from console.utils.version import sorted_versions
+    django.setup()
+
+    from console.utils.version import compare_version
+    from console.utils.version import get_new_versions
+    from console.utils.version import sorted_versions
+    return (
+        django,
+        compare_version,
+        get_new_versions,
+        sorted_versions,
+    )
+
+
+django, compare_version, get_new_versions, sorted_versions = _load_test_dependencies()
 
 
 class VersionUtilsTests(TestCase):

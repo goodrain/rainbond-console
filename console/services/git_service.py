@@ -8,8 +8,7 @@ from typing import Any, List, Optional, Tuple
 
 from console.constants import AppConstants
 from console.repositories.team_repo import team_gitlab_repo
-from django.conf import settings
-from goodrain_web.custom_config import custom_config
+
 from www.gitlab_http import GitlabApi
 from www.models.main import Tenants
 from www.tenantservice.baseservice import CodeRepositoriesService
@@ -28,9 +27,11 @@ class GitCodeService(object):
             for sqlobj in sql_repos:
                 d = {}
                 d["code_repos"] = sqlobj.respo_url
-                d["code_user"] = sqlobj.respo_url.split(":")[1].split("/")[0]  # type: ignore[union-attr]  # NOTE: respo_url typed Optional[str] by stubs but runtime always str here
+                d["code_user"] = sqlobj.respo_url.split(":")[1].split("/")[  # type: ignore[union-attr]
+                    0]  # type: ignore[union-attr]  # NOTE: respo_url typed Optional[str] by stubs but runtime always str here
                 d["code_project_name"] = sqlobj.repo_name
-                d["code_id"] = sqlobj.git_project_id  # type: ignore[assignment]  # NOTE: git_project_id is int but d is untyped dict; harmless
+                # NOTE: git_project_id is int but d is untyped dict; harmless
+                d["code_id"] = sqlobj.git_project_id  # type: ignore[assignment]
                 d["code_version"] = sqlobj.code_version
                 arr.append(d)
         return 200, "success", arr
@@ -61,11 +62,14 @@ class GitCodeService(object):
     def get_service_code_branch(self, user: Any, service: Any) -> List[str]:
         if service.service_source == AppConstants.SOURCE_CODE:
             code_type = ""
-            parsed_git_url = git_url_parse(service.git_url, False)
+            _ = git_url_parse(service.git_url, False)
             if service.code_from.startswith("gitlab") and service.code_from != "gitlab_manual":
                 code_type = "gitlab"
-            code, msg, branchs = self.get_code_branch(
-                user, code_type, service.git_url, service.git_project_id, current_branch=service.code_version)
+            code, msg, branchs = self.get_code_branch(user,
+                                                      code_type,
+                                                      service.git_url,
+                                                      service.git_project_id,
+                                                      current_branch=service.code_version)
             if code != 200:
                 return []
             return branchs  # type: ignore[return-value]  # NOTE: branchs is Optional[List[str]] but success path guarantees List

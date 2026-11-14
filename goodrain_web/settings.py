@@ -171,10 +171,7 @@ RAINSKILLS_AUDIT_STRICT = os.getenv("RAINSKILLS_AUDIT_STRICT", "true").lower() =
 RAINBOND_MCP_DEVICE_FLOW_ENABLED = os.getenv("RAINBOND_MCP_DEVICE_FLOW_ENABLED", "true").lower() == "true"
 RAINBOND_MCP_DEVICE_PUBLIC_ORIGIN = os.getenv("RAINBOND_MCP_DEVICE_PUBLIC_ORIGIN", "").rstrip("/")
 RAINBOND_MCP_DEVICE_TRUSTED_PROXY_CIDRS = tuple(
-    cidr.strip()
-    for cidr in os.getenv("RAINBOND_MCP_DEVICE_TRUSTED_PROXY_CIDRS", "").split(",")
-    if cidr.strip()
-)
+    cidr.strip() for cidr in os.getenv("RAINBOND_MCP_DEVICE_TRUSTED_PROXY_CIDRS", "").split(",") if cidr.strip())
 RAINBOND_MCP_DEVICE_RATE_LIMIT_INSPECT = int(os.getenv("RAINBOND_MCP_DEVICE_RATE_LIMIT_INSPECT", "5"))
 RAINBOND_MCP_DEVICE_RATE_LIMIT_INSPECT_WINDOW_SECONDS = int(
     os.getenv("RAINBOND_MCP_DEVICE_RATE_LIMIT_INSPECT_WINDOW_SECONDS", "600"))
@@ -201,8 +198,8 @@ AUTHENTICATION_BACKENDS = ('console.services.auth.backends.ModelBackend', 'conso
 
 LOGIN_URL = '/login'
 INSTALLED_APPS = ('django.contrib.auth', 'django.contrib.contenttypes', 'django.contrib.sessions', 'django.contrib.messages',
-                  'django.contrib.staticfiles', 'rest_framework', 'rest_framework.authtoken',
-                  'www', 'corsheaders', 'console', 'console.cloud')
+                  'django.contrib.staticfiles', 'rest_framework', 'rest_framework.authtoken', 'www', 'corsheaders', 'console',
+                  'console.cloud')
 # Application definition
 if IS_OPEN_API:
     INSTALLED_APPS = (
@@ -295,9 +292,12 @@ LOGGING = {
     },
     'formatters': {
         'standard': {
-            '()': 'goodrain_web.log_formatter.IPFormatter',
-            'format': "%(asctime)s [%(levelname)s] [%(process)d] [%(thread)d] [%(name)s] [%(funcName)s] [%(hostname)s] %(pathname)s:%(lineno)s - %(message)s",
-            'datefmt': "%Y-%m-%d %H:%M:%S"
+            '()':
+            'goodrain_web.log_formatter.IPFormatter',
+            'format': ('%(asctime)s [%(levelname)s] [%(process)d] [%(thread)d] [%(name)s] [%(funcName)s] [%(hostname)s] '
+                       '%(pathname)s:%(lineno)s - %(message)s'),
+            'datefmt':
+            "%Y-%m-%d %H:%M:%S"
         }
     },
     'handlers': {

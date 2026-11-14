@@ -9,16 +9,15 @@ except ImportError:  # pragma: no cover - Python 2 compatibility guard
     from urlparse import urlparse
 
 from console.services.telemetry_switch import (
-    get_external_telemetry_enabled as is_external_telemetry_enabled,
-)
+    get_external_telemetry_enabled as is_external_telemetry_enabled, )
 from console.utils.database_errors import is_transient_database_error
 from console.utils.external_http_errors import get_external_http_url, is_retryable_external_http_error
 from console.utils.offline import is_external_telemetry_disabled, is_offline_mode
 
-
 SENSITIVE_KEY_RE = re.compile(r"(token|password|secret|authorization|cookie|key|dsn)", re.I)
 SENSITIVE_VALUE_RE = re.compile(
-    r"\b((?:token|password|secret|authorization|cookie|dsn|api[_-]?key|access[_-]?key|secret[_-]?key)\s*[:=]\s*)(?:bearer\s+)?[^&\s\"'<>]+",
+    ('\\b((?:token|password|secret|authorization|cookie|dsn|api[_-]?key|access[_-]?key|secret[_-]?key)\\s*[:=]\\s*)(?:'
+     'bearer\\s+)?[^&\\s\\"\'<>]+'),
     re.I,
 )
 BEARER_VALUE_RE = re.compile(r"\b(bearer\s+)[a-z0-9._~+/=-]+", re.I)
@@ -71,6 +70,7 @@ DYNAMIC_SEGMENT_MARKERS = set([
 # Official release images inject the public Sentry ingest DSN at build time.
 # Source builds stay disabled until a DSN is provided.
 
+
 def str_to_bool(value):
     if value is True:
         return True
@@ -102,10 +102,7 @@ def get_env_value(env, *keys):
 
 
 def is_telemetry_disabled(env):
-    return (
-        is_external_telemetry_disabled(env)
-        or str_to_bool(env.get("RAINBOND_ERROR_REPORTING_DISABLED"))
-    )
+    return (is_external_telemetry_disabled(env) or str_to_bool(env.get("RAINBOND_ERROR_REPORTING_DISABLED")))
 
 
 def get_enabled(env, *scoped_keys):
@@ -155,11 +152,7 @@ def get_frontend_sentry_config(env=None):
         "SENTRY_FRONTEND_DSN",
         "SENTRY_DSN",
     )
-    enabled = (
-        not is_offline_mode(env)
-        and get_enabled(env, "RAINBOND_ERROR_REPORTING_FRONTEND_ENABLED")
-        and bool(dsn)
-    )
+    enabled = (not is_offline_mode(env) and get_enabled(env, "RAINBOND_ERROR_REPORTING_FRONTEND_ENABLED") and bool(dsn))
     return {
         "enabled": enabled,
         "dsn": dsn if enabled else "",
@@ -176,21 +169,13 @@ def get_frontend_sentry_config(env=None):
 
 
 def get_frontend_sentry_config_json(env=None):
-    return (
-        json.dumps(get_frontend_sentry_config(env), separators=(",", ":"))
-        .replace("<", "\\u003c")
-        .replace(">", "\\u003e")
-        .replace("&", "\\u0026")
-    )
+    return (json.dumps(get_frontend_sentry_config(env),
+                       separators=(",", ":")).replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026"))
 
 
 def get_posthog_enabled(env, project_token):
-    if (
-        is_offline_mode(env)
-        or is_telemetry_disabled(env)
-        or str_to_bool(env.get("RAINBOND_POSTHOG_DISABLED"))
-        or str_to_bool(env.get("POSTHOG_DISABLED"))
-    ):
+    if (is_offline_mode(env) or is_telemetry_disabled(env) or str_to_bool(env.get("RAINBOND_POSTHOG_DISABLED"))
+            or str_to_bool(env.get("POSTHOG_DISABLED"))):
         return False
     if "RAINBOND_POSTHOG_ENABLED" in env:
         return str_to_bool(env.get("RAINBOND_POSTHOG_ENABLED")) and bool(project_token)
@@ -215,31 +200,42 @@ def get_frontend_posthog_config(env=None):
             instance_id = ""
             instance_properties = {}
     return {
-        "enabled": enabled,
-        "projectToken": project_token if enabled else "",
-        "apiHost": get_env_value(env, "RAINBOND_POSTHOG_API_HOST", "POSTHOG_API_HOST") or DEFAULT_POSTHOG_API_HOST,
-        "uiHost": get_env_value(env, "RAINBOND_POSTHOG_UI_HOST", "POSTHOG_UI_HOST") or DEFAULT_POSTHOG_UI_HOST,
-        "defaults": get_env_value(env, "RAINBOND_POSTHOG_DEFAULTS", "POSTHOG_DEFAULTS") or DEFAULT_POSTHOG_CONFIG_DATE,
-        "personProfiles": get_env_value(env, "RAINBOND_POSTHOG_PERSON_PROFILES", "POSTHOG_PERSON_PROFILES") or DEFAULT_POSTHOG_PERSON_PROFILES,
-        "autocapture": not str_to_bool(env.get("RAINBOND_POSTHOG_AUTOCAPTURE_DISABLED") or env.get("POSTHOG_AUTOCAPTURE_DISABLED")),
-        "sessionRecording": str_to_bool(env.get("RAINBOND_POSTHOG_SESSION_RECORDING") or env.get("POSTHOG_SESSION_RECORDING")),
-        "maskAllText": str_to_bool(env.get("RAINBOND_POSTHOG_MASK_ALL_TEXT") or env.get("POSTHOG_MASK_ALL_TEXT")),
-        "maskAllElementAttributes": not str_to_bool(env.get("RAINBOND_POSTHOG_UNMASK_ELEMENT_ATTRIBUTES") or env.get("POSTHOG_UNMASK_ELEMENT_ATTRIBUTES")),
-        "capturePageleave": str_to_bool(env.get("RAINBOND_POSTHOG_CAPTURE_PAGELEAVE") or env.get("POSTHOG_CAPTURE_PAGELEAVE")),
-        "disableFlags": not str_to_bool(env.get("RAINBOND_POSTHOG_ENABLE_FLAGS") or env.get("POSTHOG_ENABLE_FLAGS")),
-        "debug": str_to_bool(env.get("RAINBOND_POSTHOG_DEBUG") or env.get("POSTHOG_DEBUG")),
-        "instanceId": instance_id,
-        "instanceProperties": instance_properties,
+        "enabled":
+        enabled,
+        "projectToken":
+        project_token if enabled else "",
+        "apiHost":
+        get_env_value(env, "RAINBOND_POSTHOG_API_HOST", "POSTHOG_API_HOST") or DEFAULT_POSTHOG_API_HOST,
+        "uiHost":
+        get_env_value(env, "RAINBOND_POSTHOG_UI_HOST", "POSTHOG_UI_HOST") or DEFAULT_POSTHOG_UI_HOST,
+        "defaults":
+        get_env_value(env, "RAINBOND_POSTHOG_DEFAULTS", "POSTHOG_DEFAULTS") or DEFAULT_POSTHOG_CONFIG_DATE,
+        "personProfiles":
+        get_env_value(env, "RAINBOND_POSTHOG_PERSON_PROFILES", "POSTHOG_PERSON_PROFILES") or DEFAULT_POSTHOG_PERSON_PROFILES,
+        "autocapture":
+        not str_to_bool(env.get("RAINBOND_POSTHOG_AUTOCAPTURE_DISABLED") or env.get("POSTHOG_AUTOCAPTURE_DISABLED")),
+        "sessionRecording":
+        str_to_bool(env.get("RAINBOND_POSTHOG_SESSION_RECORDING") or env.get("POSTHOG_SESSION_RECORDING")),
+        "maskAllText":
+        str_to_bool(env.get("RAINBOND_POSTHOG_MASK_ALL_TEXT") or env.get("POSTHOG_MASK_ALL_TEXT")),
+        "maskAllElementAttributes":
+        not str_to_bool(env.get("RAINBOND_POSTHOG_UNMASK_ELEMENT_ATTRIBUTES") or env.get("POSTHOG_UNMASK_ELEMENT_ATTRIBUTES")),
+        "capturePageleave":
+        str_to_bool(env.get("RAINBOND_POSTHOG_CAPTURE_PAGELEAVE") or env.get("POSTHOG_CAPTURE_PAGELEAVE")),
+        "disableFlags":
+        not str_to_bool(env.get("RAINBOND_POSTHOG_ENABLE_FLAGS") or env.get("POSTHOG_ENABLE_FLAGS")),
+        "debug":
+        str_to_bool(env.get("RAINBOND_POSTHOG_DEBUG") or env.get("POSTHOG_DEBUG")),
+        "instanceId":
+        instance_id,
+        "instanceProperties":
+        instance_properties,
     }
 
 
 def get_frontend_posthog_config_json(env=None):
-    return (
-        json.dumps(get_frontend_posthog_config(env), separators=(",", ":"))
-        .replace("<", "\\u003c")
-        .replace(">", "\\u003e")
-        .replace("&", "\\u0026")
-    )
+    return (json.dumps(get_frontend_posthog_config(env),
+                       separators=(",", ":")).replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026"))
 
 
 def sanitize_value(value, depth=0):
@@ -289,10 +285,7 @@ def normalize_path(value):
 
 
 def is_dynamic_segment(segment):
-    return bool(
-        re.match(r"^[0-9]+$", segment)
-        or re.match(r"^[0-9a-f]{8,}(-[0-9a-f]{4,})*$", segment, re.I)
-    )
+    return bool(re.match(r"^[0-9]+$", segment) or re.match(r"^[0-9a-f]{8,}(-[0-9a-f]{4,})*$", segment, re.I))
 
 
 def get_path_pattern(value):
@@ -329,10 +322,8 @@ def is_expected_region_frequent_error(hint):
     exception_type, _ = get_hint_exception(hint)
     if exception_type is None:
         return False
-    return (
-        getattr(exception_type, "__module__", "") == "www.apiclient.regionapibaseclient"
-        and getattr(exception_type, "__name__", "") == "CallApiFrequentError"
-    )
+    return (getattr(exception_type, "__module__", "") == "www.apiclient.regionapibaseclient"
+            and getattr(exception_type, "__name__", "") == "CallApiFrequentError")
 
 
 def is_expected_not_found_error(hint):
@@ -354,10 +345,8 @@ def is_expected_config_conflict(hint):
     exception_type, _ = get_hint_exception(hint)
     if exception_type is None:
         return False
-    return (
-        getattr(exception_type, "__module__", "") == "console.exception.exceptions"
-        and getattr(exception_type, "__name__", "") == "ConfigExistError"
-    )
+    return (getattr(exception_type, "__module__", "") == "console.exception.exceptions"
+            and getattr(exception_type, "__name__", "") == "ConfigExistError")
 
 
 def is_transient_database_exception(hint):
@@ -401,8 +390,7 @@ def get_external_http_error_target(hint):
 def before_send(event, hint):
     if not is_external_telemetry_enabled():
         return None
-    if (is_expected_region_frequent_error(hint) or is_expected_not_found_error(hint)
-            or is_expected_config_conflict(hint)):
+    if (is_expected_region_frequent_error(hint) or is_expected_not_found_error(hint) or is_expected_config_conflict(hint)):
         return None
     if is_transient_database_exception(hint):
         event["fingerprint"] = ["database-unavailable"]

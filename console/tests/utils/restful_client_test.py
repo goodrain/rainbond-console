@@ -10,15 +10,30 @@ sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
 
-import django
 
-django.setup()
+def _load_test_dependencies():
+    """Keep the existing post-Django-setup import order and module bindings."""
+    import django
 
-from console.exception.main import ServiceHandleException
-from console.exception.main import StoreNoPermissionsError
-from console.utils.restful_client import apiException
-from console.utils.restful_client import get_market_client
-from openapi_client.rest import ApiException
+    django.setup()
+
+    from console.exception.main import ServiceHandleException
+    from console.exception.main import StoreNoPermissionsError
+    from console.utils.restful_client import apiException
+    from console.utils.restful_client import get_market_client
+    from openapi_client.rest import ApiException
+    return (
+        django,
+        ServiceHandleException,
+        StoreNoPermissionsError,
+        apiException,
+        get_market_client,
+        ApiException,
+    )
+
+
+django, ServiceHandleException, StoreNoPermissionsError, apiException, get_market_client, ApiException = _load_test_dependencies(
+)
 
 
 class DummyResource(object):

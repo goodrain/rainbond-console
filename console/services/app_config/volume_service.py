@@ -6,7 +6,7 @@ import json
 import logging
 import os
 import re
-from typing import Any, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from console.constants import AppConstants, ServiceLanguageConstants
 from console.enum.component_enum import ComponentType
@@ -220,7 +220,7 @@ class AppVolumeService(object):
         如果集群中有该类型的存储，优先使用它而不是模板中的存储类型
         例如: PREFERRED_VOLUME_TYPE=sharedcfs
         """
-        settings = {}
+        settings: Dict[str, Any] = {}
         if volume_type in self.simple_volume_type:
             settings["changed"] = False
             return settings

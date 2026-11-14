@@ -47,20 +47,30 @@ class UploadLongVersionProxyViewTests(TestCase):
         request = self.view.initialize_request(
             self.factory.post(
                 "/console/enterprise/lg_pack_operate",
-                {"enterprise_id": "eid-1", "region_id": "region-1", "file": upload_file},
+                {
+                    "enterprise_id": "eid-1",
+                    "region_id": "region-1",
+                    "file": upload_file
+                },
                 format="multipart",
                 HTTP_AUTHORIZATION="JWT demo-token",
-            )
-        )
+            ))
         proxy_response = mock.Mock(status_code=200)
         proxy_response.json.return_value = {
             "code": 200,
             "message": "successful",
-            "bean": {"event_id": "evt-1", "file_name": "demo.jar"},
+            "bean": {
+                "event_id": "evt-1",
+                "file_name": "demo.jar"
+            },
         }
 
-        with mock.patch.object(enterprise.region_repo, "get_region_by_id", return_value=Obj(wsurl="wss://region.example.com/ws")), \
-                mock.patch.object(enterprise.requests, "post", return_value=proxy_response) as post_mock:
+        with (
+                mock.patch.object(enterprise.region_repo,
+                                  'get_region_by_id',
+                                  return_value=Obj(wsurl='wss://region.example.com/ws')),
+                mock.patch.object(enterprise.requests, 'post', return_value=proxy_response) as post_mock,
+        ):
             response = self.view.post(request)
 
         self.assertEqual(response.status_code, 200)
@@ -80,10 +90,12 @@ class UploadLongVersionProxyViewTests(TestCase):
         request = self.view.initialize_request(
             self.factory.post(
                 "/console/enterprise/lg_pack_operate",
-                {"enterprise_id": "eid-1", "region_id": "region-1"},
+                {
+                    "enterprise_id": "eid-1",
+                    "region_id": "region-1"
+                },
                 format="multipart",
-            )
-        )
+            ))
 
         response = self.view.post(request)
 
@@ -96,10 +108,13 @@ class UploadLongVersionProxyViewTests(TestCase):
         request = self.view.initialize_request(
             self.factory.post(
                 "/console/enterprise/lg_pack_operate",
-                {"enterprise_id": "eid-1", "region_id": "missing-region", "file": upload_file},
+                {
+                    "enterprise_id": "eid-1",
+                    "region_id": "missing-region",
+                    "file": upload_file
+                },
                 format="multipart",
-            )
-        )
+            ))
 
         with mock.patch.object(enterprise.region_repo, "get_region_by_id", return_value=None):
             response = self.view.post(request)

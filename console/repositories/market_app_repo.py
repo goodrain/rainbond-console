@@ -74,9 +74,7 @@ class RainbondCenterAppRepository(object):
         app.save()
         return app
 
-
-    def get_rainbond_app_version_by_app_id_and_version(self, app_id: str,
-                                                       version: str) -> Optional[RainbondCenterAppVersion]:
+    def get_rainbond_app_version_by_app_id_and_version(self, app_id: str, version: str) -> Optional[RainbondCenterAppVersion]:
         return self.get_rainbond_app_versions(app_id).filter(version=version).first()
 
     def get_app_version(self, app_id: str, version: str) -> Optional[RainbondCenterAppVersion]:
@@ -95,7 +93,6 @@ class RainbondCenterAppRepository(object):
     def get_rainbond_app_version_by_id(self, eid: str, group_id: str) -> QuerySet:
         return RainbondCenterAppVersion.objects.filter(group_id=group_id, scope="team")
 
-
     def get_rainbond_ceneter_app_by(self,
                                     scope: str,
                                     app_name: str,
@@ -104,8 +101,7 @@ class RainbondCenterAppRepository(object):
                                     page_size: int = 10,
                                     need_install: str = "",
                                     arch: str = "",
-                                    is_plugin: Optional[str] = None
-                                    ) -> Tuple[QuerySet, int]:
+                                    is_plugin: Optional[str] = None) -> Tuple[QuerySet, int]:
         if scope:
             app = RainbondCenterApp.objects.filter(scope=scope)
             if scope == "team" and teams:
@@ -194,10 +190,8 @@ class RainbondCenterAppRepository(object):
         return None
 
 
-
 class AppExportRepository(object):
-    def get_export_record_by_unique_key(self, group_key: str, version: str,
-                                        export_format: str) -> Optional[AppExportRecord]:
+    def get_export_record_by_unique_key(self, group_key: str, version: str, export_format: str) -> Optional[AppExportRecord]:
         return AppExportRecord.objects.filter(group_key=group_key, version=version, format=export_format).first()
 
     def get_export_record(self, eid: str, app_id: str, app_version: str,

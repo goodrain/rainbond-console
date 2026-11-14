@@ -2,7 +2,7 @@
 import datetime
 import json
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from django.db import transaction
 
@@ -124,7 +124,10 @@ class MarketApp(object):
 
         return res
 
-    def ensure_component_deps(self, new_deps: List[Any], tmpl_component_ids: List[str] = [], is_upgrade_one: bool = False) -> List[Any]:  # noqa: B006
+    def ensure_component_deps(self,
+                              new_deps: List[Any],
+                              tmpl_component_ids: List[str] = [],
+                              is_upgrade_one: bool = False) -> List[Any]:  # noqa: B006
         """
         确保组件依赖关系的正确性.
         根据已有的依赖关系, 新的依赖关系计算出最终的依赖关系, 计算规则如下:
@@ -152,7 +155,10 @@ class MarketApp(object):
         deps.extend(new_deps)
         return self._dedup_deps(deps)
 
-    def ensure_volume_deps(self, new_deps: List[Any], tmpl_component_ids: List[str] = [], is_upgrade_one: bool = False) -> List[Any]:  # noqa: B006
+    def ensure_volume_deps(self,
+                           new_deps: List[Any],
+                           tmpl_component_ids: List[str] = [],
+                           is_upgrade_one: bool = False) -> List[Any]:  # noqa: B006
         """
         确保存储依赖关系的正确性.
         根据已有的依赖关系, 新的依赖关系计算出最终的依赖关系, 计算规则如下:
@@ -224,9 +230,8 @@ class MarketApp(object):
                 "monitors": [monitor.to_dict() for monitor in cpt.monitors],
                 "http_rules": self._create_http_rules(cpt.http_rules, cert_id_rels),
                 "http_rule_configs": [json.loads(config.value) for config in cpt.http_rule_configs],
-                "component_k8s_attributes": [
-                    attr.to_dict() for attr in filter_vm_login_transfer_attributes(cpt.k8s_attributes)
-                ],
+                "component_k8s_attributes":
+                [attr.to_dict() for attr in filter_vm_login_transfer_attributes(cpt.k8s_attributes)],
             }
             volumes = [volume.to_dict() for volume in cpt.volumes]
             for volume in volumes:
