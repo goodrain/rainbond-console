@@ -166,6 +166,8 @@ class Node extends React.Component {
             highlighted={highlighted}
             color={color}
             metric={metric}
+            isVirtualMachine={this.props.isVirtualMachine}
+            markerColor={getStatusColor('internet')}
             contrastMode={this.props.contrastMode}
           />
         </g>
@@ -238,8 +240,10 @@ class Node extends React.Component {
   }
 }
 
-function mapStateToProps(state) {
+function mapStateToProps(state, ownProps) {
+  const serviceSource = state.getIn(['nodes', ownProps.id, 'service_source']);
   return {
+    isVirtualMachine: serviceSource === 'vm_run' || serviceSource === 'vm',
     exportingGraph: state.get("exportingGraph"),
     showingNetworks: state.get("showingNetworks"),
     currentTopology: state.get("currentTopology"),
