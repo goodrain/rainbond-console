@@ -12,6 +12,7 @@ import urllib.parse
 import urllib.request
 from typing import Any, Dict, List, Optional, Tuple
 
+from console.utils.vm_restore_attributes import public_vm_attributes
 from console.appstore.appstore import app_store
 from console.exception.main import (ExportAppError, RbdAppNotFound, RecordNotFound, RegionNotFound)
 from console.models.main import (RainbondCenterApp, RainbondCenterAppVersion, RegionConfig)
@@ -173,6 +174,8 @@ class AppExportService(object):
 
     def __normalize_export_item(self, item: Optional[dict]) -> dict:
         export_item = dict(item or {})
+        if "component_k8s_attributes" in export_item:
+            export_item["component_k8s_attributes"] = public_vm_attributes(export_item["component_k8s_attributes"])
         is_vm_component = self.__is_vm_template_component(export_item)
         if is_vm_component:
             export_item["service_type"] = "vm"

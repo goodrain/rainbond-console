@@ -7,6 +7,7 @@ import logging
 from typing import Any, Dict, Optional, Tuple
 
 import yaml
+from console.utils.vm_restore_attributes import reject_private_vm_attribute
 from console.constants import AppConstants
 from console.enum.component_enum import ComponentType
 from console.exception.bcode import ErrComponentPortExists
@@ -592,6 +593,7 @@ class AppCheckService(object):
     def __save_k8s_attribute(self, tenant: Tenants, service: TenantServiceInfo, name: str, value: Any,
                              save_type: str = "json") -> None:
         """Save a K8s attribute to console DB only. Region sync happens later in create_region_service."""
+        reject_private_vm_attribute(name)
         if name in VM_LOGIN_SECRET_ATTRIBUTE_NAMES:
             raise ServiceHandleException(
                 msg="VM login credentials are managed by the server",

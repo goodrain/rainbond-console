@@ -714,13 +714,28 @@
 | console.vm-capabilities.persistent-storage-options | VM创建能力响应返回真实持久化存储选项 | active | regression | console.views.app_config.app_domain.VirtualMachineCapabilityView.get | console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_vm_persistent_storage_options_share_service_options_and_filter_unavailable_types<br>console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_vm_storage_options_keep_saas_provider_override<br>console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_vm_persistent_storage_options_accept_dict_and_reject_malformed_region_responses<br>console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_vm_capabilities_include_persistent_storage_options_and_failure_is_not_success |
 | console.vm-create.port-operator | VM SSH port uses a string operator when the display name is absent | active | regression | console.views.app_create.vm_run.VMRunCreateView.post | console/tests/vm_example_password_login_test.py::VMExamplePasswordLoginTests.test_missing_display_name_keeps_ssh_port_operator_a_string |
 | console.vm-example.password-login-bootstrap | Ubuntu VM 示例登录初始化与凭据脱敏 | active | regression | console.views.app_create.vm_run.VMRunCreateView.post | console/tests/vm_example_password_login_test.py::VMExamplePasswordLoginTests |
+| console.vm-jobs.durable-observation | Persist VM task request and reconcile Region evidence across restart | active | integration | console.services.vm_restore_worker.VMJobRunner | console/tests/vm_job_runtime_test.py<br>console/tests/vm_job_process_restart_test.py |
+| console.vm-jobs.scoped-status | Report scoped durable task status and unavailable write capabilities | active | integration | GET /console/teams/{team}/apps/{alias}/vm-jobs/{operation} | console/tests/vm_job_views_test.py |
+| console.vm-jobs.supervised-runtime | Supervise web and durable VM jobs with bounded shutdown | active | integration | console.vm_job_supervisor.supervise | console/tests/vm_job_supervisor_test.py<br>console/tests/vm_job_health_test.py |
 | console.vm-overview.vnc-url-plugin-fallback | 在缺少查询参数时从插件回填虚拟机概览 VNC 地址 | active | regression | console.views.app_overview.AppDetailView.get | console/tests/vm_detail_view_test.py::AppVMDetailViewTests.test_get_builds_vm_vnc_url_from_plugin_fallback_when_query_param_missing |
 | console.vm-profile.template-root-disk-fallback | VM profile falls back to template root disk metadata | active | regression | console.services.virtual_machine.VirtualMachineService.get_vm_profile | console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_get_vm_profile_falls_back_to_template_root_disk_metadata_when_asset_missing |
+| console.vm-restore.attribute-transfer | VM restore private attribute transfer boundary | active | regression | console.services.vm_login_security.filter_vm_login_transfer_attributes | console/tests/vm_restore_attribute_transfer_test.py::VMRestoreAttributeTransferTestCase<br>console/tests/vm_restore_attribute_transfer_test.py::VMRestoreStoredTemplateTransferTestCase<br>console/tests/vm_restore_attribute_transfer_test.py::VMRestorePublicVersionComparisonTestCase |
+| console.vm-restore.journal | Internal durable VM restore journal | active | integration | console.services.vm_restore_journal.VMRestoreJournal | console/tests/vm_restore_journal_test.py::VMRestoreJournalTestCase |
+| console.vm-restore.private-attributes | VM restore private attribute public boundary | active | regression | console.services.k8s_attribute.ComponentK8sAttributeService | console/tests/vm_restore_private_attributes_test.py::VMRestorePrivateAttributesTestCase |
+| console.vm-restore.region-rpc-v1 | 虚拟机恢复作用域有界RPC | active | integration | www.apiclient.regionapi.RegionInvokeApi.command_vm_restore | console/tests/vm_restore_rpc_test.py::VMRestoreRPCSDKTests |
 | console.vm-root-disk-selected-storage-type | update_check_app 为新建虚拟机根盘使用所选存储类型 | active | regression | console.services.app.AppService.update_check_app | console/tests/vm_live_migration_storage_test.py::VMLiveMigrationStorageTests.test_update_check_app_uses_selected_storage_type_for_new_vm_root_disk |
 | console.vm-run.new-asset-image-name-validation | 校验新建虚拟机镜像资产名称 | active | regression | console.views.app_create.vm_run.VMRunCreateView.post | console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_vm_run_rejects_invalid_image_name_before_new_asset_or_component_creation<br>console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_vm_run_rejects_non_string_image_name_and_import_sources<br>console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_vm_runtime_image_name_validator_enforces_oci_tag_boundaries |
 | console.vm-run.platform-runtime-guard | 虚拟机平台异常时禁止创建虚拟机组件 | active | regression | console.views.app_create.vm_run.VMRunCreateView.post | console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_vm_run_create_rejects_when_vm_plugin_not_running |
 | console.vm-run.ssh-public-key-bootstrap | 校验 Linux 虚拟机 SSH 初始化并登记内网端口 | active | regression | console.views.app_create.vm_run.VMRunCreateView.post | console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_vm_ssh_bootstrap_accepts_only_linux_disk_images<br>console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_vm_run_rejects_invalid_ssh_before_creating_asset_or_component<br>console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_vm_run_records_linux_ssh_runtime_and_internal_port_before_returning<br>console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_vm_run_rolls_back_asset_component_attrs_group_and_port_when_ssh_port_fails<br>console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_build_vm_runtime_attrs_maps_ssh_inputs_and_preserves_uefi_firmware_mode<br>console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_create_region_service_includes_ssh_attrs_and_internal_port_without_exposing_key_in_profile |
+| console.vm-snapshot.durable-worker | 普通快照持久任务入队与唯一后台执行闭环 | active | integration | console.services.vm_snapshot_jobs.SnapshotJobService.submit -> VMJobRunner default snapshot factory | console/tests/vm_snapshot_jobs_worker_test.py |
+| console.vm-snapshot.enqueue-api | Scoped durable snapshot HTTP enqueue and canonical status | active | integration | POST /console/teams/{team}/apps/{alias}/vm-snapshots -> SQL job; GET /vm-jobs/{operation_id} | console/tests/vm_snapshot_enqueue_api_test.py |
+| console.vm-snapshot.existing-capability | 当前虚拟机完整盘集合快照能力读取 | active | integration | GET /console/teams/{team}/apps/{alias}/vm-snapshot-capability | console/tests/vm_existing_snapshot_capability_test.py::ExistingVMSnapshotCapabilityTests |
+| console.vm-snapshot.manifest-ack-helper | 普通虚拟机快照manifest提交后ACK构造与证据拒绝 | active | integration | console.services.vm_snapshot_manifest_ack.SnapshotManifestService | console/tests/vm_snapshot_manifest_ack_test.py |
+| console.vm-snapshot.private-control-boundary | Private VM journal public boundary and original exposure controls | active | regression | public attribute service/repository and isolated SQL internal journal | console/tests/vm_snapshot_private_boundary_test.py |
+| console.vm-snapshot.read-api | 在实际Main源码上按组件权限读取快照 | active | integration | GET /console/teams/{tenantName}/apps/{serviceAlias}/vm-snapshots[/{snapshot_name}] | console/tests/vm_snapshot_read_api_test.py::VMSnapshotReadAPITestCase |
+| console.vm-snapshot.sdk-hooks | Bounded snapshot SDK raw status and private transport | active | integration | RegionInvokeApi snapshot methods | console/tests/vm_snapshot_create_api_test.py |
 | console.vm-storage-any-access-mode | 允许虚拟机使用任意访问模式的存储 | active | regression | console.services.app_config.volume_service.AppVolumeService.build_vm_live_migration_volume_settings | console/tests/vm_live_migration_storage_test.py::VMLiveMigrationStorageTests |
+| console.vm-storage.managed-snapshot-projection | Strict managed snapshot storage eligibility projection | active | regression | AppVolumeService.get_vm_persistent_storage_options -> project_creation_storage_option | console/tests/vm_managed_storage_projection_test.py |
 | console.vm-template-import.delete-abnormal-vm | delete 允许异常状态虚拟机跳过运行中校验 | active | regression | console.services.app_actions.app_manage.AppManageService.delete | console/tests/app_manage_test.py::AppManageVMRestoreDeleteTests.test_delete_allows_abnormal_vm_to_skip_running_guard |
 | console.vm-template-import.delete-restoring-vm | Allow deleting restoring VM components | active | regression | console.services.app_actions.app_manage.AppManageService.delete | console/tests/app_manage_test.py::AppManageVMRestoreDeleteTests |
 | console.vm-template-import.restore-operation-record | VM template import restore operation record exposes progress | active | unit | console.services.app_actions.app_log.AppEventService.build_vm_restore_event | console/tests/vm_profile_runtime_status_test.py::VMRestoreEventTests.test_build_vm_restore_event_exposes_progress_and_importer_logs<br>console/tests/vm_profile_runtime_status_test.py::VMRestoreEventTests.test_build_vm_restore_event_marks_success_after_import_finishes |
@@ -7848,6 +7863,36 @@
 - 代码路径: `console/views/app_create/vm_run.py`, `console/services/virtual_machine.py`, `console/services/vm_login_security.py`, `console/services/k8s_attribute.py`, `console/services/share_services.py`, `console/services/market_app/market_app.py`, `console/services/market_app/new_components.py`, `console/services/market_app/component.py`, `console/services/app_check_service.py`, `console/services/app.py`, `console/views/app_config/app_domain.py`
 - 测试路径: `console/tests/vm_example_password_login_test.py::VMExamplePasswordLoginTests`
 
+### Persist VM task request and reconcile Region evidence across restart
+
+- Capability ID: `console.vm-jobs.durable-observation`
+- 状态: `active`
+- 测试类型: `integration`
+- 接口类型: `workflow`
+- 业务入口: `console.services.vm_restore_worker.VMJobRunner`
+- 代码路径: `console/services/vm_restore_worker.py`, `console/services/vm_restore_journal.py`, `console/management/commands/run_vm_restore_jobs.py`
+- 测试路径: `console/tests/vm_job_runtime_test.py`, `console/tests/vm_job_process_restart_test.py`
+
+### Report scoped durable task status and unavailable write capabilities
+
+- Capability ID: `console.vm-jobs.scoped-status`
+- 状态: `active`
+- 测试类型: `integration`
+- 接口类型: `view_endpoint`
+- 业务入口: `GET /console/teams/{team}/apps/{alias}/vm-jobs/{operation}`
+- 代码路径: `console/views/vm_jobs.py`, `console/services/vm_snapshot_admission.py`
+- 测试路径: `console/tests/vm_job_views_test.py`
+
+### Supervise web and durable VM jobs with bounded shutdown
+
+- Capability ID: `console.vm-jobs.supervised-runtime`
+- 状态: `active`
+- 测试类型: `integration`
+- 接口类型: `workflow`
+- 业务入口: `console.vm_job_supervisor.supervise`
+- 代码路径: `console/vm_job_supervisor.py`, `console/services/vm_job_health.py`, `entrypoint.sh`
+- 测试路径: `console/tests/vm_job_supervisor_test.py`, `console/tests/vm_job_health_test.py`
+
 ### 在缺少查询参数时从插件回填虚拟机概览 VNC 地址
 
 - Capability ID: `console.vm-overview.vnc-url-plugin-fallback`
@@ -7867,6 +7912,46 @@
 - 业务入口: `console.services.virtual_machine.VirtualMachineService.get_vm_profile`
 - 代码路径: `console/services/virtual_machine.py`
 - 测试路径: `console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_get_vm_profile_falls_back_to_template_root_disk_metadata_when_asset_missing`
+
+### VM restore private attribute transfer boundary
+
+- Capability ID: `console.vm-restore.attribute-transfer`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `workflow`
+- 业务入口: `console.services.vm_login_security.filter_vm_login_transfer_attributes`
+- 代码路径: `console/services/vm_login_security.py`, `console/services/backup_service.py`, `console/services/market_app/original_app.py`, `console/services/market_app/app_restore.py`, `console/services/app_version_service.py`, `console/services/app.py`, `console/services/app_check_service.py`, `console/services/app_import_and_export_service.py`
+- 测试路径: `console/tests/vm_restore_attribute_transfer_test.py::VMRestoreAttributeTransferTestCase`, `console/tests/vm_restore_attribute_transfer_test.py::VMRestoreStoredTemplateTransferTestCase`, `console/tests/vm_restore_attribute_transfer_test.py::VMRestorePublicVersionComparisonTestCase`
+
+### Internal durable VM restore journal
+
+- Capability ID: `console.vm-restore.journal`
+- 状态: `active`
+- 测试类型: `integration`
+- 接口类型: `service_method`
+- 业务入口: `console.services.vm_restore_journal.VMRestoreJournal`
+- 代码路径: `console/services/vm_restore_journal.py`
+- 测试路径: `console/tests/vm_restore_journal_test.py::VMRestoreJournalTestCase`
+
+### VM restore private attribute public boundary
+
+- Capability ID: `console.vm-restore.private-attributes`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `workflow`
+- 业务入口: `console.services.k8s_attribute.ComponentK8sAttributeService`
+- 代码路径: `console/utils/vm_restore_attributes.py`, `console/repositories/k8s_attribute.py`, `console/services/k8s_attribute.py`
+- 测试路径: `console/tests/vm_restore_private_attributes_test.py::VMRestorePrivateAttributesTestCase`
+
+### 虚拟机恢复作用域有界RPC
+
+- Capability ID: `console.vm-restore.region-rpc-v1`
+- 状态: `active`
+- 测试类型: `integration`
+- 接口类型: `service_method`
+- 业务入口: `www.apiclient.regionapi.RegionInvokeApi.command_vm_restore`
+- 代码路径: `www/apiclient/regionapi.py`, `console/utils/vm_restore_rpc.py`
+- 测试路径: `console/tests/vm_restore_rpc_test.py::VMRestoreRPCSDKTests`
 
 ### update_check_app 为新建虚拟机根盘使用所选存储类型
 
@@ -7908,6 +7993,76 @@
 - 代码路径: `console/views/app_create/vm_run.py`, `console/services/virtual_machine.py`
 - 测试路径: `console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_vm_ssh_bootstrap_accepts_only_linux_disk_images`, `console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_vm_run_rejects_invalid_ssh_before_creating_asset_or_component`, `console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_vm_run_records_linux_ssh_runtime_and_internal_port_before_returning`, `console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_vm_run_rolls_back_asset_component_attrs_group_and_port_when_ssh_port_fails`, `console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_build_vm_runtime_attrs_maps_ssh_inputs_and_preserves_uefi_firmware_mode`, `console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_create_region_service_includes_ssh_attrs_and_internal_port_without_exposing_key_in_profile`
 
+### 普通快照持久任务入队与唯一后台执行闭环
+
+- Capability ID: `console.vm-snapshot.durable-worker`
+- 状态: `active`
+- 测试类型: `integration`
+- 接口类型: `workflow`
+- 业务入口: `console.services.vm_snapshot_jobs.SnapshotJobService.submit -> VMJobRunner default snapshot factory`
+- 代码路径: `console/services/vm_snapshot_jobs.py`, `console/services/vm_snapshot_authority.py`, `console/services/vm_snapshot_job_worker.py`, `console/services/vm_restore_journal.py`, `console/services/vm_restore_worker.py`, `console/views/vm_jobs.py`
+- 测试路径: `console/tests/vm_snapshot_jobs_worker_test.py`
+
+### Scoped durable snapshot HTTP enqueue and canonical status
+
+- Capability ID: `console.vm-snapshot.enqueue-api`
+- 状态: `active`
+- 测试类型: `integration`
+- 接口类型: `view_endpoint`
+- 业务入口: `POST /console/teams/{team}/apps/{alias}/vm-snapshots -> SQL job; GET /vm-jobs/{operation_id}`
+- 代码路径: `console/services/vm_snapshot_create.py`, `console/views/vm_snapshot.py`, `console/urls/__init__.py`
+- 测试路径: `console/tests/vm_snapshot_enqueue_api_test.py`
+
+### 当前虚拟机完整盘集合快照能力读取
+
+- Capability ID: `console.vm-snapshot.existing-capability`
+- 状态: `active`
+- 测试类型: `integration`
+- 接口类型: `view_endpoint`
+- 业务入口: `GET /console/teams/{team}/apps/{alias}/vm-snapshot-capability`
+- 代码路径: `console/services/vm_existing_snapshot_capability.py`, `console/services/vm_snapshot_read.py`, `console/views/vm_snapshot.py`, `www/apiclient/regionapi.py`, `console/urls/__init__.py`
+- 测试路径: `console/tests/vm_existing_snapshot_capability_test.py::ExistingVMSnapshotCapabilityTests`
+
+### 普通虚拟机快照manifest提交后ACK构造与证据拒绝
+
+- Capability ID: `console.vm-snapshot.manifest-ack-helper`
+- 状态: `active`
+- 测试类型: `integration`
+- 接口类型: `workflow`
+- 业务入口: `console.services.vm_snapshot_manifest_ack.SnapshotManifestService`
+- 代码路径: `console/services/vm_snapshot_manifest_ack.py`
+- 测试路径: `console/tests/vm_snapshot_manifest_ack_test.py`
+
+### Private VM journal public boundary and original exposure controls
+
+- Capability ID: `console.vm-snapshot.private-control-boundary`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `workflow`
+- 业务入口: `public attribute service/repository and isolated SQL internal journal`
+- 代码路径: `console/services/k8s_attribute.py`, `console/repositories/k8s_attribute.py`, `console/utils/vm_restore_attributes.py`
+- 测试路径: `console/tests/vm_snapshot_private_boundary_test.py`
+
+### 在实际Main源码上按组件权限读取快照
+
+- Capability ID: `console.vm-snapshot.read-api`
+- 状态: `active`
+- 测试类型: `integration`
+- 接口类型: `view_endpoint`
+- 业务入口: `GET /console/teams/{tenantName}/apps/{serviceAlias}/vm-snapshots[/{snapshot_name}]`
+- 代码路径: `console/services/vm_snapshot_read.py`, `console/views/vm_snapshot.py`, `console/urls/__init__.py`, `console/utils/perms_route_config.py`, `www/apiclient/regionapi.py`
+- 测试路径: `console/tests/vm_snapshot_read_api_test.py::VMSnapshotReadAPITestCase`
+
+### Bounded snapshot SDK raw status and private transport
+
+- Capability ID: `console.vm-snapshot.sdk-hooks`
+- 状态: `active`
+- 测试类型: `integration`
+- 接口类型: `service_method`
+- 业务入口: `RegionInvokeApi snapshot methods`
+- 代码路径: `www/apiclient/regionapi.py`
+- 测试路径: `console/tests/vm_snapshot_create_api_test.py`
+
 ### 允许虚拟机使用任意访问模式的存储
 
 - Capability ID: `console.vm-storage-any-access-mode`
@@ -7917,6 +8072,16 @@
 - 业务入口: `console.services.app_config.volume_service.AppVolumeService.build_vm_live_migration_volume_settings`
 - 代码路径: `console/services/app_config/volume_service.py`
 - 测试路径: `console/tests/vm_live_migration_storage_test.py::VMLiveMigrationStorageTests`
+
+### Strict managed snapshot storage eligibility projection
+
+- Capability ID: `console.vm-storage.managed-snapshot-projection`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `AppVolumeService.get_vm_persistent_storage_options -> project_creation_storage_option`
+- 代码路径: `console/services/vm_storage_snapshot.py`, `console/services/app_config/volume_service.py`
+- 测试路径: `console/tests/vm_managed_storage_projection_test.py`
 
 ### delete 允许异常状态虚拟机跳过运行中校验
 

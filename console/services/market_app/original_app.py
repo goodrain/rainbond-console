@@ -1,6 +1,7 @@
 # -*- coding: utf8 -*-
 from typing import Any, Dict, List, Optional
 
+from console.utils.vm_restore_attributes import public_vm_attributes
 from console.repositories.k8s_resources import k8s_resources_repo
 from console.services.market_app.component import Component
 # service
@@ -99,7 +100,7 @@ class OriginalApp(object):
             monitors = service_monitor_repo.list_by_service_ids(cpt.tenant_id, [cpt.service_id])
             graphs = component_graph_repo.list(cpt.service_id)
             plugin_deps = app_plugin_relation_repo.list_by_component_ids([cpt.service_id])
-            k8s_attrs = k8s_attribute_repo.get_by_component_id(cpt.service_id)
+            k8s_attrs = public_vm_attributes(k8s_attribute_repo.get_by_component_id(cpt.service_id))
             component = Component(
                 cpt,
                 component_source,

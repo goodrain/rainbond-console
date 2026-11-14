@@ -13,6 +13,7 @@ from .component import Component
 from .component_group import ComponentGroup
 
 # service
+from console.utils.vm_restore_attributes import public_vm_attributes, public_attribute_fields
 from console.services.app_config import label_service
 from console.services.app_version_auto_snapshot import app_version_auto_snapshot_service
 # repository
@@ -253,7 +254,20 @@ class AppRestore(MarketApp):
         # graphs
         graphs = [ComponentGraph(**graph) for graph in snap["component_graphs"]]
         service_labels = [ServiceLabels(**label) for label in snap["service_labels"]]
-        k8s_attributes = [ComponentK8sAttributes(**attribute) for attribute in snap["component_k8s_attributes"]]
+        k8s_attributes = []
+        if snap.get("component_k8s_attributes"):
+            try:
+                target = TenantServiceInfo.objects.get(tenant_id=self.tenant.tenant_id,
+                                                       service_id=component.service_id,
+                                                       service_region=self.region_name)
+            except TenantServiceInfo.DoesNotExist:
+                raise ServiceHandleException(msg="Snapshot component scope conflict", status_code=409)
+            k8s_attributes = [
+                ComponentK8sAttributes(tenant_id=target.tenant_id,
+                                       component_id=target.service_id,
+                                       **public_attribute_fields(attribute))
+                for attribute in public_vm_attributes(snap["component_k8s_attributes"])
+            ]
         cpt = Component(
             component=component,
             component_source=component_source,

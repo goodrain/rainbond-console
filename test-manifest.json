@@ -13703,6 +13703,68 @@
       "status": "active"
     },
     {
+      "id": "console.vm-jobs.durable-observation",
+      "title": "Persist VM task request and reconcile Region evidence across restart",
+      "title_zh": "Persist VM task request and reconcile Region evidence across restart",
+      "interface_type": "workflow",
+      "interface": "console.services.vm_restore_worker.VMJobRunner",
+      "code_paths": [
+        "console/services/vm_restore_worker.py",
+        "console/services/vm_restore_journal.py",
+        "console/management/commands/run_vm_restore_jobs.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/vm_job_runtime_test.py"
+        },
+        {
+          "path": "console/tests/vm_job_process_restart_test.py"
+        }
+      ],
+      "test_type": "integration",
+      "status": "active"
+    },
+    {
+      "id": "console.vm-jobs.scoped-status",
+      "title": "Report scoped durable task status and unavailable write capabilities",
+      "title_zh": "Report scoped durable task status and unavailable write capabilities",
+      "interface_type": "view_endpoint",
+      "interface": "GET /console/teams/{team}/apps/{alias}/vm-jobs/{operation}",
+      "code_paths": [
+        "console/views/vm_jobs.py",
+        "console/services/vm_snapshot_admission.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/vm_job_views_test.py"
+        }
+      ],
+      "test_type": "integration",
+      "status": "active"
+    },
+    {
+      "id": "console.vm-jobs.supervised-runtime",
+      "title": "Supervise web and durable VM jobs with bounded shutdown",
+      "title_zh": "Supervise web and durable VM jobs with bounded shutdown",
+      "interface_type": "workflow",
+      "interface": "console.vm_job_supervisor.supervise",
+      "code_paths": [
+        "console/vm_job_supervisor.py",
+        "console/services/vm_job_health.py",
+        "entrypoint.sh"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/vm_job_supervisor_test.py"
+        },
+        {
+          "path": "console/tests/vm_job_health_test.py"
+        }
+      ],
+      "test_type": "integration",
+      "status": "active"
+    },
+    {
       "id": "console.vm-overview.vnc-url-plugin-fallback",
       "title": "Build VM overview VNC URL from plugin fallback",
       "title_zh": "在缺少查询参数时从插件回填虚拟机概览 VNC 地址",
@@ -13733,6 +13795,77 @@
         {
           "path": "console/tests/virtual_machine_service_test.py",
           "selector": "VirtualMachineServiceTests.test_get_vm_profile_falls_back_to_template_root_disk_metadata_when_asset_missing"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.vm-restore.attribute-transfer",
+      "title": "VM restore private attribute transfer boundary",
+      "title_zh": "VM restore private attribute transfer boundary",
+      "interface_type": "workflow",
+      "interface": "console.services.vm_login_security.filter_vm_login_transfer_attributes",
+      "code_paths": [
+        "console/services/vm_login_security.py",
+        "console/services/backup_service.py",
+        "console/services/market_app/original_app.py",
+        "console/services/market_app/app_restore.py",
+        "console/services/app_version_service.py",
+        "console/services/app.py",
+        "console/services/app_check_service.py",
+        "console/services/app_import_and_export_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/vm_restore_attribute_transfer_test.py",
+          "selector": "VMRestoreAttributeTransferTestCase"
+        },
+        {
+          "path": "console/tests/vm_restore_attribute_transfer_test.py",
+          "selector": "VMRestoreStoredTemplateTransferTestCase"
+        },
+        {
+          "path": "console/tests/vm_restore_attribute_transfer_test.py",
+          "selector": "VMRestorePublicVersionComparisonTestCase"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.vm-restore.journal",
+      "title": "Internal durable VM restore journal",
+      "title_zh": "Internal durable VM restore journal",
+      "interface_type": "service_method",
+      "interface": "console.services.vm_restore_journal.VMRestoreJournal",
+      "code_paths": [
+        "console/services/vm_restore_journal.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/vm_restore_journal_test.py",
+          "selector": "VMRestoreJournalTestCase"
+        }
+      ],
+      "test_type": "integration",
+      "status": "active"
+    },
+    {
+      "id": "console.vm-restore.private-attributes",
+      "title": "VM restore private attribute public boundary",
+      "title_zh": "VM restore private attribute public boundary",
+      "interface_type": "workflow",
+      "interface": "console.services.k8s_attribute.ComponentK8sAttributeService",
+      "code_paths": [
+        "console/utils/vm_restore_attributes.py",
+        "console/repositories/k8s_attribute.py",
+        "console/services/k8s_attribute.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/vm_restore_private_attributes_test.py",
+          "selector": "VMRestorePrivateAttributesTestCase"
         }
       ],
       "test_type": "regression",
@@ -13841,6 +13974,144 @@
       "status": "active"
     },
     {
+      "id": "console.vm-snapshot.durable-worker",
+      "title": "Durable snapshot enqueue and single default worker lifecycle",
+      "title_zh": "普通快照持久任务入队与唯一后台执行闭环",
+      "interface_type": "workflow",
+      "interface": "console.services.vm_snapshot_jobs.SnapshotJobService.submit -> VMJobRunner default snapshot factory",
+      "code_paths": [
+        "console/services/vm_snapshot_jobs.py",
+        "console/services/vm_snapshot_authority.py",
+        "console/services/vm_snapshot_job_worker.py",
+        "console/services/vm_restore_journal.py",
+        "console/services/vm_restore_worker.py",
+        "console/views/vm_jobs.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/vm_snapshot_jobs_worker_test.py"
+        }
+      ],
+      "test_type": "integration",
+      "status": "active"
+    },
+    {
+      "id": "console.vm-snapshot.enqueue-api",
+      "title": "Scoped durable snapshot HTTP enqueue and canonical status",
+      "title_zh": "Scoped durable snapshot HTTP enqueue and canonical status",
+      "interface_type": "view_endpoint",
+      "interface": "POST /console/teams/{team}/apps/{alias}/vm-snapshots -> SQL job; GET /vm-jobs/{operation_id}",
+      "code_paths": [
+        "console/services/vm_snapshot_create.py",
+        "console/views/vm_snapshot.py",
+        "console/urls/__init__.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/vm_snapshot_enqueue_api_test.py"
+        }
+      ],
+      "test_type": "integration",
+      "status": "active"
+    },
+    {
+      "id": "console.vm-snapshot.existing-capability",
+      "title": "Current VM complete disk-set snapshot capability read",
+      "title_zh": "当前虚拟机完整盘集合快照能力读取",
+      "interface_type": "view_endpoint",
+      "interface": "GET /console/teams/{team}/apps/{alias}/vm-snapshot-capability",
+      "code_paths": [
+        "console/services/vm_existing_snapshot_capability.py",
+        "console/services/vm_snapshot_read.py",
+        "console/views/vm_snapshot.py",
+        "www/apiclient/regionapi.py",
+        "console/urls/__init__.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/vm_existing_snapshot_capability_test.py",
+          "selector": "ExistingVMSnapshotCapabilityTests"
+        }
+      ],
+      "test_type": "integration",
+      "status": "active"
+    },
+    {
+      "id": "console.vm-snapshot.manifest-ack-helper",
+      "title": "Durable snapshot manifest and exact worker ACK helper",
+      "title_zh": "普通虚拟机快照manifest提交后ACK构造与证据拒绝",
+      "interface_type": "workflow",
+      "interface": "console.services.vm_snapshot_manifest_ack.SnapshotManifestService",
+      "code_paths": [
+        "console/services/vm_snapshot_manifest_ack.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/vm_snapshot_manifest_ack_test.py"
+        }
+      ],
+      "test_type": "integration",
+      "status": "active"
+    },
+    {
+      "id": "console.vm-snapshot.private-control-boundary",
+      "title": "Private VM journal public boundary and original exposure controls",
+      "title_zh": "Private VM journal public boundary and original exposure controls",
+      "interface_type": "workflow",
+      "interface": "public attribute service/repository and isolated SQL internal journal",
+      "code_paths": [
+        "console/services/k8s_attribute.py",
+        "console/repositories/k8s_attribute.py",
+        "console/utils/vm_restore_attributes.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/vm_snapshot_private_boundary_test.py"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.vm-snapshot.read-api",
+      "title": "Read component snapshots through stock Main scoped GETs",
+      "title_zh": "在实际Main源码上按组件权限读取快照",
+      "interface_type": "view_endpoint",
+      "interface": "GET /console/teams/{tenantName}/apps/{serviceAlias}/vm-snapshots[/{snapshot_name}]",
+      "code_paths": [
+        "console/services/vm_snapshot_read.py",
+        "console/views/vm_snapshot.py",
+        "console/urls/__init__.py",
+        "console/utils/perms_route_config.py",
+        "www/apiclient/regionapi.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/vm_snapshot_read_api_test.py",
+          "selector": "VMSnapshotReadAPITestCase"
+        }
+      ],
+      "test_type": "integration",
+      "status": "active"
+    },
+    {
+      "id": "console.vm-snapshot.sdk-hooks",
+      "title": "Bounded snapshot SDK raw status and private transport",
+      "title_zh": "Bounded snapshot SDK raw status and private transport",
+      "interface_type": "service_method",
+      "interface": "RegionInvokeApi snapshot methods",
+      "code_paths": [
+        "www/apiclient/regionapi.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/vm_snapshot_create_api_test.py"
+        }
+      ],
+      "test_type": "integration",
+      "status": "active"
+    },
+    {
       "id": "console.vm-storage-any-access-mode",
       "title": "Allow VM storage with any access mode",
       "title_zh": "允许虚拟机使用任意访问模式的存储",
@@ -13853,6 +14124,24 @@
         {
           "path": "console/tests/vm_live_migration_storage_test.py",
           "selector": "VMLiveMigrationStorageTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.vm-storage.managed-snapshot-projection",
+      "title": "Strict managed snapshot storage eligibility projection",
+      "title_zh": "Strict managed snapshot storage eligibility projection",
+      "interface_type": "service_method",
+      "interface": "AppVolumeService.get_vm_persistent_storage_options -> project_creation_storage_option",
+      "code_paths": [
+        "console/services/vm_storage_snapshot.py",
+        "console/services/app_config/volume_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/vm_managed_storage_projection_test.py"
         }
       ],
       "test_type": "regression",
@@ -14317,6 +14606,25 @@
         }
       ],
       "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.vm-restore.region-rpc-v1",
+      "title": "VM restore scoped bounded Region RPC v1",
+      "title_zh": "虚拟机恢复作用域有界RPC",
+      "interface_type": "service_method",
+      "interface": "www.apiclient.regionapi.RegionInvokeApi.command_vm_restore",
+      "code_paths": [
+        "www/apiclient/regionapi.py",
+        "console/utils/vm_restore_rpc.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/vm_restore_rpc_test.py",
+          "selector": "VMRestoreRPCSDKTests"
+        }
+      ],
+      "test_type": "integration",
       "status": "active"
     }
   ]

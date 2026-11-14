@@ -3,6 +3,8 @@
 from django.urls import include, re_path, path
 
 import console.utils.perms_route_config as perms
+from console.views.vm_snapshot import VMSnapshotListView, VMSnapshotDetailView, VMSnapshotCapabilityView
+from console.views.vm_jobs import VMJobCapabilityView, VMJobStatusView
 from console.views.delivery_templates import (
     DeliveryTemplatesView,
     DeliverySourceView,
@@ -1089,6 +1091,26 @@ urlpatterns = [
     # 应用删除
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/delete$', DeleteAppView.as_view(),
             perms.APP_OVERVIEW_CREATE),
+
+    re_path(
+        r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/vm-jobs/capabilities$',
+        VMJobCapabilityView.as_view(), perms.APP_VM_SNAPSHOT_READ),
+
+    # Existing durable job status path; snapshot-only canonical alias lives in its delegate.
+    re_path(
+        r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/vm-jobs/(?P<operation_id>[a-z0-9_.-]{1,128})$',
+        VMJobStatusView.as_view(), perms.APP_VM_SNAPSHOT_READ),
+
+    # Scoped VM snapshot reads.
+    re_path(
+        r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/vm-snapshot-capability$',
+        VMSnapshotCapabilityView.as_view(), perms.APP_VM_SNAPSHOT_READ),
+    re_path(
+        r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/vm-snapshots$',
+        VMSnapshotListView.as_view(), perms.APP_VM_SNAPSHOT_PREPARE),
+    re_path(
+        r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/vm-snapshots/(?P<snapshot_name>[^/]+)$',
+        VMSnapshotDetailView.as_view(), perms.APP_VM_SNAPSHOT_READ),
 
     # 应用详情
     re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/detail', AppDetailView.as_view(),

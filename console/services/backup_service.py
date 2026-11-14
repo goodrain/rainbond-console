@@ -6,6 +6,7 @@ import json
 import logging
 from typing import Any, Dict, List, Optional, Tuple
 
+from console.utils.vm_restore_attributes import public_vm_attributes
 from console.enum.component_enum import is_state
 from console.exception.main import ServiceHandleException
 from console.models.main import GroupAppBackupRecord
@@ -346,7 +347,7 @@ class GroupAppBackupService(object):
         service_plugin_config = service_plugin_config_repo.get_service_plugin_all_config(service.service_id)
         # third_party_service
         third_party_service_endpoints = service_endpoints_repo.get_service_endpoints_by_service_id(service.service_id)
-        component_k8s_attributes = k8s_attribute_repo.get_by_component_id(service.service_id)
+        component_k8s_attributes = public_vm_attributes(k8s_attribute_repo.get_by_component_id(service.service_id))
         if service.service_source == "third_party":
             if not third_party_service_endpoints:
                 raise ServiceHandleException(msg="third party service endpoints can't be null", msg_show="第三方组件实例不可为空")

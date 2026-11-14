@@ -10,6 +10,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from console.constants import AppConstants, ServiceLanguageConstants
 from console.enum.component_enum import ComponentType
+from console.services.vm_storage_snapshot import project_creation_storage_option
 from console.exception.main import ErrVolumePath, ServiceHandleException
 from console.models.main import ConsoleSysConfig
 from console.repositories.app import service_repo
@@ -145,7 +146,8 @@ class AppVolumeService(object):
     def get_vm_persistent_storage_options(self, tenant: Tenants, region_name: str) -> List[dict]:
         excluded_types = {"memoryfs", "config-file"}
         return [
-            option for option in self.get_region_volume_options(tenant, region_name, strict=True)
+            project_creation_storage_option(option)
+            for option in self.get_region_volume_options(tenant, region_name, strict=True)
             if isinstance(option, dict)
             and str(option.get("volume_type") or "").strip()
             and str(option.get("volume_type") or "").strip().lower() not in excluded_types

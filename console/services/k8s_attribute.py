@@ -8,6 +8,7 @@ from django.db.models import QuerySet
 
 from console.exception.main import ServiceHandleException
 from console.repositories.k8s_attribute import k8s_attribute_repo
+from console.utils.vm_restore_attributes import is_private_vm_attribute, public_attribute_fields, reject_private_vm_attribute
 from console.services.vm_login_security import (
     VM_LOGIN_SECRET_ATTRIBUTE_NAMES,
     is_vm_login_secret_attribute,
@@ -50,45 +51,41 @@ class ComponentK8sAttributeService(object):
                 if save_type != "yaml":
                     values = [attribute_value]
                 else:
-                    raise ServiceHandleException(
-                        msg="{0} must be a YAML string array".format(name),
-                        msg_show="{0} 必须是 YAML 字符串数组".format(name)
-                    ) from exc
+                    raise ServiceHandleException(msg="{0} must be a YAML string array".format(name),
+                                                 msg_show="{0} 必须是 YAML 字符串数组".format(name)) from exc
             if not isinstance(values, list) and save_type != "yaml":
                 values = [attribute_value]
             elif not isinstance(values, list):
-                raise ServiceHandleException(
-                    msg="{0} must be a YAML string array".format(name),
-                    msg_show="{0} 必须是 YAML 字符串数组".format(name)
-                )
+                raise ServiceHandleException(msg="{0} must be a YAML string array".format(name),
+                                             msg_show="{0} 必须是 YAML 字符串数组".format(name))
         else:
             values = attribute_value
 
         if not isinstance(values, list):
-            raise ServiceHandleException(
-                msg="{0} must be a YAML string array".format(name),
-                msg_show="{0} 必须是 YAML 字符串数组".format(name)
-            )
+            raise ServiceHandleException(msg="{0} must be a YAML string array".format(name),
+                                         msg_show="{0} 必须是 YAML 字符串数组".format(name))
         for index, item in enumerate(values):
             if not isinstance(item, str):
-                raise ServiceHandleException(
-                    msg="{0}[{1}] must be string".format(name, index),
-                    msg_show="{0} 的第 {1} 项必须是字符串".format(name, index + 1)
-                )
+                raise ServiceHandleException(msg="{0}[{1}] must be string".format(name, index),
+                                             msg_show="{0} 的第 {1} 项必须是字符串".format(name, index + 1))
         return yaml.safe_dump(values, default_flow_style=False, allow_unicode=True)
 
     def _normalize_attribute_payload(self, attribute: Dict[str, Any]) -> Dict[str, Any]:
         if attribute.get("name") in SEQUENCE_ATTRIBUTE_NAMES:
             save_type = attribute.get("save_type", "")
             attribute["save_type"] = "yaml"
-            attribute["attribute_value"] = self._serialize_sequence_attribute_value(
-                attribute["name"], attribute.get("attribute_value", []), save_type)
+            attribute["attribute_value"] = self._serialize_sequence_attribute_value(attribute["name"],
+                                                                                    attribute.get("attribute_value", []),
+                                                                                    save_type)
         return attribute
 
     def get_by_component_ids_and_name(self, component_id: str, name: str) -> QuerySet:
+        reject_private_vm_attribute(name)
         attributes = k8s_attribute_repo.get_by_component_id_name(component_id, name)
         if name in VM_LOGIN_SECRET_ATTRIBUTE_NAMES:
             return attributes.none()
+        ids = [row.pk for row in attributes if row.name == name and not is_private_vm_attribute(row.name)]
+        attributes = attributes.filter(pk__in=ids)
         if attributes and attributes[0].save_type == "json" and attributes[0].attribute_value:
             try:
                 attributes[0].attribute_value = json.loads(attributes[0].attribute_value)
@@ -100,7 +97,7 @@ class ComponentK8sAttributeService(object):
         result: List[Dict[str, Any]] = []
         attributes = k8s_attribute_repo.list_by_component_ids(component_ids)
         for attribute in attributes:
-            if is_vm_login_secret_attribute(attribute):
+            if is_vm_login_secret_attribute(attribute) or is_private_vm_attribute(attribute.name):
                 continue
             if attribute.save_type == "json" and attribute.attribute_value:
                 try:
@@ -109,10 +106,7 @@ class ComponentK8sAttributeService(object):
                     result.append(attribute.to_dict())
                     continue
                 if isinstance(parsed, dict):
-                    attribute.attribute_value = [{
-                        "key": key,
-                        "value": value
-                    } for key, value in parsed.items()]
+                    attribute.attribute_value = [{"key": key, "value": value} for key, value in parsed.items()]
                 else:
                     # arrays (args, cmd) and plain strings (workingDir) pass through as-is
                     attribute.attribute_value = parsed
@@ -120,9 +114,10 @@ class ComponentK8sAttributeService(object):
         return result
 
     @transaction.atomic
-    def create_k8s_attribute(self, tenant: Tenants, component: TenantServiceInfo, region_name: str,
-                             attribute: Dict[str, Any], user_name: str) -> None:
+    def create_k8s_attribute(self, tenant: Tenants, component: TenantServiceInfo, region_name: str, attribute: Dict[str, Any],
+                             user_name: str) -> None:
         self._reject_managed_login_attribute(attribute.get("name", ""))
+        attribute = public_attribute_fields(attribute)
         attribute = self._normalize_attribute_payload(attribute)
         if attribute["save_type"] == "json":
             attribute["attribute_value"] = self._serialize_json_attribute_value(attribute.get("attribute_value", []))
@@ -139,6 +134,10 @@ class ComponentK8sAttributeService(object):
     def update_k8s_attribute(self, tenant: Tenants, component: TenantServiceInfo, region_name: str,
                              attribute: Dict[str, Any]) -> None:
         self._reject_managed_login_attribute(attribute.get("name", ""))
+        operator = attribute.get("operator")
+        attribute = public_attribute_fields(attribute)
+        if operator is not None:
+            attribute["operator"] = operator
         data: Dict[str, Any] = {"attribute_value": attribute.get("attribute_value", "")}
         attribute = self._normalize_attribute_payload(attribute)
         if attribute.get("name") in SEQUENCE_ATTRIBUTE_NAMES:
@@ -149,13 +148,11 @@ class ComponentK8sAttributeService(object):
             data = {"attribute_value": attribute_value_json}
         updated = k8s_attribute_repo.update(component.service_id, attribute["name"], **data)
         if updated == 0:
-            k8s_attribute_repo.create(
-                tenant_id=tenant.tenant_id,
-                component_id=component.service_id,
-                name=attribute["name"],
-                save_type=attribute.get("save_type", ""),
-                attribute_value=data["attribute_value"]
-            )
+            k8s_attribute_repo.create(tenant_id=tenant.tenant_id,
+                                      component_id=component.service_id,
+                                      name=attribute["name"],
+                                      save_type=attribute.get("save_type", ""),
+                                      attribute_value=data["attribute_value"])
         region_api.update_component_k8s_attribute(tenant.tenant_name, region_name, component.service_alias, attribute)
 
     @transaction.atomic
@@ -170,6 +167,7 @@ class ComponentK8sAttributeService(object):
 
     @staticmethod
     def _reject_managed_login_attribute(name: str) -> None:
+        reject_private_vm_attribute(name)
         if name in VM_LOGIN_SECRET_ATTRIBUTE_NAMES:
             raise ServiceHandleException(
                 msg="VM login credentials are managed by the server",

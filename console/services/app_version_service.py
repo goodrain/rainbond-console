@@ -8,6 +8,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from django.db.models import QuerySet
 
+from console.utils.vm_restore_attributes import public_vm_attributes
 from console.enum.app import GovernanceModeEnum
 from console.models.main import (
     RainbondCenterAppVersion,
@@ -315,8 +316,22 @@ class AppVersionService(object):
         raise ServiceHandleException(msg="hidden template id collision", msg_show="应用版本模板 ID 冲突", status_code=500)
 
     @staticmethod
+    def _public_template_attributes(app_template: dict) -> dict:
+        template = copy.deepcopy(app_template)
+        for section in ("apps", "plugins"):
+            for component in template.get(section, []):
+                if "component_k8s_attributes" in component:
+                    component["component_k8s_attributes"] = public_vm_attributes(component["component_k8s_attributes"])
+        return template
+
+    def _public_component_map(self, app_template: dict) -> dict:
+        return self._component_map(self._public_template_attributes(app_template))
+
+    @staticmethod
     def _normalize_template_image(item: dict) -> dict:
         data = dict(item or {})
+        if "component_k8s_attributes" in data:
+            data["component_k8s_attributes"] = public_vm_attributes(data["component_k8s_attributes"])
         if not data.get("share_image") and data.get("image"):
             data["share_image"] = data["image"]
         return data
@@ -331,6 +346,8 @@ class AppVersionService(object):
     @staticmethod
     def _rewrite_component_image_to_upstream(component: dict, image_overrides: Optional[Dict[str, str]] = None) -> dict:
         data = dict(component)
+        if "component_k8s_attributes" in data:
+            data["component_k8s_attributes"] = public_vm_attributes(data["component_k8s_attributes"])
         cname = data.get("service_cname", "")
         upstream = (image_overrides or {}).get(cname) or data.get("image", "")
         if not upstream:
@@ -754,8 +771,8 @@ class AppVersionService(object):
         return result
 
     def _summarize_diff(self, current_template: dict, target_template: dict) -> dict:
-        current_map = self._component_map(current_template)
-        target_map = self._component_map(target_template)
+        current_map = self._public_component_map(current_template)
+        target_map = self._public_component_map(target_template)
         added = [name for name in current_map.keys() if name not in target_map]
         removed = [name for name in target_map.keys() if name not in current_map]
         updated = [
@@ -875,8 +892,8 @@ class AppVersionService(object):
         return other_changes
 
     def _build_component_diff_details(self, current_template: dict, previous_template: dict) -> dict:
-        current_map = self._component_map(current_template)
-        previous_map = self._component_map(previous_template)
+        current_map = self._public_component_map(current_template)
+        previous_map = self._public_component_map(previous_template)
         added_components = [
             {"component_name": self._format_component_name(current_map[name])}
             for name in current_map.keys() if name not in previous_map
@@ -1288,11 +1305,12 @@ class AppVersionService(object):
             if index + 1 < len(versions):
                 previous_version = versions[index + 1]
             break
-        app_template = json.loads(version.app_template)
+        stored_template = json.loads(version.app_template)
+        app_template = self._public_template_attributes(stored_template)
         diff_summary = self._empty_diff_summary()
         component_diff_details = self._empty_component_diff_details()
         if previous_version:
-            previous_template = json.loads(previous_version.app_template)
+            previous_template = self._public_template_attributes(json.loads(previous_version.app_template))
             diff_summary = self._summarize_diff(app_template, previous_template)
             component_diff_details = self._build_component_diff_details(app_template, previous_template)
         detail = {
@@ -1306,7 +1324,7 @@ class AppVersionService(object):
             "diff_summary": diff_summary,
             "component_diff_details": component_diff_details,
             "template": app_template,
-            "content_hash": self._content_hash(app_template),
+            "content_hash": self._content_hash(stored_template),
             "snapshot_id": app_template.get("snapshot_id"),
         }
         detail.update(self._rollback_support_info(app_template))

@@ -18,6 +18,7 @@ from django.db.models import QuerySet
 from django.forms.models import model_to_dict
 
 # enum
+from console.utils.vm_restore_attributes import is_private_vm_attribute
 from console.enum.component_enum import ComponentType
 # exception
 from console.exception.main import AbortRequest
@@ -1041,6 +1042,8 @@ class AppService(object):
             logger.info("[compose-debug] sync k8s attributes to region: service={0}, count={1}".format(
                 service.service_id, attrs.count()))
             for attr in attrs:
+                if is_private_vm_attribute(attr.name):
+                    continue
                 body = {"name": attr.name, "save_type": attr.save_type, "attribute_value": attr.attribute_value}
                 log_value = "<redacted>" if is_vm_login_log_redacted_attribute_name(attr.name) else attr.attribute_value
                 logger.info("[compose-debug] syncing k8s attribute to region: name={0}, value={1}".format(attr.name, log_value))
@@ -1076,6 +1079,8 @@ class AppService(object):
             "vm_os_family",
         }
         for attr in attrs:
+            if is_private_vm_attribute(attr.name):
+                continue
             if getattr(service, "extend_method", "") == "vm" and attr.name in removed_vm_runtime_attrs:
                 continue
             payload.append({

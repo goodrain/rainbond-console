@@ -1,3 +1,5 @@
+from console.utils.vm_restore_attributes import public_vm_attributes
+
 VM_LOGIN_SECRET_ATTRIBUTE_NAMES = frozenset({
     "vm_login_password_hash",
     "login_password",
@@ -24,7 +26,7 @@ def is_vm_login_log_redacted_attribute_name(name):
 
 def filter_vm_login_transfer_attributes(attributes):
     groups = {}
-    for attribute in attributes or []:
+    for attribute in public_vm_attributes(attributes):
         component_id = _attribute_field(attribute, "component_id") or ""
         groups.setdefault(component_id, []).append(attribute)
 
