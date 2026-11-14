@@ -7,6 +7,97 @@ from pathlib import Path
 
 
 class DeliveryWorkflowTest(unittest.TestCase):
+    def test_closing_snapshot_draft_never_runs_market_version_cleanup(self):
+        from types import SimpleNamespace
+        from unittest import mock
+        from console.views import service_share as module
+        view = module.ServiceShareDeleteView()
+        draft = SimpleNamespace(app_id="snapshot-hidden", group_id=42, scope="", share_version=None, is_success=False, step=1)
+        relation = SimpleNamespace(app_model_id="snapshot-hidden", template_type="application_version")
+        with mock.patch.object(module.share_service, "get_service_share_record_by_ID", return_value=draft), mock.patch.object(
+                module.app_version_service, "get_relation", return_value=relation), mock.patch.object(
+                    module.share_service,
+                    "get_app_version_by_app_id",
+                    side_effect=AssertionError(
+                        "Snapshot drafts must not query market versions")) as versions, mock.patch.object(
+                            module.share_service, "delete_record") as close:
+            result = view.delete(SimpleNamespace(), "source", "7")
+        self.assertEqual(result.status_code, 200)
+        versions.assert_not_called()
+        close.assert_called_once_with(draft)
+
+    def test_component_list_returns_cpu_memory_and_replica_configuration_without_changing_aggregate_memory(self):
+        import uuid
+        from django.db import transaction
+        from django.utils import timezone
+        from www.models.main import ServiceGroup, ServiceGroupRelation, TenantServiceInfo
+        from console.services.service_services import base_service
+        with transaction.atomic():
+            tenant_id = uuid.uuid4().hex
+            app = ServiceGroup.objects.create(tenant_id=tenant_id,
+                                              group_name="Runtime test",
+                                              region_name="test-region",
+                                              create_time=timezone.now(),
+                                              update_time=timezone.now())
+            component = TenantServiceInfo.objects.create(tenant_id=tenant_id,
+                                                         service_id=uuid.uuid4().hex,
+                                                         service_alias="runtime-test",
+                                                         service_cname="Runtime test",
+                                                         service_region="test-region",
+                                                         min_cpu=750,
+                                                         min_memory=256,
+                                                         min_node=2,
+                                                         create_time=timezone.now(),
+                                                         update_time=timezone.now())
+            ServiceGroupRelation.objects.create(tenant_id=tenant_id,
+                                                region_name="test-region",
+                                                group_id=app.ID,
+                                                service_id=component.service_id)
+            rows = base_service.get_group_services_list(tenant_id, "test-region", str(app.ID))
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(rows[0].get("container_cpu"), 750)
+            self.assertEqual(rows[0].get("container_memory"), 256)
+            self.assertEqual(rows[0].get("current_node"), 2)
+            self.assertEqual(rows[0]["min_memory"], 512)
+            transaction.set_rollback(True)
+
+    def test_delivery_detail_reports_missing_source_application_without_removing_the_asset(self):
+        import uuid
+        from types import SimpleNamespace
+        from django.db import transaction
+        from django.utils import timezone
+        from www.models.main import ServiceGroup, Tenants
+        from console.models.delivery_template import DeliveryTemplate
+        from console.services.delivery_templates import DeliveryService
+        from console.views.delivery_templates import DevelopmentDeliveriesView
+        with transaction.atomic():
+            team = Tenants.objects.create(tenant_id=uuid.uuid4().hex,
+                                          tenant_name="runtime-" + uuid.uuid4().hex[:12],
+                                          enterprise_id="runtime-test",
+                                          tenant_alias="Runtime test")
+            app = ServiceGroup.objects.create(tenant_id=team.tenant_id,
+                                              group_name="Runtime test",
+                                              region_name="test-region",
+                                              create_time=timezone.now(),
+                                              update_time=timezone.now())
+            profile = DeliveryTemplate.objects.create(enterprise_id="runtime-test",
+                                                      team_name=team.tenant_name,
+                                                      region_name="test-region",
+                                                      app_id=str(app.ID),
+                                                      name="Template",
+                                                      app_name="Runtime test")
+            view = DevelopmentDeliveriesView()
+            view.user = SimpleNamespace(enterprise_id="runtime-test")
+            view.is_enterprise_admin = True
+            view.delivery = DeliveryService()
+            view.reply = lambda bean: bean
+            request = SimpleNamespace(GET={"group_id": str(profile.id)})
+            self.assertTrue(view.get(request, "runtime-test")["source_app_exists"])
+            app.delete()
+            self.assertFalse(view.get(request, "runtime-test")["source_app_exists"])
+            self.assertTrue(DeliveryTemplate.objects.filter(pk=profile.pk).exists())
+            transaction.set_rollback(True)
+
     @unittest.skipUnless(os.environ.get("RAINBOND_TEST_MYSQL_SOCKET"), "Requires an isolated MySQL test socket")
     def test_mysql_mixed_collations_preserve_catalog_visibility(self):
         from django.db import connections

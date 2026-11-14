@@ -243,53 +243,73 @@ class DeliveryWorkflowTest(unittest.TestCase):
         self.assertEqual(new.status, "pending")
         self.assertIsNone(new.publication_task_id)
 
-    def test_completed_local_listing_can_be_unlisted_without_changing_review_or_delivery_history(self):
+    def test_approved_local_listing_cannot_be_withdrawn_or_reapplied_in_any_publication_phase(self):
         version = self.create_version(PAYLOAD)
         row = self.service.listing(USER, SCOPE, version.id, {"reason": "Publish this version"})
         self.service.review(USER, row.id, "approved", "Approved", admin=True)
         row.refresh_from_db()
         self.service.advance(row.publication_task_id)
         self.service.advance(row.publication_task_id)
-        row.refresh_from_db()
-        self.assertEqual(row.publication_status, "published")
-        with self.assertRaises(DeliveryError):
-            self.service.withdraw_listing(USER, SCOPE, version.id, row.id, "cancel")
         installed = models.DeliveryTask.objects.create(
             template=version.template, version=version, kind="delivery", status="succeeded", actor_id=1,
             actor_name="Installer", request_key="existing-install", payload={"target": {"app_id": "production"}},
             result={"service_ids": ["existing-component"]})
-        result = self.service.withdraw_listing(USER, SCOPE, version.id, row.id, "unlist")
-        self.assertEqual(result.status, "approved")
-        self.assertEqual(result.publication_status, "unlisted")
-        self.assertEqual(result.comment, "Approved")
-        version.refresh_from_db()
-        self.assertIsNone(version.deleted_at)
+        for phase in ("publishing", "published", "failed", "cancelled", "unlisted"):
+            with self.subTest(phase=phase):
+                row.publication_status = phase
+                row.save(update_fields=["publication_status"])
+                for action in ("cancel", "unlist"):
+                    with self.assertRaises(DeliveryError) as error:
+                        self.service.withdraw_listing(USER, SCOPE, version.id, row.id, action)
+                    self.assertEqual(error.exception.status, 409)
+                with self.assertRaises(DeliveryError) as error:
+                    self.service.listing(USER, SCOPE, version.id, {"reason": "Request again"})
+                self.assertEqual(error.exception.status, 409)
+                row.refresh_from_db()
+                self.assertEqual(row.status, "approved")
+                self.assertEqual(row.publication_status, phase)
+        row.destination = {}
+        row.save(update_fields=["destination"])
+        with self.assertRaises(DeliveryError):
+            self.service.listing(USER, SCOPE, version.id, {"reason": "Legacy approval must remain locked"})
+        self.assertEqual(version.listings.count(), 1)
+        self.assertEqual(version.tasks.filter(kind="listing_withdrawal").count(), 0)
         installed.refresh_from_db()
         self.assertEqual(installed.status, "succeeded")
         self.assertEqual(installed.result, {"service_ids": ["existing-component"]})
-        self.assertEqual(version.tasks.filter(kind="delivery").count(), 1)
-        actions = self.service.listing_data(result)["actions"]
-        self.assertEqual([item["action"] for item in actions], ["submit", "approved", "unlist"])
-        self.assertEqual(actions[-1]["user_name"], USER.nick_name)
-        new = self.service.listing(USER, SCOPE, version.id, {"reason": "Publish again"})
-        self.assertEqual(new.status, "pending")
-        self.assertNotEqual(new.id, row.id)
 
-    def test_cancelled_publication_worker_cannot_publish_later_and_wrong_scope_is_rejected(self):
+    def test_approval_blocks_a_stale_pending_cancellation_without_stopping_publication(self):
         version = self.create_version(PAYLOAD)
         row = self.service.listing(USER, SCOPE, version.id, {"reason": "Publish this version"})
         self.service.review(USER, row.id, "approved", "", admin=True)
         row.refresh_from_db()
-        self.service.advance(row.publication_task_id)
         for scope in ({**SCOPE, "app_id": "other"}, {**SCOPE, "enterprise_id": "other"}):
             with self.assertRaises(DeliveryError):
                 self.service.withdraw_listing(USER, scope, version.id, row.id, "cancel")
-        self.service.withdraw_listing(USER, SCOPE, version.id, row.id, "cancel")
+        with self.assertRaises(DeliveryError):
+            self.service.withdraw_listing(USER, SCOPE, version.id, row.id, "cancel")
+        self.service.advance(row.publication_task_id)
         self.service.advance(row.publication_task_id)
         row.refresh_from_db()
-        self.assertEqual(row.publication_status, "cancelled")
-        self.assertEqual(row.publication_task.status, "cancelled")
-        self.assertNotIn("catalog_id", row.publication_task.result)
+        self.assertEqual(row.publication_status, "published")
+        self.assertEqual(row.publication_task.status, "succeeded")
+        self.assertEqual(version.tasks.filter(kind="listing_withdrawal").count(), 0)
+
+    def test_rejected_request_can_be_reapplied_but_existing_approval_prevents_duplicate_review(self):
+        version = self.create_version(PAYLOAD)
+        row = self.service.listing(USER, SCOPE, version.id, {"reason": "First request"})
+        self.service.review(USER, row.id, "rejected", "Please update the description", admin=True)
+        new = self.service.listing(USER, SCOPE, version.id, {"reason": "Updated request"})
+        self.assertNotEqual(new.id, row.id)
+        self.service.review(USER, new.id, "approved", "", admin=True)
+        duplicate = models.DeliveryListingRequest.objects.create(
+            version=version, destination={"type": "local"}, reason="Legacy duplicate", applicant_id=1,
+            applicant_name="Publisher", status="pending")
+        with self.assertRaises(DeliveryError):
+            self.service.review(USER, duplicate.id, "approved", "", admin=True)
+        duplicate.refresh_from_db()
+        self.assertEqual(duplicate.status, "pending")
+        self.assertIsNone(duplicate.publication_task_id)
 
     def test_optional_resource_overrides_inherit_existing_defaults(self):
         payload = copy.deepcopy(PAYLOAD)

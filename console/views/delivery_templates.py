@@ -188,9 +188,20 @@ class DevelopmentDeliveriesView(DeliveryAPI):
                                                                 "template", "version")
         if request.GET.get("group_id"):
             tasks = tasks.filter(template_id=request.GET["group_id"])
+        source_app_exists = None
+        if request.GET.get("group_id"):
+            profile = self.delivery.m.DeliveryTemplate.objects.filter(
+                id=request.GET["group_id"], enterprise_id=enterprise_id).first()
+            if profile:
+                from www.models.main import Tenants, ServiceGroup
+                teams = Tenants.objects.filter(enterprise_id=enterprise_id, tenant_name=profile.team_name)
+                team_id = teams.values_list("tenant_id", flat=True).first()
+                source_app_exists = bool(team_id and str(profile.app_id).isdigit()) and ServiceGroup.objects.filter(
+                    ID=profile.app_id, region_name=profile.region_name, tenant_id=team_id).exists()
         return self.reply({
             "listings": [self.delivery.listing_data(row) for row in rows],
-            "deployments": [self.delivery.task_data(task) for task in tasks]
+            "deployments": [self.delivery.task_data(task) for task in tasks],
+            "source_app_exists": source_app_exists
         })
 
 

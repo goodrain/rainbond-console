@@ -101,6 +101,9 @@ class BaseService(object):
                 t.deploy_version,
                 t.version,
                 t.update_time,
+                t.min_cpu AS container_cpu,
+                t.min_memory AS container_memory,
+                t.min_node AS current_node,
                 t.min_memory * t.min_node AS min_memory,
                 g.group_name
             FROM
