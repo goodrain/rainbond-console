@@ -13701,6 +13701,30 @@
       "status": "active"
     },
     {
+      "id": "console.vm-guest.profile-observation",
+      "title": "VM guest observation survives status and profile projection",
+      "title_zh": "虚拟机来宾状态与配置视图保持真实观测",
+      "interface_type": "service_method",
+      "interface": "console.services.virtual_machine.VirtualMachineService.get_vm_profile",
+      "code_paths": [
+        "console/services/vm_guest_status.py",
+        "console/services/app.py",
+        "console/services/virtual_machine.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/vm_guest_status_test.py",
+          "selector": "VMGuestStatusNormalizationTests"
+        },
+        {
+          "path": "console/tests/vm_profile_runtime_status_test.py",
+          "selector": "VMGuestStatusIntegrationTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.vm-jobs.durable-observation",
       "title": "Persist VM task request and reconcile Region evidence across restart",
       "title_zh": "Persist VM task request and reconcile Region evidence across restart",

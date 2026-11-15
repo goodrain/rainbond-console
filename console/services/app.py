@@ -33,6 +33,7 @@ from console.repositories.app_config import domain_repo as http_rule_repo
 from console.repositories.app_config import (env_var_repo, mnt_repo, port_repo, service_endpoints_repo, tcp_domain, volume_repo)
 from console.repositories.k8s_attribute import k8s_attribute_repo
 from console.services.vm_login_security import is_vm_login_log_redacted_attribute_name
+from console.services.vm_guest_status import normalize_vm_guest_status
 from console.repositories.probe_repo import probe_repo
 from console.repositories.region_app import region_app_repo
 from console.repositories.service_group_relation_repo import \
@@ -872,6 +873,7 @@ class AppService(object):
     def get_service_status(self, tenant: Tenants, service: TenantServiceInfo, polling: bool = False) -> dict:
         """获取组件状态"""
         start_time = ""
+        vm_guest = normalize_vm_guest_status(None, fallback_reason="read_failed")
         try:
             body = region_api.check_service_status(service.service_region,
                                                    tenant.tenant_name,
@@ -883,6 +885,7 @@ class AppService(object):
             status = bean["cur_status"]
             start_time = bean["start_time"]
             vm_restore = bean.get("vm_restore", {})
+            vm_guest = normalize_vm_guest_status(bean.get("vm_guest"))
         except Exception as e:
             logger.exception(e)
             status = "unKnow"
@@ -890,6 +893,8 @@ class AppService(object):
         status_info_map = get_status_info_map(status)
         status_info_map["start_time"] = start_time
         status_info_map["vm_restore"] = vm_restore
+        if getattr(service, "extend_method", "") == "vm":
+            status_info_map["vm_guest"] = vm_guest
         return status_info_map
 
     def create_region_service(self,

@@ -714,6 +714,7 @@
 | console.vm-capabilities.persistent-storage-options | VM创建能力响应返回真实持久化存储选项 | active | regression | console.views.app_config.app_domain.VirtualMachineCapabilityView.get | console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_vm_persistent_storage_options_share_service_options_and_filter_unavailable_types<br>console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_vm_storage_options_keep_saas_provider_override<br>console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_vm_persistent_storage_options_accept_dict_and_reject_malformed_region_responses<br>console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_vm_capabilities_include_persistent_storage_options_and_failure_is_not_success |
 | console.vm-create.port-operator | VM SSH port uses a string operator when the display name is absent | active | regression | console.views.app_create.vm_run.VMRunCreateView.post | console/tests/vm_example_password_login_test.py::VMExamplePasswordLoginTests.test_missing_display_name_keeps_ssh_port_operator_a_string |
 | console.vm-example.password-login-bootstrap | Ubuntu VM 示例登录初始化与凭据脱敏 | active | regression | console.views.app_create.vm_run.VMRunCreateView.post | console/tests/vm_example_password_login_test.py::VMExamplePasswordLoginTests |
+| console.vm-guest.profile-observation | 虚拟机来宾状态与配置视图保持真实观测 | active | regression | console.services.virtual_machine.VirtualMachineService.get_vm_profile | console/tests/vm_guest_status_test.py::VMGuestStatusNormalizationTests<br>console/tests/vm_profile_runtime_status_test.py::VMGuestStatusIntegrationTests |
 | console.vm-jobs.durable-observation | Persist VM task request and reconcile Region evidence across restart | active | integration | console.services.vm_restore_worker.VMJobRunner | console/tests/vm_job_runtime_test.py<br>console/tests/vm_job_process_restart_test.py |
 | console.vm-jobs.scoped-status | Report scoped durable task status and unavailable write capabilities | active | integration | GET /console/teams/{team}/apps/{alias}/vm-jobs/{operation} | console/tests/vm_job_views_test.py |
 | console.vm-jobs.supervised-runtime | Supervise web and durable VM jobs with bounded shutdown | active | integration | console.vm_job_supervisor.supervise | console/tests/vm_job_supervisor_test.py<br>console/tests/vm_job_health_test.py |
@@ -7862,6 +7863,16 @@
 - 业务入口: `console.views.app_create.vm_run.VMRunCreateView.post`
 - 代码路径: `console/views/app_create/vm_run.py`, `console/services/virtual_machine.py`, `console/services/vm_login_security.py`, `console/services/k8s_attribute.py`, `console/services/share_services.py`, `console/services/market_app/market_app.py`, `console/services/market_app/new_components.py`, `console/services/market_app/component.py`, `console/services/app_check_service.py`, `console/services/app.py`, `console/views/app_config/app_domain.py`
 - 测试路径: `console/tests/vm_example_password_login_test.py::VMExamplePasswordLoginTests`
+
+### 虚拟机来宾状态与配置视图保持真实观测
+
+- Capability ID: `console.vm-guest.profile-observation`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.virtual_machine.VirtualMachineService.get_vm_profile`
+- 代码路径: `console/services/vm_guest_status.py`, `console/services/app.py`, `console/services/virtual_machine.py`
+- 测试路径: `console/tests/vm_guest_status_test.py::VMGuestStatusNormalizationTests`, `console/tests/vm_profile_runtime_status_test.py::VMGuestStatusIntegrationTests`
 
 ### Persist VM task request and reconcile Region evidence across restart
 

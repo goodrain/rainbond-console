@@ -17,6 +17,7 @@ from console.services.vm_boot_source import (
     resolve_vm_boot_source as resolve_vm_boot_source_binding,
 )
 from console.repositories.virtual_machine import vm_repo
+from console.services.vm_guest_status import normalize_vm_guest_status
 from www.apiclient.regionapi import RegionInvokeApi
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
 from www.models.main import (
@@ -440,6 +441,7 @@ class VirtualMachineService(object):
             "asset": self.serialize_vm_image(asset) if asset else self._build_vm_profile_asset_fallback(service, runtime),
             "runtime": runtime,
             "runtime_status": runtime_status or {},
+            "guest": normalize_vm_guest_status((runtime_status or {}).get("vm_guest")),
             "current_pod_ip": current_pod_ip or "",
             "network": self.get_vm_network_profile(service.service_id, current_pod_ip=current_pod_ip),
             "connections": vm_connections
