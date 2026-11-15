@@ -1,0 +1,25 @@
+# Frozen public-boundary counterexample from 8084cff47f2e1068d45ff7ee074701bf2b27fe13
+# Only methods exercised by the regression test are retained; not production code.
+class ComponentK8sAttributeService(object):
+    def list_by_component_ids(self, component_ids: List[str]) -> List[Dict[str, Any]]:
+        result: List[Dict[str, Any]] = []
+        attributes = k8s_attribute_repo.list_by_component_ids(component_ids)
+        for attribute in attributes:
+            if is_vm_login_secret_attribute(attribute):
+                continue
+            if attribute.save_type == "json" and attribute.attribute_value:
+                try:
+                    parsed = json.loads(attribute.attribute_value)
+                except (json.JSONDecodeError, ValueError):
+                    result.append(attribute.to_dict())
+                    continue
+                if isinstance(parsed, dict):
+                    attribute.attribute_value = [{
+                        "key": key,
+                        "value": value
+                    } for key, value in parsed.items()]
+                else:
+                    # arrays (args, cmd) and plain strings (workingDir) pass through as-is
+                    attribute.attribute_value = parsed
+            result.append(attribute.to_dict())
+        return result

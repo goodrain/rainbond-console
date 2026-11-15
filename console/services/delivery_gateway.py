@@ -317,12 +317,14 @@ class DeliveryGateway:
             UpgradeStatus.UPGRADE_FAILED.value, UpgradeStatus.DEPLOY_FAILED.value) else None
         versions = [] if resume else market_app_service.get_models_upgradeable_version(
             task.template.enterprise_id, group.group_key, app_id, str(group.ID)) or []
-        if not versions and not resume:
-            return {"available": False}
+        updated_at = task.updated_at
+        if last and last.update_time and last.update_time > updated_at:
+            updated_at = last.update_time
         return {
-            "available": True,
+            "available": bool(versions or resume),
             "current_version": group.group_version,
-            "latest_version": resume.version if resume else sorted_versions(list(versions))[0],
+            "updated_at": updated_at.isoformat(),
+            "latest_version": resume.version if resume else sorted_versions(list(versions))[0] if versions else "",
             **({"resume_record_id": str(resume.ID)} if resume else {}),
             "upgrade_group_id": str(group.ID),
             "app_model_id": group.group_key,

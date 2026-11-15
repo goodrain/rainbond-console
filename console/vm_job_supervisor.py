@@ -7,10 +7,28 @@ import time
 import uuid
 
 
+def _adopt_orphaned_descendants():
+    # Non-PID1 Linux supervisors must adopt grandchildren before their leaders
+    # exit, otherwise container PID1 may retain zombies outside our waitpid scope.
+    if not sys.platform.startswith('linux') or os.getpid() == 1:
+        return None
+    import ctypes
+    libc = ctypes.CDLL(None, use_errno=True)
+    original = ctypes.c_int()
+    if libc.prctl(37, ctypes.byref(original), 0, 0, 0) != 0:
+        raise OSError(ctypes.get_errno(), 'cannot inspect child subreaper')
+    if original.value:
+        return None
+    if libc.prctl(36, 1, 0, 0, 0) != 0:
+        raise OSError(ctypes.get_errno(), 'cannot enable child subreaper')
+    return lambda: libc.prctl(36, 0, 0, 0, 0)
+
+
 def supervise(web_command, worker_command, grace=20):
     children = []
     stopping = [None]
     previous = {}
+    restore_adoption = None
 
     def requested(signum, _frame):
         if stopping[0] is None:
@@ -72,6 +90,7 @@ def supervise(web_command, worker_command, grace=20):
             time.sleep(.01)
 
     try:
+        restore_adoption = _adopt_orphaned_descendants()
         for signum in (signal.SIGTERM, signal.SIGINT):
             previous[signum] = signal.signal(signum, requested)
         environment = dict(os.environ, VM_JOB_INSTANCE_ID=uuid.uuid4().hex)
@@ -102,6 +121,8 @@ def supervise(web_command, worker_command, grace=20):
             reap_owned_descendants()
         return 1
     finally:
+        if restore_adoption:
+            restore_adoption()
         for signum, handler in previous.items():
             signal.signal(signum, handler)
 

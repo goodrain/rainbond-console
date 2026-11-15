@@ -126,7 +126,14 @@ class VirtualMachineServiceTests(TestCase):
                 mock.patch("console.services.app_config._volume_service_module.region_api.get_volume_options") as get_options:
             options = volume_service.get_vm_persistent_storage_options(tenant, "demo-region")
 
-        self.assertEqual([{"volume_type": "cephfs-external", "name_show": "百度云存储", "provisioner": ""}], options)
+        self.assertEqual(len(options), 1)
+        self.assertEqual(options[0]["volume_type"], "cephfs-external")
+        self.assertEqual(options[0]["name_show"], "百度云存储")
+        self.assertNotIn("provisioner", options[0])
+        self.assertEqual(options[0]["snapshot_capability"], {
+            "supported": False, "status": "unknown", "reason_code": ""
+        })
+        self.assertEqual(options[0]["managed_snapshot_capability"], options[0]["snapshot_capability"])
         get_options.assert_not_called()
 
     def test_vm_persistent_storage_options_accept_dict_and_reject_malformed_region_responses(self):
@@ -135,7 +142,13 @@ class VirtualMachineServiceTests(TestCase):
         with mock.patch.dict(os.environ, {"USE_SAAS": ""}), \
                 mock.patch("console.services.app_config._volume_service_module.region_api.get_volume_options",
                            return_value={"list": [option]}):
-            self.assertEqual([option], volume_service.get_vm_persistent_storage_options(tenant, "demo-region"))
+            options = volume_service.get_vm_persistent_storage_options(tenant, "demo-region")
+            self.assertEqual(len(options), 1)
+            self.assertEqual({key: options[0][key] for key in option}, option)
+            self.assertEqual(options[0]["snapshot_capability"], {
+                "supported": False, "status": "unknown", "reason_code": ""
+            })
+            self.assertEqual(options[0]["managed_snapshot_capability"], options[0]["snapshot_capability"])
 
         malformed_responses = (None, {}, {"list": None}, {"list": "not-a-list"}, SimpleNamespace(list=None))
         for response in malformed_responses:
