@@ -290,10 +290,28 @@ class DeliveryGateway:
         from console.utils.version import sorted_versions
         target = task.payload["target"]
         app_id = str(task.result["app_id"])
-        tenant = team_access(user, target["team_name"], 330003, app_id, admin)
-        if not ServiceGroup.objects.filter(ID=app_id, tenant_id=tenant.tenant_id,
-                                           region_name=target["region_name"]).exists():
-            return {"available": False}
+        metadata = {
+            "available": False,
+            "delivered_version": task.version.version if task.version else "",
+            "updated_at": task.updated_at.isoformat(),
+            "target": {"team_name": target["team_name"], "region_name": target["region_name"],
+                       "app_id": app_id, "app_name": target.get("app_name", "")}
+        }
+        try:
+            tenant = team_access(user, target["team_name"], 330003, app_id, admin)
+        except DeliveryError as error:
+            # Source access has already been checked by the task view. Retain
+            # the authorized delivery history after its target was removed.
+            if error.status == 404 and error.message == "应用不存在":
+                return {**metadata, "target_deleted": True}
+            raise
+        app = ServiceGroup.objects.filter(
+            ID=app_id, tenant_id=tenant.tenant_id, region_name=target["region_name"]).first()
+        if not app:
+            return {**metadata, "target_deleted": True}
+        metadata["target"]["app_name"] = app.group_name
+        updated_at = max(task.updated_at, app.update_time) if app.update_time else task.updated_at
+        metadata["updated_at"] = updated_at.isoformat()
         # New tasks retain the installed source. Existing tasks resolve it from their real component IDs.
         if task.result.get("upgrade_group_id"):
             filters = {"ID": task.result["upgrade_group_id"], "group_key": task.result["app_model_id"]}
@@ -306,7 +324,7 @@ class DeliveryGateway:
                                                         service_group_id=app_id, region_name=target["region_name"],
                                                         **filters))
         if len(groups) != 1:
-            return {"available": False}
+            return {**metadata, "version_unavailable": True}
         group = groups[0]
         from console.models.main import AppUpgradeRecord, UpgradeStatus
         last = AppUpgradeRecord.objects.filter(tenant_id=tenant.tenant_id, group_id=app_id,
@@ -317,18 +335,17 @@ class DeliveryGateway:
             UpgradeStatus.UPGRADE_FAILED.value, UpgradeStatus.DEPLOY_FAILED.value) else None
         versions = [] if resume else market_app_service.get_models_upgradeable_version(
             task.template.enterprise_id, group.group_key, app_id, str(group.ID)) or []
-        updated_at = task.updated_at
         if last and last.update_time and last.update_time > updated_at:
             updated_at = last.update_time
         return {
+            **metadata,
             "available": bool(versions or resume),
             "current_version": group.group_version,
             "updated_at": updated_at.isoformat(),
             "latest_version": resume.version if resume else sorted_versions(list(versions))[0] if versions else "",
             **({"resume_record_id": str(resume.ID)} if resume else {}),
             "upgrade_group_id": str(group.ID),
-            "app_model_id": group.group_key,
-            "target": {"team_name": target["team_name"], "region_name": target["region_name"], "app_id": app_id}
+            "app_model_id": group.group_key
         }
 
     def installation_status(self, task):
