@@ -5,6 +5,7 @@ from typing import Any
 from rest_framework.request import Request
 from console.services.vm_snapshot_create import vm_snapshot_create_service
 from console.services.vm_snapshot_read import vm_snapshot_read_service
+from console.services.vm_snapshot_restore import vm_snapshot_restore_service
 from console.services.operation_log import OperationType, operation_log_service
 from console.utils.cache_decorators import never_cache
 from console.views.app_config.base import AppBaseView
@@ -56,4 +57,25 @@ class VMSnapshotDetailView(VMSnapshotReadView):
     @never_cache
     def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         bean = vm_snapshot_read_service.detail(self.tenant, self.service, self.region_name, kwargs.get("snapshot_name"))
+        return Response(general_message(200, "success", "查询成功", bean=bean))
+
+
+class VMSnapshotRestoreView(VMSnapshotReadView):
+    @never_cache
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
+        bean = vm_snapshot_restore_service.start(self.tenant, self.service, self.region_name, kwargs.get("snapshot_name"),
+                                                 request.data)
+        operation_log_service.create_log(self.user,
+                                         OperationType.COMPONENT_MANAGE,
+                                         "提交了虚拟机快照恢复任务",
+                                         enterprise_id=self.tenant.enterprise_id or "",
+                                         team_name=self.tenant.tenant_name,
+                                         app_id=self.app.ID,
+                                         service_alias=self.service.service_alias)
+        return Response(general_message(202, "accepted", "恢复任务已提交，虚拟机将保持停止", bean=bean), status=202)
+
+    @never_cache
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
+        bean = vm_snapshot_restore_service.status(self.tenant, self.service, self.region_name, kwargs.get("snapshot_name"),
+                                                  kwargs.get("request_id"))
         return Response(general_message(200, "success", "查询成功", bean=bean))

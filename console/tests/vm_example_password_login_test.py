@@ -1,4 +1,5 @@
 # capability_id: console.vm-example.password-login-bootstrap
+# capability_id: console.vm-template.login-initialization-isolation
 import collections
 import io
 import json
@@ -61,6 +62,8 @@ from console.services.k8s_attribute import k8s_attribute_service  # noqa: E402
 from console.services.market_app.component import Component  # noqa: E402
 from console.services.market_app.market_app import MarketApp  # noqa: E402
 from console.services.market_app.new_components import NewComponents  # noqa: E402
+from console.services.market_app.app_restore import AppRestore as PrivateSnapshotRestore  # noqa: E402
+from console.services.vm_login_security import filter_vm_login_transfer_attributes  # noqa: E402
 from console.services.share_services import share_service  # noqa: E402
 from console.services.virtual_machine import vms  # noqa: E402
 from console.views.k8s_attribute import (  # noqa: E402
@@ -671,7 +674,7 @@ class VMExamplePasswordLoginTests(TestCase):
         self.assertTrue(port["is_inner_service"], "SSH port is not internal")
         self.assertFalse(port["is_outer_service"], "SSH port was exposed externally")
 
-    def test_share_export_and_template_import_remove_password_pair_but_keep_ssh_pair(self):
+    def test_public_share_and_legacy_template_import_remove_all_login_initialization(self):
         _, password_hash = runtime_generated_password_hash()
         legacy_password = self._runtime_password()
         public_key = synthetic_public_key()
@@ -682,6 +685,7 @@ class VMExamplePasswordLoginTests(TestCase):
             ("password-vm", "vm_ssh_username", "ubuntu"),
             ("key-vm", "vm_ssh_username", "ubuntu"),
             ("key-vm", "vm_ssh_authorized_key", public_key),
+            ("key-vm", "vm_os_name", "Ubuntu 24.04"),
         )
         for component_id, name, value in rows:
             ComponentK8sAttributes.objects.create(
@@ -699,10 +703,12 @@ class VMExamplePasswordLoginTests(TestCase):
                          "share export retained password hash")
         self.assertFalse(any(item["name"] == "vm_ssh_username" for item in password_rows),
                          "share export left password-only username")
-        self.assertTrue(any(item["name"] == "vm_ssh_username" for item in key_rows),
-                        "share export removed SSH username")
-        self.assertTrue(any(item["name"] == "vm_ssh_authorized_key" for item in key_rows),
-                        "share export removed SSH key")
+        self.assertFalse(any(item["name"] == "vm_ssh_username" for item in key_rows),
+                         "public share retained initialization username")
+        self.assertFalse(any(item["name"] == "vm_ssh_authorized_key" for item in key_rows),
+                         "public share retained initialization key")
+        self.assertTrue(any(item["name"] == "vm_os_name" for item in key_rows), "public share lost OS metadata")
+        self.assertFalse(public_key in json.dumps(exported), "public share leaked initialization key value")
         self.assertFalse(password_hash in json.dumps(exported), "share export leaked hash value")
         self.assertFalse(legacy_password in json.dumps(exported), "share export leaked raw credential value")
 
@@ -723,14 +729,16 @@ class VMExamplePasswordLoginTests(TestCase):
         key_template_rows = [
             {"name": "vm_ssh_username", "save_type": "string", "attribute_value": "ubuntu"},
             {"name": "vm_ssh_authorized_key", "save_type": "string", "attribute_value": public_key},
+            {"name": "vm_os_name", "save_type": "string", "attribute_value": "Ubuntu 24.04"},
         ]
         imported_key = importer._template_to_k8s_attributes(
             component, key_template_rows, {"extend_method": "vm"})
         imported_key_names = {item.name for item in imported_key}
-        self.assertTrue("vm_ssh_username" in imported_key_names, "template import removed SSH username")
-        self.assertTrue("vm_ssh_authorized_key" in imported_key_names, "template import removed SSH key")
+        self.assertFalse("vm_ssh_username" in imported_key_names, "legacy template import retained username")
+        self.assertFalse("vm_ssh_authorized_key" in imported_key_names, "legacy template import retained key")
+        self.assertTrue("vm_os_name" in imported_key_names, "legacy template import lost OS metadata")
 
-    def test_market_component_export_removes_password_hash_and_paired_username(self):
+    def test_internal_region_sync_preserves_owned_password_initialization(self):
         _, password_hash = runtime_generated_password_hash()
         component = SimpleNamespace(
             component_id="market-password-vm",
@@ -756,10 +764,10 @@ class VMExamplePasswordLoginTests(TestCase):
             http_rules=[],
             http_rule_configs=[],
             k8s_attributes=[
-                SimpleNamespace(component_id="market-password-vm", name="vm_login_password_hash",
-                                attribute_value=password_hash),
-                SimpleNamespace(component_id="market-password-vm", name="vm_ssh_username",
-                                attribute_value="ubuntu"),
+                ComponentK8sAttributes(component_id="market-password-vm", name="vm_login_password_hash",
+                                       save_type="string", attribute_value=password_hash),
+                ComponentK8sAttributes(component_id="market-password-vm", name="vm_ssh_username",
+                                       save_type="string", attribute_value="ubuntu"),
             ],
             volumes=[],
             labels=[],
@@ -776,9 +784,9 @@ class VMExamplePasswordLoginTests(TestCase):
 
         exported_attributes = components[0]["component_k8s_attributes"]
         exported_names = {attribute["name"] for attribute in exported_attributes}
-        self.assertFalse("vm_login_password_hash" in exported_names, "market export retained password hash")
-        self.assertFalse("vm_ssh_username" in exported_names, "market export left password-only username")
-        self.assertFalse(password_hash in json.dumps(components), "market export leaked hash value")
+        self.assertTrue("vm_login_password_hash" in exported_names, "private Region sync lost owned verifier")
+        self.assertTrue("vm_ssh_username" in exported_names, "private Region sync lost owned username")
+        self.assertTrue(password_hash in json.dumps(components), "private Region sync changed owned verifier")
 
     def test_component_template_update_removes_password_hash_and_paired_username_together(self):
         _, password_hash = runtime_generated_password_hash()
@@ -801,6 +809,103 @@ class VMExamplePasswordLoginTests(TestCase):
         updated_names = {item.name for item in component.k8s_attributes}
         self.assertFalse("vm_login_password_hash" in updated_names, "template update retained password hash")
         self.assertFalse("vm_ssh_username" in updated_names, "template update left password-only username")
+
+    def test_template_upgrade_ignores_old_ssh_pair_without_replacing_owner_pair(self):
+        owner_key = synthetic_public_key()
+        template_key = synthetic_public_key()
+        component = Component.__new__(Component)
+        component.component = SimpleNamespace(tenant_id="tenant-vm-login", component_id="owned-vm")
+        component.action_type = 0
+        component.k8s_attributes = [
+            ComponentK8sAttributes(name="vm_ssh_username", save_type="string", attribute_value="owner"),
+            ComponentK8sAttributes(name="vm_ssh_authorized_key", save_type="string", attribute_value=owner_key),
+        ]
+        component._update_component_k8s_attributes({"upd": [
+            {"name": "vm_ssh_username", "save_type": "string", "attribute_value": "template-user"},
+            {"name": "vm_ssh_authorized_key", "save_type": "string", "attribute_value": template_key},
+        ]})
+        values = {item.name: item.attribute_value for item in component.k8s_attributes}
+        self.assertTrue(values.get("vm_ssh_username") == "owner", "template changed existing owner username")
+        self.assertTrue(values.get("vm_ssh_authorized_key") == owner_key, "template replaced existing owner key")
+
+    def test_transfer_helper_drops_partial_pairs_and_empty_legacy_fields_without_mutation(self):
+        rows = [
+            {"name": name, "attribute_value": ""} for name in
+            ("vm_ssh_username", "vm_ssh_authorized_key", "vm_login_password_hash", "login_password", "vm_login_password")
+        ]
+        public = {"name": "vm_os_name", "attribute_value": "Ubuntu 24.04"}
+        rows.append(public)
+        result = filter_vm_login_transfer_attributes(rows)
+        self.assertTrue(len(result) == 1 and result[0] is public, "public transfer retained partial login metadata")
+        self.assertTrue(len(rows) == 6, "transfer filter mutated private input collection")
+
+    # capability_id: console.vm-template.legacy-republish-initialization-isolation
+    def test_legacy_snapshot_republish_strips_initialization_without_mutating_private_source(self):
+        key = synthetic_public_key()
+        _, verifier = runtime_generated_password_hash()
+        attributes = [
+            {"name": "vm_ssh_username", "save_type": "string", "attribute_value": "owner"},
+            {"name": "vm_ssh_authorized_key", "save_type": "string", "attribute_value": key},
+            {"name": "vm_login_password_hash", "save_type": "string", "attribute_value": verifier},
+            {"name": "vm_os_name", "save_type": "string", "attribute_value": "Ubuntu 24.04"},
+        ]
+        snapshot = {"apps": [{"service_id": "private-vm", "extend_method": "vm",
+                              "component_k8s_attributes": attributes}]}
+        published = share_service._build_publish_template_from_snapshot(
+            snapshot, "public-model", "Public VM", "v1", "RAINBOND", {})
+        names = {item["name"] for item in published["apps"][0]["component_k8s_attributes"]}
+        self.assertTrue(names == {"vm_os_name"}, "legacy snapshot republish retained initialization metadata")
+        self.assertFalse(key in json.dumps(published) or verifier in json.dumps(published),
+                         "legacy snapshot republish retained initialization values")
+        self.assertTrue(len(snapshot["apps"][0]["component_k8s_attributes"]) == 4,
+                        "public republish mutated its private source snapshot")
+
+    def test_owner_generic_api_still_reads_ssh_username_and_public_key(self):
+        key = synthetic_public_key()
+        for name, value in (("vm_ssh_username", "owner"), ("vm_ssh_authorized_key", key)):
+            ComponentK8sAttributes.objects.create(
+                tenant_id="tenant-vm-login", component_id="owner-generic-vm", name=name,
+                save_type="string", attribute_value=value)
+        values = {item["name"]: item["attribute_value"]
+                  for item in k8s_attribute_service.list_by_component_ids(["owner-generic-vm"])}
+        self.assertTrue(values.get("vm_ssh_username") == "owner", "owner API hid account metadata")
+        self.assertTrue(values.get("vm_ssh_authorized_key") == key, "owner API hid public key metadata")
+
+    # capability_id: console.vm-template.private-rollback-initialization
+    def test_private_snapshot_and_failed_upgrade_rollback_keep_owner_ssh_pair(self):
+        key = synthetic_public_key()
+        service = TenantServiceInfo(
+            tenant_id="tenant-vm-login", service_id="private-same-vm",
+            service_alias="private-vm", service_name="private-vm", min_cpu=1000, min_memory=1024, min_node=1)
+        snapshot = {name: [] for name in (
+            "service_env_vars", "service_ports", "service_volumes", "service_config_file", "service_probes",
+            "service_monitors", "component_graphs", "service_labels")}
+        snapshot["service_base"] = service.to_dict()
+        snapshot["component_k8s_attributes"] = [
+            {"tenant_id": "tenant-vm-login", "component_id": "private-same-vm", "name": name,
+             "save_type": "string", "attribute_value": value}
+            for name, value in (("vm_ssh_username", "owner"), ("vm_ssh_authorized_key", key))]
+        restorer = PrivateSnapshotRestore.__new__(PrivateSnapshotRestore)
+        restorer.support_labels = []
+        restorer.tenant = SimpleNamespace(tenant_id="tenant-vm-login")
+        restorer.region_name = "private-region"
+        with mock.patch("console.services.market_app.app_restore.TenantServiceInfo.objects.get", return_value=service):
+            restored = restorer._create_component(snapshot, {})
+        self.assertTrue(restored.component.service_id == "private-same-vm", "private restore changed VM identity")
+        restorer.original_app = SimpleNamespace(components=lambda: [restored])
+        restorer.new_app = SimpleNamespace(new_components=[], region_app_id="private-region-app")
+        restorer.tenant_name = "private-team"
+        restorer.region_name = "private-region"
+        restorer.labels = {}
+        with mock.patch("console.services.market_app.market_app.domain_repo.list_all_certificate", return_value=[]), \
+                mock.patch.object(restorer, "_create_plugin_body", return_value={}), \
+                mock.patch.object(restorer, "_create_http_rules", return_value=[]), \
+                mock.patch("console.services.market_app.market_app.region_api.sync_components") as sync:
+            restorer._rollback_components()
+        body = sync.call_args[0][3]
+        values = {item["name"]: item["attribute_value"] for item in body["components"][0]["component_k8s_attributes"]}
+        self.assertTrue(values.get("vm_ssh_username") == "owner", "private rollback lost owner username")
+        self.assertTrue(values.get("vm_ssh_authorized_key") == key, "private rollback lost owner key")
 
     def test_private_group_backup_keeps_hash_for_vm_restore(self):
         _, password_hash = runtime_generated_password_hash()
@@ -857,6 +962,16 @@ class VMExamplePasswordLoginTests(TestCase):
                 item.get("attribute_value") == password_hash for item in backup_attributes),
             "private backup omitted VM login hash needed for restore",
         )
+        restorer = PrivateSnapshotRestore.__new__(PrivateSnapshotRestore)
+        restorer.support_labels = []
+        restorer.tenant = SimpleNamespace(tenant_id="tenant-vm-login")
+        restorer.region_name = "private-region"
+        target = SimpleNamespace(tenant_id="tenant-vm-login", service_id="service-private-backup")
+        with mock.patch("console.services.market_app.app_restore.TenantServiceInfo.objects.get", return_value=target):
+            restored = restorer._create_component(backup_service_data, {})
+        values = {item.name: item.attribute_value for item in restored.k8s_attributes}
+        self.assertTrue(values.get("vm_login_password_hash") == password_hash,
+                        "private same-component snapshot restore lost verifier")
 
     def test_generic_attribute_get_hides_managed_hash(self):
         credentials = (

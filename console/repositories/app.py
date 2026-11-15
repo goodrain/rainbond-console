@@ -380,7 +380,9 @@ class ServiceRecycleBinRepository(object):
         return ServiceRecycleBin.objects.filter(tenant_id=tenant_id)
 
     def create_trash_service(self, **params: Any) -> ServiceRecycleBin:
-        return ServiceRecycleBin.objects.create(**params)
+        field_names = {field.attname for field in ServiceRecycleBin._meta.concrete_fields if not field.primary_key}
+        data = {key: value for key, value in params.items() if key in field_names}
+        return ServiceRecycleBin.objects.create(**data)
 
     def delete_trash_service_by_service_id(self, service_id: str) -> None:
         ServiceRecycleBin.objects.filter(service_id=service_id).delete()

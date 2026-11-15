@@ -690,3 +690,116 @@ class AppManageDeleteRecordIdempotencyTests(DjangoTestCase):
         self.assertEqual(second.service_cname, "new name")
         self.assertEqual(second.version, "v2")
         self.assertEqual(second.image, "nginx:2")
+
+
+class AppManageRecycleFieldProjectionTests(DjangoTestCase):
+    def setUp(self):
+        from console.models.main import ServiceRecycleBin
+
+        self.recycle_model = ServiceRecycleBin
+        self.service = TenantServiceInfo.objects.create(
+            service_id="recycle-field-fixture",
+            tenant_id="recycle-field-tenant",
+            service_key="recycle-field-fixture",
+            service_alias="recycle-field-fixture",
+            service_cname="recycle field fixture",
+            service_region="demo-region",
+            category="application",
+            version="v1",
+            image="busybox:1.36.1",
+            service_source="docker_run",
+            create_status="complete",
+            min_cpu=50,
+            min_memory=64,
+            inner_port=0,
+            container_gpu=0,
+            build_strategy="dockerfile",
+            arch="arm64",
+            k8s_component_name="recycle-field-fixture-k8s",
+        )
+        self.original_id = self.service.ID
+        self.manager = app_manage_module.AppManageService()
+
+    # capability_id: console.component-recycle.field-projection
+    def test_recycle_preserves_declared_fields_and_removes_original_after_insert(self):
+        trash = self.manager.move_service_into_recycle_bin(self.service)
+
+        self.assertEqual(trash.service_id, "recycle-field-fixture")
+        self.assertEqual(trash.min_cpu, 50)
+        self.assertEqual(trash.min_memory, 64)
+        self.assertEqual(trash.image, "busybox:1.36.1")
+        self.assertEqual(self.recycle_model.objects.filter(service_id=trash.service_id).count(), 1)
+        self.assertFalse(TenantServiceInfo.objects.filter(ID=self.original_id).exists())
+
+    # capability_id: console.component-recycle.field-projection
+    def test_recycle_failure_before_insert_preserves_original_for_retry(self):
+        with mock.patch.object(
+                app_manage_module.recycle_bin_repo, "create_trash_service", side_effect=RuntimeError("insert failed")):
+            with self.assertRaisesRegex(RuntimeError, "insert failed"):
+                self.manager.move_service_into_recycle_bin(self.service)
+
+        self.assertTrue(TenantServiceInfo.objects.filter(ID=self.original_id).exists())
+        self.assertFalse(self.recycle_model.objects.filter(service_id=self.service.service_id).exists())
+        self.manager.move_service_into_recycle_bin(self.service)
+        self.assertEqual(self.recycle_model.objects.filter(service_id=self.service.service_id).count(), 1)
+
+    # capability_id: console.component-recycle.atomic-retry
+    def test_recycle_failure_deleting_original_rolls_back_and_can_retry(self):
+        with mock.patch.object(self.service, "delete", side_effect=RuntimeError("original delete failed")):
+            with self.assertRaisesRegex(RuntimeError, "original delete failed"):
+                self.manager.move_service_into_recycle_bin(self.service)
+
+        self.assertTrue(TenantServiceInfo.objects.filter(ID=self.original_id).exists())
+        self.assertFalse(self.recycle_model.objects.filter(service_id=self.service.service_id).exists())
+        self.manager.move_service_into_recycle_bin(self.service)
+        self.assertEqual(self.recycle_model.objects.filter(service_id=self.service.service_id).count(), 1)
+
+    # capability_id: console.component-recycle.atomic-retry
+    def test_relation_move_failure_rolls_back_single_and_batch_delete_and_can_retry(self):
+        from console.models.main import ServiceRelationRecycleBin
+        from www.models.main import TenantServiceRelation
+
+        tenant = mock.Mock(tenant_id=self.service.tenant_id)
+        for index in range(2):
+            TenantServiceRelation.objects.create(
+                tenant_id=self.service.tenant_id,
+                service_id=self.service.service_id,
+                dep_service_id="dependency-{}".format(index),
+                dep_service_type="v",
+                dep_order=index,
+            )
+
+        def insert_first_relation_then_fail(**params):
+            if ServiceRelationRecycleBin.objects.filter(service_id=self.service.service_id).exists():
+                raise RuntimeError("relations failed")
+            ServiceRelationRecycleBin.objects.create(**params)
+
+        for method_name in ("delete", "batch_delete"):
+            with self.subTest(method=method_name):
+                service = TenantServiceInfo.objects.get(ID=self.original_id)
+                with mock.patch.object(self.manager, "_AppManageService__is_service_running", return_value=False), \
+                        mock.patch.object(self.manager, "_AppManageService__is_service_related", return_value=(False, "")), \
+                        mock.patch.object(self.manager, "_AppManageService__is_service_mnt_related", return_value=(False, "")), \
+                        mock.patch.object(self.manager, "get_app_by_service", return_value=None), \
+                        mock.patch.object(
+                            app_manage_module.relation_recycle_bin_repo,
+                            "create_trash_service_relation",
+                            side_effect=insert_first_relation_then_fail):
+                    with self.assertRaisesRegex(RuntimeError, "relations failed"):
+                        getattr(self.manager, method_name)(mock.Mock(), tenant, service, False)
+
+                self.assertTrue(TenantServiceInfo.objects.filter(ID=self.original_id).exists())
+                self.assertFalse(self.recycle_model.objects.filter(service_id=self.service.service_id).exists())
+                self.assertEqual(TenantServiceRelation.objects.filter(service_id=self.service.service_id).count(), 2)
+                self.assertFalse(ServiceRelationRecycleBin.objects.filter(service_id=self.service.service_id).exists())
+
+        service = TenantServiceInfo.objects.get(ID=self.original_id)
+        with mock.patch.object(self.manager, "_AppManageService__is_service_running", return_value=False), \
+                mock.patch.object(self.manager, "_AppManageService__is_service_related", return_value=(False, "")), \
+                mock.patch.object(self.manager, "_AppManageService__is_service_mnt_related", return_value=(False, "")), \
+                mock.patch.object(self.manager, "get_app_by_service", return_value=None):
+            code, _ = self.manager.delete(mock.Mock(), tenant, service, False)
+        self.assertEqual(code, 200)
+        self.assertEqual(self.recycle_model.objects.filter(service_id=self.service.service_id).count(), 1)
+        self.assertFalse(TenantServiceRelation.objects.filter(service_id=self.service.service_id).exists())
+        self.assertEqual(ServiceRelationRecycleBin.objects.filter(service_id=self.service.service_id).count(), 2)
