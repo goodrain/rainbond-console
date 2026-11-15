@@ -72,11 +72,7 @@ class SnapshotEnqueueAPITests(TestCase):
             if patch.attribute == 'filter':
                 value.return_value.first.return_value = None
                 value.return_value.values_list.return_value = []
-        self.rpc = [
-            self.stack.enter_context(
-                mock.patch.object(RegionInvokeApi, name, side_effect=AssertionError('HTTP thread must not call Region')))
-            for name in ('create_vm_snapshot', 'get_vm_snapshot', 'command_vm_snapshot')
-        ]
+        self.rpc = []
         self.runtime = tempfile.TemporaryDirectory()
         self.addCleanup(self.runtime.cleanup)
         self.stack.enter_context(
@@ -101,7 +97,11 @@ class SnapshotEnqueueAPITests(TestCase):
             request = self.factory.get(path, query or {}, HTTP_X_REGION_NAME='region-a')
         if authenticated:
             force_authenticate(request, self.user)
-        return match.func(request, **match.kwargs)
+        with ExitStack() as http_guard:
+            self.rpc = [http_guard.enter_context(mock.patch.object(
+                RegionInvokeApi, name, side_effect=AssertionError('HTTP thread must not call Region')
+            )) for name in ('create_vm_snapshot', 'get_vm_snapshot', 'command_vm_snapshot')]
+            return match.func(request, **match.kwargs)
 
     def assert_no_http_rpc(self):
         for rpc in self.rpc:

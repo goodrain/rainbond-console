@@ -28,10 +28,10 @@ class SnapshotPrivateBoundaryTests(TestCase):
     snapshot = fixtures.VMRestorePrivateAttributesTestCase.snapshot
 
     def test_original_fixed_base_exposure_then_current_guard_without_printing_record(self):
-        base = Path(os.environ['VM_PRIVATE_GUARD_BEFORE_SOURCE'])
+        base = Path(__file__).parent / 'fixtures' / 'vm_private_guard_before'
 
         def old_class(file, name, namespace):
-            tree = ast.parse((base / file).read_text())
+            tree = ast.parse((base / (file + ".fixture")).read_text())
             cls = next(n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == name)
             exec(compile(ast.Module(body=[cls], type_ignores=[]), '<original-controlled-public-boundary>', 'exec'), namespace)
             return namespace[name]()

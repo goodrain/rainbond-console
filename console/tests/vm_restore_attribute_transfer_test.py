@@ -416,7 +416,6 @@ class VMRestorePublicVersionComparisonTestCase(TestCase):
         with mock.patch.object(self.version_service, "get_hidden_template",
                                return_value=(SimpleNamespace(app_model_id="hidden-a"), self.app)), \
                 mock.patch.object(module.share_repo, "get_last_shared_app_version_by_group_id", return_value=None), \
-                mock.patch.object(module.market_app_service, "get_market_apps_in_app", return_value=[]), \
                 mock.patch.object(self.version_service, "_latest_successful_rollback_record", return_value=None), \
                 mock.patch.object(self.version_service, "_build_app_template", return_value=current):
             return self.call_version_view(version_views.AppVersionOverviewView)["bean"]

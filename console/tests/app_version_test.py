@@ -642,10 +642,6 @@ class AppVersionServiceOverviewTestCase(TestCase):
                     "get_last_shared_app_version_by_group_id",
                     return_value=None), \
                 mock.patch.object(
-                    app_version_service_module.market_app_service,
-                    "get_market_apps_in_app",
-                    return_value=[]), \
-                mock.patch.object(
                     app_version_service,
                     "_build_app_template",
                     return_value=runtime_template), \
@@ -657,7 +653,10 @@ class AppVersionServiceOverviewTestCase(TestCase):
                     app_version_service_module.AppUpgradeRecord.objects,
                     "filter",
                     return_value=self._rollback_query(rollback_record)):
-            overview = app_version_service.get_overview(tenant, mock.Mock(), mock.Mock(), mock.Mock(ID=42))
+            with mock.patch.object(app_version_service_module.TenantServiceGroup.objects, "filter") as source_groups:
+                source_groups.return_value.count.return_value = 2
+                overview = app_version_service.get_overview(tenant, mock.Mock(), mock.Mock(), mock.Mock(ID=42))
+                self.assertEqual(overview["source_template_count"], 2)
 
         self.assertEqual(overview["current_version"], "0.0.2")
         self.assertEqual(overview["current_version_id"], 21)
@@ -706,10 +705,6 @@ class AppVersionServiceOverviewTestCase(TestCase):
                     "get_last_shared_app_version_by_group_id",
                     return_value=None), \
                 mock.patch.object(
-                    app_version_service_module.market_app_service,
-                    "get_market_apps_in_app",
-                    return_value=[]), \
-                mock.patch.object(
                     app_version_service,
                     "_build_app_template",
                     return_value=runtime_template), \
@@ -721,7 +716,10 @@ class AppVersionServiceOverviewTestCase(TestCase):
                     app_version_service_module.AppUpgradeRecord.objects,
                     "filter",
                     return_value=self._rollback_query(rollback_record)):
-            overview = app_version_service.get_overview(tenant, mock.Mock(), mock.Mock(), mock.Mock(ID=42))
+            with mock.patch.object(app_version_service_module.TenantServiceGroup.objects, "filter") as source_groups:
+                source_groups.return_value.count.return_value = 2
+                overview = app_version_service.get_overview(tenant, mock.Mock(), mock.Mock(), mock.Mock(ID=42))
+                self.assertEqual(overview["source_template_count"], 2)
 
         self.assertEqual(overview["current_version"], "0.0.3")
         self.assertEqual(overview["current_version_id"], 22)
@@ -784,10 +782,6 @@ class AppVersionServiceOverviewTestCase(TestCase):
                     "get_last_shared_app_version_by_group_id",
                     return_value=None), \
                 mock.patch.object(
-                    app_version_service_module.market_app_service,
-                    "get_market_apps_in_app",
-                    return_value=[]), \
-                mock.patch.object(
                     app_version_service,
                     "_build_app_template",
                     return_value=rollback_target_template), \
@@ -799,7 +793,10 @@ class AppVersionServiceOverviewTestCase(TestCase):
                     app_version_service_module.AppUpgradeRecord.objects,
                     "filter",
                     return_value=self._rollback_query(rollback_record)) as rollback_filter_mock:
-            overview = app_version_service.get_overview(tenant, mock.Mock(), mock.Mock(), mock.Mock(ID=42))
+            with mock.patch.object(app_version_service_module.TenantServiceGroup.objects, "filter") as source_groups:
+                source_groups.return_value.count.return_value = 2
+                overview = app_version_service.get_overview(tenant, mock.Mock(), mock.Mock(), mock.Mock(ID=42))
+                self.assertEqual(overview["source_template_count"], 2)
 
         self.assertEqual(
             rollback_filter_mock.call_args[1]["status__in"],

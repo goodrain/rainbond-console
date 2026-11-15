@@ -1,0 +1,8 @@
+# Frozen public-boundary counterexample from 8084cff47f2e1068d45ff7ee074701bf2b27fe13
+# Only methods exercised by the regression test are retained; not production code.
+class ComponentK8sAttributeRepo(object):
+    def update(self, component_id: str, name: str, **data: Any) -> int:
+        return ComponentK8sAttributes.objects.filter(component_id=component_id, name=name).update(**data)
+
+    def list_by_component_ids(self, component_ids: List[str]) -> QuerySet:
+        return ComponentK8sAttributes.objects.filter(component_id__in=component_ids)

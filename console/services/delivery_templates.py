@@ -3,6 +3,7 @@ import copy
 import uuid
 from urllib.parse import quote
 from django.db import transaction
+from django.db.models import Q
 from django.utils import timezone
 from console.repositories.delivery_template_repo import DeliveryRepository
 from console.services.delivery_manifest import (DeliveryError, baseline, compare, digest, prepare, public_manifest,
@@ -475,6 +476,9 @@ class DeliveryService:
                 raise DeliveryError("模板版本已删除，不能申请上架", 409)
             reason = str(data.get("reason", "")).strip()
             online = destination["type"] == "market"
+            if not online and version.listings.filter(
+                    Q(destination__type="local") | Q(destination={}), status="approved").exists():
+                raise DeliveryError("此版本已通过平台审核，不支持重新申请上架", 409)
             if len(reason) > 500 or not online and not reason:
                 raise DeliveryError("请填写500字以内的上架说明")
             existing = version.listings.filter(
@@ -511,39 +515,31 @@ class DeliveryService:
     def withdraw_listing(self, user, scope, version_id, request_id, action):
         self._identity(user, scope)
         if action not in ("cancel", "unlist"):
-            raise DeliveryError("请选择取消申请或取消上架")
+            raise DeliveryError("请指定取消待审核申请的操作")
         version = self.repo.version(scope, version_id, available=False)
         with transaction.atomic():
-            # Share version/task/row lock ordering with publication and reapplication.
+            # Serialize cancellation with platform review so approval cannot be undone.
             self.m.DeliveryTemplateVersion.objects.select_for_update().get(id=version.id)
-            initial = version.listings.filter(id=request_id).first()
-            if not initial:
+            row = version.listings.select_for_update().filter(id=request_id).first()
+            if not row:
                 raise DeliveryError("上架申请不存在", 404)
-            task = (self.m.DeliveryTask.objects.select_for_update().get(id=initial.publication_task_id)
-                    if initial.publication_task_id else None)
-            row = version.listings.select_for_update().get(id=request_id)
-            if row.publication_task_id != initial.publication_task_id:
-                raise DeliveryError("上架状态已变化，请刷新后重试", 409)
             if row.destination.get("type", "local") != "local":
                 raise DeliveryError("在线商店的已同步版本需在对应商店管理", 409)
-            final = "unlisted" if action == "unlist" else "cancelled"
-            if row.publication_status == final:
+            if row.status == "approved":
+                raise DeliveryError("此版本已通过平台审核，不支持取消上架或重新上架", 409)
+            if action != "cancel":
+                raise DeliveryError("仅支持取消待审核的上架申请", 409)
+            if row.status == "cancelled" and row.publication_status == "cancelled":
                 return row
-            if row.status not in ("pending", "approved") or row.publication_status in ("unlisted", "cancelled"):
-                raise DeliveryError("此上架申请已处理", 409)
-            if (action == "unlist") != (row.publication_status == "published"):
+            if row.status != "pending" or row.publication_task_id or row.publication_status != "not_started":
                 raise DeliveryError("上架状态已变化，请刷新后重试", 409)
-            if task and task.status in ("queued", "running", "failed"):
-                task.status = "cancelled"
-                task.save(update_fields=["status", "updated_at"])
-            if row.status == "pending":
-                row.status = "cancelled"
-            row.publication_status = final
+            row.status = "cancelled"
+            row.publication_status = "cancelled"
             row.save(update_fields=["status", "publication_status"])
             self.m.DeliveryTask.objects.create(
                 template=version.template, version=version, kind="listing_withdrawal", status="succeeded",
                 actor_id=user.user_id, actor_name=actor(user), request_key="withdraw:" + str(row.id),
-                payload={"listing_id": str(row.id), "action": action}, result={"publication_status": final})
+                payload={"listing_id": str(row.id), "action": action}, result={"publication_status": "cancelled"})
             return row
 
     def review(self, user, request_id, decision, comment, admin=False):
@@ -560,6 +556,9 @@ class DeliveryService:
                 raise DeliveryError("此申请已处理或版本已删除", 409)
             if decision not in ("approved", "rejected") or len(comment) > 500 or decision == "rejected" and not comment.strip():
                 raise DeliveryError("驳回需要填写原因")
+            if decision == "approved" and row.version.listings.filter(
+                    Q(destination__type="local") | Q(destination={}), status="approved").exclude(id=row.id).exists():
+                raise DeliveryError("此版本已通过平台审核，不支持重复审核上架", 409)
             row.status, row.comment, row.reviewer_name, row.reviewed_at = decision, comment.strip(), actor(user), timezone.now()
             if decision == "approved":
                 self._start_publication(row, user)

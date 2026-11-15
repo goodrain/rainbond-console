@@ -1,10 +1,7 @@
 # capability_id: console.vm-snapshot.durable-worker
-"""Real Console SQL + the sealed SDK; server is an explicit LOCAL RPC fixture."""
+"""Real Console SQL + the production SDK; server is an explicit LOCAL RPC fixture."""
 import copy
-import ast
-import hashlib
 import json
-import os
 from pathlib import Path
 import socket
 import signal
@@ -31,32 +28,8 @@ from www.models.main import Tenants, TenantServiceInfo, TenantServiceVolume
 
 
 def actual_snapshot_sdk():
-    path = Path(os.environ['VM_SNAPSHOT_SDK_SOURCE'])
-    require_hash = 'bdf1bc91503bf34ad0734f840c145fc1a491586c4495d0c29099f41b56332831'
-    assert hashlib.sha256(path.read_bytes()).hexdigest() == require_hash
-    from www.apiclient import regionapi
-    from addict import Dict as AttributeDict
-    # Assemble only the owner's frozen snapshot methods on the actual current
-    # base client; unrelated SDK methods belong to a different runtime base.
-    names = {
-        'create_vm_snapshot', '_vm_snapshot_request', '_validated_vm_snapshot_request_id', 'command_vm_snapshot',
-        '_validated_vm_snapshot_name', '_vm_snapshot_access', 'get_vm_snapshot'
-    }
-    original = next(
-        node for node in ast.parse(path.read_text()).body if isinstance(node, ast.ClassDef) and node.name == 'RegionInvokeApi')
-    methods = [node for node in original.body if isinstance(node, ast.FunctionDef) and node.name in names]
-    assert len(methods) == len(names)
-    assembled = ast.Module(body=[
-        ast.ClassDef(name='RegionInvokeApi',
-                     bases=[ast.Name(id='_SDKBase', ctx=ast.Load())],
-                     keywords=[],
-                     body=methods,
-                     decorator_list=[])
-    ],
-                           type_ignores=[])
-    namespace = dict(vars(regionapi), _SDKBase=regionapi.RegionInvokeApi, AttributeDict=AttributeDict)
-    exec(compile(ast.fix_missing_locations(assembled), str(path), 'exec'), namespace)
-    return namespace['RegionInvokeApi']()
+    from www.apiclient.regionapi import RegionInvokeApi
+    return RegionInvokeApi()
 
 
 class SnapshotLoopback:
