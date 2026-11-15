@@ -4559,6 +4559,50 @@
       "status": "active"
     },
     {
+      "id": "console.component-recycle.atomic-retry",
+      "title": "Roll back partial recycle changes and allow retries",
+      "title_zh": "回滚部分回收变更并允许重试",
+      "interface_type": "service_method",
+      "interface": "console.services.app_actions.app_manage.AppManageService.delete",
+      "code_paths": [
+        "console/services/app_actions/app_manage.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_manage_test.py",
+          "selector": "AppManageRecycleFieldProjectionTests.test_recycle_failure_deleting_original_rolls_back_and_can_retry"
+        },
+        {
+          "path": "console/tests/app_manage_test.py",
+          "selector": "AppManageRecycleFieldProjectionTests.test_relation_move_failure_rolls_back_single_and_batch_delete_and_can_retry"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.component-recycle.field-projection",
+      "title": "Project current component fields onto the recycle model",
+      "title_zh": "将当前组件字段投影到回收模型",
+      "interface_type": "dao_method",
+      "interface": "console.repositories.app.ServiceRecycleBinRepository.create_trash_service",
+      "code_paths": [
+        "console/repositories/app.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_manage_test.py",
+          "selector": "AppManageRecycleFieldProjectionTests.test_recycle_preserves_declared_fields_and_removes_original_after_insert"
+        },
+        {
+          "path": "console/tests/app_manage_test.py",
+          "selector": "AppManageRecycleFieldProjectionTests.test_recycle_failure_before_insert_preserves_original_for_retry"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.component-type.daemonset",
       "title": "DaemonSet component type support",
       "title_zh": "DaemonSet 组件类型支持",
@@ -6203,6 +6247,24 @@
       "status": "active"
     },
     {
+      "id": "console.component.upgrade-returns-task-id",
+      "title": "Return the accepted component update task identifier",
+      "title_zh": "返回已受理的组件更新任务标识",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.app_manage.UpgradeAppView.post",
+      "code_paths": [
+        "console/views/app_manage.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/component_upgrade_event_view_test.py",
+          "selector": "ComponentUpgradeEventViewTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.component.volume-delete-blocks-shared-mount",
       "title": "Block deleting shared mounted component volumes",
       "title_zh": "被共享挂载时阻止删除组件存储卷",
@@ -6215,6 +6277,24 @@
         {
           "path": "console/tests/app_config_volume_delete_test.py",
           "selector": "AppVolumeDeleteTests.test_delete_service_volume_rejects_shared_mount_even_when_forced"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.component.volume-delete-safe-retry",
+      "title": "Keep owned volume retry records until cleanup is confirmed",
+      "title_zh": "清理确认前保留卷重试记录",
+      "interface_type": "service_method",
+      "interface": "console.services.app_config.volume_service.AppVolumeService.delete_service_volume_by_id",
+      "code_paths": [
+        "console/services/app_config/volume_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_config_volume_delete_test.py",
+          "selector": "AppVolumeDeleteSafetyTests"
         }
       ],
       "test_type": "regression",
@@ -6269,6 +6349,24 @@
         {
           "path": "console/tests/app_volume_view_test.py",
           "selector": "AppVolumeManageViewTestCase::test_put_rejects_volume_capacity_shrink"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.component.volume-update-rejects-foreign-owner",
+      "title": "Reject volume updates outside the current component before side effects",
+      "title_zh": "副作用前拒绝外部组件卷更新",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.app_config.app_volume.AppVolumeManageView.put",
+      "code_paths": [
+        "console/views/app_config/app_volume.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_volume_view_test.py",
+          "selector": "AppVolumeManageViewTestCase.test_put_rejects_volume_owned_by_another_component_before_side_effects"
         }
       ],
       "test_type": "regression",
@@ -10612,6 +10710,24 @@
       "status": "active"
     },
     {
+      "id": "console.platform-overview.team-usage-compatibility",
+      "title": "Configured ranking and actual team usage compatibility",
+      "title_zh": "配置排行与团队实际用量兼容",
+      "interface_type": "service_method",
+      "interface": "console.services.platform_overview_service.PlatformOverviewService._build_team_rankings",
+      "code_paths": [
+        "console/services/platform_overview_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/platform_overview_team_usage_compat_test.py",
+          "selector": "PlatformOverviewTeamUsageCompatibilityTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.platform-plugin.batch-install-metadata",
       "title": "Batch latest plugin installation metadata",
       "title_zh": "批量读取插件最新安装元数据",
@@ -13856,6 +13972,82 @@
       "status": "active"
     },
     {
+      "id": "console.vm-restore.command-journal",
+      "title": "Durable restore bounded command intents and observations",
+      "title_zh": "恢复命令持久意图与观察",
+      "interface_type": "service_method",
+      "interface": "console.services.vm_restore_journal.VMRestoreJournal.issue_restore_command",
+      "code_paths": [
+        "console/services/vm_restore_journal.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/vm_restore_command_journal_test.py",
+          "selector": "VMRestoreCommandJournalTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.vm-restore.command-process-restart",
+      "title": "Restore command hard-exit and process restart reconciliation",
+      "title_zh": "恢复命令硬退出与进程续作",
+      "interface_type": "workflow",
+      "interface": "console.services.vm_restore_worker.VMJobRunner.process",
+      "code_paths": [
+        "console/services/vm_restore_command_worker.py",
+        "console/services/vm_restore_journal.py",
+        "console/services/vm_restore_worker.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/vm_restore_command_process_restart_test.py",
+          "selector": "VMRestoreCommandProcessRestartTests"
+        }
+      ],
+      "test_type": "integration",
+      "status": "active"
+    },
+    {
+      "id": "console.vm-restore.command-worker",
+      "title": "Restore worker real SDK command reconciliation",
+      "title_zh": "恢复 Worker 真实 SDK 命令对账",
+      "interface_type": "workflow",
+      "interface": "console.services.vm_restore_command_worker.RestoreCommandRunner.process",
+      "code_paths": [
+        "console/services/vm_restore_command_worker.py",
+        "console/services/vm_restore_worker.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/vm_restore_command_worker_test.py",
+          "selector": "VMRestoreCommandWorkerTests"
+        }
+      ],
+      "test_type": "integration",
+      "status": "active"
+    },
+    {
+      "id": "console.vm-restore.config-seals-v11",
+      "title": "Frozen Go v1.1 configuration hash and power seals",
+      "title_zh": "固定 Go v1.1 配置哈希与电源封存",
+      "interface_type": "service_method",
+      "interface": "console.services.vm_restore_journal.restore_observation",
+      "code_paths": [
+        "console/services/vm_restore_journal.py",
+        "console/utils/vm_restore_config.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/vm_restore_config_v11_test.py",
+          "selector": "VMRestoreConfigV11Tests"
+        }
+      ],
+      "test_type": "integration",
+      "status": "active"
+    },
+    {
       "id": "console.vm-restore.journal",
       "title": "Internal durable VM restore journal",
       "title_zh": "Internal durable VM restore journal",
@@ -13868,6 +14060,25 @@
         {
           "path": "console/tests/vm_restore_journal_test.py",
           "selector": "VMRestoreJournalTestCase"
+        }
+      ],
+      "test_type": "integration",
+      "status": "active"
+    },
+    {
+      "id": "console.vm-restore.journal-integrity",
+      "title": "Immutable issued command and locally anchored source monotonic journal",
+      "title_zh": "原请求不可变与本地源绑定单调日志",
+      "interface_type": "workflow",
+      "interface": "console.services.vm_restore_journal.VMRestoreJournal.record_restore_status",
+      "code_paths": [
+        "console/services/vm_restore_journal.py",
+        "console/services/vm_restore_command_worker.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/vm_journal_integrity_repair_test.py",
+          "selector": "VMJournalIntegrityRepairTests"
         }
       ],
       "test_type": "integration",
@@ -13899,6 +14110,24 @@
       "status": "active"
     },
     {
+      "id": "console.vm-restore.pending-read-floor",
+      "title": "Persisted pending request floor before journal read and worker resume",
+      "title_zh": "读取续作前验证持久 pending 请求下界",
+      "interface_type": "workflow",
+      "interface": "console.services.vm_restore_journal.restore_rpc_state",
+      "code_paths": [
+        "console/services/vm_restore_journal.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/vm_journal_pending_floor_test.py",
+          "selector": "PendingReadFloorTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.vm-restore.private-attributes",
       "title": "VM restore private attribute public boundary",
       "title_zh": "VM restore private attribute public boundary",
@@ -13916,6 +14145,25 @@
         }
       ],
       "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.vm-restore.region-rpc-v1",
+      "title": "VM restore scoped bounded Region RPC v1",
+      "title_zh": "虚拟机恢复作用域有界RPC",
+      "interface_type": "service_method",
+      "interface": "www.apiclient.regionapi.RegionInvokeApi.command_vm_restore",
+      "code_paths": [
+        "www/apiclient/regionapi.py",
+        "console/utils/vm_restore_rpc.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/vm_restore_rpc_test.py",
+          "selector": "VMRestoreRPCSDKTests"
+        }
+      ],
+      "test_type": "integration",
       "status": "active"
     },
     {
@@ -13976,6 +14224,29 @@
         {
           "path": "console/tests/vm_asset_instantiation_test.py",
           "selector": "VMAssetInstantiationTests.test_vm_run_create_rejects_when_vm_plugin_not_running"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.vm-run.reject-root-ssh-bootstrap",
+      "title": "Reject root SSH initialization before VM creation",
+      "title_zh": "创建虚拟机前拒绝 root SSH 初始化",
+      "interface_type": "view_endpoint",
+      "interface": "POST /console/teams/{team}/apps/vm_run",
+      "code_paths": [
+        "console/services/virtual_machine.py",
+        "console/views/app_create/vm_run.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/vm_asset_instantiation_test.py",
+          "selector": "VMAssetInstantiationTests.test_vm_ssh_bootstrap_rejects_root_with_non_root_username_hint"
+        },
+        {
+          "path": "console/tests/vm_asset_instantiation_test.py",
+          "selector": "VMAssetInstantiationTests.test_vm_run_rejects_root_ssh_before_any_creation"
         }
       ],
       "test_type": "regression",
@@ -14142,6 +14413,42 @@
       "status": "active"
     },
     {
+      "id": "console.vm-snapshot.region-client",
+      "title": "VM snapshot Region client accepted operation contract",
+      "title_zh": "虚拟机快照 Region 调用与受理状态契约",
+      "interface_type": "service_method",
+      "interface": "www.apiclient.regionapi.RegionInvokeApi.prepare_vm_snapshot",
+      "code_paths": [
+        "www/apiclient/regionapi.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/vm_snapshot_region_client_test.py",
+          "selector": "VMSnapshotRegionClientTestCase"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.vm-snapshot.region-client-path-validation",
+      "title": "Reject invalid VM snapshot path names before transport",
+      "title_zh": "传输前拒绝非法虚拟机快照路径",
+      "interface_type": "workflow",
+      "interface": "RegionInvokeApi snapshot request path validation",
+      "code_paths": [
+        "www/apiclient/regionapi.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/vm_snapshot_region_client_path_test.py",
+          "selector": "VMSnapshotRegionClientPathTestCase"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.vm-snapshot.sdk-hooks",
       "title": "Bounded snapshot SDK raw status and private transport",
       "title_zh": "Bounded snapshot SDK raw status and private transport",
@@ -14189,6 +14496,25 @@
       "tests": [
         {
           "path": "console/tests/vm_managed_storage_projection_test.py"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.vm-storage.snapshot-capability",
+      "title": "VM storage snapshot capability projection",
+      "title_zh": "虚拟机存储快照能力透传",
+      "interface_type": "service_method",
+      "interface": "console.services.app_config.volume_service.AppVolumeService.get_vm_persistent_storage_options",
+      "code_paths": [
+        "console/services/vm_storage_snapshot.py",
+        "console/services/app_config/volume_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/vm_storage_snapshot_capability_test.py",
+          "selector": "VMStorageSnapshotCapabilityTestCase"
         }
       ],
       "test_type": "regression",
@@ -14252,6 +14578,105 @@
         }
       ],
       "test_type": "unit",
+      "status": "active"
+    },
+    {
+      "id": "console.vm-template.legacy-republish-initialization-isolation",
+      "title": "Strip VM login initialization when republishing legacy snapshots",
+      "title_zh": "旧快照再公开发布时剥离虚拟机初始化凭据",
+      "interface_type": "service_method",
+      "interface": "ShareService._build_publish_template_from_snapshot",
+      "code_paths": [
+        "console/services/share_services.py",
+        "console/services/vm_login_security.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/vm_example_password_login_test.py",
+          "selector": "VMExamplePasswordLoginTests.test_legacy_snapshot_republish_strips_initialization_without_mutating_private_source"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.vm-template.login-initialization-isolation",
+      "title": "Strip VM initialization from public templates and preserve private restore",
+      "title_zh": "公开模板剥离初始化凭据并保留私有恢复",
+      "interface_type": "workflow",
+      "interface": "Public template export/import versus private VM restore and Region sync",
+      "code_paths": [
+        "console/services/vm_login_security.py",
+        "console/services/share_services.py",
+        "console/services/market_app/market_app.py",
+        "console/services/market_app/app_restore.py",
+        "console/services/backup_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/vm_example_password_login_test.py",
+          "selector": "VMExamplePasswordLoginTests.test_public_share_and_legacy_template_import_remove_all_login_initialization"
+        },
+        {
+          "path": "console/tests/vm_example_password_login_test.py",
+          "selector": "VMExamplePasswordLoginTests.test_internal_region_sync_preserves_owned_password_initialization"
+        },
+        {
+          "path": "console/tests/vm_example_password_login_test.py",
+          "selector": "VMExamplePasswordLoginTests.test_template_upgrade_ignores_old_ssh_pair_without_replacing_owner_pair"
+        },
+        {
+          "path": "console/tests/vm_example_password_login_test.py",
+          "selector": "VMExamplePasswordLoginTests.test_transfer_helper_drops_partial_pairs_and_empty_legacy_fields_without_mutation"
+        },
+        {
+          "path": "console/tests/vm_example_password_login_test.py",
+          "selector": "VMExamplePasswordLoginTests.test_owner_generic_api_still_reads_ssh_username_and_public_key"
+        },
+        {
+          "path": "console/tests/vm_example_password_login_test.py",
+          "selector": "VMExamplePasswordLoginTests.test_private_group_backup_keeps_hash_for_vm_restore"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.vm-template.private-rollback-initialization",
+      "title": "Preserve same-VM SSH initialization through private snapshot rollback",
+      "title_zh": "同虚拟机私有快照回退保留 SSH 初始化",
+      "interface_type": "workflow",
+      "interface": "Private snapshot reconstruction and failed-upgrade Region rollback",
+      "code_paths": [
+        "console/services/market_app/app_restore.py",
+        "console/services/market_app/market_app.py",
+        "console/services/backup_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/vm_example_password_login_test.py",
+          "selector": "VMExamplePasswordLoginTests.test_private_snapshot_and_failed_upgrade_rollback_keep_owner_ssh_pair"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.vm.disk-expansion-runtime-projection",
+      "title": "Preserve observed PVC expansion fields in VM disk layout",
+      "title_zh": "在虚拟机磁盘布局中保留 PVC 扩容观察字段",
+      "interface_type": "service_method",
+      "interface": "console.services.virtual_machine.VirtualMachineService._build_vm_volume_disk_items",
+      "code_paths": [
+        "console/services/virtual_machine.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/vm_disk_expansion_projection_test.py",
+          "selector": "VMDiskExpansionProjectionTests"
+        }
+      ],
+      "test_type": "regression",
       "status": "active"
     },
     {
@@ -14653,25 +15078,6 @@
         }
       ],
       "test_type": "regression",
-      "status": "active"
-    },
-    {
-      "id": "console.vm-restore.region-rpc-v1",
-      "title": "VM restore scoped bounded Region RPC v1",
-      "title_zh": "虚拟机恢复作用域有界RPC",
-      "interface_type": "service_method",
-      "interface": "www.apiclient.regionapi.RegionInvokeApi.command_vm_restore",
-      "code_paths": [
-        "www/apiclient/regionapi.py",
-        "console/utils/vm_restore_rpc.py"
-      ],
-      "tests": [
-        {
-          "path": "console/tests/vm_restore_rpc_test.py",
-          "selector": "VMRestoreRPCSDKTests"
-        }
-      ],
-      "test_type": "integration",
       "status": "active"
     }
   ]

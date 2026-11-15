@@ -117,6 +117,62 @@ class VMAssetInstantiationTests(TestCase):
             if public_key:
                 self.assertNotIn(public_key, str(raised.exception))
 
+    # capability_id: console.vm-run.reject-root-ssh-bootstrap
+    def test_vm_ssh_bootstrap_rejects_root_with_non_root_username_hint(self):
+        key = self._ed25519_public_key()
+        for username in ("root", " root "):
+            with self.subTest(username=username), self.assertRaisesRegex(ValueError, "non-root username") as raised:
+                vms.validate_vm_ssh_bootstrap(
+                    username, key, os_name="Ubuntu 24.04", os_family="linux", boot_source_format="qcow2")
+            self.assertNotIn(key, str(raised.exception))
+            for method in ("ssh_key", None):
+                with self.subTest(username=username, method=method), self.assertRaisesRegex(ValueError, "non-root username"):
+                    vms.prepare_vm_login_bootstrap(
+                        login_method=method, ssh_username=username, ssh_public_key=key,
+                        os_name="Ubuntu 24.04", os_family="linux", image_format="qcow2")
+
+    # capability_id: console.vm-run.reject-root-ssh-bootstrap
+    def test_vm_run_rejects_root_ssh_before_any_creation(self):
+        view = VMRunCreateView()
+        view.tenant = SimpleNamespace(
+            tenant_id="tenant-root-rejection", tenant_name="root-rejection-team",
+            namespace="root-rejection-ns", enterprise_id="root-rejection-enterprise")
+        view.response_region = "root-rejection-region"
+        view.user = SimpleNamespace(pk=1, nick_name="test-user")
+        key = self._ed25519_public_key()
+        request = view.initialize_request(APIRequestFactory().post(
+            "/console/teams/root-rejection-team/apps/vm_run", {
+                "group_id": 7,
+                "service_cname": "root-rejection-vm",
+                "k8s_component_name": "root-rejection-vm",
+                "image_name": "root-rejection-image",
+                "source_type": "url",
+                "vm_url": "https://example.invalid/linux.qcow2",
+                "format": "qcow2", "boot_mode": "uefi", "arch": "amd64",
+                "os_name": "Ubuntu 24.04", "os_family": "linux",
+                "login_method": "ssh_key", "ssh_username": " root ", "ssh_public_key": key,
+            }, format="json"))
+        asset = SimpleNamespace(ID=37, boot_mode="uefi", os_name="Ubuntu 24.04", source_type="url")
+        with mock.patch("console.views.app_create.vm_run.vms.ensure_vm_platform_running"), \
+                mock.patch("console.views.app_create.vm_run.vms.create_vm_image_asset", return_value=asset) as create_asset, \
+                mock.patch("console.views.app_create.vm_run.app_service.create_vm_run_app",
+                           return_value=(400, "creation must not be reached", None)) as create_component, \
+                mock.patch("console.views.app_create.vm_run.vms.save_vm_runtime_config") as save_runtime, \
+                mock.patch("console.views.app_create.vm_run.group_service.add_service_to_group") as associate_group, \
+                mock.patch("console.views.app_create.vm_run.port_service.add_service_port") as create_port, \
+                mock.patch("console.views.app_create.vm_run.enterprise_first_deploy_service.safe_begin_deploy_tracking",
+                           return_value=None) as track:
+            response = view.post(request)
+        self.assertEqual(400, response.status_code)
+        self.assertIn("non-root username", json.dumps(response.data))
+        self.assertNotIn(key, json.dumps(response.data))
+        for writer in (create_asset, create_component, save_runtime, associate_group, create_port, track):
+            writer.assert_not_called()
+        self.assertEqual(0, TenantServiceInfo.objects.count())
+        self.assertEqual(0, VirtualMachineImage.objects.count())
+        self.assertEqual(0, ComponentK8sAttributes.objects.count())
+        self.assertEqual(0, TenantServicesPort.objects.count())
+
     def test_vm_run_rejects_invalid_ssh_before_creating_asset_or_component(self):
         view = VMRunCreateView()
         view.tenant = SimpleNamespace(

@@ -119,6 +119,8 @@ class AppVolumeService(object):
         body = region_api.get_volume_options(region_name, tenant.tenant_name)
         if strict:
             if isinstance(body, dict):
+                if "code" in body and (type(body["code"]) is not int or body["code"] != 200):
+                    raise ValueError("failed region volume options response")
                 if "list" not in body:
                     raise ValueError("invalid region volume options response")
                 region_options = body["list"]
@@ -614,8 +616,10 @@ class AppVolumeService(object):
                                     user_name: str = '', force: Any = None) -> Tuple[int, str, Any]:
         # force=0: 预先检查不要删除
         volume = volume_repo.get_service_volume_by_pk(volume_id)
-        if not volume:
+        if not volume or volume.service_id != service.service_id:
             return 404, "需要删除的路径不存在", None
+        if getattr(service, "extend_method", "") == ComponentType.vm.value and volume.volume_name == "disk":
+            return 409, "虚拟机系统盘不允许单独删除", None
         mnt = mnt_repo.get_mnt_by_dep_id_and_mntname(service.service_id, volume.volume_name)
         if mnt:
             ret_list = []
@@ -638,12 +642,16 @@ class AppVolumeService(object):
                 res, body = region_api.delete_service_volumes(
                     service.service_region, tenant.tenant_name, service.service_alias, volume.volume_name,
                     tenant.enterprise_id, data)  # type: ignore[arg-type]
-                logger.debug("service {0} delete volume {1}, result {2}".format(service.service_cname, volume.volume_name,
-                                                                                body))
-            except region_api.CallApiError as e:
-                if e.status != 404:
+                if res.status != 200:
                     raise ServiceHandleException(
-                        msg="delete volume from region failure", msg_show="从集群删除存储发生错误", status_code=500)
+                        msg="volume cleanup is not confirmed",
+                        msg_show="集群尚未确认存储回收，配置已保留，请稍后重试",
+                        status_code=409 if res.status < 500 else 502)
+            except region_api.CallApiError as e:
+                raise ServiceHandleException(
+                    msg="volume cleanup is not confirmed",
+                    msg_show="集群尚未确认存储回收，配置已保留，请重试或联系管理员核对",
+                    status_code=409 if e.status in (404, 409) else 502)
         volume_repo.delete_volume_by_id(volume_id)
         volume_repo.delete_file_by_volume(volume)
 

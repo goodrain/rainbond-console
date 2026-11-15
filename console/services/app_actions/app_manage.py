@@ -1076,9 +1076,10 @@ class AppManageService(AppManageBase):
         app = self.get_app_by_service(service)
         if not is_force:
             # 如果不是真删除，将数据备份,删除tenant_service表中的数据
-            self.move_service_into_recycle_bin(service)
-            # 组件关系移除
-            self.move_service_relation_info_recycle_bin(tenant, service)
+            with transaction.atomic():
+                self.move_service_into_recycle_bin(service)
+                # 组件关系移除
+                self.move_service_relation_info_recycle_bin(tenant, service)
             return 200, "success"
         else:
             try:
@@ -1228,6 +1229,7 @@ class AppManageService(AppManageBase):
             logger.exception(e)
             return None
 
+    @transaction.atomic
     def move_service_into_recycle_bin(self, service: TenantServiceInfo) -> Any:
         """将组件移入回收站"""
         data = service.toJSON()
@@ -1415,9 +1417,10 @@ class AppManageService(AppManageBase):
         app = self.get_app_by_service(service)
         if not is_force:
             # 如果不是真删除，将数据备份,删除tenant_service表中的数据
-            self.move_service_into_recycle_bin(service)
-            # 组件关系移除
-            self.move_service_relation_info_recycle_bin(tenant, service)
+            with transaction.atomic():
+                self.move_service_into_recycle_bin(service)
+                # 组件关系移除
+                self.move_service_relation_info_recycle_bin(tenant, service)
             code = 200
             msg = "success"
             return code, msg

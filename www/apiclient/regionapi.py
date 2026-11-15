@@ -3435,6 +3435,27 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url, headers = self._vm_snapshot_access(region, tenant_name, service_alias, snapshot_name)
         return self._vm_snapshot_request(region, url + "/restore/" + request_id, headers, "GET")
 
+    def prepare_vm_snapshot(self, region: str, tenant_name: str, service_alias: str,
+                            body: dict) -> Tuple[Any, Optional[Dict[str, Any]]]:
+        """Return Region acceptance unchanged; the durable worker drives steps."""
+        url, headers = self._vm_snapshot_access(region, tenant_name, service_alias)
+        return self._post(url, headers, region=region, body=json.dumps(body), timeout=15, connect_timeout=5, retries=0)
+
+    def vm_snapshot_action(self, region: str, tenant_name: str, service_alias: str, snapshot_name: str, action: str,
+                           body: dict) -> Tuple[Any, Optional[Dict[str, Any]]]:
+        if action not in ("halt", "create", "resume", "finalize", "cancel", "delete"):
+            raise ServiceHandleException("invalid VM snapshot action", status_code=400)
+        snapshot_name = self._validated_vm_snapshot_name(snapshot_name)
+        url, headers = self._vm_snapshot_access(region, tenant_name, service_alias, snapshot_name)
+        url += "/" + action
+        return self._post(url, headers, region=region, body=json.dumps(body), timeout=15, connect_timeout=5, retries=0)
+
+    def delete_vm_snapshot(self, region: str, tenant_name: str, service_alias: str, snapshot_name: str,
+                           body: dict) -> Tuple[Any, Optional[Dict[str, Any]]]:
+        snapshot_name = self._validated_vm_snapshot_name(snapshot_name)
+        url, headers = self._vm_snapshot_access(region, tenant_name, service_alias, snapshot_name)
+        return self._delete(url, headers, region=region, body=json.dumps(body), timeout=15, connect_timeout=5, retries=0)
+
     def get_node_info(self, region: str, node_name: str) -> Tuple[Any, Optional[Dict[str, Any]]]:
         region_info = self.get_region_info(region)
         if not region_info:

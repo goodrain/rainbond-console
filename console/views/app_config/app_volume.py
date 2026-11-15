@@ -410,8 +410,8 @@ class AppVolumeManageView(AppBaseView):
         if not volume_id:
             return Response(general_message(400, "volume_id is null", "未指定需要编辑的配置文件存储"), status=400)
         volume = volume_repo.get_service_volume_by_pk(volume_id)
-        if not volume:
-            return Response(general_message(400, "volume is null", "存储不存在"), status=400)
+        if not volume or volume.service_id != self.service.service_id:
+            return Response(general_message(404, "volume not found", "存储不存在"), status=404)
         if volume_capacity in ("", None):
             volume_capacity = None
         else:

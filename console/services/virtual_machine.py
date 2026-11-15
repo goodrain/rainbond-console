@@ -198,6 +198,8 @@ class VirtualMachineService(object):
 
         username = username.strip()
         public_key = public_key.strip()
+        if username == "root":
+            raise ValueError("SSH public-key login requires a non-root username")
         os_label = os_name.strip().lower() if isinstance(os_name, str) else ""
         family = os_family.strip().lower() if isinstance(os_family, str) else ""
         source_format = boot_source_format.strip().lower() if isinstance(boot_source_format, str) else ""
@@ -1234,6 +1236,12 @@ class VirtualMachineService(object):
                 "volume_capacity": volume_data.get("volume_capacity", 0),
                 "status": volume_data.get("status", ""),
             })
+            # These observations are already returned by the volume endpoint;
+            # retain false/zero and leave absent legacy fields absent.
+            for field in ("allow_expansion", "actual_capacity", "requested_capacity",
+                          "expansion_status", "expansion_message", "pvc_count"):
+                if field in volume_data:
+                    items[-1][field] = volume_data[field]
         return items
 
     def _resolve_vm_disk_layout_for_service(self, runtime: dict, asset: Any, volume_items: list) -> list:

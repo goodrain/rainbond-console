@@ -585,6 +585,10 @@ class ShareService(object):
         app_template["ingress_http_routes"] = copy.deepcopy(snapshot_template.get("ingress_http_routes", []))
         app_template["plugins"] = copy.deepcopy(snapshot_template.get("plugins", []))
         app_template["apps"] = copy.deepcopy(snapshot_template.get("apps", []))
+        for component in app_template["apps"]:
+            if "component_k8s_attributes" in component:
+                component["component_k8s_attributes"] = filter_vm_login_transfer_attributes(
+                    component.get("component_k8s_attributes"))
 
         platform_plugin = self._build_platform_plugin_config(share_version_info)
         if platform_plugin:

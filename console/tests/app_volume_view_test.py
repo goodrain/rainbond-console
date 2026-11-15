@@ -2,6 +2,7 @@
 import collections
 import os
 import sys
+from contextlib import ExitStack
 from types import ModuleType
 from unittest import TestCase, mock
 
@@ -52,6 +53,7 @@ class AppVolumeManageViewTestCase(TestCase):
         self.view.tenant = mock.Mock(tenant_name="demo-team")
         self.view.service = mock.Mock(
             create_status="complete",
+            service_id="service-1",
             service_region="region-1",
             service_alias="demo-service",
             service_cname="Demo Service",
@@ -68,6 +70,7 @@ class AppVolumeManageViewTestCase(TestCase):
         )
         request.data = {"new_volume_path": "/data", "volume_capacity": 20}
         volume = mock.Mock(
+            service_id="service-1",
             volume_name="data",
             volume_path="/data",
             volume_type="share-file",
@@ -105,6 +108,7 @@ class AppVolumeManageViewTestCase(TestCase):
         )
         request.data = {"new_volume_path": "/data", "volume_capacity": 20}
         volume = mock.Mock(
+            service_id="service-1",
             volume_name="data",
             volume_path="/data",
             volume_type="share-file",
@@ -141,6 +145,7 @@ class AppVolumeManageViewTestCase(TestCase):
         )
         request.data = {"new_volume_path": "/data", "volume_capacity": 9}
         volume = mock.Mock(
+            service_id="service-1",
             volume_name="data",
             volume_path="/data",
             volume_type="fast",
@@ -166,6 +171,7 @@ class AppVolumeManageViewTestCase(TestCase):
         )
         request.data = {"new_volume_path": "/data", "volume_capacity": "20.5"}
         volume = mock.Mock(
+            service_id="service-1",
             volume_name="data",
             volume_path="/data",
             volume_type="fast",
@@ -190,6 +196,7 @@ class AppVolumeManageViewTestCase(TestCase):
         )
         request.data = {"new_volume_path": "/data", "volume_capacity": 20}
         volume = mock.Mock(
+            service_id="service-1",
             volume_name="data",
             volume_path="/data",
             volume_type="fast",
@@ -229,3 +236,56 @@ class AppVolumeManageViewTestCase(TestCase):
         self.assertEqual(response.status_code, 404)
         self.assertEqual(response.data["msg"], "volume not found")
         delete_volume.assert_not_called()
+
+    # capability_id: console.component.volume-update-rejects-foreign-owner
+    def test_put_rejects_volume_owned_by_another_component_before_side_effects(self):
+        for capacity in (20, "invalid"):
+            with self.subTest(capacity=capacity):
+                request = self.factory.put("/console/teams/demo-team/apps/demo-service/volumes/1", {}, format="json")
+                request.data = {"new_volume_path": "/disk", "volume_capacity": capacity}
+                self.view.service.extend_method = "vm"
+                volume = mock.Mock(service_id="another-service", volume_name="disk", volume_path="/disk",
+                                   volume_type="fast", volume_capacity=10, mode=None)
+                with ExitStack() as stack:
+                    stack.enter_context(mock.patch("console.views.app_config.app_volume.volume_repo.get_service_volume_by_pk",
+                                                   return_value=volume))
+                    config = stack.enter_context(mock.patch(
+                        "console.views.app_config.app_volume.volume_repo.get_service_config_file",
+                        return_value=None))
+                    resolve = stack.enter_context(mock.patch(
+                        "console.views.app_config.app_volume.volume_service.resolve_vm_volume_path",
+                        return_value="/disk"))
+                    stack.enter_context(mock.patch("console.views.app_config.app_volume.volume_service.json_service_volume",
+                                                   return_value="{}"))
+                    remote = stack.enter_context(mock.patch(
+                        "console.views.app_config.app_volume.region_api.upgrade_service_volumes",
+                        return_value=(mock.Mock(status=200), {})))
+                    log = stack.enter_context(mock.patch("console.views.app_config.app_volume.operation_log_service"))
+                    response = self.view.put(request, volume_id="1")
+                self.assertEqual(response.status_code, 404)
+                config.assert_not_called()
+                resolve.assert_not_called()
+                remote.assert_not_called()
+                log.create_component_log.assert_not_called()
+                volume.save.assert_not_called()
+
+    def test_put_allows_path_edit_for_the_same_component(self):
+        request = self.factory.put("/console/teams/demo-team/apps/demo-service/volumes/1", {}, format="json")
+        request.data = {"new_volume_path": "/data-new"}
+        volume = mock.Mock(service_id="service-1", volume_name="data", volume_path="/data",
+                           volume_type="fast", volume_capacity=10, mode=None)
+        with ExitStack() as stack:
+            stack.enter_context(mock.patch("console.views.app_config.app_volume.volume_repo.get_service_volume_by_pk",
+                                           return_value=volume))
+            stack.enter_context(mock.patch("console.views.app_config.app_volume.volume_repo.get_service_config_file",
+                                           return_value=None))
+            stack.enter_context(mock.patch("console.views.app_config.app_volume.volume_service.json_service_volume",
+                                           return_value="{}"))
+            remote = stack.enter_context(mock.patch("console.views.app_config.app_volume.region_api.upgrade_service_volumes",
+                                                    return_value=(mock.Mock(status=200), {})))
+            stack.enter_context(mock.patch("console.views.app_config.app_volume.operation_log_service"))
+            response = self.view.put(request, volume_id="1")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(volume.volume_path, "/data-new")
+        volume.save.assert_called_once_with()
+        self.assertEqual(remote.call_args[0][3]["volume_path"], "/data-new")
