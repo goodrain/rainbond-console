@@ -1221,6 +1221,7 @@ class DeliveryWorkflowTest(unittest.TestCase):
         self.assertNotIn("payload", response)
 
     def test_delivered_app_upgrade_uses_actual_target_group_and_current_version(self):
+        import datetime
         import sys
         import types
         from unittest import mock
@@ -1245,6 +1246,7 @@ class DeliveryWorkflowTest(unittest.TestCase):
         tenant = SimpleNamespace(tenant_id="target-tenant", tenant_name="target", enterprise_id="enterprise")
         task = SimpleNamespace(kind="delivery", status="succeeded", template=SimpleNamespace(enterprise_id="enterprise"),
                                payload={"target": {"team_name": "target", "region_name": "production", "app_name": "App"}},
+                               updated_at=datetime.datetime(2026, 11, 15, 10, 0, tzinfo=datetime.timezone.utc),
                                result={"app_id": "42", "service_ids": ["installed-component"]})
         with mock.patch.dict(sys.modules, {
                 "www.models.main": main, "console.services.market_app_service": market,
@@ -1262,14 +1264,20 @@ class DeliveryWorkflowTest(unittest.TestCase):
                 "enterprise", "actual-market-key", "42", "73")
             group.group_version = "2.0.0"
             market.market_app_service.get_models_upgradeable_version.return_value = []
-            self.assertFalse(DeliveryGateway().upgrade_info(task, USER)["available"])
-            pending.return_value = SimpleNamespace(ID=33, status=6, version="2.0.0")
+            current = DeliveryGateway().upgrade_info(task, USER)
+            self.assertFalse(current["available"])
+            self.assertEqual(current["current_version"], "2.0.0")
+            self.assertEqual(current["updated_at"], task.updated_at.isoformat())
+            pending.return_value = SimpleNamespace(ID=33, status=6, version="2.0.0", update_time=task.updated_at)
             resume = DeliveryGateway().upgrade_info(task, USER)
             self.assertTrue(resume["available"])
             self.assertEqual(resume["resume_record_id"], "33")
             self.assertEqual(resume["latest_version"], "2.0.0")
-            pending.return_value = SimpleNamespace(ID=34, status=3, version="2.0.0")
+            pending.return_value = SimpleNamespace(ID=34, status=3, version="2.0.0",
+                                                   update_time=task.updated_at + datetime.timedelta(hours=1))
             self.assertFalse(DeliveryGateway().upgrade_info(task, USER)["available"])
+            current = DeliveryGateway().upgrade_info(task, USER)
+            self.assertEqual(current["updated_at"], pending.return_value.update_time.isoformat())
             pending.return_value = None
             main.TenantServiceGroup.objects.filter.return_value = []
             self.assertFalse(DeliveryGateway().upgrade_info(task, USER)["available"])
