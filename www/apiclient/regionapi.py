@@ -3421,6 +3421,20 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url, headers = self._vm_snapshot_access(region, tenant_name, service_alias, snapshot_name)
         return self._vm_snapshot_request(region, url, headers, "GET")
 
+    def start_native_vm_restore(self, region: str, tenant_name: str, service_alias: str, snapshot_name: str,
+                                request_id: str) -> Tuple[Any, Optional[Dict[str, Any]]]:
+        snapshot_name = self._validated_vm_snapshot_name(snapshot_name)
+        request_id = self._validated_vm_snapshot_request_id(request_id)
+        url, headers = self._vm_snapshot_access(region, tenant_name, service_alias, snapshot_name)
+        return self._vm_snapshot_request(region, url + "/restore", headers, "POST", {"request_id": request_id})
+
+    def get_native_vm_restore(self, region: str, tenant_name: str, service_alias: str, snapshot_name: str,
+                              request_id: str) -> Tuple[Any, Optional[Dict[str, Any]]]:
+        snapshot_name = self._validated_vm_snapshot_name(snapshot_name)
+        request_id = self._validated_vm_snapshot_request_id(request_id)
+        url, headers = self._vm_snapshot_access(region, tenant_name, service_alias, snapshot_name)
+        return self._vm_snapshot_request(region, url + "/restore/" + request_id, headers, "GET")
+
     def get_node_info(self, region: str, node_name: str) -> Tuple[Any, Optional[Dict[str, Any]]]:
         region_info = self.get_region_info(region)
         if not region_info:

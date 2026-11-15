@@ -3,7 +3,7 @@
 from django.urls import include, re_path, path
 
 import console.utils.perms_route_config as perms
-from console.views.vm_snapshot import VMSnapshotListView, VMSnapshotDetailView, VMSnapshotCapabilityView
+from console.views.vm_snapshot import VMSnapshotListView, VMSnapshotDetailView, VMSnapshotCapabilityView, VMSnapshotRestoreView
 from console.views.vm_jobs import VMJobCapabilityView, VMJobStatusView
 from console.views.delivery_templates import (
     DeliveryTemplatesView,
@@ -1113,6 +1113,12 @@ urlpatterns = [
     re_path(
         r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/vm-snapshots$',
         VMSnapshotListView.as_view(), perms.APP_VM_SNAPSHOT_PREPARE),
+    re_path(
+        r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/vm-snapshots/(?P<snapshot_name>[^/]+)/restore$',
+        VMSnapshotRestoreView.as_view(), perms.APP_VM_SNAPSHOT_PREPARE),
+    re_path(
+        r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/vm-snapshots/(?P<snapshot_name>[^/]+)/restore/(?P<request_id>[a-z0-9-]{1,63})$',
+        VMSnapshotRestoreView.as_view(), perms.APP_VM_SNAPSHOT_PREPARE),
     re_path(
         r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/vm-snapshots/(?P<snapshot_name>[^/]+)$',
         VMSnapshotDetailView.as_view(), perms.APP_VM_SNAPSHOT_READ),

@@ -722,6 +722,7 @@
 | console.vm-profile.template-root-disk-fallback | VM profile falls back to template root disk metadata | active | regression | console.services.virtual_machine.VirtualMachineService.get_vm_profile | console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_get_vm_profile_falls_back_to_template_root_disk_metadata_when_asset_missing |
 | console.vm-restore.attribute-transfer | VM restore private attribute transfer boundary | active | regression | console.services.vm_login_security.filter_vm_login_transfer_attributes | console/tests/vm_restore_attribute_transfer_test.py::VMRestoreAttributeTransferTestCase<br>console/tests/vm_restore_attribute_transfer_test.py::VMRestoreStoredTemplateTransferTestCase<br>console/tests/vm_restore_attribute_transfer_test.py::VMRestorePublicVersionComparisonTestCase |
 | console.vm-restore.journal | Internal durable VM restore journal | active | integration | console.services.vm_restore_journal.VMRestoreJournal | console/tests/vm_restore_journal_test.py::VMRestoreJournalTestCase |
+| console.vm-restore.native-http | Proxy scoped native VM snapshot restores | active | integration | console.views.vm_snapshot.VMSnapshotRestoreView | console/tests/vm_snapshot_read_api_test.py::VMSnapshotReadAPITestCase.test_native_restore_start_and_status_keep_scoped_region_contract<br>console/tests/vm_snapshot_read_api_test.py::VMSnapshotReadAPITestCase.test_native_restore_rejects_unscoped_or_invalid_requests_before_region |
 | console.vm-restore.private-attributes | VM restore private attribute public boundary | active | regression | console.services.k8s_attribute.ComponentK8sAttributeService | console/tests/vm_restore_private_attributes_test.py::VMRestorePrivateAttributesTestCase |
 | console.vm-restore.region-rpc-v1 | 虚拟机恢复作用域有界RPC | active | integration | www.apiclient.regionapi.RegionInvokeApi.command_vm_restore | console/tests/vm_restore_rpc_test.py::VMRestoreRPCSDKTests |
 | console.vm-root-disk-selected-storage-type | update_check_app 为新建虚拟机根盘使用所选存储类型 | active | regression | console.services.app.AppService.update_check_app | console/tests/vm_live_migration_storage_test.py::VMLiveMigrationStorageTests.test_update_check_app_uses_selected_storage_type_for_new_vm_root_disk |
@@ -7943,6 +7944,16 @@
 - 业务入口: `console.services.vm_restore_journal.VMRestoreJournal`
 - 代码路径: `console/services/vm_restore_journal.py`
 - 测试路径: `console/tests/vm_restore_journal_test.py::VMRestoreJournalTestCase`
+
+### Proxy scoped native VM snapshot restores
+
+- Capability ID: `console.vm-restore.native-http`
+- 状态: `active`
+- 测试类型: `integration`
+- 接口类型: `view_endpoint`
+- 业务入口: `console.views.vm_snapshot.VMSnapshotRestoreView`
+- 代码路径: `console/views/vm_snapshot.py`, `console/services/vm_snapshot_restore.py`, `www/apiclient/regionapi.py`, `console/urls/__init__.py`
+- 测试路径: `console/tests/vm_snapshot_read_api_test.py::VMSnapshotReadAPITestCase.test_native_restore_start_and_status_keep_scoped_region_contract`, `console/tests/vm_snapshot_read_api_test.py::VMSnapshotReadAPITestCase.test_native_restore_rejects_unscoped_or_invalid_requests_before_region`
 
 ### VM restore private attribute public boundary
 

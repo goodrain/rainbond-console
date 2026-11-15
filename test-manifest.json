@@ -13874,6 +13874,31 @@
       "status": "active"
     },
     {
+      "id": "console.vm-restore.native-http",
+      "title": "Proxy scoped native VM snapshot restores",
+      "title_zh": "Proxy scoped native VM snapshot restores",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.vm_snapshot.VMSnapshotRestoreView",
+      "code_paths": [
+        "console/views/vm_snapshot.py",
+        "console/services/vm_snapshot_restore.py",
+        "www/apiclient/regionapi.py",
+        "console/urls/__init__.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/vm_snapshot_read_api_test.py",
+          "selector": "VMSnapshotReadAPITestCase.test_native_restore_start_and_status_keep_scoped_region_contract"
+        },
+        {
+          "path": "console/tests/vm_snapshot_read_api_test.py",
+          "selector": "VMSnapshotReadAPITestCase.test_native_restore_rejects_unscoped_or_invalid_requests_before_region"
+        }
+      ],
+      "test_type": "integration",
+      "status": "active"
+    },
+    {
       "id": "console.vm-restore.private-attributes",
       "title": "VM restore private attribute public boundary",
       "title_zh": "VM restore private attribute public boundary",

@@ -23,6 +23,8 @@ ERRORS = {
     "vm_snapshot_dependency_unavailable":
     (503, "快照依赖服务暂不可用，请稍后重试", "Snapshot services are unavailable. Try again later.", True),
     "vm_snapshot_read_failed": (502, "读取虚拟机快照失败，请稍后重试", "Failed to read VM snapshots. Try again later.", True),
+    "vm_restore_outcome_unknown": (503, "恢复请求结果尚未确认，请保留请求并读取状态", "Restore outcome is not confirmed. Keep the request and read its status.", True),
+    "vm_restore_provider_not_qualified": (422, "当前存储恢复能力尚未就绪", "Restore is not qualified for the current storage.", False),
 }
 PUBLIC_SNAPSHOT_ERRORS = {
     "vm_snapshot_native_failed", "vm_snapshot_cleanup_outcome_pending", "vm_snapshot_create_outcome_pending",

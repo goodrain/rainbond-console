@@ -30,7 +30,8 @@ if "openapi_client" not in sys.modules and importlib.util.find_spec("openapi_cli
     sys.modules.update({"openapi_client": market, "openapi_client.configuration": configuration, "openapi_client.rest": rest})
 
 from console.services.vm_snapshot_read import vm_snapshot_read_service  # noqa: E402
-from console.views.vm_snapshot import VMSnapshotListView, VMSnapshotDetailView  # noqa: E402
+from console.services.vm_snapshot_restore import vm_snapshot_restore_service  # noqa: E402
+from console.views.vm_snapshot import VMSnapshotListView, VMSnapshotDetailView, VMSnapshotRestoreView  # noqa: E402
 from www.apiclient.regionapi import RegionInvokeApi  # noqa: E402
 
 
@@ -116,6 +117,7 @@ class VMSnapshotReadAPITestCase(TestCase):
             mock.patch("console.views.base.region_repo.get_region_by_region_name",
                        side_effect=lambda name: SimpleNamespace(region_name=name)),
             mock.patch.object(vm_snapshot_read_service, "client", self.client),
+            mock.patch.object(vm_snapshot_restore_service, "client", self.client),
             mock.patch.object(self.client,
                               "_RegionInvokeApi__get_region_access_info",
                               return_value=("https://region.invalid", "")),
@@ -157,6 +159,65 @@ class VMSnapshotReadAPITestCase(TestCase):
         if authenticated:
             force_authenticate(request, self.user)
         return match.func(request, **match.kwargs)
+
+    def call_restore(self, method="post", request_id="restore-a", payload=None):
+        self.permissions = {42: [300002, 300003]}
+        path = "/console/teams/team-a/apps/vm-a/vm-snapshots/point-a/restore"
+        if method == "get":
+            path += "/" + request_id
+        match = resolve(path)
+        self.assertIs(match.func.view_class, VMSnapshotRestoreView)
+        request = getattr(self.factory, method)(path + "?region_name=region-a",
+                                                payload if payload is not None else {
+                                                    "request_id": request_id,
+                                                    "region_name": "region-a"
+                                                },
+                                                format="json")
+        force_authenticate(request, self.user)
+        return match.func(request, **match.kwargs)
+
+    # capability_id: console.vm-restore.native-http
+    def test_native_restore_start_and_status_keep_scoped_region_contract(self):
+        self.upstream_status = 202
+        self.upstream_body = {
+            "code": 202,
+            "bean": {
+                "restore_name": "vmr-aaaaaaaaaaaaaaaaaaaaaaaa",
+                "snapshot_name": "point-a",
+                "request_id": "restore-a",
+                "phase": "pending",
+                "complete": False,
+                "volumes": []
+            }
+        }
+        response = self.call_restore()
+        self.assertEqual(response.status_code, 202)
+        self.assertEqual(response.data["data"]["bean"]["phase"], "pending")
+        self.assertEqual(self.request.call_args.args[:2],
+                         ("https://region.invalid/v2/tenants/region-team-a/services/vm-a/vm-snapshots/point-a/restore",
+                          "POST"))
+        self.upstream_status = 200
+        self.upstream_body.update(code=200)
+        self.upstream_body["bean"].update(phase="succeeded", complete=True)
+        response = self.call_restore(method="get")
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data["data"]["bean"]["complete"])
+        self.assertTrue(self.request.call_args.args[0].endswith("/vm-snapshots/point-a/restore/restore-a"))
+
+    # capability_id: console.vm-restore.native-http
+    def test_native_restore_rejects_unscoped_or_invalid_requests_before_region(self):
+        for payload in ({"request_id": "../bad", "region_name": "region-a"}, {
+                "request_id": "restore-a",
+                "region_name": "other"
+        }, {
+                "request_id": "restore-a",
+                "region_name": "region-a",
+                "power_after": "running"
+        }):
+            self.request.reset_mock()
+            response = self.call_restore(payload=payload)
+            self.assertEqual(response.status_code, 400)
+            self.request.assert_not_called()
 
     def collection(self, items=None, **overrides):
         bean = {"items": [snapshot()] if items is None else items, "page": 1, "page_size": 20, "total": 1}
