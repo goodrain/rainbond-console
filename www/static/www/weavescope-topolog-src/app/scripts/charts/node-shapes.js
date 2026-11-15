@@ -19,7 +19,7 @@ import {
 } from '../utils/node-shape-utils';
 
 
-function NodeShape(shapeType, shapeElement, shapeProps, { id, highlighted, color, metric, isVirtualMachine, markerColor }) {
+function NodeShape(shapeType, shapeElement, shapeProps, { id, highlighted, color, metric, isVirtualMachine }) {
   const { height, hasMetric, formattedValue } = getMetricValue(metric);
   const className = classNames('shape', `shape-${shapeType}`, { metrics: hasMetric });
   const metricStyle = { fill: getMetricColor(metric) };
@@ -68,26 +68,20 @@ function NodeShape(shapeType, shapeElement, shapeProps, { id, highlighted, color
       {isVirtualMachine && (
         <g
           className="virtual-machine-badge"
-          transform="translate(31 -32) scale(0.65)"
+          transform="translate(33 -33) scale(0.78)"
           style={{ pointerEvents: 'none' }}
           role="img"
           aria-label="Virtual machine (VM)"
         >
           <title>Virtual machine (VM)</title>
-          <rect className="background" x="-17" y="-10" width="34" height="20" rx="6" />
-          <rect
-            x="-17"
-            y="-10"
-            width="34"
-            height="20"
-            rx="6"
-            fill={markerColor}
-            fillOpacity="0.14"
-            stroke={markerColor}
-            strokeOpacity="0.5"
-            strokeWidth="1.5"
-          />
-          <text x="0" y="0" style={{ fill: markerColor }} fontWeight="600">VM</text>
+          <rect x="-21" y="-10" width="42" height="24" rx="7" fill="#182b4d" fillOpacity="0.16" />
+          <rect x="-21" y="-12" width="42" height="24" rx="7" fill="#155eef" stroke="#fff" strokeWidth="1.6" />
+          <g transform="translate(-13 -5)" fill="none" stroke="#fff" strokeWidth="1.2" strokeLinecap="round">
+            <rect width="8" height="10" rx="1.5" />
+            <path d="M2.5 3.5h3M2.5 6.5h3" />
+          </g>
+          <text x="6" y="0" style={{ fill: '#fff', fontSize: '12px', fontFamily: 'Arial, sans-serif',
+            letterSpacing: '0.3px', textAnchor: 'middle', dominantBaseline: 'central', transform: 'none' }} fontWeight="700">VM</text>
         </g>
       )}
     </g>
