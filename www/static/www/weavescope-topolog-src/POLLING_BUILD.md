@@ -14,15 +14,17 @@ node --test app/scripts/utils/topology-polling.node.test.js scripts/polling-asse
 An existing Rainbond UI `node_modules` is supported (its bundled UMI preset-env is
 used if standalone preset-env is absent). Nothing is installed or upgraded.
 
-The builder checks the frozen app bundle SHA-256, uniquely identifies its
-CommonJS web-api-utils module and verifies all dependency IDs. It recompiles
-`web-api-utils.js` from source and inlines `topology-polling.js`, replaces only the
-verified AST factory bounds, writes a content-hashed new entry and updates
-`index.html`. Every other module byte, vendors file and stylesheet is unchanged.
-The original bundle is retained as the reproducible base. A changed base,
-unmapped import or uncertain module identity fails closed. Repeating a build with
-the same sources/toolchain produces the same asset. This is a targeted asset
-build, **not** a successful run of the original full Webpack build.
+The builder checks the frozen app bundle SHA-256, uniquely identifies the legacy
+Webpack factories and verifies all dependency IDs. It recompiles module 414
+(`charts/node.js`), module 426 (`utils/web-api-utils.js`, with
+`topology-polling.js` inlined), and module 743 (`charts/node-shapes.js`) from
+source. It replaces only those verified AST factory bounds, writes a
+content-hashed new entry, and updates `index.html`. Every other factory byte,
+vendors file, and stylesheet is unchanged. The original bundle is retained as
+the reproducible base. A changed base, unmapped import, or uncertain module
+identity fails closed. Repeating a build with the same sources/toolchain produces
+the same asset. This is a targeted asset build, **not** a successful run of the
+original full Webpack build.
 
 For a local iframe fixture, serve the actual `weavescope-topolog/index.html`
 same-origin with a parent defining `iframeGetNodeUrl()` (a fixture API URL),

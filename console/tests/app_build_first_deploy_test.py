@@ -16,7 +16,7 @@ openapi_client_configuration = ModuleType("openapi_client.configuration")
 openapi_client_configuration.Configuration = type("Configuration", (), {"__init__": lambda self: None})
 sys.modules.setdefault("openapi_client.configuration", openapi_client_configuration)
 openapi_client_rest = ModuleType("openapi_client.rest")
-openapi_client_rest.ApiException = type("ApiException", (Exception,), {})
+openapi_client_rest.ApiException = type("ApiException", (Exception, ), {})
 sys.modules.setdefault("openapi_client.rest", openapi_client_rest)
 market_openapi_api = ModuleType("openapi_client.api.market_openapi_api")
 market_openapi_api.MarketOpenapiApi = type("MarketOpenapiApi", (), {})
@@ -51,6 +51,7 @@ if not hasattr(QuerySet, "__class_getitem__"):
     QuerySet.__class_getitem__ = classmethod(lambda cls, item: cls)
 
 if sys.version_info < (3, 7):
+
     class _SubscriptableQuerySetMeta(type(QuerySet)):
         def __getitem__(cls, item):
             return cls
@@ -123,7 +124,8 @@ class FirstDeployServiceStub(object):
 install_stub("console.cloud.services", check_account_quota=lambda *args, **kwargs: True)
 install_stub("console.repositories.deploy_repo", deploy_repo=Obj(create_deploy_relation_by_service_id=lambda **kwargs: None))
 install_stub("console.services.app", app_service=Obj(create_region_service=lambda *args, **kwargs: None))
-install_stub("console.services.app_actions", app_manage_service=Obj(deploy=lambda *args, **kwargs: (200, "success", "")),
+install_stub("console.services.app_actions",
+             app_manage_service=Obj(deploy=lambda *args, **kwargs: (200, "success", "")),
              event_service=Obj(delete_service_events=lambda *args, **kwargs: None))
 install_stub("console.services.app_config",
              dependency_service=Obj(delete_region_dependency=lambda *args, **kwargs: None),
@@ -131,8 +133,7 @@ install_stub("console.services.app_config",
              port_service=Obj(delete_region_port=lambda *args, **kwargs: None),
              probe_service=Obj(delete_service_probe=lambda *args, **kwargs: None),
              volume_service=Obj(delete_region_volumes=lambda *args, **kwargs: None))
-install_stub("console.services.app_config.arch_service",
-             arch_service=Obj(update_affinity_by_arch=lambda *args, **kwargs: None))
+install_stub("console.services.app_config.arch_service", arch_service=Obj(update_affinity_by_arch=lambda *args, **kwargs: None))
 install_stub("console.services.compose_service",
              compose_service=Obj(get_group_compose_by_compose_id=lambda *args, **kwargs: None,
                                  get_compose_services=lambda *args, **kwargs: []))
@@ -204,9 +205,7 @@ class AppBuildFirstDeployTrackingTests(TestCase):
         ), mock.patch(
                 "console.views.app_create.app_build.enterprise_first_deploy_service.safe_begin_deploy_tracking",
                 return_value=tracker,
-        ), mock.patch(
-                "console.views.app_create.app_build.enterprise_first_deploy_service.safe_mark_failure",
-        ) as mark_failure:
+        ), mock.patch("console.views.app_create.app_build.enterprise_first_deploy_service.safe_mark_failure", ) as mark_failure:
             response = view.post(Obj(data={"is_deploy": True}, META={}))
 
         self.assertEqual(response.status_code, 400)
@@ -252,14 +251,16 @@ class AppBuildFirstDeployTrackingTests(TestCase):
             tracker = {"key": "FIRST_DEPLOY_x", "enterprise_id": "eid-1"}
             request = Obj(data={"is_deploy": True}, META={})
 
-            with mock.patch("console.views.app_create.app_build.app_service.create_region_service",
-                            return_value=built_service), \
-                    mock.patch("console.views.app_create.app_build.app_manage_service.deploy",
-                               return_value=(200, "success", "event-{}".format(service_source))), \
-                    mock.patch(
-                        "console.views.app_create.app_build.enterprise_first_deploy_service.safe_begin_deploy_tracking",
-                        return_value=tracker) as begin_tracking, \
-                    mock.patch("console.views.app_create.app_build.enterprise_first_deploy_service.safe_bind_events") as bind_events:
+            with (
+                    mock.patch('console.views.app_create.app_build.app_service.create_region_service',
+                               return_value=built_service),
+                    mock.patch('console.views.app_create.app_build.app_manage_service.deploy',
+                               return_value=(200, 'success', 'event-{}'.format(service_source))),
+                    mock.patch('console.views.app_create.app_build.enterprise_first_deploy_service.safe_begin_deploy_tracking',
+                               return_value=tracker) as begin_tracking,
+                    mock.patch('console.views.app_create.app_build.enterprise_first_deploy_service.safe_bind_events') as
+                    bind_events,
+            ):
                 response = view.post(request)
 
             self.assertEqual(response.status_code, 200)

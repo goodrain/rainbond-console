@@ -152,7 +152,7 @@ class GiteaApiV1(GitOAuth2Interface):
 
                 self.api_base = self.oauth_service.home_url.strip().strip("/")
                 self.update_access_token(self.access_token, self.refresh_token)
-                logger.info(f"Successfully obtained Gitea access token")
+                logger.info('Successfully obtained Gitea access token')
                 return self.access_token, self.refresh_token
             else:
                 logger.error(f"Failed to get Gitea access token: {rst.status_code} - {rst.text}")
@@ -236,7 +236,7 @@ class GiteaApiV1(GitOAuth2Interface):
         }
         url = self.get_access_token_url(self.oauth_service.home_url)
 
-        logger.debug(f"Refreshing Gitea access token")
+        logger.debug('Refreshing Gitea access token')
         rst = self._session.post(url=url, headers=headers, json=data, timeout=10)
 
         if rst.status_code == 200:
@@ -599,7 +599,7 @@ class GiteaApiV1(GitOAuth2Interface):
             logger.warning(f"Unsupported URL protocol: {url}")
             authenticated_url = url
 
-        logger.debug(f"Generated Gitea clone URL with authentication")
+        logger.debug('Generated Gitea clone URL with authentication')
         return authenticated_url
 
     def get_clone_user_password(self):

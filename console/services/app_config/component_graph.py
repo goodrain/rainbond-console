@@ -2,7 +2,7 @@
 import json
 import logging
 import os
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Tuple
 
 from django.db import transaction
 from django.db.models import QuerySet
@@ -58,15 +58,16 @@ class ComponentGraphService(object):
         graphs, _ = self._load_internal_graphs()
         return graphs
 
-    def create_internal_graphs(self, component_id: str, graph_name: str,
-                               component_arch: str) -> List[ComponentGraph]:
+    def create_internal_graphs(self, component_id: str, graph_name: str, component_arch: str) -> List[ComponentGraph]:
         _, internal_graphs = self._load_internal_graphs()
         if not internal_graphs or not internal_graphs.get(graph_name):
             raise ErrInternalGraphsNotFound
 
         graphs = []
         seq = self._next_sequence(component_id)
-        for graph in internal_graphs.get(graph_name):  # type: ignore[union-attr]  # NOTE: caller already guards not-None via `if not internal_graphs.get(graph_name)` above
+        for graph in internal_graphs.get(
+                graph_name
+        ):  # type: ignore[union-attr]  # NOTE: caller already guards not-None via `if not internal_graphs.get(graph_name)` above
             try:
                 _ = component_graph_repo.get_by_title(component_id, graph.get("title"))
                 continue
@@ -92,8 +93,7 @@ class ComponentGraphService(object):
         return graphs
 
     @transaction.atomic
-    def create_component_graph(self, component_id: str, title: str, promql: str,
-                               component_arch: str) -> dict:
+    def create_component_graph(self, component_id: str, title: str, promql: str, component_arch: str) -> dict:
         promql = promql_service.add_or_update_label(component_id, promql, component_arch)
         graph_id = make_uuid()
         sequence = self._next_sequence(component_id)
@@ -127,8 +127,7 @@ class ComponentGraphService(object):
         return component_graph_repo.delete_by_component_id(component_id)
 
     @transaction.atomic()
-    def update_component_graph(self, graph: ComponentGraph, title: str, promql: str, sequence: int,
-                               arch: str) -> dict:
+    def update_component_graph(self, graph: ComponentGraph, title: str, promql: str, sequence: int, arch: str) -> dict:
         data: Dict[str, Any] = {
             "title": title,
             "promql": promql_service.add_or_update_label(graph.component_id, promql, arch),
@@ -145,13 +144,19 @@ class ComponentGraphService(object):
         cgs = []
         for graph in graphs:
             try:
-                _ = component_graph_repo.get_by_title(component_id, graph.get("title"))  # type: ignore[arg-type]  # NOTE: dict key "title" is str at runtime; .get() returns Any|None but actual value is always str
+                _ = component_graph_repo.get_by_title(
+                    component_id,
+                    graph.get("title")  # type: ignore[arg-type]
+                    # NOTE: dict key "title" is str at runtime; .get() returns Any|None but actual value is always str
+                )  # type: ignore[arg-type]
                 continue
             except ErrComponentGraphNotFound:
                 pass
 
             try:
-                promql = promql_service.add_or_update_label(component_id, graph.get("promql"), arch)  # type: ignore[arg-type]  # NOTE: promql from dict.get may be None (latent)
+                promql = promql_service.add_or_update_label(
+                    component_id, graph.get("promql"),  # type: ignore[arg-type]
+                    arch)  # type: ignore[arg-type]  # NOTE: promql from dict.get may be None (latent)
             except AbortRequest as e:
                 logger.warning("promql: {}, {}".format(graph.get("promql"), e))
                 continue
@@ -160,9 +165,11 @@ class ComponentGraphService(object):
                 ComponentGraph(
                     component_id=component_id,
                     graph_id=make_uuid(),
-                    title=graph.get("title"),  # type: ignore[misc]  # NOTE: dict value is str at runtime; .get() returns Any|None
+                    title=graph.get(
+                        "title"),  # type: ignore[misc]  # NOTE: dict value is str at runtime; .get() returns Any|None
                     promql=promql,
-                    sequence=graph.get("sequence"),  # type: ignore[misc]  # NOTE: dict value is int at runtime; .get() returns Any|None
+                    sequence=graph.get(
+                        "sequence"),  # type: ignore[misc]  # NOTE: dict value is int at runtime; .get() returns Any|None
                 ))
         ComponentGraph.objects.bulk_create(cgs)
 
@@ -188,8 +195,9 @@ class ComponentGraphService(object):
 
     @staticmethod
     def _sequence_move_back(component_id: str, left_sequence: int, right_sequence: int) -> None:
-        graphs = component_graph_repo.list_between_sequence(
-            component_id=component_id, left_sequence=left_sequence, right_sequence=right_sequence)
+        graphs = component_graph_repo.list_between_sequence(component_id=component_id,
+                                                            left_sequence=left_sequence,
+                                                            right_sequence=right_sequence)
         for graph in graphs:
             graph.sequence += 1
             graph.save()

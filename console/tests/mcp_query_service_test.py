@@ -14,10 +14,29 @@ sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
 django.setup()
 
-from console.exception.main import ServiceHandleException
-from console.services.deployment_invocation import deployment_invocation_context
-from console.services.mcp_query_service import mcp_query_service
-from console.utils.source_build_state import build_compile_env_payload, read_compile_env_state
+
+def _load_test_dependencies():
+    """Keep the existing post-Django-setup import order and module bindings."""
+    from console.exception.main import ServiceHandleException
+    from console.services.deployment_invocation import deployment_invocation_context
+    from console.services.mcp_query_service import mcp_query_service
+    from console.utils.source_build_state import build_compile_env_payload, read_compile_env_state
+    return (
+        ServiceHandleException,
+        deployment_invocation_context,
+        mcp_query_service,
+        build_compile_env_payload,
+        read_compile_env_state,
+    )
+
+
+(
+    ServiceHandleException,
+    deployment_invocation_context,
+    mcp_query_service,
+    build_compile_env_payload,
+    read_compile_env_state,
+) = _load_test_dependencies()
 
 
 class Obj(object):
@@ -33,9 +52,18 @@ class MCPQueryServiceTeamQueryTests(SimpleTestCase):
     def test_query_teams_only_lists_teams_joined_by_current_user(self, joined_teams_mock, enterprise_teams_mock):
         user = Obj(user_id=2, enterprise_id="eid-1", is_enterprise_admin=False)
         joined_teams_mock.return_value = [
-            {"team_id": "team-1", "team_name": "joined-one"},
-            {"team_id": "team-2", "team_name": "joined-two"},
-            {"team_id": "team-3", "team_name": "joined-three"},
+            {
+                "team_id": "team-1",
+                "team_name": "joined-one"
+            },
+            {
+                "team_id": "team-2",
+                "team_name": "joined-two"
+            },
+            {
+                "team_id": "team-3",
+                "team_name": "joined-three"
+            },
         ]
 
         result = mcp_query_service.call_tool(user, "rainbond_query_teams", {
@@ -46,7 +74,10 @@ class MCPQueryServiceTeamQueryTests(SimpleTestCase):
         })
 
         self.assertEqual(result, {
-            "items": [{"team_id": "team-3", "team_name": "joined-three"}],
+            "items": [{
+                "team_id": "team-3",
+                "team_name": "joined-three"
+            }],
             "total": 3,
             "page": 2,
             "page_size": 2,
@@ -397,8 +428,8 @@ class MCPQueryServiceToolVisibilityTests(SimpleTestCase):
         self.assertEqual(
             tool["inputSchema"]["properties"]["action"]["enum"],
             [
-                "open_outer", "only_open_outer", "close_outer", "open_inner",
-                "close_inner", "change_protocol", "change_port_alias"
+                "open_outer", "only_open_outer", "close_outer", "open_inner", "close_inner", "change_protocol",
+                "change_port_alias"
             ],
         )
 
@@ -558,11 +589,11 @@ class MCPQueryServiceToolVisibilityTests(SimpleTestCase):
     # capability_id: console.component.operation-aliases
     def test_normalize_component_operation_aliases(self):
         self.assertEqual(
-            mcp_query_service._normalize_component_operation("list", {"list": "summary"}, ("summary",), "测试"),
+            mcp_query_service._normalize_component_operation("list", {"list": "summary"}, ("summary", ), "测试"),
             "summary",
         )
         with self.assertRaises(ServiceHandleException):
-            mcp_query_service._normalize_component_operation("unknown", {"list": "summary"}, ("summary",), "测试")
+            mcp_query_service._normalize_component_operation("unknown", {"list": "summary"}, ("summary", ), "测试")
 
     # capability_id: console.component.env-scope-default
     def test_normalize_env_scope_defaults_to_inner(self):
@@ -623,9 +654,8 @@ class MCPQueryServiceToolVisibilityTests(SimpleTestCase):
         self.assertEqual(result["total"], 1)
         self.assertEqual(result["items"][0]["region_name"], "rainbond")
         self.assertEqual(result["items"][0]["region_alias"], "Rainbond Region")
-        for sensitive_field in (
-                "url", "token", "wsurl", "httpdomain", "tcpdomain", "scope",
-                "ssl_ca_cert", "cert_file", "key_file"):
+        for sensitive_field in ("url", "token", "wsurl", "httpdomain", "tcpdomain", "scope", "ssl_ca_cert", "cert_file",
+                                "key_file"):
             self.assertNotIn(sensitive_field, result["items"][0])
 
     @patch("console.services.mcp_query_service.region_services.get_enterprise_regions")
@@ -689,9 +719,8 @@ class MCPQueryServiceToolVisibilityTests(SimpleTestCase):
         self.assertEqual(result["region_id"], "r1")
         self.assertEqual(result["region_name"], "rainbond")
         self.assertEqual(result["region_alias"], "Rainbond Region")
-        for sensitive_field in (
-                "url", "token", "wsurl", "httpdomain", "tcpdomain", "scope",
-                "ssl_ca_cert", "cert_file", "key_file"):
+        for sensitive_field in ("url", "token", "wsurl", "httpdomain", "tcpdomain", "scope", "ssl_ca_cert", "cert_file",
+                                "key_file"):
             self.assertNotIn(sensitive_field, result)
 
     @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
@@ -737,8 +766,7 @@ class MCPQueryServiceToolVisibilityTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
     @patch("console.services.mcp_query_service.region_services.get_region_by_region_id")
     # capability_id: console.enterprise.region-detail-region-name-fallback
-    def test_get_region_detail_treats_missing_region_id_as_region_name(self, mock_get_region_by_id,
-                                                                        mock_get_region_by_name):
+    def test_get_region_detail_treats_missing_region_id_as_region_name(self, mock_get_region_by_id, mock_get_region_by_name):
         user = Obj(
             user_id=1,
             enterprise_id="eid-1",
@@ -771,8 +799,10 @@ class MCPQueryServiceToolVisibilityTests(SimpleTestCase):
             create_time=None,
         )
 
-        result = mcp_query_service.call_tool(
-            user, "rainbond_get_region_detail", {"region_id": "rainbond", "region_name": "rainbond"})
+        result = mcp_query_service.call_tool(user, "rainbond_get_region_detail", {
+            "region_id": "rainbond",
+            "region_name": "rainbond"
+        })
 
         self.assertEqual(result["region_id"], "r1")
         mock_get_region_by_name.assert_called_once_with("eid-1", "rainbond")
@@ -780,8 +810,7 @@ class MCPQueryServiceToolVisibilityTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
     @patch("console.services.mcp_query_service.region_services.get_region_by_region_id")
     # capability_id: console.enterprise.region-detail-no-cross-fallback
-    def test_get_region_detail_does_not_override_distinct_bad_region_id(self, mock_get_region_by_id,
-                                                                        mock_get_region_by_name):
+    def test_get_region_detail_does_not_override_distinct_bad_region_id(self, mock_get_region_by_id, mock_get_region_by_name):
         user = Obj(
             user_id=1,
             enterprise_id="eid-1",
@@ -794,8 +823,10 @@ class MCPQueryServiceToolVisibilityTests(SimpleTestCase):
         mock_get_region_by_id.return_value = None
 
         with self.assertRaises(ServiceHandleException) as context:
-            mcp_query_service.call_tool(
-                user, "rainbond_get_region_detail", {"region_id": "missing-id", "region_name": "rainbond"})
+            mcp_query_service.call_tool(user, "rainbond_get_region_detail", {
+                "region_id": "missing-id",
+                "region_name": "rainbond"
+            })
 
         self.assertEqual(context.exception.status_code, 404)
         mock_get_region_by_name.assert_not_called()
@@ -832,8 +863,15 @@ class MCPQueryServiceToolVisibilityTests(SimpleTestCase):
         )
         mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
         mock_get_nodes.return_value = (
-            [{"name": "node-1", "status": "Ready", "role": ["worker"], "arch": "amd64"}],
-            {"worker": 1},
+            [{
+                "name": "node-1",
+                "status": "Ready",
+                "role": ["worker"],
+                "arch": "amd64"
+            }],
+            {
+                "worker": 1
+            },
         )
 
         result = mcp_query_service.call_tool(user, "rainbond_query_region_nodes", {"region_name": "rainbond"})
@@ -864,9 +902,10 @@ class MCPQueryServiceToolVisibilityTests(SimpleTestCase):
             "roles": ["worker"],
         }
 
-        result = mcp_query_service.call_tool(
-            user, "rainbond_get_region_node_detail", {"region_name": "rainbond", "node_name": "node-1"}
-        )
+        result = mcp_query_service.call_tool(user, "rainbond_get_region_node_detail", {
+            "region_name": "rainbond",
+            "node_name": "node-1"
+        })
 
         self.assertEqual(result["name"], "node-1")
         self.assertEqual(result["status"], "Ready")
@@ -875,8 +914,7 @@ class MCPQueryServiceToolVisibilityTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
     @patch("console.services.mcp_query_service.enterprise_services.get_rbdcomponents")
     # capability_id: console.enterprise.region-component-list
-    def test_query_region_rbd_components_returns_components_for_enterprise_admin(
-            self, mock_get_components, mock_get_region):
+    def test_query_region_rbd_components_returns_components_for_enterprise_admin(self, mock_get_components, mock_get_region):
         user = Obj(
             user_id=1,
             enterprise_id="eid-1",
@@ -889,9 +927,7 @@ class MCPQueryServiceToolVisibilityTests(SimpleTestCase):
         mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
         mock_get_components.return_value = [{"name": "rbd-api", "status": "Running"}]
 
-        result = mcp_query_service.call_tool(
-            user, "rainbond_query_region_rbd_components", {"region_name": "rainbond"}
-        )
+        result = mcp_query_service.call_tool(user, "rainbond_query_region_rbd_components", {"region_name": "rainbond"})
 
         self.assertEqual(result["region_name"], "rainbond")
         self.assertEqual(result["total"], 1)
@@ -899,7 +935,6 @@ class MCPQueryServiceToolVisibilityTests(SimpleTestCase):
 
 
 class MCPQueryServiceRegionMutationTests(SimpleTestCase):
-
     def setUp(self):
         self.user = Obj(
             user_id=1,
@@ -1073,7 +1108,6 @@ class MCPQueryServiceRegionMutationTests(SimpleTestCase):
 
 
 class MCPQueryServiceApplicationToolTests(SimpleTestCase):
-
     def setUp(self):
         self.user = Obj(
             user_id=1,
@@ -1190,9 +1224,10 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     def test_create_app_exposes_structured_k8s_app_duplicate_error(self, mock_create_app, mock_get_region, mock_get_team):
         mock_get_team.return_value = self.team
         mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
-        mock_create_app.side_effect = ServiceHandleException(
-            msg="k8s app name exists", msg_show="k8s app name exists", status_code=400, error_code=11011
-        )
+        mock_create_app.side_effect = ServiceHandleException(msg="k8s app name exists",
+                                                             msg_show="k8s app name exists",
+                                                             status_code=400,
+                                                             error_code=11011)
 
         with self.assertRaises(ServiceHandleException) as context:
             mcp_query_service.call_tool(
@@ -1241,8 +1276,8 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.group_repo.is_k8s_app_duplicate")
     @patch("console.services.mcp_query_service.group_service.create_app")
     # capability_id: console.app.create-k8s-name-autogen
-    def test_create_app_generates_k8s_app_for_non_ascii_app_name(
-            self, mock_create_app, mock_is_duplicate, mock_get_region, mock_get_team):
+    def test_create_app_generates_k8s_app_for_non_ascii_app_name(self, mock_create_app, mock_is_duplicate, mock_get_region,
+                                                                 mock_get_team):
         mock_get_team.return_value = self.team
         mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
         mock_is_duplicate.return_value = False
@@ -1267,8 +1302,8 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.group_repo.is_k8s_app_duplicate")
     @patch("console.services.mcp_query_service.group_service.create_app")
     # capability_id: console.app.create-k8s-name-autogen
-    def test_create_app_normalizes_mixed_case_app_name(
-            self, mock_create_app, mock_is_duplicate, mock_get_region, mock_get_team):
+    def test_create_app_normalizes_mixed_case_app_name(self, mock_create_app, mock_is_duplicate, mock_get_region,
+                                                       mock_get_team):
         mock_get_team.return_value = self.team
         mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
         mock_is_duplicate.return_value = False
@@ -1292,8 +1327,8 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.group_repo.is_k8s_app_duplicate")
     @patch("console.services.mcp_query_service.group_service.create_app")
     # capability_id: console.app.create-k8s-name-autogen
-    def test_create_app_appends_suffix_when_generated_name_taken_in_console(
-            self, mock_create_app, mock_is_duplicate, mock_get_region, mock_get_team):
+    def test_create_app_appends_suffix_when_generated_name_taken_in_console(self, mock_create_app, mock_is_duplicate,
+                                                                            mock_get_region, mock_get_team):
         mock_get_team.return_value = self.team
         mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
         mock_is_duplicate.side_effect = [True, False]
@@ -1317,14 +1352,15 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.group_repo.is_k8s_app_duplicate")
     @patch("console.services.mcp_query_service.group_service.create_app")
     # capability_id: console.app.create-k8s-name-autogen
-    def test_create_app_retries_with_suffix_on_region_side_duplicate(
-            self, mock_create_app, mock_is_duplicate, mock_get_region, mock_get_team):
+    def test_create_app_retries_with_suffix_on_region_side_duplicate(self, mock_create_app, mock_is_duplicate, mock_get_region,
+                                                                     mock_get_team):
         mock_get_team.return_value = self.team
         mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
         mock_is_duplicate.return_value = False
-        duplicate_exc = ServiceHandleException(
-            msg="k8s app name exists", msg_show="k8s app name exists", status_code=400, error_code=11011
-        )
+        duplicate_exc = ServiceHandleException(msg="k8s app name exists",
+                                               msg_show="k8s app name exists",
+                                               status_code=400,
+                                               error_code=11011)
         mock_create_app.side_effect = [duplicate_exc, {"app_id": 12, "app_name": "demo-app", "group_id": 12}]
 
         result = mcp_query_service.call_tool(
@@ -1349,14 +1385,15 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.group_repo.is_k8s_app_duplicate")
     @patch("console.services.mcp_query_service.group_service.create_app")
     # capability_id: console.app.create-k8s-name-autogen
-    def test_create_app_does_not_retry_explicit_k8s_app_on_duplicate(
-            self, mock_create_app, mock_is_duplicate, mock_get_region, mock_get_team):
+    def test_create_app_does_not_retry_explicit_k8s_app_on_duplicate(self, mock_create_app, mock_is_duplicate, mock_get_region,
+                                                                     mock_get_team):
         mock_get_team.return_value = self.team
         mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
         mock_is_duplicate.return_value = False
-        mock_create_app.side_effect = ServiceHandleException(
-            msg="k8s app name exists", msg_show="k8s app name exists", status_code=400, error_code=11011
-        )
+        mock_create_app.side_effect = ServiceHandleException(msg="k8s app name exists",
+                                                             msg_show="k8s app name exists",
+                                                             status_code=400,
+                                                             error_code=11011)
 
         with self.assertRaises(ServiceHandleException) as context:
             mcp_query_service.call_tool(
@@ -1380,8 +1417,8 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.group_service.get_group_services")
     @patch("console.services.mcp_query_service.base_service.status_multi_service")
     # capability_id: console.app.detail
-    def test_get_app_detail_returns_status_and_counts(
-            self, mock_status_multi, mock_get_group_services, mock_get_app, mock_get_region, mock_get_team):
+    def test_get_app_detail_returns_status_and_counts(self, mock_status_multi, mock_get_group_services, mock_get_app,
+                                                      mock_get_region, mock_get_team):
         mock_get_team.return_value = self.team
         mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
         mock_get_app.return_value = self.app
@@ -1391,7 +1428,11 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         result = mcp_query_service.call_tool(
             self.user,
             "rainbond_get_app_detail",
-            {"team_name": "demo-team", "region_name": "rainbond", "app_id": 12},
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "app_id": 12
+            },
         )
 
         self.assertEqual(result["app_id"], 12)
@@ -1417,23 +1458,23 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.region_api.get_service_resources")
     # capability_id: console.component.summary
     def test_get_component_summary_returns_aggregated_info(
-            self,
-            mock_get_resources,
-            mock_get_events,
-            mock_get_probe,
-            mock_get_autoscaler_rules,
-            mock_get_mnts,
-            mock_get_volumes,
-            mock_get_build_envs,
-            mock_get_envs,
-            mock_get_ports,
-            mock_get_access_infos,
-            mock_status_multi,
-            mock_relations,
-            mock_get_service,
-            mock_get_app,
-            mock_get_region,
-            mock_get_team,
+        self,
+        mock_get_resources,
+        mock_get_events,
+        mock_get_probe,
+        mock_get_autoscaler_rules,
+        mock_get_mnts,
+        mock_get_volumes,
+        mock_get_build_envs,
+        mock_get_envs,
+        mock_get_ports,
+        mock_get_access_infos,
+        mock_status_multi,
+        mock_relations,
+        mock_get_service,
+        mock_get_app,
+        mock_get_region,
+        mock_get_team,
     ):
         self.service.language = "Python"
         self.service.min_cpu = 500
@@ -1466,7 +1507,12 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         result = mcp_query_service.call_tool(
             self.user,
             "rainbond_get_component_summary",
-            {"team_name": "demo-team", "region_name": "rainbond", "app_id": 12, "service_id": "svc-1"},
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "app_id": 12,
+                "service_id": "svc-1"
+            },
         )
 
         self.assertEqual(result["service"]["service_id"], "svc-1")
@@ -1488,13 +1534,13 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.region_api.get_service_pods")
     # capability_id: console.component.pods
     def test_get_component_pods_returns_normalized_runtime_instances(
-            self,
-            mock_get_service_pods,
-            mock_relations,
-            mock_get_service,
-            mock_get_app,
-            mock_get_region,
-            mock_get_team,
+        self,
+        mock_get_service_pods,
+        mock_relations,
+        mock_get_service,
+        mock_get_app,
+        mock_get_region,
+        mock_get_team,
     ):
         mock_get_team.return_value = self.team
         mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
@@ -1503,28 +1549,35 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         mock_relations.return_value = [Obj(service_id="svc-1")]
         mock_get_service_pods.return_value = {
             "bean": {
-                "new_pods": [
-                    {
-                        "pod_name": "pod-new-1",
-                        "pod_status": "RUNNING",
-                        "manage_name": "manager",
-                        "container": {"POD": {}, "main": {}, "sidecar": {}}
+                "new_pods": [{
+                    "pod_name": "pod-new-1",
+                    "pod_status": "RUNNING",
+                    "manage_name": "manager",
+                    "container": {
+                        "POD": {},
+                        "main": {},
+                        "sidecar": {}
                     }
-                ],
-                "old_pods": [
-                    {
-                        "pod_name": "pod-old-1",
-                        "pod_status": "TERMINATING",
-                        "container": [{"container_name": "legacy"}]
-                    }
-                ]
+                }],
+                "old_pods": [{
+                    "pod_name": "pod-old-1",
+                    "pod_status": "TERMINATING",
+                    "container": [{
+                        "container_name": "legacy"
+                    }]
+                }]
             }
         }
 
         result = mcp_query_service.call_tool(
             self.user,
             "rainbond_get_component_pods",
-            {"team_name": "demo-team", "region_name": "rainbond", "app_id": 12, "service_id": "svc-1"},
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "app_id": 12,
+                "service_id": "svc-1"
+            },
         )
 
         self.assertEqual(result["service_id"], "svc-1")
@@ -1543,13 +1596,13 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.region_api.pod_detail")
     # capability_id: console.pod.detail
     def test_get_pod_detail_returns_runtime_diagnostics(
-            self,
-            mock_pod_detail,
-            mock_relations,
-            mock_get_service,
-            mock_get_app,
-            mock_get_region,
-            mock_get_team,
+        self,
+        mock_pod_detail,
+        mock_relations,
+        mock_get_service,
+        mock_get_app,
+        mock_get_region,
+        mock_get_team,
     ):
         mock_get_team.return_value = self.team
         mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
@@ -1565,9 +1618,21 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
                     "reason": "ContainersNotInitialized",
                     "message": "containers with incomplete status: [init]"
                 },
-                "init_containers": [{"image": "probe:v1", "state": "Waiting", "reason": "ImagePullBackOff"}],
-                "containers": [{"image": "demo:v1", "state": "Waiting", "reason": "PodInitializing"}],
-                "events": [{"type": "Warning", "reason": "Failed", "message": "ImagePullBackOff"}]
+                "init_containers": [{
+                    "image": "probe:v1",
+                    "state": "Waiting",
+                    "reason": "ImagePullBackOff"
+                }],
+                "containers": [{
+                    "image": "demo:v1",
+                    "state": "Waiting",
+                    "reason": "PodInitializing"
+                }],
+                "events": [{
+                    "type": "Warning",
+                    "reason": "Failed",
+                    "message": "ImagePullBackOff"
+                }]
             }
         }
 
@@ -1598,14 +1663,14 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.region_api.pod_detail")
     # capability_id: console.pod.detail-kubeblocks
     def test_get_pod_detail_uses_kubeblocks_endpoint_for_kubeblocks_component(
-            self,
-            mock_pod_detail,
-            mock_kubeblocks_pod_detail,
-            mock_relations,
-            mock_get_service,
-            mock_get_app,
-            mock_get_region,
-            mock_get_team,
+        self,
+        mock_pod_detail,
+        mock_kubeblocks_pod_detail,
+        mock_relations,
+        mock_get_service,
+        mock_get_app,
+        mock_get_region,
+        mock_get_team,
     ):
         self.service.extend_method = "kubeblocks_component"
         mock_get_team.return_value = self.team
@@ -1640,14 +1705,14 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.region_api.get_component_pod_log")
     # capability_id: console.component.logs
     def test_get_component_logs_returns_component_logs(
-            self,
-            mock_get_logs,
-            mock_get_service_pods,
-            mock_relations,
-            mock_get_service,
-            mock_get_app,
-            mock_get_region,
-            mock_get_team,
+        self,
+        mock_get_logs,
+        mock_get_service_pods,
+        mock_relations,
+        mock_get_service,
+        mock_get_app,
+        mock_get_region,
+        mock_get_team,
     ):
         response = Obj()
         response.stream = lambda chunk_size: iter([b"data: line-1\n\n", b"data: line-2\n\n"])
@@ -1661,13 +1726,14 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         mock_relations.return_value = [Obj(service_id="svc-1")]
         mock_get_service_pods.return_value = {
             "bean": {
-                "new_pods": [
-                    {
-                        "pod_name": "pod-1",
-                        "pod_status": "RUNNING",
-                        "container": {"POD": {}, "main": {}}
+                "new_pods": [{
+                    "pod_name": "pod-1",
+                    "pod_status": "RUNNING",
+                    "container": {
+                        "POD": {},
+                        "main": {}
                     }
-                ],
+                }],
                 "old_pods": None
             }
         }
@@ -1699,13 +1765,13 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch.object(mcp_query_service, "_infer_component_log_target", return_value=("", ""))
     # capability_id: console.component.logs-no-instance
     def test_get_component_logs_rejects_when_no_runtime_instance_found(
-            self,
-            mock_infer_target,
-            mock_relations,
-            mock_get_service,
-            mock_get_app,
-            mock_get_region,
-            mock_get_team,
+        self,
+        mock_infer_target,
+        mock_relations,
+        mock_get_service,
+        mock_get_app,
+        mock_get_region,
+        mock_get_team,
     ):
         mock_get_team.return_value = self.team
         mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
@@ -1739,14 +1805,14 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.region_api.get_component_pod_log")
     # capability_id: console.component.logs-fallback
     def test_get_component_logs_service_falls_back_to_first_pod_container(
-            self,
-            mock_get_component_log,
-            mock_get_service_pods,
-            mock_relations,
-            mock_get_service,
-            mock_get_app,
-            mock_get_region,
-            mock_get_team,
+        self,
+        mock_get_component_log,
+        mock_get_service_pods,
+        mock_relations,
+        mock_get_service,
+        mock_get_app,
+        mock_get_region,
+        mock_get_team,
     ):
         response = Obj()
         response.stream = lambda chunk_size: iter([b"data: fallback-line-1\n\n", b"data: fallback-line-2\n\n"])
@@ -1760,16 +1826,14 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         mock_relations.return_value = [Obj(service_id="svc-1")]
         mock_get_service_pods.return_value = {
             "bean": {
-                "new_pods": [
-                    {
-                        "pod_name": "pod-1",
-                        "pod_status": "RUNNING",
-                        "container": {
-                            "POD": {},
-                            "go-demo-app": {}
-                        }
+                "new_pods": [{
+                    "pod_name": "pod-1",
+                    "pod_status": "RUNNING",
+                    "container": {
+                        "POD": {},
+                        "go-demo-app": {}
                     }
-                ],
+                }],
                 "old_pods": None
             }
         }
@@ -1803,14 +1867,14 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.region_api.get_component_pod_log")
     # capability_id: console.component.logs-console-shape
     def test_get_component_logs_service_supports_console_style_pod_shape(
-            self,
-            mock_get_component_log,
-            mock_get_service_pods,
-            mock_relations,
-            mock_get_service,
-            mock_get_app,
-            mock_get_region,
-            mock_get_team,
+        self,
+        mock_get_component_log,
+        mock_get_service_pods,
+        mock_relations,
+        mock_get_service,
+        mock_get_app,
+        mock_get_region,
+        mock_get_team,
     ):
         response = Obj()
         response.stream = lambda chunk_size: iter([b"data: console-shape-line\n\n"])
@@ -1825,22 +1889,22 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         mock_relations.return_value = [Obj(service_id="svc-1")]
         mock_get_service_pods.return_value = {
             "list": {
-                "new_pods": [
-                    {
-                        "pod_name": "go-demo-app-gr5f202e-6996594955-8gpp6",
-                        "pod_status": "RUNNING",
-                        "manage_name": "manager",
-                        "container": [
-                            {
-                                "container_name": "gr5f202e",
-                                "memory_limit": 512,
-                                "memory_usage": 2.52,
-                                "usage_rate": 0.49
-                            }
-                        ]
-                    }
-                ],
-                "old_pods": None
+                "new_pods": [{
+                    "pod_name":
+                    "go-demo-app-gr5f202e-6996594955-8gpp6",
+                    "pod_status":
+                    "RUNNING",
+                    "manage_name":
+                    "manager",
+                    "container": [{
+                        "container_name": "gr5f202e",
+                        "memory_limit": 512,
+                        "memory_usage": 2.52,
+                        "usage_rate": 0.49
+                    }]
+                }],
+                "old_pods":
+                None
             }
         }
         mock_get_component_log.return_value = response
@@ -1870,13 +1934,13 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.region_api.get_component_pod_log")
     # capability_id: console.component.logs-container
     def test_get_component_logs_returns_container_logs(
-            self,
-            mock_get_component_log,
-            mock_relations,
-            mock_get_service,
-            mock_get_app,
-            mock_get_region,
-            mock_get_team,
+        self,
+        mock_get_component_log,
+        mock_relations,
+        mock_get_service,
+        mock_get_app,
+        mock_get_region,
+        mock_get_team,
     ):
         response = Obj()
         response.stream = lambda chunk_size: iter([b"data: log-line-1\n\n", b"data: log-line-2\n\n"])
@@ -1925,15 +1989,15 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.mnt_service.get_service_mnt_details")
     # capability_id: console.component.storage-summary
     def test_manage_component_storage_summary_returns_storage_snapshot(
-            self,
-            mock_get_mnts,
-            mock_get_volumes,
-            mock_get_volume_options,
-            mock_relations,
-            mock_get_service,
-            mock_get_app,
-            mock_get_region,
-            mock_get_team,
+        self,
+        mock_get_mnts,
+        mock_get_volumes,
+        mock_get_volume_options,
+        mock_relations,
+        mock_get_service,
+        mock_get_app,
+        mock_get_region,
+        mock_get_team,
     ):
         mock_get_team.return_value = self.team
         mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
@@ -1969,14 +2033,14 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.scaling_records_service.list_scaling_records")
     # capability_id: console.component.autoscaler-summary
     def test_manage_component_autoscaler_summary_returns_rules_and_records(
-            self,
-            mock_list_records,
-            mock_list_rules,
-            mock_relations,
-            mock_get_service,
-            mock_get_app,
-            mock_get_region,
-            mock_get_team,
+        self,
+        mock_list_records,
+        mock_list_rules,
+        mock_relations,
+        mock_get_service,
+        mock_get_app,
+        mock_get_region,
+        mock_get_team,
     ):
         mock_get_team.return_value = self.team
         mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
@@ -2009,13 +2073,13 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.autoscaler_service.create_autoscaler_rule")
     # capability_id: console.component.autoscaler-invalid-metrics
     def test_manage_component_autoscaler_create_rejects_incomplete_metric_before_service_call(
-            self,
-            mock_create_rule,
-            mock_relations,
-            mock_get_service,
-            mock_get_app,
-            mock_get_region,
-            mock_get_team,
+        self,
+        mock_create_rule,
+        mock_relations,
+        mock_get_service,
+        mock_get_app,
+        mock_get_region,
+        mock_get_team,
     ):
         mock_get_team.return_value = self.team
         mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
@@ -2037,7 +2101,9 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
                     "enable": True,
                     "min_replicas": 1,
                     "max_replicas": 2,
-                    "metrics": [{"metric_type": "resource_metrics"}],
+                    "metrics": [{
+                        "metric_type": "resource_metrics"
+                    }],
                 },
             )
 
@@ -2054,14 +2120,14 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.probe_service.get_service_probe_by_mode")
     # capability_id: console.component.probe-summary
     def test_manage_component_probe_summary_returns_probe_snapshot(
-            self,
-            mock_get_probe_by_mode,
-            mock_get_probe,
-            mock_relations,
-            mock_get_service,
-            mock_get_app,
-            mock_get_region,
-            mock_get_team,
+        self,
+        mock_get_probe_by_mode,
+        mock_get_probe,
+        mock_relations,
+        mock_get_service,
+        mock_get_app,
+        mock_get_region,
+        mock_get_team,
     ):
         probe = Obj(probe_id="probe-1", mode="readiness")
         probe.to_dict = lambda: {"probe_id": "probe-1", "mode": "readiness"}
@@ -2101,18 +2167,18 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.port_service.get_service_ports")
     # capability_id: console.component.dependency-summary
     def test_manage_component_dependency_summary_returns_dependency_snapshot(
-            self,
-            mock_get_ports,
-            mock_get_group_name,
-            mock_get_reverse_undependencies,
-            mock_get_undependencies,
-            mock_get_reverse_dependencies,
-            mock_get_dependencies,
-            mock_relations,
-            mock_get_service,
-            mock_get_app,
-            mock_get_region,
-            mock_get_team,
+        self,
+        mock_get_ports,
+        mock_get_group_name,
+        mock_get_reverse_undependencies,
+        mock_get_undependencies,
+        mock_get_reverse_dependencies,
+        mock_get_dependencies,
+        mock_relations,
+        mock_get_service,
+        mock_get_app,
+        mock_get_region,
+        mock_get_team,
     ):
         dep = Obj(service_id="svc-2", service_cname="dep-1", service_alias="dep-1")
         dep.to_dict = lambda: {"service_id": "svc-2", "service_cname": "dep-1", "service_alias": "dep-1"}
@@ -2156,15 +2222,15 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.env_var_service.get_service_build_envs")
     # capability_id: console.component.env-summary
     def test_manage_component_envs_summary_returns_env_snapshots(
-            self,
-            mock_get_build_envs,
-            mock_get_outer_envs,
-            mock_get_envs,
-            mock_relations,
-            mock_get_service,
-            mock_get_app,
-            mock_get_region,
-            mock_get_team,
+        self,
+        mock_get_build_envs,
+        mock_get_outer_envs,
+        mock_get_envs,
+        mock_relations,
+        mock_get_service,
+        mock_get_app,
+        mock_get_region,
+        mock_get_team,
     ):
         env = Obj(attr_name="APP_MODE", attr_value="prod")
         env.to_dict = lambda: {"attr_name": "APP_MODE", "attr_value": "prod"}
@@ -2203,13 +2269,13 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.env_var_service.add_service_env_var")
     # capability_id: console.component.env-create
     def test_manage_component_envs_create_defaults_scope_to_inner(
-            self,
-            mock_add_env,
-            mock_relations,
-            mock_get_service,
-            mock_get_app,
-            mock_get_region,
-            mock_get_team,
+        self,
+        mock_add_env,
+        mock_relations,
+        mock_get_service,
+        mock_get_app,
+        mock_get_region,
+        mock_get_team,
     ):
         env = Obj(attr_name="user", attr_value="root")
         env.to_dict = lambda: {"attr_name": "user", "attr_value": "root", "scope": "inner"}
@@ -2246,14 +2312,14 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.env_var_service.add_service_env_var")
     # capability_id: console.component.env-upsert-single-item
     def test_manage_component_envs_upsert_accepts_single_item_shape(
-            self,
-            mock_add_env,
-            mock_get_inner_envs,
-            mock_relations,
-            mock_get_service,
-            mock_get_app,
-            mock_get_region,
-            mock_get_team,
+        self,
+        mock_add_env,
+        mock_get_inner_envs,
+        mock_relations,
+        mock_get_service,
+        mock_get_app,
+        mock_get_region,
+        mock_get_team,
     ):
         env = Obj(attr_name="DB_PASSWORD", attr_value="postgres", name="DB_PASSWORD", is_change=True, scope="inner")
         env.to_dict = lambda: {"attr_name": "DB_PASSWORD", "attr_value": "postgres", "scope": "inner"}
@@ -2298,15 +2364,15 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.compile_env_repo.get_service_compile_env")
     # capability_id: console.component.build-env-preserve-source-build-state
     def test_manage_component_envs_replace_build_envs_preserves_source_build_state(
-            self,
-            mock_get_compile_env,
-            mock_add_build_env,
-            mock_get_build_envs,
-            mock_relations,
-            mock_get_service,
-            mock_get_app,
-            mock_get_region,
-            mock_get_team,
+        self,
+        mock_get_compile_env,
+        mock_add_build_env,
+        mock_get_build_envs,
+        mock_relations,
+        mock_get_service,
+        mock_get_app,
+        mock_get_region,
+        mock_get_team,
     ):
         mock_get_team.return_value = self.team
         mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
@@ -2317,14 +2383,13 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         mock_add_build_env.return_value = (200, "success", Obj())
 
         compile_env = Obj(
-            user_dependency=json.dumps(build_compile_env_payload(
-                {
+            user_dependency=json.dumps(
+                build_compile_env_payload({
                     "language": "Java-maven",
                     "runtimes": "17",
                     "procfile": "",
                     "dependencies": {}
-                },
-                {
+                }, {
                     "user_saved": {
                         "Java-maven": {
                             "compile_env": {
@@ -2340,8 +2405,7 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
                             "cmd": "start web"
                         }
                     }
-                }
-            )),
+                })),
             save=lambda: None,
         )
         mock_get_compile_env.return_value = compile_env
@@ -2376,13 +2440,13 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.env_var_service.get_service_outer_env")
     # capability_id: console.component.connection-env-summary
     def test_manage_component_connection_envs_summary_returns_outer_envs(
-            self,
-            mock_get_outer_envs,
-            mock_relations,
-            mock_get_service,
-            mock_get_app,
-            mock_get_region,
-            mock_get_team,
+        self,
+        mock_get_outer_envs,
+        mock_relations,
+        mock_get_service,
+        mock_get_app,
+        mock_get_region,
+        mock_get_team,
     ):
         env = Obj(attr_name="MYSQL_HOST", attr_value="db.default")
         env.to_dict = lambda: {"attr_name": "MYSQL_HOST", "attr_value": "db.default", "scope": "outer"}
@@ -2415,13 +2479,13 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.env_var_service.add_service_env_var")
     # capability_id: console.component.connection-env-create
     def test_manage_component_connection_envs_create_uses_outer_scope(
-            self,
-            mock_add_env,
-            mock_relations,
-            mock_get_service,
-            mock_get_app,
-            mock_get_region,
-            mock_get_team,
+        self,
+        mock_add_env,
+        mock_relations,
+        mock_get_service,
+        mock_get_app,
+        mock_get_region,
+        mock_get_team,
     ):
         env = Obj(attr_name="MYSQL_HOST", attr_value="db.default")
         env.to_dict = lambda: {"attr_name": "MYSQL_HOST", "attr_value": "db.default", "scope": "outer"}
@@ -2459,15 +2523,15 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.env_var_service.add_service_env_var")
     # capability_id: console.component.env-update
     def test_manage_component_envs_upsert_only_uses_inner_envs(
-            self,
-            mock_add_env,
-            mock_update_env,
-            mock_get_inner_envs,
-            mock_relations,
-            mock_get_service,
-            mock_get_app,
-            mock_get_region,
-            mock_get_team,
+        self,
+        mock_add_env,
+        mock_update_env,
+        mock_get_inner_envs,
+        mock_relations,
+        mock_get_service,
+        mock_get_app,
+        mock_get_region,
+        mock_get_team,
     ):
         existing_env = Obj(ID=1, attr_name="EXISTING", name="existing", attr_value="old", is_change=True, scope="inner")
         mock_get_team.return_value = self.team
@@ -2488,10 +2552,13 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
                 "app_id": 12,
                 "service_id": "svc-1",
                 "operation": "upsert",
-                "envs": [
-                    {"name": "EXISTING", "value": "new"},
-                    {"name": "NEW_ENV", "value": "v2"}
-                ],
+                "envs": [{
+                    "name": "EXISTING",
+                    "value": "new"
+                }, {
+                    "name": "NEW_ENV",
+                    "value": "v2"
+                }],
             },
         )
 
@@ -2507,13 +2574,13 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch.object(mcp_query_service, "handle_component_ports")
     # capability_id: console.component.port-summary
     def test_manage_component_ports_summary_delegates_to_port_handler(
-            self,
-            mock_handle_ports,
-            mock_relations,
-            mock_get_service,
-            mock_get_app,
-            mock_get_region,
-            mock_get_team,
+        self,
+        mock_handle_ports,
+        mock_relations,
+        mock_get_service,
+        mock_get_app,
+        mock_get_region,
+        mock_get_team,
     ):
         mock_get_team.return_value = self.team
         mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
@@ -2545,13 +2612,13 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.port_service.manage_port")
     # capability_id: console.component.port-open-public
     def test_manage_component_ports_enable_outer_passes_app_context_to_port_service(
-            self,
-            mock_manage_port,
-            mock_relations,
-            mock_get_service,
-            mock_get_app,
-            mock_get_region,
-            mock_get_team,
+        self,
+        mock_manage_port,
+        mock_relations,
+        mock_get_service,
+        mock_get_app,
+        mock_get_region,
+        mock_get_team,
     ):
         port = Obj(container_port=80, protocol="http", is_inner_service=True, is_outer_service=True)
         port.to_dict = lambda: {
@@ -2592,13 +2659,13 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch.object(mcp_query_service, "handle_component_ports")
     # capability_id: console.component.port-open-inner
     def test_manage_component_ports_enable_inner_maps_to_open_inner(
-            self,
-            mock_handle_ports,
-            mock_relations,
-            mock_get_service,
-            mock_get_app,
-            mock_get_region,
-            mock_get_team,
+        self,
+        mock_handle_ports,
+        mock_relations,
+        mock_get_service,
+        mock_get_app,
+        mock_get_region,
+        mock_get_team,
     ):
         mock_get_team.return_value = self.team
         mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
@@ -2631,13 +2698,13 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch.object(mcp_query_service, "handle_component_ports")
     # capability_id: console.component.port-open-outer-only
     def test_manage_component_ports_enable_outer_only_maps_to_only_open_outer(
-            self,
-            mock_handle_ports,
-            mock_relations,
-            mock_get_service,
-            mock_get_app,
-            mock_get_region,
-            mock_get_team,
+        self,
+        mock_handle_ports,
+        mock_relations,
+        mock_get_service,
+        mock_get_app,
+        mock_get_region,
+        mock_get_team,
     ):
         mock_get_team.return_value = self.team
         mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
@@ -2669,24 +2736,39 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.port_service.batch_add_service_ports")
     # capability_id: console.component.port-batch-add
     def test_manage_component_ports_batch_add_delegates_to_batch_service(
-            self,
-            mock_batch_add,
-            mock_relations,
-            mock_get_service,
-            mock_get_app,
-            mock_get_region,
-            mock_get_team,
+        self,
+        mock_batch_add,
+        mock_relations,
+        mock_get_service,
+        mock_get_app,
+        mock_get_region,
+        mock_get_team,
     ):
-        port80 = Obj(tenant_id="team-1", service_id="svc-1", container_port=80, protocol="http",
-                     is_inner_service=True, is_outer_service=False, port_alias="ALIAS180",
-                     k8s_service_name="alias-1", mapping_port=80)
-        port80.to_dict = lambda: {"container_port": 80, "protocol": "http",
-                                  "is_inner_service": True, "is_outer_service": False}
-        port8080 = Obj(tenant_id="team-1", service_id="svc-1", container_port=8080, protocol="stream",
-                       is_inner_service=False, is_outer_service=False, port_alias="ALIAS18080",
-                       k8s_service_name="alias-1", mapping_port=8080)
-        port8080.to_dict = lambda: {"container_port": 8080, "protocol": "stream",
-                                    "is_inner_service": False, "is_outer_service": False}
+        port80 = Obj(tenant_id="team-1",
+                     service_id="svc-1",
+                     container_port=80,
+                     protocol="http",
+                     is_inner_service=True,
+                     is_outer_service=False,
+                     port_alias="ALIAS180",
+                     k8s_service_name="alias-1",
+                     mapping_port=80)
+        port80.to_dict = lambda: {"container_port": 80, "protocol": "http", "is_inner_service": True, "is_outer_service": False}
+        port8080 = Obj(tenant_id="team-1",
+                       service_id="svc-1",
+                       container_port=8080,
+                       protocol="stream",
+                       is_inner_service=False,
+                       is_outer_service=False,
+                       port_alias="ALIAS18080",
+                       k8s_service_name="alias-1",
+                       mapping_port=8080)
+        port8080.to_dict = lambda: {
+            "container_port": 8080,
+            "protocol": "stream",
+            "is_inner_service": False,
+            "is_outer_service": False
+        }
         mock_get_team.return_value = self.team
         mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
         mock_get_app.return_value = self.app
@@ -2704,8 +2786,15 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
                 "service_id": "svc-1",
                 "operation": "add",
                 "ports": [
-                    {"port": 80, "protocol": " HTTP ", "enable_inner": True},
-                    {"port": 8080, "protocol": "Stream"},
+                    {
+                        "port": 80,
+                        "protocol": " HTTP ",
+                        "enable_inner": True
+                    },
+                    {
+                        "port": 8080,
+                        "protocol": "Stream"
+                    },
                 ],
             },
         )
@@ -2729,13 +2818,13 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.port_service.manage_port")
     # capability_id: console.component.port-batch-enable-inner
     def test_manage_component_ports_batch_enable_inner_loads_context_once(
-            self,
-            mock_manage_port,
-            mock_relations,
-            mock_get_service,
-            mock_get_app,
-            mock_get_region,
-            mock_get_team,
+        self,
+        mock_manage_port,
+        mock_relations,
+        mock_get_service,
+        mock_get_app,
+        mock_get_region,
+        mock_get_team,
     ):
         def make_port(n):
             p = Obj(container_port=n, protocol="http", is_inner_service=True, is_outer_service=False)
@@ -2758,7 +2847,11 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
                 "app_id": 12,
                 "service_id": "svc-1",
                 "operation": "enable_inner",
-                "ports": [{"port": 80}, {"port": 8080}],
+                "ports": [{
+                    "port": 80
+                }, {
+                    "port": 8080
+                }],
             },
         )
 
@@ -2778,13 +2871,13 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.port_service.manage_port")
     # capability_id: console.component.port-batch-enable-outer
     def test_manage_component_ports_batch_enable_outer_accepts_integer_items(
-            self,
-            mock_manage_port,
-            mock_relations,
-            mock_get_service,
-            mock_get_app,
-            mock_get_region,
-            mock_get_team,
+        self,
+        mock_manage_port,
+        mock_relations,
+        mock_get_service,
+        mock_get_app,
+        mock_get_region,
+        mock_get_team,
     ):
         def make_port(n):
             p = Obj(container_port=n, protocol="http", is_inner_service=True, is_outer_service=True)
@@ -2825,13 +2918,13 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.port_service.manage_port")
     # capability_id: console.component.port-protocol-normalize
     def test_manage_component_ports_update_protocol_normalizes_protocol(
-            self,
-            mock_manage_port,
-            mock_relations,
-            mock_get_service,
-            mock_get_app,
-            mock_get_region,
-            mock_get_team,
+        self,
+        mock_manage_port,
+        mock_relations,
+        mock_get_service,
+        mock_get_app,
+        mock_get_region,
+        mock_get_team,
     ):
         port = Obj(container_port=80, protocol="https", is_inner_service=True, is_outer_service=False)
         port.to_dict = lambda: {"container_port": 80, "protocol": "https"}
@@ -2861,8 +2954,8 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.port_service.manage_port")
     # capability_id: console.component.port-protocol-validation
     def test_manage_component_ports_update_protocol_rejects_invalid_protocol_before_service_call(
-            self,
-            mock_manage_port,
+        self,
+        mock_manage_port,
     ):
         with self.assertRaises(ServiceHandleException) as cm:
             mcp_query_service.call_tool(
@@ -2892,13 +2985,13 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.port_service.manage_port")
     # capability_id: console.component.port-batch-protocol
     def test_manage_component_ports_batch_update_protocol_passes_each_normalized_protocol(
-            self,
-            mock_manage_port,
-            mock_relations,
-            mock_get_service,
-            mock_get_app,
-            mock_get_region,
-            mock_get_team,
+        self,
+        mock_manage_port,
+        mock_relations,
+        mock_get_service,
+        mock_get_app,
+        mock_get_region,
+        mock_get_team,
     ):
         def make_port(n, protocol):
             p = Obj(container_port=n, protocol=protocol, is_inner_service=True, is_outer_service=False)
@@ -2925,8 +3018,14 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
                 "service_id": "svc-1",
                 "operation": "update_protocol",
                 "ports": [
-                    {"port": 80, "protocol": " HTTP "},
-                    {"port": 443, "protocol": "Grpc"},
+                    {
+                        "port": 80,
+                        "protocol": " HTTP "
+                    },
+                    {
+                        "port": 443,
+                        "protocol": "Grpc"
+                    },
                 ],
             },
         )
@@ -2944,14 +3043,14 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.group_repo.get_group_by_id")
     # capability_id: console.component.list
     def test_query_components_uses_existing_service_repo_method(
-            self,
-            mock_get_app,
-            mock_get_team_by_team_id,
-            mock_get_enterprises,
-            mock_is_admin,
-            mock_get_user_tenant,
-            mock_get_relations,
-            mock_get_services,
+        self,
+        mock_get_app,
+        mock_get_team_by_team_id,
+        mock_get_enterprises,
+        mock_is_admin,
+        mock_get_user_tenant,
+        mock_get_relations,
+        mock_get_services,
     ):
         app = Obj(ID=12, tenant_id="team-1", group_name="demo-app")
         tenant = self.team
@@ -2988,14 +3087,14 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.group_repo.get_group_by_id")
     # capability_id: console.component.list
     def test_query_components_query_matches_service_id_exactly(
-            self,
-            mock_get_app,
-            mock_get_team_by_team_id,
-            mock_get_enterprises,
-            mock_is_admin,
-            mock_get_user_tenant,
-            mock_get_relations,
-            mock_get_services,
+        self,
+        mock_get_app,
+        mock_get_team_by_team_id,
+        mock_get_enterprises,
+        mock_is_admin,
+        mock_get_user_tenant,
+        mock_get_relations,
+        mock_get_services,
     ):
         """When the LLM passes a 32-char hex service_id as `query`, the filter
         should still match that component instead of falling back to fuzzy
@@ -3058,14 +3157,14 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.domain_service.get_component_access_infos")
     # capability_id: console.component.detail
     def test_get_component_detail_returns_status_and_access_infos(
-            self,
-            mock_access_infos,
-            mock_status_multi,
-            mock_relations,
-            mock_get_service,
-            mock_get_app,
-            mock_get_region,
-            mock_get_team,
+        self,
+        mock_access_infos,
+        mock_status_multi,
+        mock_relations,
+        mock_get_service,
+        mock_get_app,
+        mock_get_region,
+        mock_get_team,
     ):
         mock_get_team.return_value = self.team
         mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
@@ -3078,7 +3177,12 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         result = mcp_query_service.call_tool(
             self.user,
             "rainbond_get_component_detail",
-            {"team_name": "demo-team", "region_name": "rainbond", "app_id": 12, "service_id": "svc-1"},
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "app_id": 12,
+                "service_id": "svc-1"
+            },
         )
 
         self.assertEqual(result["service_id"], "svc-1")
@@ -3092,8 +3196,8 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.group_service_relation_repo.get_services_by_group")
     @patch("console.services.mcp_query_service.event_service.get_target_events")
     # capability_id: console.component.events
-    def test_get_component_events_returns_paginated_events(
-            self, mock_events, mock_relations, mock_get_service, mock_get_app, mock_get_region, mock_get_team):
+    def test_get_component_events_returns_paginated_events(self, mock_events, mock_relations, mock_get_service, mock_get_app,
+                                                           mock_get_region, mock_get_team):
         mock_get_team.return_value = self.team
         mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
         mock_get_app.return_value = self.app
@@ -3126,13 +3230,13 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.group_service_relation_repo.get_services_by_group")
     # capability_id: console.component.build-logs
     def test_get_component_build_logs_returns_event_log_items(
-            self,
-            mock_relations,
-            mock_get_service,
-            mock_get_app,
-            mock_get_region,
-            mock_get_team,
-            mock_get_event_log,
+        self,
+        mock_relations,
+        mock_get_service,
+        mock_get_app,
+        mock_get_region,
+        mock_get_team,
+        mock_get_event_log,
     ):
         mock_get_team.return_value = self.team
         mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
@@ -3169,13 +3273,13 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.group_service_relation_repo.get_services_by_group")
     # capability_id: console.component.build-logs
     def test_get_component_build_logs_tail_returns_last_n_items(
-            self,
-            mock_relations,
-            mock_get_service,
-            mock_get_app,
-            mock_get_region,
-            mock_get_team,
-            mock_get_event_log,
+        self,
+        mock_relations,
+        mock_get_service,
+        mock_get_app,
+        mock_get_region,
+        mock_get_team,
+        mock_get_event_log,
     ):
         mock_get_team.return_value = self.team
         mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
@@ -3211,13 +3315,13 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.group_service_relation_repo.get_services_by_group")
     # capability_id: console.component.build-logs
     def test_get_component_build_logs_grep_filters_message_field(
-            self,
-            mock_relations,
-            mock_get_service,
-            mock_get_app,
-            mock_get_region,
-            mock_get_team,
-            mock_get_event_log,
+        self,
+        mock_relations,
+        mock_get_service,
+        mock_get_app,
+        mock_get_region,
+        mock_get_team,
+        mock_get_event_log,
     ):
         mock_get_team.return_value = self.team
         mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
@@ -3225,10 +3329,22 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         mock_get_service.return_value = self.service
         mock_relations.return_value = [Obj(service_id="svc-1")]
         mock_get_event_log.return_value = [
-            {"message": "Downloading dependency...", "time": "t1"},
-            {"message": "[ERROR] Compilation failed", "time": "t2"},
-            {"message": "BUILD FAILURE", "time": "t3"},
-            {"message": "tail spam", "time": "t4"},
+            {
+                "message": "Downloading dependency...",
+                "time": "t1"
+            },
+            {
+                "message": "[ERROR] Compilation failed",
+                "time": "t2"
+            },
+            {
+                "message": "BUILD FAILURE",
+                "time": "t3"
+            },
+            {
+                "message": "tail spam",
+                "time": "t4"
+            },
         ]
 
         result = mcp_query_service.call_tool(
@@ -3257,22 +3373,20 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.group_service_relation_repo.get_services_by_group")
     # capability_id: console.component.build-logs
     def test_get_component_build_logs_offset_limit_paginates(
-            self,
-            mock_relations,
-            mock_get_service,
-            mock_get_app,
-            mock_get_region,
-            mock_get_team,
-            mock_get_event_log,
+        self,
+        mock_relations,
+        mock_get_service,
+        mock_get_app,
+        mock_get_region,
+        mock_get_team,
+        mock_get_event_log,
     ):
         mock_get_team.return_value = self.team
         mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
         mock_get_app.return_value = self.app
         mock_get_service.return_value = self.service
         mock_relations.return_value = [Obj(service_id="svc-1")]
-        mock_get_event_log.return_value = [
-            {"message": "step-%d" % i} for i in range(10)
-        ]
+        mock_get_event_log.return_value = [{"message": "step-%d" % i} for i in range(10)]
 
         result = mcp_query_service.call_tool(
             self.user,
@@ -3301,13 +3415,13 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.group_service_relation_repo.get_services_by_group")
     # capability_id: console.component.build-logs
     def test_get_component_build_logs_grep_then_tail_applies_in_order(
-            self,
-            mock_relations,
-            mock_get_service,
-            mock_get_app,
-            mock_get_region,
-            mock_get_team,
-            mock_get_event_log,
+        self,
+        mock_relations,
+        mock_get_service,
+        mock_get_app,
+        mock_get_region,
+        mock_get_team,
+        mock_get_event_log,
     ):
         mock_get_team.return_value = self.team
         mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
@@ -3315,11 +3429,21 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         mock_get_service.return_value = self.service
         mock_relations.return_value = [Obj(service_id="svc-1")]
         mock_get_event_log.return_value = [
-            {"message": "[ERROR] first"},
-            {"message": "ok"},
-            {"message": "[ERROR] second"},
-            {"message": "[ERROR] third"},
-            {"message": "ok again"},
+            {
+                "message": "[ERROR] first"
+            },
+            {
+                "message": "ok"
+            },
+            {
+                "message": "[ERROR] second"
+            },
+            {
+                "message": "[ERROR] third"
+            },
+            {
+                "message": "ok again"
+            },
         ]
 
         result = mcp_query_service.call_tool(
@@ -3354,14 +3478,14 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.app_manage_service.deploy")
     # capability_id: console.component.create-from-image
     def test_create_component_calls_console_services(
-            self,
-            mock_deploy,
-            mock_create_region_service,
-            mock_add_service_to_group,
-            mock_create_docker_run_app,
-            mock_get_app,
-            mock_get_region,
-            mock_get_team,
+        self,
+        mock_deploy,
+        mock_create_region_service,
+        mock_add_service_to_group,
+        mock_create_docker_run_app,
+        mock_get_app,
+        mock_get_region,
+        mock_get_team,
     ):
         mock_get_team.return_value = self.team
         mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
@@ -3396,14 +3520,14 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.app_manage_service.deploy")
     # capability_id: console.component.create-from-image
     def test_create_component_copies_docker_cmd_into_cmd(
-            self,
-            mock_deploy,
-            mock_create_region_service,
-            mock_add_service_to_group,
-            mock_create_docker_run_app,
-            mock_get_app,
-            mock_get_region,
-            mock_get_team,
+        self,
+        mock_deploy,
+        mock_create_region_service,
+        mock_add_service_to_group,
+        mock_create_docker_run_app,
+        mock_get_app,
+        mock_get_region,
+        mock_get_team,
     ):
         # create_docker_run_app only persists docker_cmd; the MCP path skips
         # the docker-run check stage that would parse it into service.cmd,
@@ -3444,13 +3568,13 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.app_manage_service.delete")
     # capability_id: console.component.delete
     def test_delete_component_calls_app_manage_delete(
-            self,
-            mock_delete,
-            mock_relations,
-            mock_get_service,
-            mock_get_app,
-            mock_get_region,
-            mock_get_team,
+        self,
+        mock_delete,
+        mock_relations,
+        mock_get_service,
+        mock_get_app,
+        mock_get_region,
+        mock_get_team,
     ):
         mock_get_team.return_value = self.team
         mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
@@ -3462,7 +3586,12 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         result = mcp_query_service.call_tool(
             self.user,
             "rainbond_delete_component",
-            {"team_name": "demo-team", "region_name": "rainbond", "app_id": 12, "service_id": "svc-1"},
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "app_id": 12,
+                "service_id": "svc-1"
+            },
         )
 
         self.assertTrue(result["deleted"])
@@ -3474,8 +3603,8 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.group_service_relation_repo.get_services_by_group")
     @patch("console.services.mcp_query_service.app_manage_service.batch_operations")
     # capability_id: console.app.batch-component-operation
-    def test_operate_app_calls_batch_operations(
-            self, mock_batch_operations, mock_relations, mock_get_app, mock_get_region, mock_get_team):
+    def test_operate_app_calls_batch_operations(self, mock_batch_operations, mock_relations, mock_get_app, mock_get_region,
+                                                mock_get_team):
         mock_get_team.return_value = self.team
         mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
         mock_get_app.return_value = self.app
@@ -3485,7 +3614,12 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         result = mcp_query_service.call_tool(
             self.user,
             "rainbond_operate_app",
-            {"team_name": "demo-team", "region_name": "rainbond", "app_id": 12, "action": "stop"},
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "app_id": 12,
+                "action": "stop"
+            },
         )
 
         self.assertEqual(result["action"], "stop")
@@ -3500,13 +3634,13 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.app_manage_service.batch_operations")
     # capability_id: console.app.restart-component-operation
     def test_operate_app_restart_calls_batch_action(
-            self,
-            mock_batch_operations,
-            mock_batch_action,
-            mock_relations,
-            mock_get_app,
-            mock_get_region,
-            mock_get_team,
+        self,
+        mock_batch_operations,
+        mock_batch_action,
+        mock_relations,
+        mock_get_app,
+        mock_get_region,
+        mock_get_team,
     ):
         mock_get_team.return_value = self.team
         mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
@@ -3528,8 +3662,7 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         self.assertEqual(result["action"], "restart")
         self.assertEqual(result["service_ids"], ["svc-1"])
         self.assertEqual(result["result"][0]["service_id"], "svc-1")
-        mock_batch_action.assert_called_once_with(
-            "rainbond", self.team, self.user, "restart", ["svc-1"], None, None)
+        mock_batch_action.assert_called_once_with("rainbond", self.team, self.user, "restart", ["svc-1"], None, None)
         mock_batch_operations.assert_not_called()
 
     def test_operate_app_schema_limits_supported_actions(self):
@@ -3562,9 +3695,7 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
             self.assertIn(
                 "action=upgrade",
                 description,
-                "{} should tell callers how to apply the change".format(
-                    tool_builder()["name"]
-                ),
+                "{} should tell callers how to apply the change".format(tool_builder()["name"]),
             )
 
     @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
@@ -3572,9 +3703,8 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.group_service.get_app_by_id")
     @patch("console.services.mcp_query_service.service_repo.get_service_by_service_id")
     @patch("console.services.mcp_query_service.group_service_relation_repo.get_services_by_group")
-    def test_resolve_deployment_service_sources_validates_build_target_membership(
-            self, mock_relations, mock_get_service, mock_get_app,
-            mock_get_region, mock_get_team):
+    def test_resolve_deployment_service_sources_validates_build_target_membership(self, mock_relations, mock_get_service,
+                                                                                  mock_get_app, mock_get_region, mock_get_team):
         mock_get_team.return_value = self.team
         mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
         mock_get_app.return_value = self.app
@@ -3603,14 +3733,15 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.service_repo.get_service_by_service_id")
     @patch("console.services.mcp_query_service.group_service_relation_repo.get_services_by_group")
     def test_resolve_deployment_service_sources_handles_selected_or_all_app_services(
-            self, mock_relations, mock_get_service, mock_get_app,
-            mock_get_region, mock_get_team):
-        source_service = Obj(
-            service_id="svc-source", tenant_id="team-1",
-            service_region="rainbond", service_source="source_code")
-        package_service = Obj(
-            service_id="svc-package", tenant_id="team-1",
-            service_region="rainbond", service_source="package_build")
+            self, mock_relations, mock_get_service, mock_get_app, mock_get_region, mock_get_team):
+        source_service = Obj(service_id="svc-source",
+                             tenant_id="team-1",
+                             service_region="rainbond",
+                             service_source="source_code")
+        package_service = Obj(service_id="svc-package",
+                              tenant_id="team-1",
+                              service_region="rainbond",
+                              service_source="package_build")
         services = {
             source_service.service_id: source_service,
             package_service.service_id: package_service,
@@ -3619,9 +3750,7 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
         mock_get_app.return_value = self.app
         mock_get_service.side_effect = services.get
-        mock_relations.return_value = [
-            Obj(service_id="svc-source"), Obj(service_id="svc-package")
-        ]
+        mock_relations.return_value = [Obj(service_id="svc-source"), Obj(service_id="svc-package")]
 
         selected = mcp_query_service.resolve_deployment_service_sources(
             self.user,
@@ -3632,7 +3761,9 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
                 "app_id": 12,
                 "action": "deploy",
                 "service_ids": ["svc-package"],
-                "service_sources": [{"service_source": "docker_image"}],
+                "service_sources": [{
+                    "service_source": "docker_image"
+                }],
             },
         )
         all_services = mcp_query_service.resolve_deployment_service_sources(
@@ -3655,8 +3786,8 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.service_repo.get_service_by_service_id")
     @patch("console.services.mcp_query_service.group_service_relation_repo.get_services_by_group")
     # capability_id: console.component.change-image
-    def test_change_component_image_updates_service_fields(
-            self, mock_relations, mock_get_service, mock_get_app, mock_get_region, mock_get_team):
+    def test_change_component_image_updates_service_fields(self, mock_relations, mock_get_service, mock_get_app,
+                                                           mock_get_region, mock_get_team):
         mock_get_team.return_value = self.team
         mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
         mock_get_app.return_value = self.app
@@ -3687,14 +3818,14 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.region_api.get_cluster_nodes_arch")
     # capability_id: console.component.build-source-get
     def test_get_component_build_source_returns_sanitized_summary(
-            self,
-            mock_get_arch,
-            mock_get_build_infos,
-            mock_relations,
-            mock_get_service,
-            mock_get_app,
-            mock_get_region,
-            mock_get_team,
+        self,
+        mock_get_arch,
+        mock_get_build_infos,
+        mock_relations,
+        mock_get_service,
+        mock_get_app,
+        mock_get_region,
+        mock_get_team,
     ):
         mock_get_team.return_value = self.team
         mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
@@ -3707,7 +3838,9 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
                 "git_url": "https://git.example.com/demo.git",
                 "code_version": "master",
                 "server_type": "git",
-                "build_env_dict": {"BUILD_TYPE": "cnb"},
+                "build_env_dict": {
+                    "BUILD_TYPE": "cnb"
+                },
                 "build_strategy": "cnb",
                 "user": "git-user",
                 "password": "secret-token",
@@ -3769,15 +3902,15 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.arch_service.update_affinity_by_arch")
     # capability_id: console.component.build-source-update
     def test_update_component_build_source_updates_source_code_fields(
-            self,
-            mock_update_affinity,
-            mock_get_service_source,
-            mock_snapshot,
-            mock_relations,
-            mock_get_service,
-            mock_get_app,
-            mock_get_region,
-            mock_get_team,
+        self,
+        mock_update_affinity,
+        mock_get_service_source,
+        mock_snapshot,
+        mock_relations,
+        mock_get_service,
+        mock_get_app,
+        mock_get_region,
+        mock_get_team,
     ):
         source_record = Obj(user_name="old-user", password="old-pass", save=lambda: None)
         self.service.service_source = "source_code"
@@ -3791,7 +3924,10 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         mock_get_service.return_value = self.service
         mock_relations.return_value = [Obj(service_id="svc-1")]
         mock_get_service_source.return_value = source_record
-        mock_snapshot.return_value = {"service_source": "source_code", "git_url": "https://git.example.com/demo.git?dir=services/api"}
+        mock_snapshot.return_value = {
+            "service_source": "source_code",
+            "git_url": "https://git.example.com/demo.git?dir=services/api"
+        }
 
         result = mcp_query_service.call_tool(
             self.user,
@@ -3833,15 +3969,15 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.arch_service.update_affinity_by_arch")
     # capability_id: console.component.build-source-update-image-cmd
     def test_update_component_build_source_keeps_cmd_when_omitted_on_image_update(
-            self,
-            mock_update_affinity,
-            mock_get_service_source,
-            mock_snapshot,
-            mock_relations,
-            mock_get_service,
-            mock_get_app,
-            mock_get_region,
-            mock_get_team,
+        self,
+        mock_update_affinity,
+        mock_get_service_source,
+        mock_snapshot,
+        mock_relations,
+        mock_get_service,
+        mock_get_app,
+        mock_get_region,
+        mock_get_team,
     ):
         # An image component already carrying a start command: an image-only
         # update (no `cmd` argument) must not silently wipe it. The stored
@@ -3885,15 +4021,15 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.arch_service.update_affinity_by_arch")
     # capability_id: console.component.build-source-update-image-cmd
     def test_update_component_build_source_sets_cmd_and_syncs_docker_cmd(
-            self,
-            mock_update_affinity,
-            mock_get_service_source,
-            mock_snapshot,
-            mock_relations,
-            mock_get_service,
-            mock_get_app,
-            mock_get_region,
-            mock_get_team,
+        self,
+        mock_update_affinity,
+        mock_get_service_source,
+        mock_snapshot,
+        mock_relations,
+        mock_get_service,
+        mock_get_app,
+        mock_get_region,
+        mock_get_team,
     ):
         self.service.service_source = "docker_image"
         self.service.cmd = ""
@@ -3932,13 +4068,13 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.port_service.add_service_port")
     # capability_id: console.component.port-add-invalid-alias
     def test_handle_component_ports_add_exposes_structured_alias_validation(
-            self,
-            mock_add_service_port,
-            mock_relations,
-            mock_get_service,
-            mock_get_app,
-            mock_get_region,
-            mock_get_team,
+        self,
+        mock_add_service_port,
+        mock_relations,
+        mock_get_service,
+        mock_get_app,
+        mock_get_region,
+        mock_get_team,
     ):
         mock_get_team.return_value = self.team
         mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
@@ -3976,13 +4112,13 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.port_service.get_service_ports")
     # capability_id: console.component.port-list
     def test_handle_component_ports_list_returns_ports(
-            self,
-            mock_get_ports,
-            mock_relations,
-            mock_get_service,
-            mock_get_app,
-            mock_get_region,
-            mock_get_team,
+        self,
+        mock_get_ports,
+        mock_relations,
+        mock_get_service,
+        mock_get_app,
+        mock_get_region,
+        mock_get_team,
     ):
         port = Obj(container_port=80, protocol="http", is_inner_service=True, is_outer_service=False)
         port.to_dict = lambda: {
@@ -4021,13 +4157,13 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.port_service.manage_port")
     # capability_id: console.component.port-open-public
     def test_handle_component_ports_alias_action_maps_to_standard_action(
-            self,
-            mock_manage_port,
-            mock_relations,
-            mock_get_service,
-            mock_get_app,
-            mock_get_region,
-            mock_get_team,
+        self,
+        mock_manage_port,
+        mock_relations,
+        mock_get_service,
+        mock_get_app,
+        mock_get_region,
+        mock_get_team,
     ):
         port = Obj(container_port=80, protocol="http", is_inner_service=True, is_outer_service=True)
         port.to_dict = lambda: {
@@ -4068,13 +4204,13 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.app_manage_service.horizontal_upgrade")
     # capability_id: console.component.horizontal-scale
     def test_horizontal_scale_component_calls_app_manage_service(
-            self,
-            mock_horizontal_upgrade,
-            mock_relations,
-            mock_get_service,
-            mock_get_app,
-            mock_get_region,
-            mock_get_team,
+        self,
+        mock_horizontal_upgrade,
+        mock_relations,
+        mock_get_service,
+        mock_get_app,
+        mock_get_region,
+        mock_get_team,
     ):
         mock_get_team.return_value = self.team
         mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
@@ -4119,7 +4255,10 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         result = mcp_query_service.call_tool(
             self.user,
             "rainbond_close_apps",
-            {"team_name": "demo-team", "region_name": "rainbond"},
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond"
+            },
         )
 
         self.assertTrue(result["closed"])
@@ -4137,7 +4276,10 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         result = mcp_query_service.call_tool(
             self.user,
             "rainbond_get_team_apps",
-            {"team_name": "demo-team", "region_name": "rainbond"},
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond"
+            },
         )
 
         self.assertEqual(result["total"], 1)
@@ -4148,8 +4290,8 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.group_service.get_app_by_id")
     @patch("console.services.mcp_query_service.app_version_service.get_overview")
     # capability_id: console.app-version.overview
-    def test_get_app_version_overview_returns_version_center_overview(
-            self, mock_get_overview, mock_get_app, mock_get_region, mock_get_team):
+    def test_get_app_version_overview_returns_version_center_overview(self, mock_get_overview, mock_get_app, mock_get_region,
+                                                                      mock_get_team):
         region = Obj(region_name="rainbond", enterprise_id="eid-1")
         mock_get_team.return_value = self.team
         mock_get_region.return_value = region
@@ -4159,7 +4301,11 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         result = mcp_query_service.call_tool(
             self.user,
             "rainbond_get_app_version_overview",
-            {"team_name": "demo-team", "region_name": "rainbond", "app_id": 12},
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "app_id": 12
+            },
         )
 
         self.assertEqual(result["overview"]["current_version"], "1.0.0")
@@ -4171,8 +4317,8 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.app_version_service.get_hidden_template")
     @patch("console.services.mcp_query_service.app_version_service.list_snapshot_versions")
     # capability_id: console.app-version.snapshots
-    def test_list_app_version_snapshots_returns_versions(
-            self, mock_list_snapshots, mock_get_hidden_template, mock_get_app, mock_get_region, mock_get_team):
+    def test_list_app_version_snapshots_returns_versions(self, mock_list_snapshots, mock_get_hidden_template, mock_get_app,
+                                                         mock_get_region, mock_get_team):
         mock_get_team.return_value = self.team
         mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
         mock_get_app.return_value = self.app
@@ -4182,7 +4328,11 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         result = mcp_query_service.call_tool(
             self.user,
             "rainbond_list_app_version_snapshots",
-            {"team_name": "demo-team", "region_name": "rainbond", "app_id": 12},
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "app_id": 12
+            },
         )
 
         self.assertTrue(result["has_template"])
@@ -4193,8 +4343,8 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.group_service.get_app_by_id")
     @patch("console.services.mcp_query_service.app_version_service.create_snapshot")
     # capability_id: console.app-version.create-snapshot
-    def test_create_app_version_snapshot_calls_app_version_service(
-            self, mock_create_snapshot, mock_get_app, mock_get_region, mock_get_team):
+    def test_create_app_version_snapshot_calls_app_version_service(self, mock_create_snapshot, mock_get_app, mock_get_region,
+                                                                   mock_get_team):
         region = Obj(region_name="rainbond", enterprise_id="eid-1")
         mock_get_team.return_value = self.team
         mock_get_region.return_value = region
@@ -4216,7 +4366,10 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
 
         self.assertTrue(result["created"])
         mock_create_snapshot.assert_called_once_with(
-            self.team, region, self.user, self.app,
+            self.team,
+            region,
+            self.user,
+            self.app,
             version="1.0.1",
             version_alias="stable",
             app_version_info="snapshot note",
@@ -4229,8 +4382,8 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.app_version_service.rollback_snapshot")
     @patch("console.services.mcp_query_service.app_version_service.get_rollback_record")
     # capability_id: console.app-version.rollback-snapshot
-    def test_rollback_app_version_snapshot_returns_rollback_record(
-            self, mock_get_rollback_detail, mock_rollback_snapshot, mock_get_app, mock_get_region, mock_get_team):
+    def test_rollback_app_version_snapshot_returns_rollback_record(self, mock_get_rollback_detail, mock_rollback_snapshot,
+                                                                   mock_get_app, mock_get_region, mock_get_team):
         region = Obj(region_name="rainbond", enterprise_id="eid-1")
         mock_get_team.return_value = self.team
         mock_get_region.return_value = region
@@ -4241,7 +4394,12 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         result = mcp_query_service.call_tool(
             self.user,
             "rainbond_rollback_app_version_snapshot",
-            {"team_name": "demo-team", "region_name": "rainbond", "app_id": 12, "version_id": 3},
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "app_id": 12,
+                "version_id": 3
+            },
         )
 
         self.assertEqual(result["rollback_record"]["ID"], 91)
@@ -4255,27 +4413,39 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.group_service.get_app_by_id")
     @patch("console.services.mcp_query_service.app_version_service.rollback_snapshot")
     @patch("console.services.mcp_query_service.app_version_service.get_rollback_record")
-    def test_rollback_app_version_snapshot_exposes_standard_event_fields(
-            self, mock_get_rollback_detail, mock_rollback_snapshot, mock_get_app,
-            mock_get_region, mock_get_team):
+    def test_rollback_app_version_snapshot_exposes_standard_event_fields(self, mock_get_rollback_detail, mock_rollback_snapshot,
+                                                                         mock_get_app, mock_get_region, mock_get_team):
         region = Obj(region_name="rainbond", enterprise_id="eid-1")
         mock_get_team.return_value = self.team
         mock_get_region.return_value = region
         mock_get_app.return_value = self.app
         mock_rollback_snapshot.return_value = {"ID": 92, "version": "1.0.0"}
         mock_get_rollback_detail.return_value = {
-            "ID": 92,
-            "status": 1,
+            "ID":
+            92,
+            "status":
+            1,
             "service_record": [
-                {"event_id": "evt-snapshot-2", "service_id": "svc-snapshot-2"},
-                {"event_id": "evt-snapshot-1", "service_id": "svc-snapshot-1"},
+                {
+                    "event_id": "evt-snapshot-2",
+                    "service_id": "svc-snapshot-2"
+                },
+                {
+                    "event_id": "evt-snapshot-1",
+                    "service_id": "svc-snapshot-1"
+                },
             ],
         }
 
         result = mcp_query_service.call_tool(
             self.user,
             "rainbond_rollback_app_version_snapshot",
-            {"team_name": "demo-team", "region_name": "rainbond", "app_id": 12, "version_id": 3},
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "app_id": 12,
+                "version_id": 3
+            },
         )
 
         self.assertEqual(result["rollback_record"]["ID"], 92)
@@ -4356,8 +4526,8 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.group_service.create_app")
     @patch("console.services.mcp_query_service.group_repo.is_k8s_app_duplicate")
     # capability_id: console.gateway.create-app-invalid-display-name
-    def test_create_app_returns_structured_details_for_illegal_app_name(
-            self, mock_is_duplicate, mock_create_app, mock_get_region, mock_get_team):
+    def test_create_app_returns_structured_details_for_illegal_app_name(self, mock_is_duplicate, mock_create_app,
+                                                                        mock_get_region, mock_get_team):
         mock_get_team.return_value = self.team
         mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
         mock_is_duplicate.return_value = False
@@ -4428,20 +4598,30 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.group_service.get_app_by_id")
     @patch("console.services.mcp_query_service.share_service.get_last_shared_app_and_app_list")
     # capability_id: console.app-publish.candidates
-    def test_get_app_publish_candidates_returns_models(
-            self, mock_get_candidates, mock_get_app, mock_get_region, mock_get_team):
+    def test_get_app_publish_candidates_returns_models(self, mock_get_candidates, mock_get_app, mock_get_region, mock_get_team):
         mock_get_team.return_value = self.team
         mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
         mock_get_app.return_value = self.app
         mock_get_candidates.return_value = {
-            "last_shared_app": {"app_id": "model-1", "version": "1.0.0"},
-            "app_model_list": [{"app_id": "model-1", "app_name": "demo-model"}],
+            "last_shared_app": {
+                "app_id": "model-1",
+                "version": "1.0.0"
+            },
+            "app_model_list": [{
+                "app_id": "model-1",
+                "app_name": "demo-model"
+            }],
         }
 
         result = mcp_query_service.call_tool(
             self.user,
             "rainbond_get_app_publish_candidates",
-            {"team_name": "demo-team", "region_name": "rainbond", "app_id": 12, "scope": "local"},
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "app_id": 12,
+                "scope": "local"
+            },
         )
 
         self.assertEqual(result["total"], 1)
@@ -4457,8 +4637,9 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.rainbond_app_repo.get_rainbond_app_by_app_id")
     @patch("console.services.mcp_query_service.rainbond_app_repo.get_rainbond_app_version_by_record_id")
     # capability_id: console.app-share.create-record
-    def test_create_app_share_record_supports_snapshot_mode(
-            self, mock_get_record_version, mock_get_hidden_app, mock_create_share_record, mock_hidden_template, mock_check_share, mock_get_app, mock_get_region, mock_get_team):
+    def test_create_app_share_record_supports_snapshot_mode(self, mock_get_record_version, mock_get_hidden_app,
+                                                            mock_create_share_record, mock_hidden_template, mock_check_share,
+                                                            mock_get_app, mock_get_region, mock_get_team):
         mock_get_team.return_value = self.team
         mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
         mock_get_app.return_value = self.app
@@ -4467,13 +4648,30 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         mock_get_record_version.return_value = None
         hidden_template = Obj(app_id="hidden-model-id")
         mock_hidden_template.return_value = (Obj(app_model_id="hidden-model-id"), hidden_template)
-        record = Obj(ID=51, app_id="hidden-model-id", share_version="", share_version_alias="", scope="", share_store_name="", share_app_market_name="", share_app_model_name="", share_app_version_info="", step=1, is_success=False, status=0, create_time=None)
+        record = Obj(ID=51,
+                     app_id="hidden-model-id",
+                     share_version="",
+                     share_version_alias="",
+                     scope="",
+                     share_store_name="",
+                     share_app_market_name="",
+                     share_app_model_name="",
+                     share_app_version_info="",
+                     step=1,
+                     is_success=False,
+                     status=0,
+                     create_time=None)
         mock_create_share_record.return_value = record
 
         result = mcp_query_service.call_tool(
             self.user,
             "rainbond_create_app_share_record",
-            {"team_name": "demo-team", "region_name": "rainbond", "app_id": 12, "snapshot_mode": True},
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "app_id": 12,
+                "snapshot_mode": True
+            },
         )
 
         self.assertEqual(result["share_record"]["app_model_id"], "hidden-model-id")
@@ -4486,19 +4684,39 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.rainbond_app_repo.get_app_version")
     @patch("console.services.mcp_query_service.share_service.is_snapshot_publish_version")
     # capability_id: console.app-share.info
-    def test_get_app_share_info_returns_snapshot_payload(
-            self, mock_is_snapshot_publish, mock_get_app_version, mock_get_share_record, mock_get_region, mock_get_team):
+    def test_get_app_share_info_returns_snapshot_payload(self, mock_is_snapshot_publish, mock_get_app_version,
+                                                         mock_get_share_record, mock_get_region, mock_get_team):
         mock_get_team.return_value = self.team
         mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
-        share_record = Obj(ID=61, is_success=False, step=1, scope="", app_id="hidden-model-id", share_version="1.0.1", group_id=12)
+        share_record = Obj(ID=61,
+                           is_success=False,
+                           step=1,
+                           scope="",
+                           app_id="hidden-model-id",
+                           share_version="1.0.1",
+                           group_id=12)
         mock_get_share_record.return_value = share_record
-        mock_get_app_version.return_value = Obj(app_template=json.dumps({"apps": [{"service_cname": "api"}], "plugins": [{"plugin_alias": "p1"}], "k8s_resources": [{"name": "cfg"}]}))
+        mock_get_app_version.return_value = Obj(app_template=json.dumps({
+            "apps": [{
+                "service_cname": "api"
+            }],
+            "plugins": [{
+                "plugin_alias": "p1"
+            }],
+            "k8s_resources": [{
+                "name": "cfg"
+            }]
+        }))
         mock_is_snapshot_publish.return_value = True
 
         result = mcp_query_service.call_tool(
             self.user,
             "rainbond_get_app_share_info",
-            {"team_name": "demo-team", "region_name": "rainbond", "share_id": 61},
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "share_id": 61
+            },
         )
 
         self.assertEqual(result["publish_mode"], "snapshot")
@@ -4509,8 +4727,8 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.share_service.get_service_share_record_by_ID")
     @patch("console.services.mcp_query_service.share_service.create_share_info")
     # capability_id: console.app-share.submit-info
-    def test_submit_app_share_info_calls_share_service(
-            self, mock_create_share_info, mock_get_share_record, mock_get_region, mock_get_team):
+    def test_submit_app_share_info_calls_share_service(self, mock_create_share_info, mock_get_share_record, mock_get_region,
+                                                       mock_get_team):
         mock_get_team.return_value = self.team
         mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
         share_record = Obj(ID=71, is_success=False, step=1, group_id=12)
@@ -4525,7 +4743,10 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
                 "region_name": "rainbond",
                 "share_id": 71,
                 "use_force": True,
-                "app_version_info": {"app_model_id": "model-1", "version": "1.0.1"},
+                "app_version_info": {
+                    "app_model_id": "model-1",
+                    "version": "1.0.1"
+                },
             },
         )
 
@@ -4537,8 +4758,8 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.ServiceShareRecordEvent.objects.filter")
     @patch("console.services.mcp_query_service.PluginShareRecordEvent.objects.filter")
     # capability_id: console.app-share.events
-    def test_list_app_share_events_returns_service_and_plugin_events(
-            self, mock_plugin_events, mock_service_events, mock_get_share_record, mock_get_team):
+    def test_list_app_share_events_returns_service_and_plugin_events(self, mock_plugin_events, mock_service_events,
+                                                                     mock_get_share_record, mock_get_team):
         mock_get_team.return_value = self.team
         share_record = Obj(ID=81, is_success=False, step=1)
         mock_get_share_record.return_value = share_record
@@ -4552,7 +4773,10 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         result = mcp_query_service.call_tool(
             self.user,
             "rainbond_list_app_share_events",
-            {"team_name": "demo-team", "share_id": 81},
+            {
+                "team_name": "demo-team",
+                "share_id": 81
+            },
         )
 
         self.assertEqual(result["total"], 2)
@@ -4564,8 +4788,8 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.ServiceShareRecordEvent.objects.filter")
     @patch("console.services.mcp_query_service.share_service.sync_event")
     # capability_id: console.app-share.start-event
-    def test_start_app_share_event_calls_sync_event(
-            self, mock_sync_event, mock_filter_events, mock_get_share_record, mock_get_region, mock_get_team):
+    def test_start_app_share_event_calls_sync_event(self, mock_sync_event, mock_filter_events, mock_get_share_record,
+                                                    mock_get_region, mock_get_team):
         mock_get_team.return_value = self.team
         mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
         share_record = Obj(ID=91, is_success=False, step=1)
@@ -4578,7 +4802,12 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         result = mcp_query_service.call_tool(
             self.user,
             "rainbond_start_app_share_event",
-            {"team_name": "demo-team", "region_name": "rainbond", "share_id": 91, "event_id": 3},
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "share_id": 91,
+                "event_id": 3
+            },
         )
 
         self.assertEqual(result["event"]["ID"], 3)
@@ -4590,8 +4819,8 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.ServiceShareRecordEvent.objects.filter")
     @patch("console.services.mcp_query_service.share_service.get_sync_event_result")
     # capability_id: console.app-share.get-event
-    def test_get_app_share_event_returns_event_status(
-            self, mock_get_event_result, mock_filter_events, mock_get_share_record, mock_get_region, mock_get_team):
+    def test_get_app_share_event_returns_event_status(self, mock_get_event_result, mock_filter_events, mock_get_share_record,
+                                                      mock_get_region, mock_get_team):
         mock_get_team.return_value = self.team
         mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
         share_record = Obj(ID=92, is_success=False, step=1)
@@ -4604,7 +4833,12 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         result = mcp_query_service.call_tool(
             self.user,
             "rainbond_get_app_share_event",
-            {"team_name": "demo-team", "region_name": "rainbond", "share_id": 92, "event_id": 4},
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "share_id": 92,
+                "event_id": 4
+            },
         )
 
         self.assertEqual(result["event"]["event_status"], "success")
@@ -4616,8 +4850,8 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.PluginShareRecordEvent.objects.filter")
     @patch("console.services.mcp_query_service.share_service.complete")
     # capability_id: console.app-share.complete
-    def test_complete_app_share_calls_share_service_complete(
-            self, mock_complete, mock_plugin_events, mock_service_events, mock_get_share_record, mock_get_region, mock_get_team):
+    def test_complete_app_share_calls_share_service_complete(self, mock_complete, mock_plugin_events, mock_service_events,
+                                                             mock_get_share_record, mock_get_region, mock_get_team):
         mock_get_team.return_value = self.team
         mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
         share_record = Obj(ID=93, is_success=False, step=2)
@@ -4630,7 +4864,11 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         result = mcp_query_service.call_tool(
             self.user,
             "rainbond_complete_app_share",
-            {"team_name": "demo-team", "region_name": "rainbond", "share_id": 93},
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "share_id": 93
+            },
         )
 
         self.assertTrue(result["completed"])
@@ -4643,8 +4881,8 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.share_service.get_app_by_key")
     @patch("console.services.mcp_query_service.share_service.delete_record")
     # capability_id: console.app-share.giveup
-    def test_giveup_app_share_deletes_draft_record(
-            self, mock_delete_record, mock_get_app_by_key, mock_get_versions, mock_get_share_record, mock_get_team):
+    def test_giveup_app_share_deletes_draft_record(self, mock_delete_record, mock_get_app_by_key, mock_get_versions,
+                                                   mock_get_share_record, mock_get_team):
         mock_get_team.return_value = self.team
         share_record = Obj(ID=94, is_success=False, step=1, app_id="hidden-model-id")
         mock_get_share_record.return_value = share_record
@@ -4654,7 +4892,10 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         result = mcp_query_service.call_tool(
             self.user,
             "rainbond_giveup_app_share",
-            {"team_name": "demo-team", "share_id": 94},
+            {
+                "team_name": "demo-team",
+                "share_id": 94
+            },
         )
 
         self.assertTrue(result["given_up"])
@@ -4665,8 +4906,8 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.group_service.get_app_by_id")
     @patch("console.services.mcp_query_service.market_app_service.get_market_apps_in_app")
     # capability_id: console.app-upgrade.info
-    def test_get_app_upgrade_info_returns_upgrade_items(
-            self, mock_get_upgrade_info, mock_get_app, mock_get_region, mock_get_team):
+    def test_get_app_upgrade_info_returns_upgrade_items(self, mock_get_upgrade_info, mock_get_app, mock_get_region,
+                                                        mock_get_team):
         mock_get_team.return_value = self.team
         mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
         mock_get_app.return_value = self.app
@@ -4675,7 +4916,11 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         result = mcp_query_service.call_tool(
             self.user,
             "rainbond_get_app_upgrade_info",
-            {"team_name": "demo-team", "region_name": "rainbond", "app_id": 12},
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "app_id": 12
+            },
         )
 
         self.assertEqual(result["total"], 1)
@@ -4687,17 +4932,15 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.upgrade_service.openapi_upgrade_app_models")
     @patch("console.services.mcp_query_service.market_app_service.get_market_apps_in_app")
     # capability_id: console.app.upgrade
-    def test_upgrade_app_calls_upgrade_service_and_returns_latest_items(
-            self, mock_get_upgrade_info, mock_upgrade_app, mock_get_app, mock_get_region, mock_get_team):
+    def test_upgrade_app_calls_upgrade_service_and_returns_latest_items(self, mock_get_upgrade_info, mock_upgrade_app,
+                                                                        mock_get_app, mock_get_region, mock_get_team):
         mock_get_team.return_value = self.team
         mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
         mock_get_app.return_value = self.app
         mock_get_upgrade_info.return_value = [{"app_model_id": "m1", "can_upgrade": False, "updated": True}]
         upgraded_service = Obj(service_id="svc-upgrade-1", service_alias="upgrade-alias")
         service_record = Obj(event_id="evt-upgrade-1", service=upgraded_service)
-        mock_upgrade_app.return_value = [
-            Obj(service_upgrade_records=Obj(all=lambda: [service_record]))
-        ]
+        mock_upgrade_app.return_value = [Obj(service_upgrade_records=Obj(all=lambda: [service_record]))]
 
         result = mcp_query_service.call_tool(
             self.user,
@@ -4706,7 +4949,10 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
                 "team_name": "demo-team",
                 "region_name": "rainbond",
                 "app_id": 12,
-                "update_versions": [{"app_model_id": "m1", "version": "2.0.0"}],
+                "update_versions": [{
+                    "app_model_id": "m1",
+                    "version": "2.0.0"
+                }],
             },
         )
 
@@ -4725,7 +4971,10 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
             "rainbond",
             None,
             12,
-            {"update_versions": [{"app_model_id": "m1", "version": "2.0.0"}]},
+            {"update_versions": [{
+                "app_model_id": "m1",
+                "version": "2.0.0"
+            }]},
         )
 
     @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
@@ -4734,8 +4983,8 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.upgrade_service.get_latest_upgrade_record")
     @patch("console.services.mcp_query_service.app_snapshot_repo.get_by_snapshot_id")
     # capability_id: console.app-upgrade.last-record
-    def test_get_app_last_upgrade_record_returns_snapshot_metadata(
-            self, mock_get_snapshot, mock_get_latest_record, mock_get_app, mock_get_region, mock_get_team):
+    def test_get_app_last_upgrade_record_returns_snapshot_metadata(self, mock_get_snapshot, mock_get_latest_record,
+                                                                   mock_get_app, mock_get_region, mock_get_team):
         mock_get_team.return_value = self.team
         mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
         mock_get_app.return_value = self.app
@@ -4752,7 +5001,11 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         result = mcp_query_service.call_tool(
             self.user,
             "rainbond_get_app_last_upgrade_record",
-            {"team_name": "demo-team", "region_name": "rainbond", "app_id": 12},
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "app_id": 12
+            },
         )
 
         self.assertTrue(result["exists"])
@@ -4766,20 +5019,32 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.group_service.get_app_by_id")
     @patch("console.services.mcp_query_service.upgrade_service.list_records")
     # capability_id: console.app-upgrade.records
-    def test_query_app_upgrade_records_returns_paginated_items(
-            self, mock_list_records, mock_get_app, mock_get_region, mock_get_team):
+    def test_query_app_upgrade_records_returns_paginated_items(self, mock_list_records, mock_get_app, mock_get_region,
+                                                               mock_get_team):
         mock_get_team.return_value = self.team
         mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
         mock_get_app.return_value = self.app
         mock_list_records.return_value = (
-            [{"ID": 201, "group_id": 12, "tenant_id": "team-1", "record_type": "upgrade", "snapshot_id": None}],
+            [{
+                "ID": 201,
+                "group_id": 12,
+                "tenant_id": "team-1",
+                "record_type": "upgrade",
+                "snapshot_id": None
+            }],
             1,
         )
 
         result = mcp_query_service.call_tool(
             self.user,
             "rainbond_query_app_upgrade_records",
-            {"team_name": "demo-team", "region_name": "rainbond", "app_id": 12, "page": 1, "page_size": 10},
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "app_id": 12,
+                "page": 1,
+                "page_size": 10
+            },
         )
 
         self.assertEqual(result["total"], 1)
@@ -4792,8 +5057,8 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.group_service.get_app_by_id")
     @patch("console.services.mcp_query_service.upgrade_service.create_upgrade_record")
     # capability_id: console.app-upgrade.create-record
-    def test_create_app_upgrade_record_calls_upgrade_service(
-            self, mock_create_record, mock_get_app, mock_get_region, mock_get_team):
+    def test_create_app_upgrade_record_calls_upgrade_service(self, mock_create_record, mock_get_app, mock_get_region,
+                                                             mock_get_team):
         mock_get_team.return_value = self.team
         mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
         mock_get_app.return_value = self.app
@@ -4827,8 +5092,8 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.upgrade_service.get_app_upgrade_record")
     @patch("console.services.mcp_query_service.app_snapshot_repo.get_by_snapshot_id")
     # capability_id: console.app-upgrade.record
-    def test_get_app_upgrade_record_returns_record_detail(
-            self, mock_get_snapshot, mock_get_record_detail, mock_get_record, mock_get_app, mock_get_region, mock_get_team):
+    def test_get_app_upgrade_record_returns_record_detail(self, mock_get_snapshot, mock_get_record_detail, mock_get_record,
+                                                          mock_get_app, mock_get_region, mock_get_team):
         mock_get_team.return_value = self.team
         mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
         mock_get_app.return_value = self.app
@@ -4839,14 +5104,22 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
             "tenant_id": "team-1",
             "record_type": "upgrade",
             "snapshot_id": "snap-401",
-            "service_record": [{"service_id": "svc-1", "status": 2}],
+            "service_record": [{
+                "service_id": "svc-1",
+                "status": 2
+            }],
         }
         mock_get_snapshot.return_value = Obj(snapshot_id="snap-401")
 
         result = mcp_query_service.call_tool(
             self.user,
             "rainbond_get_app_upgrade_record",
-            {"team_name": "demo-team", "region_name": "rainbond", "app_id": 12, "record_id": 401},
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "app_id": 12,
+                "record_id": 401
+            },
         )
 
         self.assertEqual(result["record"]["ID"], 401)
@@ -4860,8 +5133,8 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.upgrade_repo.get_by_record_id")
     @patch("console.services.mcp_query_service.market_app_service.list_app_upgradeable_versions")
     # capability_id: console.app-upgrade.detail
-    def test_get_app_upgrade_detail_returns_record_and_versions(
-            self, mock_list_versions, mock_get_record, mock_get_app, mock_get_region, mock_get_team):
+    def test_get_app_upgrade_detail_returns_record_and_versions(self, mock_list_versions, mock_get_record, mock_get_app,
+                                                                mock_get_region, mock_get_team):
         mock_get_team.return_value = self.team
         mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
         mock_get_app.return_value = self.app
@@ -4877,7 +5150,12 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         result = mcp_query_service.call_tool(
             self.user,
             "rainbond_get_app_upgrade_detail",
-            {"team_name": "demo-team", "region_name": "rainbond", "app_id": 12, "record_id": 501},
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "app_id": 12,
+                "record_id": 501
+            },
         )
 
         self.assertEqual(result["detail"]["record"]["ID"], 501)
@@ -4889,15 +5167,22 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.group_service.get_app_by_id")
     @patch("console.services.mcp_query_service.upgrade_service.get_property_changes")
     # capability_id: console.app-upgrade.changes
-    def test_get_app_upgrade_changes_returns_diff_payload(
-            self, mock_get_changes, mock_get_app, mock_get_region, mock_get_team):
+    def test_get_app_upgrade_changes_returns_diff_payload(self, mock_get_changes, mock_get_app, mock_get_region, mock_get_team):
         region = Obj(region_name="rainbond", enterprise_id="eid-1")
         mock_get_team.return_value = self.team
         mock_get_region.return_value = region
         mock_get_app.return_value = self.app
         mock_get_changes.return_value = (
-            {"upgrade_info": {"k8s_resources": []}},
-            [{"service": {"service_id": "svc-1"}}],
+            {
+                "upgrade_info": {
+                    "k8s_resources": []
+                }
+            },
+            [{
+                "service": {
+                    "service_id": "svc-1"
+                }
+            }],
         )
 
         result = mcp_query_service.call_tool(
@@ -4923,8 +5208,8 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.upgrade_service.upgrade")
     @patch("console.services.mcp_query_service.app_snapshot_repo.get_by_snapshot_id")
     # capability_id: console.app-upgrade.execute-record
-    def test_execute_app_upgrade_record_calls_upgrade_service(
-            self, mock_get_snapshot, mock_upgrade, mock_get_record, mock_get_app, mock_get_region, mock_get_team):
+    def test_execute_app_upgrade_record_calls_upgrade_service(self, mock_get_snapshot, mock_upgrade, mock_get_record,
+                                                              mock_get_app, mock_get_region, mock_get_team):
         region = Obj(region_name="rainbond", enterprise_id="eid-1")
         record = Obj(ID=601, group_id=12, tenant_id="team-1")
         mock_get_team.return_value = self.team
@@ -4932,7 +5217,13 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         mock_get_app.return_value = self.app
         mock_get_record.return_value = record
         mock_upgrade.return_value = (
-            {"ID": 601, "group_id": 12, "tenant_id": "team-1", "snapshot_id": "snap-601", "service_record": []},
+            {
+                "ID": 601,
+                "group_id": 12,
+                "tenant_id": "team-1",
+                "snapshot_id": "snap-601",
+                "service_record": []
+            },
             "demo-model",
         )
         mock_get_snapshot.return_value = Obj(snapshot_id="snap-601")
@@ -4946,7 +5237,11 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
                 "app_id": 12,
                 "record_id": 601,
                 "version": "2.0.0",
-                "services": [{"service": {"service_key": "api"}}],
+                "services": [{
+                    "service": {
+                        "service_key": "api"
+                    }
+                }],
             },
         )
 
@@ -4962,8 +5257,8 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.upgrade_service.deploy")
     @patch("console.services.mcp_query_service.upgrade_service.get_app_upgrade_record")
     # capability_id: console.app-upgrade.deploy-record
-    def test_deploy_app_upgrade_record_calls_deploy(
-            self, mock_get_record_detail, mock_deploy, mock_get_record, mock_get_app, mock_get_region, mock_get_team):
+    def test_deploy_app_upgrade_record_calls_deploy(self, mock_get_record_detail, mock_deploy, mock_get_record, mock_get_app,
+                                                    mock_get_region, mock_get_team):
         record = Obj(ID=701, group_id=12, tenant_id="team-1")
         mock_get_team.return_value = self.team
         mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
@@ -4977,14 +5272,25 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
             "service_record": [],
         }
         mock_deploy.return_value = [
-            {"event_id": "evt-upgrade-2", "service_id": "svc-upgrade-2"},
-            {"event_id": "evt-upgrade-1", "service_id": "svc-upgrade-1"},
+            {
+                "event_id": "evt-upgrade-2",
+                "service_id": "svc-upgrade-2"
+            },
+            {
+                "event_id": "evt-upgrade-1",
+                "service_id": "svc-upgrade-1"
+            },
         ]
 
         result = mcp_query_service.call_tool(
             self.user,
             "rainbond_deploy_app_upgrade_record",
-            {"team_name": "demo-team", "region_name": "rainbond", "app_id": 12, "record_id": 701},
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "app_id": 12,
+                "record_id": 701
+            },
         )
 
         self.assertTrue(result["deployed"])
@@ -4999,8 +5305,8 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.upgrade_repo.get_by_record_id")
     @patch("console.services.mcp_query_service.upgrade_service.list_rollback_record")
     # capability_id: console.app-upgrade.rollback-records
-    def test_get_app_rollback_records_returns_items(
-            self, mock_list_rollback, mock_get_record, mock_get_app, mock_get_region, mock_get_team):
+    def test_get_app_rollback_records_returns_items(self, mock_list_rollback, mock_get_record, mock_get_app, mock_get_region,
+                                                    mock_get_team):
         record = Obj(ID=801, group_id=12, tenant_id="team-1")
         mock_get_team.return_value = self.team
         mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
@@ -5011,7 +5317,12 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         result = mcp_query_service.call_tool(
             self.user,
             "rainbond_get_app_rollback_records",
-            {"team_name": "demo-team", "region_name": "rainbond", "app_id": 12, "record_id": 801},
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "app_id": 12,
+                "record_id": 801
+            },
         )
 
         self.assertEqual(result["total"], 1)
@@ -5025,8 +5336,8 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.upgrade_service.restore")
     @patch("console.services.mcp_query_service.app_snapshot_repo.get_by_snapshot_id")
     # capability_id: console.app-upgrade.rollback
-    def test_rollback_app_upgrade_record_calls_restore(
-            self, mock_get_snapshot, mock_restore, mock_get_record, mock_get_app, mock_get_region, mock_get_team):
+    def test_rollback_app_upgrade_record_calls_restore(self, mock_get_snapshot, mock_restore, mock_get_record, mock_get_app,
+                                                       mock_get_region, mock_get_team):
         region = Obj(region_name="rainbond", enterprise_id="eid-1")
         record = Obj(ID=901, group_id=12, tenant_id="team-1")
         mock_get_team.return_value = self.team
@@ -5034,7 +5345,13 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         mock_get_app.return_value = self.app
         mock_get_record.return_value = record
         mock_restore.return_value = (
-            {"ID": 902, "group_id": 12, "tenant_id": "team-1", "snapshot_id": "snap-902", "service_record": []},
+            {
+                "ID": 902,
+                "group_id": 12,
+                "tenant_id": "team-1",
+                "snapshot_id": "snap-902",
+                "service_record": []
+            },
             "demo-component-group",
         )
         mock_get_snapshot.return_value = Obj(snapshot_id="snap-902")
@@ -5042,7 +5359,12 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         result = mcp_query_service.call_tool(
             self.user,
             "rainbond_rollback_app_upgrade_record",
-            {"team_name": "demo-team", "region_name": "rainbond", "app_id": 12, "record_id": 901},
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "app_id": 12,
+                "record_id": 901
+            },
         )
 
         self.assertTrue(result["rolled_back"])
@@ -5057,9 +5379,8 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.group_service.get_app_by_id")
     @patch("console.services.mcp_query_service.upgrade_repo.get_by_record_id")
     @patch("console.services.mcp_query_service.upgrade_service.restore")
-    def test_rollback_app_upgrade_record_exposes_standard_event_fields(
-            self, mock_restore, mock_get_record, mock_get_app, mock_get_region,
-            mock_get_team):
+    def test_rollback_app_upgrade_record_exposes_standard_event_fields(self, mock_restore, mock_get_record, mock_get_app,
+                                                                       mock_get_region, mock_get_team):
         region = Obj(region_name="rainbond", enterprise_id="eid-1")
         record = Obj(ID=903, group_id=12, tenant_id="team-1")
         mock_get_team.return_value = self.team
@@ -5068,13 +5389,23 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         mock_get_record.return_value = record
         mock_restore.return_value = (
             {
-                "ID": 904,
-                "group_id": 12,
-                "tenant_id": "team-1",
-                "snapshot_id": None,
+                "ID":
+                904,
+                "group_id":
+                12,
+                "tenant_id":
+                "team-1",
+                "snapshot_id":
+                None,
                 "service_record": [
-                    {"event_id": "evt-rollback-2", "service_id": "svc-rollback-2"},
-                    {"event_id": "evt-rollback-1", "service_id": "svc-rollback-1"},
+                    {
+                        "event_id": "evt-rollback-2",
+                        "service_id": "svc-rollback-2"
+                    },
+                    {
+                        "event_id": "evt-rollback-1",
+                        "service_id": "svc-rollback-1"
+                    },
                 ],
             },
             "demo-component-group",
@@ -5083,7 +5414,12 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         result = mcp_query_service.call_tool(
             self.user,
             "rainbond_rollback_app_upgrade_record",
-            {"team_name": "demo-team", "region_name": "rainbond", "app_id": 12, "record_id": 903},
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "app_id": 12,
+                "record_id": 903
+            },
         )
 
         self.assertEqual(result["record"]["ID"], 904)
@@ -5095,8 +5431,7 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.group_service.get_app_by_id")
     @patch("console.services.mcp_query_service.groupapp_copy_service.get_group_services_with_build_source")
     # capability_id: console.app.copy-info
-    def test_get_copy_app_info_returns_services(
-            self, mock_get_copy_info, mock_get_app, mock_get_region, mock_get_team):
+    def test_get_copy_app_info_returns_services(self, mock_get_copy_info, mock_get_app, mock_get_region, mock_get_team):
         mock_get_team.return_value = self.team
         mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
         mock_get_app.return_value = self.app
@@ -5105,7 +5440,11 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         result = mcp_query_service.call_tool(
             self.user,
             "rainbond_get_copy_app_info",
-            {"team_name": "demo-team", "region_name": "rainbond", "app_id": 12},
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "app_id": 12
+            },
         )
 
         self.assertEqual(result["total"], 1)
@@ -5119,19 +5458,22 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.domain_service.get_components_that_contains_gateway_rules")
     # capability_id: console.app.copy
     def test_copy_app_returns_target_app_and_gateway_rules(
-            self,
-            mock_gateway_rules,
-            mock_copy_services,
-            mock_check_target,
-            mock_get_app,
-            mock_get_region,
-            mock_get_team,
+        self,
+        mock_gateway_rules,
+        mock_copy_services,
+        mock_check_target,
+        mock_get_app,
+        mock_get_region,
+        mock_get_team,
     ):
         copied_service = Obj(
             service_id="svc-2",
             service_alias="alias-2",
             service_cname="component-2",
-            gateway_rules={"http": [Obj(domain_name="demo.example.com")], "tcp": []},
+            gateway_rules={
+                "http": [Obj(domain_name="demo.example.com")],
+                "tcp": []
+            },
         )
         copied_service.to_dict = lambda: {
             "service_id": "svc-2",
@@ -5168,19 +5510,18 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         self.assertEqual(result["items"][0]["service_id"], "svc-2")
         self.assertEqual(result["items"][0]["gateway_rules"]["http"][0]["domain_name"], "demo.example.com")
         mock_check_target.assert_called_once_with(self.user, "target-team", "target-region", 66)
-        mock_copy_services.assert_called_once_with(
-            self.user, self.team, "rainbond", target_team, "target-region", target_group, 12, ["svc-1"]
-        )
+        mock_copy_services.assert_called_once_with(self.user, self.team, "rainbond", target_team, "target-region", target_group,
+                                                   12, ["svc-1"])
 
     @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
     @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
     @patch("console.services.mcp_query_service.group_service.get_app_by_id")
     # capability_id: console.app.copy-services-guard
     def test_copy_app_rejects_non_list_services(
-            self,
-            mock_get_app,
-            mock_get_region,
-            mock_get_team,
+        self,
+        mock_get_app,
+        mock_get_region,
+        mock_get_team,
     ):
         mock_get_team.return_value = self.team
         mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
@@ -5213,14 +5554,14 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.group_service.get_group_services")
     # capability_id: console.app.install-from-market
     def test_install_app_by_market_calls_market_service(
-            self,
-            mock_get_group_services,
-            mock_install_service,
-            mock_cloud_to_db,
-            mock_get_market,
-            mock_get_app,
-            mock_get_region,
-            mock_get_team,
+        self,
+        mock_get_group_services,
+        mock_install_service,
+        mock_cloud_to_db,
+        mock_get_market,
+        mock_get_app,
+        mock_get_region,
+        mock_get_team,
     ):
         market = Obj(name="market-1")
         market_app = Obj(app_id="model-1")
@@ -5236,7 +5577,9 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         mock_cloud_to_db.return_value = (market_app, market_version)
         mock_install_service.return_value = (
             Obj(ID=31),
-            {"evt-market-1": "svc-new"},
+            {
+                "evt-market-1": "svc-new"
+            },
         )
         mock_get_group_services.side_effect = [
             [existing_service],
@@ -5277,7 +5620,10 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         result = mcp_query_service.call_tool(
             self.user,
             "rainbond_query_cloud_markets",
-            {"enterprise_id": "eid-1", "extend": True},
+            {
+                "enterprise_id": "eid-1",
+                "extend": True
+            },
         )
 
         self.assertEqual(result["total"], 1)
@@ -5290,7 +5636,9 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         app_model = Obj(
             app_id="model-1",
             app_name="WordPress",
-            versions_info=[{"version": "1.0.0"}],
+            versions_info=[{
+                "version": "1.0.0"
+            }],
             min_memory=256,
             arch=["amd64"],
         )
@@ -5300,7 +5648,12 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         result = mcp_query_service.call_tool(
             self.user,
             "rainbond_query_local_app_models",
-            {"enterprise_id": "eid-1", "scope": "enterprise", "page": 1, "page_size": 10},
+            {
+                "enterprise_id": "eid-1",
+                "scope": "enterprise",
+                "page": 1,
+                "page_size": 10
+            },
         )
 
         self.assertEqual(result["total"], 1)
@@ -5320,7 +5673,12 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         result = mcp_query_service.call_tool(
             self.user,
             "rainbond_query_cloud_app_models",
-            {"enterprise_id": "eid-1", "market_name": "RainbondMarket", "page": 1, "page_size": 10},
+            {
+                "enterprise_id": "eid-1",
+                "market_name": "RainbondMarket",
+                "page": 1,
+                "page_size": 10
+            },
         )
 
         self.assertEqual(result["total"], 1)
@@ -5337,7 +5695,13 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         result = mcp_query_service.call_tool(
             self.user,
             "rainbond_query_app_model_versions",
-            {"enterprise_id": "eid-1", "source": "local", "app_model_id": "model-1", "page": 1, "page_size": 10},
+            {
+                "enterprise_id": "eid-1",
+                "source": "local",
+                "app_model_id": "model-1",
+                "page": 1,
+                "page_size": 10
+            },
         )
 
         self.assertEqual(result["total"], 2)
@@ -5352,12 +5716,12 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
     # capability_id: console.market.install-app-model-cloud
     def test_install_app_model_for_cloud_calls_market_app_service(
-            self,
-            mock_get_team,
-            mock_get_region,
-            mock_get_app,
-            mock_install_app,
-            mock_get_group_services,
+        self,
+        mock_get_team,
+        mock_get_region,
+        mock_get_app,
+        mock_install_app,
+        mock_get_group_services,
     ):
         installed_service = Obj(service_id="svc-1")
         installed_service.to_dict = lambda: {"service_id": "svc-1"}
@@ -5393,7 +5757,15 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         self.assertEqual(result["event_ids"], ["evt-model-1"])
         self.assertEqual(result["service_ids"], ["svc-1"])
         mock_install_app.assert_called_once_with(
-            self.team, mock_get_region.return_value, self.user, 12, "model-1", "1.0.0", "RainbondMarket", True, True,
+            self.team,
+            mock_get_region.return_value,
+            self.user,
+            12,
+            "model-1",
+            "1.0.0",
+            "RainbondMarket",
+            True,
+            True,
             return_details=True,
         )
 
@@ -5409,7 +5781,11 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
             Obj(component=Obj(component_id="svc-2", service_alias="alias-2")),
         ]
         app_upgrade = Obj(
-            install=lambda: [{"event_id": "evt-1"}, {"event_id": "evt-2"}],
+            install=lambda: [{
+                "event_id": "evt-1"
+            }, {
+                "event_id": "evt-2"
+            }],
             new_app=Obj(components=lambda: components),
         )
 
@@ -5425,12 +5801,25 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
                 patch("console.services.market_app_service.enterprise_first_deploy_service.safe_bind_events"), \
                 patch.object(market_app_service, "_create_rbdplugin_if_needed"), \
                 patch.object(market_app_service, "_track_market_app_installed"):
-            details = market_app_service.install_app(
-                self.team, region, self.user, 12, "model-1", "1.0.0", "", False,
-                is_deploy=True, return_details=True)
-            app_name = market_app_service.install_app(
-                self.team, region, self.user, 12, "model-1", "1.0.0", "", False,
-                is_deploy=True)
+            details = market_app_service.install_app(self.team,
+                                                     region,
+                                                     self.user,
+                                                     12,
+                                                     "model-1",
+                                                     "1.0.0",
+                                                     "",
+                                                     False,
+                                                     is_deploy=True,
+                                                     return_details=True)
+            app_name = market_app_service.install_app(self.team,
+                                                      region,
+                                                      self.user,
+                                                      12,
+                                                      "model-1",
+                                                      "1.0.0",
+                                                      "",
+                                                      False,
+                                                      is_deploy=True)
 
         self.assertEqual(details, {
             "app_name": "Redis",
@@ -5448,14 +5837,14 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.region_api.get_query_data")
     # capability_id: console.app.monitor-summary
     def test_query_app_monitor_returns_monitor_items(
-            self,
-            mock_query_data,
-            mock_get_plugins,
-            mock_get_services,
-            mock_relations,
-            mock_get_app,
-            mock_get_region,
-            mock_get_team,
+        self,
+        mock_query_data,
+        mock_get_plugins,
+        mock_get_services,
+        mock_relations,
+        mock_get_app,
+        mock_get_region,
+        mock_get_team,
     ):
         class FakeQuerySet(list):
             def exclude(self, **kwargs):
@@ -5472,7 +5861,11 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         result = mcp_query_service.call_tool(
             self.user,
             "rainbond_query_app_monitor",
-            {"team_name": "demo-team", "region_name": "rainbond", "app_id": 12},
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "app_id": 12
+            },
         )
 
         self.assertEqual(result["total"], 1)
@@ -5488,14 +5881,14 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.app_plugin_service.get_service_abled_plugin")
     @patch("console.services.mcp_query_service.port_service.get_service_ports")
     def test_query_app_monitor_filters_to_outer_services_when_requested(
-            self,
-            mock_get_ports,
-            mock_get_plugins,
-            mock_get_services,
-            mock_relations,
-            mock_get_app,
-            mock_get_region,
-            mock_get_team,
+        self,
+        mock_get_ports,
+        mock_get_plugins,
+        mock_get_services,
+        mock_relations,
+        mock_get_app,
+        mock_get_region,
+        mock_get_team,
     ):
         class FakeQuerySet(list):
             def exclude(self, **kwargs):
@@ -5513,7 +5906,12 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         result = mcp_query_service.call_tool(
             self.user,
             "rainbond_query_app_monitor",
-            {"team_name": "demo-team", "region_name": "rainbond", "app_id": 12, "is_outer": True},
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "app_id": 12,
+                "is_outer": True
+            },
         )
 
         self.assertEqual(result["total"], 0)
@@ -5527,14 +5925,14 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.region_api.get_query_range_data")
     # capability_id: console.app.monitor-range
     def test_query_app_monitor_range_returns_stringified_series(
-            self,
-            mock_query_range_data,
-            mock_get_plugins,
-            mock_get_services,
-            mock_relations,
-            mock_get_app,
-            mock_get_region,
-            mock_get_team,
+        self,
+        mock_query_range_data,
+        mock_get_plugins,
+        mock_get_services,
+        mock_relations,
+        mock_get_app,
+        mock_get_region,
+        mock_get_team,
     ):
         class FakeQuerySet(list):
             def exclude(self, **kwargs):
@@ -5548,7 +5946,13 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         mock_get_plugins.return_value = [self.plugin]
         mock_query_range_data.return_value = (
             None,
-            {"data": {"result": [{"value": [[1710000000, "1"], [1710000060, "2"]]}]}},
+            {
+                "data": {
+                    "result": [{
+                        "value": [[1710000000, "1"], [1710000060, "2"]]
+                    }]
+                }
+            },
         )
 
         result = mcp_query_service.call_tool(
@@ -5583,14 +5987,14 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.region_api.get_query_range_data")
     # capability_id: console.app.monitor-range-default-step
     def test_query_app_monitor_range_defaults_step_to_60(
-            self,
-            mock_query_range_data,
-            mock_get_plugins,
-            mock_get_services,
-            mock_relations,
-            mock_get_app,
-            mock_get_region,
-            mock_get_team,
+        self,
+        mock_query_range_data,
+        mock_get_plugins,
+        mock_get_services,
+        mock_relations,
+        mock_get_app,
+        mock_get_region,
+        mock_get_team,
     ):
         class FakeQuerySet(list):
             def exclude(self, **kwargs):
@@ -5631,17 +6035,17 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     # capability_id: console.gateway.create-http-rule
     # capability_id: console.gateway.rule-input-validation
     def test_create_gateway_rules_http_returns_bound_rule(
-            self,
-            mock_bind_http_route,
-            mock_bind_httpdomain,
-            mock_manage_port,
-            mock_get_port,
-            mock_check_domain_exist,
-            mock_relations,
-            mock_get_service,
-            mock_get_app,
-            mock_get_region,
-            mock_get_team,
+        self,
+        mock_bind_http_route,
+        mock_bind_httpdomain,
+        mock_manage_port,
+        mock_get_port,
+        mock_check_domain_exist,
+        mock_relations,
+        mock_get_service,
+        mock_get_app,
+        mock_get_region,
+        mock_get_team,
     ):
         port = Obj(container_port=80, protocol="http", port_alias="ALIAS80", is_outer_service=True)
         rule = Obj(http_rule_id="rule-1")
@@ -5681,8 +6085,7 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         self.assertNotIn("domain_heander", http_payload)
         self.assertNotIn("domain_type", http_payload)
         self.assertNotIn("protocol", http_payload)
-        mock_check_domain_exist.assert_called_once_with(
-            "svc-1", 80, "demo.example.com", "http", "/", [])
+        mock_check_domain_exist.assert_called_once_with("svc-1", 80, "demo.example.com", "http", "/", [])
         bound_payload = mock_bind_httpdomain.call_args[0][3]
         self.assertEqual(bound_payload["certificate_id"], 0)
         self.assertEqual(bound_payload["domain_path"], "/")
@@ -5700,15 +6103,15 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.port_service.manage_port")
     # capability_id: console.gateway.http-port-not-open
     def test_create_gateway_rules_http_rejects_when_outer_port_is_unavailable(
-            self,
-            mock_manage_port,
-            mock_get_port,
-            mock_check_domain_exist,
-            mock_relations,
-            mock_get_service,
-            mock_get_app,
-            mock_get_region,
-            mock_get_team,
+        self,
+        mock_manage_port,
+        mock_get_port,
+        mock_check_domain_exist,
+        mock_relations,
+        mock_get_service,
+        mock_get_app,
+        mock_get_region,
+        mock_get_team,
     ):
         tenant_service_port = Obj(container_port=80, protocol="http", port_alias="ALIAS80", is_outer_service=False)
         mock_get_team.return_value = self.team
@@ -5802,8 +6205,8 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch.object(mcp_query_service, "_get_service_in_team_app")
     @patch.object(mcp_query_service, "_get_team_app_context")
     # capability_id: console.gateway.rule-input-validation
-    def test_create_gateway_rules_http_rejects_unknown_component_port(
-            self, mock_context, mock_service, mock_check_domain_exist, mock_get_port, mock_manage_port):
+    def test_create_gateway_rules_http_rejects_unknown_component_port(self, mock_context, mock_service, mock_check_domain_exist,
+                                                                      mock_get_port, mock_manage_port):
         mock_context.return_value = (self.team, self.app)
         mock_service.return_value = self.service
         mock_check_domain_exist.return_value = False
@@ -5838,13 +6241,13 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.domain_service.check_domain_exist")
     # capability_id: console.gateway.http-rule-guard
     def test_create_gateway_rules_http_rejects_duplicate_rule(
-            self,
-            mock_check_domain_exist,
-            mock_relations,
-            mock_get_service,
-            mock_get_app,
-            mock_get_region,
-            mock_get_team,
+        self,
+        mock_check_domain_exist,
+        mock_relations,
+        mock_get_service,
+        mock_get_app,
+        mock_get_region,
+        mock_get_team,
     ):
         mock_get_team.return_value = self.team
         mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
@@ -5884,15 +6287,15 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.port_service.manage_port")
     # capability_id: console.gateway.http-port-open-failure
     def test_create_gateway_rules_http_rejects_port_open_failure(
-            self,
-            mock_manage_port,
-            mock_get_port,
-            mock_check_domain_exist,
-            mock_relations,
-            mock_get_service,
-            mock_get_app,
-            mock_get_region,
-            mock_get_team,
+        self,
+        mock_manage_port,
+        mock_get_port,
+        mock_check_domain_exist,
+        mock_relations,
+        mock_get_service,
+        mock_get_app,
+        mock_get_region,
+        mock_get_team,
     ):
         port = Obj(container_port=80, protocol="http", port_alias="ALIAS80", is_outer_service=True)
         mock_get_team.return_value = self.team
@@ -5934,14 +6337,14 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.port_service.check_domain_thirdpart")
     # capability_id: console.gateway.http-third-party-guard
     def test_create_gateway_rules_http_rejects_invalid_third_party_component(
-            self,
-            mock_check_thirdpart,
-            mock_check_domain_exist,
-            mock_relations,
-            mock_get_service,
-            mock_get_app,
-            mock_get_region,
-            mock_get_team,
+        self,
+        mock_check_thirdpart,
+        mock_check_domain_exist,
+        mock_relations,
+        mock_get_service,
+        mock_get_app,
+        mock_get_region,
+        mock_get_team,
     ):
         self.service.service_source = "third_party"
         mock_get_team.return_value = self.team
@@ -5983,15 +6386,15 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.domain_service.bind_tcpdomain")
     # capability_id: console.gateway.create-tcp-rule
     def test_create_gateway_rules_tcp_returns_bound_rule(
-            self,
-            mock_bind_tcpdomain,
-            mock_manage_port,
-            mock_get_port,
-            mock_relations,
-            mock_get_service,
-            mock_get_app,
-            mock_get_region,
-            mock_get_team,
+        self,
+        mock_bind_tcpdomain,
+        mock_manage_port,
+        mock_get_port,
+        mock_relations,
+        mock_get_service,
+        mock_get_app,
+        mock_get_region,
+        mock_get_team,
     ):
         port = Obj(container_port=6379, protocol="tcp", port_alias="REDIS", is_outer_service=True)
         mock_get_team.return_value = self.team
@@ -6032,14 +6435,14 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.port_service.manage_port")
     # capability_id: console.gateway.tcp-port-open-failure
     def test_create_gateway_rules_tcp_rejects_port_open_failure(
-            self,
-            mock_manage_port,
-            mock_get_port,
-            mock_relations,
-            mock_get_service,
-            mock_get_app,
-            mock_get_region,
-            mock_get_team,
+        self,
+        mock_manage_port,
+        mock_get_port,
+        mock_relations,
+        mock_get_service,
+        mock_get_app,
+        mock_get_region,
+        mock_get_team,
     ):
         port = Obj(container_port=6379, protocol="tcp", port_alias="REDIS", is_outer_service=True)
         mock_get_team.return_value = self.team
@@ -6079,13 +6482,13 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.port_service.check_domain_thirdpart")
     # capability_id: console.gateway.tcp-third-party-guard
     def test_create_gateway_rules_tcp_rejects_invalid_third_party_component(
-            self,
-            mock_check_thirdpart,
-            mock_relations,
-            mock_get_service,
-            mock_get_app,
-            mock_get_region,
-            mock_get_team,
+        self,
+        mock_check_thirdpart,
+        mock_relations,
+        mock_get_service,
+        mock_get_app,
+        mock_get_region,
+        mock_get_team,
     ):
         self.service.service_source = "third_party"
         mock_get_team.return_value = self.team
@@ -6143,12 +6546,12 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch.object(mcp_query_service, "_get_team_app_context")
     # capability_id: console.gateway.rule-input-validation
     def test_create_gateway_rules_tcp_validates_nested_required_fields(
-            self,
-            mock_context,
-            mock_service,
-            mock_get_port,
-            mock_manage_port,
-            mock_bind_tcpdomain,
+        self,
+        mock_context,
+        mock_service,
+        mock_get_port,
+        mock_manage_port,
+        mock_bind_tcpdomain,
     ):
         mock_context.return_value = (self.team, self.app)
         mock_service.return_value = self.service
@@ -6225,8 +6628,8 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch.object(mcp_query_service, "_get_service_in_team_app")
     @patch.object(mcp_query_service, "_get_team_app_context")
     # capability_id: console.gateway.rule-input-validation
-    def test_create_gateway_rules_tcp_rejects_unknown_component_port(
-            self, mock_context, mock_service, mock_get_port, mock_manage_port, mock_bind_tcpdomain):
+    def test_create_gateway_rules_tcp_rejects_unknown_component_port(self, mock_context, mock_service, mock_get_port,
+                                                                     mock_manage_port, mock_bind_tcpdomain):
         mock_context.return_value = (self.team, self.app)
         mock_service.return_value = self.service
         mock_get_port.return_value = None
@@ -6265,8 +6668,7 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         self.assertEqual(properties["http"]["properties"]["certificate_id"]["default"], 0)
         self.assertEqual(properties["http"]["properties"]["domain_path"]["default"], "/")
         self.assertIs(properties["http"]["properties"]["auto_ssl"]["default"], False)
-        self.assertEqual(
-            properties["tcp"]["required"], ["service_id", "container_port", "end_point", "default_port"])
+        self.assertEqual(properties["tcp"]["required"], ["service_id", "container_port", "end_point", "default_port"])
         self.assertEqual(properties["tcp"]["properties"]["default_port"], {"type": "integer", "minimum": 1})
 
     @patch.object(mcp_query_service, "_get_team_app_context")
@@ -6321,13 +6723,13 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.helm_app_service.generate_template")
     # capability_id: console.helm.build
     def test_build_helm_app_generates_template(
-            self,
-            mock_generate_template,
-            mock_get_app_model,
-            mock_yaml_conversion,
-            mock_get_app,
-            mock_get_region,
-            mock_get_team,
+        self,
+        mock_generate_template,
+        mock_get_app_model,
+        mock_yaml_conversion,
+        mock_get_app,
+        mock_get_region,
+        mock_get_team,
     ):
         mock_get_team.return_value = self.team
         mock_get_region.return_value = Obj(region_name="rainbond", region_id="r1", enterprise_id="eid-1")
@@ -6358,8 +6760,8 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.group_service.get_app_by_id")
     @patch("console.services.mcp_query_service.source_component_service.auto_create_component")
     # capability_id: console.component.create-from-source-guided
-    def test_create_component_from_source_calls_aggregated_source_service(
-            self, mock_auto_create, mock_get_app, mock_get_region, mock_get_team):
+    def test_create_component_from_source_calls_aggregated_source_service(self, mock_auto_create, mock_get_app, mock_get_region,
+                                                                          mock_get_team):
         mock_get_team.return_value = self.team
         mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
         mock_get_app.return_value = self.app
@@ -6390,8 +6792,8 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.group_service.get_app_by_id")
     @patch("console.services.mcp_query_service.source_component_service.auto_create_component")
     # capability_id: console.component.create-from-source-generic-git
-    def test_create_component_from_source_allows_generic_git_code_from(
-            self, mock_auto_create, mock_get_app, mock_get_region, mock_get_team):
+    def test_create_component_from_source_allows_generic_git_code_from(self, mock_auto_create, mock_get_app, mock_get_region,
+                                                                       mock_get_team):
         mock_get_team.return_value = self.team
         mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
         mock_get_app.return_value = self.app
@@ -6423,8 +6825,8 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.group_service.get_app_by_id")
     @patch("console.services.mcp_query_service.source_component_service.auto_create_component")
     # capability_id: console.component.create-from-source-prefer-dockerfile
-    def test_create_component_from_source_passes_prefer_dockerfile_flag(
-            self, mock_auto_create, mock_get_app, mock_get_region, mock_get_team):
+    def test_create_component_from_source_passes_prefer_dockerfile_flag(self, mock_auto_create, mock_get_app, mock_get_region,
+                                                                        mock_get_team):
         mock_get_team.return_value = self.team
         mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
         mock_get_app.return_value = self.app
@@ -6451,8 +6853,8 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.group_service.get_app_by_id")
     @patch("console.services.mcp_query_service.package_component_service.auto_create_component")
     # capability_id: console.component.create-from-package-upload
-    def test_create_component_from_package_calls_aggregated_package_service(
-            self, mock_auto_create, mock_get_app, mock_get_region, mock_get_team):
+    def test_create_component_from_package_calls_aggregated_package_service(self, mock_auto_create, mock_get_app,
+                                                                            mock_get_region, mock_get_team):
         mock_get_team.return_value = self.team
         mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
         mock_get_app.return_value = self.app
@@ -6540,7 +6942,10 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         result = mcp_query_service.call_tool(
             self.user,
             "rainbond_init_package_upload",
-            {"team_name": "demo-team", "region_name": "rainbond"},
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond"
+            },
         )
 
         self.assertEqual(result["event_id"], "evt-upload-1")
@@ -6574,7 +6979,8 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
     @patch("console.services.mcp_query_service.package_upload_tool_service.get_upload_status")
     # capability_id: console.package-upload.status
-    def test_get_package_upload_status_delegates_to_upload_tool_service(self, mock_get_upload_status, mock_get_region, mock_get_team):
+    def test_get_package_upload_status_delegates_to_upload_tool_service(self, mock_get_upload_status, mock_get_region,
+                                                                        mock_get_team):
         mock_get_team.return_value = self.team
         mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
         mock_get_upload_status.return_value = {"event_id": "evt-upload-1", "uploaded_packages": ["demo.zip"], "uploaded": True}
@@ -6582,7 +6988,11 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         result = mcp_query_service.call_tool(
             self.user,
             "rainbond_get_package_upload_status",
-            {"team_name": "demo-team", "region_name": "rainbond", "event_id": "evt-upload-1"},
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "event_id": "evt-upload-1"
+            },
         )
 
         self.assertEqual(result["uploaded_packages"], ["demo.zip"])
@@ -6600,7 +7010,11 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         result = mcp_query_service.call_tool(
             self.user,
             "rainbond_delete_package_upload",
-            {"team_name": "demo-team", "region_name": "rainbond", "event_id": "evt-upload-1"},
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "event_id": "evt-upload-1"
+            },
         )
 
         self.assertTrue(result["deleted"])
@@ -6611,8 +7025,8 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.group_service.get_app_by_id")
     @patch("console.services.mcp_query_service.package_upload_tool_service.auto_create_component_from_local_path")
     # capability_id: console.package-upload.local-package
-    def test_create_component_from_local_package_calls_upload_tool_service(
-            self, mock_auto_create, mock_get_app, mock_get_region, mock_get_team):
+    def test_create_component_from_local_package_calls_upload_tool_service(self, mock_auto_create, mock_get_app,
+                                                                           mock_get_region, mock_get_team):
         mock_get_team.return_value = self.team
         mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
         mock_get_app.return_value = self.app
@@ -6652,8 +7066,8 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.group_service_relation_repo.get_services_by_group")
     @patch("console.services.mcp_query_service.app_check_service.check_service")
     # capability_id: console.component.check-start
-    def test_check_component_starts_check_flow(
-            self, mock_check_service, mock_relations, mock_get_service, mock_get_app, mock_get_region, mock_get_team):
+    def test_check_component_starts_check_flow(self, mock_check_service, mock_relations, mock_get_service, mock_get_app,
+                                               mock_get_region, mock_get_team):
         self.service.service_source = "source_code"
         self.service.create_status = "creating"
         self.service.check_uuid = "chk-1"
@@ -6668,7 +7082,12 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         result = mcp_query_service.call_tool(
             self.user,
             "rainbond_check_component",
-            {"team_name": "demo-team", "region_name": "rainbond", "app_id": 12, "service_id": "svc-1"},
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "app_id": 12,
+                "service_id": "svc-1"
+            },
         )
 
         self.assertEqual(result["check_uuid"], "chk-1")
@@ -6685,15 +7104,15 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.app_check_service.wrap_service_check_info")
     # capability_id: console.component.check-result
     def test_get_component_check_result_saves_detection_result(
-            self,
-            mock_wrap_check_info,
-            mock_save_check_info,
-            mock_get_check_info,
-            mock_relations,
-            mock_get_service,
-            mock_get_app,
-            mock_get_region,
-            mock_get_team,
+        self,
+        mock_wrap_check_info,
+        mock_save_check_info,
+        mock_get_check_info,
+        mock_relations,
+        mock_get_service,
+        mock_get_app,
+        mock_get_region,
+        mock_get_team,
     ):
         self.service.service_source = "source_code"
         self.service.create_status = "checked"
@@ -6703,9 +7122,13 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         mock_get_app.return_value = self.app
         mock_get_service.return_value = self.service
         mock_relations.return_value = [Obj(service_id="svc-1")]
-        mock_get_check_info.return_value = (
-            200, "success", {"check_status": "success", "error_infos": [], "service_info": [{"language": "Python"}]}
-        )
+        mock_get_check_info.return_value = (200, "success", {
+            "check_status": "success",
+            "error_infos": [],
+            "service_info": [{
+                "language": "Python"
+            }]
+        })
 
         def mark_checked(team, app_id, service, data):
             service.create_status = "checked"
@@ -6716,7 +7139,12 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         result = mcp_query_service.call_tool(
             self.user,
             "rainbond_get_component_check_result",
-            {"team_name": "demo-team", "region_name": "rainbond", "app_id": 12, "service_id": "svc-1"},
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "app_id": 12,
+                "service_id": "svc-1"
+            },
         )
 
         self.assertTrue(result["can_build"])
@@ -6733,15 +7161,15 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.app_check_service.wrap_service_check_info")
     # capability_id: console.component.check-result
     def test_get_component_check_result_prefer_dockerfile_forces_dockerfile(
-            self,
-            mock_wrap_check_info,
-            mock_save_check_info,
-            mock_get_check_info,
-            mock_relations,
-            mock_get_service,
-            mock_get_app,
-            mock_get_region,
-            mock_get_team,
+        self,
+        mock_wrap_check_info,
+        mock_save_check_info,
+        mock_get_check_info,
+        mock_relations,
+        mock_get_service,
+        mock_get_app,
+        mock_get_region,
+        mock_get_team,
     ):
         # Recovery path: a CNB-classified language (.NetCore) that ships a
         # Dockerfile must persist as a Dockerfile build when the caller passes
@@ -6756,9 +7184,16 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         mock_get_service.return_value = self.service
         mock_relations.return_value = [Obj(service_id="svc-1")]
         mock_get_check_info.return_value = (
-            200, "success",
-            {"check_status": "success", "error_infos": [],
-             "service_info": [{"language": ".NetCore", "dockerfiles": ["Dockerfile"]}]},
+            200,
+            "success",
+            {
+                "check_status": "success",
+                "error_infos": [],
+                "service_info": [{
+                    "language": ".NetCore",
+                    "dockerfiles": ["Dockerfile"]
+                }]
+            },
         )
         captured = {}
 
@@ -6772,8 +7207,13 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         mcp_query_service.call_tool(
             self.user,
             "rainbond_get_component_check_result",
-            {"team_name": "demo-team", "region_name": "rainbond", "app_id": 12,
-             "service_id": "svc-1", "prefer_dockerfile_when_detected": True},
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "app_id": 12,
+                "service_id": "svc-1",
+                "prefer_dockerfile_when_detected": True
+            },
         )
 
         # _select_service_info rewrote the detected language to "dockerfile"
@@ -6791,16 +7231,16 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.source_component_service.load_dockerfile_preference")
     # capability_id: console.component.check-result
     def test_get_component_check_result_applies_persisted_dockerfile_preference(
-            self,
-            mock_load_preference,
-            mock_wrap_check_info,
-            mock_save_check_info,
-            mock_get_check_info,
-            mock_relations,
-            mock_get_service,
-            mock_get_app,
-            mock_get_region,
-            mock_get_team,
+        self,
+        mock_load_preference,
+        mock_wrap_check_info,
+        mock_save_check_info,
+        mock_get_check_info,
+        mock_relations,
+        mock_get_service,
+        mock_get_app,
+        mock_get_region,
+        mock_get_team,
     ):
         # The create call timed out on detection and persisted the Dockerfile
         # preference; the follow-up check-result call must auto-apply it even
@@ -6815,9 +7255,16 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         mock_relations.return_value = [Obj(service_id="svc-1")]
         mock_load_preference.return_value = True
         mock_get_check_info.return_value = (
-            200, "success",
-            {"check_status": "success", "error_infos": [],
-             "service_info": [{"language": "Go", "dockerfiles": ["Dockerfile"]}]},
+            200,
+            "success",
+            {
+                "check_status": "success",
+                "error_infos": [],
+                "service_info": [{
+                    "language": "Go",
+                    "dockerfiles": ["Dockerfile"]
+                }]
+            },
         )
         captured = {}
 
@@ -6831,7 +7278,12 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         result = mcp_query_service.call_tool(
             self.user,
             "rainbond_get_component_check_result",
-            {"team_name": "demo-team", "region_name": "rainbond", "app_id": 12, "service_id": "svc-1"},
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "app_id": 12,
+                "service_id": "svc-1"
+            },
         )
 
         self.assertEqual(captured["data"]["service_info"][0]["language"], "dockerfile")
@@ -6848,15 +7300,15 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.app_check_service.wrap_service_check_info")
     # capability_id: console.component.check-result
     def test_get_component_check_result_reports_unapplied_dockerfile_preference(
-            self,
-            mock_wrap_check_info,
-            mock_save_check_info,
-            mock_get_check_info,
-            mock_relations,
-            mock_get_service,
-            mock_get_app,
-            mock_get_region,
-            mock_get_team,
+        self,
+        mock_wrap_check_info,
+        mock_save_check_info,
+        mock_get_check_info,
+        mock_relations,
+        mock_get_service,
+        mock_get_app,
+        mock_get_region,
+        mock_get_team,
     ):
         # The caller asked for a Dockerfile build but detection found no
         # Dockerfile at the build root: the preference silently no-ops in
@@ -6870,8 +7322,15 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         mock_get_service.return_value = self.service
         mock_relations.return_value = [Obj(service_id="svc-1")]
         mock_get_check_info.return_value = (
-            200, "success",
-            {"check_status": "success", "error_infos": [], "service_info": [{"language": "Go"}]},
+            200,
+            "success",
+            {
+                "check_status": "success",
+                "error_infos": [],
+                "service_info": [{
+                    "language": "Go"
+                }]
+            },
         )
 
         def mark_checked(team, app_id, service, data):
@@ -6883,8 +7342,13 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         result = mcp_query_service.call_tool(
             self.user,
             "rainbond_get_component_check_result",
-            {"team_name": "demo-team", "region_name": "rainbond", "app_id": 12,
-             "service_id": "svc-1", "prefer_dockerfile_when_detected": True},
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "app_id": 12,
+                "service_id": "svc-1",
+                "prefer_dockerfile_when_detected": True
+            },
         )
 
         self.assertTrue(result["prefer_dockerfile_when_detected"])
@@ -6902,16 +7366,16 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.deploy_repo.create_deploy_relation_by_service_id")
     # capability_id: console.component.build
     def test_build_component_builds_checked_component(
-            self,
-            mock_create_deploy_relation,
-            mock_deploy,
-            mock_update_affinity,
-            mock_create_region_service,
-            mock_relations,
-            mock_get_service,
-            mock_get_app,
-            mock_get_region,
-            mock_get_team,
+        self,
+        mock_create_deploy_relation,
+        mock_deploy,
+        mock_update_affinity,
+        mock_create_region_service,
+        mock_relations,
+        mock_get_service,
+        mock_get_app,
+        mock_get_region,
+        mock_get_team,
     ):
         self.service.service_source = "source_code"
         self.service.create_status = "checked"
@@ -6927,7 +7391,12 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         result = mcp_query_service.call_tool(
             self.user,
             "rainbond_build_component",
-            {"team_name": "demo-team", "region_name": "rainbond", "app_id": 12, "service_id": "svc-1"},
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "app_id": 12,
+                "service_id": "svc-1"
+            },
         )
 
         self.assertTrue(result["built"])
@@ -6961,8 +7430,8 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.group_service.get_app_by_id")
     @patch("console.services.mcp_query_service.compose_service.create_group_compose")
     # capability_id: console.app.create-from-yaml
-    def test_create_app_from_yaml_creates_compose_record(
-            self, mock_create_compose, mock_get_app, mock_get_region, mock_get_team):
+    def test_create_app_from_yaml_creates_compose_record(self, mock_create_compose, mock_get_app, mock_get_region,
+                                                         mock_get_team):
         compose = Obj(group_id=12, compose_id="compose-1")
         mock_get_team.return_value = self.team
         mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
@@ -6987,8 +7456,7 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.group_service.get_app_by_id")
     @patch("console.services.mcp_query_service.compose_service.check_compose")
     # capability_id: console.app.check-yaml
-    def test_check_yaml_app_returns_compose_check_info(
-            self, mock_check_compose, mock_get_app, mock_get_region, mock_get_team):
+    def test_check_yaml_app_returns_compose_check_info(self, mock_check_compose, mock_get_app, mock_get_region, mock_get_team):
         mock_get_team.return_value = self.team
         mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
         mock_get_app.return_value = self.app
@@ -7017,14 +7485,14 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.compose_service.wrap_compose_check_info")
     # capability_id: console.app.get-yaml-check-result
     def test_get_yaml_app_check_result_returns_services(
-            self,
-            mock_wrap_check_info,
-            mock_save_compose_services,
-            mock_get_service_check_info,
-            mock_get_group_compose,
-            mock_get_app,
-            mock_get_region,
-            mock_get_team,
+        self,
+        mock_wrap_check_info,
+        mock_save_compose_services,
+        mock_get_service_check_info,
+        mock_get_group_compose,
+        mock_get_app,
+        mock_get_region,
+        mock_get_team,
     ):
         compose = Obj(compose_id="compose-1")
         mock_get_team.return_value = self.team
@@ -7058,13 +7526,13 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.env_var_service.update_or_create_envs")
     # capability_id: console.component.env-batch-save
     def test_update_component_envs_calls_env_service(
-            self,
-            mock_update_envs,
-            mock_relations,
-            mock_get_service,
-            mock_get_app,
-            mock_get_region,
-            mock_get_team,
+        self,
+        mock_update_envs,
+        mock_relations,
+        mock_get_service,
+        mock_get_app,
+        mock_get_region,
+        mock_get_team,
     ):
         mock_get_team.return_value = self.team
         mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
@@ -7081,7 +7549,12 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
                 "region_name": "rainbond",
                 "app_id": 12,
                 "service_id": "svc-1",
-                "envs": [{"name": "A", "value": "B", "is_change": True, "scope": "inner"}],
+                "envs": [{
+                    "name": "A",
+                    "value": "B",
+                    "is_change": True,
+                    "scope": "inner"
+                }],
             },
         )
 
@@ -7095,12 +7568,12 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.service_repo.get_service_by_service_id")
     @patch("console.services.mcp_query_service.group_service_relation_repo.get_services_by_group")
     def test_update_component_envs_rejects_invalid_payload(
-            self,
-            mock_relations,
-            mock_get_service,
-            mock_get_app,
-            mock_get_region,
-            mock_get_team,
+        self,
+        mock_relations,
+        mock_get_service,
+        mock_get_app,
+        mock_get_region,
+        mock_get_team,
     ):
         mock_get_team.return_value = self.team
         mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
@@ -7126,7 +7599,6 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
 
 
 class MCPQueryServiceDeleteAppTests(SimpleTestCase):
-
     def setUp(self):
         self.user = Obj(user_id=1001, enterprise_id="eid-1")
         self.app = Obj(
@@ -7152,14 +7624,14 @@ class MCPQueryServiceDeleteAppTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.group_repo.get_group_by_id")
     # capability_id: console.app.delete-with-confirmation
     def test_delete_app_requires_confirmation_then_delete(
-            self,
-            mock_get_app,
-            mock_get_team,
-            mock_get_user_enterprises,
-            mock_is_admin,
-            mock_get_user_team,
-            mock_count_components,
-            mock_delete_app,
+        self,
+        mock_get_app,
+        mock_get_team,
+        mock_get_user_enterprises,
+        mock_is_admin,
+        mock_get_user_team,
+        mock_count_components,
+        mock_delete_app,
     ):
         mock_get_app.return_value = self.app
         mock_get_team.return_value = self.tenant
@@ -7199,13 +7671,13 @@ class MCPQueryServiceDeleteAppTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.group_repo.get_group_by_id")
     # capability_id: console.app.delete-confirmation-guard
     def test_delete_app_rejects_invalid_confirmation_token(
-            self,
-            mock_get_app,
-            mock_get_team,
-            mock_get_user_enterprises,
-            mock_is_admin,
-            mock_get_user_team,
-            mock_count_components,
+        self,
+        mock_get_app,
+        mock_get_team,
+        mock_get_user_enterprises,
+        mock_is_admin,
+        mock_get_user_team,
+        mock_count_components,
     ):
         mock_get_app.return_value = self.app
         mock_get_team.return_value = self.tenant
@@ -7240,7 +7712,9 @@ class MCPQueryServiceSerializeModelItemTests(SimpleTestCase):
         nested = {
             "app_id": "abc",
             "versions": [FakeSDKModel("v1"), FakeSDKModel("v2")],
-            "meta": {"latest": FakeSDKModel("v2")},
+            "meta": {
+                "latest": FakeSDKModel("v2")
+            },
         }
 
         result = mcp_query_service._serialize_model_item(nested)
@@ -7266,7 +7740,6 @@ class MCPQueryServiceSerializeModelItemTests(SimpleTestCase):
 
 
 class MCPQueryServiceCreateAppFromSnapshotVersionTests(SimpleTestCase):
-
     @patch("console.services.mcp_query_service.group_service")
     def test_create_app_from_snapshot_version_raises_on_invalid_app_id(self, mock_group_service):
         """When created_app returns a non-integer ID, a ServiceHandleException

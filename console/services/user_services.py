@@ -7,8 +7,14 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
 from console.utils import perms
-from console.exception.exceptions import (AccountNotExistError, EmailExistError, PasswordTooShortError, PhoneExistError,
-                                          TenantNotExistError, UserExistError, UserNotExistError)
+from console.exception.exceptions import (
+    AccountNotExistError,
+    EmailExistError,
+    PasswordTooShortError,
+    PhoneExistError,
+    UserExistError,
+    UserNotExistError,
+)
 from console.exception.main import AbortRequest
 from console.models.main import EnterpriseUserPerm, UserRole, PermsInfo, RoleInfo, RolePerms
 from console.repositories.enterprise_repo import enterprise_user_perm_repo
@@ -18,14 +24,14 @@ from console.repositories.user_repo import user_repo
 from console.services.app_actions import app_manage_service
 from console.services.exception import (ErrAdminUserDoesNotExist, ErrCannotDelLastAdminUser)
 from console.services.perm_services import (role_kind_services, user_kind_role_service)
-from console.services.team_services import team_services
+
 from console.services.user_accesstoken_services import user_access_services
 from console.services.user_identity import check_login_identifiers_available, validate_new_username
 from console.utils.oauth.oauth_types import get_oauth_instance
 from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Q, QuerySet
-from fuzzyfinder.main import fuzzyfinder
+
 from rest_framework.response import Response
 from www.gitlab_http import GitlabApi
 from www.models.main import PermRelTenant, Tenants, Users
@@ -177,16 +183,19 @@ class UserService(object):
 
     def create_user(self, nick_name: str, password: str, email: str, enterprise_id: str, rf: str) -> Users:
         user = Users.objects.create(
-            nick_name=nick_name,
-            password=password,
-            email=email,
-            enterprise_id=enterprise_id,
-            is_active=False,
+            nick_name=nick_name, password=password, email=email, enterprise_id=enterprise_id, is_active=False,
             rf=rf)  # type: ignore[misc]  # NOTE: Users model may not declare `rf`; runtime field accepted by Django
         return user
 
-    def create_user_set_password(self, user_name: str, email: str, raw_password: str, rf: str, enterprise: Any,
-                                 client_ip: str, phone: Optional[str] = None, real_name: Optional[str] = None) -> Users:
+    def create_user_set_password(self,
+                                 user_name: str,
+                                 email: str,
+                                 raw_password: str,
+                                 rf: str,
+                                 enterprise: Any,
+                                 client_ip: str,
+                                 phone: Optional[str] = None,
+                                 real_name: Optional[str] = None) -> Users:
         validate_new_username(user_name)
         check_login_identifiers_available(nick_name=user_name, email=email, phone=phone)
         user = Users.objects.create(
@@ -219,9 +228,16 @@ class UserService(object):
             "phone": phone,
         }
         enterprise_center_user = instance.create_user(enterprise.enterprise_id, data)
-        user = self.create_user_set_password(
-            enterprise_center_user.username, email, raw_password, rf, enterprise, client_ip, phone=phone, real_name=real_name)
-        user.enterprise_center_user_id = enterprise_center_user.user_id  # type: ignore[attr-defined]  # NOTE: enterprise_center_user_id is set dynamically at runtime; not declared in Users model stub
+        user = self.create_user_set_password(enterprise_center_user.username,
+                                             email,
+                                             raw_password,
+                                             rf,
+                                             enterprise,
+                                             client_ip,
+                                             phone=phone,
+                                             real_name=real_name)
+        # NOTE: enterprise_center_user_id is set dynamically at runtime; not declared in Users model stub
+        user.enterprise_center_user_id = enterprise_center_user.user_id  # type: ignore[attr-defined]
         user.save()
         return user
 
@@ -243,7 +259,10 @@ class UserService(object):
         u = user_repo.get_user_by_username(user_name=nick_name)
         tenant = team_repo.get_tenant_by_tenant_name(tenant_name=tenant_name)
         perms_qs = team_repo.get_tenant_perms(
-            tenant_id=tenant.ID,  # type: ignore[union-attr, arg-type]  # NOTE: tenant can be None if not found; tenant.ID is int but get_tenant_perms expects str; runtime assumes tenant exists
+            tenant_id=tenant.
+            # NOTE: tenant can be None if not found; tenant.ID is int but get_tenant_perms expects str; runtime assumes
+            # tenant exists
+            ID,  # type: ignore[union-attr, arg-type]
             user_id=u.user_id)  # type: ignore[arg-type]  # NOTE: get_tenant_perms expects str; u.user_id is int at runtime
         return u, perms_qs
 
@@ -252,7 +271,8 @@ class UserService(object):
         if not user_perm:
             token = self.generate_key()
             return enterprise_user_perm_repo.create_enterprise_user_perm(user_id, enterprise_id, "admin", token)
-        return user_perm  # type: ignore[return-value]  # NOTE: get_user_enterprise_perm returns QuerySet; caller treats as single perm
+        # NOTE: get_user_enterprise_perm returns QuerySet; caller treats as single perm
+        return user_perm  # type: ignore[return-value]
 
     def is_user_admin_in_current_enterprise(self, current_user: Any, enterprise_id: str) -> bool:
         """判断用户在该企业下是否为管理员"""
@@ -320,7 +340,11 @@ class UserService(object):
         total = users.count()
         return users[(page - 1) * page_size:page * page_size], total
 
-    def deploy_service(self, tenant_obj: Tenants, service_obj: Any, user: Any, committer_name: Optional[str] = None,
+    def deploy_service(self,
+                       tenant_obj: Tenants,
+                       service_obj: Any,
+                       user: Any,
+                       committer_name: Optional[str] = None,
                        oauth_instance: Any = None) -> Response:
         """重新构建"""
         code, msg, event_id = app_manage_service.deploy(tenant_obj, service_obj, user, oauth_instance=oauth_instance)
@@ -351,7 +375,10 @@ class UserService(object):
             })
         return users, uall.count()
 
-    def list_users_by_tenant_id(self, tenant_id: str, page: Optional[int] = None, size: Optional[int] = None,
+    def list_users_by_tenant_id(self,
+                                tenant_id: str,
+                                page: Optional[int] = None,
+                                size: Optional[int] = None,
                                 query: str = "") -> Tuple[List[Dict[str, Any]], Any]:
         result = user_repo.list_users_by_tenant_id(tenant_id, query=query, page=page, size=size)
         users: List[Dict[str, Any]] = []
@@ -386,7 +413,11 @@ class UserService(object):
         users: List[Dict[str, Any]] = []
         for item in permsp:
             try:
-                user = user_services.get_user_by_user_id(item.user_id)  # type: ignore[arg-type]  # NOTE: item.user_id is int; get_user_by_user_id expects str; runtime passes int to Django ORM which accepts it
+                user = user_services.get_user_by_user_id(
+                    item.user_id  # type: ignore[arg-type]
+                    # NOTE: item.user_id is int; get_user_by_user_id expects str; runtime passes int to Django ORM which accepts
+                    # it
+                )  # type: ignore[arg-type]
                 users.append({
                     "user_id": user.user_id,
                     "email": user.email,
@@ -406,7 +437,8 @@ class UserService(object):
         users: List[Dict[str, Any]] = []
         for item in perms_qs:
             try:
-                user = user_services.get_user_by_user_id(item.user_id)  # type: ignore[arg-type]  # NOTE: same as list_admin_users; item.user_id is int at runtime
+                user = user_services.get_user_by_user_id(
+                    item.user_id)  # type: ignore[arg-type]  # NOTE: same as list_admin_users; item.user_id is int at runtime
                 users.append({
                     "user_id": user.user_id,
                     "email": user.email,
@@ -426,7 +458,10 @@ class UserService(object):
     def create_admin_user(self, user: Any, ent: Any, roles: List[str]) -> EnterpriseUserPerm:
         try:
             enterprise_user_perm_repo.get(ent.enterprise_id, user.user_id)
-            return enterprise_user_perm_repo.update_roles(ent.enterprise_id, user.user_id, ",".join(roles))  # type: ignore[return-value, func-returns-value]  # NOTE: update_roles is declared to return None; callers treat the result as a perm; this is a latent bug
+            return enterprise_user_perm_repo.update_roles(
+                ent.enterprise_id, user.user_id, ",".join(roles)
+                # NOTE: update_roles is declared to return None; callers treat the result as a perm; this is a latent bug
+            )  # type: ignore[return-value, func-returns-value]
         except EnterpriseUserPerm.DoesNotExist:
             token = self.generate_key()
             return enterprise_user_perm_repo.create_enterprise_user_perm(user.user_id, ent.enterprise_id, ",".join(roles),
@@ -454,7 +489,12 @@ class UserService(object):
     def get_user_by_tenant_id(self, tenant_id: str, user_id: str) -> dict:
         return user_repo.get_by_tenant_id(tenant_id, user_id)
 
-    def check_params(self, user_name: str, email: str, password: str, re_password: str, eid: Any = None,
+    def check_params(self,
+                     user_name: str,
+                     email: str,
+                     password: str,
+                     re_password: str,
+                     eid: Any = None,
                      phone: Optional[str] = None) -> None:
         self.__check_user_name(user_name, eid)
         self.__check_email(email)
@@ -494,12 +534,18 @@ class UserService(object):
     def init_webhook_user(self, service: Any, hook_type: str, committer_name: Optional[str] = None) -> Users:
         nick_name: Optional[str] = hook_type
         if service.oauth_service_id:
-            oauth_user = oauth_user_repo.get_user_oauth_by_oauth_user_name(service.oauth_service_id, committer_name)  # type: ignore[arg-type]  # NOTE: committer_name may be None; repo signature expects str; runtime tolerates None for optional webhook committer
+            oauth_user = oauth_user_repo.get_user_oauth_by_oauth_user_name(
+                service.oauth_service_id, committer_name  # type: ignore[arg-type]
+                # NOTE: committer_name may be None; repo signature expects str; runtime tolerates None for optional webhook
+                # committer
+            )  # type: ignore[arg-type]
             if not oauth_user:
                 nick_name = committer_name
             else:
                 try:
-                    user = Users.objects.get(user_id=oauth_user.user_id)  # type: ignore[misc]  # NOTE: oauth_user.user_id may be int; Django ORM accepts int for lookup
+                    user = Users.objects.get(
+                        user_id=oauth_user.user_id
+                    )  # type: ignore[misc]  # NOTE: oauth_user.user_id may be int; Django ORM accepts int for lookup
                     nick_name = user.get_name()
                 except Users.DoesNotExist:
                     nick_name = None

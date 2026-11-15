@@ -43,14 +43,19 @@ class AppMntService(object):
             group = None
             if gs_rel:
                 # NOTE: gs_rel.group_id is int; get_group_by_pk expects str app_id (caller not owned).
-                group = group_repo.get_group_by_pk(dep_service.tenant_id, dep_service.service_region,  # type: ignore[union-attr]
-                                                   gs_rel.group_id)  # type: ignore[arg-type]
+                group = group_repo.get_group_by_pk(
+                    dep_service.tenant_id,  # type: ignore[union-attr]
+                    dep_service.service_region,  # type: ignore[union-attr]
+                    gs_rel.group_id)  # type: ignore[arg-type]
             dep_vol_dict["组件所属应用"] = group.group_name if group else '未分组'
             dep_vol_list.append(dep_vol_dict)
         return dep_vol_list
 
-
-    def get_service_mnt_details(self, tenant: Tenants, service: TenantServiceInfo, volume_types: Any, page: int = 1,
+    def get_service_mnt_details(self,
+                                tenant: Tenants,
+                                service: TenantServiceInfo,
+                                volume_types: Any,
+                                page: int = 1,
                                 page_size: int = 20) -> Tuple[List[dict], int]:
 
         all_mnt_relations = mnt_repo.get_service_mnts_filter_volume_type(tenant.tenant_id, service.service_id, volume_types)
@@ -116,9 +121,13 @@ class AppMntService(object):
                 volume_type=self.CONFIG) \
                 .exclude(ID__in=mounted_ids)
         else:
-            service_volumes = volume_repo.get_services_volumes(current_tenant_services_id).filter(
-                access_mode="RWX") \
-                .exclude(ID__in=mounted_ids).exclude(service_id__in=state_service_ids).exclude(volume_type=self.CONFIG).exclude(volume_type="local-path")
+            service_volumes = (
+                volume_repo.get_services_volumes(current_tenant_services_id)
+                .filter(access_mode="RWX")
+                .exclude(ID__in=mounted_ids)
+                .exclude(service_id__in=state_service_ids)
+                .exclude(volume_type=self.CONFIG)
+                .exclude(volume_type="local-path"))
         # TODO 使用函数进行存储的排查，确定哪些存储不可以进行共享，哪些存储可以共享，而不是现在这样简单的提供一个self.SHARE
 
         total = len(service_volumes)
@@ -191,7 +200,10 @@ class AppMntService(object):
             })
         return un_mount_dependencies, total
 
-    def batch_mnt_serivce_volume(self, tenant: Tenants, service: TenantServiceInfo, dep_vol_data: Any,
+    def batch_mnt_serivce_volume(self,
+                                 tenant: Tenants,
+                                 service: TenantServiceInfo,
+                                 dep_vol_data: Any,
                                  user_name: str = '') -> None:
         tenant_service_volumes = volume_service.get_service_volumes(tenant=tenant, service=service)
         local_path = [l_path["volume_path"] for l_path in tenant_service_volumes]
@@ -218,8 +230,7 @@ class AppMntService(object):
         except Exception:
             for dep_volume in reversed(created_mounts):
                 try:
-                    code, msg = self.delete_service_mnt_relation(
-                        tenant, service, str(dep_volume.ID), user_name)
+                    code, msg = self.delete_service_mnt_relation(tenant, service, str(dep_volume.ID), user_name)
                     if code != 200:
                         logger.error("failed to roll back batch mount relation %s: %s", dep_volume.ID, msg)
                 except Exception as rollback_error:
@@ -243,7 +254,11 @@ class AppMntService(object):
         return mnt_repo.add_service_mnt_relation(tenant.tenant_id, service.service_id, dep_volume.service_id,
                                                  dep_volume.volume_name, source_path)
 
-    def add_service_mnt_relation(self, tenant: Tenants, service: Any, source_path: str, dep_volume: Any,
+    def add_service_mnt_relation(self,
+                                 tenant: Tenants,
+                                 service: Any,
+                                 source_path: str,
+                                 dep_volume: Any,
                                  user_name: str = '') -> None:
         # NOTE: service relaxed to Any; caller market_app_service.__create_dep_mnt passes Optional from dict.get.
         if not dep_volume:
@@ -295,7 +310,10 @@ class AppMntService(object):
         logger.debug("mnt service {0} to service {1} on dir {2}".format(mnt_relation.service_id, mnt_relation.dep_service_id,
                                                                         mnt_relation.mnt_dir))
 
-    def delete_service_mnt_relation(self, tenant: Tenants, service: TenantServiceInfo, dep_vol_id: str,
+    def delete_service_mnt_relation(self,
+                                    tenant: Tenants,
+                                    service: TenantServiceInfo,
+                                    dep_vol_id: str,
                                     user_name: str = '') -> Tuple[int, str]:
         # NOTE: dep_vol_id is str here; get_service_volume_by_pk expects int (caller not owned).
         dep_volume = volume_repo.get_service_volume_by_pk(dep_vol_id)  # type: ignore[arg-type]
@@ -312,15 +330,19 @@ class AppMntService(object):
                 res, body = region_api.delete_service_dep_volumes(service.service_region, tenant.tenant_name,
                                                                   service.service_alias, data)
                 logger.debug("delete service mnt info res:{0}, body {1}".format(res, body))
-            mnt_repo.delete_mnt_relation(service.service_id, dep_volume.service_id,  # type: ignore[union-attr]
-                                         dep_volume.volume_name)  # type: ignore[union-attr]
+            mnt_repo.delete_mnt_relation(
+                service.service_id,
+                dep_volume.service_id,  # type: ignore[union-attr]
+                dep_volume.volume_name)  # type: ignore[union-attr]
 
         except region_api.CallApiError as e:
             logger.exception(e)
             if e.status == 404:
                 logger.debug('service mnt relation not in region then delete rel directly in console')
-                mnt_repo.delete_mnt_relation(service.service_id, dep_volume.service_id,  # type: ignore[union-attr]
-                                             dep_volume.volume_name)  # type: ignore[union-attr]
+                mnt_repo.delete_mnt_relation(
+                    service.service_id,
+                    dep_volume.service_id,  # type: ignore[union-attr]
+                    dep_volume.volume_name)  # type: ignore[union-attr]
             else:
                 raise
         return 200, "success"

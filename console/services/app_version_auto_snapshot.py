@@ -150,19 +150,48 @@ class AppVersionAutoSnapshotService:
         # These workloads retain their existing specialized backup/rollback paths.
         return not any(item.service_source in ("vm_run", "kubeblocks") for item in self._components(app))
 
-    def _ready(self, tenant, app):
+    def acknowledge_manual_snapshot(self, app, captured_service_ids):
+        if not captured_service_ids:
+            return
+        with transaction.atomic():
+            locked_app = ServiceGroup.objects.select_for_update().filter(
+                ID=app.ID, tenant_id=app.tenant_id, region_name=app.region_name).first()
+            if not locked_app:
+                return
+            row = ConsoleSysConfig.objects.filter(key=self.key(app.ID), desc=self.DESC, enable=False).first()
+            if not row:
+                return
+            try:
+                payload = json.loads(row.value)
+            except (TypeError, ValueError):
+                return
+            if not isinstance(payload, dict) or payload.get("status") not in ("failure", "expired"):
+                return
+            if (payload.get("app_id") != app.ID or payload.get("tenant_id") != app.tenant_id
+                    or payload.get("region_name") != app.region_name):
+                return
+            expected = {item.service_id for item in self._components(locked_app)
+                        if item.service_source not in ("third_party", "kubeblocks")}
+            if expected and expected.issubset(set(captured_service_ids)):
+                self._finish(row, payload, "cancelled")
+
+    def _ready(self, tenant, app, required_running=None):
         components = self._components(app)
         if not components or any(item.create_status != "complete" or item.tenant_id != tenant.tenant_id
                                  or item.service_region != app.region_name for item in components):
             return False
-        service_ids = [item.service_id for item in components if item.service_source != "third_party"]
-        if not service_ids:
+        components = [item for item in components if item.service_source != "third_party"]
+        service_ids = {item.service_id for item in components}
+        required_running = service_ids if required_running is None else set(required_running)
+        if not service_ids or not required_running.issubset(service_ids):
             return False
         body = region_api.service_status(app.region_name, tenant.tenant_name, {
-            "service_ids": service_ids, "enterprise_id": tenant.enterprise_id,
+            "service_ids": sorted(service_ids), "enterprise_id": tenant.enterprise_id,
         }) or {}
         statuses = {item.get("service_id"): item.get("status") for item in body.get("list") or []}
-        return all(statuses.get(service_id) == "running" for service_id in service_ids)
+        return all(statuses.get(item.service_id) == "running" or (
+            item.service_id not in required_running and statuses.get(item.service_id) == "closed"
+            and bool(getattr(item, "deploy_version", ""))) for item in components)
 
     @staticmethod
     def _create_snapshot(tenant, region, user, app, description):
@@ -204,7 +233,7 @@ class AppVersionAutoSnapshotService:
             if failures:
                 self._finish(row, payload, "failure")
                 return
-            if not self.events_succeeded(event_ids, events) or not self._ready(tenant, app):
+            if not self.events_succeeded(event_ids, events) or not self._ready(tenant, app, set(payload["events"])):
                 return
             self._create_snapshot(tenant, region, user, app, payload["description"])
             self._finish(row, payload, "success")

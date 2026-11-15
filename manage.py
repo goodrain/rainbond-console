@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 import os
 import sys
+from importlib import import_module
 
 # Apply Python 3.10 compatibility patches
 try:
-    import fix_py310_compat
+    import_module("fix_py310_compat")
 except ImportError:
     pass
 

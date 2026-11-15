@@ -2,12 +2,11 @@
 # creater by: barnett
 
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from django.conf import settings
 from django.middleware.csrf import rotate_token
 from django.contrib.auth import load_backend
-
 
 # Django removed django.utils.translation.LANGUAGE_SESSION_KEY in 4.0
 # (session-stored language was dropped in favour of the language cookie).
@@ -93,7 +92,8 @@ def logout(request: Any) -> None:
     # Dispatch the signal before the user is logged out so the receivers have a
     # chance to find out *who* logged out.
     user = getattr(request, 'user', None)
-    if hasattr(user, 'is_authenticated') and not user.is_authenticated():  # type: ignore[union-attr]  # NOTE: user may be None if request.user not set
+    if hasattr(user, 'is_authenticated'
+               ) and not user.is_authenticated():  # type: ignore[union-attr]  # NOTE: user may be None if request.user not set
         user = None
     # user_logged_out.send(sender=user.__class__, request=request, user=user)
 

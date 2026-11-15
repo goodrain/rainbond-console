@@ -2,9 +2,12 @@
 # capability_id: rainbond-console.vm-run.vm-export-multi-disk-create
 # capability_id: console.vm-run.platform-runtime-guard
 # capability_id: console.vm-run.new-asset-image-name-validation
+# capability_id: console.vm-run.ssh-public-key-bootstrap
 import collections
 import json
 import os
+import base64
+import struct
 from types import ModuleType, SimpleNamespace
 from unittest import mock
 
@@ -67,11 +70,269 @@ from rest_framework.test import APIRequestFactory  # noqa: E402
 from console.exception.main import ServiceHandleException  # noqa: E402
 from console.models.main import ComponentK8sAttributes  # noqa: E402
 from console.services.vm_boot_source import is_valid_vm_runtime_image_name  # noqa: E402
+from console.services.virtual_machine import vms  # noqa: E402
 from console.views.app_create.vm_run import VMRunCreateView  # noqa: E402
-from www.models.main import VirtualMachineImage  # noqa: E402
+from www.models.main import (  # noqa: E402
+    ServiceGroupRelation,
+    TenantServiceEnvVar,
+    TenantServiceInfo,
+    TenantServicesPort,
+    VirtualMachineImage,
+)
 
 
 class VMAssetInstantiationTests(TestCase):
+    @staticmethod
+    def _ed25519_public_key():
+        def ssh_string(value):
+            return struct.pack(">I", len(value)) + value
+
+        blob = ssh_string(b"ssh-ed25519") + ssh_string(b"\x11" * 32)
+        return "ssh-ed25519 {} ubuntu office desktop".format(base64.b64encode(blob).decode("ascii"))
+
+    def test_vm_ssh_bootstrap_accepts_only_linux_disk_images(self):
+        key = self._ed25519_public_key()
+
+        self.assertEqual(
+            ("ubuntu", key),
+            vms.validate_vm_ssh_bootstrap(
+                "ubuntu", key, os_name="Ubuntu 24.04", os_family="linux", boot_source_format="qcow2"))
+
+        invalid = (
+            ("ubuntu", "", "Ubuntu 24.04", "linux", "qcow2"),
+            ("ubuntu;id", key, "Ubuntu 24.04", "linux", "qcow2"),
+            ("ubuntu", "-----BEGIN OPENSSH PRIVATE KEY-----DO_NOT_ECHO", "Ubuntu 24.04", "linux", "qcow2"),
+            ("ubuntu", "ssh-ed25519 QUJD\nssh-ed25519 REVG", "Ubuntu 24.04", "linux", "qcow2"),
+            ("ubuntu", "ssh-ed25519 !!!", "Ubuntu 24.04", "linux", "qcow2"),
+            ("ubuntu", "ssh-ed25519 QUJDRA==", "Ubuntu 24.04", "linux", "qcow2"),
+            ("ubuntu", "ssh-ed25519 " + "A" * 17000, "Ubuntu 24.04", "linux", "qcow2"),
+            ("ubuntu", key, "Windows Server 2025", "windows", "qcow2"),
+            ("ubuntu", key, "Ubuntu 24.04", "linux", "iso"),
+            ("ubuntu", key, "Ubuntu 24.04", "linux", ""),
+        )
+        for username, public_key, os_name, os_family, source_format in invalid:
+            with self.subTest(username=username, source_format=source_format), self.assertRaises(ValueError) as raised:
+                vms.validate_vm_ssh_bootstrap(
+                    username, public_key, os_name=os_name, os_family=os_family, boot_source_format=source_format)
+            if public_key:
+                self.assertNotIn(public_key, str(raised.exception))
+
+    def test_vm_run_rejects_invalid_ssh_before_creating_asset_or_component(self):
+        view = VMRunCreateView()
+        view.tenant = SimpleNamespace(
+            tenant_id="tenant-a", tenant_name="demo-team", namespace="tenant-ns", enterprise_id="eid")
+        view.response_region = "demo-region"
+        view.user = SimpleNamespace(pk=1, nick_name="tester")
+        request = view.initialize_request(APIRequestFactory().post(
+            "/console/teams/demo-team/apps/vm_run",
+            {
+                "group_id": 7,
+                "service_cname": "invalid-vm",
+                "k8s_component_name": "invalid-vm",
+                "image_name": "invalid-vm",
+                "source_type": "url",
+                "vm_url": "https://example.com/invalid-vm.iso",
+                "format": "iso",
+                "os_name": "Ubuntu 24.04",
+                "os_family": "linux",
+                "ssh_username": "ubuntu",
+                "ssh_public_key": self._ed25519_public_key(),
+            },
+            format="json"
+        ))
+
+        with mock.patch("console.views.app_create.vm_run.vms.create_vm_image_asset") as create_asset, \
+                mock.patch("console.views.app_create.vm_run.app_service.create_vm_run_app") as create_component, \
+                mock.patch(
+                    "console.views.app_create.vm_run.enterprise_first_deploy_service.safe_begin_deploy_tracking"
+                ) as track:
+            response = view.post(request)
+
+        self.assertEqual(400, response.status_code)
+        create_asset.assert_not_called()
+        create_component.assert_not_called()
+        track.assert_not_called()
+
+    def test_vm_run_rolls_back_asset_component_attrs_group_and_port_when_ssh_port_fails(self):
+        view = VMRunCreateView()
+        view.tenant = SimpleNamespace(
+            tenant_id="tenant-a", tenant_name="demo-team", namespace="tenant-ns", enterprise_id="eid")
+        view.response_region = "demo-region"
+        view.user = SimpleNamespace(pk=1, nick_name="tester")
+        asset_name = "ubuntu-rollback-test"
+        service_id = "service-rollback-ssh"
+        request = view.initialize_request(APIRequestFactory().post(
+            "/console/teams/demo-team/apps/vm_run",
+            {
+                "group_id": 7,
+                "service_cname": "rollback-vm",
+                "k8s_component_name": "rollback-vm",
+                "image_name": asset_name,
+                "source_type": "url",
+                "vm_url": "https://example.com/ubuntu-rollback.img",
+                "format": "qcow2",
+                "os_name": "Ubuntu 24.04",
+                "os_family": "linux",
+                "boot_mode": "uefi",
+                "ssh_username": "ubuntu",
+                "ssh_public_key": self._ed25519_public_key(),
+            },
+            format="json"
+        ))
+
+        def create_component(*args):
+            service = TenantServiceInfo.objects.create(
+                service_id=service_id,
+                tenant_id="tenant-a",
+                service_key=service_id,
+                service_alias="gr123457",
+                service_cname="rollback-vm",
+                service_region="demo-region",
+                category="application",
+                version="v1",
+                image="tenant-ns:{}".format(asset_name),
+                extend_method="vm",
+                create_status="creating",
+                service_source="vm_run",
+                code_from="image_manual",
+                namespace="default",
+                service_type="application",
+                k8s_component_name="rollback-vm",
+            )
+            return 200, "success", service
+
+        def add_port(tenant, service, port, **kwargs):
+            TenantServiceEnvVar.objects.create(
+                tenant_id=tenant.tenant_id,
+                service_id=service.service_id,
+                container_port=port,
+                name="连接地址",
+                attr_name="SSH_HOST",
+                attr_value=service.service_alias,
+                is_change=False,
+                scope="outer",
+            )
+            TenantServicesPort.objects.create(
+                tenant_id=tenant.tenant_id,
+                service_id=service.service_id,
+                container_port=port,
+                mapping_port=port,
+                protocol=kwargs["protocol"],
+                port_alias="SSH22",
+                is_inner_service=kwargs["is_inner_service"],
+                is_outer_service=kwargs["is_outer_service"],
+                k8s_service_name=service.service_alias,
+            )
+            return 500, "port failed", None
+
+        def add_to_group(tenant, region, group_id, target_service_id):
+            ServiceGroupRelation.objects.create(
+                service_id=target_service_id,
+                group_id=group_id,
+                tenant_id=tenant.tenant_id,
+                region_name=region,
+            )
+            return 200, "success"
+
+        with mock.patch("console.views.app_create.vm_run.app_service.is_k8s_component_name_duplicate",
+                        return_value=False), \
+                mock.patch("console.views.app_create.vm_run.vms.ensure_vm_platform_running"), \
+                mock.patch("console.views.app_create.vm_run.vms.resolve_vm_boot_mode", return_value="uefi"), \
+                mock.patch("console.views.app_create.vm_run.app_service.create_vm_run_app",
+                           side_effect=create_component), \
+                mock.patch("console.views.app_create.vm_run.vms.build_initial_vm_disk_layout", return_value=[]), \
+                mock.patch("console.views.app_create.vm_run.vms.build_vm_create_disk_imports", return_value=[]), \
+                mock.patch("console.views.app_create.vm_run.group_service.add_service_to_group",
+                           side_effect=add_to_group), \
+                mock.patch("console.views.app_create.vm_run.port_service.add_service_port", side_effect=add_port), \
+                mock.patch("console.views.app_create.vm_run.enterprise_first_deploy_service.safe_begin_deploy_tracking",
+                           return_value=None), \
+                mock.patch("console.views.app_create.vm_run.enterprise_first_deploy_service.safe_mark_failure"):
+            response = view.post(request)
+
+        self.assertEqual(500, response.status_code)
+        self.assertFalse(VirtualMachineImage.objects.filter(tenant_id="tenant-a", name=asset_name).exists())
+        self.assertFalse(TenantServiceInfo.objects.filter(service_id=service_id).exists())
+        self.assertFalse(ComponentK8sAttributes.objects.filter(component_id=service_id).exists())
+        self.assertFalse(ServiceGroupRelation.objects.filter(service_id=service_id).exists())
+        self.assertFalse(TenantServiceEnvVar.objects.filter(service_id=service_id).exists())
+        self.assertFalse(TenantServicesPort.objects.filter(service_id=service_id).exists())
+
+    def test_vm_run_records_linux_ssh_runtime_and_internal_port_before_returning(self):
+        view = VMRunCreateView()
+        view.tenant = SimpleNamespace(
+            tenant_id="tenant-a", tenant_name="demo-team", namespace="tenant-ns", enterprise_id="eid")
+        view.response_region = "demo-region"
+        view.user = SimpleNamespace(pk=1, nick_name="tester")
+        public_key = self._ed25519_public_key()
+        request = view.initialize_request(APIRequestFactory().post(
+            "/console/teams/demo-team/apps/vm_run",
+            {
+                "group_id": 7,
+                "service_cname": "ubuntu-vm",
+                "k8s_component_name": "ubuntu-vm",
+                "image_name": "ubuntu-24.04-minimal-cloudimg-amd64",
+                "source_type": "url",
+                "vm_url": (
+                    "https://cloud-images.ubuntu.com/minimal/releases/noble/release/"
+                    "ubuntu-24.04-minimal-cloudimg-amd64.img"
+                ),
+                "format": "qcow2",
+                "os_name": "Ubuntu 24.04",
+                "os_family": "linux",
+                "boot_mode": "uefi",
+                "ssh_username": "ubuntu",
+                "ssh_public_key": public_key,
+            },
+            format="json"
+        ))
+        service = SimpleNamespace(
+            service_id="service-new-ubuntu",
+            service_alias="gr123456",
+            service_source="vm_run",
+            create_status="creating",
+            to_dict=lambda: {"service_id": "service-new-ubuntu", "service_alias": "gr123456"}
+        )
+        call_order = []
+
+        def record_port(*args, **kwargs):
+            call_order.append("port")
+            return 200, "success", object()
+
+        with mock.patch(
+                "console.views.app_create.vm_run.app_service.is_k8s_component_name_duplicate", return_value=False), \
+                mock.patch("console.views.app_create.vm_run.vms.ensure_vm_platform_running"), \
+                mock.patch(
+                    "console.views.app_create.vm_run.vms.create_vm_image_asset",
+                    return_value=SimpleNamespace(ID="asset-1", os_name="Ubuntu 24.04", boot_mode="uefi")), \
+                mock.patch("console.views.app_create.vm_run.vms.resolve_vm_boot_mode", return_value="uefi"), \
+                mock.patch("console.views.app_create.vm_run.app_service.create_vm_run_app",
+                           return_value=(200, "success", service)), \
+                mock.patch("console.views.app_create.vm_run.vms.build_initial_vm_disk_layout", return_value=[]), \
+                mock.patch("console.views.app_create.vm_run.vms.save_vm_runtime_config") as save_runtime, \
+                mock.patch("console.views.app_create.vm_run.vms.build_vm_create_disk_imports", return_value=[]), \
+                mock.patch("console.views.app_create.vm_run.group_service.add_service_to_group",
+                           side_effect=lambda *args: (call_order.append("group"), (200, "success"))[1]), \
+                mock.patch("console.views.app_create.vm_run.port_service.add_service_port",
+                           side_effect=record_port) as add_port, \
+                mock.patch("console.views.app_create.vm_run.enterprise_first_deploy_service.safe_begin_deploy_tracking",
+                           return_value=None), \
+                mock.patch("console.views.app_create.vm_run.enterprise_first_deploy_service.safe_bind_events"):
+            response = view.post(request)
+
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(["group", "port"], call_order)
+        self.assertEqual("uefi", save_runtime.call_args[0][2]["boot_mode"])
+        self.assertEqual("Ubuntu 24.04", save_runtime.call_args[0][2]["os_name"])
+        self.assertEqual("ubuntu", save_runtime.call_args[0][2]["ssh_username"])
+        self.assertEqual(public_key, save_runtime.call_args[0][2]["ssh_public_key"])
+        add_port.assert_called_once()
+        self.assertEqual(22, add_port.call_args[0][2])
+        self.assertEqual("tcp", add_port.call_args.kwargs["protocol"])
+        self.assertTrue(add_port.call_args.kwargs["is_inner_service"])
+        self.assertFalse(add_port.call_args.kwargs["is_outer_service"])
+        self.assertNotIn(public_key, json.dumps(response.data))
+
     def test_vm_runtime_image_name_validator_enforces_oci_tag_boundaries(self):
         self.assertTrue(is_valid_vm_runtime_image_name("a" * 128))
         for image_name in (".image", "-image", "a" * 129, [], {}, 1, True):

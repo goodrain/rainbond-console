@@ -1,4 +1,4 @@
-/* Recompile one verified legacy webpack module; leave every other asset byte untouched. */
+/* Recompile verified legacy webpack modules; leave unrelated modules byte untouched. */
 const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
@@ -75,11 +75,61 @@ const replacement = 'function(module, exports, __webpack_require__) {\n' +
   `/* topology-source-sha256: ${sha(source)}; topology-helper-sha256: ${sha(helper)} */\n` +
   'var __topologyPolling = (function() { var module = { exports: {} };\n' + helper +
   '\nreturn module.exports; }());\n' + code + '\n}';
-// The splice bounds come from the verified AST node, never from a compressed text replacement.
-const asset = base.slice(0, factory.start) + replacement + base.slice(factory.end);
+let reactPreset;
+try { reactPreset = require.resolve('@babel/preset-react', { paths: [toolchain] }); }
+catch (_) { reactPreset = require.resolve('@umijs/deps/compiled/babel/preset-react', { paths: [toolchain] }); }
+const chartModules = [
+  { id: 414, name: 'node.js', mapping: {
+    classnames: 26, immutable: 11, react: 1, 'react-redux': 14,
+    '../actions/app-actions': 25, '../components/matched-results': 756,
+    '../components/matched-text': 92, '../constants/styles': 27,
+    '../utils/color-utils': 118, './node-networks-overlay': 741,
+    './node-shape-stack': 742, './node-shapes': 743
+  } },
+  { id: 743, name: 'node-shapes.js', mapping: {
+    react: 1, classnames: 26, '../constants/styles': 27,
+    '../utils/metric-utils': 789, '../utils/node-shape-utils': 790
+  } }
+];
+const replacements = [{ factory, replacement }];
+const chartSources = [];
+for (const chart of chartModules) {
+  const chartFactory = modules.elements[chart.id];
+  assert.equal(chartFactory.type, 'FunctionExpression');
+  const original = base.slice(chartFactory.start, chartFactory.end);
+  const ids = [...new Set([...original.matchAll(/__webpack_require__\((\d+)\)/g)].map(match => Number(match[1])))];
+  assert.deepEqual(ids.sort((a, b) => a - b), Object.values(chart.mapping).sort((a, b) => a - b),
+    `Legacy dependency identity changed for ${chart.name}`);
+  const chartSource = fs.readFileSync(path.join(root, 'app/scripts/charts', chart.name), 'utf8');
+  const transformed = babel.transformSync(chartSource, {
+    babelrc: false, configFile: false, comments: true,
+    presets: [[preset, { targets: { ie: '11' }, modules: 'commonjs' }], [reactPreset, { runtime: 'classic' }]]
+  });
+  const chartAst = parser.parse(transformed.code, { sourceType: 'script' });
+  traverse(chartAst, {
+    CallExpression(nodePath) {
+      const node = nodePath.node;
+      if (node.callee.type !== 'Identifier' || node.callee.name !== 'require') return;
+      assert.equal(node.arguments.length, 1);
+      assert.equal(node.arguments[0].type, 'StringLiteral');
+      const name = node.arguments[0].value;
+      assert.ok(Object.hasOwn(chart.mapping, name), `Unmapped dependency ${name}`);
+      nodePath.replaceWith(babel.types.callExpression(babel.types.identifier('__webpack_require__'),
+        [babel.types.numericLiteral(chart.mapping[name])]));
+    }
+  });
+  const digest = sha(chartSource);
+  chartSources.push({ moduleId: chart.id, name: chart.name, sourceSha256: digest });
+  replacements.push({ factory: chartFactory,
+    replacement: `function(module, exports, __webpack_require__) {\n/* topology-chart-${chart.name}-sha256: ${digest} */\n` +
+      generate(chartAst, { comments: true }).code + '\n}' });
+}
+// Splice verified AST bounds from right to left so all original offsets remain valid.
+let asset = base;
+for (const item of replacements.sort((a, b) => b.factory.start - a.factory.start)) {
+  asset = asset.slice(0, item.factory.start) + item.replacement + asset.slice(item.factory.end);
+}
 parser.parse(asset, { sourceType: 'script' });
-assert.equal(asset.slice(0, factory.start), base.slice(0, factory.start));
-assert.equal(asset.slice(factory.start + replacement.length), base.slice(factory.end));
 const name = `app-polling-${sha(asset).slice(0, 20)}.js`;
 fs.writeFileSync(path.join(output, name), asset);
 const indexPath = path.join(output, 'index.html');
@@ -88,5 +138,6 @@ const entries = [...index.matchAll(/src="(app(?:-polling)?-[a-z0-9]+\.js)(?:\?[^
 assert.equal(entries.length, 1, 'Expected exactly one topology app entry');
 fs.writeFileSync(indexPath, index.replace(entries[0][0], `src="${name}"`));
 console.log(JSON.stringify({ asset: name, sha256: sha(asset), baseSha256: sha(base), moduleId: 426,
-  sourceSha256: sha(source), helperSha256: sha(helper), unchangedModules: modules.elements.filter(Boolean).length - 1,
+  sourceSha256: sha(source), helperSha256: sha(helper), chartSources,
+  unchangedModules: modules.elements.filter(Boolean).length - replacements.length,
   babelVersion: babel.version, toolchain }, null, 2));

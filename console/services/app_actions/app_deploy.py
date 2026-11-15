@@ -477,9 +477,9 @@ class MarketService(object):
             service_share_uuid = app.get("service_key", "")
         new_extend_info["source_service_share_uuid"] = service_share_uuid
         if template_updatetime:
-            if type(template_updatetime) == datetime:
+            if type(template_updatetime) is datetime:
                 new_extend_info["update_time"] = template_updatetime.strftime('%Y-%m-%d %H:%M:%S')
-            elif type(template_updatetime) == str:
+            elif type(template_updatetime) is str:
                 new_extend_info["update_time"] = template_updatetime
         if self.install_from_cloud:
             new_extend_info["install_from_cloud"] = True

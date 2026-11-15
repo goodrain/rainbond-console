@@ -6,6 +6,7 @@ rainbond-copilot `extractMcpErrorText` can read (a non-empty human readable
 reason in `content[].text` and `structuredContent`), so telemetry stops
 recording null `error_message`.
 """
+from typing import TYPE_CHECKING
 import json
 import os
 import sys
@@ -17,15 +18,43 @@ sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
 
-import django
-from django.test import SimpleTestCase
-from rest_framework.test import APIRequestFactory, force_authenticate
 
-django.setup()
+def _load_test_dependencies():
+    """Keep the existing post-Django-setup import order and module bindings."""
+    import django
+    from django.test import SimpleTestCase
+    from rest_framework.test import APIRequestFactory, force_authenticate
 
-from console.exception.main import ServiceHandleException
-from console.services.mcp_query_service import mcp_query_service
-from console.views.mcp_query import MCPQueryHTTPView
+    django.setup()
+
+    from console.exception.main import ServiceHandleException
+    from console.services.mcp_query_service import mcp_query_service
+    from console.views.mcp_query import MCPQueryHTTPView
+    return (
+        django,
+        SimpleTestCase,
+        APIRequestFactory,
+        force_authenticate,
+        ServiceHandleException,
+        mcp_query_service,
+        MCPQueryHTTPView,
+    )
+
+
+(
+    django,
+    _RuntimeSimpleTestCase,
+    APIRequestFactory,
+    force_authenticate,
+    ServiceHandleException,
+    mcp_query_service,
+    MCPQueryHTTPView,
+) = _load_test_dependencies()
+
+if TYPE_CHECKING:
+    from django.test import SimpleTestCase
+else:
+    SimpleTestCase = _RuntimeSimpleTestCase
 
 
 class Obj(object):
@@ -52,7 +81,12 @@ class MCPToolErrorDispatchTests(SimpleTestCase):
     def _init_session(self):
         init_request = self.factory.post(
             "/console/mcp/query",
-            data=json.dumps({"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}}),
+            data=json.dumps({
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "initialize",
+                "params": {}
+            }),
             content_type="application/json",
             HTTP_ACCEPT="application/json",
         )
@@ -66,7 +100,10 @@ class MCPToolErrorDispatchTests(SimpleTestCase):
                 "jsonrpc": "2.0",
                 "id": 2,
                 "method": "tools/call",
-                "params": {"name": name, "arguments": arguments},
+                "params": {
+                    "name": name,
+                    "arguments": arguments
+                },
             }),
             content_type="application/json",
             HTTP_ACCEPT="application/json",
@@ -119,37 +156,41 @@ class MCPToolErrorDispatchTests(SimpleTestCase):
 
 class MCPComponentContextErrorTests(SimpleTestCase):
     """K2/K3: real tool code returns structured, readable failure reasons."""
-
     def setUp(self):
         self.user = Obj(user_id=1, pk=1, enterprise_id="eid-1", nick_name="admin", is_enterprise_admin=True)
         self.user.get_username = lambda: self.user.nick_name
         self.team = Obj(
-            ID=11, tenant_id="team-1", tenant_name="demo-team", enterprise_id="eid-1", creater=1,
+            ID=11,
+            tenant_id="team-1",
+            tenant_name="demo-team",
+            enterprise_id="eid-1",
+            creater=1,
         )
         self.app = Obj(ID=12, tenant_id="team-1", region_name="rainbond", group_name="demo-app")
         self.service = Obj(
-            service_id="svc-1", tenant_id="team-1", service_region="rainbond",
-            service_alias="alias-1", service_cname="component-1",
+            service_id="svc-1",
+            tenant_id="team-1",
+            service_region="rainbond",
+            service_alias="alias-1",
+            service_cname="component-1",
         )
         self.region = Obj(region_name="rainbond", enterprise_id="eid-1")
         self.relations = [Obj(service_id="svc-1")]
 
         patchers = {
-            "team": patch(
-                "console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name",
-                return_value=self.team),
-            "region": patch(
-                "console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name",
-                return_value=self.region),
-            "app": patch(
-                "console.services.mcp_query_service.group_service.get_app_by_id",
-                return_value=self.app),
-            "service": patch(
-                "console.services.mcp_query_service.service_repo.get_service_by_service_id",
-                return_value=self.service),
-            "relations": patch(
-                "console.services.mcp_query_service.group_service_relation_repo.get_services_by_group",
-                return_value=self.relations),
+            "team":
+            patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name",
+                  return_value=self.team),
+            "region":
+            patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name",
+                  return_value=self.region),
+            "app":
+            patch("console.services.mcp_query_service.group_service.get_app_by_id", return_value=self.app),
+            "service":
+            patch("console.services.mcp_query_service.service_repo.get_service_by_service_id", return_value=self.service),
+            "relations":
+            patch("console.services.mcp_query_service.group_service_relation_repo.get_services_by_group",
+                  return_value=self.relations),
         }
         self.mocks = {name: p.start() for name, p in patchers.items()}
         for p in patchers.values():
@@ -163,9 +204,7 @@ class MCPComponentContextErrorTests(SimpleTestCase):
     # capability_id: console.component.delete-dependency-conflict
     def test_delete_component_dependency_conflict_returns_structured_reason(self):
         conflict_msg = "组件被component-2,component-3依赖，不可删除"
-        with patch(
-                "console.services.mcp_query_service.app_manage_service.delete",
-                return_value=(412, conflict_msg)):
+        with patch("console.services.mcp_query_service.app_manage_service.delete", return_value=(412, conflict_msg)):
             with self.assertRaises(ServiceHandleException) as ctx:
                 mcp_query_service.call_tool(self.user, "rainbond_delete_component", self._delete_args())
 
@@ -182,9 +221,7 @@ class MCPComponentContextErrorTests(SimpleTestCase):
     # capability_id: console.component.delete-dependency-conflict
     def test_delete_component_running_conflict_is_non_retryable(self):
         running_msg = "组件可能处于运行状态,请先关闭组件"
-        with patch(
-                "console.services.mcp_query_service.app_manage_service.delete",
-                return_value=(409, running_msg)):
+        with patch("console.services.mcp_query_service.app_manage_service.delete", return_value=(409, running_msg)):
             with self.assertRaises(ServiceHandleException) as ctx:
                 mcp_query_service.call_tool(self.user, "rainbond_delete_component", self._delete_args())
 
@@ -208,12 +245,10 @@ class MCPComponentContextErrorTests(SimpleTestCase):
 
     # capability_id: console.mcp.input-validation-contract
     def test_unknown_component_returns_not_found(self):
-        with patch(
-                "console.services.mcp_query_service.service_repo.get_service_by_service_id",
-                return_value=None):
+        with patch("console.services.mcp_query_service.service_repo.get_service_by_service_id", return_value=None):
             with self.assertRaises(ServiceHandleException) as ctx:
-                mcp_query_service.call_tool(
-                    self.user, "rainbond_get_component_summary", self._delete_args(service_id="missing"))
+                mcp_query_service.call_tool(self.user, "rainbond_get_component_summary",
+                                            self._delete_args(service_id="missing"))
 
         exc = ctx.exception
         self.assertEqual(exc.status_code, 404)

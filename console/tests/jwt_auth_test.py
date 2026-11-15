@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from typing import TYPE_CHECKING
 import os
 import sys
 import datetime
@@ -9,14 +10,40 @@ sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".venv", "src", "openapi-client")))
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
 
-import django
-from django.test import SimpleTestCase
 
-django.setup()
+def _load_test_dependencies():
+    """Keep the existing post-Django-setup import order and module bindings."""
+    import django
+    from django.test import SimpleTestCase
 
-from console.exception.exceptions import AuthenticationInfoHasExpiredError
-from console.utils import jwt_issuer
-from console.views.base import JSONWebTokenAuthentication, custom_exception_handler
+    django.setup()
+
+    from console.exception.exceptions import AuthenticationInfoHasExpiredError
+    from console.utils import jwt_issuer
+    from console.views.base import JSONWebTokenAuthentication, custom_exception_handler
+    return (
+        django,
+        SimpleTestCase,
+        AuthenticationInfoHasExpiredError,
+        jwt_issuer,
+        JSONWebTokenAuthentication,
+        custom_exception_handler,
+    )
+
+
+(
+    django,
+    _RuntimeSimpleTestCase,
+    AuthenticationInfoHasExpiredError,
+    jwt_issuer,
+    JSONWebTokenAuthentication,
+    custom_exception_handler,
+) = _load_test_dependencies()
+
+if TYPE_CHECKING:
+    from django.test import SimpleTestCase
+else:
+    SimpleTestCase = _RuntimeSimpleTestCase
 
 
 class FakeQuerySet(object):
@@ -28,15 +55,13 @@ class FakeQuerySet(object):
 
 
 class JSONWebTokenAuthenticationTests(SimpleTestCase):
-
     def test_agent_service_jwt_is_purpose_scoped_and_short_lived(self):
         user = SimpleNamespace(user_id=33, nick_name="agent-service", email="")
         token = MagicMock()
         token.__str__.return_value = "encoded-service-token"
 
         with patch.object(jwt_issuer.ConsoleAccessToken, "for_user", return_value=token):
-            encoded = jwt_issuer.issue_agent_service_jwt(
-                user, enterprise_id="eid", lifetime_seconds=1800)
+            encoded = jwt_issuer.issue_agent_service_jwt(user, enterprise_id="eid", lifetime_seconds=1800)
 
         self.assertEqual("encoded-service-token", encoded)
         token.set_exp.assert_called_once_with(lifetime=datetime.timedelta(seconds=1800))

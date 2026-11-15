@@ -10,11 +10,21 @@ sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
 
-import django
 
-django.setup()
+def _load_test_dependencies():
+    """Keep the existing post-Django-setup import order and module bindings."""
+    import django
 
-from console.utils.randomutil import make_default_version
+    django.setup()
+
+    from console.utils.randomutil import make_default_version
+    return (
+        django,
+        make_default_version,
+    )
+
+
+django, make_default_version = _load_test_dependencies()
 
 
 class RandomUtilTests(TestCase):

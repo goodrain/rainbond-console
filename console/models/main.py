@@ -55,17 +55,17 @@ class BaseModel(models.Model):
         return ""
 
     def parse_kind(self, a):
-        if type(a) == CharField:
+        if type(a) is CharField:
             return "string"
-        if type(a) == AutoField:
+        if type(a) is AutoField:
             return "int"
-        if type(a) == BooleanField:
+        if type(a) is BooleanField:
             return "boolean"
-        if type(a) == DecimalField:
+        if type(a) is DecimalField:
             return "decimal"
-        if type(a) == DateTimeField:
+        if type(a) is DateTimeField:
             return "datetime"
-        if type(a) == IntegerField:
+        if type(a) is IntegerField:
             return "int"
         return "string"
 
@@ -381,15 +381,17 @@ class ComposeGroup(BaseModel):
     check_event_id = models.CharField(max_length=32, blank=True, null=True, default="", help_text="compose检测事件ID")
     hub_user = models.CharField(max_length=256, blank=True, null=True, default="", help_text="镜像仓库用户名称")
     hub_pass = models.CharField(max_length=256, blank=True, null=True, default="", help_text="镜像仓库用户密码，服务创建后给服务赋值")
-    compose_file_path = models.CharField(max_length=512, blank=True, null=True, default="docker-compose.yml", help_text="compose文件在项目中的路径")
+    compose_file_path = models.CharField(max_length=512,
+                                         blank=True,
+                                         null=True,
+                                         default="docker-compose.yml",
+                                         help_text="compose文件在项目中的路径")
 
     create_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text="创建时间")
 
 
-
 class ComposeServiceRelation(BaseModel):
     """compose组和服务的关系"""
-
     class Meta:
         db_table = "compose_service_relation"
 
@@ -1305,7 +1307,7 @@ class ComponentK8sAttributes(BaseModel):
 class SMSVerificationCode(models.Model):
     """短信验证码"""
     phone = models.CharField(max_length=11, help_text="手机号")
-    code = models.CharField(max_length=6, help_text="验证码") 
+    code = models.CharField(max_length=6, help_text="验证码")
     purpose = models.CharField(max_length=20, help_text="用途")
     created_at = models.DateTimeField(auto_now_add=True, help_text="创建时间")
     expires_at = models.DateTimeField(help_text="过期时间")

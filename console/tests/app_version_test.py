@@ -642,10 +642,6 @@ class AppVersionServiceOverviewTestCase(TestCase):
                     "get_last_shared_app_version_by_group_id",
                     return_value=None), \
                 mock.patch.object(
-                    app_version_service_module.market_app_service,
-                    "get_market_apps_in_app",
-                    return_value=[]), \
-                mock.patch.object(
                     app_version_service,
                     "_build_app_template",
                     return_value=runtime_template), \
@@ -708,10 +704,6 @@ class AppVersionServiceOverviewTestCase(TestCase):
                     app_version_service_module.share_repo,
                     "get_last_shared_app_version_by_group_id",
                     return_value=None), \
-                mock.patch.object(
-                    app_version_service_module.market_app_service,
-                    "get_market_apps_in_app",
-                    return_value=[]), \
                 mock.patch.object(
                     app_version_service,
                     "_build_app_template",
@@ -789,10 +781,6 @@ class AppVersionServiceOverviewTestCase(TestCase):
                     app_version_service_module.share_repo,
                     "get_last_shared_app_version_by_group_id",
                     return_value=None), \
-                mock.patch.object(
-                    app_version_service_module.market_app_service,
-                    "get_market_apps_in_app",
-                    return_value=[]), \
                 mock.patch.object(
                     app_version_service,
                     "_build_app_template",
@@ -1294,6 +1282,45 @@ class AppVersionSnapshotSourceVersionTests(TestCase):
             with self.assertRaises(ServiceHandleException):
                 app_version_service.create_snapshot(self.tenant, self.region, mock.Mock(), self.app, require_complete=True)
         self.save_version.assert_not_called()
+
+    # capability_id: console.app-version.manual-snapshot-acknowledgement
+    def test_successful_manual_snapshot_acknowledges_old_task(self):
+        from console.services.app_version_auto_snapshot import app_version_auto_snapshot_service
+        app_version_service._build_app_template.return_value = {"apps": [{"service_id": "s1"}], "arch": "amd64"}
+        with mock.patch.object(app_version_auto_snapshot_service, "acknowledge_manual_snapshot", create=True) as acknowledge:
+            result = app_version_service.create_snapshot(self.tenant, self.region, mock.Mock(), self.app)
+        self.assertTrue(result["created"])
+        acknowledge.assert_called_once_with(self.app, {"s1"})
+
+    # capability_id: console.app-version.manual-snapshot-acknowledgement
+    def test_failed_manual_snapshot_does_not_acknowledge_old_task(self):
+        from console.services.app_version_auto_snapshot import app_version_auto_snapshot_service
+        app_version_service._build_app_template.side_effect = RuntimeError("snapshot failed")
+        with mock.patch.object(app_version_auto_snapshot_service, "acknowledge_manual_snapshot", create=True) as acknowledge:
+            with self.assertRaises(RuntimeError):
+                app_version_service.create_snapshot(self.tenant, self.region, mock.Mock(), self.app)
+        acknowledge.assert_not_called()
+
+    # capability_id: console.app-version.manual-snapshot-acknowledgement
+    def test_matching_manual_baseline_acknowledges_without_duplicate_snapshot(self):
+        from console.services.app_version_auto_snapshot import app_version_auto_snapshot_service
+        app_version_service._build_app_template.return_value = {"apps": [{"service_id": "s1"}], "arch": "amd64"}
+        self.previous.app_template = json.dumps({"apps": [{"service_id": "s1"}], "source_component_groups": self.sources})
+        with mock.patch.object(app_version_auto_snapshot_service, "acknowledge_manual_snapshot") as acknowledge:
+            result = app_version_service.create_snapshot(self.tenant, self.region, mock.Mock(), self.app)
+        self.assertFalse(result["created"])
+        acknowledge.assert_called_once_with(self.app, {"s1"})
+
+    # capability_id: console.app-version.manual-snapshot-acknowledgement
+    def test_automatic_snapshot_cannot_acknowledge_its_own_task(self):
+        from console.services.app_version_auto_snapshot import app_version_auto_snapshot_service
+        app_version_service._build_app_template.return_value = {"apps": [{"service_id": "s1"}], "arch": "amd64"}
+        component = mock.Mock(service_id="s1", service_source="market")
+        with mock.patch.object(app_version_auto_snapshot_service, "acknowledge_manual_snapshot") as acknowledge, \
+                mock.patch.object(app_version_service_module.group_service, "get_group_services", return_value=[component]):
+            result = app_version_service.create_snapshot(self.tenant, self.region, mock.Mock(), self.app, require_complete=True)
+        self.assertTrue(result["created"])
+        acknowledge.assert_not_called()
 
 
 # capability_id: console.app-version.automatic-snapshot-api

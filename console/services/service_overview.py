@@ -18,7 +18,8 @@ class Service_overview(object):
             data = region_api.get_enterprise_running_services(enterprise_id, region_name, test=True)
         except (region_api.CallApiError, ServiceHandleException) as e:
             logger.exception("get region:'{0}' running failed: {1}".format(region_name, e))
-        if data:  # type: ignore[possibly-undefined]  # NOTE: data is unbound if exception raised; existing runtime behaviour retained
+        # NOTE: data is unbound if exception raised; existing runtime behaviour retained
+        if data:  # type: ignore[possibly-undefined]
             if data.get("service_ids"):
                 running_component_ids.extend(data.get("service_ids"))  # type: ignore[arg-type]
             if data.get("abnormal_ids"):

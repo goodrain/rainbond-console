@@ -4,15 +4,10 @@ from typing import Optional
 from console.models.main import SMSVerificationCode
 from django.utils import timezone
 
+
 class SMSVerificationCodeRepository(object):
-    def create_verification(self, phone: str, code: str, purpose: str,
-                            expires_at: datetime) -> SMSVerificationCode:
-        return SMSVerificationCode.objects.create(
-            phone=phone,
-            code=code,
-            purpose=purpose,
-            expires_at=expires_at
-        )
+    def create_verification(self, phone: str, code: str, purpose: str, expires_at: datetime) -> SMSVerificationCode:
+        return SMSVerificationCode.objects.create(phone=phone, code=code, purpose=purpose, expires_at=expires_at)
 
     def get_recent_code(self, phone: str, minutes: int = 1) -> Optional[SMSVerificationCode]:
         """获取最近一分钟内的验证码"""
@@ -32,10 +27,8 @@ class SMSVerificationCodeRepository(object):
 
     def get_valid_code(self, phone: str, purpose: str) -> Optional[SMSVerificationCode]:
         """获取有效的验证码"""
-        return SMSVerificationCode.objects.filter(
-            phone=phone,
-            purpose=purpose,
-            expires_at__gt=timezone.now()
-        ).order_by('-created_at').first()
+        return SMSVerificationCode.objects.filter(phone=phone, purpose=purpose,
+                                                  expires_at__gt=timezone.now()).order_by('-created_at').first()
+
 
 sms_repo = SMSVerificationCodeRepository()

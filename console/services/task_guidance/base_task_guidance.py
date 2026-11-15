@@ -21,7 +21,10 @@ class BaseTaskGuidance:
             # TODO: handle error
             platform_config_service.add_config_without_reload(key=eid, default_value=data, type="json")
         else:
-            data = eval(cfg.value)  # type: ignore[arg-type]  # NOTE: cfg.value is Optional[str]; cfg is non-None here (else branch) so value is expected to be a valid str
+            data = eval(
+                cfg.value  # type: ignore[arg-type]
+                # NOTE: cfg.value is Optional[str]; cfg is non-None here (else branch) so value is expected to be a valid str
+            )  # type: ignore[arg-type]
         need_update = False
         for index in range(len(data)):
             if data[index] is not None and data[index]["key"] == "install_mysql_from_market":

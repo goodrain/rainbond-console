@@ -1,7 +1,7 @@
 # -*- coding: utf8 -*-
 import json
 import logging
-import os
+
 from typing import Any, Dict, Optional, Set
 
 import urllib3
@@ -98,14 +98,8 @@ def _is_gateway_monitoring_app_top_path(plugin_name: str, file_path: str) -> boo
     if normalized in GATEWAY_MONITORING_APP_TOP_PATHS:
         return True
     parts = normalized.split("/")
-    return (
-        len(parts) == 6 and
-        parts[0] == "api" and
-        parts[1] == "v1" and
-        parts[2] == "teams" and
-        parts[4] == "apps" and
-        parts[5] in GATEWAY_MONITORING_APP_TOP_ACTIONS
-    )
+    return (len(parts) == 6 and parts[0] == "api" and parts[1] == "v1" and parts[2] == "teams" and parts[4] == "apps"
+            and parts[5] in GATEWAY_MONITORING_APP_TOP_ACTIONS)
 
 
 def _enrich_gateway_monitoring_app_items(payload: Any, region_name: str) -> Any:
@@ -297,8 +291,8 @@ class RainbondPluginBackendView(JWTAuthApiView):
             raise PermissionDenied("无权管理此集群的磁盘资源")
         try:
             key = resolve_gateway_key(enterprise_id, region_name)
-            prepare_cleanup_request(request, region_name, kwargs.get("file_path", ""),
-                                    self.is_enterprise_admin, region_allowed, key)
+            prepare_cleanup_request(request, region_name, kwargs.get("file_path", ""), self.is_enterprise_admin, region_allowed,
+                                    key)
         except CleanupAccessDenied:
             raise PermissionDenied("无权管理此集群的磁盘资源")
         except (CleanupGatewayUnavailable, OSError):
@@ -369,17 +363,22 @@ class RainbondObservablePluginLView(JWTAuthApiView):
             # indexes plugin as a dict — latent bug, items are list/bool not dict (real bug, backlog).
             for plugin in plugins:
                 if plugin["name"] == "observability":  # type: ignore[index,call-overload]
-                    res.append({"region_name": region.region_name, "urls": plugin["urls"],  # type: ignore[index,call-overload]
-                                "name": "observability"})
+                    res.append({
+                        "region_name": region.region_name,
+                        "urls": plugin["urls"],  # type: ignore[index,call-overload]
+                        "name": "observability"
+                    })
                 elif plugin["name"] == "rainbond-large-screen":  # type: ignore[index,call-overload]
-                    res.append({"region_name": region.region_name, "urls": plugin["urls"],  # type: ignore[index,call-overload]
-                                "name": "rainbond-large-screen"})
+                    res.append({
+                        "region_name": region.region_name,
+                        "urls": plugin["urls"],  # type: ignore[index,call-overload]
+                        "name": "rainbond-large-screen"
+                    })
         return Response(general_message(200, "success", "查询成功", list=res))
 
 
 class RainbondPluginFullProxyView(JWTAuthApiView):
     authentication_classes = (InternalTokenAuthentication, PluginQueryTokenAuthentication)
-
     """
     完整的 HTTP 代理视图，用于代理完整的 Web 应用（如 Grafana）
 
@@ -396,7 +395,6 @@ class RainbondPluginFullProxyView(JWTAuthApiView):
     调用链：
     前端 -> Console (此视图) -> Region API (Go 反向代理) -> 插件服务 (Grafana 等)
     """
-
     def _handle_proxy(self, request: Request, region_name: str, plugin_name: str, file_path: str) -> HttpResponse:
         """
         统一的代理处理方法

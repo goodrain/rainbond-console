@@ -9,6 +9,7 @@ from urllib.parse import quote, unquote, urlencode
 
 import httplib2
 import urllib3
+from addict import Dict as AttributeDict
 from django.http import StreamingHttpResponse
 
 from console.exception.main import ServiceHandleException
@@ -3265,14 +3266,160 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
 
     def create_vm_snapshot(self, region: str, tenant_name: str, service_alias: str,
                            body: dict) -> Tuple[Any, Optional[Dict[str, Any]]]:
+        allowed = {"name", "description", "request_id", "manifest_id", "power_after", "operator"}
+        if not isinstance(body, dict) or set(body) - allowed or any(not isinstance(value, str) for value in body.values()):
+            raise ServiceHandleException("invalid VM snapshot create body", status_code=400)
+        self._validated_vm_snapshot_name(body.get("name", ""))
+        for key in ("request_id", "manifest_id"):
+            if key in body:
+                self._validated_vm_snapshot_request_id(body[key])
+        url, headers = self._vm_snapshot_access(region, tenant_name, service_alias)
+        return self._vm_snapshot_request(region, url, headers, "POST", body)
+
+    def _vm_snapshot_request(self,
+                             region: str,
+                             url: str,
+                             headers: Dict[str, Any],
+                             method: str,
+                             body: Optional[dict] = None) -> Tuple[Any, Optional[Dict[str, Any]]]:
+        # A worker needs the actual HTTP status and full error/identity bean.
+        # Generic _check_status may collapse these into a message-only error.
+        options: Dict[str, Any] = dict(region=region, timeout=15, connect_timeout=5, retries=0)
+        if body is not None:
+            options["body"] = json.dumps(body)
+        status, raw = self._request(url, method, headers=headers, **options)
+        value = self._jsondecode(raw) if raw else None
+        return AttributeDict({"status": status}), AttributeDict(value) if isinstance(value, dict) else value
+
+    @staticmethod
+    def _validated_vm_snapshot_request_id(request_id: str) -> str:
+        if not isinstance(request_id, str) or re.fullmatch(r"[a-z0-9][a-z0-9-]{0,62}", request_id) is None:
+            raise ServiceHandleException("invalid VM snapshot request id", status_code=400)
+        return request_id
+
+    def command_vm_snapshot(self, region: str, tenant_name: str, service_alias: str, snapshot_name: str, action: str,
+                            body: dict) -> Tuple[Any, Optional[Dict[str, Any]]]:
+        self._validated_vm_snapshot_name(snapshot_name)
+        allowed = {
+            "operation_id", "core_hash", "request_id", "snapshot_uid", "content_uid", "native_proof_hash", "manifest_id",
+            "manifest_document_hash", "ack_kind"
+        }
+        if action not in {"halt", "create", "resume", "finalize", "cancel", "delete"} or not isinstance(body, dict):
+            raise ServiceHandleException("invalid VM snapshot action", status_code=400)
+        if set(body) - allowed or not {"operation_id", "core_hash", "request_id"} <= set(body):
+            raise ServiceHandleException("invalid VM snapshot action body", status_code=400)
+        if any(not isinstance(value, str) or len(value) > 4096 for value in body.values()):
+            raise ServiceHandleException("invalid VM snapshot action value", status_code=400)
+        self._validated_vm_snapshot_request_id(body["operation_id"])
+        self._validated_vm_snapshot_request_id(body["request_id"])
+        if re.fullmatch(r"[a-f0-9]{64}", body["core_hash"]) is None or len(json.dumps(body).encode("utf-8")) > 16 << 10:
+            raise ServiceHandleException("invalid VM snapshot action seal", status_code=400)
+        url, headers = self._vm_snapshot_access(region, tenant_name, service_alias, snapshot_name)
+        if action == "delete":
+            return self._vm_snapshot_request(region, url, headers, "DELETE", body)
+        return self._vm_snapshot_request(region, url + "/" + action, headers, "POST", body)
+
+    def _vm_restore_rpc(self,
+                        region: str,
+                        tenant_name: str,
+                        service_alias: str,
+                        suffix: str,
+                        method: str = 'GET',
+                        body: Optional[str] = None) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+        url, headers = self._vm_snapshot_access(region, tenant_name, service_alias)
+        url = url[:-len('/vm-snapshots')] + suffix
+        # Keep the raw HTTP/error envelope: the common 409 handler drops bean,
+        # and an accepted unknown outcome is not an exception or completion.
+        status, content = self._request(url,
+                                        method,
+                                        headers=headers,
+                                        body=body,
+                                        region=region,
+                                        connect_timeout=3,
+                                        timeout=5,
+                                        retries=0)
+        try:
+            if not content or len(content) > 1048576:
+                raise ValueError()
+            value = json.loads(content)
+            if not isinstance(value, dict):
+                raise ValueError()
+        except (ValueError, TypeError, UnicodeError):
+            raise ServiceHandleException('vm_restore_read_failed', '读取恢复状态失败', status_code=502) from None
+        return {'status': status}, value
+
+    def get_vm_restore_control(self, region: str, tenant_name: str,
+                               service_alias: str) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+        return self._vm_restore_rpc(region, tenant_name, service_alias, '/vm-restore-control')
+
+    def get_vm_restore(self, region: str, tenant_name: str, service_alias: str,
+                       operation_id: str) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+        from console.utils.vm_restore_rpc import operation_id as validate_operation_id
+        validate_operation_id(operation_id)
+        return self._vm_restore_rpc(region, tenant_name, service_alias, '/vm-restores/' + operation_id)
+
+    def command_vm_restore(self, region: str, tenant_name: str, service_alias: str, operation_id: str, action: str,
+                           body: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+        from console.utils.vm_restore_rpc import command_body, operation_id as validate_operation_id
+        validate_operation_id(operation_id)
+        encoded = command_body(action, body)
+        return self._vm_restore_rpc(region, tenant_name, service_alias, '/vm-restores/{}/steps/{}'.format(operation_id, action),
+                                    'POST', encoded)
+
+    @staticmethod
+    def _validated_vm_snapshot_name(snapshot_name: str) -> str:
+        # Match Region's DNS1123 subdomain contract before constructing a URL.
+        # URL quoting leaves dot segments unchanged; transport normalizes them.
+        pattern = r"[a-z0-9](?:[-a-z0-9]*[a-z0-9])?(?:\.[a-z0-9](?:[-a-z0-9]*[a-z0-9])?)*"
+        if not isinstance(snapshot_name, str) or len(snapshot_name) > 253 or re.fullmatch(pattern, snapshot_name) is None:
+            raise ServiceHandleException("invalid VM snapshot name", status_code=400)
+        return snapshot_name
+
+    def _vm_snapshot_access(self,
+                            region: str,
+                            tenant_name: str,
+                            service_alias: str,
+                            snapshot_name: Optional[str] = None) -> Tuple[str, Dict[str, Any]]:
+        if not isinstance(service_alias, str) or service_alias in ("", ".", ".."):
+            raise ServiceHandleException("invalid VM snapshot service path", status_code=400)
         url, token = self.__get_region_access_info(tenant_name, region)
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
-        url = url + "/v2/tenants/{}/services/{}/vm-snapshots".format(
-            tenant_region.region_tenant_name, service_alias)
+        if not isinstance(tenant_region.region_tenant_name, str) or tenant_region.region_tenant_name in ("", ".", ".."):
+            raise ServiceHandleException("invalid VM snapshot tenant path", status_code=400)
+        url += "/v2/tenants/{}/services/{}/vm-snapshots".format(quote(tenant_region.region_tenant_name, safe=""),
+                                                                quote(service_alias, safe=""))
+        if snapshot_name is not None:
+            url += "/" + quote(snapshot_name, safe="")
+        # Each request owns its authentication headers; other region calls must
+        # not change the authority of a pending snapshot operation.
+        headers: Dict[str, Any] = {"Connection": "keep-alive", "Content-Type": "application/json"}
+        if settings.MODULES["RegionToken"]:
+            headers["Authorization"] = token or os.environ.get("REGION_TOKEN", "")
+        return url, headers
 
-        self._set_headers(token)
-        res, body = self._post(url, self.default_headers, region=region, body=json.dumps(body))
-        return res, body
+    def get_vm_snapshot_capability(self, region: str, tenant_name: str,
+                                   service_alias: str) -> Tuple[Any, Optional[Dict[str, Any]]]:
+        url, headers = self._vm_snapshot_access(region, tenant_name, service_alias)
+        url = url[:-len('/vm-snapshots')] + '/vm-snapshot-capability'
+        return self._get(url, headers, region=region, timeout=15, connect_timeout=3, retries=0)
+
+    def list_vm_snapshots(self,
+                          region: str,
+                          tenant_name: str,
+                          service_alias: str,
+                          page: int = 1,
+                          page_size: int = 20) -> Tuple[Any, Optional[Dict[str, Any]]]:
+        if type(page) is not int or type(page_size) is not int or page < 1 or not 1 <= page_size <= 100:
+            raise ServiceHandleException("invalid VM snapshot pagination", status_code=400)
+        url, headers = self._vm_snapshot_access(region, tenant_name, service_alias)
+        url += "?" + urlencode({"page": page, "page_size": page_size})
+        return self._get(url, headers, region=region, timeout=15, connect_timeout=5, retries=0)
+
+    def get_vm_snapshot(self, region: str, tenant_name: str, service_alias: str,
+                        snapshot_name: str) -> Tuple[Any, Optional[Dict[str, Any]]]:
+        snapshot_name = self._validated_vm_snapshot_name(snapshot_name)
+        url, headers = self._vm_snapshot_access(region, tenant_name, service_alias, snapshot_name)
+        return self._vm_snapshot_request(region, url, headers, "GET")
 
     def get_node_info(self, region: str, node_name: str) -> Tuple[Any, Optional[Dict[str, Any]]]:
         region_info = self.get_region_info(region)

@@ -141,7 +141,8 @@ class TenantServiceEnvVarRepository(object):
         prefix_start_env = Q(attr_name__startswith="BUILD_")
         cnb_prefix_env = Q(attr_name__startswith="CNB_")  # CNB 构建参数
         build_start_env = Q(scope="build")
-        build_envs = self.get_service_env(tenant_id, service_id).filter(default_envs | prefix_start_env | cnb_prefix_env | build_start_env)
+        build_envs = self.get_service_env(tenant_id,
+                                          service_id).filter(default_envs | prefix_start_env | cnb_prefix_env | build_start_env)
         for benv in build_envs:
             envs[benv.attr_name] = benv.attr_value
         compile_env = compile_env_repo.get_service_compile_env(service_id)
@@ -584,6 +585,7 @@ class TenantServiceMntRelationRepository(object):
         volume_deps = [dep for dep in volume_deps if dep.service_id in component_ids]
         TenantServiceMountRelation.objects.filter(service_id__in=component_ids).delete()
         self.bulk_create(volume_deps)
+
 
 class ServiceDomainRepository(object):
     def get_service_domain_by_container_port(self, service_id: str, container_port: int) -> QuerySet:

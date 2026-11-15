@@ -2,12 +2,14 @@ from typing import Any
 
 from rest_framework import serializers
 
+
 class RegionSerializer(serializers.Serializer):
     """集群序列化器"""
     region_name = serializers.CharField(help_text="集群名称")
     region_alias = serializers.CharField(help_text="集群别名")
     status = serializers.CharField(help_text="集群状态")
     desc = serializers.CharField(help_text="集群描述", required=False, allow_null=True)
+
 
 class TeamSerializer(serializers.Serializer):
     """团队序列化器"""
@@ -26,9 +28,11 @@ class AppSerializer(serializers.Serializer):
     update_time = serializers.DateTimeField(help_text="更新时间")
     create_time = serializers.DateTimeField(help_text="创建时间")
 
+
 class CreateAppRequestSerializer(serializers.Serializer):
     """创建应用请求参数序列化器"""
     app_name = serializers.CharField(help_text="应用名", required=False, allow_blank=True)
+
 
 class CreateAppResponseSerializer(serializers.Serializer):
     """创建应用响应参数序列化器"""
@@ -127,7 +131,7 @@ class ComponentDetailSerializer(serializers.Serializer):
     min_memory = serializers.IntegerField(help_text="内存大小")
     min_cpu = serializers.IntegerField(help_text="CPU大小")
     status_cn = serializers.CharField(help_text="运行状态")
-    
+
     # 扩展信息
     ports = ComponentPortSerializer(many=True, help_text="端口列表")
     envs = ComponentEnvSerializer(many=True, help_text="环境变量列表")

@@ -31,6 +31,7 @@ from console.repositories.app_config import domain_repo, configuration_repo, por
 from console.repositories.label_repo import service_label_repo
 from console.repositories.label_repo import label_repo
 from console.repositories.k8s_attribute import k8s_attribute_repo
+from console.services.vm_login_security import filter_vm_login_transfer_attributes
 from console.repositories.k8s_resources import k8s_resources_repo
 from console.services.app import app_market_service
 from console.services.app_config import component_service_monitor
@@ -271,7 +272,11 @@ class ShareService(object):
         logger.debug("======>get services deploy version failure")
         return None
 
-    def query_share_service_info(self, team: Any, group_id: Any, scope: Optional[str] = None, include_unbuilt: bool = False) -> list:
+    def query_share_service_info(self,
+                                 team: Any,
+                                 group_id: Any,
+                                 scope: Optional[str] = None,
+                                 include_unbuilt: bool = False) -> list:
         service_list = share_repo.get_service_list_by_group_id(team=team, group_id=group_id)
         # 过滤掉 kubeblocks 类型的组件
         service_list = [s for s in service_list if not is_kubeblocks(s.extend_method)]
@@ -2039,7 +2044,7 @@ class ShareService(object):
 
     @staticmethod
     def list_component_k8s_attributes(component_ids: list) -> dict:
-        attrs = k8s_attribute_repo.list_by_component_ids(component_ids)
+        attrs = filter_vm_login_transfer_attributes(k8s_attribute_repo.list_by_component_ids(component_ids))
         result: Dict[Any, Any] = {}
         for attr in attrs:
             if not result.get(attr.component_id):

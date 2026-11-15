@@ -95,38 +95,38 @@ def normalize_name_for_k8s_namespace(name):
     """
     if not name:
         return "user"
-    
+
     # 转换为小写
     name = name.lower()
-    
+
     # 移除或替换不允许的字符，只保留字母、数字和连字符
     name = re.sub(r'[^a-z0-9\-]', '-', name)
-    
+
     # 移除连续的连字符
     name = re.sub(r'-+', '-', name)
-    
+
     # 确保以字母开头
     if not re.match(r'^[a-z]', name):
         name = 'user-' + name
 
     # 移除开头的连字符（如果有）
     name = name.lstrip('-')
-    
+
     # 移除结尾的连字符
     name = name.rstrip('-')
-    
+
     # 如果为空或只包含连字符，使用默认值
     if not name or name == '-':
         name = 'user'
-    
+
     # 限制长度为63个字符
     if len(name) > 63:
         name = name[:63].rstrip('-')
-    
+
     # 最终验证
     if not is_qualified_name(name):
         # 如果仍然不符合规范，使用默认值加随机后缀
         import time
         name = 'user-{}'.format(int(time.time()) % 100000)
-    
+
     return name

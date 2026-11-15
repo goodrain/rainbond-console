@@ -19,7 +19,7 @@ import {
 } from '../utils/node-shape-utils';
 
 
-function NodeShape(shapeType, shapeElement, shapeProps, { id, highlighted, color, metric }) {
+function NodeShape(shapeType, shapeElement, shapeProps, { id, highlighted, color, metric, isVirtualMachine, markerColor }) {
   const { height, hasMetric, formattedValue } = getMetricValue(metric);
   const className = classNames('shape', `shape-${shapeType}`, { metrics: hasMetric });
   const metricStyle = { fill: getMetricColor(metric) };
@@ -65,6 +65,31 @@ function NodeShape(shapeType, shapeElement, shapeProps, { id, highlighted, color
         <text>{formattedValue}</text> :
         <circle className="node" r={NODE_BASE_SIZE * 0.1} />
       }
+      {isVirtualMachine && (
+        <g
+          className="virtual-machine-badge"
+          transform="translate(31 -32) scale(0.65)"
+          style={{ pointerEvents: 'none' }}
+          role="img"
+          aria-label="Virtual machine (VM)"
+        >
+          <title>Virtual machine (VM)</title>
+          <rect className="background" x="-17" y="-10" width="34" height="20" rx="6" />
+          <rect
+            x="-17"
+            y="-10"
+            width="34"
+            height="20"
+            rx="6"
+            fill={markerColor}
+            fillOpacity="0.14"
+            stroke={markerColor}
+            strokeOpacity="0.5"
+            strokeWidth="1.5"
+          />
+          <text x="0" y="0" style={{ fill: markerColor }} fontWeight="600">VM</text>
+        </g>
+      )}
     </g>
   );
 }

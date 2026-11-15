@@ -305,14 +305,16 @@ def normalize_python_cnb_env_dict_for_save(build_env_dict, language, build_strat
         envs.pop("start_command_source", None)
         return envs
 
-    manager = _first_non_empty(current_envs, "BUILD_PYTHON_PACKAGE_MANAGER") or _first_non_empty(envs, "BUILD_PYTHON_PACKAGE_MANAGER") or "pip"
+    manager = _first_non_empty(current_envs, "BUILD_PYTHON_PACKAGE_MANAGER") or _first_non_empty(
+        envs, "BUILD_PYTHON_PACKAGE_MANAGER") or "pip"
     envs["BUILD_PYTHON_PACKAGE_MANAGER"] = manager
 
     current_start_command = _first_non_empty(current_envs, "BUILD_PROCFILE", "BUILD_AUTO_PROCFILE")
     if isinstance(envs.get("BUILD_PROCFILE"), str) and envs.get("BUILD_PROCFILE", "").strip() == "":
         envs.pop("BUILD_PROCFILE", None)
     if _first_non_empty(envs, "BUILD_PROCFILE"):
-        if _first_non_empty(envs, "BUILD_PROCFILE") == current_start_command and _first_non_empty(current_envs, "START_COMMAND_SOURCE"):
+        if _first_non_empty(envs, "BUILD_PROCFILE") == current_start_command and _first_non_empty(
+                current_envs, "START_COMMAND_SOURCE"):
             envs["START_COMMAND_SOURCE"] = _first_non_empty(current_envs, "START_COMMAND_SOURCE")
         else:
             envs["START_COMMAND_SOURCE"] = "user"
