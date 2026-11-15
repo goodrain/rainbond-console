@@ -30,6 +30,7 @@ from console.models.main import RegionConfig
 # www
 from www.apiclient.regionapi import RegionInvokeApi
 from console.repositories.region_app import region_app_repo
+from console.utils.vm_restore_attributes import public_vm_attributes
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
@@ -229,7 +230,7 @@ class MarketApp(object):
                 "monitors": [monitor.to_dict() for monitor in cpt.monitors],
                 "http_rules": self._create_http_rules(cpt.http_rules, cert_id_rels),
                 "http_rule_configs": [json.loads(config.value) for config in cpt.http_rule_configs],
-                "component_k8s_attributes": [attr.to_dict() for attr in (cpt.k8s_attributes or [])],
+                "component_k8s_attributes": [attr.to_dict() for attr in public_vm_attributes(cpt.k8s_attributes)],
             }
             volumes = [volume.to_dict() for volume in cpt.volumes]
             for volume in volumes:
