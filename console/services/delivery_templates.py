@@ -658,6 +658,8 @@ class DeliveryService:
             task.actor_name,
             "created_at":
             task.created_at.isoformat(),
+            "updated_at":
+            task.updated_at.isoformat(),
             "error":
             task.error,
             "download_url":

@@ -1262,6 +1262,8 @@ class DeliveryWorkflowTest(unittest.TestCase):
         main.TenantServiceInfo, main.TenantServiceGroup = mock.Mock(), mock.Mock()
         main.ServiceGroup = mock.Mock()
         main.ServiceGroup.objects.filter.return_value.exists.return_value = True
+        main.ServiceGroup.objects.filter.return_value.first.return_value = SimpleNamespace(
+            group_name="Installed app", update_time=None)
         main.TenantServiceInfo.objects.filter.return_value.values_list.return_value = [73]
         group = SimpleNamespace(ID=73, group_key="actual-market-key", group_version="1.0.0")
         main.TenantServiceGroup.objects.filter.return_value = [group]
@@ -1277,6 +1279,7 @@ class DeliveryWorkflowTest(unittest.TestCase):
             **{name: SimpleNamespace(value=value) for name, value in states.items()})
         tenant = SimpleNamespace(tenant_id="target-tenant", tenant_name="target", enterprise_id="enterprise")
         task = SimpleNamespace(kind="delivery", status="succeeded", template=SimpleNamespace(enterprise_id="enterprise"),
+                               version=SimpleNamespace(version="1.0.0"),
                                payload={"target": {"team_name": "target", "region_name": "production", "app_name": "App"}},
                                updated_at=datetime.datetime(2026, 11, 15, 10, 0, tzinfo=datetime.timezone.utc),
                                result={"app_id": "42", "service_ids": ["installed-component"]})
@@ -1292,6 +1295,12 @@ class DeliveryWorkflowTest(unittest.TestCase):
             self.assertEqual(result["upgrade_group_id"], "73")
             self.assertEqual(result["app_model_id"], "actual-market-key")
             self.assertEqual(result["target"]["app_id"], "42")
+            self.assertEqual(result["target"]["app_name"], "Installed app")
+            app = main.ServiceGroup.objects.filter.return_value.first.return_value
+            app.update_time = task.updated_at + datetime.timedelta(hours=2)
+            refreshed = DeliveryGateway().upgrade_info(task, USER)
+            self.assertEqual(refreshed["updated_at"], app.update_time.isoformat())
+            app.update_time = None
             market.market_app_service.get_models_upgradeable_version.assert_called_with(
                 "enterprise", "actual-market-key", "42", "73")
             group.group_version = "2.0.0"
@@ -1312,7 +1321,20 @@ class DeliveryWorkflowTest(unittest.TestCase):
             self.assertEqual(current["updated_at"], pending.return_value.update_time.isoformat())
             pending.return_value = None
             main.TenantServiceGroup.objects.filter.return_value = []
-            self.assertFalse(DeliveryGateway().upgrade_info(task, USER)["available"])
+            incomplete = DeliveryGateway().upgrade_info(task, USER)
+            self.assertFalse(incomplete["available"])
+            self.assertTrue(incomplete["version_unavailable"])
+            self.assertEqual(incomplete["delivered_version"], "1.0.0")
+            self.assertEqual(incomplete["updated_at"], task.updated_at.isoformat())
+            permission.side_effect = DeliveryError("应用不存在", 404)
+            deleted = DeliveryGateway().upgrade_info(task, USER)
+            self.assertTrue(deleted["target_deleted"])
+            self.assertEqual(deleted["delivered_version"], "1.0.0")
+            self.assertEqual(deleted["updated_at"], task.updated_at.isoformat())
+            self.assertFalse(deleted["available"])
+            permission.side_effect = DeliveryError("团队不存在", 404)
+            with self.assertRaises(DeliveryError):
+                DeliveryGateway().upgrade_info(task, USER)
             permission.side_effect = DeliveryError("无权升级", 403)
             with self.assertRaises(DeliveryError):
                 DeliveryGateway().upgrade_info(task, USER)
