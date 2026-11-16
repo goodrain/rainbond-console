@@ -68,7 +68,7 @@ function NodeShape(shapeType, shapeElement, shapeProps, { id, highlighted, color
       {isVirtualMachine && (
         <g
           className="virtual-machine-badge"
-          transform="translate(33 -33) scale(0.78)"
+          transform="translate(33 -33) scale(1.2)"
           style={{ pointerEvents: 'none' }}
           role="img"
           aria-label="Virtual machine (VM)"
