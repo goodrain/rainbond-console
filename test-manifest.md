@@ -747,6 +747,7 @@
 | console.vm-snapshot.durable-worker | 普通快照持久任务入队与唯一后台执行闭环 | active | integration | console.services.vm_snapshot_jobs.SnapshotJobService.submit -> VMJobRunner default snapshot factory | console/tests/vm_snapshot_jobs_worker_test.py |
 | console.vm-snapshot.enqueue-api | Scoped durable snapshot HTTP enqueue and canonical status | active | integration | POST /console/teams/{team}/apps/{alias}/vm-snapshots -> SQL job; GET /vm-jobs/{operation_id} | console/tests/vm_snapshot_enqueue_api_test.py |
 | console.vm-snapshot.existing-capability | 当前虚拟机完整盘集合快照能力读取 | active | integration | GET /console/teams/{team}/apps/{alias}/vm-snapshot-capability | console/tests/vm_existing_snapshot_capability_test.py::ExistingVMSnapshotCapabilityTests |
+| console.vm-snapshot.explicit-retry | Discover active snapshot jobs and explicitly retry the original immutable request | active | integration | GET /vm-jobs/active; POST /vm-jobs/{operation_id}/retry | console/tests/vm_snapshot_enqueue_api_test.py::SnapshotEnqueueAPITests<br>console/tests/vm_snapshot_jobs_worker_test.py::SnapshotJobsWorkerTests |
 | console.vm-snapshot.manifest-ack-helper | 普通虚拟机快照manifest提交后ACK构造与证据拒绝 | active | integration | console.services.vm_snapshot_manifest_ack.SnapshotManifestService | console/tests/vm_snapshot_manifest_ack_test.py |
 | console.vm-snapshot.private-control-boundary | Private VM journal public boundary and original exposure controls | active | regression | public attribute service/repository and isolated SQL internal journal | console/tests/vm_snapshot_private_boundary_test.py |
 | console.vm-snapshot.read-api | 在实际Main源码上按组件权限读取快照 | active | integration | GET /console/teams/{tenantName}/apps/{serviceAlias}/vm-snapshots[/{snapshot_name}] | console/tests/vm_snapshot_read_api_test.py::VMSnapshotReadAPITestCase |
@@ -8216,6 +8217,16 @@
 - 业务入口: `GET /console/teams/{team}/apps/{alias}/vm-snapshot-capability`
 - 代码路径: `console/services/vm_existing_snapshot_capability.py`, `console/services/vm_snapshot_read.py`, `console/views/vm_snapshot.py`, `www/apiclient/regionapi.py`, `console/urls/__init__.py`
 - 测试路径: `console/tests/vm_existing_snapshot_capability_test.py::ExistingVMSnapshotCapabilityTests`
+
+### Discover active snapshot jobs and explicitly retry the original immutable request
+
+- Capability ID: `console.vm-snapshot.explicit-retry`
+- 状态: `active`
+- 测试类型: `integration`
+- 接口类型: `workflow`
+- 业务入口: `GET /vm-jobs/active; POST /vm-jobs/{operation_id}/retry`
+- 代码路径: `console/services/vm_snapshot_jobs.py`, `console/services/vm_restore_journal.py`, `console/views/vm_jobs.py`, `console/urls/__init__.py`
+- 测试路径: `console/tests/vm_snapshot_enqueue_api_test.py::SnapshotEnqueueAPITests`, `console/tests/vm_snapshot_jobs_worker_test.py::SnapshotJobsWorkerTests`
 
 ### 普通虚拟机快照manifest提交后ACK构造与证据拒绝
 

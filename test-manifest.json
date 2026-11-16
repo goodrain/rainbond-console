@@ -14395,6 +14395,31 @@
       "status": "active"
     },
     {
+      "id": "console.vm-snapshot.explicit-retry",
+      "title": "Discover active snapshot jobs and explicitly retry the original immutable request",
+      "title_zh": "Discover active snapshot jobs and explicitly retry the original immutable request",
+      "interface_type": "workflow",
+      "interface": "GET /vm-jobs/active; POST /vm-jobs/{operation_id}/retry",
+      "code_paths": [
+        "console/services/vm_snapshot_jobs.py",
+        "console/services/vm_restore_journal.py",
+        "console/views/vm_jobs.py",
+        "console/urls/__init__.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/vm_snapshot_enqueue_api_test.py",
+          "selector": "SnapshotEnqueueAPITests"
+        },
+        {
+          "path": "console/tests/vm_snapshot_jobs_worker_test.py",
+          "selector": "SnapshotJobsWorkerTests"
+        }
+      ],
+      "test_type": "integration",
+      "status": "active"
+    },
+    {
       "id": "console.vm-snapshot.manifest-ack-helper",
       "title": "Durable snapshot manifest and exact worker ACK helper",
       "title_zh": "普通虚拟机快照manifest提交后ACK构造与证据拒绝",

@@ -1,4 +1,5 @@
 # capability_id: console.vm-snapshot.durable-worker
+# capability_id: console.vm-snapshot.explicit-retry
 """Real Console SQL + the production SDK; server is an explicit LOCAL RPC fixture."""
 import copy
 import json
@@ -238,6 +239,45 @@ class SnapshotJobsWorkerTests(TestCase):
                 self.jobs.submit(self.ctx, changed, actor)
         row.refresh_from_db()
         self.assertEqual(row.attribute_value, original)
+
+    def test_rejected_snapshot_requires_explicit_retry_of_the_original_request(self):
+        self.configure()
+        ComponentK8sAttributes.objects.filter(component_id='service-a', name='vm_boot_mode').delete()
+        row = ComponentK8sAttributes.objects.get(component_id='service-a', name='vm_disk_layout')
+        row.attribute_value = json.dumps(
+            json.loads(row.attribute_value) + [
+                dict(disk_key='vmimage', source_kind='installer_media', device_type='cdrom'),
+                dict(disk_key='virtio', source_kind='container_disk', device_type='cdrom')
+            ])
+        row.save()
+        self.transport()
+        self.jobs.submit(self.ctx, self.selection, '42')
+        self.server.reject_prepare = True
+        rejected = self.run_job(100)
+        self.assertEqual(rejected['error_code'], 'CONFLICT')
+        calls = len(self.server.calls)
+        self.run_job(140)
+        self.assertEqual(len(self.server.calls), calls, 'restart or polling cannot retry rejected work')
+        with self.assertRaises(JournalConflict):
+            self.jobs.retry(self.ctx, 'job-a', rejected['revision'], now=110)
+        with self.assertRaises(JournalConflict):
+            self.jobs.retry(self.ctx, 'job-a', rejected['revision'] - 1, now=140)
+        resumed = self.jobs.retry(self.ctx, 'job-a', rejected['revision'], now=140)
+        self.assertEqual(len(self.server.calls), calls, 'retry HTTP path cannot call Region')
+        self.assertEqual(resumed['error_code'], '')
+        current = self.journal.read_operation(self.ctx, 'job-a')
+        self.assertEqual(current['request'], rejected['request'])
+        self.assertEqual(current['region_intent'], rejected['region_intent'])
+        self.assertEqual(self.journal.active_operation(self.ctx), 'job-a')
+        self.server.reject_prepare = False
+        self.run_job(141)
+        prepares = [c for c in self.server.calls if c[0] == 'POST' and c[1].endswith('/vm-snapshots')]
+        self.assertEqual(len(prepares), 2)
+        self.assertEqual(prepares[0][2], prepares[1][2], 'retry must preserve the exact immutable Prepare body')
+        for now in (181, 221, 261, 301, 341):
+            self.run_job(now)
+        self.assertTrue(self.jobs.status(self.ctx, 'job-a')['complete'])
+        self.assertEqual(self.journal.active_operation(self.ctx), '')
 
     def test_missing_or_go_byte_length_invalid_actor_and_client_scope_fields_are_refused(self):
         self.configure()

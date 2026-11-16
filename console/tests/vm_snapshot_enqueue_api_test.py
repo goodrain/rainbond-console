@@ -1,4 +1,5 @@
 # capability_id: console.vm-snapshot.enqueue-api
+# capability_id: console.vm-snapshot.explicit-retry
 """Actual scoped HTTP -> actual SQL job -> actual loopback SDK worker (LOCAL only)."""
 import json
 import os
@@ -188,3 +189,50 @@ class SnapshotEnqueueAPITests(TestCase):
         finally:
             with self.database.cursor() as cursor:
                 cursor.execute('DROP TRIGGER abort_public_snapshot_enqueue')
+
+    def test_retry_route_requires_write_permission_and_only_reopens_original_durable_job(self):
+        self.transport()
+        self.assertEqual(self.call().status_code, 202)
+        self.server.reject_prepare = True
+        VMJobRunner(journal=VMRestoreJournal(), snapshot_client=self.client, owner='worker-local', clock=lambda: 100).process(
+            self.ctx, 'job-a')
+        operation = self.journal.read_operation(self.ctx, 'job-a')
+        calls = len(self.server.calls)
+        path = '/console/teams/team-a/apps/vm-a/vm-jobs/job-a/retry'
+        match = resolve(path)
+
+        def retry(body, ready=True):
+            request = self.factory.post(path, body, format='json', HTTP_X_REGION_NAME='region-a')
+            force_authenticate(request, self.user)
+            with mock.patch('console.services.vm_snapshot_jobs.time.time', return_value=140), \
+                    mock.patch('console.views.vm_jobs.vm_job_health.ready', return_value=ready), \
+                    mock.patch('console.views.vm_jobs.operation_log_service.create_log'):
+                return match.func(request, **match.kwargs)
+
+        body = dict(request_id='job-a', revision=operation['revision'])
+        self.permissions = {42: [300002]}
+        self.assertEqual(retry(body).status_code, 403)
+        self.permissions = {42: [300002, 300003]}
+        self.assertEqual(retry(dict(body, request_id='other')).status_code, 400)
+        self.assertEqual(retry(body, ready=False).status_code, 503)
+        self.assertEqual(retry(dict(body, revision=0)).status_code, 409)
+        self.assertEqual(retry(body).status_code, 202)
+        self.assertEqual(len(self.server.calls), calls)
+        self.assertEqual(self.journal.active_operation(self.ctx), 'job-a')
+        self.assertEqual(self.journal.read_operation(self.ctx, 'job-a')['request'], operation['request'])
+        self.assertEqual(self.journal.read_operation(self.ctx, 'job-a')['error_code'], '')
+
+    def test_active_job_is_discoverable_without_browser_storage_and_keeps_private_fields_hidden(self):
+        self.assertEqual(self.call('get', operation='active').data['data']['bean'], dict(blocked=False, snapshot=None))
+        self.assertEqual(self.call().status_code, 202)
+        row = ComponentK8sAttributes.objects.get(name='vm_restore_operation_job-a')
+        original = row.attribute_value
+        result = self.call('get', operation='active').data['data']['bean']
+        self.assertTrue(result['blocked'])
+        self.assertEqual(result['snapshot']['selection'], self.selection)
+        self.assertEqual(result['snapshot']['job']['request_id'], 'job-a')
+        for private in ('operator', 'region_intent', 'lease_owner', 'execution_epoch'):
+            self.assertNotIn(private, json.dumps(result))
+        row.refresh_from_db()
+        self.assertEqual(row.attribute_value, original)
+        self.assert_no_http_rpc()

@@ -4,7 +4,7 @@ from django.urls import include, re_path, path
 
 import console.utils.perms_route_config as perms
 from console.views.vm_snapshot import VMSnapshotListView, VMSnapshotDetailView, VMSnapshotCapabilityView, VMSnapshotRestoreView
-from console.views.vm_jobs import VMJobCapabilityView, VMJobStatusView
+from console.views.vm_jobs import VMActiveSnapshotJobView, VMJobCapabilityView, VMJobStatusView, VMSnapshotJobRetryView
 from console.views.delivery_templates import (
     DeliveryTemplatesView,
     DeliverySourceView,
@@ -1106,6 +1106,13 @@ urlpatterns = [
     re_path(
         r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/vm-jobs/capabilities$',
         VMJobCapabilityView.as_view(), perms.APP_VM_SNAPSHOT_READ),
+
+    re_path(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/vm-jobs/active$',
+            VMActiveSnapshotJobView.as_view(), perms.APP_VM_SNAPSHOT_READ),
+
+    re_path(
+        r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/vm-jobs/(?P<operation_id>[a-z0-9-]{1,63})/retry$',
+        VMSnapshotJobRetryView.as_view(), perms.APP_VM_SNAPSHOT_PREPARE),
 
     # Existing durable job status path; snapshot-only canonical alias lives in its delegate.
     re_path(

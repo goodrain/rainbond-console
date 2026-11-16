@@ -1057,6 +1057,20 @@ class VMRestoreJournal:
             self._write(scope, records, attrs, OPERATION_PREFIX + operation_id, op)
             return op
 
+    def retry_snapshot_operation(self, context, operation_id, revision, now):
+        integer(revision, 1)
+        integer(now)
+        with self._locked(context) as (scope, records, attrs):
+            op = self._operation(records, operation_id)
+            require(op['kind'] == 'snapshot' and op['request_id'] == operation_id and 'operator' in op.get('request', {}))
+            require(records[VM_RESTORE_ACTIVE_OPERATION]['operation_id'] == operation_id and op['phase'] not in TERMINAL)
+            require(op['error_code'] == 'CONFLICT' and op['revision'] == revision and op['lease_until'] <= now)
+            # An explicit user action only reopens the same durable request.
+            # It never clears Region intent, changes the actor or releases a fence.
+            op.update(error_code='', retry_at=0, revision=revision + 1)
+            self._write(scope, records, attrs, OPERATION_PREFIX + operation_id, op)
+            return op
+
     def advance(self, context, operation_id, owner, epoch, revision, phase, now, retry_at=0, error_code=''):
         require(type(phase) is str and phase in PHASES)
         integer(retry_at)

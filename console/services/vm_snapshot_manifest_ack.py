@@ -88,17 +88,30 @@ class SnapshotManifestService:
             if name in ('vm_boot_mode', 'vm_disk_layout'):
                 require(row.tenant_id == live.tenant_id and row.name == name and name not in found)
                 found[name] = row
-        require(set(found) == {'vm_boot_mode', 'vm_disk_layout'})
-        require(found['vm_boot_mode'].save_type == 'string' and found['vm_boot_mode'].attribute_value == config['boot_mode']
-                and found['vm_disk_layout'].save_type == 'json')
+        require('vm_disk_layout' in found and found['vm_disk_layout'].save_type == 'json')
+        boot = found.get('vm_boot_mode')
+        # ISO-created BIOS guests historically omit this optional attribute.
+        # An explicit boot mode still has to match the observed native config.
+        require((boot is None and config['boot_mode'] == 'bios')
+                or (boot is not None and boot.save_type == 'string' and boot.attribute_value == config['boot_mode']))
         try:
             layout = json.loads(found['vm_disk_layout'].attribute_value, object_pairs_hook=strict_pairs)
         except (ValueError, TypeError):
             require(False)
-        require(
-            type(layout) is list and len(layout) == len(config['disk_layout']) and all(type(item) is dict for item in layout))
-        actual = {item.get('disk_key'): item for item in layout}
-        require(len(actual) == len(layout) and set(actual) == {row['disk_key'] for row in config['disk_layout']})
+        require(type(layout) is list and all(type(item) is dict for item in layout))
+        require(all(type(item.get('disk_key')) is str and item['disk_key'] for item in layout))
+        require(len({item['disk_key'] for item in layout}) == len(layout))
+        actual = {}
+        for item in layout:
+            if item.get('source_kind') == 'volume':
+                actual[item['disk_key']] = item
+            else:
+                # This is the same read-only optical-media exclusion as Region.
+                # Unknown or writable sources must never disappear from coverage.
+                require(
+                    item.get('source_kind') in ('installer_media', 'container_disk') and item.get('device_type') == 'cdrom'
+                    and item.get('read_only', True) is True)
+        require(set(actual) == {row['disk_key'] for row in config['disk_layout']})
         for disk in config['disk_layout']:
             item = actual[disk['disk_key']]
             # Display disk_name and Console PK are not Region manual<volume_id>.
