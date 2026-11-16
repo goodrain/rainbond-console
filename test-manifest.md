@@ -245,6 +245,7 @@
 | console.component-env.field-length-validation | 持久化前校验环境变量字段长度 | active | regression | console.services.app_config.env_service.AppEnvVarService.add_service_env_var | console/tests/app_env_service_test.py::AppEnvVarServiceUpdateTestCase.test_add_env_rejects_overlong_description_before_region_or_database_write |
 | console.component-recycle.atomic-retry | 回滚部分回收变更并允许重试 | active | regression | console.services.app_actions.app_manage.AppManageService.delete | console/tests/app_manage_test.py::AppManageRecycleFieldProjectionTests.test_recycle_failure_deleting_original_rolls_back_and_can_retry<br>console/tests/app_manage_test.py::AppManageRecycleFieldProjectionTests.test_relation_move_failure_rolls_back_single_and_batch_delete_and_can_retry |
 | console.component-recycle.field-projection | 将当前组件字段投影到回收模型 | active | regression | console.repositories.app.ServiceRecycleBinRepository.create_trash_service | console/tests/app_manage_test.py::AppManageRecycleFieldProjectionTests.test_recycle_preserves_declared_fields_and_removes_original_after_insert<br>console/tests/app_manage_test.py::AppManageRecycleFieldProjectionTests.test_recycle_failure_before_insert_preserves_original_for_retry |
+| console.component-recycle.original-vm-recovery | 回收站原虚拟机恢复与安全删除 | active | integration | /console/teams/{team}/recycle-bin | console/tests/component_recycle_recovery_test.py::ComponentRecycleRecoveryTests |
 | console.component-type.daemonset | DaemonSet 组件类型支持 | active | regression | console.enum.component_enum.ComponentType | console/tests/app_manage_test.py::ComponentDaemonSetSupportTests.test_daemonset_component_type_is_supported<br>console/tests/app_manage_test.py::ComponentDaemonSetSupportTests.test_extend_method_name_supports_daemonset<br>console/tests/app_manage_test.py::ComponentDaemonSetSupportTests.test_change_service_type_blocks_daemonset_transition |
 | console.component.autoscaler-invalid-metrics | manage_component_autoscaler 在调用服务前拒绝不完整指标 | active | regression | console.services.mcp_query_service.call_tool[console.component.autoscaler-invalid-metrics] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_manage_component_autoscaler_create_rejects_incomplete_metric_before_service_call |
 | console.component.autoscaler-summary | 查看组件伸缩概览 | active | regression | console.services.mcp_query_service.call_tool[rainbond_manage_component_autoscaler] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_manage_component_autoscaler_summary_returns_rules_and_records |
@@ -647,6 +648,7 @@
 | console.rke2.preserve-method-not-allowed | 保留不支持方法响应 | active | regression | console.views.rke2.BaseClusterView.handle_exception | console/tests/rke2_cluster_errors_test.py::ClusterRKEErrorTests.test_cluster_install_get_preserves_method_not_allowed |
 | console.runtime.sse-gunicorn-timeout | Gunicorn 超时覆盖一小时 SSE 长连接 | active | regression | entrypoint.sh/Procfile | console/tests/entrypoint_test.py::EntrypointGunicornTest.test_gunicorn_timeout_outlives_one_hour_sse_streams |
 | console.runtime.static-precompression | 镜像构建预压缩静态资源并保持原始响应兼容 | active | regression | Dockerfile collectstatic and WhiteNoise compression | console/tests/static_precompression_test.py::StaticPrecompressionTests |
+| console.schema.preserve-generated-model-roundtrips | Preserve live data across generated migration roundtrips | active | regression | console.utils.legacy_model_roundtrip.repair_generated_model_roundtrips | console/tests/legacy_model_roundtrip_test.py::LegacyModelRoundtripTests |
 | console.sentry.expected-not-found-errors | 过滤预期的资源不存在异常 | active | regression | goodrain_web.sentry_config.before_send | console/tests/sentry_config_test.py::test_before_send_drops_expected_not_found_exceptions<br>console/tests/sentry_config_test.py::test_before_send_keeps_server_side_service_and_region_errors |
 | console.sentry.expected-region-frequent-error | 过滤预期的区域操作频繁异常 | active | regression | goodrain_web.sentry_config.before_send | console/tests/sentry_config_test.py::test_before_send_drops_region_api_frequent_operation_exception<br>console/tests/sentry_config_test.py::test_before_send_keeps_same_exception_name_from_other_modules |
 | console.service-share.cnb-publish-command | 发布组件模板时清理 CNB 源码启动命令 | active | regression | console.services.share_services.ShareService.query_share_service_info | console/tests/service_share_test.py::ShareServiceCNBPublishCommandTestCase |
@@ -3194,6 +3196,16 @@
 - 业务入口: `console.repositories.app.ServiceRecycleBinRepository.create_trash_service`
 - 代码路径: `console/repositories/app.py`
 - 测试路径: `console/tests/app_manage_test.py::AppManageRecycleFieldProjectionTests.test_recycle_preserves_declared_fields_and_removes_original_after_insert`, `console/tests/app_manage_test.py::AppManageRecycleFieldProjectionTests.test_recycle_failure_before_insert_preserves_original_for_retry`
+
+### 回收站原虚拟机恢复与安全删除
+
+- Capability ID: `console.component-recycle.original-vm-recovery`
+- 状态: `active`
+- 测试类型: `integration`
+- 接口类型: `view_endpoint`
+- 业务入口: `/console/teams/{team}/recycle-bin`
+- 代码路径: `console/services/component_recycle.py`, `console/views/component_recycle.py`, `console/services/app_actions/app_manage.py`, `www/apiclient/regionapi.py`
+- 测试路径: `console/tests/component_recycle_recovery_test.py::ComponentRecycleRecoveryTests`
 
 ### DaemonSet 组件类型支持
 
@@ -7214,6 +7226,16 @@
 - 业务入口: `Dockerfile collectstatic and WhiteNoise compression`
 - 代码路径: `Dockerfile`
 - 测试路径: `console/tests/static_precompression_test.py::StaticPrecompressionTests`
+
+### Preserve live data across generated migration roundtrips
+
+- Capability ID: `console.schema.preserve-generated-model-roundtrips`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `workflow`
+- 业务入口: `console.utils.legacy_model_roundtrip.repair_generated_model_roundtrips`
+- 代码路径: `console/utils/legacy_model_roundtrip.py`, `console/management/commands/repair_legacy_schema.py`
+- 测试路径: `console/tests/legacy_model_roundtrip_test.py::LegacyModelRoundtripTests`
 
 ### 过滤预期的资源不存在异常
 

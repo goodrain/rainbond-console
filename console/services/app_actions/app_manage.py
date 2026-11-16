@@ -9,6 +9,7 @@ import time
 from typing import Any, List, Optional, Tuple
 
 from django.db.models import QuerySet
+from django.core.serializers.json import DjangoJSONEncoder
 
 from console.cloud.services import check_account_quota
 from console.constants import AppConstants
@@ -1077,7 +1078,7 @@ class AppManageService(AppManageBase):
         if not is_force:
             # 如果不是真删除，将数据备份,删除tenant_service表中的数据
             with transaction.atomic():
-                self.move_service_into_recycle_bin(service)
+                self.move_service_into_recycle_bin(service, tenant=tenant)
                 # 组件关系移除
                 self.move_service_relation_info_recycle_bin(tenant, service)
             return 200, "success"
@@ -1230,10 +1231,23 @@ class AppManageService(AppManageBase):
             return None
 
     @transaction.atomic
-    def move_service_into_recycle_bin(self, service: TenantServiceInfo) -> Any:
+    def move_service_into_recycle_bin(self, service: TenantServiceInfo, tenant: Optional[Tenants] = None) -> Any:
         """将组件移入回收站"""
         data = service.toJSON()
         data.pop("ID")
+        app = self.get_app_by_service(service)
+        data["recovery_metadata"] = {
+            "version": 1,
+            "service": json.loads(json.dumps(data, cls=DjangoJSONEncoder)),
+            "app_id": app.ID if app else None,
+            "app_k8s_name": app.k8s_app if app else None,
+        }
+        if service.extend_method == 'vm' and service.create_status == 'complete':
+            if tenant is None:
+                raise ServiceHandleException('missing recovery context', '无法确认原虚拟机，已停止回收', 409)
+            from console.services.component_recycle import ComponentRecycleService
+
+            data['recovery_metadata']['vm'] = ComponentRecycleService(region_api=region_api).capture_vm(tenant, service)
         trash_service = recycle_bin_repo.create_trash_service(**data)
 
         # 如果这个组件属于模型安装应用, 则删除最后一个组件后同时删除安装应用关系。
@@ -1418,7 +1432,7 @@ class AppManageService(AppManageBase):
         if not is_force:
             # 如果不是真删除，将数据备份,删除tenant_service表中的数据
             with transaction.atomic():
-                self.move_service_into_recycle_bin(service)
+                self.move_service_into_recycle_bin(service, tenant=tenant)
                 # 组件关系移除
                 self.move_service_relation_info_recycle_bin(tenant, service)
             code = 200
@@ -1444,7 +1458,7 @@ class AppManageService(AppManageBase):
         app = self.get_app_by_service(service)
         if not is_force:
             # 如果不是真删除，将数据备份,删除tenant_service表中的数据
-            self.move_service_into_recycle_bin(service)
+            self.move_service_into_recycle_bin(service, tenant=tenant)
             # 组件关系移除
             self.move_service_relation_info_recycle_bin(tenant, service)
         else:

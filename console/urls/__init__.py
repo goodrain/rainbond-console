@@ -157,6 +157,7 @@ from console.views.app_create.source_outer import (
     ThirdPartyUpdateSecretKeyView,
 )
 from console.views.app_create.vm_run import VMRunCreateView
+from console.views.component_recycle import ComponentRecycleListView, ComponentRecycleRestoreView, ComponentRecyclePurgeView
 from console.views.app_create.kubeblocks_create import KubeBlocksComponentCreateView
 from console.views.app_event import (
     AppEventLogView,
@@ -644,6 +645,11 @@ from console.views.kubeblocks import (
 urlpatterns = [
     re_path(r'^delivery-targets$', DeliveryTargetsView.as_view()),
     # Delivery templates are independent of application snapshot routes and records.
+    re_path(r'^teams/(?P<team_name>[\w\-]+)/recycle-bin$', ComponentRecycleListView.as_view()),
+    re_path(r'^teams/(?P<team_name>[\w\-]+)/recycle-bin/(?P<service_id>[a-zA-Z0-9\-]+)/restore$',
+            ComponentRecycleRestoreView.as_view()),
+    re_path(r'^teams/(?P<team_name>[\w\-]+)/recycle-bin/(?P<service_id>[a-zA-Z0-9\-]+)$',
+            ComponentRecyclePurgeView.as_view()),
     re_path(r'^teams/(?P<team_name>[\w-]+)/groups/(?P<app_id>[\w-]+)/delivery-templates$', DeliveryTemplatesView.as_view()),
     re_path(r'^teams/(?P<team_name>[\w-]+)/groups/(?P<app_id>[\w-]+)/delivery-templates/source$', DeliverySourceView.as_view()),
     re_path(r'^teams/(?P<team_name>[\w-]+)/groups/(?P<app_id>[\w-]+)/delivery-templates/changes$',
@@ -1117,7 +1123,8 @@ urlpatterns = [
         r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/vm-snapshots/(?P<snapshot_name>[^/]+)/restore$',
         VMSnapshotRestoreView.as_view(), perms.APP_VM_SNAPSHOT_PREPARE),
     re_path(
-        r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/vm-snapshots/(?P<snapshot_name>[^/]+)/restore/(?P<request_id>[a-z0-9-]{1,63})$',
+        r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/vm-snapshots/'
+        r'(?P<snapshot_name>[^/]+)/restore/(?P<request_id>[a-z0-9-]{1,63})$',
         VMSnapshotRestoreView.as_view(), perms.APP_VM_SNAPSHOT_PREPARE),
     re_path(
         r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/vm-snapshots/(?P<snapshot_name>[^/]+)$',

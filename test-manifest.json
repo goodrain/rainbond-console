@@ -4603,6 +4603,27 @@
       "status": "active"
     },
     {
+      "id": "console.component-recycle.original-vm-recovery",
+      "title": "Recover original recycled VM",
+      "title_zh": "回收站原虚拟机恢复与安全删除",
+      "interface_type": "view_endpoint",
+      "interface": "/console/teams/{team}/recycle-bin",
+      "code_paths": [
+        "console/services/component_recycle.py",
+        "console/views/component_recycle.py",
+        "console/services/app_actions/app_manage.py",
+        "www/apiclient/regionapi.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/component_recycle_recovery_test.py",
+          "selector": "ComponentRecycleRecoveryTests"
+        }
+      ],
+      "test_type": "integration",
+      "status": "active"
+    },
+    {
       "id": "console.component-type.daemonset",
       "title": "DaemonSet component type support",
       "title_zh": "DaemonSet 组件类型支持",
@@ -12405,6 +12426,25 @@
         {
           "path": "console/tests/static_precompression_test.py",
           "selector": "StaticPrecompressionTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.schema.preserve-generated-model-roundtrips",
+      "title": "Preserve live data across generated migration roundtrips",
+      "title_zh": "Preserve live data across generated migration roundtrips",
+      "interface_type": "workflow",
+      "interface": "console.utils.legacy_model_roundtrip.repair_generated_model_roundtrips",
+      "code_paths": [
+        "console/utils/legacy_model_roundtrip.py",
+        "console/management/commands/repair_legacy_schema.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/legacy_model_roundtrip_test.py",
+          "selector": "LegacyModelRoundtripTests"
         }
       ],
       "test_type": "regression",

@@ -362,6 +362,13 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._post(url, self.default_headers, region=region, body=json.dumps(body))
         return body
 
+    def get_vm_recycle_recovery(self, region: str, tenant_name: str, service_alias: str):
+        url, token = self.__get_region_access_info(tenant_name, region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        self._set_headers(token)
+        url += "/v2/tenants/{}/services/{}/vm-recycle-recovery".format(tenant_region.region_tenant_name, service_alias)
+        return self._get(url, self.default_headers, region=region)
+
     def get_service_info(self, region: str, tenant_name: str, service_alias: str) -> Optional[Dict[str, Any]]:
         """获取组件信息"""
 
