@@ -9271,11 +9271,16 @@
         "console/services/oauth_service.py",
         "console/repositories/oauth_repo.py",
         "console/views/oauth.py",
-        "console/management/commands/repair_legacy_schema.py"
+        "console/management/commands/repair_legacy_schema.py",
+        "console/utils/oauth_migration_repair.py"
       ],
       "tests": [
         {
           "path": "console/tests/oauth_auto_provisioning_test.py"
+        },
+        {
+          "path": "console/tests/oauth_compound_migration_test.py",
+          "selector": "OAuthCompoundMigrationTests"
         }
       ],
       "test_type": "regression",
