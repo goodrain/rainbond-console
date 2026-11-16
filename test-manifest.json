@@ -14332,6 +14332,29 @@
       "status": "active"
     },
     {
+      "id": "console.vm-snapshot.capacity-evidence",
+      "title": "Compare logical Region capacity without rewriting physical snapshot bytes",
+      "title_zh": "Compare logical Region capacity without rewriting physical snapshot bytes",
+      "interface_type": "workflow",
+      "interface": "SnapshotJobRunner -> SnapshotCapacityEvidence -> SnapshotManifestService",
+      "code_paths": [
+        "console/services/vm_snapshot_job_worker.py",
+        "console/services/vm_snapshot_manifest_ack.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/vm_snapshot_capacity_test.py",
+          "selector": "SnapshotCapacityTests"
+        },
+        {
+          "path": "console/tests/vm_snapshot_jobs_worker_test.py",
+          "selector": "SnapshotJobsWorkerTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.vm-snapshot.durable-worker",
       "title": "Durable snapshot enqueue and single default worker lifecycle",
       "title_zh": "普通快照持久任务入队与唯一后台执行闭环",

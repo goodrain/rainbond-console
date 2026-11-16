@@ -744,6 +744,7 @@
 | console.vm-run.platform-runtime-guard | 虚拟机平台异常时禁止创建虚拟机组件 | active | regression | console.views.app_create.vm_run.VMRunCreateView.post | console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_vm_run_create_rejects_when_vm_plugin_not_running |
 | console.vm-run.reject-root-ssh-bootstrap | 创建虚拟机前拒绝 root SSH 初始化 | active | regression | POST /console/teams/{team}/apps/vm_run | console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_vm_ssh_bootstrap_rejects_root_with_non_root_username_hint<br>console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_vm_run_rejects_root_ssh_before_any_creation |
 | console.vm-run.ssh-public-key-bootstrap | 校验 Linux 虚拟机 SSH 初始化并登记内网端口 | active | regression | console.views.app_create.vm_run.VMRunCreateView.post | console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_vm_ssh_bootstrap_accepts_only_linux_disk_images<br>console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_vm_run_rejects_invalid_ssh_before_creating_asset_or_component<br>console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_vm_run_records_linux_ssh_runtime_and_internal_port_before_returning<br>console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_vm_run_rolls_back_asset_component_attrs_group_and_port_when_ssh_port_fails<br>console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_build_vm_runtime_attrs_maps_ssh_inputs_and_preserves_uefi_firmware_mode<br>console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_create_region_service_includes_ssh_attrs_and_internal_port_without_exposing_key_in_profile |
+| console.vm-snapshot.capacity-evidence | Compare logical Region capacity without rewriting physical snapshot bytes | active | regression | SnapshotJobRunner -> SnapshotCapacityEvidence -> SnapshotManifestService | console/tests/vm_snapshot_capacity_test.py::SnapshotCapacityTests<br>console/tests/vm_snapshot_jobs_worker_test.py::SnapshotJobsWorkerTests |
 | console.vm-snapshot.durable-worker | 普通快照持久任务入队与唯一后台执行闭环 | active | integration | console.services.vm_snapshot_jobs.SnapshotJobService.submit -> VMJobRunner default snapshot factory | console/tests/vm_snapshot_jobs_worker_test.py |
 | console.vm-snapshot.enqueue-api | Scoped durable snapshot HTTP enqueue and canonical status | active | integration | POST /console/teams/{team}/apps/{alias}/vm-snapshots -> SQL job; GET /vm-jobs/{operation_id} | console/tests/vm_snapshot_enqueue_api_test.py |
 | console.vm-snapshot.existing-capability | 当前虚拟机完整盘集合快照能力读取 | active | integration | GET /console/teams/{team}/apps/{alias}/vm-snapshot-capability | console/tests/vm_existing_snapshot_capability_test.py::ExistingVMSnapshotCapabilityTests |
@@ -8187,6 +8188,16 @@
 - 业务入口: `console.views.app_create.vm_run.VMRunCreateView.post`
 - 代码路径: `console/views/app_create/vm_run.py`, `console/services/virtual_machine.py`
 - 测试路径: `console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_vm_ssh_bootstrap_accepts_only_linux_disk_images`, `console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_vm_run_rejects_invalid_ssh_before_creating_asset_or_component`, `console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_vm_run_records_linux_ssh_runtime_and_internal_port_before_returning`, `console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_vm_run_rolls_back_asset_component_attrs_group_and_port_when_ssh_port_fails`, `console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_build_vm_runtime_attrs_maps_ssh_inputs_and_preserves_uefi_firmware_mode`, `console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_create_region_service_includes_ssh_attrs_and_internal_port_without_exposing_key_in_profile`
+
+### Compare logical Region capacity without rewriting physical snapshot bytes
+
+- Capability ID: `console.vm-snapshot.capacity-evidence`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `workflow`
+- 业务入口: `SnapshotJobRunner -> SnapshotCapacityEvidence -> SnapshotManifestService`
+- 代码路径: `console/services/vm_snapshot_job_worker.py`, `console/services/vm_snapshot_manifest_ack.py`
+- 测试路径: `console/tests/vm_snapshot_capacity_test.py::SnapshotCapacityTests`, `console/tests/vm_snapshot_jobs_worker_test.py::SnapshotJobsWorkerTests`
 
 ### 普通快照持久任务入队与唯一后台执行闭环
 

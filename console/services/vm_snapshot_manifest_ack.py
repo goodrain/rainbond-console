@@ -1,6 +1,7 @@
 """Existing snapshot manifest and ACK signatures; no transport or total workflow."""
 import json
 import re
+from dataclasses import dataclass
 
 from django.db import connections
 
@@ -9,6 +10,48 @@ from console.services.vm_restore_journal import (ServerGoContext, VMRestoreJourn
                                                  snapshot_request, strict_pairs, validate_manifest)
 from console.utils.vm_restore_attributes import GO_WHITESPACE
 from www.models.main import TenantServiceInfo, TenantServiceVolume
+
+
+@dataclass(frozen=True)
+class SnapshotCapacityEvidence:
+    scope: tuple
+    operation_id: str
+    core_hash: str
+    volumes: tuple
+
+    @classmethod
+    def from_region(cls, context, observed, response, body):
+        # Called only by the worker's scoped SDK read, outside SQL locks.
+        require(observed.get('fence_owned') is True and observed.get('fence_cleared') is False)
+        require(
+            isinstance(response, dict) and response.get('status') == 200 and isinstance(body, dict)
+            and body.get('code', 200) == 200)
+        rows = json.loads(canonical(body.get('list')))
+        require(type(rows) is list and len(rows) <= 256)
+        wanted = {disk['disk_key']: disk for disk in observed['disks']}
+        require(len(wanted) == len(observed['disks']) and bool(wanted))
+        found = {}
+        seen = set()
+        for row in rows:
+            require(type(row) is dict and row.get('service_id') == context.identity[2])
+            key = row.get('volume_name')
+            require(type(key) is str and key not in seen)
+            seen.add(key)
+            if key not in wanted:
+                continue
+            capacity = row.get('volume_capacity')
+            require(type(capacity) is int and 0 < capacity <= 2**30)
+            logical_bytes = capacity * (1 << 30)
+            disk = wanted[key]
+            require(row.get('volume_type') == disk['storage_class'] and logical_bytes <= disk['requested_bytes'])
+            found[key] = (key, row['volume_type'], logical_bytes)
+        require(set(found) == set(wanted))
+        return cls(context.identity, observed['operation_id'], observed['core_hash'],
+                   tuple(found[key] for key in sorted(found)))
+
+    def verify_scope(self, context, operation_id, document):
+        require(self.scope == context.identity and self.operation_id == operation_id
+                and self.core_hash == document['core_hash'])
 
 
 def snapshot_prepare_body(operation):
@@ -76,7 +119,7 @@ class SnapshotManifestService:
         return json.loads(canonical(document))
 
     @staticmethod
-    def _verify_console(context, document):
+    def _verify_console(context, document, capacities=None):
         alias = context.identity[4]
         live = TenantServiceInfo.objects.using(alias).get(pk=context.identity[0])
         config = document['config']
@@ -129,22 +172,39 @@ class SnapshotManifestService:
                 service_id=live.service_id, volume_name__in=[disk['disk_key'] for disk in disks]))
         volumes = {row.volume_name: row for row in rows}
         require(len(rows) == len(volumes) == len(disks))
+        logical = None
+        if capacities is not None:
+            require(
+                type(capacities) is SnapshotCapacityEvidence and capacities.scope == context.identity
+                and capacities.core_hash == document['core_hash'])
+            logical = {key: (storage, amount) for key, storage, amount in capacities.volumes}
+            require(set(logical) == {disk['disk_key'] for disk in disks})
         for disk in disks:
             row = volumes.get(disk['disk_key'])
+            # CDI's PVC request includes filesystem overhead; it is not the
+            # configured guest capacity. Preserve the physical bytes in the
+            # manifest and compare logical capacity against Region metadata.
+            expected = disk['requested_bytes']
+            if logical is not None:
+                storage, expected = logical[disk['disk_key']]
+                require(storage == disk['storage_class'] and 0 < expected <= disk['requested_bytes'])
             require(row is not None and row.volume_type == disk['storage_class']
-                    and row.volume_capacity * (1 << 30) == disk['requested_bytes'])
+                    and row.volume_capacity * (1 << 30) == expected)
 
-    def commit(self, context, go_context, operation_id, owner, epoch, revision, observed, now):
+    def commit(self, context, go_context, operation_id, owner, epoch, revision, observed, now, capacities=None):
         require(not connections[context.identity[4]].in_atomic_block)
         with self.journal._locked(context) as (_scope, records, _attrs):
             operation = self.journal._owned(records, operation_id, owner, epoch, revision, now)
             document = self._document(operation, go_context, observed)
-            self._verify_console(context, document)
+            if capacities is not None:
+                require(type(capacities) is SnapshotCapacityEvidence)
+                capacities.verify_scope(context, operation_id, document)
+            self._verify_console(context, document, capacities)
             self.journal.seal_manifest(context, go_context, operation_id, owner, epoch, revision, document, now)
         operation = self.journal.read_operation(context, operation_id)
         return self.journal.read_manifest(context, operation['snapshot_uid'], operation['document_hash'])
 
-    def ready_request(self, context, operation_id, owner, epoch, revision, observed, now):
+    def ready_request(self, context, operation_id, owner, epoch, revision, observed, now, capacities=None):
         require(not connections[context.identity[4]].in_atomic_block)
         with self.journal._locked(context) as (scope, records, _attrs):
             operation = self.journal._owned(records, operation_id, owner, epoch, revision, now)
@@ -155,7 +215,10 @@ class SnapshotManifestService:
             go_context = ServerGoContext(source['namespace'], source['name'], source['uid'])
             document = self._document(operation, go_context, observed)
             require(all(manifest[key] == value for key, value in document.items()))
-            self._verify_console(context, document)
+            if capacities is not None:
+                require(type(capacities) is SnapshotCapacityEvidence)
+                capacities.verify_scope(context, operation_id, document)
+            self._verify_console(context, document, capacities)
             # The convenience seal return uses snapshot_uid as manifest_id;
             # Region expects the original Prepare ManifestID instead.
             return dict(operation_id=operation_id,

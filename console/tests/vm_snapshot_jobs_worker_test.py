@@ -1,5 +1,6 @@
 # capability_id: console.vm-snapshot.durable-worker
 # capability_id: console.vm-snapshot.explicit-retry
+# capability_id: console.vm-snapshot.capacity-evidence
 """Real Console SQL + the production SDK; server is an explicit LOCAL RPC fixture."""
 import copy
 import json
@@ -48,11 +49,18 @@ class SnapshotLoopback:
         self.same_fence = False
         self.accepted = ''
         self.reject_prepare = False
+        self.capacity_rows = [
+            dict(service_id='service-a', volume_name=d['disk_key'], volume_type=d['storage_class'], volume_capacity=1)
+            for d in document['disks']
+        ]
         fixture = self
 
         class Handler(BaseHTTPRequestHandler):
             def do_GET(inner):
                 fixture.calls.append(('GET', inner.path, None))
+                if inner.path.split('?', 1)[0].endswith('/volumes'):
+                    inner.respond(200, fixture.capacity_rows, collection=True)
+                    return
                 if fixture.original is None:
                     inner.respond(404, {'error': {'code': 'vm_snapshot_not_found', 'retryable': False}})
                 else:
@@ -87,8 +95,8 @@ class SnapshotLoopback:
                     return
                 inner.respond(202, fixture.dto())
 
-            def respond(inner, status, value):
-                data = json.dumps({'bean': value}).encode()
+            def respond(inner, status, value, collection=False):
+                data = json.dumps({'list': value} if collection else {'bean': value}).encode()
                 inner.send_response(status)
                 inner.send_header('Content-Length', str(len(data)))
                 inner.end_headers()
@@ -217,6 +225,58 @@ class SnapshotJobsWorkerTests(TestCase):
         VMJobRunner(journal=self.journal, snapshot_client=self.client, owner=owner, clock=lambda: now).process(
             self.ctx, 'job-a')
         return self.journal.read_operation(self.ctx, 'job-a')
+
+    def test_cdi_filesystem_overhead_preserves_physical_bytes_and_completes_snapshot(self):
+        self.configure()
+        self.document['disks'][0]['requested_bytes'] = 1138166334
+        self.transport()
+        self.jobs.submit(self.ctx, self.selection, '42')
+        for now in (100, 140, 180, 220, 260, 300):
+            self.run_job(now)
+        self.assertTrue(self.jobs.status(self.ctx, 'job-a')['complete'])
+        manifest = self.journal.read_manifest(self.ctx, 'snapshot-uid-a')
+        self.assertEqual(manifest['disks'][0]['requested_bytes'], 1138166334)
+        self.assertEqual(TenantServiceVolume.objects.using(self.alias).get(ID=101).volume_capacity, 1)
+        capacity_reads = [c for c in self.server.calls if c[0] == 'GET' and '/services/vm-a/volumes?' in c[1]]
+        self.assertTrue(capacity_reads, 'logical capacity must come from the scoped Region volume API')
+
+    def test_capacity_evidence_refuses_foreign_duplicate_or_changed_logical_volumes(self):
+        from console.services.vm_snapshot_job_worker import SnapshotJobRunner
+        self.configure()
+        self.document['disks'][0]['requested_bytes'] = 1138166334
+        self.transport()
+        self.jobs.submit(self.ctx, self.selection, '42')
+        for now in (100, 140, 180):
+            self.run_job(now)
+        original = copy.deepcopy(self.server.capacity_rows)
+        invalid = [[], original * 2, [dict(original[0], service_id='other-component')],
+                   [dict(original[0], volume_name='other-disk')], [dict(original[0], volume_type='other-storage')],
+                   [dict(original[0], volume_capacity=True)], [dict(original[0], volume_capacity=2)]]
+        runner = SnapshotJobRunner(journal=self.journal, client=self.client)
+        for rows in invalid:
+            self.server.capacity_rows = rows
+            with self.subTest(rows=rows), self.assertRaises(JournalConflict):
+                runner._capacities(self.ctx, self.server.dto())
+        self.server.capacity_rows = original
+        TenantServiceVolume.objects.using(self.alias).filter(ID=101).update(volume_capacity=2)
+        self.run_job(220)
+        self.assertEqual(self.journal.read_operation(self.ctx, 'job-a')['snapshot_uid'], '')
+        self.assertEqual(self.journal.read_operation(self.ctx, 'job-a')['error_code'], 'CONFLICT')
+        self.assertFalse(any(c[0] == 'POST' and c[1].endswith(('/resume', '/finalize')) for c in self.server.calls))
+
+    def test_failed_capacity_read_keeps_original_job_and_never_acknowledges_or_resumes(self):
+        self.configure()
+        self.transport()
+        self.jobs.submit(self.ctx, self.selection, '42')
+        for now in (100, 140, 180):
+            self.run_job(now)
+        with mock.patch.object(self.client, 'get_service_volumes', side_effect=OSError('local read unavailable')):
+            self.run_job(220)
+        operation = self.journal.read_operation(self.ctx, 'job-a')
+        self.assertEqual(operation['snapshot_uid'], '')
+        self.assertEqual(operation['error_code'], 'REGION_UNKNOWN')
+        self.assertEqual(self.journal.active_operation(self.ctx), 'job-a')
+        self.assertFalse(any(c[0] == 'POST' and c[1].endswith(('/resume', '/finalize')) for c in self.server.calls))
 
     def test_submit_is_real_sql_durable_idempotent_and_never_dispatches_prepare(self):
         self.configure()
