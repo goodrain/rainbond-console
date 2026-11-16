@@ -1333,6 +1333,20 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._post(url, self.default_headers, region=region, body=json.dumps(body))
         return res, body
 
+    def vm_delivery_capture(self, region: str, tenant_name: str, service_alias: str,
+                            name: str, action: str, body: Optional[dict] = None) -> Tuple[Any, Optional[Dict[str, Any]]]:
+        """Bounded control requests; the Region builder performs disk I/O."""
+        method = {'prepare': self._put, 'status': self._get, 'image': self._post, 'release': self._delete}.get(action)
+        if method is None:
+            raise ValueError('invalid VM delivery action')
+        url, token = self.__get_region_access_info(tenant_name, region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        url = '{0}/v2/tenants/{1}/services/{2}/vm-delivery-captures/{3}'.format(
+            url, tenant_region.region_tenant_name, service_alias, name)
+        self._set_headers(token)
+        return method(url, self.default_headers, region=region, body=json.dumps(body) if body is not None else None,
+                      connect_timeout=3, timeout=8, retries=0)
+
     def get_vm_export(self, region: str, tenant_name: str, service_alias: str,
                       export_name: str) -> Tuple[Any, Optional[Dict[str, Any]]]:
         """查询 VM live export"""

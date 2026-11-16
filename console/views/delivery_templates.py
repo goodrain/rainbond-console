@@ -70,6 +70,35 @@ class DeliveryTemplatesView(DeliveryAPI):
         return self.reply(self.delivery.version_data(version), 201)
 
 
+class DeliveryVMPreparationView(DeliveryAPI):
+    def preparation(self):
+        from console.services.vm_delivery_preparation import VMDeliveryPreparation
+        return VMDeliveryPreparation(self.delivery)
+
+    def get(self, request: Request, team_name: str, app_id: str, task_id: str = '') -> Response:
+        scope = self.scope(request, team_name, app_id)
+        if task_id:
+            return self.reply(self.preparation().status(scope, task_id))
+        query = self.delivery.m.DeliveryTask.objects.filter(template__in=self.delivery.repo.templates(scope), kind='vm_prepare')
+        tasks = list(query.filter(status__in=['queued', 'running', 'failed'])) + list(query.filter(status='succeeded')[:5])
+        return self.reply({'items': [self.preparation().data(task) for task in tasks]})
+
+    def post(self, request: Request, team_name: str, app_id: str, task_id: str = '') -> Response:
+        scope = self.scope(request, team_name, app_id, write=True)
+        if task_id:
+            task = self.preparation().retry(scope, task_id)
+        else:
+            if request.data.get('is_platform_plugin') and not self.is_enterprise_admin:
+                raise DeliveryError('仅平台管理员可以创建平台插件模板', 403)
+            data = {key: value for key, value in request.data.items() if key not in ('region_name', 'request_id')}
+            task = self.preparation().submit(self.user, scope, data, request.data.get('request_id'))
+        return self.reply(self.preparation().data(task), 202)
+
+    def delete(self, request: Request, team_name: str, app_id: str, task_id: str) -> Response:
+        task = self.preparation().cancel(self.scope(request, team_name, app_id, write=True), task_id)
+        return self.reply(self.preparation().data(task), 202)
+
+
 class DeliveryListingWithdrawalView(DeliveryAPI):
     def post(self, request: Request, team_name: str, app_id: str, version_id: str, request_id: str) -> Response:
         scope = self.scope(request, team_name, app_id, write=True)

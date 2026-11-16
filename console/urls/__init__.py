@@ -7,6 +7,7 @@ from console.views.vm_snapshot import VMSnapshotListView, VMSnapshotDetailView, 
 from console.views.vm_jobs import VMActiveSnapshotJobView, VMJobCapabilityView, VMJobStatusView, VMSnapshotJobRetryView
 from console.views.delivery_templates import (
     DeliveryTemplatesView,
+    DeliveryVMPreparationView,
     DeliverySourceView,
     DeliveryChangesView,
     DeliverySyncView,
@@ -651,6 +652,10 @@ urlpatterns = [
     re_path(r'^teams/(?P<team_name>[\w\-]+)/recycle-bin/(?P<service_id>[a-zA-Z0-9\-]+)$',
             ComponentRecyclePurgeView.as_view()),
     re_path(r'^teams/(?P<team_name>[\w-]+)/groups/(?P<app_id>[\w-]+)/delivery-templates$', DeliveryTemplatesView.as_view()),
+    re_path(r'^teams/(?P<team_name>[\w-]+)/groups/(?P<app_id>[\w-]+)/delivery-templates/vm-preparations$',
+            DeliveryVMPreparationView.as_view()),
+    re_path(r'^teams/(?P<team_name>[\w-]+)/groups/(?P<app_id>[\w-]+)/delivery-templates/vm-preparations/(?P<task_id>[\w-]+)$',
+            DeliveryVMPreparationView.as_view()),
     re_path(r'^teams/(?P<team_name>[\w-]+)/groups/(?P<app_id>[\w-]+)/delivery-templates/source$', DeliverySourceView.as_view()),
     re_path(r'^teams/(?P<team_name>[\w-]+)/groups/(?P<app_id>[\w-]+)/delivery-templates/changes$',
             DeliveryChangesView.as_view()),

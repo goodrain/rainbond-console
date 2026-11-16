@@ -15028,6 +15028,42 @@
       "status": "active"
     },
     {
+      "id": "rainbond-console.delivery.vm-current-disk-preparation",
+      "title": "VM delivery preparation freezes capture artifacts and preserves container delivery",
+      "title_zh": "VM delivery preparation freezes capture artifacts and preserves container delivery",
+      "interface_type": "workflow",
+      "interface": "console.services.vm_delivery_preparation.VMDeliveryPreparation",
+      "code_paths": [
+        "console/services/vm_delivery_preparation.py",
+        "console/services/delivery_gateway.py",
+        "console/services/delivery_templates.py",
+        "console/services/delivery_worker.py",
+        "console/views/delivery_templates.py",
+        "www/apiclient/regionapi.py",
+        "console/views/cleanup_inventory.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/vm_delivery_preparation_test.py",
+          "selector": "VMDeliveryPreparationRegressionTest.test_vm_delivery_lifecycle"
+        },
+        {
+          "path": "console/tests/vm_delivery_preparation_test.py",
+          "selector": "VMDeliveryPreparationRegressionTest.test_preparation_view_requires_application_write_scope_and_returns_a_task"
+        },
+        {
+          "path": "console/tests/vm_delivery_preparation_test.py",
+          "selector": "VMDeliveryPreparationRegressionTest.test_region_capture_client_matches_scoped_methods_and_bounded_timeouts"
+        },
+        {
+          "path": "console/tests/vm_delivery_preparation_test.py",
+          "selector": "VMDeliveryPreparationRegressionTest.test_gateway_supports_default_region_and_configured_delivery_registries"
+        }
+      ],
+      "test_type": "integration",
+      "status": "active"
+    },
+    {
       "id": "rainbond-console.vm-disks.container-disk-cdrom",
       "title": "VM disk layout accepts container disk CD-ROM media",
       "title_zh": "VM disk layout accepts container disk CD-ROM media",

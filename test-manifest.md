@@ -779,6 +779,7 @@
 | openapi.service-config.port-open-outer-app-context | OpenAPI 开启组件外部端口时解析应用上下文 | active | regression | console.services.app_config.port_service.AppPortService.manage_port | console/tests/openapi_service_config_validation_test.py::OpenAPIServiceConfigValidationTest.test_manage_port_resolves_app_when_opening_outer_port |
 | openapi.service-config.validation-error-shape | OpenAPI 参数校验错误不返回 traceback | active | regression | console.views.base.custom_exception_handler | console/tests/openapi_service_config_validation_test.py::OpenAPIServiceConfigValidationTest.test_validation_error_response_does_not_expose_traceback |
 | openapi.team.delete-error-propagation | OpenAPI 删除团队时正确透出业务异常 | active | regression | openapi.views.team_view.TeamInfo.delete | console/tests/openapi_team_delete_except_test.py::TeamDeleteExceptTest.test_service_error_propagates_instead_of_typeerror |
+| rainbond-console.delivery.vm-current-disk-preparation | VM delivery preparation freezes capture artifacts and preserves container delivery | active | integration | console.services.vm_delivery_preparation.VMDeliveryPreparation | console/tests/vm_delivery_preparation_test.py::VMDeliveryPreparationRegressionTest.test_vm_delivery_lifecycle<br>console/tests/vm_delivery_preparation_test.py::VMDeliveryPreparationRegressionTest.test_preparation_view_requires_application_write_scope_and_returns_a_task<br>console/tests/vm_delivery_preparation_test.py::VMDeliveryPreparationRegressionTest.test_region_capture_client_matches_scoped_methods_and_bounded_timeouts<br>console/tests/vm_delivery_preparation_test.py::VMDeliveryPreparationRegressionTest.test_gateway_supports_default_region_and_configured_delivery_registries |
 | rainbond-console.vm-disks.container-disk-cdrom | VM disk layout accepts container disk CD-ROM media | active | regression | console.services.virtual_machine.VirtualMachineService.validate_vm_disk_layout | console/tests/vm_create_flow_regression_test.py::VMCreateFlowRegressionUnitTests.test_validate_vm_disk_layout_accepts_container_disk_cdrom<br>console/tests/vm_create_flow_regression_test.py::VMCreateFlowRegressionUnitTests.test_validate_vm_disk_layout_rejects_container_disk_without_image |
 | rainbond-console.vm-disks.iso-installer-compat | 当 VM 运行时提示不完整时仍为 ISO 虚拟机磁盘列表补出安装光盘 | active | regression | console.services.virtual_machine.VirtualMachineService.list_vm_disks | console/tests/vm_disk_installer_compat_test.py::VMInstallerMediaCompatUnitTests.test_get_vm_runtime_config_includes_boot_source_format<br>console/tests/vm_disk_installer_compat_test.py::VMInstallerMediaCompatUnitTests.test_list_vm_disks_falls_back_to_asset_format_for_legacy_iso_vm_without_runtime_hint |
 | rainbond-console.vm-export.asset-ready-storage-status | 虚拟机资产就绪需要 ready 状态与镜像地址 | active | regression | console.services.virtual_machine.VirtualMachineService.is_vm_asset_ready | console/tests/vm_create_flow_regression_test.py |
@@ -8538,6 +8539,16 @@
 - 业务入口: `openapi.views.team_view.TeamInfo.delete`
 - 代码路径: `openapi/views/team_view.py`
 - 测试路径: `console/tests/openapi_team_delete_except_test.py::TeamDeleteExceptTest.test_service_error_propagates_instead_of_typeerror`
+
+### VM delivery preparation freezes capture artifacts and preserves container delivery
+
+- Capability ID: `rainbond-console.delivery.vm-current-disk-preparation`
+- 状态: `active`
+- 测试类型: `integration`
+- 接口类型: `workflow`
+- 业务入口: `console.services.vm_delivery_preparation.VMDeliveryPreparation`
+- 代码路径: `console/services/vm_delivery_preparation.py`, `console/services/delivery_gateway.py`, `console/services/delivery_templates.py`, `console/services/delivery_worker.py`, `console/views/delivery_templates.py`, `www/apiclient/regionapi.py`, `console/views/cleanup_inventory.py`
+- 测试路径: `console/tests/vm_delivery_preparation_test.py::VMDeliveryPreparationRegressionTest.test_vm_delivery_lifecycle`, `console/tests/vm_delivery_preparation_test.py::VMDeliveryPreparationRegressionTest.test_preparation_view_requires_application_write_scope_and_returns_a_task`, `console/tests/vm_delivery_preparation_test.py::VMDeliveryPreparationRegressionTest.test_region_capture_client_matches_scoped_methods_and_bounded_timeouts`, `console/tests/vm_delivery_preparation_test.py::VMDeliveryPreparationRegressionTest.test_gateway_supports_default_region_and_configured_delivery_registries`
 
 ### VM disk layout accepts container disk CD-ROM media
 

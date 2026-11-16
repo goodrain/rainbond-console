@@ -272,7 +272,8 @@ class CleanupInventoryView(APIView):
                 "app_template": json.dumps(version.manifest)
             } for version in DeliveryTemplateVersion.objects.all().iterator())
             resources.extend(registry_reference_resource(row, kind, region_name, key) for row in delivery_rows)
-            for item in DeliveryTaskItem.objects.filter(task__kind="sync").exclude(result={}):
+            for item in DeliveryTaskItem.objects.filter(task__kind__in=["sync", "vm_prepare"]).exclude(
+                    task__kind='vm_prepare', task__status='cancelled').exclude(result={}):
                 component = {**item.component, "share_image": item.result.get("image_name", "")}
                 resources.append(
                     registry_reference_resource(
