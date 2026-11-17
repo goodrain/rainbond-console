@@ -362,7 +362,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._post(url, self.default_headers, region=region, body=json.dumps(body))
         return body
 
-    def get_vm_recycle_recovery(self, region: str, tenant_name: str, service_alias: str):
+    def get_vm_recycle_recovery(self, region: str, tenant_name: str, service_alias: str) -> Any:
         url, token = self.__get_region_access_info(tenant_name, region)
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
         self._set_headers(token)
