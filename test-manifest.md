@@ -134,6 +134,7 @@
 | console.app-version.manual-snapshot-acknowledgement | Full manual snapshots clear only stale scoped automatic snapshot warnings | active | regression | console.services.app_version_auto_snapshot.AppVersionAutoSnapshotService.acknowledge_manual_snapshot | console/tests/app_version_auto_snapshot_test.py::ManualSnapshotAcknowledgementTests<br>console/tests/app_version_test.py::AppVersionSnapshotSourceVersionTests |
 | console.app-version.market-deploy-snapshot-hook | 模板安装升级与回滚独立于应用快照 | active | regression | console.services.market_app.app_upgrade.AppUpgrade.upgrade | console/tests/app_version_test.py::MarketDeploymentSnapshotHookTests |
 | console.app-version.overview | 查看应用版本概览 | active | regression | console.services.app_version_service.get_overview | console/tests/app_version_test.py::AppVersionServiceOverviewTestCase.test_get_overview_promotes_latest_successful_rollback_target_to_current_version<br>console/tests/app_version_test.py::AppVersionServiceOverviewTestCase.test_get_overview_keeps_latest_snapshot_as_current_version_when_newer_than_rollback<br>console/tests/app_version_test.py::AppVersionServiceOverviewTestCase.test_get_overview_promotes_partial_rollback_target_to_current_version<br>console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_get_app_version_overview_returns_version_center_overview |
+| console.app-version.publish-snapshot-proxy-headers | 快照发布时转换网关请求头为市场对象格式 | active | regression | console.services.mcp_query_service.MCPQueryService.publish_snapshot_to_store | console/tests/mcp_query_service_test.py::MCPQueryServiceSnapshotPublishTests |
 | console.app-version.restore-builds | 回滚后生成构建任务 | active | regression | console.services.market_app.market_app.MarketApp._generate_builds | console/tests/app_version_test.py::MarketAppBuildGenerationTestCase.test_generate_builds_allows_components_without_source_metadata |
 | console.app-version.restore-component-without-source | 无来源信息时恢复组件 | active | regression | console.services.market_app.app_restore.AppRestore._create_component | console/tests/app_version_test.py::AppRestoreSnapshotCompatibilityTestCase.test_create_component_allows_snapshot_without_service_source |
 | console.app-version.restore-k8s-attributes | 回滚时恢复组件 K8s 属性 | active | regression | console.services.market_app.new_app.NewApp._save_components | console/tests/app_version_test.py::NewAppSaveComponentsTestCase.test_save_components_overwrites_k8s_attributes_for_new_components |
@@ -2089,6 +2090,16 @@
 - 业务入口: `console.services.app_version_service.get_overview`
 - 代码路径: `console/services/app_version_service.py`, `console/views/app_version.py`
 - 测试路径: `console/tests/app_version_test.py::AppVersionServiceOverviewTestCase.test_get_overview_promotes_latest_successful_rollback_target_to_current_version`, `console/tests/app_version_test.py::AppVersionServiceOverviewTestCase.test_get_overview_keeps_latest_snapshot_as_current_version_when_newer_than_rollback`, `console/tests/app_version_test.py::AppVersionServiceOverviewTestCase.test_get_overview_promotes_partial_rollback_target_to_current_version`, `console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_get_app_version_overview_returns_version_center_overview`
+
+### 快照发布时转换网关请求头为市场对象格式
+
+- Capability ID: `console.app-version.publish-snapshot-proxy-headers`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.mcp_query_service.MCPQueryService.publish_snapshot_to_store`
+- 代码路径: `console/services/mcp_query_service.py`
+- 测试路径: `console/tests/mcp_query_service_test.py::MCPQueryServiceSnapshotPublishTests`
 
 ### 回滚后生成构建任务
 

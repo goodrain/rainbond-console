@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import copy
 import datetime
 import json
 import logging
@@ -2890,9 +2891,18 @@ class MCPQueryService(object):
         detail = app_version_service.get_snapshot_detail(app.ID, version_id)
         if not detail:
             raise ServiceHandleException(msg="snapshot not found", msg_show="快照版本不存在", status_code=404)
-        app_template = detail.get("template", {})
+        app_template = copy.deepcopy(detail.get("template", {}))
         if rewrite_images:
             app_template = app_version_service._rewrite_template_images_to_upstream(app_template)
+        # Snapshots retain the console's header rows; the market expects a map.
+        for http_rule in app_template.get("ingress_http_routes") or []:
+            proxy_headers = http_rule.get("proxy_header") or {}
+            if isinstance(proxy_headers, list):
+                proxy_headers = {
+                    header["item_key"]: header.get("item_value", "")
+                    for header in proxy_headers if header.get("item_key")
+                }
+            http_rule["proxy_header"] = proxy_headers
         if not arch:
             arch = app_template.get("arch", "amd64")
 

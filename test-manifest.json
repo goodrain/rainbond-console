@@ -2456,6 +2456,24 @@
       "status": "active"
     },
     {
+      "id": "console.app-version.publish-snapshot-proxy-headers",
+      "title": "Publish snapshot gateway proxy headers in market format",
+      "title_zh": "快照发布时转换网关请求头为市场对象格式",
+      "interface_type": "service_method",
+      "interface": "console.services.mcp_query_service.MCPQueryService.publish_snapshot_to_store",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceSnapshotPublishTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.app-version.restore-builds",
       "title": "Generate rollback builds without source metadata",
       "title_zh": "回滚后生成构建任务",
