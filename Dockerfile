@@ -10,8 +10,8 @@ ARG PYTHON_SLIM_BASE=python:3.11-slim-bookworm
 # Fetch static UI assets independently of Python dependencies.
 FROM ${IMAGE_NAMESPACE}/rainbond-ui:${IMAGE_VERSION} AS ui
 
-# build console
-FROM ${PYTHON_BASE} AS build-console
+# Build a stable Python environment independently of application/UI files.
+FROM ${PYTHON_BASE} AS dependencies
 ARG PYTHONPROXY
 WORKDIR /app/ui
 ENV PATH="/app/ui/py_venv/bin:$PATH"
@@ -24,7 +24,17 @@ RUN python -m venv --copies /app/ui/py_venv && \
 
 COPY scripts/install_openapi_client.sh scripts/install_openapi_client.sh
 RUN bash scripts/install_openapi_client.sh --no-cache-dir $PYTHONPROXY
+RUN find /app/ui/py_venv/lib/python3.11/site-packages -depth -type d \( -name __pycache__ -o -name tests \) -exec rm -rf {} + && \
+    find /app/ui/py_venv -name '*.pyc' -delete
 
+# Helm also stays stable when only the application version changes.
+ARG TARGETARCH
+RUN wget https://get.helm.sh/helm-v3.16.2-linux-$TARGETARCH.tar.gz -O /tmp/helm.tar.gz && \
+    tar -zxvf /tmp/helm.tar.gz -C /tmp && \
+    mv /tmp/linux-$TARGETARCH/helm /tmp && \
+    chmod +x /tmp/helm
+
+FROM dependencies AS build-console
 COPY . /app/ui
 COPY --from=ui /dist /tmp/ui-dist
 RUN mv /tmp/ui-dist/index.html /app/ui/www/templates/index.html && \
@@ -32,21 +42,21 @@ RUN mv /tmp/ui-dist/index.html /app/ui/www/templates/index.html && \
     mkdir -p /app/ui/www/static/dists && \
     cp -a /tmp/ui-dist/. /app/ui/www/static/dists/ && \
     rm -rf /tmp/ui-dist && \
-    python manage.py collectstatic --noinput --ignore weavescope-src --ignore drf-yasg --ignore rest_framework && \
+    python manage.py collectstatic --link --noinput --ignore weavescope-src --ignore drf-yasg --ignore rest_framework && \
     python -m whitenoise.compress --no-brotli static/ && \
     python -m whitenoise.compress --no-brotli www/static/ && \
-    find /app/ui/py_venv/lib/python3.11/site-packages -depth -type d \( -name __pycache__ -o -name tests \) -exec rm -rf {} + && \
-    find /app/ui/py_venv -name '*.pyc' -delete
+    rm -rf /app/ui/py_venv
 
-ARG TARGETARCH
+# Keep assets out of the application layer as well. Collected files link to
+# their original paths, which are preserved in the runtime image below.
+RUN mkdir -p /tmp/runtime-static && \
+    mv /app/ui/static /tmp/runtime-static/collected && \
+    mv /app/ui/www/static /tmp/runtime-static/source
+
 ARG VERSION
 RUN git clone --depth=1 -b main https://github.com/goodrain/rainbond-chart /app/ui/rainbond-chart && \
     rm -rf /app/ui/rainbond-chart/.git && \
-    sed -i "s/installVersion: .*/installVersion: $VERSION/" /app/ui/rainbond-chart/values.yaml && \
-    wget https://get.helm.sh/helm-v3.16.2-linux-$TARGETARCH.tar.gz -O /tmp/helm.tar.gz && \
-    tar -zxvf /tmp/helm.tar.gz -C /tmp && \
-    mv /tmp/linux-$TARGETARCH/helm /tmp && \
-    chmod +x /tmp/helm
+    sed -i "s/installVersion: .*/installVersion: $VERSION/" /app/ui/rainbond-chart/values.yaml
 
 # build console image
 FROM ${PYTHON_SLIM_BASE}
@@ -72,8 +82,13 @@ ARG RAINBOND_POSTHOG_UI_HOST=https://posthog.goodrain.com
 ARG RAINBOND_POSTHOG_PROXY_TARGET=https://posthog.goodrain.com
 ARG RAINBOND_POSTHOG_ASSET_PROXY_TARGET=https://posthog.goodrain.com
 
+# Copy dependencies before application files so code/UI/version updates keep
+# the large dependency blob unchanged in both registries.
+COPY --from=dependencies /tmp/helm /usr/local/bin/helm
+COPY --from=dependencies /app/ui/py_venv /app/ui/py_venv
+COPY --from=build-console /tmp/runtime-static/source /app/ui/www/static
+COPY --from=build-console /tmp/runtime-static/collected /app/ui/static
 COPY --from=build-console /app/ui /app/ui
-COPY --from=build-console /tmp/helm /usr/local/bin/helm
 WORKDIR /app/ui
 
 ENV PATH=/app/ui/py_venv/bin:$PATH
