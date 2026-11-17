@@ -4507,6 +4507,48 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
     @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
     @patch("console.services.mcp_query_service.share_service.get_service_share_record_by_ID")
+    @patch("console.services.mcp_query_service.share_service.is_snapshot_publish_version", return_value=False)
+    @patch("console.services.mcp_query_service.share_service.query_share_service_info", return_value=[])
+    @patch("console.services.mcp_query_service.share_service.get_group_services_used_plugins", return_value=[])
+    @patch("console.services.share_services.k8s_resources_repo.list_available_resources")
+    # capability_id: console.app-share.info
+    def test_get_app_share_info_returns_k8s_resources_as_json_array(
+            self, mock_list_resources, mock_get_plugins, mock_get_services, mock_is_snapshot_publish,
+            mock_get_share_record, mock_get_region, mock_get_team):
+        class ResourceValues(object):
+            def values(self, *fields):
+                return self
+
+            def __iter__(self):
+                return iter([{
+                    "ID": 1,
+                    "app_id": "app-1",
+                    "name": "monitoring-role",
+                    "kind": "Role",
+                    "content": "kind: Role",
+                    "error_overview": "",
+                    "state": 2,
+                }])
+
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
+        mock_get_share_record.return_value = Obj(
+            ID=61, is_success=False, step=1, scope="team", group_id=12, app_id="", share_version="")
+        mock_list_resources.return_value = ResourceValues()
+
+        result = mcp_query_service.call_tool(
+            self.user,
+            "rainbond_get_app_share_info",
+            {"team_name": "demo-team", "region_name": "rainbond", "share_id": 61},
+        )
+
+        self.assertEqual(result["publish_mode"], "runtime")
+        self.assertIsInstance(result["share_info"]["share_k8s_resources"], list)
+        self.assertEqual(result["share_info"]["share_k8s_resources"][0]["name"], "monitoring-role")
+
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.share_service.get_service_share_record_by_ID")
     @patch("console.services.mcp_query_service.share_service.create_share_info")
     # capability_id: console.app-share.submit-info
     def test_submit_app_share_info_calls_share_service(
