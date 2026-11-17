@@ -71,7 +71,7 @@ class DeliveryTemplatesView(DeliveryAPI):
 
 
 class DeliveryVMPreparationView(DeliveryAPI):
-    def preparation(self):
+    def preparation(self) -> Any:
         from console.services.vm_delivery_preparation import VMDeliveryPreparation
         return VMDeliveryPreparation(self.delivery)
 

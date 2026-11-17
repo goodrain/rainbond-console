@@ -1,4 +1,5 @@
 """Recycle APIs with existing team/app read, create and delete permissions."""
+from typing import Any, TYPE_CHECKING, cast
 from rest_framework.response import Response
 
 from console.services.component_recycle import ComponentRecycleService, RecycleError
@@ -10,20 +11,23 @@ from console.views.base import JWTAuthApiView
 from www.models.main import Tenants, TenantRegionInfo, TenantServiceInfo, ServiceGroupRelation
 from www.utils.return_message import general_message
 
+if TYPE_CHECKING:
+    from rest_framework.request import Request
+
 
 class ComponentRecycleAPI(JWTAuthApiView):
-    def initial(self, request, *args, **kwargs):
+    def initial(self, request: "Request", *args: Any, **kwargs: Any) -> None:
         self.perform_authentication(request)
         self.check_permissions(request)
         super().initial(request, *args, **kwargs)
         self.recycle = ComponentRecycleService()
 
-    def handle_exception(self, error):
+    def handle_exception(self, error: Exception) -> Response:
         if isinstance(error, DeliveryError):
             return Response(general_message(error.status, 'failed', str(error)), status=error.status)
         return super().handle_exception(error)
 
-    def scope(self, request, team_name):
+    def scope(self, request: "Request", team_name: str) -> tuple[Tenants, str]:
         region = request.GET.get('region_name') or request.META.get('HTTP_X_REGION_NAME')
         if not isinstance(region, str) or not region:
             raise RecycleError('请选择集群', 400)
@@ -32,14 +36,14 @@ class ComponentRecycleAPI(JWTAuthApiView):
             raise RecycleError('团队或集群不存在', 404)
         return tenant, region
 
-    def authorize(self, row, team_name, code):
+    def authorize(self, row: Any, team_name: str, code: int) -> None:
         app = self.recycle.app(row)
         team_access(self.user, team_name, code, app.ID if app else None, self.is_enterprise_admin)
 
 
 class ComponentRecycleListView(ComponentRecycleAPI):
     @never_cache
-    def get(self, request, team_name):
+    def get(self, request: "Request", team_name: str) -> Response:
         tenant, region = self.scope(request, team_name)
         try:
             page = max(1, int(request.GET.get('page', 1)))
@@ -68,7 +72,7 @@ class ComponentRecycleListView(ComponentRecycleAPI):
 
 class ComponentRecycleRestoreView(ComponentRecycleAPI):
     @never_cache
-    def post(self, request, team_name, service_id):
+    def post(self, request: "Request", team_name: str, service_id: str) -> Response:
         tenant, region = self.scope(request, team_name)
         try:
             row = self.recycle.get(tenant, region, service_id)
@@ -89,7 +93,7 @@ class ComponentRecycleRestoreView(ComponentRecycleAPI):
         operation_log_service.create_log(self.user,
                                          OperationType.COMPONENT_MANAGE,
                                          '从回收站恢复了组件',
-                                         enterprise_id=tenant.enterprise_id,
+                                         enterprise_id=cast(str, tenant.enterprise_id),
                                          team_name=team_name,
                                          app_id=result.get('app_id', 0),
                                          service_alias=result['service_alias'])
@@ -98,7 +102,7 @@ class ComponentRecycleRestoreView(ComponentRecycleAPI):
 
 class ComponentRecyclePurgeView(ComponentRecycleAPI):
     @never_cache
-    def delete(self, request, team_name, service_id):
+    def delete(self, request: "Request", team_name: str, service_id: str) -> Response:
         tenant, region = self.scope(request, team_name)
         row = self.recycle.get(tenant, region, service_id)
         self.authorize(row, team_name, 300004)
@@ -106,7 +110,7 @@ class ComponentRecyclePurgeView(ComponentRecycleAPI):
         operation_log_service.create_log(self.user,
                                          OperationType.COMPONENT_MANAGE,
                                          '永久删除了回收站组件',
-                                         enterprise_id=tenant.enterprise_id,
+                                         enterprise_id=cast(str, tenant.enterprise_id),
                                          team_name=team_name,
                                          service_alias=row.service_alias,
                                          service_cname=row.service_cname)
