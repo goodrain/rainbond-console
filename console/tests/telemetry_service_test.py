@@ -87,12 +87,17 @@ class RainbondTelemetryServiceTests(TestCase):
 
     def test_sanitize_properties_preserves_posthog_group_key(self):
         sanitized = sanitize_properties({
-            "$group_key": "instance-a",
+            "$group_key": "a" * 32,
             "team_name": "private-team",
         })
 
-        self.assertEqual(sanitized["$group_key"], "instance-a")
+        self.assertEqual(sanitized["$group_key"], "a" * 32)
         self.assertEqual(sanitized["team_name"], "[Filtered]")
+
+    def test_sanitize_properties_filters_non_anonymous_posthog_group_key(self):
+        sanitized = sanitize_properties({"$group_key": "private-team"})
+
+        self.assertEqual(sanitized["$group_key"], "[Filtered]")
 
     def test_build_payload_uses_utc_timestamp_and_instance_group(self):
         service = RainbondTelemetryService(

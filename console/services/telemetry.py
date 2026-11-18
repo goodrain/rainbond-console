@@ -37,6 +37,7 @@ SENSITIVE_VALUE_RE = re.compile(
     re.I,
 )
 BEARER_VALUE_RE = re.compile(r"\b(bearer\s+)[a-z0-9._~+/=-]+", re.I)
+ANONYMOUS_GROUP_KEY_RE = re.compile(r"^[a-f0-9]{32}$", re.I)
 
 
 def str_to_bool(value):
@@ -61,7 +62,7 @@ def sanitize_properties(value, depth=0):
         result = {}
         for key, item in value.items():
             if key == "$group_key":
-                result[key] = sanitize_properties(item, depth + 1)
+                result[key] = item if isinstance(item, str) and ANONYMOUS_GROUP_KEY_RE.match(item) else "[Filtered]"
             elif SENSITIVE_KEY_RE.search(str(key)):
                 result[key] = "[Filtered]"
             else:
