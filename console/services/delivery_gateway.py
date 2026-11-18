@@ -1,6 +1,7 @@
 """Adapters for existing artifact, installer and export executors; no snapshot source."""
 import copy
 import json
+import os
 import uuid
 from types import SimpleNamespace
 from urllib.parse import urlsplit
@@ -460,6 +461,7 @@ class DeliveryGateway:
             app_market_service.create_market_app_model_version(
                 market, remote_id, {
                     "version": task.version.version,
+                    "rainbond_version": os.getenv("RELEASE_DESC", "public-cloud"),
                     "description": task.version.description,
                     "template": manifest,
                     "template_type": "application_template",
