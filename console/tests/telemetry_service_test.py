@@ -108,7 +108,7 @@ class RainbondTelemetryServiceTests(TestCase):
         payload = service.build_payload("rainbond_instance_registered")
         event = payload["batch"][0]
 
-        self.assertEqual(event["timestamp"], "2026-06-14T01:02:03+00:00")
+        self.assertEqual(event["timestamp"], "2026-06-13T17:02:03+00:00")
         self.assertEqual(event["properties"]["$groups"], {"instance": event["distinct_id"]})
 
     def test_instance_properties_include_anonymous_platform_metadata(self):

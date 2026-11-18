@@ -79,7 +79,7 @@ def _utc_now():
 
 def to_utc(value):
     if timezone.is_naive(value):
-        return timezone.make_aware(value, datetime.timezone.utc)
+        value = timezone.make_aware(value, timezone.get_default_timezone())
     return value.astimezone(datetime.timezone.utc)
 
 
