@@ -2456,6 +2456,24 @@
       "status": "active"
     },
     {
+      "id": "console.app-version.publish-snapshot-proxy-headers",
+      "title": "Publish snapshot gateway proxy headers in market format",
+      "title_zh": "快照发布时转换网关请求头为市场对象格式",
+      "interface_type": "service_method",
+      "interface": "console.services.mcp_query_service.MCPQueryService.publish_snapshot_to_store",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceSnapshotPublishTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.app-version.restore-builds",
       "title": "Generate rollback builds without source metadata",
       "title_zh": "回滚后生成构建任务",
@@ -4600,6 +4618,27 @@
         }
       ],
       "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.component-recycle.original-vm-recovery",
+      "title": "Recover original recycled VM",
+      "title_zh": "回收站原虚拟机恢复与安全删除",
+      "interface_type": "view_endpoint",
+      "interface": "/console/teams/{team}/recycle-bin",
+      "code_paths": [
+        "console/services/component_recycle.py",
+        "console/views/component_recycle.py",
+        "console/services/app_actions/app_manage.py",
+        "www/apiclient/regionapi.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/component_recycle_recovery_test.py",
+          "selector": "ComponentRecycleRecoveryTests"
+        }
+      ],
+      "test_type": "integration",
       "status": "active"
     },
     {
@@ -12411,6 +12450,25 @@
       "status": "active"
     },
     {
+      "id": "console.schema.preserve-generated-model-roundtrips",
+      "title": "Preserve live data across generated migration roundtrips",
+      "title_zh": "Preserve live data across generated migration roundtrips",
+      "interface_type": "workflow",
+      "interface": "console.utils.legacy_model_roundtrip.repair_generated_model_roundtrips",
+      "code_paths": [
+        "console/utils/legacy_model_roundtrip.py",
+        "console/management/commands/repair_legacy_schema.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/legacy_model_roundtrip_test.py",
+          "selector": "LegacyModelRoundtripTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.sentry.expected-not-found-errors",
       "title": "Suppress expected not-found telemetry",
       "title_zh": "过滤预期的资源不存在异常",
@@ -14292,6 +14350,29 @@
       "status": "active"
     },
     {
+      "id": "console.vm-snapshot.capacity-evidence",
+      "title": "Compare logical Region capacity without rewriting physical snapshot bytes",
+      "title_zh": "Compare logical Region capacity without rewriting physical snapshot bytes",
+      "interface_type": "workflow",
+      "interface": "SnapshotJobRunner -> SnapshotCapacityEvidence -> SnapshotManifestService",
+      "code_paths": [
+        "console/services/vm_snapshot_job_worker.py",
+        "console/services/vm_snapshot_manifest_ack.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/vm_snapshot_capacity_test.py",
+          "selector": "SnapshotCapacityTests"
+        },
+        {
+          "path": "console/tests/vm_snapshot_jobs_worker_test.py",
+          "selector": "SnapshotJobsWorkerTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.vm-snapshot.durable-worker",
       "title": "Durable snapshot enqueue and single default worker lifecycle",
       "title_zh": "普通快照持久任务入队与唯一后台执行闭环",
@@ -14349,6 +14430,31 @@
         {
           "path": "console/tests/vm_existing_snapshot_capability_test.py",
           "selector": "ExistingVMSnapshotCapabilityTests"
+        }
+      ],
+      "test_type": "integration",
+      "status": "active"
+    },
+    {
+      "id": "console.vm-snapshot.explicit-retry",
+      "title": "Discover active snapshot jobs and explicitly retry the original immutable request",
+      "title_zh": "Discover active snapshot jobs and explicitly retry the original immutable request",
+      "interface_type": "workflow",
+      "interface": "GET /vm-jobs/active; POST /vm-jobs/{operation_id}/retry",
+      "code_paths": [
+        "console/services/vm_snapshot_jobs.py",
+        "console/services/vm_restore_journal.py",
+        "console/views/vm_jobs.py",
+        "console/urls/__init__.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/vm_snapshot_enqueue_api_test.py",
+          "selector": "SnapshotEnqueueAPITests"
+        },
+        {
+          "path": "console/tests/vm_snapshot_jobs_worker_test.py",
+          "selector": "SnapshotJobsWorkerTests"
         }
       ],
       "test_type": "integration",
@@ -14937,6 +15043,42 @@
         }
       ],
       "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "rainbond-console.delivery.vm-current-disk-preparation",
+      "title": "VM delivery preparation freezes capture artifacts and preserves container delivery",
+      "title_zh": "VM delivery preparation freezes capture artifacts and preserves container delivery",
+      "interface_type": "workflow",
+      "interface": "console.services.vm_delivery_preparation.VMDeliveryPreparation",
+      "code_paths": [
+        "console/services/vm_delivery_preparation.py",
+        "console/services/delivery_gateway.py",
+        "console/services/delivery_templates.py",
+        "console/services/delivery_worker.py",
+        "console/views/delivery_templates.py",
+        "www/apiclient/regionapi.py",
+        "console/views/cleanup_inventory.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/vm_delivery_preparation_test.py",
+          "selector": "VMDeliveryPreparationRegressionTest.test_vm_delivery_lifecycle"
+        },
+        {
+          "path": "console/tests/vm_delivery_preparation_test.py",
+          "selector": "VMDeliveryPreparationRegressionTest.test_preparation_view_requires_application_write_scope_and_returns_a_task"
+        },
+        {
+          "path": "console/tests/vm_delivery_preparation_test.py",
+          "selector": "VMDeliveryPreparationRegressionTest.test_region_capture_client_matches_scoped_methods_and_bounded_timeouts"
+        },
+        {
+          "path": "console/tests/vm_delivery_preparation_test.py",
+          "selector": "VMDeliveryPreparationRegressionTest.test_gateway_supports_default_region_and_configured_delivery_registries"
+        }
+      ],
+      "test_type": "integration",
       "status": "active"
     },
     {

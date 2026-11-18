@@ -7,7 +7,8 @@ from django.db import connections
 
 from console.services.vm_restore_journal import (JournalConflict, TERMINAL, VMRestoreJournal, canonical, require)
 from console.services.vm_snapshot_authority import (SnapshotProofPending, observation, source_context, terminal_evidence)
-from console.services.vm_snapshot_manifest_ack import SnapshotManifestService, ready_action, snapshot_prepare_body
+from console.services.vm_snapshot_manifest_ack import (SnapshotCapacityEvidence, SnapshotManifestService, ready_action,
+                                                       snapshot_prepare_body)
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import TenantServiceInfo, Tenants
 
@@ -48,6 +49,11 @@ class SnapshotJobRunner:
                                     self.clock(),
                                     retry_at=self.clock() + 30 if code != 'CONFLICT' else 0,
                                     error_code=code)
+
+    def _capacities(self, context, observed):
+        team = Tenants.objects.using(context.identity[4]).get(tenant_id=context.identity[1])
+        response, body = self.client.get_service_volumes(*self._scope(context), team.enterprise_id or '')
+        return SnapshotCapacityEvidence.from_region(context, observed, response, body)
 
     def _record(self, context, operation, raw):
         request = operation['request']
@@ -158,12 +164,13 @@ class SnapshotJobRunner:
             body = dict(operation_id=operation_id, core_hash=raw['core_hash'], request_id=operation_id)
             if raw['ready_to_use']:
                 store = SnapshotManifestService(self.journal)
+                capacities = self._capacities(context, raw)
                 if not operation['snapshot_uid']:
                     store.commit(context, source_context(operation, raw), operation_id, self.owner,
-                                 operation['execution_epoch'], operation['revision'], raw, self.clock())
+                                 operation['execution_epoch'], operation['revision'], raw, self.clock(), capacities)
                     operation = self.journal.read_operation(context, operation_id)
                 body = store.ready_request(context, operation_id, self.owner, operation['execution_epoch'],
-                                           operation['revision'], raw, self.clock())
+                                           operation['revision'], raw, self.clock(), capacities)
                 action = ready_action(operation, raw)
                 if action is None:
                     self._wait(context, operation)

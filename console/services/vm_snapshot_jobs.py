@@ -1,5 +1,6 @@
 """Scoped durable snapshot submission. The HTTP thread never calls Region."""
 import re
+import time
 
 from django.db import connections
 
@@ -46,6 +47,24 @@ class SnapshotJobService:
             if key in observation:
                 public[key] = observation[key]
         return public
+
+    def retry(self, context, request_id, revision, now=None):
+        require(type(context) is TrustedContext and not connections[context.identity[4]].in_atomic_block)
+        self.journal.retry_snapshot_operation(context, request_id, revision, int(time.time()) if now is None else now)
+        return self.status(context, request_id)
+
+    def active(self, context):
+        operation_id = self.journal.active_operation(context)
+        if not operation_id:
+            return dict(blocked=False, snapshot=None)
+        operation = self.journal.read_operation(context, operation_id)
+        request = operation.get('request', {})
+        if operation['kind'] != 'snapshot' or operation['request_id'] != operation_id or 'operator' not in request:
+            return dict(blocked=True, snapshot=None)
+        # Public selection only; never expose the private journal request/actor/evidence.
+        selection = {key: request[key] for key in ('name', 'description', 'power_after')}
+        selection['request_id'] = operation_id
+        return dict(blocked=True, snapshot=dict(selection=selection, job=self.status(context, operation_id)))
 
 
 snapshot_job_service = SnapshotJobService()

@@ -55,6 +55,10 @@ class DeliveryService:
         if not template:
             raise DeliveryError("请先创建应用模板，再创建版本", 409)
         source, app_name = self.gateway.source(scope)
+        from console.services.vm_delivery_preparation import is_vm
+        selected = set(data.get('service_ids', []))
+        if any(is_vm(component) for component in source.get('apps', []) if component.get('service_id') in selected):
+            raise DeliveryError('虚拟机交付需要先准备当前系统盘镜像，请使用虚拟机镜像准备流程', 409)
         with transaction.atomic():
             template = self.m.DeliveryTemplate.objects.select_for_update().get(pk=template.pk)
             if template.versions.filter(version=str(data.get("version", "")).strip()).exists():
@@ -142,6 +146,9 @@ class DeliveryService:
 
     def advance(self, task_id):
         """One persisted execution step. Called by the worker, never by status GET."""
+        if self.m.DeliveryTask.objects.filter(id=task_id, kind='vm_prepare').exists():
+            from console.services.vm_delivery_preparation import VMDeliveryPreparation
+            return VMDeliveryPreparation(self).advance(task_id)
         with transaction.atomic():
             hint = self.m.DeliveryTask.objects.filter(id=task_id).first()
             if hint and hint.kind == "catalog_publish" and hint.version_id:

@@ -1,4 +1,4 @@
-"""Fail-closed write admission until the authoritative Region protocol exists."""
+"""Console enqueue readiness; scoped Region validation still owns snapshot admission."""
 from console.exception.main import ServiceHandleException
 from console.services import vm_job_health
 
@@ -6,9 +6,9 @@ from console.services import vm_job_health
 def snapshot_write_capability():
     if not vm_job_health.ready():
         return {'available': False, 'reason': 'worker_unavailable'}
-    # No current reviewed Go RPC proves source identity, epoch ownership and
-    # terminal fence release. Never probe the legacy POST to discover support.
-    return {'available': False, 'reason': 'region_authority_contract_unavailable'}
+    # The default worker now implements the managed Prepare/ACK/finalize protocol.
+    # This is process readiness, not proof of storage support or task completion.
+    return {'available': True, 'reason': 'ready'}
 
 
 def require_snapshot_writer():

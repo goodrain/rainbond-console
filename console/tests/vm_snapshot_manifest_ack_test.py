@@ -139,6 +139,38 @@ class SnapshotManifestAckTests(TestCase):
             self.commit(op)
         self.assertEqual(self.journal.read_operation(self.ctx, 'op-a')['snapshot_uid'], '')
 
+    def test_iso_created_vm_seals_managed_disks_with_default_bios_and_readonly_media(self):
+        op = self.prepared()
+        ComponentK8sAttributes.objects.filter(component_id='service-a', name='vm_boot_mode').delete()
+        row = ComponentK8sAttributes.objects.get(component_id='service-a', name='vm_disk_layout')
+        layout = json.loads(row.attribute_value)
+        for key, source in [('vmimage', 'installer_media'), ('virtio', 'container_disk')]:
+            layout.append(dict(disk_key=key, source_kind=source, device_type='cdrom', disk_role='installer'))
+        row.attribute_value = json.dumps(layout)
+        row.save()
+        manifest = self.commit(op)
+        self.assertEqual(manifest['config']['boot_mode'], 'bios')
+        self.assertEqual(len(manifest['disks']), 1)
+
+    def test_unmanaged_writable_media_and_unknown_boot_mode_cannot_seal(self):
+        op = self.prepared()
+        row = ComponentK8sAttributes.objects.get(component_id='service-a', name='vm_disk_layout')
+        original = json.loads(row.attribute_value)
+        for media in [
+                dict(disk_key='data', source_kind='container_disk', device_type='disk'),
+                dict(disk_key='iso', source_kind='installer_media', device_type='cdrom', read_only=False)
+        ]:
+            row.attribute_value = json.dumps(original + [media])
+            row.save()
+            with self.subTest(media=media), self.assertRaises(JournalConflict):
+                self.commit(op)
+        row.attribute_value = json.dumps(original)
+        row.save()
+        ComponentK8sAttributes.objects.filter(component_id='service-a', name='vm_boot_mode').delete()
+        self.observed['config']['boot_mode'] = 'uefi'
+        with self.assertRaises(JournalConflict):
+            self.commit(op)
+
     def test_outer_transaction_and_real_sql_abort_never_return_ack_material(self):
         from console.services.vm_snapshot_manifest_ack import SnapshotManifestService
         op = self.prepared()

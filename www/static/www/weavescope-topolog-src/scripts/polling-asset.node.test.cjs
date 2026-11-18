@@ -172,7 +172,8 @@ test('VM badge is an independent top-right overlay and preserves the original no
     assert.ok(Number(position[1]) > 0 && Number(position[2]) < 0, 'badge must be in the top-right quadrant');
     const badgeText = findElement(badge, element => element.type === 'text' && element.children.includes('VM'));
     assert.ok(badgeText);
-    assert.equal(badgeText.props.style.fill, '#marker', 'inline fill must win over the existing .shape text rule');
+    assert.equal(badgeText.props.style.fill, '#fff', 'inline fill must win over the existing .shape text rule');
+    assert.equal(badgeText.props.style.transform, 'none', 'badge text must not inherit the doubled center-label scale');
     assert.deepEqual(JSON.parse(JSON.stringify(withoutClass(virtualMachine, 'virtual-machine-badge'))),
       JSON.parse(JSON.stringify(withoutClass(container, 'virtual-machine-badge'))),
       'adding the badge must not replace or alter the original center');

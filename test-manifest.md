@@ -134,6 +134,7 @@
 | console.app-version.manual-snapshot-acknowledgement | Full manual snapshots clear only stale scoped automatic snapshot warnings | active | regression | console.services.app_version_auto_snapshot.AppVersionAutoSnapshotService.acknowledge_manual_snapshot | console/tests/app_version_auto_snapshot_test.py::ManualSnapshotAcknowledgementTests<br>console/tests/app_version_test.py::AppVersionSnapshotSourceVersionTests |
 | console.app-version.market-deploy-snapshot-hook | 模板安装升级与回滚独立于应用快照 | active | regression | console.services.market_app.app_upgrade.AppUpgrade.upgrade | console/tests/app_version_test.py::MarketDeploymentSnapshotHookTests |
 | console.app-version.overview | 查看应用版本概览 | active | regression | console.services.app_version_service.get_overview | console/tests/app_version_test.py::AppVersionServiceOverviewTestCase.test_get_overview_promotes_latest_successful_rollback_target_to_current_version<br>console/tests/app_version_test.py::AppVersionServiceOverviewTestCase.test_get_overview_keeps_latest_snapshot_as_current_version_when_newer_than_rollback<br>console/tests/app_version_test.py::AppVersionServiceOverviewTestCase.test_get_overview_promotes_partial_rollback_target_to_current_version<br>console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_get_app_version_overview_returns_version_center_overview |
+| console.app-version.publish-snapshot-proxy-headers | 快照发布时转换网关请求头为市场对象格式 | active | regression | console.services.mcp_query_service.MCPQueryService.publish_snapshot_to_store | console/tests/mcp_query_service_test.py::MCPQueryServiceSnapshotPublishTests |
 | console.app-version.restore-builds | 回滚后生成构建任务 | active | regression | console.services.market_app.market_app.MarketApp._generate_builds | console/tests/app_version_test.py::MarketAppBuildGenerationTestCase.test_generate_builds_allows_components_without_source_metadata |
 | console.app-version.restore-component-without-source | 无来源信息时恢复组件 | active | regression | console.services.market_app.app_restore.AppRestore._create_component | console/tests/app_version_test.py::AppRestoreSnapshotCompatibilityTestCase.test_create_component_allows_snapshot_without_service_source |
 | console.app-version.restore-k8s-attributes | 回滚时恢复组件 K8s 属性 | active | regression | console.services.market_app.new_app.NewApp._save_components | console/tests/app_version_test.py::NewAppSaveComponentsTestCase.test_save_components_overwrites_k8s_attributes_for_new_components |
@@ -245,6 +246,7 @@
 | console.component-env.field-length-validation | 持久化前校验环境变量字段长度 | active | regression | console.services.app_config.env_service.AppEnvVarService.add_service_env_var | console/tests/app_env_service_test.py::AppEnvVarServiceUpdateTestCase.test_add_env_rejects_overlong_description_before_region_or_database_write |
 | console.component-recycle.atomic-retry | 回滚部分回收变更并允许重试 | active | regression | console.services.app_actions.app_manage.AppManageService.delete | console/tests/app_manage_test.py::AppManageRecycleFieldProjectionTests.test_recycle_failure_deleting_original_rolls_back_and_can_retry<br>console/tests/app_manage_test.py::AppManageRecycleFieldProjectionTests.test_relation_move_failure_rolls_back_single_and_batch_delete_and_can_retry |
 | console.component-recycle.field-projection | 将当前组件字段投影到回收模型 | active | regression | console.repositories.app.ServiceRecycleBinRepository.create_trash_service | console/tests/app_manage_test.py::AppManageRecycleFieldProjectionTests.test_recycle_preserves_declared_fields_and_removes_original_after_insert<br>console/tests/app_manage_test.py::AppManageRecycleFieldProjectionTests.test_recycle_failure_before_insert_preserves_original_for_retry |
+| console.component-recycle.original-vm-recovery | 回收站原虚拟机恢复与安全删除 | active | integration | /console/teams/{team}/recycle-bin | console/tests/component_recycle_recovery_test.py::ComponentRecycleRecoveryTests |
 | console.component-type.daemonset | DaemonSet 组件类型支持 | active | regression | console.enum.component_enum.ComponentType | console/tests/app_manage_test.py::ComponentDaemonSetSupportTests.test_daemonset_component_type_is_supported<br>console/tests/app_manage_test.py::ComponentDaemonSetSupportTests.test_extend_method_name_supports_daemonset<br>console/tests/app_manage_test.py::ComponentDaemonSetSupportTests.test_change_service_type_blocks_daemonset_transition |
 | console.component.autoscaler-invalid-metrics | manage_component_autoscaler 在调用服务前拒绝不完整指标 | active | regression | console.services.mcp_query_service.call_tool[console.component.autoscaler-invalid-metrics] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_manage_component_autoscaler_create_rejects_incomplete_metric_before_service_call |
 | console.component.autoscaler-summary | 查看组件伸缩概览 | active | regression | console.services.mcp_query_service.call_tool[rainbond_manage_component_autoscaler] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_manage_component_autoscaler_summary_returns_rules_and_records |
@@ -647,6 +649,7 @@
 | console.rke2.preserve-method-not-allowed | 保留不支持方法响应 | active | regression | console.views.rke2.BaseClusterView.handle_exception | console/tests/rke2_cluster_errors_test.py::ClusterRKEErrorTests.test_cluster_install_get_preserves_method_not_allowed |
 | console.runtime.sse-gunicorn-timeout | Gunicorn 超时覆盖一小时 SSE 长连接 | active | regression | entrypoint.sh/Procfile | console/tests/entrypoint_test.py::EntrypointGunicornTest.test_gunicorn_timeout_outlives_one_hour_sse_streams |
 | console.runtime.static-precompression | 镜像构建预压缩静态资源并保持原始响应兼容 | active | regression | Dockerfile collectstatic and WhiteNoise compression | console/tests/static_precompression_test.py::StaticPrecompressionTests |
+| console.schema.preserve-generated-model-roundtrips | Preserve live data across generated migration roundtrips | active | regression | console.utils.legacy_model_roundtrip.repair_generated_model_roundtrips | console/tests/legacy_model_roundtrip_test.py::LegacyModelRoundtripTests |
 | console.sentry.expected-not-found-errors | 过滤预期的资源不存在异常 | active | regression | goodrain_web.sentry_config.before_send | console/tests/sentry_config_test.py::test_before_send_drops_expected_not_found_exceptions<br>console/tests/sentry_config_test.py::test_before_send_keeps_server_side_service_and_region_errors |
 | console.sentry.expected-region-frequent-error | 过滤预期的区域操作频繁异常 | active | regression | goodrain_web.sentry_config.before_send | console/tests/sentry_config_test.py::test_before_send_drops_region_api_frequent_operation_exception<br>console/tests/sentry_config_test.py::test_before_send_keeps_same_exception_name_from_other_modules |
 | console.service-share.cnb-publish-command | 发布组件模板时清理 CNB 源码启动命令 | active | regression | console.services.share_services.ShareService.query_share_service_info | console/tests/service_share_test.py::ShareServiceCNBPublishCommandTestCase |
@@ -742,9 +745,11 @@
 | console.vm-run.platform-runtime-guard | 虚拟机平台异常时禁止创建虚拟机组件 | active | regression | console.views.app_create.vm_run.VMRunCreateView.post | console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_vm_run_create_rejects_when_vm_plugin_not_running |
 | console.vm-run.reject-root-ssh-bootstrap | 创建虚拟机前拒绝 root SSH 初始化 | active | regression | POST /console/teams/{team}/apps/vm_run | console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_vm_ssh_bootstrap_rejects_root_with_non_root_username_hint<br>console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_vm_run_rejects_root_ssh_before_any_creation |
 | console.vm-run.ssh-public-key-bootstrap | 校验 Linux 虚拟机 SSH 初始化并登记内网端口 | active | regression | console.views.app_create.vm_run.VMRunCreateView.post | console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_vm_ssh_bootstrap_accepts_only_linux_disk_images<br>console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_vm_run_rejects_invalid_ssh_before_creating_asset_or_component<br>console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_vm_run_records_linux_ssh_runtime_and_internal_port_before_returning<br>console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_vm_run_rolls_back_asset_component_attrs_group_and_port_when_ssh_port_fails<br>console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_build_vm_runtime_attrs_maps_ssh_inputs_and_preserves_uefi_firmware_mode<br>console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_create_region_service_includes_ssh_attrs_and_internal_port_without_exposing_key_in_profile |
+| console.vm-snapshot.capacity-evidence | Compare logical Region capacity without rewriting physical snapshot bytes | active | regression | SnapshotJobRunner -> SnapshotCapacityEvidence -> SnapshotManifestService | console/tests/vm_snapshot_capacity_test.py::SnapshotCapacityTests<br>console/tests/vm_snapshot_jobs_worker_test.py::SnapshotJobsWorkerTests |
 | console.vm-snapshot.durable-worker | 普通快照持久任务入队与唯一后台执行闭环 | active | integration | console.services.vm_snapshot_jobs.SnapshotJobService.submit -> VMJobRunner default snapshot factory | console/tests/vm_snapshot_jobs_worker_test.py |
 | console.vm-snapshot.enqueue-api | Scoped durable snapshot HTTP enqueue and canonical status | active | integration | POST /console/teams/{team}/apps/{alias}/vm-snapshots -> SQL job; GET /vm-jobs/{operation_id} | console/tests/vm_snapshot_enqueue_api_test.py |
 | console.vm-snapshot.existing-capability | 当前虚拟机完整盘集合快照能力读取 | active | integration | GET /console/teams/{team}/apps/{alias}/vm-snapshot-capability | console/tests/vm_existing_snapshot_capability_test.py::ExistingVMSnapshotCapabilityTests |
+| console.vm-snapshot.explicit-retry | Discover active snapshot jobs and explicitly retry the original immutable request | active | integration | GET /vm-jobs/active; POST /vm-jobs/{operation_id}/retry | console/tests/vm_snapshot_enqueue_api_test.py::SnapshotEnqueueAPITests<br>console/tests/vm_snapshot_jobs_worker_test.py::SnapshotJobsWorkerTests |
 | console.vm-snapshot.manifest-ack-helper | 普通虚拟机快照manifest提交后ACK构造与证据拒绝 | active | integration | console.services.vm_snapshot_manifest_ack.SnapshotManifestService | console/tests/vm_snapshot_manifest_ack_test.py |
 | console.vm-snapshot.private-control-boundary | Private VM journal public boundary and original exposure controls | active | regression | public attribute service/repository and isolated SQL internal journal | console/tests/vm_snapshot_private_boundary_test.py |
 | console.vm-snapshot.read-api | 在实际Main源码上按组件权限读取快照 | active | integration | GET /console/teams/{tenantName}/apps/{serviceAlias}/vm-snapshots[/{snapshot_name}] | console/tests/vm_snapshot_read_api_test.py::VMSnapshotReadAPITestCase |
@@ -775,6 +780,7 @@
 | openapi.service-config.port-open-outer-app-context | OpenAPI 开启组件外部端口时解析应用上下文 | active | regression | console.services.app_config.port_service.AppPortService.manage_port | console/tests/openapi_service_config_validation_test.py::OpenAPIServiceConfigValidationTest.test_manage_port_resolves_app_when_opening_outer_port |
 | openapi.service-config.validation-error-shape | OpenAPI 参数校验错误不返回 traceback | active | regression | console.views.base.custom_exception_handler | console/tests/openapi_service_config_validation_test.py::OpenAPIServiceConfigValidationTest.test_validation_error_response_does_not_expose_traceback |
 | openapi.team.delete-error-propagation | OpenAPI 删除团队时正确透出业务异常 | active | regression | openapi.views.team_view.TeamInfo.delete | console/tests/openapi_team_delete_except_test.py::TeamDeleteExceptTest.test_service_error_propagates_instead_of_typeerror |
+| rainbond-console.delivery.vm-current-disk-preparation | VM delivery preparation freezes capture artifacts and preserves container delivery | active | integration | console.services.vm_delivery_preparation.VMDeliveryPreparation | console/tests/vm_delivery_preparation_test.py::VMDeliveryPreparationRegressionTest.test_vm_delivery_lifecycle<br>console/tests/vm_delivery_preparation_test.py::VMDeliveryPreparationRegressionTest.test_preparation_view_requires_application_write_scope_and_returns_a_task<br>console/tests/vm_delivery_preparation_test.py::VMDeliveryPreparationRegressionTest.test_region_capture_client_matches_scoped_methods_and_bounded_timeouts<br>console/tests/vm_delivery_preparation_test.py::VMDeliveryPreparationRegressionTest.test_gateway_supports_default_region_and_configured_delivery_registries |
 | rainbond-console.vm-disks.container-disk-cdrom | VM disk layout accepts container disk CD-ROM media | active | regression | console.services.virtual_machine.VirtualMachineService.validate_vm_disk_layout | console/tests/vm_create_flow_regression_test.py::VMCreateFlowRegressionUnitTests.test_validate_vm_disk_layout_accepts_container_disk_cdrom<br>console/tests/vm_create_flow_regression_test.py::VMCreateFlowRegressionUnitTests.test_validate_vm_disk_layout_rejects_container_disk_without_image |
 | rainbond-console.vm-disks.iso-installer-compat | 当 VM 运行时提示不完整时仍为 ISO 虚拟机磁盘列表补出安装光盘 | active | regression | console.services.virtual_machine.VirtualMachineService.list_vm_disks | console/tests/vm_disk_installer_compat_test.py::VMInstallerMediaCompatUnitTests.test_get_vm_runtime_config_includes_boot_source_format<br>console/tests/vm_disk_installer_compat_test.py::VMInstallerMediaCompatUnitTests.test_list_vm_disks_falls_back_to_asset_format_for_legacy_iso_vm_without_runtime_hint |
 | rainbond-console.vm-export.asset-ready-storage-status | 虚拟机资产就绪需要 ready 状态与镜像地址 | active | regression | console.services.virtual_machine.VirtualMachineService.is_vm_asset_ready | console/tests/vm_create_flow_regression_test.py |
@@ -2085,6 +2091,16 @@
 - 代码路径: `console/services/app_version_service.py`, `console/views/app_version.py`
 - 测试路径: `console/tests/app_version_test.py::AppVersionServiceOverviewTestCase.test_get_overview_promotes_latest_successful_rollback_target_to_current_version`, `console/tests/app_version_test.py::AppVersionServiceOverviewTestCase.test_get_overview_keeps_latest_snapshot_as_current_version_when_newer_than_rollback`, `console/tests/app_version_test.py::AppVersionServiceOverviewTestCase.test_get_overview_promotes_partial_rollback_target_to_current_version`, `console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_get_app_version_overview_returns_version_center_overview`
 
+### 快照发布时转换网关请求头为市场对象格式
+
+- Capability ID: `console.app-version.publish-snapshot-proxy-headers`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.mcp_query_service.MCPQueryService.publish_snapshot_to_store`
+- 代码路径: `console/services/mcp_query_service.py`
+- 测试路径: `console/tests/mcp_query_service_test.py::MCPQueryServiceSnapshotPublishTests`
+
 ### 回滚后生成构建任务
 
 - Capability ID: `console.app-version.restore-builds`
@@ -3194,6 +3210,16 @@
 - 业务入口: `console.repositories.app.ServiceRecycleBinRepository.create_trash_service`
 - 代码路径: `console/repositories/app.py`
 - 测试路径: `console/tests/app_manage_test.py::AppManageRecycleFieldProjectionTests.test_recycle_preserves_declared_fields_and_removes_original_after_insert`, `console/tests/app_manage_test.py::AppManageRecycleFieldProjectionTests.test_recycle_failure_before_insert_preserves_original_for_retry`
+
+### 回收站原虚拟机恢复与安全删除
+
+- Capability ID: `console.component-recycle.original-vm-recovery`
+- 状态: `active`
+- 测试类型: `integration`
+- 接口类型: `view_endpoint`
+- 业务入口: `/console/teams/{team}/recycle-bin`
+- 代码路径: `console/services/component_recycle.py`, `console/views/component_recycle.py`, `console/services/app_actions/app_manage.py`, `www/apiclient/regionapi.py`
+- 测试路径: `console/tests/component_recycle_recovery_test.py::ComponentRecycleRecoveryTests`
 
 ### DaemonSet 组件类型支持
 
@@ -7215,6 +7241,16 @@
 - 代码路径: `Dockerfile`
 - 测试路径: `console/tests/static_precompression_test.py::StaticPrecompressionTests`
 
+### Preserve live data across generated migration roundtrips
+
+- Capability ID: `console.schema.preserve-generated-model-roundtrips`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `workflow`
+- 业务入口: `console.utils.legacy_model_roundtrip.repair_generated_model_roundtrips`
+- 代码路径: `console/utils/legacy_model_roundtrip.py`, `console/management/commands/repair_legacy_schema.py`
+- 测试路径: `console/tests/legacy_model_roundtrip_test.py::LegacyModelRoundtripTests`
+
 ### 过滤预期的资源不存在异常
 
 - Capability ID: `console.sentry.expected-not-found-errors`
@@ -8165,6 +8201,16 @@
 - 代码路径: `console/views/app_create/vm_run.py`, `console/services/virtual_machine.py`
 - 测试路径: `console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_vm_ssh_bootstrap_accepts_only_linux_disk_images`, `console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_vm_run_rejects_invalid_ssh_before_creating_asset_or_component`, `console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_vm_run_records_linux_ssh_runtime_and_internal_port_before_returning`, `console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_vm_run_rolls_back_asset_component_attrs_group_and_port_when_ssh_port_fails`, `console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_build_vm_runtime_attrs_maps_ssh_inputs_and_preserves_uefi_firmware_mode`, `console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_create_region_service_includes_ssh_attrs_and_internal_port_without_exposing_key_in_profile`
 
+### Compare logical Region capacity without rewriting physical snapshot bytes
+
+- Capability ID: `console.vm-snapshot.capacity-evidence`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `workflow`
+- 业务入口: `SnapshotJobRunner -> SnapshotCapacityEvidence -> SnapshotManifestService`
+- 代码路径: `console/services/vm_snapshot_job_worker.py`, `console/services/vm_snapshot_manifest_ack.py`
+- 测试路径: `console/tests/vm_snapshot_capacity_test.py::SnapshotCapacityTests`, `console/tests/vm_snapshot_jobs_worker_test.py::SnapshotJobsWorkerTests`
+
 ### 普通快照持久任务入队与唯一后台执行闭环
 
 - Capability ID: `console.vm-snapshot.durable-worker`
@@ -8194,6 +8240,16 @@
 - 业务入口: `GET /console/teams/{team}/apps/{alias}/vm-snapshot-capability`
 - 代码路径: `console/services/vm_existing_snapshot_capability.py`, `console/services/vm_snapshot_read.py`, `console/views/vm_snapshot.py`, `www/apiclient/regionapi.py`, `console/urls/__init__.py`
 - 测试路径: `console/tests/vm_existing_snapshot_capability_test.py::ExistingVMSnapshotCapabilityTests`
+
+### Discover active snapshot jobs and explicitly retry the original immutable request
+
+- Capability ID: `console.vm-snapshot.explicit-retry`
+- 状态: `active`
+- 测试类型: `integration`
+- 接口类型: `workflow`
+- 业务入口: `GET /vm-jobs/active; POST /vm-jobs/{operation_id}/retry`
+- 代码路径: `console/services/vm_snapshot_jobs.py`, `console/services/vm_restore_journal.py`, `console/views/vm_jobs.py`, `console/urls/__init__.py`
+- 测试路径: `console/tests/vm_snapshot_enqueue_api_test.py::SnapshotEnqueueAPITests`, `console/tests/vm_snapshot_jobs_worker_test.py::SnapshotJobsWorkerTests`
 
 ### 普通虚拟机快照manifest提交后ACK构造与证据拒绝
 
@@ -8494,6 +8550,16 @@
 - 业务入口: `openapi.views.team_view.TeamInfo.delete`
 - 代码路径: `openapi/views/team_view.py`
 - 测试路径: `console/tests/openapi_team_delete_except_test.py::TeamDeleteExceptTest.test_service_error_propagates_instead_of_typeerror`
+
+### VM delivery preparation freezes capture artifacts and preserves container delivery
+
+- Capability ID: `rainbond-console.delivery.vm-current-disk-preparation`
+- 状态: `active`
+- 测试类型: `integration`
+- 接口类型: `workflow`
+- 业务入口: `console.services.vm_delivery_preparation.VMDeliveryPreparation`
+- 代码路径: `console/services/vm_delivery_preparation.py`, `console/services/delivery_gateway.py`, `console/services/delivery_templates.py`, `console/services/delivery_worker.py`, `console/views/delivery_templates.py`, `www/apiclient/regionapi.py`, `console/views/cleanup_inventory.py`
+- 测试路径: `console/tests/vm_delivery_preparation_test.py::VMDeliveryPreparationRegressionTest.test_vm_delivery_lifecycle`, `console/tests/vm_delivery_preparation_test.py::VMDeliveryPreparationRegressionTest.test_preparation_view_requires_application_write_scope_and_returns_a_task`, `console/tests/vm_delivery_preparation_test.py::VMDeliveryPreparationRegressionTest.test_region_capture_client_matches_scoped_methods_and_bounded_timeouts`, `console/tests/vm_delivery_preparation_test.py::VMDeliveryPreparationRegressionTest.test_gateway_supports_default_region_and_configured_delivery_registries`
 
 ### VM disk layout accepts container disk CD-ROM media
 

@@ -5,6 +5,7 @@ from datetime import datetime
 from enum import Enum, IntEnum
 
 from django.db import models
+from django.core.serializers.json import DjangoJSONEncoder
 from django.db.models.fields import (AutoField, BooleanField, CharField, DateTimeField, DecimalField, IntegerField)
 from django.db.models.fields.files import FileField
 from goodrain_web import settings
@@ -463,6 +464,7 @@ class ServiceRecycleBin(BaseModel):
         unique_together = ('tenant_id', 'service_alias')
 
     service_id = models.CharField(max_length=32, unique=True, help_text="服务id")
+    recovery_metadata = models.JSONField(default=dict, encoder=DjangoJSONEncoder)
     tenant_id = models.CharField(max_length=32, help_text="租户id")
     service_key = models.CharField(max_length=32, help_text="服务key")
     service_alias = models.CharField(max_length=100, help_text="服务别名")

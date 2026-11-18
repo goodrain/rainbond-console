@@ -10,6 +10,39 @@ from console.services.delivery_manifest import DeliveryError, public_manifest
 
 
 class DeliveryGateway:
+    def vm_capture(self, task, item, action):
+        from console.appstore.appstore import app_store
+        template = task.template
+        body = None
+        if action == 'image':
+            image = app_store.get_app_hub_info(None, template.id.hex, template.enterprise_id)
+            # Retain the expected destination before dispatch, closing the cleanup
+            # gap between a completed Region job and its version being committed.
+            if image.get('hub_url'):
+                target = (image['hub_url'], image.get('namespace', ''), item.key + ':' + item.result['capture_id'])
+                item.result['image_name'] = '/'.join(part.strip('/') for part in target if part)
+            elif not item.result.get('image_name'):
+                raise DeliveryError('数据中心未返回默认交付镜像地址', 502)
+            updated = task.items.filter(
+                pk=item.pk, result__capture_id=item.result['capture_id'],
+                task__payload__lease=task.payload.get('lease'), task__status='running').update(result=item.result)
+            if not updated:
+                raise DeliveryError('镜像准备任务状态已变化，请刷新后重试', 409)
+            body = {'arch': item.component.get('arch', 'amd64'), 'image_info': image}
+        from console.exception.main import ServiceHandleException
+        try:
+            _, response = self.region_api().vm_delivery_capture(
+                template.region_name, template.team_name, item.component['service_alias'],
+                item.result['capture_id'], action, body)
+        except ServiceHandleException as error:
+            if action == 'release' and error.status_code == 404:
+                return {'phase': 'released'}
+            messages = {'vm_delivery_shutdown_required': '请先关闭虚拟机，等待关机完成后重试',
+                        'vm_delivery_single_disk_required': '当前仅支持一个可写系统盘，不支持携带额外数据盘的虚拟机交付',
+                        'vm_delivery_disk_in_use': '系统盘仍被其他工作负载使用，暂时无法捕获'}
+            raise DeliveryError(messages.get(error.msg, '虚拟机镜像准备服务暂不可用，清理完成后可重试'), 409) from None
+        return (response or {}).get('bean', {})
+
     @staticmethod
     def region_api():
         from www.apiclient.regionapi import RegionInvokeApi

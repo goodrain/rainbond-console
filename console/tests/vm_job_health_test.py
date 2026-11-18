@@ -26,12 +26,12 @@ class VMJobHealthTests(TestCase):
             path.symlink_to(Path(root) / 'absent')
             self.assertFalse(vm_job_health.ready(now=101))
 
-    def test_live_worker_does_not_manufacture_missing_region_write_authority(self):
+    def test_snapshot_admission_reports_current_worker_readiness(self):
         with mock.patch.object(vm_job_health, 'ready', return_value=True):
-            self.assertEqual(snapshot_write_capability(), {
-                'available': False,
-                'reason': 'region_authority_contract_unavailable'
-            })
+            self.assertEqual(snapshot_write_capability(), {'available': True, 'reason': 'ready'})
+            require_snapshot_writer()
+        with mock.patch.object(vm_job_health, 'ready', return_value=False):
+            self.assertEqual(snapshot_write_capability(), {'available': False, 'reason': 'worker_unavailable'})
             with self.assertRaises(Exception) as captured:
                 require_snapshot_writer()
             self.assertEqual(captured.exception.status_code, 503)

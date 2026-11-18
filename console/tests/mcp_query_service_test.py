@@ -7782,3 +7782,95 @@ class MCPQueryServiceCreateAppFromSnapshotVersionTests(SimpleTestCase):
                 )
 
         self.assertIn("应用ID格式无效", str(ctx.exception))
+
+
+# capability_id: console.app-version.publish-snapshot-proxy-headers
+class MCPQueryServiceSnapshotPublishTests(SimpleTestCase):
+    def _publish(self, template, rewrite_images):
+        original = json.loads(json.dumps(template))
+        team = Obj(enterprise_id="eid-1")
+        app = Obj(ID=52)
+        market = Obj(url="https://market.example.com", access_key="", domain="example.com", name="test-market")
+        response = Obj(status_code=200, json=lambda: {"id": 101})
+        with patch.object(mcp_query_service, "_get_team_app_context", return_value=(team, app)), \
+                patch("console.services.mcp_query_service.app_market_repo.get_app_market", return_value=market), \
+                patch("console.services.mcp_query_service.app_version_service.get_snapshot_detail",
+                      return_value={"template": template}), \
+                patch("console.services.mcp_query_service.http_requests.post", return_value=response) as post:
+            result = mcp_query_service.call_tool(
+                Obj(), "rainbond_publish_snapshot_to_store", {
+                    "team_name": "demo-team",
+                    "region_name": "rainbond",
+                    "app_id": 52,
+                    "version_id": 5,
+                    "market_id": 1,
+                    "store_app_id": "store-app",
+                    "app_name": "Virtual Machine",
+                    "version": "1.0.1",
+                    "rewrite_images": rewrite_images,
+                })
+
+        post.assert_called_once()
+        self.assertEqual(post.call_args.args[0], "https://market.example.com/app-server/openapi/apps/store-app/versions")
+        self.assertEqual(result["store_version_id"], 101)
+        self.assertEqual(template, original)
+        published = post.call_args.kwargs["json"]["template"]
+        self.assertEqual(published["group_key"], "store-app")
+        return published
+
+    def test_publish_converts_legacy_proxy_header_lists(self):
+        for rewrite_images in (True, False):
+            with self.subTest(rewrite_images=rewrite_images):
+                template = {
+                    "group_key":
+                    "snapshot-app",
+                    "ingress_http_routes": [{
+                        "port":
+                        80,
+                        "proxy_header": [{
+                            "item_key": "X-Test",
+                            "item_value": "value"
+                        }, {
+                            "item_key": "X-Empty",
+                            "item_value": ""
+                        }, {
+                            "item_key": "",
+                            "item_value": ""
+                        }],
+                    }],
+                }
+                published = self._publish(template, rewrite_images)
+                self.assertEqual(published["ingress_http_routes"], [{
+                    "port": 80,
+                    "proxy_header": {
+                        "X-Test": "value",
+                        "X-Empty": ""
+                    },
+                }])
+
+    def test_publish_accepts_empty_missing_and_map_proxy_headers(self):
+        cases = [({}, {}), ({
+            "proxy_header": None
+        }, {}), ({
+            "proxy_header": []
+        }, {}), ({
+            "proxy_header": {}
+        }, {}), ({
+            "proxy_header": {
+                "X-Test": "value"
+            }
+        }, {
+            "X-Test": "value"
+        })]
+        for rewrite_images in (True, False):
+            for route, expected in cases:
+                with self.subTest(rewrite_images=rewrite_images, route=route):
+                    published = self._publish({"ingress_http_routes": [route]}, rewrite_images)
+                    self.assertEqual(published["ingress_http_routes"][0]["proxy_header"], expected)
+
+    def test_publish_accepts_templates_without_http_routes(self):
+        for rewrite_images in (True, False):
+            for template in ({}, {"ingress_http_routes": []}, {"ingress_http_routes": None}):
+                with self.subTest(rewrite_images=rewrite_images, template=template):
+                    published = self._publish(template, rewrite_images)
+                    self.assertEqual(published.get("ingress_http_routes"), template.get("ingress_http_routes"))
