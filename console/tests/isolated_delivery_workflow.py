@@ -1095,6 +1095,45 @@ class DeliveryWorkflowTest(unittest.TestCase):
         task.payload["target"]["team_name"] = "another-team"
         self.assertEqual(gateway.installation_manifest(task)[0]["apps"][0]["share_image"], "catalog.test/web:1.0.0")
 
+    def test_online_catalog_version_includes_required_sdk_release_version(self):
+        import os
+        import sys
+        import types
+        from unittest import mock
+        from console.services.delivery_gateway import DeliveryGateway
+        version = self.create_version(PAYLOAD)
+        task = models.DeliveryTask.objects.create(
+            template=version.template, version=version, kind="catalog_publish", actor_id=1,
+            actor_name="Publisher", request_key="online-version-contract",
+            payload={"destination": {"type": "market", "market_id": "store"}},
+            result={"market_app_id": "remote-app"})
+        models.DeliveryTaskItem.objects.create(
+            task=task, key="web", component=version.manifest["apps"][0], status="success",
+            result={"image_name": "catalog.test/web:1.0.0"})
+        main, app = types.ModuleType("console.models.main"), types.ModuleType("console.services.app")
+        main.RainbondCenterApp, main.RainbondCenterAppVersion = mock.Mock(), mock.Mock()
+        app.app_market_service = mock.Mock()
+
+        def validate_request(market, app_id, body):
+            self.assertEqual(app_id, "remote-app")
+            self.assertIsInstance(body.get("rainbond_version"), str)
+            self.assertTrue(body["rainbond_version"])
+            self.assertEqual(body["template"]["group_key"], "remote-app")
+            self.assertEqual(body["template"]["apps"][0]["share_image"], "catalog.test/web:1.0.0")
+        app.app_market_service.create_market_app_model_version.side_effect = validate_request
+        with mock.patch.dict(sys.modules, {"console.models.main": main, "console.services.app": app}):
+            with mock.patch.dict(os.environ, {"RELEASE_DESC": "v6.11.0-dev"}):
+                DeliveryGateway().publish_catalog(task)
+                self.assertEqual(app.app_market_service.create_market_app_model_version.call_args.args[2][
+                    "rainbond_version"], "v6.11.0-dev")
+            with mock.patch.dict(os.environ):
+                os.environ.pop("RELEASE_DESC", None)
+                DeliveryGateway().publish_catalog(task)
+                self.assertEqual(app.app_market_service.create_market_app_model_version.call_args.args[2][
+                    "rainbond_version"], "public-cloud")
+        main.RainbondCenterApp.objects.update_or_create.assert_not_called()
+        main.RainbondCenterAppVersion.objects.update_or_create.assert_not_called()
+
     def test_market_application_metadata_is_separate_from_long_release_notes(self):
         import sys
         import types
