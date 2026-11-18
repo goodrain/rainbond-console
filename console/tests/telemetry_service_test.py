@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import datetime
+import hashlib
 import json
 
 from django.test import TestCase
@@ -83,6 +84,43 @@ class RainbondTelemetryServiceTests(TestCase):
         self.assertEqual(sanitized["token"], "[Filtered]")
         self.assertEqual(sanitized["nested"]["git_url"], "[Filtered]")
         self.assertEqual(sanitized["nested"]["message"], "authorization=[Filtered] token=[Filtered]")
+
+    def test_sanitize_properties_preserves_posthog_group_key(self):
+        sanitized = sanitize_properties({
+            "$group_key": "instance-a",
+            "team_name": "private-team",
+        })
+
+        self.assertEqual(sanitized["$group_key"], "instance-a")
+        self.assertEqual(sanitized["team_name"], "[Filtered]")
+
+    def test_build_payload_uses_utc_timestamp_and_instance_group(self):
+        service = RainbondTelemetryService(
+            env={"RAINBOND_POSTHOG_ENABLED": "true"},
+            now=lambda: datetime.datetime(2026, 6, 14, 1, 2, 3),
+        )
+
+        payload = service.build_payload("rainbond_instance_registered")
+        event = payload["batch"][0]
+
+        self.assertEqual(event["timestamp"], "2026-06-14T01:02:03+00:00")
+        self.assertEqual(event["properties"]["$groups"], {"instance": event["distinct_id"]})
+
+    def test_instance_properties_include_anonymous_platform_metadata(self):
+        service = RainbondTelemetryService(
+            env={
+                "RAINBOND_POSTHOG_ENABLED": "true",
+                "ENTERPRISE_ID": "enterprise-a",
+                "RAINBOND_INSTALL_METHOD": "single_node",
+            },
+        )
+
+        properties = service.get_instance_properties()
+
+        self.assertEqual(properties["enterprise_id_hash"], hashlib.md5(b"enterprise-a").hexdigest())
+        self.assertTrue(properties["arch"])
+        self.assertEqual(properties["installation_method"], "single_node")
+        self.assertEqual(properties["edition"], "open_source")
 
     def test_capture_posts_batch_payload_with_public_token(self):
         transport = FakeTransport()

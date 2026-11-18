@@ -3,6 +3,7 @@ import datetime
 import hashlib
 import logging
 import os
+import platform
 import queue
 import re
 import threading
@@ -59,7 +60,9 @@ def sanitize_properties(value, depth=0):
     if isinstance(value, dict):
         result = {}
         for key, item in value.items():
-            if SENSITIVE_KEY_RE.search(str(key)):
+            if key == "$group_key":
+                result[key] = sanitize_properties(item, depth + 1)
+            elif SENSITIVE_KEY_RE.search(str(key)):
                 result[key] = "[Filtered]"
             else:
                 result[key] = sanitize_properties(item, depth + 1)
@@ -71,6 +74,12 @@ def sanitize_properties(value, depth=0):
 
 def _utc_now():
     return timezone.now()
+
+
+def to_utc(value):
+    if timezone.is_naive(value):
+        return timezone.make_aware(value, datetime.timezone.utc)
+    return value.astimezone(datetime.timezone.utc)
 
 
 class NullTransport(object):
@@ -207,24 +216,31 @@ class RainbondTelemetryService(object):
         except Exception:
             console_version = ""
         instance_id = self.get_or_create_instance_id()
+        enterprise_id = self.env.get("ENTERPRISE_ID", "")
+        edition = self.env.get("ENTERPRISE_EDITION", "") or self.env.get("RAINBOND_EDITION", "")
         return {
             "instance_id": instance_id,
             "console_version": console_version,
             "rainbond_version": self.env.get("RAINBOND_VERSION", "") or self.env.get("RELEASE_DESC", "") or "",
-            "edition": self.env.get("ENTERPRISE_EDITION", "") or self.env.get("RAINBOND_EDITION", "") or "",
+            "edition": edition or ("enterprise" if str_to_bool(self.env.get("IS_ENTERPRISE_EDITION")) else "open_source"),
+            "enterprise_id_hash": hashlib.md5(enterprise_id.encode("utf-8")).hexdigest() if enterprise_id else "",
+            "arch": self.env.get("RAINBOND_ARCH", "") or platform.machine(),
+            "installation_method": self.env.get("RAINBOND_INSTALL_METHOD", "") or "unknown",
             "install_time": self.get_install_time(),
             "days_since_install": self.get_days_since_install(),
         }
 
     def build_payload(self, event_name, properties=None, distinct_id=None):
-        merged_properties = self.get_instance_properties()
+        instance_properties = self.get_instance_properties()
+        merged_properties = instance_properties.copy()
         merged_properties.update(properties or {})
+        merged_properties["$groups"] = {"instance": instance_properties["instance_id"]}
         return {
             "api_key": self.get_project_token(),
             "batch": [{
                 "event": event_name,
-                "distinct_id": distinct_id or merged_properties["instance_id"],
-                "timestamp": self.now().isoformat(),
+                "distinct_id": distinct_id or instance_properties["instance_id"],
+                "timestamp": to_utc(self.now()).isoformat(),
                 "properties": sanitize_properties(merged_properties),
             }],
         }
