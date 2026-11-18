@@ -155,9 +155,10 @@ function rainbond_diag_append_json_string() {
 }
 
 function rainbond_classify_timeout_reason() {
-    local raw="${1:-}"
+    local raw="${1:-}" storage_evidence
 
-    if printf '%s' "$raw" | grep -Eqi 'unbound immediate PersistentVolumeClaims|PersistentVolumeClaim|FailedMount|MountVolume|storageclass|provisioner|PVC|Pending.*local-path'; then
+    storage_evidence=$(printf '%s\n' "$raw" | grep -v 'rbd-app-ui-data' || true)
+    if printf '%s' "$storage_evidence" | grep -Eqi 'FailedScheduling.*(unbound immediate PersistentVolumeClaims|PersistentVolumeClaim|PVC)|FailedMount|MountVolume|PersistentVolumeClaim.*(Pending|unbound)|PVC.*(Pending|unbound)|^[^[:space:]]+[[:space:]]+Pending([[:space:]]|$)'; then
         printf 'storage_pvc_pending'
     elif printf '%s' "$raw" | grep -Eqi 'NodeNotReady|Node is not ready|NotReady'; then
         printf 'node_not_ready'
@@ -204,17 +205,53 @@ function rainbond_timeout_reason_summary() {
         component_log_collect_failed)
             printf 'Failed to collect component logs'
             ;;
+        gateway_unreachable)
+            printf 'All Rainbond pods are ready but the console is unreachable on port 7070'
+            ;;
         *)
             printf 'Rainbond services did not become ready before timeout'
             ;;
     esac
 }
 
+function rainbond_probe_console_7070() {
+    local http_status
+
+    http_status=$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' --connect-timeout 5 --max-time 10 http://127.0.0.1:7070 2>&1 || true)
+    if printf '%s' "$http_status" | grep -Eq '^[1-5][0-9][0-9]$'; then
+        printf 'console_7070: reachable (HTTP %s)' "$http_status"
+        return 0
+    fi
+    printf 'console_7070: unreachable'
+    return 1
+}
+
+function rainbond_gateway_controller_log_summary() {
+    local pod_status pod_name pod_log summary=""
+
+    pod_status=$(rainbond_diag_kubectl get pods -n rbd-system --no-headers 2>/dev/null || true)
+    pod_name=$(printf '%s\n' "$pod_status" | awk '/apisix-ingress-controller/ { print $1; exit }')
+    if [ -z "$pod_name" ]; then
+        printf 'gateway_controller: pod not found'
+        return
+    fi
+
+    pod_log=$(rainbond_diag_kubectl logs "$pod_name" -n rbd-system --tail=20 2>&1 || true)
+    if printf '%s' "$pod_log" | grep -Eqi 'endpoint|endpoints'; then
+        summary='endpoint related entries detected'
+    elif printf '%s' "$pod_log" | grep -Eqi 'error|fail|warn'; then
+        summary='error or warning entries detected'
+    else
+        summary='no relevant recent log entries'
+    fi
+    printf 'gateway_controller: %s' "$summary"
+}
+
 function rainbond_collect_timeout_diagnostics() {
     local wait_seconds="${1:-600}"
     local attempt_id="${2:-${INSTALL_ATTEMPT_ID:-}}"
     local pod_status pvc_status node_status raw root_cause_code root_cause_summary
-    local failed_components="" evidence_items="" pod_count=0
+    local failed_components="" evidence_items="" pod_count=0 running_pod_count=0
 
     pod_status=$(rainbond_diag_kubectl get pods -n rbd-system --no-headers 2>&1 || true)
     pvc_status=$(rainbond_diag_kubectl get pvc -n rbd-system --no-headers 2>&1 || true)
@@ -225,7 +262,11 @@ $node_status"
 
     while read -r pod_name ready status rest; do
         [ -n "$pod_name" ] || continue
-        [ "$status" = "Succeeded" ] && continue
+        case "$status" in
+            Succeeded | Completed)
+                continue
+                ;;
+        esac
         local current_ready="${ready%/*}"
         local expected_ready="${ready#*/}"
         local is_failed="false"
@@ -250,6 +291,8 @@ $node_status"
             raw="$raw
 $pod_describe
 $pod_log"
+        else
+            running_pod_count=$((running_pod_count + 1))
         fi
 
         if [ "$pod_count" -ge 8 ]; then
@@ -266,7 +309,17 @@ EOF
         evidence_items=$(rainbond_diag_append_json_string "$evidence_items" "nodes: $node_status")
     fi
 
-    root_cause_code=$(rainbond_classify_timeout_reason "$raw")
+    if [ "$pod_count" -eq 0 ] && [ "$running_pod_count" -gt 0 ]; then
+        local console_result console_status
+        console_result=$(rainbond_probe_console_7070)
+        console_status=$?
+        evidence_items=$(rainbond_diag_append_json_string "$evidence_items" "$console_result")
+        if [ "$console_status" -ne 0 ]; then
+            evidence_items=$(rainbond_diag_append_json_string "$evidence_items" "$(rainbond_gateway_controller_log_summary)")
+            root_cause_code='gateway_unreachable'
+        fi
+    fi
+    root_cause_code=${root_cause_code:-$(rainbond_classify_timeout_reason "$raw")}
     root_cause_summary=$(rainbond_timeout_reason_summary "$root_cause_code")
 
     printf '{"diagnosis_version":"v1","install_method":"%s","install_attempt_id":"%s","wait_seconds":%s,"root_cause_code":"%s","root_cause_summary":"%s","failed_components":[%s],"evidence":[%s]}' \
@@ -300,7 +353,11 @@ function rainbond_log_collect_eid() {
         rainbond_sha256_32 "$kube_system_uid"
         return
     fi
-    printf '%s' "${UUID:-}"
+    if [ -n "${UUID:-}" ]; then
+        printf '%s' "$UUID"
+        return
+    fi
+    rainbond_sha256_32 "${OS_INFO:-$(uname -a 2>/dev/null || true)}"
 }
 
 function rainbond_log_collect_enable_cluster() {
@@ -598,6 +655,8 @@ function check_docker_network_preflight() {
 }
 
 function send_msg() {
+    local dest_url msg msg_json os_info_json eip_json uuid_json eid_json attempt_json method_json
+
     dest_url="https://log.rainbond.com"
     #msg=${1:-"Terminating by userself."}
     if [ -z "$1" ]; then
@@ -609,11 +668,12 @@ function send_msg() {
     os_info_json=$(rainbond_json_escape "${OS_INFO:-}")
     eip_json=$(rainbond_json_escape "${EIP:-}")
     uuid_json=$(rainbond_json_escape "${UUID:-}")
+    eid_json=$(rainbond_json_escape "$(rainbond_log_collect_eid)")
     attempt_json=$(rainbond_json_escape "${INSTALL_ATTEMPT_ID:-}")
     method_json=$(rainbond_json_escape "${RAINBOND_INSTALL_METHOD:-single_node}")
     # send a message to remote url
     curl --silent -H "Content-Type: application/json" -X POST "$dest_url/dindlog" \
-        -d "{\"message\":\"$msg_json\", \"os_info\":\"$os_info_json\", \"eip\":\"$eip_json\", \"uuid\":\"$uuid_json\", \"install_attempt_id\":\"$attempt_json\", \"install_method\":\"$method_json\"}" 2>&1 >/dev/null || :
+        -d "{\"message\":\"$msg_json\", \"os_info\":\"$os_info_json\", \"eip\":\"$eip_json\", \"uuid\":\"$uuid_json\", \"eid\":\"$eid_json\", \"install_attempt_id\":\"$attempt_json\", \"install_method\":\"$method_json\"}" 2>&1 >/dev/null || :
 
     if [ "$msg" == "Terminating by userself." ]; then
         exit 1
@@ -657,7 +717,7 @@ function rainbond_send_final_event() {
     if [ -n "$details" ]; then
         details_field=",\"details\":\"$(rainbond_json_escape "$(rainbond_diag_compact "$details")")\""
     fi
-    final_message="{\"event_type\":\"install_final\",\"install_method\":\"$(rainbond_json_escape "${RAINBOND_INSTALL_METHOD:-single_node}")\",\"install_attempt_id\":\"$(rainbond_json_escape "${INSTALL_ATTEMPT_ID:-}")\",\"final_status\":\"$(rainbond_json_escape "$final_status")\",\"reason\":\"$(rainbond_json_escape "$reason")\",\"exit_code\":$exit_code${details_field}}"
+    final_message="{\"event_type\":\"install_final\",\"install_method\":\"$(rainbond_json_escape "${RAINBOND_INSTALL_METHOD:-single_node}")\",\"install_attempt_id\":\"$(rainbond_json_escape "${INSTALL_ATTEMPT_ID:-}")\",\"version\":\"$(rainbond_json_escape "${RAINBOND_VERSION:-}")\",\"arch\":\"$(rainbond_json_escape "${ARCH_TYPE:-$(uname -m 2>/dev/null || true)}")\",\"final_status\":\"$(rainbond_json_escape "$final_status")\",\"reason\":\"$(rainbond_json_escape "$reason")\",\"exit_code\":$exit_code${details_field}}"
     send_msg "Rainbond install final event: ${final_message}"
 }
 
