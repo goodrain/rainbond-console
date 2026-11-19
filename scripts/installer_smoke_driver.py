@@ -202,7 +202,10 @@ def resolve_ipv4(host: str) -> list[str]:
 
 
 def resolve_ipv6(host: str) -> list[str]:
-    return sorted({entry[4][0] for entry in socket.getaddrinfo(host, 443, socket.AF_INET6, socket.SOCK_STREAM)})
+    try:
+        return sorted({entry[4][0] for entry in socket.getaddrinfo(host, 443, socket.AF_INET6, socket.SOCK_STREAM)})
+    except socket.gaierror:
+        return []
 
 
 def run_sudo(*arguments: str, check: bool = True) -> subprocess.CompletedProcess[str]:
@@ -235,17 +238,8 @@ def install_network_guard(results_dir: pathlib.Path, action: str) -> dict[str, l
         for values in ipv6_addresses.values():
             for address in values:
                 run_sudo("ip6tables", "-I", chain, "-d", address, "-j", action)
-    dns_config = results_dir / "dnsmasq.conf"
-    dns_config.write_text("\n".join(["port=5353", "bind-interfaces", *[f"address=/{host}/0.0.0.0" for host in REPORT_HOSTS]]) + "\n", encoding="utf-8")
-    dns_process = subprocess.Popen(["sudo", "dnsmasq", "--keep-in-foreground", "--conf-file", str(dns_config)], stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True)
-    time.sleep(0.2)
-    if dns_process.poll() is not None:
-        raise RuntimeError(f"dnsmasq did not start: {dns_process.stderr.read()}")
-    for binary in ("iptables", "ip6tables"):
-        for protocol in ("udp", "tcp"):
-            run_sudo(binary, "-t", "nat", "-I", "PREROUTING", "-p", protocol, "--dport", "53", "-j", "REDIRECT", "--to-ports", "5353", check=False)
     (results_dir / "network-guard.json").write_text(
-        json.dumps({"addresses": addresses, "ipv6_addresses": ipv6_addresses, "action": action, "dnsmasq_pid": dns_process.pid}), encoding="utf-8"
+        json.dumps({"addresses": addresses, "ipv6_addresses": ipv6_addresses, "action": action}), encoding="utf-8"
     )
     return addresses
 
@@ -270,9 +264,11 @@ def verify_network_guard(results_dir: pathlib.Path) -> dict[str, Any]:
     for chain in ("OUTPUT", "FORWARD", "DOCKER-USER"):
         result = run_sudo("iptables", "-S", chain, check=False)
         rules = result.stdout
+        counters = run_sudo("iptables", "-L", chain, "-v", "-n", check=False).stdout
         chains[chain] = {
             "exists": result.returncode == 0,
             "blocked_addresses": sorted(address for address in expected if f"-d {address}/32 -j {guard['action']}" in rules),
+            "packet_counters": counters,
         }
     valid = all(chain["exists"] and set(chain["blocked_addresses"]) == expected for chain in chains.values())
     return {"valid": valid, "chains": chains}
@@ -282,20 +278,16 @@ def destroy_rainbond_container() -> None:
     run_sudo("docker", "rm", "-f", "rainbond", check=False)
 
 
-def probe_container_report_hosts() -> dict[str, bool]:
-    probes = {}
-    for host in REPORT_HOSTS:
-        result = run_sudo(
-            "docker",
-            "exec",
-            "rainbond",
-            "bash",
-            "-c",
-            f"timeout 3 bash -c '</dev/tcp/{host}/443'",
-            check=False,
-        )
-        probes[host] = result.returncode == 0
-    return probes
+def probe_container_tcp(address: str) -> dict[str, Any]:
+    result = run_sudo("docker", "exec", "rainbond", "bash", "-c", f"timeout 3 bash -c '</dev/tcp/{address}/443'", check=False)
+    return {"exit_code": result.returncode, "blocked": result.returncode in {1, 124}, "valid": result.returncode not in {126, 127}}
+
+
+def probe_container_network(addresses: dict[str, list[str]]) -> dict[str, Any]:
+    blocked = {host: [probe_container_tcp(address) for address in values] for host, values in addresses.items() if host != "smoke_blackhole"}
+    control = probe_container_tcp("registry.cn-hangzhou.aliyuncs.com")
+    valid = control["exit_code"] == 0 and all(probe["valid"] and probe["blocked"] for probes in blocked.values() for probe in probes)
+    return {"valid": valid, "blocked": blocked, "control": control}
 
 
 def probe_report_endpoint() -> dict[str, Any]:
@@ -324,11 +316,10 @@ def runner_eip() -> str:
 
 
 def main_script_uuid(main_script: pathlib.Path) -> str:
-    lines = main_script.read_text(encoding="utf-8").splitlines()
-    os_info_line = next((line.strip() for line in lines if line.strip().startswith("OS_INFO=")), "")
-    md5_line = next((line.strip() for line in lines if line.strip().startswith("MD5_CMD=")), "")
-    os_info_index = lines.index(os_info_line) if os_info_line else -1
-    uuid_line = next((line.strip() for line in lines[os_info_index + 1 :] if line.strip().startswith("UUID=")), "")
+    lines = [(index, line.strip()) for index, line in enumerate(main_script.read_text(encoding="utf-8").splitlines())]
+    os_info_index, os_info_line = next(((index, line) for index, line in lines if line.startswith("OS_INFO=")), (-1, ""))
+    md5_line = next((line for _, line in lines if line == 'MD5_CMD="md5sum"'), "")
+    uuid_line = next((line for index, line in lines if index > os_info_index and line.startswith("UUID=")), "")
     if not os_info_line or not md5_line or not uuid_line:
         raise RuntimeError("main installer does not provide the UUID assignment segment")
     program = f'{md5_line}; {os_info_line}; {uuid_line}; printf %s "$UUID"'
@@ -338,6 +329,11 @@ def main_script_uuid(main_script: pathlib.Path) -> str:
 def collect_ready_components() -> list[dict[str, str]]:
     result = run_sudo("docker", "exec", "rainbond", "kubectl", "get", "pods", "-n", "rbd-system", "--no-headers", check=False)
     return ready_components(result.stdout)
+
+
+def console_ready() -> bool:
+    result = subprocess.run(["/usr/bin/curl", "--connect-timeout", "5", "--max-time", "10", "--silent", "--output", "/dev/null", "--write-out", "%{http_code}", "http://127.0.0.1:7070"], text=True, stdout=subprocess.PIPE, check=False)
+    return result.returncode == 0 and result.stdout.isdigit() and result.stdout != "000"
 
 
 def collect_gateway_logs(results_dir: pathlib.Path) -> dict[str, Any]:
@@ -369,24 +365,24 @@ def read_json_lines(path: pathlib.Path) -> list[dict[str, Any]]:
 def run_scenario(arguments: argparse.Namespace) -> int:
     results_dir = pathlib.Path(arguments.results_dir)
     results_dir.mkdir(parents=True, exist_ok=True)
-    target_script = pathlib.Path(arguments.installer)
-    main_script = pathlib.Path(arguments.main_installer)
-    if not main_script.is_file() or not target_script.is_file():
-        raise RuntimeError("target or main installer script is missing")
-
     started_at = time.monotonic()
     code = 1
     output = ""
     timed_out = False
     connectivity = {}
     components = []
+    console_is_ready = False
     gateway = {"pod": "", "containers": [], "logs": {}}
     guard_validation = {"valid": False, "chains": {}}
-    container_probes = {}
+    container_probes = {"valid": False, "blocked": {}, "control": {}}
     expected_uuid = ""
     receiver = None
     setup_error = ""
     try:
+        target_script = pathlib.Path(arguments.installer)
+        main_script = pathlib.Path(arguments.main_installer)
+        if not main_script.is_file() or not target_script.is_file():
+            raise RuntimeError("target or main installer script is missing")
         receiver = start_receiver(results_dir)
         shim_dir = create_curl_shim(results_dir).resolve()
         action = REPORT_SCENARIOS.get(arguments.scenario, "DROP")
@@ -427,9 +423,10 @@ def run_scenario(arguments: argparse.Namespace) -> int:
         code, output, timed_out = run_command(command, env, results_dir / "installer.log", arguments.timeout)
         connectivity["after"] = probe_report_endpoint()
         components = collect_ready_components() if arguments.scenario != "image_not_found" else []
+        console_is_ready = console_ready() if arguments.scenario == "normal_install" else False
         gateway = collect_gateway_logs(results_dir) if arguments.scenario != "image_not_found" else gateway
         guard_validation = verify_network_guard(results_dir)
-        container_probes = probe_container_report_hosts() if arguments.scenario != "image_not_found" else {}
+        container_probes = probe_container_network(json.loads((results_dir / "network-guard.json").read_text(encoding="utf-8"))["addresses"]) if arguments.scenario != "image_not_found" else container_probes
     except Exception as error:
         setup_error = str(error)
     finally:
@@ -448,9 +445,12 @@ def run_scenario(arguments: argparse.Namespace) -> int:
     elif not guard_validation["valid"]:
         success = False
         reason = "network guard rules are missing"
-    elif any(container_probes.values()):
+    elif arguments.scenario != "image_not_found" and not container_probes["valid"]:
         success = False
-        reason = "a report host accepted a TCP connection from rainbond"
+        reason = "container TCP isolation probe is invalid or not blocked"
+    elif arguments.scenario == "normal_install" and (not console_is_ready or not components or any(component["ready"].split("/")[0] != component["ready"].split("/")[-1] or component["status"] != "Running" for component in components)):
+        success = False
+        reason = f"services are not ready (7070={console_is_ready}): {components}"
     if timed_out:
         reason = f"{reason} after {arguments.timeout}s"
     uuid_matches = validate_report_uuids(reports, expected_uuid)
@@ -463,6 +463,7 @@ def run_scenario(arguments: argparse.Namespace) -> int:
             "connectivity": connectivity,
             "network_guard": guard_validation,
             "container_tcp_probes": container_probes,
+            "console_7070_ready": console_is_ready,
             "uuid_comparison": {"target_ref": target_uuid, "main": expected_uuid, "matches": uuid_matches},
             "report_count": len(reports),
             "report_attempts": read_json_lines(results_dir / "report-attempts.jsonl"),
