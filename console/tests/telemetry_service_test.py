@@ -5,6 +5,7 @@ import json
 
 from django.test import TestCase
 from django.utils import timezone
+from unittest import mock
 
 from console.models.main import ConsoleSysConfig
 from console.services.telemetry import (
@@ -12,6 +13,7 @@ from console.services.telemetry import (
     INSTANCE_ID_KEY,
     REGISTERED_KEY,
     RainbondTelemetryService,
+    _get_enterprise_id,
     hash_identifier,
     sanitize_properties,
 )
@@ -19,6 +21,7 @@ from console.services.telemetry_switch import (
     EXTERNAL_TELEMETRY_ENABLED_KEY,
     invalidate_external_telemetry_cache,
 )
+from www.models.main import TenantEnterprise
 
 
 class FakeTransport(object):
@@ -85,13 +88,13 @@ class RainbondTelemetryServiceTests(TestCase):
         self.assertEqual(sanitized["nested"]["git_url"], "[Filtered]")
         self.assertEqual(sanitized["nested"]["message"], "authorization=[Filtered] token=[Filtered]")
 
-    def test_sanitize_properties_preserves_posthog_group_key(self):
+    def test_sanitize_properties_filters_posthog_group_key(self):
         sanitized = sanitize_properties({
             "$group_key": "a" * 32,
             "team_name": "private-team",
         })
 
-        self.assertEqual(sanitized["$group_key"], "a" * 32)
+        self.assertEqual(sanitized["$group_key"], "[Filtered]")
         self.assertEqual(sanitized["team_name"], "[Filtered]")
 
     def test_sanitize_properties_filters_non_anonymous_posthog_group_key(self):
@@ -99,33 +102,74 @@ class RainbondTelemetryServiceTests(TestCase):
 
         self.assertEqual(sanitized["$group_key"], "[Filtered]")
 
-    def test_build_payload_uses_utc_timestamp_and_instance_group(self):
+    def test_build_payload_converts_local_timestamp_and_protects_instance_group(self):
         service = RainbondTelemetryService(
             env={"RAINBOND_POSTHOG_ENABLED": "true"},
             now=lambda: datetime.datetime(2026, 6, 14, 1, 2, 3),
         )
 
-        payload = service.build_payload("rainbond_instance_registered")
+        payload = service.build_payload("rainbond_instance_registered", {"$groups": {"instance": "other-instance"}})
         event = payload["batch"][0]
 
         self.assertEqual(event["timestamp"], "2026-06-13T17:02:03+00:00")
         self.assertEqual(event["properties"]["$groups"], {"instance": event["distinct_id"]})
 
+    def test_build_payload_converts_aware_timestamp_to_utc(self):
+        service = RainbondTelemetryService(
+            env={"RAINBOND_POSTHOG_ENABLED": "true"},
+            now=lambda: datetime.datetime(2026, 6, 14, 1, 2, 3, tzinfo=datetime.timezone(datetime.timedelta(hours=8))),
+        )
+
+        payload = service.build_payload("rainbond_instance_registered")
+
+        self.assertEqual(payload["batch"][0]["timestamp"], "2026-06-13T17:02:03+00:00")
+
     def test_instance_properties_include_anonymous_platform_metadata(self):
         service = RainbondTelemetryService(
             env={
                 "RAINBOND_POSTHOG_ENABLED": "true",
-                "ENTERPRISE_ID": "enterprise-a",
-                "RAINBOND_INSTALL_METHOD": "single_node",
+                "RAINBOND_ARCH": "x86_64",
             },
         )
 
-        properties = service.get_instance_properties()
+        with mock.patch("console.services.telemetry._get_enterprise_id", return_value="enterprise-a"):
+            properties = service.get_instance_properties()
 
         self.assertEqual(properties["enterprise_id_hash"], hashlib.md5(b"enterprise-a").hexdigest())
-        self.assertTrue(properties["arch"])
-        self.assertEqual(properties["installation_method"], "single_node")
+        self.assertEqual(properties["instance_arch"], "amd64")
         self.assertEqual(properties["edition"], "open_source")
+        self.assertEqual(properties["telemetry_schema_version"], 2)
+        self.assertNotIn("installation_method", properties)
+
+    def test_get_enterprise_id_reads_database_record(self):
+        TenantEnterprise.objects.create(enterprise_id="enterprise-a", enterprise_name="enterprise-a")
+
+        self.assertEqual(_get_enterprise_id(), "enterprise-a")
+
+    def test_instance_properties_use_enterprise_edition_and_omit_missing_enterprise_id(self):
+        service = RainbondTelemetryService(
+            env={
+                "RAINBOND_POSTHOG_ENABLED": "true",
+                "IS_ENTERPRISE_EDITION": "true",
+                "RAINBOND_ARCH": "aarch64",
+            },
+        )
+
+        with mock.patch("console.services.telemetry._get_enterprise_id", return_value=""):
+            properties = service.get_instance_properties()
+
+        self.assertEqual(properties["edition"], "enterprise")
+        self.assertEqual(properties["instance_arch"], "arm64")
+        self.assertNotIn("enterprise_id_hash", properties)
+
+    def test_install_time_converts_to_utc(self):
+        service = RainbondTelemetryService(env={"RAINBOND_POSTHOG_ENABLED": "true"})
+        instance_id = service.get_or_create_instance_id()
+        create_time = datetime.datetime(2026, 6, 14, 1, 2, 3)
+        ConsoleSysConfig.objects.filter(key=INSTANCE_ID_KEY).update(create_time=create_time)
+
+        self.assertEqual(service.get_install_time(), "2026-06-13T17:02:03+00:00")
+        self.assertEqual(instance_id, service.get_or_create_instance_id())
 
     def test_capture_posts_batch_payload_with_public_token(self):
         transport = FakeTransport()

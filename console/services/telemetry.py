@@ -13,6 +13,7 @@ from django.utils import timezone
 
 from console.models.main import ConsoleSysConfig
 from console.services.telemetry_switch import get_external_telemetry_enabled
+from www.models.main import TenantEnterprise
 
 
 logger = logging.getLogger("default")
@@ -25,6 +26,7 @@ FIRST_APP_KEY = "RBD_TEL_FIRST_APP_CREATED"
 HEARTBEAT_KEY_PREFIX = "RBD_TEL_HB_"
 REQUEST_TIMEOUT = 2
 TELEMETRY_QUEUE_MAX_SIZE = 100
+TELEMETRY_SCHEMA_VERSION = 2
 
 SENSITIVE_KEY_RE = re.compile(
     r"(token|password|secret|authorization|cookie|key|dsn|email|phone|git|repo|repository|url|domain|image|"
@@ -37,7 +39,6 @@ SENSITIVE_VALUE_RE = re.compile(
     re.I,
 )
 BEARER_VALUE_RE = re.compile(r"\b(bearer\s+)[a-z0-9._~+/=-]+", re.I)
-ANONYMOUS_GROUP_KEY_RE = re.compile(r"^[a-f0-9]{32}$", re.I)
 
 
 def str_to_bool(value):
@@ -53,6 +54,20 @@ def hash_identifier(instance_id, identifier):
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
+def _get_enterprise_id():
+    enterprise = TenantEnterprise.objects.order_by("create_time", "pk").first()
+    return enterprise.enterprise_id if enterprise and enterprise.enterprise_id else ""
+
+
+def normalize_arch(value):
+    value = (value or "").lower()
+    if value in ("amd64", "x86_64", "x86-64"):
+        return "amd64"
+    if value in ("arm64", "aarch64"):
+        return "arm64"
+    return ""
+
+
 def sanitize_properties(value, depth=0):
     if depth > 4:
         return "[MaxDepth]"
@@ -61,9 +76,7 @@ def sanitize_properties(value, depth=0):
     if isinstance(value, dict):
         result = {}
         for key, item in value.items():
-            if key == "$group_key":
-                result[key] = item if isinstance(item, str) and ANONYMOUS_GROUP_KEY_RE.match(item) else "[Filtered]"
-            elif SENSITIVE_KEY_RE.search(str(key)):
+            if SENSITIVE_KEY_RE.search(str(key)):
                 result[key] = "[Filtered]"
             else:
                 result[key] = sanitize_properties(item, depth + 1)
@@ -194,7 +207,7 @@ class RainbondTelemetryService(object):
         record = ConsoleSysConfig.objects.filter(key=INSTANCE_ID_KEY, enable=True).first()
         if not record or not record.create_time:
             return ""
-        return record.create_time.isoformat()
+        return to_utc(record.create_time).isoformat()
 
     def get_days_since_install(self):
         record = ConsoleSysConfig.objects.filter(key=INSTANCE_ID_KEY, enable=True).first()
@@ -217,19 +230,21 @@ class RainbondTelemetryService(object):
         except Exception:
             console_version = ""
         instance_id = self.get_or_create_instance_id()
-        enterprise_id = self.env.get("ENTERPRISE_ID", "")
         edition = self.env.get("ENTERPRISE_EDITION", "") or self.env.get("RAINBOND_EDITION", "")
-        return {
+        properties = {
             "instance_id": instance_id,
             "console_version": console_version,
             "rainbond_version": self.env.get("RAINBOND_VERSION", "") or self.env.get("RELEASE_DESC", "") or "",
             "edition": edition or ("enterprise" if str_to_bool(self.env.get("IS_ENTERPRISE_EDITION")) else "open_source"),
-            "enterprise_id_hash": hashlib.md5(enterprise_id.encode("utf-8")).hexdigest() if enterprise_id else "",
-            "arch": self.env.get("RAINBOND_ARCH", "") or platform.machine(),
-            "installation_method": self.env.get("RAINBOND_INSTALL_METHOD", "") or "unknown",
+            "instance_arch": normalize_arch(self.env.get("RAINBOND_ARCH", "") or platform.machine()),
+            "telemetry_schema_version": TELEMETRY_SCHEMA_VERSION,
             "install_time": self.get_install_time(),
             "days_since_install": self.get_days_since_install(),
         }
+        enterprise_id = _get_enterprise_id()
+        if enterprise_id:
+            properties["enterprise_id_hash"] = hashlib.md5(enterprise_id.encode("utf-8")).hexdigest()
+        return properties
 
     def build_payload(self, event_name, properties=None, distinct_id=None):
         instance_properties = self.get_instance_properties()
