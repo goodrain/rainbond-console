@@ -21,7 +21,7 @@ assert_equals unknown_rainbond_timeout "$(rainbond_classify_timeout_reason '' 'r
 assert_equals storage_pvc_pending "$(rainbond_classify_timeout_reason '' 'data-volume Pending local-path')"
 assert_equals storage_pvc_pending "$(rainbond_classify_timeout_reason 'Warning FailedScheduling: pod has unbound immediate PersistentVolumeClaims' '')"
 assert_equals image_pull_failed "$(rainbond_classify_timeout_reason 'Status: Pending ImagePullBackOff' 'rbd-app-ui-data Pending 1m')"
-assert_equals '' "$(rainbond_normalize_arch armv7l)"
+assert_equals unsupported "$(rainbond_normalize_arch armv7l)"
 rainbond_diag_kubectl() {
   case "$*" in
     'get pods -n rbd-system --no-headers') printf '%s\n' 'helm-install-rainbond-cluster-x 0/1 Completed 0 2m' ;;
@@ -61,13 +61,13 @@ rainbond_diag_kubectl() {
     'get pods -n rbd-system --no-headers') printf '%s\n' 'local-path-provisioner-abc 1/1 Running 0 2m' 'minio-abc 1/1 Running 0 2m' 'rainbond-operator-abc 1/1 Running 0 2m' 'rbd-api-abc 1/1 Running 0 2m' 'rbd-app-ui-abc 1/1 Running 0 2m' 'rbd-chaos-abc 1/1 Running 0 2m' 'rbd-gateway-abc 2/2 Running 0 2m' 'rbd-hub-abc 1/1 Running 0 2m' 'rbd-monitor-abc 1/1 Running 0 2m' 'rbd-mq-abc 1/1 Running 0 2m' 'rbd-worker-abc 1/1 Running 0 2m' ;;
     'get pvc -n rbd-system --no-headers') printf '%s\n' 'rbd-app-ui-data Pending 1m' ;;
     'get nodes --no-headers') printf '%s\n' 'node Ready 3m' ;;
-    'logs rbd-gateway-abc -n rbd-system -c ingress-apisix --tail=20') printf '%s\n' 'resourceVersion conflict while updating endpoints' ;;
+    'logs rbd-gateway-abc -n rbd-system -c ingress-apisix --tail=20') printf '%s\n' 'no valid upstream node for service default/rbd-api' "upstream doesn't exist: default/rbd-api" ;;
   esac
 }
 gateway_diagnosis=$(rainbond_collect_timeout_diagnostics 600 test-attempt)
 assert_contains "${gateway_diagnosis}" '"root_cause_code":"gateway_unreachable"'
 assert_contains "${gateway_diagnosis}" 'console_7070: unreachable'
-assert_contains "${gateway_diagnosis}" 'gateway_controller: resource version conflict detected'
+assert_contains "${gateway_diagnosis}" 'gateway_controller: upstream routing errors detected'
 EIP=console.example
 curl() { for argument in "$@"; do [ "$argument" = 'http://console.example:7070' ] && { printf 200; return 0; }; done; return 1; }
 assert_contains "$(rainbond_probe_console_7070)" 'reachable via external'
@@ -80,6 +80,13 @@ rainbond_diag_kubectl() {
   esac
 }
 assert_contains "$(rainbond_gateway_controller_log_summary)" 'no relevant recent log entries'
+rainbond_diag_kubectl() {
+  case "$*" in
+    'get pods -n rbd-system --no-headers') printf '%s\n' 'rbd-gateway-abc 2/2 Running 0 2m' ;;
+    'logs rbd-gateway-abc -n rbd-system -c ingress-apisix --tail=20') printf '%s\n' 'container ingress-apisix is not valid for pod rbd-gateway-abc' >&2; return 1 ;;
+  esac
+}
+assert_contains "$(rainbond_gateway_controller_log_summary)" 'log collection failed'
 RAINBOND_VERSION=v6.11.0-release
 RAINBOND_FINAL_EVENT_ENABLED=true
 RAINBOND_FINAL_STATUS_SENT=false
@@ -93,8 +100,11 @@ source "${functions_file}"
 UUID=''
 OS_INFO=''
 ARCH_TYPE=''
+arch() { printf 'x86_64'; }
 rainbond_initialize_report_identity
 first_uuid=$UUID
+legacy_uuid=$(echo "$OS_INFO" | "$MD5_CMD" | cut -b 1-32)
+assert_equals "${legacy_uuid}" "${first_uuid}"
 captured_payloads=''
 curl() {
   while [ "$#" -gt 0 ]; do
@@ -111,9 +121,19 @@ assert_contains "${captured_payloads}" '"arch":"amd64"'
 init_line=$(grep -n '^rainbond_initialize_report_identity$' "${INSTALL_SCRIPT}" | cut -d: -f1)
 parse_line=$(grep -n '^parse_cli_args "\$@"$' "${INSTALL_SCRIPT}" | cut -d: -f1)
 [ "${init_line}" -lt "${parse_line}" ] || fail 'expected report identity initialization before argument parsing'
+show_command_line=$(grep -n '^if \[ "\$CLI_COMMAND" = "show-command" \]; then$' "${INSTALL_SCRIPT}" | cut -d: -f1)
+port_forward_line=$(grep -n '^if \[ "\$CLI_COMMAND" = "port-forward" \]; then$' "${INSTALL_SCRIPT}" | cut -d: -f1)
+unsupported_arch_line=$(grep -n '^if \[ "\$ARCH_TYPE" = "unsupported" \]; then$' "${INSTALL_SCRIPT}" | cut -d: -f1)
+[ "${show_command_line}" -lt "${unsupported_arch_line}" ] || fail 'expected show-command before unsupported architecture check'
+[ "${port_forward_line}" -lt "${unsupported_arch_line}" ] || fail 'expected port-forward before unsupported architecture check'
+assert_contains "$(grep -F -- '-e UUID=${UUID}' "${INSTALL_SCRIPT}")" '-e UUID=${UUID}'
+main_running_check=$(grep -F 'if echo "$pod_status" | grep "^${prefix}" | grep '\''Running'\'' >/dev/null 2>&1; then' "${INSTALL_SCRIPT}" || true)
+assert_contains "${main_running_check}" "grep 'Running'"
 set +e
 (arch() { printf armv7l; }; rainbond_initialize_report_identity) >/dev/null 2>&1
 unknown_arch_status=$?
 set -e
-assert_equals 1 "${unknown_arch_status}"
+assert_equals 0 "${unknown_arch_status}"
+unknown_arch=$(arch() { printf armv7l; }; rainbond_initialize_report_identity; printf '%s' "$ARCH_TYPE")
+assert_equals unsupported "${unknown_arch}"
 printf 'PASS: install timeout diagnostics\n'

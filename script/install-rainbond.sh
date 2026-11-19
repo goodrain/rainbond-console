@@ -46,6 +46,9 @@ function rainbond_normalize_arch() {
         aarch64 | arm64)
             printf 'arm64'
             ;;
+        *)
+            printf 'unsupported'
+            ;;
     esac
 }
 
@@ -63,16 +66,8 @@ function rainbond_initialize_report_identity() {
             ;;
     esac
     OS_INFO=$(uname -a)
-    UUID=$(printf '%s' "$OS_INFO" | "$MD5_CMD" | cut -b 1-32)
+    UUID=$(echo "$OS_INFO" | "$MD5_CMD" | cut -b 1-32)
     ARCH_TYPE=$(rainbond_normalize_arch "$(arch)")
-    if [ -z "$ARCH_TYPE" ]; then
-        if rainbond_use_chinese_prompt; then
-            echo -e "${RED}Rainbond 目前还不支持 $(arch) 架构${NC}"
-        else
-            echo -e "${RED}Rainbond does not support $(arch) architecture${NC}"
-        fi
-        exit 1
-    fi
 }
 
 ########################################
@@ -275,7 +270,7 @@ function rainbond_probe_console_7070() {
 }
 
 function rainbond_gateway_controller_log_summary() {
-    local pod_status pod_name pod_log summary=""
+    local pod_status pod_name pod_log log_status=0 summary=""
 
     pod_status=$(rainbond_diag_kubectl get pods -n rbd-system --no-headers 2>/dev/null || true)
     pod_name=$(printf '%s\n' "$pod_status" | awk '/^rbd-gateway/ { print $1; exit }')
@@ -284,8 +279,12 @@ function rainbond_gateway_controller_log_summary() {
         return
     fi
 
-    pod_log=$(rainbond_diag_kubectl logs "$pod_name" -n rbd-system -c ingress-apisix --tail=20 2>&1 || true)
-    if printf '%s' "$pod_log" | grep -Eqi 'resourceVersion.*(conflict|too old)|object has been modified'; then
+    pod_log=$(rainbond_diag_kubectl logs "$pod_name" -n rbd-system -c ingress-apisix --tail=20 2>&1) || log_status=$?
+    if [ "$log_status" -ne 0 ]; then
+        summary='log collection failed'
+    elif printf '%s' "$pod_log" | grep -Eqi 'no valid upstream node|upstream doesn.t exist'; then
+        summary='upstream routing errors detected'
+    elif printf '%s' "$pod_log" | grep -Eqi 'resourceVersion.*(conflict|too old)|object has been modified'; then
         summary='resource version conflict detected'
     elif printf '%s' "$pod_log" | grep -Eqi 'error|fail|warn'; then
         summary='error or warning entries detected'
@@ -1941,6 +1940,15 @@ if [ "$(arch)" = "i386" ]; then
     else
         send_warn "i386 has been detected, we'll treat it like x86_64(amd64). If you are using the M1 chip MacOS, make sure your terminal has Rosetta disabled.\n\t Have a look : https://github.com/goodrain/rainbond/issues/1439 "
     fi
+fi
+
+if [ "$ARCH_TYPE" = "unsupported" ]; then
+    if rainbond_use_chinese_prompt; then
+        send_error "Rainbond 目前还不支持 $(arch) 架构"
+    else
+        send_error "Rainbond does not support $(arch) architecture"
+    fi
+    exit 1
 fi
 
 RAINBOND_FINAL_EVENT_ENABLED=true
@@ -4089,7 +4097,7 @@ while [ $elapsed_time -le $MAX_SERVICE_WAIT ]; do
     all_ready=true
 
     for prefix in "${pod_list[@]}"; do
-      if rainbond_expected_pod_ready "$pod_status" "$prefix"; then
+      if echo "$pod_status" | grep "^${prefix}" | grep 'Running' >/dev/null 2>&1; then
         if ! echo "$pod_ready_reported" | grep -q "\b${prefix}\b"; then
           printf "\r\033[K"  # Clear spinner line
           echo -e "${GREEN}  ✓ ${prefix}${NC}"
