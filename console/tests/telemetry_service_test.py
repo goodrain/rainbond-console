@@ -63,6 +63,7 @@ class RainbondTelemetryServiceTests(TestCase):
         invalidate_external_telemetry_cache()
 
     def tearDown(self):
+        telemetry_module._enterprise_id_cache = None
         invalidate_external_telemetry_cache()
 
     def test_get_or_create_instance_id_is_stable_and_anonymous(self):
@@ -144,13 +145,24 @@ class RainbondTelemetryServiceTests(TestCase):
         self.assertEqual(properties["telemetry_schema_version"], 2)
         self.assertNotIn("installation_method", properties)
 
-    def test_get_enterprise_id_reads_earliest_database_record(self):
+    def test_get_enterprise_id_uses_creation_time_then_primary_key(self):
+        null_time = TenantEnterprise.objects.create(enterprise_id="enterprise-null", enterprise_name="enterprise-null")
         first = TenantEnterprise.objects.create(enterprise_id="enterprise-a", enterprise_name="enterprise-a")
         second = TenantEnterprise.objects.create(enterprise_id="enterprise-b", enterprise_name="enterprise-b")
-        TenantEnterprise.objects.filter(pk=first.pk).update(create_time=datetime.datetime(2026, 6, 14, 1, 2, 3))
-        TenantEnterprise.objects.filter(pk=second.pk).update(create_time=datetime.datetime(2026, 6, 15, 1, 2, 3))
+        create_time = datetime.datetime(2026, 6, 14, 1, 2, 3)
+        TenantEnterprise.objects.filter(pk=null_time.pk).update(create_time=None)
+        TenantEnterprise.objects.filter(pk=first.pk).update(create_time=create_time)
+        TenantEnterprise.objects.filter(pk=second.pk).update(create_time=create_time)
 
         self.assertEqual(_get_enterprise_id(), "enterprise-a")
+
+    def test_instance_properties_strips_enterprise_id_before_hashing(self):
+        TenantEnterprise.objects.create(enterprise_id=" enterprise-a\n", enterprise_name="enterprise-a")
+        service = RainbondTelemetryService(env={"RAINBOND_POSTHOG_ENABLED": "true"})
+
+        properties = service.get_instance_properties()
+
+        self.assertEqual(properties["enterprise_id_hash"], hashlib.md5(b"enterprise-a").hexdigest())
 
     def test_enterprise_id_query_failure_keeps_other_instance_properties(self):
         service = RainbondTelemetryService(env={"RAINBOND_POSTHOG_ENABLED": "true"})
@@ -158,12 +170,13 @@ class RainbondTelemetryServiceTests(TestCase):
         with mock.patch(
             "console.services.telemetry.TenantEnterprise.objects.order_by",
             side_effect=RuntimeError("database unavailable"),
-        ):
+        ), mock.patch("console.services.telemetry.logger.debug") as debug:
             properties = service.get_instance_properties()
 
         self.assertEqual(properties["instance_id"], service.get_or_create_instance_id())
         self.assertIn("console_version", properties)
         self.assertNotIn("enterprise_id_hash", properties)
+        debug.assert_called_once()
 
     def test_enterprise_id_query_caches_found_value_but_not_missing_value(self):
         enterprise = mock.Mock(enterprise_id="enterprise-a")

@@ -62,9 +62,10 @@ def _get_enterprise_id():
         return _enterprise_id_cache
     try:
         enterprise = TenantEnterprise.objects.order_by(F("create_time").asc(nulls_last=True), "pk").first()
-    except Exception:
+    except Exception as exc:
+        logger.debug("posthog telemetry enterprise lookup failed: %s", exc)
         return ""
-    enterprise_id = enterprise.enterprise_id if enterprise and enterprise.enterprise_id else ""
+    enterprise_id = enterprise.enterprise_id.strip() if enterprise and enterprise.enterprise_id else ""
     if enterprise_id:
         _enterprise_id_cache = enterprise_id
     return enterprise_id
