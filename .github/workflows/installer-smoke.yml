@@ -11,43 +11,66 @@ on:
         description: Git ref to test (branch, tag, SHA, or PR head)
         required: true
         type: string
+      source_repository:
+        description: Source repository for the tested ref; empty uses this fork
+        required: false
+        default: ""
+        type: string
+      arch:
+        description: Architecture to run
+        required: true
+        default: amd64
+        type: choice
+        options:
+          - amd64
+          - arm64
+          - all
+      scenario:
+        description: Scenario to run
+        required: true
+        default: normal_install
+        type: choice
+        options:
+          - normal_install
+          - image_not_found
+          - report_endpoint_drop
+          - report_endpoint_reject
+          - all
 
 permissions:
   contents: read
 
 jobs:
+  select-matrix:
+    runs-on: ubuntu-24.04
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - id: matrix
+        env:
+          SELECTED_ARCH: ${{ inputs.arch }}
+          SELECTED_SCENARIO: ${{ inputs.scenario }}
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          import os
+
+          runners = {"amd64": "ubuntu-24.04", "arm64": "ubuntu-24.04-arm"}
+          scenarios = ["normal_install", "image_not_found", "report_endpoint_drop", "report_endpoint_reject"]
+          architectures = list(runners) if os.environ["SELECTED_ARCH"] == "all" else [os.environ["SELECTED_ARCH"]]
+          selected_scenarios = scenarios if os.environ["SELECTED_SCENARIO"] == "all" else [os.environ["SELECTED_SCENARIO"]]
+          include = [{"arch": arch, "runner": runners[arch], "scenario": scenario} for arch in architectures for scenario in selected_scenarios]
+          print("matrix=" + json.dumps({"include": include}))
+          PY
+
   install:
+    needs: select-matrix
     name: ${{ matrix.arch }} / ${{ matrix.scenario }}
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 50
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - arch: amd64
-            runner: ubuntu-24.04
-            scenario: normal_install
-          - arch: amd64
-            runner: ubuntu-24.04
-            scenario: image_not_found
-          - arch: amd64
-            runner: ubuntu-24.04
-            scenario: report_endpoint_drop
-          - arch: amd64
-            runner: ubuntu-24.04
-            scenario: report_endpoint_reject
-          - arch: arm64
-            runner: ubuntu-24.04-arm
-            scenario: normal_install
-          - arch: arm64
-            runner: ubuntu-24.04-arm
-            scenario: image_not_found
-          - arch: arm64
-            runner: ubuntu-24.04-arm
-            scenario: report_endpoint_drop
-          - arch: arm64
-            runner: ubuntu-24.04-arm
-            scenario: report_endpoint_reject
+      matrix: ${{ fromJSON(needs.select-matrix.outputs.matrix) }}
 
     steps:
       - name: Checkout smoke harness
@@ -58,6 +81,7 @@ jobs:
       - name: Checkout requested installer ref
         uses: actions/checkout@v4
         with:
+          repository: ${{ inputs.source_repository || github.repository }}
           ref: ${{ inputs.ref }}
           path: under-test
           persist-credentials: false
@@ -65,6 +89,7 @@ jobs:
       - name: Checkout main UUID reference
         uses: actions/checkout@v4
         with:
+          repository: ${{ inputs.source_repository || github.repository }}
           ref: main
           path: main-reference
           persist-credentials: false
