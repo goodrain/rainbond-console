@@ -15,6 +15,7 @@ from typing import Any, Iterable
 
 REPORT_HOSTS = ("log.rainbond.com", "posthog.goodrain.com", "sentry.goodrain.com")
 REPORT_SCENARIOS = {"report_endpoint_drop": "DROP", "report_endpoint_reject": "REJECT"}
+SMOKE_BLOCK_IP = "192.0.2.1"
 
 
 def calculate_uuid(os_info: str) -> str:
@@ -83,30 +84,41 @@ def build_result(
     }
 
 
-def run_command(command: list[str], env: dict[str, str], log_file: pathlib.Path, timeout: int) -> tuple[int, str, bool]:
-    process = subprocess.Popen(
-        command,
-        env=env,
-        text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        start_new_session=True,
-    )
+def terminate_process_group(process_group: int, signal_name: str) -> bool:
     try:
-        output, _ = process.communicate(timeout=timeout)
-        code = process.returncode
-        timed_out = False
-    except subprocess.TimeoutExpired:
-        os.killpg(process.pid, signal.SIGTERM)
+        result = run_sudo("kill", f"-{signal_name}", "--", f"-{process_group}", check=False)
+    except (OSError, PermissionError):
+        return False
+    return result.returncode == 0
+
+
+def run_command(command: list[str], env: dict[str, str], log_file: pathlib.Path, timeout: int) -> tuple[int, str, bool]:
+    with log_file.open("w", encoding="utf-8") as output_file:
+        process = subprocess.Popen(
+            command,
+            env=env,
+            text=True,
+            stdout=output_file,
+            stderr=subprocess.STDOUT,
+            start_new_session=True,
+        )
         try:
-            output, _ = process.communicate(timeout=20)
+            process.wait(timeout=timeout)
+            code = process.returncode
+            timed_out = False
         except subprocess.TimeoutExpired:
-            os.killpg(process.pid, signal.SIGKILL)
-            output, _ = process.communicate()
-        code = 124
-        timed_out = True
-    log_file.write_text(output or "", encoding="utf-8")
-    return code, output or "", timed_out
+            terminated = terminate_process_group(process.pid, "TERM")
+            try:
+                process.wait(timeout=20)
+            except subprocess.TimeoutExpired:
+                killed = terminate_process_group(process.pid, "KILL")
+                if killed:
+                    process.wait()
+                elif not terminated:
+                    output_file.write("\nsmoke driver could not terminate the sudo process group\n")
+            code = 124
+            timed_out = True
+    return code, log_file.read_text(encoding="utf-8"), timed_out
 
 
 def start_receiver(results_dir: pathlib.Path) -> subprocess.Popen[str]:
@@ -189,12 +201,18 @@ def resolve_ipv4(host: str) -> list[str]:
     return sorted({entry[4][0] for entry in socket.getaddrinfo(host, 443, socket.AF_INET, socket.SOCK_STREAM)})
 
 
+def resolve_ipv6(host: str) -> list[str]:
+    return sorted({entry[4][0] for entry in socket.getaddrinfo(host, 443, socket.AF_INET6, socket.SOCK_STREAM)})
+
+
 def run_sudo(*arguments: str, check: bool = True) -> subprocess.CompletedProcess[str]:
     return subprocess.run(["sudo", *arguments], text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=check)
 
 
 def install_network_guard(results_dir: pathlib.Path, action: str) -> dict[str, list[str]]:
     addresses = {host: resolve_ipv4(host) for host in REPORT_HOSTS}
+    addresses["smoke_blackhole"] = [SMOKE_BLOCK_IP]
+    ipv6_addresses = {host: resolve_ipv6(host) for host in REPORT_HOSTS}
     hosts_backup = results_dir / "hosts.before"
     hosts_backup.write_text(pathlib.Path("/etc/hosts").read_text(encoding="utf-8"), encoding="utf-8")
     run_sudo("cp", "/etc/hosts", str(results_dir / "hosts.root.before"))
@@ -211,7 +229,24 @@ def install_network_guard(results_dir: pathlib.Path, action: str) -> dict[str, l
                 rule = [chain, "-d", address, "-j", action]
                 run_sudo("iptables", "-I", *rule)
                 rules.append(rule)
-    (results_dir / "network-guard.json").write_text(json.dumps({"addresses": addresses, "action": action}), encoding="utf-8")
+    for chain in ("OUTPUT", "FORWARD", "DOCKER-USER"):
+        if run_sudo("ip6tables", "-S", chain, check=False).returncode != 0:
+            continue
+        for values in ipv6_addresses.values():
+            for address in values:
+                run_sudo("ip6tables", "-I", chain, "-d", address, "-j", action)
+    dns_config = results_dir / "dnsmasq.conf"
+    dns_config.write_text("\n".join(["port=5353", "bind-interfaces", *[f"address=/{host}/0.0.0.0" for host in REPORT_HOSTS]]) + "\n", encoding="utf-8")
+    dns_process = subprocess.Popen(["sudo", "dnsmasq", "--keep-in-foreground", "--conf-file", str(dns_config)], stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True)
+    time.sleep(0.2)
+    if dns_process.poll() is not None:
+        raise RuntimeError(f"dnsmasq did not start: {dns_process.stderr.read()}")
+    for binary in ("iptables", "ip6tables"):
+        for protocol in ("udp", "tcp"):
+            run_sudo(binary, "-t", "nat", "-I", "PREROUTING", "-p", protocol, "--dport", "53", "-j", "REDIRECT", "--to-ports", "5353", check=False)
+    (results_dir / "network-guard.json").write_text(
+        json.dumps({"addresses": addresses, "ipv6_addresses": ipv6_addresses, "action": action, "dnsmasq_pid": dns_process.pid}), encoding="utf-8"
+    )
     return addresses
 
 
@@ -228,6 +263,41 @@ def remove_network_guard(results_dir: pathlib.Path) -> None:
         run_sudo("cp", str(backup), "/etc/hosts", check=False)
 
 
+def verify_network_guard(results_dir: pathlib.Path) -> dict[str, Any]:
+    guard = json.loads((results_dir / "network-guard.json").read_text(encoding="utf-8"))
+    expected = {address for values in guard["addresses"].values() for address in values}
+    chains = {}
+    for chain in ("OUTPUT", "FORWARD", "DOCKER-USER"):
+        result = run_sudo("iptables", "-S", chain, check=False)
+        rules = result.stdout
+        chains[chain] = {
+            "exists": result.returncode == 0,
+            "blocked_addresses": sorted(address for address in expected if f"-d {address}/32 -j {guard['action']}" in rules),
+        }
+    valid = all(chain["exists"] and set(chain["blocked_addresses"]) == expected for chain in chains.values())
+    return {"valid": valid, "chains": chains}
+
+
+def destroy_rainbond_container() -> None:
+    run_sudo("docker", "rm", "-f", "rainbond", check=False)
+
+
+def probe_container_report_hosts() -> dict[str, bool]:
+    probes = {}
+    for host in REPORT_HOSTS:
+        result = run_sudo(
+            "docker",
+            "exec",
+            "rainbond",
+            "bash",
+            "-c",
+            f"timeout 3 bash -c '</dev/tcp/{host}/443'",
+            check=False,
+        )
+        probes[host] = result.returncode == 0
+    return probes
+
+
 def probe_report_endpoint() -> dict[str, Any]:
     result = subprocess.run(
         ["/usr/bin/curl", "--connect-timeout", "2", "--max-time", "2", "--silent", "--show-error", "https://log.rainbond.com/"],
@@ -239,19 +309,29 @@ def probe_report_endpoint() -> dict[str, Any]:
     return {"reachable": result.returncode == 0, "exit_code": result.returncode, "output": result.stdout[-500:]}
 
 
-def runner_eip() -> str:
-    result = subprocess.run(["ip", "route", "get", "1.1.1.1"], text=True, stdout=subprocess.PIPE, check=True)
-    for token in result.stdout.split():
-        if token.count(".") == 3 and not token.startswith("127."):
-            return token
+def runner_eip_from_route(route: str) -> str:
+    tokens = route.split()
+    if "src" in tokens:
+        index = tokens.index("src")
+        if index + 1 < len(tokens):
+            return tokens[index + 1]
     raise RuntimeError("could not determine the runner primary IPv4 address")
 
 
+def runner_eip() -> str:
+    result = subprocess.run(["ip", "route", "get", "1.1.1.1"], text=True, stdout=subprocess.PIPE, check=True)
+    return runner_eip_from_route(result.stdout)
+
+
 def main_script_uuid(main_script: pathlib.Path) -> str:
-    uuid_line = next((line for line in main_script.read_text(encoding="utf-8").splitlines() if line.startswith("UUID=")), "")
-    if not uuid_line:
-        raise RuntimeError("main installer does not assign UUID")
-    program = f'OS_INFO=$(uname -a); MD5_CMD=$(command -v md5sum); {uuid_line}; printf %s "$UUID"'
+    lines = main_script.read_text(encoding="utf-8").splitlines()
+    os_info_line = next((line.strip() for line in lines if line.strip().startswith("OS_INFO=")), "")
+    md5_line = next((line.strip() for line in lines if line.strip().startswith("MD5_CMD=")), "")
+    os_info_index = lines.index(os_info_line) if os_info_line else -1
+    uuid_line = next((line.strip() for line in lines[os_info_index + 1 :] if line.strip().startswith("UUID=")), "")
+    if not os_info_line or not md5_line or not uuid_line:
+        raise RuntimeError("main installer does not provide the UUID assignment segment")
+    program = f'{md5_line}; {os_info_line}; {uuid_line}; printf %s "$UUID"'
     return subprocess.check_output(["bash", "-c", program], text=True)
 
 
@@ -295,32 +375,38 @@ def run_scenario(arguments: argparse.Namespace) -> int:
         raise RuntimeError("target or main installer script is missing")
 
     started_at = time.monotonic()
-    receiver = start_receiver(results_dir)
-    shim_dir = create_curl_shim(results_dir)
-    action = REPORT_SCENARIOS.get(arguments.scenario, "DROP")
-    report_mode = "receiver" if arguments.scenario in {"normal_install", "image_not_found"} else arguments.scenario.removeprefix("report_endpoint_")
-    expected_uuid = main_script_uuid(main_script)
-    env = os.environ.copy()
-    env.update(
-        {
-            "EIP": runner_eip(),
-            "RAINBOND_INSTALL_LANG": "en",
-            "PATH": f"{shim_dir}:{env['PATH']}",
-            "SMOKE_RECEIVER_PORT": (results_dir / "receiver-port").read_text(encoding="utf-8"),
-            "SMOKE_REPORT_MODE": report_mode,
-            "SMOKE_BLOCK_IP": resolve_ipv4("log.rainbond.com")[0],
-            "SMOKE_SHIM_STATE": str(results_dir / "first-report-recorded"),
-            "SMOKE_REPORT_ATTEMPTS": str(results_dir / "report-attempts.jsonl"),
-        }
-    )
-    if arguments.scenario == "image_not_found":
-        env["VERSION"] = "v0.0.0-installer-smoke-does-not-exist"
-
     code = 1
     output = ""
     timed_out = False
     connectivity = {}
+    components = []
+    gateway = {"pod": "", "containers": [], "logs": {}}
+    guard_validation = {"valid": False, "chains": {}}
+    container_probes = {}
+    expected_uuid = ""
+    receiver = None
+    setup_error = ""
     try:
+        receiver = start_receiver(results_dir)
+        shim_dir = create_curl_shim(results_dir).resolve()
+        action = REPORT_SCENARIOS.get(arguments.scenario, "DROP")
+        report_mode = "receiver" if arguments.scenario in {"normal_install", "image_not_found"} else arguments.scenario.removeprefix("report_endpoint_")
+        expected_uuid = main_script_uuid(main_script)
+        env = os.environ.copy()
+        env.update(
+            {
+                "EIP": runner_eip(),
+                "RAINBOND_INSTALL_LANG": "en",
+                "PATH": f"{shim_dir}:{env['PATH']}",
+                "SMOKE_RECEIVER_PORT": (results_dir / "receiver-port").read_text(encoding="utf-8"),
+                "SMOKE_REPORT_MODE": report_mode,
+                "SMOKE_BLOCK_IP": SMOKE_BLOCK_IP,
+                "SMOKE_SHIM_STATE": str((results_dir / "first-report-recorded").resolve()),
+                "SMOKE_REPORT_ATTEMPTS": str((results_dir / "report-attempts.jsonl").resolve()),
+            }
+        )
+        if arguments.scenario == "image_not_found":
+            env["VERSION"] = "v0.0.0-installer-smoke-does-not-exist"
         install_network_guard(results_dir, action)
         connectivity["before"] = probe_report_endpoint()
         command = [
@@ -341,16 +427,30 @@ def run_scenario(arguments: argparse.Namespace) -> int:
         code, output, timed_out = run_command(command, env, results_dir / "installer.log", arguments.timeout)
         connectivity["after"] = probe_report_endpoint()
         components = collect_ready_components() if arguments.scenario != "image_not_found" else []
-        gateway = collect_gateway_logs(results_dir) if arguments.scenario != "image_not_found" else {"pod": "", "containers": [], "logs": {}}
+        gateway = collect_gateway_logs(results_dir) if arguments.scenario != "image_not_found" else gateway
+        guard_validation = verify_network_guard(results_dir)
+        container_probes = probe_container_report_hosts() if arguments.scenario != "image_not_found" else {}
+    except Exception as error:
+        setup_error = str(error)
     finally:
-        remove_network_guard(results_dir)
-        stop_receiver(receiver)
+        destroy_rainbond_container()
+        if receiver is not None:
+            stop_receiver(receiver)
 
     duration_seconds = round(time.monotonic() - started_at)
     report_lines = (results_dir / "reports.jsonl").read_text(encoding="utf-8").splitlines() if (results_dir / "reports.jsonl").exists() else []
     reports = extract_report_events(report_lines)
     target_uuid = next((event["uuid"] for event in reports if event.get("uuid")), "")
     success, reason = scenario_succeeded(arguments.scenario, code, timed_out, output, reports, expected_uuid)
+    if setup_error:
+        success = False
+        reason = f"smoke setup failed: {setup_error}"
+    elif not guard_validation["valid"]:
+        success = False
+        reason = "network guard rules are missing"
+    elif any(container_probes.values()):
+        success = False
+        reason = "a report host accepted a TCP connection from rainbond"
     if timed_out:
         reason = f"{reason} after {arguments.timeout}s"
     uuid_matches = validate_report_uuids(reports, expected_uuid)
@@ -361,6 +461,8 @@ def run_scenario(arguments: argparse.Namespace) -> int:
             "exit_code": code,
             "timed_out": timed_out,
             "connectivity": connectivity,
+            "network_guard": guard_validation,
+            "container_tcp_probes": container_probes,
             "uuid_comparison": {"target_ref": target_uuid, "main": expected_uuid, "matches": uuid_matches},
             "report_count": len(reports),
             "report_attempts": read_json_lines(results_dir / "report-attempts.jsonl"),

@@ -1,10 +1,12 @@
 import json
 import os
 import pathlib
+import signal
 import subprocess
 import tempfile
 import time
 import unittest
+from unittest import mock
 
 from installer_smoke_driver import (
     build_result,
@@ -16,6 +18,9 @@ from installer_smoke_driver import (
     ready_components,
     create_curl_shim,
     run_command,
+    runner_eip_from_route,
+    resolve_ipv6,
+    terminate_process_group,
 )
 
 
@@ -49,9 +54,25 @@ class InstallerSmokeDriverTests(unittest.TestCase):
 
     def test_run_command_terminates_process_group_after_timeout(self):
         with tempfile.TemporaryDirectory() as directory:
-            code, _, timed_out = run_command(["bash", "-c", "sleep 30"], os.environ.copy(), pathlib.Path(directory) / "timeout.log", 0.01)
+            with mock.patch(
+                "installer_smoke_driver.terminate_process_group",
+                side_effect=lambda process_group, _: os.killpg(process_group, signal.SIGTERM) is None,
+            ):
+                code, _, timed_out = run_command(["bash", "-c", "sleep 30"], os.environ.copy(), pathlib.Path(directory) / "timeout.log", 0.01)
         self.assertEqual(code, 124)
         self.assertTrue(timed_out)
+
+    def test_runner_eip_uses_src_token_not_route_destination(self):
+        route = "1.1.1.1 via 10.0.0.1 dev eth0 src 10.0.0.24 uid 1001\n"
+        self.assertEqual(runner_eip_from_route(route), "10.0.0.24")
+
+    def test_ipv6_resolution_returns_only_ipv6_addresses(self):
+        with mock.patch("installer_smoke_driver.socket.getaddrinfo", return_value=[(None, None, None, None, ("2001:db8::1", 443, 0, 0))]):
+            self.assertEqual(resolve_ipv6("log.rainbond.com"), ["2001:db8::1"])
+
+    def test_terminate_process_group_returns_false_when_sudo_kill_fails(self):
+        with mock.patch("installer_smoke_driver.run_sudo", side_effect=PermissionError("denied")):
+            self.assertFalse(terminate_process_group(123, "TERM"))
 
     def test_curl_shim_maps_report_path_to_receiver_without_external_request(self):
         with tempfile.TemporaryDirectory() as directory:
