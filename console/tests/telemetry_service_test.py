@@ -125,15 +125,16 @@ class RainbondTelemetryServiceTests(TestCase):
         self.assertEqual(payload["batch"][0]["timestamp"], "2026-06-13T17:02:03+00:00")
 
     def test_instance_properties_include_anonymous_platform_metadata(self):
+        TenantEnterprise.objects.create(enterprise_id="enterprise-a", enterprise_name="enterprise-a")
         service = RainbondTelemetryService(
             env={
                 "RAINBOND_POSTHOG_ENABLED": "true",
                 "RAINBOND_ARCH": "x86_64",
+                "ENTERPRISE_ID": "environment-enterprise-id",
             },
         )
 
-        with mock.patch("console.services.telemetry._get_enterprise_id", return_value="enterprise-a"):
-            properties = service.get_instance_properties()
+        properties = service.get_instance_properties()
 
         self.assertEqual(properties["enterprise_id_hash"], hashlib.md5(b"enterprise-a").hexdigest())
         self.assertEqual(properties["instance_arch"], "amd64")
@@ -152,11 +153,11 @@ class RainbondTelemetryServiceTests(TestCase):
                 "RAINBOND_POSTHOG_ENABLED": "true",
                 "IS_ENTERPRISE_EDITION": "true",
                 "RAINBOND_ARCH": "aarch64",
+                "ENTERPRISE_ID": "environment-enterprise-id",
             },
         )
 
-        with mock.patch("console.services.telemetry._get_enterprise_id", return_value=""):
-            properties = service.get_instance_properties()
+        properties = service.get_instance_properties()
 
         self.assertEqual(properties["edition"], "enterprise")
         self.assertEqual(properties["instance_arch"], "arm64")
@@ -170,6 +171,47 @@ class RainbondTelemetryServiceTests(TestCase):
 
         self.assertEqual(service.get_install_time(), "2026-06-13T17:02:03+00:00")
         self.assertEqual(instance_id, service.get_or_create_instance_id())
+
+    def test_install_time_converts_aware_value_to_utc(self):
+        service = RainbondTelemetryService(env={"RAINBOND_POSTHOG_ENABLED": "true"})
+        record = mock.Mock(create_time=datetime.datetime(
+            2026,
+            6,
+            14,
+            1,
+            2,
+            3,
+            tzinfo=datetime.timezone(datetime.timedelta(hours=8)),
+        ))
+        queryset = mock.Mock()
+        queryset.first.return_value = record
+
+        with mock.patch("console.services.telemetry.ConsoleSysConfig.objects.filter", return_value=queryset):
+            self.assertEqual(service.get_install_time(), "2026-06-13T17:02:03+00:00")
+
+    def test_component_event_preserves_instance_and_component_architectures(self):
+        transport = FakeTransport()
+        component = type("Component", (), {
+            "service_source": "",
+            "category": "",
+            "service_type": "",
+            "language": "",
+            "arch": "arm64",
+        })()
+        service = RainbondTelemetryService(
+            env={
+                "RAINBOND_POSTHOG_ENABLED": "true",
+                "RAINBOND_ARCH": "x86_64",
+            },
+            transport=transport,
+            dispatcher=ImmediateDispatcher(),
+        )
+
+        self.assertTrue(service.track_component_created(component=component))
+
+        properties = transport.requests[0]["json"]["batch"][0]["properties"]
+        self.assertEqual(properties["instance_arch"], "amd64")
+        self.assertEqual(properties["arch"], "arm64")
 
     def test_capture_posts_batch_payload_with_public_token(self):
         transport = FakeTransport()
