@@ -396,7 +396,7 @@ class NewComponents(object):
                 lb_mapping_port=0,
                 protocol=port_protocol,
                 port_alias=port.get("port_alias", ""),
-                is_inner_service=True,
+                is_inner_service=port.get("is_inner_service", True),
                 is_outer_service=port.get("is_outer_service", False),
                 name=port.get("name", ""),
                 k8s_service_name=k8s_service_name,

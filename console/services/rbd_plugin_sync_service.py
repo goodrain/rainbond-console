@@ -22,6 +22,16 @@ class _RBDPluginSyncError(ServiceHandleException):
 class RBDPluginSyncService(object):
     REQUIRED_FIELDS = ("plugin_id", "plugin_type", "frontend_component", "entry_path")
     INJECT_POSITION_TYPES = (list, tuple)
+    FAILURE_MESSAGES = {
+        "validate_template": "应用变更已提交，但插件注册同步失败：模板校验失败，请检查插件配置",
+        "resolve_app_components": "应用变更已提交，但插件注册同步失败：无法识别应用组件",
+        "resolve_frontend_component": "应用变更已提交，但插件注册同步失败：无法识别前端组件",
+        "resolve_frontend_http_port": "应用变更已提交，但插件注册同步失败：无法确定前端 HTTP 端口",
+        "resolve_backend_component": "应用变更已提交，但插件注册同步失败：无法确定后端组件",
+        "resolve_backend_http_port": "应用变更已提交，但插件注册同步失败：无法确定后端 HTTP 端口",
+        "resolve_region_app_id": "应用变更已提交，但插件注册同步失败：无法识别区域应用",
+        "apply_rbdplugin": "应用变更已提交，但插件注册同步失败：插件注册请求失败",
+    }
 
     def reconcile(self, tenant: Tenants, region: RegionConfig, app_template: dict, app_id: Any) -> Dict[str, Any]:
         platform_plugin = app_template.get("platform_plugin") if isinstance(app_template, dict) else None
@@ -409,7 +419,8 @@ class RBDPluginSyncService(object):
     def _http_ports(ports: Any) -> List[Any]:
         return [
             port for port in list(ports) if str(getattr(port, "protocol", "")).lower() == "http"
-            and bool(getattr(port, "k8s_service_name", "")) and bool(getattr(port, "container_port", None))
+            and bool(getattr(port, "is_inner_service", False)) and bool(getattr(port, "k8s_service_name", ""))
+            and bool(getattr(port, "container_port", None))
         ]
 
     def _get_service_ports(self, tenant_id: str, service_id: str, phase: str, app_id: Any, plugin_id: str) -> List[Any]:
@@ -479,8 +490,8 @@ class RBDPluginSyncService(object):
             " ".join(context_parts),
         )
         raise _RBDPluginSyncError(
-            msg="rbd_plugin_sync_failed",
-            msg_show="应用变更已提交，但插件注册同步失败，请重试升级或联系管理员",
+            msg="rbd_plugin_sync_{}_failed".format(phase),
+            msg_show=cls.FAILURE_MESSAGES.get(phase, "应用变更已提交，但插件注册同步失败，请重试升级或联系管理员"),
             status_code=502,
             bean={
                 "operation_committed": True,

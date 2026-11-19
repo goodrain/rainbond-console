@@ -35,6 +35,22 @@ class PortProtocolCompatibilityTests(unittest.TestCase):
                     ports = builder._template_to_ports(component, [{"container_port": 8082, "protocol": protocol}])
                     self.assertEqual(ports[0].protocol, protocol)
 
+    def test_port_conversion_respects_explicit_inner_service_and_keeps_legacy_default(self):
+        builder = new_components_module.NewComponents.__new__(new_components_module.NewComponents)
+        component = SimpleNamespace(tenant_id="tenant", service_id="component", service_alias="demo")
+
+        with patch.object(new_components_module.port_service, "check_k8s_service_name"):
+            ports = builder._template_to_ports(
+                component,
+                [
+                    {"container_port": 8080, "is_inner_service": False},
+                    {"container_port": 8081},
+                ],
+            )
+
+        self.assertFalse(ports[0].is_inner_service)
+        self.assertTrue(ports[1].is_inner_service)
+
     def test_existing_default_and_invalid_protocol_validation_are_unchanged(self):
         default = ComponentPortReqSerializers(data={"port": 8080, "is_inner_service": True})
         self.assertTrue(default.is_valid(), default.errors)
