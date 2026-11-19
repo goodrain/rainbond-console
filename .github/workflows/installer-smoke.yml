@@ -1,0 +1,116 @@
+# Manual installer smoke tests. Trigger from Actions, select this workflow branch,
+# then provide the branch, tag, SHA, or PR head ref to install. Review the
+# Installer smoke summary and artifacts for per-scenario logs and Ready snapshots.
+# CentOS 7 and Kylin are intentionally not covered because hosted disposable runners are unavailable.
+name: Installer smoke
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Git ref to test (branch, tag, SHA, or PR head)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  install:
+    name: ${{ matrix.arch }} / ${{ matrix.scenario }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+            scenario: normal_install
+          - arch: amd64
+            runner: ubuntu-24.04
+            scenario: image_not_found
+          - arch: amd64
+            runner: ubuntu-24.04
+            scenario: report_endpoint_unreachable
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+            scenario: normal_install
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+            scenario: image_not_found
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+            scenario: report_endpoint_unreachable
+
+    steps:
+      - name: Checkout smoke harness
+        uses: actions/checkout@v4
+
+      - name: Checkout requested installer ref
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+          path: under-test
+
+      - name: Checkout main UUID reference
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: main-reference
+
+      - name: Run scenario
+        run: |
+          python3 scripts/installer_smoke_driver.py \
+            --scenario '${{ matrix.scenario }}' \
+            --installer under-test/script/install-rainbond.sh \
+            --main-installer main-reference/script/install-rainbond.sh \
+            --results-dir result \
+            --arch '${{ matrix.arch }}' \
+            --timeout 1800
+
+      - name: Upload scenario diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: installer-smoke-${{ matrix.arch }}-${{ matrix.scenario }}
+          path: result
+          if-no-files-found: warn
+
+  summary:
+    name: Installer smoke summary
+    if: always()
+    needs: install
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Download scenario results
+        uses: actions/download-artifact@v4
+        with:
+          pattern: installer-smoke-*
+          path: results
+
+      - name: Write job summary
+        run: |
+          python3 - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json
+          from pathlib import Path
+
+          print("## Installer smoke results")
+          print("| Scenario | Arch | Result | Duration | Reason |")
+          print("| --- | --- | --- | ---: | --- |")
+          for result_file in sorted(Path("results").glob("**/result.json")):
+              result = json.loads(result_file.read_text())
+              outcome = "passed" if result["success"] else "failed"
+              print(f"| {result['scenario']} | {result['arch']} | {outcome} | {result['duration_seconds']}s | {result['reason'] or '-'} |")
+              comparison = result.get("uuid_comparison", {})
+              print(f"\nUUID comparison ({result['scenario']} / {result['arch']}): `{comparison.get('target_ref', '-')}` == main `{comparison.get('main', '-')}`: {comparison.get('matches', False)}")
+              if result.get("components"):
+                  print("\nReady snapshot (recorded only):")
+                  print("```text")
+                  for component in result["components"]:
+                      print(f"{component['name']} {component['ready']} {component['status']}")
+                  print("```")
+          PY
+
+      - name: Require all scenarios
+        run: test '${{ needs.install.result }}' = success
