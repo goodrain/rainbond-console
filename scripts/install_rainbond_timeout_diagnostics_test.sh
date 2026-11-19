@@ -21,6 +21,8 @@ assert_equals unknown_rainbond_timeout "$(rainbond_classify_timeout_reason '' 'r
 assert_equals storage_pvc_pending "$(rainbond_classify_timeout_reason '' 'data-volume Pending local-path')"
 assert_equals storage_pvc_pending "$(rainbond_classify_timeout_reason 'Warning FailedScheduling: pod has unbound immediate PersistentVolumeClaims' '')"
 assert_equals image_pull_failed "$(rainbond_classify_timeout_reason 'Status: Pending ImagePullBackOff' 'rbd-app-ui-data Pending 1m')"
+assert_equals image_pull_failed "$(rainbond_classify_timeout_reason 'Reason: ImagePullBackOff' 'data-volume Pending local-path')"
+assert_equals storage_pvc_pending "$(rainbond_classify_timeout_reason 'Warning FailedMount Unable to attach or mount volumes: timed out waiting for the condition' '')"
 assert_equals unsupported "$(rainbond_normalize_arch armv7l)"
 rainbond_diag_kubectl() {
   case "$*" in
@@ -61,7 +63,8 @@ rainbond_diag_kubectl() {
     'get pods -n rbd-system --no-headers') printf '%s\n' 'local-path-provisioner-abc 1/1 Running 0 2m' 'minio-abc 1/1 Running 0 2m' 'rainbond-operator-abc 1/1 Running 0 2m' 'rbd-api-abc 1/1 Running 0 2m' 'rbd-app-ui-abc 1/1 Running 0 2m' 'rbd-chaos-abc 1/1 Running 0 2m' 'rbd-gateway-abc 2/2 Running 0 2m' 'rbd-hub-abc 1/1 Running 0 2m' 'rbd-monitor-abc 1/1 Running 0 2m' 'rbd-mq-abc 1/1 Running 0 2m' 'rbd-worker-abc 1/1 Running 0 2m' ;;
     'get pvc -n rbd-system --no-headers') printf '%s\n' 'rbd-app-ui-data Pending 1m' ;;
     'get nodes --no-headers') printf '%s\n' 'node Ready 3m' ;;
-    'logs rbd-gateway-abc -n rbd-system -c ingress-apisix --tail=20') printf '%s\n' 'no valid upstream node for service default/rbd-api' "upstream doesn't exist: default/rbd-api" ;;
+    'logs rbd-gateway-abc -n rbd-system -c apisix --tail=200') printf '%s\n' 'no valid upstream node for service default/rbd-api' ;;
+    'logs rbd-gateway-abc -n rbd-system -c ingress-apisix --tail=200') printf '%s\n' "upstream doesn't exist: default/rbd-api" ;;
   esac
 }
 gateway_diagnosis=$(rainbond_collect_timeout_diagnostics 600 test-attempt)
@@ -76,14 +79,16 @@ assert_not_contains "${external_console_diagnosis}" '"root_cause_code":"gateway_
 rainbond_diag_kubectl() {
   case "$*" in
     'get pods -n rbd-system --no-headers') printf '%s\n' 'rbd-gateway-abc 2/2 Running 0 2m' ;;
-    'logs rbd-gateway-abc -n rbd-system -c ingress-apisix --tail=20') printf '%s\n' 'endpoint sync completed' ;;
+    'logs rbd-gateway-abc -n rbd-system -c apisix --tail=200') printf '%s\n' 'endpoint sync completed' ;;
+    'logs rbd-gateway-abc -n rbd-system -c ingress-apisix --tail=200') printf '%s\n' 'endpoint sync completed' ;;
   esac
 }
 assert_contains "$(rainbond_gateway_controller_log_summary)" 'no relevant recent log entries'
 rainbond_diag_kubectl() {
   case "$*" in
     'get pods -n rbd-system --no-headers') printf '%s\n' 'rbd-gateway-abc 2/2 Running 0 2m' ;;
-    'logs rbd-gateway-abc -n rbd-system -c ingress-apisix --tail=20') printf '%s\n' 'container ingress-apisix is not valid for pod rbd-gateway-abc' >&2; return 1 ;;
+    'logs rbd-gateway-abc -n rbd-system -c apisix --tail=200') printf '%s\n' 'container apisix is not valid for pod rbd-gateway-abc' >&2; return 1 ;;
+    'logs rbd-gateway-abc -n rbd-system -c ingress-apisix --tail=200') printf '%s\n' 'endpoint sync completed' ;;
   esac
 }
 assert_contains "$(rainbond_gateway_controller_log_summary)" 'log collection failed'

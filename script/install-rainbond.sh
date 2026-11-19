@@ -189,15 +189,18 @@ function rainbond_diag_append_json_string() {
 function rainbond_classify_timeout_reason() {
     local raw="${1:-}" pvc_status="${2:-}" storage_evidence
 
+    if printf '%s' "$raw" | grep -Eqi 'ImagePullBackOff|ErrImagePull|pull image|failed to pull'; then
+        printf 'image_pull_failed'
+        return
+    fi
+
     storage_evidence=$(printf '%s\n' "$pvc_status" | awk '$1 != "rbd-app-ui-data"')
     if printf '%s' "$storage_evidence" | grep -Eqi '^[^[:space:]]+[[:space:]]+Pending([[:space:]]|$)'; then
         printf 'storage_pvc_pending'
-    elif printf '%s' "$raw" | grep -Eqi 'FailedScheduling.*(unbound immediate PersistentVolumeClaims|PersistentVolumeClaim|PVC)|Failed(Mount|AttachVolume).*([Pp]ersistent[Vv]olume[Cc]laim|PVC|unbound)|MountVolume.*([Pp]ersistent[Vv]olume[Cc]laim|PVC|unbound)'; then
+    elif printf '%s' "$raw" | grep -Eqi 'FailedScheduling.*(unbound immediate PersistentVolumeClaims|PersistentVolumeClaim|PVC)|Failed(Mount|AttachVolume).*([Pp]ersistent[Vv]olume[Cc]laim|PVC|unbound|Unable to attach or mount volumes|timed out)|MountVolume.*([Pp]ersistent[Vv]olume[Cc]laim|PVC|unbound|Unable to attach or mount volumes|timed out)'; then
         printf 'storage_pvc_pending'
     elif printf '%s' "$raw" | grep -Eqi 'NodeNotReady|Node is not ready|NotReady'; then
         printf 'node_not_ready'
-    elif printf '%s' "$raw" | grep -Eqi 'ImagePullBackOff|ErrImagePull|pull image|failed to pull'; then
-        printf 'image_pull_failed'
     elif printf '%s' "$raw" | grep -Eqi 'CrashLoopBackOff|Back-off restarting failed container|BackOff'; then
         printf 'container_backoff'
     elif printf '%s' "$raw" | grep -Eqi 'Startup probe failed'; then
@@ -270,7 +273,7 @@ function rainbond_probe_console_7070() {
 }
 
 function rainbond_gateway_controller_log_summary() {
-    local pod_status pod_name pod_log log_status=0 summary=""
+    local pod_status pod_name pod_log container combined_logs="" log_collection_failed=false summary=""
 
     pod_status=$(rainbond_diag_kubectl get pods -n rbd-system --no-headers 2>/dev/null || true)
     pod_name=$(printf '%s\n' "$pod_status" | awk '/^rbd-gateway/ { print $1; exit }')
@@ -279,14 +282,19 @@ function rainbond_gateway_controller_log_summary() {
         return
     fi
 
-    pod_log=$(rainbond_diag_kubectl logs "$pod_name" -n rbd-system -c ingress-apisix --tail=20 2>&1) || log_status=$?
-    if [ "$log_status" -ne 0 ]; then
+    for container in apisix ingress-apisix; do
+        pod_log=$(rainbond_diag_kubectl logs "$pod_name" -n rbd-system -c "$container" --tail=200 2>&1) || log_collection_failed=true
+        combined_logs="${combined_logs}
+${pod_log}"
+    done
+
+    if [ "$log_collection_failed" = true ]; then
         summary='log collection failed'
-    elif printf '%s' "$pod_log" | grep -Eqi 'no valid upstream node|upstream doesn.t exist'; then
+    elif printf '%s' "$combined_logs" | grep -Eqi 'no valid upstream node|upstream doesn.t exist'; then
         summary='upstream routing errors detected'
-    elif printf '%s' "$pod_log" | grep -Eqi 'resourceVersion.*(conflict|too old)|object has been modified'; then
+    elif printf '%s' "$combined_logs" | grep -Eqi 'resourceVersion.*(conflict|too old)|object has been modified'; then
         summary='resource version conflict detected'
-    elif printf '%s' "$pod_log" | grep -Eqi 'error|fail|warn'; then
+    elif printf '%s' "$combined_logs" | grep -Eqi 'error|fail|warn'; then
         summary='error or warning entries detected'
     else
         summary='no relevant recent log entries'
