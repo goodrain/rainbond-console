@@ -38,6 +38,43 @@ function rainbond_use_chinese_prompt() {
     esac
 }
 
+function rainbond_normalize_arch() {
+    case "${1:-$(arch)}" in
+        x86_64 | amd64 | i386)
+            printf 'amd64'
+            ;;
+        aarch64 | arm64)
+            printf 'arm64'
+            ;;
+    esac
+}
+
+function rainbond_initialize_report_identity() {
+    OS_TYPE=$(uname -s)
+    case "$OS_TYPE" in
+        Linux)
+            MD5_CMD='md5sum'
+            ;;
+        Darwin)
+            MD5_CMD='md5'
+            ;;
+        *)
+            MD5_CMD='md5sum'
+            ;;
+    esac
+    OS_INFO=$(uname -a)
+    UUID=$(printf '%s' "$OS_INFO" | "$MD5_CMD" | cut -b 1-32)
+    ARCH_TYPE=$(rainbond_normalize_arch "$(arch)")
+    if [ -z "$ARCH_TYPE" ]; then
+        if rainbond_use_chinese_prompt; then
+            echo -e "${RED}Rainbond 目前还不支持 $(arch) 架构${NC}"
+        else
+            echo -e "${RED}Rainbond does not support $(arch) architecture${NC}"
+        fi
+        exit 1
+    fi
+}
+
 ########################################
 # Information collection
 # Automatically collect the install details.
@@ -155,10 +192,12 @@ function rainbond_diag_append_json_string() {
 }
 
 function rainbond_classify_timeout_reason() {
-    local raw="${1:-}" storage_evidence
+    local raw="${1:-}" pvc_status="${2:-}" storage_evidence
 
-    storage_evidence=$(printf '%s\n' "$raw" | grep -v 'rbd-app-ui-data' || true)
-    if printf '%s' "$storage_evidence" | grep -Eqi 'FailedScheduling.*(unbound immediate PersistentVolumeClaims|PersistentVolumeClaim|PVC)|FailedMount|MountVolume|PersistentVolumeClaim.*(Pending|unbound)|PVC.*(Pending|unbound)|^[^[:space:]]+[[:space:]]+Pending([[:space:]]|$)'; then
+    storage_evidence=$(printf '%s\n' "$pvc_status" | awk '$1 != "rbd-app-ui-data"')
+    if printf '%s' "$storage_evidence" | grep -Eqi '^[^[:space:]]+[[:space:]]+Pending([[:space:]]|$)'; then
+        printf 'storage_pvc_pending'
+    elif printf '%s' "$raw" | grep -Eqi 'FailedScheduling.*(unbound immediate PersistentVolumeClaims|PersistentVolumeClaim|PVC)|Failed(Mount|AttachVolume).*([Pp]ersistent[Vv]olume[Cc]laim|PVC|unbound)|MountVolume.*([Pp]ersistent[Vv]olume[Cc]laim|PVC|unbound)'; then
         printf 'storage_pvc_pending'
     elif printf '%s' "$raw" | grep -Eqi 'NodeNotReady|Node is not ready|NotReady'; then
         printf 'node_not_ready'
@@ -215,14 +254,23 @@ function rainbond_timeout_reason_summary() {
 }
 
 function rainbond_probe_console_7070() {
-    local http_status
+    local http_status external_status
 
     http_status=$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' --connect-timeout 5 --max-time 10 http://127.0.0.1:7070 2>&1 || true)
     if printf '%s' "$http_status" | grep -Eq '^[1-5][0-9][0-9]$'; then
-        printf 'console_7070: reachable (HTTP %s)' "$http_status"
+        printf 'console_7070: reachable via local (HTTP %s)' "$http_status"
         return 0
     fi
-    printf 'console_7070: unreachable'
+    if [ -n "${EIP:-}" ]; then
+        external_status=$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' --connect-timeout 5 --max-time 10 "http://${EIP}:7070" 2>&1 || true)
+        if printf '%s' "$external_status" | grep -Eq '^[1-5][0-9][0-9]$'; then
+            printf 'console_7070: reachable via external (HTTP %s)' "$external_status"
+            return 0
+        fi
+        printf 'console_7070: unreachable via local and external'
+        return 1
+    fi
+    printf 'console_7070: unreachable via local'
     return 1
 }
 
@@ -230,15 +278,15 @@ function rainbond_gateway_controller_log_summary() {
     local pod_status pod_name pod_log summary=""
 
     pod_status=$(rainbond_diag_kubectl get pods -n rbd-system --no-headers 2>/dev/null || true)
-    pod_name=$(printf '%s\n' "$pod_status" | awk '/apisix-ingress-controller/ { print $1; exit }')
+    pod_name=$(printf '%s\n' "$pod_status" | awk '/^rbd-gateway/ { print $1; exit }')
     if [ -z "$pod_name" ]; then
         printf 'gateway_controller: pod not found'
         return
     fi
 
-    pod_log=$(rainbond_diag_kubectl logs "$pod_name" -n rbd-system --tail=20 2>&1 || true)
-    if printf '%s' "$pod_log" | grep -Eqi 'endpoint|endpoints'; then
-        summary='endpoint related entries detected'
+    pod_log=$(rainbond_diag_kubectl logs "$pod_name" -n rbd-system -c ingress-apisix --tail=20 2>&1 || true)
+    if printf '%s' "$pod_log" | grep -Eqi 'resourceVersion.*(conflict|too old)|object has been modified'; then
+        summary='resource version conflict detected'
     elif printf '%s' "$pod_log" | grep -Eqi 'error|fail|warn'; then
         summary='error or warning entries detected'
     else
@@ -247,11 +295,37 @@ function rainbond_gateway_controller_log_summary() {
     printf 'gateway_controller: %s' "$summary"
 }
 
+function rainbond_expected_pod_ready() {
+    local pod_status="${1:-}" prefix="${2:-}"
+
+    printf '%s\n' "$pod_status" | awk -v prefix="$prefix" '
+        index($1, prefix) == 1 && $3 == "Running" {
+            split($2, ready, "/")
+            if (ready[1] == ready[2] && ready[2] != "0") {
+                found = 1
+            }
+        }
+        END { exit !found }
+    '
+}
+
+function rainbond_all_expected_pods_ready() {
+    local pod_status="${1:-}" prefix
+
+    [ "${pod_list+x}" = "x" ] || return 1
+    for prefix in "${pod_list[@]}"; do
+        if ! rainbond_expected_pod_ready "$pod_status" "$prefix"; then
+            return 1
+        fi
+    done
+    return 0
+}
+
 function rainbond_collect_timeout_diagnostics() {
     local wait_seconds="${1:-600}"
     local attempt_id="${2:-${INSTALL_ATTEMPT_ID:-}}"
     local pod_status pvc_status node_status raw root_cause_code root_cause_summary
-    local failed_components="" evidence_items="" pod_count=0 running_pod_count=0
+    local failed_components="" evidence_items="" pod_count=0
 
     pod_status=$(rainbond_diag_kubectl get pods -n rbd-system --no-headers 2>&1 || true)
     pvc_status=$(rainbond_diag_kubectl get pvc -n rbd-system --no-headers 2>&1 || true)
@@ -291,8 +365,6 @@ $node_status"
             raw="$raw
 $pod_describe
 $pod_log"
-        else
-            running_pod_count=$((running_pod_count + 1))
         fi
 
         if [ "$pod_count" -ge 8 ]; then
@@ -309,7 +381,7 @@ EOF
         evidence_items=$(rainbond_diag_append_json_string "$evidence_items" "nodes: $node_status")
     fi
 
-    if [ "$pod_count" -eq 0 ] && [ "$running_pod_count" -gt 0 ]; then
+    if [ "$pod_count" -eq 0 ] && rainbond_all_expected_pods_ready "$pod_status"; then
         local console_result console_status
         console_result=$(rainbond_probe_console_7070)
         console_status=$?
@@ -319,7 +391,7 @@ EOF
             root_cause_code='gateway_unreachable'
         fi
     fi
-    root_cause_code=${root_cause_code:-$(rainbond_classify_timeout_reason "$raw")}
+    root_cause_code=${root_cause_code:-$(rainbond_classify_timeout_reason "$raw" "$pvc_status")}
     root_cause_summary=$(rainbond_timeout_reason_summary "$root_cause_code")
 
     printf '{"diagnosis_version":"v1","install_method":"%s","install_attempt_id":"%s","wait_seconds":%s,"root_cause_code":"%s","root_cause_summary":"%s","failed_components":[%s],"evidence":[%s]}' \
@@ -353,11 +425,7 @@ function rainbond_log_collect_eid() {
         rainbond_sha256_32 "$kube_system_uid"
         return
     fi
-    if [ -n "${UUID:-}" ]; then
-        printf '%s' "$UUID"
-        return
-    fi
-    rainbond_sha256_32 "${OS_INFO:-$(uname -a 2>/dev/null || true)}"
+    printf '%s' "${UUID:-}"
 }
 
 function rainbond_log_collect_enable_cluster() {
@@ -655,7 +723,7 @@ function check_docker_network_preflight() {
 }
 
 function send_msg() {
-    local dest_url msg msg_json os_info_json eip_json uuid_json eid_json attempt_json method_json
+    local dest_url msg msg_json os_info_json eip_json uuid_json version_json arch_json attempt_json method_json
 
     dest_url="https://log.rainbond.com"
     #msg=${1:-"Terminating by userself."}
@@ -668,12 +736,13 @@ function send_msg() {
     os_info_json=$(rainbond_json_escape "${OS_INFO:-}")
     eip_json=$(rainbond_json_escape "${EIP:-}")
     uuid_json=$(rainbond_json_escape "${UUID:-}")
-    eid_json=$(rainbond_json_escape "$(rainbond_log_collect_eid)")
+    version_json=$(rainbond_json_escape "${RAINBOND_VERSION:-}")
+    arch_json=$(rainbond_json_escape "${ARCH_TYPE:-}")
     attempt_json=$(rainbond_json_escape "${INSTALL_ATTEMPT_ID:-}")
     method_json=$(rainbond_json_escape "${RAINBOND_INSTALL_METHOD:-single_node}")
     # send a message to remote url
     curl --silent -H "Content-Type: application/json" -X POST "$dest_url/dindlog" \
-        -d "{\"message\":\"$msg_json\", \"os_info\":\"$os_info_json\", \"eip\":\"$eip_json\", \"uuid\":\"$uuid_json\", \"eid\":\"$eid_json\", \"install_attempt_id\":\"$attempt_json\", \"install_method\":\"$method_json\"}" 2>&1 >/dev/null || :
+        -d "{\"message\":\"$msg_json\", \"os_info\":\"$os_info_json\", \"eip\":\"$eip_json\", \"uuid\":\"$uuid_json\", \"version\":\"$version_json\", \"arch\":\"$arch_json\", \"install_attempt_id\":\"$attempt_json\", \"install_method\":\"$method_json\"}" 2>&1 >/dev/null || :
 
     if [ "$msg" == "Terminating by userself." ]; then
         exit 1
@@ -808,6 +877,7 @@ function parse_cli_args() {
     done
 }
 
+rainbond_initialize_report_identity
 parse_cli_args "$@"
 
 ########################################
@@ -843,12 +913,7 @@ check_required_commands
 # Return Linux or Darwin.
 ########################################
 
-OS_TYPE=$(uname -s)
-if [ "${OS_TYPE}" == "Linux" ]; then
-    MD5_CMD="md5sum"
-elif [ "${OS_TYPE}" == "Darwin" ]; then
-    MD5_CMD="md5"
-else
+if [ "${OS_TYPE}" != "Linux" ] && [ "${OS_TYPE}" != "Darwin" ]; then
     if rainbond_use_chinese_prompt; then
         send_error "${OS_TYPE} 操作系统暂不支持"
         exit 1
@@ -1870,29 +1935,13 @@ fi
 # Return amd64 or arm64.
 ########################################
 
-if [ "$(arch)" = "x86_64" ] || [ "$(arch)" = "amd64" ]; then
-    ARCH_TYPE=amd64
-elif [ "$(arch)" = "aarch64" ] || [ "$(arch)" = "arm64" ]; then
-    ARCH_TYPE=arm64
-elif [ "$(arch)" = "i386" ]; then
-    ARCH_TYPE=amd64
+if [ "$(arch)" = "i386" ]; then
     if rainbond_use_chinese_prompt; then
         send_warn "检测到 i386, 我们把它当做 x86_64(amd64). 如果您使用的是 M1 芯片的 MacOS, 确保您禁用了 Rosetta. \n\t 请参阅: https://github.com/goodrain/rainbond/issues/1439 "
     else
         send_warn "i386 has been detected, we'll treat it like x86_64(amd64). If you are using the M1 chip MacOS, make sure your terminal has Rosetta disabled.\n\t Have a look : https://github.com/goodrain/rainbond/issues/1439 "
     fi
-else
-    if rainbond_use_chinese_prompt; then
-        send_error "Rainbond 目前还不支持 $(arch) 架构"
-        exit 1
-    else
-        send_error "Rainbond does not support $(arch) architecture"
-        exit 1
-    fi
 fi
-
-OS_INFO=$(uname -a)
-UUID=$(echo "$OS_INFO" | ${MD5_CMD} | cut -b 1-32)
 
 RAINBOND_FINAL_EVENT_ENABLED=true
 send_msg "Starting Rainbond installation"
@@ -4040,7 +4089,7 @@ while [ $elapsed_time -le $MAX_SERVICE_WAIT ]; do
     all_ready=true
 
     for prefix in "${pod_list[@]}"; do
-      if echo "$pod_status" | grep "^${prefix}" | grep 'Running' >/dev/null 2>&1; then
+      if rainbond_expected_pod_ready "$pod_status" "$prefix"; then
         if ! echo "$pod_ready_reported" | grep -q "\b${prefix}\b"; then
           printf "\r\033[K"  # Clear spinner line
           echo -e "${GREEN}  ✓ ${prefix}${NC}"
