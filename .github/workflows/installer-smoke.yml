@@ -110,6 +110,11 @@ jobs:
                   for component in result["components"]:
                       print(f"{component['name']} {component['ready']} {component['status']}")
                   print("```")
+              for container, lines in result.get("gateway_logs", {}).items():
+                  print(f"\nrbd-gateway / {container} (recorded log lines):")
+                  print("```text")
+                  print("\n".join(lines) or "no lines captured")
+                  print("```")
           PY
 
       - name: Require all scenarios

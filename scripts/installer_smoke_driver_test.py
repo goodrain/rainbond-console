@@ -5,6 +5,7 @@ from installer_smoke_driver import (
     build_result,
     calculate_uuid,
     extract_report_events,
+    validate_report_uuids,
     ready_components,
 )
 
@@ -20,6 +21,11 @@ class InstallerSmokeDriverTests(unittest.TestCase):
         ]
 
         self.assertEqual(extract_report_events(lines), [{"uuid": "same-id", "message": "started"}])
+
+    def test_validate_report_uuids_requires_one_non_empty_uuid(self):
+        self.assertTrue(validate_report_uuids([{"uuid": "same-id"}, {"uuid": "same-id"}], "same-id"))
+        self.assertFalse(validate_report_uuids([{"uuid": ""}], "same-id"))
+        self.assertFalse(validate_report_uuids([{"uuid": "other-id"}], "same-id"))
 
     def test_ready_components_records_each_component_without_failing_unready(self):
         pods = """rainbond-operator-1 1/1 Running 0 1m
