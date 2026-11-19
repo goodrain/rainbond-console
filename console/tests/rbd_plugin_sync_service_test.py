@@ -479,6 +479,23 @@ class RBDPluginSyncServiceTests(TestCase):
         self.assertEqual("apply_region_rbdplugin", context.exception.bean["phase"])
         self.assertEqual("应用变更已提交，但插件注册同步失败：插件注册请求失败", context.exception.msg_show)
 
+    def test_cleanup_installation_failure_reports_its_phase(self):
+        template = dict(self.template)
+        template["platform_plugin"] = dict(self.template["platform_plugin"], plugin_id="rainbond-disk")
+        patches = self._patch_desired_state()
+
+        with patches[0] as relation_filter, patches[1], patches[2], patches[3], patches[4], patches[5] as region_apply, \
+                mock.patch("console.services.cleanup_installation.configure_installation",
+                           side_effect=RuntimeError("cleanup failed")):
+            relation_filter.return_value.values_list.return_value = ["svc-ui", "svc-api"]
+            with self.assertRaises(ServiceHandleException) as context:
+                self.service.reconcile(self.tenant, self.region, template, 23)
+
+        self.assertEqual("rbd_plugin_sync_configure_cleanup_installation_failed", context.exception.msg)
+        self.assertEqual("configure_cleanup_installation", context.exception.bean["phase"])
+        self.assertEqual("应用变更已提交，但插件注册同步失败：清理组件初始化失败", context.exception.msg_show)
+        region_apply.assert_not_called()
+
     def test_region_failure_is_wrapped_without_exposing_exception_text(self):
         patches = self._patch_desired_state()
 

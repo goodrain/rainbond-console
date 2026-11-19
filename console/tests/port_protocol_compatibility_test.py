@@ -51,6 +51,48 @@ class PortProtocolCompatibilityTests(unittest.TestCase):
         self.assertFalse(ports[0].is_inner_service)
         self.assertTrue(ports[1].is_inner_service)
 
+    def test_port_conversion_keeps_outer_service_ports_inner(self):
+        builder = new_components_module.NewComponents.__new__(new_components_module.NewComponents)
+        component = SimpleNamespace(tenant_id="tenant", service_id="component", service_alias="demo")
+
+        with patch.object(new_components_module.port_service, "check_k8s_service_name"):
+            ports = builder._template_to_ports(
+                component,
+                [
+                    {"container_port": 8080, "is_inner_service": False, "is_outer_service": True},
+                    {"container_port": 8081, "is_inner_service": False, "is_outer_service": False},
+                ],
+            )
+
+        self.assertTrue(ports[0].is_inner_service)
+        self.assertTrue(ports[0].is_outer_service)
+        self.assertFalse(ports[1].is_inner_service)
+        self.assertFalse(ports[1].is_outer_service)
+
+    def test_port_conversion_normalizes_template_service_flags(self):
+        builder = new_components_module.NewComponents.__new__(new_components_module.NewComponents)
+        component = SimpleNamespace(tenant_id="tenant", service_id="component", service_alias="demo")
+        values = [(None, True), ("false", False), ("true", True), (0, False), (1, True)]
+
+        with patch.object(new_components_module.port_service, "check_k8s_service_name"):
+            for index, (value, expected) in enumerate(values):
+                with self.subTest(value=value):
+                    port = builder._template_to_ports(
+                        component,
+                        [{"container_port": 8100 + index, "is_inner_service": value}],
+                    )[0]
+
+                    self.assertIs(port.is_inner_service, expected)
+                    self.assertIs(type(port.is_inner_service), bool)
+
+            outer_port = builder._template_to_ports(
+                component,
+                [{"container_port": 8200, "is_inner_service": "false", "is_outer_service": "true"}],
+            )[0]
+
+        self.assertIs(outer_port.is_inner_service, True)
+        self.assertIs(outer_port.is_outer_service, True)
+
     def test_existing_default_and_invalid_protocol_validation_are_unchanged(self):
         default = ComponentPortReqSerializers(data={"port": 8080, "is_inner_service": True})
         self.assertTrue(default.is_valid(), default.errors)

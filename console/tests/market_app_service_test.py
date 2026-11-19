@@ -279,7 +279,7 @@ class MarketAppServiceTelemetryTests(SimpleTestCase):
         from console.services.market_app_service import market_app_service
 
         error = ServiceHandleException(
-            msg="rbd_plugin_sync_failed",
+            msg="rbd_plugin_sync_validate_template_failed",
             msg_show="插件注册同步失败",
             status_code=502,
         )
