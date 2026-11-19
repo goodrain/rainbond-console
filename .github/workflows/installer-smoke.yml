@@ -19,7 +19,7 @@ jobs:
   install:
     name: ${{ matrix.arch }} / ${{ matrix.scenario }}
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 35
+    timeout-minutes: 50
     strategy:
       fail-fast: false
       matrix:
@@ -32,7 +32,10 @@ jobs:
             scenario: image_not_found
           - arch: amd64
             runner: ubuntu-24.04
-            scenario: report_endpoint_unreachable
+            scenario: report_endpoint_drop
+          - arch: amd64
+            runner: ubuntu-24.04
+            scenario: report_endpoint_reject
           - arch: arm64
             runner: ubuntu-24.04-arm
             scenario: normal_install
@@ -41,23 +44,30 @@ jobs:
             scenario: image_not_found
           - arch: arm64
             runner: ubuntu-24.04-arm
-            scenario: report_endpoint_unreachable
+            scenario: report_endpoint_drop
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+            scenario: report_endpoint_reject
 
     steps:
       - name: Checkout smoke harness
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Checkout requested installer ref
         uses: actions/checkout@v4
         with:
           ref: ${{ inputs.ref }}
           path: under-test
+          persist-credentials: false
 
       - name: Checkout main UUID reference
         uses: actions/checkout@v4
         with:
           ref: main
           path: main-reference
+          persist-credentials: false
 
       - name: Run scenario
         run: |
@@ -110,7 +120,9 @@ jobs:
                   for component in result["components"]:
                       print(f"{component['name']} {component['ready']} {component['status']}")
                   print("```")
-              for container, lines in result.get("gateway_logs", {}).items():
+              gateway = result.get("gateway", {})
+              print(f"\nrbd-gateway pod: `{gateway.get('pod', 'not created')}`; containers: `{', '.join(gateway.get('containers', [])) or 'none'}`")
+              for container, lines in gateway.get("logs", {}).items():
                   print(f"\nrbd-gateway / {container} (recorded log lines):")
                   print("```text")
                   print("\n".join(lines) or "no lines captured")
