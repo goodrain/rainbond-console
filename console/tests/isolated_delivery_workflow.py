@@ -1039,6 +1039,7 @@ class DeliveryWorkflowTest(unittest.TestCase):
         with mock.patch.dict(sys.modules, {"console.models.main": main, "console.services.app": app}):
             result = DeliveryGateway().publish_catalog(task)
         saved = main.RainbondCenterAppVersion.objects.update_or_create.call_args.kwargs["defaults"]
+        self.assertEqual(saved["template_type"], "application_template")
         manifest = json.loads(saved["app_template"])
         self.assertEqual(manifest["apps"][0]["share_image"], "catalog.test/web:1.0.0")
         self.assertEqual(result["published_manifest"]["apps"][0]["share_image"], "catalog.test/web:1.0.0")
@@ -1116,6 +1117,9 @@ class DeliveryWorkflowTest(unittest.TestCase):
 
         def validate_request(market, app_id, body):
             self.assertEqual(app_id, "remote-app")
+            # The market validates templateType as RAM/OAM; application_template
+            # is only the Console's internal catalog classification.
+            self.assertEqual(body["template_type"], "RAM")
             self.assertIsInstance(body.get("rainbond_version"), str)
             self.assertTrue(body["rainbond_version"])
             self.assertEqual(body["template"]["group_key"], "remote-app")
