@@ -8,6 +8,7 @@ from django.utils import timezone
 from unittest import mock
 
 from console.models.main import ConsoleSysConfig
+from console.services import telemetry as telemetry_module
 from console.services.telemetry import (
     HEARTBEAT_KEY_PREFIX,
     INSTANCE_ID_KEY,
@@ -58,6 +59,7 @@ class RainbondTelemetryServiceTests(TestCase):
         ConsoleSysConfig.objects.filter(
             key=EXTERNAL_TELEMETRY_ENABLED_KEY,
         ).delete()
+        telemetry_module._enterprise_id_cache = None
         invalidate_external_telemetry_cache()
 
     def tearDown(self):
@@ -129,7 +131,7 @@ class RainbondTelemetryServiceTests(TestCase):
         service = RainbondTelemetryService(
             env={
                 "RAINBOND_POSTHOG_ENABLED": "true",
-                "RAINBOND_ARCH": "x86_64",
+                "RAINBOND_ARCH": "x86-64",
                 "ENTERPRISE_ID": "environment-enterprise-id",
             },
         )
@@ -142,10 +144,44 @@ class RainbondTelemetryServiceTests(TestCase):
         self.assertEqual(properties["telemetry_schema_version"], 2)
         self.assertNotIn("installation_method", properties)
 
-    def test_get_enterprise_id_reads_database_record(self):
-        TenantEnterprise.objects.create(enterprise_id="enterprise-a", enterprise_name="enterprise-a")
+    def test_get_enterprise_id_reads_earliest_database_record(self):
+        first = TenantEnterprise.objects.create(enterprise_id="enterprise-a", enterprise_name="enterprise-a")
+        second = TenantEnterprise.objects.create(enterprise_id="enterprise-b", enterprise_name="enterprise-b")
+        TenantEnterprise.objects.filter(pk=first.pk).update(create_time=datetime.datetime(2026, 6, 14, 1, 2, 3))
+        TenantEnterprise.objects.filter(pk=second.pk).update(create_time=datetime.datetime(2026, 6, 15, 1, 2, 3))
 
         self.assertEqual(_get_enterprise_id(), "enterprise-a")
+
+    def test_enterprise_id_query_failure_keeps_other_instance_properties(self):
+        service = RainbondTelemetryService(env={"RAINBOND_POSTHOG_ENABLED": "true"})
+
+        with mock.patch(
+            "console.services.telemetry.TenantEnterprise.objects.order_by",
+            side_effect=RuntimeError("database unavailable"),
+        ):
+            properties = service.get_instance_properties()
+
+        self.assertEqual(properties["instance_id"], service.get_or_create_instance_id())
+        self.assertIn("console_version", properties)
+        self.assertNotIn("enterprise_id_hash", properties)
+
+    def test_enterprise_id_query_caches_found_value_but_not_missing_value(self):
+        enterprise = mock.Mock(enterprise_id="enterprise-a")
+        queryset = mock.Mock()
+        queryset.first.return_value = enterprise
+
+        with mock.patch("console.services.telemetry.TenantEnterprise.objects.order_by", return_value=queryset) as order_by:
+            self.assertEqual(_get_enterprise_id(), "enterprise-a")
+            self.assertEqual(_get_enterprise_id(), "enterprise-a")
+
+        order_by.assert_called_once()
+        telemetry_module._enterprise_id_cache = None
+        queryset.first.return_value = None
+        with mock.patch("console.services.telemetry.TenantEnterprise.objects.order_by", return_value=queryset) as order_by:
+            self.assertEqual(_get_enterprise_id(), "")
+            self.assertEqual(_get_enterprise_id(), "")
+
+        self.assertEqual(order_by.call_count, 2)
 
     def test_instance_properties_use_enterprise_edition_and_omit_missing_enterprise_id(self):
         service = RainbondTelemetryService(
@@ -162,6 +198,19 @@ class RainbondTelemetryServiceTests(TestCase):
         self.assertEqual(properties["edition"], "enterprise")
         self.assertEqual(properties["instance_arch"], "arm64")
         self.assertNotIn("enterprise_id_hash", properties)
+
+    def test_unknown_environment_arch_falls_back_to_platform_architecture(self):
+        service = RainbondTelemetryService(
+            env={
+                "RAINBOND_POSTHOG_ENABLED": "true",
+                "RAINBOND_ARCH": "unsupported",
+            },
+        )
+
+        with mock.patch("console.services.telemetry.platform.machine", return_value="aarch64"):
+            properties = service.get_instance_properties()
+
+        self.assertEqual(properties["instance_arch"], "arm64")
 
     def test_install_time_converts_to_utc(self):
         service = RainbondTelemetryService(env={"RAINBOND_POSTHOG_ENABLED": "true"})

@@ -10,6 +10,7 @@ import threading
 import uuid
 
 from django.utils import timezone
+from django.db.models import F
 
 from console.models.main import ConsoleSysConfig
 from console.services.telemetry_switch import get_external_telemetry_enabled
@@ -27,6 +28,7 @@ HEARTBEAT_KEY_PREFIX = "RBD_TEL_HB_"
 REQUEST_TIMEOUT = 2
 TELEMETRY_QUEUE_MAX_SIZE = 100
 TELEMETRY_SCHEMA_VERSION = 2
+_enterprise_id_cache = None
 
 SENSITIVE_KEY_RE = re.compile(
     r"(token|password|secret|authorization|cookie|key|dsn|email|phone|git|repo|repository|url|domain|image|"
@@ -55,8 +57,17 @@ def hash_identifier(instance_id, identifier):
 
 
 def _get_enterprise_id():
-    enterprise = TenantEnterprise.objects.order_by("create_time", "pk").first()
-    return enterprise.enterprise_id if enterprise and enterprise.enterprise_id else ""
+    global _enterprise_id_cache
+    if _enterprise_id_cache:
+        return _enterprise_id_cache
+    try:
+        enterprise = TenantEnterprise.objects.order_by(F("create_time").asc(nulls_last=True), "pk").first()
+    except Exception:
+        return ""
+    enterprise_id = enterprise.enterprise_id if enterprise and enterprise.enterprise_id else ""
+    if enterprise_id:
+        _enterprise_id_cache = enterprise_id
+    return enterprise_id
 
 
 def normalize_arch(value):
@@ -231,12 +242,13 @@ class RainbondTelemetryService(object):
             console_version = ""
         instance_id = self.get_or_create_instance_id()
         edition = self.env.get("ENTERPRISE_EDITION", "") or self.env.get("RAINBOND_EDITION", "")
+        instance_arch = normalize_arch(self.env.get("RAINBOND_ARCH", "")) or normalize_arch(platform.machine())
         properties = {
             "instance_id": instance_id,
             "console_version": console_version,
             "rainbond_version": self.env.get("RAINBOND_VERSION", "") or self.env.get("RELEASE_DESC", "") or "",
             "edition": edition or ("enterprise" if str_to_bool(self.env.get("IS_ENTERPRISE_EDITION")) else "open_source"),
-            "instance_arch": normalize_arch(self.env.get("RAINBOND_ARCH", "") or platform.machine()),
+            "instance_arch": instance_arch,
             "telemetry_schema_version": TELEMETRY_SCHEMA_VERSION,
             "install_time": self.get_install_time(),
             "days_since_install": self.get_days_since_install(),
