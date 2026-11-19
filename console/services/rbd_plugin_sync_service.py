@@ -30,7 +30,7 @@ class RBDPluginSyncService(object):
         "resolve_backend_component": "应用变更已提交，但插件注册同步失败：无法确定后端组件",
         "resolve_backend_http_port": "应用变更已提交，但插件注册同步失败：无法确定后端 HTTP 端口",
         "resolve_region_app_id": "应用变更已提交，但插件注册同步失败：无法识别区域应用",
-        "apply_rbdplugin": "应用变更已提交，但插件注册同步失败：插件注册请求失败",
+        "apply_region_rbdplugin": "应用变更已提交，但插件注册同步失败：插件注册请求失败",
     }
 
     def reconcile(self, tenant: Tenants, region: RegionConfig, app_template: dict, app_id: Any) -> Dict[str, Any]:

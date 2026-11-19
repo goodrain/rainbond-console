@@ -466,6 +466,19 @@ class RBDPluginSyncServiceTests(TestCase):
         self.assertEqual("validate_template", context.exception.bean["phase"])
         region_apply.assert_not_called()
 
+    def test_region_plugin_registration_failure_reports_its_phase(self):
+        patches = self._patch_desired_state()
+
+        with patches[0] as relation_filter, patches[1], patches[2], patches[3], patches[4], patches[5] as region_apply:
+            relation_filter.return_value.values_list.return_value = ["svc-ui", "svc-api"]
+            region_apply.side_effect = RuntimeError("region request failed")
+            with self.assertRaises(ServiceHandleException) as context:
+                self.service.reconcile(self.tenant, self.region, self.template, 23)
+
+        self.assertEqual("rbd_plugin_sync_apply_region_rbdplugin_failed", context.exception.msg)
+        self.assertEqual("apply_region_rbdplugin", context.exception.bean["phase"])
+        self.assertEqual("应用变更已提交，但插件注册同步失败：插件注册请求失败", context.exception.msg_show)
+
     def test_region_failure_is_wrapped_without_exposing_exception_text(self):
         patches = self._patch_desired_state()
 
