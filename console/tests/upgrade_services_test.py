@@ -228,7 +228,7 @@ class RBDPluginLifecycleReconciliationTests(TestCase):
         app_upgrade = MagicMock()
         app_upgrade.upgrade.return_value = upgraded_record
         sync_error = ServiceHandleException(
-            msg="rbd_plugin_sync_failed",
+            msg="rbd_plugin_sync_apply_region_rbdplugin_failed",
             msg_show="插件注册同步失败",
             status_code=502,
             bean={"phase": "apply_region_rbdplugin"},

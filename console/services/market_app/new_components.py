@@ -5,6 +5,7 @@ import os
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
+from .port_utils import normalize_template_port_service_flags
 from .utils import is_same_component
 from .hostname_remap import apply_hostname_remap, is_host_env_name
 from .enum import ActionType
@@ -376,15 +377,19 @@ class NewComponents(object):
         new_ports = []
         k8s_service_name = ""
         for port in ports:
+            port = normalize_template_port_service_flags(port)
             component_port = port["container_port"]
             if not k8s_service_name:
-                k8s_service_name = port.get("k8s_service_name") if port.get("k8s_service_name") else component.service_alias
+                template_service_name = port.get("k8s_service_name")
+                service_alias = component.service_alias if isinstance(component.service_alias, str) else ""
+                k8s_service_name = template_service_name \
+                    if isinstance(template_service_name, str) and template_service_name else service_alias
                 try:
                     port_service.check_k8s_service_name(component.tenant_id, k8s_service_name)
                 except ErrK8sServiceNameExists:
                     k8s_service_name = k8s_service_name + "-" + make_uuid()[:4]
                 except AbortRequest:
-                    k8s_service_name = component.service_alias + "-" + str(component_port)
+                    k8s_service_name = service_alias + "-" + str(component_port)
             port_protocol = port.get("protocol", "tcp")
             if port_protocol not in ["tcp", "udp", "tcp+udp", "http"]:
                 port_protocol = "tcp"
@@ -396,8 +401,8 @@ class NewComponents(object):
                 lb_mapping_port=0,
                 protocol=port_protocol,
                 port_alias=port.get("port_alias", ""),
-                is_inner_service=True,
-                is_outer_service=port.get("is_outer_service", False),
+                is_inner_service=port["is_inner_service"],
+                is_outer_service=port["is_outer_service"],
                 name=port.get("name", ""),
                 k8s_service_name=k8s_service_name,
             )

@@ -98,6 +98,10 @@ class RBDPluginSyncServiceTests(TestCase):
             "svc-ui": [self.ui_http],
             "svc-api": [self.api_http],
         } if ports is None else ports
+        for service_ports in ports.values():
+            for port in service_ports:
+                if not hasattr(port, "is_inner_service"):
+                    port.is_inner_service = True
         dependencies = [Obj(dep_service_id="svc-api")] if dependencies is None else dependencies
 
         relation_filter = mock.patch("console.services.rbd_plugin_sync_service.ServiceGroupRelation.objects.filter")
@@ -257,7 +261,7 @@ class RBDPluginSyncServiceTests(TestCase):
             with self.assertRaises(ServiceHandleException) as context:
                 self.service.reconcile(self.tenant, self.region, self.template, 23)
 
-        self.assertEqual("rbd_plugin_sync_failed", context.exception.msg)
+        self.assertEqual("rbd_plugin_sync_resolve_backend_component_failed", context.exception.msg)
         self.assertEqual("resolve_backend_component", context.exception.bean["phase"])
         self.assertTrue(context.exception.bean["operation_committed"])
         region_apply.assert_not_called()
@@ -287,7 +291,46 @@ class RBDPluginSyncServiceTests(TestCase):
                 self.service.reconcile(self.tenant, self.region, ambiguous_template, 23)
 
         self.assertEqual("resolve_backend_http_port", context.exception.bean["phase"])
+        self.assertEqual("rbd_plugin_sync_resolve_backend_http_port_failed", context.exception.msg)
         region_apply.assert_not_called()
+
+    def test_backend_multiple_http_ports_selects_only_inner_service_port(self):
+        disabled_api_port = Obj(
+            protocol="http",
+            container_port=8787,
+            k8s_service_name="api-service",
+            is_inner_service=False,
+        )
+        enabled_api_port = Obj(
+            protocol="http",
+            container_port=9090,
+            k8s_service_name="api-metrics",
+            is_inner_service=True,
+        )
+        template = dict(self.template)
+        template["apps"] = [
+            self.template["apps"][0],
+            {
+                "service_cname": "api",
+                "port_map_list": [
+                    {"container_port": 8787, "protocol": "http"},
+                    {"container_port": 9090, "protocol": "http"},
+                ],
+            },
+        ]
+        patches = self._patch_desired_state(ports={
+            "svc-ui": [self.ui_http],
+            "svc-api": [disabled_api_port, enabled_api_port],
+        })
+
+        with patches[0] as relation_filter, patches[1], patches[2], patches[3], patches[4], patches[5] as region_apply:
+            relation_filter.return_value.values_list.return_value = ["svc-ui", "svc-api"]
+            self.service.reconcile(self.tenant, self.region, template, 23)
+
+        self.assertEqual(
+            "api-metrics.rbd-plugins.svc.cluster.local:9090",
+            region_apply.call_args.args[2]["backend_service"],
+        )
 
     def test_backend_multiple_http_ports_use_unique_port_map_list_match(self):
         metrics_port = Obj(protocol="http", container_port=9090, k8s_service_name="api-metrics")
@@ -419,8 +462,38 @@ class RBDPluginSyncServiceTests(TestCase):
             with self.assertRaises(ServiceHandleException) as context:
                 self.service.reconcile(tenant, self.region, self.template, 23)
 
-        self.assertEqual("rbd_plugin_sync_failed", context.exception.msg)
+        self.assertEqual("rbd_plugin_sync_validate_template_failed", context.exception.msg)
         self.assertEqual("validate_template", context.exception.bean["phase"])
+        region_apply.assert_not_called()
+
+    def test_region_plugin_registration_failure_reports_its_phase(self):
+        patches = self._patch_desired_state()
+
+        with patches[0] as relation_filter, patches[1], patches[2], patches[3], patches[4], patches[5] as region_apply:
+            relation_filter.return_value.values_list.return_value = ["svc-ui", "svc-api"]
+            region_apply.side_effect = RuntimeError("region request failed")
+            with self.assertRaises(ServiceHandleException) as context:
+                self.service.reconcile(self.tenant, self.region, self.template, 23)
+
+        self.assertEqual("rbd_plugin_sync_apply_region_rbdplugin_failed", context.exception.msg)
+        self.assertEqual("apply_region_rbdplugin", context.exception.bean["phase"])
+        self.assertEqual("应用变更已提交，但插件注册同步失败：插件注册请求失败", context.exception.msg_show)
+
+    def test_cleanup_installation_failure_reports_its_phase(self):
+        template = dict(self.template)
+        template["platform_plugin"] = dict(self.template["platform_plugin"], plugin_id="rainbond-disk")
+        patches = self._patch_desired_state()
+
+        with patches[0] as relation_filter, patches[1], patches[2], patches[3], patches[4], patches[5] as region_apply, \
+                mock.patch("console.services.cleanup_installation.configure_installation",
+                           side_effect=RuntimeError("cleanup failed")):
+            relation_filter.return_value.values_list.return_value = ["svc-ui", "svc-api"]
+            with self.assertRaises(ServiceHandleException) as context:
+                self.service.reconcile(self.tenant, self.region, template, 23)
+
+        self.assertEqual("rbd_plugin_sync_configure_cleanup_installation_failed", context.exception.msg)
+        self.assertEqual("configure_cleanup_installation", context.exception.bean["phase"])
+        self.assertEqual("应用变更已提交，但插件注册同步失败：清理组件初始化失败", context.exception.msg_show)
         region_apply.assert_not_called()
 
     def test_region_failure_is_wrapped_without_exposing_exception_text(self):
@@ -466,7 +539,7 @@ class RBDPluginSyncServiceTests(TestCase):
                         with self.assertRaises(ServiceHandleException) as context:
                             self.service.reconcile(self.tenant, self.region, template, 23)
 
-                self.assertEqual("rbd_plugin_sync_failed", context.exception.msg)
+                self.assertEqual("rbd_plugin_sync_validate_template_failed", context.exception.msg)
                 self.assertEqual("validate_template", context.exception.bean["phase"])
                 self.assertNotIn("secret", "\n".join(captured.output))
                 region_apply.assert_not_called()
@@ -499,7 +572,7 @@ class RBDPluginSyncServiceTests(TestCase):
                 with self.assertRaises(ServiceHandleException) as context:
                     self.service.reconcile(self.tenant, self.region, self.template, 23)
 
-        self.assertEqual("rbd_plugin_sync_failed", context.exception.msg)
+        self.assertEqual("rbd_plugin_sync_validate_template_failed", context.exception.msg)
         self.assertEqual("validate_template", context.exception.bean["phase"])
         logs = "\n".join(captured.output)
         self.assertIn("error_type=RuntimeError", logs)
@@ -528,7 +601,7 @@ class RBDPluginSyncServiceTests(TestCase):
 
         self.assertIsNot(downstream_error, context.exception)
         self.assertEqual(502, context.exception.status_code)
-        self.assertEqual("rbd_plugin_sync_failed", context.exception.msg)
+        self.assertEqual("rbd_plugin_sync_validate_template_failed", context.exception.msg)
         self.assertEqual("validate_template", context.exception.bean["phase"])
         self.assertNotIn("downstream-secret", str(context.exception.bean))
         self.assertNotIn("downstream-secret", context.exception.msg_show)
