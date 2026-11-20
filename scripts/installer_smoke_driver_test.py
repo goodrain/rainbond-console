@@ -13,6 +13,7 @@ from installer_smoke_driver import (
     build_result,
     calculate_uuid,
     extract_report_events,
+    host_connectivity_valid,
     REPORT_SCENARIOS,
     scenario_succeeded,
     validate_report_uuids,
@@ -28,6 +29,17 @@ from installer_smoke_driver import (
 
 
 class InstallerSmokeDriverTests(unittest.TestCase):
+    def test_workflow_clears_credentials_after_each_checkout_without_checkout_cleanup(self):
+        workflow = (pathlib.Path(__file__).parents[1] / ".github/workflows/installer-smoke.yml").read_text(encoding="utf-8")
+
+        self.assertEqual(workflow.count("uses: actions/checkout@v4"), 3)
+        self.assertNotIn("persist-credentials: false", workflow)
+        for directory in (".", "under-test", "main-reference"):
+            self.assertIn(
+                f"git -C {directory} config --local --unset-all http.https://github.com/.extraheader || true",
+                workflow,
+            )
+
     def test_calculate_uuid_matches_installer_md5_contract(self):
         self.assertEqual(calculate_uuid("Linux test-host 6.8.0"), "a119547c0f77a5ecbbe0c5bb0c1dcb21")
 
@@ -81,13 +93,25 @@ class InstallerSmokeDriverTests(unittest.TestCase):
         with mock.patch("installer_smoke_driver.subprocess.run", return_value=failed):
             self.assertEqual(resolve_public_ipv4("log.rainbond.com")["error"], "DNS query failed")
 
-    def test_main_script_uuid_accepts_main_and_pr_quote_styles(self):
-        with tempfile.TemporaryDirectory() as directory:
-            main = pathlib.Path(directory) / "main.sh"
-            head = pathlib.Path(directory) / "head.sh"
-            main.write_text('  OS_INFO=$(uname -a)\n  UUID=$(echo "$OS_INFO" | ${MD5_CMD} | cut -b 1-32)\n', encoding="utf-8")
-            head.write_text("  OS_INFO=$(uname -a)\n  UUID=$(echo \"$OS_INFO\" | \"$MD5_CMD\" | cut -b 1-32)\n", encoding="utf-8")
-            self.assertEqual(main_script_uuid(main), main_script_uuid(head))
+    def test_main_script_uuid_matches_current_main_installer(self):
+        installer = pathlib.Path(__file__).parents[1] / "script/install-rainbond.sh"
+        expected = calculate_uuid(subprocess.check_output(["uname", "-a"], text=True).strip())
+        self.assertEqual(main_script_uuid(installer), expected)
+
+    def test_main_script_uuid_matches_2198_installer_fragment(self):
+        fixture = pathlib.Path(__file__).parent / "fixtures/install-rainbond-2198-uuid.sh"
+        expected = calculate_uuid(subprocess.check_output(["uname", "-a"], text=True).strip())
+        self.assertEqual(main_script_uuid(fixture), expected)
+
+    def test_host_connectivity_requires_reachable_baseline_and_blocked_guarded_probe(self):
+        connectivity = {
+            "before_guard": {"log.rainbond.com": [{"exit_code": 0, "valid": True, "blocked": False}]},
+            "after_guard": {"log.rainbond.com": [{"exit_code": 124, "valid": True, "blocked": True}]},
+        }
+        self.assertTrue(host_connectivity_valid(connectivity))
+        connectivity["before_guard"]["log.rainbond.com"][0]["exit_code"] = 124
+        connectivity["before_guard"]["log.rainbond.com"][0]["blocked"] = True
+        self.assertFalse(host_connectivity_valid(connectivity))
 
     def test_terminate_process_group_returns_false_when_sudo_kill_fails(self):
         with mock.patch("installer_smoke_driver.run_sudo", side_effect=PermissionError("denied")):

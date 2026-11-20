@@ -219,7 +219,6 @@ def install_network_guard(results_dir: pathlib.Path, action: str) -> dict[str, l
     ipv6_addresses = {host: resolve_ipv6(host) for host in REPORT_HOSTS}
     hosts_backup = results_dir / "hosts.before"
     hosts_backup.write_text(pathlib.Path("/etc/hosts").read_text(encoding="utf-8"), encoding="utf-8")
-    run_sudo("cp", "/etc/hosts", str(results_dir / "hosts.root.before"))
     with (results_dir / "hosts.append").open("w", encoding="utf-8") as output:
         for host in REPORT_HOSTS:
             output.write(f"127.0.0.1 {host}\n")
@@ -337,6 +336,17 @@ def probe_host_tcp(address: str) -> dict[str, Any]:
     return {"exit_code": result.returncode, "blocked": result.returncode in {1, 124}, "valid": result.returncode not in {126, 127}}
 
 
+def host_connectivity_valid(connectivity: dict[str, dict[str, list[dict[str, Any]]]]) -> bool:
+    baseline = connectivity.get("before_guard", {})
+    guarded = connectivity.get("after_guard", {})
+    return (
+        bool(baseline)
+        and bool(guarded)
+        and all(probe["valid"] and probe["exit_code"] == 0 for probes in baseline.values() for probe in probes)
+        and all(probe["valid"] and probe["blocked"] for probes in guarded.values() for probe in probes)
+    )
+
+
 def console_ready() -> bool:
     result = subprocess.run(["/usr/bin/curl", "--connect-timeout", "5", "--max-time", "10", "--silent", "--output", "/dev/null", "--write-out", "%{http_code}", "http://127.0.0.1:7070"], text=True, stdout=subprocess.PIPE, check=False)
     return result.returncode == 0 and result.stdout.isdigit() and result.stdout != "000"
@@ -409,9 +419,13 @@ def run_scenario(arguments: argparse.Namespace) -> int:
         )
         if arguments.scenario == "image_not_found":
             env["VERSION"] = "v0.0.0-installer-smoke-does-not-exist"
+        baseline_addresses = {host: resolve_ipv4(host) for host in REPORT_HOSTS}
+        connectivity["before_guard"] = {
+            host: [probe_host_tcp(address) for address in values]
+            for host, values in baseline_addresses.items()
+        }
         install_network_guard(results_dir, action)
         guard_addresses = json.loads((results_dir / "network-guard.json").read_text(encoding="utf-8"))["addresses"]
-        connectivity["before"] = {host: [probe_host_tcp(address) for address in values] for host, values in guard_addresses.items() if host != "smoke_blackhole"}
         command = [
             "sudo",
             "env",
@@ -428,7 +442,11 @@ def run_scenario(arguments: argparse.Namespace) -> int:
             command.append(f"VERSION={env['VERSION']}")
         command.extend(["bash", str(target_script)])
         code, output, timed_out = run_command(command, env, results_dir / "installer.log", arguments.timeout)
-        connectivity["after"] = {host: [probe_host_tcp(address) for address in values] for host, values in guard_addresses.items() if host != "smoke_blackhole"}
+        connectivity["after_guard"] = {
+            host: [probe_host_tcp(address) for address in values]
+            for host, values in guard_addresses.items()
+            if host != "smoke_blackhole"
+        }
         components = wait_ready_components() if arguments.scenario == "normal_install" else collect_ready_components() if arguments.scenario != "image_not_found" else []
         console_is_ready = console_ready() if arguments.scenario == "normal_install" else False
         gateway = collect_gateway_logs(results_dir) if arguments.scenario != "image_not_found" else gateway
@@ -458,9 +476,11 @@ def run_scenario(arguments: argparse.Namespace) -> int:
     elif not guard_validation.get("resolution_matches", False):
         success = False
         reason = "isolation is untrusted because public DNS query failed" if guard_validation.get("resolution_query_failed") else "isolation is untrusted because public DNS addresses changed"
-    elif any(not probe["valid"] or not probe["blocked"] for phase in connectivity.values() for probes in phase.values() for probe in probes):
+    elif not host_connectivity_valid(connectivity):
         success = False
-        reason = "host TCP isolation probe is invalid or not blocked"
+        reason = (
+            "host TCP isolation baseline is unreachable or guarded probe is invalid or not blocked"
+        )
     elif arguments.scenario != "image_not_found" and not container_probes["valid"]:
         success = False
         reason = "container TCP isolation probe is invalid or not blocked"

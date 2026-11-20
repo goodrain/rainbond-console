@@ -77,8 +77,9 @@ jobs:
     steps:
       - name: Checkout smoke harness
         uses: actions/checkout@v4
-        with:
-          persist-credentials: false
+
+      - name: Remove smoke harness checkout credentials
+        run: git -C . config --local --unset-all http.https://github.com/.extraheader || true
 
       - name: Checkout requested installer ref
         uses: actions/checkout@v4
@@ -86,7 +87,9 @@ jobs:
           repository: ${{ inputs.source_repository || github.repository }}
           ref: ${{ inputs.ref }}
           path: under-test
-          persist-credentials: false
+
+      - name: Remove tested ref checkout credentials
+        run: git -C under-test config --local --unset-all http.https://github.com/.extraheader || true
 
       - name: Checkout main UUID reference
         uses: actions/checkout@v4
@@ -94,7 +97,9 @@ jobs:
           repository: ${{ inputs.source_repository || github.repository }}
           ref: main
           path: main-reference
-          persist-credentials: false
+
+      - name: Remove main reference checkout credentials
+        run: git -C main-reference config --local --unset-all http.https://github.com/.extraheader || true
 
       - name: Run scenario
         run: |
