@@ -193,3 +193,25 @@ class AppVMDetailViewTests(TestCase):
             },
             runtime_status=mock.ANY,
         )
+
+
+class ScopedVNCDetailContractTests(TestCase):
+    setUp = AppVMDetailViewTests.setUp
+
+    # capability_id: console.vm-vnc.scoped-proxy
+    def test_detail_prefers_authenticated_same_origin_url(self):
+        request = self.view.initialize_request(self.factory.get('/detail', HTTP_HOST='console.example'))
+        self.view.request = request
+        with mock.patch.dict(os.environ,
+                             RAINBOND_VM_VNC_PROXY_UPSTREAMS='{"demo-region":"http://virtvnc.rbd-plugins.svc:8001"}'), \
+                mock.patch('console.views.app_overview.group_service.get_services_group_name',
+                           return_value={'service-a': {'group_name': 'app', 'group_id': 1, 'k8s_app': 'demo'}}), \
+                mock.patch('console.views.app_overview.volume_repo.get_service_volumes_with_config_file', return_value=[]), \
+                mock.patch('console.views.app_overview.ws_service.get_event_log_ws', return_value='ws://events'), \
+                mock.patch('console.views.app_overview.vms.get_vm_current_pod_ip', return_value='10.0.0.9'), \
+                mock.patch('console.views.app_overview.vms.get_vm_profile', return_value={}), \
+                mock.patch.object(app_overview.rbd_plugin_service, 'get_vm_plugin_url', return_value='http://wrong:31002'):
+            response = self.view.get(request)
+        url = response.data['data']['bean']['vm_url']
+        self.assertTrue(url.startswith('http://console.example/console/regions/demo-region/teams/demo-team/apps/demo-vm/vnc/'))
+        self.assertNotIn('wrong:31002', url)

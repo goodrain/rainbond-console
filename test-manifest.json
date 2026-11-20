@@ -15221,6 +15221,48 @@
       ],
       "test_type": "regression",
       "status": "active"
+    },
+    {
+      "id": "console.vm-batch-power.preserve-disks",
+      "title": "Route VM batch power through single-component lifecycle APIs",
+      "interface_type": "service_method",
+      "interface": "console.services.app_actions.app_manage.AppManageService.batch_operations",
+      "code_paths": [
+        "console/services/app_actions/app_manage.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_manage_test.py",
+          "selector": "VMBatchPowerSafetyTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.vm-vnc.scoped-proxy",
+      "title": "Authorize same-origin component-scoped VNC HTTP and binary WebSocket access",
+      "interface_type": "view_endpoint",
+      "interface": "ComponentVNCView and AppVMProfileView",
+      "code_paths": [
+        "console/views/vm_vnc.py",
+        "console/utils/vm_vnc_proxy.py",
+        "console/utils/vm_vnc_proxy_relay.py",
+        "console/views/app_overview.py",
+        "console/urls/__init__.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/vm_vnc_proxy_test.py",
+          "selector": "VMVNCProxyTests"
+        },
+        {
+          "path": "console/tests/vm_detail_view_test.py",
+          "selector": "ScopedVNCDetailContractTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
     }
   ]
 }
