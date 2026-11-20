@@ -127,6 +127,7 @@ class EnterpriseFirstDeployService(object):
         r"\binsufficient\s+(?:cpu(?![-\w])|memory(?![-\w])|pods(?![-\w])|ephemeral-storage(?![-\w])|"
         r"hugepages-[\w-]+|[\w.-]+/[\w.-]+)(?=$|[\s.,;:])", re.IGNORECASE)
     RESOURCE_INSUFFICIENT_CN_RE = re.compile(r"(?<!非)资源不足")
+    RESOURCE_INSUFFICIENT_CN_NEGATION_RE = re.compile(r"(?:非|不是|并不是|未发现)资源不足")
     SENSITIVE_QUOTED_ASSIGNMENT_RE = re.compile(
         r"\b((?:password|passwd|pwd|token|secret|authorization|api[_-]?key))(\s*[:=]\s*)([\"'])(.*?)(\3)",
         re.IGNORECASE)
@@ -1546,6 +1547,9 @@ class EnterpriseFirstDeployService(object):
         environment_context = payload.get("environment_context") or {}
         if environment_context.get("collect_status") == "success":
             return
+        with self._lock:
+            if key in self._environment_collecting_keys:
+                return
         retry_count = int(payload.get("environment_collect_retry_count") or 0)
         if retry_count >= 2:
             if environment_context.get("collect_status") != "failed":
@@ -2217,7 +2221,9 @@ class EnterpriseFirstDeployService(object):
         if ("unbound immediate persistentvolumeclaims" in reason_text or "pvc pending" in reason_text or
                 "pvc未绑定" in reason_text or "pvc 未绑定" in reason_text):
             return self.FAILURE_CATEGORY_PVC_UNBOUND
-        if (self.RESOURCE_INSUFFICIENT_CN_RE.search(reason_text) or "cluster lack of memory" in reason_text or
+        if ((self.RESOURCE_INSUFFICIENT_CN_RE.search(reason_text) and
+             not self.RESOURCE_INSUFFICIENT_CN_NEGATION_RE.search(reason_text)) or
+                "cluster lack of memory" in reason_text or
                 self.RESOURCE_INSUFFICIENT_RE.search(reason_text)):
             return self.FAILURE_CATEGORY_RESOURCE_INSUFFICIENT
         if "没有可用节点" in reason_text or "nodes are available" in reason_text:

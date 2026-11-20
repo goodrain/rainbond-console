@@ -2887,6 +2887,9 @@ class EnterpriseFirstDeployServiceTests(TestCase):
             ("insufficient privileges to access registry", self.service.FAILURE_CATEGORY_UNKNOWN),
             ("Insufficient cpu-manager state", self.service.FAILURE_CATEGORY_UNKNOWN),
             ("非资源不足", self.service.FAILURE_CATEGORY_UNKNOWN),
+            ("不是资源不足", self.service.FAILURE_CATEGORY_UNKNOWN),
+            ("并不是资源不足", self.service.FAILURE_CATEGORY_UNKNOWN),
+            ("未发现资源不足", self.service.FAILURE_CATEGORY_UNKNOWN),
         ]
         for reason, expected in cases:
             with self.subTest(reason=reason):
@@ -2914,6 +2917,18 @@ class EnterpriseFirstDeployServiceTests(TestCase):
 
         self.assertEqual(payload["environment_context"]["collect_status"], "failed")
         save_payload.assert_called_once_with(None, payload, key="record-key")
+
+    def test_environment_collection_does_not_finalize_while_retry_is_running(self):
+        payload = {
+            "environment_context": {"collect_status": "pending"},
+            "environment_collect_retry_count": 2,
+        }
+        self.service._environment_collecting_keys.add("record-key")
+        with mock.patch.object(self.service, "_save_tracking_payload") as save_payload:
+            self.service._retry_environment_collection(None, payload, "record-key", "demo-region")
+
+        self.assertEqual(payload["environment_context"]["collect_status"], "pending")
+        save_payload.assert_not_called()
 
     def test_dependency_context_sorts_limits_and_distinguishes_missing_pods(self):
         relations = [Obj(dep_service_id="dep-b"), Obj(dep_service_id="dep-a"), Obj(dep_service_id="dep-missing")]
