@@ -42,10 +42,7 @@ class InstallerSmokeDriverTests(unittest.TestCase):
             records,
             [
                 {
-                    "source_ip": "10.42.0.7",
-                    "destination_ip": "115.190.72.141",
                     "protocol": "TCP",
-                    "source_port": "47200",
                     "destination_port": "443",
                     "pod": {"namespace": "rbd-system", "pod": "rbd-api-abc"},
                 }

@@ -326,10 +326,7 @@ def parse_forward_drop_records(kernel_log: str, prefix: str, pods: dict[str, dic
             continue
         records.append(
             {
-                "source_ip": fields["SRC"],
-                "destination_ip": fields["DST"],
                 "protocol": fields["PROTO"],
-                "source_port": fields.get("SPT", ""),
                 "destination_port": fields.get("DPT", ""),
                 "pod": pods.get(fields["SRC"], {}),
             }
