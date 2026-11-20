@@ -227,8 +227,7 @@ def install_network_guard(results_dir: pathlib.Path, action: str) -> dict[str, l
     for chain in ("OUTPUT", "FORWARD", "DOCKER-USER"):
         if run_sudo("iptables", "-S", chain, check=False).returncode != 0:
             continue
-        for values in addresses.values():
-            for address in values:
+        for address in sorted({address for values in addresses.values() for address in values}):
                 rule = [chain, "-d", address, "-j", action]
                 run_sudo("iptables", "-I", *rule)
                 rules.append(rule)
@@ -242,19 +241,6 @@ def install_network_guard(results_dir: pathlib.Path, action: str) -> dict[str, l
         json.dumps({"addresses": addresses, "ipv6_addresses": ipv6_addresses, "action": action}), encoding="utf-8"
     )
     return addresses
-
-
-def remove_network_guard(results_dir: pathlib.Path) -> None:
-    guard_file = results_dir / "network-guard.json"
-    if guard_file.exists():
-        guard = json.loads(guard_file.read_text(encoding="utf-8"))
-        for chain in ("OUTPUT", "FORWARD", "DOCKER-USER"):
-            for values in guard["addresses"].values():
-                for address in values:
-                    run_sudo("iptables", "-D", chain, "-d", address, "-j", guard["action"], check=False)
-    backup = results_dir / "hosts.root.before"
-    if backup.exists():
-        run_sudo("cp", str(backup), "/etc/hosts", check=False)
 
 
 def verify_network_guard(results_dir: pathlib.Path) -> dict[str, Any]:
@@ -318,17 +304,32 @@ def runner_eip() -> str:
 def main_script_uuid(main_script: pathlib.Path) -> str:
     lines = [(index, line.strip()) for index, line in enumerate(main_script.read_text(encoding="utf-8").splitlines())]
     os_info_index, os_info_line = next(((index, line) for index, line in lines if line.startswith("OS_INFO=")), (-1, ""))
-    md5_line = next((line for _, line in lines if line == 'MD5_CMD="md5sum"'), "")
     uuid_line = next((line for index, line in lines if index > os_info_index and line.startswith("UUID=")), "")
-    if not os_info_line or not md5_line or not uuid_line:
+    if not os_info_line or not uuid_line:
         raise RuntimeError("main installer does not provide the UUID assignment segment")
-    program = f'{md5_line}; {os_info_line}; {uuid_line}; printf %s "$UUID"'
+    program = f'OS_TYPE=Linux; MD5_CMD="md5sum"; {os_info_line}; {uuid_line}; printf %s "$UUID"'
     return subprocess.check_output(["bash", "-c", program], text=True)
 
 
 def collect_ready_components() -> list[dict[str, str]]:
-    result = run_sudo("docker", "exec", "rainbond", "kubectl", "get", "pods", "-n", "rbd-system", "--no-headers", check=False)
+    result = run_sudo("docker", "exec", "rainbond", "/bin/k3s", "kubectl", "get", "pods", "-n", "rbd-system", "--no-headers", check=False)
     return ready_components(result.stdout)
+
+
+def wait_ready_components(timeout_seconds: int = 120) -> list[dict[str, str]]:
+    deadline = time.monotonic() + timeout_seconds
+    snapshot = []
+    while time.monotonic() < deadline:
+        snapshot = [component for component in collect_ready_components() if component["status"] not in {"Completed", "Succeeded"}]
+        if snapshot and all(component["status"] == "Running" and component["ready"].split("/")[0] == component["ready"].split("/")[-1] for component in snapshot):
+            return snapshot
+        time.sleep(5)
+    return snapshot
+
+
+def resolve_public_ipv4(host: str) -> list[str]:
+    result = subprocess.run(["dig", "@1.1.1.1", "+short", "A", host], text=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, check=False)
+    return sorted({line.strip() for line in result.stdout.splitlines() if line.strip()})
 
 
 def console_ready() -> bool:
@@ -422,10 +423,12 @@ def run_scenario(arguments: argparse.Namespace) -> int:
         command.extend(["bash", str(target_script)])
         code, output, timed_out = run_command(command, env, results_dir / "installer.log", arguments.timeout)
         connectivity["after"] = probe_report_endpoint()
-        components = collect_ready_components() if arguments.scenario != "image_not_found" else []
+        components = wait_ready_components() if arguments.scenario == "normal_install" else collect_ready_components() if arguments.scenario != "image_not_found" else []
         console_is_ready = console_ready() if arguments.scenario == "normal_install" else False
         gateway = collect_gateway_logs(results_dir) if arguments.scenario != "image_not_found" else gateway
         guard_validation = verify_network_guard(results_dir)
+        guard_validation["public_resolution"] = {host: resolve_public_ipv4(host) for host in REPORT_HOSTS}
+        guard_validation["resolution_matches"] = all(set(guard_validation["public_resolution"][host]) == set(json.loads((results_dir / "network-guard.json").read_text(encoding="utf-8"))["addresses"][host]) for host in REPORT_HOSTS)
         container_probes = probe_container_network(json.loads((results_dir / "network-guard.json").read_text(encoding="utf-8"))["addresses"]) if arguments.scenario != "image_not_found" else container_probes
     except Exception as error:
         setup_error = str(error)
@@ -445,6 +448,9 @@ def run_scenario(arguments: argparse.Namespace) -> int:
     elif not guard_validation["valid"]:
         success = False
         reason = "network guard rules are missing"
+    elif not guard_validation.get("resolution_matches", False):
+        success = False
+        reason = "isolation is untrusted because public DNS addresses changed"
     elif arguments.scenario != "image_not_found" and not container_probes["valid"]:
         success = False
         reason = "container TCP isolation probe is invalid or not blocked"

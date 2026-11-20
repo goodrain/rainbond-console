@@ -2,6 +2,8 @@
 # then provide the branch, tag, SHA, or PR head ref to install. Review the
 # Installer smoke summary and artifacts for per-scenario logs and Ready snapshots.
 # CentOS 7 and Kylin are intentionally not covered because hosted disposable runners are unavailable.
+# For fork validation, this file must be on the fork default branch, the fork main
+# must be synchronized with upstream, and any tested PR head must first exist in the fork.
 name: Installer smoke
 
 on:
@@ -96,6 +98,8 @@ jobs:
 
       - name: Run scenario
         run: |
+          df -h /opt
+          command -v dig >/dev/null || { sudo apt-get update; sudo apt-get install -y dnsutils; }
           python3 scripts/installer_smoke_driver.py \
             --scenario '${{ matrix.scenario }}' \
             --installer under-test/script/install-rainbond.sh \
