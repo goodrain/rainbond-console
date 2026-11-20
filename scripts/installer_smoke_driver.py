@@ -7,6 +7,7 @@ import ipaddress
 import json
 import os
 import pathlib
+import re
 import signal
 import socket
 import subprocess
@@ -224,6 +225,7 @@ def install_network_guard(results_dir: pathlib.Path, action: str) -> dict[str, l
             output.write(f"127.0.0.1 {host}\n")
     run_sudo("sh", "-c", f"cat {results_dir / 'hosts.append'} >> /etc/hosts")
     rules = []
+    forward_log_prefix = f"RBD-SMOKE-FWD-{os.getpid()}:"
     for chain in ("OUTPUT", "FORWARD", "DOCKER-USER"):
         if run_sudo("iptables", "-S", chain, check=False).returncode != 0:
             continue
@@ -231,6 +233,18 @@ def install_network_guard(results_dir: pathlib.Path, action: str) -> dict[str, l
                 rule = [chain, "-d", address, "-j", action]
                 run_sudo("iptables", "-I", *rule)
                 rules.append(rule)
+                if chain == "FORWARD":
+                    run_sudo(
+                        "iptables",
+                        "-I",
+                        chain,
+                        "-d",
+                        address,
+                        "-j",
+                        "LOG",
+                        "--log-prefix",
+                        forward_log_prefix,
+                    )
     for chain in ("OUTPUT", "FORWARD", "DOCKER-USER"):
         if run_sudo("ip6tables", "-S", chain, check=False).returncode != 0:
             continue
@@ -238,7 +252,15 @@ def install_network_guard(results_dir: pathlib.Path, action: str) -> dict[str, l
             for address in values:
                 run_sudo("ip6tables", "-I", chain, "-d", address, "-j", action)
     (results_dir / "network-guard.json").write_text(
-        json.dumps({"addresses": addresses, "ipv6_addresses": ipv6_addresses, "action": action}), encoding="utf-8"
+        json.dumps(
+            {
+                "addresses": addresses,
+                "ipv6_addresses": ipv6_addresses,
+                "action": action,
+                "forward_log_prefix": forward_log_prefix,
+            }
+        ),
+        encoding="utf-8",
     )
     return addresses
 
@@ -262,6 +284,68 @@ def verify_network_guard(results_dir: pathlib.Path) -> dict[str, Any]:
 
 def destroy_rainbond_container() -> None:
     run_sudo("docker", "rm", "-f", "rainbond", check=False)
+
+
+def pod_ips() -> dict[str, dict[str, str]]:
+    result = run_sudo(
+        "docker",
+        "exec",
+        "rainbond",
+        "/bin/k3s",
+        "kubectl",
+        "get",
+        "pods",
+        "-A",
+        "-o",
+        "json",
+        check=False,
+    )
+    if result.returncode != 0:
+        return {}
+    try:
+        items = json.loads(result.stdout).get("items", [])
+    except json.JSONDecodeError:
+        return {}
+    return {
+        item["status"]["podIP"]: {
+            "namespace": item["metadata"]["namespace"],
+            "pod": item["metadata"]["name"],
+        }
+        for item in items
+        if item.get("status", {}).get("podIP")
+    }
+
+
+def parse_forward_drop_records(kernel_log: str, prefix: str, pods: dict[str, dict[str, str]]) -> list[dict[str, Any]]:
+    records = []
+    for line in kernel_log.splitlines():
+        if prefix not in line:
+            continue
+        fields = dict(re.findall(r"([A-Z]+)=([^\s]+)", line))
+        if not {"SRC", "DST", "PROTO"}.issubset(fields):
+            continue
+        records.append(
+            {
+                "source_ip": fields["SRC"],
+                "destination_ip": fields["DST"],
+                "protocol": fields["PROTO"],
+                "source_port": fields.get("SPT", ""),
+                "destination_port": fields.get("DPT", ""),
+                "pod": pods.get(fields["SRC"], {}),
+            }
+        )
+    return records
+
+
+def collect_forward_drop_diagnostics(results_dir: pathlib.Path) -> dict[str, Any]:
+    guard = json.loads((results_dir / "network-guard.json").read_text(encoding="utf-8"))
+    result = run_sudo("dmesg", "--color=never", check=False)
+    if result.returncode != 0:
+        return {"available": False, "records": []}
+    return {
+        "available": True,
+        "records": parse_forward_drop_records(result.stdout, guard["forward_log_prefix"], pod_ips()),
+    }
 
 
 def probe_container_tcp(address: str) -> dict[str, Any]:
@@ -389,6 +473,7 @@ def run_scenario(arguments: argparse.Namespace) -> int:
     components = []
     console_is_ready = False
     gateway = {"pod": "", "containers": [], "logs": {}}
+    forward_drop_diagnostics = {"available": False, "records": []}
     guard_validation = {"valid": False, "chains": {}}
     container_probes = {"valid": False, "blocked": {}, "control": {}}
     expected_uuid = ""
@@ -455,6 +540,7 @@ def run_scenario(arguments: argparse.Namespace) -> int:
         guard_validation["resolution_query_failed"] = any(result["error"] for result in guard_validation["public_resolution"].values())
         guard_validation["resolution_matches"] = not guard_validation["resolution_query_failed"] and all(set(guard_validation["public_resolution"][host]["addresses"]) == set(guard_addresses[host]) for host in REPORT_HOSTS)
         container_probes = probe_container_network(json.loads((results_dir / "network-guard.json").read_text(encoding="utf-8"))["addresses"]) if arguments.scenario != "image_not_found" else container_probes
+        forward_drop_diagnostics = collect_forward_drop_diagnostics(results_dir)
     except Exception as error:
         setup_error = str(error)
     finally:
@@ -504,6 +590,7 @@ def run_scenario(arguments: argparse.Namespace) -> int:
             "report_count": len(reports),
             "report_attempts": read_json_lines(results_dir / "report-attempts.jsonl"),
             "gateway": gateway,
+            "forward_drop_diagnostics": forward_drop_diagnostics,
         }
     )
     (results_dir / "result.json").write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")

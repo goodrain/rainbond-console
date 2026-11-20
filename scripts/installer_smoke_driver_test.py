@@ -22,6 +22,7 @@ from installer_smoke_driver import (
     run_command,
     runner_eip_from_route,
     main_script_uuid,
+    parse_forward_drop_records,
     resolve_public_ipv4,
     resolve_ipv6,
     terminate_process_group,
@@ -29,6 +30,28 @@ from installer_smoke_driver import (
 
 
 class InstallerSmokeDriverTests(unittest.TestCase):
+    def test_parse_forward_drop_records_maps_pod_and_destination_port(self):
+        records = parse_forward_drop_records(
+            "kernel: RBD-SMOKE-FWD-123: IN=cni0 OUT=eth0 SRC=10.42.0.7 DST=115.190.72.141 "
+            "LEN=60 PROTO=TCP SPT=47200 DPT=443 SYN\n",
+            "RBD-SMOKE-FWD-123:",
+            {"10.42.0.7": {"namespace": "rbd-system", "pod": "rbd-api-abc"}},
+        )
+
+        self.assertEqual(
+            records,
+            [
+                {
+                    "source_ip": "10.42.0.7",
+                    "destination_ip": "115.190.72.141",
+                    "protocol": "TCP",
+                    "source_port": "47200",
+                    "destination_port": "443",
+                    "pod": {"namespace": "rbd-system", "pod": "rbd-api-abc"},
+                }
+            ],
+        )
+
     def test_workflow_clears_credentials_after_each_checkout_without_checkout_cleanup(self):
         workflow = (pathlib.Path(__file__).parents[1] / ".github/workflows/installer-smoke.yml").read_text(encoding="utf-8")
 
