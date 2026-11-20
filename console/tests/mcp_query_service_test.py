@@ -7309,3 +7309,43 @@ class MCPQueryServiceCreateAppFromSnapshotVersionTests(SimpleTestCase):
                 )
 
         self.assertIn("应用ID格式无效", str(ctx.exception))
+
+
+class MCPPublishSnapshotToStoreTests(SimpleTestCase):
+
+    def _publish(self, post_mock, **extra):
+        team = Obj(enterprise_id="eid-1", tenant_name="team-a")
+        app = Obj(ID=17)
+        market = Obj(url="https://market.example/", access_key="ak", domain="example", name="market")
+        response = Obj(status_code=200, json=lambda: {"id": 9})
+        post_mock.return_value = response
+        args = {
+            "team_name": "team-a",
+            "region_name": "rainbond",
+            "app_id": 17,
+            "version_id": 3,
+            "market_id": 1,
+            "app_name": "监控中心",
+            "version": "2.2.6",
+            "store_app_id": "store-app",
+            "rewrite_images": False,
+        }
+        args.update(extra)
+        with patch.object(mcp_query_service, "_get_team_app_context", return_value=(team, app)), \
+                patch("console.services.mcp_query_service.app_market_repo.get_app_market", return_value=market), \
+                patch("console.services.mcp_query_service.app_version_service.get_snapshot_detail",
+                      return_value={"template": {"arch": "amd64", "apps": []}}):
+            mcp_query_service.call_tool(Obj(user_id=1), "rainbond_publish_snapshot_to_store", args)
+        return post_mock.call_args.kwargs["json"]
+
+    # capability_id: console.mcp.publish-snapshot-to-store-plugin
+    @patch("console.services.mcp_query_service.http_requests.post")
+    def test_publish_snapshot_marks_version_as_platform_plugin(self, post_mock):
+        body = self._publish(post_mock, is_plugin=True)
+        self.assertIs(body["is_plugin"], True)
+
+    # capability_id: console.mcp.publish-snapshot-to-store-plugin
+    @patch("console.services.mcp_query_service.http_requests.post")
+    def test_publish_snapshot_defaults_to_normal_template(self, post_mock):
+        body = self._publish(post_mock)
+        self.assertIs(body["is_plugin"], False)

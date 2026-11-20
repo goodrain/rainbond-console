@@ -13970,6 +13970,28 @@
       ],
       "test_type": "regression",
       "status": "active"
+    },
+    {
+      "id": "console.mcp.publish-snapshot-to-store-plugin",
+      "title": "Publish a snapshot to the app store as a platform plugin",
+      "title_zh": "快照发布到应用市场时可以作为平台插件",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.MCPQueryService.publish_snapshot_to_store",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPPublishSnapshotToStoreTests.test_publish_snapshot_marks_version_as_platform_plugin"
+        },
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPPublishSnapshotToStoreTests.test_publish_snapshot_defaults_to_normal_template"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
     }
   ]
 }

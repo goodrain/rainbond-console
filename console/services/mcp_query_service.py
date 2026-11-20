@@ -2821,6 +2821,7 @@ class MCPQueryService(object):
         arch = arguments.get("arch", "") or ""
         rewrite_images = self._parse_bool_with_default(
             arguments.get("rewrite_images"), True)
+        is_plugin = self._parse_bool_with_default(arguments.get("is_plugin"), False)
 
         enterprise_id = team.enterprise_id
         market = app_market_repo.get_app_market(
@@ -2880,6 +2881,7 @@ class MCPQueryService(object):
                 "templateType": "RAM",
                 "template": app_template,
                 "arch": arch,
+                "is_plugin": is_plugin,
             },
             timeout=60,
         )
@@ -6951,6 +6953,14 @@ class MCPQueryService(object):
                         "description": (
                             "Rewrite component images to upstream "
                             "originals (default: true)"
+                        )
+                    },
+                    "is_plugin": {
+                        "type": "boolean",
+                        "description": (
+                            "Publish the version as a platform plugin, "
+                            "the same as ticking 作为平台插件 when "
+                            "publishing in the UI (default: false)"
                         )
                     }
                 },

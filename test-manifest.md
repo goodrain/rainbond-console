@@ -481,6 +481,7 @@
 | console.mcp.operation-failure-context | MCP 操作失败上下文工具 | active | unit | console.services.mcp_query_service.call_tool[console.mcp.operation-failure-context] | console/tests/mcp_query_failure_context_test.py |
 | console.mcp.platform-plugin-tools | 平台插件 MCP 工具 | active | unit | console.services.mcp_platform_plugin_tools.MCPPlatformPluginTools | console/tests/mcp_platform_plugin_tools_test.py::MCPPlatformPluginToolContractTests |
 | console.mcp.post-message | 向 SSE 会话投递 MCP 消息 | active | regression | console.views.mcp_query.MCPQueryMessageView.post | console/tests/mcp_query_view_test.py::MCPQuerySSEViewTests.test_post_message_enqueues_initialize_response_on_sse_stream |
+| console.mcp.publish-snapshot-to-store-plugin | 快照发布到应用市场时可以作为平台插件 | active | regression | console.services.mcp_query_service.MCPQueryService.publish_snapshot_to_store | console/tests/mcp_query_service_test.py::MCPPublishSnapshotToStoreTests.test_publish_snapshot_marks_version_as_platform_plugin<br>console/tests/mcp_query_service_test.py::MCPPublishSnapshotToStoreTests.test_publish_snapshot_defaults_to_normal_template |
 | console.mcp.serialize-nested-sdk-models | MCP 响应中递归序列化嵌套 SDK 模型 | active | regression | console.services.mcp_query_service.MCPQueryService._serialize_model_item | console/tests/mcp_query_service_test.py::MCPQueryServiceSerializeModelItemTests.test_serialize_model_item_recurses_into_dict_values<br>console/tests/mcp_query_service_test.py::MCPQueryServiceSerializeModelItemTests.test_serialize_model_item_handles_object_with_nested_sdk_attribute |
 | console.mcp.structured-tool-error | Mcp Structured Tool Error | active | regression | console.views.mcp_query.MCPQueryHTTPView | console/tests/mcp_query_view_test.py::MCPQuerySSEViewTests.test_http_tool_error_includes_structured_validation_details |
 | console.mcp.tool-error-fallback | 任意 MCP 工具失败均返回可解析错误 | active | regression | console.views.mcp_query.MCPQueryRPCMixin._dispatch_rpc | console/tests/mcp_query_error_contract_test.py::MCPToolErrorDispatchTests.test_generic_tool_exception_is_returned_as_parseable_error<br>console/tests/mcp_query_error_contract_test.py::MCPToolErrorDispatchTests.test_region_style_exception_maps_status_and_extracts_message |
@@ -5502,6 +5503,16 @@
 - 业务入口: `console.views.mcp_query.MCPQueryMessageView.post`
 - 代码路径: `console/views/mcp_query.py`
 - 测试路径: `console/tests/mcp_query_view_test.py::MCPQuerySSEViewTests.test_post_message_enqueues_initialize_response_on_sse_stream`
+
+### 快照发布到应用市场时可以作为平台插件
+
+- Capability ID: `console.mcp.publish-snapshot-to-store-plugin`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `workflow`
+- 业务入口: `console.services.mcp_query_service.MCPQueryService.publish_snapshot_to_store`
+- 代码路径: `console/services/mcp_query_service.py`
+- 测试路径: `console/tests/mcp_query_service_test.py::MCPPublishSnapshotToStoreTests.test_publish_snapshot_marks_version_as_platform_plugin`, `console/tests/mcp_query_service_test.py::MCPPublishSnapshotToStoreTests.test_publish_snapshot_defaults_to_normal_template`
 
 ### MCP 响应中递归序列化嵌套 SDK 模型
 
