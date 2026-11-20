@@ -21,6 +21,7 @@ import django  # noqa: E402
 django.setup()
 
 from console.services.app_actions import app_deploy as app_deploy_module  # noqa: E402
+from console.services.app_actions import properties_changes as properties_changes_module  # noqa: E402
 
 
 class MarketServiceSourceUpdateTestCase(TestCase):
@@ -66,6 +67,29 @@ class MarketServiceSourceUpdateTestCase(TestCase):
         self.assertEqual(extend_info["source_service_share_uuid"], "svc-1+svc-1")
         self.assertEqual(extend_info["source_deploy_version"], "snapshot-deploy-version")
         self.assertNotIn("slug_path", extend_info)
+
+
+class LegacyMarketPortUpgradeTests(TestCase):
+    def test_port_changes_preserves_legacy_defaults_and_does_not_close_existing_port(self):
+        changes = properties_changes_module.PropertiesChanges.__new__(properties_changes_module.PropertiesChanges)
+        changes.service = mock.Mock(tenant_id="tenant-1", service_id="service-1")
+        existing_port = mock.Mock(container_port=5000, is_inner_service=True, is_outer_service=False)
+
+        ports = [
+            {"container_port": 5000},
+            {"container_port": 5001},
+            {"container_port": 5002, "is_inner_service": "false", "is_outer_service": 0},
+            {"container_port": 5003, "is_inner_service": False, "is_outer_service": True},
+        ]
+
+        with mock.patch.object(properties_changes_module.port_repo, "get_service_ports", return_value=[existing_port]):
+            result = changes.port_changes(ports)
+
+        self.assertEqual([5001, 5002, 5003], [port["container_port"] for port in result["add"]])
+        self.assertNotIn("upd", result)
+        self.assertEqual([(False, False), (False, False), (True, True)], [
+            (port["is_inner_service"], port["is_outer_service"]) for port in result["add"]
+        ])
 
 
 # capability_id: console.market-app.manual-build-preserves-port-alias

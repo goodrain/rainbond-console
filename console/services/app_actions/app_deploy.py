@@ -21,6 +21,7 @@ from console.services.app_actions.app_restore import AppRestore
 from console.services.app_actions.exception import ErrBackupNotFound
 from console.services.app_actions.properties_changes import (PropertiesChanges, get_template_component,
                                                              get_upgrade_app_template)
+from console.services.market_app.port_utils import normalize_template_port_service_flags
 from console.services.app_config import (AppPortService, env_var_service, mnt_service)
 from console.services.app_config.app_relation_service import \
     AppServiceRelationService
@@ -669,7 +670,7 @@ class MarketService(object):
         if ports is None:
             return
 
-        add = ports.get("add", [])
+        add = [normalize_template_port_service_flags(port, default_inner_service=False) for port in ports.get("add", [])]
         envs: TypingDict[str, list] = {"add": []}
         for port in add:
             use_legacy_default_alias = not port.get("port_alias")
@@ -678,7 +679,7 @@ class MarketService(object):
             if not port["is_inner_service"]:
                 continue
             envs["add"].extend(self._create_envs_4_ports(port, use_legacy_default_alias))
-        upd = ports.get("upd", [])
+        upd = [normalize_template_port_service_flags(port, default_inner_service=False) for port in ports.get("upd", [])]
         for port in upd:
             existing_port = port_repo.get_service_port_by_port(
                 self.tenant.tenant_id, self.service.service_id, int(port["container_port"]))
@@ -694,7 +695,7 @@ class MarketService(object):
         """
         if ports is None:
             return
-        add = ports.get("add", [])
+        add = [normalize_template_port_service_flags(port, default_inner_service=False) for port in ports.get("add", [])]
         envs: TypingDict[str, list] = {"add": []}
         for port in add:
             use_legacy_default_alias = not port.get("port_alias")
@@ -702,7 +703,7 @@ class MarketService(object):
             if not port["is_inner_service"]:
                 continue
             envs["add"].extend(self._create_envs_4_ports(port, use_legacy_default_alias))
-        upd = ports.get("upd", [])
+        upd = [normalize_template_port_service_flags(port, default_inner_service=False) for port in ports.get("upd", [])]
         for port in upd:
             existing_port = port_repo.get_service_port_by_port(
                 self.tenant.tenant_id, self.service.service_id, int(port["container_port"]))
