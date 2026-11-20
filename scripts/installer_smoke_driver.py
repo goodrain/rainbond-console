@@ -3,6 +3,7 @@
 
 import argparse
 import hashlib
+import ipaddress
 import json
 import os
 import pathlib
@@ -276,17 +277,6 @@ def probe_container_network(addresses: dict[str, list[str]]) -> dict[str, Any]:
     return {"valid": valid, "blocked": blocked, "control": control}
 
 
-def probe_report_endpoint() -> dict[str, Any]:
-    result = subprocess.run(
-        ["/usr/bin/curl", "--connect-timeout", "2", "--max-time", "2", "--silent", "--show-error", "https://log.rainbond.com/"],
-        text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        check=False,
-    )
-    return {"reachable": result.returncode == 0, "exit_code": result.returncode, "output": result.stdout[-500:]}
-
-
 def runner_eip_from_route(route: str) -> str:
     tokens = route.split()
     if "src" in tokens:
@@ -327,9 +317,24 @@ def wait_ready_components(timeout_seconds: int = 120) -> list[dict[str, str]]:
     return snapshot
 
 
-def resolve_public_ipv4(host: str) -> list[str]:
+def resolve_public_ipv4(host: str) -> dict[str, Any]:
     result = subprocess.run(["dig", "@1.1.1.1", "+short", "A", host], text=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, check=False)
-    return sorted({line.strip() for line in result.stdout.splitlines() if line.strip()})
+    if result.returncode != 0:
+        return {"addresses": [], "error": "DNS query failed"}
+    addresses = []
+    for line in result.stdout.splitlines():
+        try:
+            addresses.append(str(ipaddress.IPv4Address(line.strip())))
+        except ipaddress.AddressValueError:
+            continue
+    if not addresses:
+        return {"addresses": [], "error": "DNS query returned no IPv4 address"}
+    return {"addresses": sorted(set(addresses)), "error": ""}
+
+
+def probe_host_tcp(address: str) -> dict[str, Any]:
+    result = subprocess.run(["timeout", "3", "bash", "-c", f"</dev/tcp/{address}/443"], text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=False)
+    return {"exit_code": result.returncode, "blocked": result.returncode in {1, 124}, "valid": result.returncode not in {126, 127}}
 
 
 def console_ready() -> bool:
@@ -338,19 +343,19 @@ def console_ready() -> bool:
 
 
 def collect_gateway_logs(results_dir: pathlib.Path) -> dict[str, Any]:
-    pods = run_sudo("docker", "exec", "rainbond", "kubectl", "get", "pods", "-n", "rbd-system", "--no-headers", check=False).stdout
+    pods = run_sudo("docker", "exec", "rainbond", "/bin/k3s", "kubectl", "get", "pods", "-n", "rbd-system", "--no-headers", check=False).stdout
     gateway_pod = next((line.split()[0] for line in pods.splitlines() if line.startswith("rbd-gateway")), "")
     if not gateway_pod:
         return {"pod": "", "containers": [], "logs": {}}
     names = run_sudo(
-        "docker", "exec", "rainbond", "kubectl", "get", "pod", gateway_pod, "-n", "rbd-system", "-o", "jsonpath={.spec.containers[*].name}", check=False
+        "docker", "exec", "rainbond", "/bin/k3s", "kubectl", "get", "pod", gateway_pod, "-n", "rbd-system", "-o", "jsonpath={.spec.containers[*].name}", check=False
     ).stdout.split()
     logs = {}
     for container in ("ingress-apisix", "apisix"):
         if container not in names:
             continue
         result = run_sudo(
-            "docker", "exec", "rainbond", "kubectl", "logs", gateway_pod, "-n", "rbd-system", "-c", container, "--tail=80", check=False
+            "docker", "exec", "rainbond", "/bin/k3s", "kubectl", "logs", gateway_pod, "-n", "rbd-system", "-c", container, "--tail=80", check=False
         )
         (results_dir / f"rbd-gateway-{container}.log").write_text(result.stdout, encoding="utf-8")
         logs[container] = result.stdout.splitlines()[-20:]
@@ -405,7 +410,8 @@ def run_scenario(arguments: argparse.Namespace) -> int:
         if arguments.scenario == "image_not_found":
             env["VERSION"] = "v0.0.0-installer-smoke-does-not-exist"
         install_network_guard(results_dir, action)
-        connectivity["before"] = probe_report_endpoint()
+        guard_addresses = json.loads((results_dir / "network-guard.json").read_text(encoding="utf-8"))["addresses"]
+        connectivity["before"] = {host: [probe_host_tcp(address) for address in values] for host, values in guard_addresses.items() if host != "smoke_blackhole"}
         command = [
             "sudo",
             "env",
@@ -422,13 +428,14 @@ def run_scenario(arguments: argparse.Namespace) -> int:
             command.append(f"VERSION={env['VERSION']}")
         command.extend(["bash", str(target_script)])
         code, output, timed_out = run_command(command, env, results_dir / "installer.log", arguments.timeout)
-        connectivity["after"] = probe_report_endpoint()
+        connectivity["after"] = {host: [probe_host_tcp(address) for address in values] for host, values in guard_addresses.items() if host != "smoke_blackhole"}
         components = wait_ready_components() if arguments.scenario == "normal_install" else collect_ready_components() if arguments.scenario != "image_not_found" else []
         console_is_ready = console_ready() if arguments.scenario == "normal_install" else False
         gateway = collect_gateway_logs(results_dir) if arguments.scenario != "image_not_found" else gateway
         guard_validation = verify_network_guard(results_dir)
         guard_validation["public_resolution"] = {host: resolve_public_ipv4(host) for host in REPORT_HOSTS}
-        guard_validation["resolution_matches"] = all(set(guard_validation["public_resolution"][host]) == set(json.loads((results_dir / "network-guard.json").read_text(encoding="utf-8"))["addresses"][host]) for host in REPORT_HOSTS)
+        guard_validation["resolution_query_failed"] = any(result["error"] for result in guard_validation["public_resolution"].values())
+        guard_validation["resolution_matches"] = not guard_validation["resolution_query_failed"] and all(set(guard_validation["public_resolution"][host]["addresses"]) == set(guard_addresses[host]) for host in REPORT_HOSTS)
         container_probes = probe_container_network(json.loads((results_dir / "network-guard.json").read_text(encoding="utf-8"))["addresses"]) if arguments.scenario != "image_not_found" else container_probes
     except Exception as error:
         setup_error = str(error)
@@ -450,7 +457,10 @@ def run_scenario(arguments: argparse.Namespace) -> int:
         reason = "network guard rules are missing"
     elif not guard_validation.get("resolution_matches", False):
         success = False
-        reason = "isolation is untrusted because public DNS addresses changed"
+        reason = "isolation is untrusted because public DNS query failed" if guard_validation.get("resolution_query_failed") else "isolation is untrusted because public DNS addresses changed"
+    elif any(not probe["valid"] or not probe["blocked"] for phase in connectivity.values() for probes in phase.values() for probe in probes):
+        success = False
+        reason = "host TCP isolation probe is invalid or not blocked"
     elif arguments.scenario != "image_not_found" and not container_probes["valid"]:
         success = False
         reason = "container TCP isolation probe is invalid or not blocked"

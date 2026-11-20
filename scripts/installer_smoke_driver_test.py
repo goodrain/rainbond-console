@@ -1,4 +1,5 @@
 import json
+import ipaddress
 import os
 import pathlib
 import signal
@@ -19,6 +20,8 @@ from installer_smoke_driver import (
     create_curl_shim,
     run_command,
     runner_eip_from_route,
+    main_script_uuid,
+    resolve_public_ipv4,
     resolve_ipv6,
     terminate_process_group,
 )
@@ -69,6 +72,22 @@ class InstallerSmokeDriverTests(unittest.TestCase):
     def test_ipv6_resolution_returns_only_ipv6_addresses(self):
         with mock.patch("installer_smoke_driver.socket.getaddrinfo", return_value=[(None, None, None, None, ("2001:db8::1", 443, 0, 0))]):
             self.assertEqual(resolve_ipv6("log.rainbond.com"), ["2001:db8::1"])
+
+    def test_public_dns_keeps_only_ipv4_records_and_reports_query_failure(self):
+        completed = subprocess.CompletedProcess([], 0, "alb.example.net.\n203.0.113.8\n", "")
+        with mock.patch("installer_smoke_driver.subprocess.run", return_value=completed):
+            self.assertEqual(resolve_public_ipv4("log.rainbond.com"), {"addresses": ["203.0.113.8"], "error": ""})
+        failed = subprocess.CompletedProcess([], 9, "", "timeout")
+        with mock.patch("installer_smoke_driver.subprocess.run", return_value=failed):
+            self.assertEqual(resolve_public_ipv4("log.rainbond.com")["error"], "DNS query failed")
+
+    def test_main_script_uuid_accepts_main_and_pr_quote_styles(self):
+        with tempfile.TemporaryDirectory() as directory:
+            main = pathlib.Path(directory) / "main.sh"
+            head = pathlib.Path(directory) / "head.sh"
+            main.write_text('  OS_INFO=$(uname -a)\n  UUID=$(echo "$OS_INFO" | ${MD5_CMD} | cut -b 1-32)\n', encoding="utf-8")
+            head.write_text("  OS_INFO=$(uname -a)\n  UUID=$(echo \"$OS_INFO\" | \"$MD5_CMD\" | cut -b 1-32)\n", encoding="utf-8")
+            self.assertEqual(main_script_uuid(main), main_script_uuid(head))
 
     def test_terminate_process_group_returns_false_when_sudo_kill_fails(self):
         with mock.patch("installer_smoke_driver.run_sudo", side_effect=PermissionError("denied")):
