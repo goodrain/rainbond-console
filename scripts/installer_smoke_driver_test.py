@@ -34,6 +34,8 @@ class InstallerSmokeDriverTests(unittest.TestCase):
 
         self.assertEqual(workflow.count("uses: actions/checkout@v4"), 3)
         self.assertNotIn("persist-credentials: false", workflow)
+        self.assertNotIn("|| true", workflow)
+        self.assertEqual(workflow.count('case "$status" in'), 3)
         run_scenario_position = workflow.index("- name: Run scenario")
         checkouts = (
             ("- name: Checkout smoke harness", "."),
@@ -41,7 +43,7 @@ class InstallerSmokeDriverTests(unittest.TestCase):
             ("- name: Checkout main UUID reference", "main-reference"),
         )
         for checkout, directory in checkouts:
-            cleanup = f"git -C {directory} config --local --unset-all http.https://github.com/.extraheader || true"
+            cleanup = f"git -C {directory} config --local --unset-all http.https://github.com/.extraheader"
             self.assertLess(workflow.index(checkout), workflow.index(cleanup))
             self.assertLess(workflow.index(cleanup), run_scenario_position)
 

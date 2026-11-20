@@ -79,7 +79,16 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Remove smoke harness checkout credentials
-        run: git -C . config --local --unset-all http.https://github.com/.extraheader || true
+        run: |
+          set +e
+          git -C . config --local --get-all http.https://github.com/.extraheader >/dev/null
+          status=$?
+          set -e
+          case "$status" in
+            0) git -C . config --local --unset-all http.https://github.com/.extraheader ;;
+            1) ;;
+            *) exit "$status" ;;
+          esac
 
       - name: Checkout requested installer ref
         uses: actions/checkout@v4
@@ -89,7 +98,16 @@ jobs:
           path: under-test
 
       - name: Remove tested ref checkout credentials
-        run: git -C under-test config --local --unset-all http.https://github.com/.extraheader || true
+        run: |
+          set +e
+          git -C under-test config --local --get-all http.https://github.com/.extraheader >/dev/null
+          status=$?
+          set -e
+          case "$status" in
+            0) git -C under-test config --local --unset-all http.https://github.com/.extraheader ;;
+            1) ;;
+            *) exit "$status" ;;
+          esac
 
       - name: Checkout main UUID reference
         uses: actions/checkout@v4
@@ -99,7 +117,16 @@ jobs:
           path: main-reference
 
       - name: Remove main reference checkout credentials
-        run: git -C main-reference config --local --unset-all http.https://github.com/.extraheader || true
+        run: |
+          set +e
+          git -C main-reference config --local --get-all http.https://github.com/.extraheader >/dev/null
+          status=$?
+          set -e
+          case "$status" in
+            0) git -C main-reference config --local --unset-all http.https://github.com/.extraheader ;;
+            1) ;;
+            *) exit "$status" ;;
+          esac
 
       - name: Run scenario
         run: |
