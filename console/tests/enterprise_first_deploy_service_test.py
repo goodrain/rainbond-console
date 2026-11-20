@@ -2735,7 +2735,7 @@ class EnterpriseFirstDeployServiceTests(TestCase):
         self.assertEqual(status, self.service.STATUS_FAILURE)
         report_payload = mock_post.call_args[1]["json"]
         self.assertEqual(report_payload["failure_events"][0]["event_id"], "sched-1")
-        self.assertEqual(report_payload["failure_events"][0]["failure_category"], "no_available_nodes")
+        self.assertEqual(report_payload["failure_events"][0]["failure_category"], "resource_insufficient")
         log_messages = "\n".join(line["message"] for log in report_payload["failure_logs"] for line in log["lines"])
         self.assertIn("no pods observed", log_messages)
         self.assertIn("FailedScheduling", log_messages)
@@ -2875,3 +2875,74 @@ class EnterpriseFirstDeployServiceTests(TestCase):
         report_payload = mock_post.call_args[1]["json"]
         self.assertEqual(report_payload["failure_stage"], self.service.FAILURE_STAGE_RUNTIME)
         self.assertIn("ImagePullBackOff", report_payload["failure_reason"])
+
+    def test_failure_categories_cover_pvc_and_resource_constraints(self):
+        cases = [
+            ("0/3 nodes are available: Insufficient cpu.", self.service.FAILURE_CATEGORY_RESOURCE_INSUFFICIENT),
+            ("Insufficient nvidia.com/gpu", self.service.FAILURE_CATEGORY_RESOURCE_INSUFFICIENT),
+            ("Insufficient hugepages-2Mi", self.service.FAILURE_CATEGORY_RESOURCE_INSUFFICIENT),
+            ("内存资源不足", self.service.FAILURE_CATEGORY_RESOURCE_INSUFFICIENT),
+            ("pod has unbound immediate PersistentVolumeClaims", self.service.FAILURE_CATEGORY_PVC_UNBOUND),
+            ("insufficient permissions to access registry", self.service.FAILURE_CATEGORY_UNKNOWN),
+            ("insufficient privileges to access registry", self.service.FAILURE_CATEGORY_UNKNOWN),
+            ("Insufficient cpu-manager state", self.service.FAILURE_CATEGORY_UNKNOWN),
+            ("非资源不足", self.service.FAILURE_CATEGORY_UNKNOWN),
+            ("不是资源不足", self.service.FAILURE_CATEGORY_UNKNOWN),
+            ("并不是资源不足", self.service.FAILURE_CATEGORY_UNKNOWN),
+            ("未发现资源不足", self.service.FAILURE_CATEGORY_UNKNOWN),
+        ]
+        for reason, expected in cases:
+            with self.subTest(reason=reason):
+                self.assertEqual(
+                    self.service._detect_failure_category(self.service.FAILURE_STAGE_RUNTIME, [], reason), expected)
+
+    def test_report_payload_includes_v1_rule_and_nonempty_rbd_version(self):
+        report_payload = self.service._build_report_payload({
+            "enterprise_id": "eid-1",
+            "status": self.service.STATUS_SUCCESS,
+            "payload_version": 3,
+            "environment_context": {"collect_status": "pending", "rbd_version": ""},
+        })
+
+        self.assertEqual(report_payload["decision_rule_version"], "v1")
+        self.assertEqual(report_payload["environment_context"]["rbd_version"], "unknown")
+
+    def test_environment_collection_marks_pending_context_failed_after_retry_limit(self):
+        payload = {
+            "environment_context": {"collect_status": "pending"},
+            "environment_collect_retry_count": 2,
+        }
+        with mock.patch.object(self.service, "_save_tracking_payload") as save_payload:
+            self.service._retry_environment_collection(None, payload, "record-key", "demo-region")
+
+        self.assertEqual(payload["environment_context"]["collect_status"], "failed")
+        save_payload.assert_called_once_with(None, payload, key="record-key")
+
+    def test_environment_collection_does_not_finalize_while_retry_is_running(self):
+        payload = {
+            "environment_context": {"collect_status": "pending"},
+            "environment_collect_retry_count": 2,
+        }
+        self.service._environment_collecting_keys.add("record-key")
+        with mock.patch.object(self.service, "_save_tracking_payload") as save_payload:
+            self.service._retry_environment_collection(None, payload, "record-key", "demo-region")
+
+        self.assertEqual(payload["environment_context"]["collect_status"], "pending")
+        save_payload.assert_not_called()
+
+    def test_dependency_context_sorts_limits_and_distinguishes_missing_pods(self):
+        relations = [Obj(dep_service_id="dep-b"), Obj(dep_service_id="dep-a"), Obj(dep_service_id="dep-missing")]
+        services = [Obj(service_id="dep-a", service_alias="a"), Obj(service_id="dep-b", service_alias="b")]
+
+        with mock.patch("console.services.enterprise_first_deploy_service.TenantServiceRelation.objects.filter",
+                        return_value=relations), \
+                mock.patch("console.services.enterprise_first_deploy_service.TenantServiceInfo.objects.filter",
+                           return_value=services), \
+                mock.patch.object(self.service, "_get_service_pods_for_runtime",
+                                  side_effect=[[], [{"pod_name": "pod-b", "pod_status": "RUNNING"}]]), \
+                mock.patch.object(self.service, "_get_runtime_pod_detail",
+                                  return_value={"status": {"type_str": "RUNNING", "reason": ""}}):
+            context = self.service._collect_dependency_context({"service_ids": ["service-1"]}, "team", "region")
+
+        self.assertEqual([item["service_id"] for item in context["dependencies"]], ["dep-a", "dep-b", "dep-missing"])
+        self.assertEqual([item["status"] for item in context["dependencies"]], ["NO_PODS", "RUNNING", "MISSING"])

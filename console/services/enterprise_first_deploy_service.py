@@ -16,7 +16,7 @@ from console.repositories.first_deploy_repo import enterprise_first_deploy_repo
 from console.utils.offline import is_offline_mode
 from django.db import close_old_connections, connections, transaction
 from www.apiclient.regionapi import RegionInvokeApi
-from www.models.main import TenantEnterprise
+from www.models.main import TenantEnterprise, TenantServiceInfo, TenantServiceRelation
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
@@ -61,6 +61,8 @@ class EnterpriseFirstDeployService(object):
     FAILURE_CATEGORY_VERSION_INFO_FAILED = "version_info_failed"
     FAILURE_CATEGORY_RUNTIME_TIMEOUT = "runtime_timeout"
     FAILURE_CATEGORY_POD_CRASH_LOOP = "pod_crash_loop"
+    FAILURE_CATEGORY_RESOURCE_INSUFFICIENT = "resource_insufficient"
+    FAILURE_CATEGORY_PVC_UNBOUND = "pvc_unbound"
     FAILURE_CATEGORY_NO_AVAILABLE_NODES = "no_available_nodes"
     FAILURE_CATEGORY_UNKNOWN = "unknown"
     LOG_COLLECT_STATUS_COLLECTED = "event_log_collected"
@@ -76,6 +78,8 @@ class EnterpriseFirstDeployService(object):
     MAX_FAILURE_REASON_LENGTH = 1024
     RUNTIME_OBSERVE_WINDOW = 60
     READINESS_FINAL_OBSERVE_WINDOW = 180
+    DECISION_RULE_VERSION = "v1"
+    MAX_DEPENDENCY_SNAPSHOT = 10
     BUILD_FAILURE_LOG_WAIT_WINDOW = 60
     COMPILE_FAILURE_LOG_WAIT_WINDOW = 180
     BUILD_FAILURE_LOG_RETRY_INTERVAL = 5
@@ -118,6 +122,12 @@ class EnterpriseFirstDeployService(object):
         "livenessrestart",
         "initiating",
     }
+    DEPENDENCY_SNAPSHOT_STATUSES = {"RUNNING", "INITIATING", "PENDING", "UNHEALTHY", "ABNORMAL", "UNKNOWN"}
+    RESOURCE_INSUFFICIENT_RE = re.compile(
+        r"\binsufficient\s+(?:cpu(?![-\w])|memory(?![-\w])|pods(?![-\w])|ephemeral-storage(?![-\w])|"
+        r"hugepages-[\w-]+|[\w.-]+/[\w.-]+)(?=$|[\s.,;:])", re.IGNORECASE)
+    RESOURCE_INSUFFICIENT_CN_RE = re.compile(r"(?<!非)资源不足")
+    RESOURCE_INSUFFICIENT_CN_NEGATION_RE = re.compile(r"(?:非|不是|并不是|未发现)资源不足")
     SENSITIVE_QUOTED_ASSIGNMENT_RE = re.compile(
         r"\b((?:password|passwd|pwd|token|secret|authorization|api[_-]?key))(\s*[:=]\s*)([\"'])(.*?)(\3)",
         re.IGNORECASE)
@@ -130,6 +140,7 @@ class EnterpriseFirstDeployService(object):
     def __init__(self) -> None:
         self._running_keys = set()  # type: set
         self._reporting_keys = set()  # type: set
+        self._environment_collecting_keys = set()  # type: set
         self._memory_payloads = {}  # type: Dict[str, dict]
         self._lock = threading.Lock()
         self.report_async = True
@@ -857,6 +868,7 @@ class EnterpriseFirstDeployService(object):
                 if payload is None:
                     time.sleep(self.POLL_INTERVAL)
                     continue
+                self._retry_environment_collection(record, payload, key, region_name)
                 try:
                     status = self._sync_record(record, payload, tenant_name, region_name, key=key)
                 except Exception as e:
@@ -1020,6 +1032,7 @@ class EnterpriseFirstDeployService(object):
                     return None
                 failed_events, failure_logs, timeout_reason = self._collect_runtime_timeout_snapshot(
                     payload, tenant_name, region_name, runtime_watch_started_at)
+                payload["dependency_context"] = self._collect_dependency_context(payload, tenant_name, region_name)
                 self._set_stage_failure(
                     payload,
                     self.FAILURE_STAGE_RUNTIME,
@@ -1047,6 +1060,7 @@ class EnterpriseFirstDeployService(object):
         if self._runtime_window_elapsed(runtime_watch_started_at):
             failed_events, failure_logs, timeout_reason = self._collect_runtime_timeout_snapshot(
                 payload, tenant_name, region_name, runtime_watch_started_at)
+            payload["dependency_context"] = self._collect_dependency_context(payload, tenant_name, region_name)
             self._set_stage_failure(
                 payload,
                 self.FAILURE_STAGE_RUNTIME,
@@ -1381,6 +1395,7 @@ class EnterpriseFirstDeployService(object):
             self._forget_memory_payload(key)
 
     def _build_report_payload(self, payload: dict) -> dict:
+        self._ensure_report_environment_context(payload)
         report_payload = {
             "eid": self._report_eid(payload),
             "enterprise_name": payload.get("enterprise_name"),
@@ -1389,6 +1404,7 @@ class EnterpriseFirstDeployService(object):
             "is_success": payload.get("status") == self.STATUS_SUCCESS,
             "report_type": payload.get("report_type", self.REPORT_TYPE_FIRST_DEPLOY),
             "is_first_deploy": payload.get("is_first_deploy", True),
+            "decision_rule_version": self.DECISION_RULE_VERSION,
         }
         if payload.get("payload_version", 1) >= 3:
             report_payload.update({
@@ -1409,8 +1425,15 @@ class EnterpriseFirstDeployService(object):
                 "log_collect_status": payload.get("log_collect_status", ""),
                 "failure_events": payload.get("failure_events") or [],
                 "failure_logs": payload.get("failure_logs") or [],
+                "dependency_context": payload.get("dependency_context") or {},
             })
         return report_payload
+
+    @staticmethod
+    def _ensure_report_environment_context(payload: dict) -> None:
+        context = payload.get("environment_context") or {}
+        context["rbd_version"] = context.get("rbd_version") or "unknown"
+        payload["environment_context"] = context
 
     def _report_eid(self, payload: dict) -> str:
         enterprise_id = str(payload.get("enterprise_id") or "").strip()
@@ -1457,10 +1480,28 @@ class EnterpriseFirstDeployService(object):
             time.sleep(1)
         return False
 
-    def _start_environment_collect_thread(self, key: str, enterprise_id: str, region_name: str) -> None:
+    def _reserve_environment_collection(self, key: str) -> bool:
+        with self._lock:
+            if key in self._environment_collecting_keys:
+                return False
+            self._environment_collecting_keys.add(key)
+        return True
+
+    def _launch_environment_collect_thread(self, key: str, enterprise_id: str, region_name: str) -> None:
         worker = threading.Thread(target=self._collect_environment_by_key, args=(key, enterprise_id, region_name))
         worker.daemon = True
-        worker.start()
+        try:
+            worker.start()
+        except Exception:
+            with self._lock:
+                self._environment_collecting_keys.discard(key)
+            raise
+
+    def _start_environment_collect_thread(self, key: str, enterprise_id: str, region_name: str) -> bool:
+        if not self._reserve_environment_collection(key):
+            return False
+        self._launch_environment_collect_thread(key, enterprise_id, region_name)
+        return True
 
     def _collect_environment_by_key(self, key: str, enterprise_id: str, region_name: str) -> None:
         try:
@@ -1471,7 +1512,8 @@ class EnterpriseFirstDeployService(object):
                 payload = self._load_memory_payload(key)
                 if not payload or payload.get("status") in self.FINAL_STATUSES:
                     return
-                payload["environment_context"] = environment_context
+                payload["environment_context"] = self._merge_environment_context(
+                    payload.get("environment_context") or {}, environment_context)
                 self._save_memory_payload(key, payload)
                 return
             record = enterprise_first_deploy_repo.get_by_key(key)
@@ -1484,12 +1526,47 @@ class EnterpriseFirstDeployService(object):
             payload = enterprise_first_deploy_repo.load_payload(record)
             if payload.get("status") in self.FINAL_STATUSES:
                 return
-            payload["environment_context"] = environment_context
+            payload["environment_context"] = self._merge_environment_context(
+                payload.get("environment_context") or {}, environment_context)
             enterprise_first_deploy_repo.update_payload(record, payload)
-        except Exception as exc:
-            logger.debug("collect deployment diagnostic environment failed: %s", exc)
+        except Exception:
+            logger.warning("collect deployment diagnostic environment failed")
         finally:
             connections.close_all()
+            with self._lock:
+                self._environment_collecting_keys.discard(key)
+
+    @staticmethod
+    def _merge_environment_context(existing: dict, collected: dict) -> dict:
+        if existing.get("collect_status") == "success" and collected.get("collect_status") != "success":
+            return existing
+        return collected
+
+    def _retry_environment_collection(self, record: Optional[ConsoleSysConfig], payload: dict, key: str,
+                                      region_name: str) -> None:
+        environment_context = payload.get("environment_context") or {}
+        if environment_context.get("collect_status") == "success":
+            return
+        with self._lock:
+            if key in self._environment_collecting_keys:
+                return
+        retry_count = int(payload.get("environment_collect_retry_count") or 0)
+        if retry_count >= 2:
+            if environment_context.get("collect_status") != "failed":
+                environment_context["collect_status"] = "failed"
+                payload["environment_context"] = environment_context
+                self._save_tracking_payload(record, payload, key=key)
+            return
+        if not self._reserve_environment_collection(key):
+            return
+        payload["environment_collect_retry_count"] = retry_count + 1
+        try:
+            self._save_tracking_payload(record, payload, key=key)
+            self._launch_environment_collect_thread(key, payload.get("enterprise_id") or "", region_name)
+        except Exception:
+            with self._lock:
+                self._environment_collecting_keys.discard(key)
+            logger.warning("retry deployment diagnostic environment collection failed")
 
     def _collect_environment_context(self, enterprise_id: str, region_name: str) -> dict:
         context: Dict[str, Any] = {
@@ -2141,6 +2218,14 @@ class EnterpriseFirstDeployService(object):
             return self.FAILURE_CATEGORY_UNKNOWN
         if "crashloopbackoff" in opt_types or "back-off restarting" in reason_text:
             return self.FAILURE_CATEGORY_POD_CRASH_LOOP
+        if ("unbound immediate persistentvolumeclaims" in reason_text or "pvc pending" in reason_text or
+                "pvc未绑定" in reason_text or "pvc 未绑定" in reason_text):
+            return self.FAILURE_CATEGORY_PVC_UNBOUND
+        if ((self.RESOURCE_INSUFFICIENT_CN_RE.search(reason_text) and
+             not self.RESOURCE_INSUFFICIENT_CN_NEGATION_RE.search(reason_text)) or
+                "cluster lack of memory" in reason_text or
+                self.RESOURCE_INSUFFICIENT_RE.search(reason_text)):
+            return self.FAILURE_CATEGORY_RESOURCE_INSUFFICIENT
         if "没有可用节点" in reason_text or "nodes are available" in reason_text:
             return self.FAILURE_CATEGORY_NO_AVAILABLE_NODES
         if "runtimeverificationtimeout" in opt_types or "runtime timeout" in reason_text:
@@ -2342,6 +2427,51 @@ class EnterpriseFirstDeployService(object):
             logger.warning("get service pods failed for %s: %s", service_alias, e)
             return []
         return self._extract_component_pods(data)
+
+    def _collect_dependency_context(self, payload: dict, tenant_name: str, region_name: str) -> dict:
+        context: Dict[str, Any] = {"collect_status": "success", "dependencies": []}
+        service_ids = payload.get("service_ids") or []
+        if not service_ids:
+            return context
+        try:
+            relations = TenantServiceRelation.objects.filter(service_id__in=service_ids)
+            dependency_ids = sorted({relation.dep_service_id for relation in relations if relation.dep_service_id})[
+                :self.MAX_DEPENDENCY_SNAPSHOT]
+            if not dependency_ids:
+                return context
+            services = {
+                service.service_id: service
+                for service in TenantServiceInfo.objects.filter(service_id__in=dependency_ids)
+            }
+            for dependency_id in dependency_ids:
+                service = services.get(dependency_id)
+                if not service:
+                    context["dependencies"].append({"service_id": dependency_id, "status": "MISSING", "reason": ""})
+                    continue
+                pods = self._get_service_pods_for_runtime(payload, tenant_name, region_name, service.service_alias)
+                if not pods:
+                    context["dependencies"].append({"service_id": dependency_id, "status": "NO_PODS", "reason": ""})
+                    continue
+                pod = ([item for item in pods if item.get("_group") == "new_pods"] or pods)[0]
+                detail = self._get_runtime_pod_detail(region_name, tenant_name, service.service_alias, pod.get("pod_name"))
+                status = (detail or {}).get("status") or {}
+                context["dependencies"].append({
+                    "service_id": dependency_id,
+                    "status": self._dependency_snapshot_status(status.get("type_str") or pod.get("pod_status")),
+                    "reason": self._dependency_status_reason(status.get("reason")),
+                })
+        except Exception:
+            context["collect_status"] = "failed"
+        return context
+
+    @staticmethod
+    def _dependency_status_reason(reason: Any) -> str:
+        reason = str(reason or "")
+        return reason if re.match(r"^[A-Za-z0-9_-]{1,128}$", reason) else ""
+
+    def _dependency_snapshot_status(self, status: Any) -> str:
+        normalized = str(status or "").upper()
+        return normalized if normalized in self.DEPENDENCY_SNAPSHOT_STATUSES else "UNKNOWN"
 
     @staticmethod
     def _extract_component_pods(pods_data: Any) -> list:
