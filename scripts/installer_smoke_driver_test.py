@@ -14,6 +14,7 @@ from installer_smoke_driver import (
     calculate_uuid,
     extract_report_events,
     host_connectivity_valid,
+    install_network_guard,
     REPORT_SCENARIOS,
     scenario_succeeded,
     validate_report_uuids,
@@ -30,6 +31,21 @@ from installer_smoke_driver import (
 
 
 class InstallerSmokeDriverTests(unittest.TestCase):
+    def test_network_guard_logs_ipv6_forward_drops(self):
+        completed = subprocess.CompletedProcess([], 0, "", "")
+        with tempfile.TemporaryDirectory() as directory:
+            with mock.patch("installer_smoke_driver.resolve_ipv4", return_value=["203.0.113.8"]), mock.patch(
+                "installer_smoke_driver.resolve_ipv6", return_value=["2001:db8::8"]
+            ), mock.patch("installer_smoke_driver.run_sudo", return_value=completed) as run_sudo:
+                install_network_guard(pathlib.Path(directory), "DROP")
+
+        self.assertTrue(
+            any(
+                call.args[:7] == ("ip6tables", "-I", "FORWARD", "-d", "2001:db8::8", "-j", "LOG")
+                for call in run_sudo.call_args_list
+            )
+        )
+
     def test_parse_forward_drop_records_maps_pod_and_destination_port(self):
         records = parse_forward_drop_records(
             "kernel: RBD-SMOKE-FWD-123: IN=cni0 OUT=eth0 SRC=10.42.0.7 DST=115.190.72.141 "

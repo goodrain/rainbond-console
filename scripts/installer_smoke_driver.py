@@ -251,6 +251,18 @@ def install_network_guard(results_dir: pathlib.Path, action: str) -> dict[str, l
         for values in ipv6_addresses.values():
             for address in values:
                 run_sudo("ip6tables", "-I", chain, "-d", address, "-j", action)
+                if chain == "FORWARD":
+                    run_sudo(
+                        "ip6tables",
+                        "-I",
+                        chain,
+                        "-d",
+                        address,
+                        "-j",
+                        "LOG",
+                        "--log-prefix",
+                        forward_log_prefix,
+                    )
     (results_dir / "network-guard.json").write_text(
         json.dumps(
             {
