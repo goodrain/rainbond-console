@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Optional
 
 from .new_app import NewApp
 from .original_app import OriginalApp
+from .port_utils import normalize_template_port_service_flags
 from .utils import get_component_template
 from .enum import ActionType
 # service
@@ -185,6 +186,7 @@ class PropertyChanges(object):
         """
         if not new_ports:
             return None
+        new_ports = [normalize_template_port_service_flags(port) for port in new_ports]
         old_container_ports = {port.container_port: port for port in old_ports}
         create_ports = [port for port in new_ports if port["container_port"] not in old_container_ports]
 

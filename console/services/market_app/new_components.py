@@ -5,6 +5,7 @@ import os
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
+from .port_utils import normalize_template_port_service_flags
 from .utils import is_same_component
 from .hostname_remap import apply_hostname_remap, is_host_env_name
 from .enum import ActionType
@@ -107,22 +108,6 @@ class NewComponents(object):
         which collides with the ``registry`` component) must NOT be rewritten.
         """
         return is_host_env_name(attr_name)
-
-    @staticmethod
-    def _normalize_bool(value: Any, default: bool) -> bool:
-        if value is None:
-            return default
-        if isinstance(value, bool):
-            return value
-        if isinstance(value, (int, float)):
-            return bool(value)
-        if isinstance(value, str):
-            normalized = value.strip().lower()
-            if normalized in ("true", "1"):
-                return True
-            if normalized in ("false", "0"):
-                return False
-        return default
 
     @staticmethod
     def _apply_hostname_remap(value: str, remap: dict, is_host_env: bool = False) -> str:
@@ -392,6 +377,7 @@ class NewComponents(object):
         new_ports = []
         k8s_service_name = ""
         for port in ports:
+            port = normalize_template_port_service_flags(port)
             component_port = port["container_port"]
             if not k8s_service_name:
                 k8s_service_name = port.get("k8s_service_name") if port.get("k8s_service_name") else component.service_alias
@@ -404,8 +390,6 @@ class NewComponents(object):
             port_protocol = port.get("protocol", "tcp")
             if port_protocol not in ["tcp", "udp", "tcp+udp", "http"]:
                 port_protocol = "tcp"
-            is_outer_service = self._normalize_bool(port.get("is_outer_service"), False)
-            is_inner_service = self._normalize_bool(port.get("is_inner_service"), True) or is_outer_service
             t_port = TenantServicesPort(
                 tenant_id=component.tenant_id,
                 service_id=component.service_id,
@@ -414,8 +398,8 @@ class NewComponents(object):
                 lb_mapping_port=0,
                 protocol=port_protocol,
                 port_alias=port.get("port_alias", ""),
-                is_inner_service=is_inner_service,
-                is_outer_service=is_outer_service,
+                is_inner_service=port["is_inner_service"],
+                is_outer_service=port["is_outer_service"],
                 name=port.get("name", ""),
                 k8s_service_name=k8s_service_name,
             )
