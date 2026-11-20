@@ -34,11 +34,16 @@ class InstallerSmokeDriverTests(unittest.TestCase):
 
         self.assertEqual(workflow.count("uses: actions/checkout@v4"), 3)
         self.assertNotIn("persist-credentials: false", workflow)
-        for directory in (".", "under-test", "main-reference"):
-            self.assertIn(
-                f"git -C {directory} config --local --unset-all http.https://github.com/.extraheader || true",
-                workflow,
-            )
+        run_scenario_position = workflow.index("- name: Run scenario")
+        checkouts = (
+            ("- name: Checkout smoke harness", "."),
+            ("- name: Checkout requested installer ref", "under-test"),
+            ("- name: Checkout main UUID reference", "main-reference"),
+        )
+        for checkout, directory in checkouts:
+            cleanup = f"git -C {directory} config --local --unset-all http.https://github.com/.extraheader || true"
+            self.assertLess(workflow.index(checkout), workflow.index(cleanup))
+            self.assertLess(workflow.index(cleanup), run_scenario_position)
 
     def test_calculate_uuid_matches_installer_md5_contract(self):
         self.assertEqual(calculate_uuid("Linux test-host 6.8.0"), "a119547c0f77a5ecbbe0c5bb0c1dcb21")
