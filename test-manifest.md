@@ -720,6 +720,7 @@
 | console.vm-asset.delete-internal-registry-manifest | Delete internal VM registry manifest before removing local VM asset | active | regression | console.services.virtual_machine.VirtualMachineService.delete_vm_image | console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_delete_vm_image_deletes_unique_internal_registry_manifest<br>console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_delete_vm_image_skips_registry_manifest_when_image_url_is_shared<br>console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_delete_vm_image_skips_registry_manifest_for_external_registry_asset |
 | console.vm-asset.incomplete-service-cleanup-preserves-ready-assets | 删除未完成虚拟机组件时保留已就绪镜像资产 | active | regression | console.services.app_actions.app_manage.AppManageService._truncate_service | console/tests/app_manage_test.py::AppManageIncompleteVMCleanupTests.test_truncate_service_keeps_ready_uploaded_vm_asset |
 | console.vm-asset.reference-components | 虚拟机镜像资产引用组件列表 | active | regression | console.services.virtual_machine.VirtualMachineService.serialize_vm_image | console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_get_vm_asset_includes_explicit_reference_components<br>console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_get_vm_asset_includes_legacy_image_reference_components |
+| console.vm-batch-power.preserve-disks | Route VM batch power through single-component lifecycle APIs | active | regression | console.services.app_actions.app_manage.AppManageService.batch_operations | console/tests/app_manage_test.py::VMBatchPowerSafetyTests |
 | console.vm-capabilities.persistent-storage-options | VM创建能力响应返回真实持久化存储选项 | active | regression | console.views.app_config.app_domain.VirtualMachineCapabilityView.get | console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_vm_persistent_storage_options_share_service_options_and_filter_unavailable_types<br>console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_vm_storage_options_keep_saas_provider_override<br>console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_vm_persistent_storage_options_accept_dict_and_reject_malformed_region_responses<br>console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_vm_capabilities_include_persistent_storage_options_and_failure_is_not_success |
 | console.vm-create.port-operator | VM SSH port uses a string operator when the display name is absent | active | regression | console.views.app_create.vm_run.VMRunCreateView.post | console/tests/vm_example_password_login_test.py::VMExamplePasswordLoginTests.test_missing_display_name_keeps_ssh_port_operator_a_string |
 | console.vm-example.password-login-bootstrap | Ubuntu VM 示例登录初始化与凭据脱敏 | active | regression | console.views.app_create.vm_run.VMRunCreateView.post | console/tests/vm_example_password_login_test.py::VMExamplePasswordLoginTests |
@@ -765,6 +766,7 @@
 | console.vm-template.legacy-republish-initialization-isolation | 旧快照再公开发布时剥离虚拟机初始化凭据 | active | regression | ShareService._build_publish_template_from_snapshot | console/tests/vm_example_password_login_test.py::VMExamplePasswordLoginTests.test_legacy_snapshot_republish_strips_initialization_without_mutating_private_source |
 | console.vm-template.login-initialization-isolation | 公开模板剥离初始化凭据并保留私有恢复 | active | regression | Public template export/import versus private VM restore and Region sync | console/tests/vm_example_password_login_test.py::VMExamplePasswordLoginTests.test_public_share_and_legacy_template_import_remove_all_login_initialization<br>console/tests/vm_example_password_login_test.py::VMExamplePasswordLoginTests.test_internal_region_sync_preserves_owned_password_initialization<br>console/tests/vm_example_password_login_test.py::VMExamplePasswordLoginTests.test_template_upgrade_ignores_old_ssh_pair_without_replacing_owner_pair<br>console/tests/vm_example_password_login_test.py::VMExamplePasswordLoginTests.test_transfer_helper_drops_partial_pairs_and_empty_legacy_fields_without_mutation<br>console/tests/vm_example_password_login_test.py::VMExamplePasswordLoginTests.test_owner_generic_api_still_reads_ssh_username_and_public_key<br>console/tests/vm_example_password_login_test.py::VMExamplePasswordLoginTests.test_private_group_backup_keeps_hash_for_vm_restore |
 | console.vm-template.private-rollback-initialization | 同虚拟机私有快照回退保留 SSH 初始化 | active | regression | Private snapshot reconstruction and failed-upgrade Region rollback | console/tests/vm_example_password_login_test.py::VMExamplePasswordLoginTests.test_private_snapshot_and_failed_upgrade_rollback_keep_owner_ssh_pair |
+| console.vm-vnc.scoped-proxy | Authorize same-origin component-scoped VNC HTTP and binary WebSocket access | active | regression | ComponentVNCView and AppVMProfileView | console/tests/vm_vnc_proxy_test.py::VMVNCProxyTests<br>console/tests/vm_detail_view_test.py::ScopedVNCDetailContractTests |
 | console.vm.disk-expansion-runtime-projection | 在虚拟机磁盘布局中保留 PVC 扩容观察字段 | active | regression | console.services.virtual_machine.VirtualMachineService._build_vm_volume_disk_items | console/tests/vm_disk_expansion_projection_test.py::VMDiskExpansionProjectionTests |
 | console.volume.exact-integer-mode | Volume mode preserves exact integer policy | active | regression | console.views.app_config.app_volume.ensure_volume_mode | console/tests/quality_gate_regression_test.py::ExactVolumeModeTests |
 | console.webhook.custom-deploy-missing-component | 自定义部署回调在组件已删除时返回 404 | active | regression | console.views.webhook.CustomWebHooksDeploy.post | console/tests/custom_webhook_test.py::CustomWebhookDeployTests.test_post_returns_not_found_before_reading_key_for_deleted_component<br>console/tests/custom_webhook_test.py::CustomWebhookDeployTests.test_post_still_rejects_invalid_key_for_existing_component |
@@ -7951,6 +7953,16 @@
 - 代码路径: `console/services/virtual_machine.py`
 - 测试路径: `console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_get_vm_asset_includes_explicit_reference_components`, `console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_get_vm_asset_includes_legacy_image_reference_components`
 
+### Route VM batch power through single-component lifecycle APIs
+
+- Capability ID: `console.vm-batch-power.preserve-disks`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.app_actions.app_manage.AppManageService.batch_operations`
+- 代码路径: `console/services/app_actions/app_manage.py`
+- 测试路径: `console/tests/app_manage_test.py::VMBatchPowerSafetyTests`
+
 ### VM创建能力响应返回真实持久化存储选项
 
 - Capability ID: `console.vm-capabilities.persistent-storage-options`
@@ -8400,6 +8412,16 @@
 - 业务入口: `Private snapshot reconstruction and failed-upgrade Region rollback`
 - 代码路径: `console/services/market_app/app_restore.py`, `console/services/market_app/market_app.py`, `console/services/backup_service.py`
 - 测试路径: `console/tests/vm_example_password_login_test.py::VMExamplePasswordLoginTests.test_private_snapshot_and_failed_upgrade_rollback_keep_owner_ssh_pair`
+
+### Authorize same-origin component-scoped VNC HTTP and binary WebSocket access
+
+- Capability ID: `console.vm-vnc.scoped-proxy`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `view_endpoint`
+- 业务入口: `ComponentVNCView and AppVMProfileView`
+- 代码路径: `console/views/vm_vnc.py`, `console/utils/vm_vnc_proxy.py`, `console/utils/vm_vnc_proxy_relay.py`, `console/views/app_overview.py`, `console/urls/__init__.py`
+- 测试路径: `console/tests/vm_vnc_proxy_test.py::VMVNCProxyTests`, `console/tests/vm_detail_view_test.py::ScopedVNCDetailContractTests`
 
 ### 在虚拟机磁盘布局中保留 PVC 扩容观察字段
 
