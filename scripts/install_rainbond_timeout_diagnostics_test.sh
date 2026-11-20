@@ -123,6 +123,10 @@ assert_not_contains "${captured_payloads}" '"eid":'
 assert_contains "${captured_payloads}" "\"uuid\":\"${first_uuid}\""
 assert_contains "${captured_payloads}" '"version":"v6.11.0-release"'
 assert_contains "${captured_payloads}" '"arch":"amd64"'
+curl() { return 28; }
+if ! send_msg 'report endpoint dropped'; then
+  fail 'expected report timeout not to interrupt installation flow'
+fi
 init_line=$(grep -n '^rainbond_initialize_report_identity$' "${INSTALL_SCRIPT}" | cut -d: -f1)
 parse_line=$(grep -n '^parse_cli_args "\$@"$' "${INSTALL_SCRIPT}" | cut -d: -f1)
 [ "${init_line}" -lt "${parse_line}" ] || fail 'expected report identity initialization before argument parsing'
@@ -132,6 +136,10 @@ unsupported_arch_line=$(grep -n '^if \[ "\$ARCH_TYPE" = "unsupported" \]; then$'
 [ "${show_command_line}" -lt "${unsupported_arch_line}" ] || fail 'expected show-command before unsupported architecture check'
 [ "${port_forward_line}" -lt "${unsupported_arch_line}" ] || fail 'expected port-forward before unsupported architecture check'
 assert_contains "$(grep -F -- '-e UUID=${UUID}' "${INSTALL_SCRIPT}")" '-e UUID=${UUID}'
+log_collect_report=$(awk '/^function rainbond_send_operator_log_collect\(\)/,/^}/' "${INSTALL_SCRIPT}")
+dindlog_report=$(awk '/^function send_msg\(\)/,/^}/' "${INSTALL_SCRIPT}")
+assert_contains "${log_collect_report}" '--connect-timeout 3 --max-time 5'
+assert_contains "${dindlog_report}" '--connect-timeout 3 --max-time 5'
 main_running_check=$(grep -F 'if echo "$pod_status" | grep "^${prefix}" | grep '\''Running'\'' >/dev/null 2>&1; then' "${INSTALL_SCRIPT}" || true)
 assert_contains "${main_running_check}" "grep 'Running'"
 set +e

@@ -600,7 +600,7 @@ function rainbond_send_operator_log_collect() {
         "$(rainbond_json_escape "$(rainbond_log_collect_cluster_status)")" \
         "$pods_json")
 
-    curl --silent -H "Content-Type: application/json" -X POST "${RAINBOND_LOG_COLLECT_URL:-https://log.rainbond.com/logCollect}" \
+    curl --silent --connect-timeout 3 --max-time 5 -H "Content-Type: application/json" -X POST "${RAINBOND_LOG_COLLECT_URL:-https://log.rainbond.com/logCollect}" \
         -d "$payload" >/dev/null 2>&1 || :
 }
 
@@ -748,7 +748,7 @@ function send_msg() {
     attempt_json=$(rainbond_json_escape "${INSTALL_ATTEMPT_ID:-}")
     method_json=$(rainbond_json_escape "${RAINBOND_INSTALL_METHOD:-single_node}")
     # send a message to remote url
-    curl --silent -H "Content-Type: application/json" -X POST "$dest_url/dindlog" \
+    curl --silent --connect-timeout 3 --max-time 5 -H "Content-Type: application/json" -X POST "$dest_url/dindlog" \
         -d "{\"message\":\"$msg_json\", \"os_info\":\"$os_info_json\", \"eip\":\"$eip_json\", \"uuid\":\"$uuid_json\", \"version\":\"$version_json\", \"arch\":\"$arch_json\", \"install_attempt_id\":\"$attempt_json\", \"install_method\":\"$method_json\"}" 2>&1 >/dev/null || :
 
     if [ "$msg" == "Terminating by userself." ]; then
