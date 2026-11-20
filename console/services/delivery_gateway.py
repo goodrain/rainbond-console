@@ -497,7 +497,7 @@ class DeliveryGateway:
                     "rainbond_version": os.getenv("RELEASE_DESC", "public-cloud"),
                     "description": task.version.description,
                     "template": manifest,
-                    "template_type": "application_template",
+                    "template_type": "RAM",
                     "arch": manifest.get("arch", "amd64"),
                     "is_plugin": bool(manifest.get("platform_plugin")),
                     "version_alias": ""
