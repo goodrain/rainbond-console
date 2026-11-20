@@ -4,6 +4,14 @@
 
 | Capability ID | 中文标题 | 状态 | 测试类型 | 业务入口 | 测试文件 |
 |---|---|---|---|---|---|
+| console.ai-engine.downstream-cancellation | AI downstream TCP cancellation interrupts silent upstream reads | active | regression | AIProxyWebSocketHandler -> RegionApiBaseHttpClient.stream_proxy | console/tests/ai_engine_wsgi_lifecycle_test.py::AIEngineWSGILifecycleTests |
+| console.ai-engine.incremental-stream | AI streams return small fragments before upstream completion | active | regression | RegionApiBaseHttpClient.stream_proxy | console/tests/ai_engine_transport_test.py::AIEngineTransportTests.test_nonchunked_small_fragment_arrives_before_response_end |
+| console.ai-engine.management-scope-rbac | AI plugin management enforces verified team scope and existing RBAC | active | regression | /console/regions/{region}/backend/plugins/rainbond-ai-engine/* | console/tests/ai_engine_management_proxy_test.py::AIEngineManagementProxyTests |
+| console.ai-engine.platform-credential-installation | AI plugin installs and upgrades provision only the trusted backend credential before deployment | active | regression | RBDPluginSyncService -> AI Engine credential installation | console/tests/ai_engine_installation_test.py |
+| console.ai-engine.platform-secret-client | AI credential bootstrap and env provisioning verify the existing Region identity channel | active | regression | RegionInvokeApi.bootstrap_ai_engine_platform_token / set_ai_engine_platform_env | console/tests/ai_engine_platform_client_test.py::AIEnginePlatformClientTests |
+| console.ai-engine.public-scope-protocol | AI inference validates explicit regions and protocol credentials | active | regression | /openapi/v1/ai-engine/{team}/regions/{region}/v1/* | console/tests/ai_engine_proxy_service_test.py::AIEngineProxyContractTests |
+| console.ai-engine.stream-cleanup | AI stream cancellation closes and releases the upstream | active | regression | RegionApiBaseHttpClient.stream_proxy | console/tests/ai_engine_transport_test.py::AIEngineTransportTests.test_close_before_streaming_closes_and_releases_upstream |
+| console.ai-engine.trusted-transport | AI transport accepts only server verified identity and credentials | active | regression | RegionApiBaseHttpClient.stream_proxy | console/tests/ai_engine_transport_test.py::AIEngineTransportTests.test_inference_uses_only_explicit_credentials_and_scope |
 | console.app-backup.create | 创建应用备份 | active | regression | console.views.center_pool.groupapp_backup.GroupAppsBackupView.post | console/tests/groupapp_backup_migration_test.py::GroupAppsBackupViewWorkflowTests.test_post_starts_group_backup |
 | console.app-backup.create-group-missing | 备份不存在的应用时返回 404 | active | regression | console.services.backup_service.GroupAppBackupService.get_group_app_metadata | console/tests/backup_service_test.py::GroupAppBackupMetadataTests.test_get_group_app_metadata_keeps_valid_empty_group_metadata<br>console/tests/backup_service_test.py::GroupAppBackupMetadataTests.test_get_group_app_metadata_rejects_missing_group_before_collecting_components |
 | console.app-backup.custom-volume-guard | 组件使用自定义存储时阻止备份 | active | regression | console.views.center_pool.groupapp_backup.GroupAppsBackupView.post | console/tests/groupapp_backup_migration_test.py::GroupAppsBackupViewWorkflowTests.test_post_rejects_custom_volume_usage |
@@ -664,7 +672,6 @@
 | console.source-component.normalize-git-url | 为 Git 地址追加一次子目录参数 | active | regression | console.services.source_component_service.normalize_git_url | console/tests/source_component_service_test.py::SourceComponentServiceTests.test_normalize_git_url_appends_subdirectory_once |
 | console.source-component.prefer-dockerfile | Source Component Prefer Dockerfile | active | regression | console.services.source_component_service | console/tests/source_component_service_test.py::SourceComponentServiceTests.test_auto_create_component_prefers_dockerfile_when_requested |
 | console.source-component.prefer-dockerfile-from-dockerfiles-flag | Source Component Prefer Dockerfile From Dockerfiles Flag | active | regression | console.services.source_component_service | console/tests/source_component_service_test.py::SourceComponentServiceTests.test_auto_create_component_prefers_dockerfile_when_dockerfiles_exist |
-| console.team-application.workflow | 团队创建申请、审核和额度生效 | active | regression | console.services.team_applications.TeamApplicationService.review | console/tests/team_application_workflow_test.py::TeamApplicationWorkflowTest.test_isolated_lifecycle_and_http_contract |
 | console.team-arch.empty-region-response | 区域架构响应为空时返回空列表 | active | regression | console.views.public_areas.TeamArchView.get | console/tests/team_overview_query_scope_test.py::TeamOverviewQueryScopeTest.test_team_arch_returns_empty_list_when_region_has_no_architectures |
 | console.team-domain-monitor.time-range-validation | 校验域名监控时间范围 | active | regression | console.views.team.TeamSortDomainQueryView.get | console/tests/team_sort_domain_query_test.py::TeamSortDomainQueryTimeRangeTests |
 | console.team-events.deleted-component-metadata | Preserve deleted component metadata in team events | active | regression | console.views.public_areas._enrich_service_events | console/tests/team_overview_query_scope_test.py::TeamOverviewQueryScopeTest.test_team_events_preserve_live_and_deleted_component_targets |
@@ -732,6 +739,86 @@
 | rainbond-console.vm-run.vm-export-multi-disk-create | 虚拟机运行创建支持多磁盘资产实例化 | active | regression | console.views.app_create.vm_run.VMRunCreateView.post | console/tests/vm_asset_instantiation_test.py |
 
 ## 详情
+
+### AI downstream TCP cancellation interrupts silent upstream reads
+
+- Capability ID: `console.ai-engine.downstream-cancellation`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `workflow`
+- 业务入口: `AIProxyWebSocketHandler -> RegionApiBaseHttpClient.stream_proxy`
+- 代码路径: `goodrain_web/ai_proxy_worker.py`, `www/apiclient/regionapibaseclient.py`, `entrypoint.sh`, `Procfile`
+- 测试路径: `console/tests/ai_engine_wsgi_lifecycle_test.py::AIEngineWSGILifecycleTests`
+
+### AI streams return small fragments before upstream completion
+
+- Capability ID: `console.ai-engine.incremental-stream`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `RegionApiBaseHttpClient.stream_proxy`
+- 代码路径: `www/apiclient/regionapibaseclient.py`
+- 测试路径: `console/tests/ai_engine_transport_test.py::AIEngineTransportTests.test_nonchunked_small_fragment_arrives_before_response_end`
+
+### AI plugin management enforces verified team scope and existing RBAC
+
+- Capability ID: `console.ai-engine.management-scope-rbac`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `view_endpoint`
+- 业务入口: `/console/regions/{region}/backend/plugins/rainbond-ai-engine/*`
+- 代码路径: `console/views/rbd_plugin.py`, `console/services/ai_engine_service.py`
+- 测试路径: `console/tests/ai_engine_management_proxy_test.py::AIEngineManagementProxyTests`
+
+### AI plugin installs and upgrades provision only the trusted backend credential before deployment
+
+- Capability ID: `console.ai-engine.platform-credential-installation`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `workflow`
+- 业务入口: `RBDPluginSyncService -> AI Engine credential installation`
+- 代码路径: `console/services/ai_engine_installation.py`, `console/services/rbd_plugin_sync_service.py`, `console/services/market_app/app_upgrade.py`
+- 测试路径: `console/tests/ai_engine_installation_test.py`
+
+### AI credential bootstrap and env provisioning verify the existing Region identity channel
+
+- Capability ID: `console.ai-engine.platform-secret-client`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `RegionInvokeApi.bootstrap_ai_engine_platform_token / set_ai_engine_platform_env`
+- 代码路径: `www/apiclient/regionapi.py`
+- 测试路径: `console/tests/ai_engine_platform_client_test.py::AIEnginePlatformClientTests`
+
+### AI inference validates explicit regions and protocol credentials
+
+- Capability ID: `console.ai-engine.public-scope-protocol`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `view_endpoint`
+- 业务入口: `/openapi/v1/ai-engine/{team}/regions/{region}/v1/*`
+- 代码路径: `openapi/views/ai_engine_proxy.py`, `openapi/services/ai_engine_proxy_service.py`, `openapi/urls.py`
+- 测试路径: `console/tests/ai_engine_proxy_service_test.py::AIEngineProxyContractTests`
+
+### AI stream cancellation closes and releases the upstream
+
+- Capability ID: `console.ai-engine.stream-cleanup`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `RegionApiBaseHttpClient.stream_proxy`
+- 代码路径: `www/apiclient/regionapibaseclient.py`
+- 测试路径: `console/tests/ai_engine_transport_test.py::AIEngineTransportTests.test_close_before_streaming_closes_and_releases_upstream`
+
+### AI transport accepts only server verified identity and credentials
+
+- Capability ID: `console.ai-engine.trusted-transport`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `RegionApiBaseHttpClient.stream_proxy`
+- 代码路径: `www/apiclient/regionapibaseclient.py`, `www/apiclient/regionapi.py`
+- 测试路径: `console/tests/ai_engine_transport_test.py::AIEngineTransportTests.test_inference_uses_only_explicit_credentials_and_scope`
 
 ### 创建应用备份
 
@@ -7332,16 +7419,6 @@
 - 业务入口: `console.services.source_component_service`
 - 代码路径: `console/services/source_component_service.py`
 - 测试路径: `console/tests/source_component_service_test.py::SourceComponentServiceTests.test_auto_create_component_prefers_dockerfile_when_dockerfiles_exist`
-
-### 团队创建申请、审核和额度生效
-
-- Capability ID: `console.team-application.workflow`
-- 状态: `active`
-- 测试类型: `regression`
-- 接口类型: `workflow`
-- 业务入口: `console.services.team_applications.TeamApplicationService.review`
-- 代码路径: `console/services/team_applications.py`, `console/services/team_application_provisioner.py`, `console/views/team_applications.py`
-- 测试路径: `console/tests/team_application_workflow_test.py::TeamApplicationWorkflowTest.test_isolated_lifecycle_and_http_contract`
 
 ### 区域架构响应为空时返回空列表
 

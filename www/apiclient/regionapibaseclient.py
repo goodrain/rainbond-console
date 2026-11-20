@@ -220,6 +220,102 @@ class RegionApiBaseHttpClient(object):
         else:
             return res, body
 
+    AI_PROXY_PREFIX = "/v2/platform/backend/plugins/rainbond-ai-engine/"
+    AI_CONTEXT_HEADERS = {
+        "x-ai-team-name": "X-AI-Team-Name",
+        "x-ai-region-name": "X-AI-Region-Name",
+        "x-ai-team-namespace": "X-AI-Team-Namespace",
+        "x-ai-actor-id": "X-AI-Actor-ID",
+        "x-ai-can-read-secrets": "X-AI-Can-Read-Secrets",
+    }
+    AI_PROTOCOL_HEADERS = frozenset((
+        "accept",
+        "accept-encoding",
+        "content-type",
+        "content-length",
+        "anthropic-version",
+        "anthropic-beta",
+        "user-agent",
+        "x-request-id",
+    ))
+
+    def _proxy_headers(self, request, url, extra_headers=None, header_allowlist=None):
+        headers = self.get_headers(request.META)
+        if url.startswith(self.AI_PROXY_PREFIX):
+            inference = url[len(self.AI_PROXY_PREFIX):].startswith("v1/")
+            allowed = set(self.AI_PROTOCOL_HEADERS)
+            if not inference:
+                # The browser's opaque debug proof is checked by AI Engine. It
+                # does not declare scope, identity or an operation capability.
+                allowed.add("x-ai-debug-session")
+            headers = {key: value for key, value in headers.items() if key.lower() in allowed}
+            trusted = dict(self.AI_CONTEXT_HEADERS)
+            trusted.update({name: name for name in allowed})
+            if inference:
+                trusted.update({"x-original-authorization": "X-Original-Authorization", "x-api-key": "x-api-key"})
+            for name, value in (extra_headers or {}).items():
+                canonical_name = trusted.get(str(name).lower())
+                if not canonical_name or not isinstance(value, str) or any(
+                        ord(char) < 32 or ord(char) == 127 for char in value):
+                    raise ServiceHandleException("invalid AI Engine proxy header", status_code=400)
+                for key in list(headers):
+                    if key.lower() == canonical_name.lower():
+                        del headers[key]
+                headers[canonical_name] = value
+        else:
+            headers.update(extra_headers or {})
+        if header_allowlist is not None:
+            allowed = {str(header).lower() for header in header_allowlist}
+            headers = {key: value for key, value in headers.items() if key.lower() in allowed}
+        return headers
+
+    @staticmethod
+    def _ai_response_stream(response, decode_content=False, request=None, stop_watching=None):
+        # urllib3 1.25 defaults to accepting a short Content-Length as clean EOF.
+        # AI streams must retain the upstream failure instead of ending as 200.
+        response.enforce_content_length = True
+        closed = False
+
+        def close_upstream():
+            nonlocal closed
+            if closed:
+                return
+            closed = True
+            if stop_watching is not None:
+                stop_watching()
+            try:
+                close = getattr(response, "close", None)
+                if callable(close):
+                    close()
+            finally:
+                response.release_conn()
+
+        def chunks():
+            nonlocal stop_watching
+            try:
+                watch_disconnect = getattr(request, "META", {}).get("rainbond.ai_proxy_watch_disconnect")
+                if stop_watching is None and callable(watch_disconnect):
+                    stop_watching = watch_disconnect()
+                if not getattr(response, "chunked", False) and callable(getattr(type(response), "read1", None)):
+                    while True:
+                        chunk = response.read1(8192, decode_content=decode_content)
+                        if not chunk:
+                            break
+                        yield chunk
+                else:
+                    # urllib3 1.25 has no public read1. Its nonchunked stream(n)
+                    # waits for n bytes, so use one byte to avoid holding small
+                    # SSE fragments until EOF. HTTP chunks already flush promptly.
+                    size = 8192 if getattr(response, "chunked", False) else 1
+                    options = {"decode_content": True} if decode_content else {}
+                    for chunk in response.stream(size, **options):
+                        if chunk:
+                            yield chunk
+            finally:
+                close_upstream()
+
+        return chunks(), close_upstream
+
     def _apply_region_token_headers(self, headers, region):
         if not settings.MODULES["RegionToken"]:
             return headers
@@ -268,6 +364,21 @@ class RegionApiBaseHttpClient(object):
         finally:
             elapsed_ms = round((time.monotonic() - started) * 1000, 3)
             record_region_call(method, url, status, elapsed_ms)
+
+    def _proxy_upstream_request(self, client, request, proxy_path, **kwargs):
+        stop_watching = None
+        if proxy_path.startswith(self.AI_PROXY_PREFIX):
+            watch_disconnect = request.META.get("rainbond.ai_proxy_watch_disconnect")
+            if callable(watch_disconnect):
+                stop_watching = watch_disconnect()
+        try:
+            response = self._timed_client_request(client, method=request.method, **kwargs)
+        except BaseException:
+            # Includes downstream cancellation before an HTTPResponse exists.
+            if stop_watching is not None:
+                stop_watching()
+            raise
+        return response, stop_watching
 
     def _request(self, url, method, headers=None, body=None, *args, **kwargs):
         region_name = kwargs.get("region")
@@ -468,7 +579,6 @@ class RegionApiBaseHttpClient(object):
         request-header forwarding behavior.
         """
         requests_args = (requests_args or {}).copy()
-        headers = self.get_headers(request.META)
         uses_request_stream = 'body' not in requests_args
 
         if 'headers' not in requests_args:
@@ -482,11 +592,7 @@ class RegionApiBaseHttpClient(object):
 
         # Overwrite any headers and params from the incoming request with explicitly
         # specified values for the requests library.
-        headers.update(requests_args['headers'])
-
-        if header_allowlist is not None:
-            allowed_headers = set(str(header).lower() for header in header_allowlist)
-            headers = dict((key, value) for key, value in headers.items() if key.lower() in allowed_headers)
+        headers = self._proxy_headers(request, url, requests_args['headers'], header_allowlist)
 
         # The incoming content length remains valid while forwarding the original
         # request stream. An explicitly replaced body may have a different length.
@@ -502,20 +608,27 @@ class RegionApiBaseHttpClient(object):
             raise ServiceHandleException("region {0} not found".format(region_name), error_code=10412)
 
         requests_args['headers'] = self._apply_region_token_headers(headers, region)
+        if url.startswith(self.AI_PROXY_PREFIX):
+            requests_args.update(retries=False, redirect=False, preload_content=False)
+        request_timeout = requests_args.pop('timeout', timeout)
 
         client = self.get_client(region_config=region)
-        response = self._timed_client_request(
+        response, stop_watching = self._proxy_upstream_request(
             client,
-            method=request.method,
-            timeout=timeout if timeout is not None else urllib3.Timeout(connect=None, read=None),
+            request,
+            url,
+            timeout=request_timeout if request_timeout is not None else urllib3.Timeout(connect=None, read=None),
             url="{}{}".format(region.url, url),
-            **requests_args
-        )
+            **requests_args)
+
+        if url.startswith(self.AI_PROXY_PREFIX):
+            response.enforce_content_length = True
 
         content_type = response.headers.get("Content-Type", "")
         is_event_stream = content_type.lower().startswith("text/event-stream")
 
         if is_event_stream:
+
             def event_stream():
                 try:
                     for chunk in response.stream(4096):
@@ -524,17 +637,31 @@ class RegionApiBaseHttpClient(object):
                 finally:
                     response.release_conn()
 
+            if url.startswith(self.AI_PROXY_PREFIX):
+                stream, close_upstream = self._ai_response_stream(response, request=request, stop_watching=stop_watching)
+            else:
+                stream, close_upstream = event_stream(), None
             proxy_response = StreamingHttpResponse(
-                event_stream(),
+                stream,
                 status=response.status,
                 content_type=content_type or None,
             )
+            if close_upstream is not None:
+                # Generator.close() alone does not run finally before its first
+                # iteration. Register the upstream closer independently as well.
+                proxy_response._resource_closers.append(close_upstream)
             proxy_response['Content-Encoding'] = 'identity'
         else:
             try:
                 body = response.data
             finally:
-                response.release_conn()
+                try:
+                    if stop_watching is not None:
+                        stop_watching()
+                    if url.startswith(self.AI_PROXY_PREFIX):
+                        response.close()
+                finally:
+                    response.release_conn()
             proxy_response = HttpResponse(body, status=response.status)
 
         excluded_headers = set([
@@ -565,7 +692,7 @@ class RegionApiBaseHttpClient(object):
         for key, value in list(response.headers.items()):
             if key.lower() in excluded_headers:
                 continue
-            elif key.lower() == 'location':
+            elif key.lower() == 'location' and not url.startswith(self.AI_PROXY_PREFIX):
                 # If the location is relative at all, we want it to be absolute to
                 # the upstream server.
                 proxy_response[key] = self.make_absolute_location(response.url, value)
@@ -574,30 +701,36 @@ class RegionApiBaseHttpClient(object):
 
         return proxy_response
 
-    def stream_proxy(self, request, url, region_name):
-        """
-        Streaming variant of proxy(). Forwards the request method, body and headers,
-        and streams the upstream response back without buffering it into memory.
+    def stream_proxy(self, request, url, region_name, requests_args=None, timeout=None, header_allowlist=None):
+        """Forward a response incrementally while retaining its HTTP protocol.
 
-        Use this instead of proxy() for plugin backend APIs that may return
-        Server-Sent Events or other long-running streaming responses: proxy()
-        buffers the whole body and uses a fixed 20s timeout, which breaks streaming.
+        AI callers supply verified scope and normalized inference credentials
+        through explicit headers; incoming browser identity is discarded. Other
+        plugins retain their existing headers, retry and timeout defaults.
         """
-        headers = self.get_headers(request.META)
-
+        requests_args = (requests_args or {}).copy()
+        headers = self._proxy_headers(request, url, requests_args.pop('headers', None), header_allowlist)
         region = region_repo.get_region_by_region_name(region_name)
         if not region:
             raise ServiceHandleException("region {0} not found".format(region_name), error_code=10412)
         headers = self._apply_region_token_headers(headers, region)
+        requests_args.setdefault('body', self._get_request_stream(request))
+        if url.startswith(self.AI_PROXY_PREFIX):
+            requests_args.update(retries=False, redirect=False, preload_content=False)
+        else:
+            requests_args.setdefault('preload_content', False)
+        request_timeout = requests_args.pop('timeout', timeout)
+        if request_timeout is None:
+            request_timeout = urllib3.Timeout(connect=30, read=60 * 60)
         client = self.get_client(region_config=region)
-        response = self._timed_client_request(
+        response, stop_watching = self._proxy_upstream_request(
             client,
-            method=request.method,
+            request,
+            url,
             url="{}{}".format(region.url, url),
-            body=self._get_request_stream(request),
             headers=headers,
-            preload_content=False,
-            timeout=urllib3.Timeout(connect=30, read=60 * 60),
+            timeout=request_timeout,
+            **requests_args,
         )
 
         def stream_content():
@@ -606,6 +739,14 @@ class RegionApiBaseHttpClient(object):
                     yield chunk
             finally:
                 response.release_conn()
+
+        if url.startswith(self.AI_PROXY_PREFIX):
+            stream, close_upstream = self._ai_response_stream(response,
+                                                              decode_content=True,
+                                                              request=request,
+                                                              stop_watching=stop_watching)
+        else:
+            stream, close_upstream = stream_content(), None
 
         # Hop-by-hop headers must not be tunneled through. content-type is set from
         # the upstream response; content-length/encoding are handled by streaming.
@@ -623,12 +764,13 @@ class RegionApiBaseHttpClient(object):
             'content-type',
         ])
         content_type = response.headers.get('Content-Type', 'application/octet-stream')
-        proxy_response = StreamingHttpResponse(
-            stream_content(), status=response.status, content_type=content_type)
+        proxy_response = StreamingHttpResponse(stream, status=response.status, content_type=content_type)
+        if close_upstream is not None:
+            proxy_response._resource_closers.append(close_upstream)
         for key, value in list(response.headers.items()):
             if key.lower() in excluded_headers:
                 continue
-            elif key.lower() == 'location':
+            elif key.lower() == 'location' and not url.startswith(self.AI_PROXY_PREFIX):
                 proxy_response[key] = self.make_absolute_location(response.url, value)
             else:
                 proxy_response[key] = value

@@ -37,6 +37,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         "x-ai-team-name": "X-AI-Team-Name",
         "x-ai-region-name": "X-AI-Region-Name",
         "x-ai-team-namespace": "X-AI-Team-Namespace",
+        "x-ai-actor-id": "X-AI-Actor-ID",
+        "x-ai-can-read-secrets": "X-AI-Can-Read-Secrets",
     }
     PLUGIN_NAME_PATTERN = re.compile(r"^[a-z0-9](?:[-a-z0-9]*[a-z0-9])?$")
 
@@ -107,18 +109,98 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         body = json.dumps({'pod': pod, 'pod_uid': pod_uid, 'protocol': 'registry-reference-v1'}).encode('utf-8')
         return self._cleanup_control_request(enterprise_id, region_name, '/v2/cleanup/reference-writers/console', body)
 
-    def _cleanup_control_request(self, enterprise_id: str, region_name: str, path: str,
-                                 body: bytes) -> Tuple[int, Dict[str, Any]]:
+    def bootstrap_ai_engine_platform_token(self, enterprise_id: str, region_name: str) -> str:
+        """Read/bootstrap the isolated credential over the authenticated Region channel."""
+        try:
+            if not self.get_enterprise_region_info(enterprise_id, region_name):
+                raise ValueError()
+            status, result = self._cleanup_control_request(enterprise_id,
+                                                           region_name,
+                                                           "/v2/platform/plugins/rainbond-ai-engine/platform-token",
+                                                           b"{}",
+                                                           ai_platform=True)
+            value = (result.get("bean") or {}).get("token")
+            if status != 200 or not isinstance(value, str) or not re.fullmatch(r"[0-9a-f]{64}", value):
+                raise ValueError()
+            return value
+        except Exception:
+            raise ServiceHandleException("AI Engine platform credential unavailable", status_code=503) from None
+
+    def set_ai_engine_platform_env(self,
+                                   enterprise_id: str,
+                                   region_name: str,
+                                   tenant_name: str,
+                                   service_alias: str,
+                                   value: str,
+                                   create: bool = False) -> None:
+        """Use the existing env endpoint with verified TLS for this single credential."""
+        try:
+            if (not self.get_enterprise_region_info(enterprise_id, region_name) or not isinstance(value, str)
+                    or not re.fullmatch(r"[0-9a-f]{64}", value) or not isinstance(create, bool)
+                    or any(not isinstance(item, str) or not re.fullmatch(r"[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}", item)
+                           for item in (tenant_name, service_alias))):
+                raise ValueError()
+            tenant_region = self.__get_tenant_region_info(tenant_name, region_name)
+            region_tenant_name = tenant_region.region_tenant_name
+            if not isinstance(region_tenant_name, str) or not re.fullmatch(r"[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}",
+                                                                           region_tenant_name):
+                raise ValueError()
+            path = "/v2/tenants/{}/services/{}/env".format(region_tenant_name, service_alias)
+            name = "AI_ENGINE_PLATFORM_TOKEN"
+            body = json.dumps({
+                "tenant_id": tenant_region.region_tenant_id,
+                "enterprise_id": enterprise_id,
+                "container_port": 0,
+                "name": name,
+                "attr_name": name,
+                "attr_value": value,
+                "old_env_name": name,
+                "env_name": name,
+                "env_value": value,
+                "scope": "inner",
+                "is_change": True,
+                "operator": "plugin-install",
+            }).encode("utf-8")
+            status, result = self._cleanup_control_request(enterprise_id,
+                                                           region_name,
+                                                           path,
+                                                           body,
+                                                           ai_platform=True,
+                                                           method="POST" if create else "PUT")
+            if create and 400 <= status < 500 and "record already exist" in str(result.get("msg", "")):
+                # The preceding attempt may have committed before local persistence failed.
+                status, _ = self._cleanup_control_request(enterprise_id,
+                                                          region_name,
+                                                          path,
+                                                          body,
+                                                          ai_platform=True,
+                                                          method="PUT")
+            if status != 200:
+                raise ValueError()
+        except Exception:
+            raise ServiceHandleException("AI Engine platform credential unavailable", status_code=503) from None
+
+    def _cleanup_control_request(self,
+                                 enterprise_id: str,
+                                 region_name: str,
+                                 path: str,
+                                 body: bytes,
+                                 ai_platform: bool = False,
+                                 method: str = "POST") -> Tuple[int, Dict[str, Any]]:
         from urllib.parse import urlsplit
         client = None
         response = None
         try:
             region = self.get_region_info(region_name=region_name)
-            endpoint, token = self.__get_region_access_info_by_enterprise_id(enterprise_id, region_name)
+            if ai_platform:
+                # This is a platform credential, not a legacy enterprise token.
+                endpoint = region.url if region else ""
+                token = getattr(region, "token", None) or os.environ.get("REGION_TOKEN", "")
+            else:
+                endpoint, token = self.__get_region_access_info_by_enterprise_id(enterprise_id, region_name)
             origin = urlsplit(endpoint)
-            if (not region or endpoint != region.url or origin.scheme != 'https' or not origin.hostname
-                    or origin.username or origin.password or origin.query or origin.fragment
-                    or origin.path not in ('', '/')):
+            if (not region or endpoint != region.url or origin.scheme != 'https' or not origin.hostname or origin.username
+                    or origin.password or origin.query or origin.fragment or origin.path not in ('', '/')):
                 raise ValueError()
             config = Configuration(region)
             config.verify_ssl = True
@@ -128,11 +210,17 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             if token:
                 headers['Authorization'] = token
             client = self.create_client(config, pools_size=1, maxsize=1)
-            response = client.request('POST', endpoint.rstrip('/') + path, body=body,
+            response = client.request(method,
+                                      endpoint.rstrip('/') + path,
+                                      body=body,
                                       headers=headers,
-                                      retries=False, redirect=False, preload_content=False,
+                                      retries=False,
+                                      redirect=False,
+                                      preload_content=False,
                                       timeout=urllib3.Timeout(connect=5, read=30))
-            limit = (32 << 20) + (64 << 10)
+            if ai_platform:
+                response.enforce_content_length = True
+            limit = 4096 if ai_platform else (32 << 20) + (64 << 10)
             raw = response.read(limit + 1)
             if len(raw) > limit or not 200 <= response.status <= 599:
                 raise ValueError()
@@ -143,6 +231,11 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         except Exception:
             raise ServiceHandleException("cleanup coordination unavailable", status_code=503) from None
         finally:
+            if ai_platform and response is not None:
+                try:
+                    response.close()
+                except Exception:
+                    pass
             for resource, method in ((response, 'release_conn'), (client, 'clear')):
                 if resource is not None:
                     try:

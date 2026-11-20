@@ -1,7 +1,6 @@
 # -*- coding: utf8 -*-
 import json
 import logging
-import os
 from typing import Any, Dict, Optional, Set
 
 import urllib3
@@ -15,6 +14,7 @@ from console.repositories.region_repo import region_repo
 from console.services.cleanup_installation import resolve_gateway_key
 from console.services.cleanup_gateway import CleanupAccessDenied, CleanupGatewayUnavailable, prepare_cleanup_request
 from console.services.region_services import region_services
+from console.services.ai_engine_service import ai_engine_service
 
 from console.views.base import (
     AlowAnyApiView,
@@ -285,6 +285,13 @@ class RainbondPluginBackendView(JWTAuthApiView):
 
     def initial(self, request: Request, *args: Any, **kwargs: Any) -> None:
         super().initial(request, *args, **kwargs)
+        if kwargs.get("plugin_name") == "rainbond-ai-engine":
+            team_name = (request.META.get("HTTP_X_AI_TEAM_NAME") or request.META.get("HTTP_X_TEAM_NAME")
+                         or request.GET.get("team_name") or request.COOKIES.get("team_name") or request.COOKIES.get("team"))
+            context = ai_engine_service.management_context(self.user, team_name, kwargs.get("region_name"), request.method,
+                                                           kwargs.get("file_path", ""))
+            self.ai_proxy_headers = context.headers
+            return
         if kwargs.get("plugin_name") not in ("rainbond-disk", "rainbond-disk-cleanup"):
             return
         region_name = kwargs.get("region_name")
@@ -303,6 +310,11 @@ class RainbondPluginBackendView(JWTAuthApiView):
             raise PermissionDenied("无权管理此集群的磁盘资源")
         except (CleanupGatewayUnavailable, OSError):
             raise ServiceHandleException("cleanup gateway unavailable", "磁盘清理访问配置未就绪", status_code=503)
+
+    def _proxy_options(self, plugin_name: str) -> dict:
+        if plugin_name == "rainbond-ai-engine":
+            return {"requests_args": {"headers": self.ai_proxy_headers}, "timeout": urllib3.Timeout(connect=10, read=None)}
+        return {}
 
     # 流式代理插件后端 API：支持 SSE / 长响应，转发 body 与请求头（含 Cookie/JWT），
     # 不缓冲、不走 proxy() 的固定 20s 超时。
@@ -325,22 +337,22 @@ class RainbondPluginBackendView(JWTAuthApiView):
                 content_type="application/json",
             )
             return _allow_sameorigin_frame(_clone_response_headers(response, enriched))
-        return _allow_sameorigin_frame(region_api.stream_proxy(request, path, region_name))
+        return _allow_sameorigin_frame(region_api.stream_proxy(request, path, region_name, **self._proxy_options(plugin_name)))
 
     def post(self, request: Request, region_name: str, plugin_name: str, file_path: str, *args: Any,
              **kwargs: Any) -> HttpResponse:
         path = _backend_plugin_path(plugin_name, file_path, request.META.get('QUERY_STRING', ''))
-        return _allow_sameorigin_frame(region_api.stream_proxy(request, path, region_name))
+        return _allow_sameorigin_frame(region_api.stream_proxy(request, path, region_name, **self._proxy_options(plugin_name)))
 
     def put(self, request: Request, region_name: str, plugin_name: str, file_path: str, *args: Any,
             **kwargs: Any) -> HttpResponse:
         path = _backend_plugin_path(plugin_name, file_path, request.META.get('QUERY_STRING', ''))
-        return _allow_sameorigin_frame(region_api.stream_proxy(request, path, region_name))
+        return _allow_sameorigin_frame(region_api.stream_proxy(request, path, region_name, **self._proxy_options(plugin_name)))
 
     def delete(self, request: Request, region_name: str, plugin_name: str, file_path: str, *args: Any,
                **kwargs: Any) -> HttpResponse:
         path = _backend_plugin_path(plugin_name, file_path, request.META.get('QUERY_STRING', ''))
-        return _allow_sameorigin_frame(region_api.stream_proxy(request, path, region_name))
+        return _allow_sameorigin_frame(region_api.stream_proxy(request, path, region_name, **self._proxy_options(plugin_name)))
 
 
 class RainbondPluginStatusView(EnterpriseAdminView):
@@ -377,8 +389,14 @@ class RainbondObservablePluginLView(JWTAuthApiView):
         return Response(general_message(200, "success", "查询成功", list=res))
 
 
-class RainbondPluginFullProxyView(JWTAuthApiView):
+class RainbondPluginFullProxyView(RainbondPluginBackendView):
     authentication_classes = (InternalTokenAuthentication, PluginQueryTokenAuthentication)
+
+    def initial(self, request: Request, *args: Any, **kwargs: Any) -> None:
+        if kwargs.get("plugin_name") == "rainbond-ai-engine":
+            super().initial(request, *args, **kwargs)
+        else:
+            JWTAuthApiView.initial(self, request, *args, **kwargs)
 
     """
     完整的 HTTP 代理视图，用于代理完整的 Web 应用（如 Grafana）
@@ -409,6 +427,10 @@ class RainbondPluginFullProxyView(JWTAuthApiView):
         query_string = request.META.get('QUERY_STRING', '')
         if query_string:
             path = path + "?" + query_string
+
+        if plugin_name == "rainbond-ai-engine":
+            return _allow_sameorigin_frame(
+                region_api.stream_proxy(request, path, region_name, **self._proxy_options(plugin_name)))
 
         # 使用完整的 proxy 方法（保留所有 headers、content-type 等）
         # 该方法在 www/apiclient/regionapibaseclient.py:309-382 中实现

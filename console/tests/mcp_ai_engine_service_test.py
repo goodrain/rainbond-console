@@ -71,6 +71,7 @@ class AIEngineProxyServiceTests(SimpleTestCase):
                 "X-AI-Team-Name": "team-a",
                 "X-AI-Region-Name": "rainbond",
                 "X-AI-Team-Namespace": "trusted-namespace",
+                "X-AI-Actor-ID": "1",
             }, call.kwargs["headers"])
 
     @mock.patch("console.services.ai_engine_service.region_api.request_plugin_backend")

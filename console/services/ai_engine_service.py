@@ -5,6 +5,7 @@ from urllib.parse import quote, urlparse
 
 from console.exception.main import ServiceHandleException
 from console.repositories.enterprise_repo import enterprise_user_perm_repo
+from console.repositories.perm_repo import optimized_role_perm_repo
 from console.repositories.team_repo import team_repo
 from console.services.region_services import region_services
 from console.services.team_services import team_services
@@ -14,18 +15,24 @@ region_api = RegionInvokeApi()
 
 
 class AIEngineContext(object):
-    def __init__(self, enterprise_id: str, team: Any, region_name: str) -> None:
+    def __init__(self, enterprise_id: str, team: Any, region_name: str, actor_id: str) -> None:
         self.enterprise_id = enterprise_id
         self.team = team
         self.region_name = region_name
+        self.actor_id = actor_id
+        self.can_read_secrets = False
 
     @property
     def headers(self) -> Dict[str, str]:
-        return {
+        headers = {
             "X-AI-Team-Name": self.team.tenant_name,
             "X-AI-Region-Name": self.region_name,
             "X-AI-Team-Namespace": self.team.namespace,
+            "X-AI-Actor-ID": self.actor_id,
         }
+        if self.can_read_secrets:
+            headers["X-AI-Can-Read-Secrets"] = "true"
+        return headers
 
 
 class AIEngineProxyService(object):
@@ -178,7 +185,7 @@ class AIEngineProxyService(object):
         if not bindings:
             raise self._permission_denied("团队未开通该集群")
         binding = bindings[0]
-        if getattr(binding, "is_active", True) is False or getattr(binding, "is_init", True) is False:
+        if not getattr(binding, "is_active", True) or not getattr(binding, "is_init", True):
             raise self._permission_denied("团队在该集群尚未完成初始化")
         if not getattr(team, "namespace", None):
             raise ServiceHandleException(
@@ -187,7 +194,35 @@ class AIEngineProxyService(object):
                 status_code=503,
                 error_code="team_namespace_unavailable",
             )
-        return AIEngineContext(enterprise_id, team, region_name)
+        return AIEngineContext(enterprise_id, team, region_name, str(user_id))
+
+    def management_context(self, user: Any, team_name: str, region_name: str, method: str, path: str) -> AIEngineContext:
+        """Authorize team-wide plugin operations using existing global team permissions."""
+        normalized = str(path or "").lstrip("/").rstrip("/")
+        if (not normalized.startswith("api/v1/ai-engine/") or any(part in ("", ".", "..") for part in normalized.split("/"))
+                or any(char in normalized for char in ("%", "\\", "?", "#"))):
+            raise ServiceHandleException("invalid AI Engine management path", status_code=400)
+        context = self._context(user, {"team_name": team_name, "region_name": region_name})
+        secret_path = bool(re.fullmatch(r"api/v1/ai-engine/api-keys/[^/]+/secret", normalized))
+        privileged = user.user_id == context.team.creater or enterprise_user_perm_repo.is_admin(
+            context.enterprise_id, user.user_id)
+        if not privileged:
+            permissions = optimized_role_perm_repo.get_user_team_all_perms(user.user_id, context.team.tenant_id)
+            granted = set(permissions.get("global_perms", []))
+            # 200001: team observation; 300003: edit; 300016: credential-bearing environment configuration.
+            required = {200001}
+            if method.upper() not in ("GET", "HEAD", "OPTIONS"):
+                required.add(300003)
+            if (secret_path
+                    or (method.upper() == "POST" and (normalized == "api/v1/ai-engine/api-keys"
+                                                      or re.fullmatch(r"api/v1/ai-engine/api-keys/[^/]+/rotate", normalized)))):
+                required.add(300016)
+            if not required.issubset(granted):
+                raise self._permission_denied("无该 AI 操作权限")
+        # Emit Engine's capability only after all scope/RBAC checks, including
+        # privileged roles, and only on the authorized plaintext read itself.
+        context.can_read_secrets = method.upper() == "GET" and secret_path
+        return context
 
     def _call(self,
               context: AIEngineContext,

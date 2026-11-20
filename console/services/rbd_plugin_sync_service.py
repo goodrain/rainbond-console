@@ -127,6 +127,13 @@ class RBDPluginSyncService(object):
             except Exception as error:
                 self._fail("configure_cleanup_installation", app_id, plugin_id, error=error)
 
+        if plugin_id == "rainbond-ai-engine":
+            from console.services.ai_engine_installation import configure_installation
+            try:
+                configure_installation(tenant, region, backend_component)
+            except Exception as error:
+                self._fail("configure_ai_engine_installation", app_id, plugin_id, error=error)
+
         frontend_service = self._service_address(frontend_port, namespace)
         entry_path = platform_plugin["entry_path"]
         frontend_service = frontend_service.rstrip("/") + "/" + entry_path.lstrip("/")
