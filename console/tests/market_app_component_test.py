@@ -173,6 +173,7 @@ class MarketAppUpgradePortTests(TestCase):
         changes = PropertyChanges._ports(component.ports, template_ports)
 
         self.assertIn("upd", changes)
+        self.assertIs(changes["upd"][0]["is_inner_service"], False)
         component._update_ports(changes)
 
         self.assertTrue(component.ports[0].is_inner_service)
