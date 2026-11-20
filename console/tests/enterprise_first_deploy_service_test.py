@@ -2256,10 +2256,8 @@ class EnterpriseFirstDeployServiceTests(TestCase):
                            return_value=report_response) as mock_post:
             status = self.service._sync_record(repo.record, payload, "demo-team", "demo-region")
 
-        self.assertEqual(status, self.service.STATUS_FAILURE)
-        report_payload = mock_post.call_args[1]["json"]
-        self.assertEqual(report_payload["failure_stage"], self.service.FAILURE_STAGE_RUNTIME)
-        self.assertEqual(report_payload["failure_reason"], "pod still initializing")
+        self.assertIsNone(status)
+        self.assertFalse(mock_post.called)
 
     def test_sync_record_includes_pod_events_in_runtime_timeout_failure(self):
         """Non-readiness pod timeout with events includes pod events in failure logs."""
@@ -2324,11 +2322,8 @@ class EnterpriseFirstDeployServiceTests(TestCase):
                            return_value=report_response) as mock_post:
             status = self.service._sync_record(repo.record, payload, "demo-team", "demo-region")
 
-        self.assertEqual(status, self.service.STATUS_FAILURE)
-        report_payload = mock_post.call_args[1]["json"]
-        self.assertEqual(report_payload["failure_stage"], self.service.FAILURE_STAGE_RUNTIME)
-        self.assertNotEqual(report_payload["failure_logs"], [])
-        self.assertIn("Back-off", report_payload["failure_logs"][0]["lines"][0]["message"])
+        self.assertIsNone(status)
+        self.assertFalse(mock_post.called)
 
     def test_sync_record_checks_runtime_even_when_build_event_query_returns_empty(self):
         payload = {
@@ -2897,7 +2892,7 @@ class EnterpriseFirstDeployServiceTests(TestCase):
             "environment_context": {"collect_status": "pending", "rbd_version": ""},
         })
 
-        self.assertEqual(report_payload["decision_rule_version"], "v1")
+        self.assertEqual(report_payload["decision_rule_version"], "runtime-readiness-v2")
         self.assertEqual(report_payload["environment_context"]["rbd_version"], "unknown")
 
     def test_dependency_context_sorts_limits_and_distinguishes_missing_pods(self):
@@ -2916,3 +2911,36 @@ class EnterpriseFirstDeployServiceTests(TestCase):
 
         self.assertEqual([item["service_id"] for item in context["dependencies"]], ["dep-a", "dep-b", "dep-missing"])
         self.assertEqual([item["status"] for item in context["dependencies"]], ["NO_PODS", "RUNNING", "MISSING"])
+
+    def test_runtime_pod_state_matrix(self):
+        pod = {"pod_name": "pod-1", "pod_status": "NOTREADY"}
+        cases = [
+            ("healthy", {"status": {"type_str": "RUNNING"}}, self.service.RUNTIME_POD_READY),
+            ("healthy-with-historical-unhealthy", {
+                "status": {"type_str": "RUNNING"}, "events": [{"reason": "Unhealthy"}],
+            }, self.service.RUNTIME_POD_READY),
+            ("containers-not-ready", {"status": {"type_str": "NOTREADY", "reason": "ContainersNotReady"}},
+             self.service.RUNTIME_POD_PROBE_WAIT),
+            ("pod-initializing", {"status": {"reason": "PodInitializing"}}, self.service.RUNTIME_POD_INIT_WAIT),
+            ("container-creating", {"status": {}, "containers": [{"reason": "ContainerCreating"}]},
+             self.service.RUNTIME_POD_INIT_WAIT),
+            ("pulling-event-only", {"status": {}, "events": [{"reason": "Pulling"}]},
+             self.service.RUNTIME_POD_NOT_READY),
+            ("crash-loop", {"status": {}, "containers": [{"reason": "CrashLoopBackOff"}]},
+             self.service.RUNTIME_POD_HARD_FAIL),
+            ("image-pull-backoff", {"status": {}, "containers": [{"reason": "ImagePullBackOff"}]},
+             self.service.RUNTIME_POD_HARD_FAIL),
+            ("err-image-pull", {"status": {}, "containers": [{"reason": "ErrImagePull"}]},
+             self.service.RUNTIME_POD_HARD_FAIL),
+            ("oom-killed", {"status": {}, "containers": [{"reason": "OOMKilled"}]}, self.service.RUNTIME_POD_HARD_FAIL),
+            ("init-crash-loop", {"status": {}, "init_containers": [{"reason": "CrashLoopBackOff"}]},
+             self.service.RUNTIME_POD_HARD_FAIL),
+            ("unschedulable", {"status": {"reason": "Unschedulable"}}, self.service.RUNTIME_POD_NOT_READY),
+        ]
+        for name, detail, expected in cases:
+            with self.subTest(name=name):
+                case_pod = dict(pod, pod_status="RUNNING") if expected == self.service.RUNTIME_POD_READY else pod
+                self.assertEqual(self.service.classify_runtime_pod(case_pod, detail), expected)
+        self.assertEqual(self.service.classify_runtime_pod(None, {}), self.service.RUNTIME_POD_NO_POD)
+        self.assertTrue(self.service.is_runtime_pod_ready({"pod_status": "RUNNING"}, {"status": {}}))
+        self.assertFalse(self.service.is_runtime_pod_ready({"pod_status": "RUNNING"}, {"status": {"type_str": "NOTREADY"}}))

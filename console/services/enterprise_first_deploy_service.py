@@ -78,7 +78,7 @@ class EnterpriseFirstDeployService(object):
     MAX_FAILURE_REASON_LENGTH = 1024
     RUNTIME_OBSERVE_WINDOW = 60
     READINESS_FINAL_OBSERVE_WINDOW = 180
-    DECISION_RULE_VERSION = "v1"
+    DECISION_RULE_VERSION = "runtime-readiness-v2"
     MAX_DEPENDENCY_SNAPSHOT = 10
     BUILD_FAILURE_LOG_WAIT_WINDOW = 60
     COMPILE_FAILURE_LOG_WAIT_WINDOW = 180
@@ -121,6 +121,17 @@ class EnterpriseFirstDeployService(object):
         "startupprobefailure",
         "livenessrestart",
         "initiating",
+    }
+    RUNTIME_POD_READY = "ready"
+    RUNTIME_POD_HARD_FAIL = "hard_fail"
+    RUNTIME_POD_PROBE_WAIT = "probe_wait"
+    RUNTIME_POD_INIT_WAIT = "init_wait"
+    RUNTIME_POD_NOT_READY = "not_ready"
+    RUNTIME_POD_NO_POD = "no_pod"
+    RUNTIME_WAITING_POD_STATES = {RUNTIME_POD_PROBE_WAIT, RUNTIME_POD_INIT_WAIT}
+    RUNTIME_HARD_FAILURE_REASONS = {
+        "imagepullbackoff", "errimagepull", "crashloopbackoff", "createcontainerconfigerror", "oomkilled",
+        "containerexiterror", "abnormalexited", "evicted",
     }
     DEPENDENCY_SNAPSHOT_STATUSES = {"RUNNING", "INITIATING", "PENDING", "UNHEALTHY", "ABNORMAL", "UNKNOWN"}
     RESOURCE_INSUFFICIENT_RE = re.compile(
@@ -1014,6 +1025,7 @@ class EnterpriseFirstDeployService(object):
         if not runtime_watch_started_at:
             return None
 
+        payload.pop("runtime_component_states", None)
         runtime_pod_status = self._inspect_runtime_pods(payload, tenant_name, region_name, runtime_watch_started_at)
         if runtime_pod_status == self.STATUS_FAILURE:
             return self.STATUS_FAILURE
@@ -1025,7 +1037,10 @@ class EnterpriseFirstDeployService(object):
             return self.STATUS_SUCCESS
         if payload.get("service_alias") or payload.get("service_aliases"):
             if self._runtime_window_elapsed(runtime_watch_started_at):
-                if self._is_soft_runtime_failure(payload) and not self._readiness_final_window_elapsed(runtime_watch_started_at):
+                component_states = payload.get("runtime_component_states") or []
+                has_waiting_component = any(
+                    state in self.RUNTIME_WAITING_POD_STATES for state in component_states)
+                if has_waiting_component and not self._readiness_final_window_elapsed(runtime_watch_started_at):
                     return None
                 failed_events, failure_logs, timeout_reason = self._collect_runtime_timeout_snapshot(
                     payload, tenant_name, region_name, runtime_watch_started_at)
@@ -2356,27 +2371,22 @@ class EnterpriseFirstDeployService(object):
                               runtime_watch_started_at: str, service_alias: str) -> Optional[str]:
         pods = self._get_service_pods_for_runtime(payload, tenant_name, region_name, service_alias)
         if not pods:
+            payload.setdefault("runtime_component_states", []).append(self.RUNTIME_POD_NO_POD)
             return None
 
         candidate_pods = [pod for pod in pods if pod.get("_group") == "new_pods"] or pods
-        all_running = True
+        states = []
         for pod in candidate_pods:
             pod_name = pod.get("pod_name")
             pod_detail = self._get_runtime_pod_detail(region_name, tenant_name, service_alias, pod_name)
-            failure = self._extract_runtime_failure_from_pod(payload, pod, pod_detail)
-            if failure:
-                opt_type = (failure["event"].get("opt_type") or "").lower()
-                is_soft = opt_type in self.SOFT_FAILURE_OPT_TYPES
-                if is_soft:
-                    all_running = False
-                    # Probe/readiness failures can be transient. Keep the first snapshot, but only finalize
-                    # after the extended readiness window.
-                    payload["runtime_failure_opt_type"] = opt_type
-                    payload["runtime_failure_reason"] = self._shrink_text(failure["reason"], self.MAX_FAILURE_REASON_LENGTH)
-                    if not payload.get("runtime_failure_logs"):
-                        payload["runtime_failure_logs"] = failure["logs"]
-                    if not self._readiness_final_window_elapsed(runtime_watch_started_at):
-                        continue
+            state = self.classify_runtime_pod(pod, pod_detail)
+            states.append(state)
+            if state == self.RUNTIME_POD_HARD_FAIL:
+                failure = self._extract_runtime_failure_from_pod(payload, pod, pod_detail)
+                if not failure:
+                    failure = {"event": {"event_id": pod_name, "service_id": (payload.get("service_ids") or [""])[0],
+                                         "opt_type": "runtime_hard_failure"},
+                               "reason": "runtime hard failure", "logs": []}
                 self._set_stage_failure(
                     payload,
                     self.FAILURE_STAGE_RUNTIME,
@@ -2384,12 +2394,10 @@ class EnterpriseFirstDeployService(object):
                     reason=failure["reason"],
                     failure_logs=failure["logs"])
                 return self.STATUS_FAILURE
-
-            pod_status = (pod.get("pod_status") or "").upper()
-            detail_status = ((pod_detail or {}).get("status") or {}).get("type_str", "")
-            if pod_status != "RUNNING" or (detail_status and detail_status.upper() != "RUNNING"):
-                all_running = False
+            if state != self.RUNTIME_POD_READY:
                 pod_status_info = (pod_detail or {}).get("status") or {}
+                pod_status = (pod.get("pod_status") or "").upper()
+                detail_status = pod_status_info.get("type_str", "")
                 status_message = (pod_status_info.get("message") or pod_status_info.get("reason") or
                                   pod_status or detail_status or "runtime verification timeout")
                 payload["runtime_failure_opt_type"] = pod_status_info.get("reason") or pod_status or detail_status
@@ -2399,7 +2407,38 @@ class EnterpriseFirstDeployService(object):
                     candidate_logs = self._build_runtime_pod_logs(pod_name, pod_events, pod_status_info, pod_detail)
                     if candidate_logs:
                         payload["runtime_failure_logs"] = candidate_logs
-        return self.STATUS_SUCCESS if all_running else None
+        component_state = self.RUNTIME_POD_READY if all(state == self.RUNTIME_POD_READY for state in states) else \
+            next((state for state in states if state in self.RUNTIME_WAITING_POD_STATES),
+                 next(state for state in states if state != self.RUNTIME_POD_READY))
+        payload.setdefault("runtime_component_states", []).append(component_state)
+        return self.STATUS_SUCCESS if component_state == self.RUNTIME_POD_READY else None
+
+    @classmethod
+    def classify_runtime_pod(cls, pod: Optional[dict], pod_detail: Any) -> str:
+        if not pod:
+            return cls.RUNTIME_POD_NO_POD
+        status = (pod_detail or {}).get("status") or {}
+        pod_status = (pod.get("pod_status") or "").upper()
+        detail_status = (status.get("type_str") or "").upper()
+        values = [status.get("reason") or ""]
+        for group in ("init_containers", "containers"):
+            for container in (pod_detail or {}).get(group) or []:
+                values.extend([container.get("state") or "", container.get("reason") or ""])
+        normalized = {str(value).lower() for value in values}
+        if normalized & cls.RUNTIME_HARD_FAILURE_REASONS:
+            return cls.RUNTIME_POD_HARD_FAIL
+        if pod_status == "RUNNING" and (not detail_status or detail_status == "RUNNING"):
+            return cls.RUNTIME_POD_READY
+        probe_failures = {"readinessprobefailed", "livenessprobefailed", "startupprobefailure"}
+        if "containersnotready" in normalized or normalized & probe_failures:
+            return cls.RUNTIME_POD_PROBE_WAIT
+        if normalized & {"podinitializing", "containercreating", "pulling", "initializing"}:
+            return cls.RUNTIME_POD_INIT_WAIT
+        return cls.RUNTIME_POD_NOT_READY
+
+    @classmethod
+    def is_runtime_pod_ready(cls, pod: dict, pod_detail: Any) -> bool:
+        return cls.classify_runtime_pod(pod, pod_detail) == cls.RUNTIME_POD_READY
 
     def _get_service_pods_for_runtime(self, payload: dict, tenant_name: str, region_name: str,
                                       service_alias: str) -> list:
