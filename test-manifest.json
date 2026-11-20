@@ -12291,6 +12291,25 @@
       "status": "active"
     },
     {
+      "id": "console.schema.preserve-legacy-retirements",
+      "title": "Preserve historical data in generated retirement migrations",
+      "title_zh": "启动迁移保留历史表与关系数据",
+      "interface_type": "workflow",
+      "interface": "python manage.py repair_legacy_schema --apps console [--plan]",
+      "code_paths": [
+        "console/management/commands/repair_legacy_schema.py",
+        "console/utils/legacy_retirement_migration.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/legacy_retirement_migration_test.py",
+          "selector": "LegacyRetirementMigrationTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.sentry.expected-not-found-errors",
       "title": "Suppress expected not-found telemetry",
       "title_zh": "过滤预期的资源不存在异常",

@@ -9,6 +9,7 @@ from django.db.migrations.loader import MigrationLoader
 from django.db.migrations.recorder import MigrationRecorder
 
 from console.utils.oauth_migration_repair import make_oauth_add_field_state_only, oauth_column_matches
+from console.utils.legacy_retirement_migration import preserve_legacy_retirements
 
 
 DEFAULT_APP_LABELS = ("authtoken", "www", "console")
@@ -187,6 +188,8 @@ class Command(BaseCommand):
             raise CommandError("At least one app label is required")
 
         plan = bool(options["plan"])
+        if "console" in app_labels and preserve_legacy_retirements(connections[database], dry_run=plan):
+            self.stdout.write("{} historical retirement data".format("Would preserve" if plan else "Preserved"))
         results = repair_legacy_schema(connections[database], app_labels, dry_run=plan)
         if "console" in app_labels and repair_oauth_auto_create_user_column(connections[database], dry_run=plan):
             self.stdout.write("{} console.oauth_service.auto_create_user".format("Would repair" if plan else "Repaired"))
