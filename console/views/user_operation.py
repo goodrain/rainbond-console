@@ -136,7 +136,7 @@ class TenantServiceView(BaseApiView):
 
             import copy
             querydict = copy.copy(request.data)
-            client_ip = request.META.get("REMOTE_ADDR", None)
+            _ = request.META.get("REMOTE_ADDR", None)
             user_name = querydict.get("user_name")
             if user_name:
                 validate_new_username(user_name)
@@ -160,13 +160,15 @@ class TenantServiceView(BaseApiView):
                 if not enterprise:
                     enter_name = request.data.get("enter_name", None)
                     # NOTE: create_enterprise expects str name; legacy passes None (backlog).
-                    enterprise = enterprise_services.create_enterprise(enterprise_name=None, enterprise_alias=enter_name)  # type: ignore[arg-type]
+                    enterprise = enterprise_services.create_enterprise(enterprise_name=None,  # type: ignore[arg-type]
+                                                                       enterprise_alias=enter_name)  # type: ignore[arg-type]
                     # 创建用户在企业的权限
                     # NOTE: user_id is int AutoField; service takes str (systemic int-as-str, backlog).
-                    user_services.make_user_as_admin_for_enterprise(user.user_id, enterprise.enterprise_id)  # type: ignore[arg-type]
+                    user_services.make_user_as_admin_for_enterprise(user.user_id,  # type: ignore[arg-type]
+                                                                    enterprise.enterprise_id)  # type: ignore[arg-type]
                     team = team_services.create_team(user, enterprise, ["rainbond"], "", "default", "")
                     region_services.create_tenant_on_region(enterprise.enterprise_id, team.tenant_name, "rainbond",
-                                                                team.namespace)
+                                                            team.namespace)
                 if os.getenv("USE_SAAS"):
                     regions = region_repo.get_usable_regions(enterprise.enterprise_id)
                     # 转换nick_name为符合k8s命名空间规范的名称
@@ -370,14 +372,18 @@ class ChangeLoginPassword(JWTAuthApiView):
             elif password == new_password:
                 result = general_message(400, "old and new password agree", "新旧密码一致")
             else:
-                status, info = user_services.update_password(user_id=u.user_id, new_password=new_password)  # type: ignore[union-attr, arg-type]
-                oauth_instance, _ = user_services.check_user_is_enterprise_center_user(request.user.user_id)  # type: ignore[union-attr]
+                status, info = user_services.update_password(user_id=u.user_id,  # type: ignore[union-attr]
+                                                             new_password=new_password)  # type: ignore[union-attr, arg-type]
+                oauth_instance, _ = user_services.check_user_is_enterprise_center_user(
+                    request.user.user_id)  # type: ignore[union-attr]
                 if oauth_instance:
                     data = {
                         "password": new_password,
                         "real_name": request.user.real_name,  # type: ignore[union-attr]
                     }
-                    oauth_instance.update_user(request.user.enterprise_id, request.user.enterprise_center_user_id, data)  # type: ignore[union-attr]
+                    oauth_instance.update_user(  # type: ignore[union-attr]
+                        request.user.enterprise_id, request.user.enterprise_center_user_id,  # type: ignore[union-attr]
+                        data)  # type: ignore[union-attr]
                 if status:
                     code = 200
                     result = general_message(200, "change password success", "密码修改成功")
@@ -414,7 +420,8 @@ class UserDetailsView(JWTAuthApiView):
         # Fix: Handle case where enterprise doesn't exist (e.g., after cross-cluster restore)
         user_detail["is_enterprise_active"] = enterprise.is_active if enterprise else False
         # NOTE: enterprise_id nullable; service takes str (systemic nullable, backlog).
-        initial_marker = agent_access_service.ensure_initial_enterprise_admin_marker(user.enterprise_id)  # type: ignore[arg-type]
+        initial_marker = agent_access_service.ensure_initial_enterprise_admin_marker(
+            user.enterprise_id)  # type: ignore[arg-type]
         if initial_marker and initial_marker.user_id == user.user_id:
             self.is_enterprise_admin = True
         user_detail["is_enterprise_admin"] = self.is_enterprise_admin
@@ -512,6 +519,7 @@ class UserDetailsView(JWTAuthApiView):
             result = general_message(500, "update failed", "用户信息更新失败")
             return Response(result, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
 class UserFavoriteLCView(JWTAuthApiView):
     def get(self, request: Request, enterprise_id: str) -> Response:
         data = []
@@ -603,28 +611,26 @@ class UserInviteView(JWTAuthApiView):
             team_id = request.data.get("team_id")
             role_id = request.data.get("role_id", "")
             expired_days = request.data.get("expired_days", 1)
-            
+
             if not team_id:
                 result = general_message(400, "params error", "参数错误")
                 return Response(result, status=400)
-                
+
             # 验证团队是否存在
             team = team_repo.get_team_by_team_id(team_id)
             if not team:
                 result = general_message(404, "team not found", "团队不存在")
                 return Response(result, status=404)
-                
+
             # 创建邀请时保存role_id
             invite = team_invitation_repo.create_invitation(
                 tenant_id=team_id,
                 inviter_id=self.user.user_id,
                 invitation_id=make_uuid(),
                 role_id=role_id,  # 添加role_id
-                expired_time=datetime.now() + timedelta(days=expired_days)
-            )
+                expired_time=datetime.now() + timedelta(days=expired_days))
 
-            result = general_message(200, "success", "邀请创建成功", 
-                                  bean={"invite_id": invite.invitation_id})
+            result = general_message(200, "success", "邀请创建成功", bean={"invite_id": invite.invitation_id})
             return Response(result, status=200)
 
         except Exception as e:
@@ -803,12 +809,11 @@ class RegisterByPhoneView(BaseApiView):
                 # 转换nick_name为符合k8s命名空间规范的名称
                 normalized_namespace = normalize_name_for_k8s_namespace(nick_name)
                 team = team_services.create_team(user, enterprise, None, None, normalized_namespace)
-                region_services.create_tenant_on_region(enterprise.enterprise_id, team.tenant_name,
-                                                            regions[0].region_name,
-                                                            team.namespace)
+                region_services.create_tenant_on_region(enterprise.enterprise_id, team.tenant_name, regions[0].region_name,
+                                                        team.namespace)
                 limit_quota = {"limit_memory": 10240, "limit_cpu": 4000, "limit_storage": 0}
-                team_services.set_tenant_resource_limit(
-                    enterprise.enterprise_id, regions[0].region_id, team.tenant_name, limit_quota)
+                team_services.set_tenant_resource_limit(enterprise.enterprise_id, regions[0].region_id, team.tenant_name,
+                                                        limit_quota)
             except Exception as e:
                 logger.warning("create default team failed", e)
             # 生成token

@@ -1,5 +1,6 @@
 # coding: utf-8
-from unittest import TestCase, mock
+from typing import TYPE_CHECKING
+from unittest import TestCase
 
 import os
 import sys
@@ -10,12 +11,34 @@ sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
 
-import django
 
-django.setup()
+def _load_test_dependencies():
+    """Keep the existing post-Django-setup import order and module bindings."""
+    import django
 
-from console.utils.oauth.base.git_oauth import GitOAuth2Interface
-from console.utils.oauth.base.oauth import OAuth2Interface
+    django.setup()
+
+    from console.utils.oauth.base.git_oauth import GitOAuth2Interface
+    from console.utils.oauth.base.oauth import OAuth2Interface
+    return (
+        django,
+        GitOAuth2Interface,
+        OAuth2Interface,
+    )
+
+
+(
+    django,
+    _RuntimeGitOAuth2Interface,
+    _RuntimeOAuth2Interface,
+) = _load_test_dependencies()
+
+if TYPE_CHECKING:
+    from console.utils.oauth.base.git_oauth import GitOAuth2Interface
+    from console.utils.oauth.base.oauth import OAuth2Interface
+else:
+    GitOAuth2Interface = _RuntimeGitOAuth2Interface
+    OAuth2Interface = _RuntimeOAuth2Interface
 
 
 class DummyOAuth(OAuth2Interface):

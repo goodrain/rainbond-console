@@ -14,7 +14,7 @@ class AppConstants(object):
     DOCKER_IMAGE = "docker_image"
     PACKAGE_BUILD = "package_build"
     VM_RUN = "vm_run"
-    KUBEBLOCKS = "kubeblocks" 
+    KUBEBLOCKS = "kubeblocks"
 
 
 class LogConstants(object):

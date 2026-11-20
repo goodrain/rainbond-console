@@ -148,7 +148,8 @@ class TenantServiceEnvVarRepositoryTests(TestCase):
         repository_module.compile_env_repo.get_service_compile_env.return_value = None
 
         build_env_rows = [
-            types.SimpleNamespace(attr_name="BUILD_PROCFILE", attr_value="web: flask --app demo.app run --host 0.0.0.0 --port $PORT"),
+            types.SimpleNamespace(attr_name="BUILD_PROCFILE",
+                                  attr_value="web: flask --app demo.app run --host 0.0.0.0 --port $PORT"),
             types.SimpleNamespace(attr_name="BUILD_PYTHON_PACKAGE_MANAGER", attr_value="pip"),
             types.SimpleNamespace(attr_name="BP_CPYTHON_VERSION", attr_value="3.14"),
         ]

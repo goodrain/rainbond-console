@@ -268,7 +268,6 @@ class AIEnginePredeployCredentialTests(TestCase):
         app._save_app.side_effect = lambda: order.append("save")
         app._deploy.side_effect = lambda *args: order.append("deploy")
         with mock.patch("console.services.cleanup_retirement.lock_template_use", return_value=nullcontext()), \
-                mock.patch("console.services.market_app.app_upgrade.app_version_auto_snapshot_service.before_upgrade"), \
                 mock.patch("console.services.market_app.app_upgrade.AppUpgradeRecord.objects.filter"), \
                 mock.patch("console.services.rbd_plugin_sync_service.rbd_plugin_sync_service.reconcile",
                            side_effect=lambda *args: order.append("credential")):

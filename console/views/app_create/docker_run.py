@@ -117,7 +117,8 @@ class DockerRunCreateView(RegionTenantHeaderView):
             # 添加username,password信息
             if docker_password or docker_user_name:
                 # NOTE: new_service may be None; create_service_source_info also expects non-None str args; backlog
-                app_service.create_service_source_info(self.tenant, new_service, docker_user_name, docker_password)  # type: ignore[arg-type]
+                app_service.create_service_source_info(self.tenant, new_service, docker_user_name,  # type: ignore[arg-type]
+                                                       docker_password)  # type: ignore[arg-type]
 
             code, msg_show = group_service.add_service_to_group(self.tenant, self.response_region, group_id,
                                                                 new_service.service_id)  # type: ignore[union-attr]
@@ -129,5 +130,6 @@ class DockerRunCreateView(RegionTenantHeaderView):
         except AccountOverdueException as re:
             logger.exception(re)
             # NOTE: py2-style Exception.message
-            return Response(general_message(10410, "resource is not enough", re.message), status=412)  # type: ignore[attr-defined]
+            return Response(general_message(10410, "resource is not enough", re.message),  # type: ignore[attr-defined]
+                            status=412)  # type: ignore[attr-defined]
         return Response(result, status=result["code"])

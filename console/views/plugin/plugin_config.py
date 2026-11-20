@@ -188,12 +188,11 @@ class ConfigPluginManageView(PluginBaseView):
         create_data = [config]
         new_information = ""
         if modify_type and injection == "plugin_storage":
-            plugin_config_service.create_config_items(
-                self.plugin_version.plugin_id, self.plugin_version.build_version,
-                service_meta_type, config["options"][0])  # type: ignore[arg-type]
+            plugin_config_service.create_config_items(self.plugin_version.plugin_id, self.plugin_version.build_version,
+                                                      service_meta_type, config["options"][0])  # type: ignore[arg-type]
         else:
-            new_config = plugin_config_service.create_config_groups(self.plugin_version.plugin_id, self.plugin_version.build_version,
-                                                       create_data)
+            new_config = plugin_config_service.create_config_groups(self.plugin_version.plugin_id,
+                                                                    self.plugin_version.build_version, create_data)
 
             new_information = plugin_config_service.json_config_group(new_config[0])
         result = general_message(200, "success", "添加成功")

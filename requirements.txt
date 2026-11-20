@@ -8,7 +8,7 @@ simplejson==3.8.0
 urllib3==1.25.10
 certifi~=2023.5.7
 whitenoise==6.9.0
-pillow==8.1.0
+pillow==11.3.0
 djangorestframework==3.16.0
 markdown==2.6.2
 requests==2.25.1
@@ -41,6 +41,7 @@ validators==0.14.2
 deprecated==1.2.10
 redis==3.5.3
 cryptography==3.3
+passlib==1.7.4
 kubernetes==30.1.0
 django-postgrespool2==2.0.5
 ruamel.yaml==0.18.6

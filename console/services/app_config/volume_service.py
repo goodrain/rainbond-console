@@ -10,6 +10,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from console.constants import AppConstants, ServiceLanguageConstants
 from console.enum.component_enum import ComponentType
+from console.services.vm_storage_snapshot import project_creation_storage_option
 from console.exception.main import ErrVolumePath, ServiceHandleException
 from console.models.main import ConsoleSysConfig
 from console.repositories.app import service_repo
@@ -99,7 +100,7 @@ class AppVolumeService(object):
                 return False
         return True
 
-    def get_service_support_volume_options(self, tenant: Tenants, service: TenantServiceInfo) -> List[dict]:
+    def get_region_volume_options(self, tenant: Tenants, region_name: str, strict: bool = False) -> List[dict]:
         base_opts = [{"volume_type": "memoryfs", "name_show": "临时存储"}]
 
         # 如果是 SAAS 环境，根据 CLOUD_PROVIDER 返回对应的云存储配置
@@ -115,15 +116,45 @@ class AppVolumeService(object):
             return base_opts
 
         # 默认情况：从 region API 获取存储选项
-        body = region_api.get_volume_options(service.service_region, tenant.tenant_name)
-        if body and hasattr(body, 'list') and body.list:
-            for opt in body.list:
+        body = region_api.get_volume_options(region_name, tenant.tenant_name)
+        if strict:
+            if isinstance(body, dict):
+                if "code" in body and (type(body["code"]) is not int or body["code"] != 200):
+                    raise ValueError("failed region volume options response")
+                if "list" not in body:
+                    raise ValueError("invalid region volume options response")
+                region_options = body["list"]
+            elif body is not None and hasattr(body, "list"):
+                region_options = body.list
+            else:
+                raise ValueError("invalid region volume options response")
+            if not isinstance(region_options, list):
+                raise ValueError("invalid region volume options response")
+        else:
+            region_options = body.list if body and hasattr(body, "list") and body.list else []
+
+        if region_options:
+            for opt in region_options:
                 # 将 sharedcfs 类型的存储显示为"百度云"
                 if opt.get("volume_type") == "sharedcfs":
                     opt["name_show"] = "百度云"
                 base_opts.append(opt)
 
         return base_opts
+
+    def get_service_support_volume_options(self, tenant: Tenants, service: TenantServiceInfo) -> List[dict]:
+        return self.get_region_volume_options(tenant, service.service_region)
+
+    def get_vm_persistent_storage_options(self, tenant: Tenants, region_name: str) -> List[dict]:
+        excluded_types = {"memoryfs", "config-file"}
+        return [
+            project_creation_storage_option(option)
+            for option in self.get_region_volume_options(tenant, region_name, strict=True)
+            if isinstance(option, dict)
+            and str(option.get("volume_type") or "").strip()
+            and str(option.get("volume_type") or "").strip().lower() not in excluded_types
+            and option.get("enable", True) is not False
+        ]
 
     def normalize_volume_option_access_modes(self, option: Any) -> List[str]:
         access_modes = option.get("access_mode", []) if isinstance(option, dict) else []
@@ -193,7 +224,7 @@ class AppVolumeService(object):
         如果集群中有该类型的存储，优先使用它而不是模板中的存储类型
         例如: PREFERRED_VOLUME_TYPE=sharedcfs
         """
-        settings = {}  # type: Dict[str, Any]
+        settings: Dict[str, Any] = {}
         if volume_type in self.simple_volume_type:
             settings["changed"] = False
             return settings
@@ -585,8 +616,10 @@ class AppVolumeService(object):
                                     user_name: str = '', force: Any = None) -> Tuple[int, str, Any]:
         # force=0: 预先检查不要删除
         volume = volume_repo.get_service_volume_by_pk(volume_id)
-        if not volume:
+        if not volume or volume.service_id != service.service_id:
             return 404, "需要删除的路径不存在", None
+        if getattr(service, "extend_method", "") == ComponentType.vm.value and volume.volume_name == "disk":
+            return 409, "虚拟机系统盘不允许单独删除", None
         mnt = mnt_repo.get_mnt_by_dep_id_and_mntname(service.service_id, volume.volume_name)
         if mnt:
             ret_list = []
@@ -609,12 +642,16 @@ class AppVolumeService(object):
                 res, body = region_api.delete_service_volumes(
                     service.service_region, tenant.tenant_name, service.service_alias, volume.volume_name,
                     tenant.enterprise_id, data)  # type: ignore[arg-type]
-                logger.debug("service {0} delete volume {1}, result {2}".format(service.service_cname, volume.volume_name,
-                                                                                body))
-            except region_api.CallApiError as e:
-                if e.status != 404:
+                if res.status != 200:
                     raise ServiceHandleException(
-                        msg="delete volume from region failure", msg_show="从集群删除存储发生错误", status_code=500)
+                        msg="volume cleanup is not confirmed",
+                        msg_show="集群尚未确认存储回收，配置已保留，请稍后重试",
+                        status_code=409 if res.status < 500 else 502)
+            except region_api.CallApiError as e:
+                raise ServiceHandleException(
+                    msg="volume cleanup is not confirmed",
+                    msg_show="集群尚未确认存储回收，配置已保留，请重试或联系管理员核对",
+                    status_code=409 if e.status in (404, 409) else 502)
         volume_repo.delete_volume_by_id(volume_id)
         volume_repo.delete_file_by_volume(volume)
 

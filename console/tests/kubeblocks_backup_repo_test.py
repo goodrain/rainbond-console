@@ -223,8 +223,10 @@ class KubeBlocksBackupRepoServiceTests(TestCase):
             "status": 200
         }, {
             "list": [{
-                "name": "team-a-ns-prod",
-                "phase": "Failed",
+                "name":
+                "team-a-ns-prod",
+                "phase":
+                "Failed",
                 "conditions": [{
                     "type": "PreCheckPassed",
                     "status": "False",
@@ -260,11 +262,7 @@ class KubeBlocksBackupRepoServiceTests(TestCase):
             status="Ready",
         )
         region_api = mock.Mock()
-        region_api.get_kubeblocks_backup_repos.return_value = ({
-            "status": 200
-        }, {
-            "list": []
-        })
+        region_api.get_kubeblocks_backup_repos.return_value = ({"status": 200}, {"list": []})
 
         with mock.patch.object(kubeblocks_module, "region_api", region_api):
             status, body = self.service.get_team_backup_repos(self.tenant, "region-a")
@@ -374,11 +372,7 @@ class KubeBlocksBackupRepoServiceTests(TestCase):
             status="Ready",
         )
         region_api = mock.Mock()
-        region_api.get_kubeblocks_backup_repos.return_value = ({
-            "status": 200
-        }, {
-            "list": []
-        })
+        region_api.get_kubeblocks_backup_repos.return_value = ({"status": 200}, {"list": []})
 
         with mock.patch.object(kubeblocks_module, "region_api", region_api):
             with self.assertRaises(ServiceHandleException) as context:
@@ -406,7 +400,8 @@ class KubeBlocksBackupRepoServiceTests(TestCase):
         region_api.delete_kubeblocks_backup_repo.return_value = ({
             "status": 409
         }, {
-            "msg_show": 'block-mechanica service returned error: {"code":409,"msg":"delete backup repo: backup repo team-a-ns-prod is in use by cluster team-a-ns/mysql-abc"}\n'
+            "msg_show": ('block-mechanica service returned error: {"code":409,"msg":"delete backup repo: backup repo '
+                         'team-a-ns-prod is in use by cluster team-a-ns/mysql-abc"}\n')
         })
 
         with mock.patch.object(kubeblocks_module, "region_api", region_api):

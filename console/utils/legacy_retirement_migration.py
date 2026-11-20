@@ -12,8 +12,10 @@ from tempfile import NamedTemporaryFile
 
 from django.core.management.base import CommandError
 from django.db import migrations, models
-from django.db.migrations.loader import MigrationLoader
+from django.db.migrations.executor import MigrationExecutor
 from django.db.migrations.writer import MigrationWriter
+
+from console.utils.legacy_model_roundtrip import _field_shape
 
 
 HISTORICAL_MODELS = {
@@ -160,6 +162,18 @@ def _rewrite_operations(migration, indices, dry_run):
     importlib.invalidate_caches()
 
 
+def _recreated_in_final_state(operation, initial, final):
+    name = getattr(operation, "model_name_lower", getattr(operation, "name_lower", ""))
+    key = "console", name
+    if key not in initial.models or key not in final.models:
+        return False
+    if isinstance(operation, migrations.DeleteModel):
+        return True
+    before = initial.models[key].fields.get(operation.name)
+    after = final.models[key].fields.get(operation.name)
+    return before is not None and after is not None and _field_shape(before) == _field_shape(after)
+
+
 def preserve_legacy_retirements(connection, dry_run=False):
     """Validate first, then preserve only the known historical retirement DDL.
 
@@ -167,7 +181,10 @@ def preserve_legacy_retirements(connection, dry_run=False):
     dependency sequence. Existing history with pending prerequisite migrations
     needs explicit inspection rather than guessing which SQL has already run.
     """
-    loader = MigrationLoader(connection, ignore_no_migrations=True)
+    executor = MigrationExecutor(connection)
+    loader = executor.loader
+    initial = executor._create_project_state(with_applied_migrations=True)
+    final = loader.project_state()
     tables = set(connection.introspection.table_names())
     historical_tables = set(HISTORICAL_MODELS.values()) | {"tenant_service_recycle_bin", "rainbond_center_app_version"}
     fresh_history = not any(key[0] == "console" for key in loader.applied_migrations) and not tables.intersection(
@@ -183,6 +200,13 @@ def preserve_legacy_retirements(connection, dry_run=False):
             operation = _state_only_operation(outer)
             model = _retired_operation(operation, state)
             if model is not None:
+                if _recreated_in_final_state(operation, initial, final):
+                    # Roundtrip reconciliation owns remove/recreate SQL. Still
+                    # reject missing live columns/FKs before any startup writes.
+                    original = initial.apps.get_model("console", model._meta.model_name)
+                    _validate_historical_schema(connection, original, operation, tables)
+                    outer.state_forwards("console", state)
+                    continue
                 if not parents_applied:
                     if not fresh_history:
                         raise CommandError("Historical preservation requires applied dependencies: {}".format(migration.name))

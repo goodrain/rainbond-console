@@ -19,7 +19,7 @@ from console.services.group_service import group_service
 from console.services.operation_log import operation_log_service
 from console.utils.validation import (validate_endpoint_address, validate_endpoints_info)
 from console.views.app_config.base import AppBaseView
-from console.views.base import AlowAnyApiView, RegionTenantHeaderView, ApplicationView
+from console.views.base import AlowAnyApiView, ApplicationView
 from django.db.transaction import atomic
 from console.utils.cache_decorators import never_cache
 from rest_framework.request import Request
@@ -77,8 +77,10 @@ class ThirdPartyServiceCreateView(ApplicationView):
         code, msg_show = group_service.add_service_to_group(self.tenant, self.response_region, group_id, new_service.service_id)
         if code != 200:
             new_service.delete()
-            raise ServiceHandleException(
-                msg="add component to app failure", msg_show=msg_show, status_code=code, error_code=code)
+            raise ServiceHandleException(msg="add component to app failure",
+                                         msg_show=msg_show,
+                                         status_code=code,
+                                         error_code=code)
         bean = new_service.to_dict()
         if endpoints_type == "api":
             # 生成秘钥
@@ -94,14 +96,11 @@ class ThirdPartyServiceCreateView(ApplicationView):
         service_log_dict["组件注册方式"] = service_build_type
         result = general_message(200, "success", "创建成功", bean=bean)
         new_information = json.dumps(service_log_dict, ensure_ascii=False)
-        component = operation_log_service.process_component_name(new_service.service_cname, self.region_name,
-                                                                 self.tenant_name,
+        component = operation_log_service.process_component_name(new_service.service_cname, self.region_name, self.tenant_name,
                                                                  new_service.service_alias)
-        app = operation_log_service.process_app_name(self.app.group_name, self.region_name, self.tenant_name,
-                                                     self.app.app_id)
+        app = operation_log_service.process_app_name(self.app.group_name, self.region_name, self.tenant_name, self.app.app_id)
         comment = "在应用{app}中创建了第三方组件 ".format(app=app) + component
-        operation_log_service.create_app_log(ctx=self, comment=comment, format_app=False,
-                                             new_information=new_information)
+        operation_log_service.create_app_log(ctx=self, comment=comment, format_app=False, new_information=new_information)
         return Response(result, status=result["code"])
 
 
@@ -136,7 +135,6 @@ class ThirdPartyServiceApiView(AlowAnyApiView):
     """
     获取实例endpoint列表
     """
-
     def get(self, request: Request, service_id: str, *args: Any, **kwargs: Any) -> Response:
         secret_key = request.GET.get("secret_key")
         # 加密
@@ -180,7 +178,7 @@ class ThirdPartyServiceApiView(AlowAnyApiView):
         address = request.data.get("ip", None)
         # is_online true为上线，false为下线
         is_online = request.data.get("is_online", True)
-        if type(is_online) != bool:
+        if type(is_online) is not bool:
             return Response(general_message(400, "is_online type error", "参数类型错误"), status=400)
         if not address:
             return Response(general_message(400, "end_point is null", "end_point未指明"), status=400)

@@ -25,7 +25,8 @@ class AppPluginRelationRepo(object):
 
     def get_service_plugin_relation_by_plugin_unique_key(self, plugin_id: str, build_version: str) -> Optional[QuerySet]:
         # .objects exists at runtime via ModelBase metaclass; stub gap (model not in app registry)
-        tsprs = TenantServicePluginRelation.objects.filter(plugin_id=plugin_id, build_version=build_version)  # type: ignore[attr-defined]
+        tsprs = TenantServicePluginRelation.objects.filter(plugin_id=plugin_id,  # type: ignore[attr-defined]
+                                                           build_version=build_version)  # type: ignore[attr-defined]
         if tsprs:
             return tsprs
         return None
@@ -43,21 +44,24 @@ class AppPluginRelationRepo(object):
     def update_service_plugin_status(self, service_id: str, plugin_id: str, is_active: Any, cpu: Optional[int],
                                      memory: Optional[int]) -> None:
         # .objects exists at runtime via ModelBase metaclass; stub gap (model not in app registry)
-        tspr = TenantServicePluginRelation.objects.filter(service_id=service_id, plugin_id=plugin_id).first()  # type: ignore[attr-defined]
+        tspr = TenantServicePluginRelation.objects.filter(service_id=service_id,  # type: ignore[attr-defined]
+                                                          plugin_id=plugin_id).first()  # type: ignore[attr-defined]
         tspr.plugin_status = is_active
-        if cpu is not None and type(cpu) == int and cpu >= 0:
+        if cpu is not None and type(cpu) is int and cpu >= 0:
             tspr.min_cpu = cpu
-        if memory is not None and type(memory) == int and memory >= 0:
+        if memory is not None and type(memory) is int and memory >= 0:
             tspr.min_memory = memory
         tspr.save()
 
     def get_relation_by_service_and_plugin(self, service_id: str, plugin_id: str) -> QuerySet:
         # .objects exists at runtime via ModelBase metaclass; stub gap (model not in app registry)
-        return TenantServicePluginRelation.objects.filter(service_id=service_id, plugin_id=plugin_id)  # type: ignore[attr-defined]
+        return TenantServicePluginRelation.objects.filter(service_id=service_id,  # type: ignore[attr-defined]
+                                                          plugin_id=plugin_id)  # type: ignore[attr-defined]
 
     def get_service_plugin_relation_by_plugin_id(self, plugin_id: str, service_ids: Any) -> QuerySet:
         # .objects exists at runtime via ModelBase metaclass; stub gap (model not in app registry)
-        return TenantServicePluginRelation.objects.filter(plugin_id=plugin_id, service_id__in=service_ids)  # type: ignore[attr-defined]
+        return TenantServicePluginRelation.objects.filter(plugin_id=plugin_id,  # type: ignore[attr-defined]
+                                                          service_id__in=service_ids)  # type: ignore[attr-defined]
 
     def delete_service_plugin_relation_by_plugin_id(self, plugin_id: str) -> None:
         # .objects exists at runtime via ModelBase metaclass; stub gap (model not in app registry)
@@ -65,7 +69,8 @@ class AppPluginRelationRepo(object):
 
     def delete_service_plugin(self, service_id: str, plugin_id: str) -> None:
         # .objects exists at runtime via ModelBase metaclass; stub gap (model not in app registry)
-        TenantServicePluginRelation.objects.filter(service_id=service_id, plugin_id=plugin_id).delete()  # type: ignore[attr-defined]
+        TenantServicePluginRelation.objects.filter(service_id=service_id,  # type: ignore[attr-defined]
+                                                   plugin_id=plugin_id).delete()  # type: ignore[attr-defined]
 
     def get_service_plugin_relations_by_service_ids(self, service_ids: Any) -> QuerySet:
         # .objects exists at runtime via ModelBase metaclass; stub gap (model not in app registry)
@@ -117,7 +122,8 @@ class ServicePluginAttrRepository(object):
 class ServicePluginConfigVarRepository(object):
     def get_service_plugin_config_var(self, service_id: str, plugin_id: str, build_version: str) -> QuerySet:
         # .objects exists at runtime via ModelBase metaclass; stub gap (model not in app registry)
-        return ServicePluginConfigVar.objects.filter(service_id=service_id, plugin_id=plugin_id, build_version=build_version)  # type: ignore[attr-defined]
+        return ServicePluginConfigVar.objects.filter(service_id=service_id, plugin_id=plugin_id,  # type: ignore[attr-defined]
+                                                     build_version=build_version)  # type: ignore[attr-defined]
 
     def delete_service_plugin_config_var(self, service_id: str, plugin_id: str) -> None:
         # .objects exists at runtime via ModelBase metaclass; stub gap (model not in app registry)

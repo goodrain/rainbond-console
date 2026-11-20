@@ -37,7 +37,7 @@ class StorageStatistics(AlowAnyApiView):
             app_id = request.GET.get("app_id", "")
             service_id = request.GET.get("service_id", "")
             region_name = request.GET.get("region_name", "")
-            
+
             # 根据不同的查询条件获取存储使用量
             if service_id:
                 # 查询单个组件

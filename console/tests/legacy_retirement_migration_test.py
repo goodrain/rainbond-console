@@ -16,6 +16,7 @@ from django.apps import apps  # noqa: E402
 from django.core.management.base import CommandError  # noqa: E402
 from django.db import connection, connections, migrations, models  # noqa: E402
 from django.db.migrations.executor import MigrationExecutor  # noqa: E402
+from django.db.migrations.autodetector import MigrationAutodetector  # noqa: E402
 from django.db.migrations.recorder import MigrationRecorder  # noqa: E402
 from django.db.migrations.writer import MigrationWriter  # noqa: E402
 from django.test import override_settings  # noqa: E402
@@ -330,3 +331,150 @@ class LegacyRetirementMigrationTests(TestCase):
                 with self.assertRaisesRegex(CommandError, "restore.*delivery_task_item"):
                     preserve_legacy_retirements(database)
             self.assertEqual(path.read_bytes(), original)
+
+    def add_restoration_migration(self, database, path, name):
+        executor = self.reload_executor(database, path)
+        initial = executor.loader.project_state(("console", "0001_initial"))
+        removed = executor.loader.project_state(("console", name))
+        restored = removed.clone()
+        names = ("deliverylistingrequest", "deliverytask", "deliverytaskitem", "deliverytemplate",
+                 "deliverytemplateversion", "teamapplication")
+        for model_name in names:
+            restored.add_model(initial.models["console", model_name].clone())
+        for model_name, field_name in (("servicerecyclebin", "recovery_metadata"),
+                                       ("rainbondcenterappversion", "app_version_info")):
+            model = restored.models["console", model_name].clone()
+            model.fields[field_name] = initial.models["console", model_name].fields[field_name].clone()
+            restored.add_model(model)
+        changes = MigrationAutodetector(removed, restored).changes(
+            graph=executor.loader.graph, trim_to_apps={"console"})
+        migration = changes["console"][0]
+        (path.parent / (migration.name + ".py")).write_text(MigrationWriter(migration).as_string())
+        return migration.name
+
+    def test_combined_command_preserves_recreated_legacy_models_and_other_changes(self):
+        from console.management.commands.repair_legacy_schema import Command
+
+        with self.database() as (database, path, name):
+            restored_name = self.add_restoration_migration(database, path, name)
+            before = {p.name: p.read_bytes() for p in path.parent.glob("*.py")}
+            Command().handle(database=database.alias, apps="console", plan=True)
+            self.assertEqual(before, {p.name: p.read_bytes() for p in path.parent.glob("*.py")})
+            Command().handle(database=database.alias, apps="console", plan=False)
+            executor = self.reload_executor(database, path)
+            executor.migrate([("console", restored_name)])
+            historical = executor.loader.project_state(("console", restored_name)).apps
+            row = historical.get_model("console", "DeliveryListingRequest").objects.using(database.alias).get(id="listing")
+            self.assertEqual(row.publication_task_id, "task")
+            self.assertEqual(historical.get_model("console", "RainbondCenterAppVersion").objects.using(
+                database.alias).get().app_version_info, "x" * 1000)
+            with database.cursor() as cursor:
+                cursor.execute("SELECT marker FROM ordinary_model")
+                self.assertEqual(cursor.fetchone()[0], "executed")
+            self.assertIn(("console", restored_name), MigrationRecorder(database).applied_migrations())
+
+    def test_recreated_history_damage_stops_before_any_command_source_or_schema_writes(self):
+        from console.management.commands.repair_legacy_schema import Command
+
+        with self.database() as (database, path, name):
+            self.add_restoration_migration(database, path, name)
+            initial = self.reload_executor(database, path).loader.project_state(("console", "0001_initial"))
+            model = initial.apps.get_model("console", "DeliveryListingRequest")
+            with database.schema_editor() as editor:
+                editor.remove_field(model, model._meta.get_field("publication_task"))
+            before = {p.name: p.read_bytes() for p in path.parent.glob("*.py")}
+            with mock.patch("console.management.commands.repair_legacy_schema.repair_legacy_schema") as initial_repair:
+                with self.assertRaises(CommandError):
+                    Command().handle(database=database.alias, apps="console", plan=False)
+                initial_repair.assert_not_called()
+            self.assertEqual(before, {p.name: p.read_bytes() for p in path.parent.glob("*.py")})
+
+    def test_combined_roundtrip_ignores_only_metadata_with_pending_ordinary_parent(self):
+        from console.management.commands.repair_legacy_schema import Command
+        from console.utils.legacy_model_roundtrip import repair_generated_model_roundtrips
+
+        with self.database() as (database, path, name):
+            loader = self.reload_executor(database, path).loader
+            ordinary = migrations.Migration("0002_ordinary_parent", "console")
+            ordinary.dependencies = [("console", "0001_initial")]
+            ordinary.operations = [migrations.RunSQL("SELECT 1")]
+            (path.parent / (ordinary.name + ".py")).write_text(MigrationWriter(ordinary).as_string())
+            retirement = loader.disk_migrations["console", name]
+            retirement.dependencies = [("console", ordinary.name)]
+            path.write_text(MigrationWriter(retirement).as_string())
+            for key in list(sys.modules):
+                if key.startswith(path.parent.name + "."):
+                    del sys.modules[key]
+            restored_name = self.add_restoration_migration(database, path, name)
+            loader = self.reload_executor(database, path).loader
+            restoration = loader.disk_migrations["console", restored_name]
+            for operation in restoration.operations:
+                if (isinstance(operation, migrations.AddField) and operation.model_name == "servicerecyclebin"
+                        and operation.name == "recovery_metadata"):
+                    operation.field.help_text = "metadata-only clarification"
+            (path.parent / (restored_name + ".py")).write_text(MigrationWriter(restoration).as_string())
+            for key in list(sys.modules):
+                if key.startswith(path.parent.name + "."):
+                    del sys.modules[key]
+            importlib.invalidate_caches()
+            self.assertTrue(repair_generated_model_roundtrips(database, ["console"], dry_run=True))
+            before = {p.name: p.read_bytes() for p in path.parent.glob("*.py")}
+            Command().handle(database=database.alias, apps="console", plan=True)
+            self.assertEqual(before, {p.name: p.read_bytes() for p in path.parent.glob("*.py")})
+            Command().handle(database=database.alias, apps="console", plan=False)
+            executor = self.reload_executor(database, path)
+            executor.migrate([("console", restored_name)])
+            model = executor.loader.project_state(("console", restored_name)).apps.get_model(
+                "console", "ServiceRecycleBin")
+            self.assertEqual(model.objects.using(database.alias).get(id="bin").recovery_metadata,
+                             {"preserve": "original"})
+
+    def test_empty_database_combined_roundtrip_keeps_first_materialization(self):
+        from console.management.commands.repair_legacy_schema import Command
+
+        with self.database(applied=False) as (database, path, name):
+            restored_name = self.add_restoration_migration(database, path, name)
+            Command().handle(database=database.alias, apps="console", plan=True)
+            Command().handle(database=database.alias, apps="console", plan=False)
+            executor = self.reload_executor(database, path)
+            executor.migrate([("console", restored_name)])
+            model = executor.loader.project_state(("console", restored_name)).apps.get_model(
+                "console", "DeliveryTemplate")
+            row = model.objects.using(database.alias).create(id="new", label="created normally")
+            self.assertEqual(model.objects.using(database.alias).get(id=row.pk).label, "created normally")
+            self.assertIn("recovery_metadata", self.columns(database, "tenant_service_recycle_bin"))
+
+    def test_fresh_roundtrip_keeps_legitimate_schema_change_before_retirement(self):
+        from console.management.commands.repair_legacy_schema import Command
+
+        with self.database(applied=False) as (database, path, name):
+            loader = self.reload_executor(database, path).loader
+            prefix = migrations.Migration("0002_prepare_template_label", "console")
+            prefix.dependencies = [("console", "0001_initial")]
+            prefix.operations = [migrations.AlterField("deliverytemplate", "label", models.CharField(max_length=64))]
+            (path.parent / (prefix.name + ".py")).write_text(MigrationWriter(prefix).as_string())
+            retirement = loader.disk_migrations["console", name]
+            retirement.dependencies = [("console", prefix.name)]
+            path.write_text(MigrationWriter(retirement).as_string())
+            for key in list(sys.modules):
+                if key.startswith(path.parent.name + "."):
+                    del sys.modules[key]
+            restored_name = self.add_restoration_migration(database, path, name)
+            loader = self.reload_executor(database, path).loader
+            restoration = loader.disk_migrations["console", restored_name]
+            for operation in restoration.operations:
+                if isinstance(operation, migrations.CreateModel) and operation.name == "DeliveryTemplate":
+                    operation.fields = [(n, models.CharField(max_length=64) if n == "label" else f)
+                                        for n, f in operation.fields]
+            (path.parent / (restored_name + ".py")).write_text(MigrationWriter(restoration).as_string())
+            for key in list(sys.modules):
+                if key.startswith(path.parent.name + "."):
+                    del sys.modules[key]
+            importlib.invalidate_caches()
+            Command().handle(database=database.alias, apps="console", plan=False)
+            executor = self.reload_executor(database, path)
+            executor.migrate([("console", restored_name)])
+            with database.cursor() as cursor:
+                column = next(c for c in database.introspection.get_table_description(cursor, "delivery_template")
+                              if c.name == "label")
+            self.assertEqual(database.introspection.get_field_type(column.type_code, column), "CharField")

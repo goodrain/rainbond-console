@@ -28,7 +28,10 @@ class AutoscalerService(object):
         autoscaler_rules_dict["最小实例数"] = min_replicas
         autoscaler_rules_dict["最大实例数"] = max_replicas
         for metric in metrics:
-            metric_name = metric_type_dict.get(metric["metric_name"]) + metric_type_dict.get(metric["metric_target_type"])  # type: ignore[operator]  # NOTE: dict.get() returns Optional[str]; concatenation may fail at runtime if key missing
+            metric_name = metric_type_dict.get(metric["metric_name"]) + metric_type_dict.get(  # type: ignore[operator]
+                metric["metric_target_type"]
+                # NOTE: dict.get() returns Optional[str]; concatenation may fail at runtime if key missing
+            )  # type: ignore[operator]
             autoscaler_rules_dict[metric_name] = metric["metric_target_value"]
         return json.dumps(autoscaler_rules_dict, ensure_ascii=False)
 
@@ -104,9 +107,13 @@ class AutoscalerService(object):
         return autoscaler_rule
 
     @transaction.atomic
-    def update_autoscaler_rule(
-            self, region_name: str, tenant_name: str, service_alias: str, rule_id: str, data: dict,
-            user_name: str = '') -> dict:
+    def update_autoscaler_rule(self,
+                               region_name: str,
+                               tenant_name: str,
+                               service_alias: str,
+                               rule_id: str,
+                               data: dict,
+                               user_name: str = '') -> dict:
         # create autoscaler rule
         autoscaler_rule: Dict[str, Any] = {
             "xpa_type": data["xpa_type"],
@@ -115,10 +122,17 @@ class AutoscalerService(object):
             "max_replicas": data["max_replicas"],
         }
         try:
-            autoscaler_rule = autoscaler_rules_repo.update(rule_id, **autoscaler_rule)  # type: ignore[assignment]  # NOTE: autoscaler_rule is declared as Dict[str,Any] but update() returns AutoscalerRules; variable is reused for both types across the rebind
+            autoscaler_rule = autoscaler_rules_repo.update(
+                rule_id, **autoscaler_rule
+                # NOTE: autoscaler_rule is declared as Dict[str,Any] but update() returns AutoscalerRules; variable is reused
+                # for both types across the rebind
+            )  # type: ignore[assignment]
         except AutoscalerRules.DoesNotExist:
             raise ErrAutoscalerRuleNotFound
-        autoscaler_rule = autoscaler_rule.to_dict()  # type: ignore[attr-defined]  # NOTE: mypy sees autoscaler_rule as Dict[str,Any] (original decl) so .to_dict() is unknown; runtime value is actually AutoscalerRules after the rebind above
+        autoscaler_rule = autoscaler_rule.to_dict(  # type: ignore[attr-defined]
+            # NOTE: mypy sees autoscaler_rule as Dict[str,Any] (original decl) so .to_dict() is unknown; runtime value is
+            # actually AutoscalerRules after the rebind above
+        )  # type: ignore[attr-defined]
 
         # delete old autoscaler rule metrics
         autoscaler_rule_metrics_repo.delete_by_rule_id(rule_id)
@@ -147,11 +161,16 @@ class AutoscalerService(object):
 
 
 class ScalingRecordsService(object):
-    def list_scaling_records(
-            self, region_name: str, tenant_name: str, service_alias: str, page: Optional[int] = None,
-            page_size: Optional[int] = None) -> Any:
+    def list_scaling_records(self,
+                             region_name: str,
+                             tenant_name: str,
+                             service_alias: str,
+                             page: Optional[int] = None,
+                             page_size: Optional[int] = None) -> Any:
         body = region_api.list_scaling_records(region_name, tenant_name, service_alias, page, page_size)
-        return body["bean"]  # type: ignore[index]  # NOTE: list_scaling_records returns Optional[Dict[str,Any]]; indexing may fail if body is None
+        return body[
+            # NOTE: list_scaling_records returns Optional[Dict[str,Any]]; indexing may fail if body is None
+            "bean"]  # type: ignore[index]
 
 
 autoscaler_service = AutoscalerService()

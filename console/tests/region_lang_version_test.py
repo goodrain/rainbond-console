@@ -93,4 +93,3 @@ class RegionLongVersionServiceTests(TestCase):
                 "build_strategy": "cnb",
                 "is_allowed": False,
             })
-

@@ -42,16 +42,27 @@ import django  # noqa: E402
 django.setup()
 
 from django.test import TestCase  # noqa: E402
+from rest_framework.test import APIRequestFactory  # noqa: E402
 
 from console.models.main import ComponentK8sAttributes  # noqa: E402
 from console.repositories.virtual_machine import vm_repo  # noqa: E402
 from console.services.app import app_service  # noqa: E402
+from console.services.app_config import volume_service  # noqa: E402
 from console.services.virtual_machine import vms  # noqa: E402
-from www.models.main import TenantServiceInfo, VirtualMachineImage  # noqa: E402
+from console.views.app_config.app_domain import VirtualMachineCapabilityView  # noqa: E402
+from www.models.main import (  # noqa: E402
+    TenantServiceEnvVar,
+    TenantServiceInfo,
+    TenantServicesPort,
+    VirtualMachineImage,
+)
 
 
 class VirtualMachineServiceTests(TestCase):
     # capability_id: console.virtual-machine.registry-root-disk
+    # capability_id: console.vm-run.ssh-public-key-bootstrap
+    # capability_id: console.vm-capabilities.persistent-storage-options
+    # capability_id: console.vm-capabilities.persistent-storage-options
 
     def _create_vm_service(self, tenant_id, service_id, image, extend_method="vm", create_status="complete"):
         return TenantServiceInfo.objects.create(
@@ -68,6 +79,130 @@ class VirtualMachineServiceTests(TestCase):
             create_status=create_status,
             k8s_component_name="{}-k8s".format(service_id)
         )
+
+    def test_build_vm_runtime_attrs_maps_ssh_inputs_and_preserves_uefi_firmware_mode(self):
+        attrs = vms._build_vm_runtime_attrs({
+            "os_name": "Ubuntu 24.04",
+            "ssh_username": "ubuntu",
+            "ssh_public_key": "ssh-ed25519 AAAA",
+            "boot_mode": "uefi",
+            "boot_source_format": "qcow2",
+        })
+
+        self.assertEqual("Ubuntu 24.04", attrs["vm_os_name"])
+        self.assertEqual("ubuntu", attrs["vm_ssh_username"])
+        self.assertEqual("ssh-ed25519 AAAA", attrs["vm_ssh_authorized_key"])
+        self.assertEqual("uefi", attrs["vm_boot_mode"])
+        self.assertEqual("qcow2", attrs["vm_boot_source_format"])
+
+    def test_vm_persistent_storage_options_share_service_options_and_filter_unavailable_types(self):
+        tenant = SimpleNamespace(tenant_name="demo-team")
+        service = SimpleNamespace(service_region="demo-region")
+        region_options = [
+            {"volume_type": "sharedcfs", "name_show": "Shared CFS", "enable": True, "access_mode": ["RWX"]},
+            {"volume_type": "memoryfs", "name_show": "MemoryFS"},
+            {"volume_type": "config-file", "name_show": "Config file"},
+            {"volume_type": "disabled-store", "name_show": "Disabled", "enable": False},
+            {"volume_type": "local-path", "name_show": "Local path"},
+        ]
+
+        with mock.patch.dict(os.environ, {"USE_SAAS": ""}), \
+                mock.patch("console.services.app_config._volume_service_module.region_api.get_volume_options",
+                           return_value=SimpleNamespace(list=region_options)) as get_options:
+            component_options = volume_service.get_service_support_volume_options(tenant, service)
+            storage_options = volume_service.get_vm_persistent_storage_options(tenant, "demo-region")
+
+        get_options.assert_called_with("demo-region", "demo-team")
+        self.assertEqual("memoryfs", component_options[0]["volume_type"])
+        self.assertEqual("百度云", component_options[1]["name_show"])
+        self.assertIn("disabled-store", [option["volume_type"] for option in component_options])
+        self.assertEqual(["sharedcfs", "local-path"], [option["volume_type"] for option in storage_options])
+        self.assertEqual("百度云", storage_options[0]["name_show"])
+
+    def test_vm_storage_options_keep_saas_provider_override(self):
+        tenant = SimpleNamespace(tenant_name="demo-team")
+
+        with mock.patch.dict(os.environ, {"USE_SAAS": "true", "CLOUD_PROVIDER": "baidu"}), \
+                mock.patch("console.services.app_config._volume_service_module.region_api.get_volume_options") as get_options:
+            options = volume_service.get_vm_persistent_storage_options(tenant, "demo-region")
+
+        self.assertEqual(len(options), 1)
+        self.assertEqual(options[0]["volume_type"], "cephfs-external")
+        self.assertEqual(options[0]["name_show"], "百度云存储")
+        self.assertNotIn("provisioner", options[0])
+        self.assertEqual(options[0]["snapshot_capability"], {
+            "supported": False, "status": "unknown", "reason_code": ""
+        })
+        self.assertEqual(options[0]["managed_snapshot_capability"], options[0]["snapshot_capability"])
+        get_options.assert_not_called()
+
+    def test_vm_persistent_storage_options_accept_dict_and_reject_malformed_region_responses(self):
+        tenant = SimpleNamespace(tenant_name="demo-team")
+        option = {"volume_type": "ceph-block", "name_show": "Ceph block", "enable": True}
+        with mock.patch.dict(os.environ, {"USE_SAAS": ""}), \
+                mock.patch("console.services.app_config._volume_service_module.region_api.get_volume_options",
+                           return_value={"list": [option]}):
+            options = volume_service.get_vm_persistent_storage_options(tenant, "demo-region")
+            self.assertEqual(len(options), 1)
+            self.assertEqual({key: options[0][key] for key in option}, option)
+            self.assertEqual(options[0]["snapshot_capability"], {
+                "supported": False, "status": "unknown", "reason_code": ""
+            })
+            self.assertEqual(options[0]["managed_snapshot_capability"], options[0]["snapshot_capability"])
+
+        malformed_responses = (None, {}, {"list": None}, {"list": "not-a-list"}, SimpleNamespace(list=None))
+        for response in malformed_responses:
+            with self.subTest(response_type=type(response).__name__), \
+                    mock.patch.dict(os.environ, {"USE_SAAS": ""}), \
+                    mock.patch("console.services.app_config._volume_service_module.region_api.get_volume_options",
+                               return_value=response), \
+                    self.assertRaises(ValueError):
+                volume_service.get_vm_persistent_storage_options(tenant, "demo-region")
+
+    def test_vm_capabilities_include_persistent_storage_options_and_failure_is_not_success(self):
+        factory = APIRequestFactory()
+        view = VirtualMachineCapabilityView()
+        view.tenant = SimpleNamespace(tenant_name="demo-team")
+        view.response_region = "demo-region"
+        request = view.initialize_request(factory.get("/console/teams/demo-team/vm/capabilities"))
+        region_capabilities = {"gpu_supported": True, "usb_supported": False}
+        options = [{"volume_type": "ceph-block", "name_show": "Persistent block"}]
+
+        with mock.patch("console.views.app_config.app_domain.vms.get_vm_capabilities",
+                        return_value=region_capabilities), \
+                mock.patch("console.views.app_config.app_domain.volume_service.get_vm_persistent_storage_options",
+                           return_value=options):
+            response = view.get(request)
+
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(region_capabilities, {
+            key: response.data["data"]["bean"][key] for key in region_capabilities
+        })
+        self.assertEqual(options, response.data["data"]["bean"]["storage_options"])
+        self.assertFalse(response.data["data"]["bean"]["storage_options_error"])
+
+        with mock.patch("console.views.app_config.app_domain.vms.get_vm_capabilities",
+                        return_value=region_capabilities), \
+                mock.patch("console.views.app_config.app_domain.volume_service.get_vm_persistent_storage_options",
+                           return_value=[]):
+            empty_response = view.get(request)
+
+        self.assertEqual([], empty_response.data["data"]["bean"]["storage_options"])
+        self.assertFalse(empty_response.data["data"]["bean"]["storage_options_error"])
+
+        with mock.patch("console.views.app_config.app_domain.vms.get_vm_capabilities",
+                        return_value=region_capabilities), \
+                mock.patch("console.views.app_config.app_domain.volume_service.get_vm_persistent_storage_options",
+                           side_effect=RuntimeError("opaque storage failure")):
+            failed_response = view.get(request)
+
+        self.assertEqual(200, failed_response.status_code)
+        self.assertEqual(region_capabilities, {
+            key: failed_response.data["data"]["bean"][key] for key in region_capabilities
+        })
+        self.assertEqual([], failed_response.data["data"]["bean"]["storage_options"])
+        self.assertTrue(failed_response.data["data"]["bean"]["storage_options_error"])
+        self.assertNotIn("opaque storage failure", json.dumps(failed_response.data))
 
     def test_init_vm_image_app_uses_4cpu_8gb_defaults(self):
         service = app_service._AppService__init_vm_image_app("demo-region")
@@ -532,6 +667,95 @@ class VirtualMachineServiceTests(TestCase):
                 for item in create_payload["component_k8s_attributes"]
             }
         )
+        create_attr.assert_not_called()
+
+    def test_create_region_service_includes_ssh_attrs_and_internal_port_without_exposing_key_in_profile(self):
+        service = TenantServiceInfo.objects.create(
+            service_id="service-region-ssh",
+            tenant_id="tenant-a",
+            service_key="service-region-ssh",
+            service_alias="service-region-ssh",
+            service_cname="service-region-ssh",
+            service_region="demo-region",
+            category="application",
+            version="v1",
+            image="tenant-a:ubuntu",
+            extend_method="vm",
+            min_cpu=1000,
+            min_memory=1024,
+            min_node=1,
+            create_status="creating",
+            service_source="vm_run",
+            code_from="image_manual",
+            namespace="default",
+            service_type="application",
+            k8s_component_name="service-region-ssh-k8s"
+        )
+        public_key = "ssh-ed25519 AAAA-public-key"
+        for name, value in (
+                ("vm_os_name", "Ubuntu 24.04"),
+                ("vm_ssh_username", "ubuntu"),
+                ("vm_ssh_authorized_key", public_key),
+                ("vm_boot_mode", "uefi"),
+                ("vm_boot_source_format", "qcow2")):
+            ComponentK8sAttributes.objects.create(
+                tenant_id="tenant-a",
+                component_id=service.service_id,
+                name=name,
+                save_type="string",
+                attribute_value=value
+            )
+        TenantServicesPort.objects.create(
+            tenant_id="tenant-a",
+            service_id=service.service_id,
+            container_port=22,
+            mapping_port=22,
+            protocol="tcp",
+            port_alias="SERVICE_REGION_SSH22",
+            is_inner_service=True,
+            is_outer_service=False,
+            k8s_service_name=service.service_alias
+        )
+        TenantServiceEnvVar.objects.create(
+            tenant_id="tenant-a", service_id=service.service_id, container_port=22,
+            name="连接地址", attr_name="SERVICE_REGION_SSH22_HOST", attr_value=service.service_alias,
+            is_change=False, scope="outer")
+        TenantServiceEnvVar.objects.create(
+            tenant_id="tenant-a", service_id=service.service_id, container_port=22,
+            name="端口", attr_name="SERVICE_REGION_SSH22_PORT", attr_value="22",
+            is_change=False, scope="outer")
+
+        tenant = SimpleNamespace(tenant_id="tenant-a", tenant_name="tenant-a", enterprise_id="enterprise-a")
+        with mock.patch("console.services.app.service_group_relation_repo.get_group_id_by_service", return_value=1), \
+                mock.patch("console.services.app.region_app_repo.get_region_app_id", return_value="region-app-1"), \
+                mock.patch("console.services.app.region_api.create_service") as create_service_mock, \
+                mock.patch("console.services.app.region_api.create_component_k8s_attribute", create=True) as create_attr, \
+                mock.patch("console.services.app.arch_service.update_affinity_by_arch"):
+            app_service.create_region_service(tenant, service, "tester")
+
+        payload = create_service_mock.call_args[0][2]
+        attrs = {item["name"]: item["attribute_value"] for item in payload["component_k8s_attributes"]}
+        self.assertEqual("Ubuntu 24.04", attrs["vm_os_name"])
+        self.assertEqual("ubuntu", attrs["vm_ssh_username"])
+        self.assertEqual(public_key, attrs["vm_ssh_authorized_key"])
+        self.assertEqual("uefi", attrs["vm_boot_mode"])
+        self.assertEqual("qcow2", attrs["vm_boot_source_format"])
+        self.assertEqual([{
+            "container_port": 22,
+            "mapping_port": 22,
+            "protocol": "tcp",
+            "port_alias": "SERVICE_REGION_SSH22",
+            "is_inner_service": True,
+            "is_outer_service": False,
+            "k8s_service_name": service.service_alias,
+        }], payload["ports_info"])
+        self.assertEqual(
+            {"SERVICE_REGION_SSH22_HOST", "SERVICE_REGION_SSH22_PORT"},
+            {item["attr_name"] for item in payload["envs_info"] if item["container_port"] == 22})
+        runtime_profile = vms.get_vm_runtime_config(service.service_id)
+        self.assertNotIn("ssh_username", runtime_profile)
+        self.assertNotIn("ssh_public_key", runtime_profile)
+        self.assertNotIn(public_key, json.dumps(runtime_profile))
         create_attr.assert_not_called()
 
     def test_save_vm_runtime_config_preserves_non_vm_attrs_and_refreshes_vm_extension_keys(self):

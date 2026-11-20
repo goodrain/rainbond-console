@@ -9,21 +9,61 @@ from drf_yasg.views import get_schema_view
 from openapi.auth.authentication import OpenAPIAuthentication
 from openapi.auth.permissions import OpenAPIPermissions
 from openapi.views.admin_view import AdminInfoView, ListAdminsView
-from openapi.views.apps.apps import ListAppsView, AppModelImportEvent, AppTarballDirView, \
-    AppImportView, AppDeployView, AppChartInfo, DeleteApp, AppsPortView, HelmChart, SmartDeployTemplateView
-from openapi.views.apps.gray_release import GrayReleaseView, UpdateGrayRatioView, GrayReleaseListView, GrayRollbackView
+from openapi.views.apps.apps import (
+    ListAppsView,
+    AppModelImportEvent,
+    AppTarballDirView,
+    AppImportView,
+    AppDeployView,
+    AppChartInfo,
+    DeleteApp,
+    AppsPortView,
+    HelmChart,
+    SmartDeployTemplateView,
+)
+from openapi.views.apps.gray_release import (
+    GrayReleaseView,
+    UpdateGrayRatioView,
+    GrayReleaseListView,
+    GrayRollbackView,
+)
+from openapi.views.enterprise_view import ResourceOverview
 
-from openapi.views.enterprise_view import (EnterpriseOverview, MonitorQueryOverview, MonitorQueryRangeOverview,
-                                           MonitorSeriesOverview, InstancesMonitorOverview, ResourceOverview, ServiceOverview,
-                                           Performance_overview, ComponentMemoryOverview)
+from openapi.views.enterprise_view import (
+    EnterpriseOverview,
+    MonitorQueryOverview,
+    MonitorQueryRangeOverview,
+    MonitorSeriesOverview,
+    InstancesMonitorOverview,
+    ServiceOverview,
+    Performance_overview,
+    ComponentMemoryOverview,
+)
+
 from openapi.views.gateway.gateway import ListEnterpriseAppGatewayHTTPRuleView
 from openapi.views.region_view import ListRegionInfo, RegionInfo, ReplaceRegionIP
-from openapi.views.team_view import (ListRegionsView, ListTeamInfo, TeamAppsResourceView, TeamCertificatesLCView,
-                                     TeamCertificatesRUDView, TeamEventLogView, TeamInfo, TeamOverviewView, TeamsResourceView,
-                                     EntAppModelView)
+from openapi.views.team_view import (
+    ListRegionsView,
+    ListTeamInfo,
+    TeamAppsResourceView,
+    TeamCertificatesLCView,
+    TeamCertificatesRUDView,
+    TeamEventLogView,
+    TeamInfo,
+    TeamOverviewView,
+    TeamsResourceView,
+    EntAppModelView,
+)
 from openapi.views.ai_engine_proxy import AIEnginePublicProxyView
-from openapi.views.user_view import (ChangePassword, ChangeUserPassword, ListUsersView, UserInfoView, CurrentUsersView,
-                                     UserTenantClose, UserTenantDelete)
+from openapi.views.user_view import (
+    ChangePassword,
+    ChangeUserPassword,
+    ListUsersView,
+    UserInfoView,
+    CurrentUsersView,
+    UserTenantClose,
+    UserTenantDelete,
+)
 
 schema_view = get_schema_view(
     openapi.Info(

@@ -105,11 +105,17 @@ class ComponentDaemonSetSupportTests(TestCase):
         app_model = mock.Mock(app_id="app-1", app_name="demo", details="", scope="team")
         tenant = mock.Mock(tenant_id="tenant-1", tenant_name="demo-team", namespace="demo-ns")
 
-        with mock.patch.object(helm_app_yaml_module.region_api, "get_cluster_nodes_arch", return_value=(200, {"list": ["amd64"]})), \
-                mock.patch.object(helm_app_yaml_module, "AppHelmOverrides") as overrides_cls, \
-                mock.patch.object(helm_app_yaml_module, "RainbondCenterAppVersion") as version_cls:
-            helm_app_yaml_module.helm_app_service.generate_template(
-                cvdata, app_model, "1.0.0", tenant, "demo-chart", "region-a", "eid", 7, {}, "region-app-1")
+        with (
+                mock.patch.object(helm_app_yaml_module.region_api,
+                                  'get_cluster_nodes_arch',
+                                  return_value=(200, {
+                                      'list': ['amd64']
+                                  })),
+                mock.patch.object(helm_app_yaml_module, 'AppHelmOverrides') as overrides_cls,
+                mock.patch.object(helm_app_yaml_module, 'RainbondCenterAppVersion') as version_cls,
+        ):
+            helm_app_yaml_module.helm_app_service.generate_template(cvdata, app_model, "1.0.0", tenant, "demo-chart",
+                                                                    "region-a", "eid", 7, {}, "region-app-1")
 
         overrides_cls.return_value.save.assert_called_once()
         version_cls.return_value.save.assert_called_once()
@@ -131,12 +137,10 @@ class AppManageMarketBuildPreferenceTests(TestCase):
             cmd="python app.py",
             image="goodrain.me/runner:latest-amd64",
         )
-        service_source = mock.Mock(
-            extend_info=json.dumps({
-                "source_service_share_uuid": "svc-1+svc-1",
-                "source_deploy_version": "snapshot-deploy-version",
-            }),
-        )
+        service_source = mock.Mock(extend_info=json.dumps({
+            "source_service_share_uuid": "svc-1+svc-1",
+            "source_deploy_version": "snapshot-deploy-version",
+        }), )
         template_apps = {
             "apps": [{
                 "service_share_uuid": "svc-1+svc-1",
@@ -152,14 +156,16 @@ class AppManageMarketBuildPreferenceTests(TestCase):
                     "namespace": "snapshot-space",
                 },
             }],
-            "update_time": datetime(2026, 4, 3, 0, 0, 0),
+            "update_time":
+            datetime(2026, 4, 3, 0, 0, 0),
         }
 
         with mock.patch.object(app_manage_module, "check_account_quota", return_value=True), \
                 mock.patch.object(app_manage_module.env_var_repo, "get_build_envs", return_value={}), \
                 mock.patch.object(app_manage_module.service_source_repo, "get_service_source", return_value=service_source):
             service_manage = app_manage_module.AppManageService()
-            code, body = service_manage.deploy_services_info({}, [service], tenant, user, None, template_apps, False, "demo-region")
+            code, body = service_manage.deploy_services_info({}, [service], tenant, user, None, template_apps, False,
+                                                             "demo-region")
 
         self.assertEqual(code, 200)
         build_info = body["build_infos"][0]
@@ -245,8 +251,11 @@ class AppManageMarketBuildPreferenceTests(TestCase):
                 mock.patch.object(service_manage, "_AppManageService__save_port", return_value=(200, "success")), \
                 mock.patch.object(service_manage, "_AppManageService__save_extend_info"), \
                 mock.patch.object(app_manage_module.logger, "exception") as log_exception:
-            code, _ = service_manage.deploy_services_info(
-                {}, [service, service_two], tenant, user, None, region_name="demo-region")
+            code, _ = service_manage.deploy_services_info({}, [service, service_two],
+                                                          tenant,
+                                                          user,
+                                                          None,
+                                                          region_name="demo-region")
 
         self.assertEqual(code, 200)
         log_exception.assert_not_called()
@@ -302,9 +311,7 @@ class AppManageStartErrorTests(TestCase):
             "http://region/v2/tenants/demo/services/demo-vm/vertical",
             "PUT",
             mock.Mock(status=409),
-            {
-                "msg_show": "当前虚拟机不满足热更新条件，请停机后再修改规格。"
-            },
+            {"msg_show": "当前虚拟机不满足热更新条件，请停机后再修改规格。"},
         )
 
         with mock.patch.object(app_manage_module, "check_account_quota", return_value=True), \
@@ -396,21 +403,25 @@ class AppManageBatchActionDeployEventTests(DjangoTestCase):
         oauth_instance.is_git_oauth.return_value = True
         oauth_instance.get_clone_url.side_effect = app_manage_module.NoAccessKeyErr("expired")
 
-        with mock.patch.object(app_manage_module, "check_account_quota", return_value=True), \
-                mock.patch.object(app_manage_module.env_var_repo, "get_build_envs", return_value=[]), \
-                mock.patch.object(
-                    app_manage_module.AppManageService,
-                    "_AppManageService__get_service_kind",
-                    return_value="build_from_source_code",
-                ), mock.patch.object(app_manage_module, "compose_source_code_info", return_value={}), \
-                mock.patch.object(app_manage_module.service_source_repo, "get_service_source", return_value=None), \
-                mock.patch.object(app_manage_module.oauth_repo, "get_oauth_services_by_service_id", return_value=oauth_service), \
-                mock.patch.object(app_manage_module.oauth_user_repo, "get_user_oauth_by_user_id", return_value=mock.Mock()), \
-                mock.patch.object(app_manage_module, "get_oauth_instance", return_value=oauth_instance), \
-                mock.patch.object(app_manage_module.logger, "exception") as log_exception, \
-                mock.patch.object(app_manage_module.logger, "warning") as log_warning:
-            code, body = app_manage_module.AppManageService().deploy_services_info(
-                {}, [service], tenant, user, None, region_name="region-a")
+        with (
+                mock.patch.object(app_manage_module, 'check_account_quota', return_value=True),
+                mock.patch.object(app_manage_module.env_var_repo, 'get_build_envs', return_value=[]),
+                mock.patch.object(app_manage_module.AppManageService,
+                                  '_AppManageService__get_service_kind',
+                                  return_value='build_from_source_code'),
+                mock.patch.object(app_manage_module, 'compose_source_code_info', return_value={}),
+                mock.patch.object(app_manage_module.service_source_repo, 'get_service_source', return_value=None),
+                mock.patch.object(app_manage_module.oauth_repo, 'get_oauth_services_by_service_id', return_value=oauth_service),
+                mock.patch.object(app_manage_module.oauth_user_repo, 'get_user_oauth_by_user_id', return_value=mock.Mock()),
+                mock.patch.object(app_manage_module, 'get_oauth_instance', return_value=oauth_instance),
+                mock.patch.object(app_manage_module.logger, 'exception') as log_exception,
+                mock.patch.object(app_manage_module.logger, 'warning') as log_warning,
+        ):
+            code, body = app_manage_module.AppManageService().deploy_services_info({}, [service],
+                                                                                   tenant,
+                                                                                   user,
+                                                                                   None,
+                                                                                   region_name="region-a")
 
         self.assertEqual(code, 200)
         self.assertEqual(body["build_infos"][0]["code_info"]["repo_url"], service.git_url)
@@ -435,8 +446,8 @@ class AppManageBatchActionDeployEventTests(DjangoTestCase):
                                   return_value=(200, {"list": ["amd64"]})), \
                 mock.patch.object(app_manage_module.AppManageService, "deploy",
                                   return_value=(200, "success", "event-1")) as deploy:
-            code, msg, services = app_manage_module.AppManageService().batch_action(
-                "region-a", tenant, user, "deploy", ["service-1"], None, None)
+            code, msg, services = app_manage_module.AppManageService().batch_action("region-a", tenant, user, "deploy",
+                                                                                    ["service-1"], None, None)
 
         self.assertEqual(code, 200)
         self.assertEqual(msg, "success")
@@ -461,20 +472,22 @@ class AppManageVMRestoreDeleteTests(DjangoTestCase):
             extend_method="vm",
         )
 
-        with mock.patch.object(
-                app_manage_module.region_api,
-                "check_service_status",
-                return_value={"bean": {"cur_status": "restoring"}}), \
-                mock.patch.object(
-                    app_manage_module.AppManageService,
-                    "_AppManageService__is_service_related",
-                    return_value=(False, "")), \
-                mock.patch.object(
-                    app_manage_module.AppManageService,
-                    "_AppManageService__is_service_mnt_related",
-                    return_value=(False, "")), \
-                mock.patch.object(app_manage_module.AppManageService, "get_app_by_service", return_value=None), \
-                mock.patch.object(app_manage_module.AppManageService, "truncate_service", return_value=(200, "success")) as truncate_service:
+        with (
+                mock.patch.object(app_manage_module.region_api,
+                                  'check_service_status',
+                                  return_value={'bean': {
+                                      'cur_status': 'restoring'
+                                  }}),
+                mock.patch.object(app_manage_module.AppManageService,
+                                  '_AppManageService__is_service_related',
+                                  return_value=(False, '')),
+                mock.patch.object(app_manage_module.AppManageService,
+                                  '_AppManageService__is_service_mnt_related',
+                                  return_value=(False, '')),
+                mock.patch.object(app_manage_module.AppManageService, 'get_app_by_service', return_value=None),
+                mock.patch.object(app_manage_module.AppManageService, 'truncate_service', return_value=(200, 'success')) as
+                truncate_service,
+        ):
             code, msg = app_manage_module.AppManageService().delete(user, tenant, service, True)
 
         self.assertEqual(200, code)
@@ -494,20 +507,22 @@ class AppManageVMRestoreDeleteTests(DjangoTestCase):
             extend_method="vm",
         )
 
-        with mock.patch.object(
-                app_manage_module.region_api,
-                "check_service_status",
-                return_value={"bean": {"cur_status": "abnormal"}}), \
-                mock.patch.object(
-                    app_manage_module.AppManageService,
-                    "_AppManageService__is_service_related",
-                    return_value=(False, "")), \
-                mock.patch.object(
-                    app_manage_module.AppManageService,
-                    "_AppManageService__is_service_mnt_related",
-                    return_value=(False, "")), \
-                mock.patch.object(app_manage_module.AppManageService, "get_app_by_service", return_value=None), \
-                mock.patch.object(app_manage_module.AppManageService, "truncate_service", return_value=(200, "success")) as truncate_service:
+        with (
+                mock.patch.object(app_manage_module.region_api,
+                                  'check_service_status',
+                                  return_value={'bean': {
+                                      'cur_status': 'abnormal'
+                                  }}),
+                mock.patch.object(app_manage_module.AppManageService,
+                                  '_AppManageService__is_service_related',
+                                  return_value=(False, '')),
+                mock.patch.object(app_manage_module.AppManageService,
+                                  '_AppManageService__is_service_mnt_related',
+                                  return_value=(False, '')),
+                mock.patch.object(app_manage_module.AppManageService, 'get_app_by_service', return_value=None),
+                mock.patch.object(app_manage_module.AppManageService, 'truncate_service', return_value=(200, 'success')) as
+                truncate_service,
+        ):
             code, msg = app_manage_module.AppManageService().delete(user, tenant, service, True)
 
         self.assertEqual(200, code)
@@ -527,29 +542,33 @@ class AppManageVMRestoreDeleteTests(DjangoTestCase):
             extend_method="vm",
         )
 
-        with mock.patch.object(
-                app_manage_module.region_api,
-                "check_service_status",
-                return_value={"bean": {"cur_status": "restoring"}}), \
-                mock.patch.object(
-                    app_manage_module.AppManageService,
-                    "_AppManageService__is_service_mnt_related",
-                    return_value=(False, "")), \
-                mock.patch.object(
-                    app_manage_module.AppManageService,
-                    "_AppManageService__is_service_bind_domain",
-                    return_value=False), \
-                mock.patch.object(
-                    app_manage_module.AppManageService,
-                    "_AppManageService__is_service_has_plugins",
-                    return_value=False), \
-                mock.patch.object(
-                    app_manage_module.AppManageService,
-                    "_AppManageService__is_service_related_by_other_app_service",
-                    return_value=False), \
-                mock.patch.object(app_manage_module.AppManageService, "get_app_by_service", return_value=None), \
-                mock.patch.object(app_manage_module.AppManageService, "truncate_service", return_value=(200, "success")) as truncate_service:
-            code, msg = app_manage_module.AppManageService().batch_delete(user, tenant, service, is_force=True, is_del_app=False)
+        with (
+                mock.patch.object(app_manage_module.region_api,
+                                  'check_service_status',
+                                  return_value={'bean': {
+                                      'cur_status': 'restoring'
+                                  }}),
+                mock.patch.object(app_manage_module.AppManageService,
+                                  '_AppManageService__is_service_mnt_related',
+                                  return_value=(False, '')),
+                mock.patch.object(app_manage_module.AppManageService,
+                                  '_AppManageService__is_service_bind_domain',
+                                  return_value=False),
+                mock.patch.object(app_manage_module.AppManageService,
+                                  '_AppManageService__is_service_has_plugins',
+                                  return_value=False),
+                mock.patch.object(app_manage_module.AppManageService,
+                                  '_AppManageService__is_service_related_by_other_app_service',
+                                  return_value=False),
+                mock.patch.object(app_manage_module.AppManageService, 'get_app_by_service', return_value=None),
+                mock.patch.object(app_manage_module.AppManageService, 'truncate_service', return_value=(200, 'success')) as
+                truncate_service,
+        ):
+            code, msg = app_manage_module.AppManageService().batch_delete(user,
+                                                                          tenant,
+                                                                          service,
+                                                                          is_force=True,
+                                                                          is_del_app=False)
 
         self.assertEqual(200, code)
         self.assertEqual("success", msg)
@@ -561,57 +580,49 @@ class AppManageIncompleteVMCleanupTests(DjangoTestCase):
     # capability_id: console.vm-asset.incomplete-service-cleanup-preserves-ready-assets
     def test_truncate_service_keeps_ready_uploaded_vm_asset(self):
         tenant = mock.Mock(tenant_id="tenant-a")
-        asset = VirtualMachineImage.objects.create(
-            tenant_id="tenant-a",
-            name="win",
-            image_url="default:win",
-            source_type="upload",
-            source_uri="/grdata/package_build/temp/events/demo-event",
-            status="ready"
-        )
-        service = TenantServiceInfo.objects.create(
-            service_id="service-vm-a",
-            tenant_id="tenant-a",
-            service_key="service-vm-a",
-            service_alias="service-vm-a",
-            service_cname="service-vm-a",
-            service_region="demo-region",
-            category="application",
-            version="v1",
-            image=asset.image_url,
-            extend_method="vm",
-            service_source="vm_run",
-            create_status="creating",
-            k8s_component_name="service-vm-a-k8s"
-        )
+        asset = VirtualMachineImage.objects.create(tenant_id="tenant-a",
+                                                   name="win",
+                                                   image_url="default:win",
+                                                   source_type="upload",
+                                                   source_uri="/grdata/package_build/temp/events/demo-event",
+                                                   status="ready")
+        service = TenantServiceInfo.objects.create(service_id="service-vm-a",
+                                                   tenant_id="tenant-a",
+                                                   service_key="service-vm-a",
+                                                   service_alias="service-vm-a",
+                                                   service_cname="service-vm-a",
+                                                   service_region="demo-region",
+                                                   category="application",
+                                                   version="v1",
+                                                   image=asset.image_url,
+                                                   extend_method="vm",
+                                                   service_source="vm_run",
+                                                   create_status="creating",
+                                                   k8s_component_name="service-vm-a-k8s")
 
         service_manage = app_manage_module.AppManageService()
         with mock.patch.object(app_manage_module.delete_service_repo, "create_delete_service"):
             service_manage._truncate_service(tenant, service)
 
-        self.assertTrue(
-            VirtualMachineImage.objects.filter(tenant_id="tenant-a", ID=asset.ID).exists()
-        )
+        self.assertTrue(VirtualMachineImage.objects.filter(tenant_id="tenant-a", ID=asset.ID).exists())
 
     def test_truncate_service_strips_build_strategy_for_delete_record(self):
         """Regression: _truncate_service must not pass build_strategy to TenantServiceInfoDelete."""
         tenant = mock.Mock(tenant_id="tenant-b")
-        service = TenantServiceInfo.objects.create(
-            service_id="service-bs-1",
-            tenant_id="tenant-b",
-            service_key="service-bs-1",
-            service_alias="service-bs-1",
-            service_cname="service-bs-1",
-            service_region="demo-region",
-            category="application",
-            version="v1",
-            image="nginx:latest",
-            build_strategy="dockerfile",
-            inner_port=0,
-            container_gpu=0,
-            create_status="complete",
-            k8s_component_name="service-bs-1-k8s"
-        )
+        service = TenantServiceInfo.objects.create(service_id="service-bs-1",
+                                                   tenant_id="tenant-b",
+                                                   service_key="service-bs-1",
+                                                   service_alias="service-bs-1",
+                                                   service_cname="service-bs-1",
+                                                   service_region="demo-region",
+                                                   category="application",
+                                                   version="v1",
+                                                   image="nginx:latest",
+                                                   build_strategy="dockerfile",
+                                                   inner_port=0,
+                                                   container_gpu=0,
+                                                   create_status="complete",
+                                                   k8s_component_name="service-bs-1-k8s")
 
         service_manage = app_manage_module.AppManageService()
         captured_data = {}
@@ -647,8 +658,7 @@ class AppManageDeleteRecordIdempotencyTests(DjangoTestCase):
         service = mock.Mock(create_status="creating")
         user = mock.Mock(nick_name="operator")
 
-        data = app_manage_module.AppManageService()._build_delete_record_data(
-            service, app=None, user=user)
+        data = app_manage_module.AppManageService()._build_delete_record_data(service, app=None, user=user)
 
         self.assertEqual(data, {"exec_user": "operator"})
         self.assertNotIn("etcd_keys", data)
@@ -669,8 +679,7 @@ class AppManageDeleteRecordIdempotencyTests(DjangoTestCase):
         first = app_manage_module.delete_service_repo.create_delete_service(**data)
 
         second = app_manage_module.delete_service_repo.create_delete_service(
-            **dict(data, service_cname="new name", version="v2", image="nginx:2")
-        )
+            **dict(data, service_cname="new name", version="v2", image="nginx:2"))
 
         self.assertEqual(first.ID, second.ID)
         self.assertEqual(
@@ -681,3 +690,116 @@ class AppManageDeleteRecordIdempotencyTests(DjangoTestCase):
         self.assertEqual(second.service_cname, "new name")
         self.assertEqual(second.version, "v2")
         self.assertEqual(second.image, "nginx:2")
+
+
+class AppManageRecycleFieldProjectionTests(DjangoTestCase):
+    def setUp(self):
+        from console.models.main import ServiceRecycleBin
+
+        self.recycle_model = ServiceRecycleBin
+        self.service = TenantServiceInfo.objects.create(
+            service_id="recycle-field-fixture",
+            tenant_id="recycle-field-tenant",
+            service_key="recycle-field-fixture",
+            service_alias="recycle-field-fixture",
+            service_cname="recycle field fixture",
+            service_region="demo-region",
+            category="application",
+            version="v1",
+            image="busybox:1.36.1",
+            service_source="docker_run",
+            create_status="complete",
+            min_cpu=50,
+            min_memory=64,
+            inner_port=0,
+            container_gpu=0,
+            build_strategy="dockerfile",
+            arch="arm64",
+            k8s_component_name="recycle-field-fixture-k8s",
+        )
+        self.original_id = self.service.ID
+        self.manager = app_manage_module.AppManageService()
+
+    # capability_id: console.component-recycle.field-projection
+    def test_recycle_preserves_declared_fields_and_removes_original_after_insert(self):
+        trash = self.manager.move_service_into_recycle_bin(self.service)
+
+        self.assertEqual(trash.service_id, "recycle-field-fixture")
+        self.assertEqual(trash.min_cpu, 50)
+        self.assertEqual(trash.min_memory, 64)
+        self.assertEqual(trash.image, "busybox:1.36.1")
+        self.assertEqual(self.recycle_model.objects.filter(service_id=trash.service_id).count(), 1)
+        self.assertFalse(TenantServiceInfo.objects.filter(ID=self.original_id).exists())
+
+    # capability_id: console.component-recycle.field-projection
+    def test_recycle_failure_before_insert_preserves_original_for_retry(self):
+        with mock.patch.object(
+                app_manage_module.recycle_bin_repo, "create_trash_service", side_effect=RuntimeError("insert failed")):
+            with self.assertRaisesRegex(RuntimeError, "insert failed"):
+                self.manager.move_service_into_recycle_bin(self.service)
+
+        self.assertTrue(TenantServiceInfo.objects.filter(ID=self.original_id).exists())
+        self.assertFalse(self.recycle_model.objects.filter(service_id=self.service.service_id).exists())
+        self.manager.move_service_into_recycle_bin(self.service)
+        self.assertEqual(self.recycle_model.objects.filter(service_id=self.service.service_id).count(), 1)
+
+    # capability_id: console.component-recycle.atomic-retry
+    def test_recycle_failure_deleting_original_rolls_back_and_can_retry(self):
+        with mock.patch.object(self.service, "delete", side_effect=RuntimeError("original delete failed")):
+            with self.assertRaisesRegex(RuntimeError, "original delete failed"):
+                self.manager.move_service_into_recycle_bin(self.service)
+
+        self.assertTrue(TenantServiceInfo.objects.filter(ID=self.original_id).exists())
+        self.assertFalse(self.recycle_model.objects.filter(service_id=self.service.service_id).exists())
+        self.manager.move_service_into_recycle_bin(self.service)
+        self.assertEqual(self.recycle_model.objects.filter(service_id=self.service.service_id).count(), 1)
+
+    # capability_id: console.component-recycle.atomic-retry
+    def test_relation_move_failure_rolls_back_single_and_batch_delete_and_can_retry(self):
+        from console.models.main import ServiceRelationRecycleBin
+        from www.models.main import TenantServiceRelation
+
+        tenant = mock.Mock(tenant_id=self.service.tenant_id)
+        for index in range(2):
+            TenantServiceRelation.objects.create(
+                tenant_id=self.service.tenant_id,
+                service_id=self.service.service_id,
+                dep_service_id="dependency-{}".format(index),
+                dep_service_type="v",
+                dep_order=index,
+            )
+
+        def insert_first_relation_then_fail(**params):
+            if ServiceRelationRecycleBin.objects.filter(service_id=self.service.service_id).exists():
+                raise RuntimeError("relations failed")
+            ServiceRelationRecycleBin.objects.create(**params)
+
+        for method_name in ("delete", "batch_delete"):
+            with self.subTest(method=method_name):
+                service = TenantServiceInfo.objects.get(ID=self.original_id)
+                with mock.patch.object(self.manager, "_AppManageService__is_service_running", return_value=False), \
+                        mock.patch.object(self.manager, "_AppManageService__is_service_related", return_value=(False, "")), \
+                        mock.patch.object(self.manager, "_AppManageService__is_service_mnt_related", return_value=(False, "")), \
+                        mock.patch.object(self.manager, "get_app_by_service", return_value=None), \
+                        mock.patch.object(
+                            app_manage_module.relation_recycle_bin_repo,
+                            "create_trash_service_relation",
+                            side_effect=insert_first_relation_then_fail):
+                    with self.assertRaisesRegex(RuntimeError, "relations failed"):
+                        getattr(self.manager, method_name)(mock.Mock(), tenant, service, False)
+
+                self.assertTrue(TenantServiceInfo.objects.filter(ID=self.original_id).exists())
+                self.assertFalse(self.recycle_model.objects.filter(service_id=self.service.service_id).exists())
+                self.assertEqual(TenantServiceRelation.objects.filter(service_id=self.service.service_id).count(), 2)
+                self.assertFalse(ServiceRelationRecycleBin.objects.filter(service_id=self.service.service_id).exists())
+
+        service = TenantServiceInfo.objects.get(ID=self.original_id)
+        with mock.patch.object(self.manager, "_AppManageService__is_service_running", return_value=False), \
+                mock.patch.object(self.manager, "_AppManageService__is_service_related", return_value=(False, "")), \
+                mock.patch.object(self.manager, "_AppManageService__is_service_mnt_related", return_value=(False, "")), \
+                mock.patch.object(self.manager, "get_app_by_service", return_value=None):
+            code, _ = self.manager.delete(mock.Mock(), tenant, service, False)
+        self.assertEqual(code, 200)
+        self.assertEqual(self.recycle_model.objects.filter(service_id=self.service.service_id).count(), 1)
+        self.assertFalse(TenantServiceRelation.objects.filter(service_id=self.service.service_id).exists())
+        self.assertEqual(ServiceRelationRecycleBin.objects.filter(service_id=self.service.service_id).count(), 2)

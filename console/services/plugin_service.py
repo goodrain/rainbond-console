@@ -118,7 +118,13 @@ class RainbondPluginService(object):
                 return self._normalize_access_url("0.0.0.0:{}".format(node_port), request=request)
         return ""
 
-    def _resolve_vm_plugin_urls(self, plugin: dict, app_id: Any, team: Any, app_component_rels: Dict[Any, List[Any]], region_name: str, request: Any = None) -> List[str]:
+    def _resolve_vm_plugin_urls(self,
+                                plugin: dict,
+                                app_id: Any,
+                                team: Any,
+                                app_component_rels: Dict[Any, List[Any]],
+                                region_name: str,
+                                request: Any = None) -> List[str]:
         if plugin.get("name") != "rainbond-vm":
             return []
         if not team:
@@ -143,7 +149,11 @@ class RainbondPluginService(object):
                     return urls[0]
         return ""
 
-    def list_plugins(self, enterprise_id: str, region_name: str, official: bool = False, request: Any = None) -> Tuple[List[Any], bool]:
+    def list_plugins(self,
+                     enterprise_id: str,
+                     region_name: str,
+                     official: bool = False,
+                     request: Any = None) -> Tuple[List[Any], bool]:
         team_names: List[str] = []
         team_ids: List[Any] = []
         region_app_ids: List[Any] = []
@@ -162,7 +172,8 @@ class RainbondPluginService(object):
         region_start = time.time()
         _, body = region_api.list_plugins(enterprise_id, region_name, official)
         region_elapsed_ms = (time.time() - region_start) * 1000
-        plugins = body["list"] if body.get("list") else []  # type: ignore[union-attr, index]  # NOTE: body Optional from region_api (latent None, backlog)
+        plugins = body["list"] if body.get("list") else [  # type: ignore[index,union-attr]
+        ]  # type: ignore[union-attr, index]  # NOTE: body Optional from region_api (latent None, backlog)
         logger.debug("region_api.list_plugins returned {} plugins from region".format(len(plugins)))
 
         # Log raw plugin data from region API

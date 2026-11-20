@@ -10,6 +10,7 @@ from django.db.migrations.recorder import MigrationRecorder
 
 from console.utils.oauth_migration_repair import make_oauth_add_field_state_only, oauth_column_matches
 from console.utils.legacy_retirement_migration import preserve_legacy_retirements
+from console.utils.legacy_model_roundtrip import repair_generated_model_roundtrips
 
 
 DEFAULT_APP_LABELS = ("authtoken", "www", "console")
@@ -188,8 +189,18 @@ class Command(BaseCommand):
             raise CommandError("At least one app label is required")
 
         plan = bool(options["plan"])
-        if "console" in app_labels and preserve_legacy_retirements(connections[database], dry_run=plan):
+        # Validate both protections before either writes generated migration
+        # files or the existing initial/OAuth repair can touch the database.
+        retirements = ("console" in app_labels and preserve_legacy_retirements(connections[database], dry_run=True))
+        roundtrips = repair_generated_model_roundtrips(connections[database], app_labels, dry_run=True)
+        if not plan:
+            roundtrips = repair_generated_model_roundtrips(connections[database], app_labels)
+            if "console" in app_labels:
+                retirements = preserve_legacy_retirements(connections[database])
+        if retirements:
             self.stdout.write("{} historical retirement data".format("Would preserve" if plan else "Preserved"))
+        for name in roundtrips:
+            self.stdout.write("{} data-preserving migration {}".format("Would reconcile" if plan else "Reconciled", name))
         results = repair_legacy_schema(connections[database], app_labels, dry_run=plan)
         if "console" in app_labels and repair_oauth_auto_create_user_column(connections[database], dry_run=plan):
             self.stdout.write("{} console.oauth_service.auto_create_user".format("Would repair" if plan else "Repaired"))

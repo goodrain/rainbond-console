@@ -10,13 +10,25 @@ sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
 
-import django
 
-django.setup()
+def _load_test_dependencies():
+    """Keep the existing post-Django-setup import order and module bindings."""
+    import django
 
-from console.utils.oauth.oauth_types import NoSupportOAuthType
-from console.utils.oauth.oauth_types import get_oauth_instance
-from console.utils.oauth.oauth_types import get_support_oauth_servers
+    django.setup()
+
+    from console.utils.oauth.oauth_types import NoSupportOAuthType
+    from console.utils.oauth.oauth_types import get_oauth_instance
+    from console.utils.oauth.oauth_types import get_support_oauth_servers
+    return (
+        django,
+        NoSupportOAuthType,
+        get_oauth_instance,
+        get_support_oauth_servers,
+    )
+
+
+django, NoSupportOAuthType, get_oauth_instance, get_support_oauth_servers = _load_test_dependencies()
 
 
 class DummyOAuthService(object):

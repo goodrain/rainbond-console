@@ -9,7 +9,7 @@ class EntrypointGunicornTest(unittest.TestCase):
         repo_root = Path(__file__).resolve().parents[2]
         entrypoint = repo_root / "entrypoint.sh"
         self.source = entrypoint.read_text(encoding="utf-8")
-        self.gunicorn_command = next(line for line in self.source.splitlines() if "exec gunicorn" in line)
+        self.gunicorn_command = next(line for line in self.source.splitlines() if "gunicorn goodrain_web.wsgi" in line)
         self.procfile_command = (repo_root / "Procfile").read_text(encoding="utf-8")
 
     def test_production_server_has_enough_workers_without_reload(self):

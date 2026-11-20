@@ -12,7 +12,7 @@ from console.repositories.app_config_group import app_config_group_repo
 from console.repositories.app_config_group import app_config_group_service_repo
 from console.repositories.app_config_group import app_config_group_item_repo
 from console.repositories.app import service_repo
-from console.models.main import ApplicationConfigGroup, ConfigGroupItem, ConfigGroupService
+from console.models.main import ApplicationConfigGroup
 from console.exception.bcode import ErrAppConfigGroupNotFound, ErrAppConfigGroupExists
 from www.apiclient.regionapi import RegionInvokeApi
 from console.repositories.region_app import region_app_repo
@@ -246,7 +246,9 @@ def create_items_and_services(
                 "update_time": time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())),
                 "app_id": app_config_group.app_id,
                 "config_group_name": app_config_group.config_group_name,
-                "service_id": s.service_id,  # type: ignore[union-attr]  # NOTE: s could be None if service not found; runtime relies on caller ensuring service_ids are valid
+                "service_id": s.
+                # NOTE: s could be None if service not found; runtime relies on caller ensuring service_ids are valid
+                service_id,  # type: ignore[union-attr]
                 "config_group_id": app_config_group.config_group_id,
             }
             app_config_group_service_repo.create(**group_service)

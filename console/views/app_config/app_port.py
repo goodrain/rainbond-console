@@ -7,7 +7,7 @@ from typing import Any
 
 from console.exception.main import AbortRequest
 from console.repositories.app_config import port_repo
-from console.services.app_config import domain_service, port_service
+from console.services.app_config import port_service
 from console.services.operation_log import operation_log_service, Operation
 from console.utils.reqparse import parse_item
 from console.views.app_config.base import AppBaseView
@@ -162,10 +162,10 @@ class AppPortView(AppBaseView):
         code, msg, port_info = port_service.add_service_port(
             self.tenant, self.service, port, protocol, port_alias,
             is_inner_service, is_outer_service, None, self.user.nick_name)  # type: ignore[arg-type]
-        tenant_service_port = port_service.get_service_port_by_port(self.service, port)
-        new_information = port_service.json_service_port(tenant_service_port)
         if code != 200:
             return Response(general_message(code, "add port error", msg), status=code)
+        tenant_service_port = port_service.get_service_port_by_port(self.service, port)
+        new_information = port_service.json_service_port(tenant_service_port)
 
         # NOTE: add_service_port may return None port_info (backlog)
         result = general_message(200, "success", "端口添加成功", bean=model_to_dict(port_info))  # type: ignore[arg-type]
@@ -217,6 +217,8 @@ class AppPortManageView(AppBaseView):
             return Response(general_message(400, "container_port not specify", "端口变量名未指定"), status=400)
 
         port_info = port_service.get_service_port_by_port(self.service, int(container_port))
+        if port_info is None:
+            return Response(general_message(404, "port not found", "组件端口不存在"), status=404)
 
         variables = port_service.get_port_variables(self.tenant, self.service, port_info)
         bean = {"port": model_to_dict(port_info)}

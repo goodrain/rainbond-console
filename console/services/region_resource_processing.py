@@ -113,10 +113,11 @@ class RegionResource(object):
                     error_overview=k8s_resource["error_overview"]))
         k8s_resources_repo.bulk_create(app_k8s_resource_list)
 
-    def create_components(self, application: Any, components: Any, tenant: Any,
-                          region_name: str, user_id: Any) -> List[str]:
+    def create_components(self, application: Any, components: Any, tenant: Any, region_name: str, user_id: Any) -> List[str]:
         res, body = region_api.get_cluster_nodes_arch(region_name)
-        chaos_arch = list(set(body.get("list")))  # type: ignore[union-attr,arg-type]  # NOTE: body may be None if region API fails; get("list") may also be None
+        chaos_arch = list(
+            set(body.get("list"))  # type: ignore[arg-type,union-attr]
+        )  # type: ignore[union-attr,arg-type]  # NOTE: body may be None if region API fails; get("list") may also be None
         arch = chaos_arch[0] if chaos_arch else "amd64"
         if not components:
             return []

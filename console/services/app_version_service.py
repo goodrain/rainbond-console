@@ -8,6 +8,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from django.db.models import QuerySet
 
+from console.utils.vm_restore_attributes import public_vm_attributes
 from console.enum.app import GovernanceModeEnum
 from console.models.main import (
     RainbondCenterAppVersion,
@@ -25,7 +26,6 @@ from console.repositories.share_repo import share_repo
 from console.services.group_service import group_service
 from console.services.market_app.enum import ActionType
 from console.services.market_app.new_app import NewApp
-from console.services.market_app_service import market_app_service
 from console.services.backup_service import groupapp_backup_service
 from console.services.market_app.app_restore import AppRestore
 from console.services.share_services import share_service
@@ -47,7 +47,6 @@ region_api = RegionInvokeApi()
 
 
 class AppVersionRollbackRestore(AppRestore):
-    CREATE_ROLLBACK_SNAPSHOT = False
 
     def __init__(
             self,
@@ -315,8 +314,22 @@ class AppVersionService(object):
         raise ServiceHandleException(msg="hidden template id collision", msg_show="应用版本模板 ID 冲突", status_code=500)
 
     @staticmethod
+    def _public_template_attributes(app_template: dict) -> dict:
+        template = copy.deepcopy(app_template)
+        for section in ("apps", "plugins"):
+            for component in template.get(section, []):
+                if "component_k8s_attributes" in component:
+                    component["component_k8s_attributes"] = public_vm_attributes(component["component_k8s_attributes"])
+        return template
+
+    def _public_component_map(self, app_template: dict) -> dict:
+        return self._component_map(self._public_template_attributes(app_template))
+
+    @staticmethod
     def _normalize_template_image(item: dict) -> dict:
         data = dict(item or {})
+        if "component_k8s_attributes" in data:
+            data["component_k8s_attributes"] = public_vm_attributes(data["component_k8s_attributes"])
         if not data.get("share_image") and data.get("image"):
             data["share_image"] = data["image"]
         return data
@@ -331,6 +344,8 @@ class AppVersionService(object):
     @staticmethod
     def _rewrite_component_image_to_upstream(component: dict, image_overrides: Optional[Dict[str, str]] = None) -> dict:
         data = dict(component)
+        if "component_k8s_attributes" in data:
+            data["component_k8s_attributes"] = public_vm_attributes(data["component_k8s_attributes"])
         cname = data.get("service_cname", "")
         upstream = (image_overrides or {}).get(cname) or data.get("image", "")
         if not upstream:
@@ -754,8 +769,8 @@ class AppVersionService(object):
         return result
 
     def _summarize_diff(self, current_template: dict, target_template: dict) -> dict:
-        current_map = self._component_map(current_template)
-        target_map = self._component_map(target_template)
+        current_map = self._public_component_map(current_template)
+        target_map = self._public_component_map(target_template)
         added = [name for name in current_map.keys() if name not in target_map]
         removed = [name for name in target_map.keys() if name not in current_map]
         updated = [
@@ -875,8 +890,8 @@ class AppVersionService(object):
         return other_changes
 
     def _build_component_diff_details(self, current_template: dict, previous_template: dict) -> dict:
-        current_map = self._component_map(current_template)
-        previous_map = self._component_map(previous_template)
+        current_map = self._public_component_map(current_template)
+        previous_map = self._public_component_map(previous_template)
         added_components = [
             {"component_name": self._format_component_name(current_map[name])}
             for name in current_map.keys() if name not in previous_map
@@ -1041,23 +1056,9 @@ class AppVersionService(object):
         relation, hidden_app = self.get_hidden_template(app.ID)  # type: ignore[arg-type]
         latest_publish = share_repo.get_last_shared_app_version_by_group_id(
             app.ID, tenant.tenant_name)  # type: ignore[arg-type]
-        upgradeable_sources = []
-        try:
-            apps = market_app_service.get_market_apps_in_app(region, tenant, app)
-            for source in apps:
-                current_version = source.get("current_version")
-                versions = source.get("upgrade_versions", []) or []
-                latest_version = versions[0] if versions else None
-                if source.get("can_upgrade") or (latest_version and str(latest_version) != str(current_version)):
-                    upgradeable_sources.append({
-                        "group_key": source.get("group_key"),
-                        "upgrade_group_id": source.get("upgrade_group_id"),
-                        "template_name": source.get("group_name") or source.get("app_model_name"),
-                        "current_version": current_version,
-                        "latest_version": latest_version,
-                    })
-        except Exception:
-            upgradeable_sources = []
+        upgradeable_sources: List[Dict[str, Any]] = []
+        source_template_count = TenantServiceGroup.objects.filter(
+            tenant_id=tenant.tenant_id, region_name=region.region_name, service_group_id=app.ID).count()
 
         if not relation or not hidden_app:
             return {
@@ -1069,7 +1070,7 @@ class AppVersionService(object):
                 "latest_snapshot_version_id": None,
                 "latest_publish_time": latest_publish.create_time.strftime('%Y-%m-%d %H:%M:%S') if latest_publish else None,
                 "snapshot_count": 0,
-                "source_template_count": len(upgradeable_sources),
+                "source_template_count": source_template_count,
                 "upgradeable_sources": upgradeable_sources,
                 "has_changes": False,
                 "change_summary": {
@@ -1096,7 +1097,7 @@ class AppVersionService(object):
                 "latest_snapshot_version_id": None,
                 "latest_publish_time": latest_publish.create_time.strftime('%Y-%m-%d %H:%M:%S') if latest_publish else None,
                 "snapshot_count": 0,
-                "source_template_count": len(upgradeable_sources),
+                "source_template_count": source_template_count,
                 "upgradeable_sources": upgradeable_sources,
                 "has_changes": False,
                 "change_summary": {
@@ -1132,12 +1133,22 @@ class AppVersionService(object):
             "latest_snapshot_version_id": latest_version.ID,
             "latest_publish_time": latest_publish.create_time.strftime('%Y-%m-%d %H:%M:%S') if latest_publish else None,
             "snapshot_count": len(versions),
-            "source_template_count": len(upgradeable_sources),
+            "source_template_count": source_template_count,
             "upgradeable_sources": upgradeable_sources,
             "has_changes": change_summary["has_changes"],
             "change_summary": change_summary,
             "component_diff_details": component_diff_details,
         }
+
+    @staticmethod
+    def _acknowledge_manual_snapshot(app: ServiceGroup, app_template: dict, require_complete: bool) -> None:
+        if require_complete:
+            return
+        captured = {item.get("service_id") for item in app_template.get("apps") or []
+                    if isinstance(item, dict) and item.get("service_id")}
+        if captured:
+            from console.services.app_version_auto_snapshot import app_version_auto_snapshot_service
+            app_version_auto_snapshot_service.acknowledge_manual_snapshot(app, captured)
 
     def create_snapshot(self, tenant: Tenants, region: RegionConfig, user: Users, app: ServiceGroup,
                         version: str = "", version_alias: str = "", app_version_info: str = "",
@@ -1177,6 +1188,7 @@ class AppVersionService(object):
                     result = self._serialize_version(latest_version)
                     result["created"] = False
                     result["change_summary"] = change_summary
+                    self._acknowledge_manual_snapshot(app, app_template, require_complete)
                     return result
             snapshot = self._take_restore_snapshot(tenant, app, next_version)
             app_template["snapshot_id"] = snapshot.snapshot_id if snapshot else None
@@ -1214,6 +1226,7 @@ class AppVersionService(object):
             hidden_app.save()
             result = self._serialize_version(snapshot_version)
             result["created"] = True
+            self._acknowledge_manual_snapshot(app, app_template, require_complete)
             return result
 
     @staticmethod
@@ -1276,11 +1289,12 @@ class AppVersionService(object):
             if index + 1 < len(versions):
                 previous_version = versions[index + 1]
             break
-        app_template = json.loads(version.app_template)
+        stored_template = json.loads(version.app_template)
+        app_template = self._public_template_attributes(stored_template)
         diff_summary = self._empty_diff_summary()
         component_diff_details = self._empty_component_diff_details()
         if previous_version:
-            previous_template = json.loads(previous_version.app_template)
+            previous_template = self._public_template_attributes(json.loads(previous_version.app_template))
             diff_summary = self._summarize_diff(app_template, previous_template)
             component_diff_details = self._build_component_diff_details(app_template, previous_template)
         detail = {
@@ -1294,7 +1308,7 @@ class AppVersionService(object):
             "diff_summary": diff_summary,
             "component_diff_details": component_diff_details,
             "template": app_template,
-            "content_hash": self._content_hash(app_template),
+            "content_hash": self._content_hash(stored_template),
             "snapshot_id": app_template.get("snapshot_id"),
         }
         detail.update(self._rollback_support_info(app_template))
@@ -1346,8 +1360,6 @@ class AppVersionService(object):
 
         ServiceGroup.objects.select_for_update().get(
             ID=app.ID, tenant_id=tenant.tenant_id, region_name=region.region_name)
-        from console.services.app_version_auto_snapshot import app_version_auto_snapshot_service
-        app_version_auto_snapshot_service.cancel(app.ID)
 
         versions = self._list_snapshot_version_objects(relation.app_model_id)
         current_baseline = self._select_current_baseline_version(app.ID, versions)  # type: ignore[arg-type]

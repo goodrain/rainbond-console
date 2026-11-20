@@ -200,19 +200,21 @@ class PackageComponentService(object):
             "next_action": "rainbond_wait_for_build_completion" if build_event_id else None,
         }
 
-    def auto_create_component(
-            self,
-            team: Tenants,
-            app: ServiceGroup,
-            user: Any,
-            event_id: str,
-            service_cname: str,
-            k8s_component_name: str = "",
-            arch: str = "amd64",
-            is_deploy: bool = True,
-            max_check_retries: Optional[int] = None,
-            check_poll_interval: Optional[int] = None) -> Dict[str, Any]:
-        if k8s_component_name and console_app_service.is_k8s_component_name_duplicate(app.ID, k8s_component_name):  # type: ignore[arg-type]  # NOTE: app.ID is int (PK), callee expects str; runtime coercion via Django ORM lookup works
+    def auto_create_component(self,
+                              team: Tenants,
+                              app: ServiceGroup,
+                              user: Any,
+                              event_id: str,
+                              service_cname: str,
+                              k8s_component_name: str = "",
+                              arch: str = "amd64",
+                              is_deploy: bool = True,
+                              max_check_retries: Optional[int] = None,
+                              check_poll_interval: Optional[int] = None) -> Dict[str, Any]:
+        if k8s_component_name and console_app_service.is_k8s_component_name_duplicate(
+                app.ID, k8s_component_name  # type: ignore[arg-type]
+                # NOTE: app.ID is int (PK), callee expects str; runtime coercion via Django ORM lookup works
+        ):  # type: ignore[arg-type]
             raise ServiceHandleException(msg="component name exists", msg_show="组件英文名称已存在", status_code=400)
 
         upload_record = package_upload_service.get_upload_record(team.tenant_name, app.region_name, event_id)
@@ -230,7 +232,10 @@ class PackageComponentService(object):
             service_cname,
             k8s_component_name,
             event_id,
-            upload_record.create_time,  # type: ignore[arg-type]  # NOTE: create_time is datetime | None (nullable model field); callee expects str — runtime formats it implicitly
+            upload_record.
+            # NOTE: create_time is datetime | None (nullable model field); callee expects str — runtime formats it
+            # implicitly
+            create_time,  # type: ignore[arg-type]
             arch,
         )
         package_upload_service.update_upload_record(
@@ -249,7 +254,10 @@ class PackageComponentService(object):
         if code != 200:
             raise ServiceHandleException(msg="check service error", msg_show=msg, status_code=code)
 
-        check_uuid = check_info.get("check_uuid") or component.check_uuid  # type: ignore[union-attr]  # NOTE: check_info is Optional[dict]; only reached after code==200 so always non-None at runtime
+        check_uuid = check_info.get(  # type: ignore[union-attr]
+            "check_uuid"
+            # NOTE: check_info is Optional[dict]; only reached after code==200 so always non-None at runtime
+        ) or component.check_uuid  # type: ignore[union-attr]
         bean = source_component_service._wait_for_check_result(
             app.region_name,
             team,
@@ -266,10 +274,13 @@ class PackageComponentService(object):
                 status_code=400,
             )
         if service_info_list:
-            app_check_service.save_service_check_info(team, app.ID, component, bean)  # type: ignore[arg-type]  # NOTE: app.ID is int (PK), callee expects str; Django ORM coerces at runtime
+            app_check_service.save_service_check_info(
+                team, app.ID, component,  # type: ignore[arg-type]
+                bean)  # type: ignore[arg-type]  # NOTE: app.ID is int (PK), callee expects str; Django ORM coerces at runtime
             source_component_service.apply_default_build_config(team, component, service_info_list[0])
 
-        region_component = console_app_service.create_region_service(team, component, source_component_service._get_username(user))
+        region_component = console_app_service.create_region_service(team, component,
+                                                                     source_component_service._get_username(user))
         deploy_event_id = None
         if is_deploy:
             service_alias = getattr(region_component, "service_alias", "") or getattr(component, "service_alias", "")
@@ -295,15 +306,11 @@ class PackageComponentService(object):
                 if code != 200:
                     raise ServiceHandleException(msg="deploy failed", msg_show=msg, status_code=code)
             except Exception as exc:
-                enterprise_first_deploy_service.safe_mark_failure(
-                    tracker,
-                    reason=getattr(exc, "msg_show", str(exc)))
+                enterprise_first_deploy_service.safe_mark_failure(tracker, reason=getattr(exc, "msg_show", str(exc)))
                 raise
-            enterprise_first_deploy_service.safe_bind_events(
-                tracker,
-                [deploy_event_id],
-                service_ids=[region_component.service_id],
-                service_alias=service_alias)
+            enterprise_first_deploy_service.safe_bind_events(tracker, [deploy_event_id],
+                                                             service_ids=[region_component.service_id],
+                                                             service_alias=service_alias)
             deploy_repo.create_deploy_relation_by_service_id(service_id=region_component.service_id)
 
         return {
@@ -328,7 +335,10 @@ class PackageComponentService(object):
             _, body = region_api.get_upload_file_dir(region_name, team_name, event_id)
         except region_api.CallApiError:
             return []
-        return body.get("bean", {}).get("packages", []) or []  # type: ignore[union-attr]  # NOTE: body is Optional[dict]; on 2xx the region client always returns a non-None body; CallApiError raised otherwise
+        return body.get("bean", {}).get("packages", []) or [  # type: ignore[union-attr]
+            # NOTE: body is Optional[dict]; on 2xx the region client always returns a non-None body; CallApiError raised
+            # otherwise
+        ]  # type: ignore[union-attr]
 
 
 package_component_service = PackageComponentService()

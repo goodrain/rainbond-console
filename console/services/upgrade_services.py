@@ -21,6 +21,8 @@ from www.models.main import TenantServiceInfo
 from console.repositories.app import service_repo
 from console.repositories.group import tenant_service_group_repo
 from console.repositories.market_app_repo import rainbond_app_repo
+from console.services.delivery_upgrade_source import delivery_upgrade_source, target_team_name
+from console.services.delivery_manifest import DeliveryError
 from console.repositories.app import app_market_repo
 from console.repositories.app import service_source_repo
 from console.repositories.upgrade_repo import (component_upgrade_record_repo, upgrade_repo)
@@ -104,7 +106,8 @@ class UpgradeService(object):
             app_template_source.get_market_name(),
             record,
             component_keys,
-            is_deploy=True)
+            is_deploy=True,
+            is_delivery_source=bool(delivery_upgrade_source.template(str(tenant.enterprise_id), component_group.group_key)))
         record = app_upgrade.upgrade()
         self._reconcile_rbd_plugin(tenant, region, app_template, app.ID, record)
         app_template_name = component_group.group_alias
@@ -200,6 +203,15 @@ class UpgradeService(object):
     @staticmethod
     def _app_template(enterprise_id: str, app_model_key: str, version: str, app_template_source: Any) -> dict:
         if not app_template_source.is_install_from_cloud():
+            if delivery_upgrade_source.template(enterprise_id, app_model_key):
+                try:
+                    manifest = delivery_upgrade_source.manifest(
+                        enterprise_id, app_model_key, version, target_team_name(enterprise_id, app_template_source.team_id))
+                except DeliveryError as error:
+                    raise AbortRequest("delivery version unavailable", error.message, status_code=error.status,
+                                       error_code=error.status)
+                if manifest is not None:
+                    return manifest
             _, app_version = rainbond_app_repo.get_rainbond_app_and_version(enterprise_id, app_model_key, version)
         else:
             market = app_market_repo.get_app_market_by_name(
@@ -340,7 +352,8 @@ class UpgradeService(object):
         failed_component_records = {
             record.event_id: record
             for record in component_records if record.status in
-            [UpgradeStatus.PARTIAL_UPGRADED.value, UpgradeStatus.PARTIAL_ROLLBACK.value, UpgradeStatus.DEPLOY_FAILED.value]
+            [UpgradeStatus.UPGRADE_FAILED.value, UpgradeStatus.ROLLBACK_FAILED.value,
+             UpgradeStatus.PARTIAL_UPGRADED.value, UpgradeStatus.PARTIAL_ROLLBACK.value, UpgradeStatus.DEPLOY_FAILED.value]
         }
 
         component_ids = [record.service_id for record in failed_component_records.values()]
@@ -370,7 +383,42 @@ class UpgradeService(object):
         record = upgrade_repo.get_by_record_id(record_id)  # type: ignore[arg-type]
         if not record.is_finished():
             self.sync_record(tenant_name, region_name, record)
-        return self.serialized_upgrade_record(record)
+        result = self.serialized_upgrade_record(record)
+        result["runtime_state"] = self.get_upgrade_runtime_state(tenant_name, region_name, record, result["service_record"])
+        return result
+
+    @staticmethod
+    def get_upgrade_runtime_state(tenant_name: str, region_name: str, record: AppUpgradeRecord,
+                                  component_records: list) -> dict:
+        components = [{"service_id": item["service_id"], "service_cname": item["service_cname"], "status": "unknown"}
+                      for item in component_records]
+        result = {"status": "unknown", "components": components}
+        if not components:
+            return result
+        try:
+            tenant = Tenants.objects.get(tenant_id=record.tenant_id, tenant_name=tenant_name)
+            body = region_api.service_status(region_name, tenant_name, {
+                "service_ids": [item["service_id"] for item in components], "enterprise_id": tenant.enterprise_id,
+            }) or {}
+            statuses = {item.get("service_id"): item.get("status") for item in body.get("list") or []}
+        except Exception:
+            logger.warning("could not query runtime status for application upgrade record %s", record.ID)
+            return result
+        states = []
+        waiting = {"building", "waiting", "starting", "upgrade", "stopping", "closed", "undeploy"}
+        for component, operation in zip(components, component_records):
+            status = statuses.get(component["service_id"]) or "unknown"
+            component["status"] = status
+            if status == "running" or (status == "closed" and not operation.get("event_id")):
+                states.append("ready")
+            elif status in ("abnormal", "some_abnormal"):
+                states.append("abnormal")
+            elif status in waiting:
+                states.append("pending")
+            else:
+                states.append("unknown")
+        result["status"] = next((state for state in ("abnormal", "unknown", "pending") if state in states), "ready")
+        return result
 
     @staticmethod
     def list_rollback_record(upgrade_record: AppUpgradeRecord) -> list:

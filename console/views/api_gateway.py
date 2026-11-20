@@ -31,7 +31,8 @@ class AppApiGatewayView(RegionTenantHeaderView):
         if cert_match:
             cert_name = cert_match.group(1)
             try:
-                resp = region_api.api_gateway_post_proxy(self.region, self.tenant_name, path, request.data, app_id, service_alias, port)
+                resp = region_api.api_gateway_post_proxy(self.region, self.tenant_name, path, request.data, app_id,
+                                                         service_alias, port)
             except Exception as e:
                 # If ApisixTls creation fails (e.g., domain conflict), clean up the secret and database record
                 logger.error("Failed to create ApisixTls for cert %s, cleaning up: %s", cert_name, str(e))
@@ -47,7 +48,8 @@ class AppApiGatewayView(RegionTenantHeaderView):
                     logger.error("Failed to delete certificate record %s: %s", cert_name, str(db_err))
                 raise
         else:
-            resp = region_api.api_gateway_post_proxy(self.region, self.tenant_name, path, request.data, app_id, service_alias, port)
+            resp = region_api.api_gateway_post_proxy(self.region, self.tenant_name, path, request.data, app_id, service_alias,
+                                                     port)
 
         result = general_message(200, "success", "创建成功", bean=resp)
         return Response(result, status=result["code"])

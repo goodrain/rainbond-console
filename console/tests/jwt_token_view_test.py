@@ -1,8 +1,13 @@
 # coding: utf-8
 import sys
+import subprocess
+from io import BytesIO
+from pathlib import Path
 from types import SimpleNamespace
 from types import ModuleType
 from unittest import TestCase, mock
+
+from PIL import Image
 
 openapi_client = ModuleType("openapi_client")
 openapi_client.MarketOpenapiApi = type("MarketOpenapiApi", (), {})
@@ -212,7 +217,7 @@ class JWTTokenViewSecurityTests(TestCase):
 
 
 class CaptchaViewSecurityTests(TestCase):
-    # capability_id: console.login-security.login-enforcement
+    # capability_id: console.captcha.rendering
     def test_captcha_is_stored_in_session_and_never_cached(self):
         request = APIRequestFactory().get("/console/captcha")
         request.session = FakeSession()
@@ -223,3 +228,27 @@ class CaptchaViewSecurityTests(TestCase):
         self.assertEqual(len(request.session["captcha_code"]), 4)
         self.assertEqual(response["Pragma"], "no-cache")
         self.assertIn("no-store", response["Cache-Control"])
+        self.assertEqual(response["Content-Type"], "image/png")
+        with Image.open(BytesIO(response.content)) as image:
+            image.load()
+            self.assertEqual(image.format, "PNG")
+            self.assertGreater(image.width, 0)
+            self.assertGreater(image.height, 0)
+            self.assertIsNotNone(image.getbbox())
+
+    # capability_id: console.captcha.rendering
+    def test_font_measurements_finish_in_an_isolated_process(self):
+        from django.conf import settings
+
+        font_path = Path(settings.BASE_DIR) / "www/static/www/fonts/Vera.ttf"
+        program = """from PIL import ImageFont
+import sys
+font = ImageFont.truetype(sys.argv[1], 22)
+for _ in range(100):
+    for text in ('ABCD', 'QGJ2', ' ZX ', 'gQ'):
+        left, top, right, bottom = font.getbbox(text)
+        assert right > left and bottom > top
+"""
+        result = subprocess.run([sys.executable, "-c", program, str(font_path)],
+                                capture_output=True, text=True, timeout=30)
+        self.assertEqual(result.returncode, 0, result.stderr)

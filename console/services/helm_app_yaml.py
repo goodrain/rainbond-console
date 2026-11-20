@@ -45,8 +45,7 @@ class HelmAppService(object):
         return RainbondCenterApp(**center_app).save()
 
     def generate_template(self, cvdata: dict, app_model: RainbondCenterApp, version: str, tenant: Tenants, chart: str,
-                          region_name: str, enterprise_id: str, user_id: int, overrides: Any,
-                          app_id: str) -> None:
+                          region_name: str, enterprise_id: str, user_id: int, overrides: Any, app_id: str) -> None:
         res, body = region_api.get_cluster_nodes_arch(region_name)
         chaos_arch = list(set(body.get("list")))  # type: ignore[union-attr,arg-type]  # NOTE: region_api body may be None
         arch = chaos_arch[0] if chaos_arch else "amd64"
@@ -68,8 +67,9 @@ class HelmAppService(object):
             service_id = make_uuid3(chart + "/" + cv["components_name"])
             app["service_id"] = service_id
             app["service_key"] = service_id
-            app["service_share_uuid"] = make_uuid3(chart + "/" + cv["components_name"]) + "+" + make_uuid3(
-                chart + "/" + cv["components_name"])
+            app["service_share_uuid"] = make_uuid3(chart + "/" +
+                                                   cv["components_name"]) + "+" + make_uuid3(chart + "/" +
+                                                                                             cv["components_name"])
             app["need_share"] = True
             app["category"] = "app_publish"
             app["language"] = ""
@@ -207,12 +207,14 @@ class HelmAppService(object):
             app["mnt_relation_list"] = []
             app["service_image"] = {"hub_url": None, "hub_user": None, "hub_password": None, "namespace": None}
             apps.append(app)
-        app_template["apps"] = apps  # type: ignore[assignment]  # NOTE: dict inferred as str-valued by mypy due to prior str assignments
+        app_template[
+            "apps"] = apps  # type: ignore[assignment]  # NOTE: dict inferred as str-valued by mypy due to prior str assignments
         template = json.dumps(app_template)
         overrides = json.dumps(overrides)
         app_overrides = AppHelmOverrides(app_id=app_id, app_model_id=app_model.app_id, overrides=overrides)
         app_overrides.save()
-        app_version = RainbondCenterAppVersion(  # type: ignore[misc]  # NOTE: app_version_info may be None, upgrade_time is float; model field stubs are strict
+        # NOTE: app_version_info may be None, upgrade_time is float; model field stubs are strict
+        app_version = RainbondCenterAppVersion(  # type: ignore[misc]
             app_id=app_model.app_id,
             version=version,
             app_version_info=app_model.details,
@@ -243,7 +245,8 @@ class HelmAppService(object):
         check_helm_app_data["overrides"] = overrides
         check_helm_app_data["namespace"] = tenant.namespace
         _, check_body = region_api.check_helm_app(region, tenant_name, check_helm_app_data)
-        body = self.yaml_handle(eid, region_id, tenant, check_body["bean"]["yaml"])  # type: ignore[index]  # NOTE: region_api returns untyped dict
+        body = self.yaml_handle(eid, region_id, tenant,
+                                check_body["bean"]["yaml"])  # type: ignore[index]  # NOTE: region_api returns untyped dict
         return body
 
     def yaml_handle(self, eid: str, region_id: str, tenant: Tenants, yaml: str) -> Any:
@@ -338,27 +341,37 @@ class HelmAppService(object):
             namespace = install_match.group('namespace')
             if namespace:
                 raise AbortRequest("can not set namespace", "团队下不支持设置命名空间", status_code=404, error_code=404)
-            result['overrides'] = list()  # type: ignore[assignment]  # NOTE: result dict narrowly typed; list() is list[Never] without annotation
+            result['overrides'] = list(
+            )  # type: ignore[assignment]  # NOTE: result dict narrowly typed; list() is list[Never] without annotation
             set_values_str = install_match.group('set_values')
             if set_values_str:
                 set_values = re.findall(set_pattern, set_values_str)
                 for key, value in set_values:
-                    result['overrides'].append({key.strip(): value.strip()})  # type: ignore[attr-defined]  # NOTE: follows from list[Never] inference above
+                    result['overrides'].append(  # type: ignore[attr-defined]
+                        {key.strip():
+                         value.strip()})  # type: ignore[attr-defined]  # NOTE: follows from list[Never] inference above
             repo_chart = chart.split("/")
             if len(repo_chart) == 2:
                 repo_name = chart.split("/")[0]
                 chart_name = chart.split("/")[1]
             else:
-                raise AbortRequest(
-                    "repo_name/chart_name incorrect format", "格式不正确，仓库名称和应用名称之间应用 '/' 划分", status_code=404, error_code=404)
+                raise AbortRequest("repo_name/chart_name incorrect format",
+                                   "格式不正确，仓库名称和应用名称之间应用 '/' 划分",
+                                   status_code=404,
+                                   error_code=404)
             repo = helm_repo.get_helm_repo_by_name(repo_name)
             if not repo:
                 raise AbortRequest("helm repo is not exist", "商店不存在，执行 helm repo add 进行添加", status_code=404, error_code=404)
             repo_url = repo.get("repo_url")
             username = repo.get("username")
             password = repo.get("password")
-            chart_data = self.get_helm_chart_information(region_name, tenant.tenant_name, repo_url, chart_name, username,  # type: ignore[arg-type]  # NOTE: repo.get() returns Any|None; callers ensure non-None at runtime
-                                                         password)  # type: ignore[arg-type]  # NOTE: repo.get() returns Any|None
+            chart_data = self.get_helm_chart_information(
+                region_name,
+                tenant.tenant_name,
+                repo_url,  # type: ignore[arg-type]
+                chart_name,
+                username,  # type: ignore[arg-type]  # NOTE: repo.get() returns Any|None; callers ensure non-None at runtime
+                password)  # type: ignore[arg-type]  # NOTE: repo.get() returns Any|None
             if not version:
                 logger.warning("version is not obtained from the command.use the highest version of {}".format(chart_name))
                 version = chart_data[0]["Version"]
@@ -366,7 +379,9 @@ class HelmAppService(object):
             result["chart"] = chart
             result["version"] = version
             result["repo_name"] = repo_name
-            result["repo_url"] = repo_url  # type: ignore[assignment]  # NOTE: repo.get() returns Any|None, result dict narrowly typed
+            result[
+                # NOTE: repo.get() returns Any|None, result dict narrowly typed
+                "repo_url"] = repo_url  # type: ignore[assignment]
             result["chart_name"] = chart_name
             return result
         raise AbortRequest("helm command command mismatch", "命令解析失败，请检查命令", status_code=404, error_code=404)
@@ -383,7 +398,10 @@ class HelmAppService(object):
         import_record.save()
         # 成功以后删除数据中心目录数据
         try:
-            region_api.delete_enterprise_import_file_dir(import_record.region, import_record.enterprise_id, event_id)  # type: ignore[arg-type]  # NOTE: AppImportRecord.region/enterprise_id fields may be str|None per Django model stubs
+            region_api.delete_enterprise_import_file_dir(
+                import_record.region, import_record.enterprise_id, event_id  # type: ignore[arg-type]
+                # NOTE: AppImportRecord.region/enterprise_id fields may be str|None per Django model stubs
+            )  # type: ignore[arg-type]
         except Exception as e:
             logger.exception(e)
 
@@ -441,8 +459,7 @@ class HelmAppService(object):
         _, body = region_api.get_upload_chart_resource(region, tenant.tenant_name, data)
         return body["bean"]  # type: ignore[index]  # NOTE: region_api returns untyped dict
 
-    def import_upload_chart_resource(self, region_name: str, tenant: Tenants, app_id: str, data: Any,
-                                     user: Any) -> Any:
+    def import_upload_chart_resource(self, region_name: str, tenant: Tenants, app_id: str, data: Any, user: Any) -> Any:
         import_data = dict()
         import_data["tenant_id"] = tenant.tenant_id
         import_data["namespace"] = tenant.namespace

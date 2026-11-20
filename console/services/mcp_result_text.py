@@ -13,7 +13,7 @@ the value, and paging/status scalars are preserved verbatim.
 from __future__ import annotations
 
 import json
-from typing import Any, Dict, List, Tuple
+from typing import Any, List, Tuple
 
 PROTECTED_STRING_KEYS = {
     "continue",
@@ -163,9 +163,7 @@ def render_result_text(
         return text
 
     normalized = json.loads(_dump(data))
-    hint = hint or (
-        "Narrow the arguments (name/namespace/selector/page_size/limit) and "
-        "retry; the result was truncated."
-    )
+    hint = hint or ("Narrow the arguments (name/namespace/selector/page_size/limit) and "
+                    "retry; the result was truncated.")
     shrunk = _shrink(normalized, max(1_000, max_chars - MARKER_RESERVE), hint)
     return _dump(shrunk)

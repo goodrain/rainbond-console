@@ -39,7 +39,7 @@ from console.repositories.app import service_repo
 from default_region import make_uuid
 from goodrain_web.settings import LOG_PATH, DATA_DIR
 from www.apiclient.regionapi import RegionInvokeApi
-from www.models.main import PermRelTenant, Tenants
+from www.models.main import Tenants
 from www.utils.return_message import general_message
 
 region_api = RegionInvokeApi()
@@ -101,6 +101,7 @@ class UploadLongVersion(AlowAnyApiView):
             logger.exception("proxy lg_pack_operate upload failed")
             return Response(general_message(500, "Proxy error: {0}".format(str(e)), "文件处理异常"), status=500)
 
+
 class Enterprises(JWTAuthApiView):
     def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         enterprises_list = []
@@ -139,8 +140,8 @@ class EnterpriseRUDView(JWTAuthApiView):
             regions = region_repo.get_regions_by_enterprise_id(self.enterprise.enterprise_id, 1)  # type: ignore[arg-type]
             default_region = {}
             if os.getenv("ENABLE_CLUSTER") == "true" and not regions:
-                region = region_services.create_default_region(
-                    self.enterprise.enterprise_id, request.user)  # type: ignore[arg-type]
+                region = region_services.create_default_region(self.enterprise.enterprise_id,
+                                                               request.user)  # type: ignore[arg-type]
                 if region:
                     ent["disable_install_cluster_log"] = True
                     _, total = team_services.get_enterprise_teams(self.enterprise.enterprise_id)
@@ -148,8 +149,8 @@ class EnterpriseRUDView(JWTAuthApiView):
                         region_services.create_sample_application(enter, region, request.user)  # type: ignore[arg-type]
                 default_region = region.to_dict()  # type: ignore[union-attr]
             ent["default_region"] = default_region
-            ent.update(EnterpriseConfigService(
-                enterprise_id, self.user.user_id).initialization_or_get_config)  # type: ignore[arg-type]
+            ent.update(EnterpriseConfigService(enterprise_id,
+                                               self.user.user_id).initialization_or_get_config)  # type: ignore[arg-type]
         result = general_message(200, "success", "查询成功", bean=ent)
         return Response(result, status=result["code"])
 
@@ -168,10 +169,12 @@ class EnterpriseRUDView(JWTAuthApiView):
             try:
                 data = ent_config_servier.update_config(key, value)
                 result = general_message(200, "success", "更新成功", bean=data)
-                comment = operation_log_service.generate_generic_comment(
-                    operation=Operation.CHANGE, module=OperationModule.CERTSIGN, module_name="的配置")
-                operation_log_service.create_enterprise_log(
-                    user=self.user, comment=comment, enterprise_id=self.user.enterprise_id)  # type: ignore[arg-type]
+                comment = operation_log_service.generate_generic_comment(operation=Operation.CHANGE,
+                                                                         module=OperationModule.CERTSIGN,
+                                                                         module_name="的配置")
+                operation_log_service.create_enterprise_log(user=self.user,
+                                                            comment=comment,
+                                                            enterprise_id=self.user.enterprise_id)  # type: ignore[arg-type]
             except Exception as e:
                 logger.debug(e)
                 raise ServiceHandleException(msg="update enterprise config failed", msg_show="更新失败")
@@ -239,8 +242,7 @@ class EnterpriseTeams(JWTAuthApiView):
         page = int(request.GET.get("page", 1))
         page_size = int(request.GET.get("page_size", 10))
         name = request.GET.get("name", None)
-        teams, total = team_services.get_enterprise_teams_fenye(
-            enterprise_id, query=name, page=page, page_size=page_size)
+        teams, total = team_services.get_enterprise_teams_fenye(enterprise_id, query=name, page=page, page_size=page_size)
         jg_teams = team_services.jg_teams(enterprise_id, teams)
         data = {"total_count": total, "page": page, "page_size": page_size, "list": jg_teams}
         result = general_message(200, "success", None, bean=data)
@@ -260,8 +262,8 @@ class EnterpriseMyTeams(JWTAuthApiView):
     def get(self, request: Request, enterprise_id: str, *args: Any, **kwargs: Any) -> Response:
         name = request.GET.get("name", None)
         use_region = request.GET.get("use_region", False)
-        tenants = team_services.get_teams_region_by_user_id(
-            enterprise_id, self.user, name, use_region=use_region)  # type: ignore[arg-type]
+        tenants = team_services.get_teams_region_by_user_id(enterprise_id, self.user, name,
+                                                            use_region=use_region)  # type: ignore[arg-type]
         result = general_message(200, "team query success", "查询成功", list=tenants)
         return Response(result, status=200)
 
@@ -273,18 +275,19 @@ class EnterpriseTeamOverView(JWTAuthApiView):
         request_join_team = []
         try:
             tenants = enterprise_repo.get_enterprise_user_teams(enterprise_id, request.user.user_id)  # type: ignore[union-attr]
-            join_tenants = enterprise_repo.get_enterprise_user_join_teams(
-                enterprise_id, request.user.user_id)  # type: ignore[union-attr]
-            active_tenants = enterprise_repo.get_enterprise_user_active_teams(
-                enterprise_id, request.user.user_id)  # type: ignore[union-attr]
-            request_tenants = enterprise_repo.get_enterprise_user_request_join(
-                enterprise_id, request.user.user_id)  # type: ignore[union-attr]
+            join_tenants = enterprise_repo.get_enterprise_user_join_teams(enterprise_id,
+                                                                          request.user.user_id)  # type: ignore[union-attr]
+            active_tenants = enterprise_repo.get_enterprise_user_active_teams(enterprise_id,
+                                                                              request.user.user_id)  # type: ignore[union-attr]
+            request_tenants = enterprise_repo.get_enterprise_user_request_join(enterprise_id,
+                                                                               request.user.user_id)  # type: ignore[union-attr]
             if tenants:
                 for tenant in tenants[:3]:
                     region_name_list = []
                     region_name_list = team_repo.get_team_region_names(tenant.tenant_id)
-                    user_role_list = user_kind_role_service.get_user_roles(
-                        kind="team", kind_id=tenant.tenant_id, user=request.user)
+                    user_role_list = user_kind_role_service.get_user_roles(kind="team",
+                                                                           kind_id=tenant.tenant_id,
+                                                                           user=request.user)
                     roles = [x["role_name"] for x in user_role_list["roles"]]
                     if tenant.creater == request.user.user_id:  # type: ignore[union-attr]
                         roles.append("owner")
@@ -435,8 +438,10 @@ class EnterpriseRegionsLCView(JWTAuthApiView):
     def get(self, request: Request, enterprise_id: str, *args: Any, **kwargs: Any) -> Response:
         region_status = request.GET.get("status", "")
         check_status = request.GET.get("check_status", "")
-        data = region_services.get_enterprise_regions(
-            enterprise_id, level="safe", status=region_status, check_status=check_status)
+        data = region_services.get_enterprise_regions(enterprise_id,
+                                                      level="safe",
+                                                      status=region_status,
+                                                      check_status=check_status)
         result = general_message(200, "success", "获取成功", list=data)
         return Response(result, status=status.HTTP_200_OK)
 
@@ -457,11 +462,13 @@ class EnterpriseRegionsLCView(JWTAuthApiView):
         if region:
             data = region_services.get_enterprise_region(enterprise_id, region.region_id, check_status=False)
             result = general_message(200, "success", "创建成功", bean=data)
-            comment = operation_log_service.generate_generic_comment(
-                operation=Operation.CREATE, module=OperationModule.CLUSTER, module_name="{}".format(region_alias))
-            operation_log_service.create_cluster_log(
-                user=self.user, comment=comment, new_information=new_information,
-                enterprise_id=self.user.enterprise_id)  # type: ignore[arg-type]
+            comment = operation_log_service.generate_generic_comment(operation=Operation.CREATE,
+                                                                     module=OperationModule.CLUSTER,
+                                                                     module_name="{}".format(region_alias))
+            operation_log_service.create_cluster_log(user=self.user,
+                                                     comment=comment,
+                                                     new_information=new_information,
+                                                     enterprise_id=self.user.enterprise_id)  # type: ignore[arg-type]
             return Response(result, status=status.HTTP_200_OK)
         else:
             result = general_message(500, "failed", "创建失败")
@@ -483,7 +490,7 @@ class EnterpriseRegionNamespace(JWTAuthApiView):
         return Response(result, status=status.HTTP_200_OK)
 
 
-class EnterpriseRegionLangVersion(JWTAuthApiView):
+class _LegacyEnterpriseRegionLangVersion(JWTAuthApiView):
     def get(self, request: Request, enterprise_id: str, region_id: str, *args: Any, **kwargs: Any) -> Response:
         language = request.GET.get("language", "")
         data = region_lang_version.show_long_version(enterprise_id, region_id, language)
@@ -496,8 +503,7 @@ class EnterpriseRegionLangVersion(JWTAuthApiView):
         event_id = request.data.get("event_id", "")
         file_name = request.data.get("file_name", "")
         if ' ' in version:
-            data = {"code": 400, "msg": "version format mistake",
-                    "msg_show": "版本号格式不正确"}
+            data = {"code": 400, "msg": "version format mistake", "msg_show": "版本号格式不正确"}
             return Response(data, status=400)
         extensions = ['zip', 'war', 'jar', 'tar', 'tar.gz', 'rar']
         if any(file_name.endswith(ext) for ext in extensions) or language == "net_runtime" or language == "net_compiler":
@@ -582,9 +588,9 @@ class EnterpriseRegionsRUDView(JWTAuthApiView):
         result = general_message(200, "success", "更新成功", bean=region)
         old_information = region_services.json_region(old_region)  # type: ignore[arg-type]
         new_information = region_services.json_region(region)
-        comment = operation_log_service.generate_generic_comment(
-            operation=Operation.UPDATE, module=OperationModule.CLUSTER,
-            module_name="{}".format(region.get("region_alias", "")))
+        comment = operation_log_service.generate_generic_comment(operation=Operation.UPDATE,
+                                                                 module=OperationModule.CLUSTER,
+                                                                 module_name="{}".format(region.get("region_alias", "")))
         operation_log_service.create_cluster_log(
             user=self.user,
             comment=comment,
@@ -605,11 +611,13 @@ class EnterpriseRegionsRUDView(JWTAuthApiView):
         except RegionConfig.DoesNotExist:
             raise ServiceHandleException(status_code=404, msg="集群已不存在")
         result = general_message(200, "success", "删除成功")
-        comment = operation_log_service.generate_generic_comment(
-            operation=Operation.DELETE, module=OperationModule.CLUSTER, module_name="{}".format(region.get("region_alias", "")))
-        operation_log_service.create_cluster_log(
-            user=self.user, comment=comment, old_information=old_information,
-            enterprise_id=self.user.enterprise_id)  # type: ignore[arg-type]
+        comment = operation_log_service.generate_generic_comment(operation=Operation.DELETE,
+                                                                 module=OperationModule.CLUSTER,
+                                                                 module_name="{}".format(region.get("region_alias", "")))
+        operation_log_service.create_cluster_log(user=self.user,
+                                                 comment=comment,
+                                                 old_information=old_information,
+                                                 enterprise_id=self.user.enterprise_id)  # type: ignore[arg-type]
         return Response(result, status=result.get("code", 200))
 
 
@@ -617,31 +625,29 @@ class EnterpriseRegionTenantRUDView(EnterpriseAdminView):
     def get(self, request: Request, enterprise_id: str, region_id: str, *args: Any, **kwargs: Any) -> Response:
         page = request.GET.get("page", 1)
         page_size = request.GET.get("pageSize", 10)
-        tenants, total = team_services.get_tenant_list_by_region(
-            enterprise_id, region_id, page, page_size)  # type: ignore[arg-type]
-        result = general_message(
-            200, "success", "获取成功", bean={
-                "tenants": tenants,
-                "total": total,
-            })
+        tenants, total = team_services.get_tenant_list_by_region(enterprise_id, region_id, page,  # type: ignore[arg-type]
+                                                                 page_size)  # type: ignore[arg-type]
+        result = general_message(200, "success", "获取成功", bean={
+            "tenants": tenants,
+            "total": total,
+        })
         return Response(result, status=status.HTTP_200_OK)
 
 
 class EnterpriseRegionTenantLimitView(EnterpriseAdminView):
-    def post(self, request: Request, enterprise_id: str, region_id: str, tenant_name: str,
-             *args: Any, **kwargs: Any) -> Response:
+    def post(self, request: Request, enterprise_id: str, region_id: str, tenant_name: str, *args: Any,
+             **kwargs: Any) -> Response:
         team_services.set_tenant_resource_limit(enterprise_id, region_id, tenant_name, request.data)
         team = team_services.get_tenant_by_tenant_name(tenant_name)
         limit = request.data.get("limit_memory", 0)
-        team_alias = operation_log_service.process_team_name(
-            team.tenant_alias, region_id, tenant_name)  # type: ignore[union-attr]
-        comment = operation_log_service.generate_generic_comment(
-            operation=Operation.LIMIT, module=OperationModule.TEAM,
-            module_name="{} 的内存使用量为 {} MB".format(team_alias, limit))
-        operation_log_service.create_cluster_log(
-            user=self.user, comment=comment, enterprise_id=self.user.enterprise_id)  # type: ignore[arg-type]
+        team_alias = operation_log_service.process_team_name(team.tenant_alias, region_id,  # type: ignore[union-attr]
+                                                             tenant_name)  # type: ignore[union-attr]
+        comment = operation_log_service.generate_generic_comment(operation=Operation.LIMIT,
+                                                                 module=OperationModule.TEAM,
+                                                                 module_name="{} 的内存使用量为 {} MB".format(team_alias, limit))
+        operation_log_service.create_cluster_log(user=self.user, comment=comment,
+                                                 enterprise_id=self.user.enterprise_id)  # type: ignore[arg-type]
         return Response({}, status=status.HTTP_200_OK)
-
 
 
 class EnterpriseAppComponentsLView(JWTAuthApiView):
@@ -889,8 +895,9 @@ class MyEventsView(JWTAuthApiView):
         page_size = request.GET.get("page_size", 10)
         res_events = []
         for region_name in eval(region_names):
-            my_tenant_ids = team_repo.get_tenants_by_user_id(
-                self.user.user_id).values_list("tenant_id", flat=True)  # type: ignore[arg-type]
+            my_tenant_ids = team_repo.get_tenants_by_user_id(  # type: ignore[arg-type]
+                self.user.user_id).values_list("tenant_id",  # type: ignore[arg-type]
+                                               flat=True)  # type: ignore[arg-type]
             tenant_id_list = {"tenant_ids": list(my_tenant_ids)}
             events = event_service.get_myteams_events("tenant", json.dumps(tenant_id_list), eid, region_name, int(page),
                                                       int(page_size))
@@ -1082,7 +1089,8 @@ class EnterpriseInfoFileView(AlowAnyApiView):
         fn = open(json_dir, 'rb')
         response = FileResponse(file_iterator(fn))
         response['Content-Type'] = 'application/octet-stream'
-        response['Content-Disposition'] = 'attachment;filename={}.json'.format(data.enterprise_alias)  # type: ignore[union-attr]
+        response['Content-Disposition'] = 'attachment;filename={}.json'.format(
+            data.enterprise_alias)  # type: ignore[union-attr]
         return response
 
 
@@ -1118,24 +1126,24 @@ class EnterpriseRegionLangVersion(JWTAuthApiView):  # type: ignore[no-redef]  # 
         is_allowed = request.data.get("is_allowed", True)
         # 检查版本号格式是否正确
         if not region_lang_version.is_valid_version(version):
-            data = general_message(400,"version format mistake","版本号格式不正确")
+            data = general_message(400, "version format mistake", "版本号格式不正确")
             return Response(data, status=200)
         # 检查镜像格式是否正确
         if (language == "net_runtime" or language == "net_sdk") and not region_lang_version.is_valid_image(file_name):
-            data = general_message(400,"image name format mistake","镜像格式不正确")
+            data = general_message(400, "image name format mistake", "镜像格式不正确")
             return Response(data, status=200)
         # 检查文件上传格式是否正确
         extensions = ['jar', 'tar.gz']
         if any(file_name.endswith(ext) for ext in extensions) or language == "net_runtime" or language == "net_sdk":
-            data = region_lang_version.create_long_version(
-                enterprise_id, region_id, language, version, event_id, file_name, build_strategy, is_allowed)
+            data = region_lang_version.create_long_version(enterprise_id, region_id, language, version, event_id, file_name,
+                                                           build_strategy, is_allowed)
             if data.get("bean") == "exist":
-                data = general_message(409,"version is exist","该版本已存在")
+                data = general_message(409, "version is exist", "该版本已存在")
                 return Response(data, status=409)
             result = general_message(200, "success", "添加成功")
             return Response(result, status=status.HTTP_200_OK)
         else:
-            data = general_message(400,"package format mistake","文件上传格式不正确，支持jar, tar.gz")
+            data = general_message(400, "package format mistake", "文件上传格式不正确，支持jar, tar.gz")
             return Response(data, status=400)
 
     def put(self, request: Request, enterprise_id: str, region_id: str, *args: Any, **kwargs: Any) -> Response:
@@ -1145,8 +1153,8 @@ class EnterpriseRegionLangVersion(JWTAuthApiView):  # type: ignore[no-redef]  # 
         show = request.data.get("show", True)
         build_strategy = request.data.get("build_strategy", None)
         is_allowed = request.data.get("is_allowed", None)
-        region_lang_version.update_long_version(
-            enterprise_id, region_id, language, version, show, first_choice, build_strategy, is_allowed)
+        region_lang_version.update_long_version(enterprise_id, region_id, language, version, show, first_choice, build_strategy,
+                                                is_allowed)
         result = general_message(200, "success", "更新成功")
         return Response(result, status=result.get("code", 200))
 
@@ -1156,10 +1164,11 @@ class EnterpriseRegionLangVersion(JWTAuthApiView):  # type: ignore[no-redef]  # 
         build_strategy = request.data.get("build_strategy", None)
         use_components = region_lang_version.delete_long_version(enterprise_id, region_id, language, version, build_strategy)
         if use_components:
-            data = general_message(405,"version in use","该版本在使用中，无法删除")
+            data = general_message(405, "version in use", "该版本在使用中，无法删除")
             return Response(data, status=405)
         result = general_message(200, "success", "删除成功")
         return Response(result, status=result.get("code", 200))
+
 
 class EnterpriseRegionCNBFrameworks(JWTAuthApiView):
     def get(self, request: Request, enterprise_id: str, region_id: str, *args: Any, **kwargs: Any) -> Response:

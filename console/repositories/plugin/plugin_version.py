@@ -16,18 +16,21 @@ class PluginVersionRepository(object):
 
     def get_by_id_and_version(self, tenant_id: str, plugin_id: str, build_version: str) -> Optional[PluginBuildVersion]:
         # .objects exists at runtime via ModelBase metaclass; stub gap (model not in app registry)
-        pbvs = PluginBuildVersion.objects.filter(tenant_id=tenant_id, plugin_id=plugin_id, build_version=build_version)  # type: ignore[attr-defined]
+        pbvs = PluginBuildVersion.objects.filter(tenant_id=tenant_id, plugin_id=plugin_id,  # type: ignore[attr-defined]
+                                                 build_version=build_version)  # type: ignore[attr-defined]
         if pbvs:
             return pbvs[0]
         return None
 
     def get_plugin_versions(self, tenant_id: str, plugin_id: str) -> QuerySet:
         # .objects exists at runtime via ModelBase metaclass; stub gap (model not in app registry)
-        return PluginBuildVersion.objects.filter(tenant_id=tenant_id, plugin_id=plugin_id).order_by("-ID")  # type: ignore[attr-defined]
+        return PluginBuildVersion.objects.filter(tenant_id=tenant_id,  # type: ignore[attr-defined]
+                                                 plugin_id=plugin_id).order_by("-ID")  # type: ignore[attr-defined]
 
     def delete_build_version(self, tenant_id: str, plugin_id: str, build_version: str) -> None:
         # .objects exists at runtime via ModelBase metaclass; stub gap (model not in app registry)
-        PluginBuildVersion.objects.filter(tenant_id=tenant_id, plugin_id=plugin_id, build_version=build_version).delete()  # type: ignore[attr-defined]
+        PluginBuildVersion.objects.filter(tenant_id=tenant_id, plugin_id=plugin_id,  # type: ignore[attr-defined]
+                                          build_version=build_version).delete()  # type: ignore[attr-defined]
 
     def get_plugin_build_version_by_tenant_and_region(self, tenant_id: str, region: str) -> QuerySet:
         # .objects exists at runtime via ModelBase metaclass; stub gap (model not in app registry)

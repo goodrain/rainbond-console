@@ -71,7 +71,10 @@ class AppConfigGroupServiceWorkflowTests(TestCase):
         )
         install_stub("console.repositories.app", service_repo=self.service_repo)
         install_stub("console.repositories.region_app", region_app_repo=self.region_app_repo)
-        install_stub("console.models.main", ApplicationConfigGroup=DummyApplicationConfigGroup, ConfigGroupItem=object, ConfigGroupService=object)
+        install_stub("console.models.main",
+                     ApplicationConfigGroup=DummyApplicationConfigGroup,
+                     ConfigGroupItem=object,
+                     ConfigGroupService=object)
         install_stub(
             "console.exception.bcode",
             ErrAppConfigGroupExists=DummyErrAppConfigGroupExists,
@@ -114,7 +117,10 @@ class AppConfigGroupServiceWorkflowTests(TestCase):
 
         self.assertEqual(result["config_group_name"], "demo")
         self.app_config_group_repo.create.assert_called_once()
-        service_module.create_items_and_services.assert_called_once_with(cgroup, [{"item_key": "KEY", "item_value": "VALUE"}], ["svc-1"])
+        service_module.create_items_and_services.assert_called_once_with(cgroup, [{
+            "item_key": "KEY",
+            "item_value": "VALUE"
+        }], ["svc-1"])
         self.region_api.create_app_config_group.assert_called_once()
 
     # capability_id: console.app-config-group.update
@@ -124,13 +130,19 @@ class AppConfigGroupServiceWorkflowTests(TestCase):
         self.app_config_group_repo.get.return_value = cgroup
         self.region_app_repo.get_region_app_id.return_value = "region-app-id"
         service_module.create_items_and_services = MagicMock()
-        service_module.app_config_group_service.get_config_group = MagicMock(return_value={"config_group_name": "demo", "enable": False})
+        service_module.app_config_group_service.get_config_group = MagicMock(return_value={
+            "config_group_name": "demo",
+            "enable": False
+        })
 
         result = service_module.app_config_group_service.update_config_group(
             "demo-region",
             12,
             "demo",
-            [{"item_key": "KEY", "item_value": "NEW"}],
+            [{
+                "item_key": "KEY",
+                "item_value": "NEW"
+            }],
             False,
             ["svc-1"],
             "demo-team",
@@ -140,7 +152,10 @@ class AppConfigGroupServiceWorkflowTests(TestCase):
         self.app_config_group_repo.update.assert_called_once()
         self.app_config_group_item_repo.delete.assert_called_once_with("config-group-id")
         self.app_config_group_service_repo.delete.assert_called_once_with("config-group-id")
-        service_module.create_items_and_services.assert_called_once_with(cgroup, [{"item_key": "KEY", "item_value": "NEW"}], ["svc-1"])
+        service_module.create_items_and_services.assert_called_once_with(cgroup, [{
+            "item_key": "KEY",
+            "item_value": "NEW"
+        }], ["svc-1"])
         self.region_api.update_app_config_group.assert_called_once()
 
     # capability_id: console.app-config-group.delete

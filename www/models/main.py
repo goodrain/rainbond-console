@@ -1,12 +1,12 @@
 # -*- coding: utf8 -*-
 import logging
-import re
+
 from datetime import datetime
 from enum import Enum
 
 from console.enum.app import GovernanceModeEnum
 from console.enum.component_enum import ComponentSource
-from console.utils import runner_util
+
 from django.conf import settings
 from django.db import models
 from django.db.models.fields import (AutoField, BooleanField, CharField, DateTimeField, DecimalField, IntegerField)
@@ -76,10 +76,8 @@ class AnonymousUser(object):
         return False
 
 
-
 class SuperAdminUser(models.Model):
     """超级管理员"""
-
     class Meta:
         db_table = "user_administrator"
 
@@ -196,17 +194,17 @@ class BaseModel(models.Model):
         return ""
 
     def parse_kind(self, a):
-        if type(a) == CharField:
+        if type(a) is CharField:
             return "string"
-        if type(a) == AutoField:
+        if type(a) is AutoField:
             return "int"
-        if type(a) == BooleanField:
+        if type(a) is BooleanField:
             return "boolean"
-        if type(a) == DecimalField:
+        if type(a) is DecimalField:
             return "decimal"
-        if type(a) == DateTimeField:
+        if type(a) is DateTimeField:
             return "datetime"
-        if type(a) == IntegerField:
+        if type(a) is IntegerField:
             return "int"
         return "string"
 
@@ -215,7 +213,6 @@ class Tenants(BaseModel):
     """
     租户表
     """
-
     class Meta:
         db_table = 'tenant_info'
 
@@ -340,8 +337,11 @@ class TenantServiceInfo(BaseModel):
     # deprecated
     expired_time = models.DateTimeField(null=True, help_text="过期时间")
     open_webhooks = models.BooleanField(default=False, help_text='是否开启自动触发部署功能（兼容老版本组件）')
-    service_source = models.CharField(
-        max_length=15, default="", null=True, blank=True, help_text="组件来源(source_code, market, docker_run, docker_compose)")
+    service_source = models.CharField(max_length=15,
+                                      default="",
+                                      null=True,
+                                      blank=True,
+                                      help_text="组件来源(source_code, market, docker_run, docker_compose)")
     create_status = models.CharField(max_length=15, null=True, blank=True, help_text="组件创建状态 creating|complete")
     update_time = models.DateTimeField(auto_now=True, blank=True, help_text="更新时间")
     check_uuid = models.CharField(max_length=36, blank=True, null=True, default="", help_text="组件检测ID")
@@ -366,7 +366,7 @@ class TenantServiceInfo(BaseModel):
         data = {}
         for f in self._meta.fields:
             obj = getattr(self, f.name)
-            if type(f.name) == DateTimeField:
+            if type(f.name) is DateTimeField:
                 data[f.name] = obj.strftime('%Y-%m-%d %H:%M:%S')
             else:
                 data[f.name] = obj
@@ -567,7 +567,6 @@ class PermRelService(BaseModel):
     """
     用户和组件关系表/用户在一个组件中的角色
     """
-
     class Meta:
         db_table = 'service_perms'
 
@@ -582,7 +581,6 @@ class PermRelTenant(BaseModel):
     用户和团队的关系表
     identity ：租户权限
     """
-
     class Meta:
         db_table = 'tenant_perms'
 
@@ -657,7 +655,6 @@ class TenantServiceMountRelation(BaseModel):
 
 class TenantServiceVolume(BaseModel):
     """数据持久化表格"""
-
     class Meta:
         db_table = 'tenant_service_volume'
 
@@ -684,7 +681,6 @@ class TenantServiceVolume(BaseModel):
 
 class TenantServiceConfigurationFile(BaseModel):
     """组件配置文件"""
-
     class Meta:
         db_table = 'tenant_service_config'
 
@@ -696,7 +692,6 @@ class TenantServiceConfigurationFile(BaseModel):
 
 class ServiceGroup(BaseModel):
     """组件分组（应用）"""
-
     class Meta:
         db_table = 'service_group'
 
@@ -707,12 +702,11 @@ class ServiceGroup(BaseModel):
     order_index = models.IntegerField(default=0, help_text="应用排序")
     note = models.CharField(max_length=2048, null=True, blank=True, help_text="备注")
     username = models.CharField(max_length=255, null=True, blank=True, help_text="the username of principal")
-    governance_mode = models.CharField(
-        max_length=255,
-        null=True,
-        blank=True,
-        default=GovernanceModeEnum.KUBERNETES_NATIVE_SERVICE.name,
-        help_text="governance mode")
+    governance_mode = models.CharField(max_length=255,
+                                       null=True,
+                                       blank=True,
+                                       default=GovernanceModeEnum.KUBERNETES_NATIVE_SERVICE.name,
+                                       help_text="governance mode")
     create_time = models.DateTimeField(help_text="创建时间")
     update_time = models.DateTimeField(help_text="更新时间")
     app_type = models.CharField(max_length=255, default="rainbond", help_text="应用类型")
@@ -734,7 +728,6 @@ class ServiceGroup(BaseModel):
 
 class ServiceGroupRelation(BaseModel):
     """组件与分组关系"""
-
     class Meta:
         db_table = 'service_group_relation'
 
@@ -746,7 +739,6 @@ class ServiceGroupRelation(BaseModel):
 
 class RegionApp(BaseModel):
     """the dependencies between region app and console app"""
-
     class Meta:
         db_table = 'region_app'
         unique_together = ('region_name', 'region_app_id', 'app_id')
@@ -852,7 +844,6 @@ class TenantEnterpriseToken(BaseModel):
 
 class TenantServiceGroup(BaseModel):
     """从应用模型安装的组件从属关系记录"""
-
     class Meta:
         db_table = 'tenant_service_group'
 
@@ -867,7 +858,6 @@ class TenantServiceGroup(BaseModel):
 
 class ServiceTcpDomain(BaseModel):
     """Tcp/Udp策略"""
-
     class Meta:
         db_table = 'service_tcp_domain'
 
@@ -899,7 +889,6 @@ class ServiceTcpDomain(BaseModel):
 
 class ThirdPartyServiceEndpoints(BaseModel):
     """第三方组件endpoints"""
-
     class Meta:
         db_table = 'third_party_service_endpoints'
 
@@ -912,7 +901,6 @@ class ThirdPartyServiceEndpoints(BaseModel):
 
 class ServiceWebhooks(BaseModel):
     """组件的自动部署属性"""
-
     class Meta:
         db_table = 'service_webhooks'
 
@@ -925,7 +913,6 @@ class ServiceWebhooks(BaseModel):
 
 class GatewayCustomConfiguration(BaseModel):
     """网关自定义参数配置"""
-
     class Meta:
         db_table = 'gateway_custom_configuration'
 
@@ -935,7 +922,6 @@ class GatewayCustomConfiguration(BaseModel):
 
 class Menus(models.Model):
     """菜单管理"""
-
     class Meta:
         db_table = "menus"
 
@@ -949,10 +935,9 @@ class Menus(models.Model):
 
 class VirtualMachineImage(BaseModel):
     """虚拟机镜像管理"""
-
     class Meta:
         db_table = "virtual_machine_image"
-        unique_together = (("tenant_id", "name"),)
+        unique_together = (("tenant_id", "name"), )
         indexes = [
             models.Index(fields=["tenant_id", "status"]),
             models.Index(fields=["tenant_id", "source_type"]),
@@ -981,6 +966,7 @@ class VirtualMachineImage(BaseModel):
     labels_json = models.TextField(default="{}", blank=True, help_text="标签JSON")
     extra_json = models.TextField(default="{}", blank=True, help_text="扩展信息JSON")
 
+
 class TaskEvent(BaseModel):
     class Meta:
         db_table = 'task_event'
@@ -996,12 +982,11 @@ class TaskEvent(BaseModel):
 
 class TeamInvitation(BaseModel):
     """团队邀请信息"""
-    
     class Meta:
         db_table = 'team_invitation'
-        
+
     invitation_id = models.CharField(max_length=32, unique=True, help_text="邀请ID")
-    tenant_id = models.CharField(max_length=32, help_text="团队ID") 
+    tenant_id = models.CharField(max_length=32, help_text="团队ID")
     inviter_id = models.IntegerField(help_text="邀请人ID")
     role_id = models.IntegerField(help_text="角色ID", null=True, blank=True)
     expired_time = models.DateTimeField(help_text="过期时间")
