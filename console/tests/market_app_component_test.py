@@ -151,23 +151,23 @@ class MarketAppUpgradePortTests(TestCase):
 
         self.assertTrue(component.ports[0].is_inner_service)
 
-    def test_upgrade_keeps_existing_inner_service_when_outer_service_changes(self):
+    def test_upgrade_keeps_existing_inner_service_when_protocol_changes(self):
         component = _component()
         component.ports = [
             SimpleNamespace(
                 container_port=8080,
                 protocol="http",
-                port_alias="WEB",
+                port_alias="OLD_WEB",
                 is_inner_service=True,
                 is_outer_service=False,
             )
         ]
         template_ports = [{
             "container_port": 8080,
-            "protocol": "http",
+            "protocol": "tcp",
             "port_alias": "WEB",
             "is_inner_service": False,
-            "is_outer_service": True,
+            "is_outer_service": False,
         }]
 
         changes = PropertyChanges._ports(component.ports, template_ports)
@@ -176,7 +176,8 @@ class MarketAppUpgradePortTests(TestCase):
         component._update_ports(changes)
 
         self.assertTrue(component.ports[0].is_inner_service)
-        self.assertTrue(component.ports[0].is_outer_service)
+        self.assertFalse(component.ports[0].is_outer_service)
+        self.assertEqual("tcp", component.ports[0].protocol)
 
     def test_upgrade_port_flags_normalize_false_string_and_zero(self):
         component = _component()
