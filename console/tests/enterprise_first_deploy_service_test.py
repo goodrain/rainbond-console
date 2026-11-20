@@ -2880,9 +2880,13 @@ class EnterpriseFirstDeployServiceTests(TestCase):
         cases = [
             ("0/3 nodes are available: Insufficient cpu.", self.service.FAILURE_CATEGORY_RESOURCE_INSUFFICIENT),
             ("Insufficient nvidia.com/gpu", self.service.FAILURE_CATEGORY_RESOURCE_INSUFFICIENT),
+            ("Insufficient hugepages-2Mi", self.service.FAILURE_CATEGORY_RESOURCE_INSUFFICIENT),
             ("内存资源不足", self.service.FAILURE_CATEGORY_RESOURCE_INSUFFICIENT),
             ("pod has unbound immediate PersistentVolumeClaims", self.service.FAILURE_CATEGORY_PVC_UNBOUND),
             ("insufficient permissions to access registry", self.service.FAILURE_CATEGORY_UNKNOWN),
+            ("insufficient privileges to access registry", self.service.FAILURE_CATEGORY_UNKNOWN),
+            ("Insufficient cpu-manager state", self.service.FAILURE_CATEGORY_UNKNOWN),
+            ("非资源不足", self.service.FAILURE_CATEGORY_UNKNOWN),
         ]
         for reason, expected in cases:
             with self.subTest(reason=reason):
@@ -2899,6 +2903,17 @@ class EnterpriseFirstDeployServiceTests(TestCase):
 
         self.assertEqual(report_payload["decision_rule_version"], "v1")
         self.assertEqual(report_payload["environment_context"]["rbd_version"], "unknown")
+
+    def test_environment_collection_marks_pending_context_failed_after_retry_limit(self):
+        payload = {
+            "environment_context": {"collect_status": "pending"},
+            "environment_collect_retry_count": 2,
+        }
+        with mock.patch.object(self.service, "_save_tracking_payload") as save_payload:
+            self.service._retry_environment_collection(None, payload, "record-key", "demo-region")
+
+        self.assertEqual(payload["environment_context"]["collect_status"], "failed")
+        save_payload.assert_called_once_with(None, payload, key="record-key")
 
     def test_dependency_context_sorts_limits_and_distinguishes_missing_pods(self):
         relations = [Obj(dep_service_id="dep-b"), Obj(dep_service_id="dep-a"), Obj(dep_service_id="dep-missing")]

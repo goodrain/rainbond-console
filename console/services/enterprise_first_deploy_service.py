@@ -124,7 +124,9 @@ class EnterpriseFirstDeployService(object):
     }
     DEPENDENCY_SNAPSHOT_STATUSES = {"RUNNING", "INITIATING", "PENDING", "UNHEALTHY", "ABNORMAL", "UNKNOWN"}
     RESOURCE_INSUFFICIENT_RE = re.compile(
-        r"\binsufficient\s+(?:cpu|memory|pods|ephemeral-storage|hugepages-[\w-]+|[\w.-]+/[\w.-]+)\b", re.IGNORECASE)
+        r"\binsufficient\s+(?:cpu(?![-\w])|memory(?![-\w])|pods(?![-\w])|ephemeral-storage(?![-\w])|"
+        r"hugepages-[\w-]+|[\w.-]+/[\w.-]+)(?=$|[\s.,;:])", re.IGNORECASE)
+    RESOURCE_INSUFFICIENT_CN_RE = re.compile(r"(?<!非)资源不足")
     SENSITIVE_QUOTED_ASSIGNMENT_RE = re.compile(
         r"\b((?:password|passwd|pwd|token|secret|authorization|api[_-]?key))(\s*[:=]\s*)([\"'])(.*?)(\3)",
         re.IGNORECASE)
@@ -1545,7 +1547,13 @@ class EnterpriseFirstDeployService(object):
         if environment_context.get("collect_status") == "success":
             return
         retry_count = int(payload.get("environment_collect_retry_count") or 0)
-        if retry_count >= 2 or not self._reserve_environment_collection(key):
+        if retry_count >= 2:
+            if environment_context.get("collect_status") != "failed":
+                environment_context["collect_status"] = "failed"
+                payload["environment_context"] = environment_context
+                self._save_tracking_payload(record, payload, key=key)
+            return
+        if not self._reserve_environment_collection(key):
             return
         payload["environment_collect_retry_count"] = retry_count + 1
         try:
@@ -2209,7 +2217,7 @@ class EnterpriseFirstDeployService(object):
         if ("unbound immediate persistentvolumeclaims" in reason_text or "pvc pending" in reason_text or
                 "pvc未绑定" in reason_text or "pvc 未绑定" in reason_text):
             return self.FAILURE_CATEGORY_PVC_UNBOUND
-        if ("资源不足" in reason_text or "cluster lack of memory" in reason_text or
+        if (self.RESOURCE_INSUFFICIENT_CN_RE.search(reason_text) or "cluster lack of memory" in reason_text or
                 self.RESOURCE_INSUFFICIENT_RE.search(reason_text)):
             return self.FAILURE_CATEGORY_RESOURCE_INSUFFICIENT
         if "没有可用节点" in reason_text or "nodes are available" in reason_text:
