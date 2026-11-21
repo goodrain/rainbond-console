@@ -139,25 +139,108 @@ class LegacyMarketPortUpgradeTests(TestCase):
                             app_deploy_module,
                             "make_uuid",
                             side_effect=["0000fcbb", "0000b1f6"]), mock.patch.object(
-                                market_service,
-                                "_update_envs") as update_envs, mock.patch.object(
-                                    market_service,
-                                    "_sync_outer_envs") as sync_outer_envs, mock.patch.object(
+                                app_deploy_module.env_var_repo,
+                                "get_by_attr_name_and_scope",
+                                return_value=None), mock.patch.object(
+                                    app_deploy_module.env_var_service,
+                                    "create_env_var") as create_env_var, mock.patch.object(
                                         app_deploy_module.region_api,
                                         "add_service_port"), mock.patch.object(
                                         app_deploy_module.region_api,
-                                        "update_service_port") as sync_ports:
+                                        "update_service_port") as sync_ports, mock.patch.object(
+                                        app_deploy_module.region_api,
+                                        "add_service_env") as sync_env:
             market_service._update_ports(changes)
             market_service._sync_ports(changes)
 
         self.assertEqual("web-ab12", update_port.call_args.kwargs["k8s_service_name"])
         self.assertEqual("web-ab12", sync_ports.call_args.args[3]["port"][0]["k8s_service_name"])
         self.assertEqual(["WEB_HOST", "WEB_PORT"], [
-            env["attr_name"] for env in update_envs.call_args.args[0]["add"]
+            call.args[3] for call in create_env_var.call_args_list
         ])
         self.assertEqual(["WEB_HOST", "WEB_PORT"], [
-            env["attr_name"] for env in sync_outer_envs.call_args.args[0]["add"]
+            call.args[3]["attr_name"] for call in sync_env.call_args_list
         ])
+        self.assertEqual([8080, 8080], [call.args[1] for call in create_env_var.call_args_list])
+        self.assertEqual(["127.0.0.1", "8080"], [call.args[4] for call in create_env_var.call_args_list])
+
+    def test_new_port_envs_are_port_scoped_and_sync_without_type_errors(self):
+        market_service = self._market_service()
+        changes = {
+            "add": [{
+                "container_port": 8080,
+                "protocol": "http",
+                "port_alias": "WEB",
+                "k8s_service_name": "web",
+                "is_inner_service": True,
+                "is_outer_service": False,
+            }]
+        }
+
+        with mock.patch.object(
+                app_deploy_module.port_repo,
+                "get_by_k8s_service_name",
+                return_value=None), mock.patch.object(
+                    app_deploy_module.port_repo,
+                    "add_service_port"), mock.patch.object(
+                        app_deploy_module.env_var_repo,
+                        "get_by_attr_name_and_scope",
+                        return_value=None), mock.patch.object(
+                            app_deploy_module.env_var_service,
+                            "create_env_var") as create_env_var, mock.patch.object(
+                                app_deploy_module.region_api,
+                                "add_service_port"), mock.patch.object(
+                                    app_deploy_module.region_api,
+                                    "update_service_port"), mock.patch.object(
+                                        app_deploy_module.region_api,
+                                        "add_service_env") as sync_env:
+            market_service._update_ports(changes)
+            market_service._sync_ports(changes)
+
+        self.assertEqual([8080, 8080], [call.args[1] for call in create_env_var.call_args_list])
+        self.assertEqual(["127.0.0.1", "8080"], [call.args[4] for call in create_env_var.call_args_list])
+        self.assertEqual([8080, 8080], [call.args[3]["container_port"] for call in sync_env.call_args_list])
+
+    def test_port_upgrade_keeps_existing_outer_envs_unchanged(self):
+        market_service = self._market_service()
+        existing_port = mock.Mock(
+            port_alias="WEB",
+            k8s_service_name="web-ab12",
+            is_inner_service=False,
+            is_outer_service=True,
+        )
+        changes = {
+            "upd": [{
+                "container_port": 8080,
+                "protocol": "http",
+                "port_alias": "WEB",
+                "is_inner_service": True,
+                "is_outer_service": True,
+            }]
+        }
+
+        with mock.patch.object(
+                app_deploy_module.port_repo,
+                "get_service_port_by_port",
+                return_value=existing_port), mock.patch.object(
+                    app_deploy_module.port_repo,
+                    "update"), mock.patch.object(
+                        app_deploy_module.env_var_repo,
+                        "get_by_attr_name_and_scope",
+                        return_value=mock.Mock(attr_value="user-value")), mock.patch.object(
+                            app_deploy_module.env_var_service,
+                            "create_env_var") as create_env_var, mock.patch.object(
+                                app_deploy_module.region_api,
+                                "add_service_port"), mock.patch.object(
+                                    app_deploy_module.region_api,
+                                    "update_service_port"), mock.patch.object(
+                                        app_deploy_module.region_api,
+                                        "add_service_env") as sync_env:
+            market_service._update_ports(changes)
+            market_service._sync_ports(changes)
+
+        create_env_var.assert_not_called()
+        sync_env.assert_not_called()
 
 
 # capability_id: console.market-app.manual-build-preserves-port-alias

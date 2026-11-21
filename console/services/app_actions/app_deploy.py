@@ -13,7 +13,7 @@ from console.exception.main import (EnvAlreadyExist, ErrDepVolumeNotFound, ErrIn
                                     ServiceHandleException, ServiceRelationAlreadyExist)
 from console.models.main import RainbondCenterAppVersion, TenantServiceBackup
 from console.repositories.app import service_repo, service_source_repo
-from console.repositories.app_config import port_repo, volume_repo
+from console.repositories.app_config import env_var_repo, port_repo, volume_repo
 from console.repositories.probe_repo import probe_repo
 from console.repositories.service_backup_repo import service_backup_repo
 from console.services.app_actions import app_manage_service
@@ -189,6 +189,7 @@ class MarketService(object):
         self.changed: TypingDict[str, Any] = {}
         self._resolved_ports: TypingDict[int, dict] = {}
         self._newly_inner_ports: set = set()
+        self._port_envs_to_sync: List[dict] = []
         self.backup: Any = None
 
         self.update_funcs = self._create_update_funcs()
@@ -513,10 +514,11 @@ class MarketService(object):
     def _update_outer_envs(self, envs: Optional[dict]) -> None:
         self._update_envs(envs, "outer")
 
-    def _update_envs(self, envs: Optional[dict], scope: str) -> None:
+    def _update_envs(self, envs: Optional[dict], scope: str) -> List[dict]:
         if envs is None:
-            return
+            return []
         logger.debug("service id: {}; update envs; data: {}".format(self.service.service_id, envs))
+        created_envs = []
         # create envs
         add = envs.get("add", [])
         for env in add:
@@ -527,12 +529,18 @@ class MarketService(object):
             is_change = env.get("is_change", True)
             if not attr_name:
                 continue
-            if container_port == 0 and (value == "**None**" or (value.startswith("**None:") and value.endswith("**"))):
+            if container_port == 0 and isinstance(value, str) and (
+                    value == "**None**" or (value.startswith("**None:") and value.endswith("**"))):
                 value = self.service.service_id[:8]
+            if env_var_repo.get_by_attr_name_and_scope(
+                    self.tenant.tenant_id, self.service.service_id, attr_name, scope):
+                continue
             try:
                 env_var_service.create_env_var(self.service, container_port, name, attr_name, value, is_change, scope)
+                created_envs.append(env)
             except (EnvAlreadyExist, InvalidEnvName) as e:
                 logger.warning("failed to create env: {}; will ignore this env".format(e))
+        return created_envs
 
     def _update_component_graphs(self, component_graphs: Optional[dict]) -> None:
         if not component_graphs:
@@ -613,7 +621,8 @@ class MarketService(object):
         if 'attr_name' not in env:
             return None
         attr_val = env.get("attr_value") or ""
-        if container_port == 0 and (attr_val == "**None**" or (attr_val.startswith("**None:") and attr_val.endswith("**"))):
+        if container_port == 0 and isinstance(attr_val, str) and (
+                attr_val == "**None**" or (attr_val.startswith("**None:") and attr_val.endswith("**"))):
             env["attr_value"] = self.service.service_id[:8]
         result = {
             "container_port": container_port,
@@ -636,15 +645,17 @@ class MarketService(object):
         if use_legacy_default_alias or not port_alias:
             port_alias = self.service.service_alias.upper() + str(port["container_port"])
         host_env = {
+            "container_port": container_port,
             "name": "连接地址",
             "attr_name": port_alias + "_HOST",
             "attr_value": "127.0.0.1",
             "is_change": False,
         }
         port_env = {
+            "container_port": container_port,
             "name": "端口",
             "attr_name": port_alias + "_PORT",
-            "attr_value": container_port,
+            "attr_value": str(container_port),
             "is_change": False,
         }
         return [host_env, port_env]
@@ -675,6 +686,7 @@ class MarketService(object):
     def _update_ports(self, ports: Optional[dict]) -> None:
         if ports is None:
             return
+        self._port_envs_to_sync = []
 
         add = [normalize_template_port_service_flags(port, default_inner_service=False) for port in ports.get("add", [])]
         envs: TypingDict[str, list] = {"add": []}
@@ -700,7 +712,7 @@ class MarketService(object):
                 envs["add"].extend(self._create_envs_4_ports(port, use_legacy_default_alias))
         if not envs["add"]:
             return
-        self._update_envs(envs, "outer")
+        self._port_envs_to_sync = self._update_envs(envs, "outer")
 
     def _sync_ports(self, ports: Optional[dict]) -> None:
         """
@@ -709,7 +721,6 @@ class MarketService(object):
         if ports is None:
             return
         add = [normalize_template_port_service_flags(port, default_inner_service=False) for port in ports.get("add", [])]
-        envs: TypingDict[str, list] = {"add": []}
         for index, port in enumerate(add):
             container_port = int(port["container_port"])
             resolved_port = self._resolved_ports.get(container_port)
@@ -718,8 +729,6 @@ class MarketService(object):
             else:
                 self.update_port_data(port)
             add[index] = port
-            if port["is_inner_service"]:
-                envs["add"].extend(self._create_envs_4_ports(port, not port.get("port_alias")))
         upd = [normalize_template_port_service_flags(port, default_inner_service=False) for port in ports.get("upd", [])]
         for index, port in enumerate(upd):
             container_port = int(port["container_port"])
@@ -731,16 +740,14 @@ class MarketService(object):
             else:
                 self.update_port_data(port, existing_port)
             upd[index] = port
-            if container_port in self._newly_inner_ports:
-                envs["add"].extend(self._create_envs_4_ports(port, not port.get("port_alias")))
         add_body = {"port": add, "enterprise_id": self.tenant.enterprise_id}
         region_api.add_service_port(self.service.service_region, self.tenant.tenant_name, self.service.service_alias, add_body)
         upd_body = {"port": upd, "enterprise_id": self.tenant.enterprise_id}
         region_api.update_service_port(self.service.service_region, self.tenant.tenant_name, self.service.service_alias,
                                        upd_body)
 
-        if envs:
-            self._sync_outer_envs(envs)
+        if self._port_envs_to_sync:
+            self._sync_outer_envs({"add": self._port_envs_to_sync})
 
     def _restore_ports(self, backup: TenantServiceBackup) -> None:
         backup_data = json.loads(backup.backup_data)
