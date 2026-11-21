@@ -3,7 +3,7 @@ import json
 import os
 import sys
 from types import ModuleType
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import django
 from django.test import SimpleTestCase
@@ -3781,6 +3781,8 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     ):
         source_record = Obj(user_name="old-user", password="old-pass", save=lambda: None)
         self.service.service_source = "source_code"
+        self.service.code_from = "oauth_github"
+        self.service.oauth_service_id = 3
         self.service.git_url = "https://git.example.com/old.git"
         self.service.code_version = "master"
         self.service.server_type = "git"
@@ -3818,10 +3820,92 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         self.assertEqual(self.service.code_version, "tag:v1.0.0")
         self.assertEqual(self.service.server_type, "git")
         self.assertEqual(self.service.service_source, "source_code")
+        self.assertEqual(self.service.code_from, "")
+        self.assertIsNone(self.service.oauth_service_id)
         self.assertEqual(self.service.arch, "arm64")
         self.assertEqual(source_record.user_name, "git-user")
         self.assertEqual(source_record.password, "git-pass")
         mock_update_affinity.assert_called_once_with("arm64", self.team, "rainbond", self.service)
+
+    # capability_id: console.component.build-source-clear-stale-oauth
+    def test_manual_git_resave_repairs_stale_oauth_without_replacing_source_credentials(self):
+        self.service.service_source = "source_code"
+        self.service.code_from = ""
+        self.service.oauth_service_id = 3
+        self.service.git_url = "https://git.example.com/demo.git?dir=services/api"
+        self.service.code_version = "main"
+        self.service.server_type = "git"
+        self.service.arch = "amd64"
+        source_record = Obj(user_name="git-user", password="test-pat", save=Mock())
+        arguments = {
+            "team_name": "demo-team",
+            "region_name": "rainbond",
+            "app_id": 12,
+            "service_id": "svc-1",
+            "service_source": "source_code",
+            "is_oauth": False,
+        }
+        with patch.object(mcp_query_service, "_get_team_app_service_context",
+                          return_value=(self.team, self.app, self.service)), \
+                patch.object(mcp_query_service, "_get_component_build_source_snapshot", return_value={}), \
+                patch("console.services.mcp_query_service.service_source_repo.get_service_source",
+                      return_value=source_record), \
+                patch("console.services.mcp_query_service.oauth_repo") as oauth_repo, \
+                patch("console.services.mcp_query_service.oauth_user_repo") as oauth_user_repo, \
+                patch("console.services.mcp_query_service.get_oauth_instance") as get_oauth_instance:
+            for _ in range(2):
+                result = mcp_query_service.update_component_build_source(self.user, arguments)
+                self.assertTrue(result["updated"])
+                self.assertEqual(self.service.code_from, "")
+                self.assertIsNone(self.service.oauth_service_id)
+                self.assertEqual(self.service.git_url, "https://git.example.com/demo.git?dir=services/api")
+                self.assertEqual(self.service.code_version, "main")
+                self.assertEqual(source_record.user_name, "git-user")
+                self.assertEqual(source_record.password, "test-pat")
+            source_record.save.assert_not_called()
+            oauth_repo.get_oauth_services_by_service_id.assert_not_called()
+            oauth_user_repo.get_user_oauth_by_user_id.assert_not_called()
+            get_oauth_instance.assert_not_called()
+
+    # capability_id: console.component.build-source-clear-stale-oauth
+    def test_source_switch_back_to_oauth_retains_validated_oauth_association(self):
+        self.service.code_from = ""
+        self.service.oauth_service_id = None
+        self.service.arch = "amd64"
+        oauth_service = Obj(oauth_type="github")
+        oauth_user = Obj()
+        oauth_instance = Mock()
+        oauth_instance.is_git_oauth.return_value = True
+        with patch.object(mcp_query_service, "_get_team_app_service_context",
+                          return_value=(self.team, self.app, self.service)), \
+                patch.object(mcp_query_service, "_get_component_build_source_snapshot", return_value={}), \
+                patch("console.services.mcp_query_service.service_source_repo.get_service_source", return_value=None), \
+                patch("console.services.mcp_query_service.oauth_repo.get_oauth_services_by_service_id",
+                      return_value=oauth_service) as get_oauth_service, \
+                patch("console.services.mcp_query_service.oauth_user_repo.get_user_oauth_by_user_id",
+                      return_value=oauth_user) as get_oauth_user, \
+                patch("console.services.mcp_query_service.get_oauth_instance", return_value=oauth_instance):
+            result = mcp_query_service.update_component_build_source(
+                self.user, {
+                    "team_name": "demo-team",
+                    "region_name": "rainbond",
+                    "app_id": 12,
+                    "service_id": "svc-1",
+                    "service_source": "source_code",
+                    "is_oauth": True,
+                    "oauth_service_id": "7",
+                    "git_url": "https://git.example.com/demo.git",
+                    "full_name": "team/demo",
+                    "code_version": "main",
+                    "server_type": "git",
+                })
+        self.assertTrue(result["updated"])
+        self.assertEqual(self.service.code_from, "oauth_github")
+        self.assertEqual(self.service.oauth_service_id, "7")
+        self.assertEqual(self.service.git_full_name, "team/demo")
+        get_oauth_service.assert_called_once_with(service_id="7")
+        get_oauth_user.assert_called_once_with(service_id="7", user_id=self.user.user_id)
+        oauth_instance.is_git_oauth.assert_called_once_with()
 
     @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
     @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
