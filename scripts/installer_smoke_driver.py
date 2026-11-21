@@ -333,10 +333,12 @@ def guard_packet_counts(counters: str, addresses: Iterable[str]) -> dict[str, in
     counts = {address: 0 for address in addresses}
     for line in counters.splitlines():
         columns = line.split()
-        if len(columns) < 2 or not columns[0].isdigit():
+        if len(columns) < 2:
             continue
         for address in counts:
             if address_with_prefix(address) in columns or address in columns:
+                if not columns[0].isdigit():
+                    raise ValueError(f"iptables packet counter is not exact: {columns[0]}")
                 counts[address] += int(columns[0])
     return counts
 
@@ -433,7 +435,7 @@ def verify_network_guard(results_dir: pathlib.Path, require_docker_user: bool = 
             addresses = raw_addresses if table == "raw" else filter_addresses
             for chain in chains:
                 rules = read_guard_rules(command, table, chain)
-                counters = run_sudo(command, "-t", table, "-L", chain, "-v", "-n", check=False).stdout
+                counters = run_sudo(command, "-t", table, "-L", chain, "-v", "-n", "-x", check=False).stdout
                 result[table][chain] = {
                     "exists": rules.returncode == 0,
                     "prefix_valid": rules.returncode == 0 and guard_rule_prefix_valid(rules.stdout, chain, addresses, action),

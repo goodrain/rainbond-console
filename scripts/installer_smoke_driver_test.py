@@ -134,6 +134,11 @@ class InstallerSmokeDriverTests(unittest.TestCase):
         counters = "  12   720 DROP all -- * * 0.0.0.0/0 203.0.113.10\n   3   180 DROP all -- * * 0.0.0.0/0 203.0.113.11\n"
         self.assertEqual(guard_packet_counts(counters, ["203.0.113.10", "203.0.113.11"]), {"203.0.113.10": 12, "203.0.113.11": 3})
 
+    def test_guard_packet_counts_reject_abbreviated_iptables_output(self):
+        counters = " 123K  12M DROP all -- * * 0.0.0.0/0 203.0.113.10\n"
+        with self.assertRaisesRegex(ValueError, "not exact"):
+            guard_packet_counts(counters, ["203.0.113.10"])
+
     def test_docker_download_shim_injects_a_truncated_tuna_archive_without_following_redirects(self):
         with tempfile.TemporaryDirectory() as directory:
             result_dir = pathlib.Path(directory)
