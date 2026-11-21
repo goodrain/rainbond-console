@@ -19,6 +19,12 @@ from installer_smoke_driver import (
     validate_report_uuids,
     ready_components,
     create_curl_shim,
+    docker_recommended_version,
+    docker_scenario_assertions,
+    guard_rule_prefix_valid,
+    guard_packet_counts,
+    NETWORK_GUARD_CHAINS,
+    RAW_GUARD_CHAINS,
     run_command,
     runner_eip_from_route,
     main_script_uuid,
@@ -66,6 +72,68 @@ class InstallerSmokeDriverTests(unittest.TestCase):
     def test_report_outage_scenarios_use_network_drop_and_reject(self):
         self.assertEqual(REPORT_SCENARIOS["report_endpoint_drop"], "DROP")
         self.assertEqual(REPORT_SCENARIOS["report_endpoint_reject"], "REJECT")
+
+    def test_workflow_exposes_no_docker_scenarios(self):
+        workflow = (pathlib.Path(__file__).parents[1] / ".github/workflows/installer-smoke.yml").read_text(encoding="utf-8")
+
+        for scenario in ("no_docker_install", "no_docker_tuna_fallback", "no_docker_all_sources_unavailable"):
+            self.assertIn(f"- {scenario}", workflow)
+            self.assertIn(f'"{scenario}"', workflow)
+
+    def test_docker_version_is_read_from_the_tested_installer(self):
+        with tempfile.TemporaryDirectory() as directory:
+            installer = pathlib.Path(directory) / "install-rainbond.sh"
+            installer.write_text("DOCKER_RECOMMENDED_VERSION='28.3.1'\n", encoding="utf-8")
+
+            self.assertEqual(docker_recommended_version(installer), "28.3.1")
+
+    def test_docker_download_scenario_events_are_checked(self):
+        fallback_reports = [
+            {"event_type": "install_progress", "stage": "docker_download", "status": "failed", "source": "tuna"},
+            {"event_type": "install_final", "final_status": "success"},
+        ]
+        self.assertEqual(docker_scenario_assertions("no_docker_tuna_fallback", fallback_reports), "")
+
+        failed_reports = [
+            {"event_type": "install_progress", "stage": "docker_download", "status": "failed", "source": "tuna"},
+            {"event_type": "install_progress", "stage": "docker_download", "status": "failed", "source": "aliyun"},
+            {"event_type": "install_progress", "stage": "docker_download", "status": "failed", "source": "official"},
+            {"event_type": "install_final", "final_status": "failed", "reason": "docker_download_failed"},
+        ]
+        self.assertEqual(docker_scenario_assertions("no_docker_all_sources_unavailable", failed_reports), "")
+        self.assertIn("failure sources", docker_scenario_assertions("no_docker_all_sources_unavailable", failed_reports[1:]))
+
+    def test_guard_requires_raw_and_filter_prefix_rules(self):
+        self.assertEqual(NETWORK_GUARD_CHAINS, ("OUTPUT", "FORWARD", "DOCKER-USER"))
+        self.assertEqual(RAW_GUARD_CHAINS, ("PREROUTING", "OUTPUT"))
+        rules = "-A FORWARD -d 203.0.113.10/32 -j DROP\n-A FORWARD -d 203.0.113.11/32 -j DROP\n-A FORWARD -j DOCKER-USER\n"
+        self.assertTrue(guard_rule_prefix_valid(rules, "FORWARD", ["203.0.113.10", "203.0.113.11"], "DROP"))
+        self.assertFalse(guard_rule_prefix_valid(rules.replace("-A FORWARD -j DOCKER-USER\n", "", 1).replace("-A FORWARD -d 203.0.113.10/32 -j DROP\n", "-A FORWARD -j DOCKER-USER\n-A FORWARD -d 203.0.113.10/32 -j DROP\n"), "FORWARD", ["203.0.113.10", "203.0.113.11"], "DROP"))
+
+    def test_guard_packet_counts_are_recorded_per_destination(self):
+        counters = "  12   720 DROP all -- * * 0.0.0.0/0 203.0.113.10\n   3   180 DROP all -- * * 0.0.0.0/0 203.0.113.11\n"
+        self.assertEqual(guard_packet_counts(counters, ["203.0.113.10", "203.0.113.11"]), {"203.0.113.10": 12, "203.0.113.11": 3})
+
+    def test_docker_download_shim_injects_a_truncated_tuna_archive_without_following_redirects(self):
+        with tempfile.TemporaryDirectory() as directory:
+            result_dir = pathlib.Path(directory)
+            shim = create_curl_shim(result_dir) / "curl"
+            archive = result_dir / "docker.tgz"
+            environment = {
+                "SMOKE_REPORT_ATTEMPTS": str(result_dir / "report-attempts.jsonl"),
+                "SMOKE_DOCKER_DOWNLOAD_ATTEMPTS": str(result_dir / "docker-download-attempts.jsonl"),
+                "SMOKE_DOCKER_DOWNLOAD_MODE": "tuna_partial_archive",
+            }
+            result = subprocess.run(
+                [str(shim), "-L", "https://mirrors.tuna.tsinghua.edu.cn/docker-ce/linux/static/stable/x86_64/docker-28.3.1.tgz", "-o", str(archive)],
+                env={**os.environ, **environment},
+                check=False,
+            )
+
+            self.assertEqual(result.returncode, 0)
+            self.assertEqual(archive.read_text(encoding="utf-8"), "partial Docker archive")
+            attempt = json.loads((result_dir / "docker-download-attempts.jsonl").read_text(encoding="utf-8"))
+            self.assertEqual(attempt["mode"], "tuna_partial_archive")
 
     def test_scenario_failure_reason_distinguishes_missing_reports_and_uuid(self):
         self.assertEqual(scenario_succeeded("normal_install", 0, False, "", [], "main-id")[1], "fake receiver did not receive /dindlog")

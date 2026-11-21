@@ -37,6 +37,9 @@ on:
           - image_not_found
           - report_endpoint_drop
           - report_endpoint_reject
+          - no_docker_install
+          - no_docker_tuna_fallback
+          - no_docker_all_sources_unavailable
           - all
 
 permissions:
@@ -58,7 +61,7 @@ jobs:
           import os
 
           runners = {"amd64": "ubuntu-24.04", "arm64": "ubuntu-24.04-arm"}
-          scenarios = ["normal_install", "image_not_found", "report_endpoint_drop", "report_endpoint_reject"]
+          scenarios = ["normal_install", "image_not_found", "report_endpoint_drop", "report_endpoint_reject", "no_docker_install", "no_docker_tuna_fallback", "no_docker_all_sources_unavailable"]
           architectures = list(runners) if os.environ["SELECTED_ARCH"] == "all" else [os.environ["SELECTED_ARCH"]]
           selected_scenarios = scenarios if os.environ["SELECTED_SCENARIO"] == "all" else [os.environ["SELECTED_SCENARIO"]]
           include = [{"arch": arch, "runner": runners[arch], "scenario": scenario} for arch in architectures for scenario in selected_scenarios]
