@@ -26,6 +26,8 @@ RAINBOND_FINAL_STATUS_SENT=false
 RAINBOND_FINAL_FAILURE_REASON=""
 RAINBOND_PULL_OUTPUT_FILE=""
 RAINBOND_PULL_OUTPUT_DIR=""
+RAINBOND_PULL_PROGRESS_PID=""
+RAINBOND_PULL_COMMAND_PID=""
 
 function rainbond_use_chinese_prompt() {
     case "${RAINBOND_INSTALL_LANG:-zh}" in
@@ -152,7 +154,20 @@ function rainbond_image_pull_failure_message() {
     fi
 }
 
+function rainbond_stop_pull_progress() {
+    if [ -n "${RAINBOND_PULL_PROGRESS_PID:-}" ]; then
+        kill "${RAINBOND_PULL_PROGRESS_PID}" 2>/dev/null || :
+        wait "${RAINBOND_PULL_PROGRESS_PID}" 2>/dev/null || :
+    fi
+    RAINBOND_PULL_PROGRESS_PID=""
+}
+
 function rainbond_cleanup_pull_output() {
+    rainbond_stop_pull_progress
+    if [ -n "${RAINBOND_PULL_COMMAND_PID:-}" ]; then
+        kill "${RAINBOND_PULL_COMMAND_PID}" 2>/dev/null || :
+        wait "${RAINBOND_PULL_COMMAND_PID}" 2>/dev/null || :
+    fi
     if [ -n "${RAINBOND_PULL_OUTPUT_FILE:-}" ]; then
         rm -f "${RAINBOND_PULL_OUTPUT_FILE}"
     fi
@@ -161,6 +176,7 @@ function rainbond_cleanup_pull_output() {
     fi
     RAINBOND_PULL_OUTPUT_FILE=""
     RAINBOND_PULL_OUTPUT_DIR=""
+    RAINBOND_PULL_COMMAND_PID=""
 }
 
 function rainbond_diag_kubectl() {
@@ -730,7 +746,7 @@ function check_docker_network_preflight() {
 }
 
 function send_msg() {
-    local dest_url msg msg_json os_info_json eip_json uuid_json version_json arch_json attempt_json method_json
+    local dest_url msg msg_json os_info_json eip_json uuid_json version_json arch_json attempt_json method_json include_environment_info
 
     dest_url="https://log.rainbond.com"
     #msg=${1:-"Terminating by userself."}
@@ -739,9 +755,15 @@ function send_msg() {
     else
         msg=$1
     fi
+    include_environment_info="${2:-true}"
     msg_json=$(rainbond_json_escape "$msg")
-    os_info_json=$(rainbond_json_escape "${OS_INFO:-}")
-    eip_json=$(rainbond_json_escape "${EIP:-}")
+    if [ "$include_environment_info" = "true" ]; then
+        os_info_json=$(rainbond_json_escape "${OS_INFO:-}")
+        eip_json=$(rainbond_json_escape "${EIP:-}")
+    else
+        os_info_json=""
+        eip_json=""
+    fi
     uuid_json=$(rainbond_json_escape "${UUID:-}")
     version_json=$(rainbond_json_escape "${RAINBOND_VERSION:-}")
     arch_json=$(rainbond_json_escape "${ARCH_TYPE:-}")
@@ -765,6 +787,9 @@ function rainbond_signal_exit_code() {
         INT)
             printf '130'
             ;;
+        HUP)
+            printf '129'
+            ;;
         TERM)
             printf '143'
             ;;
@@ -772,6 +797,60 @@ function rainbond_signal_exit_code() {
             printf '1'
             ;;
     esac
+}
+
+function rainbond_signal_reason() {
+    case "${1:-}" in
+        INT)
+            printf 'user_interrupted'
+            ;;
+        HUP)
+            printf 'session_disconnected'
+            ;;
+        TERM)
+            printf 'process_terminated'
+            ;;
+        *)
+            printf 'signal_interrupted'
+            ;;
+    esac
+}
+
+function rainbond_http_status_class() {
+    case "${1:-}" in
+        2??)
+            printf '2xx'
+            ;;
+        3??)
+            printf '3xx'
+            ;;
+        4??)
+            printf '4xx'
+            ;;
+        5??)
+            printf '5xx'
+            ;;
+        *)
+            printf 'none'
+            ;;
+    esac
+}
+
+function rainbond_send_progress_event() {
+    local stage="${1:-unknown}"
+    local status="${2:-running}"
+    local details="${3:-}"
+    local details_field=""
+    local progress_message
+
+    if ! rainbond_final_event_enabled; then
+        return 0
+    fi
+    if [ -n "$details" ]; then
+        details_field=",${details}"
+    fi
+    progress_message="{\"event_type\":\"install_progress\",\"install_method\":\"$(rainbond_json_escape "${RAINBOND_INSTALL_METHOD:-single_node}")\",\"install_attempt_id\":\"$(rainbond_json_escape "${INSTALL_ATTEMPT_ID:-}")\",\"stage\":\"$(rainbond_json_escape "$stage")\",\"status\":\"$(rainbond_json_escape "$status")\"${details_field}}"
+    send_msg "Rainbond install progress event: ${progress_message}" false
 }
 
 function rainbond_send_final_event() {
@@ -815,7 +894,7 @@ function rainbond_handle_signal() {
 
     exit_code=$(rainbond_signal_exit_code "$signal_name")
     rainbond_cleanup_pull_output
-    rainbond_send_final_event aborted "signal_${signal_name}" "$exit_code"
+    rainbond_send_final_event aborted "$(rainbond_signal_reason "$signal_name")" "$exit_code"
     return "$exit_code"
 }
 
@@ -839,6 +918,7 @@ function send_error() {
 # Trap script exits and user/system interrupts so every started EID gets a final state.
 trap 'rainbond_exit_code=$?; rainbond_handle_exit "$rainbond_exit_code"; exit "$rainbond_exit_code"' EXIT
 trap 'rainbond_handle_signal INT; exit $?' INT
+trap 'rainbond_handle_signal HUP; exit $?' HUP
 trap 'rainbond_handle_signal TERM; exit $?' TERM
 
 function is_truthy() {
@@ -2809,15 +2889,25 @@ install_docker_linux() {
         send_info "Docker not detected, starting binary installation..."
     fi
     
-    # Determine Docker binary URL based on architecture
-    local docker_url docker_expected_sha
+    # Determine Docker binary URLs based on architecture.
+    local docker_expected_sha docker_arch
+    local docker_urls=() docker_source_names=()
     if [ "$ARCH_TYPE" = "amd64" ]; then
-        docker_url="https://mirrors.tuna.tsinghua.edu.cn/docker-ce/linux/static/stable/x86_64/docker-${DOCKER_RECOMMENDED_VERSION}.tgz"
+        docker_arch="x86_64"
         docker_expected_sha="$DOCKER_INSTALL_SHA256_AMD64"
     elif [ "$ARCH_TYPE" = "arm64" ]; then
-        docker_url="https://mirrors.tuna.tsinghua.edu.cn/docker-ce/linux/static/stable/aarch64/docker-${DOCKER_RECOMMENDED_VERSION}.tgz"
+        docker_arch="aarch64"
         docker_expected_sha="$DOCKER_INSTALL_SHA256_ARM64"
+    else
+        send_error "Unsupported Docker architecture: ${ARCH_TYPE}"
+        return 1
     fi
+    docker_urls=(
+        "https://mirrors.tuna.tsinghua.edu.cn/docker-ce/linux/static/stable/${docker_arch}/docker-${DOCKER_RECOMMENDED_VERSION}.tgz"
+        "https://mirrors.aliyun.com/docker-ce/linux/static/stable/${docker_arch}/docker-${DOCKER_RECOMMENDED_VERSION}.tgz"
+        "https://download.docker.com/linux/static/stable/${docker_arch}/docker-${DOCKER_RECOMMENDED_VERSION}.tgz"
+    )
+    docker_source_names=(tuna aliyun official)
     
     # Check if Docker binary already exists and is complete
     local docker_file="/tmp/docker.tgz"
@@ -2878,49 +2968,53 @@ install_docker_linux() {
 
         local docker_tmp_file="${docker_file}.download"
         local download_verified=false
-        local download_attempt=1
+        local download_attempt source_index docker_url docker_source curl_exit_code http_status http_status_file
 
-        while [ "$download_attempt" -le "$max_download_attempts" ]; do
-            rm -f "$docker_tmp_file"
+        for source_index in "${!docker_urls[@]}"; do
+            docker_url="${docker_urls[$source_index]}"
+            docker_source="${docker_source_names[$source_index]}"
+            download_attempt=1
+            while [ "$download_attempt" -le "$max_download_attempts" ]; do
+                rm -f "$docker_tmp_file"
+                http_status_file="${docker_tmp_file}.http-status"
+                rm -f "$http_status_file"
 
-            if rainbond_use_chinese_prompt; then
-                send_info "正在下载Docker二进制文件... $docker_url"
-            else
-                send_info "Downloading Docker binary... $docker_url"
-            fi
+                if rainbond_use_chinese_prompt; then
+                    send_info "正在从 ${docker_source} 下载 Docker 二进制文件..."
+                else
+                    send_info "Downloading Docker binary from ${docker_source}..."
+                fi
 
-            if curl --fail --connect-timeout 30 --max-time 600 --progress-bar -L "$docker_url" -o "$docker_tmp_file"; then
-                if { [ "$install_mode" = "upgrade" ] && verify_docker_upgrade_archive "$docker_tmp_file" "$docker_expected_sha"; } || \
-                   { [ "$install_mode" != "upgrade" ] && tar -tzf "$docker_tmp_file" >/dev/null 2>&1; }; then
+                if curl --fail --connect-timeout 30 --max-time 600 --progress-bar -L --write-out '%{http_code}' "$docker_url" -o "$docker_tmp_file" >"$http_status_file"; then
+                    curl_exit_code=0
+                else
+                    curl_exit_code=$?
+                fi
+                http_status=$(cat "$http_status_file" 2>/dev/null || true)
+                rm -f "$http_status_file"
+                if [ "$curl_exit_code" -eq 0 ] && { { [ "$install_mode" = "upgrade" ] && verify_docker_upgrade_archive "$docker_tmp_file" "$docker_expected_sha"; } || \
+                   { [ "$install_mode" != "upgrade" ] && tar -tzf "$docker_tmp_file" >/dev/null 2>&1; }; }; then
                     mv "$docker_tmp_file" "$docker_file"
                     download_verified=true
-                    break
+                    break 2
                 fi
 
                 rm -f "$docker_tmp_file"
+                rainbond_send_progress_event docker_download failed "\"source\":\"${docker_source}\",\"curl_exit_code\":${curl_exit_code},\"http_status_class\":\"$(rainbond_http_status_class "$http_status")\""
                 if [ "$download_attempt" -lt "$max_download_attempts" ]; then
                     if rainbond_use_chinese_prompt; then
-                        send_warn "下载的Docker二进制文件损坏，正在重试 (${download_attempt}/${max_download_attempts})..."
+                        send_warn "Docker二进制文件下载或校验失败，正在重试 (${download_attempt}/${max_download_attempts})..."
                     else
-                        send_warn "Downloaded Docker binary is corrupted, retrying (${download_attempt}/${max_download_attempts})..."
+                        send_warn "Docker binary download or verification failed, retrying (${download_attempt}/${max_download_attempts})..."
                     fi
+                    sleep 2
                 fi
-            else
-                rm -f "$docker_tmp_file"
-                if [ "$download_attempt" -lt "$max_download_attempts" ]; then
-                    if rainbond_use_chinese_prompt; then
-                        send_warn "Docker二进制文件下载失败，正在重试 (${download_attempt}/${max_download_attempts})..."
-                    else
-                        send_warn "Docker binary download failed, retrying (${download_attempt}/${max_download_attempts})..."
-                    fi
-                fi
-            fi
-
-            download_attempt=$((download_attempt + 1))
-            sleep 2
+                download_attempt=$((download_attempt + 1))
+            done
         done
 
         if [ "$download_verified" != true ]; then
+            RAINBOND_FINAL_FAILURE_REASON=docker_download_failed
             if rainbond_use_chinese_prompt; then
                 send_error "Docker二进制文件多次下载或校验失败，请检查网络、代理或磁盘空间后重试"
             else
@@ -3968,8 +4062,24 @@ if ! pull_output_file=$(mktemp "${pull_output_dir}/rainbond-image-pull-$$.XXXXXX
 fi
 RAINBOND_PULL_OUTPUT_FILE="${pull_output_file}"
 for retry in 1 2 3; do
-  docker pull "${RBD_IMAGE}" 2>"${pull_output_file}"
+  docker pull "${RBD_IMAGE}" 2>"${pull_output_file}" &
+  pull_pid=$!
+  RAINBOND_PULL_COMMAND_PID=$pull_pid
+  (
+    pull_elapsed=0
+    while kill -0 "$pull_pid" 2>/dev/null; do
+      sleep 30
+      pull_elapsed=$((pull_elapsed + 30))
+      if kill -0 "$pull_pid" 2>/dev/null; then
+        rainbond_send_progress_event image_pull running "\"attempt\":${retry},\"elapsed_seconds\":${pull_elapsed}"
+      fi
+    done
+  ) &
+  RAINBOND_PULL_PROGRESS_PID=$!
+  wait "$pull_pid"
   pull_exit_code=$?
+  RAINBOND_PULL_COMMAND_PID=""
+  rainbond_stop_pull_progress
   if [ "$pull_exit_code" -ne 0 ]; then
     cat "${pull_output_file}" >&2
   fi

@@ -28,21 +28,48 @@ function Write-ColoredText($Text,$Color) {
 }
 
 function send_msg ($msg) {
-
-    $os_name = (Get-WmiObject -Class Win32_OperatingSystem).Name
-    $body = @{
-        "message" = "$msg"
-        "os_info" = "$os_name"
-        "eip" = "$EIP"
-        "uuid" = "$UUID"
-    } | ConvertTo-Json
-    $params = @{
-        Uri = "https://log.rainbond.com/dindlog"
-        Method = "POST"
-        ContentType = "application/json; charset=utf-8"
-        Body = $body
+    try {
+        $os_name = (Get-WmiObject -Class Win32_OperatingSystem).Name
+        $body = @{
+            "message" = "$msg"
+            "os_info" = "$os_name"
+            "eip" = "$EIP"
+            "uuid" = "$UUID"
+        } | ConvertTo-Json
+        $params = @{
+            Uri = "https://log.rainbond.com/dindlog"
+            Method = "POST"
+            ContentType = "application/json; charset=utf-8"
+            Body = $body
+            TimeoutSec = 5
+        }
+        Invoke-RestMethod @params | Out-Null
+    } catch {
+        return
     }
-    Invoke-RestMethod @params > $null
+}
+
+function Send-FinalEvent {
+    param(
+        [string]$Status,
+        [string]$Reason,
+        [int]$ExitCode
+    )
+
+    if ($global:RAINBOND_FINAL_STATUS_SENT) {
+        return
+    }
+    $global:RAINBOND_FINAL_STATUS_SENT = $true
+    $finalEvent = @{
+        event_type = "install_final"
+        install_method = "windows"
+        final_status = $Status
+        reason = $Reason
+        exit_code = $ExitCode
+        version = $RAINBOND_VERSION
+        arch = $os_arch
+    } | ConvertTo-Json -Compress
+    send_msg "Rainbond install final event: $finalEvent"
 }
 
 $os_info = Get-WmiObject -Class Win32_OperatingSystem
@@ -55,7 +82,8 @@ if ($os_info.Name -match 'Microsoft Windows') {
     } else {
       Write-ColoredText "The current system is not Windows OS" red
     }
-    Exit
+    Send-FinalEvent -Status "failed" -Reason "windows_prerequisites_failed" -ExitCode 1
+    Exit 1
 }
 
 function check_port_occupied {
@@ -141,6 +169,7 @@ function check_rainbond_container {
       } else {
           Write-ColoredText "Rainbond container is already running.`n`t- Please enter http://${get_eip}:7070 in the browser to access Rainbond." green
       }
+      Send-FinalEvent -Status "success" -Reason "windows_container_ready" -ExitCode 0
       exit 0
     } else {
       # Container exists but is not running, try to start it
@@ -159,6 +188,7 @@ function check_rainbond_container {
         } else {
           Write-ColoredText "Rainbond container started successfully.`n`t- Please enter http://${get_eip}:7070 in the browser to access Rainbond." green
         }
+        Send-FinalEvent -Status "success" -Reason "windows_container_ready" -ExitCode 0
         exit 0
       } else {
         if (Use-ChinesePrompt) {
@@ -166,6 +196,7 @@ function check_rainbond_container {
         } else {
           Write-ColoredText "Failed to start Rainbond container, please manually run docker start rainbond" red
         }
+        Send-FinalEvent -Status "failed" -Reason "windows_container_start_failed" -ExitCode 1
         exit 1
       }
     }
@@ -180,7 +211,8 @@ function check_docker {
     } else {
       Write-ColoredText "Ops! Docker has not been installed. Please install Docker Desktop and re-run this script. ref: https://www.docker.com/products/docker-desktop/" red
     }
-    Exit
+    Send-FinalEvent -Status "failed" -Reason "windows_prerequisites_failed" -ExitCode 1
+    Exit 1
   }
   if (-not (Get-Process -Name "Docker Desktop" -ErrorAction SilentlyContinue)) {
     if (Use-ChinesePrompt) {
@@ -188,7 +220,8 @@ function check_docker {
     } else {
       Write-ColoredText "Docker Desktop is installed but not running. Please start Docker Desktop and re-run this script." red
     }
-    Exit
+    Send-FinalEvent -Status "failed" -Reason "windows_prerequisites_failed" -ExitCode 1
+    Exit 1
   }
     
   # Check for existing rainbond container before proceeding
@@ -196,7 +229,8 @@ function check_docker {
   
   # Check if required ports are available
   if (-not (check_port_occupied)) {
-    Exit
+    Send-FinalEvent -Status "failed" -Reason "windows_prerequisites_failed" -ExitCode 1
+    Exit 1
   }
 }
 
@@ -284,7 +318,8 @@ function select_eip {
     } else {
       Write-ColoredText "Invalid EIP environment variable value: $env:EIP (must be a valid IPv4 address, and cannot be 127.0.0.1 or 0.0.0.0)" red
     }
-    Exit
+    Send-FinalEvent -Status "failed" -Reason "windows_eip_invalid" -ExitCode 1
+    Exit 1
   }
 
   $Custom_EIP = Get-InstallEIP
@@ -294,7 +329,8 @@ function select_eip {
     } else {
       Write-ColoredText "Failed to detect an available server IP automatically. Please rerun the installer with EIP=<server-ip>" red
     }
-    Exit
+    Send-FinalEvent -Status "failed" -Reason "windows_eip_unavailable" -ExitCode 1
+    Exit 1
   }
 
   if (Test-ValidIPAddress $Custom_EIP) {
@@ -310,7 +346,8 @@ function select_eip {
     } else {
       Write-ColoredText "Detected server IP is invalid: $Custom_EIP. Please rerun the installer with EIP=<server-ip>" red
     }
-    Exit
+    Send-FinalEvent -Status "failed" -Reason "windows_eip_invalid" -ExitCode 1
+    Exit 1
   }
 
   if (Use-ChinesePrompt) {
@@ -346,7 +383,8 @@ function start_rainbond {
     } else {
       Write-ColoredText "Pull image $RBD_IMAGE failed. Please check your network." red
     }
-    Exit
+    Send-FinalEvent -Status "failed" -Reason "windows_image_pull_failed" -ExitCode 1
+    Exit 1
   }
 
   $container_id = Invoke-Expression $docker_run_cmd
@@ -362,8 +400,11 @@ function start_rainbond {
     } else {
       Write-ColoredText "Rainbond container startup failed." red
     }
-    Exit
+    Send-FinalEvent -Status "failed" -Reason "windows_container_start_failed" -ExitCode 1
+    Exit 1
   }
+
+  Send-FinalEvent -Status "success" -Reason "windows_container_ready" -ExitCode 0
 
   if (Use-ChinesePrompt) {
     Write-Host "###############################################" -ForegroundColor green
@@ -404,9 +445,9 @@ function start_rainbond {
   }
 }
 
-check_docker
-
 MD5
+
+check_docker
 
 select_eip
 

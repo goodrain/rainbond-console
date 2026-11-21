@@ -48,6 +48,7 @@ $script:Config = @{
 # Global variables for telemetry
 $script:UUID = $null
 $script:EIP = $null
+$script:FinalEventSent = $false
 
 #region Telemetry Functions
 
@@ -112,7 +113,7 @@ function Send-Telemetry {
             Method      = "POST"
             ContentType = "application/json; charset=utf-8"
             Body        = $body
-            TimeoutSec  = 10
+            TimeoutSec  = 5
         }
         Invoke-RestMethod @params | Out-Null
     }
@@ -123,11 +124,32 @@ function Send-Telemetry {
     }
 }
 
+function Send-FinalEvent {
+    param(
+        [string]$Status,
+        [string]$Reason,
+        [int]$ExitCode = 0
+    )
+
+    if ($script:FinalEventSent) {
+        return
+    }
+    $script:FinalEventSent = $true
+    $event = @{
+        event_type = "install_final"
+        install_method = "wsl"
+        final_status = $Status
+        reason = $Reason
+        exit_code = $ExitCode
+    } | ConvertTo-Json -Compress
+    Send-Telemetry -Message "Rainbond install final event: $event"
+}
+
 function Send-TelemetryError {
     param(
         [string]$Step,           # Which step failed
         [string]$ErrorMessage,   # Error message
-        [int]$ExitCode = 0,      # Command exit code
+        [int]$ExitCode = 1,      # Command exit code
         [string]$CommandOutput,  # Actual command output
         [string]$StackTrace      # Exception stack trace
     )
@@ -152,6 +174,7 @@ function Send-TelemetryError {
 
     $message = $msgParts -join " | "
     Send-Telemetry -Message $message -ShowError
+    Send-FinalEvent -Status "failed" -Reason "wsl_install_failed" -ExitCode $ExitCode
 }
 
 #endregion
@@ -1021,8 +1044,7 @@ function Show-Completion {
     $wslIp = (cmd /c "wsl -d $Distro -- hostname -I" 2>&1).Trim().Split()[0]
     $script:EIP = $wslIp
 
-    # Send success telemetry
-    Send-Telemetry -Message "WSL installation successfully"
+    Send-FinalEvent -Status "success" -Reason "wsl_services_ready" -ExitCode 0
 
     $completion = @"
 
@@ -1187,7 +1209,7 @@ catch {
     Write-Host $_.ScriptStackTrace -ForegroundColor Gray
     Write-Host "`n  For help, visit: https://www.rainbond.com/docs/troubleshooting/install`n"
 
-    # Send detailed error telemetry
+    # Send detailed error telemetry and final failure event.
     Send-TelemetryError -Step "unknown" `
         -ErrorMessage $_.Exception.Message `
         -StackTrace $_.ScriptStackTrace
