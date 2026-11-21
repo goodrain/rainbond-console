@@ -187,6 +187,8 @@ class MarketService(object):
         self.update_source = False
         # data that has been successfully changed
         self.changed: TypingDict[str, Any] = {}
+        self._resolved_ports: TypingDict[int, dict] = {}
+        self._newly_inner_ports: set = set()
         self.backup: Any = None
 
         self.update_funcs = self._create_update_funcs()
@@ -654,13 +656,17 @@ class MarketService(object):
             port_alias = existing_port.port_alias
         if not port_alias:
             port_alias = self.service.service_alias.upper()
-        k8s_service_name = port.get("k8s_service_name", self.service.service_alias)
-        if k8s_service_name:
-            filter_port = port_repo.get_by_k8s_service_name(self.tenant.tenant_id, k8s_service_name)
-            if filter_port and self.service.service_id:
-                k8s_service_name = k8s_service_name + "-" + make_uuid(
-                )[-4:] if self.service.service_id != filter_port.service_id else k8s_service_name
-            port["k8s_service_name"] = k8s_service_name
+        existing_k8s_service_name = getattr(existing_port, "k8s_service_name", "") if existing_port else ""
+        if isinstance(existing_k8s_service_name, str) and existing_k8s_service_name:
+            port["k8s_service_name"] = existing_k8s_service_name
+        else:
+            k8s_service_name = port.get("k8s_service_name", self.service.service_alias)
+            if k8s_service_name:
+                filter_port = port_repo.get_by_k8s_service_name(self.tenant.tenant_id, k8s_service_name)
+                if filter_port and self.service.service_id:
+                    k8s_service_name = k8s_service_name + "-" + make_uuid(
+                    )[-4:] if self.service.service_id != filter_port.service_id else k8s_service_name
+                port["k8s_service_name"] = k8s_service_name
         port["tenant_id"] = self.tenant.tenant_id
         port["service_id"] = self.service.service_id
         port["mapping_port"] = container_port
@@ -676,6 +682,7 @@ class MarketService(object):
             use_legacy_default_alias = not port.get("port_alias")
             self.update_port_data(port)
             port_repo.add_service_port(**port)
+            self._resolved_ports[int(port["container_port"])] = port.copy()
             if not port["is_inner_service"]:
                 continue
             envs["add"].extend(self._create_envs_4_ports(port, use_legacy_default_alias))
@@ -683,8 +690,14 @@ class MarketService(object):
         for port in upd:
             existing_port = port_repo.get_service_port_by_port(
                 self.tenant.tenant_id, self.service.service_id, int(port["container_port"]))
+            was_inner_service = existing_port.is_inner_service if existing_port else False
+            use_legacy_default_alias = not port.get("port_alias")
             self.update_port_data(port, existing_port)
             port_repo.update(**port)
+            self._resolved_ports[int(port["container_port"])] = port.copy()
+            if port["is_inner_service"] and not was_inner_service:
+                self._newly_inner_ports.add(int(port["container_port"]))
+                envs["add"].extend(self._create_envs_4_ports(port, use_legacy_default_alias))
         if not envs["add"]:
             return
         self._update_envs(envs, "outer")
@@ -697,17 +710,29 @@ class MarketService(object):
             return
         add = [normalize_template_port_service_flags(port, default_inner_service=False) for port in ports.get("add", [])]
         envs: TypingDict[str, list] = {"add": []}
-        for port in add:
-            use_legacy_default_alias = not port.get("port_alias")
-            self.update_port_data(port)
-            if not port["is_inner_service"]:
-                continue
-            envs["add"].extend(self._create_envs_4_ports(port, use_legacy_default_alias))
+        for index, port in enumerate(add):
+            container_port = int(port["container_port"])
+            resolved_port = self._resolved_ports.get(container_port)
+            if resolved_port:
+                port = resolved_port.copy()
+            else:
+                self.update_port_data(port)
+            add[index] = port
+            if port["is_inner_service"]:
+                envs["add"].extend(self._create_envs_4_ports(port, not port.get("port_alias")))
         upd = [normalize_template_port_service_flags(port, default_inner_service=False) for port in ports.get("upd", [])]
-        for port in upd:
+        for index, port in enumerate(upd):
+            container_port = int(port["container_port"])
             existing_port = port_repo.get_service_port_by_port(
-                self.tenant.tenant_id, self.service.service_id, int(port["container_port"]))
-            self.update_port_data(port, existing_port)
+                self.tenant.tenant_id, self.service.service_id, container_port)
+            resolved_port = self._resolved_ports.get(container_port)
+            if resolved_port:
+                port = resolved_port.copy()
+            else:
+                self.update_port_data(port, existing_port)
+            upd[index] = port
+            if container_port in self._newly_inner_ports:
+                envs["add"].extend(self._create_envs_4_ports(port, not port.get("port_alias")))
         add_body = {"port": add, "enterprise_id": self.tenant.enterprise_id}
         region_api.add_service_port(self.service.service_region, self.tenant.tenant_name, self.service.service_alias, add_body)
         upd_body = {"port": upd, "enterprise_id": self.tenant.enterprise_id}

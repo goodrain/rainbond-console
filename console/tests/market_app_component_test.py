@@ -180,6 +180,32 @@ class MarketAppUpgradePortTests(TestCase):
         self.assertFalse(component.ports[0].is_outer_service)
         self.assertEqual("tcp", component.ports[0].protocol)
 
+    def test_upgrade_does_not_recalculate_existing_port_k8s_service_name(self):
+        component = _component()
+        component.ports = [
+            SimpleNamespace(
+                container_port=8080,
+                protocol="http",
+                port_alias="WEB",
+                k8s_service_name="web-ab12",
+                is_inner_service=False,
+                is_outer_service=True,
+            )
+        ]
+
+        component._update_ports({
+            "upd": [{
+                "container_port": 8080,
+                "protocol": "http",
+                "port_alias": "WEB",
+                "k8s_service_name": "web",
+                "is_inner_service": True,
+                "is_outer_service": True,
+            }]
+        })
+
+        self.assertEqual("web-ab12", component.ports[0].k8s_service_name)
+
     def test_upgrade_port_flags_normalize_false_string_and_zero(self):
         component = _component()
         template_ports = [{

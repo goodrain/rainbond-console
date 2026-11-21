@@ -11,9 +11,9 @@ def normalize_template_bool(value: Any, default: bool) -> bool:
         return bool(value)
     if isinstance(value, str):
         normalized = value.strip().lower()
-        if normalized in ("true", "1"):
+        if normalized in ("true", "1", "t"):
             return True
-        if normalized in ("false", "0"):
+        if normalized in ("false", "0", "f"):
             return False
     return default
 

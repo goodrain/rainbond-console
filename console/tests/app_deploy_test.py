@@ -70,6 +70,23 @@ class MarketServiceSourceUpdateTestCase(TestCase):
 
 
 class LegacyMarketPortUpgradeTests(TestCase):
+    def _market_service(self):
+        tenant = mock.Mock(tenant_id="tenant-1", tenant_name="team-1", enterprise_id="enterprise-1")
+        service = mock.Mock(
+            service_id="service-1",
+            service_alias="grabcd",
+            service_region="region-1",
+            tenant_id="tenant-1",
+        )
+        service_source = mock.Mock(version="1.0.0", group_key="group-key")
+        service_source.is_install_from_cloud.return_value = False
+        service_source.get_market_name.return_value = None
+        with mock.patch.object(
+                app_deploy_module.service_source_repo,
+                "get_service_source",
+                return_value=service_source):
+            return app_deploy_module.MarketService(tenant, service, version="1.0.0")
+
     def test_port_changes_preserves_legacy_defaults_and_does_not_close_existing_port(self):
         changes = properties_changes_module.PropertiesChanges.__new__(properties_changes_module.PropertiesChanges)
         changes.service = mock.Mock(tenant_id="tenant-1", service_id="service-1")
@@ -89,6 +106,57 @@ class LegacyMarketPortUpgradeTests(TestCase):
         self.assertNotIn("upd", result)
         self.assertEqual([(False, False), (False, False), (True, True)], [
             (port["is_inner_service"], port["is_outer_service"]) for port in result["add"]
+        ])
+
+    def test_port_upgrade_preserves_existing_k8s_name_and_syncs_inner_service_envs(self):
+        market_service = self._market_service()
+        existing_port = mock.Mock(
+            port_alias="WEB",
+            k8s_service_name="web-ab12",
+            is_inner_service=False,
+            is_outer_service=True,
+        )
+        changes = {
+            "upd": [{
+                "container_port": 8080,
+                "protocol": "http",
+                "port_alias": "WEB",
+                "k8s_service_name": "web",
+                "is_inner_service": True,
+                "is_outer_service": True,
+            }]
+        }
+
+        with mock.patch.object(
+                app_deploy_module.port_repo,
+                "get_service_port_by_port",
+                return_value=existing_port), mock.patch.object(
+                    app_deploy_module.port_repo,
+                    "get_by_k8s_service_name",
+                    return_value=mock.Mock(service_id="other-service")), mock.patch.object(
+                        app_deploy_module.port_repo,
+                        "update") as update_port, mock.patch.object(
+                            app_deploy_module,
+                            "make_uuid",
+                            side_effect=["0000fcbb", "0000b1f6"]), mock.patch.object(
+                                market_service,
+                                "_update_envs") as update_envs, mock.patch.object(
+                                    market_service,
+                                    "_sync_outer_envs") as sync_outer_envs, mock.patch.object(
+                                        app_deploy_module.region_api,
+                                        "add_service_port"), mock.patch.object(
+                                        app_deploy_module.region_api,
+                                        "update_service_port") as sync_ports:
+            market_service._update_ports(changes)
+            market_service._sync_ports(changes)
+
+        self.assertEqual("web-ab12", update_port.call_args.kwargs["k8s_service_name"])
+        self.assertEqual("web-ab12", sync_ports.call_args.args[3]["port"][0]["k8s_service_name"])
+        self.assertEqual(["WEB_HOST", "WEB_PORT"], [
+            env["attr_name"] for env in update_envs.call_args.args[0]["add"]
+        ])
+        self.assertEqual(["WEB_HOST", "WEB_PORT"], [
+            env["attr_name"] for env in sync_outer_envs.call_args.args[0]["add"]
         ])
 
 
