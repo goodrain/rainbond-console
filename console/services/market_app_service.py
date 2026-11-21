@@ -965,14 +965,16 @@ class MarketAppService(object):
                                       outer_envs: Any) -> Tuple[dict, list]:
         if not ports:
             return {}, []
+        from console.services.market_app.port_utils import normalize_template_port_service_flags
+
+        ports = [normalize_template_port_service_flags(port, default_inner_service=False) for port in ports]
         port_k8s_svc_name = dict()
         envs = {oe.get("attr_name", "None"): oe for oe in outer_envs}
         app = group_repo.get_by_service_id(tenant.tenant_id, service.service_id)
         for port in ports:
             # Process the k8s_service_name of each port
             component_port = port["container_port"]
-            k8s_service_name = port.get("k8s_service_name") if port.get(
-                "k8s_service_name") else service.service_alias
+            k8s_service_name = cast(str, port.get("k8s_service_name") or service.service_alias)
             k8s_service_name = self.__handle_k8s_service_name(tenant, service, k8s_service_name, component_port)
             # Use component ID and port number as unique identification
             port_k8s_svc_name["{}:{}".format(service.service_id, component_port)] = k8s_service_name
@@ -1059,6 +1061,9 @@ class MarketAppService(object):
                     port_k8s_svc_name: dict, app_id: str, skip_create_domain: bool = False) -> None:
         if not ports:
             return
+        from console.services.market_app.port_utils import normalize_template_port_service_flags
+
+        ports = [normalize_template_port_service_flags(port, default_inner_service=False) for port in ports]
         create_ports = []
         for port in ports:
             component_port = port["container_port"]

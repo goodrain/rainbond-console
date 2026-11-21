@@ -44,6 +44,7 @@ from console.services.app_config.component_graph import component_graph_service
 from console.services.app_config.service_monitor import service_monitor_repo
 from console.services.exception import ErrChangeServiceType
 from console.services.group_service import group_service
+from console.services.market_app.port_utils import normalize_template_port_service_flags
 from console.services.source_build_state_service import source_build_state_service
 from console.services.app_version_auto_snapshot import app_version_auto_snapshot_service
 from console.services.service_services import base_service
@@ -507,6 +508,7 @@ class AppManageService(AppManageBase):
         if not ports:
             return 200, "success"
         for port in ports:
+            port = normalize_template_port_service_flags(port, default_inner_service=False)
             mapping_port = int(port["container_port"])
             env_prefix = port["port_alias"].upper() if bool(port["port_alias"]) else service.service_key.upper()
             service_port = port_repo.get_service_port_by_port(tenant.tenant_id, service.service_id, int(port["container_port"]))

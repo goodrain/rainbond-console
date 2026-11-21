@@ -89,6 +89,11 @@ def get_region_error_message(error: RegionApiBaseHttpClient.CallApiError) -> str
 
 
 class AppPortService(object):
+
+    @staticmethod
+    def get_port_host_value(k8s_service_name: str, governance_mode: Any) -> str:
+        return "127.0.0.1" if governance_mode == GovernanceModeEnum.BUILD_IN_SERVICE_MESH.name else k8s_service_name
+
     def json_service_port(self, service_port: TenantServicesPort) -> str:
         service_port_dict: Dict[str, Any] = dict()
         service_port_dict["端口号"] = service_port.container_port
@@ -1423,7 +1428,7 @@ class AppPortService(object):
     def create_envs_4_ports(self, component: TenantServiceInfo, port: TenantServicesPort,
                             governance_mode: Any) -> List[TenantServiceEnvVar]:
         port_alias = component.service_alias.upper()
-        host_value = "127.0.0.1" if governance_mode == GovernanceModeEnum.BUILD_IN_SERVICE_MESH.name else port.k8s_service_name
+        host_value = self.get_port_host_value(port.k8s_service_name, governance_mode)
         attr_name_prefix = port_alias + str(port.container_port)
         host_env = self._create_port_env(component, port, "连接地址", attr_name_prefix + "_HOST", host_value)
         port_env = self._create_port_env(component, port, "端口", attr_name_prefix + "_PORT", str(port.container_port))
