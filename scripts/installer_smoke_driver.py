@@ -7,6 +7,7 @@ import ipaddress
 import json
 import os
 import pathlib
+import re
 import shlex
 import signal
 import socket
@@ -99,6 +100,27 @@ def docker_recommended_version(installer: pathlib.Path) -> str:
             if value:
                 return value
     raise RuntimeError("installer does not define DOCKER_RECOMMENDED_VERSION")
+
+
+def docker_download_urls(installer: pathlib.Path, arch: str) -> list[str]:
+    docker_architectures = {"amd64": "x86_64", "arm64": "aarch64"}
+    if arch not in docker_architectures:
+        raise RuntimeError(f"unsupported Docker smoke architecture: {arch}")
+    templates = []
+    inside_urls = False
+    for line in installer.read_text(encoding="utf-8").splitlines():
+        stripped = line.strip()
+        if stripped == "docker_urls=(":
+            inside_urls = True
+            continue
+        if inside_urls and stripped == ")":
+            break
+        if inside_urls:
+            templates.extend(re.findall(r'"(https://[^"]+)"', stripped))
+    if len(templates) != 3:
+        raise RuntimeError("installer does not provide exactly three Docker download URLs")
+    version = docker_recommended_version(installer)
+    return [template.replace("${docker_arch}", docker_architectures[arch]).replace("${DOCKER_RECOMMENDED_VERSION}", version) for template in templates]
 
 
 def ready_components(pod_output: str) -> list[dict[str, str]]:
@@ -211,8 +233,18 @@ done
 started=$(date +%s%3N)
 status=0
 docker_download_host=""
-if [[ "$url" =~ ^https://(mirrors\.tuna\.tsinghua\.edu\.cn|mirrors\.aliyun\.com|download\.docker\.com)/docker-ce/linux/static/stable/[^/]+/docker-[^/]+\.tgz$ ]]; then
-  docker_download_host="${BASH_REMATCH[1]}"
+docker_download_match=false
+if [ -n "${SMOKE_DOCKER_DOWNLOAD_URLS_FILE:-}" ] && [ -f "${SMOKE_DOCKER_DOWNLOAD_URLS_FILE}" ]; then
+  while IFS= read -r expected_url; do
+    if [ "$url" = "$expected_url" ]; then
+      docker_download_match=true
+      docker_download_host="${url#https://}"
+      docker_download_host="${docker_download_host%%/*}"
+      break
+    fi
+  done <"${SMOKE_DOCKER_DOWNLOAD_URLS_FILE}"
+fi
+if [ "$docker_download_match" = true ]; then
   case "${SMOKE_DOCKER_DOWNLOAD_MODE:-}" in
     tuna_partial_archive)
       if [ "$docker_download_host" = "mirrors.tuna.tsinghua.edu.cn" ]; then
@@ -293,7 +325,8 @@ def guard_rule_prefix_valid(rules: str, chain: str, addresses: list[str], action
     if not expected:
         return True
     entries = [line.strip() for line in rules.splitlines() if line.startswith(f"-A {chain} ")]
-    return len(entries) >= len(expected) and set(entries[: len(expected)]) == expected
+    prefixes = entries[: len(expected)]
+    return len(prefixes) == len(expected) and all(any(line == expected_rule or line.startswith(f"{expected_rule} ") for line in prefixes) for expected_rule in expected)
 
 
 def guard_packet_counts(counters: str, addresses: Iterable[str]) -> dict[str, int]:
@@ -313,9 +346,9 @@ def insert_guard_rules(command: str, table: str, chain: str, addresses: Iterable
         run_sudo(command, "-t", table, "-I", chain, "-d", address, "-j", action)
 
 
-def guard_addresses(guard: dict[str, Any], version: int) -> list[str]:
+def guard_addresses(guard: dict[str, Any], version: int, include_smoke_blackhole: bool = True) -> list[str]:
     source = guard["ipv6_addresses"] if version == 6 else guard["addresses"]
-    return sorted({address for values in source.values() for address in values})
+    return sorted({address for host, values in source.items() if include_smoke_blackhole or host != "smoke_blackhole" for address in values})
 
 
 def read_guard_rules(command: str, table: str, chain: str) -> subprocess.CompletedProcess[str]:
@@ -326,19 +359,20 @@ def reconcile_network_guard(results_dir: pathlib.Path) -> list[dict[str, Any]]:
     guard = json.loads((results_dir / "network-guard.json").read_text(encoding="utf-8"))
     changes = []
     for command, version in (("iptables", 4), ("ip6tables", 6)):
-        addresses = guard_addresses(guard, version)
-        if not addresses:
+        filter_addresses = guard_addresses(guard, version)
+        raw_addresses = guard_addresses(guard, version, include_smoke_blackhole=False)
+        if not filter_addresses:
             continue
         for chain in RAW_GUARD_CHAINS:
             state = read_guard_rules(command, "raw", chain)
-            if state.returncode == 0 and not guard_rule_prefix_valid(state.stdout, chain, addresses, "DROP"):
-                insert_guard_rules(command, "raw", chain, addresses, "DROP")
-                changes.append({"table": "raw", "chain": chain, "ip_version": version, "at": time.time()})
+            if raw_addresses and state.returncode == 0 and not guard_rule_prefix_valid(state.stdout, chain, raw_addresses, "DROP"):
+                insert_guard_rules(command, "raw", chain, raw_addresses, "DROP")
+                changes.append({"table": "raw", "chain": chain, "ip_version": version, "at_monotonic_seconds": time.monotonic()})
         for chain in NETWORK_GUARD_CHAINS:
             state = read_guard_rules(command, "filter", chain)
-            if state.returncode == 0 and not guard_rule_prefix_valid(state.stdout, chain, addresses, guard["action"]):
-                insert_guard_rules(command, "filter", chain, addresses, guard["action"])
-                changes.append({"table": "filter", "chain": chain, "ip_version": version, "at": time.time()})
+            if state.returncode == 0 and not guard_rule_prefix_valid(state.stdout, chain, filter_addresses, guard["action"]):
+                insert_guard_rules(command, "filter", chain, filter_addresses, guard["action"])
+                changes.append({"table": "filter", "chain": chain, "ip_version": version, "at_monotonic_seconds": time.monotonic()})
     return changes
 
 
@@ -361,6 +395,8 @@ class NetworkGuardMonitor:
         while not self._stop.wait(1):
             try:
                 self.reinsertions.extend(reconcile_network_guard(self.results_dir))
+            except subprocess.CalledProcessError as error:
+                self.errors.append(f"{error}: {error.stderr.strip()}")
             except Exception as error:
                 self.errors.append(str(error))
 
@@ -387,12 +423,14 @@ def verify_network_guard(results_dir: pathlib.Path, require_docker_user: bool = 
     guard = json.loads((results_dir / "network-guard.json").read_text(encoding="utf-8"))
     tables = {}
     for command, version in (("iptables", 4), ("ip6tables", 6)):
-        addresses = guard_addresses(guard, version)
-        if not addresses:
+        filter_addresses = guard_addresses(guard, version)
+        raw_addresses = guard_addresses(guard, version, include_smoke_blackhole=False)
+        if not filter_addresses:
             tables[f"ipv{version}"] = {"skipped": True, "filter": {}, "raw": {}}
             continue
         result = {"skipped": False, "filter": {}, "raw": {}}
         for table, chains, action in (("filter", NETWORK_GUARD_CHAINS, guard["action"]), ("raw", RAW_GUARD_CHAINS, "DROP")):
+            addresses = raw_addresses if table == "raw" else filter_addresses
             for chain in chains:
                 rules = read_guard_rules(command, table, chain)
                 counters = run_sudo(command, "-t", table, "-L", chain, "-v", "-n", check=False).stdout
@@ -401,6 +439,7 @@ def verify_network_guard(results_dir: pathlib.Path, require_docker_user: bool = 
                     "prefix_valid": rules.returncode == 0 and guard_rule_prefix_valid(rules.stdout, chain, addresses, action),
                     "packet_counters": counters,
                     "drop_packets": guard_packet_counts(counters, addresses),
+                    "real_report_drop_packets": guard_packet_counts(counters, raw_addresses),
                 }
         tables[f"ipv{version}"] = result
     required_filter_chains = NETWORK_GUARD_CHAINS if require_docker_user else tuple(chain for chain in NETWORK_GUARD_CHAINS if chain != "DOCKER-USER")
@@ -411,14 +450,15 @@ def verify_network_guard(results_dir: pathlib.Path, require_docker_user: bool = 
         for rule_table, chains in (("filter", required_filter_chains), ("raw", RAW_GUARD_CHAINS))
         for chain in chains
     )
-    raw_packets = sum(sum(chain["drop_packets"].values()) for table in tables.values() if not table["skipped"] for chain in table["raw"].values())
-    filter_packets = sum(sum(chain["drop_packets"].values()) for table in tables.values() if not table["skipped"] for chain in table["filter"].values())
-    counter_consistent = not (filter_packets > 0 and raw_packets == 0)
+    raw_packets = sum(sum(chain["real_report_drop_packets"].values()) for table in tables.values() if not table["skipped"] for chain in table["raw"].values())
+    filter_real_packets = sum(sum(chain["real_report_drop_packets"].values()) for table in tables.values() if not table["skipped"] for chain in table["filter"].values())
+    filter_blackhole_packets = sum(sum(chain["drop_packets"].values()) - sum(chain["real_report_drop_packets"].values()) for table in tables.values() if not table["skipped"] for chain in table["filter"].values())
+    counter_consistent = filter_real_packets == 0
     return {
         "valid": valid and counter_consistent,
         "tables": tables,
         "docker_user_required": require_docker_user,
-        "drop_packet_totals": {"raw": raw_packets, "filter": filter_packets},
+        "drop_packet_totals": {"raw": raw_packets, "filter_real_report_ips": filter_real_packets, "filter_smoke_blackhole": filter_blackhole_packets},
         "counter_consistent": counter_consistent,
     }
 
@@ -628,7 +668,11 @@ def docker_guard_snapshot(results_dir: pathlib.Path) -> dict[str, Any]:
     raw_rules = run_sudo("iptables", "-t", "raw", "-S", check=False).stdout
     (results_dir / "docker-raw-rules.txt").write_text(raw_rules, encoding="utf-8")
     started = run_sudo("systemctl", "show", "docker.service", "--property=ActiveEnterTimestampMonotonic", "--value", check=False)
-    return {"docker_started_at_monotonic": started.stdout.strip(), "raw_rules_captured": bool(raw_rules)}
+    try:
+        docker_started_at_monotonic_seconds = int(started.stdout.strip()) / 1_000_000
+    except ValueError:
+        docker_started_at_monotonic_seconds = None
+    return {"docker_started_at_monotonic_seconds": docker_started_at_monotonic_seconds, "raw_rules_captured": bool(raw_rules)}
 
 
 def run_scenario(arguments: argparse.Namespace) -> int:
@@ -684,7 +728,13 @@ def run_scenario(arguments: argparse.Namespace) -> int:
         }
         install_network_guard(results_dir, action)
         guard_addresses = json.loads((results_dir / "network-guard.json").read_text(encoding="utf-8"))["addresses"]
+        guard_validation = verify_network_guard(results_dir)
+        if not guard_validation["valid"]:
+            raise RuntimeError("network guard preflight failed")
         if arguments.scenario in DOCKER_SCENARIOS:
+            docker_urls_file = results_dir / "docker-download-urls"
+            docker_urls_file.write_text("\n".join(docker_download_urls(target_script, arguments.arch)) + "\n", encoding="utf-8")
+            env["SMOKE_DOCKER_DOWNLOAD_URLS_FILE"] = str(docker_urls_file.resolve())
             docker_cleanup = remove_preinstalled_docker(results_dir)
         if arguments.scenario == "no_docker_tuna_fallback":
             env["SMOKE_DOCKER_DOWNLOAD_MODE"] = "tuna_partial_archive"
@@ -709,6 +759,8 @@ def run_scenario(arguments: argparse.Namespace) -> int:
             command.append(f"VERSION={env['VERSION']}")
         if "SMOKE_DOCKER_DOWNLOAD_MODE" in env:
             command.append(f"SMOKE_DOCKER_DOWNLOAD_MODE={env['SMOKE_DOCKER_DOWNLOAD_MODE']}")
+        if "SMOKE_DOCKER_DOWNLOAD_URLS_FILE" in env:
+            command.append(f"SMOKE_DOCKER_DOWNLOAD_URLS_FILE={env['SMOKE_DOCKER_DOWNLOAD_URLS_FILE']}")
         command.extend(["bash", str(target_script)])
         code, output, timed_out = run_command(command, env, results_dir / "installer.log", arguments.timeout)
         if guard_monitor is not None:
