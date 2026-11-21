@@ -151,6 +151,7 @@ run_orbstack_install_case() {
 printf "brew %s\n" "$*" >>"${STUB_LOG}"
 exit 99
 '
+  write_stub "${bin_dir}" hdiutil 'exit 0'
   write_stub "${bin_dir}" curl '
 printf "curl %s\n" "$*" >>"${STUB_LOG}"
 out=""
@@ -248,6 +249,7 @@ exit 1
 printf "curl %s\n" "$*" >>"${STUB_LOG}"
 exit 1
 '
+  write_stub "${bin_dir}" hdiutil 'exit 0'
 
   extract_orbstack_functions "${script}" >"${functions_file}"
   set +e
@@ -393,14 +395,24 @@ exit 0
 printf "tar %s\n" "$*" >>"${STUB_LOG}"
 case "${1:-}" in
   -tzf)
-    grep -q "valid-tarball" "$2"
-    exit $?
+    if ! grep -q "valid-tarball" "$2"; then
+      exit 1
+    fi
+    printf "%s\n" docker/ docker/containerd docker/containerd-shim-runc-v2 docker/ctr docker/docker docker/docker-init docker/docker-proxy docker/dockerd docker/runc
+    ;;
+  -tvzf)
+    grep -q "valid-tarball" "$2" || exit 1
+    printf "%s\n" drwxr-xr-x docker/ drwxr-xr-x docker/docker
     ;;
   -xzf)
     exit 0
     ;;
 esac
 exit 0
+'
+  write_stub "${bin_dir}" sha256sum '
+grep -q "valid-tarball" "$1" || exit 1
+printf "test-docker-sha  %s\n" "$1"
 '
   write_stub "${bin_dir}" cp 'printf "cp %s\n" "$*" >>"${STUB_LOG}"; exit 0'
   write_stub "${bin_dir}" chmod 'printf "chmod %s\n" "$*" >>"${STUB_LOG}"; exit 0'
@@ -432,14 +444,59 @@ exit 0
     send_info() { printf "INFO: %s\n" "$*" >>"${STUB_LOG}"; }
     send_warn() { printf "WARN: %s\n" "$*" >>"${STUB_LOG}"; }
     send_error() { printf "ERROR: %s\n" "$*" >>"${STUB_LOG}"; }
+    rainbond_send_progress_event() { printf "PROGRESS: %s\n" "$*" >>"${STUB_LOG}"; }
+    rainbond_http_status_class() { printf "2xx"; }
     create_containerd_service() { printf "create_containerd_service\n" >>"${STUB_LOG}"; }
     create_docker_service() { printf "create_docker_service\n" >>"${STUB_LOG}"; }
+    DOCKER_INSTALL_SHA256_AMD64=test-docker-sha
     install_docker_linux
     status=$?
     printf "status=%s\n" "${status}"
     printf "curl_calls=%s\n" "$(cat "${TEST_TMP}/curl-count")"
     cat "${STUB_LOG}"
   ' bash "${functions_file}" >"${output_file}" 2>&1
+  local status=$?
+  set -e
+
+  cat "${output_file}"
+  printf "case_status=%s\n" "${status}"
+}
+
+run_checksum_fallback_case() {
+  local script=$1
+  local tmp_dir bin_dir functions_file archive_file output_file
+  tmp_dir=$(mktemp -d)
+  bin_dir="${tmp_dir}/bin"
+  functions_file="${tmp_dir}/docker-functions.sh"
+  archive_file="${tmp_dir}/docker.tgz"
+  output_file="${tmp_dir}/output"
+  mkdir -p "${bin_dir}"
+  printf 'valid-tarball' >"${archive_file}"
+
+  write_stub "${bin_dir}" tar '
+printf "tar %s\n" "$*" >>"${STUB_LOG}"
+[ "${1:-}" = "-tzf" ] && grep -q "valid-tarball" "$2"
+'
+
+  extract_docker_install_functions "${script}" "${archive_file}" >"${functions_file}"
+  set +e
+  STUB_LOG="${tmp_dir}/stub.log" \
+  PATH="${bin_dir}:/usr/bin:/bin" \
+  bash -c '
+    source "$1"
+    command() {
+      if [ "$1" = "-v" ] && { [ "$2" = "sha256sum" ] || [ "$2" = "shasum" ]; }; then
+        return 1
+      fi
+      builtin command "$@"
+    }
+    rainbond_use_chinese_prompt() { return 1; }
+    send_warn() { printf "WARN: %s\n" "$*" >>"${STUB_LOG}"; }
+    verify_docker_archive "$2" test-docker-sha
+    status=$?
+    printf "status=%s\n" "${status}"
+    cat "${STUB_LOG}"
+  ' bash "${functions_file}" "${archive_file}" >"${output_file}" 2>&1
   local status=$?
   set -e
 
@@ -492,8 +549,20 @@ for install_script in "${INSTALL_SCRIPTS[@]}"; do
   download_output=$(run_download_retry_case "${install_script}")
   assert_contains "${download_output}" "status=0"
   assert_contains "${download_output}" "curl_calls=2"
-  assert_contains "${download_output}" "Downloaded Docker binary is corrupted, retrying (1/2)"
+  if [ "${install_script}" = "${REPO_ROOT}/script/install-rainbond.sh" ]; then
+    assert_contains "${download_output}" "Downloading Docker binary from tuna"
+    assert_contains "${download_output}" "Downloading Docker binary from aliyun"
+    assert_contains "${download_output}" "PROGRESS: docker_download failed"
+    assert_not_contains "${download_output}" "Downloaded Docker binary is corrupted, retrying (1/2)"
+  else
+    assert_contains "${download_output}" "Downloaded Docker binary is corrupted, retrying (1/2)"
+  fi
   assert_not_contains "${download_output}" "Downloaded file is corrupted, please re-run the script"
 done
+
+checksum_fallback_output=$(run_checksum_fallback_case "${REPO_ROOT}/script/install-rainbond.sh")
+assert_contains "${checksum_fallback_output}" "status=0"
+assert_contains "${checksum_fallback_output}" "sha256sum and shasum are unavailable"
+assert_contains "${checksum_fallback_output}" "tar -tzf"
 
 printf 'PASS: install_rainbond_orbstack_download_test\n'

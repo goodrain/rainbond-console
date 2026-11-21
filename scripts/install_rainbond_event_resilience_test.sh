@@ -90,6 +90,25 @@ for signal_name in INT HUP TERM; do
   esac
 done
 
+tmp_dir=$(mktemp -d)
+set +e
+RAINBOND_FINAL_EVENT_ENABLED=true \
+UUID=test-installation \
+TEST_SIGNAL_LOG="${tmp_dir}/signal.log" \
+bash -c '
+  source "$1"
+  send_msg() { printf "%s\n" "$1" >>"${TEST_SIGNAL_LOG}"; }
+  trap "rainbond_handle_signal HUP; exit \$?" HUP
+  kill -HUP $$
+  sleep 1
+' bash "${functions_file}"
+signal_status=$?
+set -e
+assert_equals 129 "${signal_status}"
+assert_contains "$(cat "${tmp_dir}/signal.log")" '"reason":"session_disconnected"'
+assert_equals 1 "$(grep -Fc 'install_final' "${tmp_dir}/signal.log")"
+rm -rf "${tmp_dir}"
+
 RAINBOND_FINAL_STATUS_SENT=false
 captured_message=''
 send_msg() { captured_message=$1; }
@@ -173,7 +192,7 @@ bash -c '
   send_error() { :; }
   rainbond_send_progress_event() { printf "%s\n" "$*" >>"${TEST_PROGRESS_LOG}"; }
   rainbond_http_status_class() { printf none; }
-  verify_docker_upgrade_archive() { return 0; }
+  verify_docker_archive() { return 0; }
   upgrade_docker_from_bundle() { return 0; }
   ARCH_TYPE=amd64
   install_docker_linux upgrade
@@ -220,6 +239,7 @@ bash -c '
   send_warn() { :; }
   send_error() { :; }
   send_msg() { :; }
+  rainbond_image_pull_failure_message() { printf "Image pull failed"; }
   source "$2"
 ' bash "${functions_file}" "${pull_loop_file}" | cat >/dev/null
 pull_status=${PIPESTATUS[0]}

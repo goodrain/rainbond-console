@@ -154,19 +154,20 @@ function rainbond_image_pull_failure_message() {
 }
 
 function rainbond_stop_pull_command() {
-    local pull_pid watchdog_pid
+    local pull_pid wait_seconds
 
     if [ -n "${RAINBOND_PULL_COMMAND_PID:-}" ]; then
         pull_pid="${RAINBOND_PULL_COMMAND_PID}"
         kill "$pull_pid" 2>/dev/null || :
-        (
-            sleep 5
+        wait_seconds=0
+        while kill -0 "$pull_pid" 2>/dev/null && [ "$wait_seconds" -lt 5 ]; do
+            sleep 1
+            wait_seconds=$((wait_seconds + 1))
+        done
+        if kill -0 "$pull_pid" 2>/dev/null; then
             kill -KILL "$pull_pid" 2>/dev/null || :
-        ) >/dev/null 2>&1 &
-        watchdog_pid=$!
+        fi
         wait "$pull_pid" 2>/dev/null || :
-        kill "$watchdog_pid" 2>/dev/null || :
-        wait "$watchdog_pid" 2>/dev/null || :
     fi
     RAINBOND_PULL_COMMAND_PID=""
 }
@@ -2877,6 +2878,26 @@ verify_docker_upgrade_archive() {
     [ "$entries" = "$expected_entries" ]
 }
 
+verify_docker_archive() {
+    local docker_file=$1
+    local expected_sha=$2
+
+    if command -v sha256sum >/dev/null 2>&1 || command -v shasum >/dev/null 2>&1; then
+        verify_docker_upgrade_archive "$docker_file" "$expected_sha"
+        return $?
+    fi
+
+    if [ "${RAINBOND_DOCKER_CHECKSUM_WARNING_SHOWN:-false}" != "true" ]; then
+        RAINBOND_DOCKER_CHECKSUM_WARNING_SHOWN=true
+        if rainbond_use_chinese_prompt; then
+            send_warn "未找到 sha256sum 或 shasum，无法校验 Docker 二进制 SHA256；将仅校验 tar 归档完整性"
+        else
+            send_warn "sha256sum and shasum are unavailable; Docker binary SHA256 cannot be verified and only tar archive integrity will be checked"
+        fi
+    fi
+    tar -tzf "$docker_file" >/dev/null 2>&1
+}
+
 # Function to install Docker on Linux using binary installation
 install_docker_linux() {
     local install_mode="${1:-fresh}"
@@ -2941,7 +2962,7 @@ install_docker_linux() {
         fi
     
         # Verify both the archive contents and the pinned Docker checksum.
-        if verify_docker_upgrade_archive "$docker_file" "$docker_expected_sha"; then
+        if verify_docker_archive "$docker_file" "$docker_expected_sha"; then
             if rainbond_use_chinese_prompt; then
                 send_info "文件完整，跳过下载"
             else
@@ -2998,7 +3019,7 @@ install_docker_linux() {
                 fi
                 http_status=$(cat "$http_status_file" 2>/dev/null || true)
                 rm -f "$http_status_file"
-                if [ "$curl_exit_code" -eq 0 ] && verify_docker_upgrade_archive "$docker_tmp_file" "$docker_expected_sha"; then
+                if [ "$curl_exit_code" -eq 0 ] && verify_docker_archive "$docker_tmp_file" "$docker_expected_sha"; then
                     mv "$docker_tmp_file" "$docker_file"
                     download_verified=true
                     break 2
