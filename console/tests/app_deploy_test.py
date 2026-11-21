@@ -267,6 +267,54 @@ class LegacyMarketPortUpgradeTests(TestCase):
 
         self.assertEqual("127.0.0.1", envs[0]["attr_value"])
 
+    def test_port_envs_fall_back_to_service_alias_for_empty_k8s_service_name(self):
+        market_service = self._market_service()
+        host_values = []
+
+        with mock.patch.object(
+                app_deploy_module.group_repo,
+                "get_by_service_id",
+                return_value=mock.Mock(governance_mode="KUBERNETES_NATIVE_SERVICE")):
+            for k8s_service_name in ("", None):
+                with self.subTest(k8s_service_name=k8s_service_name):
+                    envs = market_service._create_envs_4_ports({
+                        "container_port": 8080,
+                        "port_alias": "WEB",
+                        "k8s_service_name": k8s_service_name,
+                    })
+                    host_values.append(envs[0]["attr_value"])
+
+        self.assertEqual(["grabcd", "grabcd"], host_values)
+
+    def test_port_update_without_an_app_uses_default_mode_before_persisting(self):
+        market_service = self._market_service()
+        calls = []
+        changes = {
+            "add": [{
+                "container_port": 8080,
+                "port_alias": "WEB",
+                "is_inner_service": True,
+                "is_outer_service": True,
+            }]
+        }
+
+        def get_app(*args, **kwargs):
+            calls.append("get_app")
+            raise app_deploy_module.ServiceGroup.DoesNotExist
+
+        def add_port(**kwargs):
+            calls.append("add_port")
+
+        with mock.patch.object(app_deploy_module.group_repo, "get_by_service_id", side_effect=get_app), \
+                mock.patch.object(app_deploy_module.port_repo, "get_by_k8s_service_name", return_value=None), \
+                mock.patch.object(app_deploy_module.port_repo, "add_service_port", side_effect=add_port), \
+                mock.patch.object(app_deploy_module.env_var_repo, "get_by_attr_name_and_scope", return_value=None), \
+                mock.patch.object(app_deploy_module.env_var_service, "create_env_var") as create_env_var:
+            market_service._update_ports(changes)
+
+        self.assertEqual(["get_app", "add_port"], calls)
+        self.assertEqual("grabcd", create_env_var.call_args_list[0].args[4])
+
     def test_port_upgrade_uses_existing_alias_when_template_omits_it(self):
         market_service = self._market_service()
         existing_port = mock.Mock(

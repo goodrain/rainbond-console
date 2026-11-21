@@ -9,6 +9,7 @@ from typing import Any, Dict as TypingDict, List, Optional, Tuple
 from addict import Dict
 
 from console.cloud.services import check_account_quota
+from console.enum.app import GovernanceModeEnum
 from console.exception.main import (EnvAlreadyExist, ErrDepVolumeNotFound, ErrInvalidVolume, InnerPortNotFound, InvalidEnvName,
                                     ServiceHandleException, ServiceRelationAlreadyExist)
 from console.models.main import RainbondCenterAppVersion, TenantServiceBackup
@@ -35,7 +36,7 @@ from console.services.plugin import app_plugin_service
 from django.db import transaction
 from www.apiclient.regionapi import RegionInvokeApi
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
-from www.models.main import TenantServiceInfo, Tenants
+from www.models.main import ServiceGroup, TenantServiceInfo, Tenants
 from www.tenantservice.baseservice import BaseTenantService
 from www.utils.crypt import make_uuid
 
@@ -191,6 +192,7 @@ class MarketService(object):
         self._resolved_ports: TypingDict[int, dict] = {}
         self._newly_inner_ports: set = set()
         self._port_envs_to_sync: List[dict] = []
+        self._port_governance_mode: Optional[str] = None
         self.backup: Any = None
 
         self.update_funcs = self._create_update_funcs()
@@ -645,9 +647,8 @@ class MarketService(object):
         port_alias = port.get("port_alias")
         if use_legacy_default_alias or not port_alias:
             port_alias = self.service.service_alias.upper() + str(port["container_port"])
-        app = group_repo.get_by_service_id(self.tenant.tenant_id, self.service.service_id)
-        host_value = app_port_service.get_port_host_value(
-            str(port.get("k8s_service_name", self.service.service_alias)), app.governance_mode)
+        k8s_service_name = port.get("k8s_service_name") or self.service.service_alias
+        host_value = app_port_service.get_port_host_value(k8s_service_name, self._get_port_governance_mode())
         host_env = {
             "container_port": container_port,
             "name": "连接地址",
@@ -663,6 +664,16 @@ class MarketService(object):
             "is_change": False,
         }
         return [host_env, port_env]
+
+    def _get_port_governance_mode(self) -> str:
+        if self._port_governance_mode is not None:
+            return self._port_governance_mode
+        try:
+            app = group_repo.get_by_service_id(self.tenant.tenant_id, self.service.service_id)
+            self._port_governance_mode = app.governance_mode or GovernanceModeEnum.KUBERNETES_NATIVE_SERVICE.name
+        except ServiceGroup.DoesNotExist:
+            self._port_governance_mode = GovernanceModeEnum.KUBERNETES_NATIVE_SERVICE.name
+        return self._port_governance_mode
 
     def update_port_data(self, port: dict, existing_port: Any = None) -> None:
         container_port = int(port["container_port"])
@@ -691,6 +702,8 @@ class MarketService(object):
         if ports is None:
             return
         self._port_envs_to_sync = []
+        self._port_governance_mode = None
+        self._get_port_governance_mode()
 
         add = [normalize_template_port_service_flags(port, default_inner_service=False) for port in ports.get("add", [])]
         envs: TypingDict[str, list] = {"add": []}
