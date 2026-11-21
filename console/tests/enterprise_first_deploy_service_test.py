@@ -2946,3 +2946,106 @@ class EnterpriseFirstDeployServiceTests(TestCase):
 
         self.assertEqual([item["service_id"] for item in context["dependencies"]], ["dep-a", "dep-b", "dep-missing"])
         self.assertEqual([item["status"] for item in context["dependencies"]], ["NO_PODS", "RUNNING", "MISSING"])
+
+    def test_runtime_region_shape_baseline_matrix(self):
+        """Capture main's Region DescribePodStatus behavior at 5/65/185 seconds."""
+        ready = {"status": {"type_str": "RUNNING"}, "events": [], "containers": [], "init_containers": []}
+        not_ready = {"status": {"type_str": "NOTREADY", "reason": "ContainersNotReady"},
+                     "events": [], "containers": [], "init_containers": []}
+        initializing = {"status": {"type_str": "INITIATING", "reason": "PodInitializing"},
+                        "events": [], "containers": [], "init_containers": []}
+        creating = {"status": {"type_str": "NOTREADY", "reason": "ContainersNotReady"}, "events": [],
+                    "containers": [{"state": "Waiting", "reason": "ContainerCreating"}], "init_containers": []}
+        hard_failures = {
+            "crash_loop": {"containers": [{"reason": "CrashLoopBackOff"}]},
+            "image_pull_backoff": {"containers": [{"reason": "ImagePullBackOff"}]},
+            "err_image_pull": {"containers": [{"reason": "ErrImagePull"}]},
+            "oom_killed": {"containers": [{"reason": "OOMKilled"}]},
+            "init_crash_loop": {"init_containers": [{"reason": "CrashLoopBackOff"}]},
+        }
+        cases = [
+            ("healthy", {"svc-a": [{"pod_name": "pod-a", "pod_status": "RUNNING"}]}, {"pod-a": ready},
+             [self.service.STATUS_SUCCESS] * 3),
+            ("healthy_historical_unhealthy", {"svc-a": [{"pod_name": "pod-a", "pod_status": "RUNNING"}]},
+             {"pod-a": dict(ready, events=[{"reason": "Unhealthy", "message": "probe failed"}])},
+             [self.service.STATUS_SUCCESS] * 3),
+            ("containers_not_ready", {"svc-a": [{"pod_name": "pod-a", "pod_status": "NOTREADY"}]},
+             {"pod-a": not_ready}, [None, None, self.service.STATUS_FAILURE]),
+            ("pod_initializing", {"svc-a": [{"pod_name": "pod-a", "pod_status": "INITIATING"}]},
+             {"pod-a": initializing}, [None, self.service.STATUS_FAILURE, self.service.STATUS_FAILURE]),
+            ("container_creating", {"svc-a": [{"pod_name": "pod-a", "pod_status": "NOTREADY"}]},
+             {"pod-a": creating}, [None, None, self.service.STATUS_FAILURE]),
+            ("pulling_event_only", {"svc-a": [{"pod_name": "pod-a", "pod_status": "NOTREADY"}]},
+             {"pod-a": {"status": {"type_str": "NOTREADY"}, "events": [{"reason": "Pulling"}],
+                        "containers": [], "init_containers": []}},
+             [None, self.service.STATUS_FAILURE, self.service.STATUS_FAILURE]),
+            ("unschedulable", {"svc-a": [{"pod_name": "pod-a", "pod_status": "ABNORMAL"}]},
+             {"pod-a": {"status": {"type_str": "ABNORMAL", "reason": "Unschedulable", "message": "no nodes"},
+                        "events": [], "containers": [], "init_containers": []}},
+             [self.service.STATUS_FAILURE] * 3),
+            ("new_ready_old_terminating", {"svc-a": [
+                {"pod_name": "pod-a", "pod_status": "RUNNING", "_group": "new_pods"},
+                {"pod_name": "pod-old", "pod_status": "TERMINATING", "_group": "old_pods"},
+            ]},
+             {"pod-a": ready, "pod-old": {"status": {"type_str": "TERMINATING"}}},
+             [self.service.STATUS_SUCCESS] * 3),
+            ("replicas_ready_and_not_ready", {"svc-a": [
+                {"pod_name": "pod-a", "pod_status": "RUNNING"},
+                {"pod_name": "pod-b", "pod_status": "NOTREADY"},
+            ]},
+             {"pod-a": ready, "pod-b": not_ready}, [None, None, self.service.STATUS_FAILURE]),
+            ("waiting_and_missing_component", {"svc-a": [{"pod_name": "pod-a", "pod_status": "NOTREADY"}], "svc-b": []},
+             {"pod-a": not_ready}, [None, None, self.service.STATUS_FAILURE]),
+            ("waiting_and_ready_component", {"svc-a": [{"pod_name": "pod-a", "pod_status": "NOTREADY"}],
+                                             "svc-b": [{"pod_name": "pod-b", "pod_status": "RUNNING"}]},
+             {"pod-a": not_ready, "pod-b": ready}, [None, None, self.service.STATUS_FAILURE]),
+        ]
+        for name, pods_by_alias, details, expected in cases:
+            for elapsed, outcome in zip((5, 65, 185), expected):
+                with self.subTest(name=name, elapsed=elapsed):
+                    payload = {
+                        "enterprise_id": "eid-1", "service_ids": ["service-1"], "service_alias": "svc-a",
+                        "service_aliases": ["svc-b"] if "svc-b" in pods_by_alias else [],
+                        "runtime_watch_started_at": "2026-11-20 10:00:00",
+                    }
+
+                    def get_pods(_region, _tenant, alias, _enterprise):
+                        new_pods = []
+                        old_pods = []
+                        for pod in pods_by_alias.get(alias, []):
+                            if pod.get("_group") == "old_pods":
+                                old_pods.append(pod)
+                            else:
+                                new_pods.append(pod)
+                        return {"bean": {"new_pods": new_pods, "old_pods": old_pods}}
+
+                    def pod_detail(_region, _tenant, _alias, pod_name):
+                        return {"bean": details.get(pod_name, {})}
+                    now = "2026-11-20 10:{:02d}:{:02d}".format(elapsed // 60, elapsed % 60)
+                    with mock.patch("console.services.enterprise_first_deploy_service.region_api.get_service_pods",
+                                    side_effect=get_pods), \
+                            mock.patch("console.services.enterprise_first_deploy_service.region_api.pod_detail",
+                                       side_effect=pod_detail), \
+                            mock.patch.object(self.service, "_now", return_value=now):
+                        self.assertEqual(
+                            self.service._inspect_runtime_status(None, payload, "team", "region"), outcome,
+                            msg="{} at {} seconds".format(name, elapsed))
+        for name, detail in hard_failures.items():
+            with self.subTest(name=name):
+                payload = {
+                    "enterprise_id": "eid-1", "service_ids": ["service-1"], "service_alias": "svc-a",
+                    "runtime_watch_started_at": "2026-11-20 10:00:00",
+                }
+                detail.update({
+                    "status": {"type_str": "ABNORMAL"}, "events": [], "containers": detail.get("containers", []),
+                    "init_containers": detail.get("init_containers", []),
+                })
+                with mock.patch("console.services.enterprise_first_deploy_service.region_api.get_service_pods",
+                                return_value={"bean": {
+                                    "new_pods": [{"pod_name": "pod-a", "pod_status": "ABNORMAL"}], "old_pods": []}}), \
+                        mock.patch("console.services.enterprise_first_deploy_service.region_api.pod_detail",
+                                   return_value={"bean": detail}), \
+                        mock.patch.object(self.service, "_now", return_value="2026-11-20 10:00:05"):
+                    self.assertEqual(
+                        self.service._inspect_runtime_status(None, payload, "team", "region"),
+                        self.service.STATUS_FAILURE)
