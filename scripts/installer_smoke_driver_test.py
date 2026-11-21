@@ -32,6 +32,7 @@ from installer_smoke_driver import (
     main_script_uuid,
     resolve_public_ipv4,
     resolve_ipv6,
+    summarize_guard_reinsertions,
     terminate_process_group,
 )
 
@@ -129,6 +130,10 @@ class InstallerSmokeDriverTests(unittest.TestCase):
     def test_raw_guard_excludes_the_local_blackhole(self):
         guard = {"addresses": {"log.rainbond.com": ["203.0.113.10"], "smoke_blackhole": ["192.0.2.1"]}, "ipv6_addresses": {}}
         self.assertEqual(guard_addresses(guard, 4, include_smoke_blackhole=False), ["203.0.113.10"])
+
+    def test_guard_reinsertions_are_preserved_for_result_artifacts(self):
+        reinsertions = [{"table": "filter", "chain": "FORWARD", "ip_version": 4, "at_monotonic_seconds": 123.45}]
+        self.assertEqual(summarize_guard_reinsertions(reinsertions), reinsertions)
 
     def test_guard_packet_counts_are_recorded_per_destination(self):
         counters = "  12   720 DROP all -- * * 0.0.0.0/0 203.0.113.10\n   3   180 DROP all -- * * 0.0.0.0/0 203.0.113.11\n"

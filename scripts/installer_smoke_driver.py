@@ -403,6 +403,18 @@ class NetworkGuardMonitor:
                 self.errors.append(str(error))
 
 
+def summarize_guard_reinsertions(reinsertions: Iterable[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [
+        {
+            "table": entry["table"],
+            "chain": entry["chain"],
+            "ip_version": entry["ip_version"],
+            "at_monotonic_seconds": entry["at_monotonic_seconds"],
+        }
+        for entry in reinsertions
+    ]
+
+
 def install_network_guard(results_dir: pathlib.Path, action: str) -> dict[str, list[str]]:
     addresses = {host: resolve_ipv4(host) for host in REPORT_HOSTS}
     addresses["smoke_blackhole"] = [SMOKE_BLOCK_IP]
@@ -843,6 +855,7 @@ def run_scenario(arguments: argparse.Namespace) -> int:
             "timed_out": timed_out,
             "connectivity": connectivity,
             "network_guard": guard_validation,
+            "network_guard_reinsertions": summarize_guard_reinsertions(guard_monitor.reinsertions if guard_monitor is not None else []),
             "container_tcp_probes": container_probes,
             "console_7070_ready": console_is_ready,
             "uuid_comparison": {"target_ref": target_uuid, "main": expected_uuid, "matches": uuid_matches},
