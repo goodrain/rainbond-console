@@ -14,6 +14,7 @@ from console.exception.main import (EnvAlreadyExist, ErrDepVolumeNotFound, ErrIn
 from console.models.main import RainbondCenterAppVersion, TenantServiceBackup
 from console.repositories.app import service_repo, service_source_repo
 from console.repositories.app_config import env_var_repo, port_repo, volume_repo
+from console.repositories.group import group_repo
 from console.repositories.probe_repo import probe_repo
 from console.repositories.service_backup_repo import service_backup_repo
 from console.services.app_actions import app_manage_service
@@ -644,11 +645,14 @@ class MarketService(object):
         port_alias = port.get("port_alias")
         if use_legacy_default_alias or not port_alias:
             port_alias = self.service.service_alias.upper() + str(port["container_port"])
+        app = group_repo.get_by_service_id(self.tenant.tenant_id, self.service.service_id)
+        host_value = app_port_service.get_port_host_value(
+            str(port.get("k8s_service_name", self.service.service_alias)), app.governance_mode)
         host_env = {
             "container_port": container_port,
             "name": "连接地址",
             "attr_name": port_alias + "_HOST",
-            "attr_value": "127.0.0.1",
+            "attr_value": host_value,
             "is_change": False,
         }
         port_env = {
@@ -703,7 +707,7 @@ class MarketService(object):
             existing_port = port_repo.get_service_port_by_port(
                 self.tenant.tenant_id, self.service.service_id, int(port["container_port"]))
             was_inner_service = existing_port.is_inner_service if existing_port else False
-            use_legacy_default_alias = not port.get("port_alias")
+            use_legacy_default_alias = not port.get("port_alias") and not existing_port
             self.update_port_data(port, existing_port)
             port_repo.update(**port)
             self._resolved_ports[int(port["container_port"])] = port.copy()

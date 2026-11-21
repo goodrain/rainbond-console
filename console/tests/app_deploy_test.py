@@ -131,6 +131,9 @@ class LegacyMarketPortUpgradeTests(TestCase):
                 app_deploy_module.port_repo,
                 "get_service_port_by_port",
                 return_value=existing_port), mock.patch.object(
+                    app_deploy_module.group_repo,
+                    "get_by_service_id",
+                    return_value=mock.Mock(governance_mode="KUBERNETES_NATIVE_SERVICE")), mock.patch.object(
                     app_deploy_module.port_repo,
                     "get_by_k8s_service_name",
                     return_value=mock.Mock(service_id="other-service")), mock.patch.object(
@@ -162,7 +165,7 @@ class LegacyMarketPortUpgradeTests(TestCase):
             call.args[3]["attr_name"] for call in sync_env.call_args_list
         ])
         self.assertEqual([8080, 8080], [call.args[1] for call in create_env_var.call_args_list])
-        self.assertEqual(["127.0.0.1", "8080"], [call.args[4] for call in create_env_var.call_args_list])
+        self.assertEqual(["web-ab12", "8080"], [call.args[4] for call in create_env_var.call_args_list])
 
     def test_new_port_envs_are_port_scoped_and_sync_without_type_errors(self):
         market_service = self._market_service()
@@ -181,6 +184,9 @@ class LegacyMarketPortUpgradeTests(TestCase):
                 app_deploy_module.port_repo,
                 "get_by_k8s_service_name",
                 return_value=None), mock.patch.object(
+                    app_deploy_module.group_repo,
+                    "get_by_service_id",
+                    return_value=mock.Mock(governance_mode="KUBERNETES_NATIVE_SERVICE")), mock.patch.object(
                     app_deploy_module.port_repo,
                     "add_service_port"), mock.patch.object(
                         app_deploy_module.env_var_repo,
@@ -198,7 +204,7 @@ class LegacyMarketPortUpgradeTests(TestCase):
             market_service._sync_ports(changes)
 
         self.assertEqual([8080, 8080], [call.args[1] for call in create_env_var.call_args_list])
-        self.assertEqual(["127.0.0.1", "8080"], [call.args[4] for call in create_env_var.call_args_list])
+        self.assertEqual(["web", "8080"], [call.args[4] for call in create_env_var.call_args_list])
         self.assertEqual([8080, 8080], [call.args[3]["container_port"] for call in sync_env.call_args_list])
 
     def test_port_upgrade_keeps_existing_outer_envs_unchanged(self):
@@ -223,6 +229,9 @@ class LegacyMarketPortUpgradeTests(TestCase):
                 app_deploy_module.port_repo,
                 "get_service_port_by_port",
                 return_value=existing_port), mock.patch.object(
+                    app_deploy_module.group_repo,
+                    "get_by_service_id",
+                    return_value=mock.Mock(governance_mode="KUBERNETES_NATIVE_SERVICE")), mock.patch.object(
                     app_deploy_module.port_repo,
                     "update"), mock.patch.object(
                         app_deploy_module.env_var_repo,
@@ -241,6 +250,57 @@ class LegacyMarketPortUpgradeTests(TestCase):
 
         create_env_var.assert_not_called()
         sync_env.assert_not_called()
+
+    def test_port_envs_use_loopback_for_builtin_service_mesh(self):
+        market_service = self._market_service()
+        port = {
+            "container_port": 8080,
+            "port_alias": "WEB",
+            "k8s_service_name": "web",
+        }
+
+        with mock.patch.object(
+                app_deploy_module.group_repo,
+                "get_by_service_id",
+                return_value=mock.Mock(governance_mode="BUILD_IN_SERVICE_MESH")):
+            envs = market_service._create_envs_4_ports(port)
+
+        self.assertEqual("127.0.0.1", envs[0]["attr_value"])
+
+    def test_port_upgrade_uses_existing_alias_when_template_omits_it(self):
+        market_service = self._market_service()
+        existing_port = mock.Mock(
+            port_alias="WEB",
+            k8s_service_name="web-ab12",
+            is_inner_service=False,
+            is_outer_service=True,
+        )
+        changes = {
+            "upd": [{
+                "container_port": 8080,
+                "protocol": "http",
+                "is_inner_service": True,
+                "is_outer_service": True,
+            }]
+        }
+
+        with mock.patch.object(
+                app_deploy_module.port_repo,
+                "get_service_port_by_port",
+                return_value=existing_port), mock.patch.object(
+                    app_deploy_module.group_repo,
+                    "get_by_service_id",
+                    return_value=mock.Mock(governance_mode="KUBERNETES_NATIVE_SERVICE")), mock.patch.object(
+                        app_deploy_module.port_repo,
+                        "update"), mock.patch.object(
+                            app_deploy_module.env_var_repo,
+                            "get_by_attr_name_and_scope",
+                            return_value=None), mock.patch.object(
+                                app_deploy_module.env_var_service,
+                                "create_env_var") as create_env_var:
+            market_service._update_ports(changes)
+
+        self.assertEqual(["WEB_HOST", "WEB_PORT"], [call.args[3] for call in create_env_var.call_args_list])
 
 
 # capability_id: console.market-app.manual-build-preserves-port-alias
@@ -329,7 +389,11 @@ class MarketServiceBuildBoundaryRegressionTests(TestCase):
             "k8s_service_name": "web",
         }
 
-        with mock.patch.object(app_deploy_module.port_repo, "get_by_k8s_service_name", return_value=None):
+        with mock.patch.object(app_deploy_module.port_repo, "get_by_k8s_service_name", return_value=None), \
+                mock.patch.object(
+                    app_deploy_module.group_repo,
+                    "get_by_service_id",
+                    return_value=mock.Mock(governance_mode="KUBERNETES_NATIVE_SERVICE")):
             market_service.update_port_data(port)
 
         self.assertEqual("WEB", port["port_alias"])
@@ -342,7 +406,11 @@ class MarketServiceBuildBoundaryRegressionTests(TestCase):
         }
         existing_port = mock.Mock(port_alias="CUSTOM_WEB")
 
-        with mock.patch.object(app_deploy_module.port_repo, "get_by_k8s_service_name", return_value=None):
+        with mock.patch.object(app_deploy_module.port_repo, "get_by_k8s_service_name", return_value=None), \
+                mock.patch.object(
+                    app_deploy_module.group_repo,
+                    "get_by_service_id",
+                    return_value=mock.Mock(governance_mode="KUBERNETES_NATIVE_SERVICE")):
             market_service.update_port_data(port, existing_port)
 
         self.assertEqual("CUSTOM_WEB", port["port_alias"])
@@ -354,7 +422,11 @@ class MarketServiceBuildBoundaryRegressionTests(TestCase):
             "port_alias": "WEB",
         }
 
-        envs = market_service._create_envs_4_ports(port)
+        with mock.patch.object(
+                app_deploy_module.group_repo,
+                "get_by_service_id",
+                return_value=mock.Mock(governance_mode="KUBERNETES_NATIVE_SERVICE")):
+            envs = market_service._create_envs_4_ports(port)
 
         self.assertEqual(["WEB_HOST", "WEB_PORT"], [env["attr_name"] for env in envs])
 
@@ -364,7 +436,11 @@ class MarketServiceBuildBoundaryRegressionTests(TestCase):
             "container_port": 8080,
         }
 
-        envs = market_service._create_envs_4_ports(port)
+        with mock.patch.object(
+                app_deploy_module.group_repo,
+                "get_by_service_id",
+                return_value=mock.Mock(governance_mode="KUBERNETES_NATIVE_SERVICE")):
+            envs = market_service._create_envs_4_ports(port)
 
         self.assertEqual(["GRABCD8080_HOST", "GRABCD8080_PORT"], [env["attr_name"] for env in envs])
 
