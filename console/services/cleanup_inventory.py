@@ -341,11 +341,17 @@ SNAPSHOT_NON_IMAGE_ATTRIBUTES = frozenset((
     "serviceAccountName", "tolerations", "volumeMounts", "volumes"
 ))
 IMAGE_OPTIONAL_SOURCES = frozenset(("package_build", "source_code", "third_party"))
-COMPONENT_IMAGE_OPTIONAL_SOURCES = frozenset(("kubeblocks", "source_code", "third_party"))
+COMPONENT_IMAGE_OPTIONAL_SOURCES = frozenset(("kubeblocks", "source_code", "package_build", "third_party"))
 
 
 def version_inventory_required(component):
     return component.get("create_status") != "creating"
+
+
+def version_inventory_missing_before_creation(component, status):
+    """A missing Region component is normal before creation, not lost history."""
+    return (status == 404 and component.get("create_status") in ("checking", "checked")
+            and not component.get("deploy_version"))
 
 
 def snapshot_reference_resource(row, region):

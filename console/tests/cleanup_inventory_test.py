@@ -46,6 +46,75 @@ class CleanupInventoryProjectionTests(unittest.TestCase):
         self.assertTrue(version_inventory_required({"create_status": "complete"}))
         self.assertTrue(version_inventory_required({"create_status": None}))
 
+    def test_uncreated_component_missing_versions_are_expected(self):
+        from console.services.cleanup_inventory import version_inventory_missing_before_creation, version_inventory_required
+        component = {"create_status": "checked", "deploy_version": ""}
+        self.assertTrue(version_inventory_required(component))
+        self.assertTrue(version_inventory_missing_before_creation(component, 404))
+        for status in (401, 403, 500, 503, None):
+            self.assertFalse(version_inventory_missing_before_creation(component, status))
+        for component in ({"create_status": "complete", "deploy_version": ""},
+                          {"create_status": "checked", "deploy_version": "deployed"},
+                          {"create_status": None, "deploy_version": ""}):
+            self.assertFalse(version_inventory_missing_before_creation(component, 404))
+
+    def test_package_build_does_not_need_a_declared_image_before_building(self):
+        from console.services.cleanup_inventory import registry_reference_resource
+        component = {"ID": 42, "service_source": "package_build", "create_status": "checked", "image": ""}
+        result = registry_reference_resource(component, "components", "r", bytes(32))
+        self.assertTrue(result["observed"])
+        self.assertEqual(result["images"], [])
+        component["image"] = "goodrain.me/retained:built"
+        self.assertEqual(registry_reference_resource(component, "components", "r", bytes(32))["images"],
+                         ["goodrain.me/retained:built"])
+        component["image"] = "https://invalid.example/image"
+        self.assertFalse(registry_reference_resource(component, "components", "r", bytes(32))["observed"])
+
+    def test_version_collection_ignores_only_expected_precreation_404(self):
+        import ast
+        from pathlib import Path
+        from types import SimpleNamespace
+        from console.services.cleanup_inventory import version_inventory_required, version_inventory_missing_before_creation
+
+        class CallError(Exception):
+            def __init__(self, status):
+                self.status = status
+
+        class ServiceError(Exception):
+            def __init__(self, status):
+                self.status_code = status
+
+        source = Path(__file__).resolve().parents[1] / 'views/cleanup_inventory.py'
+        tree = ast.parse(source.read_text())
+        loop = next(node for node in ast.walk(tree) if isinstance(node, ast.For)
+                    and isinstance(node.target, ast.Name) and node.target.id == 'component'
+                    and isinstance(node.iter, ast.Name) and node.iter.id == 'page')
+        function = ast.parse('def collect():\n    pass').body[0]
+        function.body = [loop]
+        module = ast.fix_missing_locations(ast.Module(body=[function], type_ignores=[]))
+        cases = [(state, error(404), expected) for error in (CallError, ServiceError)
+                 for state, expected in (('checked', []), ('complete', ['component']))]
+        cases += [('checked', ServiceError(status), ['component']) for status in (401, 403, 500, 503)]
+        cases += [('checked', None, [])]
+        for state, failure, expected in cases:
+            def load(*args):
+                if failure:
+                    raise failure
+                return {'bean': {'list': ['history']}}
+            api = SimpleNamespace(CallApiError=CallError, get_service_build_versions=load)
+            values = dict(page=[dict(create_status=state, deploy_version='', tenant_id='team', service_alias='alias',
+                                     service_id='component')], api=api,
+                          ServiceHandleException=ServiceError, region_name='r', names={'team': 'team'},
+                          protected_components=set(), references_complete=True, resources=[], failures=[],
+                          version_inventory_required=version_inventory_required,
+                          version_inventory_missing_before_creation=version_inventory_missing_before_creation,
+                          version_resources=lambda component, payload, region: payload['list'],
+                          failed_scope_label=lambda component: component['service_id'])
+            exec(compile(module, str(source), 'exec'), values)
+            values['collect']()
+            self.assertEqual(values['failures'], expected)
+            self.assertEqual(values['resources'], [] if failure else ['history'])
+
     def test_registry_reference_projection_hides_template_identity(self):
         from console.services.cleanup_inventory import registry_reference_resource
         row = {"ID": 7, "app_id": "private-app", "version": "private-version", "share_team": "private-team",

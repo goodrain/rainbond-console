@@ -8,6 +8,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from console.exception.main import ServiceHandleException
 from console.services.cleanup_retirement import template_retirement_targets, snapshot_protected_components, RetirementConflict
 from console.services.cleanup_gateway import CleanupGatewayUnavailable
 from console.services.cleanup_installation import resolve_gateway_key
@@ -18,7 +19,7 @@ from console.repositories.region_repo import region_repo
 from console.services.cleanup_inventory import (template_resource, verify_source_request, version_resources,
                                                 deployment_resource, failed_scope_label, snapshot_reference_resource,
                                                 registry_reference_resource, version_inventory_required,
-                                                reference_inventory_complete)
+                                                reference_inventory_complete, version_inventory_missing_before_creation)
 from console.services.cleanup_upload_inventory import upload_resources, current_package_reference_events
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import ServiceGroup, ServiceGroupRelation, Tenants, TenantServiceInfo
@@ -114,7 +115,8 @@ class CleanupInventoryView(APIView):
                 upper = version_query.order_by("-ID").values_list("ID", flat=True).first() or 0
             if cursor > upper:
                 return Response({"errorCode": "INVALID_REQUEST"}, status=400)
-            version_fields = ("ID", "service_id", "service_alias", "service_cname", "tenant_id", "create_status")
+            version_fields = ("ID", "service_id", "service_alias", "service_cname", "tenant_id", "create_status",
+                              "deploy_version")
             page = list(version_query.filter(ID__gt=cursor, ID__lte=upper).order_by("ID").values(*version_fields)[:26])
         more = len(page) > 25
         page = page[:25]
@@ -177,7 +179,14 @@ class CleanupInventoryView(APIView):
                 if not version_inventory_required(component):
                     continue
                 try:
-                    body = api.get_service_build_versions(region_name, names[component["tenant_id"]], component["service_alias"])
+                    try:
+                        body = api.get_service_build_versions(
+                            region_name, names[component["tenant_id"]], component["service_alias"])
+                    except (api.CallApiError, ServiceHandleException) as error:
+                        status = error.status if isinstance(error, api.CallApiError) else error.status_code
+                        if version_inventory_missing_before_creation(component, status):
+                            continue
+                        raise
                     if not isinstance(body, dict) or not isinstance(body.get("bean"), dict):
                         raise ValueError("source unavailable")
                     component["retirement_references_complete"] = references_complete
