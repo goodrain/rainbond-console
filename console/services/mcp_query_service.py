@@ -2488,8 +2488,16 @@ class MCPQueryService(object):
             if volume_capacity is not None:
                 volume_capacity = self._parse_int_with_default(volume_capacity, 0)
             service_config = volume_repo.get_service_config_file(volume)
-            if volume.volume_type == "config-file" and not service_config:
-                raise ServiceHandleException(msg="file_content is null", msg_show="配置文件内容不存在", status_code=400)
+            if volume.volume_type == "config-file":
+                if not service_config:
+                    raise ServiceHandleException(msg="file_content is null", msg_show="配置文件内容不存在", status_code=400)
+                new_file_content = arguments.get("new_file_content", service_config.file_content)
+                if not isinstance(new_file_content, str):
+                    raise ServiceHandleException(
+                        msg="invalid file content",
+                        msg_show="配置文件内容必须为字符串",
+                        status_code=400,
+                    )
             target_volume_capacity = volume.volume_capacity if volume_capacity is None else volume_capacity
             if self.service_requires_region_sync(service):
                 data = {
@@ -2514,9 +2522,7 @@ class MCPQueryService(object):
             volume.save()
             if volume.volume_type == "config-file" and service_config:
                 service_config.volume_name = volume.volume_name
-                # NOTE: latent — new_file_content is arguments.get("new_file_content")
-                # which may be None; assigning None to the model's file_content field.
-                service_config.file_content = new_file_content  # type: ignore[assignment]
+                service_config.file_content = new_file_content
                 service_config.save()
             return {"updated": True, "volume": self._serialize_model_item(volume)}
         if operation == "delete_volume":

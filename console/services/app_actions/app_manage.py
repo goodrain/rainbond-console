@@ -1170,12 +1170,12 @@ class AppManageService(AppManageBase):
                           service: TenantServiceInfo,
                           user: Any = None,
                           app: Optional[ServiceGroup] = None) -> None:
-        data = self._build_delete_record_data(service, app, user)
-        try:
-            _create_delete_service_with_retry(data)
-        except Exception as e:
-            logger.exception(e)
-            pass
+        if service.create_status == "complete":
+            data = self._build_delete_record_data(service, app, user)
+            try:
+                _create_delete_service_with_retry(data)
+            except Exception as e:
+                logger.exception(e)
         if service.create_status != "complete":
             self._cleanup_incomplete_vm_asset(tenant, service)
         env_var_repo.delete_service_env(tenant.tenant_id, service.service_id)

@@ -323,7 +323,19 @@ class ServiceDomainView(AppBaseView):
 
         """
         container_port = request.GET.get("container_port", None)
-        domains = domain_service.get_port_bind_domains(self.service, int(container_port))  # type: ignore[arg-type]
+        try:
+            if isinstance(container_port, bool) or not isinstance(container_port, (str, int)):
+                raise ValueError("invalid container port")
+            container_port = int(container_port)
+            if not 1 <= container_port <= 65535:
+                raise ValueError("invalid container port")
+        except (TypeError, ValueError):
+            raise AbortRequest(
+                msg="invalid container_port",
+                msg_show="端口必须为1到65535的整数",
+                status_code=400,
+            )
+        domains = domain_service.get_port_bind_domains(self.service, container_port)
         domain_list = [domain.to_dict() for domain in domains]
         result = general_message(200, "success", "查询成功", list=domain_list)
         return Response(result, status=result["code"])

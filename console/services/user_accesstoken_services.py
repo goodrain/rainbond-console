@@ -3,14 +3,30 @@ import logging
 import os
 import hashlib
 import time
-from typing import Optional
+from typing import Any, Optional
 
 from django.db.models import QuerySet
 
+from console.exception.main import ServiceHandleException
 from console.models.main import UserAccessKey
 from console.repositories.user_accesstoken_repo import user_access_repo
 
 logger = logging.getLogger('default')
+
+MAX_ACCESS_KEY_EXPIRE_TIME = 2147483647
+
+
+def _access_key_expire_time(age: Any) -> Optional[int]:
+    if age is None or age == "":
+        return None
+    if isinstance(age, bool) or not isinstance(age, int) or age < 0:
+        raise ServiceHandleException("invalid age", "有效期必须是非负整数", status_code=400)
+    if age == 0:
+        return None
+    now = int(time.time())
+    if age > MAX_ACCESS_KEY_EXPIRE_TIME - now:
+        raise ServiceHandleException("expiry out of range", "到期时间超出可支持范围", status_code=400)
+    return now + age
 
 
 class UserAccessTokenServices(object):
@@ -18,11 +34,8 @@ class UserAccessTokenServices(object):
         return hashlib.sha1(os.urandom(24)).hexdigest()
 
     def create_user_access_key(self, note: str, user_id: str, age: Optional[int]) -> UserAccessKey:
+        expire_time = _access_key_expire_time(age)
         access_key = self.generate_key()
-        if age:
-            expire_time = time.time() + age
-        else:
-            expire_time = None
         return user_access_repo.create_user_access_key(
             note=note, user_id=user_id, expire_time=expire_time, access_key=access_key)
 

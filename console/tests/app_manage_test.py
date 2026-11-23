@@ -48,7 +48,8 @@ from console.enum.component_enum import ComponentType, is_support  # noqa: E402
 from console.services.app_actions import app_manage as app_manage_module  # noqa: E402
 from console.services import helm_app_yaml as helm_app_yaml_module  # noqa: E402
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient  # noqa: E402
-from www.models.main import TenantServiceInfo, TenantServiceInfoDelete, VirtualMachineImage  # noqa: E402
+from www.models.main import (TenantServiceEnvVar, TenantServiceInfo, TenantServiceInfoDelete,  # noqa: E402
+                             TenantServicesPort, VirtualMachineImage)  # noqa: E402
 
 
 class ComponentDaemonSetSupportTests(TestCase):
@@ -576,6 +577,63 @@ class AppManageVMRestoreDeleteTests(DjangoTestCase):
 
 
 class AppManageIncompleteVMCleanupTests(DjangoTestCase):
+
+    # capability_id: console.component-delete.skip-incomplete-backup
+    def test_incomplete_cleanup_skips_backup_and_removes_component_relations(self):
+        for status in ("creating", "checking", "failed"):
+            with self.subTest(status=status):
+                service_id = "incomplete-" + status
+                service = TenantServiceInfo.objects.create(
+                    service_id=service_id, tenant_id="cleanup-team", service_key=service_id,
+                    service_alias=service_id, service_cname=service_id, service_region="region",
+                    category="application", version="v1", image="nginx:latest",
+                    create_status=status, k8s_component_name=service_id)
+                TenantServiceEnvVar.objects.create(
+                    tenant_id="cleanup-team", service_id=service_id, attr_name="FIXTURE", attr_value="value")
+                TenantServicesPort.objects.create(
+                    tenant_id="cleanup-team", service_id=service_id, container_port=8080)
+                manager = app_manage_module.AppManageService()
+                tenant = mock.Mock(tenant_id="cleanup-team")
+                user = mock.Mock(nick_name="operator")
+                with mock.patch.object(app_manage_module, "_create_delete_service_with_retry",
+                                       wraps=app_manage_module._create_delete_service_with_retry) as backup, \
+                        mock.patch.object(app_manage_module.logger, "exception") as log_exception, \
+                        mock.patch.object(app_manage_module.event_repo, "create_event") as create_event:
+                    manager._truncate_service(tenant, service, user)
+                backup.assert_not_called()
+                log_exception.assert_not_called()
+                create_event.assert_called_once()
+                self.assertEqual(create_event.call_args.kwargs["service_id"], service_id)
+                self.assertFalse(TenantServiceInfo.objects.filter(service_id=service_id).exists())
+                self.assertFalse(TenantServiceEnvVar.objects.filter(service_id=service_id).exists())
+                self.assertFalse(TenantServicesPort.objects.filter(service_id=service_id).exists())
+                self.assertFalse(TenantServiceInfoDelete.objects.filter(service_id=service_id).exists())
+
+    # capability_id: console.component-delete.skip-incomplete-backup
+    def test_complete_cleanup_preserves_backup_and_transient_lock_retry(self):
+        service = TenantServiceInfo.objects.create(
+            service_id="complete-cleanup", tenant_id="cleanup-team", service_key="complete-cleanup",
+            service_alias="complete-cleanup", service_cname="complete-cleanup", service_region="region",
+            category="application", version="v1", image="nginx:latest", create_status="complete",
+            k8s_component_name="complete-cleanup")
+        original_create = app_manage_module.delete_service_repo.create_delete_service
+        attempts = []
+
+        def transient_then_create(**data):
+            attempts.append(data)
+            if len(attempts) == 1:
+                raise app_manage_module.OperationalError("database is locked")
+            return original_create(**data)
+
+        with mock.patch.object(app_manage_module.delete_service_repo, "create_delete_service",
+                               side_effect=transient_then_create), \
+                mock.patch.object(app_manage_module.time, "sleep") as sleep:
+            app_manage_module.AppManageService()._truncate_service(mock.Mock(tenant_id="cleanup-team"), service)
+        self.assertEqual(len(attempts), 2)
+        self.assertEqual(attempts[0]["service_id"], "complete-cleanup")
+        sleep.assert_called_once_with(app_manage_module._DB_LOCK_RETRY_DELAY)
+        self.assertEqual(TenantServiceInfoDelete.objects.filter(service_id="complete-cleanup").count(), 1)
+        self.assertFalse(TenantServiceInfo.objects.filter(service_id="complete-cleanup").exists())
 
     # capability_id: console.vm-asset.incomplete-service-cleanup-preserves-ready-assets
     def test_truncate_service_keeps_ready_uploaded_vm_asset(self):

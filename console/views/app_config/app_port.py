@@ -22,6 +22,18 @@ logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
 
 
+def _parse_container_port(value: Any) -> int:
+    if isinstance(value, bool) or not isinstance(value, (int, str)):
+        raise AbortRequest("invalid container_port", "端口必须为1到65535的整数", status_code=400)
+    try:
+        container_port = int(value)
+    except (TypeError, ValueError, OverflowError):
+        raise AbortRequest("invalid container_port", "端口必须为1到65535的整数", status_code=400)
+    if not 1 <= container_port <= 65535:
+        raise AbortRequest("invalid container_port", "端口必须为1到65535的整数", status_code=400)
+    return container_port
+
+
 class AppPortView(AppBaseView):
     @never_cache
     def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
@@ -215,7 +227,7 @@ class AppPortManageView(AppBaseView):
         container_port = kwargs.get("port", None)
         if not container_port:
             return Response(general_message(400, "container_port not specify", "端口变量名未指定"), status=400)
-
+        container_port = _parse_container_port(container_port)
         port_info = port_service.get_service_port_by_port(self.service, int(container_port))
         if port_info is None:
             return Response(general_message(404, "port not found", "组件端口不存在"), status=404)
@@ -252,6 +264,7 @@ class AppPortManageView(AppBaseView):
         container_port = kwargs.get("port", None)
         if not container_port:
             raise AbortRequest("container_port not specify", "端口变量名未指定")
+        container_port = _parse_container_port(container_port)
         tenant_service_port = port_service.get_service_port_by_port(self.service, container_port)
         old_information = port_service.json_service_port(tenant_service_port)
         data = port_service.delete_port_by_container_port(
@@ -319,6 +332,7 @@ class AppPortManageView(AppBaseView):
         k8s_service_name = parse_item(request, "k8s_service_name", default="")
         if not container_port:
             raise AbortRequest("container_port not specify", "端口变量名未指定")
+        container_port = _parse_container_port(container_port)
         # NOTE: action from request.data may be None (backlog)
         if self.service.service_source == "third_party" and ("outer" in action):  # type: ignore[operator]
             msg, msg_show, code = port_service.check_domain_thirdpart(self.tenant, self.service)

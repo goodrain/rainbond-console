@@ -2914,6 +2914,24 @@
       "status": "active"
     },
     {
+      "id": "console.app-version.snapshot-resource-datetime",
+      "title": "Serialize snapshot Kubernetes resource timestamps",
+      "title_zh": "Serialize snapshot Kubernetes resource timestamps",
+      "interface_type": "service_method",
+      "interface": "console.services.app_version_service.AppVersionService.create_snapshot",
+      "code_paths": [
+        "console/services/app_version_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_snapshot_resource_datetime_test.py",
+          "selector": "SnapshotResourceDatetimeTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.app-version.snapshot-share-image-fallback",
       "title": "App Version Snapshot Share Image Fallback",
       "title_zh": "App Version Snapshot Share Image Fallback",
@@ -4554,6 +4572,28 @@
       "status": "active"
     },
     {
+      "id": "console.component-delete.skip-incomplete-backup",
+      "title": "Skip recycle backup for incomplete components",
+      "title_zh": "未完成组件删除跳过回收记录并保留清理",
+      "interface_type": "service_method",
+      "interface": "console.services.app_actions.app_manage.AppManageService._truncate_service",
+      "code_paths": [
+        "console/services/app_actions/app_manage.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_manage_test.py",
+          "selector": "AppManageIncompleteVMCleanupTests.test_incomplete_cleanup_skips_backup_and_removes_component_relations"
+        },
+        {
+          "path": "console/tests/app_manage_test.py",
+          "selector": "AppManageIncompleteVMCleanupTests.test_complete_cleanup_preserves_backup_and_transient_lock_retry"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.component-env.delete-missing-404",
       "title": "Return a controlled 404 when deleting a missing environment variable",
       "title_zh": "删除不存在的环境变量时返回受控 404",
@@ -5880,6 +5920,24 @@
       "status": "active"
     },
     {
+      "id": "console.component.port-path-validation",
+      "title": "Validate component port path boundaries",
+      "title_zh": "组件端口路径非法值返回客户端错误",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.app_config.app_port.AppPortManageView",
+      "code_paths": [
+        "console/views/app_config/app_port.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_port_path_validation_test.py",
+          "selector": "AppPortPathValidationTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.component.port-protocol-normalize",
       "title": "Normalize component port protocol input",
       "title_zh": "归一化组件端口协议参数",
@@ -5973,6 +6031,49 @@
         {
           "path": "console/tests/mcp_query_service_test.py",
           "selector": "MCPQueryServiceApplicationToolTests.test_manage_component_probe_summary_returns_probe_snapshot"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.component.recycle-model-fields",
+      "title": "Map component fields into recycle records",
+      "title_zh": "Map component fields into recycle records",
+      "interface_type": "service_method",
+      "interface": "console.repositories.app.ServiceRecycleBinRepository.create_trash_service",
+      "code_paths": [
+        "console/repositories/app.py",
+        "console/models/main.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/service_recycle_fields_test.py",
+          "selector": "RecycleModelFieldsTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.component.recycle-schema-upgrade",
+      "title": "Safely widen legacy recycle string columns",
+      "title_zh": "Safely widen legacy recycle string columns",
+      "interface_type": "workflow",
+      "interface": "console.management.commands.migrate_service_recycle_fields.migrate_service_recycle_fields",
+      "code_paths": [
+        "console/management/commands/migrate_service_recycle_fields.py",
+        "console/models/main.py",
+        "entrypoint.sh"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/recycle_schema_upgrade_test.py",
+          "selector": "RecycleSchemaUpgradeTests"
+        },
+        {
+          "path": "console/tests/recycle_schema_upgrade_test.py",
+          "selector": "RecycleMySQLUpgradePlanTests"
         }
       ],
       "test_type": "regression",
@@ -7431,6 +7532,24 @@
         {
           "path": "console/tests/service_domain_view_test.py",
           "selector": "ServiceDomainViewTests.test_post_rejects_missing_component_port_before_binding_domain"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.gateway.domain-query-port-validation",
+      "title": "Validate domain query component ports",
+      "title_zh": "Validate domain query component ports",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.app_config.app_domain.ServiceDomainView.get",
+      "code_paths": [
+        "console/views/app_config/app_domain.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/service_domain_port_validation_test.py",
+          "selector": "ServiceDomainPortValidationTests"
         }
       ],
       "test_type": "regression",
@@ -9366,6 +9485,24 @@
         }
       ],
       "test_type": "unit",
+      "status": "active"
+    },
+    {
+      "id": "console.mcp.config-file-update-content",
+      "title": "Preserve omitted config file update content",
+      "title_zh": "Preserve omitted config file update content",
+      "interface_type": "service_method",
+      "interface": "console.services.mcp_query_service.MCPQueryService.manage_component_storage",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_config_file_update_test.py",
+          "selector": "MCPConfigFileUpdateTests"
+        }
+      ],
+      "test_type": "regression",
       "status": "active"
     },
     {
@@ -13626,6 +13763,29 @@
       "status": "active"
     },
     {
+      "id": "console.user-details.batch-team-region-reads",
+      "title": "Batch authorized user team region reads",
+      "title_zh": "批量读取当前用户授权团队区域",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.user_operation.UserDetailsView.get",
+      "code_paths": [
+        "console/services/region_services.py",
+        "console/views/user_operation.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/user_details_region_batch_test.py",
+          "selector": "UserDetailsRegionBatchIntegrationTests"
+        },
+        {
+          "path": "console/tests/user_details_region_batch_test.py",
+          "selector": "UserDetailsRegionBatchViewTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.user-registration.required-username",
       "title": "Validate missing usernames through the registration form",
       "title_zh": "注册缺少用户名时返回表单错误",
@@ -13642,6 +13802,24 @@
         {
           "path": "console/tests/user_registration_view_test.py",
           "selector": "TenantServiceRegistrationViewTests.test_post_returns_form_error_when_username_is_missing"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.user.access-key-expiry-bounds",
+      "title": "Bound access key expiry before generation",
+      "title_zh": "生成访问令牌前校验有效期范围",
+      "interface_type": "service_method",
+      "interface": "console.services.user_accesstoken_services.UserAccessTokenServices.create_user_access_key",
+      "code_paths": [
+        "console/services/user_accesstoken_services.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/user_accesstoken_expiry_test.py",
+          "selector": "UserAccessTokenExpiryTests"
         }
       ],
       "test_type": "regression",
