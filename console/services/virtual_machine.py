@@ -61,7 +61,7 @@ VM_SSH_PUBLIC_KEY_TYPES = {
 VM_SSH_PUBLIC_KEY_MAX_BYTES = 16 * 1024
 VM_SSH_DISK_FORMATS = {"qcow2", "raw", "img"}
 VM_UBUNTU_NOBLE_QCOW2_URL = (
-    "https://cloud-images.ubuntu.com/minimal/releases/noble/release/"
+    "https://plugins.tos-cn-beijing.volces.com/vm/"
     "ubuntu-24.04-minimal-cloudimg-amd64.img"
 )
 VM_LOGIN_PASSWORD_MIN_LENGTH = 12

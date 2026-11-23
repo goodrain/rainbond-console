@@ -80,7 +80,7 @@ from www.models.main import (  # noqa: E402
 )
 
 UBUNTU_NOBLE_QCOW2_URL = (
-    "https://cloud-images.ubuntu.com/minimal/releases/noble/release/"
+    "https://plugins.tos-cn-beijing.volces.com/vm/"
     "ubuntu-24.04-minimal-cloudimg-amd64.img"
 )
 

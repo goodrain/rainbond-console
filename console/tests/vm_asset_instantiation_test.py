@@ -330,7 +330,7 @@ class VMAssetInstantiationTests(TestCase):
                 "image_name": "ubuntu-24.04-minimal-cloudimg-amd64",
                 "source_type": "url",
                 "vm_url": (
-                    "https://cloud-images.ubuntu.com/minimal/releases/noble/release/"
+                    "https://plugins.tos-cn-beijing.volces.com/vm/"
                     "ubuntu-24.04-minimal-cloudimg-amd64.img"
                 ),
                 "format": "qcow2",
