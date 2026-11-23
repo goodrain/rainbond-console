@@ -2251,13 +2251,15 @@ class EnterpriseFirstDeployServiceTests(TestCase):
                                },
                                "events": [],
                            }}), \
-                mock.patch.object(self.service, "_now", return_value="2026-05-06 10:03:40"), \
+                mock.patch.object(self.service, "_now", return_value="2026-05-06 10:06:05"), \
                 mock.patch("console.services.enterprise_first_deploy_service.requests.post",
                            return_value=report_response) as mock_post:
             status = self.service._sync_record(repo.record, payload, "demo-team", "demo-region")
 
-        self.assertIsNone(status)
-        self.assertFalse(mock_post.called)
+        self.assertEqual(status, self.service.STATUS_FAILURE)
+        report_payload = mock_post.call_args[1]["json"]
+        self.assertEqual(report_payload["failure_reason"], "pod still initializing")
+        self.assertNotEqual(report_payload["failure_logs"], [])
 
     def test_sync_record_includes_pod_events_in_runtime_timeout_failure(self):
         """Non-readiness pod timeout with events includes pod events in failure logs."""
@@ -2317,13 +2319,15 @@ class EnterpriseFirstDeployServiceTests(TestCase):
                                    "age": "5s",
                                }],
                            }}), \
-                mock.patch.object(self.service, "_now", return_value="2026-05-06 10:03:40"), \
+                mock.patch.object(self.service, "_now", return_value="2026-05-06 10:06:05"), \
                 mock.patch("console.services.enterprise_first_deploy_service.requests.post",
                            return_value=report_response) as mock_post:
             status = self.service._sync_record(repo.record, payload, "demo-team", "demo-region")
 
-        self.assertIsNone(status)
-        self.assertFalse(mock_post.called)
+        self.assertEqual(status, self.service.STATUS_FAILURE)
+        report_payload = mock_post.call_args[1]["json"]
+        self.assertNotEqual(report_payload["failure_logs"], [])
+        self.assertIn("Back-off", report_payload["failure_logs"][0]["lines"][0]["message"])
 
     def test_sync_record_checks_runtime_even_when_build_event_query_returns_empty(self):
         payload = {
@@ -2674,7 +2678,8 @@ class EnterpriseFirstDeployServiceTests(TestCase):
 
         self.assertEqual(status, self.service.STATUS_FAILURE)
         report_payload = mock_post.call_args[1]["json"]
-        self.assertEqual(report_payload["failure_reason"], "runtime timeout: no pods observed")
+        self.assertEqual(report_payload["failure_reason"],
+                         "runtime timeout: no pods observed for service_alias demo-service")
         self.assertEqual(report_payload["failure_events"][0]["opt_type"], "RuntimeVerificationTimeout")
         self.assertEqual(report_payload["failure_logs"][0]["source"], "runtime_snapshot")
         self.assertIn("no pods observed", report_payload["failure_logs"][0]["lines"][0]["message"])
@@ -2793,7 +2798,8 @@ class EnterpriseFirstDeployServiceTests(TestCase):
 
         self.assertEqual(status, self.service.STATUS_FAILURE)
         report_payload = mock_post.call_args[1]["json"]
-        self.assertEqual(report_payload["failure_reason"], "runtime timeout: some components have no pods observed")
+        self.assertEqual(report_payload["failure_reason"],
+                         "runtime timeout: no pods observed for service_alias svc-b")
         self.assertIn("svc-b", report_payload["failure_logs"][0]["lines"][1]["message"])
 
     def test_sync_record_multi_component_app_market_pod_failure(self):
@@ -2891,7 +2897,7 @@ class EnterpriseFirstDeployServiceTests(TestCase):
                 self.assertEqual(
                     self.service._detect_failure_category(self.service.FAILURE_STAGE_RUNTIME, [], reason), expected)
 
-    def test_report_payload_includes_v1_rule_and_nonempty_rbd_version(self):
+    def test_report_payload_includes_v2_rule_and_nonempty_rbd_version(self):
         report_payload = self.service._build_report_payload({
             "enterprise_id": "eid-1",
             "status": self.service.STATUS_SUCCESS,
@@ -2899,7 +2905,7 @@ class EnterpriseFirstDeployServiceTests(TestCase):
             "environment_context": {"collect_status": "pending", "rbd_version": ""},
         })
 
-        self.assertEqual(report_payload["decision_rule_version"], "v1")
+        self.assertEqual(report_payload["decision_rule_version"], "runtime-readiness-v2")
         self.assertEqual(report_payload["environment_context"]["rbd_version"], "unknown")
 
     def test_environment_collection_marks_pending_context_failed_after_retry_limit(self):
@@ -2943,7 +2949,9 @@ class EnterpriseFirstDeployServiceTests(TestCase):
         self.assertEqual([item["status"] for item in context["dependencies"]], ["NO_PODS", "RUNNING", "MISSING"])
 
     def test_runtime_region_shape_baseline_matrix(self):
-        """Capture main's Region DescribePodStatus behavior at 5/65/185 seconds."""
+        """Exercise Region DescribePodStatus shapes at the 60/180-second boundaries."""
+        self.service.RUNTIME_OBSERVE_WINDOW = 60
+        self.service.READINESS_FINAL_OBSERVE_WINDOW = 180
         ready = {"status": {"type_str": "RUNNING"}, "events": [], "containers": [], "init_containers": []}
         not_ready = {"status": {"type_str": "NOTREADY", "reason": "ContainersNotReady"},
                      "events": [], "containers": [], "init_containers": []}
@@ -2970,19 +2978,15 @@ class EnterpriseFirstDeployServiceTests(TestCase):
              {"pod-a": initializing}, [None, None, self.service.STATUS_FAILURE]),
             ("container_creating", {"svc-a": [{"pod_name": "pod-a", "pod_status": "NOTREADY"}]},
              {"pod-a": creating}, [None, None, self.service.STATUS_FAILURE]),
-            ("pulling_event_only", {"svc-a": [{"pod_name": "pod-a", "pod_status": "NOTREADY"}]},
-             {"pod-a": {"status": {"type_str": "NOTREADY"}, "events": [{"reason": "Pulling"}],
-                        "containers": [], "init_containers": []}},
-             [None, self.service.STATUS_FAILURE, self.service.STATUS_FAILURE]),
-            ("unschedulable", {"svc-a": [{"pod_name": "pod-a", "pod_status": "ABNORMAL"}]},
-             {"pod-a": {"status": {"type_str": "ABNORMAL", "reason": "Unschedulable", "message": "no nodes"},
+            ("unschedulable", {"svc-a": [{"pod_name": "pod-a", "pod_status": "SCHEDULING"}]},
+             {"pod-a": {"status": {"type_str": "SCHEDULING", "reason": "Unschedulable", "message": "no nodes"},
                         "events": [], "containers": [], "init_containers": []}},
              [self.service.STATUS_FAILURE] * 3),
             ("new_ready_old_terminating", {"svc-a": [
                 {"pod_name": "pod-a", "pod_status": "RUNNING", "_group": "new_pods"},
-                {"pod_name": "pod-old", "pod_status": "TERMINATING", "_group": "old_pods"},
+                {"pod_name": "pod-old", "pod_status": "TEMINATING", "_group": "old_pods"},
             ]},
-             {"pod-a": ready, "pod-old": {"status": {"type_str": "TERMINATING"}}},
+             {"pod-a": ready, "pod-old": {"status": {"type_str": "TEMINATING"}}},
              [self.service.STATUS_SUCCESS] * 3),
             ("replicas_ready_and_not_ready", {"svc-a": [
                 {"pod_name": "pod-a", "pod_status": "RUNNING"},
@@ -3045,56 +3049,165 @@ class EnterpriseFirstDeployServiceTests(TestCase):
                         self.service._inspect_runtime_status(None, payload, "team", "region"),
                         self.service.STATUS_FAILURE)
 
-    def test_runtime_wait_survives_transient_service_pod_query_failure(self):
-        payload = {
-            "enterprise_id": "eid-1", "service_ids": ["service-1"], "service_alias": "svc-a",
-            "runtime_watch_started_at": "2026-11-20 10:00:00",
-        }
-        waiting_detail = {
-            "status": {"type_str": "NOTREADY", "reason": "ContainersNotReady"},
-            "events": [], "containers": [], "init_containers": [],
-        }
+    def test_runtime_query_errors_do_not_timeout_ready_component(self):
+        self.service.RUNTIME_OBSERVE_WINDOW = 60
+        self.service.READINESS_FINAL_OBSERVE_WINDOW = 180
         ready_detail = {"status": {"type_str": "RUNNING"}, "events": [], "containers": [], "init_containers": []}
-        with mock.patch("console.services.enterprise_first_deploy_service.region_api.get_service_pods",
-                        side_effect=[
-                            {"bean": {"new_pods": [{"pod_name": "pod-a", "pod_status": "NOTREADY"}], "old_pods": []}},
-                            RuntimeError("transient region failure"),
-                            {"bean": {"new_pods": [{"pod_name": "pod-a", "pod_status": "RUNNING"}], "old_pods": []}},
-                        ]), \
-                mock.patch("console.services.enterprise_first_deploy_service.region_api.pod_detail",
-                           side_effect=[{"bean": waiting_detail}, {"bean": ready_detail}]), \
-                mock.patch.object(self.service, "_now", side_effect=[
-                    "2026-11-20 10:00:05", "2026-11-20 10:01:10", "2026-11-20 10:01:10",
-                    "2026-11-20 10:02:00",
-                ]):
-            self.assertIsNone(self.service._inspect_runtime_status(None, payload, "team", "region"))
-            self.assertIsNone(self.service._inspect_runtime_status(None, payload, "team", "region"))
-            self.assertEqual(
-                self.service._inspect_runtime_status(None, payload, "team", "region"), self.service.STATUS_SUCCESS)
+        waiting_detail = {"status": {"type_str": "NOTREADY", "reason": "ContainersNotReady"},
+                          "events": [], "containers": [], "init_containers": []}
+        for name, transient_result in (("request_error", RuntimeError("region returned 502")),
+                                       ("empty_result", {"bean": {"new_pods": [], "old_pods": []}}),
+                                       ("empty_response", None)):
+            with self.subTest(name=name):
+                payload = {
+                    "enterprise_id": "eid-1", "service_ids": ["service-a", "service-b"],
+                    "service_alias": "svc-a", "service_aliases": ["svc-b"],
+                    "runtime_watch_started_at": "2026-11-20 10:00:00",
+                }
+                current_time = {"value": "2026-11-20 10:00:05"}
 
-    def test_runtime_wait_survives_temporary_pod_disappearance(self):
+                def get_pods(_region, _tenant, alias, _enterprise):
+                    if current_time["value"] == "2026-11-20 10:00:05":
+                        pod_status = "RUNNING" if alias == "svc-a" else "NOTREADY"
+                        return {"bean": {"new_pods": [{"pod_name": "{}-pod".format(alias),
+                                                       "pod_status": pod_status}], "old_pods": []}}
+                    if current_time["value"] == "2026-11-20 10:01:10" and alias == "svc-a":
+                        if isinstance(transient_result, Exception):
+                            raise transient_result
+                        return transient_result
+                    return {"bean": {"new_pods": [{"pod_name": "{}-pod".format(alias),
+                                                   "pod_status": "RUNNING"}], "old_pods": []}}
+
+                def pod_detail(_region, _tenant, alias, _pod_name):
+                    return {"bean": waiting_detail if current_time["value"] == "2026-11-20 10:00:05" and
+                            alias == "svc-b" else ready_detail}
+
+                with mock.patch("console.services.enterprise_first_deploy_service.region_api.get_service_pods",
+                                side_effect=get_pods), \
+                        mock.patch("console.services.enterprise_first_deploy_service.region_api.pod_detail",
+                                   side_effect=pod_detail), \
+                        mock.patch.object(self.service, "_now", side_effect=lambda: current_time["value"]):
+                    self.assertIsNone(self.service._inspect_runtime_status(None, payload, "team", "region"))
+                    current_time["value"] = "2026-11-20 10:01:10"
+                    self.assertIsNone(self.service._inspect_runtime_status(None, payload, "team", "region"))
+                    current_time["value"] = "2026-11-20 10:01:25"
+                    self.assertEqual(self.service._inspect_runtime_status(None, payload, "team", "region"),
+                                     self.service.STATUS_SUCCESS)
+
+    def test_runtime_pod_detail_query_error_preserves_wait_window(self):
+        self.service.RUNTIME_OBSERVE_WINDOW = 60
+        self.service.READINESS_FINAL_OBSERVE_WINDOW = 180
         payload = {
             "enterprise_id": "eid-1", "service_ids": ["service-1"], "service_alias": "svc-a",
             "runtime_watch_started_at": "2026-11-20 10:00:00",
         }
-        waiting_detail = {
+        current_time = {"value": "2026-11-20 10:00:05"}
+
+        def pod_detail(_region, _tenant, _alias, _pod_name):
+            if current_time["value"] == "2026-11-20 10:00:05":
+                return {"bean": {
+                    "status": {"type_str": "NOTREADY", "reason": "ContainersNotReady"},
+                    "events": [], "containers": [], "init_containers": [],
+                }}
+            if current_time["value"] == "2026-11-20 10:01:10":
+                raise RuntimeError("detail endpoint 502")
+            return {"bean": {
+                "status": {"type_str": "RUNNING"},
+                "events": [], "containers": [], "init_containers": [],
+            }}
+
+        def get_pods(_region, _tenant, _alias, _enterprise):
+            pod_status = "NOTREADY" if current_time["value"] != "2026-11-20 10:01:25" else "RUNNING"
+            return {"bean": {"new_pods": [{"pod_name": "pod-a", "pod_status": pod_status}], "old_pods": []}}
+
+        with mock.patch("console.services.enterprise_first_deploy_service.region_api.get_service_pods",
+                        side_effect=get_pods), \
+                mock.patch("console.services.enterprise_first_deploy_service.region_api.pod_detail",
+                           side_effect=pod_detail), \
+                mock.patch.object(self.service, "_now", side_effect=lambda: current_time["value"]):
+            self.assertIsNone(self.service._inspect_runtime_status(None, payload, "team", "region"))
+            current_time["value"] = "2026-11-20 10:01:10"
+            self.assertIsNone(self.service._inspect_runtime_status(None, payload, "team", "region"))
+            current_time["value"] = "2026-11-20 10:01:25"
+            self.assertEqual(self.service._inspect_runtime_status(None, payload, "team", "region"),
+                             self.service.STATUS_SUCCESS)
+
+    def test_runtime_empty_pod_detail_response_preserves_wait_window(self):
+        self.service.RUNTIME_OBSERVE_WINDOW = 60
+        self.service.READINESS_FINAL_OBSERVE_WINDOW = 180
+        payload = {
+            "enterprise_id": "eid-1", "service_ids": ["service-1"], "service_alias": "svc-a",
+            "runtime_watch_started_at": "2026-11-20 10:00:00",
+        }
+        current_time = {"value": "2026-11-20 10:00:05"}
+
+        def pod_detail(_region, _tenant, _alias, _pod_name):
+            if current_time["value"] == "2026-11-20 10:00:05":
+                return {"bean": {"status": {"type_str": "NOTREADY", "reason": "ContainersNotReady"}}}
+            if current_time["value"] == "2026-11-20 10:01:10":
+                return None
+            return {"bean": {"status": {"type_str": "RUNNING"}}}
+
+        def get_pods(_region, _tenant, _alias, _enterprise):
+            pod_status = "RUNNING" if current_time["value"] == "2026-11-20 10:01:25" else "NOTREADY"
+            return {"bean": {"new_pods": [{"pod_name": "pod-a", "pod_status": pod_status}], "old_pods": []}}
+
+        with mock.patch("console.services.enterprise_first_deploy_service.region_api.get_service_pods",
+                        side_effect=get_pods), \
+                mock.patch("console.services.enterprise_first_deploy_service.region_api.pod_detail",
+                           side_effect=pod_detail), \
+                mock.patch.object(self.service, "_now", side_effect=lambda: current_time["value"]):
+            self.assertIsNone(self.service._inspect_runtime_status(None, payload, "team", "region"))
+            current_time["value"] = "2026-11-20 10:01:10"
+            self.assertIsNone(self.service._inspect_runtime_status(None, payload, "team", "region"))
+            current_time["value"] = "2026-11-20 10:01:25"
+            self.assertEqual(self.service._inspect_runtime_status(None, payload, "team", "region"),
+                             self.service.STATUS_SUCCESS)
+
+    def test_runtime_query_error_times_out_at_final_window_with_error_reason(self):
+        self.service.RUNTIME_OBSERVE_WINDOW = 60
+        self.service.READINESS_FINAL_OBSERVE_WINDOW = 180
+        payload = {
+            "enterprise_id": "eid-1", "service_ids": ["service-1"], "service_alias": "svc-a",
+            "runtime_watch_started_at": "2026-11-20 10:00:00",
+        }
+        current_time = {"value": "2026-11-20 10:00:05"}
+        with mock.patch("console.services.enterprise_first_deploy_service.region_api.get_service_pods",
+                        side_effect=RuntimeError("region returned 502")), \
+                mock.patch.object(self.service, "_now", side_effect=lambda: current_time["value"]):
+            self.assertIsNone(self.service._inspect_runtime_status(None, payload, "team", "region"))
+            current_time["value"] = "2026-11-20 10:03:05"
+            self.assertEqual(self.service._inspect_runtime_status(None, payload, "team", "region"),
+                             self.service.STATUS_FAILURE)
+
+        self.assertIn("region returned 502", payload["failure_reason"])
+        self.assertEqual(payload["runtime_status"], self.service.STAGE_STATUS_TIMEOUT)
+
+    def test_runtime_probe_wait_timeout_uses_v2_timeout_classification(self):
+        self.service.RUNTIME_OBSERVE_WINDOW = 60
+        self.service.READINESS_FINAL_OBSERVE_WINDOW = 180
+        payload = {
+            "enterprise_id": "eid-1", "service_ids": ["service-1"], "service_alias": "svc-a",
+            "runtime_watch_started_at": "2026-11-20 10:00:00",
+        }
+        pod_detail = {
             "status": {"type_str": "NOTREADY", "reason": "ContainersNotReady"},
             "events": [], "containers": [], "init_containers": [],
         }
-        ready_detail = {"status": {"type_str": "RUNNING"}, "events": [], "containers": [], "init_containers": []}
         with mock.patch("console.services.enterprise_first_deploy_service.region_api.get_service_pods",
-                        side_effect=[
-                            {"bean": {"new_pods": [{"pod_name": "pod-a", "pod_status": "NOTREADY"}], "old_pods": []}},
-                            {"bean": {"new_pods": [], "old_pods": []}},
-                            {"bean": {"new_pods": [{"pod_name": "pod-a", "pod_status": "RUNNING"}], "old_pods": []}},
-                        ]), \
+                        return_value={"bean": {"new_pods": [{"pod_name": "pod-a", "pod_status": "NOTREADY"}],
+                                               "old_pods": []}}), \
                 mock.patch("console.services.enterprise_first_deploy_service.region_api.pod_detail",
-                           side_effect=[{"bean": waiting_detail}, {"bean": ready_detail}]), \
-                mock.patch.object(self.service, "_now", side_effect=[
-                    "2026-11-20 10:00:05", "2026-11-20 10:01:10", "2026-11-20 10:01:10",
-                    "2026-11-20 10:02:00",
-                ]):
-            self.assertIsNone(self.service._inspect_runtime_status(None, payload, "team", "region"))
-            self.assertIsNone(self.service._inspect_runtime_status(None, payload, "team", "region"))
-            self.assertEqual(
-                self.service._inspect_runtime_status(None, payload, "team", "region"), self.service.STATUS_SUCCESS)
+                           return_value={"bean": pod_detail}), \
+                mock.patch.object(self.service, "_now", return_value="2026-11-20 10:03:05"):
+            self.assertEqual(self.service._inspect_runtime_status(None, payload, "team", "region"),
+                             self.service.STATUS_FAILURE)
+
+        self.assertEqual(payload["runtime_status"], self.service.STAGE_STATUS_TIMEOUT)
+        self.assertEqual(payload["failure_category"], self.service.FAILURE_CATEGORY_RUNTIME_TIMEOUT)
+        self.assertEqual(payload["failure_events"][0]["opt_type"], "RuntimeVerificationTimeout")
+
+    def test_is_runtime_component_ready_requires_every_replica_ready(self):
+        self.assertTrue(self.service.is_runtime_component_ready([self.service.RUNTIME_POD_READY]))
+        self.assertFalse(self.service.is_runtime_component_ready([
+            self.service.RUNTIME_POD_READY, self.service.RUNTIME_POD_NOT_READY]))
