@@ -127,3 +127,15 @@ class ExistingVMSnapshotCapabilityTests(TestCase):
             result = self.call_capability()
             self.assertEqual(result.status_code, status)
             self.assertNotIn('PRIVATE_CAPABILITY_SENTINEL', json.dumps(result.data))
+
+    def test_sdk_keeps_safe_snapshot_error_codes_for_root_and_nested_envelopes(self):
+        for status, code in ((422, 'vm_snapshot_incomplete'), (503, 'vm_snapshot_dependency_unavailable')):
+            error = {'error': {'code': code, 'retryable': status == 503}, 'receipt': 'PRIVATE_CAPABILITY_SENTINEL'}
+            for envelope in ({'bean': error}, {'data': {'bean': error}}):
+                self.upstream_status = status
+                self.upstream_body = {'code': status, 'msg': 'PRIVATE_CAPABILITY_SENTINEL', **envelope}
+                for read in (self.call_capability, lambda: fixtures.VMSnapshotReadAPITestCase.call(self)):
+                    result = read()
+                    self.assertEqual(result.status_code, status)
+                    self.assertEqual(result.data['data']['bean'], {'error': {'code': code, 'retryable': status == 503}})
+                    self.assertNotIn('PRIVATE_CAPABILITY_SENTINEL', json.dumps(result.data))

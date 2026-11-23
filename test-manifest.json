@@ -14162,6 +14162,14 @@
         {
           "path": "console/tests/vm_snapshot_read_api_test.py",
           "selector": "VMSnapshotReadAPITestCase.test_native_restore_rejects_unscoped_or_invalid_requests_before_region"
+        },
+        {
+          "path": "console/tests/vm_snapshot_read_api_test.py",
+          "selector": "VMSnapshotReadAPITestCase.test_native_restore_advance_contract_is_optional_strict_and_readonly"
+        },
+        {
+          "path": "console/tests/vm_snapshot_read_api_test.py",
+          "selector": "VMSnapshotReadAPITestCase.test_native_restore_configuration_changed_is_safe_nonretryable_and_bilingual"
         }
       ],
       "test_type": "integration",
