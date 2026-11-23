@@ -33,6 +33,30 @@ def calculate_uuid(os_info: str) -> str:
     return hashlib.md5(f"{os_info}\n".encode("utf-8")).hexdigest()
 
 
+INSTALL_EVENT_PREFIXES = (
+    "Rainbond install progress event: ",
+    "Rainbond install final event: ",
+)
+
+
+def normalize_report_event(payload: dict[str, Any]) -> dict[str, Any]:
+    if payload.get("event_type"):
+        return payload
+    message = payload.get("message")
+    if not isinstance(message, str):
+        return payload
+    for prefix in INSTALL_EVENT_PREFIXES:
+        if not message.startswith(prefix):
+            continue
+        try:
+            event = json.loads(message.removeprefix(prefix))
+        except json.JSONDecodeError:
+            return payload
+        if isinstance(event, dict):
+            return {**payload, **event}
+    return payload
+
+
 def extract_report_events(lines: Iterable[str]) -> list[dict[str, Any]]:
     events = []
     for line in lines:
@@ -41,7 +65,7 @@ def extract_report_events(lines: Iterable[str]) -> list[dict[str, Any]]:
         except json.JSONDecodeError:
             continue
         if request.get("path") == "/dindlog" and isinstance(request.get("payload"), dict):
-            events.append(request["payload"])
+            events.append(normalize_report_event(request["payload"]))
     return events
 
 
@@ -72,18 +96,28 @@ def scenario_succeeded(scenario: str, code: int, timed_out: bool, output: str, r
 
 
 def docker_scenario_assertions(scenario: str, reports: list[dict[str, Any]]) -> str:
+    events = [normalize_report_event(report) for report in reports]
+    download_failures = [
+        event
+        for event in events
+        if event.get("event_type") == "install_progress"
+        and event.get("stage") == "docker_download"
+        and event.get("status") == "failed"
+    ]
+    final_events = [event for event in events if event.get("event_type") == "install_final"]
     if scenario == "no_docker_tuna_fallback":
-        if not any(event.get("event_type") == "install_progress" and event.get("stage") == "docker_download" and event.get("status") == "failed" and event.get("source") == "tuna" for event in reports):
+        failed_sources = {event.get("source") for event in download_failures}
+        if "tuna" not in failed_sources:
             return "Docker download fallback event for tuna was not received"
+        unexpected_sources = failed_sources & {"aliyun", "official"}
+        if unexpected_sources:
+            return f"unexpected Docker download fallback failures: {sorted(unexpected_sources)}"
+        if not final_events or final_events[-1].get("final_status") != "success":
+            return "Docker download fallback did not finish successfully"
     if scenario == "no_docker_all_sources_unavailable":
-        failed_sources = {
-            event.get("source")
-            for event in reports
-            if event.get("event_type") == "install_progress" and event.get("stage") == "docker_download" and event.get("status") == "failed"
-        }
+        failed_sources = {event.get("source") for event in download_failures}
         if failed_sources != {"tuna", "aliyun", "official"}:
             return f"unexpected Docker download failure sources: {sorted(failed_sources)}"
-        final_events = [event for event in reports if event.get("event_type") == "install_final"]
         if len(final_events) != 1:
             return f"expected exactly one final event, received {len(final_events)}"
         final_event = final_events[0]

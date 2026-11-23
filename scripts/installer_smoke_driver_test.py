@@ -59,13 +59,22 @@ class InstallerSmokeDriverTests(unittest.TestCase):
     def test_calculate_uuid_matches_installer_md5_contract(self):
         self.assertEqual(calculate_uuid("Linux test-host 6.8.0"), "a119547c0f77a5ecbbe0c5bb0c1dcb21")
 
-    def test_extract_report_events_reads_dindlog_payloads(self):
+    def test_extract_report_events_normalizes_nested_install_events(self):
+        progress = {"event_type": "install_progress", "stage": "docker_download", "status": "failed", "source": "tuna"}
+        final = {"event_type": "install_final", "final_status": "success", "reason": "services_ready"}
         lines = [
-            json.dumps({"path": "/dindlog", "payload": {"uuid": "same-id", "message": "started"}}),
+            json.dumps({"path": "/dindlog", "payload": {"uuid": "same-id", "message": "Rainbond install progress event: " + json.dumps(progress)}}),
+            json.dumps({"path": "/dindlog", "payload": {"uuid": "same-id", **final}}),
             json.dumps({"path": "/logCollect", "payload": {"eid": "same-id"}}),
         ]
 
-        self.assertEqual(extract_report_events(lines), [{"uuid": "same-id", "message": "started"}])
+        self.assertEqual(
+            extract_report_events(lines),
+            [
+                {"uuid": "same-id", "message": "Rainbond install progress event: " + json.dumps(progress), **progress},
+                {"uuid": "same-id", **final},
+            ],
+        )
 
     def test_validate_report_uuids_requires_one_non_empty_uuid(self):
         self.assertTrue(validate_report_uuids([{"uuid": ""}, {"uuid": "same-id"}], "same-id"))
@@ -103,21 +112,28 @@ class InstallerSmokeDriverTests(unittest.TestCase):
             ],
         )
 
-    def test_docker_download_scenario_events_are_checked(self):
-        fallback_reports = [
-            {"event_type": "install_progress", "stage": "docker_download", "status": "failed", "source": "tuna"},
-            {"event_type": "install_final", "final_status": "success"},
-        ]
-        self.assertEqual(docker_scenario_assertions("no_docker_tuna_fallback", fallback_reports), "")
+    def test_docker_download_scenario_events_are_checked_from_nested_messages(self):
+        def reports(events):
+            lines = []
+            for event in events:
+                prefix = "Rainbond install final event: " if event["event_type"] == "install_final" else "Rainbond install progress event: "
+                lines.append(json.dumps({"path": "/dindlog", "payload": {"uuid": "same-id", "message": prefix + json.dumps(event)}}))
+            return extract_report_events(lines)
 
-        failed_reports = [
-            {"event_type": "install_progress", "stage": "docker_download", "status": "failed", "source": "tuna"},
-            {"event_type": "install_progress", "stage": "docker_download", "status": "failed", "source": "aliyun"},
-            {"event_type": "install_progress", "stage": "docker_download", "status": "failed", "source": "official"},
-            {"event_type": "install_final", "final_status": "failed", "reason": "docker_download_failed"},
-        ]
+        tuna_failed = {"event_type": "install_progress", "stage": "docker_download", "status": "failed", "source": "tuna", "curl_exit_code": 0, "http_status_class": "none"}
+        fallback_reports = reports([tuna_failed, {"event_type": "install_final", "final_status": "success", "reason": "services_ready"}])
+        self.assertEqual(docker_scenario_assertions("no_docker_tuna_fallback", fallback_reports), "")
+        self.assertNotEqual(docker_scenario_assertions("no_docker_tuna_fallback", reports([tuna_failed, {"event_type": "install_progress", "stage": "docker_download", "status": "failed", "source": "aliyun"}, {"event_type": "install_final", "final_status": "success"}])), "")
+        self.assertNotEqual(docker_scenario_assertions("no_docker_tuna_fallback", reports([tuna_failed, {"event_type": "install_final", "final_status": "failed"}])), "")
+
+        failed_reports = reports([
+            tuna_failed,
+            {"event_type": "install_progress", "stage": "docker_download", "status": "failed", "source": "aliyun", "curl_exit_code": 7},
+            {"event_type": "install_progress", "stage": "docker_download", "status": "failed", "source": "official", "curl_exit_code": 7},
+            {"event_type": "install_final", "final_status": "failed", "reason": "docker_download_failed", "exit_code": 1},
+        ])
         self.assertEqual(docker_scenario_assertions("no_docker_all_sources_unavailable", failed_reports), "")
-        self.assertIn("failure sources", docker_scenario_assertions("no_docker_all_sources_unavailable", failed_reports[1:]))
+        self.assertNotEqual(docker_scenario_assertions("no_docker_all_sources_unavailable", failed_reports[:-2]), "")
 
     def test_guard_requires_raw_and_filter_prefix_rules(self):
         self.assertEqual(NETWORK_GUARD_CHAINS, ("OUTPUT", "FORWARD", "DOCKER-USER"))
