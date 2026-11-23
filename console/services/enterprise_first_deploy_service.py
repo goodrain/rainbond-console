@@ -2465,7 +2465,7 @@ class EnterpriseFirstDeployService(object):
         return cls.classify_runtime_pod(pod, pod_detail) == cls.RUNTIME_POD_READY
 
     def _get_service_pods_for_runtime(self, payload: dict, tenant_name: str, region_name: str,
-                                      service_alias: str) -> list:
+                                      service_alias: str) -> Optional[list]:
         try:
             # NOTE: payload always carries enterprise_id (set in _build_payload); .get
             # widens to Optional but the invariant holds at runtime.
