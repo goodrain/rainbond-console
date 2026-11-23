@@ -11,6 +11,20 @@ from www.apiclient.regionapi import RegionInvokeApi
 
 class AIEnginePlatformClientTests(SimpleTestCase):
     # capability_id: console.ai-engine.platform-secret-client
+    def test_monitoring_env_has_a_fixed_name_and_verified_tls(self):
+        self.response.read.return_value = b"{}"
+        self.api.set_ai_engine_monitoring_env("e", "r", "team-a", "prometheus", self.value, create=True)
+        self.assertTrue(self.config.verify_ssl)
+        body = json.loads(self.client.request.call_args.kwargs["body"])
+        self.assertEqual(body["env_name"], "AI_ENGINE_MONITORING_TOKEN")
+        self.assertEqual(body["scope"], "inner")
+        self.assertTrue(body["is_change"])
+
+    def test_credential_helper_rejects_other_env_names_without_network(self):
+        with self.assertRaises(ServiceHandleException):
+            self.api._set_ai_engine_credential_env("REGION_TOKEN", "e", "r", "team-a", "backend", self.value)
+        self.client.request.assert_not_called()
+
     def setUp(self):
         self.api = RegionInvokeApi()
         self.value = "a" * 64

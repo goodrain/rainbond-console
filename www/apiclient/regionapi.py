@@ -134,10 +134,46 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
                                    service_alias: str,
                                    value: str,
                                    create: bool = False) -> None:
-        """Use the existing env endpoint with verified TLS for this single credential."""
+        self._set_ai_engine_credential_env("AI_ENGINE_PLATFORM_TOKEN",
+                                           enterprise_id,
+                                           region_name,
+                                           tenant_name,
+                                           service_alias,
+                                           value,
+                                           create=create)
+
+    def set_ai_engine_monitoring_env(self,
+                                     enterprise_id: str,
+                                     region_name: str,
+                                     tenant_name: str,
+                                     service_alias: str,
+                                     value: str,
+                                     create: bool = False) -> None:
+        self._set_ai_engine_credential_env("AI_ENGINE_MONITORING_TOKEN",
+                                           enterprise_id,
+                                           region_name,
+                                           tenant_name,
+                                           service_alias,
+                                           value,
+                                           create=create)
+
+    def _set_ai_engine_credential_env(self,
+                                      name: str,
+                                      enterprise_id: str,
+                                      region_name: str,
+                                      tenant_name: str,
+                                      service_alias: str,
+                                      value: str,
+                                      create: bool = False) -> None:
+        """Only these two credentials may use the verified platform control channel."""
         try:
+            valid_value = isinstance(value, str) and bool(re.fullmatch(r"[0-9a-f]{64}", value))
+            if name == "AI_ENGINE_MONITORING_TOKEN":
+                valid_value = (isinstance(value, str) and 32 <= len(value) <= 4096
+                               and all(33 <= ord(char) <= 126 for char in value))
             if (not self.get_enterprise_region_info(enterprise_id, region_name) or not isinstance(value, str)
-                    or not re.fullmatch(r"[0-9a-f]{64}", value) or not isinstance(create, bool)
+                    or name not in ("AI_ENGINE_PLATFORM_TOKEN", "AI_ENGINE_MONITORING_TOKEN") or not valid_value
+                    or not isinstance(create, bool)
                     or any(not isinstance(item, str) or not re.fullmatch(r"[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}", item)
                            for item in (tenant_name, service_alias))):
                 raise ValueError()
@@ -147,7 +183,6 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
                                                                            region_tenant_name):
                 raise ValueError()
             path = "/v2/tenants/{}/services/{}/env".format(region_tenant_name, service_alias)
-            name = "AI_ENGINE_PLATFORM_TOKEN"
             body = json.dumps({
                 "tenant_id": tenant_region.region_tenant_id,
                 "enterprise_id": enterprise_id,

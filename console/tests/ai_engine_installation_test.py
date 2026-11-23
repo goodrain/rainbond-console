@@ -24,6 +24,8 @@ class AIEngineInstallationTests(TestCase):
         self.module = importlib.import_module("console.services.ai_engine_installation")
         self.expected = "a" * 64
         patchers = {
+            "monitoring":
+            mock.patch.object(self.module, "configure_monitoring_installation"),
             "bootstrap":
             mock.patch.object(self.module.region_api,
                               "bootstrap_ai_engine_platform_token",
@@ -95,16 +97,17 @@ class AIEngineInstallationTests(TestCase):
         self.assertEqual(options["container_port"], 0)
         self.set_env.assert_called_once_with("enterprise-a", "region-a", "team-a", "backend", self.expected, create=True)
 
-    def test_repeat_sync_is_noop_and_rotation_preserves_runtime_metadata(self):
+    def test_repeat_sync_reconciles_region_while_preserving_local_env_and_runtime_metadata(self):
         current = SimpleNamespace(ID=9, attr_value=self.expected, scope="inner", is_change=True)
         with mock.patch.object(self.module.env_var_service, "get_env_by_attr_name", return_value=current), \
                 mock.patch.object(self.module.env_var_repo, "update_env_var") as persist:
             self.module.configure_installation(self.tenant, self.region, self.backend)
-            self.set_env.assert_not_called()
+            self.set_env.assert_called_once_with("enterprise-a", "region-a", "team-a", "backend", self.expected, create=True)
             persist.assert_not_called()
+            self.set_env.reset_mock()
             self.bootstrap.return_value = "b" * 64
             self.module.configure_installation(self.tenant, self.region, self.backend)
-        self.set_env.assert_called_once_with("enterprise-a", "region-a", "team-a", "backend", "b" * 64, create=False)
+        self.set_env.assert_called_once_with("enterprise-a", "region-a", "team-a", "backend", "b" * 64, create=True)
         self.assertEqual(persist.call_args.kwargs["attr_value"], "b" * 64)
         self.assertEqual(persist.call_args.kwargs["scope"], "inner")
         self.assertTrue(persist.call_args.kwargs["is_change"])
@@ -114,7 +117,7 @@ class AIEngineInstallationTests(TestCase):
         with mock.patch.object(self.module.env_var_service, "get_env_by_attr_name", return_value=current), \
                 mock.patch.object(self.module.env_var_repo, "update_env_var") as persist:
             self.module.configure_installation(self.tenant, self.region, self.backend)
-        self.set_env.assert_called_once_with("enterprise-a", "region-a", "team-a", "backend", self.expected, create=False)
+        self.set_env.assert_called_once_with("enterprise-a", "region-a", "team-a", "backend", self.expected, create=True)
         self.assertTrue(persist.call_args.kwargs["is_change"])
         self.assertEqual(persist.call_args.kwargs["scope"], "inner")
 

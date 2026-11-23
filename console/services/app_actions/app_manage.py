@@ -6,6 +6,7 @@ import datetime
 import json
 import logging
 import time
+from contextvars import ContextVar
 from typing import Any, List, Optional, Tuple
 
 from django.db.models import QuerySet
@@ -105,6 +106,16 @@ mnt_service = AppMntService()
 # Maximum retries for transient database lock errors (e.g. SQLite "database is locked")
 _DB_LOCK_MAX_RETRIES = 3
 _DB_LOCK_RETRY_DELAY = 0.1  # seconds
+_ai_credentials_prepared = ContextVar("ai_credentials_prepared", default=frozenset())
+
+
+def _prepare_ai_engine_credentials(tenant: Any, services: Any) -> None:
+    if getattr(tenant, "namespace", None) != "rbd-plugins":
+        return
+    pending = [service for service in services if service.service_id not in _ai_credentials_prepared.get()]
+    if pending:
+        from console.services.ai_engine_installation import prepare_component_credentials
+        prepare_component_credentials(tenant, pending)
 
 
 def _create_delete_service_with_retry(data: dict) -> None:
@@ -211,6 +222,7 @@ class AppManageService(AppManageBase):
                                                                                self.ResourceOperationStart):
             raise ServiceHandleException(error_code=20002, msg="not enough quota")
         if service.create_status == "complete":
+            _prepare_ai_engine_credentials(tenant, [service])
             body: dict = dict()
             body["operator"] = str(user.nick_name)
             body["enterprise_id"] = tenant.enterprise_id
@@ -414,6 +426,7 @@ class AppManageService(AppManageBase):
                         body["image_info"]["password"] = hub_password
         else:
             logger.warning("service_source is not exist for service {0}".format(service.service_id))
+        _prepare_ai_engine_credentials(tenant, [service])
         try:
             body['operator'] = user.nick_name
             re = region_api.build_service(service.service_region, tenant.tenant_name, service.service_alias, body)
@@ -575,6 +588,7 @@ class AppManageService(AppManageBase):
         body: Any = dict()
         body["service_id"] = service.service_id
         body["operator"] = str(user.nick_name)
+        _prepare_ai_engine_credentials(tenant, [service])
         try:
             body = region_api.upgrade_service(service.service_region, tenant.tenant_name, service.service_alias, body)
             # NOTE: region_api.upgrade_service returns Optional body; body["bean"] is present on
@@ -645,10 +659,25 @@ class AppManageService(AppManageBase):
                 return 409, "操作过于频繁，请稍后再试"
         return 200, "操作成功"
 
-    @transaction.atomic()
     def batch_action(self, region_name: str, tenant: Tenants, user: Any, action: str, service_ids: Any,
                      move_group_id: Optional[str], oauth_instance: Any) -> Tuple[int, str, "QuerySet[TenantServiceInfo]"]:
+        if getattr(tenant, "namespace", None) != "rbd-plugins" or action not in ("start", "upgrade", "deploy"):
+            return self._batch_action(region_name, tenant, user, action, service_ids, move_group_id, oauth_instance)
         services = service_repo.get_services_by_service_ids(service_ids)
+        # Preflight outside the original batch transaction; keep its existing semantics.
+        _prepare_ai_engine_credentials(tenant, services)
+        marker = _ai_credentials_prepared.set(frozenset(service.service_id for service in services))
+        try:
+            return self._batch_action(region_name, tenant, user, action, service_ids, move_group_id, oauth_instance,
+                                      prepared_services=services)
+        finally:
+            _ai_credentials_prepared.reset(marker)
+
+    @transaction.atomic()
+    def _batch_action(self, region_name: str, tenant: Tenants, user: Any, action: str, service_ids: Any,
+                      move_group_id: Optional[str], oauth_instance: Any,
+                      prepared_services: Any = None) -> Tuple[int, str, "QuerySet[TenantServiceInfo]"]:
+        services = prepared_services if prepared_services is not None else service_repo.get_services_by_service_ids(service_ids)
         code = 500
         msg = "系统异常"
         fail_service_name: List[Any] = []
@@ -719,6 +748,8 @@ class AppManageService(AppManageBase):
             raise AbortRequest(415, "failed to get component", "组件信息获取失败")
         # 获取数据中心信息
         data['operator'] = user.nick_name
+        if action in ("start", "upgrade", "deploy"):
+            _prepare_ai_engine_credentials(tenant, services)
         try:
             _, body = region_api.batch_operation_service(region_name, tenant.tenant_name, data)
             # NOTE: Optional body deref guarded by region API contract (body present on 2xx).

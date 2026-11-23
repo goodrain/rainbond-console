@@ -61,6 +61,42 @@
       "status": "active"
     },
     {
+      "id": "console.ai-engine.monitoring-credential-installation",
+      "title": "Provision shared dedicated monitoring credentials automatically",
+      "title_zh": "自动配置独立监控共享凭据",
+      "interface_type": "service_method",
+      "interface": "console.services.ai_engine_installation.configure_monitoring_installation",
+      "code_paths": [
+        "console/services/ai_engine_installation.py",
+        "www/apiclient/regionapi.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/ai_engine_monitoring_installation_test.py"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.ai-engine.monitoring-credential-lifecycle",
+      "title": "Prepare AI credentials before component lifecycle operations",
+      "title_zh": "组件启动更新前自动准备AI凭据",
+      "interface_type": "workflow",
+      "interface": "AppManageService.start / deploy / upgrade / batch_action / batch_operations",
+      "code_paths": [
+        "console/services/app_actions/app_manage.py",
+        "console/services/ai_engine_installation.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/ai_engine_monitoring_lifecycle_test.py"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.ai-engine.platform-credential-installation",
       "title": "AI plugin installs and upgrades provision only the trusted backend credential before deployment",
       "title_zh": "AI plugin installs and upgrades provision only the trusted backend credential before deployment",

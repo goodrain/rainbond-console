@@ -97,6 +97,11 @@ def get_region_error_message(error: RegionApiBaseHttpClient.CallApiError) -> str
     return str(error)
 
 
+def normalize_port_protocol(protocol: Any) -> Any:
+    """Legacy clients call plain TCP 'stream'; region stores transport names."""
+    return "tcp" if protocol == "stream" else protocol
+
+
 class AppPortService(object):
     def json_service_port(self, service_port: TenantServicesPort) -> str:
         service_port_dict: Dict[str, Any] = dict()
@@ -271,6 +276,7 @@ class AppPortService(object):
                          user_name: str = '',
                          app: Optional[ServiceGroup] = None) -> Tuple[int, str, Optional[TenantServicesPort]]:
 
+        protocol = normalize_port_protocol(protocol)
         ports = port_repo.get_service_ports(service.tenant_id, service.service_id)
         if ports:
             k8s_service_name = ports[0].k8s_service_name
@@ -418,7 +424,7 @@ class AppPortService(object):
 
         for spec in ports_data:
             container_port = int(spec["port"])
-            protocol = spec["protocol"]
+            protocol = normalize_port_protocol(spec["protocol"])
             is_inner = bool(spec.get("is_inner_service", spec.get("enable_inner", False)))
             port_alias = spec.get("port_alias", "") or ""
 
@@ -649,6 +655,7 @@ class AppPortService(object):
                     app: Optional[ServiceGroup] = None) -> Tuple[int, str, Optional[TenantServicesPort]]:
         # NOTE: protocol/port_alias typed Any — callers (other strict modules) pass
         # Optional[str]/None; relaxing here clears the caller cascade without behavior change.
+        protocol = normalize_port_protocol(protocol)
         if port_alias:
             port_alias = str(port_alias).strip()
 
@@ -1232,8 +1239,14 @@ class AppPortService(object):
 
     @staticmethod
     def update_service_port(tenant: Tenants, region_name: str, service_alias: str, body: Any, user_name: str = '') -> None:
+        ports = []
+        for item in body:
+            port = dict(item)
+            if "protocol" in port:
+                port["protocol"] = normalize_port_protocol(port["protocol"])
+            ports.append(port)
         region_api.update_service_port(region_name, tenant.tenant_name, service_alias, {
-            "port": body,
+            "port": ports,
             "enterprise_id": tenant.enterprise_id,
             "operator": user_name
         })

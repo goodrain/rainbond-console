@@ -7,6 +7,8 @@
 | console.ai-engine.downstream-cancellation | AI downstream TCP cancellation interrupts silent upstream reads | active | regression | AIProxyWebSocketHandler -> RegionApiBaseHttpClient.stream_proxy | console/tests/ai_engine_wsgi_lifecycle_test.py::AIEngineWSGILifecycleTests |
 | console.ai-engine.incremental-stream | AI streams return small fragments before upstream completion | active | regression | RegionApiBaseHttpClient.stream_proxy | console/tests/ai_engine_transport_test.py::AIEngineTransportTests.test_nonchunked_small_fragment_arrives_before_response_end |
 | console.ai-engine.management-scope-rbac | AI plugin management enforces verified team scope and existing RBAC | active | regression | /console/regions/{region}/backend/plugins/rainbond-ai-engine/* | console/tests/ai_engine_management_proxy_test.py::AIEngineManagementProxyTests |
+| console.ai-engine.monitoring-credential-installation | 自动配置独立监控共享凭据 | active | regression | console.services.ai_engine_installation.configure_monitoring_installation | console/tests/ai_engine_monitoring_installation_test.py |
+| console.ai-engine.monitoring-credential-lifecycle | 组件启动更新前自动准备AI凭据 | active | regression | AppManageService.start / deploy / upgrade / batch_action / batch_operations | console/tests/ai_engine_monitoring_lifecycle_test.py |
 | console.ai-engine.platform-credential-installation | AI plugin installs and upgrades provision only the trusted backend credential before deployment | active | regression | RBDPluginSyncService -> AI Engine credential installation | console/tests/ai_engine_installation_test.py |
 | console.ai-engine.platform-secret-client | AI credential bootstrap and env provisioning verify the existing Region identity channel | active | regression | RegionInvokeApi.bootstrap_ai_engine_platform_token / set_ai_engine_platform_env | console/tests/ai_engine_platform_client_test.py::AIEnginePlatformClientTests |
 | console.ai-engine.public-scope-protocol | AI inference validates explicit regions and protocol credentials | active | regression | /openapi/v1/ai-engine/{team}/regions/{region}/v1/* | console/tests/ai_engine_proxy_service_test.py::AIEngineProxyContractTests |
@@ -829,6 +831,26 @@
 - 业务入口: `/console/regions/{region}/backend/plugins/rainbond-ai-engine/*`
 - 代码路径: `console/views/rbd_plugin.py`, `console/services/ai_engine_service.py`
 - 测试路径: `console/tests/ai_engine_management_proxy_test.py::AIEngineManagementProxyTests`
+
+### 自动配置独立监控共享凭据
+
+- Capability ID: `console.ai-engine.monitoring-credential-installation`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.ai_engine_installation.configure_monitoring_installation`
+- 代码路径: `console/services/ai_engine_installation.py`, `www/apiclient/regionapi.py`
+- 测试路径: `console/tests/ai_engine_monitoring_installation_test.py`
+
+### 组件启动更新前自动准备AI凭据
+
+- Capability ID: `console.ai-engine.monitoring-credential-lifecycle`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `workflow`
+- 业务入口: `AppManageService.start / deploy / upgrade / batch_action / batch_operations`
+- 代码路径: `console/services/app_actions/app_manage.py`, `console/services/ai_engine_installation.py`
+- 测试路径: `console/tests/ai_engine_monitoring_lifecycle_test.py`
 
 ### AI plugin installs and upgrades provision only the trusted backend credential before deployment
 
