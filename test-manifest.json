@@ -15747,6 +15747,23 @@
       ],
       "test_type": "regression",
       "status": "active"
+    },
+    {
+      "id": "console.enterprise.component-health-upgrade-compatibility",
+      "title": "Platform component replica health and completion across region upgrades",
+      "interface_type": "service_method",
+      "interface": "console.services.enterprise_services.EnterpriseServices.get_rbdcomponents",
+      "code_paths": [
+        "console/services/enterprise_services.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/enterprise_component_health_test.py",
+          "selector": "EnterpriseComponentHealthTest"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
     }
   ]
 }
