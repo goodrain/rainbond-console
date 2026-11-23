@@ -14283,6 +14283,46 @@
       "status": "active"
     },
     {
+      "id": "console.vm-images.vmdk-runtime-root",
+      "title": "Use converted runtime images for VMDK roots without installer media",
+      "title_zh": "Use converted runtime images for VMDK roots without installer media",
+      "interface_type": "service_method",
+      "interface": "VirtualMachineService.build_vm_create_disk_imports",
+      "code_paths": [
+        "console/services/virtual_machine.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/virtual_machine_service_test.py",
+          "selector": "VirtualMachineServiceTests.test_vmdk_root_uses_converted_registry_image_and_never_installer_layout"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.vm-images.vmdk-source-format",
+      "title": "Normalize VMDK source metadata across asset ingestion and URL paths",
+      "title_zh": "Normalize VMDK source metadata across asset ingestion and URL paths",
+      "interface_type": "service_method",
+      "interface": "VirtualMachineService.normalize_vm_source_format",
+      "code_paths": [
+        "console/services/virtual_machine.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/virtual_machine_service_test.py",
+          "selector": "VirtualMachineServiceTests.test_vmdk_source_inference_uses_url_path_and_preserves_compression"
+        },
+        {
+          "path": "console/tests/virtual_machine_service_test.py",
+          "selector": "VirtualMachineServiceTests.test_vmdk_asset_metadata_is_normalized_and_unknown_format_rejected"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.vm-jobs.durable-observation",
       "title": "Persist VM task request and reconcile Region evidence across restart",
       "title_zh": "Persist VM task request and reconcile Region evidence across restart",
@@ -14662,6 +14702,25 @@
       "status": "active"
     },
     {
+      "id": "console.vm-run.plain-builder-runtime",
+      "title": "New plain disk requests consume owned Builder runtime outputs",
+      "title_zh": "New plain disk requests consume owned Builder runtime outputs",
+      "interface_type": "view_endpoint",
+      "interface": "POST /console/teams/{tenant}/apps/vm_run",
+      "code_paths": [
+        "console/views/app_create/vm_run.py",
+        "console/services/virtual_machine.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/vm_asset_instantiation_test.py",
+          "selector": "VMAssetInstantiationTests.test_new_plain_disk_requests_use_owned_build_output_and_keep_legacy_media_paths"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.vm-run.platform-runtime-guard",
       "title": "Reject VM create when VM platform is unhealthy",
       "title_zh": "虚拟机平台异常时禁止创建虚拟机组件",
@@ -14703,6 +14762,29 @@
       "status": "active"
     },
     {
+      "id": "console.vm-run.source-input-boundary",
+      "title": "Reject ambiguous and unsafe VM URL and upload sources before side effects",
+      "title_zh": "Reject ambiguous and unsafe VM URL and upload sources before side effects",
+      "interface_type": "view_endpoint",
+      "interface": "POST /console/teams/{tenant}/apps/vm_run",
+      "code_paths": [
+        "console/views/app_create/vm_run.py",
+        "console/services/virtual_machine.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/vm_asset_instantiation_test.py",
+          "selector": "VMAssetInstantiationTests.test_vm_run_sources_are_unambiguous_and_scoped_before_side_effects"
+        },
+        {
+          "path": "console/tests/virtual_machine_service_test.py",
+          "selector": "VirtualMachineServiceTests.test_vmdk_asset_metadata_is_normalized_and_unknown_format_rejected"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.vm-run.ssh-public-key-bootstrap",
       "title": "Validate Linux VM SSH bootstrap and register internal service",
       "title_zh": "校验 Linux 虚拟机 SSH 初始化并登记内网端口",
@@ -14736,6 +14818,33 @@
         {
           "path": "console/tests/virtual_machine_service_test.py",
           "selector": "VirtualMachineServiceTests.test_create_region_service_includes_ssh_attrs_and_internal_port_without_exposing_key_in_profile"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.vm-run.vmdk-source",
+      "title": "Create VMDK VM sources with explicit format and bootstrap trust boundaries",
+      "title_zh": "Create VMDK VM sources with explicit format and bootstrap trust boundaries",
+      "interface_type": "view_endpoint",
+      "interface": "POST /console/teams/{tenant}/apps/vm_run",
+      "code_paths": [
+        "console/views/app_create/vm_run.py",
+        "console/services/virtual_machine.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/vm_asset_instantiation_test.py",
+          "selector": "VMAssetInstantiationTests.test_vmdk_url_upload_and_ready_asset_keep_source_metadata_and_registry_runtime"
+        },
+        {
+          "path": "console/tests/vm_asset_instantiation_test.py",
+          "selector": "VMAssetInstantiationTests.test_vm_run_explicit_source_format_rejects_unknown_before_side_effects"
+        },
+        {
+          "path": "console/tests/vm_asset_instantiation_test.py",
+          "selector": "VMAssetInstantiationTests.test_vmdk_source_does_not_gain_ssh_or_noble_password_bootstrap_trust"
         }
       ],
       "test_type": "regression",

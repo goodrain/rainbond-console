@@ -415,6 +415,7 @@ class VMExamplePasswordLoginTests(TestCase):
         service = SimpleNamespace(
             service_id="service-created-password",
             service_alias="service-created-password",
+            save=mock.Mock(),
             service_source="vm_run",
             create_status="creating",
             to_dict=lambda: {"service_id": "service-created-password"},

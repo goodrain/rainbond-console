@@ -744,6 +744,8 @@
 | console.vm-create.port-operator | VM SSH port uses a string operator when the display name is absent | active | regression | console.views.app_create.vm_run.VMRunCreateView.post | console/tests/vm_example_password_login_test.py::VMExamplePasswordLoginTests.test_missing_display_name_keeps_ssh_port_operator_a_string |
 | console.vm-example.password-login-bootstrap | Ubuntu VM 示例登录初始化与凭据脱敏 | active | regression | console.views.app_create.vm_run.VMRunCreateView.post | console/tests/vm_example_password_login_test.py::VMExamplePasswordLoginTests |
 | console.vm-guest.profile-observation | 虚拟机来宾状态与配置视图保持真实观测 | active | regression | console.services.virtual_machine.VirtualMachineService.get_vm_profile | console/tests/vm_guest_status_test.py::VMGuestStatusNormalizationTests<br>console/tests/vm_profile_runtime_status_test.py::VMGuestStatusIntegrationTests |
+| console.vm-images.vmdk-runtime-root | Use converted runtime images for VMDK roots without installer media | active | regression | VirtualMachineService.build_vm_create_disk_imports | console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_vmdk_root_uses_converted_registry_image_and_never_installer_layout |
+| console.vm-images.vmdk-source-format | Normalize VMDK source metadata across asset ingestion and URL paths | active | regression | VirtualMachineService.normalize_vm_source_format | console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_vmdk_source_inference_uses_url_path_and_preserves_compression<br>console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_vmdk_asset_metadata_is_normalized_and_unknown_format_rejected |
 | console.vm-jobs.durable-observation | Persist VM task request and reconcile Region evidence across restart | active | integration | console.services.vm_restore_worker.VMJobRunner | console/tests/vm_job_runtime_test.py<br>console/tests/vm_job_process_restart_test.py |
 | console.vm-jobs.scoped-status | Report scoped durable task status and unavailable write capabilities | active | integration | GET /console/teams/{team}/apps/{alias}/vm-jobs/{operation} | console/tests/vm_job_views_test.py |
 | console.vm-jobs.supervised-runtime | Supervise web and durable VM jobs with bounded shutdown | active | integration | console.vm_job_supervisor.supervise | console/tests/vm_job_supervisor_test.py<br>console/tests/vm_job_health_test.py |
@@ -762,9 +764,12 @@
 | console.vm-restore.region-rpc-v1 | 虚拟机恢复作用域有界RPC | active | integration | www.apiclient.regionapi.RegionInvokeApi.command_vm_restore | console/tests/vm_restore_rpc_test.py::VMRestoreRPCSDKTests |
 | console.vm-root-disk-selected-storage-type | update_check_app 为新建虚拟机根盘使用所选存储类型 | active | regression | console.services.app.AppService.update_check_app | console/tests/vm_live_migration_storage_test.py::VMLiveMigrationStorageTests.test_update_check_app_uses_selected_storage_type_for_new_vm_root_disk |
 | console.vm-run.new-asset-image-name-validation | 校验新建虚拟机镜像资产名称 | active | regression | console.views.app_create.vm_run.VMRunCreateView.post | console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_vm_run_rejects_invalid_image_name_before_new_asset_or_component_creation<br>console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_vm_run_rejects_non_string_image_name_and_import_sources<br>console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_vm_runtime_image_name_validator_enforces_oci_tag_boundaries |
+| console.vm-run.plain-builder-runtime | New plain disk requests consume owned Builder runtime outputs | active | regression | POST /console/teams/{tenant}/apps/vm_run | console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_new_plain_disk_requests_use_owned_build_output_and_keep_legacy_media_paths |
 | console.vm-run.platform-runtime-guard | 虚拟机平台异常时禁止创建虚拟机组件 | active | regression | console.views.app_create.vm_run.VMRunCreateView.post | console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_vm_run_create_rejects_when_vm_plugin_not_running |
 | console.vm-run.reject-root-ssh-bootstrap | 创建虚拟机前拒绝 root SSH 初始化 | active | regression | POST /console/teams/{team}/apps/vm_run | console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_vm_ssh_bootstrap_rejects_root_with_non_root_username_hint<br>console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_vm_run_rejects_root_ssh_before_any_creation |
+| console.vm-run.source-input-boundary | Reject ambiguous and unsafe VM URL and upload sources before side effects | active | regression | POST /console/teams/{tenant}/apps/vm_run | console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_vm_run_sources_are_unambiguous_and_scoped_before_side_effects<br>console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_vmdk_asset_metadata_is_normalized_and_unknown_format_rejected |
 | console.vm-run.ssh-public-key-bootstrap | 校验 Linux 虚拟机 SSH 初始化并登记内网端口 | active | regression | console.views.app_create.vm_run.VMRunCreateView.post | console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_vm_ssh_bootstrap_accepts_only_linux_disk_images<br>console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_vm_run_rejects_invalid_ssh_before_creating_asset_or_component<br>console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_vm_run_records_linux_ssh_runtime_and_internal_port_before_returning<br>console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_vm_run_rolls_back_asset_component_attrs_group_and_port_when_ssh_port_fails<br>console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_build_vm_runtime_attrs_maps_ssh_inputs_and_preserves_uefi_firmware_mode<br>console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_create_region_service_includes_ssh_attrs_and_internal_port_without_exposing_key_in_profile |
+| console.vm-run.vmdk-source | Create VMDK VM sources with explicit format and bootstrap trust boundaries | active | regression | POST /console/teams/{tenant}/apps/vm_run | console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_vmdk_url_upload_and_ready_asset_keep_source_metadata_and_registry_runtime<br>console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_vm_run_explicit_source_format_rejects_unknown_before_side_effects<br>console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_vmdk_source_does_not_gain_ssh_or_noble_password_bootstrap_trust |
 | console.vm-snapshot.capacity-evidence | Compare logical Region capacity without rewriting physical snapshot bytes | active | regression | SnapshotJobRunner -> SnapshotCapacityEvidence -> SnapshotManifestService | console/tests/vm_snapshot_capacity_test.py::SnapshotCapacityTests<br>console/tests/vm_snapshot_jobs_worker_test.py::SnapshotJobsWorkerTests |
 | console.vm-snapshot.durable-worker | 普通快照持久任务入队与唯一后台执行闭环 | active | integration | console.services.vm_snapshot_jobs.SnapshotJobService.submit -> VMJobRunner default snapshot factory | console/tests/vm_snapshot_jobs_worker_test.py |
 | console.vm-snapshot.enqueue-api | Scoped durable snapshot HTTP enqueue and canonical status | active | integration | POST /console/teams/{team}/apps/{alias}/vm-snapshots -> SQL job; GET /vm-jobs/{operation_id} | console/tests/vm_snapshot_enqueue_api_test.py |
@@ -8212,6 +8217,26 @@
 - 代码路径: `console/services/vm_guest_status.py`, `console/services/app.py`, `console/services/virtual_machine.py`
 - 测试路径: `console/tests/vm_guest_status_test.py::VMGuestStatusNormalizationTests`, `console/tests/vm_profile_runtime_status_test.py::VMGuestStatusIntegrationTests`
 
+### Use converted runtime images for VMDK roots without installer media
+
+- Capability ID: `console.vm-images.vmdk-runtime-root`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `VirtualMachineService.build_vm_create_disk_imports`
+- 代码路径: `console/services/virtual_machine.py`
+- 测试路径: `console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_vmdk_root_uses_converted_registry_image_and_never_installer_layout`
+
+### Normalize VMDK source metadata across asset ingestion and URL paths
+
+- Capability ID: `console.vm-images.vmdk-source-format`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `VirtualMachineService.normalize_vm_source_format`
+- 代码路径: `console/services/virtual_machine.py`
+- 测试路径: `console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_vmdk_source_inference_uses_url_path_and_preserves_compression`, `console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_vmdk_asset_metadata_is_normalized_and_unknown_format_rejected`
+
 ### Persist VM task request and reconcile Region evidence across restart
 
 - Capability ID: `console.vm-jobs.durable-observation`
@@ -8392,6 +8417,16 @@
 - 代码路径: `console/services/vm_boot_source.py`, `console/views/app_create/vm_run.py`
 - 测试路径: `console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_vm_run_rejects_invalid_image_name_before_new_asset_or_component_creation`, `console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_vm_run_rejects_non_string_image_name_and_import_sources`, `console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_vm_runtime_image_name_validator_enforces_oci_tag_boundaries`
 
+### New plain disk requests consume owned Builder runtime outputs
+
+- Capability ID: `console.vm-run.plain-builder-runtime`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `view_endpoint`
+- 业务入口: `POST /console/teams/{tenant}/apps/vm_run`
+- 代码路径: `console/views/app_create/vm_run.py`, `console/services/virtual_machine.py`
+- 测试路径: `console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_new_plain_disk_requests_use_owned_build_output_and_keep_legacy_media_paths`
+
 ### 虚拟机平台异常时禁止创建虚拟机组件
 
 - Capability ID: `console.vm-run.platform-runtime-guard`
@@ -8412,6 +8447,16 @@
 - 代码路径: `console/services/virtual_machine.py`, `console/views/app_create/vm_run.py`
 - 测试路径: `console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_vm_ssh_bootstrap_rejects_root_with_non_root_username_hint`, `console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_vm_run_rejects_root_ssh_before_any_creation`
 
+### Reject ambiguous and unsafe VM URL and upload sources before side effects
+
+- Capability ID: `console.vm-run.source-input-boundary`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `view_endpoint`
+- 业务入口: `POST /console/teams/{tenant}/apps/vm_run`
+- 代码路径: `console/views/app_create/vm_run.py`, `console/services/virtual_machine.py`
+- 测试路径: `console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_vm_run_sources_are_unambiguous_and_scoped_before_side_effects`, `console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_vmdk_asset_metadata_is_normalized_and_unknown_format_rejected`
+
 ### 校验 Linux 虚拟机 SSH 初始化并登记内网端口
 
 - Capability ID: `console.vm-run.ssh-public-key-bootstrap`
@@ -8421,6 +8466,16 @@
 - 业务入口: `console.views.app_create.vm_run.VMRunCreateView.post`
 - 代码路径: `console/views/app_create/vm_run.py`, `console/services/virtual_machine.py`
 - 测试路径: `console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_vm_ssh_bootstrap_accepts_only_linux_disk_images`, `console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_vm_run_rejects_invalid_ssh_before_creating_asset_or_component`, `console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_vm_run_records_linux_ssh_runtime_and_internal_port_before_returning`, `console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_vm_run_rolls_back_asset_component_attrs_group_and_port_when_ssh_port_fails`, `console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_build_vm_runtime_attrs_maps_ssh_inputs_and_preserves_uefi_firmware_mode`, `console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_create_region_service_includes_ssh_attrs_and_internal_port_without_exposing_key_in_profile`
+
+### Create VMDK VM sources with explicit format and bootstrap trust boundaries
+
+- Capability ID: `console.vm-run.vmdk-source`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `view_endpoint`
+- 业务入口: `POST /console/teams/{tenant}/apps/vm_run`
+- 代码路径: `console/views/app_create/vm_run.py`, `console/services/virtual_machine.py`
+- 测试路径: `console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_vmdk_url_upload_and_ready_asset_keep_source_metadata_and_registry_runtime`, `console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_vm_run_explicit_source_format_rejects_unknown_before_side_effects`, `console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_vmdk_source_does_not_gain_ssh_or_noble_password_bootstrap_trust`
 
 ### Compare logical Region capacity without rewriting physical snapshot bytes
 
