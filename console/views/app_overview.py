@@ -809,8 +809,10 @@ class BuildSourceinfo(AppBaseView):
                 }
                 service_source_repo.create_service_source(**service_source_info)
             else:
-                service_source_user.user_name = user_name
-                service_source_user.password = password
+                if "user_name" in request.data:
+                    service_source_user.user_name = user_name
+                if "password" in request.data:
+                    service_source_user.password = password
                 service_source_user.save()
             if service_source == "source_code":
                 requested_server_type = (request.data.get("server_type") or "").strip()
@@ -823,6 +825,8 @@ class BuildSourceinfo(AppBaseView):
                 else:
                     self.service.code_version = "master"
                 self.service.code_from = ""
+                if not is_oauth:
+                    self.service.oauth_service_id = None
                 if git_url:
                     if is_oauth:
                         try:

@@ -1402,9 +1402,15 @@ class ServiceTcpDomainView(RegionTenantHeaderView):
         if not container_port or not service_id or not end_point:
             return Response(general_message(400, "parameters are missing", "参数缺失"), status=400)
 
+        host, port = domain_service.parse_tcp_endpoint(end_point)
+        end_point = "{}:{}".format(host, port)
+
         service = service_repo.get_service_by_service_id(service_id)
         if not service:
             return Response(general_message(400, "not service", "组件不存在"), status=400)
+
+        if service.tenant_id != self.tenant.tenant_id:
+            raise ServiceHandleException(msg="component not found", msg_show="组件不存在", status_code=404)
 
         # Check if the given endpoint exists.
         region = region_repo.get_region_by_region_name(service.service_region)
@@ -1454,9 +1460,15 @@ class ServiceTcpDomainView(RegionTenantHeaderView):
         if not tcp_rule_id:
             return Response(general_message(400, "parameters are missing", "参数缺失"), status=400)
 
+        host, port = domain_service.parse_tcp_endpoint(end_point)
+        end_point = "{}:{}".format(host, port)
+
         service = service_repo.get_service_by_service_id(service_id)  # type: ignore[arg-type]
         if not service:
             return Response(general_message(400, "not service", "组件不存在"), status=400)
+
+        if service.tenant_id != self.tenant.tenant_id:
+            raise ServiceHandleException(msg="component not found", msg_show="组件不存在", status_code=404)
 
         # 查询端口协议
         tenant_service_port = port_service.get_service_port_by_port(service, container_port)  # type: ignore[arg-type]
