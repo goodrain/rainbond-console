@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import http.client
 import os
+import sys
 from urllib.parse import urlparse
 
 import pytest
@@ -80,6 +81,7 @@ def fail_for_blocked_external_http_requests():
 def pytest_sessionfinish(session, exitstatus):
     if not _BLOCKED_EXTERNAL_HTTP_REQUESTS:
         return
+    print("external HTTP requests were blocked during tests", file=sys.stderr)
     session.exitstatus = pytest.ExitCode.TESTS_FAILED
 
 

@@ -7,6 +7,7 @@ from types import SimpleNamespace
 import conftest
 import pytest
 import requests
+import sentry_sdk
 
 from django.test import SimpleTestCase
 from console.utils.offline import is_external_telemetry_disabled
@@ -29,6 +30,7 @@ class ExternalHttpGuardTests(SimpleTestCase):
         sentry_env = dict(os.environ, SENTRY_DSN="https://sentry.example.invalid/1")
 
         self.assertTrue(is_external_telemetry_disabled())
+        self.assertIsNone(sentry_sdk.Hub.current.client)
         self.assertFalse(get_sentry_config(sentry_env)["enabled"])
         self.assertFalse(get_frontend_posthog_config()["enabled"])
 
