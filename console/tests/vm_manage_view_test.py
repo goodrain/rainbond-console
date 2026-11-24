@@ -74,11 +74,10 @@ class VMManageViewTests(TestCase):
         view.app = SimpleNamespace(ID=1)
         view.oauth_instance = None
 
-        request = view.initialize_request(
-            self.factory.post("/console/teams/demo-team/apps/demo-vm/start", {}, format="json")
-        )
+        request = view.initialize_request(self.factory.post("/console/teams/demo-team/apps/demo-vm/start", {}, format="json"))
 
-        with mock.patch("console.views.app_manage.app_manage_service.start", return_value=(500, "vm start blocked: no schedulable node")):
+        with mock.patch("console.views.app_manage.app_manage_service.start",
+                        return_value=(500, "vm start blocked: no schedulable node")):
             response = view.post(request)
 
         self.assertEqual(response.status_code, 500)

@@ -14,7 +14,7 @@ from console.repositories.group import group_repo, group_service_relation_repo
 from console.repositories.k8s_resources import k8s_resources_repo
 from console.repositories.region_app import region_app_repo
 from console.repositories.region_repo import region_repo
-from console.services.app_config import domain_service, port_service
+from console.services.app_config import domain_service, port_service, volume_service
 from console.services.config_service import EnterpriseConfigService
 from console.services.gateway_api import gateway_api
 from console.services.operation_log import operation_log_service, Operation
@@ -322,8 +322,20 @@ class ServiceDomainView(AppBaseView):
               paramType: query
 
         """
-        container_port = request.GET.get("container_port", None)
-        domains = domain_service.get_port_bind_domains(self.service, int(container_port))  # type: ignore[arg-type]
+        raw_container_port = request.GET.get("container_port", None)
+        try:
+            if isinstance(raw_container_port, bool) or not isinstance(raw_container_port, (str, int)):
+                raise ValueError("invalid container port")
+            container_port = int(raw_container_port)
+            if not 1 <= container_port <= 65535:
+                raise ValueError("invalid container port")
+        except (TypeError, ValueError):
+            raise AbortRequest(
+                msg="invalid container_port",
+                msg_show="端口必须为1到65535的整数",
+                status_code=400,
+            )
+        domains = domain_service.get_port_bind_domains(self.service, container_port)
         domain_list = [domain.to_dict() for domain in domains]
         result = general_message(200, "success", "查询成功", list=domain_list)
         return Response(result, status=result["code"])
@@ -1402,9 +1414,15 @@ class ServiceTcpDomainView(RegionTenantHeaderView):
         if not container_port or not service_id or not end_point:
             return Response(general_message(400, "parameters are missing", "参数缺失"), status=400)
 
+        host, port = domain_service.parse_tcp_endpoint(end_point)
+        end_point = "{}:{}".format(host, port)
+
         service = service_repo.get_service_by_service_id(service_id)
         if not service:
             return Response(general_message(400, "not service", "组件不存在"), status=400)
+
+        if service.tenant_id != self.tenant.tenant_id:
+            raise ServiceHandleException(msg="component not found", msg_show="组件不存在", status_code=404)
 
         # Check if the given endpoint exists.
         region = region_repo.get_region_by_region_name(service.service_region)
@@ -1454,9 +1472,15 @@ class ServiceTcpDomainView(RegionTenantHeaderView):
         if not tcp_rule_id:
             return Response(general_message(400, "parameters are missing", "参数缺失"), status=400)
 
+        host, port = domain_service.parse_tcp_endpoint(end_point)
+        end_point = "{}:{}".format(host, port)
+
         service = service_repo.get_service_by_service_id(service_id)  # type: ignore[arg-type]
         if not service:
             return Response(general_message(400, "not service", "组件不存在"), status=400)
+
+        if service.tenant_id != self.tenant.tenant_id:
+            raise ServiceHandleException(msg="component not found", msg_show="组件不存在", status_code=404)
 
         # 查询端口协议
         tenant_service_port = port_service.get_service_port_by_port(service, container_port)  # type: ignore[arg-type]
@@ -1553,7 +1577,18 @@ class VirtualMachineImageView(RegionTenantHeaderView):
 
 class VirtualMachineCapabilityView(RegionTenantHeaderView):
     def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
-        data = vms.get_vm_capabilities(self.response_region, self.tenant.tenant_name)
+        data = dict(vms.get_vm_capabilities(self.response_region, self.tenant.tenant_name) or {})
+        data["login_methods"] = (
+            ["ssh_key", "password"] if data.get("password_bootstrap_supported") is True else ["ssh_key"]
+        )
+        try:
+            data["storage_options"] = volume_service.get_vm_persistent_storage_options(
+                self.tenant, self.response_region)
+            data["storage_options_error"] = False
+        except Exception:
+            logger.warning("failed to load VM storage options for region %s", self.response_region)
+            data["storage_options"] = []
+            data["storage_options_error"] = True
         result = general_message(200, "success", "查询成功", bean=data)
         return Response(result, status=result["code"])
 

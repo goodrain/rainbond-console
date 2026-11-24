@@ -4,6 +4,8 @@ import datetime
 import logging
 import time
 
+from cryptography.hazmat.primitives import serialization
+
 from console.utils.exception import (ServiceHandleException, err_cert_expired, err_cert_mismatch, err_invalid_cert,
                                      err_invalid_private_key, err_cert_not_ca)
 from OpenSSL import crypto
@@ -79,12 +81,17 @@ def cert_is_effective(content, private_key):
         raise err_invalid_cert
     """Determine whether the private key format is correct and whether the key pairs match"""
     try:
-        pri_key = crypto.load_privatekey(crypto.FILETYPE_PEM, private_key)
+        key_bytes = private_key.encode("utf-8") if isinstance(private_key, str) else private_key
+        pri_key = serialization.load_pem_private_key(key_bytes, password=None)
     except Exception:
         raise err_invalid_private_key
-    sign = crypto.sign(pri_key, "data", "sha256")
     try:
-        crypto.verify(cert, sign, "data", "sha256")
+        private_public = pri_key.public_key().public_bytes(
+            serialization.Encoding.DER, serialization.PublicFormat.SubjectPublicKeyInfo)
+        certificate_public = cert.to_cryptography().public_key().public_bytes(
+            serialization.Encoding.DER, serialization.PublicFormat.SubjectPublicKeyInfo)
+        if private_public != certificate_public:
+            raise err_cert_mismatch
     except Exception:
         raise err_cert_mismatch
     return True

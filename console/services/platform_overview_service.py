@@ -1000,6 +1000,10 @@ class PlatformOverviewService(object):
         return values
 
     def _build_team_rankings(self, teams: list, resources: list, applications: list) -> dict:
+        configured = any("cpu_millicores" in row or "memory_mib" in row for row in resources)
+        observed = any("cpu_cores" in row or "memory_gib" in row for row in resources)
+        if configured and observed:
+            raise ValueError("mixed configured and observed team resource protocols")
         resource_map = {row["tenant_id"]: row for row in resources}
         application_map = {row["tenant_id"]: row["total"] for row in applications}
         items = []
@@ -1009,10 +1013,25 @@ class PlatformOverviewService(object):
                 "tenant_id": team["tenant_id"],
                 "tenant_name": team["tenant_name"],
                 "tenant_alias": team["tenant_alias"],
-                "cpu_cores": self._optional_number(resource.get("cpu_cores")),
-                "memory_gib": self._optional_number(resource.get("memory_gib")),
+                "cpu_cores": (round(float(resource.get("cpu_millicores") or 0) / 1000, 3)
+                              if configured else self._optional_number(resource.get("cpu_cores"))),
+                "memory_gib": (round(float(resource.get("memory_mib") or 0) / 1024, 3)
+                               if configured else self._optional_number(resource.get("memory_gib"))),
                 "applications": int(application_map.get(team["tenant_id"], 0)),
             })
+        if configured:
+            return {
+                "cpu": self._top_five(items, "cpu_cores"),
+                "memory": self._top_five(items, "memory_gib"),
+                "applications": self._top_five(items, "applications"),
+                "scope": "configured_resources",
+                "includes_inactive_components": True,
+                "totals": {
+                    "cpu_cores": round(sum(item["cpu_cores"] for item in items), 3),
+                    "memory_gib": round(sum(item["memory_gib"] for item in items), 3),
+                    "applications": sum(item["applications"] for item in items),
+                },
+            }
         totals: Dict[str, Any] = {"applications": sum(item["applications"] for item in items)}
         statuses = {}
         for metric, field in (("cpu", "cpu_cores"), ("memory", "memory_gib")):

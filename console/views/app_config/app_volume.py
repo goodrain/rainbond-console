@@ -25,7 +25,7 @@ logger = logging.getLogger("default")
 
 
 def ensure_volume_mode(mode: Any) -> Any:
-    if type(mode) != int:
+    if type(mode) is not int:
         raise AbortRequest("mode be a number between 0 and 777 (octal)", msg_show="权限必须是在0和777之间的八进制数")
     regex = re.compile(r"^[0-7]{1,3}$")
     if not regex.match(str(mode)):
@@ -127,7 +127,7 @@ class AppVolumeView(AppBaseView):
         """
         volume_name = request.data.get("volume_name", None)
         r = re.compile('(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$')
-        if not r.match(volume_name):  # type: ignore[arg-type] # NOTE: volume_name from request.data is Any|None (backlog)
+        if not isinstance(volume_name, str) or not r.match(volume_name):
             raise AbortRequest(msg="volume name illegal", msg_show="持久化名称只支持数字字母下划线")
         volume_type = request.data.get("volume_type", None)
         volume_path = request.data.get("volume_path", None)
@@ -410,8 +410,8 @@ class AppVolumeManageView(AppBaseView):
         if not volume_id:
             return Response(general_message(400, "volume_id is null", "未指定需要编辑的配置文件存储"), status=400)
         volume = volume_repo.get_service_volume_by_pk(volume_id)
-        if not volume:
-            return Response(general_message(400, "volume is null", "存储不存在"), status=400)
+        if not volume or volume.service_id != self.service.service_id:
+            return Response(general_message(404, "volume not found", "存储不存在"), status=404)
         if volume_capacity in ("", None):
             volume_capacity = None
         else:

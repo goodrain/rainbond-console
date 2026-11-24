@@ -1,5 +1,4 @@
 import json
-import ipaddress
 import os
 import pathlib
 import signal
@@ -63,16 +62,40 @@ class InstallerSmokeDriverTests(unittest.TestCase):
         progress = {"event_type": "install_progress", "stage": "docker_download", "status": "failed", "source": "tuna"}
         final = {"event_type": "install_final", "final_status": "success", "reason": "services_ready"}
         lines = [
-            json.dumps({"path": "/dindlog", "payload": {"uuid": "same-id", "message": "Rainbond install progress event: " + json.dumps(progress)}}),
-            json.dumps({"path": "/dindlog", "payload": {"uuid": "same-id", **final}}),
-            json.dumps({"path": "/logCollect", "payload": {"eid": "same-id"}}),
+            json.dumps({
+                "path": "/dindlog",
+                "payload": {
+                    "uuid": "same-id",
+                    "message": "Rainbond install progress event: " + json.dumps(progress)
+                }
+            }),
+            json.dumps({
+                "path": "/dindlog",
+                "payload": {
+                    "uuid": "same-id",
+                    **final
+                }
+            }),
+            json.dumps({
+                "path": "/logCollect",
+                "payload": {
+                    "eid": "same-id"
+                }
+            }),
         ]
 
         self.assertEqual(
             extract_report_events(lines),
             [
-                {"uuid": "same-id", "message": "Rainbond install progress event: " + json.dumps(progress), **progress},
-                {"uuid": "same-id", **final},
+                {
+                    "uuid": "same-id",
+                    "message": "Rainbond install progress event: " + json.dumps(progress),
+                    **progress
+                },
+                {
+                    "uuid": "same-id",
+                    **final
+                },
             ],
         )
 
@@ -116,21 +139,76 @@ class InstallerSmokeDriverTests(unittest.TestCase):
         def reports(events):
             lines = []
             for event in events:
-                prefix = "Rainbond install final event: " if event["event_type"] == "install_final" else "Rainbond install progress event: "
-                lines.append(json.dumps({"path": "/dindlog", "payload": {"uuid": "same-id", "message": prefix + json.dumps(event)}}))
+                prefix = "Rainbond install final event: " if event[
+                    "event_type"] == "install_final" else "Rainbond install progress event: "
+                lines.append(
+                    json.dumps({
+                        "path": "/dindlog",
+                        "payload": {
+                            "uuid": "same-id",
+                            "message": prefix + json.dumps(event)
+                        }
+                    }))
             return extract_report_events(lines)
 
-        tuna_failed = {"event_type": "install_progress", "stage": "docker_download", "status": "failed", "source": "tuna", "curl_exit_code": 0, "http_status_class": "none"}
-        fallback_reports = reports([tuna_failed, {"event_type": "install_final", "final_status": "success", "reason": "services_ready"}])
+        tuna_failed = {
+            "event_type": "install_progress",
+            "stage": "docker_download",
+            "status": "failed",
+            "source": "tuna",
+            "curl_exit_code": 0,
+            "http_status_class": "none"
+        }
+        fallback_reports = reports(
+            [tuna_failed, {
+                "event_type": "install_final",
+                "final_status": "success",
+                "reason": "services_ready"
+            }])
         self.assertEqual(docker_scenario_assertions("no_docker_tuna_fallback", fallback_reports), "")
-        self.assertNotEqual(docker_scenario_assertions("no_docker_tuna_fallback", reports([tuna_failed, {"event_type": "install_progress", "stage": "docker_download", "status": "failed", "source": "aliyun"}, {"event_type": "install_final", "final_status": "success"}])), "")
-        self.assertNotEqual(docker_scenario_assertions("no_docker_tuna_fallback", reports([tuna_failed, {"event_type": "install_final", "final_status": "failed"}])), "")
+        self.assertNotEqual(
+            docker_scenario_assertions(
+                "no_docker_tuna_fallback",
+                reports([
+                    tuna_failed, {
+                        "event_type": "install_progress",
+                        "stage": "docker_download",
+                        "status": "failed",
+                        "source": "aliyun"
+                    }, {
+                        "event_type": "install_final",
+                        "final_status": "success"
+                    }
+                ])), "")
+        self.assertNotEqual(
+            docker_scenario_assertions("no_docker_tuna_fallback",
+                                       reports([tuna_failed, {
+                                           "event_type": "install_final",
+                                           "final_status": "failed"
+                                       }])), "")
 
         failed_reports = reports([
             tuna_failed,
-            {"event_type": "install_progress", "stage": "docker_download", "status": "failed", "source": "aliyun", "curl_exit_code": 7},
-            {"event_type": "install_progress", "stage": "docker_download", "status": "failed", "source": "official", "curl_exit_code": 7},
-            {"event_type": "install_final", "final_status": "failed", "reason": "docker_download_failed", "exit_code": 1},
+            {
+                "event_type": "install_progress",
+                "stage": "docker_download",
+                "status": "failed",
+                "source": "aliyun",
+                "curl_exit_code": 7
+            },
+            {
+                "event_type": "install_progress",
+                "stage": "docker_download",
+                "status": "failed",
+                "source": "official",
+                "curl_exit_code": 7
+            },
+            {
+                "event_type": "install_final",
+                "final_status": "failed",
+                "reason": "docker_download_failed",
+                "exit_code": 1
+            },
         ])
         self.assertEqual(docker_scenario_assertions("no_docker_all_sources_unavailable", failed_reports), "")
         self.assertNotEqual(docker_scenario_assertions("no_docker_all_sources_unavailable", failed_reports[:-2]), "")
@@ -140,8 +218,15 @@ class InstallerSmokeDriverTests(unittest.TestCase):
         self.assertEqual(RAW_GUARD_CHAINS, ("PREROUTING", "OUTPUT"))
         rules = "-A FORWARD -d 203.0.113.10/32 -j DROP\n-A FORWARD -d 203.0.113.11/32 -j DROP\n-A FORWARD -j DOCKER-USER\n"
         self.assertTrue(guard_rule_prefix_valid(rules, "FORWARD", ["203.0.113.10", "203.0.113.11"], "DROP"))
-        self.assertFalse(guard_rule_prefix_valid(rules.replace("-A FORWARD -j DOCKER-USER\n", "", 1).replace("-A FORWARD -d 203.0.113.10/32 -j DROP\n", "-A FORWARD -j DOCKER-USER\n-A FORWARD -d 203.0.113.10/32 -j DROP\n"), "FORWARD", ["203.0.113.10", "203.0.113.11"], "DROP"))
-        self.assertTrue(guard_rule_prefix_valid("-A OUTPUT -d 203.0.113.10/32 -j REJECT --reject-with icmp-port-unreachable\n", "OUTPUT", ["203.0.113.10"], "REJECT"))
+        self.assertFalse(
+            guard_rule_prefix_valid(
+                rules.replace("-A FORWARD -j DOCKER-USER\n", "", 1).replace(
+                    "-A FORWARD -d 203.0.113.10/32 -j DROP\n",
+                    "-A FORWARD -j DOCKER-USER\n-A FORWARD -d 203.0.113.10/32 -j DROP\n"), "FORWARD",
+                ["203.0.113.10", "203.0.113.11"], "DROP"))
+        self.assertTrue(
+            guard_rule_prefix_valid("-A OUTPUT -d 203.0.113.10/32 -j REJECT --reject-with icmp-port-unreachable\n", "OUTPUT",
+                                    ["203.0.113.10"], "REJECT"))
 
     def test_raw_guard_excludes_the_local_blackhole(self):
         guard = {"addresses": {"log.rainbond.com": ["203.0.113.10"], "smoke_blackhole": ["192.0.2.1"]}, "ipv6_addresses": {}}
@@ -153,7 +238,10 @@ class InstallerSmokeDriverTests(unittest.TestCase):
 
     def test_guard_packet_counts_are_recorded_per_destination(self):
         counters = "  12   720 DROP all -- * * 0.0.0.0/0 203.0.113.10\n   3   180 DROP all -- * * 0.0.0.0/0 203.0.113.11\n"
-        self.assertEqual(guard_packet_counts(counters, ["203.0.113.10", "203.0.113.11"]), {"203.0.113.10": 12, "203.0.113.11": 3})
+        self.assertEqual(guard_packet_counts(counters, ["203.0.113.10", "203.0.113.11"]), {
+            "203.0.113.10": 12,
+            "203.0.113.11": 3
+        })
 
     def test_guard_packet_counts_reject_abbreviated_iptables_output(self):
         counters = " 123K  12M DROP all -- * * 0.0.0.0/0 203.0.113.10\n"
@@ -175,8 +263,15 @@ class InstallerSmokeDriverTests(unittest.TestCase):
                 "SMOKE_DOCKER_DOWNLOAD_URLS_FILE": str(url_file),
             }
             result = subprocess.run(
-                [str(shim), "-L", "https://mirrors.tuna.tsinghua.edu.cn/docker-ce/linux/static/stable/x86_64/docker-28.3.1.tgz", "-o", str(archive)],
-                env={**os.environ, **environment},
+                [
+                    str(shim), "-L",
+                    "https://mirrors.tuna.tsinghua.edu.cn/docker-ce/linux/static/stable/x86_64/docker-28.3.1.tgz", "-o",
+                    str(archive)
+                ],
+                env={
+                    **os.environ,
+                    **environment
+                },
                 check=False,
             )
 
@@ -202,24 +297,34 @@ class InstallerSmokeDriverTests(unittest.TestCase):
 
             for index, url in enumerate(urls):
                 archive = result_dir / f"docker-{index}.tgz"
-                result = subprocess.run([str(shim), "-L", url, "-o", str(archive)], env={**os.environ, **environment}, check=False)
+                result = subprocess.run([str(shim), "-L", url, "-o", str(archive)],
+                                        env={
+                                            **os.environ,
+                                            **environment
+                                        },
+                                        check=False)
                 self.assertEqual(result.returncode, 7)
                 self.assertFalse(archive.exists())
 
     def test_scenario_failure_reason_distinguishes_missing_reports_and_uuid(self):
-        self.assertEqual(scenario_succeeded("normal_install", 0, False, "", [], "main-id")[1], "fake receiver did not receive /dindlog")
+        self.assertEqual(
+            scenario_succeeded("normal_install", 0, False, "", [], "main-id")[1], "fake receiver did not receive /dindlog")
         self.assertIn("uuid mismatch", scenario_succeeded("normal_install", 0, False, "", [{"uuid": "other"}], "main-id")[1])
 
     def test_scenario_timeout_is_not_reported_as_installer_exit(self):
-        self.assertEqual(scenario_succeeded("normal_install", 124, True, "", [{"uuid": "main-id"}], "main-id")[1], "driver timeout")
+        self.assertEqual(
+            scenario_succeeded("normal_install", 124, True, "", [{
+                "uuid": "main-id"
+            }], "main-id")[1], "driver timeout")
 
     def test_run_command_terminates_process_group_after_timeout(self):
         with tempfile.TemporaryDirectory() as directory:
             with mock.patch(
-                "installer_smoke_driver.terminate_process_group",
-                side_effect=lambda process_group, _: os.killpg(process_group, signal.SIGTERM) is None,
+                    "installer_smoke_driver.terminate_process_group",
+                    side_effect=lambda process_group, _: os.killpg(process_group, signal.SIGTERM) is None,
             ):
-                code, _, timed_out = run_command(["bash", "-c", "sleep 30"], os.environ.copy(), pathlib.Path(directory) / "timeout.log", 0.01)
+                code, _, timed_out = run_command(["bash", "-c", "sleep 30"], os.environ.copy(),
+                                                 pathlib.Path(directory) / "timeout.log", 0.01)
         self.assertEqual(code, 124)
         self.assertTrue(timed_out)
 
@@ -228,7 +333,8 @@ class InstallerSmokeDriverTests(unittest.TestCase):
         self.assertEqual(runner_eip_from_route(route), "10.0.0.24")
 
     def test_ipv6_resolution_returns_only_ipv6_addresses(self):
-        with mock.patch("installer_smoke_driver.socket.getaddrinfo", return_value=[(None, None, None, None, ("2001:db8::1", 443, 0, 0))]):
+        with mock.patch("installer_smoke_driver.socket.getaddrinfo",
+                        return_value=[(None, None, None, None, ("2001:db8::1", 443, 0, 0))]):
             self.assertEqual(resolve_ipv6("log.rainbond.com"), ["2001:db8::1"])
 
     def test_public_dns_keeps_only_ipv4_records_and_reports_query_failure(self):
@@ -251,8 +357,20 @@ class InstallerSmokeDriverTests(unittest.TestCase):
 
     def test_host_connectivity_requires_reachable_baseline_and_blocked_guarded_probe(self):
         connectivity = {
-            "before_guard": {"log.rainbond.com": [{"exit_code": 0, "valid": True, "blocked": False}]},
-            "after_guard": {"log.rainbond.com": [{"exit_code": 124, "valid": True, "blocked": True}]},
+            "before_guard": {
+                "log.rainbond.com": [{
+                    "exit_code": 0,
+                    "valid": True,
+                    "blocked": False
+                }]
+            },
+            "after_guard": {
+                "log.rainbond.com": [{
+                    "exit_code": 124,
+                    "valid": True,
+                    "blocked": True
+                }]
+            },
         }
         self.assertTrue(host_connectivity_valid(connectivity))
         connectivity["before_guard"]["log.rainbond.com"][0]["exit_code"] = 124
@@ -267,9 +385,9 @@ class InstallerSmokeDriverTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             result_dir = pathlib.Path(directory)
             shim = create_curl_shim(result_dir) / "curl"
-            receiver = subprocess.Popen(
-                ["python3", "-m", "http.server", "18080", "--bind", "127.0.0.1"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
-            )
+            receiver = subprocess.Popen(["python3", "-m", "http.server", "18080", "--bind", "127.0.0.1"],
+                                        stdout=subprocess.DEVNULL,
+                                        stderr=subprocess.DEVNULL)
             try:
                 time.sleep(0.1)
                 environment = {
@@ -299,8 +417,16 @@ rbd-app-ui-data-1 0/1 Pending 0 1m
         self.assertEqual(
             ready_components(pods),
             [
-                {"name": "rainbond-operator-1", "ready": "1/1", "status": "Running"},
-                {"name": "rbd-app-ui-data-1", "ready": "0/1", "status": "Pending"},
+                {
+                    "name": "rainbond-operator-1",
+                    "ready": "1/1",
+                    "status": "Running"
+                },
+                {
+                    "name": "rbd-app-ui-data-1",
+                    "ready": "0/1",
+                    "status": "Pending"
+                },
             ],
         )
 
@@ -311,7 +437,11 @@ rbd-app-ui-data-1 0/1 Pending 0 1m
             success=True,
             duration_seconds=123,
             reason="",
-            components=[{"name": "rainbond-operator-1", "ready": "1/1", "status": "Running"}],
+            components=[{
+                "name": "rainbond-operator-1",
+                "ready": "1/1",
+                "status": "Running"
+            }],
         )
 
         self.assertEqual(result["duration_seconds"], 123)

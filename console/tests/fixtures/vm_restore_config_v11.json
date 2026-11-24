@@ -1,0 +1,85 @@
+{
+  "config_after": {
+    "hardware": {
+      "cpu_milli": 1000,
+      "memory_mib": 1024,
+      "boot_mode": "bios",
+      "disk_layout": [
+        {
+          "volume_id": 1,
+          "disk_key": "root",
+          "canonical_name": "manual1",
+          "role": "root",
+          "device": "disk",
+          "bus": "virtio",
+          "boot_order": 1,
+          "read_only": false
+        }
+      ]
+    },
+    "volumes": [
+      {
+        "volume_id": 1,
+        "disk_key": "root",
+        "capacity_gib": 1,
+        "storage_class": "csi-a",
+        "read_only": false,
+        "access_mode": "ReadWriteOnce"
+      }
+    ]
+  },
+  "config_after_hash": "7f51d05596c70d40f5ffdcc42d0751bdca8e1a15c2b95bc4bed82d4dd28d1a18",
+  "config_before": {
+    "hardware": {
+      "cpu_milli": 2000,
+      "memory_mib": 2048,
+      "boot_mode": "uefi",
+      "disk_layout": [
+        {
+          "volume_id": 1,
+          "disk_key": "root",
+          "canonical_name": "manual1",
+          "role": "root",
+          "device": "disk",
+          "bus": "virtio",
+          "boot_order": 1,
+          "read_only": false
+        },
+        {
+          "volume_id": 2,
+          "disk_key": "data",
+          "canonical_name": "manual2",
+          "role": "data",
+          "device": "disk",
+          "bus": "scsi",
+          "boot_order": 0,
+          "read_only": false
+        }
+      ]
+    },
+    "volumes": [
+      {
+        "volume_id": 1,
+        "disk_key": "root",
+        "capacity_gib": 2,
+        "storage_class": "csi-b",
+        "read_only": false,
+        "access_mode": "ReadWriteMany"
+      },
+      {
+        "volume_id": 2,
+        "disk_key": "data",
+        "capacity_gib": 5,
+        "storage_class": "csi-b",
+        "read_only": false,
+        "access_mode": "ReadWriteMany"
+      }
+    ]
+  },
+  "config_before_hash": "b2c50cea78e25d0626049f8a257708ec5ca408201f16c0138a920850f36feb6d",
+  "power_after": "previous",
+  "resume_required": true,
+  "source_binding_generation": 2,
+  "source_config_ready": true,
+  "was_running": true
+}

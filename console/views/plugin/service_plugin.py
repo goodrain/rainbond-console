@@ -2,7 +2,7 @@
 """
   Created on 2018/4/19.
 """
-import json
+
 import logging
 from typing import Any
 
@@ -98,20 +98,18 @@ class ServicePluginInstallView(AppBaseView):
             team_name=self.tenant.tenant_name,
             plugin_id=plugin_id,
         )
-        comment = operation_log_service.generate_component_comment(
-            operation=Operation.FOR,
-            module_name=self.service.service_cname,
-            region=self.service.service_region,
-            team_name=self.tenant.tenant_name,
-            service_alias=self.service.service_alias,
-            suffix=" 开通了插件 {}".format(plugin_name))
-        operation_log_service.create_component_log(
-            user=self.user,
-            comment=comment,
-            enterprise_id=self.user.enterprise_id,
-            team_name=self.tenant.tenant_name,
-            app_id=self.app.ID,
-            service_alias=self.service.service_alias)
+        comment = operation_log_service.generate_component_comment(operation=Operation.FOR,
+                                                                   module_name=self.service.service_cname,
+                                                                   region=self.service.service_region,
+                                                                   team_name=self.tenant.tenant_name,
+                                                                   service_alias=self.service.service_alias,
+                                                                   suffix=" 开通了插件 {}".format(plugin_name))
+        operation_log_service.create_component_log(user=self.user,
+                                                   comment=comment,
+                                                   enterprise_id=self.user.enterprise_id,
+                                                   team_name=self.tenant.tenant_name,
+                                                   app_id=self.app.ID,
+                                                   service_alias=self.service.service_alias)
         return Response(result, status=result["code"])
 
     def delete(self, request: Request, plugin_id: str, *args: Any, **kwargs: Any) -> Response:
@@ -142,13 +140,13 @@ class ServicePluginInstallView(AppBaseView):
         app_plugin_service.delete_service_plugin_relation(self.service, plugin_id)
         app_plugin_service.delete_service_plugin_config(self.service, plugin_id)
         plugin = plugin_service.get_plugin_by_plugin_id(self.tenant, plugin_id)
-        comment = operation_log_service.generate_component_comment(
-            operation=Operation.UNINSTALL,
-            module_name=self.service.service_cname,
-            region=self.service.service_region,
-            team_name=self.tenant.tenant_name,
-            service_alias=self.service.service_alias,
-            suffix=" 下的插件 {}".format(plugin.plugin_alias))  # type: ignore[union-attr]
+        comment = operation_log_service.generate_component_comment(operation=Operation.UNINSTALL,
+                                                                   module_name=self.service.service_cname,
+                                                                   region=self.service.service_region,
+                                                                   team_name=self.tenant.tenant_name,
+                                                                   service_alias=self.service.service_alias,
+                                                                   suffix=" 下的插件 {}".format(
+                                                                       plugin.plugin_alias))  # type: ignore[union-attr]
         operation_log_service.create_component_log(
             user=self.user,
             comment=comment,

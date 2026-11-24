@@ -13,6 +13,7 @@ from www.utils.return_message import general_message
 
 logger = logging.getLogger("default")
 
+
 class SMSVerificationView(BaseApiView):
     def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
@@ -57,7 +58,7 @@ class SMSVerificationView(BaseApiView):
                     return Response(result, status=status.HTTP_400_BAD_REQUEST)
 
             sms_service.send_verification_code(phone, purpose)
-            
+
             result = general_message(200, "success", "验证码发送成功")
             return Response(result, status=status.HTTP_200_OK)
         except ServiceHandleException as e:
@@ -65,4 +66,4 @@ class SMSVerificationView(BaseApiView):
         except Exception as e:
             logger.exception(e)
             result = general_message(500, "发送验证码失败", str(e))
-            return Response(result, status=status.HTTP_500_INTERNAL_SERVER_ERROR) 
+            return Response(result, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

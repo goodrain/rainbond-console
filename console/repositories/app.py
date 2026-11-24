@@ -380,7 +380,9 @@ class ServiceRecycleBinRepository(object):
         return ServiceRecycleBin.objects.filter(tenant_id=tenant_id)
 
     def create_trash_service(self, **params: Any) -> ServiceRecycleBin:
-        return ServiceRecycleBin.objects.create(**params)
+        field_names = {field.attname for field in ServiceRecycleBin._meta.concrete_fields if not field.primary_key}
+        data = {key: value for key, value in params.items() if key in field_names}
+        return ServiceRecycleBin.objects.create(**data)
 
     def delete_trash_service_by_service_id(self, service_id: str) -> None:
         ServiceRecycleBin.objects.filter(service_id=service_id).delete()
@@ -596,6 +598,9 @@ class AppMarketRepository(object):
             if os.getenv("USE_SAAS") and user_id:
                 # SAAS模式下只返回用户相关的市场
                 queryset = queryset.filter(user_id=user_id)
+            else:
+                # Match get_app_market_by_name: non-SaaS publishing uses platform bindings.
+                queryset = queryset.filter(is_personal=False)
         else:
             # 非发布用途，查询is_personal为false的第一条
             queryset = queryset.filter(is_personal=False)

@@ -4,6 +4,7 @@
 """
 import base64
 import datetime
+import ipaddress
 import json
 import logging
 import re
@@ -38,6 +39,32 @@ class DomainService(object):
     HTTP = "http"
     CLIENT_CA_CERTIFICATE_TYPE = "client_ca"
     CLIENT_CA_SECRET_PREFIX = "rbd-client-ca-"
+
+    @staticmethod
+    def parse_tcp_endpoint(end_point: Any) -> Tuple[str, int]:
+        try:
+            # The gateway UI, saved rules and runtime currently use host:port;
+            # IPv6 requires changes across that chain, not just a parser here.
+            if not isinstance(end_point, str) or end_point.count(":") != 1:
+                raise ValueError
+            host, port_text = (part.strip() for part in end_point.split(":"))
+            if not host or not re.fullmatch(r"[0-9]+", port_text):
+                raise ValueError
+            port = int(port_text)
+            if not 1 <= port <= 65535 or len("{}:{}".format(host, port)) > 256:
+                raise ValueError
+            if re.fullmatch(r"[0-9.]+", host):
+                ipaddress.IPv4Address(host)
+            else:
+                hostname = host[:-1] if host.endswith(".") else host
+                if len(hostname) > 253 or not all(
+                        re.fullmatch(r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?", label)
+                        for label in hostname.split(".")):
+                    raise ValueError
+            return host, port
+        except ValueError:
+            raise ServiceHandleException(
+                msg="invalid TCP endpoint", msg_show="访问地址必须为IPv4或主机名:端口，端口范围为1-65535", status_code=400) from None
 
     def get_time_now(self) -> str:
         return datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -613,24 +640,21 @@ class DomainService(object):
 
     def bind_tcpdomain(self, tenant: Any, user: Any, service: Any, end_point: str, container_port: int,
                        default_port: int, rule_extensions: Any, default_ip: Optional[str]) -> dict:
+        ip, port = self.parse_tcp_endpoint(end_point)
+        end_point = "{}:{}".format(ip, port)
+        if service.tenant_id != tenant.tenant_id:
+            raise ServiceHandleException(msg="component not found", msg_show="组件不存在", status_code=404)
         tcp_rule_id = make_uuid(tenant.tenant_name)
-        ip = str(end_point.split(":")[0])
-        ip = ip.replace(' ', '')
-        port = end_point.split(":")[1]
         data = dict()
         data["service_id"] = service.service_id
         data["container_port"] = int(container_port)
         data["ip"] = ip
-        data["port"] = int(port)
+        data["port"] = port
         data["tcp_rule_id"] = tcp_rule_id
         if rule_extensions:
             data["rule_extensions"] = rule_extensions
-        try:
-            # 给数据中心传送数据添加策略
-            region_api.bindTcpDomain(service.service_region, tenant.tenant_name, data)
-        except region_api.CallApiError as e:
-            if e.status != 404:
-                raise e
+        # 给数据中心传送数据添加策略
+        region_api.bindTcpDomain(service.service_region, tenant.tenant_name, data)
         region = region_repo.get_region_by_region_name(service.service_region)
         domain_info: dict = dict()
         domain_info["tcp_rule_id"] = tcp_rule_id
@@ -665,7 +689,7 @@ class DomainService(object):
 
         domain_info["rule_extensions"] = rule_extensions_str
 
-        if int(end_point.split(":")[1]) != default_port:
+        if port != default_port:
             domain_info["type"] = 1
         tcp_domain.add_service_tcpdomain(**domain_info)
         domain_info.update({"rule_extensions": rule_extensions})
@@ -675,30 +699,28 @@ class DomainService(object):
     def update_tcpdomain(self, tenant: Any, user: Any, service: Any, end_point: str, container_port: int, tcp_rule_id: str,
                          protocol: str, type: int, rule_extensions: Any, default_ip: Optional[str]) -> Tuple[int, str]:
 
-        ip = end_point.split(":")[0]
-        ip.replace(' ', '')
-        port = end_point.split(":")[1]
+        ip, port = self.parse_tcp_endpoint(end_point)
+        end_point = "{}:{}".format(ip, port)
+        if service.tenant_id != tenant.tenant_id:
+            raise ServiceHandleException(msg="component not found", msg_show="组件不存在", status_code=404)
+        service_tcp_domain = tcp_domain.get_service_tcpdomain_by_tcp_rule_id(tcp_rule_id)
+        if (not service_tcp_domain or service_tcp_domain.tenant_id != tenant.tenant_id
+                or service_tcp_domain.service_id != service.service_id):
+            raise ErrNotFoundStreamDomain
         data: dict = dict()
         data["service_id"] = service.service_id
         data["container_port"] = int(container_port)
         data["ip"] = ip
-        data["port"] = int(port)
+        data["port"] = port
         data["tcp_rule_id"] = tcp_rule_id
         if rule_extensions:
             data["rule_extensions"] = rule_extensions
 
-        try:
-            # 给数据中心传送数据修改策略
-            region_api.updateTcpDomain(service.service_region, tenant.tenant_name, data)
-        except region_api.CallApiError as e:
-            if e.status != 404:
-                raise e
+        # 给数据中心传送数据修改策略
+        region_api.updateTcpDomain(service.service_region, tenant.tenant_name, data)
         region = region_repo.get_region_by_region_name(service.service_region)
         # 先删除再添加
-        service_tcp_domain = tcp_domain.get_service_tcpdomain_by_tcp_rule_id(tcp_rule_id)
-        # NOTE: potential latent None-bug — Optional return dereferenced without a guard
-        # (AttributeError if the tcp rule id does not exist).
-        service_tcp_domain.delete()  # type: ignore[union-attr]
+        service_tcp_domain.delete()
         domain_info: dict = dict()
         domain_info["tcp_rule_id"] = tcp_rule_id
         domain_info["service_id"] = service.service_id

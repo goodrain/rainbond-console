@@ -2,7 +2,7 @@
 import collections
 import os
 import sys
-from types import ModuleType
+from types import ModuleType, SimpleNamespace
 from unittest import TestCase
 from unittest.mock import MagicMock, patch
 
@@ -48,6 +48,32 @@ from console.services import upgrade_services as upgrade_services_module  # noqa
 from console.services.upgrade_services import UpgradeService  # noqa: E402
 
 
+class UpgradeFailedComponentRetryTests(TestCase):
+    def test_retry_dispatches_failed_components_and_preserves_successful_components(self):
+        service = UpgradeService()
+        tenant, user = object(), object()
+        for operation, failure, active in (
+                (AppUpgradeRecordType.UPGRADE.value, UpgradeStatus.UPGRADE_FAILED.value, UpgradeStatus.UPGRADING.value),
+                (AppUpgradeRecordType.ROLLBACK.value, UpgradeStatus.ROLLBACK_FAILED.value, UpgradeStatus.ROLLING.value)):
+            with self.subTest(operation=operation):
+                record = MagicMock(ID=33, record_type=operation)
+                record.can_deploy.return_value = True
+                failed = SimpleNamespace(event_id="failed-event", service_id="java", status=failure)
+                successful = SimpleNamespace(event_id="success-event", service_id="mysql",
+                                             status=UpgradeStatus.UPGRADED.value)
+                events = [{"service_id": "java", "event_id": "retry-event"}]
+                with patch.object(upgrade_services_module.component_upgrade_record_repo, "list_by_app_record_id",
+                                  return_value=[successful, failed]), \
+                        patch.object(upgrade_services_module.app_manage_service, "batch_operations",
+                                     return_value=events) as dispatch, \
+                        patch.object(upgrade_services_module.upgrade_repo, "change_app_record_status") as status, \
+                        patch.object(service, "_update_component_records") as update:
+                    self.assertEqual(service.deploy(tenant, "region", user, record), events)
+                dispatch.assert_called_once_with(tenant, "region", user, "deploy", ["java"])
+                status.assert_called_once_with(record, active)
+                self.assertEqual(list(update.call_args.args[1]), [failed])
+
+
 class FakeAppRecord(object):
     def __init__(self, record_type, status):
         self.record_type = record_type
@@ -57,6 +83,69 @@ class FakeAppRecord(object):
 class FakeComponentRecord(object):
     def __init__(self, status):
         self.status = status
+
+
+# capability_id: console.app-upgrade.runtime-readiness
+class UpgradeRuntimeReadinessTests(TestCase):
+    def setUp(self):
+        self.service = UpgradeService()
+        self.record = SimpleNamespace(ID=7, tenant_id="tenant")
+        self.components = [
+            {"service_id": "active", "service_cname": "backend", "event_id": "event"},
+            {"service_id": "optional", "service_cname": "health", "event_id": None},
+        ]
+        tenant_patch = patch.object(upgrade_services_module.Tenants.objects, "get",
+                                    return_value=SimpleNamespace(enterprise_id="enterprise"))
+        self.tenant = tenant_patch.start()
+        self.addCleanup(tenant_patch.stop)
+        api_patch = patch.object(upgrade_services_module.region_api, "service_status")
+        self.api = api_patch.start()
+        self.addCleanup(api_patch.stop)
+
+    def runtime(self, statuses):
+        self.api.return_value = {"list": [{"service_id": key, "status": value} for key, value in statuses.items()]}
+        return self.service.get_upgrade_runtime_state("team", "region", self.record, self.components)
+
+    def test_successful_operation_can_still_wait_for_new_workload(self):
+        result = self.runtime({"active": "upgrade", "optional": "closed"})
+        self.assertEqual(result["status"], "pending")
+        self.assertEqual(result["components"][0], {
+            "service_id": "active", "service_cname": "backend", "status": "upgrade"})
+        self.tenant.assert_called_once_with(tenant_id="tenant", tenant_name="team")
+
+    def test_running_target_and_unchanged_closed_component_are_ready(self):
+        self.assertEqual(self.runtime({"active": "running", "optional": "closed"})["status"], "ready")
+
+    def test_operated_closed_component_is_not_ready(self):
+        self.components[1]["event_id"] = "another-event"
+        self.assertEqual(self.runtime({"active": "running", "optional": "closed"})["status"], "pending")
+
+    def test_abnormal_is_distinct_from_waiting(self):
+        self.assertEqual(self.runtime({"active": "abnormal", "optional": "closed"})["status"], "abnormal")
+
+    def test_missing_runtime_is_unknown(self):
+        self.assertEqual(self.runtime({"active": "running"})["status"], "unknown")
+
+    def test_unavailable_api_is_unknown_and_does_not_break_record(self):
+        self.api.side_effect = RuntimeError("unavailable")
+        result = self.service.get_upgrade_runtime_state("team", "region", self.record, self.components)
+        self.assertEqual(result["status"], "unknown")
+
+    def test_wrong_tenant_does_not_query_region(self):
+        self.tenant.side_effect = upgrade_services_module.Tenants.DoesNotExist
+        result = self.service.get_upgrade_runtime_state("other-team", "region", self.record, self.components)
+        self.assertEqual(result["status"], "unknown")
+        self.api.assert_not_called()
+
+    def test_detail_keeps_existing_status_and_adds_runtime_state(self):
+        record = SimpleNamespace(ID=7, is_finished=lambda: True)
+        runtime = {"status": "pending", "components": []}
+        with patch.object(upgrade_services_module.upgrade_repo, "get_by_record_id", return_value=record), \
+                patch.object(self.service, "serialized_upgrade_record", return_value={"status": 3, "service_record": []}), \
+                patch.object(self.service, "get_upgrade_runtime_state", return_value=runtime, create=True):
+            result = self.service.get_app_upgrade_record("team", "region", "7")
+        self.assertEqual(result["status"], 3)
+        self.assertEqual(result["runtime_state"], runtime)
 
 
 # capability_id: console.app-upgrade.record-status-summary

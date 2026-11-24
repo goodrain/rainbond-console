@@ -11,6 +11,7 @@ from .port_utils import normalize_template_port_service_flags
 from console.exception.main import EnvAlreadyExist, InvalidEnvName
 # repository
 from console.repositories.app_config import port_repo
+from console.services.vm_login_security import filter_vm_login_transfer_attributes
 # service
 from console.services.app_config import env_var_service
 # model
@@ -348,6 +349,7 @@ class Component(object):
             new_k8s_attributes.extend(component_k8s_attributes.get("add"))
         if component_k8s_attributes.get("upd", []):
             new_k8s_attributes.extend(component_k8s_attributes.get("upd"))
+        new_k8s_attributes = filter_vm_login_transfer_attributes(new_k8s_attributes)
 
         k8s_attributes = {}
         for attribute in new_k8s_attributes:

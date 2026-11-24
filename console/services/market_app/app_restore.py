@@ -11,10 +11,9 @@ from .original_app import OriginalApp
 from .new_app import NewApp
 from .component import Component
 from .component_group import ComponentGroup
-from .plugin import Plugin
 # service
+from console.utils.vm_restore_attributes import public_vm_attributes, public_attribute_fields
 from console.services.app_config import label_service
-from console.services.app_version_auto_snapshot import app_version_auto_snapshot_service
 # repository
 from console.repositories.app_snapshot import app_snapshot_repo
 from console.repositories.upgrade_repo import upgrade_repo
@@ -57,14 +56,8 @@ class AppRestore(MarketApp):
     3. AppRestore will not restore components that were deleted after the upgrade.
     4. AppRestore will not be rolled back that k8s resources under the application
     """
-    CREATE_ROLLBACK_SNAPSHOT = True
 
-    def __init__(self,
-                 tenant: Any,
-                 region: RegionConfig,
-                 user: Any,
-                 app: ServiceGroup,
-                 component_group: TenantServiceGroup,
+    def __init__(self, tenant: Any, region: RegionConfig, user: Any, app: ServiceGroup, component_group: TenantServiceGroup,
                  app_upgrade_record: AppUpgradeRecord) -> None:
         self.tenant = tenant
         self.region = region
@@ -84,7 +77,6 @@ class AppRestore(MarketApp):
         super(AppRestore, self).__init__(self.original_app, self.new_app, self.user)
 
     def restore(self) -> Tuple[Optional[AppUpgradeRecord], TenantServiceGroup]:
-        app_version_auto_snapshot_service.cancel(self.app.ID)
         # Sync the new application to the data center first
         # TODO(huangrh): rollback on api timeout
         self.sync_new_app()
@@ -100,17 +92,6 @@ class AppRestore(MarketApp):
         self._deploy()
 
         return self.rollback_record, self.component_group
-
-    def deploy(self) -> List[Any]:
-        events = super(AppRestore, self).deploy()
-        if self.CREATE_ROLLBACK_SNAPSHOT:
-            try:
-                app_version_auto_snapshot_service.track(
-                    self.tenant, self.region_name, self.user, self.app, events,
-                    "组件库回滚成功，自动创建快照", upgrade=True)
-            except Exception:
-                logger.exception("could not register rollback snapshot for application %s", self.app.ID)
-        return events
 
     def _save_new_app(self) -> None:
         # save new app
@@ -211,21 +192,20 @@ class AppRestore(MarketApp):
         # plugins
         plugins = self.list_original_plugins()
 
-        return NewApp(
-            tenant=self.tenant,
-            region_name=self.region_name,
-            app=self.app,
-            component_group=self._create_component_group(),
-            new_components=[],
-            update_components=components,
-            component_deps=component_deps,
-            volume_deps=volume_deps,
-            plugins=plugins,
-            plugin_deps=self._create_plugins_deps(),
-            plugin_configs=self._create_plugins_configs(),
-            config_groups=self.original_app.config_groups,
-            config_group_components=self.original_app.config_group_components,
-            config_group_items=self.original_app.config_group_items)
+        return NewApp(tenant=self.tenant,
+                      region_name=self.region_name,
+                      app=self.app,
+                      component_group=self._create_component_group(),
+                      new_components=[],
+                      update_components=components,
+                      component_deps=component_deps,
+                      volume_deps=volume_deps,
+                      plugins=plugins,
+                      plugin_deps=self._create_plugins_deps(),
+                      plugin_configs=self._create_plugins_configs(),
+                      config_groups=self.original_app.config_groups,
+                      config_group_components=self.original_app.config_group_components,
+                      config_group_items=self.original_app.config_group_items)
 
     def _create_component(self, snap: Dict[str, Any], now_volumes: Dict[str, List[Any]]) -> Component:
         # component
@@ -255,7 +235,20 @@ class AppRestore(MarketApp):
         # graphs
         graphs = [ComponentGraph(**graph) for graph in snap["component_graphs"]]
         service_labels = [ServiceLabels(**label) for label in snap["service_labels"]]
-        k8s_attributes = [ComponentK8sAttributes(**attribute) for attribute in snap["component_k8s_attributes"]]
+        k8s_attributes = []
+        if snap.get("component_k8s_attributes"):
+            try:
+                target = TenantServiceInfo.objects.get(tenant_id=self.tenant.tenant_id,
+                                                       service_id=component.service_id,
+                                                       service_region=self.region_name)
+            except TenantServiceInfo.DoesNotExist:
+                raise ServiceHandleException(msg="Snapshot component scope conflict", status_code=409)
+            k8s_attributes = [
+                ComponentK8sAttributes(tenant_id=target.tenant_id,
+                                       component_id=target.service_id,
+                                       **public_attribute_fields(attribute))
+                for attribute in public_vm_attributes(snap["component_k8s_attributes"])
+            ]
         cpt = Component(
             component=component,
             component_source=component_source,

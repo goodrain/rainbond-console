@@ -13,7 +13,14 @@ sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
 django.setup()
 
-from console.services.mcp_query_service import mcp_query_service
+
+def _load_test_dependencies():
+    """Keep the existing post-Django-setup import order and module bindings."""
+    from console.services.mcp_query_service import mcp_query_service
+    return (mcp_query_service, )
+
+
+mcp_query_service, = _load_test_dependencies()
 
 
 class Obj(object):
@@ -22,7 +29,6 @@ class Obj(object):
 
 
 class MCPQueryDependencyOpsTests(SimpleTestCase):
-
     def setUp(self):
         self.user = Obj(
             user_id=1,
@@ -219,8 +225,14 @@ class MCPQueryDependencyOpsTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.dependency_service.patch_add_service_reverse_dependency")
     def test_add_reverse_dependencies_success(self, mock_patch_reverse):
         data = [
-            {"tenant_id": "team-1", "service_id": "svc-2"},
-            {"tenant_id": "team-1", "service_id": "svc-3"},
+            {
+                "tenant_id": "team-1",
+                "service_id": "svc-2"
+            },
+            {
+                "tenant_id": "team-1",
+                "service_id": "svc-3"
+            },
         ]
         mock_patch_reverse.return_value = data
         source_ids = ["svc-2", "svc-3"]

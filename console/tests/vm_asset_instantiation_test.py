@@ -2,9 +2,12 @@
 # capability_id: rainbond-console.vm-run.vm-export-multi-disk-create
 # capability_id: console.vm-run.platform-runtime-guard
 # capability_id: console.vm-run.new-asset-image-name-validation
+# capability_id: console.vm-run.ssh-public-key-bootstrap
 import collections
 import json
 import os
+import base64
+import struct
 from types import ModuleType, SimpleNamespace
 from unittest import mock
 
@@ -67,11 +70,735 @@ from rest_framework.test import APIRequestFactory  # noqa: E402
 from console.exception.main import ServiceHandleException  # noqa: E402
 from console.models.main import ComponentK8sAttributes  # noqa: E402
 from console.services.vm_boot_source import is_valid_vm_runtime_image_name  # noqa: E402
+from console.services.virtual_machine import VM_UBUNTU_NOBLE_QCOW2_URL, vms  # noqa: E402
 from console.views.app_create.vm_run import VMRunCreateView  # noqa: E402
-from www.models.main import VirtualMachineImage  # noqa: E402
+from www.models.main import (  # noqa: E402
+    ServiceGroupRelation,
+    TenantServiceEnvVar,
+    TenantServiceInfo,
+    TenantServicesPort,
+    VirtualMachineImage,
+)
+
+
+VMDK_VIEW_PATCH = "console.views.app_create.vm_run."
+VMDK_TRACKING_PATCH = VMDK_VIEW_PATCH + "enterprise_first_deploy_service.safe_begin_deploy_tracking"
 
 
 class VMAssetInstantiationTests(TestCase):
+    @staticmethod
+    def _ed25519_public_key():
+        def ssh_string(value):
+            return struct.pack(">I", len(value)) + value
+
+        blob = ssh_string(b"ssh-ed25519") + ssh_string(b"\x11" * 32)
+        return "ssh-ed25519 {} ubuntu office desktop".format(base64.b64encode(blob).decode("ascii"))
+
+    # capability_id: console.vm-run.vmdk-source
+    def test_vmdk_url_upload_and_ready_asset_keep_source_metadata_and_registry_runtime(self):
+        for mode in ("url", "upload", "existing"):
+            with self.subTest(mode=mode):
+                tenant_id = "tenant-vmdk-" + mode
+                name = "vmdk-" + mode
+                source = "https://example.invalid/ROOT.VMDK?download=1"
+                payload = {
+                    "group_id": 7,
+                    "service_cname": name,
+                    "k8s_component_name": name,
+                    "image_name": name,
+                    "source_type": mode,
+                    "os_family": "windows"
+                }
+                if mode == "url":
+                    payload["vm_url"] = source
+                elif mode == "upload":
+                    payload.update(event_id="vmdk-upload-event", format=" VMDK ")
+                else:
+                    asset = VirtualMachineImage.objects.create(
+                        tenant_id=tenant_id,
+                        name=name,
+                        image_url="tenant-ns:" + name,
+                        source_type="upload",
+                        source_uri="/grdata/package_build/temp/events/vmdk-existing-event",
+                        status="ready",
+                        format="vmdk")
+                    payload["asset_id"] = asset.ID
+                view = VMRunCreateView()
+                view.tenant = SimpleNamespace(tenant_id=tenant_id,
+                                              tenant_name="demo-team",
+                                              namespace="tenant-ns",
+                                              enterprise_id="eid")
+                view.response_region = "demo-region"
+                view.user = SimpleNamespace(pk=1, nick_name="tester")
+                request = view.initialize_request(APIRequestFactory().post("/console/teams/demo-team/apps/vm_run",
+                                                                           payload,
+                                                                           format="json"))
+                sid = "service-vmdk-" + mode
+                service = SimpleNamespace(service_id=sid,
+                                          service_alias="gr-vmdk-" + mode,
+                                          service_source="vm_run",
+                                          create_status="creating",
+                                          to_dict=lambda: {"service_id": sid},
+                                          save=mock.Mock())
+                created_result = (200, "created", service)
+                with mock.patch(VMDK_VIEW_PATCH + "app_service.is_k8s_component_name_duplicate", return_value=False), \
+                        mock.patch(VMDK_VIEW_PATCH + "vms.ensure_vm_platform_running"), \
+                        mock.patch(VMDK_TRACKING_PATCH, return_value=None), \
+                        mock.patch(VMDK_VIEW_PATCH + "app_service.create_vm_run_app", return_value=created_result) as create, \
+                        mock.patch(VMDK_VIEW_PATCH + "group_service.add_service_to_group", return_value=(200, "success")):
+                    response = view.post(request)
+                self.assertEqual(200, response.status_code)
+                self.assertEqual("tenant-ns:" + name, create.call_args.args[5])
+                if mode == "existing":
+                    self.assertEqual("/grdata/package_build/temp/events/vmdk-existing-event", create.call_args.args[8])
+                attrs = {row.name: row.attribute_value for row in ComponentK8sAttributes.objects.filter(component_id=sid)}
+                self.assertEqual("vmdk", attrs["vm_boot_source_format"])
+                imported = json.loads(attrs["vm_disk_imports"])["disk"]
+                self.assertEqual("registry", imported["source_type"])
+                self.assertEqual("tenant-ns:vm-" + sid, imported["image_url"])
+                self.assertEqual("qcow2", imported["format"])
+                self.assertEqual("tenant-ns:vm-" + sid, service.image)
+                service.save.assert_called_once_with(update_fields=["image"])
+                selected_asset = VirtualMachineImage.objects.get(tenant_id=tenant_id, name=name)
+                self.assertEqual("tenant-ns:" + name if mode == "existing" else service.image, selected_asset.image_url)
+                self.assertEqual("ready", selected_asset.status)
+                if mode != "existing":
+                    self.assertEqual("qcow2", selected_asset.format)
+                    source_extra = json.loads(selected_asset.extra_json)
+                    self.assertEqual("vmdk", source_extra["source_format"])
+                    self.assertEqual(selected_asset.source_uri, source_extra["source_uri"])
+                    self.assertEqual("registry", source_extra["disks"][0]["source_type"])
+                    reused = vms.build_vm_create_disk_imports(asset=selected_asset, image_url=selected_asset.image_url)
+                    self.assertEqual("qcow2", reused[0]["format"])
+                    self.assertEqual("registry", reused[0]["source_type"])
+                    self.assertEqual(service.image, reused[0]["image_url"])
+                    clone = VirtualMachineImage.objects.create(tenant_id=tenant_id,
+                                                               name=name + "-clone",
+                                                               image_url=selected_asset.image_url,
+                                                               source_type="clone",
+                                                               source_uri="/grdata/source-already-cleaned",
+                                                               format=selected_asset.format,
+                                                               extra_json=selected_asset.extra_json,
+                                                               source_asset_id=selected_asset.ID,
+                                                               status="ready")
+                    reused = vms.build_vm_create_disk_imports(asset=clone, image_url=clone.image_url)
+                    self.assertEqual(service.image, reused[0]["image_url"])
+                    self.assertEqual("registry", reused[0]["source_type"])
+                self.assertEqual(["root"], [disk["disk_role"] for disk in json.loads(attrs["vm_disk_layout"])])
+
+    # capability_id: console.vm-run.vmdk-source
+    def test_vm_run_explicit_source_format_rejects_unknown_before_side_effects(self):
+        view = VMRunCreateView()
+        view.tenant = SimpleNamespace(tenant_id="tenant-vmdk",
+                                      tenant_name="demo-team",
+                                      namespace="tenant-ns",
+                                      enterprise_id="eid")
+        view.response_region = "demo-region"
+        view.user = SimpleNamespace(pk=1, nick_name="tester")
+        for bad in ("vhdx", "vmdk;invalid", "vmdk.gz", "vmdk.xz", "vmdk.tar.gz", "qcow2", "disk", 1, [], {}):
+            payload = {
+                "group_id": 7,
+                "service_cname": "bad-format",
+                "image_name": "bad-format",
+                "source_type": "url",
+                "vm_url": "https://example.invalid/root.vmdk",
+                "format": bad
+            }
+            request = view.initialize_request(APIRequestFactory().post("/console/teams/demo-team/apps/vm_run",
+                                                                       payload,
+                                                                       format="json"))
+            with mock.patch(VMDK_VIEW_PATCH + "vms.create_vm_image_asset") as asset, \
+                    mock.patch(VMDK_VIEW_PATCH + "app_service.create_vm_run_app") as component, \
+                    mock.patch(VMDK_TRACKING_PATCH) as track:
+                response = view.post(request)
+            self.assertEqual(400, response.status_code)
+            for writer in (asset, component, track):
+                writer.assert_not_called()
+
+        asset = VirtualMachineImage.objects.create(tenant_id="tenant-vmdk",
+                                                   name="unverified-vmdk",
+                                                   image_url="tenant-ns:unknown",
+                                                   source_uri="tenant-ns:unknown",
+                                                   format="vmdk",
+                                                   status="ready",
+                                                   extra_json='{"unchanged":true}')
+        request = view.initialize_request(APIRequestFactory().post("/console/teams/demo-team/apps/vm_run", {
+            "group_id": 7,
+            "service_cname": "unverified-vmdk",
+            "image_name": asset.name,
+            "asset_id": asset.ID,
+            "builder_runtime_image": "tenant-ns:client-cannot-certify"
+        },
+                                                                   format="json"))
+        with mock.patch(VMDK_VIEW_PATCH + "vms.ensure_vm_platform_running"), \
+                mock.patch(VMDK_TRACKING_PATCH, return_value=None), \
+                mock.patch(VMDK_VIEW_PATCH + "app_service.create_vm_run_app") as component:
+            response = view.post(request)
+        self.assertEqual(400, response.status_code)
+        component.assert_not_called()
+        asset.refresh_from_db()
+        self.assertEqual("tenant-ns:unknown", asset.image_url)
+        self.assertEqual('{"unchanged":true}', asset.extra_json)
+        for disguised in ("qcow2", "disk", "raw"):
+            request = view.initialize_request(APIRequestFactory().post("/console/teams/demo-team/apps/vm_run", {
+                "group_id": 7,
+                "service_cname": "unverified-vmdk",
+                "image_name": asset.name,
+                "asset_id": asset.ID,
+                "format": disguised
+            },
+                                                                       format="json"))
+            with mock.patch(VMDK_VIEW_PATCH + "vms.ensure_vm_platform_running"), \
+                    mock.patch(VMDK_TRACKING_PATCH, return_value=None) as track, \
+                    mock.patch(VMDK_VIEW_PATCH + "app_service.create_vm_run_app") as component:
+                response = view.post(request)
+            self.assertEqual(400, response.status_code)
+            component.assert_not_called()
+            track.assert_not_called()
+
+    # capability_id: console.vm-run.vmdk-source
+    def test_vmdk_source_does_not_gain_ssh_or_noble_password_bootstrap_trust(self):
+        for login in ("ssh_key", "password"):
+            with self.subTest(login=login), self.assertRaises(ValueError):
+                vms.prepare_vm_login_bootstrap(login_method=login,
+                                               ssh_username="ubuntu",
+                                               ssh_public_key=self._ed25519_public_key() if login == "ssh_key" else "",
+                                               login_password="unused-test-input" if login == "password" else "",
+                                               source_type="url",
+                                               vm_url=(VM_UBUNTU_NOBLE_QCOW2_URL),
+                                               image_format="vmdk",
+                                               arch="amd64",
+                                               boot_mode="uefi",
+                                               os_name="Ubuntu 24.04",
+                                               os_family="linux",
+                                               password_bootstrap_supported=True)
+
+        for source_format in ("raw.gz", "img.gz"):
+            username, public_key = vms.validate_vm_ssh_bootstrap("ubuntu",
+                                                                 self._ed25519_public_key(),
+                                                                 os_name="Ubuntu 24.04",
+                                                                 os_family="linux",
+                                                                 boot_source_format=source_format)
+            self.assertEqual("ubuntu", username)
+            self.assertTrue(public_key.startswith("ssh-ed25519 "))
+        for source_format in ("vmdk", "vmdk.gz", "vmdk.xz"):
+            with self.assertRaises(ValueError):
+                vms.validate_vm_ssh_bootstrap("ubuntu",
+                                              self._ed25519_public_key(),
+                                              os_name="Ubuntu 24.04",
+                                              os_family="linux",
+                                              boot_source_format=source_format)
+
+        asset = VirtualMachineImage.objects.create(tenant_id="tenant-vmdk-origin",
+                                                   name="vmdk-runtime",
+                                                   image_url="tenant-ns:vmdk-runtime",
+                                                   format="qcow2",
+                                                   source_type="upload",
+                                                   source_uri="/grdata/source-already-cleaned",
+                                                   status="ready",
+                                                   extra_json=json.dumps({
+                                                       "source_format":
+                                                       "vmdk",
+                                                       "disks": [{
+                                                           "disk_role": "root",
+                                                           "format": "qcow2",
+                                                           "source_type": "registry",
+                                                           "image_url": "tenant-ns:vmdk-runtime"
+                                                       }]
+                                                   }))
+        view = VMRunCreateView()
+        view.tenant = SimpleNamespace(tenant_id="tenant-vmdk-origin",
+                                      tenant_name="demo-team",
+                                      namespace="tenant-ns",
+                                      enterprise_id="eid")
+        view.response_region = "demo-region"
+        view.user = SimpleNamespace(pk=1, nick_name="tester")
+        request = view.initialize_request(APIRequestFactory().post("/console/teams/demo-team/apps/vm_run", {
+            "group_id": 7,
+            "service_cname": "vmdk-runtime",
+            "image_name": asset.name,
+            "asset_id": asset.ID,
+            "source_type": "existing",
+            "format": "qcow2",
+            "os_name": "Ubuntu 24.04",
+            "os_family": "linux",
+            "ssh_username": "ubuntu",
+            "ssh_public_key": self._ed25519_public_key(),
+            "login_method": "ssh_key"
+        },
+                                                                   format="json"))
+        with mock.patch(VMDK_TRACKING_PATCH) as track, \
+                mock.patch(VMDK_VIEW_PATCH + "app_service.create_vm_run_app") as component:
+            response = view.post(request)
+        self.assertEqual(400, response.status_code)
+        track.assert_not_called()
+        component.assert_not_called()
+
+    # capability_id: console.vm-run.plain-builder-runtime
+    def test_new_plain_disk_requests_use_owned_build_output_and_keep_legacy_media_paths(self):
+        cases = [
+            ("qcow2", "qcow2", "root.qcow2", True),
+            ("raw", "raw", "root.raw", True),
+            ("img", "img", "root.img", True),
+            ("raw-wrapper", "raw.gz", "root.raw.gz", False),
+            ("img-wrapper", "img.gz", "root.img.gz", False),
+            ("wrapper-hint", "raw", "root.raw.gz", False),
+            ("iso", "iso", "install.iso", False),
+            ("converted-template", "vmdk", "", False),
+        ]
+        for label, source_format, filename, owned in cases:
+            with self.subTest(label=label):
+                tenant_id = "plain-" + label
+                name = "plain-" + label
+                original_image = "tenant-ns:" + name
+                source = "https://example.invalid/" + filename
+                payload = {"group_id": 7, "service_cname": name, "image_name": name, "format": source_format}
+                if filename:
+                    payload.update(source_type="url", vm_url=source)
+                else:
+                    asset = VirtualMachineImage.objects.create(tenant_id=tenant_id,
+                                                               name=name,
+                                                               image_url=original_image,
+                                                               source_uri=original_image,
+                                                               source_type="clone",
+                                                               format="vmdk",
+                                                               status="ready",
+                                                               extra_json=json.dumps({
+                                                                   "disks": [{
+                                                                       "disk_role": "root",
+                                                                       "disk_key": "rootdisk",
+                                                                       "disk_name": "rootdisk",
+                                                                       "image_url": original_image,
+                                                                       "source_uri": "https://example.invalid/source.vmdk",
+                                                                       "source_type": "registry",
+                                                                       "format": "qcow2"
+                                                                   }]
+                                                               }))
+                    payload.update(source_type="existing", asset_id=asset.ID)
+                sid = "plain-service-" + label
+                service = SimpleNamespace(service_id=sid,
+                                          service_alias="gr-plain",
+                                          service_source="vm_run",
+                                          image=original_image,
+                                          create_status="creating",
+                                          to_dict=lambda: {"service_id": sid},
+                                          save=mock.Mock())
+                view = VMRunCreateView()
+                view.tenant = SimpleNamespace(tenant_id=tenant_id,
+                                              tenant_name="demo-team",
+                                              namespace="tenant-ns",
+                                              enterprise_id="eid")
+                view.response_region = "demo-region"
+                view.user = SimpleNamespace(pk=1, nick_name="tester")
+                request = view.initialize_request(APIRequestFactory().post("/console/teams/demo-team/apps/vm_run",
+                                                                           payload,
+                                                                           format="json"))
+                created_result = (200, "created", service)
+                with mock.patch(VMDK_VIEW_PATCH + "app_service.is_k8s_component_name_duplicate", return_value=False), \
+                        mock.patch(VMDK_VIEW_PATCH + "vms.ensure_vm_platform_running"), \
+                        mock.patch(VMDK_TRACKING_PATCH, return_value=None), \
+                        mock.patch(VMDK_VIEW_PATCH + "app_service.create_vm_run_app", return_value=created_result), \
+                        mock.patch(VMDK_VIEW_PATCH + "group_service.add_service_to_group", return_value=(200, "success")):
+                    response = view.post(request)
+                self.assertEqual(200, response.status_code)
+                attrs = {row.name: row.attribute_value for row in ComponentK8sAttributes.objects.filter(component_id=sid)}
+                self.assertEqual("qcow2" if label == "converted-template" else source_format, attrs["vm_boot_source_format"])
+                imported = json.loads(attrs.get("vm_disk_imports", "{}"))
+                if label == "iso":
+                    self.assertEqual({}, imported)
+                elif owned:
+                    self.assertEqual("tenant-ns:vm-" + sid, service.image)
+                    self.assertEqual("registry", imported["disk"]["source_type"])
+                    self.assertEqual(service.image, imported["disk"]["image_url"])
+                    self.assertEqual("qcow2", imported["disk"]["format"])
+                elif label == "converted-template":
+                    self.assertEqual(original_image, imported["disk"]["image_url"])
+                    self.assertEqual("registry", imported["disk"]["source_type"])
+                else:
+                    self.assertEqual("http", imported["disk"]["source_type"])
+                    self.assertEqual(source, imported["disk"]["image_url"])
+                if not owned:
+                    self.assertEqual(original_image, service.image)
+                    service.save.assert_not_called()
+
+    # capability_id: console.vm-run.source-input-boundary
+    def test_vm_run_sources_are_unambiguous_and_scoped_before_side_effects(self):
+        view = VMRunCreateView()
+        view.tenant = SimpleNamespace(tenant_id="tenant-source-guard",
+                                      tenant_name="demo-team",
+                                      namespace="tenant-ns",
+                                      enterprise_id="eid")
+        view.response_region = "demo-region"
+        view.user = SimpleNamespace(pk=1, nick_name="tester")
+        invalid = [
+            {
+                "vm_url": "/grdata/tenant/private-image-dir"
+            },
+            {
+                "vm_url": "file:///grdata/package_build/temp/events/source"
+            },
+            {
+                "vm_url": "https://user@example.invalid/root.qcow2"
+            },
+            {
+                "vm_url": "https://example.invalid/\nroot.qcow2"
+            },
+            {
+                "vm_url": "http://"
+            },
+            {
+                "event_id": "../outside"
+            },
+            {
+                "event_id": "safe..unsafe"
+            },
+            {
+                "event_id": "one/two"
+            },
+            {
+                "event_id": "one\\two"
+            },
+            {
+                "event_id": "."
+            },
+            {
+                "event_id": "uploaded-source",
+                "vm_url": VM_UBUNTU_NOBLE_QCOW2_URL,
+                "login_method": "password",
+                "ssh_username": "ubuntu",
+                "login_password": "unused-test-input",
+                "boot_mode": "uefi",
+                "os_name": "Ubuntu 24.04",
+                "os_family": "linux"
+            },
+        ]
+        for i, source in enumerate(invalid):
+            with self.subTest(case=i):
+                payload = {
+                    "group_id": 7,
+                    "service_cname": "source-guard-" + str(i),
+                    "image_name": "source-guard-" + str(i),
+                    "source_type": "url",
+                    "format": "qcow2",
+                    **source
+                }
+                request = view.initialize_request(APIRequestFactory().post("/console/teams/demo-team/apps/vm_run",
+                                                                           payload,
+                                                                           format="json"))
+                capabilities = {"password_bootstrap_supported": True}
+                rejected_create = (412, "must not create", None)
+                with mock.patch(VMDK_VIEW_PATCH + "vms.get_vm_capabilities", return_value=capabilities) as caps, \
+                        mock.patch(VMDK_VIEW_PATCH + "vms.hash_vm_login_password", return_value="unused-hash") as derive, \
+                        mock.patch(VMDK_VIEW_PATCH + "vms.ensure_vm_platform_running"), \
+                        mock.patch(VMDK_VIEW_PATCH + "vms.create_vm_image_asset") as asset, \
+                        mock.patch(VMDK_TRACKING_PATCH, return_value=None) as track, \
+                        mock.patch(VMDK_VIEW_PATCH + "app_service.create_vm_run_app", return_value=rejected_create) as component:
+                    response = view.post(request)
+                self.assertEqual(400, response.status_code)
+                for dependency in (caps, derive, asset, track, component):
+                    dependency.assert_not_called()
+
+    def test_vm_ssh_bootstrap_accepts_only_linux_disk_images(self):
+        key = self._ed25519_public_key()
+
+        self.assertEqual(
+            ("ubuntu", key),
+            vms.validate_vm_ssh_bootstrap(
+                "ubuntu", key, os_name="Ubuntu 24.04", os_family="linux", boot_source_format="qcow2"))
+
+        invalid = (
+            ("ubuntu", "", "Ubuntu 24.04", "linux", "qcow2"),
+            ("ubuntu;id", key, "Ubuntu 24.04", "linux", "qcow2"),
+            ("ubuntu", "-----BEGIN OPENSSH PRIVATE KEY-----DO_NOT_ECHO", "Ubuntu 24.04", "linux", "qcow2"),
+            ("ubuntu", "ssh-ed25519 QUJD\nssh-ed25519 REVG", "Ubuntu 24.04", "linux", "qcow2"),
+            ("ubuntu", "ssh-ed25519 !!!", "Ubuntu 24.04", "linux", "qcow2"),
+            ("ubuntu", "ssh-ed25519 QUJDRA==", "Ubuntu 24.04", "linux", "qcow2"),
+            ("ubuntu", "ssh-ed25519 " + "A" * 17000, "Ubuntu 24.04", "linux", "qcow2"),
+            ("ubuntu", key, "Windows Server 2025", "windows", "qcow2"),
+            ("ubuntu", key, "Ubuntu 24.04", "linux", "iso"),
+            ("ubuntu", key, "Ubuntu 24.04", "linux", ""),
+        )
+        for username, public_key, os_name, os_family, source_format in invalid:
+            with self.subTest(username=username, source_format=source_format), self.assertRaises(ValueError) as raised:
+                vms.validate_vm_ssh_bootstrap(
+                    username, public_key, os_name=os_name, os_family=os_family, boot_source_format=source_format)
+            if public_key:
+                self.assertNotIn(public_key, str(raised.exception))
+
+    # capability_id: console.vm-run.reject-root-ssh-bootstrap
+    def test_vm_ssh_bootstrap_rejects_root_with_non_root_username_hint(self):
+        key = self._ed25519_public_key()
+        for username in ("root", " root "):
+            with self.subTest(username=username), self.assertRaisesRegex(ValueError, "non-root username") as raised:
+                vms.validate_vm_ssh_bootstrap(
+                    username, key, os_name="Ubuntu 24.04", os_family="linux", boot_source_format="qcow2")
+            self.assertNotIn(key, str(raised.exception))
+            for method in ("ssh_key", None):
+                with self.subTest(username=username, method=method), self.assertRaisesRegex(ValueError, "non-root username"):
+                    vms.prepare_vm_login_bootstrap(
+                        login_method=method, ssh_username=username, ssh_public_key=key,
+                        os_name="Ubuntu 24.04", os_family="linux", image_format="qcow2")
+
+    # capability_id: console.vm-run.reject-root-ssh-bootstrap
+    def test_vm_run_rejects_root_ssh_before_any_creation(self):
+        view = VMRunCreateView()
+        view.tenant = SimpleNamespace(
+            tenant_id="tenant-root-rejection", tenant_name="root-rejection-team",
+            namespace="root-rejection-ns", enterprise_id="root-rejection-enterprise")
+        view.response_region = "root-rejection-region"
+        view.user = SimpleNamespace(pk=1, nick_name="test-user")
+        key = self._ed25519_public_key()
+        request = view.initialize_request(APIRequestFactory().post(
+            "/console/teams/root-rejection-team/apps/vm_run", {
+                "group_id": 7,
+                "service_cname": "root-rejection-vm",
+                "k8s_component_name": "root-rejection-vm",
+                "image_name": "root-rejection-image",
+                "source_type": "url",
+                "vm_url": "https://example.invalid/linux.qcow2",
+                "format": "qcow2", "boot_mode": "uefi", "arch": "amd64",
+                "os_name": "Ubuntu 24.04", "os_family": "linux",
+                "login_method": "ssh_key", "ssh_username": " root ", "ssh_public_key": key,
+            }, format="json"))
+        asset = SimpleNamespace(ID=37, boot_mode="uefi", os_name="Ubuntu 24.04", source_type="url")
+        with mock.patch("console.views.app_create.vm_run.vms.ensure_vm_platform_running"), \
+                mock.patch("console.views.app_create.vm_run.vms.create_vm_image_asset", return_value=asset) as create_asset, \
+                mock.patch("console.views.app_create.vm_run.app_service.create_vm_run_app",
+                           return_value=(400, "creation must not be reached", None)) as create_component, \
+                mock.patch("console.views.app_create.vm_run.vms.save_vm_runtime_config") as save_runtime, \
+                mock.patch("console.views.app_create.vm_run.group_service.add_service_to_group") as associate_group, \
+                mock.patch("console.views.app_create.vm_run.port_service.add_service_port") as create_port, \
+                mock.patch("console.views.app_create.vm_run.enterprise_first_deploy_service.safe_begin_deploy_tracking",
+                           return_value=None) as track:
+            response = view.post(request)
+        self.assertEqual(400, response.status_code)
+        self.assertIn("non-root username", json.dumps(response.data))
+        self.assertNotIn(key, json.dumps(response.data))
+        for writer in (create_asset, create_component, save_runtime, associate_group, create_port, track):
+            writer.assert_not_called()
+        self.assertEqual(0, TenantServiceInfo.objects.count())
+        self.assertEqual(0, VirtualMachineImage.objects.count())
+        self.assertEqual(0, ComponentK8sAttributes.objects.count())
+        self.assertEqual(0, TenantServicesPort.objects.count())
+
+    def test_vm_run_rejects_invalid_ssh_before_creating_asset_or_component(self):
+        view = VMRunCreateView()
+        view.tenant = SimpleNamespace(
+            tenant_id="tenant-a", tenant_name="demo-team", namespace="tenant-ns", enterprise_id="eid")
+        view.response_region = "demo-region"
+        view.user = SimpleNamespace(pk=1, nick_name="tester")
+        request = view.initialize_request(APIRequestFactory().post(
+            "/console/teams/demo-team/apps/vm_run",
+            {
+                "group_id": 7,
+                "service_cname": "invalid-vm",
+                "k8s_component_name": "invalid-vm",
+                "image_name": "invalid-vm",
+                "source_type": "url",
+                "vm_url": "https://example.com/invalid-vm.iso",
+                "format": "iso",
+                "os_name": "Ubuntu 24.04",
+                "os_family": "linux",
+                "ssh_username": "ubuntu",
+                "ssh_public_key": self._ed25519_public_key(),
+            },
+            format="json"
+        ))
+
+        with mock.patch("console.views.app_create.vm_run.vms.create_vm_image_asset") as create_asset, \
+                mock.patch("console.views.app_create.vm_run.app_service.create_vm_run_app") as create_component, \
+                mock.patch(
+                    "console.views.app_create.vm_run.enterprise_first_deploy_service.safe_begin_deploy_tracking"
+                ) as track:
+            response = view.post(request)
+
+        self.assertEqual(400, response.status_code)
+        create_asset.assert_not_called()
+        create_component.assert_not_called()
+        track.assert_not_called()
+
+    def test_vm_run_rolls_back_asset_component_attrs_group_and_port_when_ssh_port_fails(self):
+        view = VMRunCreateView()
+        view.tenant = SimpleNamespace(
+            tenant_id="tenant-a", tenant_name="demo-team", namespace="tenant-ns", enterprise_id="eid")
+        view.response_region = "demo-region"
+        view.user = SimpleNamespace(pk=1, nick_name="tester")
+        asset_name = "ubuntu-rollback-test"
+        service_id = "service-rollback-ssh"
+        request = view.initialize_request(APIRequestFactory().post(
+            "/console/teams/demo-team/apps/vm_run",
+            {
+                "group_id": 7,
+                "service_cname": "rollback-vm",
+                "k8s_component_name": "rollback-vm",
+                "image_name": asset_name,
+                "source_type": "url",
+                "vm_url": "https://example.com/ubuntu-rollback.img",
+                "format": "qcow2",
+                "os_name": "Ubuntu 24.04",
+                "os_family": "linux",
+                "boot_mode": "uefi",
+                "ssh_username": "ubuntu",
+                "ssh_public_key": self._ed25519_public_key(),
+            },
+            format="json"
+        ))
+
+        def create_component(*args):
+            service = TenantServiceInfo.objects.create(
+                service_id=service_id,
+                tenant_id="tenant-a",
+                service_key=service_id,
+                service_alias="gr123457",
+                service_cname="rollback-vm",
+                service_region="demo-region",
+                category="application",
+                version="v1",
+                image="tenant-ns:{}".format(asset_name),
+                extend_method="vm",
+                create_status="creating",
+                service_source="vm_run",
+                code_from="image_manual",
+                namespace="default",
+                service_type="application",
+                k8s_component_name="rollback-vm",
+            )
+            return 200, "success", service
+
+        def add_port(tenant, service, port, **kwargs):
+            TenantServiceEnvVar.objects.create(
+                tenant_id=tenant.tenant_id,
+                service_id=service.service_id,
+                container_port=port,
+                name="连接地址",
+                attr_name="SSH_HOST",
+                attr_value=service.service_alias,
+                is_change=False,
+                scope="outer",
+            )
+            TenantServicesPort.objects.create(
+                tenant_id=tenant.tenant_id,
+                service_id=service.service_id,
+                container_port=port,
+                mapping_port=port,
+                protocol=kwargs["protocol"],
+                port_alias="SSH22",
+                is_inner_service=kwargs["is_inner_service"],
+                is_outer_service=kwargs["is_outer_service"],
+                k8s_service_name=service.service_alias,
+            )
+            return 500, "port failed", None
+
+        def add_to_group(tenant, region, group_id, target_service_id):
+            ServiceGroupRelation.objects.create(
+                service_id=target_service_id,
+                group_id=group_id,
+                tenant_id=tenant.tenant_id,
+                region_name=region,
+            )
+            return 200, "success"
+
+        with mock.patch("console.views.app_create.vm_run.app_service.is_k8s_component_name_duplicate",
+                        return_value=False), \
+                mock.patch("console.views.app_create.vm_run.vms.ensure_vm_platform_running"), \
+                mock.patch("console.views.app_create.vm_run.vms.resolve_vm_boot_mode", return_value="uefi"), \
+                mock.patch("console.views.app_create.vm_run.app_service.create_vm_run_app",
+                           side_effect=create_component), \
+                mock.patch("console.views.app_create.vm_run.vms.build_initial_vm_disk_layout", return_value=[]), \
+                mock.patch("console.views.app_create.vm_run.vms.build_vm_create_disk_imports", return_value=[]), \
+                mock.patch("console.views.app_create.vm_run.group_service.add_service_to_group",
+                           side_effect=add_to_group), \
+                mock.patch("console.views.app_create.vm_run.port_service.add_service_port", side_effect=add_port), \
+                mock.patch("console.views.app_create.vm_run.enterprise_first_deploy_service.safe_begin_deploy_tracking",
+                           return_value=None), \
+                mock.patch("console.views.app_create.vm_run.enterprise_first_deploy_service.safe_mark_failure"):
+            response = view.post(request)
+
+        self.assertEqual(500, response.status_code)
+        self.assertFalse(VirtualMachineImage.objects.filter(tenant_id="tenant-a", name=asset_name).exists())
+        self.assertFalse(TenantServiceInfo.objects.filter(service_id=service_id).exists())
+        self.assertFalse(ComponentK8sAttributes.objects.filter(component_id=service_id).exists())
+        self.assertFalse(ServiceGroupRelation.objects.filter(service_id=service_id).exists())
+        self.assertFalse(TenantServiceEnvVar.objects.filter(service_id=service_id).exists())
+        self.assertFalse(TenantServicesPort.objects.filter(service_id=service_id).exists())
+
+    def test_vm_run_records_linux_ssh_runtime_and_internal_port_before_returning(self):
+        view = VMRunCreateView()
+        view.tenant = SimpleNamespace(
+            tenant_id="tenant-a", tenant_name="demo-team", namespace="tenant-ns", enterprise_id="eid")
+        view.response_region = "demo-region"
+        view.user = SimpleNamespace(pk=1, nick_name="tester")
+        public_key = self._ed25519_public_key()
+        request = view.initialize_request(APIRequestFactory().post(
+            "/console/teams/demo-team/apps/vm_run",
+            {
+                "group_id": 7,
+                "service_cname": "ubuntu-vm",
+                "k8s_component_name": "ubuntu-vm",
+                "image_name": "ubuntu-24.04-minimal-cloudimg-amd64",
+                "source_type": "url",
+                "vm_url": (
+                    "https://plugins.tos-cn-beijing.volces.com/vm/"
+                    "ubuntu-24.04-minimal-cloudimg-amd64.img"
+                ),
+                "format": "qcow2",
+                "os_name": "Ubuntu 24.04",
+                "os_family": "linux",
+                "boot_mode": "uefi",
+                "ssh_username": "ubuntu",
+                "ssh_public_key": public_key,
+            },
+            format="json"
+        ))
+        service = SimpleNamespace(service_id="service-new-ubuntu",
+                                  service_alias="gr123456",
+                                  save=mock.Mock(),
+                                  service_source="vm_run",
+                                  create_status="creating",
+                                  to_dict=lambda: {
+                                      "service_id": "service-new-ubuntu",
+                                      "service_alias": "gr123456"
+                                  })
+        call_order = []
+
+        def record_port(*args, **kwargs):
+            call_order.append("port")
+            return 200, "success", object()
+
+        with mock.patch(
+                "console.views.app_create.vm_run.app_service.is_k8s_component_name_duplicate", return_value=False), \
+                mock.patch("console.views.app_create.vm_run.vms.ensure_vm_platform_running"), \
+                mock.patch(
+                    "console.views.app_create.vm_run.vms.create_vm_image_asset",
+                    return_value=SimpleNamespace(ID="asset-1", os_name="Ubuntu 24.04", boot_mode="uefi", save=mock.Mock())), \
+                mock.patch("console.views.app_create.vm_run.vms.resolve_vm_boot_mode", return_value="uefi"), \
+                mock.patch("console.views.app_create.vm_run.app_service.create_vm_run_app",
+                           return_value=(200, "success", service)), \
+                mock.patch("console.views.app_create.vm_run.vms.build_initial_vm_disk_layout", return_value=[]), \
+                mock.patch("console.views.app_create.vm_run.vms.save_vm_runtime_config") as save_runtime, \
+                mock.patch("console.views.app_create.vm_run.vms.build_vm_create_disk_imports", return_value=[]), \
+                mock.patch("console.views.app_create.vm_run.group_service.add_service_to_group",
+                           side_effect=lambda *args: (call_order.append("group"), (200, "success"))[1]), \
+                mock.patch("console.views.app_create.vm_run.port_service.add_service_port",
+                           side_effect=record_port) as add_port, \
+                mock.patch("console.views.app_create.vm_run.enterprise_first_deploy_service.safe_begin_deploy_tracking",
+                           return_value=None), \
+                mock.patch("console.views.app_create.vm_run.enterprise_first_deploy_service.safe_bind_events"):
+            response = view.post(request)
+
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(["group", "port"], call_order)
+        self.assertEqual("uefi", save_runtime.call_args[0][2]["boot_mode"])
+        self.assertEqual("Ubuntu 24.04", save_runtime.call_args[0][2]["os_name"])
+        self.assertEqual("ubuntu", save_runtime.call_args[0][2]["ssh_username"])
+        self.assertEqual(public_key, save_runtime.call_args[0][2]["ssh_public_key"])
+        add_port.assert_called_once()
+        self.assertEqual(22, add_port.call_args[0][2])
+        self.assertEqual("tcp", add_port.call_args.kwargs["protocol"])
+        self.assertTrue(add_port.call_args.kwargs["is_inner_service"])
+        self.assertFalse(add_port.call_args.kwargs["is_outer_service"])
+        self.assertNotIn(public_key, json.dumps(response.data))
+
     def test_vm_runtime_image_name_validator_enforces_oci_tag_boundaries(self):
         self.assertTrue(is_valid_vm_runtime_image_name("a" * 128))
         for image_name in (".image", "-image", "a" * 129, [], {}, 1, True):

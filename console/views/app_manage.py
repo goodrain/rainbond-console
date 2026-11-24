@@ -959,11 +959,13 @@ class UpgradeAppView(AppBaseView, CloudEnterpriseCenterView):
         更新
         """
         try:
-            code, msg, _ = app_manage_service.upgrade(self.tenant, self.service, self.user, oauth_instance=self.oauth_instance)
+            code, msg, event_id = app_manage_service.upgrade(
+                self.tenant, self.service, self.user, oauth_instance=self.oauth_instance)
             bean: dict = {}
             if code != 200:
                 return Response(general_message(code, "upgrade app error", msg, bean=bean), status=code)
-            result = general_message(code, "success", "操作成功", bean=bean)
+            bean["event_id"] = event_id
+            result = general_message(code, "success", "更新任务已提交", bean=bean)
             comment = operation_log_service.generate_component_comment(
                 operation=Operation.UPGRADE,
                 module_name=self.service.service_cname,

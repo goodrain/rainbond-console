@@ -36,15 +36,23 @@ class GroupAppsBackupViewWorkflowTests(TestCase):
     # capability_id: console.app-backup.create
     def test_post_starts_group_backup(self):
         request = self.view.initialize_request(
-            self.factory.post("/console/teams/demo-team/apps/42/backup", {"note": "daily", "mode": "full-online"}, format="json")
-        )
+            self.factory.post("/console/teams/demo-team/apps/42/backup", {
+                "note": "daily",
+                "mode": "full-online"
+            },
+                              format="json"))
         backup_record = mock.Mock()
         backup_record.to_dict.return_value = {"backup_id": "backup-1", "group_id": 42}
 
-        with mock.patch.object(groupapp_backup.groupapp_backup_service, "check_backup_condition", return_value=(200, [])), \
-                mock.patch.object(groupapp_backup.groupapp_backup_service, "check_backup_app_used_custom_volume", return_value=[]), \
-                mock.patch.object(groupapp_backup.groupapp_backup_service, "backup_group_apps", return_value=backup_record) as backup_mock, \
-                mock.patch.object(groupapp_backup.operation_log_service, "create_app_log"):
+        with (
+                mock.patch.object(groupapp_backup.groupapp_backup_service, 'check_backup_condition', return_value=(200, [])),
+                mock.patch.object(groupapp_backup.groupapp_backup_service,
+                                  'check_backup_app_used_custom_volume',
+                                  return_value=[]),
+                mock.patch.object(groupapp_backup.groupapp_backup_service, 'backup_group_apps', return_value=backup_record) as
+                backup_mock,
+                mock.patch.object(groupapp_backup.operation_log_service, 'create_app_log'),
+        ):
             response = self.view.post(request, group_id=42)
 
         self.assertEqual(response.status_code, 200)
@@ -54,8 +62,10 @@ class GroupAppsBackupViewWorkflowTests(TestCase):
     # capability_id: console.app-backup.group-required
     def test_post_requires_group_id(self):
         request = self.view.initialize_request(
-            self.factory.post("/console/teams/demo-team/apps/backup", {"note": "daily", "mode": "full-online"}, format="json")
-        )
+            self.factory.post("/console/teams/demo-team/apps/backup", {
+                "note": "daily",
+                "mode": "full-online"
+            }, format="json"))
 
         response = self.view.post(request, group_id=0)
 
@@ -65,8 +75,7 @@ class GroupAppsBackupViewWorkflowTests(TestCase):
     # capability_id: console.app-backup.note-required
     def test_post_requires_backup_note(self):
         request = self.view.initialize_request(
-            self.factory.post("/console/teams/demo-team/apps/42/backup", {"mode": "full-online"}, format="json")
-        )
+            self.factory.post("/console/teams/demo-team/apps/42/backup", {"mode": "full-online"}, format="json"))
 
         response = self.view.post(request, group_id=42)
 
@@ -76,8 +85,7 @@ class GroupAppsBackupViewWorkflowTests(TestCase):
     # capability_id: console.app-backup.mode-required
     def test_post_requires_backup_mode(self):
         request = self.view.initialize_request(
-            self.factory.post("/console/teams/demo-team/apps/42/backup", {"note": "daily"}, format="json")
-        )
+            self.factory.post("/console/teams/demo-team/apps/42/backup", {"note": "daily"}, format="json"))
 
         response = self.view.post(request, group_id=42)
 
@@ -87,13 +95,18 @@ class GroupAppsBackupViewWorkflowTests(TestCase):
     # capability_id: console.app-backup.state-service-guard
     def test_post_rejects_running_stateful_services(self):
         request = self.view.initialize_request(
-            self.factory.post("/console/teams/demo-team/apps/42/backup", {"note": "daily", "mode": "full-online"}, format="json")
-        )
+            self.factory.post("/console/teams/demo-team/apps/42/backup", {
+                "note": "daily",
+                "mode": "full-online"
+            },
+                              format="json"))
 
         with mock.patch.object(
                 groupapp_backup.groupapp_backup_service,
                 "check_backup_condition",
-                return_value=(4121, [{"service_id": "svc-1"}]),
+                return_value=(4121, [{
+                    "service_id": "svc-1"
+                }]),
         ):
             response = self.view.post(request, group_id=42)
 
@@ -104,8 +117,11 @@ class GroupAppsBackupViewWorkflowTests(TestCase):
     # capability_id: console.app-backup.custom-volume-guard
     def test_post_rejects_custom_volume_usage(self):
         request = self.view.initialize_request(
-            self.factory.post("/console/teams/demo-team/apps/42/backup", {"note": "daily", "mode": "full-online"}, format="json")
-        )
+            self.factory.post("/console/teams/demo-team/apps/42/backup", {
+                "note": "daily",
+                "mode": "full-online"
+            },
+                              format="json"))
 
         with mock.patch.object(groupapp_backup.groupapp_backup_service, "check_backup_condition", return_value=(200, [])), \
                 mock.patch.object(
@@ -124,17 +140,24 @@ class GroupAppsBackupViewWorkflowTests(TestCase):
         request = self.view.initialize_request(
             self.factory.post(
                 "/console/teams/demo-team/apps/42/backup",
-                {"note": "daily", "mode": "full-online", "force": True},
+                {
+                    "note": "daily",
+                    "mode": "full-online",
+                    "force": True
+                },
                 format="json",
-            )
-        )
+            ))
         backup_record = mock.Mock()
         backup_record.to_dict.return_value = {"backup_id": "backup-1", "group_id": 42}
 
-        with mock.patch.object(groupapp_backup.groupapp_backup_service, "check_backup_condition") as check_condition_mock, \
-                mock.patch.object(groupapp_backup.groupapp_backup_service, "check_backup_app_used_custom_volume") as check_volume_mock, \
-                mock.patch.object(groupapp_backup.groupapp_backup_service, "backup_group_apps", return_value=backup_record) as backup_mock, \
-                mock.patch.object(groupapp_backup.operation_log_service, "create_app_log"):
+        with (
+                mock.patch.object(groupapp_backup.groupapp_backup_service, 'check_backup_condition') as check_condition_mock,
+                mock.patch.object(groupapp_backup.groupapp_backup_service,
+                                  'check_backup_app_used_custom_volume') as check_volume_mock,
+                mock.patch.object(groupapp_backup.groupapp_backup_service, 'backup_group_apps', return_value=backup_record) as
+                backup_mock,
+                mock.patch.object(groupapp_backup.operation_log_service, 'create_app_log'),
+        ):
             response = self.view.post(request, group_id=42)
 
         self.assertEqual(response.status_code, 200)
@@ -145,8 +168,7 @@ class GroupAppsBackupViewWorkflowTests(TestCase):
     # capability_id: console.app-backup.delete
     def test_delete_removes_group_backup(self):
         request = self.view.initialize_request(
-            self.factory.delete("/console/teams/demo-team/apps/42/backup", {"backup_id": "backup-1"}, format="json")
-        )
+            self.factory.delete("/console/teams/demo-team/apps/42/backup", {"backup_id": "backup-1"}, format="json"))
         backup_record = Obj(mode="full-online", note="daily")
 
         with mock.patch.object(
@@ -154,11 +176,11 @@ class GroupAppsBackupViewWorkflowTests(TestCase):
                 "get_groupapp_backup_status_by_backup_id",
                 return_value=(200, "success", backup_record),
         ), mock.patch.object(
-            groupapp_backup.groupapp_backup_service,
-            "delete_group_backup_by_backup_id",
+                groupapp_backup.groupapp_backup_service,
+                "delete_group_backup_by_backup_id",
         ) as delete_mock, mock.patch.object(
-            groupapp_backup.operation_log_service,
-            "create_app_log",
+                groupapp_backup.operation_log_service,
+                "create_app_log",
         ):
             response = self.view.delete(request, group_id=42)
 
@@ -168,9 +190,8 @@ class GroupAppsBackupViewWorkflowTests(TestCase):
 
     # capability_id: console.app-backup.delete-id-required
     def test_delete_requires_backup_id(self):
-        request = self.view.initialize_request(
-            self.factory.delete("/console/teams/demo-team/apps/42/backup", {}, format="json")
-        )
+        request = self.view.initialize_request(self.factory.delete("/console/teams/demo-team/apps/42/backup", {},
+                                                                   format="json"))
 
         with mock.patch.object(
                 groupapp_backup.groupapp_backup_service,
@@ -185,8 +206,7 @@ class GroupAppsBackupViewWorkflowTests(TestCase):
     # capability_id: console.app-backup.delete-status-lookup-failure
     def test_delete_returns_error_when_status_lookup_fails(self):
         request = self.view.initialize_request(
-            self.factory.delete("/console/teams/demo-team/apps/42/backup", {"backup_id": "backup-1"}, format="json")
-        )
+            self.factory.delete("/console/teams/demo-team/apps/42/backup", {"backup_id": "backup-1"}, format="json"))
 
         with mock.patch.object(
                 groupapp_backup.groupapp_backup_service,
@@ -250,11 +270,15 @@ class GroupAppsBackupTransferWorkflowTests(TestCase):
         team = Obj(tenant_name="demo-team", enterprise_id="eid-1")
         group = Obj(group_name="demo-app", region_name="demo-region", app_id=42)
 
-        with mock.patch.object(groupapp_backup.team_services, "get_tenant_by_tenant_name", return_value=team), \
-                mock.patch.object(groupapp_backup.group_repo, "get_group_by_id", return_value=group), \
-                mock.patch.object(groupapp_backup.groupapp_backup_service, "export_group_backup", return_value=(200, "success", "backup-data")), \
-                mock.patch.object(groupapp_backup.operation_log_service, "process_app_name", return_value="demo-app"), \
-                mock.patch.object(groupapp_backup.operation_log_service, "create_log"):
+        with (
+                mock.patch.object(groupapp_backup.team_services, 'get_tenant_by_tenant_name', return_value=team),
+                mock.patch.object(groupapp_backup.group_repo, 'get_group_by_id', return_value=group),
+                mock.patch.object(groupapp_backup.groupapp_backup_service,
+                                  'export_group_backup',
+                                  return_value=(200, 'success', 'backup-data')),
+                mock.patch.object(groupapp_backup.operation_log_service, 'process_app_name', return_value='demo-app'),
+                mock.patch.object(groupapp_backup.operation_log_service, 'create_log'),
+        ):
             response = view.get(request, tenantName="demo-team", group_id=42)
 
         self.assertEqual(response.status_code, 200)
@@ -325,9 +349,13 @@ class GroupAppsBackupTransferWorkflowTests(TestCase):
         team = Obj(tenant_name="demo-team", enterprise_id="eid-1")
         group = Obj(group_name="demo-app", region_name="demo-region", app_id=42)
 
-        with mock.patch.object(groupapp_backup.team_services, "get_tenant_by_tenant_name", return_value=team), \
-                mock.patch.object(groupapp_backup.group_repo, "get_group_by_id", return_value=group), \
-                mock.patch.object(groupapp_backup.groupapp_backup_service, "export_group_backup", return_value=(500, "export failed", None)):
+        with (
+                mock.patch.object(groupapp_backup.team_services, 'get_tenant_by_tenant_name', return_value=team),
+                mock.patch.object(groupapp_backup.group_repo, 'get_group_by_id', return_value=group),
+                mock.patch.object(groupapp_backup.groupapp_backup_service,
+                                  'export_group_backup',
+                                  return_value=(500, 'export failed', None)),
+        ):
             response = view.get(request, tenantName="demo-team", group_id=42)
 
         self.assertEqual(response.status_code, 500)
@@ -343,8 +371,7 @@ class GroupAppsBackupTransferWorkflowTests(TestCase):
                 "/console/teams/demo-team/apps/42/backup/import",
                 {"file": SimpleUploadedFile("demo.bak", b"demo-backup")},
                 format="multipart",
-            )
-        )
+            ))
         record = mock.Mock()
         record.to_dict.return_value = {"restore_id": "restore-1"}
 
@@ -353,8 +380,8 @@ class GroupAppsBackupTransferWorkflowTests(TestCase):
                 "import_group_backup",
                 return_value=(200, "success", record),
         ) as import_mock, mock.patch.object(
-            groupapp_backup.operation_log_service,
-            "create_app_log",
+                groupapp_backup.operation_log_service,
+                "create_app_log",
         ):
             response = view.post(request, group_id=42)
 
@@ -372,8 +399,7 @@ class GroupAppsBackupTransferWorkflowTests(TestCase):
                 "/console/teams/demo-team/apps/backup/import",
                 {"file": SimpleUploadedFile("demo.bak", b"demo-backup")},
                 format="multipart",
-            )
-        )
+            ))
 
         response = view.post(request, group_id=0)
 
@@ -390,8 +416,7 @@ class GroupAppsBackupTransferWorkflowTests(TestCase):
                 "/console/teams/demo-team/apps/42/backup/import",
                 {},
                 format="multipart",
-            )
-        )
+            ))
 
         response = view.post(request, group_id=42)
 
@@ -408,8 +433,7 @@ class GroupAppsBackupTransferWorkflowTests(TestCase):
                 "/console/teams/demo-team/apps/42/backup/import",
                 {"file": SimpleUploadedFile("big.bak", b"x" * (2 * 1024 * 1024 + 1))},
                 format="multipart",
-            )
-        )
+            ))
 
         response = view.post(request, group_id=42)
 
@@ -426,8 +450,7 @@ class GroupAppsBackupTransferWorkflowTests(TestCase):
                 "/console/teams/demo-team/apps/42/backup/import",
                 {"file": SimpleUploadedFile("demo.bak", b"demo-backup")},
                 format="multipart",
-            )
-        )
+            ))
 
         with mock.patch.object(
                 groupapp_backup.groupapp_backup_service,
@@ -452,7 +475,13 @@ class GroupAppsBackupStatusViewTests(TestCase):
     def test_get_returns_backup_status_list_without_internal_server_info(self):
         request = self.factory.get("/console/teams/demo-team/apps/42/backups/status")
         backup_record = mock.Mock()
-        backup_record.to_dict.return_value = {"backup_id": "backup-1", "status": "success", "backup_server_info": {"node": "n1"}}
+        backup_record.to_dict.return_value = {
+            "backup_id": "backup-1",
+            "status": "success",
+            "backup_server_info": {
+                "node": "n1"
+            }
+        }
 
         with mock.patch.object(
                 groupapp_backup.groupapp_backup_service,
@@ -527,19 +556,22 @@ class GroupAppsMigrationViewWorkflowTests(TestCase):
                     "event_id": "evt-1",
                 },
                 format="json",
-            )
-        )
+            ))
         migrate_team = Obj(tenant_name="target-team", tenant_alias="Target Team")
         migrate_record = mock.Mock()
         migrate_record.to_dict.return_value = {"restore_id": "restore-1", "status": "running"}
 
-        with mock.patch.object(groupapp_migration.team_services, "get_tenant_by_tenant_name", return_value=migrate_team), \
-                mock.patch.object(groupapp_migration.region_services, "get_team_usable_regions",
-                                  return_value=[Obj(region_name="target-region")]), \
-                mock.patch.object(groupapp_migration.migrate_service, "start_migrate", return_value=migrate_record) as start_mock, \
-                mock.patch.object(groupapp_migration.operation_log_service, "process_app_name", return_value="demo-app"), \
-                mock.patch.object(groupapp_migration.operation_log_service, "process_team_name", return_value=" target-team"), \
-                mock.patch.object(groupapp_migration.operation_log_service, "create_app_log"):
+        with (
+                mock.patch.object(groupapp_migration.team_services, 'get_tenant_by_tenant_name', return_value=migrate_team),
+                mock.patch.object(groupapp_migration.region_services,
+                                  'get_team_usable_regions',
+                                  return_value=[Obj(region_name='target-region')]),
+                mock.patch.object(groupapp_migration.migrate_service, 'start_migrate', return_value=migrate_record) as
+                start_mock,
+                mock.patch.object(groupapp_migration.operation_log_service, 'process_app_name', return_value='demo-app'),
+                mock.patch.object(groupapp_migration.operation_log_service, 'process_team_name', return_value=' target-team'),
+                mock.patch.object(groupapp_migration.operation_log_service, 'create_app_log'),
+        ):
             response = self.view.post(request, group_id=42)
 
         self.assertEqual(response.status_code, 200)
@@ -567,8 +599,7 @@ class GroupAppsMigrationViewWorkflowTests(TestCase):
                     "migrate_type": "migrate",
                 },
                 format="json",
-            )
-        )
+            ))
 
         response = self.view.post(request, group_id=42)
 
@@ -587,8 +618,7 @@ class GroupAppsMigrationViewWorkflowTests(TestCase):
                     "migrate_type": "migrate",
                 },
                 format="json",
-            )
-        )
+            ))
 
         with mock.patch.object(groupapp_migration.team_services, "get_tenant_by_tenant_name", return_value=None):
             response = self.view.post(request, group_id=42)
@@ -608,8 +638,7 @@ class GroupAppsMigrationViewWorkflowTests(TestCase):
                     "migrate_type": "migrate",
                 },
                 format="json",
-            )
-        )
+            ))
         migrate_team = Obj(tenant_name="target-team", tenant_alias="Target Team")
 
         with mock.patch.object(groupapp_migration.team_services, "get_tenant_by_tenant_name", return_value=migrate_team), \
@@ -631,8 +660,7 @@ class GroupAppsMigrationViewWorkflowTests(TestCase):
                     "migrate_type": "migrate",
                 },
                 format="json",
-            )
-        )
+            ))
         migrate_team = Obj(tenant_name="target-team", tenant_alias="Target Team")
 
         with mock.patch.object(groupapp_migration.team_services, "get_tenant_by_tenant_name", return_value=migrate_team), \
@@ -649,7 +677,8 @@ class GroupAppsMigrationViewWorkflowTests(TestCase):
         migrate_record = mock.Mock()
         migrate_record.to_dict.return_value = {"restore_id": "restore-1", "status": "success"}
 
-        with mock.patch.object(groupapp_migration.migrate_service, "get_and_save_migrate_status", return_value=migrate_record) as status_mock:
+        with mock.patch.object(groupapp_migration.migrate_service, "get_and_save_migrate_status",
+                               return_value=migrate_record) as status_mock:
             response = self.view.get(request, group_id=42)
 
         self.assertEqual(response.status_code, 200)
@@ -685,8 +714,7 @@ class GroupAppsMigrationCleanupTests(TestCase):
     # capability_id: console.app-migration.cleanup-old-app
     def test_delete_cleans_old_group_after_restore(self):
         request = self.view.initialize_request(
-            self.factory.delete("/console/teams/demo-team/apps/42/migrate/cleanup", {"new_group_id": 99}, format="json")
-        )
+            self.factory.delete("/console/teams/demo-team/apps/42/migrate/cleanup", {"new_group_id": 99}, format="json"))
         old_group = mock.Mock()
         new_group = mock.Mock()
         service = Obj(service_id="svc-1")
@@ -703,8 +731,7 @@ class GroupAppsMigrationCleanupTests(TestCase):
     # capability_id: console.app-migration.cleanup-new-group-required
     def test_delete_requires_new_group_id(self):
         request = self.view.initialize_request(
-            self.factory.delete("/console/teams/demo-team/apps/42/migrate/cleanup", {}, format="json")
-        )
+            self.factory.delete("/console/teams/demo-team/apps/42/migrate/cleanup", {}, format="json"))
 
         response = self.view.delete(request, group_id=42)
 
@@ -714,8 +741,7 @@ class GroupAppsMigrationCleanupTests(TestCase):
     # capability_id: console.app-migration.cleanup-group-required
     def test_delete_requires_group_id(self):
         request = self.view.initialize_request(
-            self.factory.delete("/console/teams/demo-team/apps/migrate/cleanup", {"new_group_id": 99}, format="json")
-        )
+            self.factory.delete("/console/teams/demo-team/apps/migrate/cleanup", {"new_group_id": 99}, format="json"))
 
         response = self.view.delete(request, group_id=0)
 
@@ -725,8 +751,7 @@ class GroupAppsMigrationCleanupTests(TestCase):
     # capability_id: console.app-migration.cleanup-group-missing
     def test_delete_rejects_missing_original_group(self):
         request = self.view.initialize_request(
-            self.factory.delete("/console/teams/demo-team/apps/42/migrate/cleanup", {"new_group_id": 99}, format="json")
-        )
+            self.factory.delete("/console/teams/demo-team/apps/42/migrate/cleanup", {"new_group_id": 99}, format="json"))
 
         with mock.patch.object(groupapp_migration.group_repo, "get_group_by_id", return_value=None):
             response = self.view.delete(request, group_id=42)
@@ -737,8 +762,7 @@ class GroupAppsMigrationCleanupTests(TestCase):
     # capability_id: console.app-migration.cleanup-same-group-noop
     def test_delete_skips_cleanup_when_restored_to_same_group(self):
         request = self.view.initialize_request(
-            self.factory.delete("/console/teams/demo-team/apps/42/migrate/cleanup", {"new_group_id": 42}, format="json")
-        )
+            self.factory.delete("/console/teams/demo-team/apps/42/migrate/cleanup", {"new_group_id": 42}, format="json"))
 
         response = self.view.delete(request, group_id=42)
 
@@ -748,8 +772,7 @@ class GroupAppsMigrationCleanupTests(TestCase):
     # capability_id: console.app-migration.cleanup-target-group-missing
     def test_delete_rejects_missing_restored_group(self):
         request = self.view.initialize_request(
-            self.factory.delete("/console/teams/demo-team/apps/42/migrate/cleanup", {"new_group_id": 99}, format="json")
-        )
+            self.factory.delete("/console/teams/demo-team/apps/42/migrate/cleanup", {"new_group_id": 99}, format="json"))
         old_group = mock.Mock()
 
         with mock.patch.object(groupapp_migration.group_repo, "get_group_by_id", side_effect=[old_group, None]):
@@ -767,7 +790,12 @@ class GroupAppsMigrateRecordViewTests(TestCase):
     # capability_id: console.app-migration.unfinished-record
     def test_get_returns_unfinished_migration_record(self):
         request = self.factory.get("/console/teams/demo-team/apps/42/migrate-record", {"group_uuid": "group-uuid"})
-        record = Obj(status="running", event_id="evt-1", migrate_type="migrate", restore_id="restore-1", backup_id="backup-1", group_id=42)
+        record = Obj(status="running",
+                     event_id="evt-1",
+                     migrate_type="migrate",
+                     restore_id="restore-1",
+                     backup_id="backup-1",
+                     group_id=42)
 
         with mock.patch.object(groupapp_migration.migrate_repo, "get_user_unfinished_migrate_record", return_value=[record]):
             response = self.view.get(request, 42)

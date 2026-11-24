@@ -486,6 +486,61 @@ class RealtimeProxyUrlTests(SimpleTestCase):
         self.assertFalse(tracker.is_idle_expired(now=4400))
         self.assertTrue(tracker.is_idle_expired(now=4501))
 
+    # capability_id: console.realtime-proxy.output-ack-idle-timeout
+    def test_docker_console_activity_tracker_does_not_refresh_on_output_ack(self):
+        for message in ("41", "416384", "465536", "400001"):
+            with self.subTest(message=message):
+                current_time = [1000]
+                tracker = DockerConsoleActivityTracker("docker_console", idle_timeout_seconds=1800,
+                                                       now=lambda: current_time[0])
+                current_time[0] = 2700
+                tracker.mark_client_message(message)
+                self.assertTrue(tracker.is_idle_expired(now=2801))
+
+    # capability_id: console.realtime-proxy.output-ack-idle-timeout
+    def test_docker_console_activity_tracker_does_not_refresh_on_binary_output_ack(self):
+        for message in (b"41", b"416384", b"465536", b"400001"):
+            with self.subTest(message=message):
+                current_time = [1000]
+                tracker = DockerConsoleActivityTracker("docker_console", idle_timeout_seconds=1800,
+                                                       now=lambda: current_time[0])
+                current_time[0] = 2700
+                tracker.mark_client_message(message)
+                self.assertTrue(tracker.is_idle_expired(now=2801))
+
+    # capability_id: console.realtime-proxy.output-ack-idle-timeout
+    def test_repeated_output_acks_cannot_keep_an_unattended_terminal_alive(self):
+        current_time = [1000]
+        tracker = DockerConsoleActivityTracker("docker_console", idle_timeout_seconds=1800, now=lambda: current_time[0])
+        for timestamp in (1500, 2000, 2500, 2800):
+            current_time[0] = timestamp
+            tracker.mark_client_message("416384")
+        self.assertTrue(tracker.is_idle_expired(now=2801))
+
+    # capability_id: console.realtime-proxy.output-ack-idle-timeout
+    def test_typed_ack_text_is_still_user_input_and_refreshes_activity(self):
+        for message in ("141", b"141", "1ls", "3{\"columns\":80,\"rows\":24}"):
+            with self.subTest(message=message):
+                current_time = [1000]
+                tracker = DockerConsoleActivityTracker("docker_console", idle_timeout_seconds=1800,
+                                                       now=lambda: current_time[0])
+                current_time[0] = 2700
+                tracker.mark_client_message(message)
+                self.assertFalse(tracker.is_idle_expired(now=2801))
+                self.assertTrue(tracker.is_idle_expired(now=4501))
+
+    # capability_id: console.realtime-proxy.output-ack-idle-timeout
+    def test_invalid_ack_like_frames_keep_the_existing_activity_semantics(self):
+        for message in ("4", "40", "4-1", "4+1", "41.0", "4abc", "465537", "499999", "4100000", "4１",
+                        "41\n", b"4\xff", b"2", 4):
+            with self.subTest(message=message):
+                current_time = [1000]
+                tracker = DockerConsoleActivityTracker("docker_console", idle_timeout_seconds=1800,
+                                                       now=lambda: current_time[0])
+                current_time[0] = 2700
+                tracker.mark_client_message(message)
+                self.assertFalse(tracker.is_idle_expired(now=2801))
+
     # capability_id: console.realtime-proxy.non-terminal-no-user-idle-timeout
     def test_non_docker_console_activity_tracker_never_user_idle_expires(self):
         tracker = DockerConsoleActivityTracker("event_log", idle_timeout_seconds=1800, now=lambda: 1000)

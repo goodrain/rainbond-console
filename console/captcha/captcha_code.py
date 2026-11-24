@@ -19,10 +19,9 @@ NON_DIGITS_RX = re.compile('[^\d]')
 
 class CaptchaView(AlowAnyApiView):
     def getsize(self, font, text):
-        if hasattr(font, 'getoffset'):
-            return [x + y for x, y in zip(font.getsize(text), font.getoffset(text))]
-        else:
-            return font.getsize(text)
+        _, top, right, bottom = font.getbbox(text)
+        # Preserve the previous FreeType getsize + getoffset canvas dimensions.
+        return right, bottom + top
 
     def get(self, request, *args, **kwargs):
         """

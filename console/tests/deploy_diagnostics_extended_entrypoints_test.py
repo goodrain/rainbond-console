@@ -36,7 +36,7 @@ os.environ.setdefault("DISABLE_FIRST_DEPLOY_SWEEPER", "1")
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
 
 import django  # noqa: E402
-from django.test import SimpleTestCase  # noqa: E402
+from django.test import TestCase  # noqa: E402
 
 sys.path.insert(
     0,
@@ -52,7 +52,7 @@ class Obj(object):
         self.__dict__.update(kwargs)
 
 
-class ExtendedDeployDiagnosticsEntrypointTests(SimpleTestCase):
+class ExtendedDeployDiagnosticsEntrypointTests(TestCase):
 
     def test_k8s_resource_create_tracks_and_marks_success_without_deploy_event(
             self):
@@ -324,7 +324,9 @@ class ExtendedDeployDiagnosticsEntrypointTests(SimpleTestCase):
                                              failure_stage="build")
         bind_events.assert_not_called()
 
+    # capability_id: console.first-deploy.vm-create-tracking
     def test_vm_create_tracks_and_marks_success_without_deploy_event(self):
+        from django.db import connection
         from console.views.app_create import vm_run as vm_run_view
 
         view = vm_run_view.VMRunCreateView()
@@ -358,6 +360,12 @@ class ExtendedDeployDiagnosticsEntrypointTests(SimpleTestCase):
                     os_name="Ubuntu",
                     source_type="upload")
         tracker = {"key": "tracker"}
+        initial_savepoint_depth = len(connection.savepoint_ids)
+
+        def create_service(*args, **kwargs):
+            self.assertTrue(connection.in_atomic_block)
+            self.assertEqual(len(connection.savepoint_ids), initial_savepoint_depth + 1)
+            return 200, "success", new_service
 
         with mock.patch.object(vm_run_view.app_service, "is_k8s_component_name_duplicate", return_value=False), \
                 mock.patch.object(vm_run_view.vms, "ensure_vm_platform_running"), \
@@ -369,7 +377,7 @@ class ExtendedDeployDiagnosticsEntrypointTests(SimpleTestCase):
                                   return_value={"image": "demo/vm-runtime", "vm_url": ""}), \
                 mock.patch.object(vm_run_view.vms, "resolve_vm_boot_mode", return_value="uefi"), \
                 mock.patch.object(vm_run_view.app_service, "create_vm_run_app",
-                                  return_value=(200, "success", new_service)), \
+                                  side_effect=create_service), \
                 mock.patch.object(vm_run_view.vms, "build_initial_vm_disk_layout", return_value=[]), \
                 mock.patch.object(vm_run_view.vms, "save_vm_runtime_config"), \
                 mock.patch.object(vm_run_view.vms, "build_vm_create_disk_imports", return_value=[]), \

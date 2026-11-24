@@ -11,15 +11,29 @@ sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
 
-import django
 
-django.setup()
+def _load_test_dependencies():
+    """Keep the existing post-Django-setup import order and module bindings."""
+    import django
 
-from console.utils.timeutil import str_to_time
-from console.utils.timeutil import current_time
-from console.utils.timeutil import current_time_str
-from console.utils.timeutil import current_time_to_str
-from console.utils.timeutil import time_to_str
+    django.setup()
+
+    from console.utils.timeutil import str_to_time
+    from console.utils.timeutil import current_time
+    from console.utils.timeutil import current_time_str
+    from console.utils.timeutil import current_time_to_str
+    from console.utils.timeutil import time_to_str
+    return (
+        django,
+        str_to_time,
+        current_time,
+        current_time_str,
+        current_time_to_str,
+        time_to_str,
+    )
+
+
+django, str_to_time, current_time, current_time_str, current_time_to_str, time_to_str = _load_test_dependencies()
 
 
 class TimeUtilTests(TestCase):

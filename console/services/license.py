@@ -1,11 +1,10 @@
 # -*- coding: utf8 -*-
 import base64
 import json
-import os
+
 import logging
 from typing import Any, Dict, List, Optional, Tuple
 
-from console.services.config_service import EnterpriseConfigService
 from console.models.main import ConsoleSysConfig
 from console.repositories.region_repo import region_repo
 from www.apiclient.regionapi import RegionInvokeApi
@@ -114,7 +113,9 @@ class LicenseService(object):
                 logger.warning("failed to activate license on region %s: %s", region.region_name, e)
                 raise ServiceHandleException(msg=str(e), msg_show="激活授权码失败: " + str(e), status_code=500)
         # All regions activated successfully, save authz_code
-        config = ConsoleSysConfig.objects.update_or_create(key="AUTHZ_CODE", enterprise_id=enterprise_id, defaults={"value": authz_code})
+        config = ConsoleSysConfig.objects.update_or_create(key="AUTHZ_CODE",
+                                                           enterprise_id=enterprise_id,
+                                                           defaults={"value": authz_code})
         config_dict = {
             "id": config[0].ID,
             "key": config[0].key,

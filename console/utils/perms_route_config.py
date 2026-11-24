@@ -741,3 +741,8 @@ TEAM_REGISTRY_AUTH = {
         }
     }
 }
+
+
+APP_VM_SNAPSHOT_READ = {"__message": {"get": {"perms": [300002]}}}
+
+APP_VM_SNAPSHOT_PREPARE = {"__message": {"get": {"perms": [300002]}, "post": {"perms": [300003]}}}

@@ -19,7 +19,7 @@ import {
 } from '../utils/node-shape-utils';
 
 
-function NodeShape(shapeType, shapeElement, shapeProps, { id, highlighted, color, metric }) {
+function NodeShape(shapeType, shapeElement, shapeProps, { id, highlighted, color, metric, isVirtualMachine }) {
   const { height, hasMetric, formattedValue } = getMetricValue(metric);
   const className = classNames('shape', `shape-${shapeType}`, { metrics: hasMetric });
   const metricStyle = { fill: getMetricColor(metric) };
@@ -65,6 +65,25 @@ function NodeShape(shapeType, shapeElement, shapeProps, { id, highlighted, color
         <text>{formattedValue}</text> :
         <circle className="node" r={NODE_BASE_SIZE * 0.1} />
       }
+      {isVirtualMachine && (
+        <g
+          className="virtual-machine-badge"
+          transform="translate(33 -33) scale(1.2)"
+          style={{ pointerEvents: 'none' }}
+          role="img"
+          aria-label="Virtual machine (VM)"
+        >
+          <title>Virtual machine (VM)</title>
+          <rect x="-21" y="-10" width="42" height="24" rx="7" fill="#182b4d" fillOpacity="0.16" />
+          <rect x="-21" y="-12" width="42" height="24" rx="7" fill="#155eef" stroke="#fff" strokeWidth="1.6" />
+          <g transform="translate(-13 -5)" fill="none" stroke="#fff" strokeWidth="1.2" strokeLinecap="round">
+            <rect width="8" height="10" rx="1.5" />
+            <path d="M2.5 3.5h3M2.5 6.5h3" />
+          </g>
+          <text x="6" y="0" style={{ fill: '#fff', fontSize: '12px', fontFamily: 'Arial, sans-serif',
+            letterSpacing: '0.3px', textAnchor: 'middle', dominantBaseline: 'central', transform: 'none' }} fontWeight="700">VM</text>
+        </g>
+      )}
     </g>
   );
 }

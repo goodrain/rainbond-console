@@ -5,6 +5,7 @@ from datetime import datetime
 from enum import Enum, IntEnum
 
 from django.db import models
+from django.core.serializers.json import DjangoJSONEncoder
 from django.db.models.fields import (AutoField, BooleanField, CharField, DateTimeField, DecimalField, IntegerField)
 from django.db.models.fields.files import FileField
 from goodrain_web import settings
@@ -55,17 +56,17 @@ class BaseModel(models.Model):
         return ""
 
     def parse_kind(self, a):
-        if type(a) == CharField:
+        if type(a) is CharField:
             return "string"
-        if type(a) == AutoField:
+        if type(a) is AutoField:
             return "int"
-        if type(a) == BooleanField:
+        if type(a) is BooleanField:
             return "boolean"
-        if type(a) == DecimalField:
+        if type(a) is DecimalField:
             return "decimal"
-        if type(a) == DateTimeField:
+        if type(a) is DateTimeField:
             return "datetime"
-        if type(a) == IntegerField:
+        if type(a) is IntegerField:
             return "int"
         return "string"
 
@@ -126,7 +127,7 @@ class RainbondCenterAppVersion(BaseModel):
     app_id = models.CharField(max_length=32, help_text="应用id")
     version = models.CharField(max_length=32, help_text="版本")
     version_alias = models.CharField(max_length=64, default="NA", help_text="别名")
-    app_version_info = models.CharField(max_length=255, help_text="版本信息")
+    app_version_info = models.TextField(help_text="版本信息")
     record_id = models.IntegerField(help_text="分享流程id，控制一个分享流程产出一个实体")
     share_user = models.IntegerField(help_text="分享人id")
     share_team = models.CharField(max_length=64, help_text="来源应用所属团队")
@@ -381,15 +382,17 @@ class ComposeGroup(BaseModel):
     check_event_id = models.CharField(max_length=32, blank=True, null=True, default="", help_text="compose检测事件ID")
     hub_user = models.CharField(max_length=256, blank=True, null=True, default="", help_text="镜像仓库用户名称")
     hub_pass = models.CharField(max_length=256, blank=True, null=True, default="", help_text="镜像仓库用户密码，服务创建后给服务赋值")
-    compose_file_path = models.CharField(max_length=512, blank=True, null=True, default="docker-compose.yml", help_text="compose文件在项目中的路径")
+    compose_file_path = models.CharField(max_length=512,
+                                         blank=True,
+                                         null=True,
+                                         default="docker-compose.yml",
+                                         help_text="compose文件在项目中的路径")
 
     create_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text="创建时间")
 
 
-
 class ComposeServiceRelation(BaseModel):
     """compose组和服务的关系"""
-
     class Meta:
         db_table = "compose_service_relation"
 
@@ -461,6 +464,7 @@ class ServiceRecycleBin(BaseModel):
         unique_together = ('tenant_id', 'service_alias')
 
     service_id = models.CharField(max_length=32, unique=True, help_text="服务id")
+    recovery_metadata = models.JSONField(default=dict, encoder=DjangoJSONEncoder)
     tenant_id = models.CharField(max_length=32, help_text="租户id")
     service_key = models.CharField(max_length=32, help_text="服务key")
     service_alias = models.CharField(max_length=100, help_text="服务别名")
@@ -470,12 +474,12 @@ class ServiceRecycleBin(BaseModel):
     category = models.CharField(max_length=15, help_text="服务分类：application,cache,store")
     service_port = models.IntegerField(help_text="服务端口", default=0)
     is_web_service = models.BooleanField(default=False, blank=True, help_text="是否web服务")
-    version = models.CharField(max_length=20, help_text="版本")
+    version = models.CharField(max_length=255, help_text="版本")
     update_version = models.IntegerField(default=1, help_text="内部发布次数")
     image = models.CharField(max_length=200, help_text="镜像")
     cmd = models.CharField(max_length=2048, null=True, blank=True, help_text="启动参数")
-    setting = models.CharField(max_length=100, null=True, blank=True, help_text="设置项")
-    extend_method = models.CharField(max_length=15, default='stateless', help_text="伸缩方式")
+    setting = models.CharField(max_length=200, null=True, blank=True, help_text="设置项")
+    extend_method = models.CharField(max_length=32, default='stateless', help_text="伸缩方式")
     env = models.CharField(max_length=200, null=True, blank=True, help_text="环境变量")
     min_node = models.IntegerField(help_text="启动个数", default=1)
     min_cpu = models.IntegerField(help_text="cpu个数", default=500)
@@ -485,7 +489,7 @@ class ServiceRecycleBin(BaseModel):
     host_path = models.CharField(max_length=300, null=True, blank=True, help_text="mount目录")
     deploy_version = models.CharField(max_length=20, null=True, blank=True, help_text="部署版本")
     code_from = models.CharField(max_length=20, null=True, blank=True, help_text="代码来源:gitlab,github")
-    git_url = models.CharField(max_length=200, null=True, blank=True, help_text="code代码仓库")
+    git_url = models.CharField(max_length=2047, null=True, blank=True, help_text="code代码仓库")
     create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text="创建时间")
     git_project_id = models.IntegerField(help_text="gitlab 中项目id", default=0)
     is_code_upload = models.BooleanField(default=False, blank=True, help_text="是否上传代码")
@@ -1305,7 +1309,7 @@ class ComponentK8sAttributes(BaseModel):
 class SMSVerificationCode(models.Model):
     """短信验证码"""
     phone = models.CharField(max_length=11, help_text="手机号")
-    code = models.CharField(max_length=6, help_text="验证码") 
+    code = models.CharField(max_length=6, help_text="验证码")
     purpose = models.CharField(max_length=20, help_text="用途")
     created_at = models.DateTimeField(auto_now_add=True, help_text="创建时间")
     expires_at = models.DateTimeField(help_text="过期时间")

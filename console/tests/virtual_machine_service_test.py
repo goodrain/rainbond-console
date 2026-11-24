@@ -42,16 +42,216 @@ import django  # noqa: E402
 django.setup()
 
 from django.test import TestCase  # noqa: E402
+from rest_framework.test import APIRequestFactory  # noqa: E402
 
 from console.models.main import ComponentK8sAttributes  # noqa: E402
 from console.repositories.virtual_machine import vm_repo  # noqa: E402
 from console.services.app import app_service  # noqa: E402
+from console.services.app_config import volume_service  # noqa: E402
 from console.services.virtual_machine import vms  # noqa: E402
-from www.models.main import TenantServiceInfo, VirtualMachineImage  # noqa: E402
+from console.views.app_config.app_domain import VirtualMachineCapabilityView  # noqa: E402
+from www.models.main import (  # noqa: E402
+    TenantServiceEnvVar,
+    TenantServiceInfo,
+    TenantServicesPort,
+    VirtualMachineImage,
+)
 
 
 class VirtualMachineServiceTests(TestCase):
     # capability_id: console.virtual-machine.registry-root-disk
+    # capability_id: console.vm-run.ssh-public-key-bootstrap
+    # capability_id: console.vm-capabilities.persistent-storage-options
+    # capability_id: console.vm-capabilities.persistent-storage-options
+
+    # capability_id: console.vm-images.vmdk-source-format
+    def test_vmdk_source_inference_uses_url_path_and_preserves_compression(self):
+        cases = [
+            ("disk.VMDK", "vmdk"),
+            ("https://example.invalid/DISK.VMDK?download=1#fragment", "vmdk"),
+            ("/grdata/imports/root.vmdk", "vmdk"),
+            ("https://example.invalid/root.VMDK.GZ?download=1", "vmdk.gz"),
+            ("root.vmdk.xz", "vmdk.xz"),
+            ("root.vmdk.tar.gz", "vmdk.tar.gz"),
+            ("https://example.invalid/root.QCOW2?download=1", "qcow2"),
+            ("root.RAW", "raw"),
+            ("root.img", "img"),
+            ("root.iso", "iso"),
+            ("root.raw.gz", "gz"),
+            ("root.qcow2.tar.xz", "tar.xz"),
+            ("root.vmdk.exe", ""),
+        ]
+        for source, expected in cases:
+            with self.subTest(source=source):
+                self.assertEqual(expected, vms._infer_asset_format(source))
+
+    # capability_id: console.vm-images.vmdk-source-format
+    # capability_id: console.vm-run.source-input-boundary
+    def test_vmdk_asset_metadata_is_normalized_and_unknown_format_rejected(self):
+        asset = vms.create_vm_image_asset("tenant-vmdk",
+                                          "source-vmdk",
+                                          "tenant-vmdk:source-vmdk",
+                                          source_type="upload",
+                                          source_uri="/grdata/package_build/temp/events/vmdk-source-event",
+                                          format=" VMDK ")
+        self.assertEqual("vmdk", asset.format)
+        for bad in ("vhdx", "vmdk;invalid", "unknown", "vmdk.gz", "VMDK.XZ", "vmdk.tar.gz", 1, [], {}):
+            with self.subTest(kind=type(bad).__name__), self.assertRaises(ValueError):
+                vms.create_vm_image_asset("tenant-vmdk", "invalid-vmdk", "tenant-vmdk:invalid", format=bad)
+        self.assertEqual(1, VirtualMachineImage.objects.filter(tenant_id="tenant-vmdk").count())
+        catalog = vms.list_vm_image("tenant-vmdk")
+        self.assertEqual("vmdk", catalog[0]["format"])
+        for source in ("https://example.invalid/root.vmdk.gz?download=1", "/grdata/imports/root.vmdk.xz"):
+            with self.subTest(source=source), self.assertRaises(ValueError):
+                vms.create_vm_image_asset("tenant-vmdk", "compressed-vmdk", "tenant-vmdk:compressed", source_uri=source)
+        for source_format in ("raw", "qcow2", "iso", "raw.gz", "qcow2.xz", "tar.gz", "", "disk"):
+            self.assertEqual(source_format, vms.normalize_vm_source_format(source_format))
+        clone = vms.create_vm_image_asset("tenant-vmdk",
+                                          "clone-vmdk",
+                                          asset.image_url,
+                                          source_type="clone",
+                                          source_uri=asset.source_uri,
+                                          format=asset.format,
+                                          source_asset_id=asset.ID,
+                                          clone_mode="reuse")
+        cloned = vms.get_vm_asset("tenant-vmdk", str(clone.ID))
+        self.assertEqual("vmdk", cloned["format"])
+        self.assertEqual({"id": asset.ID, "name": asset.name}, cloned["source_asset"])
+        clone.source_uri = asset.image_url
+        clone.save(update_fields=["source_uri"])
+        self.assertEqual(asset.source_uri, vms.resolve_vm_vmdk_build_source("tenant-vmdk", clone))
+        with self.assertRaises(ValueError):
+            vms.resolve_vm_vmdk_build_source("another-tenant", clone)
+        for unsafe in ("/grdata/tenant/private-image-dir", "/grdata/package_build/temp/events/../outside",
+                       "/grdata/package_build/temp/events/safe..unsafe", "/grdata/package_build/temp/events/one/two"):
+            asset.source_uri = unsafe
+            asset.save(update_fields=["source_uri"])
+            with self.subTest(unsafe=unsafe), self.assertRaises(ValueError):
+                vms.resolve_vm_vmdk_build_source("tenant-vmdk", asset)
+
+    # capability_id: console.vm-images.vmdk-runtime-root
+    def test_vmdk_root_uses_converted_registry_image_and_never_installer_layout(self):
+        source = "https://example.invalid/root.VMDK?download=1"
+        asset = SimpleNamespace(format="vmdk", source_type="url", image_url="tenant-vmdk:converted", source_uri=source)
+        with self.assertRaises(ValueError):
+            vms.build_vm_create_disk_imports(asset=asset, image_url=asset.image_url)
+        imported = vms.build_vm_create_disk_imports(asset=asset,
+                                                    image_url=asset.image_url,
+                                                    builder_runtime_image=asset.image_url)
+        self.assertEqual(1, len(imported))
+        self.assertEqual("registry", imported[0]["source_type"])
+        self.assertEqual("tenant-vmdk:converted", imported[0]["image_url"])
+        self.assertEqual(source, imported[0]["source_uri"])
+        self.assertEqual("qcow2", imported[0]["format"])
+        layout = vms.build_initial_vm_disk_layout(boot_source_format="vmdk", asset=asset)
+        self.assertEqual(["root"], [disk["disk_role"] for disk in layout])
+        self.assertEqual("disk", layout[0]["device_type"])
+        template = {
+            "vm": {
+                "disk_layout": [{
+                    "disk_role": "root",
+                    "disk_key": "rootdisk",
+                    "disk_name": "rootdisk",
+                    "image_url": source,
+                    "source_type": "http",
+                    "format": "vmdk"
+                }]
+            }
+        }
+        imported = vms.build_vm_create_disk_imports(template_payload=template,
+                                                    image_url="tenant-vmdk:converted",
+                                                    builder_runtime_image="tenant-vmdk:converted")
+        self.assertEqual("registry", imported[0]["source_type"])
+        self.assertEqual("tenant-vmdk:converted", imported[0]["image_url"])
+        self.assertEqual("qcow2", imported[0]["format"])
+        root = {
+            "disk_role": "root",
+            "disk_key": "rootdisk",
+            "image": "tenant-vmdk:converted",
+            "source_uri": source,
+            "format": "vmdk",
+            "checksum": "source-checksum"
+        }
+        with self.assertRaises(ValueError):
+            vms.build_vm_create_disk_imports(template_payload={"vm": {"disk_layout": [root]}})
+        imported = vms.build_vm_create_disk_imports(template_payload={"vm": {
+            "disk_layout": [root]
+        }},
+                                                    image_url="tenant-vmdk:converted",
+                                                    builder_runtime_image="tenant-vmdk:converted")
+        self.assertEqual("registry", imported[0]["source_type"])
+        self.assertEqual("", imported[0]["checksum"])
+        declared = {
+            "vm": {
+                "boot_source_format": "vmdk",
+                "disk_layout": [{
+                    **root, "format": "",
+                    "source_uri": "https://example.invalid/download"
+                }]
+            }
+        }
+        self.assertEqual("vmdk", vms.infer_vm_boot_source_format(template_payload=declared))
+        self.assertEqual(
+            "registry",
+            vms.build_vm_create_disk_imports(template_payload=declared,
+                                             image_url="tenant-vmdk:converted",
+                                             builder_runtime_image="tenant-vmdk:converted")[0]["source_type"])
+        for transport in ("https://example.invalid/data.vmdk", "tenant-vmdk:unverified-data"):
+            with self.subTest(transport=transport), self.assertRaises(ValueError):
+                vms.build_vm_create_disk_imports(
+                    image_url="tenant-vmdk:root",
+                    boot_source_format="qcow2",
+                    template_payload={"data_disks": [{
+                        "disk_key": "data-vmdk",
+                        "image_url": transport,
+                        "format": "vmdk"
+                    }]})
+        for disguised in ("qcow2", "raw", "img"):
+            with self.subTest(disguised=disguised), self.assertRaises(ValueError):
+                vms.build_vm_create_disk_imports(image_url="tenant-vmdk:root",
+                                                 boot_source_format="qcow2",
+                                                 template_payload={
+                                                     "data_disks": [{
+                                                         "disk_key": "data-vmdk",
+                                                         "image_url": "https://example.invalid/DATA.VMDK?download=1",
+                                                         "format": disguised
+                                                     }]
+                                                 })
+        converted_data = {
+            "data_disks": [{
+                "disk_key": "converted-data",
+                "image_url": "tenant-vmdk:data-qcow2",
+                "source_uri": "https://example.invalid/original.vmdk",
+                "source_type": "registry",
+                "format": "qcow2"
+            }]
+        }
+        imported = vms.build_vm_create_disk_imports(template_payload=converted_data,
+                                                    image_url="tenant-vmdk:root",
+                                                    boot_source_format="qcow2")
+        self.assertEqual("qcow2", imported[1]["format"])
+        self.assertEqual("tenant-vmdk:data-qcow2", imported[1]["image_url"])
+        with self.assertRaises(ValueError):
+            vms.build_vm_create_disk_imports(image_url=source, boot_source_format="vmdk")
+        with self.assertRaises(ValueError):
+            vms.build_vm_create_disk_imports(image_url="tenant-vmdk:converted",
+                                             boot_source_format="vmdk",
+                                             builder_runtime_image="tenant-vmdk:other-service")
+        declared_data = {
+            "data_disks": [{
+                "disk_key": "same-build",
+                "image_url": "tenant-vmdk:converted",
+                "source_type": "registry",
+                "format": "vmdk",
+                "checksum": "source-checksum"
+            }]
+        }
+        imported = vms.build_vm_create_disk_imports(template_payload=declared_data,
+                                                    image_url="tenant-vmdk:converted",
+                                                    boot_source_format="vmdk",
+                                                    builder_runtime_image="tenant-vmdk:converted")
+        self.assertEqual("qcow2", imported[1]["format"])
+        self.assertEqual("", imported[1]["checksum"])
 
     def _create_vm_service(self, tenant_id, service_id, image, extend_method="vm", create_status="complete"):
         return TenantServiceInfo.objects.create(
@@ -68,6 +268,130 @@ class VirtualMachineServiceTests(TestCase):
             create_status=create_status,
             k8s_component_name="{}-k8s".format(service_id)
         )
+
+    def test_build_vm_runtime_attrs_maps_ssh_inputs_and_preserves_uefi_firmware_mode(self):
+        attrs = vms._build_vm_runtime_attrs({
+            "os_name": "Ubuntu 24.04",
+            "ssh_username": "ubuntu",
+            "ssh_public_key": "ssh-ed25519 AAAA",
+            "boot_mode": "uefi",
+            "boot_source_format": "qcow2",
+        })
+
+        self.assertEqual("Ubuntu 24.04", attrs["vm_os_name"])
+        self.assertEqual("ubuntu", attrs["vm_ssh_username"])
+        self.assertEqual("ssh-ed25519 AAAA", attrs["vm_ssh_authorized_key"])
+        self.assertEqual("uefi", attrs["vm_boot_mode"])
+        self.assertEqual("qcow2", attrs["vm_boot_source_format"])
+
+    def test_vm_persistent_storage_options_share_service_options_and_filter_unavailable_types(self):
+        tenant = SimpleNamespace(tenant_name="demo-team")
+        service = SimpleNamespace(service_region="demo-region")
+        region_options = [
+            {"volume_type": "sharedcfs", "name_show": "Shared CFS", "enable": True, "access_mode": ["RWX"]},
+            {"volume_type": "memoryfs", "name_show": "MemoryFS"},
+            {"volume_type": "config-file", "name_show": "Config file"},
+            {"volume_type": "disabled-store", "name_show": "Disabled", "enable": False},
+            {"volume_type": "local-path", "name_show": "Local path"},
+        ]
+
+        with mock.patch.dict(os.environ, {"USE_SAAS": ""}), \
+                mock.patch("console.services.app_config._volume_service_module.region_api.get_volume_options",
+                           return_value=SimpleNamespace(list=region_options)) as get_options:
+            component_options = volume_service.get_service_support_volume_options(tenant, service)
+            storage_options = volume_service.get_vm_persistent_storage_options(tenant, "demo-region")
+
+        get_options.assert_called_with("demo-region", "demo-team")
+        self.assertEqual("memoryfs", component_options[0]["volume_type"])
+        self.assertEqual("百度云", component_options[1]["name_show"])
+        self.assertIn("disabled-store", [option["volume_type"] for option in component_options])
+        self.assertEqual(["sharedcfs", "local-path"], [option["volume_type"] for option in storage_options])
+        self.assertEqual("百度云", storage_options[0]["name_show"])
+
+    def test_vm_storage_options_keep_saas_provider_override(self):
+        tenant = SimpleNamespace(tenant_name="demo-team")
+
+        with mock.patch.dict(os.environ, {"USE_SAAS": "true", "CLOUD_PROVIDER": "baidu"}), \
+                mock.patch("console.services.app_config._volume_service_module.region_api.get_volume_options") as get_options:
+            options = volume_service.get_vm_persistent_storage_options(tenant, "demo-region")
+
+        self.assertEqual(len(options), 1)
+        self.assertEqual(options[0]["volume_type"], "cephfs-external")
+        self.assertEqual(options[0]["name_show"], "百度云存储")
+        self.assertNotIn("provisioner", options[0])
+        self.assertEqual(options[0]["snapshot_capability"], {
+            "supported": False, "status": "unknown", "reason_code": ""
+        })
+        self.assertEqual(options[0]["managed_snapshot_capability"], options[0]["snapshot_capability"])
+        get_options.assert_not_called()
+
+    def test_vm_persistent_storage_options_accept_dict_and_reject_malformed_region_responses(self):
+        tenant = SimpleNamespace(tenant_name="demo-team")
+        option = {"volume_type": "ceph-block", "name_show": "Ceph block", "enable": True}
+        with mock.patch.dict(os.environ, {"USE_SAAS": ""}), \
+                mock.patch("console.services.app_config._volume_service_module.region_api.get_volume_options",
+                           return_value={"list": [option]}):
+            options = volume_service.get_vm_persistent_storage_options(tenant, "demo-region")
+            self.assertEqual(len(options), 1)
+            self.assertEqual({key: options[0][key] for key in option}, option)
+            self.assertEqual(options[0]["snapshot_capability"], {
+                "supported": False, "status": "unknown", "reason_code": ""
+            })
+            self.assertEqual(options[0]["managed_snapshot_capability"], options[0]["snapshot_capability"])
+
+        malformed_responses = (None, {}, {"list": None}, {"list": "not-a-list"}, SimpleNamespace(list=None))
+        for response in malformed_responses:
+            with self.subTest(response_type=type(response).__name__), \
+                    mock.patch.dict(os.environ, {"USE_SAAS": ""}), \
+                    mock.patch("console.services.app_config._volume_service_module.region_api.get_volume_options",
+                               return_value=response), \
+                    self.assertRaises(ValueError):
+                volume_service.get_vm_persistent_storage_options(tenant, "demo-region")
+
+    def test_vm_capabilities_include_persistent_storage_options_and_failure_is_not_success(self):
+        factory = APIRequestFactory()
+        view = VirtualMachineCapabilityView()
+        view.tenant = SimpleNamespace(tenant_name="demo-team")
+        view.response_region = "demo-region"
+        request = view.initialize_request(factory.get("/console/teams/demo-team/vm/capabilities"))
+        region_capabilities = {"gpu_supported": True, "usb_supported": False}
+        options = [{"volume_type": "ceph-block", "name_show": "Persistent block"}]
+
+        with mock.patch("console.views.app_config.app_domain.vms.get_vm_capabilities",
+                        return_value=region_capabilities), \
+                mock.patch("console.views.app_config.app_domain.volume_service.get_vm_persistent_storage_options",
+                           return_value=options):
+            response = view.get(request)
+
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(region_capabilities, {
+            key: response.data["data"]["bean"][key] for key in region_capabilities
+        })
+        self.assertEqual(options, response.data["data"]["bean"]["storage_options"])
+        self.assertFalse(response.data["data"]["bean"]["storage_options_error"])
+
+        with mock.patch("console.views.app_config.app_domain.vms.get_vm_capabilities",
+                        return_value=region_capabilities), \
+                mock.patch("console.views.app_config.app_domain.volume_service.get_vm_persistent_storage_options",
+                           return_value=[]):
+            empty_response = view.get(request)
+
+        self.assertEqual([], empty_response.data["data"]["bean"]["storage_options"])
+        self.assertFalse(empty_response.data["data"]["bean"]["storage_options_error"])
+
+        with mock.patch("console.views.app_config.app_domain.vms.get_vm_capabilities",
+                        return_value=region_capabilities), \
+                mock.patch("console.views.app_config.app_domain.volume_service.get_vm_persistent_storage_options",
+                           side_effect=RuntimeError("opaque storage failure")):
+            failed_response = view.get(request)
+
+        self.assertEqual(200, failed_response.status_code)
+        self.assertEqual(region_capabilities, {
+            key: failed_response.data["data"]["bean"][key] for key in region_capabilities
+        })
+        self.assertEqual([], failed_response.data["data"]["bean"]["storage_options"])
+        self.assertTrue(failed_response.data["data"]["bean"]["storage_options_error"])
+        self.assertNotIn("opaque storage failure", json.dumps(failed_response.data))
 
     def test_init_vm_image_app_uses_4cpu_8gb_defaults(self):
         service = app_service._AppService__init_vm_image_app("demo-region")
@@ -532,6 +856,95 @@ class VirtualMachineServiceTests(TestCase):
                 for item in create_payload["component_k8s_attributes"]
             }
         )
+        create_attr.assert_not_called()
+
+    def test_create_region_service_includes_ssh_attrs_and_internal_port_without_exposing_key_in_profile(self):
+        service = TenantServiceInfo.objects.create(
+            service_id="service-region-ssh",
+            tenant_id="tenant-a",
+            service_key="service-region-ssh",
+            service_alias="service-region-ssh",
+            service_cname="service-region-ssh",
+            service_region="demo-region",
+            category="application",
+            version="v1",
+            image="tenant-a:ubuntu",
+            extend_method="vm",
+            min_cpu=1000,
+            min_memory=1024,
+            min_node=1,
+            create_status="creating",
+            service_source="vm_run",
+            code_from="image_manual",
+            namespace="default",
+            service_type="application",
+            k8s_component_name="service-region-ssh-k8s"
+        )
+        public_key = "ssh-ed25519 AAAA-public-key"
+        for name, value in (
+                ("vm_os_name", "Ubuntu 24.04"),
+                ("vm_ssh_username", "ubuntu"),
+                ("vm_ssh_authorized_key", public_key),
+                ("vm_boot_mode", "uefi"),
+                ("vm_boot_source_format", "qcow2")):
+            ComponentK8sAttributes.objects.create(
+                tenant_id="tenant-a",
+                component_id=service.service_id,
+                name=name,
+                save_type="string",
+                attribute_value=value
+            )
+        TenantServicesPort.objects.create(
+            tenant_id="tenant-a",
+            service_id=service.service_id,
+            container_port=22,
+            mapping_port=22,
+            protocol="tcp",
+            port_alias="SERVICE_REGION_SSH22",
+            is_inner_service=True,
+            is_outer_service=False,
+            k8s_service_name=service.service_alias
+        )
+        TenantServiceEnvVar.objects.create(
+            tenant_id="tenant-a", service_id=service.service_id, container_port=22,
+            name="连接地址", attr_name="SERVICE_REGION_SSH22_HOST", attr_value=service.service_alias,
+            is_change=False, scope="outer")
+        TenantServiceEnvVar.objects.create(
+            tenant_id="tenant-a", service_id=service.service_id, container_port=22,
+            name="端口", attr_name="SERVICE_REGION_SSH22_PORT", attr_value="22",
+            is_change=False, scope="outer")
+
+        tenant = SimpleNamespace(tenant_id="tenant-a", tenant_name="tenant-a", enterprise_id="enterprise-a")
+        with mock.patch("console.services.app.service_group_relation_repo.get_group_id_by_service", return_value=1), \
+                mock.patch("console.services.app.region_app_repo.get_region_app_id", return_value="region-app-1"), \
+                mock.patch("console.services.app.region_api.create_service") as create_service_mock, \
+                mock.patch("console.services.app.region_api.create_component_k8s_attribute", create=True) as create_attr, \
+                mock.patch("console.services.app.arch_service.update_affinity_by_arch"):
+            app_service.create_region_service(tenant, service, "tester")
+
+        payload = create_service_mock.call_args[0][2]
+        attrs = {item["name"]: item["attribute_value"] for item in payload["component_k8s_attributes"]}
+        self.assertEqual("Ubuntu 24.04", attrs["vm_os_name"])
+        self.assertEqual("ubuntu", attrs["vm_ssh_username"])
+        self.assertEqual(public_key, attrs["vm_ssh_authorized_key"])
+        self.assertEqual("uefi", attrs["vm_boot_mode"])
+        self.assertEqual("qcow2", attrs["vm_boot_source_format"])
+        self.assertEqual([{
+            "container_port": 22,
+            "mapping_port": 22,
+            "protocol": "tcp",
+            "port_alias": "SERVICE_REGION_SSH22",
+            "is_inner_service": True,
+            "is_outer_service": False,
+            "k8s_service_name": service.service_alias,
+        }], payload["ports_info"])
+        self.assertEqual(
+            {"SERVICE_REGION_SSH22_HOST", "SERVICE_REGION_SSH22_PORT"},
+            {item["attr_name"] for item in payload["envs_info"] if item["container_port"] == 22})
+        runtime_profile = vms.get_vm_runtime_config(service.service_id)
+        self.assertNotIn("ssh_username", runtime_profile)
+        self.assertNotIn("ssh_public_key", runtime_profile)
+        self.assertNotIn(public_key, json.dumps(runtime_profile))
         create_attr.assert_not_called()
 
     def test_save_vm_runtime_config_preserves_non_vm_attrs_and_refreshes_vm_extension_keys(self):

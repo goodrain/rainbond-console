@@ -3,21 +3,24 @@
   Created by leon on 18/1/5.
 """
 import logging
-from typing import Any, List, Optional
+from typing import Any, List, Optional, cast
 
 from console.utils.cache_decorators import never_cache
 from rest_framework.request import Request
 from rest_framework.response import Response
+from django.db import transaction
 from console.exception.bcode import ErrK8sComponentNameExists, ErrVMImageNameExists
 from console.exception.main import ResourceNotEnoughException, ServiceHandleException
 from console.repositories.virtual_machine import vm_repo
 from console.services.app import app_service
 from console.services.enterprise_first_deploy_service import enterprise_first_deploy_service
-from console.services.virtual_machine import vms
+from console.services.virtual_machine import VM_PLAIN_DISK_FORMATS, VM_SOURCE_WRAPPER_FORMATS, vms
 from console.services.vm_boot_source import is_valid_vm_runtime_image_name
+from console.services.app_config import port_service
 from console.views.base import RegionTenantHeaderView
 from www.utils.return_message import general_message
 from console.services.group_service import group_service
+from www.models.main import TenantServiceInfo
 
 logger = logging.getLogger("default")
 PUBLIC_VM_IMAGES = {
@@ -48,6 +51,7 @@ PUBLIC_VM_IMAGE_NAMES = set(PUBLIC_VM_IMAGES.keys())
 
 class VMRunCreateView(RegionTenantHeaderView):
     @never_cache
+    @transaction.atomic
     def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         vm image 创建组件
@@ -90,7 +94,17 @@ class VMRunCreateView(RegionTenantHeaderView):
         event_id = request.data.get("event_id", "")
         vm_url = request.data.get("vm_url", "")
         source_format = request.data.get("format", "")
+        try:
+            source_format = vms.normalize_vm_source_format(source_format)
+        except ValueError:
+            return Response(general_message(400, "invalid VM image format", "不支持的虚拟机镜像格式"), status=400)
         boot_mode = request.data.get("boot_mode", "")
+        requested_os_name = request.data.get("os_name", "")
+        os_family = request.data.get("os_family", "")
+        login_method = request.data.get("login_method")
+        login_password = request.data.get("login_password", "")
+        ssh_username = request.data.get("ssh_username", "")
+        ssh_public_key = request.data.get("ssh_public_key", "")
         gpu_enabled = request.data.get("gpu_enabled", False)
         gpu_resources = request.data.get("gpu_resources", [])
         gpu_count = request.data.get("gpu_count", 1 if gpu_enabled else 0)
@@ -107,8 +121,16 @@ class VMRunCreateView(RegionTenantHeaderView):
             return Response(
                 general_message(400, "invalid vm import source", "event_id 和 vm_url 必须为字符串"),
                 status=400)
-        event_id = event_id.strip()
-        vm_url = vm_url.strip()
+        if (not isinstance(requested_os_name, str) or not isinstance(os_family, str)):
+            return Response(
+                general_message(400, "invalid vm guest metadata", "虚拟机操作系统信息格式不正确"),
+                status=400)
+        try:
+            event_id, vm_url = vms.normalize_vm_create_source(event_id, vm_url)
+        except ValueError:
+            return Response(general_message(400, "invalid VM import source", "请选择单一有效URL或上传来源，上传ID必须为安全标识"), status=400)
+        requested_os_name = requested_os_name.strip()
+        os_family = os_family.strip()
         has_import_source = bool(event_id or vm_url)
         runtime_config = {
             "gpu_enabled": gpu_enabled,
@@ -128,6 +150,93 @@ class VMRunCreateView(RegionTenantHeaderView):
                     "虚拟机镜像名称长度为 1-128 个字符，首字符必须为字母、数字或下划线，"
                     "其余字符仅支持字母、数字、下划线、点和连字符"),
                 status=400)
+        validation_asset = None
+        if not has_import_source:
+            if asset_id:
+                validation_asset = vm_repo.get_vm_image_instance_by_id(self.tenant.tenant_id, asset_id)
+            if not validation_asset and image_name:
+                validation_asset = vm_repo.get_vm_image_instance_by_tenant_id_and_name(self.tenant.tenant_id, image_name)
+        try:
+            known_format = vms.normalize_vm_source_format(
+                vms.infer_vm_boot_source_format(
+                    asset=validation_asset,
+                    image_name=image_name,
+                    image_url=vm_url,
+                    source_uri=vm_url or ("/grdata/package_build/temp/events/{}".format(event_id) if event_id else "")))
+            # A client cannot disguise a known VMDK asset/source as QCOW2/raw
+            # to bypass verified conversion or gain cloud-init trust.
+            if known_format == "vmdk" and source_format and source_format != "vmdk":
+                raise ValueError("VM image format conflicts with VMDK source")
+            actual_input = vm_url if has_import_source else (
+                getattr(validation_asset, "source_uri", "") if known_format == "vmdk" else "")
+            root_metadata = vms._extract_root_disk_payload(asset=validation_asset) if validation_asset else None
+            declared_by_server = validation_asset and ((root_metadata or {}).get("format")
+                                                       or getattr(validation_asset, "format", ""))
+            validation_format = vms.normalize_vm_source_format(
+                known_format if declared_by_server else source_format or known_format, actual_input)
+        except ValueError:
+            return Response(general_message(400, "invalid VM image format", "不支持的虚拟机镜像格式"), status=400)
+        source_format = validation_format
+        password_bootstrap_supported = False
+        if login_method == "password":
+            try:
+                capabilities = vms.get_vm_capabilities(self.response_region, self.tenant.tenant_name)
+            except Exception:
+                return Response(
+                    general_message(
+                        409,
+                        "VM password bootstrap unavailable",
+                        "当前数据中心尚未启用 Ubuntu 密码登录方式",
+                    ),
+                    status=409,
+                )
+            password_bootstrap_supported = (
+                isinstance(capabilities, dict) and capabilities.get("password_bootstrap_supported") is True
+            )
+            if not password_bootstrap_supported:
+                return Response(
+                    general_message(
+                        409,
+                        "VM password bootstrap unavailable",
+                        "当前数据中心尚未启用 Ubuntu 密码登录方式",
+                    ),
+                    status=409,
+                )
+        bootstrap_format = validation_format
+        if validation_asset:
+            source_extra = vms._load_json(getattr(validation_asset, "extra_json", ""), {})
+            origin_format = source_extra.get("source_format", "") if isinstance(source_extra, dict) else ""
+            if any(
+                    str(value or "").strip().lower() == "vmdk"
+                    for value in (origin_format, getattr(validation_asset, "format", ""))):
+                bootstrap_format = "vmdk"
+        try:
+            login_bootstrap = vms.prepare_vm_login_bootstrap(
+                login_method=login_method,
+                ssh_username=ssh_username,
+                ssh_public_key=ssh_public_key,
+                login_password=login_password,
+                source_type=source_type,
+                vm_url=vm_url,
+                image_format=bootstrap_format,
+                arch=arch,
+                boot_mode=boot_mode,
+                os_name=requested_os_name,
+                os_family=os_family,
+                password_bootstrap_supported=password_bootstrap_supported,
+            )
+        except ValueError as err:
+            return Response(general_message(400, "invalid VM login bootstrap", str(err)), status=400)
+        ssh_username = login_bootstrap["ssh_username"]
+        ssh_public_key = login_bootstrap["ssh_public_key"]
+        login_password_hash = login_bootstrap["login_password_hash"]
+        runtime_config = {
+            **runtime_config,
+            "ssh_username": ssh_username,
+            "ssh_public_key": ssh_public_key,
+            "login_password_hash": login_password_hash,
+        }
+        del login_password
         tracker = enterprise_first_deploy_service.safe_begin_deploy_tracking(
             enterprise_id=getattr(self.tenant, "enterprise_id", ""),
             tenant_name=getattr(self.tenant, "tenant_name", ""),
@@ -177,7 +286,7 @@ class VMRunCreateView(RegionTenantHeaderView):
                         else:
                             resolved_source_type = "url"
                     source_uri = vm_url or "/grdata/package_build/temp/events/{}".format(event_id)
-                    os_name = image_name
+                    os_name = requested_os_name or image_name
                     if resolved_source_type == "public" and public_vm_meta:
                         source_uri = public_vm_meta["url"]
                         os_name = public_vm_meta["os_name"]
@@ -205,7 +314,7 @@ class VMRunCreateView(RegionTenantHeaderView):
                         image_url=image,
                         source_uri=vm_url or getattr(asset, "source_uri", ""),
                     )
-                guest_os_name = getattr(asset, "os_name", "") or image_name
+                guest_os_name = requested_os_name or getattr(asset, "os_name", "") or image_name
             else:
                 if asset_id:
                     asset = vm_repo.get_vm_image_instance_by_id(self.tenant.tenant_id, asset_id)
@@ -223,7 +332,7 @@ class VMRunCreateView(RegionTenantHeaderView):
                     if not image_name:
                         image_name = getattr(asset, "name", "") or image_name
                     if not guest_os_name:
-                        guest_os_name = getattr(asset, "os_name", "") or image_name
+                        guest_os_name = requested_os_name or getattr(asset, "os_name", "") or image_name
                     if not boot_source_format:
                         boot_source_format = vms.infer_vm_boot_source_format(
                             asset=asset,
@@ -238,12 +347,18 @@ class VMRunCreateView(RegionTenantHeaderView):
                         failure_stage=enterprise_first_deploy_service.FAILURE_STAGE_PREFLIGHT)
                     return Response(general_message(404, "vm image not found", "虚拟机镜像不存在"), status=404)
                 if not has_import_source:
-                    boot_source = vms.resolve_vm_boot_source(
-                        self.tenant,
-                        image_name,
-                        image,
-                        source_uri=getattr(asset, "source_uri", "")
-                    )
+                    if boot_source_format == "vmdk":
+                        if not is_valid_vm_runtime_image_name(image_name):
+                            raise ValueError("invalid VM image name")
+                        # Re-verify old VMDK assets from their stored original
+                        # source; ready/OCI metadata is not conversion evidence.
+                        original_source = vms.resolve_vm_vmdk_build_source(self.tenant.tenant_id, asset)
+                        boot_source = vms.resolve_vm_boot_source(self.tenant, image_name, original_source)
+                    else:
+                        boot_source = vms.resolve_vm_boot_source(self.tenant,
+                                                                 image_name,
+                                                                 image,
+                                                                 source_uri=getattr(asset, "source_uri", ""))
                     image = boot_source["image"]
                     if boot_source["vm_url"]:
                         vm_url = boot_source["vm_url"]
@@ -263,11 +378,30 @@ class VMRunCreateView(RegionTenantHeaderView):
                 self.response_region, self.tenant, self.user, service_cname,  # type: ignore[arg-type]
                 k8s_component_name, image, arch, event_id, vm_url)
             if code != 200:
+                transaction.set_rollback(True)
                 enterprise_first_deploy_service.safe_mark_failure(
                     tracker,
                     reason=msg_show,
                     failure_stage=enterprise_first_deploy_service.FAILURE_STAGE_PREFLIGHT)
                 return Response(general_message(code, "service create fail", msg_show), status=code)
+            new_service = cast(TenantServiceInfo, new_service)
+            builder_runtime_image = ""
+            if boot_source_format == "vmdk" and not (vm_url or event_id):
+                raise ValueError("VMDK source requires verified conversion")
+            wrapper_hint = vms._infer_asset_format(vm_url or event_id)
+            if ((vm_url or event_id) and boot_source_format in VM_PLAIN_DISK_FORMATS
+                    and wrapper_hint not in VM_SOURCE_WRAPPER_FORMATS):
+                # All new plain disks consume the verified build output, even
+                # when VMDK bytes were renamed as IMG/QCOW2. Wrapper/ISO and
+                # old no-build RAW/QCOW2 assets retain their existing paths.
+                # Each service owns its target; never overwrite another VM OCI.
+                image = vms._build_vm_runtime_image_name(self.tenant, "vm-" + new_service.service_id)
+                new_service.image = image
+                new_service.save(update_fields=["image"])
+                builder_runtime_image = image
+                if asset_created:
+                    vms.bind_vm_builder_runtime_asset(asset, image, boot_source_format, vm_url
+                                                      or getattr(asset, "source_uri", ""))
             runtime_disk_layout = restore_plan.get("disk_layout") if restore_plan else None
             if not runtime_disk_layout:
                 runtime_disk_layout = vms.build_initial_vm_disk_layout(
@@ -295,6 +429,7 @@ class VMRunCreateView(RegionTenantHeaderView):
                 image_url=image,
                 source_uri=vm_url or getattr(asset, "source_uri", ""),
                 boot_source_format=boot_source_format,
+                builder_runtime_image=builder_runtime_image,
             )
             logger.info(
                 "vm create resolved source: tenant=%s service=%s source_type=%s "
@@ -316,8 +451,36 @@ class VMRunCreateView(RegionTenantHeaderView):
                 )
             code, msg_show = group_service.add_service_to_group(self.tenant, self.response_region, group_id,
                                                                 new_service.service_id)  # type: ignore[union-attr]
+            needs_ssh_port = bool(ssh_public_key or login_password_hash)
+            if code != 200 and needs_ssh_port:
+                transaction.set_rollback(True)
+                enterprise_first_deploy_service.safe_mark_failure(
+                    tracker,
+                    reason="VM SSH internal port could not be registered",
+                    failure_stage=enterprise_first_deploy_service.FAILURE_STAGE_PREFLIGHT)
+                return Response(general_message(400, "vm ssh port registration failed", "无法配置集群内 SSH 端口，请重试创建"),
+                                status=400)
             if code != 200:
                 logger.debug("service.create", msg_show)
+            if needs_ssh_port:
+                port_code, _, _ = port_service.add_service_port(
+                    self.tenant,
+                    new_service,  # type: ignore[arg-type]
+                    22,
+                    protocol="tcp",
+                    is_inner_service=True,
+                    is_outer_service=False,
+                    user_name=self.user.nick_name or "",
+                )
+                if port_code != 200:
+                    transaction.set_rollback(True)
+                    enterprise_first_deploy_service.safe_mark_failure(
+                        tracker,
+                        reason="VM SSH internal port could not be registered",
+                        failure_stage=enterprise_first_deploy_service.FAILURE_STAGE_PREFLIGHT)
+                    return Response(
+                        general_message(port_code, "vm ssh port registration failed", "无法配置集群内 SSH 端口，请重试创建"),
+                        status=port_code)
             result = general_message(200, "success", "创建成功", bean=new_service.to_dict())  # type: ignore[union-attr]
             enterprise_first_deploy_service.safe_bind_events(
                 tracker,
@@ -325,18 +488,21 @@ class VMRunCreateView(RegionTenantHeaderView):
                 service_ids=[new_service.service_id],  # type: ignore[union-attr]
                 service_aliases=[new_service.service_alias])  # type: ignore[union-attr]
         except ResourceNotEnoughException as re:
+            transaction.set_rollback(True)
             enterprise_first_deploy_service.safe_mark_failure(
                 tracker,
                 reason=getattr(re, "msg", str(re)),
                 failure_stage=enterprise_first_deploy_service.FAILURE_STAGE_PREFLIGHT)
             raise re
         except ServiceHandleException as err:
+            transaction.set_rollback(True)
             enterprise_first_deploy_service.safe_mark_failure(
                 tracker,
                 reason=getattr(err, "msg", str(err)),
                 failure_stage=enterprise_first_deploy_service.FAILURE_STAGE_PREFLIGHT)
             return Response(general_message(err.status_code, err.msg, err.msg_show), status=err.status_code)
         except ValueError as err:
+            transaction.set_rollback(True)
             enterprise_first_deploy_service.safe_mark_failure(
                 tracker,
                 reason=str(err),
@@ -358,8 +524,13 @@ class VMRunCreateView(RegionTenantHeaderView):
         return None
 
     @staticmethod
-    def resolve_disk_imports(asset: Any = None, restore_plan: Optional[dict] = None, image_name: str = "",
-                             image_url: str = "", source_uri: str = "", boot_source_format: str = "") -> List:
+    def resolve_disk_imports(asset: Any = None,
+                             restore_plan: Optional[dict] = None,
+                             image_name: str = "",
+                             image_url: str = "",
+                             source_uri: str = "",
+                             boot_source_format: str = "",
+                             builder_runtime_image: str = "") -> List:
         if restore_plan:
             return list(restore_plan.get("disk_imports") or [])
         return vms.build_vm_create_disk_imports(
@@ -368,4 +539,5 @@ class VMRunCreateView(RegionTenantHeaderView):
             image_url=image_url,
             source_uri=source_uri,
             boot_source_format=boot_source_format,
+            builder_runtime_image=builder_runtime_image,
         )

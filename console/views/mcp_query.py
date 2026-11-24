@@ -737,7 +737,8 @@ class MCPQueryHTTPView(MCPQueryRPCMixin, APIView):  # type: ignore[misc]
     def options(self, request: Request, *args: Any, **kwargs: Any) -> HttpResponse:  # type: ignore[override]
         response = HttpResponse(status=204)
         response["Access-Control-Allow-Origin"] = "*"
-        response["Access-Control-Allow-Headers"] = "Cache-Control, Content-Type, Authorization, MCP-Protocol-Version, Mcp-Session-Id"
+        response[
+            "Access-Control-Allow-Headers"] = "Cache-Control, Content-Type, Authorization, MCP-Protocol-Version, Mcp-Session-Id"
         response["Access-Control-Expose-Headers"] = self._EXPOSE_HEADERS
         response["Access-Control-Allow-Methods"] = "GET, POST, DELETE, OPTIONS"
         return response

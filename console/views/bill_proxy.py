@@ -5,9 +5,10 @@ import requests
 from django.http import HttpResponse
 from django.http import HttpRequest
 from django.views import View
-from django.conf import settings
+
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
+
 
 @method_decorator(csrf_exempt, name='dispatch')
 class BillProxyView(View):
@@ -27,7 +28,7 @@ class BillProxyView(View):
             'X-Forwarded-For': request.META.get('HTTP_X_FORWARDED_FOR', ''),
             'X-Forwarded-Proto': request.scheme,
         }
-        
+
         # 如果有认证信息，转发 Authorization 头
         if 'HTTP_AUTHORIZATION' in request.META:
             headers['Authorization'] = request.META['HTTP_AUTHORIZATION']
@@ -68,34 +69,29 @@ class BillProxyView(View):
             # 发送请求到账单服务
             if request_files:
                 # 文件上传请求
-                response = requests.request(
-                    method=request.method,
-                    url=target_url,
-                    headers=headers,
-                    data=request_data,
-                    files=request_files,
-                    params=request.GET,
-                    stream=True,
-                    verify=False
-                )
+                response = requests.request(method=request.method,
+                                            url=target_url,
+                                            headers=headers,
+                                            data=request_data,
+                                            files=request_files,
+                                            params=request.GET,
+                                            stream=True,
+                                            verify=False)
             else:
                 # 普通请求
-                response = requests.request(
-                    method=request.method,
-                    url=target_url,
-                    headers=headers,
-                    data=request_data,
-                    params=request.GET,
-                    stream=True,
-                    verify=False
-                )
+                response = requests.request(method=request.method,
+                                            url=target_url,
+                                            headers=headers,
+                                            data=request_data,
+                                            params=request.GET,
+                                            stream=True,
+                                            verify=False)
 
             # 创建Django响应
             django_response = HttpResponse(
                 content=response.content,  # 使用 content 而不是 raw
                 status=response.status_code,
-                content_type=response.headers.get('Content-Type', '')
-            )
+                content_type=response.headers.get('Content-Type', ''))
 
             # 复制响应头
             for key, value in response.headers.items():
@@ -105,4 +101,4 @@ class BillProxyView(View):
             return django_response
 
         except requests.RequestException as e:
-            return HttpResponse(f"Error proxying request: {str(e)}", status=502) 
+            return HttpResponse(f"Error proxying request: {str(e)}", status=502)

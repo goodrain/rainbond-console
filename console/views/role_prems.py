@@ -8,7 +8,7 @@ from rest_framework.response import Response
 
 from console.exception.exceptions import ParamsError
 from console.exception.exceptions import UserNotExistError
-from console.services.message_service import msg_service
+
 from console.services.operation_log import operation_log_service, Operation
 from console.services.perm_services import role_kind_services
 from console.services.team_services import team_services
@@ -98,12 +98,12 @@ class TeamAddUserView(RegionTenantHeaderView):
             logging.exception(e)
             code = 400
             # NOTE: py2-style Exception.message attribute (attr-defined backlog).
-            result = general_message(
-                code, "params is empty", getattr(e, "msg", getattr(e, "message", str(e))))  # type: ignore[attr-defined]
+            result = general_message(code, "params is empty", getattr(e, "msg", getattr(e, "message",
+                                                                                        str(e))))  # type: ignore[attr-defined]
         except UserNotExistError as e:
             code = 400
-            result = general_message(
-                code, "user not exist", getattr(e, "msg", getattr(e, "message", str(e))))  # type: ignore[attr-defined]
+            result = general_message(code, "user not exist", getattr(e, "msg", getattr(e, "message",
+                                                                                       str(e))))  # type: ignore[attr-defined]
         except Tenants.DoesNotExist as e:
             code = 400
             logger.exception(e)

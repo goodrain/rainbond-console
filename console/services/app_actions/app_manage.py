@@ -9,21 +9,41 @@ import time
 from typing import Any, List, Optional, Tuple
 
 from django.db.models import QuerySet
+from django.core.serializers.json import DjangoJSONEncoder
 
 from console.cloud.services import check_account_quota
 from console.constants import AppConstants
 from console.enum.component_enum import ComponentType, is_singleton, is_state
 from console.exception.main import AbortRequest, ServiceHandleException
 from console.models.main import ServiceShareRecordEvent
-from console.repositories.app import (delete_service_repo, recycle_bin_repo, relation_recycle_bin_repo, service_repo,
-                                      service_source_repo)
+from console.repositories.app import (
+    delete_service_repo,
+    recycle_bin_repo,
+    relation_recycle_bin_repo,
+    service_repo,
+    service_source_repo,
+)
 
-from console.repositories.app_config import (auth_repo, dep_relation_repo, domain_repo, env_var_repo,
-                                             extend_repo, mnt_repo, port_repo, tcp_domain, volume_repo, compile_env_repo)
+from console.repositories.app_config import (
+    auth_repo,
+    dep_relation_repo,
+    domain_repo,
+    env_var_repo,
+    extend_repo,
+    mnt_repo,
+    port_repo,
+    tcp_domain,
+    volume_repo,
+    compile_env_repo,
+)
 from console.repositories.app_config_group import app_config_group_service_repo
 from console.repositories.compose_repo import compose_relation_repo
 from console.repositories.event_repo import event_repo
-from console.repositories.group import (group_service_relation_repo, tenant_service_group_repo, group_repo)
+from console.repositories.group import (
+    group_service_relation_repo,
+    tenant_service_group_repo,
+    group_repo,
+)
 from console.repositories.label_repo import service_label_repo
 from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.oauth_repo import oauth_repo, oauth_user_repo
@@ -35,23 +55,31 @@ from console.repositories.service_backup_repo import service_backup_repo
 from console.repositories.share_repo import share_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.virtual_machine import vm_repo
-from console.services.app import app_market_service, app_service
+from console.services.app import app_market_service
 from console.services.app_actions.app_log import AppEventService
 from console.services.app_actions.exception import ErrVersionAlreadyExists
-from console.services.app_config import (AppEnvVarService, AppMntService, AppPortService, AppServiceRelationService,
-                                         AppVolumeService)
+from console.services.app_config import (
+    AppEnvVarService,
+    AppMntService,
+    AppPortService,
+    AppServiceRelationService,
+    AppVolumeService,
+)
 from console.services.app_config.component_graph import component_graph_service
 from console.services.app_config.service_monitor import service_monitor_repo
 from console.services.exception import ErrChangeServiceType
 from console.services.group_service import group_service
 from console.services.market_app.port_utils import normalize_template_port_service_flags
 from console.services.source_build_state_service import source_build_state_service
-from console.services.app_version_auto_snapshot import app_version_auto_snapshot_service
 from console.services.service_services import base_service
-from console.utils.cnb_build import (sanitize_build_env_dict_for_language, normalize_source_build_config,
-                                     policy_summary_to_snapshot, compose_source_code_info,
-                                     summarize_build_env, resolve_build_strategy,
-                                     resolve_requested_build_strategy)
+from console.utils.cnb_build import (
+    sanitize_build_env_dict_for_language,
+    normalize_source_build_config,
+    policy_summary_to_snapshot,
+    compose_source_code_info,
+    resolve_build_strategy,
+    resolve_requested_build_strategy,
+)
 from console.utils import slug_util
 from console.utils.oauth.base.exception import NoAccessKeyErr
 from console.utils.oauth.oauth_types import (NoSupportOAuthType, get_oauth_instance)
@@ -89,8 +117,7 @@ def _create_delete_service_with_retry(data: dict) -> None:
             return
         except OperationalError as e:
             if "database is locked" in str(e) and attempt < _DB_LOCK_MAX_RETRIES - 1:
-                logger.warning("database locked on delete-service insert (attempt %d/%d)",
-                               attempt + 1, _DB_LOCK_MAX_RETRIES)
+                logger.warning("database locked on delete-service insert (attempt %d/%d)", attempt + 1, _DB_LOCK_MAX_RETRIES)
                 time.sleep(_DB_LOCK_RETRY_DELAY * (attempt + 1))
                 continue
             raise
@@ -145,8 +172,7 @@ class AppManageBase(object):
         try:
             # NOTE: tenant.enterprise_id is Optional[str] on the model but non-null in practice;
             # body Optional deref is guarded by this try/except.
-            body = region_api.check_service_status(cur_service.service_region, tenant.tenant_name,
-                                                   cur_service.service_alias,
+            body = region_api.check_service_status(cur_service.service_region, tenant.tenant_name, cur_service.service_alias,
                                                    tenant.enterprise_id)  # type: ignore[arg-type]
             status = body["bean"]["cur_status"]  # type: ignore[index]
             # 占用内存的状态
@@ -181,8 +207,7 @@ class AppManageService(AppManageBase):
             return
         vm_repo.delete_vm_image_by_image_url(tenant.tenant_id, image_url)
 
-    def start(self, tenant: Tenants, service: TenantServiceInfo, user: Any,
-              oauth_instance: Any) -> Tuple[int, str]:
+    def start(self, tenant: Tenants, service: TenantServiceInfo, user: Any, oauth_instance: Any) -> Tuple[int, str]:
         if service.service_source != "third_party" and not check_account_quota(tenant.creater, service.service_region,
                                                                                self.ResourceOperationStart):
             raise ServiceHandleException(error_code=20002, msg="not enough quota")
@@ -191,7 +216,8 @@ class AppManageService(AppManageBase):
             body["operator"] = str(user.nick_name)
             body["enterprise_id"] = tenant.enterprise_id
             try:
-                region_api.start_service(service.service_region, tenant.tenant_name, service.service_alias, body)
+                result = region_api.start_service(service.service_region, tenant.tenant_name, service.service_alias, body)
+                setattr(service, "_last_power_event_id", (result or {}).get("bean", {}).get("event_id", ""))
                 logger.debug("user {0} start app !".format(user.nick_name))
             except region_api.CallApiError as e:
                 logger.exception(e)
@@ -203,12 +229,10 @@ class AppManageService(AppManageBase):
         # KubeBlocks Component 需要额外启动 Cluster
         if is_kubeblocks(service.extend_method):
             from console.services.kubeblocks_service import kubeblocks_service
-            code, msg = kubeblocks_service.manage_cluster_status(
-                service,
-                service.service_region,
-                oauth_instance=oauth_instance,
-                operation="start"
-            )
+            code, msg = kubeblocks_service.manage_cluster_status(service,
+                                                                 service.service_region,
+                                                                 oauth_instance=oauth_instance,
+                                                                 operation="start")
             if code != 200:
                 return code, msg
 
@@ -252,7 +276,8 @@ class AppManageService(AppManageBase):
             body["operator"] = str(user.nick_name)
             body["enterprise_id"] = tenant.enterprise_id
             try:
-                region_api.stop_service(service.service_region, tenant.tenant_name, service.service_alias, body)
+                result = region_api.stop_service(service.service_region, tenant.tenant_name, service.service_alias, body)
+                setattr(service, "_last_power_event_id", (result or {}).get("bean", {}).get("event_id", ""))
                 logger.debug("user {0} stop app !".format(user.nick_name))
             except region_api.CallApiError as e:
                 logger.exception(e)
@@ -263,17 +288,12 @@ class AppManageService(AppManageBase):
         # KubeBlocks Component 需要额外关闭 Cluster
         if is_kubeblocks(service.extend_method):
             from console.services.kubeblocks_service import kubeblocks_service
-            kubeblocks_service.manage_cluster_status(
-                service,
-                service.service_region,
-                oauth_instance=None,
-                operation="stop"
-            )
+            kubeblocks_service.manage_cluster_status(service, service.service_region, oauth_instance=None, operation="stop")
 
-    def restart(self, tenant: Tenants, service: TenantServiceInfo, user: Any,
-                oauth_instance: Any) -> Tuple[int, str]:
+    def restart(self, tenant: Tenants, service: TenantServiceInfo, user: Any, oauth_instance: Any) -> Tuple[int, str]:
         if service.create_status == "complete":
-            if service.service_source != "third_party" and not check_account_quota(tenant.creater, service.service_region, self.ResourceOperationReStart):
+            if service.service_source != "third_party" and not check_account_quota(tenant.creater, service.service_region,
+                                                                                   self.ResourceOperationReStart):
                 raise ServiceHandleException(error_code=20002, msg="not enough quota")
             body: dict = dict()
             body["operator"] = str(user.nick_name)
@@ -291,18 +311,20 @@ class AppManageService(AppManageBase):
         # KubeBlocks Component 需要额外重启 Cluster
         if is_kubeblocks(service.extend_method):
             from console.services.kubeblocks_service import kubeblocks_service
-            code, msg = kubeblocks_service.manage_cluster_status(
-                service,
-                service.service_region,
-                oauth_instance=oauth_instance,
-                operation="restart"
-            )
+            code, msg = kubeblocks_service.manage_cluster_status(service,
+                                                                 service.service_region,
+                                                                 oauth_instance=oauth_instance,
+                                                                 operation="restart")
             if code != 200:
                 return code, msg
 
         return 200, "操作成功"
 
-    def deploy(self, tenant: Tenants, service: TenantServiceInfo, user: Any, oauth_instance: Any = None,
+    def deploy(self,
+               tenant: Tenants,
+               service: TenantServiceInfo,
+               user: Any,
+               oauth_instance: Any = None,
                service_copy_path: Optional[dict] = None) -> Tuple[int, str, str]:
         res, body = region_api.get_cluster_nodes_arch(service.service_region)
         # NOTE: region_api.get_cluster_nodes_arch returns Optional body; deref is guarded by
@@ -311,17 +333,16 @@ class AppManageService(AppManageBase):
         service.arch = service.arch if service.arch else "amd64"
         if service.arch not in chaos_arch:
             raise AbortRequest("app arch does not match build node arch", "应用架构与构建节点架构不匹配", status_code=404, error_code=404)
-        if service.service_source != "third_party" and not check_account_quota(tenant.creater, service.service_region, self.ResourceOperationDeploy):
+        if service.service_source != "third_party" and not check_account_quota(tenant.creater, service.service_region,
+                                                                               self.ResourceOperationDeploy):
             raise ServiceHandleException(msg="not enough quota", error_code=20002)
         body: dict = dict()
         # 默认更新升级
         body["action"] = "deploy"
         if service.build_upgrade:
             body["action"] = "upgrade"
-        body["envs"] = sanitize_build_env_dict_for_language(
-            env_var_repo.get_build_envs(tenant.tenant_id, service.service_id),
-            service.language
-        )
+        body["envs"] = sanitize_build_env_dict_for_language(env_var_repo.get_build_envs(tenant.tenant_id, service.service_id),
+                                                            service.language)
         kind = self.__get_service_kind(service)
         body["kind"] = kind
         body["arch"] = service.arch
@@ -337,15 +358,18 @@ class AppManageService(AppManageBase):
                     # NOTE: oauth_service_id is an IntegerField (int) used as a str id by the repo.
                     oauth_service = oauth_repo.get_oauth_services_by_service_id(
                         service_id=service.oauth_service_id)  # type: ignore[arg-type]
-                    oauth_user = oauth_user_repo.get_user_oauth_by_user_id(
-                        service_id=service.oauth_service_id, user_id=user.user_id)  # type: ignore[arg-type]
+                    oauth_user = oauth_user_repo.get_user_oauth_by_user_id(  # type: ignore[arg-type]
+                        service_id=service.oauth_service_id,  # type: ignore[arg-type]
+                        user_id=user.user_id)  # type: ignore[arg-type]
                 except Exception as e:
                     logger.exception(e)
                     return 400, "该组件构建源基于Oauth对接的代码仓库，Oauth服务可能已被删除，请在构建源中重新配置", ""
                 try:
                     # NOTE: oauth_service may be None; a None deref raises here and is caught below.
-                    instance = get_oauth_instance(oauth_service.oauth_type, oauth_service,  # type: ignore[union-attr]
-                                                  oauth_user)
+                    instance = get_oauth_instance(
+                        oauth_service.oauth_type,  # type: ignore[union-attr]
+                        oauth_service,  # type: ignore[union-attr]
+                        oauth_user)
                 except NoSupportOAuthType as e:
                     logger.debug(e)
                     return 400, "该组件构建源代码仓库类型已不支持", ""
@@ -357,15 +381,15 @@ class AppManageService(AppManageBase):
                     return 400, "该组件代码仓库认证信息已过期，请重新认证", ""
                 build_strategy = resolve_build_strategy(getattr(service, "build_strategy", ""), body["envs"])
                 policy_summary = base_service._get_cnb_version_policy(tenant, service) if build_strategy == "cnb" else {}
-                body["code_info"] = compose_source_code_info(
-                    service, body["envs"], build_strategy, policy_summary_to_snapshot(service.language, policy_summary),
-                    git_url, service.code_version)
+                body["code_info"] = compose_source_code_info(service, body["envs"], build_strategy,
+                                                             policy_summary_to_snapshot(service.language, policy_summary),
+                                                             git_url, service.code_version)
             else:
                 build_strategy = resolve_build_strategy(getattr(service, "build_strategy", ""), body["envs"])
                 policy_summary = base_service._get_cnb_version_policy(tenant, service) if build_strategy == "cnb" else {}
-                body["code_info"] = compose_source_code_info(
-                    service, body["envs"], build_strategy, policy_summary_to_snapshot(service.language, policy_summary),
-                    service.git_url, service.code_version)
+                body["code_info"] = compose_source_code_info(service, body["envs"], build_strategy,
+                                                             policy_summary_to_snapshot(service.language, policy_summary),
+                                                             service.git_url, service.code_version)
         if kind == "build_from_image" or kind == "build_from_market_image" or kind == "build_from_vm":
             body["image_info"] = {
                 "image_url": service.image,
@@ -411,8 +435,6 @@ class AppManageService(AppManageBase):
         except region_api.CallApiFrequentError as e:
             logger.exception(e)
             return 409, "操作过于频繁，请稍后再试", ""
-        app_version_auto_snapshot_service.safe_track_components(
-            tenant, service.service_region, user, [service], [{"service_id": service.service_id, "event_id": event_id}])
         return 200, "操作成功", event_id
 
     def __delete_envs(self, tenant: Tenants, service: TenantServiceInfo) -> Tuple[int, str]:
@@ -431,8 +453,7 @@ class AppManageService(AppManageBase):
                     return 400, msg
         return 200, "success"
 
-    def __save_extend_info(self, service: TenantServiceInfo,
-                           extend_info: Optional[dict]) -> Optional[Tuple[int, str]]:
+    def __save_extend_info(self, service: TenantServiceInfo, extend_info: Optional[dict]) -> Optional[Tuple[int, str]]:
         if not extend_info:
             return 200, "success"
         params = {
@@ -461,22 +482,22 @@ class AppManageService(AppManageBase):
                 file_content = volume.get("file_content", None)
                 settings = {}
                 settings["volume_capacity"] = volume["volume_capacity"]
-                volume_service.add_service_volume(
-                    tenant,
-                    service,
-                    volume["volume_path"],
-                    volume_type=volume["volume_type"],
-                    volume_name=volume["volume_name"],
-                    file_content=file_content,
-                    settings=settings)
+                volume_service.add_service_volume(tenant,
+                                                  service,
+                                                  volume["volume_path"],
+                                                  volume_type=volume["volume_type"],
+                                                  volume_name=volume["volume_name"],
+                                                  file_content=file_content,
+                                                  settings=settings)
 
-    def __save_env(self, tenant: Tenants, service: TenantServiceInfo, inner_envs: list,
-                   outer_envs: list) -> Tuple[int, str]:
+    def __save_env(self, tenant: Tenants, service: TenantServiceInfo, inner_envs: list, outer_envs: list) -> Tuple[int, str]:
         if not inner_envs and not outer_envs:
             return 200, "success"
         for env in inner_envs:
-            exist = env_var_repo.get_by_attr_name_and_scope(
-                tenant_id=tenant.tenant_id, service_id=service.service_id, attr_name=env["attr_name"], scope="inner")
+            exist = env_var_repo.get_by_attr_name_and_scope(tenant_id=tenant.tenant_id,
+                                                            service_id=service.service_id,
+                                                            attr_name=env["attr_name"],
+                                                            scope="inner")
             if exist:
                 continue
             code, msg, env_data = env_var_service. \
@@ -486,8 +507,10 @@ class AppManageService(AppManageBase):
                 logger.error("save market app env error {0}".format(msg))
                 return code, msg
         for env in outer_envs:
-            exist = env_var_repo.get_by_attr_name_and_scope(
-                tenant_id=tenant.tenant_id, service_id=service.service_id, attr_name=env["attr_name"], scope="outer")
+            exist = env_var_repo.get_by_attr_name_and_scope(tenant_id=tenant.tenant_id,
+                                                            service_id=service.service_id,
+                                                            attr_name=env["attr_name"],
+                                                            scope="outer")
             if exist:
                 continue
             container_port = env.get("container_port", 0)
@@ -514,26 +537,24 @@ class AppManageService(AppManageBase):
             service_port = port_repo.get_service_port_by_port(tenant.tenant_id, service.service_id, int(port["container_port"]))
             if service_port:
                 if port["is_inner_service"]:
-                    code, msg, data = env_var_service.add_service_env_var(
-                        tenant,
-                        service,
-                        int(port["container_port"]),
-                        "连接地址",
-                        env_prefix + "_HOST",
-                        "127.0.0.1",
-                        False,
-                        scope="outer")
+                    code, msg, data = env_var_service.add_service_env_var(tenant,
+                                                                          service,
+                                                                          int(port["container_port"]),
+                                                                          "连接地址",
+                                                                          env_prefix + "_HOST",
+                                                                          "127.0.0.1",
+                                                                          False,
+                                                                          scope="outer")
                     if code != 200 and code != 412:
                         return code, msg
-                    code, msg, data = env_var_service.add_service_env_var(
-                        tenant,
-                        service,
-                        int(port["container_port"]),
-                        "端口",
-                        env_prefix + "_PORT",
-                        mapping_port,
-                        False,
-                        scope="outer")
+                    code, msg, data = env_var_service.add_service_env_var(tenant,
+                                                                          service,
+                                                                          int(port["container_port"]),
+                                                                          "端口",
+                                                                          env_prefix + "_PORT",
+                                                                          mapping_port,
+                                                                          False,
+                                                                          scope="outer")
                     if code != 200 and code != 412:
                         return code, msg
                 continue
@@ -546,9 +567,14 @@ class AppManageService(AppManageBase):
                 return code, msg
         return 200, "success"
 
-    def upgrade(self, tenant: Tenants, service: TenantServiceInfo, user: Any, committer_name: Optional[str] = None,
+    def upgrade(self,
+                tenant: Tenants,
+                service: TenantServiceInfo,
+                user: Any,
+                committer_name: Optional[str] = None,
                 oauth_instance: Any = None) -> Tuple[int, str, str]:
-        if service.service_source != "third_party" and not check_account_quota(tenant.creater, service.service_region, self.ResourceOperationUPGRADE):
+        if service.service_source != "third_party" and not check_account_quota(tenant.creater, service.service_region,
+                                                                               self.ResourceOperationUPGRADE):
             raise ServiceHandleException(error_code=20002, msg="not enough quota")
         body: Any = dict()
         body["service_id"] = service.service_id
@@ -558,8 +584,6 @@ class AppManageService(AppManageBase):
             # NOTE: region_api.upgrade_service returns Optional body; body["bean"] is present on
             # success at runtime, and any failure is caught by the except clauses below.
             event_id = body["bean"].get("event_id", "")
-            app_version_auto_snapshot_service.safe_track_components(
-                tenant, service.service_region, user, [service], [{"service_id": service.service_id, "event_id": event_id}])
             return 200, "操作成功", event_id
         except region_api.CallApiError as e:
             logger.exception(e)
@@ -627,8 +651,7 @@ class AppManageService(AppManageBase):
 
     @transaction.atomic()
     def batch_action(self, region_name: str, tenant: Tenants, user: Any, action: str, service_ids: Any,
-                     move_group_id: Optional[str],
-                     oauth_instance: Any) -> Tuple[int, str, "QuerySet[TenantServiceInfo]"]:
+                     move_group_id: Optional[str], oauth_instance: Any) -> Tuple[int, str, "QuerySet[TenantServiceInfo]"]:
         services = service_repo.get_services_by_service_ids(service_ids)
         code = 500
         msg = "系统异常"
@@ -652,8 +675,10 @@ class AppManageService(AppManageBase):
                     chaos_arch = list(set(body.get("list")))  # type: ignore[union-attr, arg-type]
                     service.arch = service.arch if service.arch else "amd64"
                     if service.arch not in chaos_arch:
-                        raise AbortRequest(
-                            "app arch does not match build node arch", "应用架构与构建节点架构不匹配", status_code=404, error_code=404)
+                        raise AbortRequest("app arch does not match build node arch",
+                                           "应用架构与构建节点架构不匹配",
+                                           status_code=404,
+                                           error_code=404)
                     deploy_code, deploy_msg, event_id = self.deploy(tenant, service, user, oauth_instance=oauth_instance)
                     setattr(service, "_last_deploy_event_id", event_id)
                     setattr(service, "_last_deploy_result", {"code": deploy_code, "msg": deploy_msg})
@@ -672,11 +697,42 @@ class AppManageService(AppManageBase):
         return code, msg, services
 
     # 5.1新版批量操作（启动，关闭，构建）
-    def batch_operations(self, tenant: Tenants, region_name: str, user: Any, action: str, service_ids: Any,
+    def batch_operations(self,
+                         tenant: Tenants,
+                         region_name: str,
+                         user: Any,
+                         action: str,
+                         service_ids: Any,
                          oauth_instance: Any = None) -> Any:
-        services = service_repo.get_services_by_service_ids(service_ids)
+        services = list(service_repo.get_services_by_service_ids(service_ids))
         if not services:
             return
+        vm_events = []
+        if action in ("start", "stop"):
+            services = list(services)
+            # Validate the entire selection before issuing any power operation.
+            if any(service.tenant_id != tenant.tenant_id or service.service_region != region_name for service in services):
+                raise ServiceHandleException(msg="component scope mismatch", msg_show="组件不属于当前团队或集群", status_code=403)
+            vm_services = [service for service in services if service.extend_method == "vm"]
+            services = [service for service in services if service.extend_method != "vm"]
+            for service in vm_services:
+                if service.create_status != "complete":
+                    continue
+                setattr(service, "_last_power_event_id", "")
+                if action == "start":
+                    power_code, power_msg = self.start(tenant, service, user, oauth_instance)
+                    if power_code != 200:
+                        raise ServiceHandleException(msg="vm start failed", msg_show=power_msg, status_code=power_code)
+                else:
+                    self.stop(tenant, service, user)
+                vm_events.append({
+                    "service_id": service.service_id,
+                    "operation": action,
+                    "event_id": getattr(service, "_last_power_event_id", ""),
+                    "status": "success",
+                })
+            if not services:
+                return vm_events
         # 获取所有组件信息
         body: Any = dict()
         data: Any = ''
@@ -704,25 +760,20 @@ class AppManageService(AppManageBase):
                 if kb_service_ids:
                     try:
                         from console.services.kubeblocks_service import kubeblocks_service
-                        code, msg = kubeblocks_service.manage_cluster_status(
-                            kb_service_ids,
-                            region_name,
-                            oauth_instance,
-                            operation=action
-                        )
+                        code, msg = kubeblocks_service.manage_cluster_status(kb_service_ids,
+                                                                             region_name,
+                                                                             oauth_instance,
+                                                                             operation=action)
                         if code != 200:
-                            logger.warning(
-                                "KubeBlocks批量%s集群状态同步失败: service_ids=%s, code=%s, msg=%s",
-                                action, kb_service_ids, code, msg
-                            )
+                            logger.warning("KubeBlocks批量%s集群状态同步失败: service_ids=%s, code=%s, msg=%s", action, kb_service_ids,
+                                           code, msg)
                     except Exception as e:
-                        logger.exception(
-                            "KubeBlocks批量%s集群状态同步异常: service_ids=%s, error=%s",
-                            action, kb_service_ids, str(e)
-                        )
+                        logger.exception("KubeBlocks批量%s集群状态同步异常: service_ids=%s, error=%s", action, kb_service_ids, str(e))
 
-            if action in ("deploy", "upgrade"):
-                app_version_auto_snapshot_service.safe_track_components(tenant, region_name, user, services, events)
+            if vm_events:
+                if isinstance(events, dict):
+                    events = [{"event_id": key, "service_id": value, "operation": action} for key, value in events.items()]
+                return vm_events + list(events or [])
             return events
         except region_api.CallApiError as e:
             logger.exception(e)
@@ -771,8 +822,14 @@ class AppManageService(AppManageBase):
                 upgrade_infos_list.append(service_dict)
         return 200, body
 
-    def deploy_services_info(self, body: dict, services: Any, tenant: Tenants, user: Any, oauth_instance: Any,
-                             template_apps: Any = None, upgrade: bool = True,
+    def deploy_services_info(self,
+                             body: dict,
+                             services: Any,
+                             tenant: Tenants,
+                             user: Any,
+                             oauth_instance: Any,
+                             template_apps: Any = None,
+                             upgrade: bool = True,
                              region_name: Optional[str] = None) -> Tuple[int, dict]:
         body["operation"] = "build"
         deploy_infos_list: List[Any] = []
@@ -787,10 +844,8 @@ class AppManageService(AppManageBase):
             service_dict["action"] = 'deploy'
             if service.build_upgrade:
                 service_dict["action"] = 'upgrade'
-            envs = sanitize_build_env_dict_for_language(
-                env_var_repo.get_build_envs(tenant.tenant_id, service.service_id),
-                service.language
-            )
+            envs = sanitize_build_env_dict_for_language(env_var_repo.get_build_envs(tenant.tenant_id, service.service_id),
+                                                        service.language)
             service_dict["envs"] = envs
             kind = self.__get_service_kind(service)
             service_dict["kind"] = kind
@@ -803,22 +858,25 @@ class AppManageService(AppManageBase):
                 service_dict["code_info"] = source_code
                 build_strategy = resolve_build_strategy(getattr(service, "build_strategy", ""), envs)
                 policy_summary = base_service._get_cnb_version_policy(tenant, service) if build_strategy == "cnb" else {}
-                source_code.update(compose_source_code_info(
-                    service, envs, build_strategy, policy_summary_to_snapshot(service.language, policy_summary),
-                    clone_url, service.code_version))
+                source_code.update(
+                    compose_source_code_info(service, envs, build_strategy,
+                                             policy_summary_to_snapshot(service.language, policy_summary), clone_url,
+                                             service.code_version))
                 if service.oauth_service_id:
                     try:
                         oauth_service = oauth_repo.get_oauth_services_by_service_id(service_id=service.oauth_service_id)
-                        oauth_user = oauth_user_repo.get_user_oauth_by_user_id(
-                            service_id=service.oauth_service_id, user_id=user.user_id)
+                        oauth_user = oauth_user_repo.get_user_oauth_by_user_id(service_id=service.oauth_service_id,
+                                                                               user_id=user.user_id)
                     except Exception as e:
                         logger.debug(e)
                         continue
                     try:
                         # NOTE: oauth_service may be None; a None deref raises AttributeError that is
                         # caught by this try/except and skips the service (continue) — safe at runtime.
-                        instance = get_oauth_instance(oauth_service.oauth_type, oauth_service,  # type: ignore[union-attr]
-                                                      oauth_user)
+                        instance = get_oauth_instance(
+                            oauth_service.oauth_type,  # type: ignore[union-attr]
+                            oauth_service,  # type: ignore[union-attr]
+                            oauth_user)
                     except Exception as e:
                         logger.debug(e)
                         continue
@@ -848,10 +906,8 @@ class AppManageService(AppManageBase):
                 try:
                     if service_source:
                         apps_template = template_apps
-                        template_update_time = (
-                            apps_template.get("update_time")
-                            if isinstance(apps_template, dict) else getattr(apps_template, "update_time", None)
-                        )
+                        template_update_time = (apps_template.get("update_time") if isinstance(apps_template, dict) else
+                                                getattr(apps_template, "update_time", None))
                         if not apps_template:
                             # NOTE: service_source.extend_info / group_key / version are Optional[str] on
                             # the model; they are non-null in practice for market sources. The deref/concat
@@ -875,7 +931,8 @@ class AppManageService(AppManageBase):
                                 # install from local cloud
                                 else:
                                     _, app_version = rainbond_app_repo.get_rainbond_app_and_version(
-                                        tenant.enterprise_id, service_source.group_key,  # type: ignore[arg-type]
+                                        tenant.enterprise_id,  # type: ignore[arg-type]
+                                        service_source.group_key,  # type: ignore[arg-type]
                                         service_source.version)  # type: ignore[arg-type]
                                 if app_version:
                                     apps_template = json.loads(app_version.app_template)
@@ -925,10 +982,9 @@ class AppManageService(AppManageBase):
                                         = template_app.get("service_share_uuid") \
                                         if template_app.get("service_share_uuid", None) \
                                         else template_app.get("service_key", "")
-                                    new_extend_info["update_time"] = (
-                                        template_update_time.strftime('%Y-%m-%d %H:%M:%S')
-                                        if isinstance(template_update_time, datetime.datetime) else template_update_time
-                                    )
+                                    new_extend_info["update_time"] = (template_update_time.strftime('%Y-%m-%d %H:%M:%S')
+                                                                      if isinstance(template_update_time, datetime.datetime)
+                                                                      else template_update_time)
                                     if install_from_cloud:
                                         new_extend_info["install_from_cloud"] = True
                                         new_extend_info["market"] = "default"
@@ -958,23 +1014,29 @@ class AppManageService(AppManageBase):
             deploy_infos_list.append(service_dict)
         return 200, body
 
-    def vertical_upgrade(self, tenant: Tenants, service: TenantServiceInfo, user: Any, new_memory: int,
-                         oauth_instance: Any, new_gpu: Optional[int] = None,
+    def vertical_upgrade(self,
+                         tenant: Tenants,
+                         service: TenantServiceInfo,
+                         user: Any,
+                         new_memory: int,
+                         oauth_instance: Any,
+                         new_gpu: Optional[int] = None,
                          new_cpu: Optional[int] = None) -> Tuple[int, str]:
         """组件垂直升级"""
         new_memory = int(new_memory)
         if new_memory < 0:
             return 400, "内存不能小于0M"
-        if new_memory > service.min_memory and not check_account_quota(tenant.creater, service.service_region, self.ResourceOperationVerticalUpgrade):
+        if new_memory > service.min_memory and not check_account_quota(tenant.creater, service.service_region,
+                                                                       self.ResourceOperationVerticalUpgrade):
             raise ServiceHandleException(error_code=20002, msg="not enough quota")
         if service.create_status == "complete":
             body: dict = dict()
             body["container_memory"] = new_memory
-            if new_cpu is None or type(new_cpu) != int:
+            if new_cpu is None or type(new_cpu) is not int:
                 # NOTE: calculate_service_cpu may return None; reassignment keeps prior behavior.
                 new_cpu = baseService.calculate_service_cpu(service.service_region, new_memory)
             body["container_cpu"] = new_cpu
-            if new_gpu is not None and type(new_gpu) == int:
+            if new_gpu is not None and type(new_gpu) is int:
                 body["container_gpu"] = new_gpu
             else:
                 # container_gpu 为非空列，未传 GPU 时保持组件当前值，避免写入 NULL
@@ -1049,9 +1111,10 @@ class AppManageService(AppManageBase):
         app = self.get_app_by_service(service)
         if not is_force:
             # 如果不是真删除，将数据备份,删除tenant_service表中的数据
-            self.move_service_into_recycle_bin(service)
-            # 组件关系移除
-            self.move_service_relation_info_recycle_bin(tenant, service)
+            with transaction.atomic():
+                self.move_service_into_recycle_bin(service, tenant=tenant)
+                # 组件关系移除
+                self.move_service_relation_info_recycle_bin(tenant, service)
             return 200, "success"
         else:
             try:
@@ -1071,15 +1134,12 @@ class AppManageService(AppManageBase):
         return group_repo.get_group_by_id(relation.group_id)  # type: ignore[arg-type]
 
     @staticmethod
-    def _build_delete_record_data(service: TenantServiceInfo,
-                                  app: Optional[ServiceGroup] = None,
-                                  user: Any = None) -> dict:
+    def _build_delete_record_data(service: TenantServiceInfo, app: Optional[ServiceGroup] = None, user: Any = None) -> dict:
         data: dict = {}
         if service.create_status == "complete":
             data = service.toJSON()
-            for field in (
-                    "ID", "service_name", "build_upgrade", "oauth_service_id", "is_upgrate", "secret",
-                    "open_webhooks", "server_type", "git_full_name", "arch", "build_strategy"):
+            for field in ("ID", "service_name", "build_upgrade", "oauth_service_id", "is_upgrate", "secret", "open_webhooks",
+                          "server_type", "git_full_name", "arch", "build_strategy"):
                 data.pop(field, None)
         if app:
             data["app_name"] = app.group_name
@@ -1107,14 +1167,17 @@ class AppManageService(AppManageBase):
                 keys.append(event.region_share_id)
         return keys
 
-    def _truncate_service(self, tenant: Tenants, service: TenantServiceInfo, user: Any = None,
+    def _truncate_service(self,
+                          tenant: Tenants,
+                          service: TenantServiceInfo,
+                          user: Any = None,
                           app: Optional[ServiceGroup] = None) -> None:
-        data = self._build_delete_record_data(service, app, user)
-        try:
-            _create_delete_service_with_retry(data)
-        except Exception as e:
-            logger.exception(e)
-            pass
+        if service.create_status == "complete":
+            data = self._build_delete_record_data(service, app, user)
+            try:
+                _create_delete_service_with_retry(data)
+            except Exception as e:
+                logger.exception(e)
         if service.create_status != "complete":
             self._cleanup_incomplete_vm_asset(tenant, service)
         env_var_repo.delete_service_env(tenant.tenant_id, service.service_id)
@@ -1140,15 +1203,20 @@ class AppManageService(AppManageBase):
         service.delete()
 
     @transaction.atomic
-    def truncate_service(self, tenant: Tenants, service: TenantServiceInfo, user: Any = None,
+    def truncate_service(self,
+                         tenant: Tenants,
+                         service: TenantServiceInfo,
+                         user: Any = None,
                          app: Optional[ServiceGroup] = None) -> Tuple[int, str]:
         """彻底删除组件"""
         try:
             data: dict = {}
             data["etcd_keys"] = self.get_etcd_keys(tenant, service)
             # NOTE: tenant.enterprise_id is Optional[str] on the model but non-null in practice.
-            region_api.delete_service(service.service_region, tenant.tenant_name, service.service_alias,
-                                      tenant.enterprise_id, data)  # type: ignore[arg-type]
+            region_api.delete_service(
+                service.service_region, tenant.tenant_name, service.service_alias,
+                tenant.enterprise_id,  # type: ignore[arg-type]
+                data)  # type: ignore[arg-type]
         except region_api.CallApiError as e:
             if int(e.status) != 404:
                 logger.exception(e)
@@ -1196,10 +1264,24 @@ class AppManageService(AppManageBase):
             logger.exception(e)
             return None
 
-    def move_service_into_recycle_bin(self, service: TenantServiceInfo) -> Any:
+    @transaction.atomic
+    def move_service_into_recycle_bin(self, service: TenantServiceInfo, tenant: Optional[Tenants] = None) -> Any:
         """将组件移入回收站"""
         data = service.toJSON()
         data.pop("ID")
+        app = self.get_app_by_service(service)
+        data["recovery_metadata"] = {
+            "version": 1,
+            "service": json.loads(json.dumps(data, cls=DjangoJSONEncoder)),
+            "app_id": app.ID if app else None,
+            "app_k8s_name": app.k8s_app if app else None,
+        }
+        if service.extend_method == 'vm' and service.create_status == 'complete':
+            if tenant is None:
+                raise ServiceHandleException('missing recovery context', '无法确认原虚拟机，已停止回收', 409)
+            from console.services.component_recycle import ComponentRecycleService
+
+            data['recovery_metadata']['vm'] = ComponentRecycleService(region_api=region_api).capture_vm(tenant, service)
         trash_service = recycle_bin_repo.create_trash_service(**data)
 
         # 如果这个组件属于模型安装应用, 则删除最后一个组件后同时删除安装应用关系。
@@ -1291,8 +1373,7 @@ class AppManageService(AppManageBase):
             if service.create_status != "complete":
                 return False
             # NOTE: tenant.enterprise_id is Optional[str] on the model but non-null in practice.
-            status_info = region_api.check_service_status(service.service_region, tenant.tenant_name,
-                                                          service.service_alias,
+            status_info = region_api.check_service_status(service.service_region, tenant.tenant_name, service.service_alias,
                                                           tenant.enterprise_id)  # type: ignore[arg-type]
             # NOTE: Optional body deref guarded by region API contract (body present on 2xx).
             status = status_info["bean"]["cur_status"]  # type: ignore[index]
@@ -1300,9 +1381,8 @@ class AppManageService(AppManageBase):
                 return False
             if service.service_source == "vm_run" and status == "abnormal":
                 return False
-            if status in (
-                    "running", "starting", "restoring", "stopping", "failure", "unKnow", "unusual", "abnormal",
-                    "some_abnormal"):
+            if status in ("running", "starting", "restoring", "stopping", "failure", "unKnow", "unusual", "abnormal",
+                          "some_abnormal"):
                 return True
         except region_api.CallApiError as e:
             if int(e.status) == 404:
@@ -1321,8 +1401,10 @@ class AppManageService(AppManageBase):
             logger.debug("delete service {0} for team {1}".format(service.service_cname, tenant.tenant_name))
             data["etcd_keys"] = self.get_etcd_keys(tenant, service)
             # NOTE: tenant.enterprise_id is Optional[str] on the model but non-null in practice.
-            region_api.delete_service(service.service_region, tenant.tenant_name, service.service_alias,
-                                      tenant.enterprise_id, data)  # type: ignore[arg-type]
+            region_api.delete_service(
+                service.service_region, tenant.tenant_name, service.service_alias,
+                tenant.enterprise_id,  # type: ignore[arg-type]
+                data)  # type: ignore[arg-type]
             return 200, "success"
         except region_api.CallApiError as e:
             if e.status != 404:
@@ -1345,7 +1427,11 @@ class AppManageService(AppManageBase):
         region_api.update_service_app_id(service.service_region, tenant_name, service.service_alias, update_body)
 
     # 批量删除组件
-    def batch_delete(self, user: Any, tenant: Tenants, service: TenantServiceInfo, is_force: bool,
+    def batch_delete(self,
+                     user: Any,
+                     tenant: Tenants,
+                     service: TenantServiceInfo,
+                     is_force: bool,
                      is_del_app: bool = True) -> Tuple[int, str]:
         if not is_del_app:
             # 判断组件是否是运行状态
@@ -1379,9 +1465,10 @@ class AppManageService(AppManageBase):
         app = self.get_app_by_service(service)
         if not is_force:
             # 如果不是真删除，将数据备份,删除tenant_service表中的数据
-            self.move_service_into_recycle_bin(service)
-            # 组件关系移除
-            self.move_service_relation_info_recycle_bin(tenant, service)
+            with transaction.atomic():
+                self.move_service_into_recycle_bin(service, tenant=tenant)
+                # 组件关系移除
+                self.move_service_relation_info_recycle_bin(tenant, service)
             code = 200
             msg = "success"
             return code, msg
@@ -1405,7 +1492,7 @@ class AppManageService(AppManageBase):
         app = self.get_app_by_service(service)
         if not is_force:
             # 如果不是真删除，将数据备份,删除tenant_service表中的数据
-            self.move_service_into_recycle_bin(service)
+            self.move_service_into_recycle_bin(service, tenant=tenant)
             # 组件关系移除
             self.move_service_relation_info_recycle_bin(tenant, service)
         else:
@@ -1493,14 +1580,11 @@ class AppManageService(AppManageBase):
         else:
             return None
 
-    def change_service_type(self, tenant: Tenants, service: TenantServiceInfo, extend_method: str,
-                            user_name: str = '') -> None:
+    def change_service_type(self, tenant: Tenants, service: TenantServiceInfo, extend_method: str, user_name: str = '') -> None:
         old_extend_method = service.extend_method
-        if old_extend_method != extend_method and (
-                old_extend_method == ComponentType.daemonset.value or extend_method == ComponentType.daemonset.value):
-            raise ServiceHandleException(
-                msg="daemonset component type cannot be changed",
-                msg_show="DaemonSet 组件类型暂不支持在线切换")
+        if old_extend_method != extend_method and (old_extend_method == ComponentType.daemonset.value
+                                                   or extend_method == ComponentType.daemonset.value):
+            raise ServiceHandleException(msg="daemonset component type cannot be changed", msg_show="DaemonSet 组件类型暂不支持在线切换")
         # 存储限制
         tenant_service_volumes = volume_service.get_service_volumes(tenant, service)
         if tenant_service_volumes:
@@ -1509,15 +1593,15 @@ class AppManageService(AppManageBase):
                     continue
                 if tenant_service_volume["volume_type"] == "local":
                     if old_extend_method == ComponentType.state_singleton.value:
-                        raise ServiceHandleException(
-                            msg="local storage only support state_singleton", msg_show="本地存储仅支持有状态单实例组件")
+                        raise ServiceHandleException(msg="local storage only support state_singleton",
+                                                     msg_show="本地存储仅支持有状态单实例组件")
                 if tenant_service_volume.get("access_mode", "") == "RWO":
                     if not is_state(extend_method):
                         raise ServiceHandleException(msg="storage access mode do not support", msg_show="存储读写属性限制,不可修改为无状态组件")
         # 实例个数限制
         if is_singleton(extend_method) and service.min_node > 1:
-            raise ServiceHandleException(
-                msg="singleton service limit", msg_show="组件实例数为{0}，不可修改为单实例组件类型".format(service.min_node))
+            raise ServiceHandleException(msg="singleton service limit",
+                                         msg_show="组件实例数为{0}，不可修改为单实例组件类型".format(service.min_node))
 
         if service.create_status != "complete":
             service.extend_method = extend_method
@@ -1551,43 +1635,48 @@ class AppManageService(AppManageBase):
         except Exception as e:
             logger.exception(e)
 
-    def change_lang_and_package_tool(self, tenant: Tenants, service: TenantServiceInfo, lang: str, package_tool: str,
-                                      dist: str, cnb_framework: str = "", cnb_build_script: str = "",
-                                      cnb_output_dir: str = "", cnb_node_version: str = "", cnb_node_env: str = "",
-                                      cnb_mirror_source: str = "", cnb_mirror_npmrc: str = "", cnb_mirror_yarnrc: str = "",
-                                      has_npmrc: str = "", has_yarnrc: str = "", cnb_start_script: str = "",
-                                      build_strategy: str = "",
-                                      build_env_dict: Optional[dict] = None) -> Tuple[int, str]:
+    def change_lang_and_package_tool(self,
+                                     tenant: Tenants,
+                                     service: TenantServiceInfo,
+                                     lang: str,
+                                     package_tool: str,
+                                     dist: str,
+                                     cnb_framework: str = "",
+                                     cnb_build_script: str = "",
+                                     cnb_output_dir: str = "",
+                                     cnb_node_version: str = "",
+                                     cnb_node_env: str = "",
+                                     cnb_mirror_source: str = "",
+                                     cnb_mirror_npmrc: str = "",
+                                     cnb_mirror_yarnrc: str = "",
+                                     has_npmrc: str = "",
+                                     has_yarnrc: str = "",
+                                     cnb_start_script: str = "",
+                                     build_strategy: str = "",
+                                     build_env_dict: Optional[dict] = None) -> Tuple[int, str]:
         current_build_envs = sanitize_build_env_dict_for_language(
-            env_var_repo.get_build_envs(tenant.tenant_id, service.service_id),
-            service.language
-        )
-        requested_build_strategy = resolve_requested_build_strategy(
-            getattr(service, "build_strategy", ""),
-            current_build_envs,
-            build_strategy,
-            build_env_dict or {}
-        )
-        normalized_strategy, normalized_envs = normalize_source_build_config(
-            lang,
-            package_tool=package_tool,
-            dist=dist,
-            build_strategy=requested_build_strategy,
-            build_env_dict=build_env_dict or {},
-            compat_payload={
-                "cnb_framework": cnb_framework,
-                "cnb_build_script": cnb_build_script,
-                "cnb_output_dir": cnb_output_dir,
-                "cnb_node_version": cnb_node_version,
-                "cnb_node_env": cnb_node_env,
-                "cnb_mirror_source": cnb_mirror_source,
-                "cnb_mirror_npmrc": cnb_mirror_npmrc,
-                "cnb_mirror_yarnrc": cnb_mirror_yarnrc,
-                "has_npmrc": has_npmrc,
-                "has_yarnrc": has_yarnrc,
-                "cnb_start_script": cnb_start_script,
-            },
-            default_to_cnb=False)
+            env_var_repo.get_build_envs(tenant.tenant_id, service.service_id), service.language)
+        requested_build_strategy = resolve_requested_build_strategy(getattr(service, "build_strategy", ""), current_build_envs,
+                                                                    build_strategy, build_env_dict or {})
+        normalized_strategy, normalized_envs = normalize_source_build_config(lang,
+                                                                             package_tool=package_tool,
+                                                                             dist=dist,
+                                                                             build_strategy=requested_build_strategy,
+                                                                             build_env_dict=build_env_dict or {},
+                                                                             compat_payload={
+                                                                                 "cnb_framework": cnb_framework,
+                                                                                 "cnb_build_script": cnb_build_script,
+                                                                                 "cnb_output_dir": cnb_output_dir,
+                                                                                 "cnb_node_version": cnb_node_version,
+                                                                                 "cnb_node_env": cnb_node_env,
+                                                                                 "cnb_mirror_source": cnb_mirror_source,
+                                                                                 "cnb_mirror_npmrc": cnb_mirror_npmrc,
+                                                                                 "cnb_mirror_yarnrc": cnb_mirror_yarnrc,
+                                                                                 "has_npmrc": has_npmrc,
+                                                                                 "has_yarnrc": has_yarnrc,
+                                                                                 "cnb_start_script": cnb_start_script,
+                                                                             },
+                                                                             default_to_cnb=False)
         serivce_params = {"language": lang}
         if normalized_strategy:
             serivce_params["build_strategy"] = normalized_strategy

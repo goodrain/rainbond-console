@@ -46,7 +46,7 @@ class OAuthRepo(object):
         from console.repositories.enterprise_repo import enterprise_user_perm_repo
         from www.models.main import Users
         actor = Users.objects.filter(user_id=user_id, enterprise_id=eid, is_active=True).first()
-        if not actor or not (actor.sys_admin or enterprise_user_perm_repo.is_admin(eid, user_id)):
+        if not actor or not (actor.sys_admin or enterprise_user_perm_repo.is_admin(eid or "", user_id or "")):
             raise ServiceHandleException("administrator required", "仅平台管理员可配置自动创建账号", status_code=403)
         is_system = service.system if service is not None else system
         oauth_type = service.oauth_type if service is not None else value["oauth_type"]
@@ -346,7 +346,6 @@ class UserOAuthRepo(object):
 
     def get_by_oauths_user_id(self, service_ids: Any, user_id: str) -> "QuerySet[UserOAuthServices]":
         return UserOAuthServices.objects.filter(service_id__in=service_ids, user_id=user_id)
-
 
     def get_all_user_oauth(self, user_id: str) -> "QuerySet[UserOAuthServices]":
         return UserOAuthServices.objects.filter(user_id=user_id)

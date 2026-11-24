@@ -134,12 +134,13 @@ class TopologicalService(object):
                     "service_ids": all_service_id_list,
                     "enterprise_id": enterprise_id
                 })
-                service_status_list = service_status_list["list"]  # type: ignore[index]  # NOTE: region_api returns Any, may be None on error
+                service_status_list = service_status_list[
+                    "list"]  # type: ignore[index]  # NOTE: region_api returns Any, may be None on error
 
                 # 处理 KubeBlocks 组件状态
-                service_status_list = base_service._process_kubeblocks_status(  # type: ignore[assignment]  # NOTE: _process_kubeblocks_status returns Any, reassigns list variable
-                    service_status_list, all_service_id_list, region
-                )
+                # NOTE: _process_kubeblocks_status returns Any, reassigns list variable
+                service_status_list = base_service._process_kubeblocks_status(  # type: ignore[assignment]
+                    service_status_list, all_service_id_list, region)
 
                 if service_status_list:
                     service_status_map = {status_map["service_id"]: status_map for status_map in service_status_list}
@@ -156,7 +157,8 @@ class TopologicalService(object):
         try:
             dynamic_services_info = region_api.get_dynamic_services_pods(region, team_name,
                                                                          [service.service_id for service in service_list])
-            dynamic_services_list = dynamic_services_info["list"]  # type: ignore[index]  # NOTE: region_api returns Any, may be None on error
+            dynamic_services_list = dynamic_services_info[
+                "list"]  # type: ignore[index]  # NOTE: region_api returns Any, may be None on error
             dynamic_services_list = dynamic_services_list or []
         except Exception as e:
             logger.exception(e)
@@ -203,15 +205,16 @@ class TopologicalService(object):
         component_ports = TenantServicesPort.objects.filter(service_id__in=all_service_id_list)
         outer_port_map: Dict[str, bool] = {}
         for component_port in component_ports:
-            outer_port_map[component_port.service_id] = (
-                outer_port_map.get(component_port.service_id, False) or component_port.is_outer_service)
+            outer_port_map[component_port.service_id] = (outer_port_map.get(component_port.service_id, False)
+                                                         or component_port.is_outer_service)
         for service_info in service_list:
             if dynamic_services_list:
                 node_num = dynamic_service_counts.get(service_info.service_id, 0)
             else:
                 node_num = service_info.min_node
             app = component_rels.get(service_info.service_id)
-            app_id = app.ID if app else 0  # type: ignore[union-attr]  # NOTE: component_rels values may be dict({}) fallback when app not found
+            # NOTE: component_rels values may be dict({}) fallback when app not found
+            app_id = app.ID if app else 0  # type: ignore[union-attr]
             json_data[service_info.service_id] = {
                 "service_id": service_info.service_id,
                 "service_cname": service_info.service_cname,
@@ -221,15 +224,19 @@ class TopologicalService(object):
                 "node_num": node_num,
                 "app_id": app_id,
                 "app_type": app.app_type if app else "rainbond",  # type: ignore[union-attr]  # NOTE: same dict fallback issue
-                "app_name": app.group_name if app else "404 not found",  # type: ignore[union-attr]  # NOTE: same dict fallback issue
+                "app_name":
+                app.group_name if app else "404 not found",  # type: ignore[union-attr]  # NOTE: same dict fallback issue
                 "app_status": app_statuses.get(app_id, "NIL"),
             }
             name = service_info.service_cname[:-4]
             component_ids = [component_dict.get(relation) for relation in service_dict.get(name, [])]
             json_svg[service_info.service_id] = component_ids
             if service_status_map.get(service_info.service_id):
-                status = service_status_map.get(service_info.service_id).get("status", "Unknown")  # type: ignore[union-attr]  # NOTE: guarded by truthiness check above but mypy can't narrow
-                status_cn = service_status_map.get(service_info.service_id).get("status_cn", None)  # type: ignore[union-attr]  # NOTE: same guard
+                status = service_status_map.get(service_info.service_id).get(  # type: ignore[union-attr]
+                    "status",
+                    "Unknown")  # type: ignore[union-attr]  # NOTE: guarded by truthiness check above but mypy can't narrow
+                status_cn = service_status_map.get(service_info.service_id).get(  # type: ignore[union-attr]
+                    "status_cn", None)  # type: ignore[union-attr]  # NOTE: same guard
             else:
                 status = None
                 status_cn = None
@@ -266,25 +273,38 @@ class TopologicalService(object):
                 if tmp_dep_info:
                     tmp_info_relation: List[Any] = []
                     if tmp_info.service_id in list(json_svg.keys()):
-                        tmp_info_relation = json_svg.get(tmp_info.service_id)  # type: ignore[assignment]  # NOTE: json_svg.get() returns Optional; guarded by key-in-keys check above
+                        tmp_info_relation = json_svg.get(
+                            tmp_info.service_id
+                            # NOTE: json_svg.get() returns Optional; guarded by key-in-keys check above
+                        )  # type: ignore[assignment]
                     tmp_info_relation.append(tmp_dep_info.service_id)
-                    json_svg[tmp_info.service_id] = tmp_info_relation  # type: ignore[assignment]  # NOTE: json_svg was inferred from operator-section with Optional elements; safe str here
+                    json_svg[tmp_info.
+                             # NOTE: json_svg was inferred from operator-section with Optional elements; safe str here
+                             service_id] = tmp_info_relation  # type: ignore[assignment]
 
         topological_info["json_data"] = json_data
-        topological_info["json_svg"] = json_svg  # type: ignore[assignment]  # NOTE: json_svg is Dict[str, List] but topological_info inferred as Dict[str, Dict] from json_data
+        topological_info[
+            # NOTE: json_svg is Dict[str, List] but topological_info inferred as Dict[str, Dict] from json_data
+            "json_svg"] = json_svg  # type: ignore[assignment]
         return topological_info
 
-    def get_group_topological_graph_details(self, team: Any, team_id: str, team_name: str, service: TenantServiceInfo, region_name: str) -> Dict[str, Any]:
+    def get_group_topological_graph_details(self, team: Any, team_id: str, team_name: str, service: TenantServiceInfo,
+                                            region_name: str) -> Dict[str, Any]:
         result = dict()
         # 组件信息
         result['tenant_id'] = team_id
         result['service_alias'] = service.service_alias
         result['service_cname'] = service.service_cname
         result['service_region'] = service.service_region
-        result['deploy_version'] = service.deploy_version  # type: ignore[assignment]  # NOTE: deploy_version is Optional[str]; result inferred as Dict[str, str] from prior assignments
-        result['total_memory'] = service.min_memory * service.min_node  # type: ignore[assignment]  # NOTE: int expression into Dict[str, str]
+        result[
+            # NOTE: deploy_version is Optional[str]; result inferred as Dict[str, str] from prior assignments
+            'deploy_version'] = service.deploy_version  # type: ignore[assignment]
+        result[
+            # NOTE: int expression into Dict[str, str]
+            'total_memory'] = service.min_memory * service.min_node  # type: ignore[assignment]
         result['cur_status'] = 'Unknown'
-        result['service_source'] = service.service_source  # type: ignore[assignment]  # NOTE: service_source may be Optional[str]
+        result[
+            'service_source'] = service.service_source  # type: ignore[assignment]  # NOTE: service_source may be Optional[str]
         rel = ServiceGroupRelation.objects.filter(service_id=service.service_id)
         result['app_id'] = rel[0].group_id if rel else 0  # type: ignore[assignment]  # NOTE: int into Dict[str, str]
 
@@ -307,9 +327,12 @@ class TopologicalService(object):
                         domain = tcpdomain
                     outer_service = {"domain": domain}
                     if port.lb_mapping_port != 0:
-                        outer_service['port'] = port.lb_mapping_port  # type: ignore[assignment]  # NOTE: dict inferred from str default "port":""; int ports are valid here
+                        outer_service[
+                            # NOTE: dict inferred from str default "port":""; int ports are valid here
+                            'port'] = port.lb_mapping_port  # type: ignore[assignment]
                     else:
-                        outer_service['port'] = port.mapping_port  # type: ignore[assignment]  # NOTE: same int/str mixed port dict
+                        outer_service[
+                            'port'] = port.mapping_port  # type: ignore[assignment]  # NOTE: same int/str mixed port dict
 
                 elif port.protocol == 'http' or port.protocol == 'https':
                     exist_service_domain = True
@@ -337,23 +360,24 @@ class TopologicalService(object):
                                 else:
                                     port_info['domain_list'].append("http://" + domain_obj.domain_name + domain_path)
             port_map[port.container_port] = port_info
-        result["port_list"] = port_map  # type: ignore[assignment]  # NOTE: port_map is Dict[int, Any]; result inferred as Dict[str, str]
+        result[
+            # NOTE: port_map is Dict[int, Any]; result inferred as Dict[str, str]
+            "port_list"] = port_map  # type: ignore[assignment]
         # pod节点信息
         region_data = dict()
         try:
-            status_data = region_api.check_service_status(
-                region=region_name,
-                tenant_name=team_name,
-                service_alias=service.service_alias,
-                enterprise_id=team.enterprise_id)
+            status_data = region_api.check_service_status(region=region_name,
+                                                          tenant_name=team_name,
+                                                          service_alias=service.service_alias,
+                                                          enterprise_id=team.enterprise_id)
             region_data = status_data["bean"]  # type: ignore[index]  # NOTE: region_api returns Any, may be None on error
 
-            pod_list = region_api.get_service_pods(
-                region=region_name,
-                tenant_name=team_name,
-                service_alias=service.service_alias,
-                enterprise_id=team.enterprise_id)
-            region_data["pod_list"] = pod_list["list"]  # type: ignore[index]  # NOTE: region_api returns Any, may be None on error
+            pod_list = region_api.get_service_pods(region=region_name,
+                                                   tenant_name=team_name,
+                                                   service_alias=service.service_alias,
+                                                   enterprise_id=team.enterprise_id)
+            region_data["pod_list"] = pod_list[
+                "list"]  # type: ignore[index]  # NOTE: region_api returns Any, may be None on error
         except region_api.CallApiError as e:
             if get_exception_message(e)["httpcode"] == 404:
                 region_data = {"status_cn": "创建中", "cur_status": "creating"}
@@ -381,7 +405,9 @@ class TopologicalService(object):
                 # 处理依赖组件端口
                 if relation_port.is_inner_service:
                     relation_info.append({
-                        "service_cname": tmp_service.service_cname,  # type: ignore[union-attr]  # NOTE: guarded by key-in-keys check; tmp_service_id found so .get() won't return None
+                        "service_cname": tmp_service.
+                        # NOTE: guarded by key-in-keys check; tmp_service_id found so .get() won't return None
+                        service_cname,  # type: ignore[union-attr]
                         "service_alias": tmp_service.service_alias,  # type: ignore[union-attr]  # NOTE: same guard
                         "mapping_port": relation_port.mapping_port,
                     })
@@ -427,7 +453,9 @@ class TopologicalService(object):
                             domain = tcpdomain
                         outer_service = {"domain": domain}
                         try:
-                            outer_service['port'] = port.mapping_port  # type: ignore[assignment]  # NOTE: int port assigned into dict initially typed with str value
+                            outer_service[
+                                # NOTE: int port assigned into dict initially typed with str value
+                                'port'] = port.mapping_port  # type: ignore[assignment]
                         except Exception as e:
                             logger.exception(e)
                             outer_service['port'] = '-1'
@@ -469,7 +497,9 @@ class TopologicalService(object):
                 port_map[port.container_port] = port_info
             service_domain_result["service_alias"] = service_info.service_alias
             service_domain_result["service_cname"] = service_info.service_cname
-            service_domain_result["port_map"] = port_map  # type: ignore[assignment]  # NOTE: port_map is dict[int, Any] but service_domain_result was inferred as dict[str, str]
+            service_domain_result[
+                # NOTE: port_map is dict[int, Any] but service_domain_result was inferred as dict[str, str]
+                "port_map"] = port_map  # type: ignore[assignment]
             result_list.append(service_domain_result)
         result["result_list"] = result_list
         return result

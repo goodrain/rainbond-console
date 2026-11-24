@@ -117,6 +117,39 @@ class RegionService(object):
         else:
             return []
 
+    def get_region_lists_by_tenants(self, tenants: List[Tenants]) -> Dict[str, list]:
+        """Build region lists for already-authorized tenants with two bulk reads."""
+        result: Dict[str, list] = {tenant.tenant_name: [] for tenant in tenants}
+        if not tenants:
+            return result
+        tenant_names = {tenant.tenant_id: tenant.tenant_name for tenant in tenants}
+        regions = list(region_repo.list_active_region_by_tenant_ids(list(tenant_names)) or [])
+        if not regions:
+            return result
+        region_names = list({region.region_name for region in regions})
+        configs: Dict[str, RegionConfig] = {}
+        for config in region_repo.get_region_by_region_names(region_names):
+            configs.setdefault(config.region_name, config)
+        for region in regions:
+            tenant_name = tenant_names.get(region.tenant_id)
+            config = configs.get(region.region_name)
+            if tenant_name is None or config is None or config.status not in ("1", "3"):
+                continue
+            result[tenant_name].append({
+                "service_status": region.service_status,
+                "is_active": region.is_active,
+                "region_status": config.status,
+                "team_region_alias": config.region_alias,
+                "region_tenant_id": region.region_tenant_id,
+                "team_region_name": region.region_name,
+                "region_scope": config.scope,
+                "region_create_time": config.create_time,
+                "websocket_uri": config.wsurl,
+                "tcpdomain": config.tcpdomain,
+                "region_id": config.region_id,
+            })
+        return result
+
     # verify_team_region Verify that the team tenant is open
     def verify_team_region(self, team_name: str, region_name: str) -> bool:
         regions = region_repo.get_active_region_by_tenant_name(tenant_name=team_name)
@@ -275,11 +308,16 @@ class RegionService(object):
         if not tenant_region.is_init:
             # NOTE: tenant.enterprise_id is Optional[str] on the model; regionapi expects str.
             res, body = region_api.create_tenant(
-                region_name, tenant.tenant_name, tenant.tenant_id, tenant.enterprise_id,  # type: ignore[arg-type]
-                namespace, bind_existing)
+                region_name,
+                tenant.tenant_name,
+                tenant.tenant_id,
+                tenant.enterprise_id,  # type: ignore[arg-type]
+                namespace,
+                bind_existing)
             # NOTE: create_tenant returns Optional dict body; indexed unguarded.
             # Invariant on success path (res status checked alongside).
-            if res["status"] != 200 and body['msg'] != 'tenant name {} is exist'.format(tenant.tenant_name):  # type: ignore[index]
+            if res["status"] != 200 and body['msg'] != 'tenant name {} is exist'.format(  # type: ignore[index]
+                    tenant.tenant_name):  # type: ignore[index]
                 logger.error(res)
                 raise ServiceHandleException(msg="cluster init failure ", msg_show="集群初始化租户失败")
             tenant_region.is_active = True
@@ -331,9 +369,8 @@ class RegionService(object):
                 raise ServiceHandleException(
                     msg="There are running components under the current application",
                     # NOTE: region_config is None only when ignore_cluster_resource=True, which
-                # excludes this branch; invariant non-None here.
-                msg_show="团队在集群{0}下有运行态的组件,请关闭组件后再卸载当前集群".format(
-                    region_config.region_alias))  # type: ignore[union-attr]
+                    # excludes this branch; invariant non-None here.
+                    msg_show="团队在集群{0}下有运行态的组件,请关闭组件后再卸载当前集群".format(region_config.region_alias))  # type: ignore[union-attr]
         # Components are the key to resource utilization,
         # and removing the cluster only ensures that the component's resources are freed up.
         from console.services.app_actions import app_manage_service
@@ -437,7 +474,9 @@ class RegionService(object):
         try:
             region_api.test_region_api(region_data)
         except ServiceHandleException as e:
-            raise ServiceHandleException(status_code=400, msg="test link region field", msg_show="连接集群测试失败，请确认网络和集群状态{}".format(e))
+            raise ServiceHandleException(status_code=400,
+                                         msg="test link region field",
+                                         msg_show="连接集群测试失败，请确认网络和集群状态{}".format(e))
 
         # 根据当前企业查询是否有region
         exist_region = region_repo.get_region_by_enterprise_id(ent.enterprise_id)

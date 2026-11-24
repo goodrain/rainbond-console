@@ -47,14 +47,16 @@ class TenantPluginRepository(object):
 
     def get_plugin_buildversion(self, plugin_id: str, version: str) -> Optional[PluginBuildVersion]:
         # .objects exists at runtime via ModelBase metaclass; stub gap (model not in app registry)
-        build_verison = PluginBuildVersion.objects.filter(plugin_id=plugin_id, build_version=version)  # type: ignore[attr-defined]
+        build_verison = PluginBuildVersion.objects.filter(plugin_id=plugin_id,  # type: ignore[attr-defined]
+                                                          build_version=version)  # type: ignore[attr-defined]
         if build_verison:
             return build_verison[0]
         return None
 
     def get_plugin_config_groups(self, plugin_id: str, version: str) -> Any:
         # .objects exists at runtime via ModelBase metaclass; stub gap (model not in app registry)
-        config_groups = PluginConfigGroup.objects.filter(plugin_id=plugin_id, build_version=version)  # type: ignore[attr-defined]
+        config_groups = PluginConfigGroup.objects.filter(plugin_id=plugin_id,  # type: ignore[attr-defined]
+                                                         build_version=version)  # type: ignore[attr-defined]
         if config_groups:
             return config_groups
         return []

@@ -18,7 +18,6 @@ from console.login.jwt_manager import JwtManager
 
 from www.models.main import Users
 
-
 logger = logging.getLogger("default")
 
 
@@ -47,7 +46,9 @@ class OAuthUserService(object):
         if not enterprise:
             enterprise = enterprise_services.create_oauth_enterprise(oauth_user.enterprise_domain, oauth_user.enterprise_name,
                                                                      oauth_user.enterprise_id)
-            user_services.make_user_as_admin_for_enterprise(user.user_id, enterprise.enterprise_id)  # type: ignore[arg-type]  # NOTE: user.user_id is int on Users model, signature expects str
+            user_services.make_user_as_admin_for_enterprise(
+                user.user_id, enterprise.enterprise_id  # type: ignore[arg-type]
+            )  # type: ignore[arg-type]  # NOTE: user.user_id is int on Users model, signature expects str
         user.enterprise_id = enterprise.enterprise_id
         user.save()
         return user
@@ -80,11 +81,11 @@ class OAuthUserService(object):
             except Exception as e:
                 logger.warning(f"Error finding user by email {oauth_user.email}: {e}")
 
-        effective_user = user if user else local_user_by_email        
+        effective_user = user if user else local_user_by_email
         if api.is_communication_oauth():
             logger.debug(oauth_user.name)
             if not user:
-                 user = local_user_by_email
+                user = local_user_by_email
         authenticated_user = oauth_user_repo.user_oauth_exists(service_id=oauth_service.ID, oauth_user_id=oauth_user.id)
         if authenticated_user is not None:
             authenticated_user.oauth_user_id = oauth_user.id
@@ -96,13 +97,20 @@ class OAuthUserService(object):
             login_user_to_use = None
             if authenticated_user.user_id is not None:
                 try:
-                    login_user_to_use = user_repo.get_by_user_id(authenticated_user.user_id)  # type: ignore[arg-type]  # NOTE: authenticated_user.user_id is int on model, get_by_user_id expects str
+                    login_user_to_use = user_repo.get_by_user_id(
+                        authenticated_user.user_id  # type: ignore[arg-type]
+                    )  # type: ignore[arg-type]  # NOTE: authenticated_user.user_id is int on model, get_by_user_id expects str
                 except Users.DoesNotExist:
-                    logger.error(f"OAuth record {authenticated_user.id} linked to non-existent user_id {authenticated_user.user_id}")  # type: ignore[attr-defined]  # NOTE: UserOAuthServices.id not declared (auto PK); runtime attr exists via Django
+                    logger.error(
+                        f"OAuth record {authenticated_user.id} linked to non-existent "  # type: ignore[attr-defined]
+                        f"user_id {authenticated_user.user_id}"
+                        # NOTE: UserOAuthServices.id not declared (auto PK); runtime attr exists via Django
+                    )  # type: ignore[attr-defined]
             elif effective_user:
-                 logger.info(f"Linking existing OAuth record {authenticated_user.ID} to user {effective_user.user_id} found by email/passed.") # 将 .id 修改为 .ID
-                 authenticated_user.user_id = effective_user.user_id
-                 login_user_to_use = effective_user
+                logger.info((f"Linking existing OAuth record {authenticated_user.ID} to user {effective_user.user_id} found by "
+                             f"email/passed."))  # 将 .id 修改为 .ID
+                authenticated_user.user_id = effective_user.user_id
+                login_user_to_use = effective_user
 
             authenticated_user.save()
 
@@ -136,7 +144,7 @@ class OAuthUserService(object):
                 oauth_user_id=oauth_user.id,
                 oauth_user_name=oauth_user.name,
                 oauth_user_email=oauth_user.email,
-                user_id=user_id_to_save, 
+                user_id=user_id_to_save,
                 code=code,
                 service_id=oauth_service.ID,
                 access_token=access_token,
@@ -158,12 +166,17 @@ class OAuthUserService(object):
             else:
                 # 未找到匹配用户，返回未认证（引导绑定/注册）
                 rst = {
-                    "oauth_user_name": usr.oauth_user_name,  # type: ignore[union-attr]  # NOTE: save_oauth returns Optional but caller logic guarantees non-None here
-                    "oauth_user_id": usr.oauth_user_id,  # type: ignore[union-attr]  # NOTE: same — usr is non-None in this branch
-                    "oauth_user_email": usr.oauth_user_email,  # type: ignore[union-attr]  # NOTE: same — usr is non-None in this branch
+                    "oauth_user_name": usr.
+                    # NOTE: save_oauth returns Optional but caller logic guarantees non-None here
+                    oauth_user_name,  # type: ignore[union-attr]
+                    "oauth_user_id":
+                    usr.oauth_user_id,  # type: ignore[union-attr]  # NOTE: same — usr is non-None in this branch
+                    "oauth_user_email":
+                    usr.oauth_user_email,  # type: ignore[union-attr]  # NOTE: same — usr is non-None in this branch
                     "service_id": usr.service_id,  # type: ignore[union-attr]  # NOTE: same — usr is non-None in this branch
                     "oauth_type": oauth_service.oauth_type,
-                    "is_authenticated": usr.is_authenticated,  # type: ignore[union-attr]  # NOTE: same — usr is non-None in this branch
+                    "is_authenticated":
+                    usr.is_authenticated,  # type: ignore[union-attr]  # NOTE: same — usr is non-None in this branch
                     "code": code,
                 }
                 msg = "user is not authenticated"

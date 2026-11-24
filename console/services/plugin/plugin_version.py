@@ -40,7 +40,7 @@ class PluginBuildVersionService(object):
                              build_version: Optional[str] = None,
                              min_cpu: Optional[int] = None) -> PluginBuildVersion:
         """创建插件版本信息"""
-        if min_cpu is None or type(min_cpu) != int:
+        if min_cpu is None or type(min_cpu) is not int:
             min_cpu = 0
         if not build_version:
             build_version = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
@@ -100,7 +100,8 @@ class PluginBuildVersionService(object):
     def get_region_plugin_build_status(self, region: str, tenant_name: str, plugin_id: str, build_version: str) -> str:
         try:
             body = region_api.get_build_status(region, tenant_name, plugin_id, build_version)
-            status = body["bean"]["status"]  # type: ignore[index]  # NOTE: body may be None if region API returns unexpected format
+            status = body["bean"][  # type: ignore[index]
+                "status"]  # type: ignore[index]  # NOTE: body may be None if region API returns unexpected format
             rt_status = REGION_BUILD_STATUS_MAP[status]
         except region_api.CallApiError as e:
             if e.status == 404:
@@ -109,10 +110,10 @@ class PluginBuildVersionService(object):
                 rt_status = "unknown"
         return rt_status
 
-    def copy_build_version_info(self, tenant_id: str, plugin_id: str, old_version: str,
-                                new_version: str) -> PluginBuildVersion:
+    def copy_build_version_info(self, tenant_id: str, plugin_id: str, old_version: str, new_version: str) -> PluginBuildVersion:
         old_build_version = plugin_version_repo.get_by_id_and_version(tenant_id, plugin_id, old_version)
-        old_dict = model_to_dict(old_build_version)  # type: ignore[arg-type]  # NOTE: old_build_version may be None if version missing
+        old_dict = model_to_dict(
+            old_build_version)  # type: ignore[arg-type]  # NOTE: old_build_version may be None if version missing
         old_dict["build_status"] = "unbuild"
         old_dict["event_id"] = ""
         old_dict["plugin_version_status"] = "unfixed"
@@ -126,7 +127,8 @@ class PluginBuildVersionService(object):
         pbv = plugin_version_repo.get_by_id_and_version(tenant.tenant_id, plugin_id, build_version)
 
         if pbv.build_status == "building":  # type: ignore[union-attr]  # NOTE: pbv may be None if version not found
-            status = self.get_region_plugin_build_status(region, tenant.tenant_name, pbv.plugin_id, pbv.build_version)  # type: ignore[union-attr]
+            status = self.get_region_plugin_build_status(region, tenant.tenant_name, pbv.plugin_id,  # type: ignore[union-attr]
+                                                         pbv.build_version)  # type: ignore[union-attr]
             pbv.build_status = status  # type: ignore[union-attr]
             pbv.save()  # type: ignore[union-attr]
         return pbv

@@ -9,7 +9,6 @@ import os
 import pathlib
 import re
 import shlex
-import signal
 import socket
 import subprocess
 import sys
@@ -74,7 +73,8 @@ def validate_report_uuids(events: list[dict[str, Any]], expected_uuid: str) -> b
     return bool(reported_uuids) and all(value == expected_uuid for value in reported_uuids)
 
 
-def scenario_succeeded(scenario: str, code: int, timed_out: bool, output: str, reports: list[dict[str, Any]], expected_uuid: str) -> tuple[bool, str]:
+def scenario_succeeded(scenario: str, code: int, timed_out: bool, output: str, reports: list[dict[str, Any]],
+                       expected_uuid: str) -> tuple[bool, str]:
     reports_received = bool(reports)
     target_uuid = next((event["uuid"] for event in reports if event.get("uuid")), "")
     if timed_out:
@@ -98,10 +98,7 @@ def scenario_succeeded(scenario: str, code: int, timed_out: bool, output: str, r
 def docker_scenario_assertions(scenario: str, reports: list[dict[str, Any]]) -> str:
     events = [normalize_report_event(report) for report in reports]
     download_failures = [
-        event
-        for event in events
-        if event.get("event_type") == "install_progress"
-        and event.get("stage") == "docker_download"
+        event for event in events if event.get("event_type") == "install_progress" and event.get("stage") == "docker_download"
         and event.get("status") == "failed"
     ]
     final_events = [event for event in events if event.get("event_type") == "install_final"]
@@ -154,7 +151,10 @@ def docker_download_urls(installer: pathlib.Path, arch: str) -> list[str]:
     if len(templates) != 3:
         raise RuntimeError("installer does not provide exactly three Docker download URLs")
     version = docker_recommended_version(installer)
-    return [template.replace("${docker_arch}", docker_architectures[arch]).replace("${DOCKER_RECOMMENDED_VERSION}", version) for template in templates]
+    return [
+        template.replace("${docker_arch}", docker_architectures[arch]).replace("${DOCKER_RECOMMENDED_VERSION}", version)
+        for template in templates
+    ]
 
 
 def ready_components(pod_output: str) -> list[dict[str, str]]:
@@ -225,7 +225,10 @@ def start_receiver(results_dir: pathlib.Path) -> subprocess.Popen[str]:
     ready_file = results_dir / "receiver-port"
     receiver = pathlib.Path(__file__).with_name("installer_smoke_receiver.py")
     process = subprocess.Popen(
-        [sys.executable, str(receiver), "--output", str(results_dir / "reports.jsonl"), "--ready-file", str(ready_file)],
+        [sys.executable,
+         str(receiver), "--output",
+         str(results_dir / "reports.jsonl"), "--ready-file",
+         str(ready_file)],
         stdout=subprocess.DEVNULL,
         stderr=subprocess.PIPE,
         text=True,
@@ -323,7 +326,9 @@ else
 fi
 finished=$(date +%s%3N)
 if [ -n "$docker_download_host" ]; then
-  printf '{"url":"%s","duration_ms":%s,"exit_code":%s,"kind":"docker_download","mode":"%s"}\n' "$url" "$((finished - started))" "$status" "${SMOKE_DOCKER_DOWNLOAD_MODE:-none}" >>"${SMOKE_DOCKER_DOWNLOAD_ATTEMPTS}"
+  printf '{"url":"%s","duration_ms":%s,"exit_code":%s,"kind":"docker_download","mode":"%s"}\n' \
+    "$url" "$((finished - started))" "$status" \
+    "${SMOKE_DOCKER_DOWNLOAD_MODE:-none}" >>"${SMOKE_DOCKER_DOWNLOAD_ATTEMPTS}"
 else
   printf '{"url":"%s","duration_ms":%s,"exit_code":%s}\n' "$url" "$((finished - started))" "$status" >>"${SMOKE_REPORT_ATTEMPTS}"
 fi
@@ -359,8 +364,9 @@ def guard_rule_prefix_valid(rules: str, chain: str, addresses: list[str], action
     if not expected:
         return True
     entries = [line.strip() for line in rules.splitlines() if line.startswith(f"-A {chain} ")]
-    prefixes = entries[: len(expected)]
-    return len(prefixes) == len(expected) and all(any(line == expected_rule or line.startswith(f"{expected_rule} ") for line in prefixes) for expected_rule in expected)
+    prefixes = entries[:len(expected)]
+    return len(prefixes) == len(expected) and all(
+        any(line == expected_rule or line.startswith(f"{expected_rule} ") for line in prefixes) for expected_rule in expected)
 
 
 def guard_packet_counts(counters: str, addresses: Iterable[str]) -> dict[str, int]:
@@ -384,7 +390,10 @@ def insert_guard_rules(command: str, table: str, chain: str, addresses: Iterable
 
 def guard_addresses(guard: dict[str, Any], version: int, include_smoke_blackhole: bool = True) -> list[str]:
     source = guard["ipv6_addresses"] if version == 6 else guard["addresses"]
-    return sorted({address for host, values in source.items() if include_smoke_blackhole or host != "smoke_blackhole" for address in values})
+    return sorted({
+        address
+        for host, values in source.items() if include_smoke_blackhole or host != "smoke_blackhole" for address in values
+    })
 
 
 def read_guard_rules(command: str, table: str, chain: str) -> subprocess.CompletedProcess[str]:
@@ -401,14 +410,25 @@ def reconcile_network_guard(results_dir: pathlib.Path) -> list[dict[str, Any]]:
             continue
         for chain in RAW_GUARD_CHAINS:
             state = read_guard_rules(command, "raw", chain)
-            if raw_addresses and state.returncode == 0 and not guard_rule_prefix_valid(state.stdout, chain, raw_addresses, "DROP"):
+            if raw_addresses and state.returncode == 0 and not guard_rule_prefix_valid(state.stdout, chain, raw_addresses,
+                                                                                       "DROP"):
                 insert_guard_rules(command, "raw", chain, raw_addresses, "DROP")
-                changes.append({"table": "raw", "chain": chain, "ip_version": version, "at_monotonic_seconds": time.monotonic()})
+                changes.append({
+                    "table": "raw",
+                    "chain": chain,
+                    "ip_version": version,
+                    "at_monotonic_seconds": time.monotonic()
+                })
         for chain in NETWORK_GUARD_CHAINS:
             state = read_guard_rules(command, "filter", chain)
             if state.returncode == 0 and not guard_rule_prefix_valid(state.stdout, chain, filter_addresses, guard["action"]):
                 insert_guard_rules(command, "filter", chain, filter_addresses, guard["action"])
-                changes.append({"table": "filter", "chain": chain, "ip_version": version, "at_monotonic_seconds": time.monotonic()})
+                changes.append({
+                    "table": "filter",
+                    "chain": chain,
+                    "ip_version": version,
+                    "at_monotonic_seconds": time.monotonic()
+                })
     return changes
 
 
@@ -438,15 +458,12 @@ class NetworkGuardMonitor:
 
 
 def summarize_guard_reinsertions(reinsertions: Iterable[dict[str, Any]]) -> list[dict[str, Any]]:
-    return [
-        {
-            "table": entry["table"],
-            "chain": entry["chain"],
-            "ip_version": entry["ip_version"],
-            "at_monotonic_seconds": entry["at_monotonic_seconds"],
-        }
-        for entry in reinsertions
-    ]
+    return [{
+        "table": entry["table"],
+        "chain": entry["chain"],
+        "ip_version": entry["ip_version"],
+        "at_monotonic_seconds": entry["at_monotonic_seconds"],
+    } for entry in reinsertions]
 
 
 def install_network_guard(results_dir: pathlib.Path, action: str) -> dict[str, list[str]]:
@@ -460,9 +477,7 @@ def install_network_guard(results_dir: pathlib.Path, action: str) -> dict[str, l
             output.write(f"127.0.0.1 {host}\n")
     run_sudo("sh", "-c", f"cat {results_dir / 'hosts.append'} >> /etc/hosts")
     guard = {"addresses": addresses, "ipv6_addresses": ipv6_addresses, "action": action, "raw_action": "DROP"}
-    (results_dir / "network-guard.json").write_text(
-        json.dumps(guard, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
+    (results_dir / "network-guard.json").write_text(json.dumps(guard, ensure_ascii=False, indent=2), encoding="utf-8")
     reconcile_network_guard(results_dir)
     return addresses
 
@@ -490,23 +505,30 @@ def verify_network_guard(results_dir: pathlib.Path, require_docker_user: bool = 
                     "real_report_drop_packets": guard_packet_counts(counters, raw_addresses),
                 }
         tables[f"ipv{version}"] = result
-    required_filter_chains = NETWORK_GUARD_CHAINS if require_docker_user else tuple(chain for chain in NETWORK_GUARD_CHAINS if chain != "DOCKER-USER")
-    valid = all(
-        table[rule_table][chain]["exists"] and table[rule_table][chain]["prefix_valid"]
-        for table in tables.values()
-        if not table["skipped"]
-        for rule_table, chains in (("filter", required_filter_chains), ("raw", RAW_GUARD_CHAINS))
-        for chain in chains
-    )
-    raw_packets = sum(sum(chain["real_report_drop_packets"].values()) for table in tables.values() if not table["skipped"] for chain in table["raw"].values())
-    filter_real_packets = sum(sum(chain["real_report_drop_packets"].values()) for table in tables.values() if not table["skipped"] for chain in table["filter"].values())
-    filter_blackhole_packets = sum(sum(chain["drop_packets"].values()) - sum(chain["real_report_drop_packets"].values()) for table in tables.values() if not table["skipped"] for chain in table["filter"].values())
+    required_filter_chains = NETWORK_GUARD_CHAINS if require_docker_user else tuple(
+        chain for chain in NETWORK_GUARD_CHAINS if chain != "DOCKER-USER")
+    valid = all(table[rule_table][chain]["exists"] and table[rule_table][chain]["prefix_valid"] for table in tables.values()
+                if not table["skipped"]
+                for rule_table, chains in (("filter", required_filter_chains), ("raw", RAW_GUARD_CHAINS)) for chain in chains)
+    raw_packets = sum(
+        sum(chain["real_report_drop_packets"].values()) for table in tables.values() if not table["skipped"]
+        for chain in table["raw"].values())
+    filter_real_packets = sum(
+        sum(chain["real_report_drop_packets"].values()) for table in tables.values() if not table["skipped"]
+        for chain in table["filter"].values())
+    filter_blackhole_packets = sum(
+        sum(chain["drop_packets"].values()) - sum(chain["real_report_drop_packets"].values()) for table in tables.values()
+        if not table["skipped"] for chain in table["filter"].values())
     counter_consistent = filter_real_packets == 0
     return {
         "valid": valid and counter_consistent,
         "tables": tables,
         "docker_user_required": require_docker_user,
-        "drop_packet_totals": {"raw": raw_packets, "filter_real_report_ips": filter_real_packets, "filter_smoke_blackhole": filter_blackhole_packets},
+        "drop_packet_totals": {
+            "raw": raw_packets,
+            "filter_real_report_ips": filter_real_packets,
+            "filter_smoke_blackhole": filter_blackhole_packets
+        },
         "counter_consistent": counter_consistent,
     }
 
@@ -530,7 +552,8 @@ def installed_docker_packages() -> list[str]:
 
 
 def remove_docker_chains() -> dict[str, Any]:
-    chains = ("DOCKER", "DOCKER-USER", "DOCKER-FORWARD", "DOCKER-BRIDGE", "DOCKER-INTERNAL", "DOCKER-CT", "DOCKER-ISOLATION-STAGE-1", "DOCKER-ISOLATION-STAGE-2")
+    chains = ("DOCKER", "DOCKER-USER", "DOCKER-FORWARD", "DOCKER-BRIDGE", "DOCKER-INTERNAL", "DOCKER-CT",
+              "DOCKER-ISOLATION-STAGE-1", "DOCKER-ISOLATION-STAGE-2")
     removed = []
     for table in ("filter", "nat"):
         parents = ("INPUT", "OUTPUT", "FORWARD", "PREROUTING", "POSTROUTING")
@@ -557,12 +580,26 @@ def remove_preinstalled_docker(results_dir: pathlib.Path) -> dict[str, Any]:
         result["actions"].append({"command": list(command), "exit_code": completed.returncode})
     if result["packages_before"]:
         completed = run_sudo("apt-get", "purge", "-y", *result["packages_before"], check=False)
-        result["actions"].append({"command": ["apt-get", "purge", "-y", *result["packages_before"]], "exit_code": completed.returncode})
+        result["actions"].append({
+            "command": ["apt-get", "purge", "-y", *result["packages_before"]],
+            "exit_code": completed.returncode
+        })
         if completed.returncode != 0:
             raise RuntimeError("Docker package purge failed")
     for path in (
-        "/usr/bin/docker", "/usr/bin/dockerd", "/usr/bin/containerd", "/usr/bin/containerd-shim-runc-v2", "/usr/bin/ctr", "/usr/bin/runc", "/usr/bin/docker-init", "/usr/bin/docker-proxy",
-        "/usr/local/bin/docker", "/usr/local/bin/dockerd", "/etc/systemd/system/docker.service", "/etc/systemd/system/docker.socket", "/etc/systemd/system/containerd.service",
+            "/usr/bin/docker",
+            "/usr/bin/dockerd",
+            "/usr/bin/containerd",
+            "/usr/bin/containerd-shim-runc-v2",
+            "/usr/bin/ctr",
+            "/usr/bin/runc",
+            "/usr/bin/docker-init",
+            "/usr/bin/docker-proxy",
+            "/usr/local/bin/docker",
+            "/usr/local/bin/dockerd",
+            "/etc/systemd/system/docker.service",
+            "/etc/systemd/system/docker.socket",
+            "/etc/systemd/system/containerd.service",
     ):
         run_sudo("rm", "-f", path, check=False)
     run_sudo("systemctl", "daemon-reload", check=False)
@@ -571,11 +608,16 @@ def remove_preinstalled_docker(results_dir: pathlib.Path) -> dict[str, Any]:
     result.update(remove_docker_chains())
     for path in ("/var/lib/docker", "/var/lib/containerd", "/etc/docker"):
         run_sudo("rm", "-rf", path, check=False)
-    command = subprocess.run(["bash", "-c", "command -v docker"], text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
+    command = subprocess.run(["bash", "-c", "command -v docker"],
+                             text=True,
+                             stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE,
+                             check=False)
     result["docker_command_after"] = command.stdout.strip()
     result["packages_after"] = installed_docker_packages()
     result["docker0_exists_after"] = run_sudo("ip", "link", "show", "docker0", check=False).returncode == 0
-    result["verified_absent"] = not result["docker_command_after"] and not result["packages_after"] and not result["docker0_exists_after"]
+    result["verified_absent"] = not result["docker_command_after"] and not result["packages_after"] and not result[
+        "docker0_exists_after"]
     (results_dir / "docker-cleanup.json").write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
     if not result["verified_absent"]:
         raise RuntimeError("docker cleanup incomplete")
@@ -600,13 +642,21 @@ def docker_installation_evidence(installer: pathlib.Path, cleanup: dict[str, Any
 
 def probe_container_tcp(address: str) -> dict[str, Any]:
     result = run_sudo("docker", "exec", "rainbond", "bash", "-c", f"timeout 3 bash -c '</dev/tcp/{address}/443'", check=False)
-    return {"exit_code": result.returncode, "blocked": result.returncode in {1, 124}, "valid": result.returncode not in {126, 127}}
+    return {
+        "exit_code": result.returncode,
+        "blocked": result.returncode in {1, 124},
+        "valid": result.returncode not in {126, 127}
+    }
 
 
 def probe_container_network(addresses: dict[str, list[str]]) -> dict[str, Any]:
-    blocked = {host: [probe_container_tcp(address) for address in values] for host, values in addresses.items() if host != "smoke_blackhole"}
+    blocked = {
+        host: [probe_container_tcp(address) for address in values]
+        for host, values in addresses.items() if host != "smoke_blackhole"
+    }
     control = probe_container_tcp("registry.cn-hangzhou.aliyuncs.com")
-    valid = control["exit_code"] == 0 and all(probe["valid"] and probe["blocked"] for probes in blocked.values() for probe in probes)
+    valid = control["exit_code"] == 0 and all(probe["valid"] and probe["blocked"] for probes in blocked.values()
+                                              for probe in probes)
     return {"valid": valid, "blocked": blocked, "control": control}
 
 
@@ -635,7 +685,17 @@ def main_script_uuid(main_script: pathlib.Path) -> str:
 
 
 def collect_ready_components() -> list[dict[str, str]]:
-    result = run_sudo("docker", "exec", "rainbond", "/bin/k3s", "kubectl", "get", "pods", "-n", "rbd-system", "--no-headers", check=False)
+    result = run_sudo("docker",
+                      "exec",
+                      "rainbond",
+                      "/bin/k3s",
+                      "kubectl",
+                      "get",
+                      "pods",
+                      "-n",
+                      "rbd-system",
+                      "--no-headers",
+                      check=False)
     return ready_components(result.stdout)
 
 
@@ -643,15 +703,23 @@ def wait_ready_components(timeout_seconds: int = 120) -> list[dict[str, str]]:
     deadline = time.monotonic() + timeout_seconds
     snapshot = []
     while time.monotonic() < deadline:
-        snapshot = [component for component in collect_ready_components() if component["status"] not in {"Completed", "Succeeded"}]
-        if snapshot and all(component["status"] == "Running" and component["ready"].split("/")[0] == component["ready"].split("/")[-1] for component in snapshot):
+        snapshot = [
+            component for component in collect_ready_components() if component["status"] not in {"Completed", "Succeeded"}
+        ]
+        if snapshot and all(
+                component["status"] == "Running" and component["ready"].split("/")[0] == component["ready"].split("/")[-1]
+                for component in snapshot):
             return snapshot
         time.sleep(5)
     return snapshot
 
 
 def resolve_public_ipv4(host: str) -> dict[str, Any]:
-    result = subprocess.run(["dig", "@1.1.1.1", "+short", "A", host], text=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, check=False)
+    result = subprocess.run(["dig", "@1.1.1.1", "+short", "A", host],
+                            text=True,
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.DEVNULL,
+                            check=False)
     if result.returncode != 0:
         return {"addresses": [], "error": "DNS query failed"}
     addresses = []
@@ -666,41 +734,82 @@ def resolve_public_ipv4(host: str) -> dict[str, Any]:
 
 
 def probe_host_tcp(address: str) -> dict[str, Any]:
-    result = subprocess.run(["timeout", "3", "bash", "-c", f"</dev/tcp/{address}/443"], text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=False)
-    return {"exit_code": result.returncode, "blocked": result.returncode in {1, 124}, "valid": result.returncode not in {126, 127}}
+    result = subprocess.run(["timeout", "3", "bash", "-c", f"</dev/tcp/{address}/443"],
+                            text=True,
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.STDOUT,
+                            check=False)
+    return {
+        "exit_code": result.returncode,
+        "blocked": result.returncode in {1, 124},
+        "valid": result.returncode not in {126, 127}
+    }
 
 
 def host_connectivity_valid(connectivity: dict[str, dict[str, list[dict[str, Any]]]]) -> bool:
     baseline = connectivity.get("before_guard", {})
     guarded = connectivity.get("after_guard", {})
-    return (
-        bool(baseline)
-        and bool(guarded)
-        and all(probe["valid"] and probe["exit_code"] == 0 for probes in baseline.values() for probe in probes)
-        and all(probe["valid"] and probe["blocked"] for probes in guarded.values() for probe in probes)
-    )
+    return (bool(baseline) and bool(guarded)
+            and all(probe["valid"] and probe["exit_code"] == 0 for probes in baseline.values() for probe in probes)
+            and all(probe["valid"] and probe["blocked"] for probes in guarded.values() for probe in probes))
 
 
 def console_ready() -> bool:
-    result = subprocess.run(["/usr/bin/curl", "--connect-timeout", "5", "--max-time", "10", "--silent", "--output", "/dev/null", "--write-out", "%{http_code}", "http://127.0.0.1:7070"], text=True, stdout=subprocess.PIPE, check=False)
+    result = subprocess.run([
+        "/usr/bin/curl", "--connect-timeout", "5", "--max-time", "10", "--silent", "--output", "/dev/null", "--write-out",
+        "%{http_code}", "http://127.0.0.1:7070"
+    ],
+                            text=True,
+                            stdout=subprocess.PIPE,
+                            check=False)
     return result.returncode == 0 and result.stdout.isdigit() and result.stdout != "000"
 
 
 def collect_gateway_logs(results_dir: pathlib.Path) -> dict[str, Any]:
-    pods = run_sudo("docker", "exec", "rainbond", "/bin/k3s", "kubectl", "get", "pods", "-n", "rbd-system", "--no-headers", check=False).stdout
+    pods = run_sudo("docker",
+                    "exec",
+                    "rainbond",
+                    "/bin/k3s",
+                    "kubectl",
+                    "get",
+                    "pods",
+                    "-n",
+                    "rbd-system",
+                    "--no-headers",
+                    check=False).stdout
     gateway_pod = next((line.split()[0] for line in pods.splitlines() if line.startswith("rbd-gateway")), "")
     if not gateway_pod:
         return {"pod": "", "containers": [], "logs": {}}
-    names = run_sudo(
-        "docker", "exec", "rainbond", "/bin/k3s", "kubectl", "get", "pod", gateway_pod, "-n", "rbd-system", "-o", "jsonpath={.spec.containers[*].name}", check=False
-    ).stdout.split()
+    names = run_sudo("docker",
+                     "exec",
+                     "rainbond",
+                     "/bin/k3s",
+                     "kubectl",
+                     "get",
+                     "pod",
+                     gateway_pod,
+                     "-n",
+                     "rbd-system",
+                     "-o",
+                     "jsonpath={.spec.containers[*].name}",
+                     check=False).stdout.split()
     logs = {}
     for container in ("ingress-apisix", "apisix"):
         if container not in names:
             continue
-        result = run_sudo(
-            "docker", "exec", "rainbond", "/bin/k3s", "kubectl", "logs", gateway_pod, "-n", "rbd-system", "-c", container, "--tail=80", check=False
-        )
+        result = run_sudo("docker",
+                          "exec",
+                          "rainbond",
+                          "/bin/k3s",
+                          "kubectl",
+                          "logs",
+                          gateway_pod,
+                          "-n",
+                          "rbd-system",
+                          "-c",
+                          container,
+                          "--tail=80",
+                          check=False)
         (results_dir / f"rbd-gateway-{container}.log").write_text(result.stdout, encoding="utf-8")
         logs[container] = result.stdout.splitlines()[-20:]
     return {"pod": gateway_pod, "containers": names, "logs": logs}
@@ -715,7 +824,12 @@ def read_json_lines(path: pathlib.Path) -> list[dict[str, Any]]:
 def docker_guard_snapshot(results_dir: pathlib.Path) -> dict[str, Any]:
     raw_rules = run_sudo("iptables", "-t", "raw", "-S", check=False).stdout
     (results_dir / "docker-raw-rules.txt").write_text(raw_rules, encoding="utf-8")
-    started = run_sudo("systemctl", "show", "docker.service", "--property=ActiveEnterTimestampMonotonic", "--value", check=False)
+    started = run_sudo("systemctl",
+                       "show",
+                       "docker.service",
+                       "--property=ActiveEnterTimestampMonotonic",
+                       "--value",
+                       check=False)
     try:
         docker_started_at_monotonic_seconds = int(started.stdout.strip()) / 1_000_000
     except ValueError:
@@ -751,22 +865,21 @@ def run_scenario(arguments: argparse.Namespace) -> int:
         receiver = start_receiver(results_dir)
         shim_dir = create_curl_shim(results_dir).resolve()
         action = REPORT_SCENARIOS.get(arguments.scenario, "DROP")
-        report_mode = "receiver" if arguments.scenario in {"normal_install", "image_not_found", *DOCKER_SCENARIOS} else arguments.scenario.removeprefix("report_endpoint_")
+        report_mode = "receiver" if arguments.scenario in {"normal_install", "image_not_found", *DOCKER_SCENARIOS
+                                                           } else arguments.scenario.removeprefix("report_endpoint_")
         expected_uuid = main_script_uuid(main_script)
         env = os.environ.copy()
-        env.update(
-            {
-                "EIP": runner_eip(),
-                "RAINBOND_INSTALL_LANG": "en",
-                "PATH": f"{shim_dir}:{env['PATH']}",
-                "SMOKE_RECEIVER_PORT": (results_dir / "receiver-port").read_text(encoding="utf-8"),
-                "SMOKE_REPORT_MODE": report_mode,
-                "SMOKE_BLOCK_IP": SMOKE_BLOCK_IP,
-                "SMOKE_SHIM_STATE": str((results_dir / "first-report-recorded").resolve()),
-                "SMOKE_REPORT_ATTEMPTS": str((results_dir / "report-attempts.jsonl").resolve()),
-                "SMOKE_DOCKER_DOWNLOAD_ATTEMPTS": str((results_dir / "docker-download-attempts.jsonl").resolve()),
-            }
-        )
+        env.update({
+            "EIP": runner_eip(),
+            "RAINBOND_INSTALL_LANG": "en",
+            "PATH": f"{shim_dir}:{env['PATH']}",
+            "SMOKE_RECEIVER_PORT": (results_dir / "receiver-port").read_text(encoding="utf-8"),
+            "SMOKE_REPORT_MODE": report_mode,
+            "SMOKE_BLOCK_IP": SMOKE_BLOCK_IP,
+            "SMOKE_SHIM_STATE": str((results_dir / "first-report-recorded").resolve()),
+            "SMOKE_REPORT_ATTEMPTS": str((results_dir / "report-attempts.jsonl").resolve()),
+            "SMOKE_DOCKER_DOWNLOAD_ATTEMPTS": str((results_dir / "docker-download-attempts.jsonl").resolve()),
+        })
         if arguments.scenario == "image_not_found":
             env["VERSION"] = "v0.0.0-installer-smoke-does-not-exist"
         baseline_addresses = {host: resolve_ipv4(host) for host in REPORT_HOSTS}
@@ -816,24 +929,33 @@ def run_scenario(arguments: argparse.Namespace) -> int:
             guard_state = json.loads((results_dir / "network-guard.json").read_text(encoding="utf-8"))
             guard_state["reinsertions"] = guard_monitor.reinsertions
             guard_state["monitor_errors"] = guard_monitor.errors
-            (results_dir / "network-guard.json").write_text(json.dumps(guard_state, ensure_ascii=False, indent=2), encoding="utf-8")
+            (results_dir / "network-guard.json").write_text(json.dumps(guard_state, ensure_ascii=False, indent=2),
+                                                            encoding="utf-8")
         connectivity["after_guard"] = {
             host: [probe_host_tcp(address) for address in values]
-            for host, values in guard_addresses.items()
-            if host != "smoke_blackhole"
+            for host, values in guard_addresses.items() if host != "smoke_blackhole"
         }
         ready_scenarios = {"normal_install", "no_docker_install", "no_docker_tuna_fallback"}
-        components = wait_ready_components() if arguments.scenario in ready_scenarios else collect_ready_components() if arguments.scenario not in {"image_not_found", "no_docker_all_sources_unavailable"} else []
+        components = wait_ready_components() if arguments.scenario in ready_scenarios else collect_ready_components(
+        ) if arguments.scenario not in {"image_not_found", "no_docker_all_sources_unavailable"} else []
         console_is_ready = console_ready() if arguments.scenario in ready_scenarios else False
-        gateway = collect_gateway_logs(results_dir) if arguments.scenario not in {"image_not_found", "no_docker_all_sources_unavailable"} else gateway
+        gateway = collect_gateway_logs(results_dir) if arguments.scenario not in {
+            "image_not_found", "no_docker_all_sources_unavailable"
+        } else gateway
         if arguments.scenario in DOCKER_SCENARIOS and arguments.scenario != "no_docker_all_sources_unavailable":
             docker_evidence = docker_installation_evidence(target_script, docker_cleanup)
             docker_guard = docker_guard_snapshot(results_dir)
-        guard_validation = verify_network_guard(results_dir, require_docker_user=arguments.scenario != "no_docker_all_sources_unavailable")
+        guard_validation = verify_network_guard(results_dir,
+                                                require_docker_user=arguments.scenario != "no_docker_all_sources_unavailable")
         guard_validation["public_resolution"] = {host: resolve_public_ipv4(host) for host in REPORT_HOSTS}
-        guard_validation["resolution_query_failed"] = any(result["error"] for result in guard_validation["public_resolution"].values())
-        guard_validation["resolution_matches"] = not guard_validation["resolution_query_failed"] and all(set(guard_validation["public_resolution"][host]["addresses"]) == set(guard_addresses[host]) for host in REPORT_HOSTS)
-        container_probes = probe_container_network(json.loads((results_dir / "network-guard.json").read_text(encoding="utf-8"))["addresses"]) if arguments.scenario != "image_not_found" else container_probes
+        guard_validation["resolution_query_failed"] = any(
+            result["error"] for result in guard_validation["public_resolution"].values())
+        guard_validation["resolution_matches"] = not guard_validation["resolution_query_failed"] and all(
+            set(guard_validation["public_resolution"][host]["addresses"]) == set(guard_addresses[host])
+            for host in REPORT_HOSTS)
+        container_probes = probe_container_network(
+            json.loads((results_dir / "network-guard.json").read_text(
+                encoding="utf-8"))["addresses"]) if arguments.scenario != "image_not_found" else container_probes
     except Exception as error:
         setup_error = str(error)
     finally:
@@ -844,7 +966,8 @@ def run_scenario(arguments: argparse.Namespace) -> int:
             stop_receiver(receiver)
 
     duration_seconds = round(time.monotonic() - started_at)
-    report_lines = (results_dir / "reports.jsonl").read_text(encoding="utf-8").splitlines() if (results_dir / "reports.jsonl").exists() else []
+    report_lines = (results_dir / "reports.jsonl").read_text(
+        encoding="utf-8").splitlines() if (results_dir / "reports.jsonl").exists() else []
     reports = extract_report_events(report_lines)
     target_uuid = next((event["uuid"] for event in reports if event.get("uuid")), "")
     success, reason = scenario_succeeded(arguments.scenario, code, timed_out, output, reports, expected_uuid)
@@ -854,15 +977,15 @@ def run_scenario(arguments: argparse.Namespace) -> int:
         reason = f"smoke setup failed: {setup_error}"
     elif not guard_validation["valid"]:
         success = False
-        reason = "raw table did not observe filter-blocked traffic" if not guard_validation.get("counter_consistent", True) else "network guard rules are missing"
+        reason = "raw table did not observe filter-blocked traffic" if not guard_validation.get(
+            "counter_consistent", True) else "network guard rules are missing"
     elif not guard_validation.get("resolution_matches", False):
         success = False
-        reason = "isolation is untrusted because public DNS query failed" if guard_validation.get("resolution_query_failed") else "isolation is untrusted because public DNS addresses changed"
+        reason = "isolation is untrusted because public DNS query failed" if guard_validation.get(
+            "resolution_query_failed") else "isolation is untrusted because public DNS addresses changed"
     elif not host_connectivity_valid(connectivity):
         success = False
-        reason = (
-            "host TCP isolation baseline is unreachable or guarded probe is invalid or not blocked"
-        )
+        reason = ("host TCP isolation baseline is unreachable or guarded probe is invalid or not blocked")
     elif arguments.scenario not in {"image_not_found", "no_docker_all_sources_unavailable"} and not container_probes["valid"]:
         success = False
         reason = "container TCP isolation probe is invalid or not blocked"
@@ -872,10 +995,16 @@ def run_scenario(arguments: argparse.Namespace) -> int:
     elif docker_assertion_error:
         success = False
         reason = docker_assertion_error
-    elif arguments.scenario in {"normal_install", "no_docker_install", "no_docker_tuna_fallback"} and (not console_is_ready or not components or any(component["ready"].split("/")[0] != component["ready"].split("/")[-1] or component["status"] != "Running" for component in components)):
+    elif arguments.scenario in {
+            "normal_install", "no_docker_install", "no_docker_tuna_fallback"
+    } and (not console_is_ready or not components
+           or any(component["ready"].split("/")[0] != component["ready"].split("/")[-1] or component["status"] != "Running"
+                  for component in components)):
         success = False
         reason = f"services are not ready (7070={console_is_ready}): {components}"
-    elif arguments.scenario in {"no_docker_install", "no_docker_tuna_fallback"} and (not docker_evidence.get("version_matches", False) or not docker_evidence.get("service_active", False)):
+    elif arguments.scenario in {
+            "no_docker_install", "no_docker_tuna_fallback"
+    } and (not docker_evidence.get("version_matches", False) or not docker_evidence.get("service_active", False)):
         success = False
         reason = f"installer Docker version mismatch: {docker_evidence}"
     if timed_out:
@@ -883,25 +1012,41 @@ def run_scenario(arguments: argparse.Namespace) -> int:
     uuid_matches = validate_report_uuids(reports, expected_uuid)
 
     result = build_result(arguments.scenario, arguments.arch, success, duration_seconds, reason, components)
-    result.update(
-        {
-            "exit_code": code,
-            "timed_out": timed_out,
-            "connectivity": connectivity,
-            "network_guard": guard_validation,
-            "network_guard_reinsertions": summarize_guard_reinsertions(guard_monitor.reinsertions if guard_monitor is not None else []),
-            "container_tcp_probes": container_probes,
-            "console_7070_ready": console_is_ready,
-            "uuid_comparison": {"target_ref": target_uuid, "main": expected_uuid, "matches": uuid_matches},
-            "report_count": len(reports),
-            "report_attempts": read_json_lines(results_dir / "report-attempts.jsonl"),
-            "docker_download_attempts": read_json_lines(results_dir / "docker-download-attempts.jsonl"),
-            "docker_cleanup": docker_cleanup,
-            "docker_installation": docker_evidence,
-            "docker_guard": docker_guard,
-            "gateway": gateway,
-        }
-    )
+    result.update({
+        "exit_code":
+        code,
+        "timed_out":
+        timed_out,
+        "connectivity":
+        connectivity,
+        "network_guard":
+        guard_validation,
+        "network_guard_reinsertions":
+        summarize_guard_reinsertions(guard_monitor.reinsertions if guard_monitor is not None else []),
+        "container_tcp_probes":
+        container_probes,
+        "console_7070_ready":
+        console_is_ready,
+        "uuid_comparison": {
+            "target_ref": target_uuid,
+            "main": expected_uuid,
+            "matches": uuid_matches
+        },
+        "report_count":
+        len(reports),
+        "report_attempts":
+        read_json_lines(results_dir / "report-attempts.jsonl"),
+        "docker_download_attempts":
+        read_json_lines(results_dir / "docker-download-attempts.jsonl"),
+        "docker_cleanup":
+        docker_cleanup,
+        "docker_installation":
+        docker_evidence,
+        "docker_guard":
+        docker_guard,
+        "gateway":
+        gateway,
+    })
     (results_dir / "result.json").write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
     print(json.dumps(result, ensure_ascii=False))
     return 0 if success else 1
@@ -909,7 +1054,9 @@ def run_scenario(arguments: argparse.Namespace) -> int:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--scenario", required=True, choices=["normal_install", "image_not_found", *REPORT_SCENARIOS, *DOCKER_SCENARIOS])
+    parser.add_argument("--scenario",
+                        required=True,
+                        choices=["normal_install", "image_not_found", *REPORT_SCENARIOS, *DOCKER_SCENARIOS])
     parser.add_argument("--installer", required=True)
     parser.add_argument("--main-installer", required=True)
     parser.add_argument("--results-dir", required=True)

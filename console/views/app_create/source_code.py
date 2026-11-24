@@ -122,15 +122,16 @@ class SourceCodeCreateView(ApplicationView):
             open_webhook = request.data.get("open_webhook", False)
             try:
                 oauth_service = oauth_repo.get_oauth_services_by_service_id(service_id=oauth_service_id)
-                oauth_user = oauth_user_repo.get_user_oauth_by_user_id(
-                    service_id=oauth_service_id, user_id=user_id)  # type: ignore[arg-type]
+                oauth_user = oauth_user_repo.get_user_oauth_by_user_id(service_id=oauth_service_id,  # type: ignore[arg-type]
+                                                                       user_id=user_id)  # type: ignore[arg-type]
             except Exception as e:
                 logger.debug(e)
                 rst = {"data": {"bean": None}, "status": 400, "msg_show": "未找到OAuth服务, 请检查该服务是否存在且属于开启状态"}
                 return Response(rst, status=200)
             try:
                 # NOTE: get_oauth_services_by_service_id may return None; backlog
-                git_service = get_oauth_instance(oauth_service.oauth_type, oauth_service, oauth_user)  # type: ignore[union-attr]
+                git_service = get_oauth_instance(oauth_service.oauth_type, oauth_service,  # type: ignore[union-attr]
+                                                 oauth_user)  # type: ignore[union-attr]
             except Exception as e:
                 logger.debug(e)
                 rst = {"data": {"bean": None}, "status": 400, "msg_show": "未找到OAuth服务"}
@@ -171,12 +172,14 @@ class SourceCodeCreateView(ApplicationView):
             # 添加username,password信息
             # NOTE: create_source_code_app may return None new_service; create_service_source_info also expects non-None; backlog
             if git_password or git_user_name:
-                app_service.create_service_source_info(self.tenant, new_service, git_user_name, git_password)  # type: ignore[arg-type]
+                app_service.create_service_source_info(self.tenant, new_service, git_user_name,  # type: ignore[arg-type]
+                                                       git_password)  # type: ignore[arg-type]
 
             # 自动添加hook
             if open_webhook and is_oauth and not new_service.open_webhooks:  # type: ignore[union-attr]
-                service_webhook = service_webhooks_repo.create_service_webhooks(
-                    new_service.service_id, "code_webhooks")  # type: ignore[union-attr]
+                service_webhook = service_webhooks_repo.create_service_webhooks(  # type: ignore[union-attr]
+                    new_service.service_id,  # type: ignore[union-attr]
+                    "code_webhooks")  # type: ignore[union-attr]
                 service_webhook.state = True
                 service_webhook.deploy_keyword = "deploy"
                 service_webhook.save()
@@ -195,28 +198,30 @@ class SourceCodeCreateView(ApplicationView):
                 logger.debug("service.create", msg_show)
             bean = new_service.to_dict()  # type: ignore[union-attr]
             result = general_message(200, "success", "创建成功", bean=bean)
-            new_information = json.dumps({
-                "应用名称": self.app.group_name,
-                "组件名称": service_cname,
-                "组件英文名称": k8s_component_name,
-                "仓库地址": service_code_clone_url,
-                "代码版本": service_code_version
-            },
+            new_information = json.dumps(
+                {
+                    "应用名称": self.app.group_name,
+                    "组件名称": service_cname,
+                    "组件英文名称": k8s_component_name,
+                    "仓库地址": service_code_clone_url,
+                    "代码版本": service_code_version
+                },
                 ensure_ascii=False)
             component = operation_log_service.process_component_name(
-                new_service.service_cname, self.region_name,  # type: ignore[union-attr]
-                self.tenant_name, new_service.service_alias)  # type: ignore[union-attr]
-            comment = "在应用{app}中创建了组件 ".format(
-                app=operation_log_service.process_app_name(self.app.group_name, self.region_name, self.tenant_name,
-                                                           self.app.app_id)) + component
-            operation_log_service.create_app_log(ctx=self, comment=comment, format_app=False,
-                                                 new_information=new_information)
+                new_service.service_cname,  # type: ignore[union-attr]
+                self.region_name,  # type: ignore[union-attr]
+                self.tenant_name,
+                new_service.service_alias)  # type: ignore[union-attr]
+            comment = "在应用{app}中创建了组件 ".format(app=operation_log_service.process_app_name(
+                self.app.group_name, self.region_name, self.tenant_name, self.app.app_id)) + component
+            operation_log_service.create_app_log(ctx=self, comment=comment, format_app=False, new_information=new_information)
         except ResourceNotEnoughException as re:
             raise re
         except AccountOverdueException as re:
             logger.exception(re)
             # NOTE: py2-style Exception.message
-            return Response(general_message(10410, "resource is not enough", re.message), status=412)  # type: ignore[attr-defined]
+            return Response(general_message(10410, "resource is not enough", re.message),  # type: ignore[attr-defined]
+                            status=412)  # type: ignore[attr-defined]
         return Response(result, status=result["code"])
 
 
@@ -311,8 +316,8 @@ class AppCompileEnvView(AppBaseView):
             "language": self.service.language
         }
         compile_env = compile_env_service.update_service_compile_env(self.service, **update_params)
-        source_build_state_service.save_user_snapshot(
-            self.service, self.service.language, compile_env_payload=checkJson)  # type: ignore[arg-type]
+        source_build_state_service.save_user_snapshot(self.service, self.service.language,  # type: ignore[arg-type]
+                                                      compile_env_payload=checkJson)  # type: ignore[arg-type]
         bean = dict()
         if compile_env:
             check_dependency = json.loads(compile_env.check_dependency)  # type: ignore[arg-type]
@@ -379,8 +384,14 @@ class PackageCreateView(RegionTenantHeaderView):
             pkg_create_time = pkg_record.create_time
             # 创建信息
             ts = app_service.create_package_upload_info(
-                region, self.tenant, self.user, service_cname, k8s_component_name,  # type: ignore[arg-type]
-                event_id, pkg_create_time, arch)  # type: ignore[arg-type]
+                region,  # type: ignore[arg-type]
+                self.tenant,
+                self.user,
+                service_cname,  # type: ignore[arg-type]
+                k8s_component_name,  # type: ignore[arg-type]
+                event_id,  # type: ignore[arg-type]
+                pkg_create_time,  # type: ignore[arg-type]
+                arch)  # type: ignore[arg-type]
             # 更新状态
             update_record = {
                 "status": "finished",
@@ -633,10 +644,7 @@ class TarImageLoadView(RegionTenantHeaderView):
                 return Response(general_message(400, "invalid file format", "文件格式不正确,请确认上传的文件格式是否为.tar或.tar.gz"), status=400)
 
             # 3. 调用region API开始异步解析tar包
-            load_data = {
-                "event_id": event_id,
-                "tar_file_path": tar_file
-            }
+            load_data = {"event_id": event_id, "tar_file_path": tar_file}
 
             res, body = region_api.load_tar_image(region, tenantName, load_data)
 
@@ -765,11 +773,7 @@ class TarImageImportView(RegionTenantHeaderView):
 
         try:
             # 调用region API确认导入镜像
-            import_data = {
-                "load_id": load_id,
-                "images": images,
-                "namespace": namespace
-            }
+            import_data = {"load_id": load_id, "images": images, "namespace": namespace}
 
             # NOTE: import_tar_images not defined on RegionInvokeApi; latent missing-method bug; backlog
             res, body = region_api.import_tar_images(region, tenantName, import_data)  # type: ignore[attr-defined]
@@ -787,7 +791,8 @@ class TarImageImportView(RegionTenantHeaderView):
                 "message": result.get("message", "导入完成")
             }
 
-            logger.info(f"Imported tar images, load_id: {load_id}, success: {len(result_bean['imported_images'])}, failed: {len(result_bean['failed_images'])}")
+            logger.info((f"Imported tar images, load_id: {load_id}, success: {len(result_bean['imported_images'])}, failed: "
+                         f"{len(result_bean['failed_images'])}"))
 
             return Response(general_message(200, "success", "导入完成", bean=result_bean), status=200)
 
