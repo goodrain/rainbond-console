@@ -196,14 +196,69 @@ class AIEngineProxyService(object):
             )
         return AIEngineContext(enterprise_id, team, region_name, str(user_id))
 
-    def management_context(self, user: Any, team_name: str, region_name: str, method: str, path: str) -> AIEngineContext:
+    @staticmethod
+    def validate_source_body(body: Optional[dict]) -> None:
+        """Use one unambiguous source contract across Python and Go JSON decoders."""
+        if body is None:
+            return
+        if not isinstance(body, dict) or any(not isinstance(key, str) or not re.fullmatch(r"[a-z][a-z0-9_]*", key)
+                                             for key in body):
+            raise ServiceHandleException("noncanonical AI source fields", "模型来源字段格式无效", status_code=400)
+
+        def validate_object(value):
+            if isinstance(value, dict):
+                folded = set()
+                for key, child in value.items():
+                    if not isinstance(key, str) or key.casefold() in folded:
+                        raise ServiceHandleException("ambiguous AI source fields", "模型来源字段不能重复", status_code=400)
+                    folded.add(key.casefold())
+                    validate_object(child)
+            elif isinstance(value, list):
+                for child in value:
+                    validate_object(child)
+
+        validate_object(body)
+
+    @staticmethod
+    def _supplier_credential_write(method: str, path: str, body: Optional[dict]) -> bool:
+        if not re.fullmatch(r"api/v1/ai-engine/sources(?:/[^/]+)*", path):
+            return False
+        AIEngineProxyService.validate_source_body(body)
+        if method.upper() in ("GET", "HEAD", "OPTIONS"):
+            return False
+        if re.fullmatch(r"api/v1/ai-engine/sources/[^/]+/credentials(?:/[^/]+)?", path):
+            return True
+        if method.upper() not in ("POST", "PUT", "PATCH") or not re.fullmatch(r"api/v1/ai-engine/sources(?:/[^/]+)?", path):
+            return False
+        if not isinstance(body, dict):
+            return False
+        # An explicit pool (including an empty list) may replace/remove secrets.
+        # The legacy placeholder and empty value mean "keep existing credential".
+        # Redirecting an existing source also redirects its stored credential;
+        # endpoint/provider changes are credential operations, even without a
+        # plaintext credential in this request. Metadata-only edits remain plain.
+        connection_fields = {"url", "connection_mode", "provider", "provider_config"}
+        return (bool(connection_fields.intersection(body)) or "credentials" in body
+                or body.get("credential") not in (None, "", "********"))
+
+    def management_context(self,
+                           user: Any,
+                           team_name: str,
+                           region_name: str,
+                           method: str,
+                           path: str,
+                           body: Optional[dict] = None) -> AIEngineContext:
         """Authorize team-wide plugin operations using existing global team permissions."""
         normalized = str(path or "").lstrip("/").rstrip("/")
         if (not normalized.startswith("api/v1/ai-engine/") or any(part in ("", ".", "..") for part in normalized.split("/"))
                 or any(char in normalized for char in ("%", "\\", "?", "#"))):
             raise ServiceHandleException("invalid AI Engine management path", status_code=400)
         context = self._context(user, {"team_name": team_name, "region_name": region_name})
+        if method.upper() in ("POST", "PUT", "PATCH") and re.fullmatch(r"api/v1/ai-engine/sources(?:/[^/]+)*", normalized):
+            self.validate_source_body(body)
         secret_path = bool(re.fullmatch(r"api/v1/ai-engine/api-keys/[^/]+/secret", normalized))
+        if re.fullmatch(r"api/v1/ai-engine/sources/[^/]+/(?:credentials/[^/]+/)?secret", normalized):
+            raise self._permission_denied("供应商密钥不支持明文读取")
         privileged = user.user_id == context.team.creater or enterprise_user_perm_repo.is_admin(
             context.enterprise_id, user.user_id)
         if not privileged:
@@ -213,7 +268,8 @@ class AIEngineProxyService(object):
             required = {200001}
             if method.upper() not in ("GET", "HEAD", "OPTIONS"):
                 required.add(300003)
-            if (secret_path
+            if (secret_path or self._supplier_credential_write(method, normalized, body) or method.upper() == "POST"
+                    and re.fullmatch(r"api/v1/ai-engine/config-revisions/[^/]+/rollback", normalized)
                     or (method.upper() == "POST" and (normalized == "api/v1/ai-engine/api-keys"
                                                       or re.fullmatch(r"api/v1/ai-engine/api-keys/[^/]+/rotate", normalized)))):
                 required.add(300016)

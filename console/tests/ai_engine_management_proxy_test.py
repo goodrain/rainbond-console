@@ -38,8 +38,159 @@ class AIEngineManagementProxyTests(SimpleTestCase):
             self.mocks[target] = patcher.start()
             self.addCleanup(patcher.stop)
 
-    def context(self, method="GET", path="api/v1/ai-engine/model-apis"):
-        return self.service.management_context(self.user, "team-a", "region-b", method, path)
+    def context(self, method="GET", path="api/v1/ai-engine/model-apis", body=None):
+        return self.service.management_context(self.user, "team-a", "region-b", method, path, body=body)
+
+    def test_supplier_credentials_require_global_credential_permission(self):
+        perms = self.mocks["optimized_role_perm_repo.get_user_team_all_perms"]
+        perms.return_value = {"global_perms": [200001, 300003], "app_perms": {1: [300016]}}
+        for method, path, body in (
+            ("POST", "sources/a/credentials", {
+                "values": {
+                    "api_token": "fixture-secret"
+                }
+            }),
+            ("PUT", "sources/a/credentials/key-1", {
+                "enabled": False
+            }),
+            ("PATCH", "sources/a/credentials/key-1", {
+                "name": "new"
+            }),
+            ("DELETE", "sources/a/credentials/key-1", None),
+            ("POST", "sources", {
+                "name": "source",
+                "credential": "fixture-secret"
+            }),
+            ("PUT", "sources/a", {
+                "credentials": [{
+                    "values": {
+                        "api_token": "fixture-secret"
+                    }
+                }]
+            }),
+            ("PATCH", "sources/a", {
+                "credentials": []
+            }),
+            ("POST", "sources/test", {
+                "model": "m",
+                "credential": "fixture-secret"
+            }),
+        ):
+            with self.subTest(method=method, path=path), self.assertRaises(ServiceHandleException) as caught:
+                self.context(method, "api/v1/ai-engine/" + path, body)
+            self.assertEqual(caught.exception.status_code, 403)
+            self.assertNotIn("fixture-secret", str(caught.exception))
+        perms.return_value["global_perms"].append(300016)
+        self.context("POST", "api/v1/ai-engine/sources/a/credentials", {"values": {"api_token": "fixture-secret"}})
+
+    def test_non_sensitive_source_edits_and_pool_metadata_remain_accessible(self):
+        self.mocks["optimized_role_perm_repo.get_user_team_all_perms"].return_value = {
+            "global_perms": [200001, 300003],
+            "app_perms": {}
+        }
+        for body in ({"name": "renamed"}, {"credential": "********"}, {"credential": ""}):
+            self.context("PUT", "api/v1/ai-engine/sources/a", body)
+        self.context("GET", "api/v1/ai-engine/sources/a/credentials")
+
+    def test_saved_secret_cannot_be_redirected_with_connection_edits_or_rollback(self):
+        self.mocks["optimized_role_perm_repo.get_user_team_all_perms"].return_value = {
+            "global_perms": [200001, 300003],
+            "app_perms": {}
+        }
+        for body in ({
+                "url": "https://attacker.invalid/v1"
+        }, {
+                "connection_mode": "native"
+        }, {
+                "provider": "openai"
+        }, {
+                "provider_config": {
+                    "azureServiceUrl": "https://attacker.invalid"
+                }
+        }):
+            with self.subTest(body=body), self.assertRaises(ServiceHandleException):
+                self.context("PUT", "api/v1/ai-engine/sources/a", body)
+        with self.assertRaises(ServiceHandleException):
+            self.context("POST", "api/v1/ai-engine/config-revisions/rev-a/rollback", {})
+        self.context("PUT", "api/v1/ai-engine/sources/a", {"name": "renamed", "account_id": "billing-label"})
+        self.mocks["optimized_role_perm_repo.get_user_team_all_perms"].return_value["global_perms"].append(300016)
+        self.context("POST", "api/v1/ai-engine/config-revisions/rev-a/rollback", {})
+
+    def test_source_permission_gate_rejects_go_casefold_field_aliases(self):
+        self.mocks["optimized_role_perm_repo.get_user_team_all_perms"].return_value = {
+            "global_perms": [200001, 300003],
+            "app_perms": {}
+        }
+        for key in ("URL", "uRL", "Credential", "Credentials", "PROVIDER_CONFIG", "credentialſ", "Key"):
+            with self.subTest(key=key), self.assertRaises(ServiceHandleException) as caught:
+                self.context("PUT", "api/v1/ai-engine/sources/a", {key: "synthetic"})
+            self.assertEqual(caught.exception.status_code, 400)
+        self.user.user_id = self.team.creater
+        with self.assertRaises(ServiceHandleException):
+            self.context("PUT", "api/v1/ai-engine/sources/a", {"URL": "https://attacker.invalid"})
+
+    @mock.patch.object(rbd_plugin.JWTAuthApiView, "initial")
+    def test_raw_source_json_case_and_duplicate_fields_cannot_bypass_permission(self, initial):
+        self.mocks["optimized_role_perm_repo.get_user_team_all_perms"].return_value = {
+            "global_perms": [200001, 300003],
+            "app_perms": {}
+        }
+        payloads = ('{"URL":"https://attacker.invalid"}', '{"Credential":"synthetic"}',
+                    '{"credential":"","Credential":"synthetic"}', '{"url":"a","url":"b"}',
+                    '{"provider_config":{"region":"a","REGION":"b"}}', '{"credential\\u017f":[]}',
+                    '{"\\u0055RL":"https://attacker.invalid"}')
+        kwargs = {"plugin_name": "rainbond-ai-engine", "region_name": "region-b", "file_path": "api/v1/ai-engine/sources/a"}
+        for view_type in (rbd_plugin.RainbondPluginBackendView, rbd_plugin.RainbondPluginFullProxyView):
+            for payload in payloads:
+                request = RequestFactory().put("/", payload, content_type="application/json", HTTP_X_AI_TEAM_NAME="team-a")
+                view = view_type()
+                view.user = self.user
+                with self.subTest(view=view_type, payload=payload), mock.patch.object(rbd_plugin, "ai_engine_service",
+                                                                                      self.service):
+                    with self.assertRaises(ServiceHandleException) as caught:
+                        view.initial(request, **kwargs)
+                    self.assertEqual(caught.exception.status_code, 400)
+                    self.assertEqual(request.body.decode(), payload)
+
+    def test_supplier_plaintext_credentials_are_not_exposed_even_to_admin(self):
+        self.user.user_id = self.team.creater
+        for path in ("sources/a/secret", "sources/a/credentials/key-1/secret"):
+            with self.subTest(path=path), self.assertRaises(ServiceHandleException):
+                self.context("GET", "api/v1/ai-engine/" + path)
+
+    @mock.patch.object(rbd_plugin.JWTAuthApiView, "initial")
+    def test_both_proxy_views_classify_inline_credentials_from_actual_json(self, initial):
+        self.mocks["optimized_role_perm_repo.get_user_team_all_perms"].return_value = {
+            "global_perms": [200001, 300003],
+            "app_perms": {}
+        }
+        kwargs = {"region_name": "region-b", "plugin_name": "rainbond-ai-engine", "file_path": "api/v1/ai-engine/sources/a"}
+        for view_type in (rbd_plugin.RainbondPluginBackendView, rbd_plugin.RainbondPluginFullProxyView):
+            for body in ({"credential": "fixture-secret"}, {"credentials": []}):
+                request = RequestFactory().put("/",
+                                               json.dumps(body),
+                                               content_type="application/json",
+                                               HTTP_X_AI_TEAM_NAME="team-a")
+                view = view_type()
+                view.user = self.user
+                with self.subTest(view=view_type, body=body), mock.patch.object(rbd_plugin, "ai_engine_service", self.service):
+                    with self.assertRaises(ServiceHandleException) as caught:
+                        view.initial(request, **kwargs)
+                    self.assertEqual(caught.exception.status_code, 403)
+                    self.assertEqual(json.loads(request.body), body)
+
+    @mock.patch.object(rbd_plugin.JWTAuthApiView, "initial")
+    def test_supplier_body_classifier_rejects_malformed_json(self, initial):
+        request = RequestFactory().put("/", '{"credential":', content_type="application/json", HTTP_X_AI_TEAM_NAME="team-a")
+        view = rbd_plugin.RainbondPluginBackendView()
+        view.user = self.user
+        with mock.patch.object(rbd_plugin, "ai_engine_service",
+                               self.service), self.assertRaises(ServiceHandleException) as caught:
+            view.initial(request,
+                         region_name="region-b",
+                         plugin_name="rainbond-ai-engine",
+                         file_path="api/v1/ai-engine/sources/a")
+        self.assertEqual(caught.exception.status_code, 400)
 
     def test_observer_reads_with_verified_context_and_actor(self):
         context = self.context()

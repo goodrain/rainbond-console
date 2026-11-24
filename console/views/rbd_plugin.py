@@ -1,11 +1,14 @@
 # -*- coding: utf8 -*-
 import json
 import logging
+import re
 from typing import Any, Dict, Optional, Set
 
 import urllib3
 from django.db.models import Q
 from django.http import HttpResponse
+from django.core.exceptions import RequestDataTooBig
+from django.http.request import RawPostDataException
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
@@ -274,6 +277,36 @@ class RainbondPluginStaticView(AlowAnyApiView):
         )
 
 
+def _source_json_object(pairs):
+    value, folded = {}, set()
+    for key, child in pairs:
+        if key.casefold() in folded:
+            raise ValueError("duplicate source JSON field")
+        folded.add(key.casefold())
+        value[key] = child
+    return value
+
+
+def _ai_management_body(request: Request, path: str) -> Optional[dict]:
+    """Inspect only small source JSON writes without consuming the proxied body."""
+    if request.method.upper() not in ("POST", "PUT", "PATCH") or not re.fullmatch(r"api/v1/ai-engine/sources(?:/[^/]+)*",
+                                                                                  str(path or "").strip("/")):
+        return None
+    try:
+        if int(request.META.get("CONTENT_LENGTH") or 0) > 1024 * 1024:
+            raise ValueError("oversized source configuration")
+        raw = request.body
+        if len(raw) > 1024 * 1024:
+            raise ValueError("oversized source configuration")
+        body = json.loads(raw, object_pairs_hook=_source_json_object) if raw else {}
+        if not isinstance(body, dict):
+            raise ValueError("source configuration must be an object")
+        ai_engine_service.validate_source_body(body)
+        return body
+    except (ValueError, UnicodeError, RequestDataTooBig, RawPostDataException):
+        raise ServiceHandleException(msg="invalid AI source configuration", msg_show="模型来源配置格式无效", status_code=400)
+
+
 class RainbondPluginBackendView(JWTAuthApiView):
     authentication_classes = (InternalTokenAuthentication, PluginQueryTokenAuthentication)
 
@@ -282,8 +315,12 @@ class RainbondPluginBackendView(JWTAuthApiView):
         if kwargs.get("plugin_name") == "rainbond-ai-engine":
             team_name = (request.META.get("HTTP_X_AI_TEAM_NAME") or request.META.get("HTTP_X_TEAM_NAME")
                          or request.GET.get("team_name") or request.COOKIES.get("team_name") or request.COOKIES.get("team"))
-            context = ai_engine_service.management_context(self.user, team_name, kwargs.get("region_name"), request.method,
-                                                           kwargs.get("file_path", ""))
+            context = ai_engine_service.management_context(self.user,
+                                                           team_name,
+                                                           kwargs.get("region_name"),
+                                                           request.method,
+                                                           kwargs.get("file_path", ""),
+                                                           body=_ai_management_body(request, kwargs.get("file_path", "")))
             self.ai_proxy_headers = context.headers
             return
         if kwargs.get("plugin_name") not in ("rainbond-disk", "rainbond-disk-cleanup"):
@@ -414,6 +451,7 @@ class RainbondPluginFullProxyView(RainbondPluginBackendView):
     调用链：
     前端 -> Console (此视图) -> Region API (Go 反向代理) -> 插件服务 (Grafana 等)
     """
+
     def _handle_proxy(self, request: Request, region_name: str, plugin_name: str, file_path: str) -> HttpResponse:
         """
         统一的代理处理方法
