@@ -22,12 +22,15 @@ _ORIGINAL_URLLIB3_HTTP_CONNECTION_POOL_URLOPEN = urllib3.connectionpool.HTTPConn
 
 def _assert_local_test_host(connection):
     _assert_local_test_hostname(connection.host)
+    tunnel_host = getattr(connection, "_tunnel_host", None)
+    if tunnel_host:
+        _assert_local_test_hostname(tunnel_host)
 
 
 def _assert_local_test_hostname(hostname):
     hostname = hostname.strip("[]").lower()
     if hostname not in _LOCAL_TEST_HOSTS:
-        _BLOCKED_EXTERNAL_HTTP_REQUESTS.append(None)
+        _BLOCKED_EXTERNAL_HTTP_REQUESTS.append(hostname)
         raise RuntimeError("external HTTP requests are disabled during tests")
 
 
@@ -81,7 +84,9 @@ def fail_for_blocked_external_http_requests():
 def pytest_sessionfinish(session, exitstatus):
     if not _BLOCKED_EXTERNAL_HTTP_REQUESTS:
         return
-    print("external HTTP requests were blocked during tests", file=sys.stderr)
+    print("{} external HTTP request(s) were blocked during tests".format(
+        len(_BLOCKED_EXTERNAL_HTTP_REQUESTS)
+    ), file=sys.stderr)
     session.exitstatus = pytest.ExitCode.TESTS_FAILED
 
 

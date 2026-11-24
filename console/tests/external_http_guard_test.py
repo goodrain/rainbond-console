@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 # capability_id: console.tests.external-http-guard
 import http.client
+import io
 import os
+from contextlib import redirect_stderr
 from types import SimpleNamespace
 
 import conftest
@@ -54,6 +56,14 @@ class ExternalHttpGuardTests(SimpleTestCase):
             )
         )
 
+    def test_blocks_external_https_tunnels_through_local_http_proxy(self):
+        def connect_through_proxy():
+            connection = http.client.HTTPSConnection("127.0.0.1", 8080)
+            connection.set_tunnel("example.invalid", 443)
+            connection.connect()
+
+        self._assert_blocked_request_fails_test(connect_through_proxy)
+
     def test_blocks_http_and_https_connections_before_dns(self):
         for connection_class in (http.client.HTTPConnection, http.client.HTTPSConnection):
             with self.subTest(connection_class=connection_class.__name__):
@@ -77,3 +87,18 @@ class ExternalHttpGuardTests(SimpleTestCase):
 
             self.assertEqual(os.environ["RAINBOND_TELEMETRY_DISABLED"], "1")
             self.assertEqual(os.environ["RAINBOND_ERROR_REPORTING_DISABLED"], "1")
+
+    def test_session_finish_reports_blocked_request_count(self):
+        start_count = conftest.blocked_external_http_request_count()
+        session = SimpleNamespace(exitstatus=pytest.ExitCode.OK)
+        output = io.StringIO()
+
+        try:
+            conftest._BLOCKED_EXTERNAL_HTTP_REQUESTS.append("example.invalid")
+            with redirect_stderr(output):
+                conftest.pytest_sessionfinish(session, pytest.ExitCode.OK)
+        finally:
+            del conftest._BLOCKED_EXTERNAL_HTTP_REQUESTS[start_count:]
+
+        self.assertEqual(session.exitstatus, pytest.ExitCode.TESTS_FAILED)
+        self.assertIn("1 external HTTP request(s) were blocked during tests", output.getvalue())
