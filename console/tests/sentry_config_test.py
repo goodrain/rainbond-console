@@ -445,7 +445,7 @@ def test_frontend_config_json_is_valid_json():
 
 
 def test_frontend_posthog_config_defaults_to_enabled_without_env_token():
-    config = sentry_config.get_frontend_posthog_config({})
+    config = sentry_config.get_frontend_posthog_config({"RAINBOND_TELEMETRY_DISABLED": "false"})
 
     assert config["enabled"] is True
     assert config["projectToken"] == DEFAULT_POSTHOG_PROJECT_TOKEN
