@@ -279,7 +279,7 @@ class MarketAppServiceTelemetryTests(SimpleTestCase):
         from console.services.market_app_service import market_app_service
 
         error = ServiceHandleException(
-            msg="rbd_plugin_sync_failed",
+            msg="rbd_plugin_sync_validate_template_failed",
             msg_show="插件注册同步失败",
             status_code=502,
         )
@@ -981,6 +981,53 @@ class MarketAppServiceCreateRainbondAppTests(SimpleTestCase):
 
 
 class MarketAppServicePortPersistenceTests(SimpleTestCase):
+
+    def test_legacy_install_normalizes_port_service_flags(self):
+        from console.services.market_app_service import market_app_service
+
+        tenant = Obj(tenant_id="tenant-1")
+        region = Obj(region_id="region-1")
+        service = Obj(tenant_id="tenant-1", service_id="service-1", service_alias="gr123456")
+        ports = [
+            {"container_port": 5000},
+            {"container_port": 5001, "is_inner_service": "false", "is_outer_service": 0},
+            {"container_port": 5002, "is_inner_service": False, "is_outer_service": True},
+        ]
+
+        with patch("console.services.market_app_service.port_repo.bulk_create") as bulk_create, \
+                patch("console.services.market_app_service.domain_service.create_default_gateway_rule") as create_rule:
+            market_app_service._MarketAppService__save_port(tenant, region, service, ports, {}, "app-1")
+
+        saved_ports = bulk_create.call_args.args[0]
+        self.assertEqual([(False, False), (False, False), (True, True)], [
+            (port.is_inner_service, port.is_outer_service) for port in saved_ports
+        ])
+        create_rule.assert_called_once_with(tenant, region, service, saved_ports[2], "app-1")
+
+    @patch("console.services.market_app_service.group_repo.get_by_service_id")
+    @patch("console.services.market_app_service.MarketAppService._MarketAppService__handle_k8s_service_name")
+    def test_legacy_install_creates_connect_info_for_outer_port_with_inner_disabled(
+            self, mock_handle_k8s_service_name, mock_get_group_by_service_id):
+        from console.enum.app import GovernanceModeEnum
+        from console.services.market_app_service import market_app_service
+
+        mock_get_group_by_service_id.return_value = Obj(
+            governance_mode=GovernanceModeEnum.KUBERNETES_NATIVE_SERVICE.name
+        )
+        mock_handle_k8s_service_name.return_value = "web-service"
+        tenant = Obj(tenant_id="tenant-1")
+        service = Obj(service_id="service-1", service_alias="gr123456")
+
+        _, outer_envs = market_app_service._MarketAppService__handle_service_connect_info(
+            tenant,
+            service,
+            [{"container_port": 5000, "port_alias": "WEB", "is_inner_service": False, "is_outer_service": True}],
+            [],
+        )
+
+        self.assertEqual({"WEB_HOST": "web-service", "WEB_PORT": 5000}, {
+            env["attr_name"]: env["attr_value"] for env in outer_envs
+        })
 
     # capability_id: console.market-app.persist-ports-before-tcp-rules
     def test_save_outer_tcp_ports_creates_gateway_rules_after_persisting_ports(self):

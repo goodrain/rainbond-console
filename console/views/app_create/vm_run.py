@@ -3,7 +3,7 @@
   Created by leon on 18/1/5.
 """
 import logging
-from typing import Any, List, Optional
+from typing import Any, List, Optional, cast
 
 from console.utils.cache_decorators import never_cache
 from rest_framework.request import Request
@@ -20,6 +20,7 @@ from console.services.app_config import port_service
 from console.views.base import RegionTenantHeaderView
 from www.utils.return_message import general_message
 from console.services.group_service import group_service
+from www.models.main import TenantServiceInfo
 
 logger = logging.getLogger("default")
 PUBLIC_VM_IMAGES = {
@@ -383,6 +384,7 @@ class VMRunCreateView(RegionTenantHeaderView):
                     reason=msg_show,
                     failure_stage=enterprise_first_deploy_service.FAILURE_STAGE_PREFLIGHT)
                 return Response(general_message(code, "service create fail", msg_show), status=code)
+            new_service = cast(TenantServiceInfo, new_service)
             builder_runtime_image = ""
             if boot_source_format == "vmdk" and not (vm_url or event_id):
                 raise ValueError("VMDK source requires verified conversion")

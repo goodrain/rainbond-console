@@ -1168,7 +1168,7 @@ class VirtualMachineService(object):
                     or not self._resolve_root_registry_image(image_url=registry_image)):
                 raise ValueError("VMDK source requires a verified build runtime")
             provenance = source_uri or (root_disk or {}).get("source_uri") or ""
-            if not provenance and self._is_http_source((root_disk or {}).get("image_url")):
+            if not provenance and root_disk and self._is_http_source(root_disk.get("image_url")):
                 provenance = root_disk["image_url"]
             return {
                 "volume_name":

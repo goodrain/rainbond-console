@@ -6,7 +6,7 @@ import logging
 import os
 import re
 import time
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Tuple, cast
 
 import requests as http_requests
 
@@ -2522,7 +2522,7 @@ class MCPQueryService(object):
             volume.save()
             if volume.volume_type == "config-file" and service_config:
                 service_config.volume_name = volume.volume_name
-                service_config.file_content = new_file_content
+                service_config.file_content = cast(str, new_file_content)
                 service_config.save()
             return {"updated": True, "volume": self._serialize_model_item(volume)}
         if operation == "delete_volume":

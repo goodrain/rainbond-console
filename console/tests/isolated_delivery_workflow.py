@@ -864,6 +864,45 @@ class DeliveryWorkflowTest(unittest.TestCase):
         self.assertEqual(name, "Empty application")
         api.get_team_services_deploy_version.assert_not_called()
 
+    def test_platform_plugin_source_preserves_resources_without_database_metadata(self):
+        import datetime
+        import json
+        import sys
+        import types
+        from unittest import mock
+        from console.services.delivery_gateway import DeliveryGateway
+        main = types.ModuleType("www.models.main")
+        main.Tenants = mock.Mock()
+        main.Tenants.objects.get.return_value = SimpleNamespace(tenant_name="team", tenant_id="tenant")
+        main.ServiceGroup = mock.Mock()
+        main.ServiceGroup.objects.filter.return_value.first.return_value = SimpleNamespace(
+            ID=123, group_name="Platform plugin", governance_mode="KUBERNETES_NATIVE_SERVICE")
+        main.ServiceGroupRelation = mock.Mock()
+        main.ServiceGroupRelation.objects.filter.return_value.values_list.return_value = []
+        shared = types.ModuleType("console.services.share_services")
+        shared.share_service = mock.Mock()
+        shared.share_service.query_share_service_info.return_value = []
+        shared.share_service.get_group_services_used_plugins.return_value = []
+        resources = [{"ID": 7, "app_id": "123", "name": "plugin-account", "kind": "ServiceAccount",
+                      "content": "apiVersion: v1\nkind: ServiceAccount\nmetadata:\n  name: plugin-account\n",
+                      "create_time": datetime.datetime(2026, 11, 24), "update_time": datetime.datetime(2026, 11, 24),
+                      "state": 1, "error_overview": ""},
+                     {"ID": 8, "name": "platform-plugin", "kind": "RBDPlugin", "content": "kind: RBDPlugin\n",
+                      "create_time": datetime.datetime(2026, 11, 24)}]
+        shared.share_service.get_k8s_resources.return_value = resources
+        shared.share_service.config_groups.return_value = []
+        shared.share_service._list_http_ingresses.return_value = []
+        encoder = types.ModuleType("console.services.app_import_and_export_service")
+        encoder.MyEncoder = json.JSONEncoder
+        modules = {"www.models.main": main, "console.services.share_services": shared,
+                   "console.services.app_import_and_export_service": encoder}
+        with mock.patch.dict(sys.modules, modules):
+            manifest, name = DeliveryGateway().source(SCOPE)
+        self.assertEqual(name, "Platform plugin")
+        self.assertEqual(manifest["k8s_resources"], [
+            {key: resource[key] for key in ("name", "kind", "content")} for resource in resources])
+        self.assertIsInstance(resources[0]["create_time"], datetime.datetime)
+
     def test_direct_creation_saves_fixed_artifacts_without_a_sync_job(self):
         version = self.create_version(PAYLOAD, "direct-1")
         self.assertEqual(version.manifest["apps"][0]["share_image"], "registry.test/source:web-build-1")

@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
 """Authorized same-origin noVNC assets and one component's binary VNC socket."""
 from urllib.parse import urlparse
+from typing import Any, Iterator
 
 import requests
 from django.http import Http404, HttpResponse, StreamingHttpResponse
+from django.http.response import HttpResponseBase
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.request import Request
 
 from console.utils.vm_vnc_proxy import (component_vnc_backend_path, component_vnc_prefix, get_vm_vnc_upstream,
                                         validate_static_path)
@@ -15,12 +18,12 @@ class ComponentVNCView(AppBaseView):
     http_method_names = ['get', 'head']
     parser_classes = ()
 
-    def check_perms(self, request, *args, **kwargs):
+    def check_perms(self, request: Request, *args: Any, **kwargs: Any) -> None:
         super().check_perms(request, *args, **kwargs)
         if not self.is_team_owner and not self.is_enterprise_admin:
             self.has_perms([300010])
 
-    def initial(self, request, *args, **kwargs):
+    def initial(self, request: Request, *args: Any, **kwargs: Any) -> None:
         self.perform_authentication(request)
         self.check_permissions(request)
         super().initial(request, *args, **kwargs)
@@ -34,7 +37,7 @@ class ComponentVNCView(AppBaseView):
             raise Http404()
         self.backend_vnc_path = component_vnc_backend_path(self.tenant, self.service, self.app)
 
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> HttpResponseBase:
         path = kwargs.get('vnc_path', '')
         if path == 'websockify':
             return self._websocket(request)
@@ -55,7 +58,7 @@ class ComponentVNCView(AppBaseView):
             response.close()
             return HttpResponse('VNC resource unavailable', status=code)
 
-        def chunks():
+        def chunks() -> Iterator[bytes]:
             try:
                 yield from response.iter_content(chunk_size=65536)
             finally:
@@ -68,13 +71,13 @@ class ComponentVNCView(AppBaseView):
         result['Referrer-Policy'] = 'same-origin'
         return result
 
-    def head(self, request, *args, **kwargs):
+    def head(self, request: Request, *args: Any, **kwargs: Any) -> HttpResponse:
         if kwargs.get('vnc_path') == 'websockify':
             return HttpResponse(status=405)
         validate_static_path(kwargs.get('vnc_path', ''))
         return HttpResponse(status=200, headers={'Cache-Control': 'no-store'})
 
-    def _websocket(self, request):
+    def _websocket(self, request: Request) -> HttpResponse:
         # Cookie-authenticated VNC is interactive, so require an exact same-origin
         # browser handshake. Do not forward Console cookies or JWT to virtvnc.
         origin = request.META.get('HTTP_ORIGIN', '')
