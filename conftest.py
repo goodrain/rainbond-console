@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import http.client
 import os
+from urllib.parse import urlparse
 
 import pytest
 import urllib3
@@ -14,10 +15,15 @@ _BLOCKED_EXTERNAL_HTTP_REQUESTS = []
 _ORIGINAL_HTTP_CONNECTION_CONNECT = http.client.HTTPConnection.connect
 _ORIGINAL_URLLIB3_HTTP_CONNECTION_CONNECT = urllib3.connection.HTTPConnection.connect
 _ORIGINAL_URLLIB3_HTTPS_CONNECTION_CONNECT = urllib3.connection.HTTPSConnection.connect
+_ORIGINAL_URLLIB3_HTTP_CONNECTION_POOL_URLOPEN = urllib3.connectionpool.HTTPConnectionPool.urlopen
 
 
 def _assert_local_test_host(connection):
-    hostname = connection.host.strip("[]").lower()
+    _assert_local_test_hostname(connection.host)
+
+
+def _assert_local_test_hostname(hostname):
+    hostname = hostname.strip("[]").lower()
     if hostname not in _LOCAL_TEST_HOSTS:
         _BLOCKED_EXTERNAL_HTTP_REQUESTS.append(None)
         raise RuntimeError("external HTTP requests are disabled during tests")
@@ -36,6 +42,12 @@ def _block_external_urllib3_http_requests(connection):
 def _block_external_urllib3_https_requests(connection):
     _assert_local_test_host(connection)
     return _ORIGINAL_URLLIB3_HTTPS_CONNECTION_CONNECT(connection)
+
+
+def _block_external_urllib3_http_requests_through_proxy(pool, method, url, *args, **kwargs):
+    hostname = urlparse(url).hostname or pool.host
+    _assert_local_test_hostname(hostname)
+    return _ORIGINAL_URLLIB3_HTTP_CONNECTION_POOL_URLOPEN(pool, method, url, *args, **kwargs)
 
 
 def blocked_external_http_request_count():
@@ -66,6 +78,7 @@ def pytest_sessionfinish(session, exitstatus):
 http.client.HTTPConnection.connect = _block_external_http_requests
 urllib3.connection.HTTPConnection.connect = _block_external_urllib3_http_requests
 urllib3.connection.HTTPSConnection.connect = _block_external_urllib3_https_requests
+urllib3.connectionpool.HTTPConnectionPool.urlopen = _block_external_urllib3_http_requests_through_proxy
 
 OPENAPI_CLIENT_TEST_DIRS = (
     os.path.join("src", "openapi-client", "test"),
