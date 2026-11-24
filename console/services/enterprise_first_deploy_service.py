@@ -13,7 +13,7 @@ import requests
 
 from console.models.main import ConsoleSysConfig
 from console.repositories.first_deploy_repo import enterprise_first_deploy_repo
-from console.utils.offline import is_offline_mode
+from console.utils.offline import is_external_telemetry_disabled, is_offline_mode
 from django.db import close_old_connections, connections, transaction
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import TenantEnterprise, TenantServiceInfo, TenantServiceRelation
@@ -1443,7 +1443,7 @@ class EnterpriseFirstDeployService(object):
                           key: str = "") -> None:
         if payload.get("status") not in self.FINAL_STATUSES or payload.get("reported"):
             return
-        if is_offline_mode():
+        if is_external_telemetry_disabled():
             self._finalize_report(record, payload, key=key)
             return
         report_key = key or getattr(record, "key", "")
@@ -1520,7 +1520,7 @@ class EnterpriseFirstDeployService(object):
         return uuid.uuid5(uuid.NAMESPACE_URL, "rainbond-deploy-diagnostic:{}".format(seed)).hex
 
     def _post_report_payload(self, report_payload: dict) -> bool:
-        if is_offline_mode():
+        if is_external_telemetry_disabled():
             return True
         for _ in range(3):
             try:
