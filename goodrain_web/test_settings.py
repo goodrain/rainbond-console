@@ -3,8 +3,11 @@
 
 import os
 
-from .settings import *  # noqa: F401,F403
-from .settings import DATA_DIR
+os.environ["RAINBOND_TELEMETRY_DISABLED"] = "1"
+os.environ["RAINBOND_ERROR_REPORTING_DISABLED"] = "1"
+
+from .settings import *  # noqa: F401,F403,E402
+from .settings import DATA_DIR  # noqa: E402
 
 
 DEBUG = False
