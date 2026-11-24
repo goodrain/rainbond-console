@@ -78,7 +78,7 @@ class EnterpriseFirstDeployService(object):
     MAX_FAILURE_REASON_LENGTH = 1024
     RUNTIME_OBSERVE_WINDOW = 60
     READINESS_FINAL_OBSERVE_WINDOW = 180
-    DECISION_RULE_VERSION = "v1"
+    DECISION_RULE_VERSION = "runtime-readiness-v2"
     MAX_DEPENDENCY_SNAPSHOT = 10
     BUILD_FAILURE_LOG_WAIT_WINDOW = 60
     COMPILE_FAILURE_LOG_WAIT_WINDOW = 180
@@ -100,13 +100,6 @@ class EnterpriseFirstDeployService(object):
         "startupprobefailure",
         "failedscheduling",
     }
-    # Probe/readiness failures during startup are transient — wait for the observe window before reporting
-    SOFT_FAILURE_OPT_TYPES = {
-        "readinessprobefailed",
-        "livenessprobefailed",
-        "startupprobefailure",
-        "containersnotready",
-    }
     RUNTIME_FAILURE_OPT_TYPES = {
         "containerexiterror",
         "crashloopbackoff",
@@ -121,6 +114,18 @@ class EnterpriseFirstDeployService(object):
         "startupprobefailure",
         "livenessrestart",
         "initiating",
+    }
+    RUNTIME_POD_READY = "ready"
+    RUNTIME_POD_HARD_FAIL = "hard_fail"
+    RUNTIME_POD_PROBE_WAIT = "probe_wait"
+    RUNTIME_POD_INIT_WAIT = "init_wait"
+    RUNTIME_POD_NOT_READY = "not_ready"
+    RUNTIME_POD_NO_POD = "no_pod"
+    RUNTIME_POD_QUERY_ERROR = "query_error"
+    RUNTIME_WAITING_POD_STATES = {RUNTIME_POD_PROBE_WAIT, RUNTIME_POD_INIT_WAIT, RUNTIME_POD_QUERY_ERROR}
+    RUNTIME_HARD_FAILURE_REASONS = {
+        "imagepullbackoff", "errimagepull", "crashloopbackoff", "createcontainerconfigerror", "oomkilled",
+        "containerexiterror", "abnormalexited", "evicted",
     }
     DEPENDENCY_SNAPSHOT_STATUSES = {"RUNNING", "INITIATING", "PENDING", "UNHEALTHY", "ABNORMAL", "UNKNOWN"}
     RESOURCE_INSUFFICIENT_RE = re.compile(
@@ -766,6 +771,8 @@ class EnterpriseFirstDeployService(object):
                 if runtime_status == self.STATUS_SUCCESS:
                     self._complete_tracking(record, payload, self.STATUS_SUCCESS, key=key)
                     return self.STATUS_SUCCESS
+                if payload.pop("runtime_observation_updated", False):
+                    self._save_tracking_payload(record, payload, key=key)
             return None
 
         if len(status_map) < len(set(event_ids)):
@@ -795,6 +802,8 @@ class EnterpriseFirstDeployService(object):
                 self._complete_tracking(record, payload, self.STATUS_FAILURE, key=key)
                 return self.STATUS_FAILURE
             if runtime_status is None:
+                if payload.pop("runtime_observation_updated", False):
+                    self._save_tracking_payload(record, payload, key=key)
                 return None
             self._complete_tracking(record, payload, self.STATUS_SUCCESS, key=key)
             return self.STATUS_SUCCESS
@@ -808,6 +817,10 @@ class EnterpriseFirstDeployService(object):
         return None
 
     def _complete_tracking(self, record: Optional[ConsoleSysConfig], payload: dict, status: str, key: str = "") -> None:
+        for runtime_key in (
+                "runtime_component_observed", "runtime_observation_updated", "runtime_component_states",
+                "runtime_component_diagnostics", "runtime_query_errors"):
+            payload.pop(runtime_key, None)
         payload["status"] = status
         payload["finished_at"] = self._now()
         self._save_tracking_payload(record, payload, key=key)
@@ -1017,6 +1030,9 @@ class EnterpriseFirstDeployService(object):
         if not runtime_watch_started_at:
             return None
 
+        payload["runtime_component_states"] = {}
+        payload["runtime_query_errors"] = {}
+        payload["runtime_component_diagnostics"] = {}
         runtime_pod_status = self._inspect_runtime_pods(payload, tenant_name, region_name, runtime_watch_started_at)
         if runtime_pod_status == self.STATUS_FAILURE:
             return self.STATUS_FAILURE
@@ -1028,18 +1044,28 @@ class EnterpriseFirstDeployService(object):
             return self.STATUS_SUCCESS
         if payload.get("service_alias") or payload.get("service_aliases"):
             if self._runtime_window_elapsed(runtime_watch_started_at):
-                if self._is_soft_runtime_failure(payload) and not self._readiness_final_window_elapsed(runtime_watch_started_at):
+                states = set((payload.get("runtime_component_states") or {}).values())
+                if states & {self.RUNTIME_POD_NO_POD, self.RUNTIME_POD_NOT_READY}:
+                    pass
+                elif states & self.RUNTIME_WAITING_POD_STATES and not \
+                        self._readiness_final_window_elapsed(runtime_watch_started_at):
                     return None
                 failed_events, failure_logs, timeout_reason = self._collect_runtime_timeout_snapshot(
                     payload, tenant_name, region_name, runtime_watch_started_at)
+                diagnostic = self._runtime_timeout_diagnostic(payload)
                 payload["dependency_context"] = self._collect_dependency_context(payload, tenant_name, region_name)
+                selected_logs = diagnostic.get("logs") if diagnostic else \
+                    payload.get("runtime_failure_logs") or failure_logs
+                if diagnostic and not selected_logs:
+                    selected_logs = self._runtime_timeout_logs_for_component(
+                        failure_logs, diagnostic.get("service_alias", ""), payload)
                 self._set_stage_failure(
                     payload,
                     self.FAILURE_STAGE_RUNTIME,
                     failed_events=payload.get("runtime_failure_events") or failed_events,
-                    reason=payload.get("runtime_failure_reason") or timeout_reason,
+                    reason=diagnostic.get("reason") or payload.get("runtime_failure_reason") or timeout_reason,
                     stage_status=self.STAGE_STATUS_TIMEOUT,
-                    failure_logs=payload.get("runtime_failure_logs") or failure_logs)
+                    failure_logs=selected_logs)
                 return self.STATUS_FAILURE
             return None
 
@@ -1086,6 +1112,7 @@ class EnterpriseFirstDeployService(object):
         not_running = False
         containers_not_ready = False
         detail_unavailable = False
+        query_errors = []
 
         if not aliases:
             reason = "runtime timeout: no service alias configured"
@@ -1098,11 +1125,22 @@ class EnterpriseFirstDeployService(object):
 
         for service_alias in aliases:
             pods = self._get_service_pods_for_runtime(payload, tenant_name, region_name, service_alias)
-            if not pods:
-                missing_pods = True
+            if pods is None:
+                query_error = (payload.get("runtime_query_errors") or {}).get(service_alias, "unknown error")
+                query_errors.append("{}: {}".format(service_alias, query_error))
                 lines.append({
                     "time": "",
-                    "message": "runtime timeout: no pods observed for service_alias {}".format(service_alias),
+                    "message": "runtime timeout: pod query failed for service_alias {}: {}".format(
+                        service_alias, query_error),
+                })
+                continue
+            if not pods:
+                missing_pods = True
+                was_observed = (payload.get("runtime_component_observed") or {}).get(service_alias)
+                lines.append({
+                    "time": "",
+                    "message": "runtime timeout: no pods observed{} for service_alias {}".format(
+                        " after observation" if was_observed else "", service_alias),
                 })
                 continue
             observed_pods = True
@@ -1110,9 +1148,13 @@ class EnterpriseFirstDeployService(object):
             for pod in candidate_pods:
                 pod_name = pod.get("pod_name") or ""
                 pod_status = pod.get("pod_status") or ""
-                pod_detail = self._get_runtime_pod_detail(region_name, tenant_name, service_alias, pod_name)
-                if not pod_detail:
+                pod_detail = self._get_runtime_pod_detail(
+                    region_name, tenant_name, service_alias, pod_name, payload=payload)
+                if pod_detail is None:
                     detail_unavailable = True
+                    query_error = (payload.get("runtime_query_errors") or {}).get(
+                        "{}/{}".format(service_alias, pod_name), "unknown error")
+                    query_errors.append("{}/{}: {}".format(service_alias, pod_name, query_error))
                 status_info = (pod_detail or {}).get("status") or {}
                 detail_status = status_info.get("type_str") or ""
                 status_reason = status_info.get("reason") or ""
@@ -1128,7 +1170,9 @@ class EnterpriseFirstDeployService(object):
                 })
                 self._append_runtime_detail_snapshot_lines(lines, service_alias, pod_name, pod_detail)
 
-        if not observed_pods:
+        if query_errors:
+            reason = "runtime timeout: pod query failed: {}".format("; ".join(query_errors))
+        elif not observed_pods:
             reason = "runtime timeout: no pods observed"
         elif missing_pods:
             reason = "runtime timeout: some components have no pods observed"
@@ -1146,6 +1190,46 @@ class EnterpriseFirstDeployService(object):
             self._build_runtime_snapshot_logs(lines),
             reason,
         )
+
+    def _runtime_timeout_diagnostic(self, payload: dict) -> dict:
+        diagnostics = payload.get("runtime_component_diagnostics") or {}
+        states = payload.get("runtime_component_states") or {}
+        for target_states in (
+                {self.RUNTIME_POD_NO_POD, self.RUNTIME_POD_NOT_READY},
+                self.RUNTIME_WAITING_POD_STATES):
+            candidates = []
+            for service_alias in self._runtime_service_aliases(payload):
+                if states.get(service_alias) in target_states:
+                    diagnostic = dict(diagnostics.get(service_alias) or {})
+                    diagnostic["service_alias"] = service_alias
+                    candidates.append(diagnostic)
+            if candidates:
+                return min(candidates, key=self._runtime_timeout_diagnostic_sort_key)
+        return {}
+
+    def _runtime_timeout_diagnostic_sort_key(self, diagnostic: dict) -> Tuple[int, int, str]:
+        category = self._detect_failure_category(
+            self.FAILURE_STAGE_RUNTIME, [], str(diagnostic.get("reason", "")))
+        return (
+            0 if category not in {self.FAILURE_CATEGORY_UNKNOWN, self.FAILURE_CATEGORY_RUNTIME_TIMEOUT} else 1,
+            0 if diagnostic.get("has_message") else 1,
+            str(diagnostic.get("service_alias", "")),
+        )
+
+    def _runtime_timeout_logs_for_component(self, failure_logs: list, service_alias: str, payload: dict) -> list:
+        if len(self._runtime_service_aliases(payload)) <= 1:
+            return failure_logs
+        matching_logs = []
+        for failure_log in failure_logs or []:
+            lines = [
+                line for line in failure_log.get("lines") or []
+                if "service_alias {}".format(service_alias) in (line.get("message") or "")
+            ]
+            if lines:
+                matching_log = dict(failure_log)
+                matching_log["lines"] = lines
+                matching_logs.append(matching_log)
+        return matching_logs
 
     def _runtime_service_aliases(self, payload: dict) -> list:
         aliases = []
@@ -1247,18 +1331,6 @@ class EnterpriseFirstDeployService(object):
                     event.get("target") or "-",
                     self._redact_log_message(message)),
             })
-
-    def _is_soft_runtime_failure(self, payload: dict) -> bool:
-        opt_type = (payload.get("runtime_failure_opt_type") or "").lower()
-        if opt_type in self.SOFT_FAILURE_OPT_TYPES:
-            return True
-        if self._is_soft_runtime_text(payload.get("runtime_failure_reason")):
-            return True
-        for failure_log in payload.get("runtime_failure_logs") or []:
-            for line in failure_log.get("lines") or []:
-                if self._is_soft_runtime_text(line.get("message")):
-                    return True
-        return False
 
     @staticmethod
     def _is_soft_runtime_text(value: Optional[str]) -> bool:
@@ -2369,28 +2441,58 @@ class EnterpriseFirstDeployService(object):
     def _inspect_service_pods(self, payload: dict, tenant_name: str, region_name: str,
                               runtime_watch_started_at: str, service_alias: str) -> Optional[str]:
         pods = self._get_service_pods_for_runtime(payload, tenant_name, region_name, service_alias)
+        observed_components = payload.setdefault("runtime_component_observed", {})
+        if pods is None:
+            state = self.RUNTIME_POD_QUERY_ERROR
+            query_error = (payload.get("runtime_query_errors") or {}).get(service_alias, "unknown error")
+            self._set_runtime_component_diagnostic(
+                payload, service_alias, self.RUNTIME_POD_QUERY_ERROR,
+                "runtime pod query failed: {}".format(query_error))
+            payload["runtime_component_states"][service_alias] = state
+            return None
         if not pods:
+            state = self.RUNTIME_POD_QUERY_ERROR if observed_components.get(service_alias) else self.RUNTIME_POD_NO_POD
+            reason = (
+                "runtime timeout: no pods observed after observation for service_alias {}".format(service_alias)
+                if state == self.RUNTIME_POD_QUERY_ERROR else
+                "runtime timeout: no pods observed for service_alias {}".format(service_alias))
+            self._set_runtime_component_diagnostic(payload, service_alias, state, reason)
+            payload["runtime_component_states"][service_alias] = state
             return None
 
+        if not observed_components.get(service_alias):
+            observed_components[service_alias] = True
+            payload["runtime_observation_updated"] = True
         candidate_pods = [pod for pod in pods if pod.get("_group") == "new_pods"] or pods
-        all_running = True
+        states: List[str] = []
+        diagnostics: List[Tuple[str, Dict[str, Any]]] = []
         for pod in candidate_pods:
             pod_name = pod.get("pod_name")
-            pod_detail = self._get_runtime_pod_detail(region_name, tenant_name, service_alias, pod_name)
-            failure = self._extract_runtime_failure_from_pod(payload, pod, pod_detail)
-            if failure:
-                opt_type = (failure["event"].get("opt_type") or "").lower()
-                is_soft = opt_type in self.SOFT_FAILURE_OPT_TYPES
-                if is_soft:
-                    all_running = False
-                    # Probe/readiness failures can be transient. Keep the first snapshot, but only finalize
-                    # after the extended readiness window.
-                    payload["runtime_failure_opt_type"] = opt_type
-                    payload["runtime_failure_reason"] = self._shrink_text(failure["reason"], self.MAX_FAILURE_REASON_LENGTH)
-                    if not payload.get("runtime_failure_logs"):
-                        payload["runtime_failure_logs"] = failure["logs"]
-                    if not self._readiness_final_window_elapsed(runtime_watch_started_at):
-                        continue
+            pod_detail = self._get_runtime_pod_detail(
+                region_name, tenant_name, service_alias, pod_name, payload=payload)
+            if pod_detail is None:
+                states.append(self.RUNTIME_POD_QUERY_ERROR)
+                query_error = (payload.get("runtime_query_errors") or {}).get(
+                    "{}/{}".format(service_alias, pod_name), "unknown error")
+                diagnostics.append((self.RUNTIME_POD_QUERY_ERROR, {
+                    "reason": "runtime pod detail query failed: {}".format(query_error), "logs": [],
+                    "pod_name": pod_name or "", "has_message": True,
+                }))
+                continue
+            state = self.classify_runtime_pod(pod, pod_detail)
+            states.append(state)
+            if state == self.RUNTIME_POD_HARD_FAIL:
+                failure = self._extract_runtime_failure_from_pod(payload, pod, pod_detail)
+                if not failure:
+                    status = (pod_detail or {}).get("status") or {}
+                    reason = status.get("reason") or status.get("type_str") or pod.get("pod_status") or "ABNORMAL"
+                    failure = {
+                        "event": {"event_id": pod_name, "service_id": self._first_service_id(payload),
+                                  "opt_type": reason},
+                        "reason": reason,
+                        "logs": self._build_runtime_pod_logs(
+                            pod_name, (pod_detail or {}).get("events") or [], status, pod_detail),
+                    }
                 self._set_stage_failure(
                     payload,
                     self.FAILURE_STAGE_RUNTIME,
@@ -2398,14 +2500,13 @@ class EnterpriseFirstDeployService(object):
                     reason=failure["reason"],
                     failure_logs=failure["logs"])
                 return self.STATUS_FAILURE
-
-            pod_status = (pod.get("pod_status") or "").upper()
-            detail_status = ((pod_detail or {}).get("status") or {}).get("type_str", "")
-            if pod_status != "RUNNING" or (detail_status and detail_status.upper() != "RUNNING"):
-                all_running = False
+            if state != self.RUNTIME_POD_READY:
                 pod_status_info = (pod_detail or {}).get("status") or {}
+                pod_status = (pod.get("pod_status") or "").upper()
+                detail_status = pod_status_info.get("type_str", "")
                 status_message = (pod_status_info.get("message") or pod_status_info.get("reason") or
                                   pod_status or detail_status or "runtime verification timeout")
+                candidate_logs: List[Dict[str, Any]] = []
                 payload["runtime_failure_opt_type"] = pod_status_info.get("reason") or pod_status or detail_status
                 payload["runtime_failure_reason"] = self._shrink_text(status_message, self.MAX_FAILURE_REASON_LENGTH)
                 if not payload.get("runtime_failure_logs"):
@@ -2413,10 +2514,83 @@ class EnterpriseFirstDeployService(object):
                     candidate_logs = self._build_runtime_pod_logs(pod_name, pod_events, pod_status_info, pod_detail)
                     if candidate_logs:
                         payload["runtime_failure_logs"] = candidate_logs
-        return self.STATUS_SUCCESS if all_running else None
+                diagnostics.append((state, {
+                    "reason": self._shrink_text(status_message, self.MAX_FAILURE_REASON_LENGTH),
+                    "logs": candidate_logs,
+                    "pod_name": pod_name or "",
+                    "has_message": bool(pod_status_info.get("message")),
+                }))
+        component_state = self._runtime_component_state(states)
+        payload["runtime_component_states"][service_alias] = component_state
+        if component_state != self.RUNTIME_POD_READY:
+            candidates = [diagnostic for state, diagnostic in diagnostics if state == component_state]
+            diagnostic: Dict[str, Any] = min(candidates, key=self._runtime_diagnostic_sort_key) if candidates else {}
+            diagnostic_logs = diagnostic.get("logs")
+            self._set_runtime_component_diagnostic(
+                payload, service_alias, component_state, str(diagnostic.get("reason", "")),
+                diagnostic_logs if isinstance(diagnostic_logs, list) else [],
+                has_message=bool(diagnostic.get("has_message")))
+        return self.STATUS_SUCCESS if component_state == self.RUNTIME_POD_READY else None
+
+    def _runtime_diagnostic_sort_key(self, diagnostic: dict) -> Tuple[int, int, str]:
+        category = self._detect_failure_category(
+            self.FAILURE_STAGE_RUNTIME, [], str(diagnostic.get("reason", "")))
+        return (
+            0 if category not in {self.FAILURE_CATEGORY_UNKNOWN, self.FAILURE_CATEGORY_RUNTIME_TIMEOUT} else 1,
+            0 if diagnostic.get("has_message") else 1,
+            str(diagnostic.get("pod_name", "")),
+        )
+
+    def _runtime_component_state(self, states: List[str]) -> str:
+        if self.is_runtime_component_ready(states):
+            return self.RUNTIME_POD_READY
+        for state in (self.RUNTIME_POD_NO_POD, self.RUNTIME_POD_NOT_READY,
+                      self.RUNTIME_POD_PROBE_WAIT, self.RUNTIME_POD_INIT_WAIT,
+                      self.RUNTIME_POD_QUERY_ERROR):
+            if state in states:
+                return state
+        return next(state for state in states if state != self.RUNTIME_POD_READY)
+
+    @staticmethod
+    def _set_runtime_component_diagnostic(payload: dict, service_alias: str, state: str,
+                                          reason: str, logs: Optional[list] = None,
+                                          has_message: bool = False) -> None:
+        payload.setdefault("runtime_component_diagnostics", {})[service_alias] = {
+            "state": state,
+            "reason": reason,
+            "logs": logs or [],
+            "has_message": has_message,
+        }
+
+    @classmethod
+    def classify_runtime_pod(cls, pod: Optional[dict], pod_detail: Any) -> str:
+        if not pod:
+            return cls.RUNTIME_POD_NO_POD
+        status = (pod_detail or {}).get("status") or {}
+        pod_status = (pod.get("pod_status") or "").upper()
+        detail_status = (status.get("type_str") or "").upper()
+        values = [status.get("reason") or ""]
+        for group in ("init_containers", "containers"):
+            for container in (pod_detail or {}).get(group) or []:
+                values.extend([container.get("state") or "", container.get("reason") or ""])
+        normalized = {str(value).lower() for value in values}
+        if normalized & cls.RUNTIME_HARD_FAILURE_REASONS:
+            return cls.RUNTIME_POD_HARD_FAIL
+        probe_failures = {"readinessprobefailed", "livenessprobefailed", "startupprobefailure"}
+        if "containersnotready" in normalized or normalized & probe_failures:
+            return cls.RUNTIME_POD_PROBE_WAIT
+        if "podinitializing" in normalized or "containercreating" in normalized:
+            return cls.RUNTIME_POD_INIT_WAIT
+        if pod_status == "RUNNING" and (not detail_status or detail_status == "RUNNING"):
+            return cls.RUNTIME_POD_READY
+        return cls.RUNTIME_POD_NOT_READY
+
+    @classmethod
+    def is_runtime_component_ready(cls, pod_states: list) -> bool:
+        return bool(pod_states) and all(state == cls.RUNTIME_POD_READY for state in pod_states)
 
     def _get_service_pods_for_runtime(self, payload: dict, tenant_name: str, region_name: str,
-                                      service_alias: str) -> list:
+                                      service_alias: str) -> Optional[list]:
         try:
             # NOTE: payload always carries enterprise_id (set in _build_payload); .get
             # widens to Optional but the invariant holds at runtime.
@@ -2425,7 +2599,13 @@ class EnterpriseFirstDeployService(object):
                 payload.get("enterprise_id"))  # type: ignore[arg-type]
         except Exception as e:
             logger.warning("get service pods failed for %s: %s", service_alias, e)
+            payload.setdefault("runtime_query_errors", {})[service_alias] = self._shrink_text(str(e), 256)
+            return None
+        if isinstance(data, dict) and "bean" in data and data.get("bean") is None:
             return []
+        if not isinstance(data, dict) or not isinstance(data.get("bean") or data.get("list"), dict):
+            payload.setdefault("runtime_query_errors", {})[service_alias] = "empty or invalid response"
+            return None
         return self._extract_component_pods(data)
 
     def _collect_dependency_context(self, payload: dict, tenant_name: str, region_name: str) -> dict:
@@ -2496,15 +2676,24 @@ class EnterpriseFirstDeployService(object):
         return pods
 
     def _get_runtime_pod_detail(self, region_name: str, tenant_name: str, service_alias: str,
-                                pod_name: str) -> Any:
+                                pod_name: str, payload: Optional[dict] = None) -> Optional[Any]:
         if not pod_name:
             return {}
         try:
             data = region_api.pod_detail(region_name, tenant_name, service_alias, pod_name)
         except Exception as e:
             logger.warning("get pod detail failed for %s: %s", pod_name, e)
-            return {}
-        return self._extract_region_pod_detail(data)
+            if payload is not None:
+                payload.setdefault("runtime_query_errors", {})["{}/{}".format(service_alias, pod_name)] = \
+                    self._shrink_text(str(e), 256)
+            return None
+        pod_detail = self._extract_region_pod_detail(data)
+        if not isinstance(pod_detail, dict) or not pod_detail:
+            if payload is not None:
+                payload.setdefault("runtime_query_errors", {})["{}/{}".format(service_alias, pod_name)] = \
+                    "empty or invalid response"
+            return None
+        return pod_detail
 
     @staticmethod
     def _extract_region_pod_detail(payload: Any) -> Any:
