@@ -818,6 +818,7 @@ class EnterpriseFirstDeployServiceTests(TestCase):
         self.assertEqual(repo.attempt_payload["report_type"], self.service.REPORT_TYPE_DEPLOY_ATTEMPT)
         self.assertFalse(repo.attempt_payload["is_first_deploy"])
         self.assertEqual(repo.attempt_payload["deployment_context"]["trigger"], "manual_deploy")
+        self.assertTrue(repo.attempt_payload["instance_deployed_before_tracking"])
         self.assertEqual(tracker["key"], repo.attempt_record.key)
         self.assertEqual(repo.payload["status"], self.service.STATUS_SUCCESS)
 

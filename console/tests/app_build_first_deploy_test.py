@@ -108,6 +108,11 @@ class FirstDeployServiceStub(object):
             context["compose_file_path"] = compose_file_path
         return context
 
+    @staticmethod
+    def get_attempt_id_from_request(request):
+        return getattr(request, "headers", {}).get(
+            "X-Rainbond-Attempt-Id", getattr(request, "META", {}).get("HTTP_X_RAINBOND_ATTEMPT_ID", ""))
+
     def safe_begin_tracking(self, *args, **kwargs):
         return None
 

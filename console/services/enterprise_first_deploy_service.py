@@ -265,9 +265,11 @@ class EnterpriseFirstDeployService(object):
             report_type=self.REPORT_TYPE_DEPLOY_ATTEMPT,
             is_first_deploy=False,
         )
-        payload["instance_deployed_before_tracking"] = (
-            self._instance_deployed_before_tracking()
-            if instance_deployed_before_tracking is None else instance_deployed_before_tracking)
+        if instance_deployed_before_tracking is None:
+            existing_record = enterprise_first_deploy_repo.get_by_enterprise_id(enterprise_id)
+            existing_payload = enterprise_first_deploy_repo.load_payload(existing_record) if existing_record else None
+            instance_deployed_before_tracking = self._instance_deployed_before_tracking(existing_payload)
+        payload["instance_deployed_before_tracking"] = instance_deployed_before_tracking
         record, _ = enterprise_first_deploy_repo.create_attempt(enterprise_id, payload)
         if not record:
             return None
