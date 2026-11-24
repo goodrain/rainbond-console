@@ -3,15 +3,18 @@ import datetime
 import hashlib
 import logging
 import os
+import platform
 import queue
 import re
 import threading
 import uuid
 
 from django.utils import timezone
+from django.db.models import F
 
 from console.models.main import ConsoleSysConfig
 from console.services.telemetry_switch import get_external_telemetry_enabled
+from www.models.main import TenantEnterprise
 
 
 logger = logging.getLogger("default")
@@ -24,6 +27,8 @@ FIRST_APP_KEY = "RBD_TEL_FIRST_APP_CREATED"
 HEARTBEAT_KEY_PREFIX = "RBD_TEL_HB_"
 REQUEST_TIMEOUT = 2
 TELEMETRY_QUEUE_MAX_SIZE = 100
+TELEMETRY_SCHEMA_VERSION = 2
+_enterprise_id_cache = None
 
 SENSITIVE_KEY_RE = re.compile(
     r"(token|password|secret|authorization|cookie|key|dsn|email|phone|git|repo|repository|url|domain|image|"
@@ -51,6 +56,30 @@ def hash_identifier(instance_id, identifier):
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
+def _get_enterprise_id():
+    global _enterprise_id_cache
+    if _enterprise_id_cache:
+        return _enterprise_id_cache
+    try:
+        enterprise = TenantEnterprise.objects.order_by(F("create_time").asc(nulls_last=True), "pk").first()
+    except Exception as exc:
+        logger.debug("posthog telemetry enterprise lookup failed: %s", exc)
+        return ""
+    enterprise_id = enterprise.enterprise_id.strip() if enterprise and enterprise.enterprise_id else ""
+    if enterprise_id:
+        _enterprise_id_cache = enterprise_id
+    return enterprise_id
+
+
+def normalize_arch(value):
+    value = (value or "").lower()
+    if value in ("amd64", "x86_64", "x86-64"):
+        return "amd64"
+    if value in ("arm64", "aarch64"):
+        return "arm64"
+    return ""
+
+
 def sanitize_properties(value, depth=0):
     if depth > 4:
         return "[MaxDepth]"
@@ -71,6 +100,12 @@ def sanitize_properties(value, depth=0):
 
 def _utc_now():
     return timezone.now()
+
+
+def to_utc(value):
+    if timezone.is_naive(value):
+        value = timezone.make_aware(value, timezone.get_default_timezone())
+    return value.astimezone(datetime.timezone.utc)
 
 
 class NullTransport(object):
@@ -184,7 +219,7 @@ class RainbondTelemetryService(object):
         record = ConsoleSysConfig.objects.filter(key=INSTANCE_ID_KEY, enable=True).first()
         if not record or not record.create_time:
             return ""
-        return record.create_time.isoformat()
+        return to_utc(record.create_time).isoformat()
 
     def get_days_since_install(self):
         record = ConsoleSysConfig.objects.filter(key=INSTANCE_ID_KEY, enable=True).first()
@@ -207,24 +242,34 @@ class RainbondTelemetryService(object):
         except Exception:
             console_version = ""
         instance_id = self.get_or_create_instance_id()
-        return {
+        edition = self.env.get("ENTERPRISE_EDITION", "") or self.env.get("RAINBOND_EDITION", "")
+        instance_arch = normalize_arch(self.env.get("RAINBOND_ARCH", "")) or normalize_arch(platform.machine())
+        properties = {
             "instance_id": instance_id,
             "console_version": console_version,
             "rainbond_version": self.env.get("RAINBOND_VERSION", "") or self.env.get("RELEASE_DESC", "") or "",
-            "edition": self.env.get("ENTERPRISE_EDITION", "") or self.env.get("RAINBOND_EDITION", "") or "",
+            "edition": edition or ("enterprise" if str_to_bool(self.env.get("IS_ENTERPRISE_EDITION")) else "open_source"),
+            "instance_arch": instance_arch,
+            "telemetry_schema_version": TELEMETRY_SCHEMA_VERSION,
             "install_time": self.get_install_time(),
             "days_since_install": self.get_days_since_install(),
         }
+        enterprise_id = _get_enterprise_id()
+        if enterprise_id:
+            properties["enterprise_id_hash"] = hashlib.md5(enterprise_id.encode("utf-8")).hexdigest()
+        return properties
 
     def build_payload(self, event_name, properties=None, distinct_id=None):
-        merged_properties = self.get_instance_properties()
+        instance_properties = self.get_instance_properties()
+        merged_properties = instance_properties.copy()
         merged_properties.update(properties or {})
+        merged_properties["$groups"] = {"instance": instance_properties["instance_id"]}
         return {
             "api_key": self.get_project_token(),
             "batch": [{
                 "event": event_name,
-                "distinct_id": distinct_id or merged_properties["instance_id"],
-                "timestamp": self.now().isoformat(),
+                "distinct_id": distinct_id or instance_properties["instance_id"],
+                "timestamp": to_utc(self.now()).isoformat(),
                 "properties": sanitize_properties(merged_properties),
             }],
         }

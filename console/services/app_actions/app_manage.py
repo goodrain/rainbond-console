@@ -69,6 +69,7 @@ from console.services.app_config.component_graph import component_graph_service
 from console.services.app_config.service_monitor import service_monitor_repo
 from console.services.exception import ErrChangeServiceType
 from console.services.group_service import group_service
+from console.services.market_app.port_utils import normalize_template_port_service_flags
 from console.services.source_build_state_service import source_build_state_service
 from console.services.service_services import base_service
 from console.utils.cnb_build import (
@@ -216,7 +217,7 @@ class AppManageService(AppManageBase):
             body["enterprise_id"] = tenant.enterprise_id
             try:
                 result = region_api.start_service(service.service_region, tenant.tenant_name, service.service_alias, body)
-                service._last_power_event_id = (result or {}).get("bean", {}).get("event_id", "")
+                setattr(service, "_last_power_event_id", (result or {}).get("bean", {}).get("event_id", ""))
                 logger.debug("user {0} start app !".format(user.nick_name))
             except region_api.CallApiError as e:
                 logger.exception(e)
@@ -276,7 +277,7 @@ class AppManageService(AppManageBase):
             body["enterprise_id"] = tenant.enterprise_id
             try:
                 result = region_api.stop_service(service.service_region, tenant.tenant_name, service.service_alias, body)
-                service._last_power_event_id = (result or {}).get("bean", {}).get("event_id", "")
+                setattr(service, "_last_power_event_id", (result or {}).get("bean", {}).get("event_id", ""))
                 logger.debug("user {0} stop app !".format(user.nick_name))
             except region_api.CallApiError as e:
                 logger.exception(e)
@@ -530,6 +531,7 @@ class AppManageService(AppManageBase):
         if not ports:
             return 200, "success"
         for port in ports:
+            port = normalize_template_port_service_flags(port, default_inner_service=False)
             mapping_port = int(port["container_port"])
             env_prefix = port["port_alias"].upper() if bool(port["port_alias"]) else service.service_key.upper()
             service_port = port_repo.get_service_port_by_port(tenant.tenant_id, service.service_id, int(port["container_port"]))
@@ -702,7 +704,7 @@ class AppManageService(AppManageBase):
                          action: str,
                          service_ids: Any,
                          oauth_instance: Any = None) -> Any:
-        services = service_repo.get_services_by_service_ids(service_ids)
+        services = list(service_repo.get_services_by_service_ids(service_ids))
         if not services:
             return
         vm_events = []
@@ -716,7 +718,7 @@ class AppManageService(AppManageBase):
             for service in vm_services:
                 if service.create_status != "complete":
                     continue
-                service._last_power_event_id = ""
+                setattr(service, "_last_power_event_id", "")
                 if action == "start":
                     power_code, power_msg = self.start(tenant, service, user, oauth_instance)
                     if power_code != 200:
@@ -726,7 +728,7 @@ class AppManageService(AppManageBase):
                 vm_events.append({
                     "service_id": service.service_id,
                     "operation": action,
-                    "event_id": service._last_power_event_id,
+                    "event_id": getattr(service, "_last_power_event_id", ""),
                     "status": "success",
                 })
             if not services:

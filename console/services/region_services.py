@@ -119,7 +119,7 @@ class RegionService(object):
 
     def get_region_lists_by_tenants(self, tenants: List[Tenants]) -> Dict[str, list]:
         """Build region lists for already-authorized tenants with two bulk reads."""
-        result = {tenant.tenant_name: [] for tenant in tenants}
+        result: Dict[str, list] = {tenant.tenant_name: [] for tenant in tenants}
         if not tenants:
             return result
         tenant_names = {tenant.tenant_id: tenant.tenant_name for tenant in tenants}
@@ -127,7 +127,7 @@ class RegionService(object):
         if not regions:
             return result
         region_names = list({region.region_name for region in regions})
-        configs = {}
+        configs: Dict[str, RegionConfig] = {}
         for config in region_repo.get_region_by_region_names(region_names):
             configs.setdefault(config.region_name, config)
         for region in regions:

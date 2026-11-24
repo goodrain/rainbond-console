@@ -2,7 +2,7 @@
 import json
 import logging
 import time
-from typing import Any, Optional
+from typing import Any, Optional, cast
 
 from console.constants import SourceCodeType
 from console.exception.main import ServiceHandleException
@@ -160,6 +160,7 @@ class SourceComponentService(object):
         )
         if code != 200:
             raise ServiceHandleException(msg="service create fail", msg_show=msg_show, status_code=code)
+        component = cast(TenantServiceInfo, component)
         # NOTE: create_source_code_app returns Optional[TenantServiceInfo]; it is None only
         # when code != 200, which is excluded by the guard above. So on this path component is
         # always non-None (invariant), and the [arg-type]/[union-attr] ignores below are safe.

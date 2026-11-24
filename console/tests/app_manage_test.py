@@ -65,6 +65,44 @@ class ComponentDaemonSetSupportTests(TestCase):
 
         self.assertEqual("守护进程组件", service_manage.get_extend_method_name("daemonset"))
 
+
+class AppManageLegacyPortTests(TestCase):
+    def test_save_port_normalizes_legacy_market_service_flags(self):
+        service_manage = app_manage_module.AppManageService()
+        tenant = mock.Mock(tenant_id="tenant-1")
+        service = mock.Mock(service_id="service-1", service_key="web")
+        ports = [
+            {"container_port": 8080, "protocol": "http", "port_alias": "WEB"},
+            {
+                "container_port": 8081,
+                "protocol": "http",
+                "port_alias": "FALSE",
+                "is_inner_service": "false",
+                "is_outer_service": 0,
+            },
+            {
+                "container_port": 8082,
+                "protocol": "http",
+                "port_alias": "OUTER",
+                "is_inner_service": "f",
+                "is_outer_service": "t",
+            },
+        ]
+
+        with mock.patch.object(
+                app_manage_module.port_repo,
+                "get_service_port_by_port",
+                return_value=None), mock.patch.object(
+                    app_manage_module.port_service,
+                    "add_service_port",
+                    return_value=(200, "success", None)) as add_service_port:
+            code, message = service_manage._AppManageService__save_port(tenant, service, ports)
+
+        self.assertEqual((200, "success"), (code, message))
+        self.assertEqual([(False, False), (False, False), (True, True)], [
+            (call.args[5], call.args[6]) for call in add_service_port.call_args_list
+        ])
+
     # capability_id: console.component-type.daemonset
     def test_change_service_type_blocks_daemonset_transition(self):
         service = mock.Mock(

@@ -322,11 +322,11 @@ class ServiceDomainView(AppBaseView):
               paramType: query
 
         """
-        container_port = request.GET.get("container_port", None)
+        raw_container_port = request.GET.get("container_port", None)
         try:
-            if isinstance(container_port, bool) or not isinstance(container_port, (str, int)):
+            if isinstance(raw_container_port, bool) or not isinstance(raw_container_port, (str, int)):
                 raise ValueError("invalid container port")
-            container_port = int(container_port)
+            container_port = int(raw_container_port)
             if not 1 <= container_port <= 65535:
                 raise ValueError("invalid container port")
         except (TypeError, ValueError):

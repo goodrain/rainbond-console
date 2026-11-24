@@ -16,14 +16,6 @@ FROM ubuntu:24.04
 ARG VERSION
 ARG TARGETARCH
 
-COPY standalone/entrypoint.sh /entrypoint.sh
-COPY standalone/config.yaml /etc/rancher/k3s/config.yaml
-COPY standalone/registries.yaml /etc/rancher/k3s/registries.yaml
-COPY k3s-images-$TARGETARCH.tar.zst /tmp/k3s-images.tar.zst
-
-COPY --from=base /tmp/rainbond-cluster.tgz /tmp/rainbond-cluster.tgz
-COPY --from=base /tmp/k3s /bin/k3s
-
 RUN apt-get update && apt -y install ca-certificates curl gnupg && \
     install -m 0755 -d /etc/apt/keyrings && \
     curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | gpg --dearmor -o /etc/apt/keyrings/nvidia-container-toolkit-keyring.gpg && \
@@ -32,6 +24,16 @@ RUN apt-get update && apt -y install ca-certificates curl gnupg && \
     apt-get update && \
     apt -y install nvidia-container-toolkit && \
     rm -rf /var/lib/apt/lists/*
+
+# Layers run from least to most frequently changed so a registry cache can reuse
+# them and releases upload only what changed. helm package stamps the archive
+# with the build time, so the chart always comes last.
+COPY --from=base /tmp/k3s /bin/k3s
+COPY k3s-images-$TARGETARCH.tar.zst /tmp/k3s-images.tar.zst
+COPY standalone/config.yaml /etc/rancher/k3s/config.yaml
+COPY standalone/registries.yaml /etc/rancher/k3s/registries.yaml
+COPY standalone/entrypoint.sh /entrypoint.sh
+COPY --from=base /tmp/rainbond-cluster.tgz /tmp/rainbond-cluster.tgz
 
 ENV VERSION=${VERSION}
 ENV KUBECONFIG=/etc/rancher/k3s/k3s.yaml

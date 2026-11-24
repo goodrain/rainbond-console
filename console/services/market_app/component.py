@@ -6,6 +6,7 @@ from typing import Any, Dict, List, Optional
 # enum
 from console.enum.app import GovernanceModeEnum
 from .enum import ActionType
+from .port_utils import normalize_template_port_service_flags
 # exception
 from console.exception.main import EnvAlreadyExist, InvalidEnvName
 # repository
@@ -189,6 +190,7 @@ class Component(object):
 
         add = ports.get("add", [])
         for port in add:
+            port = normalize_template_port_service_flags(port)
             # Optimization: do not update port data iteratively
             self._update_port_data(port)
             new_port = TenantServicesPort(**port)
@@ -198,6 +200,7 @@ class Component(object):
         old_ports = {port.container_port: port for port in self.ports}
         upd = ports.get("upd", [])
         for port in upd:
+            port = normalize_template_port_service_flags(port)
             old_port = old_ports.get(port["container_port"])
             old_port.protocol = port["protocol"]  # type: ignore[union-attr]
             old_port.port_alias = port["port_alias"]  # type: ignore[union-attr]

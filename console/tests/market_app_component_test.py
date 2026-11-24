@@ -37,6 +37,7 @@ if not hasattr(QuerySet, "__class_getitem__"):
     QuerySet.__class_getitem__ = classmethod(lambda cls, item: cls)  # type: ignore[assignment]
 
 from console.services.market_app.component import Component  # noqa: E402
+from console.services.market_app.property_changes import PropertyChanges  # noqa: E402
 
 
 def _component(service_alias="grabcd"):
@@ -98,3 +99,126 @@ class MarketAppComponentPortTests(TestCase):
             component._update_port_data(port)
 
         assert port["port_alias"] == "GRLEGACY"
+
+
+class MarketAppUpgradePortTests(TestCase):
+
+    def test_upgrade_enables_inner_service_when_template_opens_outer_service(self):
+        component = _component()
+        component.ports = [
+            SimpleNamespace(
+                container_port=8080,
+                protocol="http",
+                port_alias="WEB",
+                is_inner_service=False,
+                is_outer_service=False,
+            )
+        ]
+        template_ports = [{
+            "container_port": 8080,
+            "protocol": "http",
+            "port_alias": "WEB",
+            "is_inner_service": False,
+            "is_outer_service": True,
+        }]
+
+        changes = PropertyChanges._ports(component.ports, template_ports)
+        component._update_ports(changes)
+
+        self.assertTrue(component.ports[0].is_inner_service)
+        self.assertTrue(component.ports[0].is_outer_service)
+
+    def test_upgrade_does_not_close_existing_inner_service(self):
+        component = _component()
+        component.ports = [
+            SimpleNamespace(
+                container_port=8080,
+                protocol="http",
+                port_alias="WEB",
+                is_inner_service=True,
+                is_outer_service=False,
+            )
+        ]
+        template_ports = [{
+            "container_port": 8080,
+            "protocol": "http",
+            "port_alias": "WEB",
+            "is_inner_service": False,
+            "is_outer_service": False,
+        }]
+
+        component._update_ports(PropertyChanges._ports(component.ports, template_ports))
+
+        self.assertTrue(component.ports[0].is_inner_service)
+
+    def test_upgrade_keeps_existing_inner_service_when_protocol_changes(self):
+        component = _component()
+        component.ports = [
+            SimpleNamespace(
+                container_port=8080,
+                protocol="http",
+                port_alias="OLD_WEB",
+                is_inner_service=True,
+                is_outer_service=False,
+            )
+        ]
+        template_ports = [{
+            "container_port": 8080,
+            "protocol": "tcp",
+            "port_alias": "WEB",
+            "is_inner_service": False,
+            "is_outer_service": False,
+        }]
+
+        changes = PropertyChanges._ports(component.ports, template_ports)
+
+        self.assertIn("upd", changes)
+        self.assertIs(changes["upd"][0]["is_inner_service"], False)
+        component._update_ports(changes)
+
+        self.assertTrue(component.ports[0].is_inner_service)
+        self.assertFalse(component.ports[0].is_outer_service)
+        self.assertEqual("tcp", component.ports[0].protocol)
+
+    def test_upgrade_does_not_recalculate_existing_port_k8s_service_name(self):
+        component = _component()
+        component.ports = [
+            SimpleNamespace(
+                container_port=8080,
+                protocol="http",
+                port_alias="WEB",
+                k8s_service_name="web-ab12",
+                is_inner_service=False,
+                is_outer_service=True,
+            )
+        ]
+
+        component._update_ports({
+            "upd": [{
+                "container_port": 8080,
+                "protocol": "http",
+                "port_alias": "WEB",
+                "k8s_service_name": "web",
+                "is_inner_service": True,
+                "is_outer_service": True,
+            }]
+        })
+
+        self.assertEqual("web-ab12", component.ports[0].k8s_service_name)
+
+    def test_upgrade_port_flags_normalize_false_string_and_zero(self):
+        component = _component()
+        template_ports = [{
+            "container_port": 8080,
+            "protocol": "http",
+            "port_alias": "WEB",
+            "is_inner_service": "false",
+            "is_outer_service": 0,
+        }]
+
+        changes = PropertyChanges._ports(component.ports, template_ports)
+        with patch("console.services.market_app.component.port_repo.get_by_k8s_service_name", return_value=None):
+            component._update_ports(changes)
+
+        self.assertIs(component.ports[0].is_inner_service, False)
+        self.assertIs(component.ports[0].is_outer_service, False)
