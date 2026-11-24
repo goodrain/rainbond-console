@@ -93,7 +93,8 @@ class DeliveryGateway:
             "apps": services,
             "plugins": shared_plugins,
             "governance_mode": app.governance_mode,
-            "k8s_resources": list(share_service.get_k8s_resources(app.ID)),
+            "k8s_resources": [{key: resource[key] for key in ("name", "kind", "content")}
+                              for resource in share_service.get_k8s_resources(app.ID)],
             "app_config_groups": share_service.config_groups(scope["region_name"], keys),
             "ingress_http_routes": share_service._list_http_ingresses(tenant, keys),
             "application": {
