@@ -176,6 +176,65 @@ class EnterpriseFirstDeployServiceTests(TestCase):
         self.service.BUILD_FAILURE_LOG_RETRY_INTERVAL = 1
         self.service.report_async = False
 
+    def test_complete_tracking_emits_first_component_build_failure_with_stable_error_code(self):
+        payload = {
+            "deploy_type": self.service.DEPLOY_TYPE_SOURCE_CODE,
+            "source_language": "java",
+            "deployment_context": {"deploy_attempt_id": "attempt-1"},
+            "service_ids": ["service-1"],
+            "build_status": self.service.STATUS_FAILURE,
+            "build_failure_category": self.service.FAILURE_CATEGORY_COMPILE_FAILED,
+            "runtime_status": self.service.STAGE_STATUS_PENDING,
+        }
+        repo = FirstDeployRepoStub(payload)
+
+        with mock.patch("console.services.enterprise_first_deploy_service.enterprise_first_deploy_repo", repo), \
+                mock.patch("console.services.enterprise_first_deploy_service.telemetry_service") as telemetry, \
+                mock.patch.object(self.service, "_report_if_needed"):
+            self.service._complete_tracking(repo.record, payload, self.service.STATUS_FAILURE)
+
+        telemetry.track_first_component_build_result.assert_called_once_with(
+            service_id="service-1",
+            attempt_id="attempt-1",
+            deploy_type=self.service.DEPLOY_TYPE_SOURCE_CODE,
+            language="java",
+            success=False,
+            stage=self.service.FAILURE_STAGE_BUILD,
+            error_code=self.service.FAILURE_CATEGORY_COMPILE_FAILED,
+        )
+        telemetry.track_first_app_deploy_success.assert_not_called()
+
+    def test_complete_tracking_emits_first_running_events_after_runtime_readiness(self):
+        payload = {
+            "deploy_type": self.service.DEPLOY_TYPE_IMAGE,
+            "source_language": "",
+            "deployment_context": {"deploy_attempt_id": "attempt-1"},
+            "service_ids": ["service-1"],
+            "build_status": self.service.STATUS_SUCCESS,
+            "runtime_status": self.service.STATUS_SUCCESS,
+        }
+        repo = FirstDeployRepoStub(payload)
+
+        with mock.patch("console.services.enterprise_first_deploy_service.enterprise_first_deploy_repo", repo), \
+                mock.patch("console.services.enterprise_first_deploy_service.telemetry_service") as telemetry, \
+                mock.patch.object(self.service, "_report_if_needed"):
+            self.service._complete_tracking(repo.record, payload, self.service.STATUS_SUCCESS)
+
+        telemetry.track_first_component_build_result.assert_called_once_with(
+            service_id="service-1",
+            attempt_id="attempt-1",
+            deploy_type=self.service.DEPLOY_TYPE_IMAGE,
+            language="",
+            success=True,
+            stage=self.service.FAILURE_STAGE_BUILD,
+            error_code="",
+        )
+        telemetry.track_first_app_deploy_success.assert_called_once_with(
+            attempt_id="attempt-1",
+            deploy_type=self.service.DEPLOY_TYPE_IMAGE,
+            language="",
+        )
+
     def test_offline_mode_does_not_start_report_sweeper(self):
         with mock.patch.dict(os.environ, {"DISABLE_DEFAULT_APP_MARKET": "true"}, clear=True), \
                 mock.patch("console.services.enterprise_first_deploy_service.threading.Thread") as mock_thread:

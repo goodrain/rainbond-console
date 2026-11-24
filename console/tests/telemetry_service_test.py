@@ -10,6 +10,8 @@ from unittest import mock
 from console.models.main import ConsoleSysConfig
 from console.services import telemetry as telemetry_module
 from console.services.telemetry import (
+    COMPONENT_BUILD_RESULT_KEY_PREFIX,
+    FIRST_APP_DEPLOY_SUCCESS_KEY,
     HEARTBEAT_KEY_PREFIX,
     INSTANCE_ID_KEY,
     REGISTERED_KEY,
@@ -59,10 +61,14 @@ class RainbondTelemetryServiceTests(TestCase):
         ConsoleSysConfig.objects.filter(
             key=EXTERNAL_TELEMETRY_ENABLED_KEY,
         ).delete()
+        ConsoleSysConfig.objects.filter(key__startswith=COMPONENT_BUILD_RESULT_KEY_PREFIX).delete()
+        ConsoleSysConfig.objects.filter(key=FIRST_APP_DEPLOY_SUCCESS_KEY).delete()
         telemetry_module._enterprise_id_cache = None
         invalidate_external_telemetry_cache()
 
     def tearDown(self):
+        ConsoleSysConfig.objects.filter(key__startswith=COMPONENT_BUILD_RESULT_KEY_PREFIX).delete()
+        ConsoleSysConfig.objects.filter(key=FIRST_APP_DEPLOY_SUCCESS_KEY).delete()
         telemetry_module._enterprise_id_cache = None
         invalidate_external_telemetry_cache()
 
@@ -363,6 +369,91 @@ class RainbondTelemetryServiceTests(TestCase):
         self.assertEqual(events, ["rainbond_instance_registered", "rainbond_instance_heartbeat"])
         self.assertTrue(ConsoleSysConfig.objects.filter(key=REGISTERED_KEY).exists())
         self.assertTrue(ConsoleSysConfig.objects.filter(key=HEARTBEAT_KEY_PREFIX + "20260614").exists())
+
+    def test_component_build_result_is_idempotent_and_uses_whitelisted_properties(self):
+        transport = FakeTransport()
+        service = RainbondTelemetryService(
+            env={"RAINBOND_POSTHOG_ENABLED": "true"},
+            transport=transport,
+            dispatcher=ImmediateDispatcher(),
+        )
+
+        with mock.patch("console.services.telemetry.get_external_telemetry_enabled", return_value=True):
+            self.assertTrue(service.track_first_component_build_result(
+                service_id="service-1",
+                attempt_id="attempt-1",
+                deploy_type="source_code",
+                language="java",
+                success=False,
+                stage="build",
+                error_code="compile_failed",
+            ))
+            self.assertFalse(RainbondTelemetryService(
+                env={"RAINBOND_POSTHOG_ENABLED": "true"},
+                transport=transport,
+                dispatcher=ImmediateDispatcher(),
+            ).track_first_component_build_result(
+                service_id="service-1",
+                attempt_id="attempt-2",
+                deploy_type="unknown-source",
+                language="private-language",
+                success=False,
+                stage="runtime",
+                error_code="untrusted error message",
+            ))
+            self.assertTrue(service.track_first_component_build_result(
+                service_id="service-2",
+                attempt_id="attempt-3",
+                deploy_type="unknown-source",
+                language="private-language",
+                success=False,
+                stage="runtime",
+                error_code="untrusted error message",
+            ))
+
+        properties = transport.requests[0]["json"]["batch"][0]["properties"]
+        self.assertEqual(transport.requests[0]["json"]["batch"][0]["event"], "first_component_build_result")
+        self.assertEqual(properties["attempt_id"], "attempt-1")
+        self.assertEqual(properties["deploy_type"], "source_code")
+        self.assertEqual(properties["language"], "java")
+        self.assertFalse(properties["success"])
+        self.assertEqual(properties["stage"], "build")
+        self.assertEqual(properties["error_code"], "compile_failed")
+        self.assertNotIn("service_id", properties)
+        unknown_properties = transport.requests[1]["json"]["batch"][0]["properties"]
+        self.assertEqual(unknown_properties["deploy_type"], "unknown")
+        self.assertNotIn("language", unknown_properties)
+        self.assertEqual(unknown_properties["stage"], "unknown")
+        self.assertEqual(unknown_properties["error_code"], "unknown")
+
+    def test_first_app_deploy_success_is_idempotent_across_service_instances(self):
+        transport = FakeTransport()
+        service = RainbondTelemetryService(
+            env={"RAINBOND_POSTHOG_ENABLED": "true"},
+            transport=transport,
+            dispatcher=ImmediateDispatcher(),
+        )
+
+        with mock.patch("console.services.telemetry.get_external_telemetry_enabled", return_value=True):
+            self.assertTrue(service.track_first_app_deploy_success(
+                attempt_id="attempt-1",
+                deploy_type="image",
+                language="",
+            ))
+            self.assertFalse(RainbondTelemetryService(
+                env={"RAINBOND_POSTHOG_ENABLED": "true"},
+                transport=transport,
+                dispatcher=ImmediateDispatcher(),
+            ).track_first_app_deploy_success(
+                attempt_id="attempt-2",
+                deploy_type="image",
+                language="",
+            ))
+
+        events = [request["json"]["batch"][0]["event"] for request in transport.requests]
+        self.assertEqual(events, ["first_app_deploy_success", "meaningful_active"])
+        meaningful_properties = transport.requests[1]["json"]["batch"][0]["properties"]
+        self.assertEqual(meaningful_properties["action_type"], "first_app_deploy")
 
     def test_capture_queues_network_send_after_business_request(self):
         transport = FakeTransport()

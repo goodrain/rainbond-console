@@ -13,6 +13,7 @@ import requests
 
 from console.models.main import ConsoleSysConfig
 from console.repositories.first_deploy_repo import enterprise_first_deploy_repo
+from console.services.telemetry import telemetry_service
 from console.utils.offline import is_external_telemetry_disabled, is_offline_mode
 from django.db import close_old_connections, connections, transaction
 from www.apiclient.regionapi import RegionInvokeApi
@@ -824,11 +825,46 @@ class EnterpriseFirstDeployService(object):
         payload["status"] = status
         payload["finished_at"] = self._now()
         self._save_tracking_payload(record, payload, key=key)
+        self._track_posthog_terminal_events(payload, status)
         self._report_if_needed(
             record,
             payload,
             async_report=payload.get("report_type") != self.REPORT_TYPE_DEPLOY_ATTEMPT,
             key=key)
+
+    def _track_posthog_terminal_events(self, payload: dict, status: str) -> None:
+        deployment_context = payload.get("deployment_context") or {}
+        attempt_id = deployment_context.get("deploy_attempt_id") or ""
+        if not attempt_id:
+            return
+
+        build_status = payload.get("build_status")
+        if build_status in self.FINAL_STATUSES | {self.STAGE_STATUS_TIMEOUT}:
+            build_success = build_status == self.STATUS_SUCCESS
+            error_code = "" if build_success else payload.get("build_failure_category") or self.FAILURE_CATEGORY_UNKNOWN
+            service_ids = []
+            for service_id in payload.get("service_ids") or []:
+                if service_id and service_id not in service_ids:
+                    service_ids.append(service_id)
+            for service_id in service_ids:
+                if not service_id:
+                    continue
+                telemetry_service.track_first_component_build_result(
+                    service_id=service_id,
+                    attempt_id=attempt_id,
+                    deploy_type=payload.get("deploy_type") or "",
+                    language=payload.get("source_language") or "",
+                    success=build_success,
+                    stage=self.FAILURE_STAGE_BUILD,
+                    error_code=error_code,
+                )
+
+        if status == self.STATUS_SUCCESS and payload.get("runtime_status") == self.STATUS_SUCCESS:
+            telemetry_service.track_first_app_deploy_success(
+                attempt_id=attempt_id,
+                deploy_type=payload.get("deploy_type") or "",
+                language=payload.get("source_language") or "",
+            )
 
     def _start_sync_thread(self, key: str, tenant_name: str, region_name: str) -> None:
         with self._lock:
