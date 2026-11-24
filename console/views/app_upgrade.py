@@ -173,6 +173,7 @@ class AppUpgradeDeployView(AppUpgradeRecordView):
             deploy_type=enterprise_first_deploy_service.DEPLOY_TYPE_APP_MARKET,
             operator=self.user.nick_name,
             trigger="market_upgrade_deploy",
+            attempt_id=getattr(enterprise_first_deploy_service, "get_attempt_id_from_request", lambda _: "")(request),
             app_context=enterprise_first_deploy_service.build_service_app_context(self.app))
         try:
             events = upgrade_service.deploy(self.tenant, self.region_name, self.user, self.app_upgrade_record)

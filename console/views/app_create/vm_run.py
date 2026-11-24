@@ -245,6 +245,7 @@ class VMRunCreateView(RegionTenantHeaderView):
             operator=getattr(self.user, "nick_name", ""),
             source_language="virtual-machine",
             trigger="vm_create",
+            attempt_id=getattr(enterprise_first_deploy_service, "get_attempt_id_from_request", lambda _: "")(request),
             app_context={
                 "app_id": group_id,
                 "component_count": 1,

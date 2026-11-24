@@ -180,8 +180,9 @@ class EnterpriseFirstDeployServiceTests(TestCase):
         payload = {
             "deploy_type": self.service.DEPLOY_TYPE_SOURCE_CODE,
             "source_language": "java",
-            "deployment_context": {"deploy_attempt_id": "attempt-1"},
+            "deployment_context": {"deploy_attempt_id": "attempt-1", "trigger": "create_and_deploy"},
             "service_ids": ["service-1"],
+            "terminal_event_eligible": True,
             "build_status": self.service.STATUS_FAILURE,
             "build_failure_category": self.service.FAILURE_CATEGORY_COMPILE_FAILED,
             "runtime_status": self.service.STAGE_STATUS_PENDING,
@@ -190,7 +191,10 @@ class EnterpriseFirstDeployServiceTests(TestCase):
 
         with mock.patch("console.services.enterprise_first_deploy_service.enterprise_first_deploy_repo", repo), \
                 mock.patch("console.services.enterprise_first_deploy_service.telemetry_service") as telemetry, \
-                mock.patch.object(self.service, "_report_if_needed"):
+                mock.patch.object(self.service, "_report_if_needed"), \
+                mock.patch(
+                    "console.services.enterprise_first_deploy_service.transaction.on_commit",
+                    side_effect=lambda callback: callback()):
             self.service._complete_tracking(repo.record, payload, self.service.STATUS_FAILURE)
 
         telemetry.track_first_component_build_result.assert_called_once_with(
@@ -199,8 +203,8 @@ class EnterpriseFirstDeployServiceTests(TestCase):
             deploy_type=self.service.DEPLOY_TYPE_SOURCE_CODE,
             language="java",
             success=False,
-            stage=self.service.FAILURE_STAGE_BUILD,
             error_code=self.service.FAILURE_CATEGORY_COMPILE_FAILED,
+            attempt_id_source="backend",
         )
         telemetry.track_first_app_deploy_success.assert_not_called()
 
@@ -208,8 +212,9 @@ class EnterpriseFirstDeployServiceTests(TestCase):
         payload = {
             "deploy_type": self.service.DEPLOY_TYPE_IMAGE,
             "source_language": "",
-            "deployment_context": {"deploy_attempt_id": "attempt-1"},
+            "deployment_context": {"deploy_attempt_id": "attempt-1", "trigger": "create_and_deploy"},
             "service_ids": ["service-1"],
+            "terminal_event_eligible": True,
             "build_status": self.service.STATUS_SUCCESS,
             "runtime_status": self.service.STATUS_SUCCESS,
         }
@@ -217,7 +222,13 @@ class EnterpriseFirstDeployServiceTests(TestCase):
 
         with mock.patch("console.services.enterprise_first_deploy_service.enterprise_first_deploy_repo", repo), \
                 mock.patch("console.services.enterprise_first_deploy_service.telemetry_service") as telemetry, \
-                mock.patch.object(self.service, "_report_if_needed"):
+                mock.patch.object(self.service, "_report_if_needed"), \
+                mock.patch(
+                    "console.services.enterprise_first_deploy_service.platform_first_app_service._get_config",
+                    return_value=False), \
+                mock.patch(
+                    "console.services.enterprise_first_deploy_service.transaction.on_commit",
+                    side_effect=lambda callback: callback()):
             self.service._complete_tracking(repo.record, payload, self.service.STATUS_SUCCESS)
 
         telemetry.track_first_component_build_result.assert_called_once_with(
@@ -226,14 +237,79 @@ class EnterpriseFirstDeployServiceTests(TestCase):
             deploy_type=self.service.DEPLOY_TYPE_IMAGE,
             language="",
             success=True,
-            stage=self.service.FAILURE_STAGE_BUILD,
             error_code="",
+            attempt_id_source="backend",
         )
         telemetry.track_first_app_deploy_success.assert_called_once_with(
             attempt_id="attempt-1",
             deploy_type=self.service.DEPLOY_TYPE_IMAGE,
             language="",
+            attempt_id_source="backend",
         )
+
+    def test_build_payload_uses_valid_frontend_attempt_id(self):
+        payload = self.service._build_payload(
+            enterprise_id="enterprise-1", tenant_name="team", region_name="region",
+            deploy_type=self.service.DEPLOY_TYPE_IMAGE, attempt_id="7991c273-0f24-4b1d-b4b0-d7900ba30c18")
+
+        context = payload["deployment_context"]
+        self.assertEqual(context["deploy_attempt_id"], "7991c273-0f24-4b1d-b4b0-d7900ba30c18")
+        self.assertEqual(context["attempt_id_source"], "frontend")
+
+    def test_build_payload_replaces_invalid_attempt_id(self):
+        payload = self.service._build_payload(
+            enterprise_id="enterprise-1", tenant_name="team", region_name="region",
+            deploy_type=self.service.DEPLOY_TYPE_IMAGE, attempt_id="not-a-uuid")
+
+        context = payload["deployment_context"]
+        self.assertEqual(context["attempt_id_source"], "backend")
+        self.assertRegex(context["deploy_attempt_id"], r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
+
+    def test_mark_success_and_empty_events_do_not_emit_terminal_events(self):
+        payload = {
+            "deploy_type": self.service.DEPLOY_TYPE_IMAGE,
+            "deployment_context": {"deploy_attempt_id": "attempt-1", "trigger": "image_create"},
+            "service_ids": ["service-1"],
+            "build_status": self.service.STAGE_STATUS_PENDING,
+            "runtime_status": self.service.STAGE_STATUS_PENDING,
+        }
+        repo = FirstDeployRepoStub(payload)
+        tracker = {"key": repo.record.key, "enterprise_id": "enterprise-1", "service_id": "service-1"}
+
+        with mock.patch("console.services.enterprise_first_deploy_service.enterprise_first_deploy_repo", repo), \
+                mock.patch("console.services.enterprise_first_deploy_service.telemetry_service") as telemetry, \
+                mock.patch.object(self.service, "_report_if_needed"):
+            self.service.bind_events(tracker, [])
+            self.service.mark_success(tracker)
+
+        telemetry.track_first_component_build_result.assert_not_called()
+        telemetry.track_first_app_deploy_success.assert_not_called()
+
+    def test_sync_record_keeps_multi_component_build_results_separate(self):
+        payload = {
+            "enterprise_id": "eid-1", "deploy_type": self.service.DEPLOY_TYPE_SOURCE_CODE,
+            "status": self.service.STATUS_PENDING, "build_status": self.service.STAGE_STATUS_PENDING,
+            "runtime_status": self.service.STAGE_STATUS_PENDING, "event_ids": ["event-a", "event-b"],
+        }
+        repo = FirstDeployRepoStub(payload)
+        events = [
+            {"EventID": "event-a", "ServiceID": "service-a", "Status": "success", "OptType": "build"},
+            {"EventID": "event-b", "ServiceID": "service-b", "Status": "failure", "OptType": "build",
+             "Message": "compile failed"},
+        ]
+
+        with mock.patch("console.services.enterprise_first_deploy_service.enterprise_first_deploy_repo", repo), \
+                mock.patch("console.services.enterprise_first_deploy_service.region_api.get_tenant_events",
+                           return_value={"list": events}), \
+                mock.patch.object(self.service, "_report_if_needed"), \
+                mock.patch.object(self.service, "_collect_failure_logs"), \
+                mock.patch(
+                    "console.services.enterprise_first_deploy_service.transaction.on_commit",
+                    side_effect=lambda callback: callback()):
+            self.assertEqual(self.service._sync_record(repo.record, payload, "team", "region"), self.service.STATUS_FAILURE)
+
+        self.assertEqual(repo.payload["component_build_results"]["service-a"]["status"], self.service.STATUS_SUCCESS)
+        self.assertEqual(repo.payload["component_build_results"]["service-b"]["status"], self.service.STATUS_FAILURE)
 
     def test_offline_mode_does_not_start_report_sweeper(self):
         with mock.patch.dict(os.environ, {"DISABLE_DEFAULT_APP_MARKET": "true"}, clear=True), \

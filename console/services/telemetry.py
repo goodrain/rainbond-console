@@ -34,15 +34,16 @@ _enterprise_id_cache = None
 
 TELEMETRY_DEPLOY_TYPES = frozenset((
     "source_code", "app_market", "image", "database", "virtual_machine", "k8s_resource", "yaml", "helm",
-    "docker_compose",
+    "docker_compose", "other",
 ))
 TELEMETRY_LANGUAGES = frozenset((
-    "c", "c++", "dotnet", "go", "golang", "java", "node", "nodejs", "php", "python", "ruby", "rust",
+    "c", "c++", "dotnet", "go", "golang", "java", "java-maven", "java-jar", "java-war", "gradle", "node",
+    "node.js", "nodejs", "nodejsstatic", "static", ".netcore", "php", "python", "ruby", "rust", "dockerfile",
 ))
 TELEMETRY_ERROR_CODES = frozenset((
     "source_fetch_timeout", "source_auth_failed", "source_repo_unreachable", "source_branch_missing", "compile_failed",
     "image_pull_failed", "image_push_failed", "version_info_failed", "runtime_timeout", "pod_crash_loop",
-    "resource_insufficient", "pvc_unbound", "no_available_nodes", "unknown",
+    "resource_insufficient", "pvc_unbound", "no_available_nodes", "build_timeout", "unknown",
 ))
 
 SENSITIVE_KEY_RE = re.compile(
@@ -329,7 +330,7 @@ class RainbondTelemetryService(object):
 
     @staticmethod
     def _normalize_deploy_type(deploy_type):
-        return deploy_type if deploy_type in TELEMETRY_DEPLOY_TYPES else "unknown"
+        return deploy_type if deploy_type in TELEMETRY_DEPLOY_TYPES else "other"
 
     @staticmethod
     def _normalize_language(language):
@@ -349,6 +350,7 @@ class RainbondTelemetryService(object):
         properties = {
             "attempt_id": attempt_id,
             "deploy_type": self._normalize_deploy_type(deploy_type),
+            "source": "backend",
         }
         language = self._normalize_language(language)
         if language:
@@ -361,8 +363,8 @@ class RainbondTelemetryService(object):
                                            deploy_type,
                                            language="",
                                            success=False,
-                                           stage="build",
-                                           error_code=""):
+                                           error_code="",
+                                           attempt_id_source="backend"):
         try:
             if not self.is_enabled() or not service_id or not attempt_id:
                 return False
@@ -371,7 +373,7 @@ class RainbondTelemetryService(object):
             properties = self._build_deploy_result_properties(attempt_id, deploy_type, language)
             properties.update({
                 "success": bool(success),
-                "stage": "build" if stage == "build" else "unknown",
+                "attempt_id_source": attempt_id_source if attempt_id_source in ("frontend", "backend") else "backend",
             })
             if not success:
                 properties["error_code"] = self._normalize_error_code(error_code)
@@ -380,13 +382,18 @@ class RainbondTelemetryService(object):
             logger.debug("posthog telemetry build result failed: %s", exc)
             return False
 
-    def track_first_app_deploy_success(self, attempt_id, deploy_type, language=""):
+    def mark_first_app_deploy_observed(self):
+        return self._create_flag_if_absent(FIRST_APP_DEPLOY_SUCCESS_KEY)
+
+    def track_first_app_deploy_success(self, attempt_id, deploy_type, language="", attempt_id_source="backend"):
         try:
             if not self.is_enabled() or not attempt_id:
                 return False
             if not self._create_flag_if_absent(FIRST_APP_DEPLOY_SUCCESS_KEY):
                 return False
             properties = self._build_deploy_result_properties(attempt_id, deploy_type, language)
+            properties["attempt_id_source"] = (
+                attempt_id_source if attempt_id_source in ("frontend", "backend") else "backend")
             deployed = self.capture("first_app_deploy_success", properties)
             meaningful_properties = dict(properties)
             meaningful_properties["action_type"] = "first_app_deploy"
