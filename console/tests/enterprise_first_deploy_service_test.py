@@ -160,6 +160,12 @@ class FirstDeployRepoStub(object):
 
 class EnterpriseFirstDeployServiceTests(TestCase):
     def setUp(self):
+        self._enable_telemetry = mock.patch.dict(
+            os.environ,
+            {"RAINBOND_TELEMETRY_DISABLED": "0", "RAINBOND_ERROR_REPORTING_DISABLED": "0"},
+        )
+        self._enable_telemetry.start()
+        self.addCleanup(self._enable_telemetry.stop)
         self.service = EnterpriseFirstDeployService()
         self.service.RUNTIME_OBSERVE_WINDOW = 30
         self.service.READINESS_FINAL_OBSERVE_WINDOW = 90

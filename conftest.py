@@ -1,9 +1,26 @@
 # -*- coding: utf-8 -*-
 import os
+from urllib.parse import urlparse
 
 import pytest
+import requests
 
-os.environ.setdefault("DISABLE_FIRST_DEPLOY_SWEEPER", "1")
+os.environ["DISABLE_FIRST_DEPLOY_SWEEPER"] = "1"
+os.environ["RAINBOND_TELEMETRY_DISABLED"] = "1"
+os.environ["RAINBOND_ERROR_REPORTING_DISABLED"] = "1"
+
+_LOCAL_TEST_HOSTS = {"127.0.0.1", "localhost"}
+_ORIGINAL_SESSION_SEND = requests.sessions.Session.send
+
+
+def _block_external_http_requests(session, request, **kwargs):
+    hostname = urlparse(request.url).hostname
+    if hostname not in _LOCAL_TEST_HOSTS:
+        raise RuntimeError("external HTTP requests are disabled during tests")
+    return _ORIGINAL_SESSION_SEND(session, request, **kwargs)
+
+
+requests.sessions.Session.send = _block_external_http_requests
 
 OPENAPI_CLIENT_TEST_DIRS = (
     os.path.join("src", "openapi-client", "test"),

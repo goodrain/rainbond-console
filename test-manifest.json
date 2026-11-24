@@ -13970,6 +13970,24 @@
       ],
       "test_type": "regression",
       "status": "active"
+    },
+    {
+      "id": "console.tests.external-http-guard",
+      "title": "Block external HTTP requests during tests",
+      "title_zh": "测试期间阻止外部 HTTP 请求",
+      "interface_type": "other",
+      "interface": "conftest._block_external_http_requests",
+      "code_paths": [
+        "conftest.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/external_http_guard_test.py",
+          "selector": "ExternalHttpGuardTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
     }
   ]
 }
