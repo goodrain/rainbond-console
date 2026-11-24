@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 # capability_id: console.tests.external-http-guard
+import http.client
 import os
 
 import requests
@@ -21,3 +22,7 @@ class ExternalHttpGuardTests(SimpleTestCase):
     def test_blocks_external_requests_before_transport(self):
         with self.assertRaisesRegex(RuntimeError, "external HTTP requests are disabled during tests"):
             requests.get("https://example.invalid")
+
+    def test_blocks_socket_based_http_clients(self):
+        with self.assertRaisesRegex(RuntimeError, "external HTTP requests are disabled during tests"):
+            http.client.HTTPConnection("192.0.2.1").connect()

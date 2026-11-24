@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
+import socket
 from urllib.parse import urlparse
 
 import pytest
@@ -11,6 +12,7 @@ os.environ["RAINBOND_ERROR_REPORTING_DISABLED"] = "1"
 
 _LOCAL_TEST_HOSTS = {"127.0.0.1", "localhost"}
 _ORIGINAL_SESSION_SEND = requests.sessions.Session.send
+_ORIGINAL_SOCKET = socket.socket
 
 
 def _block_external_http_requests(session, request, **kwargs):
@@ -20,7 +22,15 @@ def _block_external_http_requests(session, request, **kwargs):
     return _ORIGINAL_SESSION_SEND(session, request, **kwargs)
 
 
+class _TestSocket(_ORIGINAL_SOCKET):
+    def connect(self, address):
+        if isinstance(address, tuple) and address[0] not in _LOCAL_TEST_HOSTS:
+            raise RuntimeError("external HTTP requests are disabled during tests")
+        return super().connect(address)
+
+
 requests.sessions.Session.send = _block_external_http_requests
+socket.socket = _TestSocket
 
 OPENAPI_CLIENT_TEST_DIRS = (
     os.path.join("src", "openapi-client", "test"),

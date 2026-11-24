@@ -256,6 +256,16 @@ class EnterpriseFirstDeployServiceTests(TestCase):
         mock_post.assert_not_called()
         mock_sleep.assert_not_called()
 
+    def test_telemetry_disabled_skips_report_request(self):
+        with mock.patch.dict(os.environ, {"RAINBOND_TELEMETRY_DISABLED": "true"}, clear=True), \
+                mock.patch("console.services.enterprise_first_deploy_service.requests.post") as mock_post, \
+                mock.patch("console.services.enterprise_first_deploy_service.time.sleep") as mock_sleep:
+            result = self.service._post_report_payload({"eid": "eid-1"})
+
+        self.assertTrue(result)
+        mock_post.assert_not_called()
+        mock_sleep.assert_not_called()
+
     def test_offline_mode_does_not_create_deploy_tracking(self):
         repo = mock.Mock()
         begin_methods = (
@@ -304,6 +314,26 @@ class EnterpriseFirstDeployServiceTests(TestCase):
         self.service.report_async = True
 
         with mock.patch.dict(os.environ, {"DISABLE_DEFAULT_APP_MARKET": "true"}, clear=True), \
+                mock.patch("console.services.enterprise_first_deploy_service.enterprise_first_deploy_repo", repo), \
+                mock.patch.object(self.service, "_start_report_thread") as mock_start_report_thread, \
+                mock.patch("console.services.enterprise_first_deploy_service.requests.post") as mock_post:
+            self.service._report_if_needed(repo.record, payload, async_report=True)
+
+        self.assertTrue(repo.payload["reported"])
+        mock_start_report_thread.assert_not_called()
+        mock_post.assert_not_called()
+
+    def test_telemetry_disabled_marks_first_deploy_report_handled_without_thread(self):
+        payload = {
+            "enterprise_id": "eid-1",
+            "report_type": self.service.REPORT_TYPE_FIRST_DEPLOY,
+            "status": self.service.STATUS_SUCCESS,
+            "reported": False,
+        }
+        repo = FirstDeployRepoStub(payload)
+        self.service.report_async = True
+
+        with mock.patch.dict(os.environ, {"RAINBOND_TELEMETRY_DISABLED": "true"}, clear=True), \
                 mock.patch("console.services.enterprise_first_deploy_service.enterprise_first_deploy_repo", repo), \
                 mock.patch.object(self.service, "_start_report_thread") as mock_start_report_thread, \
                 mock.patch("console.services.enterprise_first_deploy_service.requests.post") as mock_post:
