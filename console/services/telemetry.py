@@ -39,6 +39,7 @@ TELEMETRY_DEPLOY_TYPES = frozenset((
 TELEMETRY_LANGUAGES = frozenset((
     "c", "c++", "dotnet", "go", "golang", "java", "java-maven", "java-jar", "java-war", "gradle", "node",
     "node.js", "nodejs", "nodejsstatic", "static", ".netcore", "php", "python", "ruby", "rust", "dockerfile",
+    "docker", "nodejsdockerfile", "clojure", "grails", "oss",
 ))
 TELEMETRY_ERROR_CODES = frozenset((
     "source_fetch_timeout", "source_auth_failed", "source_repo_unreachable", "source_branch_missing", "compile_failed",

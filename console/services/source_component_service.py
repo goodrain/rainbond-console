@@ -129,7 +129,8 @@ class SourceComponentService(object):
             is_deploy: bool = True,
             prefer_dockerfile_when_detected: bool = False,
             max_check_retries: Optional[int] = None,
-            check_poll_interval: Optional[int] = None) -> dict:
+            check_poll_interval: Optional[int] = None,
+            attempt_id: str = "") -> dict:
         git_url = self.normalize_git_url(git_url, subdirectories)
         server_type = self.infer_server_type(git_url, server_type)
         code_from = self.normalize_code_from(code_from, git_url)
@@ -281,6 +282,7 @@ class SourceComponentService(object):
                 service_alias=service_alias,
                 service=region_component,
                 trigger="source_auto_create",
+                attempt_id=attempt_id,
                 app_context=enterprise_first_deploy_service.build_service_app_context(app))
             try:
                 arch_service.update_affinity_by_arch(region_component.arch, team, app.region_name, region_component)

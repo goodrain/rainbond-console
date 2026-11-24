@@ -50,7 +50,7 @@ class EnterpriseFirstDeployService(object):
     REPORT_TYPE_FIRST_DEPLOY = "first_deploy"
     REPORT_TYPE_DEPLOY_ATTEMPT = "deploy_attempt"
     CREATION_TRIGGERS = frozenset((
-        "create_and_deploy", "image_create", "source_create", "package_create", "compose_build", "vm_create",
+        "create_and_deploy", "compose_build", "vm_create",
         "market_install", "kubeblocks_create", "source_auto_create", "package_auto_create",
     ))
     FAILURE_STAGE_PREFLIGHT = "preflight"
@@ -206,6 +206,7 @@ class EnterpriseFirstDeployService(object):
             workload_context=workload_context,
             attempt_id=attempt_id,
         )
+        payload["instance_deployed_before_tracking"] = self._instance_deployed_before_tracking()
         record, created = enterprise_first_deploy_repo.create_if_absent(enterprise_id, payload)
         if not created:
             existing = enterprise_first_deploy_repo.load_payload(record)
@@ -263,6 +264,7 @@ class EnterpriseFirstDeployService(object):
             report_type=self.REPORT_TYPE_DEPLOY_ATTEMPT,
             is_first_deploy=False,
         )
+        payload["instance_deployed_before_tracking"] = self._instance_deployed_before_tracking()
         record, _ = enterprise_first_deploy_repo.create_attempt(enterprise_id, payload)
         if not record:
             return None
@@ -924,6 +926,8 @@ class EnterpriseFirstDeployService(object):
             )
 
     def _is_existing_instance_deployment(self, payload: dict) -> bool:
+        if "instance_deployed_before_tracking" in payload:
+            return bool(payload["instance_deployed_before_tracking"])
         first_app_config = platform_first_app_service._get_config()
         if first_app_config and first_app_config.value == "1":
             return True
@@ -934,6 +938,11 @@ class EnterpriseFirstDeployService(object):
             return False
         stored = enterprise_first_deploy_repo.load_payload(record)
         return stored is not payload and stored.get("status") == self.STATUS_SUCCESS
+
+    @staticmethod
+    def _instance_deployed_before_tracking() -> bool:
+        config = platform_first_app_service._get_config()
+        return bool(config and config.value == "1")
 
     def _start_sync_thread(self, key: str, tenant_name: str, region_name: str) -> None:
         with self._lock:

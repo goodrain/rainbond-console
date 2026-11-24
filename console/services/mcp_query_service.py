@@ -4067,6 +4067,7 @@ class MCPQueryService(object):
             arch=arguments.get("arch", "amd64") or "amd64",
             is_deploy=bool(arguments.get("is_deploy", True)),
             prefer_dockerfile_when_detected=bool(arguments.get("prefer_dockerfile_when_detected", False)),
+            attempt_id=arguments.get("attempt_id", "") or "",
         )
 
     def create_component_from_package(self, user: Any, arguments: dict) -> Any:
@@ -4085,6 +4086,7 @@ class MCPQueryService(object):
             k8s_component_name=arguments.get("k8s_component_name", "") or "",
             arch=arguments.get("arch", "amd64") or "amd64",
             is_deploy=bool(arguments.get("is_deploy", True)),
+            attempt_id=arguments.get("attempt_id", "") or "",
         )
 
     def replace_component_package(self, user: Any, arguments: dict) -> Any:

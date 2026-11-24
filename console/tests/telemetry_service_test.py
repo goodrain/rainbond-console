@@ -439,6 +439,20 @@ class RainbondTelemetryServiceTests(TestCase):
         properties = transport.requests[0]["json"]["batch"][0]["properties"]
         self.assertEqual(properties["language"], "java-maven")
 
+    def test_component_build_result_preserves_additional_builder_languages(self):
+        transport = FakeTransport()
+        service = RainbondTelemetryService(
+            env={"RAINBOND_POSTHOG_ENABLED": "true"}, transport=transport, dispatcher=ImmediateDispatcher())
+
+        with mock.patch("console.services.telemetry.get_external_telemetry_enabled", return_value=True):
+            for index, language in enumerate(("docker", "NodeJSDockerfile", "Clojure", "Grails", "OSS")):
+                self.assertTrue(service.track_first_component_build_result(
+                    service_id="service-language-{}".format(index), attempt_id="attempt-{}".format(index),
+                    deploy_type="source_code", language=language, success=True))
+
+        languages = [request["json"]["batch"][0]["properties"]["language"] for request in transport.requests]
+        self.assertEqual(languages, ["docker", "nodejsdockerfile", "clojure", "grails", "oss"])
+
     def test_first_app_deploy_success_is_idempotent_across_service_instances(self):
         transport = FakeTransport()
         service = RainbondTelemetryService(

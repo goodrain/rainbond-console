@@ -210,7 +210,8 @@ class PackageComponentService(object):
                               arch: str = "amd64",
                               is_deploy: bool = True,
                               max_check_retries: Optional[int] = None,
-                              check_poll_interval: Optional[int] = None) -> Dict[str, Any]:
+                              check_poll_interval: Optional[int] = None,
+                              attempt_id: str = "") -> Dict[str, Any]:
         if k8s_component_name and console_app_service.is_k8s_component_name_duplicate(
                 app.ID, k8s_component_name  # type: ignore[arg-type]
                 # NOTE: app.ID is int (PK), callee expects str; runtime coercion via Django ORM lookup works
@@ -299,7 +300,8 @@ class PackageComponentService(object):
                 service_alias=service_alias,
                 service=region_component,
                 trigger="package_auto_create",
-                app_context=enterprise_first_deploy_service.build_service_app_context(app))
+                app_context=enterprise_first_deploy_service.build_service_app_context(app),
+                attempt_id=attempt_id)
             try:
                 arch_service.update_affinity_by_arch(region_component.arch, team, app.region_name, region_component)
                 code, msg, deploy_event_id = app_manage_service.deploy(team, region_component, user)

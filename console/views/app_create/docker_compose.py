@@ -164,7 +164,7 @@ class GetComposeCheckUUID(ComposeGroupBaseView):
 
 
 class ComposeCheckView(ComposeGroupBaseView):
-    def _report_compose_check_failure(self, compose_id: str, check_uuid: str, reason: str) -> None:
+    def _report_compose_check_failure(self, compose_id: str, check_uuid: str, reason: str, attempt_id: str = "") -> None:
         app_context = enterprise_first_deploy_service.build_service_app_context(self.group)
         app_context["compose_id"] = compose_id or ""
         tracker = enterprise_first_deploy_service.safe_begin_deploy_tracking(
@@ -175,6 +175,7 @@ class ComposeCheckView(ComposeGroupBaseView):
             operator=getattr(self.user, "nick_name", ""),
             source_language="docker-compose",
             trigger="compose_check",
+            attempt_id=attempt_id,
             app_context=app_context,
             workload_context=enterprise_first_deploy_service.build_docker_compose_workload_context(
                 compose_id=compose_id or "", check_uuid=check_uuid or ""))
@@ -217,7 +218,8 @@ class ComposeCheckView(ComposeGroupBaseView):
             return Response(general_message(400, "params error", "需要检测的compose ID "), status=400)
         code, msg, compose_bean = compose_service.check_compose(self.response_region, self.tenant, compose_id)
         if code != 200:
-            self._report_compose_check_failure(compose_id, "", msg)
+            self._report_compose_check_failure(
+                compose_id, "", msg, enterprise_first_deploy_service.get_attempt_id_from_request(request))
             return Response(general_message(code, "check compose error", msg))
         result = general_message(code, "compose check task send success", "检测任务发送成功", bean=compose_bean)
         return Response(result, status=result["code"])
@@ -284,7 +286,8 @@ class ComposeCheckView(ComposeGroupBaseView):
                 self._report_compose_check_failure(
                     compose_id,
                     check_uuid,
-                    self._compose_check_failure_reason(data, save_msg))
+                    self._compose_check_failure_reason(data, save_msg),
+                    enterprise_first_deploy_service.get_attempt_id_from_request(request))
             compose_check_brief = compose_service.wrap_compose_check_info(data)
             result = general_message(200, "success", "请求成功", bean=compose_check_brief, list=[s.to_dict() for s in service_list])
         except ResourceNotEnoughException as re:

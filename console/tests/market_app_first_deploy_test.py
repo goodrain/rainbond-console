@@ -228,7 +228,8 @@ class MarketAppFirstDeployTrackingTests(TestCase):
                 "1.2.3",
                 "localApplication",
                 False,
-                is_deploy=True)
+                is_deploy=True,
+                attempt_id="9ccf53b5-7fbd-4d6e-99ca-286a5a7af45a")
 
         self.assertEqual("Demo App", app_name)
         first_deploy_service.safe_begin_deploy_tracking.assert_called_once()
@@ -239,6 +240,7 @@ class MarketAppFirstDeployTrackingTests(TestCase):
         self.assertEqual("app_market", tracking_kwargs["deploy_type"])
         self.assertEqual("tester", tracking_kwargs["operator"])
         self.assertEqual("market_install", tracking_kwargs["trigger"])
+        self.assertEqual("9ccf53b5-7fbd-4d6e-99ca-286a5a7af45a", tracking_kwargs["attempt_id"])
         self.assertEqual("Demo App", tracking_kwargs["app_context"]["market_app_name"])
         self.assertEqual("market-model-key", tracking_kwargs["app_context"]["app_model_key"])
         self.assertEqual(2, tracking_kwargs["app_context"]["component_count"])
