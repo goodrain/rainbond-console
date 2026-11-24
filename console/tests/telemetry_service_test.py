@@ -479,6 +479,8 @@ class RainbondTelemetryServiceTests(TestCase):
 
         events = [request["json"]["batch"][0]["event"] for request in transport.requests]
         self.assertEqual(events, ["first_app_deploy_success", "meaningful_active"])
+        for request in transport.requests:
+            self.assertEqual(request["json"]["batch"][0]["properties"]["source"], "backend")
         meaningful_properties = transport.requests[1]["json"]["batch"][0]["properties"]
         self.assertEqual(meaningful_properties["action_type"], "first_app_deploy")
 
