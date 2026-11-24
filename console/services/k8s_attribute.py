@@ -114,10 +114,17 @@ class ComponentK8sAttributeService(object):
         return result
 
     @transaction.atomic
-    def create_k8s_attribute(self, tenant: Tenants, component: TenantServiceInfo, region_name: str, attribute: Dict[str, Any],
-                             user_name: str) -> None:
-        self._reject_managed_login_attribute(attribute.get("name", ""))
+    def create_k8s_attribute(self, tenant: Tenants, component: TenantServiceInfo, region_name: str,
+                             attribute: Dict[str, Any], user_name: str) -> None:
+        if not isinstance(attribute, dict) or not isinstance(attribute.get("name"), str) or not attribute["name"]:
+            raise ServiceHandleException(msg="attribute name is required", msg_show="属性必须包含非空的字符串名称")
+        self._reject_managed_login_attribute(attribute["name"])
         attribute = public_attribute_fields(attribute)
+        if attribute["name"] not in SEQUENCE_ATTRIBUTE_NAMES or "save_type" in attribute:
+            save_type = attribute.get("save_type")
+            if not isinstance(save_type, str) or save_type not in {"json", "yaml", "string"}:
+                raise ServiceHandleException(
+                    msg="save_type must be json, yaml or string", msg_show="属性保存类型必须为json、yaml或string")
         attribute = self._normalize_attribute_payload(attribute)
         if attribute["save_type"] == "json":
             attribute["attribute_value"] = self._serialize_json_attribute_value(attribute.get("attribute_value", []))

@@ -3302,10 +3302,11 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
                              url: str,
                              headers: Dict[str, Any],
                              method: str,
-                             body: Optional[dict] = None) -> Tuple[Any, Optional[Dict[str, Any]]]:
+                             body: Optional[dict] = None,
+                             connect_timeout: int = 5) -> Tuple[Any, Optional[Dict[str, Any]]]:
         # A worker needs the actual HTTP status and full error/identity bean.
         # Generic _check_status may collapse these into a message-only error.
-        options: Dict[str, Any] = dict(region=region, timeout=15, connect_timeout=5, retries=0)
+        options: Dict[str, Any] = dict(region=region, timeout=15, connect_timeout=connect_timeout, retries=0)
         if body is not None:
             options["body"] = json.dumps(body)
         status, raw = self._request(url, method, headers=headers, **options)
@@ -3422,7 +3423,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
                                    service_alias: str) -> Tuple[Any, Optional[Dict[str, Any]]]:
         url, headers = self._vm_snapshot_access(region, tenant_name, service_alias)
         url = url[:-len('/vm-snapshots')] + '/vm-snapshot-capability'
-        return self._get(url, headers, region=region, timeout=15, connect_timeout=3, retries=0)
+        return self._vm_snapshot_request(region, url, headers, "GET", connect_timeout=3)
 
     def list_vm_snapshots(self,
                           region: str,
@@ -3434,7 +3435,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             raise ServiceHandleException("invalid VM snapshot pagination", status_code=400)
         url, headers = self._vm_snapshot_access(region, tenant_name, service_alias)
         url += "?" + urlencode({"page": page, "page_size": page_size})
-        return self._get(url, headers, region=region, timeout=15, connect_timeout=5, retries=0)
+        return self._vm_snapshot_request(region, url, headers, "GET")
 
     def get_vm_snapshot(self, region: str, tenant_name: str, service_alias: str,
                         snapshot_name: str) -> Tuple[Any, Optional[Dict[str, Any]]]:

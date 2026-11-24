@@ -542,8 +542,9 @@ class EnterpriseNamespaceResource(JWTAuthApiView):
         content = request.GET.get("content", "all")
         namespace = request.GET.get("namespace", "")
         data = region_resource.get_namespaces_resource(enterprise_id, region_id, content, namespace)
-        move = data["bean"].pop('unclassified')
-        data["bean"]["unclassified"] = move
+        if "unclassified" in data["bean"]:
+            move = data["bean"].pop("unclassified")
+            data["bean"]["unclassified"] = move
         result = general_message(200, "success", "获取成功", bean=data["bean"])
         return Response(result, status=status.HTTP_200_OK)
 
@@ -553,8 +554,9 @@ class EnterpriseConvertResource(JWTAuthApiView):
         content = request.GET.get("content", "all")
         namespace = request.GET.get("namespace", "")
         data = region_resource.convert_resource(enterprise_id, region_id, namespace, content)
-        move = data["bean"].pop('unclassified')
-        data["bean"]["unclassified"] = move
+        if "unclassified" in data["bean"]:
+            move = data["bean"].pop("unclassified")
+            data["bean"]["unclassified"] = move
         result = general_message(200, "success", "获取成功", bean=data["bean"])
         return Response(result, status=status.HTTP_200_OK)
 

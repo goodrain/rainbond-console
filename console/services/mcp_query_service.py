@@ -1643,8 +1643,9 @@ class MCPQueryService(object):
                 service.code_from = "oauth_" + oauth_service.oauth_type  # type: ignore[union-attr, operator]
                 service.oauth_service_id = oauth_service_id
                 service.git_full_name = arguments.get("full_name", "") or getattr(service, "git_full_name", "")
-            else:
+            elif "is_oauth" in arguments or not getattr(service, "oauth_service_id", None):
                 service.code_from = ""
+                service.oauth_service_id = None
             if normalized_git_url:
                 service.git_url = normalized_git_url
             service.code_version = normalized_code_version
@@ -2487,8 +2488,16 @@ class MCPQueryService(object):
             if volume_capacity is not None:
                 volume_capacity = self._parse_int_with_default(volume_capacity, 0)
             service_config = volume_repo.get_service_config_file(volume)
-            if volume.volume_type == "config-file" and not service_config:
-                raise ServiceHandleException(msg="file_content is null", msg_show="配置文件内容不存在", status_code=400)
+            if volume.volume_type == "config-file":
+                if not service_config:
+                    raise ServiceHandleException(msg="file_content is null", msg_show="配置文件内容不存在", status_code=400)
+                new_file_content = arguments.get("new_file_content", service_config.file_content)
+                if not isinstance(new_file_content, str):
+                    raise ServiceHandleException(
+                        msg="invalid file content",
+                        msg_show="配置文件内容必须为字符串",
+                        status_code=400,
+                    )
             target_volume_capacity = volume.volume_capacity if volume_capacity is None else volume_capacity
             if self.service_requires_region_sync(service):
                 data = {
@@ -2513,9 +2522,7 @@ class MCPQueryService(object):
             volume.save()
             if volume.volume_type == "config-file" and service_config:
                 service_config.volume_name = volume.volume_name
-                # NOTE: latent — new_file_content is arguments.get("new_file_content")
-                # which may be None; assigning None to the model's file_content field.
-                service_config.file_content = new_file_content  # type: ignore[assignment]
+                service_config.file_content = new_file_content
                 service_config.save()
             return {"updated": True, "volume": self._serialize_model_item(volume)}
         if operation == "delete_volume":
@@ -4217,7 +4224,13 @@ class MCPQueryService(object):
                 app_check_service.update_service_check_info(team, service, data)
             check_brief_info = app_check_service.wrap_service_check_info(service, data)
         else:
-            service_info_list = data.get("service_info") or []
+            detected_services = data.get("service_info") or []
+            service_info_list = (source_component_service.select_check_services(
+                detected_services, prefer_dockerfile_when_detected)
+                if data.get("check_status") == "success" else detected_services)
+            if len(detected_services) > 1 and len(service_info_list) == 1:
+                service.dockerfile = "Dockerfile"
+                data = dict(data, service_info=service_info_list)
             if service_info_list and len(service_info_list) < 2:
                 if prefer_dockerfile_when_detected:
                     # Re-detect recovery path: apply the same Dockerfile preference
@@ -6961,7 +6974,7 @@ class MCPQueryService(object):
                     },
                     "is_oauth": {
                         "type": "boolean",
-                        "description": "为 true 时按 OAuth 代码仓库处理。"
+                        "description": "true=切换到OAuth；false=切换到普通Git并清除旧OAuth关联；省略则保留已有认证方式。"
                     },
                     "oauth_service_id": {
                         "type": "string",
@@ -8793,11 +8806,13 @@ class MCPQueryService(object):
                         "type": "boolean"
                     },
                     "prefer_dockerfile_when_detected": {
-                        "type":
-                        "boolean",
-                        "description": ("仅 MCP 使用。若检测结果同时命中 Dockerfile 和语言型构建方式（如 Node.js），"
-                                        "优先选择 Dockerfile。默认 false，不影响前端默认流程。"
-                                        "当前 MCP 仅支持布尔偏好，不支持指定具体 dockerfile_path。")
+                        "type": "boolean",
+                        "description": (
+                            "仅 MCP 使用。若检测结果同时命中 Dockerfile 和语言型构建方式（如 Node.js），"
+                            "优先选择 Dockerfile。默认 false，不影响前端默认流程。"
+                            "Maven多模块检测到根目录Dockerfile时，显式true会选择整仓Dockerfile单组件构建。"
+                            "当前 MCP 仅支持布尔偏好，不支持指定具体 dockerfile_path。"
+                        )
                     }
                 },
                 "required": ["team_name", "region_name", "app_id", "code_from", "service_cname", "git_url"]
@@ -9087,14 +9102,16 @@ class MCPQueryService(object):
                         "type": "string"
                     },
                     "prefer_dockerfile_when_detected": {
-                        "type":
-                        "boolean",
-                        "description": ("仅 MCP 使用。重新检测后若结果同时命中 Dockerfile 和语言型构建方式，"
-                                        "优先选择 Dockerfile（与 create 时同名参数一致）。用于恢复路径强制 Dockerfile，"
-                                        "避免 CNB 不支持的语言/版本（如 .NET 7）卡死。默认 false。"
-                                        "若 create 时已传 prefer_dockerfile_when_detected=true 且检测超时，"
-                                        "偏好已持久化并自动应用，无需重传。响应中的 dockerfile_preference_applied/build_mode_note "
-                                        "会说明偏好是否生效。")
+                        "type": "boolean",
+                        "description": (
+                            "仅 MCP 使用。重新检测后若结果同时命中 Dockerfile 和语言型构建方式，"
+                            "优先选择 Dockerfile（与 create 时同名参数一致）。用于恢复路径强制 Dockerfile，"
+                            "支持Maven多模块与根目录Dockerfile的消歧，非Maven多组件保持原流程。"
+                            "避免 CNB 不支持的语言/版本（如 .NET 7）卡死。默认 false。"
+                            "若 create 时已传 prefer_dockerfile_when_detected=true 且检测超时，"
+                            "偏好已持久化并自动应用，无需重传。响应中的 dockerfile_preference_applied/build_mode_note "
+                            "会说明偏好是否生效。"
+                        )
                     }
                 },
                 "required": ["team_name", "region_name", "app_id", "service_id"]

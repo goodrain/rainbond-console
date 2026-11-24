@@ -35,8 +35,9 @@ class PluginBaseView(RegionTenantHeaderView):
         except TenantPlugin.DoesNotExist:
             raise BusinessException(Response(general_message(404, "plugin not found", "插件不存在"), status=404))
 
-        # NOTE: plugin_repo.get_by_plugin_id may return None; backlog
-        self.plugin = tenant_plugin  # type: ignore[assignment]
+        if tenant_plugin is None:
+            raise BusinessException(Response(general_message(404, "plugin not found", "插件不存在"), status=404))
+        self.plugin = tenant_plugin
         if self.plugin.tenant_id != self.tenant.tenant_id:
             team_info = Tenants.objects.filter(tenant_id=self.plugin.tenant_id)
             if team_info:

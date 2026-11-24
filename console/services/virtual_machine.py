@@ -5,6 +5,7 @@ import unicodedata
 
 from datetime import datetime
 from typing import Any, Optional, Tuple
+from urllib.parse import urlsplit
 
 from cryptography.hazmat.primitives.serialization import load_ssh_public_key
 from passlib.hash import sha512_crypt
@@ -60,8 +61,12 @@ VM_SSH_PUBLIC_KEY_TYPES = {
 }
 VM_SSH_PUBLIC_KEY_MAX_BYTES = 16 * 1024
 VM_SSH_DISK_FORMATS = {"qcow2", "raw", "img"}
+VM_PLAIN_DISK_FORMATS = {"qcow2", "raw", "img", "vmdk"}
+VM_SOURCE_WRAPPER_FORMATS = {"gz", "xz", "tar", "tar.gz", "tar.xz"}
+VM_UPLOAD_EVENT_ID = re.compile(r"^[A-Za-z0-9_-]{1,128}$")
+VM_UPLOAD_SOURCE_ROOT = "/grdata/package_build/temp/events"
 VM_UBUNTU_NOBLE_QCOW2_URL = (
-    "https://cloud-images.ubuntu.com/minimal/releases/noble/release/"
+    "https://plugins.tos-cn-beijing.volces.com/vm/"
     "ubuntu-24.04-minimal-cloudimg-amd64.img"
 )
 VM_LOGIN_PASSWORD_MIN_LENGTH = 12
@@ -203,6 +208,9 @@ class VirtualMachineService(object):
         os_label = os_name.strip().lower() if isinstance(os_name, str) else ""
         family = os_family.strip().lower() if isinstance(os_family, str) else ""
         source_format = boot_source_format.strip().lower() if isinstance(boot_source_format, str) else ""
+        # These existing gzip transports retain RAW/IMG's manual SSH policy.
+        # Do not widen this to VMDK or the curated password-login boundary.
+        source_format = {"raw.gz": "raw", "img.gz": "img"}.get(source_format, source_format)
         if (not username or not public_key or not VM_SSH_USERNAME_RE.fullmatch(username) or
                 family != "linux" or source_format not in VM_SSH_DISK_FORMATS or
                 not any(marker in os_label for marker in VM_LINUX_OS_MARKERS)):
@@ -890,18 +898,62 @@ class VirtualMachineService(object):
 
         return attrs
 
+    def normalize_vm_create_source(self, event_id: Any, vm_url: Any) -> Tuple[str, str]:
+        if not isinstance(event_id, str) or not isinstance(vm_url, str):
+            raise ValueError("invalid VM import source")
+        if any(unicodedata.category(char) == "Cc" for value in (event_id, vm_url) for char in value):
+            raise ValueError("invalid VM import source")
+        event_id, vm_url = event_id.strip(), vm_url.strip()
+        if event_id and not VM_UPLOAD_EVENT_ID.fullmatch(event_id):
+            raise ValueError("invalid VM upload event ID")
+        if event_id and vm_url:
+            raise ValueError("VM URL and upload sources are mutually exclusive")
+        if vm_url:
+            try:
+                parsed = urlsplit(vm_url)
+                port = parsed.port
+                valid = (parsed.scheme in {"http", "https"} and parsed.hostname and parsed.username is None
+                         and parsed.password is None and not any(char.isspace() for char in vm_url)
+                         and (port is None or 1 <= port <= 65535))
+            except ValueError:
+                raise ValueError("invalid VM image URL") from None
+            if not valid:
+                raise ValueError("VM image URL must be HTTP(S) without user information")
+        return event_id, vm_url
+
+    def normalize_vm_source_format(self, value: Any, *sources: Any) -> str:
+        if not isinstance(value, str):
+            raise ValueError("invalid VM image format")
+        value = value.strip().lower()
+        disk_formats = {"qcow2", "raw", "img", "iso", "vmdk"}
+        wrappers = {"gz", "xz", "tar.gz", "tar.xz"}
+        supported = {"", "disk", "tar", *wrappers, *disk_formats}
+        supported.update(
+            "{}.{}".format(disk_format, wrapper) for disk_format in disk_formats - {"vmdk"} for wrapper in wrappers)
+        if value not in supported:
+            raise ValueError("unsupported VM image format")
+        # The VMDK converter accepts one self-contained, uncompressed file.
+        # Existing compressed RAW/QCOW2 transport metadata stays unchanged.
+        if any(self._infer_asset_format(source).startswith("vmdk.") for source in sources):
+            raise ValueError("compressed VMDK sources are unsupported")
+        return value
+
     def infer_vm_boot_source_format(self, asset: Any = None, template_payload: Optional[dict] = None,
                                     image_name: str = "", image_url: str = "", source_uri: str = "") -> str:
         root_disk = self._extract_root_disk_payload(asset=asset, template_payload=template_payload)
+        template_format = ((template_payload or {}).get("vm")
+                           or {}).get("boot_source_format") or (template_payload or {}).get("boot_source_format")
         if root_disk:
-            inferred = root_disk.get("format") or self._infer_asset_format(
+            inferred = root_disk.get("format") or template_format or self._infer_asset_format(
                 root_disk.get("source_uri"),
                 root_disk.get("image_url"),
                 root_disk.get("disk_name"),
                 root_disk.get("disk_key"),
                 image_name,
             )
-            return inferred or "disk"
+            return self.normalize_vm_source_format(inferred) if inferred else "disk"
+        if template_format:
+            return self.normalize_vm_source_format(template_format)
         if asset:
             inferred = getattr(asset, "format", "") or self._infer_asset_format(
                 getattr(asset, "source_uri", ""),
@@ -926,9 +978,77 @@ class VirtualMachineService(object):
         inferred = self.infer_vm_boot_source_format(asset=asset)
         return str(inferred or "").strip().lower()
 
-    def build_vm_create_disk_imports(self, asset: Any = None, template_payload: Optional[dict] = None,
-                                     image_name: str = "", image_url: str = "", source_uri: str = "",
-                                     boot_source_format: str = "") -> list:
+    def bind_vm_builder_runtime_asset(self, asset: Any, image: str, source_format: str, source_uri: str) -> None:
+        # Called only for an asset created in this request and a server-owned
+        # Builder target. This is expected runtime metadata, not a success flag;
+        # the OCI content exists only after the normal build succeeds.
+        if source_format not in VM_PLAIN_DISK_FORMATS or not self._requires_vm_source_build(source_uri):
+            raise ValueError("invalid VM build runtime binding")
+        extra = self._load_json(getattr(asset, "extra_json", ""), {})
+        if not isinstance(extra, dict):
+            raise ValueError("invalid VM asset metadata")
+        extra = {
+            **extra, "source_format":
+            source_format,
+            "source_uri":
+            source_uri,
+            "asset_kind":
+            VM_DISK_ASSET_KIND,
+            "disk_count":
+            1,
+            "disks": [{
+                "disk_role": VM_DISK_ROLE_ROOT,
+                "disk_key": "rootdisk",
+                "disk_name": "rootdisk",
+                "source_type": "registry",
+                "image_url": image,
+                "source_uri": source_uri,
+                "format": "qcow2",
+                "checksum": ""
+            }]
+        }
+        asset.image_url = image
+        asset.format = "qcow2"
+        asset.extra_json = json.dumps(extra)
+        asset.save(update_fields=["image_url", "format", "extra_json"])
+
+    def resolve_vm_vmdk_build_source(self, tenant_id: str, asset: Any) -> str:
+        # Only follow same-team stored asset ancestry, never a client assertion
+        # that an arbitrary OCI image has already been converted.
+        seen = set()
+        for _ in range(32):
+            if not asset or getattr(asset, "tenant_id", "") != tenant_id:
+                break
+            identity = getattr(asset, "ID", None)
+            if identity in seen:
+                break
+            seen.add(identity)
+            root_disk = self._extract_root_disk_payload(asset=asset) or {}
+            for source in (getattr(asset, "source_uri", ""), root_disk.get("source_uri"), root_disk.get("image_url")):
+                if source and self._requires_vm_source_build(source):
+                    source = str(source).strip()
+                    if source.lower().startswith(("http://", "https://")):
+                        _, source = self.normalize_vm_create_source("", source)
+                    else:
+                        prefix = VM_UPLOAD_SOURCE_ROOT + "/"
+                        if not source.startswith(prefix) or not VM_UPLOAD_EVENT_ID.fullmatch(source[len(prefix):]):
+                            raise ValueError("VMDK asset requires a managed original upload package")
+                    self.normalize_vm_source_format("vmdk", source)
+                    return source
+            source_id = getattr(asset, "source_asset_id", None)
+            if not source_id:
+                break
+            asset = vm_repo.get_vm_image_instance_by_id(tenant_id, source_id)
+        raise ValueError("VMDK asset requires its original source for verified conversion")
+
+    def build_vm_create_disk_imports(self,
+                                     asset: Any = None,
+                                     template_payload: Optional[dict] = None,
+                                     image_name: str = "",
+                                     image_url: str = "",
+                                     source_uri: str = "",
+                                     boot_source_format: str = "",
+                                     builder_runtime_image: str = "") -> list:
         imports = []
         root_import = self._build_vm_root_disk_import(
             asset=asset,
@@ -937,14 +1057,27 @@ class VirtualMachineService(object):
             image_url=image_url,
             source_uri=source_uri,
             boot_source_format=boot_source_format,
+            builder_runtime_image=builder_runtime_image,
         )
         if root_import:
             imports.append(root_import)
         if template_payload:
-            imports.extend([
-                disk for disk in (template_payload.get("data_disks") or [])
-                if disk.get("image_url")
-            ])
+            for disk in template_payload.get("data_disks") or []:
+                if not disk.get("image_url"):
+                    continue
+                source_format = self.normalize_vm_source_format(
+                    disk.get("format") or self._infer_asset_format(disk.get("source_uri"), disk.get("image_url")))
+                input_hint = self._infer_asset_format(disk["image_url"]) if self._is_http_source(disk["image_url"]) else ""
+                if input_hint.startswith("vmdk"):
+                    self.normalize_vm_source_format(input_hint)
+                    if source_format != "vmdk":
+                        raise ValueError("VM disk format conflicts with VMDK input")
+                if source_format == "vmdk":
+                    if not builder_runtime_image or disk.get("source_type") != "registry" or disk.get(
+                            "image_url") != builder_runtime_image:
+                        raise ValueError("VMDK data disk requires a verified build runtime")
+                    disk = {**disk, "format": "qcow2", "checksum": ""}
+                imports.append(disk)
         logger.info(
             "vm create disk imports resolved: image_name=%s source_uri=%s root_import=%s disk_count=%s boot_source_format=%s",
             image_name,
@@ -1005,9 +1138,14 @@ class VirtualMachineService(object):
 
         return "uefi"
 
-    def _build_vm_root_disk_import(self, asset: Any = None, template_payload: Optional[dict] = None,
-                                   image_name: str = "", image_url: str = "", source_uri: str = "",
-                                   boot_source_format: str = "") -> Optional[dict]:
+    def _build_vm_root_disk_import(self,
+                                   asset: Any = None,
+                                   template_payload: Optional[dict] = None,
+                                   image_name: str = "",
+                                   image_url: str = "",
+                                   source_uri: str = "",
+                                   boot_source_format: str = "",
+                                   builder_runtime_image: str = "") -> Optional[dict]:
         resolved_boot_source_format = str(boot_source_format or self.infer_vm_boot_source_format(
             asset=asset,
             template_payload=template_payload,
@@ -1019,6 +1157,36 @@ class VirtualMachineService(object):
             return None
 
         root_disk = self._extract_root_disk_payload(asset=asset, template_payload=template_payload)
+        if resolved_boot_source_format == "vmdk" or (builder_runtime_image
+                                                     and resolved_boot_source_format in VM_PLAIN_DISK_FORMATS):
+            # Consume this service's validated plain-disk build output. An input
+            # suffix/format hint must not route renamed VMDK back to raw HTTP.
+            # This is an internal, server-selected target for this service's
+            # Builder input. Image URL syntax/status/format alone prove nothing.
+            registry_image = str(builder_runtime_image or "").strip()
+            if (not registry_image or registry_image != image_url or registry_image.startswith("/") or "://" in registry_image
+                    or not self._resolve_root_registry_image(image_url=registry_image)):
+                raise ValueError("VMDK source requires a verified build runtime")
+            provenance = source_uri or (root_disk or {}).get("source_uri") or ""
+            if not provenance and self._is_http_source((root_disk or {}).get("image_url")):
+                provenance = root_disk["image_url"]
+            return {
+                "volume_name":
+                "disk",
+                "disk_key": (root_disk or {}).get("disk_key") or "rootdisk",
+                "disk_name": (root_disk or {}).get("disk_name") or "rootdisk",
+                "image_url":
+                registry_image,
+                "source_uri":
+                provenance or self._resolve_root_source_uri(asset=asset, source_uri=source_uri, fallback=registry_image),
+                "format":
+                "qcow2",
+                # A source-file checksum is not a checksum of converted QCOW2.
+                "checksum":
+                "",
+                "source_type":
+                "registry",
+            }
         if root_disk:
             restore_url = root_disk.get("image_url") or ""
             source_type = self._resolve_vm_disk_source_type(
@@ -1578,8 +1746,13 @@ class VirtualMachineService(object):
         normalized["source_uri"] = normalized.get("source_uri") or normalized.get("image_url") or ""
         normalized["arch"] = normalized.get("arch") or "amd64"
         normalized["os_name"] = normalized.get("os_name") or ""
-        normalized["format"] = normalized.get("format") or self._infer_asset_format(
-            normalized.get("source_uri"), normalized.get("image_url"), normalized.get("name"))
+        source_format = normalized.get("format", "")
+        source_format = "" if source_format is None else source_format
+        inferred_format = self._infer_asset_format(normalized.get("source_uri"), normalized.get("image_url"),
+                                                   normalized.get("name"))
+        explicit_format = self.normalize_vm_source_format(source_format, normalized.get("source_uri"),
+                                                          normalized.get("image_url"))
+        normalized["format"] = explicit_format or self.normalize_vm_source_format(inferred_format)
         normalized["size_bytes"] = self._to_int(normalized.get("size_bytes"), 0)
         normalized["checksum"] = normalized.get("checksum") or ""
         normalized["status"] = normalized.get("status") or "ready"
@@ -1615,9 +1788,18 @@ class VirtualMachineService(object):
         return json.dumps(raw_value)
 
     def _infer_asset_format(self, *candidates: Any) -> str:
-        known_suffixes = (".qcow2", ".img", ".iso", ".tar.gz", ".tar.xz", ".gz", ".xz", ".tar")
+        known_suffixes = (".qcow2", ".raw", ".img", ".iso", ".tar.gz", ".tar.xz", ".gz", ".xz", ".tar")
+        vmdk_suffixes = (".vmdk", ".vmdk.gz", ".vmdk.xz", ".vmdk.tar", ".vmdk.tar.gz", ".vmdk.tar.xz")
         for candidate in candidates:
-            candidate = str(candidate or "").lower()
+            candidate = str(candidate or "").strip().lower()
+            if candidate.startswith(("http://", "https://")):
+                try:
+                    candidate = urlsplit(candidate).path
+                except ValueError:
+                    continue
+            for suffix in vmdk_suffixes:
+                if candidate.endswith(suffix):
+                    return suffix.lstrip(".")
             for suffix in known_suffixes:
                 if candidate.endswith(suffix):
                     return suffix.lstrip(".")

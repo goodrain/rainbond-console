@@ -15,6 +15,7 @@ REALTIME_PROXY_PATH = "/console/regions/{region_name}/websocket"
 DOCKER_CONSOLE_IDLE_TIMEOUT_SECONDS = 30 * 60
 WEBSOCKET_PROXY_READ_TIMEOUT_SECONDS = 30
 WEBTTY_PING_MESSAGE = "2"
+WEBTTY_OUTPUT_WINDOW_BYTES = 64 * 1024
 
 HOP_BY_HOP_HEADERS = {
     "connection",
@@ -290,6 +291,19 @@ def _websocket_headers(request):
     return headers
 
 
+def _is_webtty_output_ack(message):
+    if isinstance(message, bytes):
+        try:
+            message = message.decode("ascii")
+        except UnicodeDecodeError:
+            return False
+    if not isinstance(message, str) or not 2 <= len(message) <= 6 or message[0] != "4":
+        return False
+    count = message[1:]
+    # Match the Region's positive ASCII byte-count frame, not arbitrary input.
+    return all("0" <= digit <= "9" for digit in count) and 0 < int(count) <= WEBTTY_OUTPUT_WINDOW_BYTES
+
+
 class DockerConsoleActivityTracker(object):
     def __init__(self, proxy_path, idle_timeout_seconds=DOCKER_CONSOLE_IDLE_TIMEOUT_SECONDS, now=None):
         self.enabled = normalize_proxy_path(proxy_path) == "/docker_console"
@@ -300,7 +314,7 @@ class DockerConsoleActivityTracker(object):
     def mark_client_message(self, message):
         if not self.enabled:
             return
-        if message == WEBTTY_PING_MESSAGE:
+        if message == WEBTTY_PING_MESSAGE or _is_webtty_output_ack(message):
             return
         self.last_user_activity_at = self.now()
 

@@ -478,12 +478,12 @@ class AppService(object):
 
         logger.debug("service.create", "user:{0} create service from docker run command !".format(user.nick_name))
         ts = TenantServiceInfo.objects.get(service_id=new_service.service_id, tenant_id=new_service.tenant_id)
-        telemetry_service.track_component_created(
+        transaction.on_commit(lambda: telemetry_service.track_component_created(
             tenant=tenant,
             region_name=region,
             component=ts,
             source_type=image_type or AppConstants.DOCKER_IMAGE,
-        )
+        ))
 
         return 200, "创建成功", ts
 

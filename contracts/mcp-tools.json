@@ -7,9 +7,6 @@
       "name": "rainbond_analyze_env_conflicts"
     },
     {
-      "name": "rainbond_bind_component_volume"
-    },
-    {
       "name": "rainbond_build_component"
     },
     {
@@ -112,7 +109,7 @@
       "name": "rainbond_deploy_app_upgrade_record"
     },
     {
-      "name": "rainbond_exec_component"
+      "name": "rainbond_exec"
     },
     {
       "name": "rainbond_execute_app_upgrade_record"
@@ -251,9 +248,6 @@
     },
     {
       "name": "rainbond_giveup_app_share"
-    },
-    {
-      "name": "rainbond_handle_component_ports"
     },
     {
       "name": "rainbond_horizontal_scale_component"
@@ -401,9 +395,6 @@
     },
     {
       "name": "rainbond_update_component_build_source"
-    },
-    {
-      "name": "rainbond_update_component_envs"
     },
     {
       "name": "rainbond_update_region"

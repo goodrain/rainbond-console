@@ -80,7 +80,7 @@ from www.models.main import (  # noqa: E402
 )
 
 UBUNTU_NOBLE_QCOW2_URL = (
-    "https://cloud-images.ubuntu.com/minimal/releases/noble/release/"
+    "https://plugins.tos-cn-beijing.volces.com/vm/"
     "ubuntu-24.04-minimal-cloudimg-amd64.img"
 )
 
@@ -415,6 +415,7 @@ class VMExamplePasswordLoginTests(TestCase):
         service = SimpleNamespace(
             service_id="service-created-password",
             service_alias="service-created-password",
+            save=mock.Mock(),
             service_source="vm_run",
             create_status="creating",
             to_dict=lambda: {"service_id": "service-created-password"},

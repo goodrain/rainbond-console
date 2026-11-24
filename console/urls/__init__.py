@@ -1,3 +1,4 @@
+from console.views.vm_vnc import ComponentVNCView
 # -*- coding: utf8 -*-
 
 from django.urls import include, re_path, path
@@ -644,6 +645,8 @@ from console.views.kubeblocks import (
 )
 
 urlpatterns = [
+    re_path(r'^regions/(?P<region_name>[\w-]+)/teams/(?P<tenantName>[\w-]+)/apps/(?P<serviceAlias>[\w-]+)/vnc/(?P<vnc_path>.*)$',
+            ComponentVNCView.as_view()),
     re_path(r'^delivery-targets$', DeliveryTargetsView.as_view()),
     # Delivery templates are independent of application snapshot routes and records.
     re_path(r'^teams/(?P<team_name>[\w\-]+)/recycle-bin$', ComponentRecycleListView.as_view()),

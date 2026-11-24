@@ -215,7 +215,8 @@ class AppManageService(AppManageBase):
             body["operator"] = str(user.nick_name)
             body["enterprise_id"] = tenant.enterprise_id
             try:
-                region_api.start_service(service.service_region, tenant.tenant_name, service.service_alias, body)
+                result = region_api.start_service(service.service_region, tenant.tenant_name, service.service_alias, body)
+                service._last_power_event_id = (result or {}).get("bean", {}).get("event_id", "")
                 logger.debug("user {0} start app !".format(user.nick_name))
             except region_api.CallApiError as e:
                 logger.exception(e)
@@ -274,7 +275,8 @@ class AppManageService(AppManageBase):
             body["operator"] = str(user.nick_name)
             body["enterprise_id"] = tenant.enterprise_id
             try:
-                region_api.stop_service(service.service_region, tenant.tenant_name, service.service_alias, body)
+                result = region_api.stop_service(service.service_region, tenant.tenant_name, service.service_alias, body)
+                service._last_power_event_id = (result or {}).get("bean", {}).get("event_id", "")
                 logger.debug("user {0} stop app !".format(user.nick_name))
             except region_api.CallApiError as e:
                 logger.exception(e)
@@ -703,6 +705,32 @@ class AppManageService(AppManageBase):
         services = service_repo.get_services_by_service_ids(service_ids)
         if not services:
             return
+        vm_events = []
+        if action in ("start", "stop"):
+            services = list(services)
+            # Validate the entire selection before issuing any power operation.
+            if any(service.tenant_id != tenant.tenant_id or service.service_region != region_name for service in services):
+                raise ServiceHandleException(msg="component scope mismatch", msg_show="组件不属于当前团队或集群", status_code=403)
+            vm_services = [service for service in services if service.extend_method == "vm"]
+            services = [service for service in services if service.extend_method != "vm"]
+            for service in vm_services:
+                if service.create_status != "complete":
+                    continue
+                service._last_power_event_id = ""
+                if action == "start":
+                    power_code, power_msg = self.start(tenant, service, user, oauth_instance)
+                    if power_code != 200:
+                        raise ServiceHandleException(msg="vm start failed", msg_show=power_msg, status_code=power_code)
+                else:
+                    self.stop(tenant, service, user)
+                vm_events.append({
+                    "service_id": service.service_id,
+                    "operation": action,
+                    "event_id": service._last_power_event_id,
+                    "status": "success",
+                })
+            if not services:
+                return vm_events
         # 获取所有组件信息
         body: Any = dict()
         data: Any = ''
@@ -740,6 +768,10 @@ class AppManageService(AppManageBase):
                     except Exception as e:
                         logger.exception("KubeBlocks批量%s集群状态同步异常: service_ids=%s, error=%s", action, kb_service_ids, str(e))
 
+            if vm_events:
+                if isinstance(events, dict):
+                    events = [{"event_id": key, "service_id": value, "operation": action} for key, value in events.items()]
+                return vm_events + list(events or [])
             return events
         except region_api.CallApiError as e:
             logger.exception(e)
@@ -1138,12 +1170,12 @@ class AppManageService(AppManageBase):
                           service: TenantServiceInfo,
                           user: Any = None,
                           app: Optional[ServiceGroup] = None) -> None:
-        data = self._build_delete_record_data(service, app, user)
-        try:
-            _create_delete_service_with_retry(data)
-        except Exception as e:
-            logger.exception(e)
-            pass
+        if service.create_status == "complete":
+            data = self._build_delete_record_data(service, app, user)
+            try:
+                _create_delete_service_with_retry(data)
+            except Exception as e:
+                logger.exception(e)
         if service.create_status != "complete":
             self._cleanup_incomplete_vm_asset(tenant, service)
         env_var_repo.delete_service_env(tenant.tenant_id, service.service_id)

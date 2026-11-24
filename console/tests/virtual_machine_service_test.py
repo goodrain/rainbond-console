@@ -64,6 +64,195 @@ class VirtualMachineServiceTests(TestCase):
     # capability_id: console.vm-capabilities.persistent-storage-options
     # capability_id: console.vm-capabilities.persistent-storage-options
 
+    # capability_id: console.vm-images.vmdk-source-format
+    def test_vmdk_source_inference_uses_url_path_and_preserves_compression(self):
+        cases = [
+            ("disk.VMDK", "vmdk"),
+            ("https://example.invalid/DISK.VMDK?download=1#fragment", "vmdk"),
+            ("/grdata/imports/root.vmdk", "vmdk"),
+            ("https://example.invalid/root.VMDK.GZ?download=1", "vmdk.gz"),
+            ("root.vmdk.xz", "vmdk.xz"),
+            ("root.vmdk.tar.gz", "vmdk.tar.gz"),
+            ("https://example.invalid/root.QCOW2?download=1", "qcow2"),
+            ("root.RAW", "raw"),
+            ("root.img", "img"),
+            ("root.iso", "iso"),
+            ("root.raw.gz", "gz"),
+            ("root.qcow2.tar.xz", "tar.xz"),
+            ("root.vmdk.exe", ""),
+        ]
+        for source, expected in cases:
+            with self.subTest(source=source):
+                self.assertEqual(expected, vms._infer_asset_format(source))
+
+    # capability_id: console.vm-images.vmdk-source-format
+    # capability_id: console.vm-run.source-input-boundary
+    def test_vmdk_asset_metadata_is_normalized_and_unknown_format_rejected(self):
+        asset = vms.create_vm_image_asset("tenant-vmdk",
+                                          "source-vmdk",
+                                          "tenant-vmdk:source-vmdk",
+                                          source_type="upload",
+                                          source_uri="/grdata/package_build/temp/events/vmdk-source-event",
+                                          format=" VMDK ")
+        self.assertEqual("vmdk", asset.format)
+        for bad in ("vhdx", "vmdk;invalid", "unknown", "vmdk.gz", "VMDK.XZ", "vmdk.tar.gz", 1, [], {}):
+            with self.subTest(kind=type(bad).__name__), self.assertRaises(ValueError):
+                vms.create_vm_image_asset("tenant-vmdk", "invalid-vmdk", "tenant-vmdk:invalid", format=bad)
+        self.assertEqual(1, VirtualMachineImage.objects.filter(tenant_id="tenant-vmdk").count())
+        catalog = vms.list_vm_image("tenant-vmdk")
+        self.assertEqual("vmdk", catalog[0]["format"])
+        for source in ("https://example.invalid/root.vmdk.gz?download=1", "/grdata/imports/root.vmdk.xz"):
+            with self.subTest(source=source), self.assertRaises(ValueError):
+                vms.create_vm_image_asset("tenant-vmdk", "compressed-vmdk", "tenant-vmdk:compressed", source_uri=source)
+        for source_format in ("raw", "qcow2", "iso", "raw.gz", "qcow2.xz", "tar.gz", "", "disk"):
+            self.assertEqual(source_format, vms.normalize_vm_source_format(source_format))
+        clone = vms.create_vm_image_asset("tenant-vmdk",
+                                          "clone-vmdk",
+                                          asset.image_url,
+                                          source_type="clone",
+                                          source_uri=asset.source_uri,
+                                          format=asset.format,
+                                          source_asset_id=asset.ID,
+                                          clone_mode="reuse")
+        cloned = vms.get_vm_asset("tenant-vmdk", str(clone.ID))
+        self.assertEqual("vmdk", cloned["format"])
+        self.assertEqual({"id": asset.ID, "name": asset.name}, cloned["source_asset"])
+        clone.source_uri = asset.image_url
+        clone.save(update_fields=["source_uri"])
+        self.assertEqual(asset.source_uri, vms.resolve_vm_vmdk_build_source("tenant-vmdk", clone))
+        with self.assertRaises(ValueError):
+            vms.resolve_vm_vmdk_build_source("another-tenant", clone)
+        for unsafe in ("/grdata/tenant/private-image-dir", "/grdata/package_build/temp/events/../outside",
+                       "/grdata/package_build/temp/events/safe..unsafe", "/grdata/package_build/temp/events/one/two"):
+            asset.source_uri = unsafe
+            asset.save(update_fields=["source_uri"])
+            with self.subTest(unsafe=unsafe), self.assertRaises(ValueError):
+                vms.resolve_vm_vmdk_build_source("tenant-vmdk", asset)
+
+    # capability_id: console.vm-images.vmdk-runtime-root
+    def test_vmdk_root_uses_converted_registry_image_and_never_installer_layout(self):
+        source = "https://example.invalid/root.VMDK?download=1"
+        asset = SimpleNamespace(format="vmdk", source_type="url", image_url="tenant-vmdk:converted", source_uri=source)
+        with self.assertRaises(ValueError):
+            vms.build_vm_create_disk_imports(asset=asset, image_url=asset.image_url)
+        imported = vms.build_vm_create_disk_imports(asset=asset,
+                                                    image_url=asset.image_url,
+                                                    builder_runtime_image=asset.image_url)
+        self.assertEqual(1, len(imported))
+        self.assertEqual("registry", imported[0]["source_type"])
+        self.assertEqual("tenant-vmdk:converted", imported[0]["image_url"])
+        self.assertEqual(source, imported[0]["source_uri"])
+        self.assertEqual("qcow2", imported[0]["format"])
+        layout = vms.build_initial_vm_disk_layout(boot_source_format="vmdk", asset=asset)
+        self.assertEqual(["root"], [disk["disk_role"] for disk in layout])
+        self.assertEqual("disk", layout[0]["device_type"])
+        template = {
+            "vm": {
+                "disk_layout": [{
+                    "disk_role": "root",
+                    "disk_key": "rootdisk",
+                    "disk_name": "rootdisk",
+                    "image_url": source,
+                    "source_type": "http",
+                    "format": "vmdk"
+                }]
+            }
+        }
+        imported = vms.build_vm_create_disk_imports(template_payload=template,
+                                                    image_url="tenant-vmdk:converted",
+                                                    builder_runtime_image="tenant-vmdk:converted")
+        self.assertEqual("registry", imported[0]["source_type"])
+        self.assertEqual("tenant-vmdk:converted", imported[0]["image_url"])
+        self.assertEqual("qcow2", imported[0]["format"])
+        root = {
+            "disk_role": "root",
+            "disk_key": "rootdisk",
+            "image": "tenant-vmdk:converted",
+            "source_uri": source,
+            "format": "vmdk",
+            "checksum": "source-checksum"
+        }
+        with self.assertRaises(ValueError):
+            vms.build_vm_create_disk_imports(template_payload={"vm": {"disk_layout": [root]}})
+        imported = vms.build_vm_create_disk_imports(template_payload={"vm": {
+            "disk_layout": [root]
+        }},
+                                                    image_url="tenant-vmdk:converted",
+                                                    builder_runtime_image="tenant-vmdk:converted")
+        self.assertEqual("registry", imported[0]["source_type"])
+        self.assertEqual("", imported[0]["checksum"])
+        declared = {
+            "vm": {
+                "boot_source_format": "vmdk",
+                "disk_layout": [{
+                    **root, "format": "",
+                    "source_uri": "https://example.invalid/download"
+                }]
+            }
+        }
+        self.assertEqual("vmdk", vms.infer_vm_boot_source_format(template_payload=declared))
+        self.assertEqual(
+            "registry",
+            vms.build_vm_create_disk_imports(template_payload=declared,
+                                             image_url="tenant-vmdk:converted",
+                                             builder_runtime_image="tenant-vmdk:converted")[0]["source_type"])
+        for transport in ("https://example.invalid/data.vmdk", "tenant-vmdk:unverified-data"):
+            with self.subTest(transport=transport), self.assertRaises(ValueError):
+                vms.build_vm_create_disk_imports(
+                    image_url="tenant-vmdk:root",
+                    boot_source_format="qcow2",
+                    template_payload={"data_disks": [{
+                        "disk_key": "data-vmdk",
+                        "image_url": transport,
+                        "format": "vmdk"
+                    }]})
+        for disguised in ("qcow2", "raw", "img"):
+            with self.subTest(disguised=disguised), self.assertRaises(ValueError):
+                vms.build_vm_create_disk_imports(image_url="tenant-vmdk:root",
+                                                 boot_source_format="qcow2",
+                                                 template_payload={
+                                                     "data_disks": [{
+                                                         "disk_key": "data-vmdk",
+                                                         "image_url": "https://example.invalid/DATA.VMDK?download=1",
+                                                         "format": disguised
+                                                     }]
+                                                 })
+        converted_data = {
+            "data_disks": [{
+                "disk_key": "converted-data",
+                "image_url": "tenant-vmdk:data-qcow2",
+                "source_uri": "https://example.invalid/original.vmdk",
+                "source_type": "registry",
+                "format": "qcow2"
+            }]
+        }
+        imported = vms.build_vm_create_disk_imports(template_payload=converted_data,
+                                                    image_url="tenant-vmdk:root",
+                                                    boot_source_format="qcow2")
+        self.assertEqual("qcow2", imported[1]["format"])
+        self.assertEqual("tenant-vmdk:data-qcow2", imported[1]["image_url"])
+        with self.assertRaises(ValueError):
+            vms.build_vm_create_disk_imports(image_url=source, boot_source_format="vmdk")
+        with self.assertRaises(ValueError):
+            vms.build_vm_create_disk_imports(image_url="tenant-vmdk:converted",
+                                             boot_source_format="vmdk",
+                                             builder_runtime_image="tenant-vmdk:other-service")
+        declared_data = {
+            "data_disks": [{
+                "disk_key": "same-build",
+                "image_url": "tenant-vmdk:converted",
+                "source_type": "registry",
+                "format": "vmdk",
+                "checksum": "source-checksum"
+            }]
+        }
+        imported = vms.build_vm_create_disk_imports(template_payload=declared_data,
+                                                    image_url="tenant-vmdk:converted",
+                                                    boot_source_format="vmdk",
+                                                    builder_runtime_image="tenant-vmdk:converted")
+        self.assertEqual("qcow2", imported[1]["format"])
+        self.assertEqual("", imported[1]["checksum"])
+
     def _create_vm_service(self, tenant_id, service_id, image, extend_method="vm", create_status="complete"):
         return TenantServiceInfo.objects.create(
             service_id=service_id,

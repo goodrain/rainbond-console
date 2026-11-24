@@ -2914,6 +2914,24 @@
       "status": "active"
     },
     {
+      "id": "console.app-version.snapshot-resource-datetime",
+      "title": "Serialize snapshot Kubernetes resource timestamps",
+      "title_zh": "Serialize snapshot Kubernetes resource timestamps",
+      "interface_type": "service_method",
+      "interface": "console.services.app_version_service.AppVersionService.create_snapshot",
+      "code_paths": [
+        "console/services/app_version_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_snapshot_resource_datetime_test.py",
+          "selector": "SnapshotResourceDatetimeTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.app-version.snapshot-share-image-fallback",
       "title": "App Version Snapshot Share Image Fallback",
       "title_zh": "App Version Snapshot Share Image Fallback",
@@ -3567,6 +3585,25 @@
         {
           "path": "console/tests/app_config_test.py",
           "selector": "TenantServiceEnvVarRepositoryTests.test_update_or_create_env_var_creates_row_when_no_match_exists"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.build-source.clear-oauth-on-explicit-git-switch",
+      "title": "Clear stale OAuth binding when switching to Git authentication",
+      "title_zh": "Clear stale OAuth binding when switching to Git authentication",
+      "interface_type": "workflow",
+      "interface": "BuildSourceinfo.put and MCPQueryService.update_component_build_source",
+      "code_paths": [
+        "console/services/mcp_query_service.py",
+        "console/views/app_overview.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/source_auth_switch_test.py",
+          "selector": "SourceAuthSwitchTests"
         }
       ],
       "test_type": "regression",
@@ -4529,6 +4566,28 @@
         {
           "path": "console/tests/app_manage_test.py",
           "selector": "AppManageDeleteRecordIdempotencyTests.test_delete_record_payload_excludes_region_only_fields_for_incomplete_service"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.component-delete.skip-incomplete-backup",
+      "title": "Skip recycle backup for incomplete components",
+      "title_zh": "未完成组件删除跳过回收记录并保留清理",
+      "interface_type": "service_method",
+      "interface": "console.services.app_actions.app_manage.AppManageService._truncate_service",
+      "code_paths": [
+        "console/services/app_actions/app_manage.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_manage_test.py",
+          "selector": "AppManageIncompleteVMCleanupTests.test_incomplete_cleanup_skips_backup_and_removes_component_relations"
+        },
+        {
+          "path": "console/tests/app_manage_test.py",
+          "selector": "AppManageIncompleteVMCleanupTests.test_complete_cleanup_preserves_backup_and_transient_lock_retry"
         }
       ],
       "test_type": "regression",
@@ -5861,6 +5920,24 @@
       "status": "active"
     },
     {
+      "id": "console.component.port-path-validation",
+      "title": "Validate component port path boundaries",
+      "title_zh": "组件端口路径非法值返回客户端错误",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.app_config.app_port.AppPortManageView",
+      "code_paths": [
+        "console/views/app_config/app_port.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_port_path_validation_test.py",
+          "selector": "AppPortPathValidationTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.component.port-protocol-normalize",
       "title": "Normalize component port protocol input",
       "title_zh": "归一化组件端口协议参数",
@@ -5954,6 +6031,49 @@
         {
           "path": "console/tests/mcp_query_service_test.py",
           "selector": "MCPQueryServiceApplicationToolTests.test_manage_component_probe_summary_returns_probe_snapshot"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.component.recycle-model-fields",
+      "title": "Map component fields into recycle records",
+      "title_zh": "Map component fields into recycle records",
+      "interface_type": "service_method",
+      "interface": "console.repositories.app.ServiceRecycleBinRepository.create_trash_service",
+      "code_paths": [
+        "console/repositories/app.py",
+        "console/models/main.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/service_recycle_fields_test.py",
+          "selector": "RecycleModelFieldsTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.component.recycle-schema-upgrade",
+      "title": "Safely widen legacy recycle string columns",
+      "title_zh": "Safely widen legacy recycle string columns",
+      "interface_type": "workflow",
+      "interface": "console.management.commands.migrate_service_recycle_fields.migrate_service_recycle_fields",
+      "code_paths": [
+        "console/management/commands/migrate_service_recycle_fields.py",
+        "console/models/main.py",
+        "entrypoint.sh"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/recycle_schema_upgrade_test.py",
+          "selector": "RecycleSchemaUpgradeTests"
+        },
+        {
+          "path": "console/tests/recycle_schema_upgrade_test.py",
+          "selector": "RecycleMySQLUpgradePlanTests"
         }
       ],
       "test_type": "regression",
@@ -6388,6 +6508,24 @@
         {
           "path": "console/tests/app_volume_view_test.py",
           "selector": "AppVolumeManageViewTestCase::test_put_rejects_volume_capacity_shrink"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.component.volume-name-input-validation",
+      "title": "Reject missing or non-string component volume names",
+      "title_zh": "组件存储名称类型校验",
+      "interface_type": "workflow",
+      "interface": "console.views.app_config.app_volume.AppVolumeView.post",
+      "code_paths": [
+        "console/views/app_config/app_volume.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_volume_name_validation_test.py",
+          "selector": "AppVolumeNameValidationTests"
         }
       ],
       "test_type": "regression",
@@ -7073,6 +7211,28 @@
       "status": "active"
     },
     {
+      "id": "console.enterprise.resource-category-ordering",
+      "title": "Preserve optional resource categories in enterprise resource views",
+      "title_zh": "企业资源分类缺失时保留正常响应",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.enterprise.EnterpriseNamespaceResource.get / EnterpriseConvertResource.get",
+      "code_paths": [
+        "console/views/enterprise.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/enterprise_resource_categories_test.py",
+          "selector": "EnterpriseNamespaceResourceCategoriesTests"
+        },
+        {
+          "path": "console/tests/enterprise_resource_categories_test.py",
+          "selector": "EnterpriseConvertResourceCategoriesTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.events.batch-dependencies",
       "title": "Batch component event dependency names",
       "title_zh": "批量解析组件事件依赖名称",
@@ -7378,6 +7538,24 @@
       "status": "active"
     },
     {
+      "id": "console.gateway.domain-query-port-validation",
+      "title": "Validate domain query component ports",
+      "title_zh": "Validate domain query component ports",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.app_config.app_domain.ServiceDomainView.get",
+      "code_paths": [
+        "console/views/app_config/app_domain.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/service_domain_port_validation_test.py",
+          "selector": "ServiceDomainPortValidationTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.gateway.http-port-not-open",
       "title": "Reject HTTP gateway rule when port is not open to public",
       "title_zh": "对外端口未开启时拦截 HTTP 网关创建",
@@ -7612,6 +7790,25 @@
         {
           "path": "console/tests/mcp_query_service_test.py",
           "selector": "MCPQueryServiceToolVisibilityTests.test_create_component_from_source_schema_exposes_code_from_guidance"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.gateway.tcp-endpoint-validation",
+      "title": "Validate TCP endpoints before gateway and local changes",
+      "title_zh": "TCP访问地址校验及规则归属保护",
+      "interface_type": "workflow",
+      "interface": "console.services.app_config.domain_service.DomainService.bind_tcpdomain / update_tcpdomain",
+      "code_paths": [
+        "console/services/app_config/domain_service.py",
+        "console/views/app_config/app_domain.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/tcp_endpoint_validation_test.py",
+          "selector": "TCPEndpointValidationTests"
         }
       ],
       "test_type": "regression",
@@ -8151,6 +8348,24 @@
         {
           "path": "console/tests/k8s_attribute_service_test.py",
           "selector": "ComponentK8sAttributeServiceTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.k8s-attribute.create-payload-validation",
+      "title": "Validate K8s attribute name and save type before creation",
+      "title_zh": "K8s属性创建输入校验",
+      "interface_type": "workflow",
+      "interface": "console.services.k8s_attribute.ComponentK8sAttributeService.create_k8s_attribute",
+      "code_paths": [
+        "console/services/k8s_attribute.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/k8s_attribute_input_validation_test.py",
+          "selector": "K8sAttributeInputValidationTests"
         }
       ],
       "test_type": "regression",
@@ -9273,6 +9488,24 @@
       "status": "active"
     },
     {
+      "id": "console.mcp.config-file-update-content",
+      "title": "Preserve omitted config file update content",
+      "title_zh": "Preserve omitted config file update content",
+      "interface_type": "service_method",
+      "interface": "console.services.mcp_query_service.MCPQueryService.manage_component_storage",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_config_file_update_test.py",
+          "selector": "MCPConfigFileUpdateTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.mcp.env-conflicts",
       "title": "MCP analyze_env_conflicts tool",
       "title_zh": "MCP 环境变量多源冲突检测工具",
@@ -9503,6 +9736,25 @@
         {
           "path": "console/tests/mcp_query_view_test.py",
           "selector": "MCPQuerySSEViewTests.test_post_message_enqueues_initialize_response_on_sse_stream"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.mcp.runtime-tool-name-snapshot",
+      "title": "Generate MCP snapshot from actual public runtime tool names",
+      "title_zh": "Generate MCP snapshot from actual public runtime tool names",
+      "interface_type": "workflow",
+      "interface": "scripts.export_mcp_tools.collect_tools",
+      "code_paths": [
+        "scripts/export_mcp_tools.py",
+        "contracts/mcp-tools.json"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/source_maven_dockerfile_selection_test.py",
+          "selector": "MavenRootDockerfileSelectionTests::test_contract_snapshot_matches_full_runtime_tools_and_expected_filtering"
         }
       ],
       "test_type": "regression",
@@ -9917,6 +10169,25 @@
         {
           "path": "console/tests/openapi_swagger_test.py",
           "selector": "OpenAPISwaggerMetadataTests.test_helm_chart_get_declares_query_serializer_without_request_body"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.openapi.image-component-authorized-app-context",
+      "title": "Create image components only in the authorized route application",
+      "title_zh": "镜像组件创建使用已授权的路由应用上下文",
+      "interface_type": "view_endpoint",
+      "interface": "openapi.views.apps.apps.ListAppServicesView.post",
+      "code_paths": [
+        "openapi/views/apps/apps.py",
+        "console/services/app.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/openapi_image_app_context_test.py",
+          "selector": "OpenAPIImageAppContextTests"
         }
       ],
       "test_type": "regression",
@@ -10946,6 +11217,24 @@
       "status": "active"
     },
     {
+      "id": "console.plugin.missing-context-not-found",
+      "title": "Return not found for missing plugin context before build history access",
+      "title_zh": "缺失插件上下文返回404并保留归属检查",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.plugin.base.PluginBaseView.initial",
+      "code_paths": [
+        "console/views/plugin/base.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/plugin_missing_context_test.py",
+          "selector": "PluginMissingContextTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.pod.detail",
       "title": "Pod Detail",
       "title_zh": "Pod Detail",
@@ -11332,6 +11621,24 @@
         {
           "path": "console/tests/realtime_proxy_url_test.py",
           "selector": "RealtimeProxyUrlTests.test_non_docker_console_activity_tracker_never_user_idle_expires"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.realtime-proxy.output-ack-idle-timeout",
+      "title": "Exclude terminal output acknowledgements from user activity",
+      "title_zh": "终端消费确认不延长用户空闲时限",
+      "interface_type": "workflow",
+      "interface": "console.utils.realtime_proxy.DockerConsoleActivityTracker.mark_client_message",
+      "code_paths": [
+        "console/utils/realtime_proxy.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/realtime_proxy_url_test.py",
+          "selector": "RealtimeProxyUrlTests"
         }
       ],
       "test_type": "regression",
@@ -12944,6 +13251,25 @@
       "status": "active"
     },
     {
+      "id": "console.source-component.maven-root-dockerfile-selection",
+      "title": "Apply explicit root Dockerfile preference before Maven module branching",
+      "title_zh": "Apply explicit root Dockerfile preference before Maven module branching",
+      "interface_type": "workflow",
+      "interface": "SourceComponentService.auto_create_component",
+      "code_paths": [
+        "console/services/source_component_service.py",
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/source_maven_dockerfile_selection_test.py",
+          "selector": "MavenRootDockerfileSelectionTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.source-component.multi-service-guard",
       "title": "Reject multi-service source detection in single-component flow",
       "title_zh": "单组件流程中拦截多组件源码检测结果",
@@ -13437,6 +13763,29 @@
       "status": "active"
     },
     {
+      "id": "console.user-details.batch-team-region-reads",
+      "title": "Batch authorized user team region reads",
+      "title_zh": "批量读取当前用户授权团队区域",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.user_operation.UserDetailsView.get",
+      "code_paths": [
+        "console/services/region_services.py",
+        "console/views/user_operation.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/user_details_region_batch_test.py",
+          "selector": "UserDetailsRegionBatchIntegrationTests"
+        },
+        {
+          "path": "console/tests/user_details_region_batch_test.py",
+          "selector": "UserDetailsRegionBatchViewTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.user-registration.required-username",
       "title": "Validate missing usernames through the registration form",
       "title_zh": "注册缺少用户名时返回表单错误",
@@ -13453,6 +13802,24 @@
         {
           "path": "console/tests/user_registration_view_test.py",
           "selector": "TenantServiceRegistrationViewTests.test_post_returns_form_error_when_username_is_missing"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.user.access-key-expiry-bounds",
+      "title": "Bound access key expiry before generation",
+      "title_zh": "生成访问令牌前校验有效期范围",
+      "interface_type": "service_method",
+      "interface": "console.services.user_accesstoken_services.UserAccessTokenServices.create_user_access_key",
+      "code_paths": [
+        "console/services/user_accesstoken_services.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/user_accesstoken_expiry_test.py",
+          "selector": "UserAccessTokenExpiryTests"
         }
       ],
       "test_type": "regression",
@@ -13798,6 +14165,23 @@
       "status": "active"
     },
     {
+      "id": "console.vm-batch-power.preserve-disks",
+      "title": "Route VM batch power through single-component lifecycle APIs",
+      "interface_type": "service_method",
+      "interface": "console.services.app_actions.app_manage.AppManageService.batch_operations",
+      "code_paths": [
+        "console/services/app_actions/app_manage.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_manage_test.py",
+          "selector": "VMBatchPowerSafetyTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.vm-capabilities.persistent-storage-options",
       "title": "Expose persistent storage options through VM capabilities",
       "title_zh": "VM创建能力响应返回真实持久化存储选项",
@@ -13893,6 +14277,46 @@
         {
           "path": "console/tests/vm_profile_runtime_status_test.py",
           "selector": "VMGuestStatusIntegrationTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.vm-images.vmdk-runtime-root",
+      "title": "Use converted runtime images for VMDK roots without installer media",
+      "title_zh": "Use converted runtime images for VMDK roots without installer media",
+      "interface_type": "service_method",
+      "interface": "VirtualMachineService.build_vm_create_disk_imports",
+      "code_paths": [
+        "console/services/virtual_machine.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/virtual_machine_service_test.py",
+          "selector": "VirtualMachineServiceTests.test_vmdk_root_uses_converted_registry_image_and_never_installer_layout"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.vm-images.vmdk-source-format",
+      "title": "Normalize VMDK source metadata across asset ingestion and URL paths",
+      "title_zh": "Normalize VMDK source metadata across asset ingestion and URL paths",
+      "interface_type": "service_method",
+      "interface": "VirtualMachineService.normalize_vm_source_format",
+      "code_paths": [
+        "console/services/virtual_machine.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/virtual_machine_service_test.py",
+          "selector": "VirtualMachineServiceTests.test_vmdk_source_inference_uses_url_path_and_preserves_compression"
+        },
+        {
+          "path": "console/tests/virtual_machine_service_test.py",
+          "selector": "VirtualMachineServiceTests.test_vmdk_asset_metadata_is_normalized_and_unknown_format_rejected"
         }
       ],
       "test_type": "regression",
@@ -14162,6 +14586,14 @@
         {
           "path": "console/tests/vm_snapshot_read_api_test.py",
           "selector": "VMSnapshotReadAPITestCase.test_native_restore_rejects_unscoped_or_invalid_requests_before_region"
+        },
+        {
+          "path": "console/tests/vm_snapshot_read_api_test.py",
+          "selector": "VMSnapshotReadAPITestCase.test_native_restore_advance_contract_is_optional_strict_and_readonly"
+        },
+        {
+          "path": "console/tests/vm_snapshot_read_api_test.py",
+          "selector": "VMSnapshotReadAPITestCase.test_native_restore_configuration_changed_is_safe_nonretryable_and_bilingual"
         }
       ],
       "test_type": "integration",
@@ -14270,6 +14702,25 @@
       "status": "active"
     },
     {
+      "id": "console.vm-run.plain-builder-runtime",
+      "title": "New plain disk requests consume owned Builder runtime outputs",
+      "title_zh": "New plain disk requests consume owned Builder runtime outputs",
+      "interface_type": "view_endpoint",
+      "interface": "POST /console/teams/{tenant}/apps/vm_run",
+      "code_paths": [
+        "console/views/app_create/vm_run.py",
+        "console/services/virtual_machine.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/vm_asset_instantiation_test.py",
+          "selector": "VMAssetInstantiationTests.test_new_plain_disk_requests_use_owned_build_output_and_keep_legacy_media_paths"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.vm-run.platform-runtime-guard",
       "title": "Reject VM create when VM platform is unhealthy",
       "title_zh": "虚拟机平台异常时禁止创建虚拟机组件",
@@ -14311,6 +14762,29 @@
       "status": "active"
     },
     {
+      "id": "console.vm-run.source-input-boundary",
+      "title": "Reject ambiguous and unsafe VM URL and upload sources before side effects",
+      "title_zh": "Reject ambiguous and unsafe VM URL and upload sources before side effects",
+      "interface_type": "view_endpoint",
+      "interface": "POST /console/teams/{tenant}/apps/vm_run",
+      "code_paths": [
+        "console/views/app_create/vm_run.py",
+        "console/services/virtual_machine.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/vm_asset_instantiation_test.py",
+          "selector": "VMAssetInstantiationTests.test_vm_run_sources_are_unambiguous_and_scoped_before_side_effects"
+        },
+        {
+          "path": "console/tests/virtual_machine_service_test.py",
+          "selector": "VirtualMachineServiceTests.test_vmdk_asset_metadata_is_normalized_and_unknown_format_rejected"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.vm-run.ssh-public-key-bootstrap",
       "title": "Validate Linux VM SSH bootstrap and register internal service",
       "title_zh": "校验 Linux 虚拟机 SSH 初始化并登记内网端口",
@@ -14344,6 +14818,33 @@
         {
           "path": "console/tests/virtual_machine_service_test.py",
           "selector": "VirtualMachineServiceTests.test_create_region_service_includes_ssh_attrs_and_internal_port_without_exposing_key_in_profile"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.vm-run.vmdk-source",
+      "title": "Create VMDK VM sources with explicit format and bootstrap trust boundaries",
+      "title_zh": "Create VMDK VM sources with explicit format and bootstrap trust boundaries",
+      "interface_type": "view_endpoint",
+      "interface": "POST /console/teams/{tenant}/apps/vm_run",
+      "code_paths": [
+        "console/views/app_create/vm_run.py",
+        "console/services/virtual_machine.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/vm_asset_instantiation_test.py",
+          "selector": "VMAssetInstantiationTests.test_vmdk_url_upload_and_ready_asset_keep_source_metadata_and_registry_runtime"
+        },
+        {
+          "path": "console/tests/vm_asset_instantiation_test.py",
+          "selector": "VMAssetInstantiationTests.test_vm_run_explicit_source_format_rejects_unknown_before_side_effects"
+        },
+        {
+          "path": "console/tests/vm_asset_instantiation_test.py",
+          "selector": "VMAssetInstantiationTests.test_vmdk_source_does_not_gain_ssh_or_noble_password_bootstrap_trust"
         }
       ],
       "test_type": "regression",
@@ -14762,6 +15263,31 @@
         {
           "path": "console/tests/vm_example_password_login_test.py",
           "selector": "VMExamplePasswordLoginTests.test_private_snapshot_and_failed_upgrade_rollback_keep_owner_ssh_pair"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.vm-vnc.scoped-proxy",
+      "title": "Authorize same-origin component-scoped VNC HTTP and binary WebSocket access",
+      "interface_type": "view_endpoint",
+      "interface": "ComponentVNCView and AppVMProfileView",
+      "code_paths": [
+        "console/views/vm_vnc.py",
+        "console/utils/vm_vnc_proxy.py",
+        "console/utils/vm_vnc_proxy_relay.py",
+        "console/views/app_overview.py",
+        "console/urls/__init__.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/vm_vnc_proxy_test.py",
+          "selector": "VMVNCProxyTests"
+        },
+        {
+          "path": "console/tests/vm_detail_view_test.py",
+          "selector": "ScopedVNCDetailContractTests"
         }
       ],
       "test_type": "regression",
@@ -15217,6 +15743,23 @@
       "tests": [
         {
           "path": "console/tests/vm_asset_instantiation_test.py"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.enterprise.component-health-upgrade-compatibility",
+      "title": "Platform component replica health and completion across region upgrades",
+      "interface_type": "service_method",
+      "interface": "console.services.enterprise_services.EnterpriseServices.get_rbdcomponents",
+      "code_paths": [
+        "console/services/enterprise_services.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/enterprise_component_health_test.py",
+          "selector": "EnterpriseComponentHealthTest"
         }
       ],
       "test_type": "regression",
